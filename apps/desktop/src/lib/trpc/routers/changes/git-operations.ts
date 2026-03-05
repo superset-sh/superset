@@ -154,7 +154,6 @@ function extractPRUrl(text: string): string | null {
 
 async function findExistingOpenPRUrl(
 	worktreePath: string,
-	branch: string,
 ): Promise<string | null> {
 	// Prefer tracking-based lookup first for fork/branch-name mismatch scenarios.
 	try {
@@ -185,10 +184,31 @@ async function findExistingOpenPRUrl(
 				message,
 			);
 		}
-		// Fallback to head-branch search below.
+		// Fallback to commit-SHA search below.
 	}
 
+	const byHeadCommit = await findOpenPRByHeadCommit(worktreePath);
+	if (byHeadCommit) {
+		return byHeadCommit;
+	}
+
+	return null;
+}
+
+async function findOpenPRByHeadCommit(
+	worktreePath: string,
+): Promise<string | null> {
 	try {
+		const { stdout: headOutput } = await execWithShellEnv(
+			"git",
+			["rev-parse", "HEAD"],
+			{ cwd: worktreePath },
+		);
+		const headSha = headOutput.trim();
+		if (!headSha) {
+			return null;
+		}
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
@@ -197,22 +217,25 @@ async function findExistingOpenPRUrl(
 				"--state",
 				"open",
 				"--search",
-				`head:${branch}`,
+				`${headSha} is:pr`,
 				"--limit",
 				"20",
 				"--json",
-				"url",
-				"--jq",
-				'.[0].url // ""',
+				"url,headRefOid",
 			],
 			{ cwd: worktreePath },
 		);
-		const url = stdout.trim();
-		return url || null;
+
+		const parsed = JSON.parse(stdout) as Array<{
+			url?: string;
+			headRefOid?: string;
+		}>;
+		const match = parsed.find((candidate) => candidate.headRefOid === headSha);
+		return match?.url?.trim() || null;
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		console.warn(
-			"[git/findExistingOpenPRUrl] Failed head-branch PR lookup:",
+			"[git/findExistingOpenPRUrl] Failed commit-based PR lookup:",
 			message,
 		);
 		return null;
@@ -424,10 +447,7 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 
-					const existingPRUrl = await findExistingOpenPRUrl(
-						input.worktreePath,
-						branch,
-					);
+					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
 					if (existingPRUrl) {
 						await openPRInBrowser(input.worktreePath, existingPRUrl);
 						await fetchCurrentBranch(git);
@@ -448,7 +468,6 @@ export const createGitOperationsRouter = () => {
 						// recover by opening that existing PR instead of failing.
 						const recoveredPRUrl = await findExistingOpenPRUrl(
 							input.worktreePath,
-							branch,
 						);
 						if (recoveredPRUrl) {
 							await openPRInBrowser(input.worktreePath, recoveredPRUrl);
