@@ -128,9 +128,13 @@ export function GroupItem({
 	);
 
 	useEffect(() => {
-		if (isEditing && inputRef.current) {
-			inputRef.current.focus();
-			inputRef.current.select();
+		if (isEditing) {
+			// Use rAF to ensure focus happens after context menu closes
+			const id = requestAnimationFrame(() => {
+				inputRef.current?.focus();
+				inputRef.current?.select();
+			});
+			return () => cancelAnimationFrame(id);
 		}
 	}, [isEditing]);
 
