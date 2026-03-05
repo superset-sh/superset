@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { StartWorkingDialog } from "./components/StartWorkingDialog";
 
 export type TasksSearch = {
 	tab?: "all" | "active" | "backlog";
@@ -18,5 +19,10 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 });
 
 function TasksLayout() {
-	return <Outlet />;
+	return (
+		<>
+			<Outlet />
+			<StartWorkingDialog />
+		</>
+	);
 }
