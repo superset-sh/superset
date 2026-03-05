@@ -240,23 +240,21 @@ describe("createPersistentHashHistory", () => {
 		});
 
 		it("stores non-negative cappedIndex when current position is in the dropped portion", () => {
-			// Build 111 entries, then navigate back to an early position before
-			// the overflow, then push — triggering persistState with index 5
-			// while entries.length = 112. The bug would store cappedIndex = -6;
-			// the fix clamps it to 0.
+			// Build 111 entries (index 0="/", 1-110="/page/N"), then navigate
+			// back to index 5. At this point entries.length=111 and index=5.
+			// persistState caps to 100 entries, computing:
+			//   cappedIndex = 5 - (111 - 100) = -6
+			// Without the Math.max(0, ...) fix this would store a negative index.
 			const history = createPersistentHashHistory();
 			for (let i = 1; i <= 110; i++) {
 				history.push(`/page/${i}`);
 			}
-			// Navigate back to index 5 (entries[5] = "/page/5")
+			// Navigate back to index 5 — go() calls persistState internally
 			history.go(-105);
 
-			// Push a new entry — this triggers persistState with index 6, entries.length 112
-			// (index 6 is still in the dropped portion after capping to 100)
-			history.push("/new-entry");
-
+			// Check localStorage immediately after go(), before any push that
+			// would truncate entries and sidestep the overflow path.
 			const stored = JSON.parse(storage.get("router-history") ?? "{}");
-			// The stored index must never be negative
 			expect(stored.index).toBeGreaterThanOrEqual(0);
 		});
 	});
