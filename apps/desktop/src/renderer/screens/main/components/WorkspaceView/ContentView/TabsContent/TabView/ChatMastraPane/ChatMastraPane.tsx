@@ -6,7 +6,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { env } from "renderer/env.renderer";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Tab } from "renderer/stores/tabs/types";
+import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
@@ -34,11 +34,13 @@ interface ChatMastraPaneProps {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneVertical: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
@@ -148,6 +150,14 @@ export function ChatMastraPane({
 					<TabContentContextMenu
 						onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 						onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+						onSplitWithNewChat={() =>
+							splitPaneVertical(tabId, paneId, path, {
+								paneType: "chat-mastra",
+							})
+						}
+						onSplitWithNewBrowser={() =>
+							splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+						}
 						onClosePane={() => removePane(paneId)}
 						currentTabId={tabId}
 						availableTabs={availableTabs}

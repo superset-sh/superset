@@ -7,7 +7,7 @@ import {
 } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
-import type { Tab } from "renderer/stores/tabs/types";
+import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
 import { BasePaneWindow, PaneToolbarActions } from "./components";
@@ -27,11 +27,13 @@ interface TabPaneProps {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneVertical: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
@@ -115,6 +117,12 @@ export function TabPane({
 			<TabContentContextMenu
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+				onSplitWithNewChat={() =>
+					splitPaneVertical(tabId, paneId, path, { paneType: "chat-mastra" })
+				}
+				onSplitWithNewBrowser={() =>
+					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+				}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
 				onScrollToBottom={handleScrollToBottom}

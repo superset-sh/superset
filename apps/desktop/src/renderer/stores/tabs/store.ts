@@ -1119,8 +1119,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1163,7 +1174,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});
@@ -1177,8 +1188,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1221,7 +1243,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});
