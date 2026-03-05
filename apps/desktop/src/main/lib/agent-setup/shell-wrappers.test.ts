@@ -378,6 +378,98 @@ echo wrapper
 		expect(getShellArgs("powershell")).toEqual([]);
 	});
 
+	it("zshrc registers precmd hook to re-assert BIN_DIR after PATH-resetting tools like mise", () => {
+		createZshWrapper(TEST_PATHS);
+		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
+		expect(zshrc).toContain("precmd_functions+=(_superset_prepend_bin)");
+	});
+
+	it("zsh BIN_DIR survives a mise-style precmd that resets PATH", () => {
+		// Skip if zsh is not available
+		try {
+			execFileSync("zsh", ["-lc", "exit 0"], { stdio: "ignore" });
+		} catch (error) {
+			const errorCode =
+				typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				typeof error.code === "string"
+					? error.code
+					: "";
+			if (errorCode === "ENOENT") return;
+			throw error;
+		}
+
+		const integrationRoot = path.join(TEST_ROOT, "mise-precmd-repro");
+		const integrationBinDir = path.join(integrationRoot, "superset-bin");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(systemBinDir, "claude"),
+			"#!/usr/bin/env bash\necho system\n",
+		);
+		chmodSync(path.join(systemBinDir, "claude"), 0o755);
+
+		writeFileSync(
+			path.join(integrationBinDir, "claude"),
+			"#!/usr/bin/env bash\necho wrapper\n",
+		);
+		chmodSync(path.join(integrationBinDir, "claude"), 0o755);
+
+		// Simulate `mise activate zsh`: user .zshrc registers a precmd that resets
+		// PATH to system-only dirs, evicting superset's bin dir.
+		writeFileSync(
+			path.join(homeDir, ".zshrc"),
+			`_mise_hook_precmd() {
+  export PATH="${systemBinDir}:/usr/bin:/bin"
+}
+precmd_functions+=(_mise_hook_precmd)
+`,
+		);
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		// Source the superset .zshrc wrapper, then manually invoke all precmd
+		// functions in order (simulating what zsh does before each prompt), then
+		// check which claude binary is found.
+		const output = execFileSync(
+			"zsh",
+			[
+				"-ic",
+				`source "${path.join(integrationZshDir, ".zshrc")}"; for fn in "$\{precmd_functions[@]}"; do "$fn" 2>/dev/null; done; type claude | head -1`,
+			],
+			{
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: `${systemBinDir}:/usr/bin:/bin`,
+					SUPERSET_ORIG_ZDOTDIR: homeDir,
+					ZDOTDIR: integrationZshDir,
+				},
+			},
+		).trim();
+
+		const lines = output
+			.split("\n")
+			.map((l) => l.trim())
+			.filter(Boolean);
+		const typeLine = lines[lines.length - 1] ?? "";
+		expect(typeLine).toContain(integrationBinDir);
+	});
+
 	describe("fish shell", () => {
 		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
 			const args = getCommandShellArgs(

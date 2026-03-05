@@ -140,6 +140,10 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 ${buildPathPrependFunction(paths.BIN_DIR)}
+# Re-assert BIN_DIR before each prompt so tools like mise/asdf that use precmd
+# hooks to reconstruct PATH don't evict the superset wrapper.
+typeset -ga precmd_functions
+[[ \${precmd_functions[(I)_superset_prepend_bin]} -eq 0 ]] && precmd_functions+=(_superset_prepend_bin)
 rehash 2>/dev/null || true
 # Restore ZDOTDIR so our .zlogin runs after user's .zlogin
 export ZDOTDIR="${paths.ZSH_DIR}"
