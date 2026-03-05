@@ -16,7 +16,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { useAgentPresets } from "renderer/react-query/agent-presets";
-import { getDefaultAgentPresets } from "shared/utils/agent-preset-settings";
+import { getDefaultAgentPreset } from "shared/utils/agent-preset-settings";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -305,50 +305,40 @@ export function AgentSettings({ visibleItems }: AgentSettingsProps) {
 		});
 	};
 
-	const handleResetDefaults = () => {
+	const handleResetPresetToDefault = (presetId: AgentPreset["id"]) => {
 		if (updatePreset.isPending) return;
 
+		const preset = localPresets.find((item) => item.id === presetId);
 		const shouldReset = window.confirm(
-			"Reset all agent commands, prompts, toggles, and templates to defaults?",
+			`Reset ${preset?.label ?? "this agent"} to default commands, prompts, and template?`,
 		);
 		if (!shouldReset) return;
 
-		const defaults = getDefaultAgentPresets();
-		setLocalPresets(defaults);
-		for (const preset of defaults) {
-			mutatePresetWithRollback({
-				presetId: preset.id,
-				patch: {
-					label: preset.label,
-					description: preset.description ?? null,
-					command: preset.command,
-					promptCommand: preset.promptCommand,
-					promptCommandSuffix: preset.promptCommandSuffix ?? null,
-					taskPromptTemplate: preset.taskPromptTemplate,
-					enabled: preset.enabled ?? true,
-				},
-			});
-		}
+		const defaults = getDefaultAgentPreset(presetId);
+		setLocalPresets((current) =>
+			current.map((item) => (item.id === presetId ? defaults : item)),
+		);
+		mutatePresetWithRollback({
+			presetId,
+			patch: {
+				label: defaults.label,
+				description: defaults.description ?? null,
+				command: defaults.command,
+				promptCommand: defaults.promptCommand,
+				promptCommandSuffix: defaults.promptCommandSuffix ?? null,
+				taskPromptTemplate: defaults.taskPromptTemplate,
+				enabled: defaults.enabled ?? true,
+			},
+		});
 	};
 
 	return (
 		<div className="p-6 max-w-7xl w-full">
-			<div className="mb-8 flex items-start justify-between gap-3">
-				<div>
-					<h2 className="text-xl font-semibold">Agent</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Configure agent dropdown commands and task prompt templates
-					</p>
-				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={handleResetDefaults}
-					disabled={updatePreset.isPending}
-				>
-					Reset defaults
-				</Button>
+			<div className="mb-8">
+				<h2 className="text-xl font-semibold">Agent</h2>
+				<p className="text-sm text-muted-foreground mt-1">
+					Configure agent dropdown commands and task prompt templates
+				</p>
 			</div>
 
 			{showCards && (
@@ -396,6 +386,17 @@ export function AgentSettings({ visibleItems }: AgentSettingsProps) {
 
 									<CollapsibleContent>
 										<div className="space-y-4 px-4 pb-4">
+											<div className="flex justify-end">
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={() => handleResetPresetToDefault(preset.id)}
+													disabled={updatePreset.isPending}
+												>
+													Reset to defaults
+												</Button>
+											</div>
 											{showAgents && (
 												<>
 													<div className="space-y-1.5">
