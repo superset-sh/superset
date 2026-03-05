@@ -1,0 +1,1 @@
+ALTER TABLE "auth"."organizations" ADD COLUMN "allowed_domains" text[] DEFAULT '{}' NOT NULL;

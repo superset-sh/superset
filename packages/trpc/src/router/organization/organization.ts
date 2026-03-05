@@ -8,7 +8,7 @@ import {
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
@@ -105,6 +105,20 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const domain = ctx.session.user.email.split("@")[1]?.toLowerCase();
+			if (domain) {
+				const domainOrg = await db.query.organizations.findFirst({
+					where: sql`${organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
+				});
+				if (domainOrg) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Your account is managed by your organization. Contact your admin to create a new organization.",
+					});
+				}
+			}
+
 			const [organization] = await db
 				.insert(organizations)
 				.values({
@@ -272,6 +286,45 @@ export const organizationRouter = {
 					message: "Failed to upload logo",
 				});
 			}
+		}),
+
+	updateAllowedDomains: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				allowedDomains: z
+					.array(
+						z
+							.string()
+							.toLowerCase()
+							.regex(
+								/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/,
+								"Invalid domain format",
+							),
+					)
+					.max(20, "Maximum 20 domains allowed"),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: input.organizationId,
+			});
+
+			if (!membership || membership.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners can manage allowed domains",
+				});
+			}
+
+			const [updated] = await db
+				.update(organizations)
+				.set({ allowedDomains: input.allowedDomains })
+				.where(eq(organizations.id, input.organizationId))
+				.returning();
+
+			return updated;
 		}),
 
 	delete: protectedProcedure
