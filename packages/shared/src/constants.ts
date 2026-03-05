@@ -60,4 +60,6 @@ export const FEATURE_FLAGS = {
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
 	ELECTRIC_CLOUD: "electric-cloud",
+	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
+	DISABLE_REMOTE_AGENT: "disable-remote-agent",
 } as const;
