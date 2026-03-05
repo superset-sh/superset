@@ -57,14 +57,10 @@ export function UserMessage({
 }: UserMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 
-	const handleAttachmentClick = useCallback(
-		(url: string, filename?: string) => {
+	const handleImageClick = useCallback(
+		(url: string) => {
 			if (!workspaceId) return;
-			addFileViewerPane(workspaceId, {
-				filePath: url,
-				isPinned: true,
-				...(filename ? { displayName: filename } : {}),
-			});
+			addFileViewerPane(workspaceId, { filePath: url, isPinned: true });
 		},
 		[workspaceId, addFileViewerPane],
 	);
@@ -155,7 +151,7 @@ export function UserMessage({
 								data={att.data}
 								mediaType={att.mediaType}
 								filename={att.filename}
-								onClick={() => handleAttachmentClick(att.data, att.filename)}
+								onClick={() => handleImageClick(att.data)}
 							/>
 						))}
 					</div>
