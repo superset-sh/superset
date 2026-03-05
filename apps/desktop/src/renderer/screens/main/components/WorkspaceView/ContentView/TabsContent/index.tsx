@@ -5,7 +5,11 @@ import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
-export function TabsContent() {
+interface TabsContentProps {
+	onOpenQuickOpen: () => void;
+}
+
+export function TabsContent({ onOpenQuickOpen }: TabsContentProps) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -34,7 +38,11 @@ export function TabsContent() {
 
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? <TabView tab={tabToRender} /> : <EmptyTabView />}
+			{tabToRender ? (
+				<TabView tab={tabToRender} />
+			) : (
+				<EmptyTabView onOpenQuickOpen={onOpenQuickOpen} />
+			)}
 		</div>
 	);
 }

@@ -10,7 +10,11 @@ import { ContentView } from "../ContentView";
 import { useBrowserLifecycle } from "../hooks/useBrowserLifecycle";
 import { RightSidebar } from "../RightSidebar";
 
-export function WorkspaceLayout() {
+interface WorkspaceLayoutProps {
+	onOpenQuickOpen: () => void;
+}
+
+export function WorkspaceLayout({ onOpenQuickOpen }: WorkspaceLayoutProps) {
 	useBrowserLifecycle();
 	const {
 		isSidebarOpen,
@@ -26,7 +30,11 @@ export function WorkspaceLayout() {
 	return (
 		<ScrollProvider>
 			<div className="flex-1 min-w-0 overflow-hidden">
-				{isExpanded ? <ChangesContent /> : <ContentView />}
+				{isExpanded ? (
+					<ChangesContent />
+				) : (
+					<ContentView onOpenQuickOpen={onOpenQuickOpen} />
+				)}
 			</div>
 			{isSidebarOpen && (
 				<ResizablePanel

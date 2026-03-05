@@ -384,24 +384,18 @@ function WorkspacePage() {
 		workspaceId,
 		worktreePath: workspace?.worktreePath,
 	});
-	useAppHotkey(
-		"QUICK_OPEN",
-		() => {
-			keywordSearch.handleOpenChange(false);
-			commandPalette.toggle();
-		},
-		undefined,
-		[commandPalette.toggle, keywordSearch.handleOpenChange],
-	);
-	useAppHotkey(
-		"KEYWORD_SEARCH",
-		() => {
-			commandPalette.handleOpenChange(false);
-			keywordSearch.toggle();
-		},
-		undefined,
-		[commandPalette.handleOpenChange, keywordSearch.toggle],
-	);
+	const handleQuickOpen = useCallback(() => {
+		keywordSearch.handleOpenChange(false);
+		commandPalette.toggle();
+	}, [commandPalette.toggle, keywordSearch.handleOpenChange]);
+	const handleKeywordSearch = useCallback(() => {
+		commandPalette.handleOpenChange(false);
+		keywordSearch.toggle();
+	}, [commandPalette.handleOpenChange, keywordSearch.toggle]);
+	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
+	useAppHotkey("KEYWORD_SEARCH", handleKeywordSearch, undefined, [
+		handleKeywordSearch,
+	]);
 
 	// Toggle changes sidebar (⌘L)
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
@@ -550,7 +544,7 @@ function WorkspacePage() {
 						isInterrupted={hasIncompleteInit && !isInitializing}
 					/>
 				) : (
-					<WorkspaceLayout />
+					<WorkspaceLayout onOpenQuickOpen={handleQuickOpen} />
 				)}
 			</div>
 			<CommandPalette
