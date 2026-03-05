@@ -741,7 +741,9 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName ||
+							options.filePath.split("/").pop() ||
+							options.filePath;
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,

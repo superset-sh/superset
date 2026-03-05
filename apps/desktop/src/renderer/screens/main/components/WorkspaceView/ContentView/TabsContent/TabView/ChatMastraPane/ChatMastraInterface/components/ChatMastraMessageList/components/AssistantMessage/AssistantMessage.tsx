@@ -2,7 +2,8 @@ import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileIcon, FileSearchIcon, FileTextIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback } from "react";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import { StreamingMessageText } from "../../../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ReasoningBlock } from "../../../../../../ChatPane/ChatInterface/components/ReasoningBlock";
@@ -123,6 +124,18 @@ export function AssistantMessage({
 	previewToolParts = [],
 	footer,
 }: AssistantMessageProps) {
+	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const handleAttachmentClick = useCallback(
+		(url: string, filename?: string) => {
+			if (!workspaceId) return;
+			addFileViewerPane(workspaceId, {
+				filePath: url,
+				isPinned: true,
+				...(filename ? { displayName: filename } : {}),
+			});
+		},
+		[workspaceId, addFileViewerPane],
+	);
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
 	for (let partIndex = 0; partIndex < message.content.length; partIndex++) {
@@ -165,13 +178,23 @@ export function AssistantMessage({
 					(rawPart.data as string) || (rawPart.image as string) || "";
 				if (mime.startsWith("image/") && data) {
 					nodes.push(
-						<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
+						<button
+							type="button"
+							key={`${message.id}-${partIndex}`}
+							className="max-w-[85%] cursor-pointer"
+							onClick={() =>
+								handleAttachmentClick(
+									data,
+									rawPart.filename as string | undefined,
+								)
+							}
+						>
 							<img
 								src={data}
 								alt="Generated"
 								className="max-h-48 rounded-lg object-contain"
 							/>
-						</div>,
+						</button>,
 					);
 				} else if (data) {
 					nodes.push(
