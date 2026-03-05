@@ -14,7 +14,10 @@ import {
 } from "../../../../../components/TasksView/components/shared/StatusIcon";
 import { StatusMenuItems } from "../../../../../components/TasksView/components/shared/StatusMenuItems";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { compareStatusesForDropdown } from "../../../../../components/TasksView/utils/sorting";
+import {
+	compareStatusesForDropdown,
+	deduplicateStatuses,
+} from "../../../../../components/TasksView/utils/sorting";
 
 interface StatusPropertyProps {
 	task: TaskWithStatus;
@@ -33,7 +36,7 @@ export function StatusProperty({ task }: StatusPropertyProps) {
 	const currentStatus = task.status;
 
 	const sortedStatuses = useMemo(() => {
-		return statuses.sort(compareStatusesForDropdown);
+		return deduplicateStatuses(statuses.sort(compareStatusesForDropdown));
 	}, [statuses]);
 
 	const handleSelectStatus = (newStatus: SelectTaskStatus) => {
