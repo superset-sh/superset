@@ -9,9 +9,21 @@ export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
 	try {
-		const credentials =
-			getCredentialsFromConfig() ?? getCredentialsFromKeychain();
-		if (!credentials) return null;
+		const configCredentials = getCredentialsFromConfig();
+		const keychainCredentials = configCredentials
+			? null
+			: getCredentialsFromKeychain();
+		const credentials = configCredentials ?? keychainCredentials;
+		const credentialSource = configCredentials ? "config" : "keychain";
+
+		console.debug("[workspace-ai-name] generate start", {
+			promptLength: prompt.length,
+			credentialSource: credentials ? credentialSource : null,
+		});
+		if (!credentials) {
+			console.warn("[workspace-ai-name] missing credentials");
+			return null;
+		}
 
 		const anthropic = createAnthropic({ apiKey: credentials.apiKey });
 
@@ -27,8 +39,14 @@ export async function generateWorkspaceNameFromPrompt(
 			tracingContext: {},
 		});
 
-		return title?.trim() || null;
-	} catch {
+		const trimmedTitle = title?.trim() || null;
+		console.debug("[workspace-ai-name] generate complete", {
+			hasTitle: Boolean(trimmedTitle),
+			titleLength: trimmedTitle?.length ?? 0,
+		});
+		return trimmedTitle;
+	} catch (error) {
+		console.warn("[workspace-ai-name] generate failed", error);
 		return null;
 	}
 }

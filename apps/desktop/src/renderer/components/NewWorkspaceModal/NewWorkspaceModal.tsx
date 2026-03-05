@@ -335,17 +335,39 @@ export function NewWorkspaceModal() {
 			);
 
 			if (prompt && !result.wasExisting) {
-				generateName
-					.mutateAsync({ prompt })
-					.then((res) => {
-						if (res.name) {
-							updateWorkspace.mutate({
+				void (async () => {
+					console.debug("[new-workspace/title] generateName started", {
+						workspaceId: result.workspace.id,
+						promptLength: prompt.length,
+					});
+					try {
+						const res = await generateName.mutateAsync({ prompt });
+						console.debug("[new-workspace/title] generateName completed", {
+							workspaceId: result.workspace.id,
+							hasName: Boolean(res.name),
+							nameLength: res.name?.length ?? 0,
+						});
+						if (!res.name) return;
+
+						try {
+							await updateWorkspace.mutateAsync({
 								id: result.workspace.id,
 								patch: { name: res.name, isUnnamed: false },
 							});
+							console.debug("[new-workspace/title] workspace renamed", {
+								workspaceId: result.workspace.id,
+								nameLength: res.name.length,
+							});
+						} catch (error) {
+							console.warn(
+								"[new-workspace/title] workspace rename failed",
+								error,
+							);
 						}
-					})
-					.catch(() => {});
+					} catch (error) {
+						console.warn("[new-workspace/title] generateName failed", error);
+					}
+				})();
 			}
 
 			const launchRequest = launchRequestTemplate
