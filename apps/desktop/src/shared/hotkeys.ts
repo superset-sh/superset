@@ -505,13 +505,13 @@ export const HOTKEYS = {
 		},
 	}),
 	SPLIT_WITH_BROWSER: defineHotkey({
-		keys: "meta+alt+e",
+		keys: "meta+shift+s",
 		label: "Split with New Browser",
 		category: "Layout",
 		description: "Split the current pane and open a new browser pane",
 		defaults: {
-			win32: "ctrl+shift+alt+e",
-			linux: "ctrl+shift+alt+e",
+			win32: "ctrl+shift+alt+s",
+			linux: "ctrl+shift+alt+s",
 		},
 	}),
 	CLOSE_PANE: defineHotkey({
