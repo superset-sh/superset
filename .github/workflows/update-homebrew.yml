@@ -1,0 +1,70 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-cask:
+    name: Update Homebrew Cask
+    runs-on: macos-latest
+    # Only run for desktop releases
+    if: startsWith(github.event.release.tag_name, 'desktop-v')
+
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#desktop-v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Download DMG and calculate SHA256
+        id: sha256
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DMG_URL="https://github.com/superset-sh/superset/releases/download/desktop-v${VERSION}/Superset-${VERSION}-arm64.dmg"
+
+          echo "Downloading from: $DMG_URL"
+          curl -L -o superset.dmg "$DMG_URL"
+
+          SHA256=$(shasum -a 256 superset.dmg | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "Calculated SHA256: $SHA256"
+
+      - name: Checkout homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: superset-sh/homebrew-superset
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Cask formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA256="${{ steps.sha256.outputs.sha256 }}"
+          CASK_FILE="homebrew-tap/Casks/superset.rb"
+
+          echo "Updating cask to version $VERSION with SHA256 $SHA256"
+
+          # Update version
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" "$CASK_FILE"
+
+          # Update SHA256
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" "$CASK_FILE"
+
+          echo "Updated cask file:"
+          cat "$CASK_FILE"
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          VERSION="${{ steps.version.outputs.version }}"
+
+          git add Casks/superset.rb
+          git diff --staged --quiet || git commit -m "Update superset to ${VERSION}"
+          git push
