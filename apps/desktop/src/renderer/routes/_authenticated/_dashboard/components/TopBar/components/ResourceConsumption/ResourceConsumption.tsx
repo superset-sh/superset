@@ -1,39 +1,53 @@
+import { cn } from "@superset/ui/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-	HiOutlineArrowPath,
-	HiOutlineChevronDown,
-	HiOutlineChevronRight,
-	HiOutlineCpuChip,
-} from "react-icons/hi2";
+import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { AppResourceSection } from "./components/AppResourceSection";
+import { MetricBadge } from "./components/MetricBadge";
+import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
+import type { UsageValues } from "./types";
+import { formatCpu, formatMemory, formatPercent } from "./utils/formatters";
+import { normalizeResourceMetricsSnapshot } from "./utils/normalizeSnapshot";
+import {
+	getTrackedHostMemorySeverity,
+	getUsageClasses,
+	getUsageSeverity,
+} from "./utils/resourceSeverity";
 
-function formatMemory(bytes: number): string {
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-	if (bytes < 1024 * 1024 * 1024)
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+function getTotalUsage(
+	cpu: number | undefined,
+	memory: number | undefined,
+): UsageValues {
+	return {
+		cpu: cpu ?? 0,
+		memory: memory ?? 0,
+	};
 }
 
-function formatCpu(percent: number): string {
-	return `${percent.toFixed(1)}%`;
+function getTrackedMemorySharePercent(
+	totalMemory: number,
+	hostTotalMemory: number,
+): number {
+	if (hostTotalMemory <= 0) return 0;
+	return (totalMemory / hostTotalMemory) * 100;
 }
-
-const METRIC_COLS = "flex items-center shrink-0 tabular-nums";
-const CPU_COL = "w-12 text-right";
-const MEM_COL = "w-16 text-right";
 
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
+	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
+		new Set(),
+	);
 	const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(
 		new Set(),
 	);
+
 	const navigate = useNavigate();
-	const panes = useTabsStore((s) => s.panes);
-	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const panes = useTabsStore((state) => state.panes);
+	const setActiveTab = useTabsStore((state) => state.setActiveTab);
+	const setFocusedPane = useTabsStore((state) => state.setFocusedPane);
 
 	const { data: enabled } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
@@ -42,12 +56,16 @@ export function ResourceConsumption() {
 		data: snapshot,
 		refetch,
 		isFetching,
-	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(undefined, {
-		enabled: enabled === true,
-		refetchInterval: open ? 2000 : false,
-	});
+	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(
+		{ mode: open ? "interactive" : "idle" },
+		{
+			enabled: enabled === true,
+			refetchInterval: open ? 2000 : 15000,
+		},
+	);
 
 	if (!enabled) return null;
+	const normalizedSnapshot = normalizeResourceMetricsSnapshot(snapshot);
 
 	const getPaneName = (paneId: string): string => {
 		const pane = panes[paneId];
@@ -81,23 +99,71 @@ export function ResourceConsumption() {
 		});
 	};
 
+	const toggleProject = (projectId: string) => {
+		setCollapsedProjects((prev) => {
+			const next = new Set(prev);
+			if (next.has(projectId)) {
+				next.delete(projectId);
+			} else {
+				next.add(projectId);
+			}
+			return next;
+		});
+	};
+
+	const totalUsage = getTotalUsage(
+		normalizedSnapshot?.totalCpu,
+		normalizedSnapshot?.totalMemory,
+	);
+	const totalSeverity = getUsageSeverity(totalUsage, totalUsage, {
+		includeShare: false,
+	});
+	const totalUsageClasses = getUsageClasses(totalSeverity);
+
+	const trackedMemorySharePercent = normalizedSnapshot
+		? getTrackedMemorySharePercent(
+				normalizedSnapshot.totalMemory,
+				normalizedSnapshot.host.totalMemory,
+			)
+		: 0;
+	const trackedHostMemorySeverity = getTrackedHostMemorySeverity(
+		trackedMemorySharePercent,
+	);
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+					className={cn(
+						"no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring",
+						totalSeverity === "elevated" &&
+							"border-amber-500/25 bg-amber-500/8 hover:bg-amber-500/12",
+						totalSeverity === "high" &&
+							"border-destructive/25 bg-destructive/8 hover:bg-destructive/12",
+					)}
 					aria-label="Resource consumption"
 				>
-					<HiOutlineCpuChip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-					{snapshot && (
-						<span className="text-xs text-muted-foreground font-medium tabular-nums">
-							{formatMemory(snapshot.totalMemory)}
+					<HiOutlineCpuChip
+						className={cn(
+							"h-3.5 w-3.5 shrink-0",
+							totalUsageClasses.metricClass,
+						)}
+					/>
+					{normalizedSnapshot && (
+						<span
+							className={cn(
+								"text-xs font-medium tabular-nums",
+								totalUsageClasses.metricClass,
+							)}
+						>
+							{formatMemory(normalizedSnapshot.totalMemory)}
 						</span>
 					)}
 				</button>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-80 p-0">
+
+			<PopoverContent align="start" className="w-[26rem] p-0">
 				<div className="p-3 border-b border-border">
 					<div className="flex items-center justify-between">
 						<h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -114,159 +180,59 @@ export function ResourceConsumption() {
 							/>
 						</button>
 					</div>
-					{snapshot && (
-						<div className="mt-2 flex items-center gap-4">
-							<MetricBadge label="CPU" value={formatCpu(snapshot.totalCpu)} />
+
+					{normalizedSnapshot && (
+						<div className="mt-2 grid grid-cols-3 gap-2">
+							<MetricBadge
+								label="CPU"
+								value={formatCpu(normalizedSnapshot.totalCpu)}
+								severity={totalSeverity}
+								tooltip="Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
+							/>
 							<MetricBadge
 								label="Memory"
-								value={formatMemory(snapshot.totalMemory)}
+								value={formatMemory(normalizedSnapshot.totalMemory)}
+								severity={totalSeverity}
+								tooltip="Resident memory used by Superset and monitored terminal process trees. If this keeps climbing without dropping, a workspace process may be retaining memory. High values increase swap risk and can cause stutter."
+							/>
+							<MetricBadge
+								label="RAM Share"
+								value={formatPercent(trackedMemorySharePercent)}
+								severity={trackedHostMemorySeverity}
+								tooltip="Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 							/>
 						</div>
 					)}
 				</div>
 
 				<div className="max-h-[50vh] overflow-y-auto">
-					{snapshot && (
-						<div className="border-b border-border/50">
-							<div className="px-3 py-2 flex items-center justify-between">
-								<span className="text-xs font-medium min-w-0 truncate">
-									Superset App
-								</span>
-								<div className={`${METRIC_COLS} text-xs text-muted-foreground`}>
-									<span className={CPU_COL}>{formatCpu(snapshot.app.cpu)}</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.memory)}
-									</span>
-								</div>
-							</div>
-							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
-									Main
-								</span>
-								<div
-									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-								>
-									<span className={CPU_COL}>
-										{formatCpu(snapshot.app.main.cpu)}
-									</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.main.memory)}
-									</span>
-								</div>
-							</div>
-							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
-									Renderer
-								</span>
-								<div
-									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-								>
-									<span className={CPU_COL}>
-										{formatCpu(snapshot.app.renderer.cpu)}
-									</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.renderer.memory)}
-									</span>
-								</div>
-							</div>
-							{(snapshot.app.other.cpu > 0 ||
-								snapshot.app.other.memory > 0) && (
-								<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-									<span className="text-[11px] text-muted-foreground min-w-0 truncate">
-										Other
-									</span>
-									<div
-										className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-									>
-										<span className={CPU_COL}>
-											{formatCpu(snapshot.app.other.cpu)}
-										</span>
-										<span className={MEM_COL}>
-											{formatMemory(snapshot.app.other.memory)}
-										</span>
-									</div>
-								</div>
-							)}
-						</div>
+					{normalizedSnapshot && (
+						<AppResourceSection
+							app={normalizedSnapshot.app}
+							totalUsage={totalUsage}
+						/>
 					)}
 
-					{snapshot?.workspaces.map((ws) => {
-						const isCollapsed = collapsedWorkspaces.has(ws.workspaceId);
-						return (
-							<div
-								key={ws.workspaceId}
-								className="border-b border-border/50 last:border-b-0"
-							>
-								<div className="flex items-center">
-									{ws.sessions.length > 0 && (
-										<button
-											type="button"
-											onClick={() => toggleWorkspace(ws.workspaceId)}
-											className="pl-2 py-2 pr-0.5 hover:bg-muted/50 transition-colors"
-											aria-label={
-												isCollapsed ? "Expand workspace" : "Collapse workspace"
-											}
-										>
-											{isCollapsed ? (
-												<HiOutlineChevronRight className="h-3 w-3 text-muted-foreground" />
-											) : (
-												<HiOutlineChevronDown className="h-3 w-3 text-muted-foreground" />
-											)}
-										</button>
-									)}
-									<button
-										type="button"
-										onClick={() => navigateToWorkspace(ws.workspaceId)}
-										className={`flex-1 min-w-0 py-2 pr-3 flex items-center justify-between hover:bg-muted/50 transition-colors ${ws.sessions.length > 0 ? "pl-1" : "pl-3"}`}
-									>
-										<span className="text-xs font-medium truncate min-w-0 mr-2">
-											{ws.workspaceName}
-										</span>
-										<div
-											className={`${METRIC_COLS} text-xs text-muted-foreground`}
-										>
-											<span className={CPU_COL}>{formatCpu(ws.cpu)}</span>
-											<span className={MEM_COL}>{formatMemory(ws.memory)}</span>
-										</div>
-									</button>
-								</div>
+					{normalizedSnapshot && (
+						<WorkspaceResourceSection
+							workspaces={normalizedSnapshot.workspaces}
+							collapsedProjects={collapsedProjects}
+							toggleProject={toggleProject}
+							collapsedWorkspaces={collapsedWorkspaces}
+							toggleWorkspace={toggleWorkspace}
+							navigateToWorkspace={navigateToWorkspace}
+							navigateToPane={navigateToPane}
+							getPaneName={getPaneName}
+						/>
+					)}
 
-								{!isCollapsed &&
-									ws.sessions.map((session) => (
-										<button
-											type="button"
-											key={session.sessionId}
-											onClick={() =>
-												navigateToPane(ws.workspaceId, session.paneId)
-											}
-											className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
-										>
-											<span className="text-[11px] text-muted-foreground truncate min-w-0 mr-2">
-												{getPaneName(session.paneId)}
-											</span>
-											<div
-												className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-											>
-												<span className={CPU_COL}>
-													{formatCpu(session.cpu)}
-												</span>
-												<span className={MEM_COL}>
-													{formatMemory(session.memory)}
-												</span>
-											</div>
-										</button>
-									))}
-							</div>
-						);
-					})}
-
-					{snapshot && snapshot.workspaces.length === 0 && (
+					{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							No active terminal sessions
 						</div>
 					)}
 
-					{!snapshot && (
+					{!normalizedSnapshot && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							Loading...
 						</div>
@@ -274,14 +240,5 @@ export function ResourceConsumption() {
 				</div>
 			</PopoverContent>
 		</Popover>
-	);
-}
-
-function MetricBadge({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="flex items-center gap-1.5">
-			<span className="text-xs text-muted-foreground">{label}</span>
-			<span className="text-sm font-medium tabular-nums">{value}</span>
-		</div>
 	);
 }

@@ -1,1 +1,0 @@
-export { NotificationsCenter } from "./NotificationsCenter";

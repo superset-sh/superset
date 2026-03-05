@@ -12,7 +12,6 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Textarea } from "@superset/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ReactNode, RefObject } from "react";
 import { GoGitBranch } from "react-icons/go";
 import {
@@ -69,16 +68,9 @@ export function NewWorkspaceCreateFlow({
 							onSelectedAgentChange(value)
 						}
 					>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<SelectTrigger className="h-8 text-xs w-auto max-w-full">
-									<SelectValue placeholder="No agent" className="truncate" />
-								</SelectTrigger>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Send the description as prompt to the agent
-							</TooltipContent>
-						</Tooltip>
+						<SelectTrigger className="h-8 text-xs w-auto max-w-full">
+							<SelectValue placeholder="No agent" className="truncate" />
+						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="none">No agent</SelectItem>
 							{agentOptions.map((agent) => {

@@ -84,14 +84,12 @@ export function RightSidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
-	const {
-		currentMode,
-		rightSidebarTab,
-		setRightSidebarTab,
-		toggleSidebar,
-		setMode,
-		sidebarWidth,
-	} = useSidebarStore();
+	const currentMode = useSidebarStore((s) => s.currentMode);
+	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
+	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const setMode = useSidebarStore((s) => s.setMode);
+	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
 	const isExpanded = currentMode === SidebarMode.Changes;
 	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
@@ -232,6 +230,7 @@ export function RightSidebar() {
 					<ChangesView
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
+						isActive={rightSidebarTab === RightSidebarTab.Changes}
 					/>
 				</div>
 			)}

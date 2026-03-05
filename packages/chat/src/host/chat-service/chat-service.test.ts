@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 type Credential =
 	| { type: "api_key"; key: string }
@@ -46,6 +49,24 @@ function createFakeAuthStorage(): FakeAuthStorage {
 
 const fakeAuthStorage = createFakeAuthStorage();
 const createAuthStorageMock = mock(() => fakeAuthStorage);
+const MANAGED_ANTHROPIC_ENV_KEYS = [
+	"ANTHROPIC_BASE_URL",
+	"ANTHROPIC_API_KEY",
+	"ANTHROPIC_AUTH_TOKEN",
+	"CLAUDE_CODE_USE_BEDROCK",
+	"AWS_REGION",
+	"AWS_PROFILE",
+] as const;
+const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
+const originalAnthropicEnvValues = {
+	ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
+	ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+	ANTHROPIC_AUTH_TOKEN: process.env.ANTHROPIC_AUTH_TOKEN,
+	CLAUDE_CODE_USE_BEDROCK: process.env.CLAUDE_CODE_USE_BEDROCK,
+	AWS_REGION: process.env.AWS_REGION,
+	AWS_PROFILE: process.env.AWS_PROFILE,
+};
+let testSupersetHomeDir: string | null = null;
 
 mock.module("mastracode", () => ({
 	createAuthStorage: createAuthStorageMock,
@@ -62,6 +83,31 @@ describe("ChatService OpenAI auth storage", () => {
 		fakeAuthStorage.set.mockClear();
 		fakeAuthStorage.remove.mockClear();
 		fakeAuthStorage.login.mockClear();
+		testSupersetHomeDir = mkdtempSync(join(tmpdir(), "chat-service-test-"));
+		process.env.SUPERSET_HOME_DIR = testSupersetHomeDir;
+		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
+			delete process.env[key];
+		}
+	});
+
+	afterEach(() => {
+		if (testSupersetHomeDir) {
+			rmSync(testSupersetHomeDir, { recursive: true, force: true });
+			testSupersetHomeDir = null;
+		}
+		if (originalSupersetHomeDir) {
+			process.env.SUPERSET_HOME_DIR = originalSupersetHomeDir;
+		} else {
+			delete process.env.SUPERSET_HOME_DIR;
+		}
+		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
+			const value = originalAnthropicEnvValues[key];
+			if (value) {
+				process.env[key] = value;
+			} else {
+				delete process.env[key];
+			}
+		}
 	});
 
 	it("uses standalone createAuthStorage and reuses it across calls", async () => {
@@ -161,6 +207,135 @@ describe("ChatService OpenAI auth storage", () => {
 
 		await chatService.setAnthropicApiKey({ apiKey: " api-key " });
 		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
+	});
+
+	it("saves Anthropic gateway env config and uses env auth method", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+		});
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/v1",
+		);
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBe("gateway-token");
+		expect(process.env.ANTHROPIC_API_KEY).toBe("gateway-token");
+		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
+			type: "api_key",
+			key: "gateway-token",
+		});
+		expect(chatService.getAnthropicEnvConfig()).toEqual({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+			variables: {
+				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
+				ANTHROPIC_AUTH_TOKEN: "gateway-token",
+			},
+		});
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "env",
+		});
+	});
+
+	it("clears stored Anthropic OAuth credentials when saving env config", async () => {
+		const chatService = new ChatService();
+		fakeAuthStorage.set("anthropic", {
+			type: "oauth",
+			access: "oauth-access-token",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+		expect(chatService.getAnthropicAuthStatus().method).toBe("oauth");
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+		});
+
+		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
+		expect(chatService.getAnthropicAuthStatus().method).toBe("env");
+	});
+
+	it("persists Anthropic env config without API key/token", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText: "ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh",
+		});
+
+		expect(chatService.getAnthropicEnvConfig()).toEqual({
+			envText: "ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh",
+			variables: {
+				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
+			},
+		});
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "env",
+		});
+	});
+
+	it("passes through non-Anthropic env vars from settings", async () => {
+		const chatService = new ChatService();
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_API_KEY=env-key\nCLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1",
+		});
+
+		expect(process.env.ANTHROPIC_API_KEY).toBe("env-key");
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+		expect(process.env.AWS_REGION).toBe("us-east-1");
+		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
+			type: "api_key",
+			key: "env-key",
+		});
+		expect(chatService.getAnthropicEnvConfig()).toEqual({
+			envText:
+				"ANTHROPIC_API_KEY=env-key\nCLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1",
+			variables: {
+				ANTHROPIC_API_KEY: "env-key",
+				CLAUDE_CODE_USE_BEDROCK: "1",
+				AWS_REGION: "us-east-1",
+			},
+		});
+	});
+
+	it("clears Anthropic gateway env vars", async () => {
+		const chatService = new ChatService();
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+		});
+
+		await chatService.clearAnthropicEnvConfig();
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBeUndefined();
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
+		expect(chatService.getAnthropicEnvConfig()).toEqual({
+			envText: "",
+			variables: {},
+		});
+		expect(chatService.getAnthropicAuthStatus().method).toBeNull();
+	});
+
+	it("deletes previously applied pass-through env keys when settings change", async () => {
+		const chatService = new ChatService();
+		await chatService.setAnthropicEnvConfig({
+			envText: "CLAUDE_CODE_USE_BEDROCK=1\nAWS_PROFILE=default",
+		});
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+		expect(process.env.AWS_PROFILE).toBe("default");
+
+		await chatService.setAnthropicEnvConfig({
+			envText: "CLAUDE_CODE_USE_BEDROCK=1",
+		});
+
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+		expect(process.env.AWS_PROFILE).toBeUndefined();
 	});
 
 	it("starts and completes OpenAI OAuth via auth storage login", async () => {

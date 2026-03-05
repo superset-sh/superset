@@ -208,6 +208,7 @@ export function ProjectHeader({
 										projectColor={projectColor}
 										githubOwner={githubOwner}
 										iconUrl={iconUrl}
+										hideImage={hideImage}
 									/>
 								</button>
 							</TooltipTrigger>

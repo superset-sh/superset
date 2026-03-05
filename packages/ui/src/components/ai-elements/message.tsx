@@ -321,6 +321,7 @@ export const MessageResponse = memo(
 				className,
 			)}
 			isAnimating={isAnimating}
+			linkSafety={{ enabled: false }}
 			mode="streaming"
 			plugins={isAnimating ? undefined : streamdownPlugins}
 			{...props}

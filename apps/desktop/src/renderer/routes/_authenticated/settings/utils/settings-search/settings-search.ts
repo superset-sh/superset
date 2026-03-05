@@ -21,15 +21,15 @@ export const SETTING_ITEM_ID = {
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
-
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
-	BEHAVIOR_DELETE_LOCAL_BRANCH: "behavior-delete-local-branch",
-	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
 	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
-	BEHAVIOR_WORKTREE_LOCATION: "behavior-worktree-location",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+
+	GIT_BRANCH_PREFIX: "git-branch-prefix",
+	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
+	GIT_WORKTREE_LOCATION: "git-worktree-location",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -356,13 +356,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_DELETE_LOCAL_BRANCH,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
+		section: "git",
 		title: "Delete local branch on workspace removal",
 		description:
 			"Also delete the local git branch when deleting a worktree workspace",
 		keywords: [
-			"features",
+			"git",
 			"delete",
 			"branch",
 			"local",
@@ -370,20 +370,18 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspace",
 			"remove",
 			"cleanup",
-			"git",
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
+		section: "git",
 		title: "Branch Prefix",
 		description: "Default prefix for new branch names",
 		keywords: [
-			"features",
+			"git",
 			"branch",
 			"prefix",
 			"naming",
-			"git",
 			"worktree",
 			"author",
 			"github",
@@ -449,11 +447,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_WORKTREE_LOCATION,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
+		section: "git",
 		title: "Worktree location",
 		description: "Base directory where new worktrees are created on disk",
 		keywords: [
+			"git",
 			"worktree",
 			"location",
 			"directory",

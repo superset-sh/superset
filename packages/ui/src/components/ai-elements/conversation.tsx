@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { Loader } from "./loader";
 
 export type ConversationProps = ComponentProps<typeof StickToBottom>;
 
@@ -39,6 +40,24 @@ export type ConversationEmptyStateProps = ComponentProps<"div"> & {
 	icon?: React.ReactNode;
 };
 
+type ConversationStateContainerProps = ComponentProps<"div">;
+
+const ConversationStateContainer = ({
+	className,
+	children,
+	...props
+}: ConversationStateContainerProps) => (
+	<div
+		className={cn(
+			"flex size-full flex-col items-center justify-center gap-3 p-8 text-center",
+			className,
+		)}
+		{...props}
+	>
+		{children}
+	</div>
+);
+
 export const ConversationEmptyState = ({
 	className,
 	title = "No messages yet",
@@ -47,13 +66,7 @@ export const ConversationEmptyState = ({
 	children,
 	...props
 }: ConversationEmptyStateProps) => (
-	<div
-		className={cn(
-			"flex size-full flex-col items-center justify-center gap-3 p-8 text-center",
-			className,
-		)}
-		{...props}
-	>
+	<ConversationStateContainer className={className} {...props}>
 		{children ?? (
 			<>
 				{icon && <div className="text-muted-foreground">{icon}</div>}
@@ -65,7 +78,29 @@ export const ConversationEmptyState = ({
 				</div>
 			</>
 		)}
-	</div>
+	</ConversationStateContainer>
+);
+
+export type ConversationLoadingStateProps = ComponentProps<"div"> & {
+	label?: string;
+	icon?: React.ReactNode;
+};
+
+export const ConversationLoadingState = ({
+	className,
+	label = "Loading conversation...",
+	icon,
+	children,
+	...props
+}: ConversationLoadingStateProps) => (
+	<ConversationStateContainer className={className} {...props}>
+		{children ?? (
+			<>
+				{icon ?? <Loader className="text-muted-foreground" size={14} />}
+				<p className="text-muted-foreground text-sm">{label}</p>
+			</>
+		)}
+	</ConversationStateContainer>
 );
 
 export type ConversationScrollButtonProps = ComponentProps<typeof Button>;

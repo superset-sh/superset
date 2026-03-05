@@ -102,6 +102,7 @@ export function ChatMastraInterface({
 	workspaceId,
 	organizationId,
 	cwd,
+	isFocused,
 	isSessionReady,
 	ensureSessionReady,
 	onStartFreshSession,
@@ -174,6 +175,7 @@ export function ChatMastraInterface({
 		messages,
 		currentMessage,
 		isRunning = false,
+		isConversationLoading = false,
 		error = null,
 		activeTools,
 		toolInputBuffers,
@@ -716,7 +718,9 @@ export function ChatMastraInterface({
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
 					messages={visibleMessages}
+					isFocused={isFocused}
 					isRunning={canAbort}
+					isConversationLoading={isConversationLoading}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
 					interruptedMessage={interruptedMessage}
@@ -740,6 +744,7 @@ export function ChatMastraInterface({
 				<McpControls mcpUi={mcpUi} />
 				<ChatInputFooter
 					cwd={cwd}
+					isFocused={isFocused}
 					error={errorMessage}
 					canAbort={canAbort}
 					submitStatus={submitStatus}

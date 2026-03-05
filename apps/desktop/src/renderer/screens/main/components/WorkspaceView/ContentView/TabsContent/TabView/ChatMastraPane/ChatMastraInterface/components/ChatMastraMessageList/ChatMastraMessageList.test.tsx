@@ -1,12 +1,17 @@
 import { describe, expect, it, mock } from "bun:test";
+import { forwardRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 mock.module("@superset/ui/ai-elements/conversation", () => ({
 	Conversation: ({ children }: { children: React.ReactNode }) => (
 		<div>{children}</div>
 	),
-	ConversationContent: ({ children }: { children: React.ReactNode }) => (
-		<div>{children}</div>
+	ConversationContent: forwardRef<
+		HTMLDivElement,
+		{ children: React.ReactNode }
+	>(({ children }, ref) => <div ref={ref}>{children}</div>),
+	ConversationLoadingState: ({ label }: { label?: string }) => (
+		<div>{label ?? "Loading conversation..."}</div>
 	),
 	ConversationEmptyState: ({ title }: { title?: string }) => (
 		<div>{title ?? "Empty"}</div>
@@ -86,7 +91,7 @@ mock.module("./components/MessageScrollbackRail", () => ({
 }));
 
 mock.module("./components/SubagentExecutionMessage", () => ({
-	SubagentExecutionMessage: () => null,
+	SubagentExecutionMessage: () => <div>SUBAGENT_EXECUTION_MESSAGE</div>,
 }));
 
 mock.module("./components/PendingApprovalMessage", () => ({
@@ -94,11 +99,38 @@ mock.module("./components/PendingApprovalMessage", () => ({
 }));
 
 mock.module("./components/PendingPlanApprovalMessage", () => ({
-	PendingPlanApprovalMessage: () => null,
+	PendingPlanApprovalMessage: () => <div>PENDING_PLAN_APPROVAL_MESSAGE</div>,
 }));
 
 mock.module("./components/PendingQuestionMessage", () => ({
 	PendingQuestionMessage: () => null,
+}));
+
+mock.module("./components/ToolPreviewMessage", () => ({
+	ToolPreviewMessage: ({
+		pendingPlanToolCallId,
+	}: {
+		pendingPlanToolCallId?: string | null;
+	}) => (
+		<div data-pending-plan-tool-call-id={pendingPlanToolCallId ?? ""}>
+			TOOL_PREVIEW_MESSAGE
+		</div>
+	),
+}));
+
+mock.module("./hooks/useChatMessageSearch", () => ({
+	useChatMessageSearch: () => ({
+		isSearchOpen: false,
+		query: "",
+		caseSensitive: false,
+		matchCount: 0,
+		activeMatchIndex: 0,
+		setQuery: () => {},
+		setCaseSensitive: () => {},
+		findNext: () => {},
+		findPrevious: () => {},
+		closeSearch: () => {},
+	}),
 }));
 
 const { ChatMastraMessageList } = await import("./ChatMastraMessageList");
@@ -130,7 +162,9 @@ function createBaseProps(
 ): ChatMastraMessageListProps {
 	return {
 		messages: [] as never,
+		isFocused: true,
 		isRunning: false,
+		isConversationLoading: false,
 		isAwaitingAssistant: false,
 		currentMessage: null,
 		interruptedMessage: null,
@@ -163,6 +197,15 @@ function renderListHtml(
 }
 
 describe("ChatMastraMessageList", () => {
+	it("shows loading state while conversation history is loading", () => {
+		const html = renderListHtml({
+			isConversationLoading: true,
+		});
+
+		expect(html).toContain("Loading conversation...");
+		expect(html).not.toContain("Start a conversation");
+	});
+
 	it("shows interrupted preview content after stop and hides the source assistant message", () => {
 		const html = renderListHtml({
 			messages: [
@@ -228,5 +271,103 @@ describe("ChatMastraMessageList", () => {
 		expect(html).not.toContain("interrupted snapshot text");
 		expect(html).not.toContain("Interrupted");
 		expect(html).not.toContain("Response stopped");
+	});
+
+	it("does not render standalone pending-plan or subagent blocks at list level", () => {
+		const html = renderListHtml({
+			messages: [
+				{
+					id: "assistant-plan-1",
+					role: "assistant",
+					content: [
+						{
+							type: "tool_call",
+							id: "tool-call-1",
+							name: "submit_plan",
+							args: {},
+						},
+					],
+					createdAt: new Date("2026-03-03T00:00:01.000Z"),
+				},
+			] as never,
+			activeSubagents: new Map([
+				[
+					"tool-call-1",
+					{
+						status: "running",
+						task: "Run tests",
+					},
+				],
+			]) as never,
+			pendingPlanApproval: {
+				planId: "tool-call-1",
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).not.toContain("SUBAGENT_EXECUTION_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("shows tool preview while awaiting assistant when pending plan is anchored", () => {
+		const html = renderListHtml({
+			isAwaitingAssistant: true,
+			activeTools: new Map([
+				[
+					"tool-call-1",
+					{
+						name: "submit_plan",
+						status: "streaming_input",
+					},
+				],
+			]) as never,
+			pendingPlanApproval: {
+				toolCallId: "tool-call-1",
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).toContain("TOOL_PREVIEW_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("does not render standalone pending plan when anchored from interrupted preview", () => {
+		const html = renderListHtml({
+			messages: [
+				{
+					id: "assistant-1",
+					role: "assistant",
+					content: [
+						{
+							type: "tool_call",
+							id: "tool-call-interrupted",
+							name: "submit_plan",
+							args: {},
+						},
+					],
+					createdAt: new Date("2026-03-03T00:00:01.000Z"),
+				},
+			] as never,
+			interruptedMessage: {
+				id: "interrupted:assistant-1",
+				sourceMessageId: "assistant-1",
+				content: [
+					{
+						type: "tool_call",
+						id: "tool-call-interrupted",
+						name: "submit_plan",
+						args: {},
+					},
+				],
+			} as never,
+			pendingPlanApproval: {
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
 	});
 });

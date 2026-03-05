@@ -1,4 +1,14 @@
 import { createAuthStorage } from "mastracode";
+import {
+	type AnthropicEnvVariables,
+	type AnthropicRuntimeEnv,
+	applyAnthropicRuntimeEnv as applyAnthropicRuntimeEnvToProcess,
+	buildAnthropicRuntimeEnv,
+	clearAnthropicEnvConfig as clearAnthropicEnvConfigOnDisk,
+	getAnthropicEnvConfig as getAnthropicEnvConfigFromDisk,
+	parseAnthropicEnvText,
+	setAnthropicEnvConfig as setAnthropicEnvConfigOnDisk,
+} from "./anthropic-env-config";
 import type { AuthMethod } from "./auth-storage-types";
 import {
 	clearApiKeyForProvider,
@@ -22,25 +32,50 @@ type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
 const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
 
+interface ChatServiceOptions {
+	anthropicEnvConfigPath?: string;
+}
+
 export class ChatService {
 	private authStorage: OpenAIAuthStorage | null = null;
 	private readonly oauthFlowController = new OAuthFlowController(() =>
 		this.getAuthStorage(),
 	);
+	private readonly anthropicEnvConfigPath: string | undefined;
+	private currentAnthropicRuntimeEnv: AnthropicRuntimeEnv = {};
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 	private static readonly OPENAI_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 	private static readonly OAUTH_URL_TIMEOUT_MS = 10_000;
+
+	constructor(options?: ChatServiceOptions) {
+		this.anthropicEnvConfigPath = options?.anthropicEnvConfigPath;
+		const persistedConfig = getAnthropicEnvConfigFromDisk({
+			configPath: this.anthropicEnvConfigPath,
+		});
+		this.applyAnthropicRuntimeEnv(persistedConfig.variables);
+	}
 
 	getAnthropicAuthStatus(): {
 		authenticated: boolean;
 		method: AnthropicAuthMethod;
 	} {
-		const method = resolveAuthMethodForProvider(
+		const storageMethod = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			ANTHROPIC_AUTH_PROVIDER_ID,
 			(credential) => credential.access.trim().length > 0,
 		);
-		return { authenticated: method !== null, method };
+		if (storageMethod === "oauth") {
+			return { authenticated: true, method: "oauth" };
+		}
+		const hasEnvConfig =
+			Object.keys(this.getAnthropicEnvConfig().variables).length > 0;
+		if (hasEnvConfig) {
+			return { authenticated: true, method: "env" };
+		}
+		if (storageMethod === "api_key") {
+			return { authenticated: true, method: "api_key" };
+		}
+		return { authenticated: false, method: null };
 	}
 
 	async getOpenAIAuthStatus(): Promise<{
@@ -96,11 +131,56 @@ export class ChatService {
 			input.apiKey,
 			"Anthropic API key is required",
 		);
+		const config = getAnthropicEnvConfigFromDisk({
+			configPath: this.anthropicEnvConfigPath,
+		});
+		this.applyAnthropicRuntimeEnv(config.variables, input.apiKey);
 		return { success: true };
 	}
 
 	async clearAnthropicApiKey(): Promise<{ success: true }> {
 		clearApiKeyForProvider(this.getAuthStorage(), ANTHROPIC_AUTH_PROVIDER_ID);
+		const config = getAnthropicEnvConfigFromDisk({
+			configPath: this.anthropicEnvConfigPath,
+		});
+		this.applyAnthropicRuntimeEnv(config.variables);
+		return { success: true };
+	}
+
+	getAnthropicEnvConfig(): {
+		envText: string;
+		variables: AnthropicEnvVariables;
+	} {
+		return getAnthropicEnvConfigFromDisk({
+			configPath: this.anthropicEnvConfigPath,
+		});
+	}
+
+	async setAnthropicEnvConfig(input: {
+		envText: string;
+	}): Promise<{ success: true }> {
+		const configVariables = parseAnthropicEnvText(input.envText);
+
+		setAnthropicEnvConfigOnDisk(
+			{
+				envText: input.envText,
+			},
+			{
+				configPath: this.anthropicEnvConfigPath,
+			},
+		);
+		this.clearStoredAnthropicOAuthCredential();
+		this.setStoredAnthropicApiKeyFromEnvVariables(configVariables);
+		this.applyAnthropicRuntimeEnv(configVariables);
+		return { success: true };
+	}
+
+	async clearAnthropicEnvConfig(): Promise<{ success: true }> {
+		clearAnthropicEnvConfigOnDisk({
+			configPath: this.anthropicEnvConfigPath,
+		});
+		clearApiKeyForProvider(this.getAuthStorage(), ANTHROPIC_AUTH_PROVIDER_ID);
+		this.applyAnthropicRuntimeEnv({});
 		return { success: true };
 	}
 
@@ -215,6 +295,52 @@ export class ChatService {
 			this.authStorage = createAuthStorage();
 		}
 		return this.authStorage;
+	}
+
+	private getStoredAnthropicApiKey(): string | undefined {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (credential?.type !== "api_key") return undefined;
+		const key = credential.key.trim();
+		return key.length > 0 ? key : undefined;
+	}
+
+	private clearStoredAnthropicOAuthCredential(): void {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (credential?.type !== "oauth") return;
+		authStorage.remove(ANTHROPIC_AUTH_PROVIDER_ID);
+	}
+
+	private setStoredAnthropicApiKeyFromEnvVariables(
+		variables: AnthropicEnvVariables,
+	): void {
+		const rawApiKey =
+			variables.ANTHROPIC_API_KEY ?? variables.ANTHROPIC_AUTH_TOKEN;
+		const apiKey = rawApiKey?.trim();
+		if (!apiKey) return;
+
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		authStorage.set(ANTHROPIC_AUTH_PROVIDER_ID, {
+			type: "api_key",
+			key: apiKey,
+		});
+	}
+
+	private applyAnthropicRuntimeEnv(
+		variables: AnthropicEnvVariables,
+		fallbackApiKey?: string,
+	): void {
+		const runtimeEnv = buildAnthropicRuntimeEnv(variables, {
+			fallbackApiKey: fallbackApiKey ?? this.getStoredAnthropicApiKey(),
+		});
+		applyAnthropicRuntimeEnvToProcess(runtimeEnv, {
+			previousRuntimeEnv: this.currentAnthropicRuntimeEnv,
+		});
+		this.currentAnthropicRuntimeEnv = runtimeEnv;
 	}
 
 	private logOpenAIOAuth(

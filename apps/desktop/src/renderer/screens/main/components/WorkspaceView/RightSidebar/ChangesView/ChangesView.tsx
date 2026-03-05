@@ -32,9 +32,16 @@ interface ChangesViewProps {
 		commitHash?: string,
 	) => void;
 	isExpandedView?: boolean;
+	isActive?: boolean;
 }
 
-export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
+const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
+
+export function ChangesView({
+	onFileOpen,
+	isExpandedView,
+	isActive = true,
+}: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -46,8 +53,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
 			worktreePath,
-			refetchInterval: 2500,
-			refetchOnWindowFocus: true,
+			refetchInterval: isActive ? 2500 : undefined,
+			refetchOnWindowFocus: isActive,
+			branchRefetchInterval: isActive
+				? undefined
+				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
+			branchRefetchOnWindowFocus: true,
 		});
 
 	const {
@@ -57,13 +68,13 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
 		{
-			enabled: !!workspaceId,
-			refetchInterval: 10000,
+			enabled: !!workspaceId && isActive,
+			refetchInterval: isActive ? 10000 : false,
 		},
 	);
 
 	useBranchSyncInvalidation({
-		gitBranch: status?.branch,
+		gitBranch: status?.branch ?? branchData?.currentBranch ?? undefined,
 		workspaceBranch: workspace?.branch,
 		workspaceId: workspaceId ?? "",
 	});
@@ -249,10 +260,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 
 	const expandedCommitHashes = useMemo(
 		() =>
-			expandedSections.committed
+			isActive && expandedSections.committed
 				? Array.from(expandedCommits)
 				: ([] as string[]),
-		[expandedSections.committed, expandedCommits],
+		[isActive, expandedSections.committed, expandedCommits],
 	);
 
 	const commitFilesQueries = electronTrpc.useQueries((t) =>

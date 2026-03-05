@@ -4,31 +4,26 @@ import {
 	PromptInputAttachments,
 	type PromptInputMessage,
 	PromptInputTextarea,
-	usePromptInputAttachments,
-	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
-import {
-	formatHotkeyText,
-	getCurrentPlatform,
-	HOTKEYS,
-	matchesHotkeyEvent,
-} from "shared/hotkeys";
+import { useRef, useState } from "react";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
-import { IssueLinkCommand } from "../IssueLinkCommand";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { SlashCommandInput } from "../SlashCommandInput";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
+import { ChatShortcuts } from "./components/ChatShortcuts";
 import { FileDropOverlay } from "./components/FileDropOverlay";
+import { IssueLinkInserter } from "./components/IssueLinkInserter";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
 	cwd: string;
+	isFocused: boolean;
 	error: unknown;
 	canAbort: boolean;
 	submitStatus?: ChatStatus;
@@ -49,71 +44,9 @@ interface ChatInputFooterProps {
 	onSlashCommandSend: (command: SlashCommand) => void;
 }
 
-function ChatShortcuts({
-	setIssueLinkOpen,
-}: {
-	setIssueLinkOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-	const attachments = usePromptInputAttachments();
-	const platform = getCurrentPlatform();
-	const attachKey = HOTKEYS.CHAT_ADD_ATTACHMENT.defaults[platform];
-	const linkKey = HOTKEYS.CHAT_LINK_ISSUE.defaults[platform];
-	const focusKey = HOTKEYS.FOCUS_CHAT_INPUT.defaults[platform];
-
-	useEffect(() => {
-		const handler = (e: KeyboardEvent) => {
-			if (attachKey && matchesHotkeyEvent(e, attachKey)) {
-				e.preventDefault();
-				attachments.openFileDialog();
-			}
-			if (linkKey && matchesHotkeyEvent(e, linkKey)) {
-				e.preventDefault();
-				setIssueLinkOpen((prev) => !prev);
-			}
-			if (focusKey && matchesHotkeyEvent(e, focusKey)) {
-				e.preventDefault();
-				const textarea = document.querySelector<HTMLTextAreaElement>(
-					"[data-slot=input-group-control]",
-				);
-				textarea?.focus();
-			}
-		};
-		document.addEventListener("keydown", handler);
-		return () => document.removeEventListener("keydown", handler);
-	}, [attachKey, linkKey, focusKey, attachments, setIssueLinkOpen]);
-
-	return null;
-}
-
-function IssueLinkInserter({
-	issueLinkOpen,
-	setIssueLinkOpen,
-}: {
-	issueLinkOpen: boolean;
-	setIssueLinkOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-	const { textInput } = usePromptInputController();
-
-	const handleSelectTask = useCallback(
-		(slug: string) => {
-			const current = textInput.value;
-			const needsSpace = current.length > 0 && !current.endsWith(" ");
-			textInput.setInput(`${current}${needsSpace ? " " : ""}@task:${slug} `);
-		},
-		[textInput],
-	);
-
-	return (
-		<IssueLinkCommand
-			open={issueLinkOpen}
-			onOpenChange={setIssueLinkOpen}
-			onSelect={handleSelectTask}
-		/>
-	);
-}
-
 export function ChatInputFooter({
 	cwd,
+	isFocused,
 	error,
 	canAbort,
 	submitStatus,
@@ -134,10 +67,9 @@ export function ChatInputFooter({
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
-	const platform = getCurrentPlatform();
-	const focusKey = HOTKEYS.FOCUS_CHAT_INPUT.defaults[platform];
-	const focusShortcutText = formatHotkeyText(focusKey, platform);
+	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
 	return (
@@ -159,6 +91,7 @@ export function ChatInputFooter({
 						<MentionProvider cwd={cwd}>
 							<MentionAnchor>
 								<div
+									ref={inputRootRef}
 									className={
 										dragType === "path"
 											? "relative opacity-50 transition-opacity"
@@ -180,7 +113,11 @@ export function ChatInputFooter({
 										maxFileSize={10 * 1024 * 1024}
 										globalDrop
 									>
-										<ChatShortcuts setIssueLinkOpen={setIssueLinkOpen} />
+										<ChatShortcuts
+											isFocused={isFocused}
+											setIssueLinkOpen={setIssueLinkOpen}
+											inputRootRef={inputRootRef}
+										/>
 										<IssueLinkInserter
 											issueLinkOpen={issueLinkOpen}
 											setIssueLinkOpen={setIssueLinkOpen}

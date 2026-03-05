@@ -5,6 +5,7 @@ import { CopyIcon } from "lucide-react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { env } from "renderer/env.renderer";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
@@ -61,6 +62,7 @@ export function ChatMastraPane({
 	onMoveToNewTab,
 }: ChatMastraPaneProps) {
 	const showDevToolbarActions = env.NODE_ENV === "development";
+	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const {
 		sessionId,
 		launchConfig,
@@ -160,6 +162,7 @@ export function ChatMastraPane({
 								workspaceId={workspaceId}
 								organizationId={organizationId}
 								cwd={workspacePath}
+								isFocused={isFocused}
 								isSessionReady={hasCurrentSessionRecord}
 								ensureSessionReady={ensureCurrentSessionRecord}
 								onStartFreshSession={handleStartFreshSession}
