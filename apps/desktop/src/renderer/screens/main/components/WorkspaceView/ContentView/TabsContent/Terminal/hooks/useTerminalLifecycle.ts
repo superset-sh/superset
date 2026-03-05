@@ -491,9 +491,7 @@ export function useTerminalLifecycle({
 		};
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
 			onClear: handleClear,
-			onWrite: handleWrite,
 		});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,

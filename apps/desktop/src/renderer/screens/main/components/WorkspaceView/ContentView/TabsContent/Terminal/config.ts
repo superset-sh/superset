@@ -34,12 +34,7 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 
 export const TERMINAL_OPTIONS: ITerminalOptions = {
-	cursorBlink: true,
-	fontSize: DEFAULT_TERMINAL_FONT_SIZE,
-	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
-	scrollback: 2000,
-	cursorStyle: "block",
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;

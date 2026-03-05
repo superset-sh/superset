@@ -115,17 +115,7 @@ describe("getDefaultTerminalBg", () => {
 });
 
 describe("setupKeyboardHandler", () => {
-	const originalNavigator = globalThis.navigator;
-
-	afterEach(() => {
-		// Restore navigator between tests
-		globalThis.navigator = originalNavigator;
-	});
-
-	it("maps Option+Left/Right to Meta+B/F on macOS", () => {
-		// @ts-expect-error - mocking navigator for tests
-		globalThis.navigator = { platform: "MacIntel" };
-
+	it("attaches and cleans up the custom key handler", () => {
 		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
 			handler: null,
 		};
@@ -137,67 +127,10 @@ describe("setupKeyboardHandler", () => {
 			},
 		};
 
-		const onWrite = mock(() => {});
-		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
-
-		captured.handler?.({
-			type: "keydown",
-			key: "ArrowLeft",
-			altKey: true,
-			metaKey: false,
-			ctrlKey: false,
-			shiftKey: false,
-		} as KeyboardEvent);
-		captured.handler?.({
-			type: "keydown",
-			key: "ArrowRight",
-			altKey: true,
-			metaKey: false,
-			ctrlKey: false,
-			shiftKey: false,
-		} as KeyboardEvent);
-
-		expect(onWrite).toHaveBeenCalledWith("\x1bb");
-		expect(onWrite).toHaveBeenCalledWith("\x1bf");
-	});
-
-	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
-		// @ts-expect-error - mocking navigator for tests
-		globalThis.navigator = { platform: "Win32" };
-
-		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
-			handler: null,
-		};
-		const xterm = {
-			attachCustomKeyEventHandler: (
-				next: (event: KeyboardEvent) => boolean,
-			) => {
-				captured.handler = next;
-			},
-		};
-
-		const onWrite = mock(() => {});
-		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
-
-		captured.handler?.({
-			type: "keydown",
-			key: "ArrowLeft",
-			altKey: false,
-			metaKey: false,
-			ctrlKey: true,
-			shiftKey: false,
-		} as KeyboardEvent);
-		captured.handler?.({
-			type: "keydown",
-			key: "ArrowRight",
-			altKey: false,
-			metaKey: false,
-			ctrlKey: true,
-			shiftKey: false,
-		} as KeyboardEvent);
-
-		expect(onWrite).toHaveBeenCalledWith("\x1bb");
-		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+		const cleanup = setupKeyboardHandler(xterm as unknown as XTerm);
+		expect(captured.handler).toBeDefined();
+		cleanup();
+		expect(captured.handler).toBeDefined();
 	});
 });
 

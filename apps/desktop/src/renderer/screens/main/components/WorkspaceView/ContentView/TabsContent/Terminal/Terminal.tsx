@@ -36,6 +36,17 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
+type GhosttyRuntimeRenderer = {
+	remeasureFont?: () => void;
+	resize?: (cols: number, rows: number) => void;
+	setTheme?: (theme: NonNullable<XTerm["options"]["theme"]>) => void;
+	setFontFamily?: (family: string) => void;
+	setFontSize?: (size: number) => void;
+};
+
+const getRuntimeRenderer = (xterm: XTerm): GhosttyRuntimeRenderer | undefined =>
+	(xterm as unknown as { renderer?: GhosttyRuntimeRenderer }).renderer;
+
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCwd = pane?.initialCwd;
@@ -378,6 +389,11 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
+		const runtimeRenderer = getRuntimeRenderer(xterm);
+		if (runtimeRenderer?.setTheme) {
+			runtimeRenderer.setTheme(terminalTheme);
+			return;
+		}
 		xterm.options.theme = terminalTheme;
 	}, [terminalTheme]);
 
@@ -394,10 +410,39 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		const family =
 			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
-		xterm.options.fontFamily = family;
-		xterm.options.fontSize = size;
-		fitAddonRef.current?.fit();
-	}, [fontSettings]);
+		const runtimeRenderer = getRuntimeRenderer(xterm);
+		if (runtimeRenderer?.setFontFamily && runtimeRenderer?.setFontSize) {
+			runtimeRenderer.setFontFamily(family);
+			runtimeRenderer.setFontSize(size);
+		} else {
+			xterm.options.fontFamily = family;
+			xterm.options.fontSize = size;
+		}
+
+		const remeasureAndFit = () => {
+			const previousCols = xterm.cols;
+			const previousRows = xterm.rows;
+			runtimeRenderer?.remeasureFont?.();
+			// Keep canvas metrics aligned even when fit() resolves to same cols/rows.
+			runtimeRenderer?.resize?.(xterm.cols, xterm.rows);
+			fitAddonRef.current?.fit();
+			runtimeRenderer?.resize?.(xterm.cols, xterm.rows);
+			if (xterm.cols !== previousCols || xterm.rows !== previousRows) {
+				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+			}
+		};
+
+		remeasureAndFit();
+
+		if (typeof document !== "undefined" && "fonts" in document) {
+			void (document as Document & { fonts: FontFaceSet }).fonts.ready.then(
+				() => {
+					if (xtermRef.current !== xterm) return;
+					remeasureAndFit();
+				},
+			);
+		}
+	}, [fontSettings, paneId, resizeRef]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
