@@ -25,7 +25,8 @@ export async function generateWorkspaceNameFromPrompt(
 		});
 
 		return title?.trim() || null;
-	} catch {
+	} catch (error) {
+		console.error("[workspace-ai-name] failed to generate workspace name", error);
 		return null;
 	}
 }

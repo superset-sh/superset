@@ -344,7 +344,12 @@ export function NewWorkspaceModal() {
 							id: result.workspace.id,
 							patch: { name: res.name, isUnnamed: false },
 						});
-					} catch {}
+					} catch (error) {
+						console.error(
+							"[new-workspace/title] Failed to generate/apply workspace name",
+							error,
+						);
+					}
 				})();
 			}
 
