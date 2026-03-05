@@ -41,7 +41,7 @@ interface ChangesState {
 	reset: (worktreePath: string) => void;
 }
 
-const initialState = {
+export const initialState = {
 	selectedFiles: {} as Record<string, SelectedFileState | null>,
 	viewMode: "side-by-side" as DiffViewMode,
 	fileListViewMode: "grouped" as FileListViewMode,
