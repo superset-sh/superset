@@ -25,7 +25,7 @@ const envSchema = z.object({
 		.default("https://api.superset.sh/api/electric"),
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
-	NEXT_PUBLIC_OUTLIT_KEY: z.string(),
+	NEXT_PUBLIC_OUTLIT_KEY: z.string().default(""),
 	SENTRY_DSN_DESKTOP: z.string().optional(),
 });
 

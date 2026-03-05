@@ -17,8 +17,6 @@ export async function initSentry(): Promise<void> {
 			dsn: env.SENTRY_DSN_DESKTOP,
 			environment: env.NODE_ENV,
 			tracesSampleRate: 0.1,
-			replaysSessionSampleRate: 0.1,
-			replaysOnErrorSampleRate: 1.0,
 		});
 
 		sentryInitialized = true;

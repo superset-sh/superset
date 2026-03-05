@@ -20,11 +20,11 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
-import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { localDb } from "./lib/local-db";
@@ -39,10 +39,11 @@ import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
+const IS_DEV = process.env.NODE_ENV === "development";
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
-if (process.env.NODE_ENV === "development") {
-	const workspaceName = getWorkspaceName();
+if (IS_DEV) {
+	const workspaceName = resolveDevWorkspaceName();
 	if (workspaceName) {
 		app.setName(`Superset (${workspaceName})`);
 	}
