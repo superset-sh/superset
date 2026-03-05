@@ -24,6 +24,7 @@ import {
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
+import { useWorkspaceTerminalStream } from "./providers/WorkspaceTerminalStream";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
@@ -258,25 +259,13 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	handleTerminalExitRef.current = handleTerminalExit;
 	handleStreamErrorRef.current = handleStreamError;
 
-	// Stream subscription
-	electronTrpc.terminal.stream.useSubscription(paneId, {
-		onData: (event) => {
-			if (connectionErrorRef.current && event.type === "data") {
-				setConnectionError(null);
-				retryCountRef.current = 0;
-			}
-			handleStreamData(event);
-		},
-		onError: (error) => {
-			console.error("[Terminal] Stream subscription error:", {
-				paneId,
-				error: error instanceof Error ? error.message : String(error),
-			});
-			setConnectionError(
-				error instanceof Error ? error.message : "Connection to terminal lost",
-			);
-		},
-		enabled: true,
+	// Stream subscription via workspace bus dispatcher
+	useWorkspaceTerminalStream(paneId, (event) => {
+		if (connectionErrorRef.current && event.type === "data") {
+			setConnectionError(null);
+			retryCountRef.current = 0;
+		}
+		handleStreamData(event);
 	});
 
 	// Auto-retry when connection error is set
