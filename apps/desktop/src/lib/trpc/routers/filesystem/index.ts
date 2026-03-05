@@ -944,6 +944,60 @@ export const createFilesystemRouter = () => {
 				return { copied, errors };
 			}),
 
+		/**
+		 * Read a file by absolute path with size cap and binary detection.
+		 * Used for viewing files outside the current worktree.
+		 */
+		readFile: publicProcedure
+			.input(
+				z.object({
+					filePath: z.string(),
+				}),
+			)
+			.query(
+				async ({
+					input,
+				}): Promise<
+					| {
+							ok: true;
+							content: string;
+							truncated: boolean;
+							byteLength: number;
+					  }
+					| {
+							ok: false;
+							reason: "not-found" | "too-large" | "binary";
+					  }
+				> => {
+					const MAX_FILE_SIZE = 2 * 1024 * 1024;
+					try {
+						const stats = await fs.stat(input.filePath);
+						if (stats.size > MAX_FILE_SIZE) {
+							return { ok: false, reason: "too-large" };
+						}
+
+						const buffer = await fs.readFile(input.filePath);
+
+						// Binary detection (same as readWorkingFile)
+						const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
+						for (let i = 0; i < checkLength; i++) {
+							if (buffer[i] === 0) {
+								return { ok: false, reason: "binary" };
+							}
+						}
+
+						return {
+							ok: true,
+							content: buffer.toString("utf-8"),
+							truncated: false,
+							byteLength: buffer.length,
+						};
+					} catch {
+						return { ok: false, reason: "not-found" };
+					}
+				},
+			),
+
 		exists: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.query(async ({ input }) => {

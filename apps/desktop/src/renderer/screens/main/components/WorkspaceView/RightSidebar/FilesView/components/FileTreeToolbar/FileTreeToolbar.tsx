@@ -3,11 +3,13 @@ import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	LuArrowUp,
 	LuChevronsDownUp,
 	LuEye,
 	LuEyeOff,
 	LuFilePlus,
 	LuFolderPlus,
+	LuHouse,
 	LuRefreshCw,
 	LuX,
 } from "react-icons/lu";
@@ -23,6 +25,8 @@ interface FileTreeToolbarProps {
 	showHiddenFiles: boolean;
 	onToggleHiddenFiles: () => void;
 	isRefreshing?: boolean;
+	onNavigateToParent?: () => void;
+	onNavigateHome?: (() => void) | undefined;
 }
 
 export function FileTreeToolbar({
@@ -35,6 +39,8 @@ export function FileTreeToolbar({
 	showHiddenFiles,
 	onToggleHiddenFiles,
 	isRefreshing = false,
+	onNavigateToParent,
+	onNavigateHome,
 }: FileTreeToolbarProps) {
 	const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
 	const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,6 +109,42 @@ export function FileTreeToolbar({
 			</div>
 
 			<div className="flex items-center gap-0.5">
+				{onNavigateToParent && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-6"
+								onClick={onNavigateToParent}
+							>
+								<LuArrowUp className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							Go to Parent Directory
+						</TooltipContent>
+					</Tooltip>
+				)}
+
+				{onNavigateHome && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-6"
+								onClick={onNavigateHome}
+							>
+								<LuHouse className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							Back to Workspace Root
+						</TooltipContent>
+					</Tooltip>
+				)}
+
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button

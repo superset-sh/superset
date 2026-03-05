@@ -86,7 +86,7 @@ export function useKeywordSearch({
 	const selectMatch = useCallback(
 		(match: KeywordSearchResult) => {
 			useTabsStore.getState().addFileViewerPane(workspaceId, {
-				filePath: match.relativePath,
+				filePath: match.path,
 				line: match.line,
 				column: match.column,
 			});

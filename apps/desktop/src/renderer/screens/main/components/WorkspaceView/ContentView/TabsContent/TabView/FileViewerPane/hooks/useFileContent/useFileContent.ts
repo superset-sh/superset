@@ -1,3 +1,4 @@
+import { relative } from "pathe";
 import { useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
@@ -5,6 +6,7 @@ import { isImageFile } from "shared/file-types";
 
 interface UseFileContentParams {
 	worktreePath: string;
+	/** Absolute file path (or remote URL) */
 	filePath: string;
 	viewMode: "raw" | "diff" | "rendered";
 	diffCategory?: ChangeCategory;
@@ -13,6 +15,19 @@ interface UseFileContentParams {
 	isDirty: boolean;
 	originalContentRef: React.MutableRefObject<string>;
 	originalDiffContentRef: React.MutableRefObject<string>;
+}
+
+/**
+ * Derives a worktree-relative path from an absolute path.
+ * Returns null if the path is not inside the worktree.
+ */
+function toRelativePath(
+	absolutePath: string,
+	worktreePath: string,
+): string | null {
+	const rel = relative(worktreePath, absolutePath);
+	if (rel.startsWith("..") || rel === "") return null;
+	return rel;
 }
 
 export function useFileContent({
@@ -30,10 +45,23 @@ export function useFileContent({
 	const isRemote =
 		filePath.startsWith("https://") || filePath.startsWith("http://");
 
+	// Derive worktree-relative path for git-aware operations (secureFs)
+	const relativePath = useMemo(
+		() => (worktreePath ? toRelativePath(filePath, worktreePath) : null),
+		[filePath, worktreePath],
+	);
+
+	// File is inside the worktree if we can derive a relative path
+	const isInsideWorktree = relativePath !== null;
+
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath },
 		{
-			enabled: !isRemote && !!worktreePath && diffCategory === "against-base",
+			enabled:
+				!isRemote &&
+				isInsideWorktree &&
+				!!worktreePath &&
+				diffCategory === "against-base",
 		},
 	);
 	const effectiveBaseBranch =
@@ -41,28 +69,53 @@ export function useFileContent({
 
 	const isImage = isImageFile(filePath);
 
-	const { data: rawFileData, isLoading: isLoadingRaw } =
-		electronTrpc.changes.readWorkingFile.useQuery(
-			{ worktreePath, filePath },
+	// Use filesystem.readFile for files outside the worktree (absolute paths)
+	const { data: externalFileData, isLoading: isLoadingExternal } =
+		electronTrpc.filesystem.readFile.useQuery(
+			{ filePath },
 			{
 				enabled:
 					!isRemote &&
+					!isInsideWorktree &&
 					viewMode !== "diff" &&
 					!isImage &&
-					!!filePath &&
+					!!filePath,
+			},
+		);
+
+	// Use changes.readWorkingFile for worktree-relative paths
+	const { data: rawFileData, isLoading: isLoadingRaw } =
+		electronTrpc.changes.readWorkingFile.useQuery(
+			{ worktreePath, filePath: relativePath ?? "" },
+			{
+				enabled:
+					!isRemote &&
+					isInsideWorktree &&
+					viewMode !== "diff" &&
+					!isImage &&
+					!!relativePath &&
 					!!worktreePath,
 			},
 		);
 
+	// Merge external and worktree file data into a single result
+	const effectiveRawFileData = isInsideWorktree
+		? rawFileData
+		: externalFileData;
+	const effectiveIsLoadingRaw = isInsideWorktree
+		? isLoadingRaw
+		: isLoadingExternal;
+
 	const { data: imageData, isLoading: isLoadingImage } =
 		electronTrpc.changes.readWorkingFileImage.useQuery(
-			{ worktreePath, filePath },
+			{ worktreePath, filePath: relativePath ?? "" },
 			{
 				enabled:
 					!isRemote &&
+					isInsideWorktree &&
 					viewMode === "rendered" &&
 					isImage &&
-					!!filePath &&
+					!!relativePath &&
 					!!worktreePath,
 			},
 		);
@@ -71,7 +124,7 @@ export function useFileContent({
 		electronTrpc.changes.getFileContents.useQuery(
 			{
 				worktreePath,
-				filePath,
+				filePath: relativePath ?? "",
 				oldPath,
 				category: diffCategory ?? "unstaged",
 				commitHash,
@@ -81,19 +134,20 @@ export function useFileContent({
 			{
 				enabled:
 					!isRemote &&
+					isInsideWorktree &&
 					viewMode === "diff" &&
 					!!diffCategory &&
-					!!filePath &&
+					!!relativePath &&
 					!!worktreePath,
 			},
 		);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
 	useEffect(() => {
-		if (rawFileData?.ok === true && !isDirty) {
-			originalContentRef.current = rawFileData.content;
+		if (effectiveRawFileData?.ok === true && !isDirty) {
+			originalContentRef.current = effectiveRawFileData.content;
 		}
-	}, [rawFileData]);
+	}, [effectiveRawFileData]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when diff loads
 	useEffect(() => {
@@ -112,8 +166,8 @@ export function useFileContent({
 	);
 
 	return {
-		rawFileData,
-		isLoadingRaw: isLoadingRaw || (isImage && isLoadingImage),
+		rawFileData: effectiveRawFileData,
+		isLoadingRaw: effectiveIsLoadingRaw || (isImage && isLoadingImage),
 		imageData: isRemote ? remoteImageData : imageData,
 		isLoadingImage: isRemote ? false : isLoadingImage,
 		diffData,

@@ -62,7 +62,7 @@ export function CommandPalette({
 			isLoading={isLoading}
 			results={searchResults}
 			getItemValue={(file) => `${file.path} ${query}`}
-			onSelectItem={(file) => onSelectFile(file.relativePath)}
+			onSelectItem={(file) => onSelectFile(file.path)}
 			renderItem={(file) => {
 				const { icon: Icon, color } = getFileIcon(file.name, false);
 				return (

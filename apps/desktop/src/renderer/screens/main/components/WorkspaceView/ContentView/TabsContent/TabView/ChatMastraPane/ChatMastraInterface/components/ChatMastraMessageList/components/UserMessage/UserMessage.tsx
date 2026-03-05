@@ -1,7 +1,7 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { useCallback } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { normalizeWorkspaceFilePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
+import { resolveToAbsolutePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
 import { parseUserMentions } from "./utils/parseUserMentions";
 
 type MastraMessage = NonNullable<
@@ -54,11 +54,11 @@ export function UserMessage({
 									);
 								}
 
-								const normalizedPath = normalizeWorkspaceFilePath({
+								const absolutePath = resolveToAbsolutePath({
 									filePath: segment.relativePath,
 									workspaceRoot: workspaceCwd,
 								});
-								const canOpen = Boolean(normalizedPath);
+								const canOpen = Boolean(absolutePath);
 
 								return (
 									<button
@@ -66,8 +66,8 @@ export function UserMessage({
 										key={`${message.id}-${partIndex}-${segmentIndex}`}
 										className="mx-0.5 inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 font-mono text-xs text-primary transition-colors hover:bg-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:opacity-60"
 										onClick={() => {
-											if (!normalizedPath) return;
-											openMentionedFile(normalizedPath);
+											if (!absolutePath) return;
+											openMentionedFile(absolutePath);
 										}}
 										disabled={!canOpen}
 										aria-label={`Open file ${segment.relativePath}`}

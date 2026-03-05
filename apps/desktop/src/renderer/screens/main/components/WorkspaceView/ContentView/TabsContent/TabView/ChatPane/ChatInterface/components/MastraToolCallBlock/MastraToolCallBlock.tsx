@@ -10,7 +10,7 @@ import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 import { READ_ONLY_TOOLS } from "../../constants";
-import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
+import { resolveToAbsolutePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import {
 	getArgs,
@@ -83,22 +83,21 @@ export function MastraToolCallBlock({
 	const toolDisplayName = toolName
 		.replace("mastra_workspace_", "")
 		.replaceAll("_", " ");
-	const normalizeFilePath = useCallback(
+	const resolveFilePath = useCallback(
 		(filePath: string) => {
-			const normalizedPath = normalizeWorkspaceFilePath({
+			return resolveToAbsolutePath({
 				filePath,
 				workspaceRoot: workspaceCwd,
 			});
-			return normalizedPath ?? null;
 		},
 		[workspaceCwd],
 	);
 	const openFileInPane = useCallback(
 		(filePath: string) => {
 			if (!workspaceId) return;
-			const normalizedPath = normalizeFilePath(filePath);
-			if (!normalizedPath) return;
-			addFileViewerPane(workspaceId, { filePath: normalizedPath });
+			const absolutePath = resolveFilePath(filePath);
+			if (!absolutePath) return;
+			addFileViewerPane(workspaceId, { filePath: absolutePath });
 			posthog.capture("chat_file_opened_from_tool", {
 				workspace_id: workspaceId,
 				session_id: sessionId ?? null,
@@ -109,7 +108,7 @@ export function MastraToolCallBlock({
 		},
 		[
 			addFileViewerPane,
-			normalizeFilePath,
+			resolveFilePath,
 			organizationId,
 			sessionId,
 			toolName,
@@ -145,21 +144,21 @@ export function MastraToolCallBlock({
 	}, [panes, tabs, workspaceId]);
 	const getDiffPaneTargetForFile = useCallback(
 		(filePath: string) => {
-			const normalizedPath = normalizeFilePath(filePath);
-			if (!normalizedPath) return null;
-			return workspaceDiffPaneByFilePath.get(normalizedPath) ?? null;
+			const absolutePath = resolveFilePath(filePath);
+			if (!absolutePath) return null;
+			return workspaceDiffPaneByFilePath.get(absolutePath) ?? null;
 		},
-		[normalizeFilePath, workspaceDiffPaneByFilePath],
+		[resolveFilePath, workspaceDiffPaneByFilePath],
 	);
 	const openFileInDiffPane = useCallback(
 		(filePath: string) => {
 			if (!workspaceId) return;
-			const normalizedPath = normalizeFilePath(filePath);
+			const absolutePath = resolveFilePath(filePath);
 			const diffPaneTarget = getDiffPaneTargetForFile(filePath);
-			if (!normalizedPath) return;
+			if (!absolutePath) return;
 
 			addFileViewerPane(workspaceId, {
-				filePath: normalizedPath,
+				filePath: absolutePath,
 				diffCategory: diffPaneTarget?.diffCategory ?? "unstaged",
 				commitHash: diffPaneTarget?.commitHash,
 				oldPath: diffPaneTarget?.oldPath,
@@ -176,7 +175,7 @@ export function MastraToolCallBlock({
 		[
 			addFileViewerPane,
 			getDiffPaneTargetForFile,
-			normalizeFilePath,
+			resolveFilePath,
 			organizationId,
 			sessionId,
 			toolName,

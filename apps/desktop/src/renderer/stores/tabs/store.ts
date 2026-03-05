@@ -1,3 +1,4 @@
+import { basename } from "pathe";
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
@@ -740,8 +741,7 @@ export const useTabsStore = create<TabsStore>()(
 						}
 
 						// Different file - replace the preview pane content
-						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+						const fileName = basename(options.filePath) || options.filePath;
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,

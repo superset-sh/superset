@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
+import { resolve } from "pathe";
 import { useCallback } from "react";
 import {
 	LuExpand,
@@ -103,22 +104,22 @@ export function RightSidebar() {
 	const { scrollToFile } = useScrollContext();
 
 	const invalidateFileContent = useCallback(
-		(filePath: string) => {
+		(relativeFilePath: string) => {
 			if (!worktreePath) return;
 
 			Promise.all([
 				trpcUtils.changes.readWorkingFile.invalidate({
 					worktreePath,
-					filePath,
+					filePath: relativeFilePath,
 				}),
 				trpcUtils.changes.getFileContents.invalidate({
 					worktreePath,
-					filePath,
+					filePath: relativeFilePath,
 				}),
 			]).catch((error) => {
 				console.error(
 					"[RightSidebar/invalidateFileContent] Failed to invalidate file content queries:",
-					{ worktreePath, filePath, error },
+					{ worktreePath, filePath: relativeFilePath, error },
 				);
 			});
 		},
@@ -128,8 +129,9 @@ export function RightSidebar() {
 	const handleFileOpenPane = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			if (!workspaceId || !worktreePath) return;
+			const absolutePath = resolve(worktreePath, file.path);
 			addFileViewerPane(workspaceId, {
-				filePath: file.path,
+				filePath: absolutePath,
 				diffCategory: category,
 				fileStatus: file.status,
 				commitHash,

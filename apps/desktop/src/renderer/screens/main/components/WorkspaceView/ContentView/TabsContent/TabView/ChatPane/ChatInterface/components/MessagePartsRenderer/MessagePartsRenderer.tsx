@@ -16,7 +16,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { READ_ONLY_TOOLS } from "../../constants";
 import {
 	getWorkspaceToolFilePath,
-	normalizeWorkspaceFilePath,
+	resolveToAbsolutePath,
 } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs, normalizeToolName } from "../../utils/tool-helpers";
@@ -63,12 +63,12 @@ export function MessagePartsRenderer({
 	const openFileInPane = useCallback(
 		(filePath: string) => {
 			if (!workspaceId) return;
-			const normalizedPath = normalizeWorkspaceFilePath({
+			const absolutePath = resolveToAbsolutePath({
 				filePath,
 				workspaceRoot: workspaceCwd,
 			});
-			if (!normalizedPath) return;
-			addFileViewerPane(workspaceId, { filePath: normalizedPath });
+			if (!absolutePath) return;
+			addFileViewerPane(workspaceId, { filePath: absolutePath });
 		},
 		[addFileViewerPane, workspaceCwd, workspaceId],
 	);

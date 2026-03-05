@@ -11,9 +11,12 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
+import { dirname } from "pathe";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuFile, LuFolder } from "react-icons/lu";
+import { LuChevronRight, LuFile, LuFolder, LuHouse } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -38,6 +41,11 @@ export function FilesView() {
 	const worktreePath = workspace?.worktreePath;
 
 	const [searchTerm, setSearchTerm] = useState("");
+	// browseRoot allows navigating outside the worktree directory
+	const [browseRoot, setBrowseRoot] = useState<string | null>(null);
+	const effectiveRoot = browseRoot ?? worktreePath;
+	const isOutsideWorktree = browseRoot !== null && browseRoot !== worktreePath;
+
 	const projectId = workspace?.project?.id;
 	const showHiddenFiles = useFileExplorerStore((s) =>
 		projectId ? (s.showHiddenFiles[projectId] ?? false) : false,
@@ -45,8 +53,8 @@ export function FilesView() {
 	const toggleHiddenFiles = useFileExplorerStore((s) => s.toggleHiddenFiles);
 
 	// Refs avoid stale closure in dataLoader callbacks
-	const worktreePathRef = useRef(worktreePath);
-	worktreePathRef.current = worktreePath;
+	const effectiveRootRef = useRef(effectiveRoot);
+	effectiveRootRef.current = effectiveRoot;
 	const showHiddenFilesRef = useRef(showHiddenFiles);
 	showHiddenFilesRef.current = showHiddenFiles;
 
@@ -64,7 +72,7 @@ export function FilesView() {
 					return {
 						id: "root",
 						name: "root",
-						path: worktreePathRef.current ?? "",
+						path: effectiveRootRef.current ?? "",
 						relativePath: "",
 						isDirectory: true,
 					};
@@ -79,17 +87,17 @@ export function FilesView() {
 				};
 			},
 			getChildren: async (itemId: string): Promise<string[]> => {
-				const currentPath = worktreePathRef.current;
-				if (!currentPath) return [];
+				const currentRoot = effectiveRootRef.current;
+				if (!currentRoot) return [];
 
 				const dirPath =
-					itemId === "root" ? currentPath : itemId.split(":::")[0];
+					itemId === "root" ? currentRoot : itemId.split(":::")[0];
 				if (!dirPath) return [];
 
 				try {
 					const entries = await trpcUtils.filesystem.readDirectory.fetch({
 						dirPath,
-						rootPath: currentPath,
+						rootPath: currentRoot,
 						includeHidden: showHiddenFilesRef.current,
 					});
 					return entries.map(
@@ -105,23 +113,39 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	const prevWorktreePathRef = useRef(worktreePath);
+	const prevEffectiveRootRef = useRef(effectiveRoot);
 	useEffect(() => {
 		if (
-			worktreePath &&
-			prevWorktreePathRef.current !== worktreePath &&
-			prevWorktreePathRef.current !== undefined
+			effectiveRoot &&
+			prevEffectiveRootRef.current !== effectiveRoot &&
+			prevEffectiveRootRef.current !== undefined
 		) {
 			tree.getItemInstance("root")?.invalidateChildrenIds();
 		}
-		prevWorktreePathRef.current = worktreePath;
-	}, [worktreePath, tree]);
+		prevEffectiveRootRef.current = effectiveRoot;
+	}, [effectiveRoot, tree]);
+
+	// Reset browseRoot when switching workspaces
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on worktree change only
+	useEffect(() => {
+		setBrowseRoot(null);
+	}, [worktreePath]);
+
+	const navigateToParent = useCallback(() => {
+		const current = effectiveRoot;
+		if (!current || current === "/") return;
+		setBrowseRoot(dirname(current));
+	}, [effectiveRoot]);
+
+	const navigateHome = useCallback(() => {
+		setBrowseRoot(null);
+	}, []);
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
 			worktreePath,
 			onRefresh: async (parentPath: string) => {
-				const isRoot = parentPath === worktreePath;
+				const isRoot = parentPath === effectiveRoot;
 				const itemId = isRoot
 					? "root"
 					: tree
@@ -142,7 +166,7 @@ export function FilesView() {
 		isFetching: isSearchFetching,
 		hasQuery: isSearching,
 	} = useFileSearch({
-		worktreePath,
+		worktreePath: effectiveRoot,
 		searchTerm,
 		includeHidden: showHiddenFiles,
 	});
@@ -160,9 +184,7 @@ export function FilesView() {
 	const handleFileActivate = useCallback(
 		(entry: DirectoryEntry) => {
 			if (!workspaceId || !worktreePath || entry.isDirectory) return;
-			addFileViewerPane(workspaceId, {
-				filePath: entry.relativePath,
-			});
+			addFileViewerPane(workspaceId, { filePath: entry.path });
 		},
 		[workspaceId, worktreePath, addFileViewerPane],
 	);
@@ -181,7 +203,7 @@ export function FilesView() {
 
 	const handleNewFile = useCallback(
 		async (parentPath: string) => {
-			if (parentPath !== worktreePath) {
+			if (parentPath !== effectiveRoot) {
 				const item = tree
 					.getItems()
 					.find(
@@ -195,12 +217,12 @@ export function FilesView() {
 			setNewItemMode("file");
 			setNewItemParentPath(parentPath);
 		},
-		[worktreePath, tree],
+		[effectiveRoot, tree],
 	);
 
 	const handleNewFolder = useCallback(
 		async (parentPath: string) => {
-			if (parentPath !== worktreePath) {
+			if (parentPath !== effectiveRoot) {
 				const item = tree
 					.getItems()
 					.find(
@@ -214,7 +236,7 @@ export function FilesView() {
 			setNewItemMode("folder");
 			setNewItemParentPath(parentPath);
 		},
-		[worktreePath, tree],
+		[effectiveRoot, tree],
 	);
 
 	const handleNewItemSubmit = useCallback(
@@ -305,6 +327,16 @@ export function FilesView() {
 		}));
 	}, [searchResults]);
 
+	// Build breadcrumb segments for the current browse root
+	const breadcrumbSegments = useMemo(() => {
+		if (!isOutsideWorktree || !effectiveRoot) return null;
+		const parts = effectiveRoot.split("/").filter(Boolean);
+		return parts.map((name, i) => ({
+			name,
+			path: `/${parts.slice(0, i + 1).join("/")}`,
+		}));
+	}, [isOutsideWorktree, effectiveRoot]);
+
 	if (!worktreePath) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
@@ -318,26 +350,66 @@ export function FilesView() {
 			<FileTreeToolbar
 				searchTerm={searchTerm}
 				onSearchChange={setSearchTerm}
-				onNewFile={() => handleNewFile(worktreePath)}
-				onNewFolder={() => handleNewFolder(worktreePath)}
+				onNewFile={() => handleNewFile(effectiveRoot ?? worktreePath)}
+				onNewFolder={() => handleNewFolder(effectiveRoot ?? worktreePath)}
 				onCollapseAll={handleCollapseAll}
 				onRefresh={handleRefresh}
 				showHiddenFiles={showHiddenFiles}
 				onToggleHiddenFiles={handleToggleHiddenFiles}
+				onNavigateToParent={navigateToParent}
+				onNavigateHome={isOutsideWorktree ? navigateHome : undefined}
 			/>
+
+			{breadcrumbSegments && (
+				<div className="flex items-center gap-0.5 px-2 py-1 border-b border-border text-xs text-muted-foreground overflow-x-auto shrink-0">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={navigateHome}
+								className="shrink-0 p-0.5 rounded hover:bg-accent/50 hover:text-foreground transition-colors"
+							>
+								<LuHouse className="size-3" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							Back to {worktreePath?.split("/").pop()}
+						</TooltipContent>
+					</Tooltip>
+					<LuChevronRight className="size-3 shrink-0 text-muted-foreground/50" />
+					{breadcrumbSegments.map((segment, i) => (
+						<span key={segment.path} className="flex items-center gap-0.5">
+							{i > 0 && (
+								<LuChevronRight className="size-3 shrink-0 text-muted-foreground/50" />
+							)}
+							<button
+								type="button"
+								onClick={() => setBrowseRoot(segment.path)}
+								className={cn(
+									"shrink-0 truncate max-w-[120px] hover:text-foreground transition-colors",
+									i === breadcrumbSegments.length - 1 && "text-foreground",
+								)}
+							>
+								{segment.name}
+							</button>
+						</span>
+					))}
+				</div>
+			)}
 
 			<div className="flex-1 min-h-0 overflow-hidden">
 				<ContextMenu>
 					<ContextMenuTrigger asChild className="h-full">
 						<div className="h-full overflow-auto">
-							{newItemMode && newItemParentPath === worktreePath && (
-								<NewItemInput
-									mode={newItemMode}
-									parentPath={newItemParentPath}
-									onSubmit={handleNewItemSubmit}
-									onCancel={handleNewItemCancel}
-								/>
-							)}
+							{newItemMode &&
+								newItemParentPath === (effectiveRoot ?? worktreePath) && (
+									<NewItemInput
+										mode={newItemMode}
+										parentPath={newItemParentPath}
+										onSubmit={handleNewItemSubmit}
+										onCancel={handleNewItemCancel}
+									/>
+								)}
 
 							{isSearching ? (
 								searchResultEntries.length > 0 ? (
@@ -354,7 +426,7 @@ export function FilesView() {
 												<FileSearchResultItem
 													key={entry.id}
 													entry={entry}
-													worktreePath={worktreePath}
+													worktreePath={effectiveRoot ?? worktreePath}
 													projectId={projectId}
 													onActivate={handleFileActivate}
 													onOpenInEditor={handleOpenInEditor}
@@ -398,7 +470,7 @@ export function FilesView() {
 														entry={data}
 														rowHeight={ROW_HEIGHT}
 														indent={TREE_INDENT}
-														worktreePath={worktreePath}
+														worktreePath={effectiveRoot ?? worktreePath}
 														projectId={projectId}
 														onActivate={handleFileActivate}
 														onOpenInEditor={handleOpenInEditor}
@@ -425,11 +497,15 @@ export function FilesView() {
 						</div>
 					</ContextMenuTrigger>
 					<ContextMenuContent className="w-48">
-						<ContextMenuItem onClick={() => handleNewFile(worktreePath)}>
+						<ContextMenuItem
+							onClick={() => handleNewFile(effectiveRoot ?? worktreePath)}
+						>
 							<LuFile className="mr-2 size-4" />
 							New File
 						</ContextMenuItem>
-						<ContextMenuItem onClick={() => handleNewFolder(worktreePath)}>
+						<ContextMenuItem
+							onClick={() => handleNewFolder(effectiveRoot ?? worktreePath)}
+						>
 							<LuFolder className="mr-2 size-4" />
 							New Folder
 						</ContextMenuItem>

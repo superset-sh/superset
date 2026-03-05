@@ -1,11 +1,13 @@
 import type * as Monaco from "monaco-editor";
-import { type MutableRefObject, useCallback, useRef } from "react";
+import { relative } from "pathe";
+import { type MutableRefObject, useCallback, useMemo, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 
 interface UseFileSaveParams {
 	worktreePath: string;
+	/** Absolute file path */
 	filePath: string;
 	paneId: string;
 	diffCategory?: ChangeCategory;
@@ -27,6 +29,12 @@ export function useFileSave({
 	draftContentRef,
 	setIsDirty,
 }: UseFileSaveParams) {
+	// Derive worktree-relative path for secureFs save operations
+	const relativeFilePath = useMemo(() => {
+		if (!worktreePath) return filePath;
+		const rel = relative(worktreePath, filePath);
+		return rel.startsWith("..") ? filePath : rel;
+	}, [worktreePath, filePath]);
 	const savingFromRawRef = useRef(false);
 	const savingDiffContentRef = useRef<string | null>(null);
 	const utils = electronTrpc.useUtils();
@@ -72,27 +80,27 @@ export function useFileSave({
 	});
 
 	const handleSaveRaw = useCallback(async () => {
-		if (!editorRef.current || !filePath || !worktreePath) return;
+		if (!editorRef.current || !relativeFilePath || !worktreePath) return;
 		savingFromRawRef.current = true;
 		await saveFileMutation.mutateAsync({
 			worktreePath,
-			filePath,
+			filePath: relativeFilePath,
 			content: editorRef.current.getValue(),
 		});
-	}, [worktreePath, filePath, saveFileMutation, editorRef]);
+	}, [worktreePath, relativeFilePath, saveFileMutation, editorRef]);
 
 	const handleSaveDiff = useCallback(
 		async (content: string) => {
-			if (!filePath || !worktreePath) return;
+			if (!relativeFilePath || !worktreePath) return;
 			savingFromRawRef.current = false;
 			savingDiffContentRef.current = content;
 			await saveFileMutation.mutateAsync({
 				worktreePath,
-				filePath,
+				filePath: relativeFilePath,
 				content,
 			});
 		},
-		[worktreePath, filePath, saveFileMutation],
+		[worktreePath, relativeFilePath, saveFileMutation],
 	);
 
 	return {

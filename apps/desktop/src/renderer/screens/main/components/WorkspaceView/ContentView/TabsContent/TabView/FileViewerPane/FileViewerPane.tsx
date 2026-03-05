@@ -1,4 +1,5 @@
 import type * as Monaco from "monaco-editor";
+import { basename } from "pathe";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
@@ -265,7 +266,7 @@ export function FileViewerPane({
 		pendingModeRef.current = null;
 	};
 
-	const fileName = filePath.split("/").pop() || filePath;
+	const fileName = basename(filePath) || filePath;
 	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;

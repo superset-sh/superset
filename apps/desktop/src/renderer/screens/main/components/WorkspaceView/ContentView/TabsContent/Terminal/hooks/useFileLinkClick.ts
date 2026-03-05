@@ -1,4 +1,5 @@
 import { toast } from "@superset/ui/sonner";
+import { resolve } from "pathe";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -59,7 +60,6 @@ export function useFileLinkClick({
 
 			if (behavior === "file-viewer") {
 				// If workspaceCwd is not loaded yet, fall back to external editor
-				// This prevents confusing errors when the workspace is still initializing
 				if (!workspaceCwd) {
 					console.warn(
 						"[Terminal] workspaceCwd not loaded, falling back to external editor",
@@ -68,23 +68,8 @@ export function useFileLinkClick({
 					return;
 				}
 
-				// Normalize absolute paths to worktree-relative paths for file viewer
-				// File viewer expects relative paths, but terminal links can be absolute
-				let filePath = path;
-				// Use path boundary check to avoid incorrect prefix stripping
-				// e.g., /repo vs /repo-other should not match
-				if (path === workspaceCwd) {
-					filePath = ".";
-				} else if (path.startsWith(`${workspaceCwd}/`)) {
-					filePath = path.slice(workspaceCwd.length + 1);
-				} else if (path.startsWith("/")) {
-					// Absolute path outside workspace - show warning and don't attempt to open
-					toast.warning("File is outside the workspace", {
-						description:
-							"Switch to 'External editor' in Settings to open this file",
-					});
-					return;
-				}
+				// Resolve relative paths to absolute using workspace cwd
+				const filePath = resolve(workspaceCwd, path);
 				addFileViewerPane(workspaceId, {
 					filePath,
 					line,

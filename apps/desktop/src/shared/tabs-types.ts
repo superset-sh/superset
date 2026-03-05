@@ -101,7 +101,7 @@ export type DiffLayout = "inline" | "side-by-side";
  * File viewer pane-specific properties
  */
 export interface FileViewerState {
-	/** Worktree-relative file path */
+	/** Absolute file path (or remote URL for images) */
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
 	viewMode: FileViewerMode;

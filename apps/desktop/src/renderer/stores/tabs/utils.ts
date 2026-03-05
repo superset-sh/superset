@@ -1,3 +1,4 @@
+import { basename } from "pathe";
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import {
 	type ChangeCategory,
@@ -215,7 +216,7 @@ export const createFileViewerPane = (
 	};
 
 	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	const fileName = basename(options.filePath) || options.filePath;
 
 	return {
 		id,
