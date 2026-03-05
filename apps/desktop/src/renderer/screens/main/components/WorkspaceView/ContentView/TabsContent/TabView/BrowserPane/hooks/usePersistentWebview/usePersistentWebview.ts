@@ -40,7 +40,7 @@ export function destroyPersistentWebview(paneId: string): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function sanitizeUrl(url: string): string {
+export function sanitizeUrl(url: string): string {
 	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
 		return url;
 	}
