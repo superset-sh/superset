@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import os from "node:os";
 import path from "node:path";
-import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
+import {
+	getAppCommand,
+	isEditorApp,
+	resolvePath,
+	stripPathWrappers,
+} from "./helpers";
 
 describe("getAppCommand", () => {
 	const getMacCommand = (
@@ -573,6 +578,110 @@ describe("stripPathWrappers", () => {
 
 		test("strips trailing period from dotfile with extension", () => {
 			expect(stripPathWrappers(".eslintrc.json.")).toBe(".eslintrc.json");
+		});
+	});
+});
+
+// Tests for #1647 — Global default editor setting
+// isEditorApp does not yet exist; these tests are expected to fail until implemented.
+describe("isEditorApp", () => {
+	describe("editor apps — should be eligible for global default", () => {
+		test("cursor is an editor", () => {
+			expect(isEditorApp("cursor")).toBe(true);
+		});
+
+		test("vscode is an editor", () => {
+			expect(isEditorApp("vscode")).toBe(true);
+		});
+
+		test("vscode-insiders is an editor", () => {
+			expect(isEditorApp("vscode-insiders")).toBe(true);
+		});
+
+		test("zed is an editor", () => {
+			expect(isEditorApp("zed")).toBe(true);
+		});
+
+		test("sublime is an editor", () => {
+			expect(isEditorApp("sublime")).toBe(true);
+		});
+
+		test("xcode is an editor", () => {
+			expect(isEditorApp("xcode")).toBe(true);
+		});
+
+		test("antigravity is an editor", () => {
+			expect(isEditorApp("antigravity")).toBe(true);
+		});
+
+		test("intellij is an editor", () => {
+			expect(isEditorApp("intellij")).toBe(true);
+		});
+
+		test("webstorm is an editor", () => {
+			expect(isEditorApp("webstorm")).toBe(true);
+		});
+
+		test("pycharm is an editor", () => {
+			expect(isEditorApp("pycharm")).toBe(true);
+		});
+
+		test("phpstorm is an editor", () => {
+			expect(isEditorApp("phpstorm")).toBe(true);
+		});
+
+		test("rubymine is an editor", () => {
+			expect(isEditorApp("rubymine")).toBe(true);
+		});
+
+		test("goland is an editor", () => {
+			expect(isEditorApp("goland")).toBe(true);
+		});
+
+		test("clion is an editor", () => {
+			expect(isEditorApp("clion")).toBe(true);
+		});
+
+		test("rider is an editor", () => {
+			expect(isEditorApp("rider")).toBe(true);
+		});
+
+		test("datagrip is an editor", () => {
+			expect(isEditorApp("datagrip")).toBe(true);
+		});
+
+		test("appcode is an editor", () => {
+			expect(isEditorApp("appcode")).toBe(true);
+		});
+
+		test("fleet is an editor", () => {
+			expect(isEditorApp("fleet")).toBe(true);
+		});
+
+		test("rustrover is an editor", () => {
+			expect(isEditorApp("rustrover")).toBe(true);
+		});
+	});
+
+	describe("non-editor apps — must NOT be saved as global default", () => {
+		test("finder is not an editor", () => {
+			expect(isEditorApp("finder")).toBe(false);
+		});
+
+		test("terminal is not an editor", () => {
+			expect(isEditorApp("terminal")).toBe(false);
+		});
+
+		test("iterm is not an editor", () => {
+			expect(isEditorApp("iterm")).toBe(false);
+		});
+
+		test("warp is not an editor", () => {
+			expect(isEditorApp("warp")).toBe(false);
+		});
+
+		test("ghostty is not an editor", () => {
+			expect(isEditorApp("ghostty")).toBe(false);
 		});
 	});
 });
