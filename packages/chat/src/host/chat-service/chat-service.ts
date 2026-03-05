@@ -9,6 +9,13 @@ import {
 	parseAnthropicEnvText,
 	setAnthropicEnvConfig as setAnthropicEnvConfigOnDisk,
 } from "./anthropic-env-config";
+import {
+	type ApiKeyBaseUrlStorageOptions,
+	clearProviderApiKeyBaseUrl,
+	getProviderApiKeyBaseUrl,
+	setProviderApiKeyBaseUrl,
+	validateApiKeyBaseUrl,
+} from "./api-key-base-url-storage";
 import type { AuthMethod } from "./auth-storage-types";
 import {
 	clearApiKeyForProvider,
@@ -34,7 +41,10 @@ const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
 
 interface ChatServiceOptions {
 	anthropicEnvConfigPath?: string;
+	apiKeyBaseUrlsConfigPath?: string;
 }
+
+const OPENAI_BASE_URL_ENV_KEY = "OPENAI_BASE_URL";
 
 export class ChatService {
 	private authStorage: OpenAIAuthStorage | null = null;
@@ -42,6 +52,7 @@ export class ChatService {
 		this.getAuthStorage(),
 	);
 	private readonly anthropicEnvConfigPath: string | undefined;
+	private readonly apiKeyBaseUrlsOptions: ApiKeyBaseUrlStorageOptions;
 	private currentAnthropicRuntimeEnv: AnthropicRuntimeEnv = {};
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 	private static readonly OPENAI_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
@@ -49,15 +60,27 @@ export class ChatService {
 
 	constructor(options?: ChatServiceOptions) {
 		this.anthropicEnvConfigPath = options?.anthropicEnvConfigPath;
+		this.apiKeyBaseUrlsOptions = {
+			configPath: options?.apiKeyBaseUrlsConfigPath,
+		};
 		const persistedConfig = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
 		this.applyAnthropicRuntimeEnv(persistedConfig.variables);
+		// Restore persisted OpenAI base URL on startup
+		const openAIBaseUrl = getProviderApiKeyBaseUrl(
+			OPENAI_AUTH_PROVIDER_ID,
+			this.apiKeyBaseUrlsOptions,
+		);
+		if (openAIBaseUrl) {
+			process.env[OPENAI_BASE_URL_ENV_KEY] = openAIBaseUrl;
+		}
 	}
 
 	getAnthropicAuthStatus(): {
 		authenticated: boolean;
 		method: AnthropicAuthMethod;
+		baseUrl?: string;
 	} {
 		const storageMethod = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
@@ -70,10 +93,23 @@ export class ChatService {
 		const hasEnvConfig =
 			Object.keys(this.getAnthropicEnvConfig().variables).length > 0;
 		if (hasEnvConfig) {
-			return { authenticated: true, method: "env" };
+			const baseUrl = this.getAnthropicEnvConfig().variables.ANTHROPIC_BASE_URL;
+			return {
+				authenticated: true,
+				method: "env",
+				...(baseUrl ? { baseUrl } : {}),
+			};
 		}
 		if (storageMethod === "api_key") {
-			return { authenticated: true, method: "api_key" };
+			const baseUrl = getProviderApiKeyBaseUrl(
+				ANTHROPIC_AUTH_PROVIDER_ID,
+				this.apiKeyBaseUrlsOptions,
+			);
+			return {
+				authenticated: true,
+				method: "api_key",
+				...(baseUrl ? { baseUrl } : {}),
+			};
 		}
 		return { authenticated: false, method: null };
 	}
@@ -81,26 +117,52 @@ export class ChatService {
 	async getOpenAIAuthStatus(): Promise<{
 		authenticated: boolean;
 		method: OpenAIAuthMethod;
+		baseUrl?: string;
 	}> {
 		const method = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			OPENAI_AUTH_PROVIDER_ID,
 		);
-		return { authenticated: method !== null, method };
+		const baseUrl = getProviderApiKeyBaseUrl(
+			OPENAI_AUTH_PROVIDER_ID,
+			this.apiKeyBaseUrlsOptions,
+		);
+		return {
+			authenticated: method !== null,
+			method,
+			...(baseUrl ? { baseUrl } : {}),
+		};
 	}
 
-	async setOpenAIApiKey(input: { apiKey: string }): Promise<{ success: true }> {
+	async setOpenAIApiKey(input: {
+		apiKey: string;
+		baseUrl?: string;
+	}): Promise<{ success: true }> {
 		setApiKeyForProvider(
 			this.getAuthStorage(),
 			OPENAI_AUTH_PROVIDER_ID,
 			input.apiKey,
 			"OpenAI API key is required",
 		);
+		if (input.baseUrl !== undefined) {
+			const validatedUrl = validateApiKeyBaseUrl(input.baseUrl);
+			setProviderApiKeyBaseUrl(
+				OPENAI_AUTH_PROVIDER_ID,
+				validatedUrl,
+				this.apiKeyBaseUrlsOptions,
+			);
+			process.env[OPENAI_BASE_URL_ENV_KEY] = validatedUrl;
+		}
 		return { success: true };
 	}
 
 	async clearOpenAIApiKey(): Promise<{ success: true }> {
 		clearApiKeyForProvider(this.getAuthStorage(), OPENAI_AUTH_PROVIDER_ID);
+		clearProviderApiKeyBaseUrl(
+			OPENAI_AUTH_PROVIDER_ID,
+			this.apiKeyBaseUrlsOptions,
+		);
+		delete process.env[OPENAI_BASE_URL_ENV_KEY];
 		return { success: true };
 	}
 
@@ -124,6 +186,7 @@ export class ChatService {
 
 	async setAnthropicApiKey(input: {
 		apiKey: string;
+		baseUrl?: string;
 	}): Promise<{ success: true }> {
 		setApiKeyForProvider(
 			this.getAuthStorage(),
@@ -131,6 +194,14 @@ export class ChatService {
 			input.apiKey,
 			"Anthropic API key is required",
 		);
+		if (input.baseUrl !== undefined) {
+			const validatedUrl = validateApiKeyBaseUrl(input.baseUrl);
+			setProviderApiKeyBaseUrl(
+				ANTHROPIC_AUTH_PROVIDER_ID,
+				validatedUrl,
+				this.apiKeyBaseUrlsOptions,
+			);
+		}
 		const config = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
@@ -140,6 +211,10 @@ export class ChatService {
 
 	async clearAnthropicApiKey(): Promise<{ success: true }> {
 		clearApiKeyForProvider(this.getAuthStorage(), ANTHROPIC_AUTH_PROVIDER_ID);
+		clearProviderApiKeyBaseUrl(
+			ANTHROPIC_AUTH_PROVIDER_ID,
+			this.apiKeyBaseUrlsOptions,
+		);
 		const config = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
@@ -334,7 +409,16 @@ export class ChatService {
 		variables: AnthropicEnvVariables,
 		fallbackApiKey?: string,
 	): void {
-		const runtimeEnv = buildAnthropicRuntimeEnv(variables, {
+		// Merge stored API-key base URL when the env config doesn't already set one
+		const storedBaseUrl = getProviderApiKeyBaseUrl(
+			ANTHROPIC_AUTH_PROVIDER_ID,
+			this.apiKeyBaseUrlsOptions,
+		);
+		const mergedVariables: AnthropicEnvVariables =
+			storedBaseUrl && !variables.ANTHROPIC_BASE_URL
+				? { ...variables, ANTHROPIC_BASE_URL: storedBaseUrl }
+				: variables;
+		const runtimeEnv = buildAnthropicRuntimeEnv(mergedVariables, {
 			fallbackApiKey: fallbackApiKey ?? this.getStoredAnthropicApiKey(),
 		});
 		applyAnthropicRuntimeEnvToProcess(runtimeEnv, {

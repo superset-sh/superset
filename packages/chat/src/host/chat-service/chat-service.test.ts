@@ -57,6 +57,7 @@ const MANAGED_ANTHROPIC_ENV_KEYS = [
 	"AWS_REGION",
 	"AWS_PROFILE",
 ] as const;
+const MANAGED_OPENAI_ENV_KEYS = ["OPENAI_BASE_URL"] as const;
 const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 const originalAnthropicEnvValues = {
 	ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
@@ -65,6 +66,9 @@ const originalAnthropicEnvValues = {
 	CLAUDE_CODE_USE_BEDROCK: process.env.CLAUDE_CODE_USE_BEDROCK,
 	AWS_REGION: process.env.AWS_REGION,
 	AWS_PROFILE: process.env.AWS_PROFILE,
+};
+const originalOpenAIEnvValues = {
+	OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
 };
 let testSupersetHomeDir: string | null = null;
 
@@ -88,6 +92,9 @@ describe("ChatService OpenAI auth storage", () => {
 		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
 			delete process.env[key];
 		}
+		for (const key of MANAGED_OPENAI_ENV_KEYS) {
+			delete process.env[key];
+		}
 	});
 
 	afterEach(() => {
@@ -102,6 +109,14 @@ describe("ChatService OpenAI auth storage", () => {
 		}
 		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
 			const value = originalAnthropicEnvValues[key];
+			if (value) {
+				process.env[key] = value;
+			} else {
+				delete process.env[key];
+			}
+		}
+		for (const key of MANAGED_OPENAI_ENV_KEYS) {
+			const value = originalOpenAIEnvValues[key];
 			if (value) {
 				process.env[key] = value;
 			} else {
@@ -237,6 +252,7 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "env",
+			baseUrl: "https://ai-gateway.vercel.sh",
 		});
 	});
 
@@ -274,6 +290,7 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "env",
+			baseUrl: "https://ai-gateway.vercel.sh",
 		});
 	});
 
@@ -472,5 +489,176 @@ describe("ChatService OpenAI auth storage", () => {
 		} finally {
 			timeoutSlot.OAUTH_URL_TIMEOUT_MS = previousTimeout;
 		}
+	});
+
+	// Tests for issue #2019: custom base URL support for API-key auth
+	it("stores and applies OPENAI_BASE_URL when provided with OpenAI API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setOpenAIApiKey({
+			apiKey: "sk-openai-key",
+			baseUrl: "https://my-gateway.example.com/v1",
+		});
+
+		expect(process.env.OPENAI_BASE_URL).toBe(
+			"https://my-gateway.example.com/v1",
+		);
+		const status = await chatService.getOpenAIAuthStatus();
+		expect(status.authenticated).toBe(true);
+		expect(status.method).toBe("api_key");
+		expect(status.baseUrl).toBe("https://my-gateway.example.com/v1");
+	});
+
+	it("strips trailing slash from OpenAI base URL", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setOpenAIApiKey({
+			apiKey: "sk-openai-key",
+			baseUrl: "https://my-gateway.example.com/v1/",
+		});
+
+		expect(process.env.OPENAI_BASE_URL).toBe(
+			"https://my-gateway.example.com/v1",
+		);
+	});
+
+	it("clears OPENAI_BASE_URL and status baseUrl when OpenAI API key is cleared", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setOpenAIApiKey({
+			apiKey: "sk-openai-key",
+			baseUrl: "https://my-gateway.example.com/v1",
+		});
+		await chatService.clearOpenAIApiKey();
+
+		expect(process.env.OPENAI_BASE_URL).toBeUndefined();
+		const status = await chatService.getOpenAIAuthStatus();
+		expect(status.baseUrl).toBeUndefined();
+	});
+
+	it("persists OpenAI base URL across ChatService instances", async () => {
+		const configPath = join(String(testSupersetHomeDir), "base-urls.json");
+
+		const service1 = new ChatService({ apiKeyBaseUrlsConfigPath: configPath });
+		await service1.setOpenAIApiKey({
+			apiKey: "sk-openai-key",
+			baseUrl: "https://my-gateway.example.com/v1",
+		});
+
+		// Simulate restart: clear env var and create new instance
+		delete process.env.OPENAI_BASE_URL;
+		fakeAuthStorage.set("openai-codex", {
+			type: "api_key",
+			key: "sk-openai-key",
+		});
+
+		const service2 = new ChatService({ apiKeyBaseUrlsConfigPath: configPath });
+		expect(process.env.OPENAI_BASE_URL).toBe(
+			"https://my-gateway.example.com/v1",
+		);
+		const status = await service2.getOpenAIAuthStatus();
+		expect(status.baseUrl).toBe("https://my-gateway.example.com/v1");
+	});
+
+	it("rejects invalid URL format for OpenAI base URL", async () => {
+		const chatService = new ChatService();
+
+		await expect(
+			chatService.setOpenAIApiKey({
+				apiKey: "sk-openai-key",
+				baseUrl: "not-a-url",
+			}),
+		).rejects.toThrow("Invalid base URL");
+	});
+
+	it("rejects non-http/https protocol for OpenAI base URL", async () => {
+		const chatService = new ChatService();
+
+		await expect(
+			chatService.setOpenAIApiKey({
+				apiKey: "sk-openai-key",
+				baseUrl: "ftp://example.com/v1",
+			}),
+		).rejects.toThrow("Invalid base URL: must use http or https.");
+	});
+
+	it("stores and applies ANTHROPIC_BASE_URL when provided with Anthropic API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicApiKey({
+			apiKey: "sk-ant-key",
+			baseUrl: "https://anthropic-gateway.example.com/v1",
+		});
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBe(
+			"https://anthropic-gateway.example.com/v1",
+		);
+		const status = chatService.getAnthropicAuthStatus();
+		expect(status.authenticated).toBe(true);
+		expect(status.method).toBe("api_key");
+		expect(status.baseUrl).toBe("https://anthropic-gateway.example.com/v1");
+	});
+
+	it("clears ANTHROPIC_BASE_URL and status baseUrl when Anthropic API key is cleared", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicApiKey({
+			apiKey: "sk-ant-key",
+			baseUrl: "https://anthropic-gateway.example.com/v1",
+		});
+		await chatService.clearAnthropicApiKey();
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBeUndefined();
+		const status = chatService.getAnthropicAuthStatus();
+		expect(status.baseUrl).toBeUndefined();
+	});
+
+	it("persists Anthropic base URL across ChatService instances", async () => {
+		const configPath = join(String(testSupersetHomeDir), "base-urls.json");
+
+		const service1 = new ChatService({ apiKeyBaseUrlsConfigPath: configPath });
+		await service1.setAnthropicApiKey({
+			apiKey: "sk-ant-key",
+			baseUrl: "https://anthropic-gateway.example.com/v1",
+		});
+
+		// Simulate restart: clear env var and create new instance
+		delete process.env.ANTHROPIC_BASE_URL;
+		fakeAuthStorage.set("anthropic", { type: "api_key", key: "sk-ant-key" });
+
+		const service2 = new ChatService({ apiKeyBaseUrlsConfigPath: configPath });
+		expect(process.env.ANTHROPIC_BASE_URL).toBe(
+			"https://anthropic-gateway.example.com/v1",
+		);
+		const status = service2.getAnthropicAuthStatus();
+		expect(status.baseUrl).toBe("https://anthropic-gateway.example.com/v1");
+	});
+
+	it("env config ANTHROPIC_BASE_URL takes precedence over API-key base URL", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicApiKey({
+			apiKey: "sk-ant-key",
+			baseUrl: "https://api-key-gateway.example.com/v1",
+		});
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_API_KEY=env-key\nANTHROPIC_BASE_URL=https://env-gateway.example.com/v1",
+		});
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBe(
+			"https://env-gateway.example.com/v1",
+		);
+	});
+
+	it("getOpenAIAuthStatus does not include baseUrl when none is configured", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setOpenAIApiKey({ apiKey: "sk-openai-key" });
+		const status = await chatService.getOpenAIAuthStatus();
+
+		expect(status.authenticated).toBe(true);
+		expect(status.method).toBe("api_key");
+		expect(status.baseUrl).toBeUndefined();
 	});
 });
