@@ -112,16 +112,25 @@ function createEmptySnapshot(): ResourceMetricsSnapshot {
 function normalizeSnapshot(
 	snapshot: ResourceMetricsSnapshot,
 ): ResourceMetricsSnapshot {
+	const host = createHostMetrics();
+	// pidusage and Electron's getAppMetrics() return CPU as a percentage of a
+	// single core (0–100% per core). Divide every CPU value by the number of
+	// logical cores so that the displayed percentage reflects system-relative
+	// load (0–100% of total CPU capacity) rather than a raw per-core sum that
+	// can reach cpuCoreCount×100% on a heavily-loaded multi-core machine.
+	const coreCount = host.cpuCoreCount;
+	const normCpu = (raw: unknown) => normalizeFiniteNumber(raw) / coreCount;
+
 	const appMain = {
-		cpu: normalizeFiniteNumber(snapshot.app.main.cpu),
+		cpu: normCpu(snapshot.app.main.cpu),
 		memory: normalizeFiniteNumber(snapshot.app.main.memory),
 	};
 	const appRenderer = {
-		cpu: normalizeFiniteNumber(snapshot.app.renderer.cpu),
+		cpu: normCpu(snapshot.app.renderer.cpu),
 		memory: normalizeFiniteNumber(snapshot.app.renderer.memory),
 	};
 	const appOther = {
-		cpu: normalizeFiniteNumber(snapshot.app.other.cpu),
+		cpu: normCpu(snapshot.app.other.cpu),
 		memory: normalizeFiniteNumber(snapshot.app.other.memory),
 	};
 	const workspaces = snapshot.workspaces.map((workspace) => {
@@ -129,7 +138,7 @@ function normalizeSnapshot(
 			sessionId: session.sessionId,
 			paneId: session.paneId,
 			pid: Math.max(0, Math.floor(normalizeFiniteNumber(session.pid))),
-			cpu: normalizeFiniteNumber(session.cpu),
+			cpu: normCpu(session.cpu),
 			memory: normalizeFiniteNumber(session.memory),
 		}));
 
@@ -138,7 +147,7 @@ function normalizeSnapshot(
 			projectId: workspace.projectId,
 			projectName: workspace.projectName,
 			workspaceName: workspace.workspaceName,
-			cpu: normalizeFiniteNumber(workspace.cpu),
+			cpu: normCpu(workspace.cpu),
 			memory: normalizeFiniteNumber(workspace.memory),
 			sessions,
 		};
@@ -151,7 +160,6 @@ function normalizeSnapshot(
 		(sum, workspace) => sum + workspace.memory,
 		0,
 	);
-	const host = createHostMetrics();
 	const app = {
 		main: appMain,
 		renderer: appRenderer,

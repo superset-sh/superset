@@ -187,7 +187,7 @@ export function ResourceConsumption() {
 								label="CPU"
 								value={formatCpu(normalizedSnapshot.totalCpu)}
 								severity={totalSeverity}
-								tooltip="Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
+								tooltip="Percentage of total CPU capacity used by Superset and monitored terminal process trees (0–100% of all cores combined). Sustained high values usually cause UI sluggishness and higher battery drain."
 							/>
 							<MetricBadge
 								label="Memory"
