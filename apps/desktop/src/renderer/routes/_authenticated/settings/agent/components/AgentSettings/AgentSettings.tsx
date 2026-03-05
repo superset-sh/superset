@@ -506,9 +506,16 @@ export function AgentSettings({ visibleItems }: AgentSettingsProps) {
 														className="min-h-40 font-mono text-xs"
 													/>
 													<p className="text-xs text-muted-foreground">
-														Supported variables: {"{{id}}"}, {"{{slug}}"},{" "}
-														{"{{title}}"}, {"{{description}}"}, {"{{priority}}"}
-														, {"{{statusName}}"}, {"{{labels}}"}
+														Supported variables:{" "}
+														{[
+															"{{id}}",
+															"{{slug}}",
+															"{{title}}",
+															"{{description}}",
+															"{{priority}}",
+															"{{statusName}}",
+															"{{labels}}",
+														].join(", ")}
 													</p>
 												</div>
 											)}

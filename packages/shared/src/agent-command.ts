@@ -66,6 +66,7 @@ export const AGENT_PROMPT_COMMANDS: Record<
 	},
 	"cursor-agent": {
 		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
+		suffix: "--yolo",
 	},
 };
 
