@@ -4,6 +4,7 @@ import type { Pane, Tab } from "../types";
 interface TabsState {
 	panes: Record<string, Pane>;
 	tabs: Tab[];
+	focusedPaneIds?: Record<string, string>;
 }
 
 interface ResolvedTarget extends NotificationIds {
@@ -36,8 +37,14 @@ export function resolveNotificationTarget(
 
 	if (!resolvedWorkspaceId) return null;
 
+	// When the server couldn't resolve paneId (e.g. due to stale appState),
+	// fall back to the renderer's focusedPaneIds so status updates still fire.
+	const resolvedPaneId =
+		paneId ??
+		(resolvedTabId ? state.focusedPaneIds?.[resolvedTabId] : undefined);
+
 	return {
-		paneId,
+		paneId: resolvedPaneId,
 		tabId: resolvedTabId,
 		workspaceId: resolvedWorkspaceId,
 	};

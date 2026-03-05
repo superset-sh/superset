@@ -109,6 +109,32 @@ describe("resolveNotificationTarget", () => {
 				workspaceId: "ws-1",
 			});
 		});
+
+		it("resolves paneId from focusedPaneIds when available", () => {
+			// Reproduces the bug from issue #1838:
+			// When the server's resolvePaneId fails due to stale appState
+			// (tabsState not yet synced from renderer), the event arrives with
+			// paneId: undefined but tabId still set. The renderer should recover
+			// paneId from its in-memory focusedPaneIds so the status update proceeds.
+			// Without this fix, useAgentHookListener's `if (!paneId) return` skips
+			// the update and visual indicators + notifications never appear.
+			const state = {
+				panes: { "pane-1": createPane("pane-1", "tab-1") },
+				tabs: [createTab("tab-1", "ws-1")],
+				focusedPaneIds: { "tab-1": "pane-1" },
+			};
+
+			const result = resolveNotificationTarget(
+				{ tabId: "tab-1", workspaceId: "ws-1" },
+				state,
+			);
+
+			expect(result).toEqual({
+				paneId: "pane-1",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+			});
+		});
 	});
 
 	describe("with only workspaceId", () => {
