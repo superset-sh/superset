@@ -24,6 +24,7 @@ interface SessionItem {
 interface SessionSelectorProps {
 	currentSessionId: string | null;
 	sessions: SessionItem[];
+	fallbackTitle?: string;
 	isSessionInitializing?: boolean;
 	onSelectSession: (sessionId: string) => void;
 	onNewChat: () => Promise<void>;
@@ -62,6 +63,7 @@ function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {
 export function SessionSelector({
 	currentSessionId,
 	sessions,
+	fallbackTitle,
 	isSessionInitializing = false,
 	onSelectSession,
 	onNewChat,
@@ -85,6 +87,21 @@ export function SessionSelector({
 		setVisibleCount(SESSION_PAGE_SIZE);
 	}, [isOpen]);
 
+	useEffect(() => {
+		console.debug("[chat-sessions] session selector render", {
+			isOpen,
+			currentSessionId,
+			sessionCount: sessions.length,
+			visibleCount,
+			hasMoreSessions: sessions.length > visibleCount,
+			sessionsSample: sessions.slice(0, 8).map((session) => ({
+				id: session.sessionId,
+				title: session.title,
+				updatedAt: session.updatedAt.toISOString(),
+			})),
+		});
+	}, [currentSessionId, isOpen, sessions, visibleCount]);
+
 	const loadMoreSessions = () => {
 		setVisibleCount((count) =>
 			Math.min(count + SESSION_PAGE_SIZE, sessions.length),
@@ -94,8 +111,12 @@ export function SessionSelector({
 	const current = sessions.find(
 		(session) => session.sessionId === currentSessionId,
 	);
+	const resolvedFallbackTitle =
+		fallbackTitle && fallbackTitle !== "New Chat" ? fallbackTitle : null;
 	const currentTitle =
-		current?.title || (isSessionInitializing ? "Creating Chat" : "New Chat");
+		current?.title ||
+		resolvedFallbackTitle ||
+		(isSessionInitializing ? "Creating Chat" : "New Chat");
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -103,10 +124,10 @@ export function SessionSelector({
 				<button
 					type="button"
 					aria-busy={isSessionInitializing}
-					className="flex max-w-[360px] items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex min-w-[220px] max-w-[680px] flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<HiMiniChatBubbleLeftRight className="size-3.5" />
-					<span className="max-w-[300px] truncate">{currentTitle}</span>
+					<span className="min-w-0 flex-1 truncate text-left">{currentTitle}</span>
 					{isSessionInitializing && (
 						<HiMiniArrowPath className="size-3 animate-spin" />
 					)}

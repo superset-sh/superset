@@ -80,6 +80,11 @@ async function createSessionRecord(input: {
 	organizationId: string;
 	workspaceId: string;
 }): Promise<void> {
+	console.debug("[chat-sessions] create session request", {
+		sessionId: input.sessionId,
+		organizationId: input.organizationId,
+		workspaceId: input.workspaceId,
+	});
 	const token = getAuthToken();
 	const response = await fetch(`${apiUrl}/api/chat/${input.sessionId}`, {
 		method: "PUT",
@@ -95,8 +100,19 @@ async function createSessionRecord(input: {
 
 	if (!response.ok) {
 		const detail = await getHttpErrorDetail(response);
+		console.warn("[chat-sessions] create session failed", {
+			sessionId: input.sessionId,
+			organizationId: input.organizationId,
+			workspaceId: input.workspaceId,
+			detail,
+		});
 		throw new Error(`Failed to create session ${input.sessionId}: ${detail}`);
 	}
+	console.debug("[chat-sessions] create session succeeded", {
+		sessionId: input.sessionId,
+		organizationId: input.organizationId,
+		workspaceId: input.workspaceId,
+	});
 }
 
 async function deleteSessionRecord(sessionId: string): Promise<void> {
@@ -150,6 +166,16 @@ export function useChatMastraPaneController({
 	);
 
 	useEffect(() => {
+		console.debug("[chat-sessions] workspace linkage snapshot", {
+			paneId,
+			workspaceId,
+			organizationId,
+			existsRemotely,
+			remoteWorkspaceCount: remoteWorkspaces?.length ?? 0,
+		});
+	}, [existsRemotely, organizationId, paneId, remoteWorkspaces, workspaceId]);
+
+	useEffect(() => {
 		if (existsRemotely) return;
 		if (!workspace?.project || !organizationId) return;
 		if (ensuredRef.current === workspaceId) return;
@@ -194,16 +220,21 @@ export function useChatMastraPaneController({
 			});
 	}, [existsRemotely, organizationId, paneId, workspace, workspaceId]);
 
-	const { data: sessionsData } = useLiveQuery(
+	const { data: allSessionsData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => eq(chatSessions.workspaceId, workspaceId))
 				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
 				.select(({ chatSessions }) => ({ ...chatSessions })),
-		[collections.chatSessions, workspaceId],
+		[collections.chatSessions],
 	);
-	const sessions = sessionsData ?? [];
+	const allSessions = allSessionsData ?? [];
+	const sessions = useMemo(() => {
+		const scopedOrUnscoped = allSessions.filter(
+			(item) => item.workspaceId === workspaceId || item.workspaceId === null,
+		);
+		return scopedOrUnscoped.length > 0 ? scopedOrUnscoped : allSessions;
+	}, [allSessions, workspaceId]);
 	const hasCurrentSessionRecord = Boolean(
 		sessionId && sessions.some((item) => item.id === sessionId),
 	);
@@ -217,6 +248,43 @@ export function useChatMastraPaneController({
 	useEffect(() => {
 		hasCurrentSessionRecordRef.current = hasCurrentSessionRecord;
 	}, [hasCurrentSessionRecord]);
+
+	useEffect(() => {
+		const current = sessions.find((item) => item.id === sessionId);
+		const scopedCount = sessions.filter(
+			(item) => item.workspaceId === workspaceId,
+		).length;
+		const unscopedCount = sessions.filter(
+			(item) => item.workspaceId === null,
+		).length;
+		console.debug("[chat-sessions] pane controller snapshot", {
+			paneId,
+			workspaceId,
+			organizationId,
+			currentSessionId: sessionId,
+			allSessionCount: allSessions.length,
+			sessionCount: sessions.length,
+			scopedCount,
+			unscopedCount,
+			usingOrgWideFallback:
+				allSessions.length > 0 && scopedCount + unscopedCount === 0,
+			hasCurrentSessionRecord,
+			currentSessionWorkspaceId: current?.workspaceId ?? null,
+			sessionsSample: sessions.slice(0, 8).map((item) => ({
+				id: item.id,
+				workspaceId: item.workspaceId,
+				title: item.title ?? "",
+			})),
+		});
+	}, [
+		hasCurrentSessionRecord,
+		organizationId,
+		paneId,
+		sessionId,
+		allSessions,
+		sessions,
+		workspaceId,
+	]);
 
 	if (!sessionInitRunnerRef.current) {
 		sessionInitRunnerRef.current = createSessionInitRunner({

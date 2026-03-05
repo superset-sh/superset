@@ -340,6 +340,11 @@ export const useTabsStore = create<TabsStore>()(
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
 						if (!tab || tab.name === title) return state;
+						console.debug("[chat-title] setTabAutoTitle", {
+							tabId,
+							from: tab.name,
+							to: title,
+						});
 						return {
 							tabs: state.tabs.map((t) =>
 								t.id === tabId ? { ...t, name: title } : t,
@@ -990,6 +995,23 @@ export const useTabsStore = create<TabsStore>()(
 						tabs: state.tabs.map((t) =>
 							t.id === pane.tabId ? { ...t, name: tabName } : t,
 						),
+					});
+				},
+				setPaneAutoTitle: (paneId, title) => {
+					set((state) => {
+						const pane = state.panes[paneId];
+						if (!pane || pane.name === title) return state;
+						console.debug("[chat-title] setPaneAutoTitle", {
+							paneId,
+							from: pane.name,
+							to: title,
+						});
+						return {
+							panes: {
+								...state.panes,
+								[paneId]: { ...pane, name: title },
+							},
+						};
 					});
 				},
 

@@ -107,6 +107,7 @@ export function ChatMastraInterface({
 	ensureSessionReady,
 	onStartFreshSession,
 	onConsumeLaunchConfig,
+	onUserMessageSubmitted,
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
@@ -436,6 +437,9 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				return;
 			}
+			if (text) {
+				onUserMessageSubmitted?.(text);
+			}
 			setInterruptedMessage(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
@@ -507,6 +511,7 @@ export function ChatMastraInterface({
 			sendMessageToSession,
 			sessionId,
 			setRuntimeErrorMessage,
+			onUserMessageSubmitted,
 		],
 	);
 
@@ -561,6 +566,7 @@ export function ChatMastraInterface({
 					model: modelId,
 				},
 			};
+			onUserMessageSubmitted?.(prompt);
 
 			try {
 				const sendResult = await sendMessageForSession({
@@ -628,6 +634,7 @@ export function ChatMastraInterface({
 		sendMessageToSession,
 		sessionId,
 		setRuntimeErrorMessage,
+		onUserMessageSubmitted,
 	]);
 
 	const handleStop = useCallback(
