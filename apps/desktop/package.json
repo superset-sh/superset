@@ -35,6 +35,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.43",
+		"@ai-sdk/openai": "3.0.36",
 		"@ai-sdk/react": "^3.0.0",
 		"@ast-grep/napi": "^0.41.0",
 		"@better-auth/stripe": "1.4.18",
