@@ -63,7 +63,7 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 					const isProjectActive = !!isGeneralActive || isCloudActive;
 
 					return (
-						<Collapsible key={group.project.id} defaultOpen>
+						<Collapsible key={group.project.id} defaultOpen={isProjectActive}>
 							{/* Project header — expand/collapse only, no navigation */}
 							<CollapsibleTrigger
 								className={cn(
@@ -98,7 +98,7 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 										<span className="truncate">General</span>
 									</Link>
 									{hasCloudAccess && (
-										<Collapsible defaultOpen>
+										<Collapsible defaultOpen={isCloudActive}>
 											<CollapsibleTrigger
 												className={cn(
 													"group flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
