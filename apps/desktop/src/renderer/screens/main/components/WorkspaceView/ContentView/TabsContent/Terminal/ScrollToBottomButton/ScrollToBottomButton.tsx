@@ -4,7 +4,7 @@ import type { Terminal } from "@xterm/xterm";
 import { useCallback, useEffect, useState } from "react";
 import { HiArrowDown } from "react-icons/hi2";
 import { useHotkeyText } from "renderer/stores/hotkeys";
-import { scrollToBottom } from "../utils";
+import { isTerminalAtBottom, scrollToBottom } from "../utils";
 
 interface ScrollToBottomButtonProps {
 	terminal: Terminal | null;
@@ -17,9 +17,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 	const checkScrollPosition = useCallback(() => {
 		if (!terminal) return;
-		const buffer = terminal.buffer.active;
-		const isAtBottom = buffer.viewportY >= buffer.baseY;
-		setIsVisible(!isAtBottom);
+		setIsVisible(!isTerminalAtBottom(terminal));
 	}, [terminal]);
 
 	useEffect(() => {
@@ -27,11 +25,11 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 		checkScrollPosition();
 
-		const writeDisposable = terminal.onWriteParsed(checkScrollPosition);
+		const renderDisposable = terminal.onRender(() => checkScrollPosition());
 		const scrollDisposable = terminal.onScroll(checkScrollPosition);
 
 		return () => {
-			writeDisposable.dispose();
+			renderDisposable.dispose();
 			scrollDisposable.dispose();
 		};
 	}, [terminal, checkScrollPosition]);

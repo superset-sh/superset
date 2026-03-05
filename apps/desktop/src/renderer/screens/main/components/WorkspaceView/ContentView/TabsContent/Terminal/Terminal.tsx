@@ -1,7 +1,6 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import "@xterm/xterm/css/xterm.css";
+import type { FitAddon } from "ghostty-web";
+import { init } from "ghostty-web";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -26,6 +25,7 @@ import {
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
+import type { TerminalSearchAdapter } from "./TerminalSearch/terminal-search-adapter";
 import type {
 	TerminalExitReason,
 	TerminalProps,
@@ -69,8 +69,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
-	const searchAddonRef = useRef<SearchAddon | null>(null);
+	const searchAddonRef = useRef<TerminalSearchAdapter | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
+	const [isRendererReady, setIsRendererReady] = useState(false);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -85,6 +86,22 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
+
+	useEffect(() => {
+		let cancelled = false;
+		init()
+			.then(() => {
+				if (!cancelled) {
+					setIsRendererReady(true);
+				}
+			})
+			.catch((error) => {
+				console.error("[Terminal] Failed to initialize ghostty-web:", error);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	// Terminal connection state and mutations
 	const {
@@ -307,6 +324,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		handleStartShell();
 	}, [isRestoredMode, handleStartShell]);
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
+		isRendererReady,
 		paneId,
 		tabIdRef,
 		workspaceId,

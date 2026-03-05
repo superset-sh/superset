@@ -1,4 +1,4 @@
-import type { ITerminalOptions } from "@xterm/xterm";
+import type { ITerminalOptions } from "ghostty-web";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
@@ -38,13 +38,8 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontSize: DEFAULT_TERMINAL_FONT_SIZE,
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
-	allowProposedApi: true,
 	scrollback: 2000,
-	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
-	macOptionIsMeta: false,
 	cursorStyle: "block",
-	cursorInactiveStyle: "outline",
-	screenReaderMode: false,
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;

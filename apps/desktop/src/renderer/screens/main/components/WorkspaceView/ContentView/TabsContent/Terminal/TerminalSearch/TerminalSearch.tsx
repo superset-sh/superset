@@ -1,23 +1,14 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
 import { PiTextAa } from "react-icons/pi";
+import type { TerminalSearchAdapter } from "./terminal-search-adapter";
 
 interface TerminalSearchProps {
-	searchAddon: SearchAddon | null;
+	searchAddon: TerminalSearchAdapter | null;
 	isOpen: boolean;
 	onClose: () => void;
 }
-
-const SEARCH_DECORATIONS: ISearchOptions["decorations"] = {
-	matchBackground: "#515c6a",
-	matchBorder: "#74879f",
-	matchOverviewRuler: "#d186167e",
-	activeMatchBackground: "#515c6a",
-	activeMatchBorder: "#ffd33d",
-	activeMatchColorOverviewRuler: "#ffd33d",
-};
 
 export function TerminalSearch({
 	searchAddon,
@@ -29,11 +20,10 @@ export function TerminalSearch({
 	const [matchCount, setMatchCount] = useState<number | null>(null);
 	const [caseSensitive, setCaseSensitive] = useState(false);
 
-	const searchOptions: ISearchOptions = useMemo(
+	const searchOptions = useMemo(
 		() => ({
 			caseSensitive,
 			regex: false,
-			decorations: SEARCH_DECORATIONS,
 		}),
 		[caseSensitive],
 	);

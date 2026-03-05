@@ -1,5 +1,5 @@
-import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import type { FitAddon } from "ghostty-web";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { coldRestoreState } from "../state";

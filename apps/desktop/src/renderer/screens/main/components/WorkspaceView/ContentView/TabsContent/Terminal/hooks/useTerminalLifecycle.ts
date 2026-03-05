@@ -1,6 +1,5 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
+import type { FitAddon } from "ghostty-web";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -20,6 +19,8 @@ import {
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
+import type { TerminalSearchAdapter } from "../TerminalSearch/terminal-search-adapter";
+import { createTerminalSearchAdapter } from "../TerminalSearch/terminal-search-adapter";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -28,7 +29,7 @@ import type {
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import { isTerminalAtBottom, scrollToBottom } from "../utils";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
@@ -78,13 +79,14 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 }
 
 export interface UseTerminalLifecycleOptions {
+	isRendererReady: boolean;
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
 	workspaceId: string;
 	terminalRef: RefObject<HTMLDivElement | null>;
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
-	searchAddonRef: MutableRefObject<SearchAddon | null>;
+	searchAddonRef: MutableRefObject<TerminalSearchAdapter | null>;
 	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
@@ -140,6 +142,7 @@ export interface UseTerminalLifecycleReturn {
 }
 
 export function useTerminalLifecycle({
+	isRendererReady,
 	paneId,
 	tabIdRef,
 	workspaceId,
@@ -195,6 +198,7 @@ export function useTerminalLifecycle({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
+		if (!isRendererReady) return;
 		const container = terminalRef.current;
 		if (!container) return;
 
@@ -249,9 +253,7 @@ export function useTerminalLifecycle({
 		}
 
 		if (!isUnmounted) {
-			const searchAddon = new SearchAddon();
-			xterm.loadAddon(searchAddon);
-			searchAddonRef.current = searchAddon;
+			searchAddonRef.current = createTerminalSearchAdapter(xterm);
 		}
 
 		// Wait for first render before applying restoration
@@ -558,14 +560,12 @@ export function useTerminalLifecycle({
 
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
-			const wasAtBottom =
-				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
+			const wasAtBottom = isTerminalAtBottom(xterm);
 
-			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
+			// Rebuild stale renderer state after occlusion.
 			rendererRef.current?.current.clearTextureAtlas?.();
 
 			fitAddon.fit();
-			xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
 			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
@@ -698,6 +698,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		isRendererReady,
 	]);
 
 	return { xtermInstance, restartTerminal };
