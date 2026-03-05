@@ -954,14 +954,7 @@ export const createCreateProcedures = () => {
 		generateName: publicProcedure
 			.input(z.object({ prompt: z.string().min(1) }))
 			.mutation(async ({ input }) => {
-				console.debug("[workspaces.generateName] request", {
-					promptLength: input.prompt.length,
-				});
 				const name = await generateWorkspaceNameFromPrompt(input.prompt);
-				console.debug("[workspaces.generateName] response", {
-					hasName: Boolean(name),
-					nameLength: name?.length ?? 0,
-				});
 				return { name };
 			}),
 
