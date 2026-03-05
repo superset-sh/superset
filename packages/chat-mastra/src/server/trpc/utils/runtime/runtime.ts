@@ -96,12 +96,9 @@ export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 
 /**
  * Subscribe to harness lifecycle events for a runtime session.
- * Call once after creating a runtime — handles stop hooks and title generation.
+ * Call once after creating a runtime — handles runtime error state and stop hooks.
  */
-export function subscribeToSessionEvents(
-	runtime: RuntimeSession,
-	apiClient: ApiClient,
-): void {
+export function subscribeToSessionEvents(runtime: RuntimeSession): void {
 	runtime.harness.subscribe((event: unknown) => {
 		if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
 			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
@@ -126,9 +123,6 @@ export function subscribeToSessionEvents(
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {
 				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
-			}
-			if (reason === "complete") {
-				void generateAndSetTitle(runtime, apiClient);
 			}
 		}
 	});
@@ -237,33 +231,57 @@ function extractProviderMessage(error: unknown): string | null {
 	return null;
 }
 
-async function generateAndSetTitle(
+function extractTextContent(parts: MessageLike["content"]): string {
+	return parts
+		.filter((c): c is TextContentPart => c.type === "text")
+		.map((c) => c.text)
+		.join(" ");
+}
+
+export async function generateAndSetTitle(
 	runtime: RuntimeSession,
 	apiClient: ApiClient,
+	options?: {
+		submittedUserMessage?: string;
+	},
 ): Promise<void> {
 	try {
 		const messages: MessageLike[] = await runtime.harness.listMessages();
-		const userMessages = messages.filter((m) => m.role === "user");
+		const submittedUserMessage = options?.submittedUserMessage?.trim();
+		const latestPersistedUserMessage = [...messages]
+			.reverse()
+			.find((message) => message.role === "user");
+		const submittedAlreadyPersisted =
+			Boolean(submittedUserMessage) &&
+			latestPersistedUserMessage !== undefined &&
+			extractTextContent(latestPersistedUserMessage.content).trim() ===
+				submittedUserMessage;
+		const messagesForTitle: MessageLike[] = submittedUserMessage
+			? submittedAlreadyPersisted
+				? messages
+				: [
+						...messages,
+						{
+							role: "user",
+							content: [{ type: "text", text: submittedUserMessage }],
+						},
+					]
+			: messages;
+		const userMessages = messagesForTitle.filter((m) => m.role === "user");
 		const userCount = userMessages.length;
 
 		const isFirst = userCount === 1;
 		const isRename = userCount > 1 && userCount % 10 === 0;
 		if (!isFirst && !isRename) return;
 
-		const extractText = (parts: MessageLike["content"]): string =>
-			parts
-				.filter((c): c is TextContentPart => c.type === "text")
-				.map((c) => c.text)
-				.join(" ");
-
 		let text: string;
 		const firstMessage = userMessages[0];
 		if (isFirst && firstMessage) {
-			text = extractText(firstMessage.content).slice(0, 500);
+			text = extractTextContent(firstMessage.content).slice(0, 500);
 		} else {
-			text = messages
+			text = messagesForTitle
 				.slice(-10)
-				.map((m) => `${m.role}: ${extractText(m.content)}`)
+				.map((m) => `${m.role}: ${extractTextContent(m.content)}`)
 				.join("\n")
 				.slice(0, 2000);
 		}

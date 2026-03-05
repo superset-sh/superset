@@ -103,10 +103,10 @@ export function SessionSelector({
 				<button
 					type="button"
 					aria-busy={isSessionInitializing}
-					className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex max-w-[360px] items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<HiMiniChatBubbleLeftRight className="size-3.5" />
-					<span className="max-w-[120px] truncate">{currentTitle}</span>
+					<span className="max-w-[300px] truncate">{currentTitle}</span>
 					{isSessionInitializing && (
 						<HiMiniArrowPath className="size-3 animate-spin" />
 					)}
