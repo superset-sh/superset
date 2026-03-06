@@ -23,7 +23,7 @@ import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
-import { getPRActionState } from "./utils";
+import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -364,8 +364,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		pullCount: status.pullCount,
 		isDefaultBranch,
 	});
-	const shouldAutoCreatePRAfterPublish =
-		hasGitHubRepo && !isDefaultBranch && !hasExistingPR;
+	const shouldAutoCreatePR = shouldAutoCreatePRAfterPublish({
+		hasExistingPR,
+		isDefaultBranch,
+	});
 
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
@@ -398,7 +400,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
 				canCreatePR={prActionState.canCreatePR}
-				shouldAutoCreatePRAfterPublish={shouldAutoCreatePRAfterPublish}
+				shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
 			/>
