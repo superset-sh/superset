@@ -803,6 +803,27 @@ export function ChatMastraInterface({
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
+			const queryInput = {
+				sessionId,
+				...(cwd ? { cwd } : {}),
+			};
+			const previousMessages = messages ?? [];
+			const targetMessageIndex = previousMessages.findIndex(
+				(message) => message.id === request.messageId,
+			);
+			const optimisticMessage = toOptimisticUserMessage({
+				payload: request.payload,
+				metadata: {
+					model: activeModel?.id,
+				},
+			});
+			if (targetMessageIndex >= 0) {
+				chatMastraServiceTrpcUtils.session.listMessages.setData(queryInput, [
+					...previousMessages.slice(0, targetMessageIndex),
+					...(optimisticMessage ? [optimisticMessage] : []),
+				]);
+			}
+
 			try {
 				await chatMastraServiceTrpcUtils.client.session.restartFromMessage.mutate(
 					{
@@ -831,6 +852,12 @@ export function ChatMastraInterface({
 					restarted_from_message_id: request.messageId,
 				});
 			} catch (error) {
+				if (targetMessageIndex >= 0) {
+					chatMastraServiceTrpcUtils.session.listMessages.setData(
+						queryInput,
+						previousMessages,
+					);
+				}
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
@@ -842,9 +869,10 @@ export function ChatMastraInterface({
 			activeModel?.id,
 			captureChatEvent,
 			chatMastraServiceTrpcUtils.client.session.restartFromMessage,
+			chatMastraServiceTrpcUtils.session.listMessages,
 			clearRuntimeError,
 			cwd,
-			messages?.length,
+			messages,
 			onUserMessageSubmitted,
 			sessionId,
 			setRuntimeErrorMessage,
