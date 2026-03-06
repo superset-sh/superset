@@ -80,10 +80,10 @@ function readLocalConfigFile(filePath: string): LocalSetupConfig | null {
 			if (Array.isArray(value)) continue;
 
 			if (typeof value === "object" && value !== null) {
-				if (value.before && !Array.isArray(value.before)) {
+				if (value.before !== undefined && !Array.isArray(value.before)) {
 					throw new Error(`'${key}.before' must be an array of strings`);
 				}
-				if (value.after && !Array.isArray(value.after)) {
+				if (value.after !== undefined && !Array.isArray(value.after)) {
 					throw new Error(`'${key}.after' must be an array of strings`);
 				}
 				continue;

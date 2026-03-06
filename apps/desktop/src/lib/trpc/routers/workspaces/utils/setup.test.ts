@@ -423,6 +423,20 @@ describe("config.local.json", () => {
 		expect(config).toEqual({ setup: ["team-setup.sh"] });
 	});
 
+	test("local config with falsy non-array before/after is rejected", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ setup: ["team-setup.sh"] }),
+		);
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.local.json"),
+			JSON.stringify({ setup: { before: false } }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toEqual({ setup: ["team-setup.sh"] });
+	});
+
 	test("no local config means base config is returned unchanged", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
