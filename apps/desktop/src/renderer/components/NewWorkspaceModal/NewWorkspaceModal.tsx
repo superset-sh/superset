@@ -157,7 +157,9 @@ export function NewWorkspaceModal() {
 	}, [selectedProjectId]);
 
 	const branchSlug = branchNameEdited
-		? sanitizeBranchNameWithMaxLength(branchName)
+		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
+				preserveFirstSegmentCase: true,
+			})
 		: "";
 
 	const applyPrefix = !branchNameEdited;

@@ -62,6 +62,12 @@ describe("sanitizeSegment", () => {
 		expect(sanitizeSegment("hello-world", 5)).toBe("hello");
 	});
 
+	test("can preserve case when requested", () => {
+		expect(sanitizeSegment("  Hello World  ", 50, { preserveCase: true })).toBe(
+			"Hello-World",
+		);
+	});
+
 	test("handles empty string", () => {
 		expect(sanitizeSegment("")).toBe("");
 	});
@@ -161,6 +167,22 @@ describe("sanitizeBranchNameWithMaxLength", () => {
 		expect(
 			sanitizeBranchNameWithMaxLength("Feature Name/With Spaces", 16),
 		).toBe("feature-name/wit");
+	});
+
+	test("preserves mixed-case first segments for user-provided branches", () => {
+		expect(
+			sanitizeBranchNameWithMaxLength("Kitenite/My Feature", 100, {
+				preserveFirstSegmentCase: true,
+			}),
+		).toBe("Kitenite/my-feature");
+	});
+
+	test("preserves case for single-segment manual branches", () => {
+		expect(
+			sanitizeBranchNameWithMaxLength("Fix_Bug", 100, {
+				preserveFirstSegmentCase: true,
+			}),
+		).toBe("Fix_Bug");
 	});
 });
 
