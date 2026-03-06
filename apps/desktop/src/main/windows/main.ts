@@ -220,6 +220,22 @@ export async function MainWindow() {
 		});
 	}
 
+	// Forward renderer warning/error messages to main process stdout for Windows debugging.
+	if (PLATFORM.IS_WINDOWS) {
+		window.webContents.on(
+			"console-message",
+			(_event, level, message, line, sourceId) => {
+				if (level < 2) return;
+				const levelStr =
+					["verbose", "info", "warning", "error"][level] ?? "unknown";
+				const source = sourceId ? ` (${sourceId}:${line})` : "";
+				const formatted = `[renderer:${levelStr}] ${message}${source}`;
+				if (level === 3) console.error(formatted);
+				else console.warn(formatted);
+			},
+		);
+	}
+
 	// Persist window bounds on move/resize so state survives app.exit(0)
 	// (which skips the close handler — e.g. electron-vite SIGTERM during dev).
 	// Gated by `initialized` so the initial maximize() doesn't immediately

@@ -135,8 +135,10 @@ const config: Configuration = {
 		"!**/.DS_Store",
 	],
 
-	// Rebuild native modules for Electron's Node.js version
-	npmRebuild: true,
+	// Rebuild native modules for Electron's Node.js version.
+	// Disabled on Windows — native modules are already handled by install:deps
+	// and copy:native-modules, and node-gyp may fail without Visual Studio.
+	npmRebuild: process.platform !== "win32",
 
 	// macOS
 	mac: {
@@ -204,6 +206,9 @@ const config: Configuration = {
 	nsis: {
 		oneClick: false,
 		allowToChangeInstallationDirectory: true,
+		createDesktopShortcut: true,
+		createStartMenuShortcut: true,
+		shortcutName: productName,
 	},
 };
 
