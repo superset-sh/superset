@@ -91,20 +91,36 @@ async function getRepoContext(
 		}
 
 		const data = result.data;
-		const context: RepoContext =
-			data.isFork && data.parent
-				? {
-						repoUrl: data.url,
-						upstreamUrl: data.parent.url,
-						isFork: true,
-						forkNwo: data.nameWithOwner ?? null,
-					}
-				: {
-						repoUrl: data.url,
-						upstreamUrl: data.url,
-						isFork: false,
-						forkNwo: null,
-					};
+		let context: RepoContext;
+
+		if (data.isFork && data.parent) {
+			context = {
+				repoUrl: data.url,
+				upstreamUrl: data.parent.url,
+				isFork: true,
+				forkNwo: data.nameWithOwner ?? null,
+			};
+		} else {
+			const originUrl = await getOriginUrl(worktreePath);
+			const ghUrl = normalizeGitHubUrl(data.url);
+
+			if (originUrl && ghUrl && originUrl !== ghUrl) {
+				const nwo = extractNwoFromUrl(originUrl);
+				context = {
+					repoUrl: originUrl,
+					upstreamUrl: ghUrl,
+					isFork: true,
+					forkNwo: nwo,
+				};
+			} else {
+				context = {
+					repoUrl: data.url,
+					upstreamUrl: data.url,
+					isFork: false,
+					forkNwo: null,
+				};
+			}
+		}
 
 		repoContextCache.set(worktreePath, {
 			data: context,
@@ -116,7 +132,46 @@ async function getRepoContext(
 	}
 }
 
-export { getRepoContext };
+
+async function getOriginUrl(worktreePath: string): Promise<string | null> {
+	try {
+		const { stdout } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "remote", "get-url", "origin"],
+			{ timeout: 10_000 },
+		);
+		return normalizeGitHubUrl(stdout.trim());
+	} catch {
+		return null;
+	}
+}
+
+
+function normalizeGitHubUrl(remoteUrl: string): string | null {
+	const trimmed = remoteUrl.trim();
+	const patterns = [
+		/^git@github\.com:(?<nwo>[^/]+\/[^/]+?)(?:\.git)?$/,
+		/^ssh:\/\/git@github\.com\/(?<nwo>[^/]+\/[^/]+?)(?:\.git)?$/,
+		/^https:\/\/github\.com\/(?<nwo>[^/]+\/[^/]+?)(?:\.git)?\/?$/,
+	];
+	for (const pattern of patterns) {
+		const match = pattern.exec(trimmed);
+		if (match?.groups?.nwo) {
+			return `https://github.com/${match.groups.nwo}`;
+		}
+	}
+	return null;
+}
+
+function extractNwoFromUrl(normalizedUrl: string): string | null {
+	try {
+		const path = new URL(normalizedUrl).pathname.slice(1);
+		return path || null;
+	} catch {
+		return null;
+	}
+}
+
 
 const PR_JSON_FIELDS =
 	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup";
