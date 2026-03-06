@@ -7,7 +7,6 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
 	attemptWorkspaceAutoRenameFromPrompt,
-	generateWorkspaceNameFromPrompt,
 } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
@@ -961,14 +960,6 @@ export const createCreateProcedures = () => {
 					workspaceName,
 				});
 			}),
-
-		generateName: publicProcedure
-			.input(z.object({ prompt: z.string().min(1) }))
-			.mutation(async ({ input }) => {
-				const name = await generateWorkspaceNameFromPrompt(input.prompt);
-				return { name };
-			}),
-
 		importAllWorktrees: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.mutation(async ({ input }) => {

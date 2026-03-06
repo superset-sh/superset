@@ -29,41 +29,27 @@ export type WorkspaceAutoRenameResult =
 type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
 
 interface TitleProvider {
-	provider: "anthropic" | "openai";
-	apiKey: string;
+	name: "Anthropic" | "OpenAI";
 	agentId: string;
-	modelId: string;
+	resolveApiKey: () => string | null;
 	createModel: (apiKey: string) => AgentModel;
 }
 
-function resolveTitleProviders(): TitleProvider[] {
-	const providers: TitleProvider[] = [];
-
-	const anthropicCredentials = getAnthropicCredentialsFromAnySource();
-	if (anthropicCredentials) {
-		providers.push({
-			provider: "anthropic",
-			apiKey: anthropicCredentials.apiKey,
-			agentId: "workspace-namer-anthropic",
-			modelId: "claude-haiku-4-5-20251001",
-			createModel: (apiKey) =>
-				createAnthropic({ apiKey })("claude-haiku-4-5-20251001"),
-		});
-	}
-
-	const openAICredentials = getOpenAICredentialsFromAnySource();
-	if (openAICredentials) {
-		providers.push({
-			provider: "openai",
-			apiKey: openAICredentials.apiKey,
-			agentId: "workspace-namer-openai",
-			modelId: "gpt-4o-mini",
-			createModel: (apiKey) => createOpenAI({ apiKey })("gpt-4o-mini"),
-		});
-	}
-
-	return providers;
-}
+const TITLE_PROVIDERS: TitleProvider[] = [
+	{
+		name: "Anthropic",
+		agentId: "workspace-namer-anthropic",
+		resolveApiKey: () => getAnthropicCredentialsFromAnySource()?.apiKey ?? null,
+		createModel: (apiKey) =>
+			createAnthropic({ apiKey })("claude-haiku-4-5-20251001"),
+	},
+	{
+		name: "OpenAI",
+		agentId: "workspace-namer-openai",
+		resolveApiKey: () => getOpenAICredentialsFromAnySource()?.apiKey ?? null,
+		createModel: (apiKey) => createOpenAI({ apiKey })("gpt-4o-mini"),
+	},
+];
 
 async function generateTitleWithModel(
 	prompt: string,
@@ -88,26 +74,26 @@ async function generateTitleWithModel(
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
-	const providers = resolveTitleProviders();
-	if (providers.length === 0) {
-		return null;
-	}
+	for (const provider of TITLE_PROVIDERS) {
+		const apiKey = provider.resolveApiKey();
+		if (!apiKey) {
+			continue;
+		}
 
-	for (const provider of providers) {
 		try {
 			const title = await generateTitleWithModel(
 				prompt,
 				provider.agentId,
-				provider.createModel(provider.apiKey),
+				provider.createModel(apiKey),
 			);
 			if (title) {
 				return title;
 			}
 		} catch (error) {
-			console.error("[workspace-auto-name] Generation failed:", {
-				provider: provider.provider,
+			console.error(
+				`[workspace-ai-name] ${provider.name} title generation failed`,
 				error,
-			});
+			);
 		}
 	}
 
