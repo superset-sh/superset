@@ -68,7 +68,7 @@ const repoContextCache = new Map<
 >();
 const REPO_CONTEXT_CACHE_TTL_MS = 300_000; // 5 minutes
 
-async function getRepoContext(
+export async function getRepoContext(
 	worktreePath: string,
 ): Promise<RepoContext | null> {
 	const cached = repoContextCache.get(worktreePath);
