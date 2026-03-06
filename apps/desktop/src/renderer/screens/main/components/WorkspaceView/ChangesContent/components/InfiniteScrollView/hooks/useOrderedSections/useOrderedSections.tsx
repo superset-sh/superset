@@ -54,6 +54,11 @@ export function useOrderedSections({
 	onDiscardFile,
 	isActioning,
 }: UseOrderedSectionsInput) {
+	const committedFileCount = commits.reduce(
+		(acc, commit) => acc + commit.files.length,
+		0,
+	);
+
 	const sectionDefinitions = {
 		"against-base": {
 			id: "against-base",
@@ -76,7 +81,7 @@ export function useOrderedSections({
 		committed: {
 			id: "committed",
 			title: "Commits",
-			count: commits.length,
+			count: committedFileCount,
 			isExpanded: expandedSections.committed,
 			onToggle: () => toggleSection("committed"),
 			content: expandedSections.committed ? (
