@@ -3,20 +3,28 @@ import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { getUncollapsedWorkspaces } from "./workspaceShortcutsUtils";
+
+export { getUncollapsedWorkspaces };
 
 /**
  * Shared hook for workspace keyboard shortcuts.
  * Used by WorkspaceSidebar for navigation between workspaces.
  *
  * Handles ⌘1-9 workspace switching shortcuts (global).
+ * Only applies shortcuts to workspaces in uncollapsed projects.
  */
 export function useWorkspaceShortcuts() {
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const navigate = useNavigate();
+	const collapsedProjectIds = useWorkspaceSidebarStore(
+		(s) => s.collapsedProjectIds,
+	);
 
-	// Flatten workspaces for keyboard navigation
-	const allWorkspaces = groups.flatMap((group) => group.workspaces);
+	// Flatten workspaces for keyboard navigation, skipping collapsed projects
+	const allWorkspaces = getUncollapsedWorkspaces(groups, collapsedProjectIds);
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {
