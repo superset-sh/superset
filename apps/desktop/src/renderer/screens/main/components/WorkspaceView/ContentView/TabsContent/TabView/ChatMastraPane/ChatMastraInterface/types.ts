@@ -4,19 +4,9 @@ import type { StartFreshSessionResult } from "../../ChatPane/ChatInterface/types
 
 export interface ChatMastraRawSnapshot {
 	sessionId: string | null;
-	cwd: string;
 	isRunning: boolean;
-	displayIsRunning: boolean;
-	submitStatus: "submitted" | "streaming" | "ready";
-	isAwaitingAssistant: boolean;
 	currentMessage: UseMastraChatDisplayReturn["currentMessage"] | null;
 	messages: UseMastraChatDisplayReturn["messages"];
-	messageCount: number;
-	activeToolsCount: number;
-	activeSubagentsCount: number;
-	hasPendingApproval: boolean;
-	hasPendingPlanApproval: boolean;
-	hasPendingQuestion: boolean;
 	error: unknown;
 }
 
