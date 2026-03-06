@@ -3,7 +3,7 @@ import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
 
 /** Map of app IDs to their macOS application names */
-const APP_NAMES: Record<ExternalApp, string | null> = {
+const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "Visual Studio Code",
 	"vscode-insiders": "Visual Studio Code - Insiders",
@@ -41,27 +41,83 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
 };
 
+/** Map of app IDs to their Linux CLI commands */
+const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
+	finder: null, // Handled specially with shell.showItemInFolder
+	vscode: "code",
+	"vscode-insiders": "code-insiders",
+	cursor: "cursor",
+	antigravity: "antigravity",
+	windsurf: "windsurf",
+	zed: "zed",
+	xcode: null, // macOS only
+	iterm: null, // macOS only
+	warp: "warp-terminal",
+	terminal: null, // No universal Linux terminal command
+	ghostty: "ghostty",
+	sublime: "subl",
+	intellij: null, // Multi-edition, uses CLI candidates
+	webstorm: "webstorm",
+	pycharm: null, // Multi-edition, uses CLI candidates
+	phpstorm: "phpstorm",
+	rubymine: "rubymine",
+	goland: "goland",
+	clion: "clion",
+	rider: "rider",
+	datagrip: "datagrip",
+	appcode: null, // macOS only
+	fleet: "fleet",
+	rustrover: "rustrover",
+};
+
+/**
+ * CLI command candidates for JetBrains IDEs with multiple editions on Linux.
+ * JetBrains Toolbox typically creates `idea`/`pycharm` launchers,
+ * while package managers may use edition-specific names.
+ */
+const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
+	intellij: ["idea", "intellij-idea-ultimate", "intellij-idea-community"],
+	pycharm: ["pycharm", "pycharm-professional", "pycharm-community"],
+};
+
 /**
  * Get candidate commands to open a path in the specified app.
  * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
- * multiple bundle IDs are returned so the caller can fall back if one isn't installed.
- * Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ * multiple candidates are returned so the caller can fall back if one isn't installed.
+ *
+ * macOS: Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ * Linux: Uses direct CLI commands (e.g. `code`, `cursor`, `zed`).
  */
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
 ): { command: string; args: string[] }[] | null {
-	const bundleIds = BUNDLE_ID_CANDIDATES[app];
-	if (bundleIds) {
-		return bundleIds.map((id) => ({
-			command: "open",
-			args: ["-b", id, targetPath],
+	if (process.platform === "darwin") {
+		const bundleIds = BUNDLE_ID_CANDIDATES[app];
+		if (bundleIds) {
+			return bundleIds.map((id) => ({
+				command: "open",
+				args: ["-b", id, targetPath],
+			}));
+		}
+
+		const appName = MACOS_APP_NAMES[app];
+		if (!appName) return null;
+		return [{ command: "open", args: ["-a", appName, targetPath] }];
+	}
+
+	// Linux (and other non-macOS platforms)
+	const linuxCandidates = LINUX_CLI_CANDIDATES[app];
+	if (linuxCandidates) {
+		return linuxCandidates.map((cmd) => ({
+			command: cmd,
+			args: [targetPath],
 		}));
 	}
 
-	const appName = APP_NAMES[app];
-	if (!appName) return null;
-	return [{ command: "open", args: ["-a", appName, targetPath] }];
+	const cliCommand = LINUX_CLI_COMMANDS[app];
+	if (!cliCommand) return null;
+	return [{ command: cliCommand, args: [targetPath] }];
 }
 
 /**

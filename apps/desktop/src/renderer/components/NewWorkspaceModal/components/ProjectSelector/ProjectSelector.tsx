@@ -6,7 +6,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiCheck, HiChevronDown } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
 
@@ -34,28 +33,21 @@ export function ProjectSelector({
 }: ProjectSelectorProps) {
 	return (
 		<DropdownMenu>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="outline"
-							className={`w-full h-8 text-sm justify-between font-normal min-w-0 ${className ?? ""}`}
-						>
-							<span
-								className={`truncate ${
-									selectedProjectName ? "" : "text-muted-foreground"
-								}`}
-							>
-								{selectedProjectName ?? "Select project"}
-							</span>
-							<HiChevronDown className="size-4 text-muted-foreground shrink-0" />
-						</Button>
-					</DropdownMenuTrigger>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Project the workspace belongs to
-				</TooltipContent>
-			</Tooltip>
+			<DropdownMenuTrigger asChild>
+				<Button
+					variant="outline"
+					className={`w-full h-8 text-sm justify-between font-normal min-w-0 ${className ?? ""}`}
+				>
+					<span
+						className={`truncate ${
+							selectedProjectName ? "" : "text-muted-foreground"
+						}`}
+					>
+						{selectedProjectName ?? "Select project"}
+					</span>
+					<HiChevronDown className="size-4 text-muted-foreground shrink-0" />
+				</Button>
+			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="start"
 				className="w-[--radix-dropdown-menu-trigger-width]"

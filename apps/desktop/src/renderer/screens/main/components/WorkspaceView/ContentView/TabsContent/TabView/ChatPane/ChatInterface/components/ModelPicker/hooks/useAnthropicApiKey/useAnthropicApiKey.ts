@@ -15,11 +15,11 @@ interface UseAnthropicApiKeyParams {
 
 interface AnthropicApiKeyDialogState {
 	open: boolean;
-	apiKey: string;
+	envText: string;
 	errorMessage: string | null;
 	isPending: boolean;
 	onOpenChange: (open: boolean) => void;
-	onApiKeyChange: (value: string) => void;
+	onEnvTextChange: (value: string) => void;
 	onSubmit: () => void;
 	onClear: () => void;
 }
@@ -37,73 +37,87 @@ export function useAnthropicApiKey({
 	onModelSelectorOpenChange,
 }: UseAnthropicApiKeyParams): UseAnthropicApiKeyResult {
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [apiKey, setApiKey] = useState("");
+	const [envText, setEnvText] = useState("");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	const { data: anthropicStatus, refetch: refetchAnthropicStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
+	const { data: anthropicEnvConfig, refetch: refetchAnthropicEnvConfig } =
+		chatServiceTrpc.auth.getAnthropicEnvConfig.useQuery();
 	const setAnthropicApiKeyMutation =
-		chatServiceTrpc.auth.setAnthropicApiKey.useMutation();
-	const clearAnthropicApiKeyMutation =
-		chatServiceTrpc.auth.clearAnthropicApiKey.useMutation();
+		chatServiceTrpc.auth.setAnthropicEnvConfig.useMutation();
+	const clearAnthropicEnvConfigMutation =
+		chatServiceTrpc.auth.clearAnthropicEnvConfig.useMutation();
 	const isPending =
 		setAnthropicApiKeyMutation.isPending ||
-		clearAnthropicApiKeyMutation.isPending;
+		clearAnthropicEnvConfigMutation.isPending;
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
 		void refetchAnthropicStatus();
-	}, [isModelSelectorOpen, refetchAnthropicStatus]);
+		void refetchAnthropicEnvConfig();
+	}, [isModelSelectorOpen, refetchAnthropicEnvConfig, refetchAnthropicStatus]);
 
 	const openAnthropicApiKeyDialog = useCallback(() => {
 		setErrorMessage(null);
-		setApiKey("");
+		setEnvText(anthropicEnvConfig?.envText ?? "");
 		setDialogOpen(true);
-	}, []);
+	}, [anthropicEnvConfig?.envText]);
 
 	const closeDialog = useCallback(() => {
 		setDialogOpen(false);
-		setApiKey("");
+		setEnvText("");
 		setErrorMessage(null);
 		onModelSelectorOpenChange(true);
 	}, [onModelSelectorOpenChange]);
 
 	const submitApiKey = useCallback(async () => {
-		const trimmedApiKey = apiKey.trim();
-		if (!trimmedApiKey) {
-			setErrorMessage("Anthropic API key is required");
-			return;
-		}
-
 		setErrorMessage(null);
 		try {
-			await setAnthropicApiKeyMutation.mutateAsync({ apiKey: trimmedApiKey });
-			await refetchAnthropicStatus();
+			await setAnthropicApiKeyMutation.mutateAsync({ envText });
+			await Promise.all([
+				refetchAnthropicStatus(),
+				refetchAnthropicEnvConfig(),
+			]);
 			closeDialog();
 		} catch (error) {
 			setErrorMessage(
-				getErrorMessage(error, "Failed to save Anthropic API key"),
+				getErrorMessage(error, "Failed to save Anthropic settings"),
 			);
 		}
-	}, [apiKey, closeDialog, refetchAnthropicStatus, setAnthropicApiKeyMutation]);
+	}, [
+		closeDialog,
+		envText,
+		refetchAnthropicEnvConfig,
+		refetchAnthropicStatus,
+		setAnthropicApiKeyMutation,
+	]);
 
 	const clearApiKey = useCallback(async () => {
 		setErrorMessage(null);
 		try {
-			await clearAnthropicApiKeyMutation.mutateAsync();
-			await refetchAnthropicStatus();
+			await clearAnthropicEnvConfigMutation.mutateAsync();
+			await Promise.all([
+				refetchAnthropicStatus(),
+				refetchAnthropicEnvConfig(),
+			]);
 			closeDialog();
 		} catch (error) {
 			setErrorMessage(
-				getErrorMessage(error, "Failed to clear Anthropic API key"),
+				getErrorMessage(error, "Failed to clear Anthropic settings"),
 			);
 		}
-	}, [clearAnthropicApiKeyMutation, closeDialog, refetchAnthropicStatus]);
+	}, [
+		clearAnthropicEnvConfigMutation,
+		closeDialog,
+		refetchAnthropicEnvConfig,
+		refetchAnthropicStatus,
+	]);
 
 	const apiKeyDialog = useMemo(
 		() => ({
 			open: dialogOpen,
-			apiKey,
+			envText,
 			errorMessage,
 			isPending,
 			onOpenChange: (open: boolean) => {
@@ -113,8 +127,8 @@ export function useAnthropicApiKey({
 				}
 				openAnthropicApiKeyDialog();
 			},
-			onApiKeyChange: (value: string) => {
-				setApiKey(value);
+			onEnvTextChange: (value: string) => {
+				setEnvText(value);
 			},
 			onSubmit: () => {
 				void submitApiKey();
@@ -124,7 +138,7 @@ export function useAnthropicApiKey({
 			},
 		}),
 		[
-			apiKey,
+			envText,
 			clearApiKey,
 			closeDialog,
 			dialogOpen,
@@ -137,7 +151,9 @@ export function useAnthropicApiKey({
 
 	return {
 		isAnthropicAuthenticated: anthropicStatus?.authenticated ?? false,
-		isAnthropicApiKeyConfigured: anthropicStatus?.method === "api_key",
+		isAnthropicApiKeyConfigured:
+			anthropicStatus?.method === "api_key" ||
+			anthropicStatus?.method === "env",
 		isSavingAnthropicApiKey: isPending,
 		openAnthropicApiKeyDialog,
 		apiKeyDialog,

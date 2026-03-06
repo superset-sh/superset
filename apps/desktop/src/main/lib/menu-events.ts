@@ -1,10 +1,11 @@
 import { EventEmitter } from "node:events";
-
 export type SettingsSection =
 	| "project"
 	| "workspace"
 	| "appearance"
 	| "keyboard"
+	| "behavior"
+	| "git"
 	| "terminal"
 	| "integrations";
 

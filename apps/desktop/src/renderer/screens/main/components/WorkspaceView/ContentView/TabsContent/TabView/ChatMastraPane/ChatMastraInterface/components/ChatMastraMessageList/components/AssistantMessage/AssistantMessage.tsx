@@ -2,12 +2,14 @@ import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback } from "react";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import { StreamingMessageText } from "../../../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ReasoningBlock } from "../../../../../../ChatPane/ChatInterface/components/ReasoningBlock";
 import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import { AttachmentChip } from "../AttachmentChip";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -24,16 +26,7 @@ interface AssistantMessageProps {
 	organizationId?: string | null;
 	workspaceCwd?: string;
 	previewToolParts?: ToolPart[];
-}
-
-function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
-	return (
-		<img
-			src={`data:${mimeType};base64,${data}`}
-			alt="Attached"
-			className="max-h-48 rounded-lg object-contain"
-		/>
-	);
+	footer?: ReactNode;
 }
 
 function findToolResultForCall({
@@ -96,7 +89,20 @@ export function AssistantMessage({
 	organizationId,
 	workspaceCwd,
 	previewToolParts = [],
+	footer,
 }: AssistantMessageProps) {
+	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const handleAttachmentClick = useCallback(
+		(url: string, filename?: string) => {
+			if (!workspaceId) return;
+			addFileViewerPane(workspaceId, {
+				filePath: url,
+				isPinned: true,
+				...(filename ? { displayName: filename } : {}),
+			});
+		},
+		[workspaceId, addFileViewerPane],
+	);
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
 	for (let partIndex = 0; partIndex < message.content.length; partIndex++) {
@@ -128,13 +134,47 @@ export function AssistantMessage({
 			continue;
 		}
 
-		if (part.type === "image") {
-			nodes.push(
-				<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
-					<ImagePart data={part.data} mimeType={part.mimeType} />
-				</div>,
-			);
-			continue;
+		{
+			const rawPart = part as Record<string, unknown>;
+			if (rawPart.type === "file" || rawPart.type === "image") {
+				const mime =
+					(rawPart.mediaType as string) ||
+					(rawPart.mimeType as string) ||
+					"application/octet-stream";
+				const data =
+					(rawPart.data as string) || (rawPart.image as string) || "";
+				if (mime.startsWith("image/") && data) {
+					nodes.push(
+						<button
+							type="button"
+							key={`${message.id}-${partIndex}`}
+							className="max-w-[85%] cursor-pointer"
+							onClick={() =>
+								handleAttachmentClick(
+									data,
+									rawPart.filename as string | undefined,
+								)
+							}
+						>
+							<img
+								src={data}
+								alt="Generated"
+								className="max-h-48 rounded-lg object-contain"
+							/>
+						</button>,
+					);
+				} else if (data) {
+					nodes.push(
+						<AttachmentChip
+							key={`${message.id}-${partIndex}`}
+							data={data}
+							filename={rawPart.filename as string | undefined}
+							mediaType={mime}
+						/>,
+					);
+				}
+				continue;
+			}
 		}
 
 		if (part.type === "tool_call") {
@@ -224,6 +264,7 @@ export function AssistantMessage({
 				) : (
 					nodes
 				)}
+				{footer}
 			</MessageContent>
 		</Message>
 	);

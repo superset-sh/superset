@@ -1,4 +1,4 @@
-import type { AuthContext, WhereClause } from "./auth";
+import type { WhereClause } from "./auth";
 import type { Env } from "./types";
 
 const PROTOCOL_PARAMS = new Set([
@@ -54,10 +54,5 @@ export function buildUpstreamUrl(
 	if (columns) {
 		upstream.searchParams.set("columns", columns);
 	}
-
 	return upstream;
-}
-
-export function buildCacheKey(upstreamUrl: URL, _auth: AuthContext): string {
-	return upstreamUrl.toString();
 }

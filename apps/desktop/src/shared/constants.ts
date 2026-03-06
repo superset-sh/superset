@@ -19,6 +19,7 @@ export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
 export const PROJECTS_DIR_NAME = "projects";
 export const CONFIG_FILE_NAME = "config.json";
+export const LOCAL_CONFIG_FILE_NAME = "config.local.json";
 export const PORTS_FILE_NAME = "ports.json";
 
 export const CONFIG_TEMPLATE = `{
@@ -30,7 +31,6 @@ export const NOTIFICATION_EVENTS = {
 	AGENT_LIFECYCLE: "agent-lifecycle",
 	FOCUS_TAB: "focus-tab",
 	TERMINAL_EXIT: "terminal-exit",
-	MAIN_PROCESS_ERROR: "main-process-error",
 } as const;
 
 // Development/testing mock values (used when SKIP_ENV_VALIDATION is set)

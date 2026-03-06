@@ -6,7 +6,6 @@ import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { useNotificationCenterStore } from "../notification-center/store";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type {
 	AddFileViewerPaneOptions,
@@ -98,12 +97,6 @@ const deriveTabName = (
 	if (tabPanes.length === 1) return tabPanes[0].name;
 	return `Multiple panes (${tabPanes.length})`;
 };
-
-function markAgentNotificationReadForPane(paneId: string): void {
-	useNotificationCenterStore
-		.getState()
-		.markReadByDedupeKey(`agent-pane:${paneId}`);
-}
 
 export const useTabsStore = create<TabsStore>()(
 	devtools(
@@ -381,9 +374,6 @@ export const useTabsStore = create<TabsStore>()(
 						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
 						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
 							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
-							if (resolved === "idle") {
-								markAgentNotificationReadForPane(paneId);
-							}
 							hasChanges = true;
 						}
 					}
@@ -751,7 +741,9 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName ||
+							options.filePath.split("/").pop() ||
+							options.filePath;
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,
@@ -945,15 +937,11 @@ export const useTabsStore = create<TabsStore>()(
 					const state = get();
 					const pane = state.panes[paneId];
 					if (!pane || pane.tabId !== tabId) return;
-					const resolvedStatus = acknowledgedStatus(pane.status);
-					if (pane.status === "review") {
-						markAgentNotificationReadForPane(paneId);
-					}
 
 					set({
 						panes: {
 							...state.panes,
-							[paneId]: { ...pane, status: resolvedStatus },
+							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
 						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
@@ -979,9 +967,6 @@ export const useTabsStore = create<TabsStore>()(
 					const state = get();
 					const pane = state.panes[paneId];
 					if (!pane || pane.status === status) return;
-					if (pane.status === "review" && status === "idle") {
-						markAgentNotificationReadForPane(paneId);
-					}
 
 					set({
 						panes: {
@@ -1029,9 +1014,6 @@ export const useTabsStore = create<TabsStore>()(
 						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
 						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
 							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
-							if (resolved === "idle") {
-								markAgentNotificationReadForPane(paneId);
-							}
 							hasChanges = true;
 						}
 					}
@@ -1062,7 +1044,6 @@ export const useTabsStore = create<TabsStore>()(
 							newPanes[paneId].status !== "idle"
 						) {
 							newPanes[paneId] = { ...newPanes[paneId], status: "idle" };
-							markAgentNotificationReadForPane(paneId);
 							hasChanges = true;
 						}
 					}
@@ -1140,8 +1121,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1184,7 +1176,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});
@@ -1198,8 +1190,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1242,7 +1245,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});

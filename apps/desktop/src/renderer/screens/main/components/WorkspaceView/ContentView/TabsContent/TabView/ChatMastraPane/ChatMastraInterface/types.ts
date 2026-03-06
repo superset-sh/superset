@@ -16,6 +16,7 @@ export interface ChatMastraInterfaceProps {
 	workspaceId: string;
 	organizationId: string | null;
 	cwd: string;
+	isFocused: boolean;
 	isSessionReady: boolean;
 	ensureSessionReady: () => Promise<boolean>;
 	onStartFreshSession: () => Promise<StartFreshSessionResult>;

@@ -1,5 +1,5 @@
 import { verifyJWT } from "./auth";
-import { buildCacheKey, buildUpstreamUrl } from "./electric";
+import { buildUpstreamUrl } from "./electric";
 import type { Env } from "./types";
 import { buildWhereClause } from "./where";
 
@@ -13,6 +13,22 @@ const CORS_HEADERS: Record<string, string> = {
 
 function corsResponse(status: number, body: string): Response {
 	return new Response(body, { status, headers: CORS_HEADERS });
+}
+
+function addCorsHeaders(response: Response): Response {
+	const headers = new Headers(response.headers);
+	if (headers.get("content-encoding")) {
+		headers.delete("content-encoding");
+		headers.delete("content-length");
+	}
+	for (const [key, value] of Object.entries(CORS_HEADERS)) {
+		headers.set(key, value);
+	}
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
 }
 
 export default {
@@ -54,51 +70,26 @@ export default {
 			}
 		}
 
+		const authorizedOrganizationIds = [...auth.organizationIds].sort();
 		const whereClause = buildWhereClause(
 			tableName,
 			organizationId ?? "",
-			auth.organizationIds,
+			authorizedOrganizationIds,
 		);
 		if (!whereClause) {
 			return corsResponse(400, `Unknown table: ${tableName}`);
 		}
 
 		const upstreamUrl = buildUpstreamUrl(url, tableName, whereClause, env);
-		const cacheKey = buildCacheKey(upstreamUrl, auth);
+		const upstreamHeaders = new Headers(request.headers);
+		upstreamHeaders.delete("Authorization");
+		upstreamHeaders.delete("Cookie");
 
-		const cache = caches.default;
-		const cacheRequest = new Request(cacheKey);
-		let response = await cache.match(cacheRequest);
-
-		if (!response) {
-			response = await fetch(upstreamUrl.toString());
-
-			const headers = new Headers(response.headers);
-			if (headers.get("content-encoding")) {
-				headers.delete("content-encoding");
-				headers.delete("content-length");
-			}
-
-			response = new Response(response.body, {
-				status: response.status,
-				statusText: response.statusText,
-				headers,
-			});
-
-			if (response.ok && response.headers.has("cache-control")) {
-				await cache.put(cacheRequest, response.clone());
-			}
-		}
-
-		const finalHeaders = new Headers(response.headers);
-		for (const [key, value] of Object.entries(CORS_HEADERS)) {
-			finalHeaders.set(key, value);
-		}
-
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers: finalHeaders,
+		const response = await fetch(upstreamUrl.toString(), {
+			headers: upstreamHeaders,
+			cf: { cacheEverything: true },
 		});
+
+		return addCorsHeaders(response);
 	},
 } satisfies ExportedHandler<Env>;

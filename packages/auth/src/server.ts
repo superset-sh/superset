@@ -24,7 +24,7 @@ import {
 	organization,
 } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -100,18 +100,60 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
-					const org = await auth.api.createOrganization({
-						body: {
-							name: `${user.name}'s Team`,
-							slug: `${user.id.slice(0, 8)}-team`,
-							userId: user.id,
-						},
-					});
+					const domain = user.email.split("@")[1]?.toLowerCase();
+					let enrolledOrgId: string | null = null;
 
-					if (org?.id) {
+					if (domain) {
+						const matchingOrgs = await db.query.organizations.findMany({
+							where: sql`${authSchema.organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
+						});
+
+						for (const org of matchingOrgs) {
+							try {
+								await auth.api.addMember({
+									body: {
+										organizationId: org.id,
+										userId: user.id,
+										role: "member",
+									},
+								});
+								if (!enrolledOrgId) {
+									enrolledOrgId = org.id;
+								}
+							} catch (error) {
+								console.error(
+									`[auto-enroll] Failed to add user ${user.id} to org ${org.id}:`,
+									error,
+								);
+								// addMember may have created the DB record before a downstream error (e.g. Stripe) — check
+								const memberExists = await db.query.members.findFirst({
+									where: and(
+										eq(authSchema.members.organizationId, org.id),
+										eq(authSchema.members.userId, user.id),
+									),
+								});
+								if (memberExists && !enrolledOrgId) {
+									enrolledOrgId = org.id;
+								}
+							}
+						}
+					}
+
+					if (!enrolledOrgId) {
+						const personalOrg = await auth.api.createOrganization({
+							body: {
+								name: `${user.name}'s Team`,
+								slug: `${user.id.slice(0, 8)}-team`,
+								userId: user.id,
+							},
+						});
+						enrolledOrgId = personalOrg?.id ?? null;
+					}
+
+					if (enrolledOrgId) {
 						await db
 							.update(authSchema.sessions)
-							.set({ activeOrganizationId: org.id })
+							.set({ activeOrganizationId: enrolledOrgId })
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 				},
@@ -321,6 +363,7 @@ export const auth = betterAuth({
 					});
 
 					if (!subscription?.stripeSubscriptionId) return;
+					if (subscription.plan === "enterprise") return;
 
 					const memberCount = await db
 						.select({ count: count() })
@@ -409,6 +452,7 @@ export const auth = betterAuth({
 					});
 
 					if (!subscription?.stripeSubscriptionId) return;
+					if (subscription.plan === "enterprise") return;
 
 					const memberCount = await db
 						.select({ count: count() })
@@ -541,6 +585,10 @@ export const auth = betterAuth({
 						priceId: env.STRIPE_PRO_MONTHLY_PRICE_ID,
 						annualDiscountPriceId: env.STRIPE_PRO_YEARLY_PRICE_ID,
 					},
+					{
+						name: "enterprise",
+						priceId: env.STRIPE_ENTERPRISE_YEARLY_PRICE_ID,
+					},
 				],
 
 				authorizeReference: async ({ user, referenceId, action }) => {
@@ -552,6 +600,20 @@ export const auth = betterAuth({
 					});
 
 					if (!member) return false;
+
+					if (
+						action === "upgrade-subscription" ||
+						action === "cancel-subscription" ||
+						action === "restore-subscription"
+					) {
+						const subscription = await db.query.subscriptions.findFirst({
+							where: and(
+								eq(subscriptions.referenceId, referenceId),
+								eq(subscriptions.status, "active"),
+							),
+						});
+						if (subscription?.plan === "enterprise") return false;
+					}
 
 					switch (action) {
 						case "upgrade-subscription":
@@ -565,7 +627,13 @@ export const auth = betterAuth({
 					}
 				},
 
-				getCheckoutSessionParams: async ({ user, subscription }) => {
+				getCheckoutSessionParams: async ({ user, plan, subscription }) => {
+					if (plan.name === "enterprise") {
+						throw new Error(
+							"Enterprise subscriptions are managed by admins. Contact founders@superset.sh.",
+						);
+					}
+
 					const org = await db.query.organizations.findFirst({
 						where: eq(
 							authSchema.organizations.id,
@@ -596,6 +664,8 @@ export const auth = betterAuth({
 					});
 
 					if (!org) return;
+
+					if (plan.name === "enterprise") return;
 
 					const owners = await getOrganizationOwners(subscription.referenceId);
 

@@ -494,6 +494,26 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	}),
+	SPLIT_WITH_CHAT: defineHotkey({
+		keys: "meta+shift+e",
+		label: "Split with New Chat",
+		category: "Layout",
+		description: "Split the current pane and open a new chat pane",
+		defaults: {
+			win32: "ctrl+alt+e",
+			linux: "ctrl+alt+e",
+		},
+	}),
+	SPLIT_WITH_BROWSER: defineHotkey({
+		keys: "meta+shift+s",
+		label: "Split with New Browser",
+		category: "Layout",
+		description: "Split the current pane and open a new browser pane",
+		defaults: {
+			win32: "ctrl+shift+alt+s",
+			linux: "ctrl+shift+alt+s",
+		},
+	}),
 	CLOSE_PANE: defineHotkey({
 		keys: "meta+w",
 		label: "Close Pane",
@@ -751,8 +771,14 @@ export const HOTKEYS = {
 	}),
 
 	// Chat
-	FOCUS_CHAT_INPUT: defineHotkey({
+	FIND_IN_CHAT: defineHotkey({
 		keys: "meta+f",
+		label: "Find in Chat",
+		category: "Terminal",
+		description: "Search text in the active chat",
+	}),
+	FOCUS_CHAT_INPUT: defineHotkey({
+		keys: "meta+j",
 		label: "Focus Chat Input",
 		category: "Terminal",
 	}),

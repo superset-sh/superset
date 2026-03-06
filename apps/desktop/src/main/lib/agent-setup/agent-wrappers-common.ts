@@ -3,6 +3,14 @@ import path from "node:path";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
+export const SUPERSET_MANAGED_BINARIES = [
+	"claude",
+	"codex",
+	"opencode",
+	"gemini",
+	"copilot",
+	"mastracode",
+] as const;
 
 const SUPERSET_MANAGED_HOOK_PATH_PATTERN = /\/\.superset(?:-[^/'"\s\\]+)?\//;
 

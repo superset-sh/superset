@@ -64,12 +64,27 @@ function toToolCalls(value: unknown): SubagentToolCall[] {
 		.filter((item): item is SubagentToolCall => item !== null);
 }
 
+export function inferSubagentStatus(
+	subagent: unknown,
+): "running" | "completed" | "error" {
+	const record = asRecord(subagent);
+	const explicit = asStatus(record?.status);
+	if (explicit) return explicit;
+	if (record?.error) return "error";
+	if (record?.result) return "completed";
+	return "running";
+}
+
+export function isSubagentRunning(subagent: unknown): boolean {
+	return inferSubagentStatus(subagent) === "running";
+}
+
 export function toSubagentViewModels(
 	entries: SubagentEntries,
 ): SubagentViewModel[] {
 	return entries.map(([toolCallId, subagent]) => {
 		const record = asRecord(subagent);
-		const status = asStatus(record?.status) ?? "running";
+		const status = inferSubagentStatus(subagent);
 		const text =
 			asString(status === "running" ? record?.textDelta : record?.result) ??
 			asString(record?.textDelta) ??

@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import type { ExternalApp } from "@superset/local-db";
+import { useCallback, useMemo, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
@@ -45,6 +46,7 @@ interface FileListTreeProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -117,6 +119,7 @@ interface TreeNodeComponentProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function TreeNodeComponent({
@@ -137,6 +140,7 @@ function TreeNodeComponent({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -182,6 +186,7 @@ function TreeNodeComponent({
 				folderPath={node.path}
 				worktreePath={worktreePath}
 				projectId={projectId}
+				defaultApp={defaultApp}
 				onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
 				onUnstageAll={
 					onUnstage || onUnstageFiles ? handleUnstageAll : undefined
@@ -209,6 +214,7 @@ function TreeNodeComponent({
 						commitHash={commitHash}
 						isExpandedView={isExpandedView}
 						projectId={projectId}
+						defaultApp={defaultApp}
 					/>
 				))}
 			</FolderRow>
@@ -229,6 +235,7 @@ function TreeNodeComponent({
 				isActioning={isActioning}
 				worktreePath={worktreePath}
 				projectId={projectId}
+				defaultApp={defaultApp}
 				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 				category={category}
 				commitHash={commitHash}
@@ -257,8 +264,9 @@ export function FileListTree({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: FileListTreeProps) {
-	const tree = buildFileTree(files);
+	const tree = useMemo(() => buildFileTree(files), [files]);
 
 	return (
 		<div className="flex flex-col overflow-hidden">
@@ -281,6 +289,7 @@ export function FileListTree({
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}
 					projectId={projectId}
+					defaultApp={defaultApp}
 				/>
 			))}
 		</div>

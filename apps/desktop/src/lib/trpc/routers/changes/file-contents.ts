@@ -9,6 +9,7 @@ import {
 	PathValidationError,
 	secureFs,
 } from "./security";
+import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -113,6 +114,7 @@ export const createFileContentsRouter = () => {
 					input.filePath,
 					input.content,
 				);
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 

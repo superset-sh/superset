@@ -9,6 +9,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	buildTerminalCommand,
 	launchCommandInPane,
+	writeCommandsInPane,
 } from "renderer/lib/terminal/launch-command";
 import {
 	getPresetLaunchPlan,
@@ -16,7 +17,7 @@ import {
 	type PresetOpenTarget,
 } from "./preset-launch";
 import { useTabsStore } from "./store";
-import type { AddTabOptions } from "./types";
+import type { AddTabOptions, SplitPaneOptions } from "./types";
 import { resolveActiveTabIdForWorkspace } from "./utils";
 
 interface OpenPresetOptions {
@@ -307,6 +308,39 @@ export function useTabsWithPresets() {
 		],
 	);
 
+	const openPresetInCurrentTerminal = useCallback(
+		(workspaceId: string, preset: TerminalPreset) => {
+			const activeTabId = resolveActiveWorkspaceTabId(workspaceId);
+			if (!activeTabId) return false;
+
+			const state = useTabsStore.getState();
+			const paneId = state.focusedPaneIds[activeTabId];
+			if (!paneId) return false;
+
+			const pane = state.panes[paneId];
+			if (!pane || pane.type !== "terminal") return false;
+
+			void writeCommandsInPane({
+				paneId,
+				commands: preset.commands,
+				write: (input) => writeToTerminal.mutateAsync(input),
+			}).catch((error) => {
+				console.error(
+					"[useTabsWithPresets] Failed to send preset commands to current terminal:",
+					{
+						workspaceId,
+						tabId: activeTabId,
+						paneId,
+						error: error instanceof Error ? error.message : String(error),
+					},
+				);
+			});
+
+			return true;
+		},
+		[resolveActiveWorkspaceTabId, writeToTerminal],
+	);
+
 	const openPreset = useCallback(
 		(
 			workspaceId: string,
@@ -362,7 +396,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneVertical(tabId, sourcePaneId, path, options);
@@ -384,7 +418,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneHorizontal(tabId, sourcePaneId, path, options);
@@ -407,7 +441,7 @@ export function useTabsWithPresets() {
 			sourcePaneId: string,
 			dimensions: { width: number; height: number },
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneAuto(
@@ -439,5 +473,6 @@ export function useTabsWithPresets() {
 		splitPaneHorizontal,
 		splitPaneAuto,
 		openPreset,
+		openPresetInCurrentTerminal,
 	};
 }

@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -42,6 +43,7 @@ interface FileItemProps {
 	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -76,6 +78,7 @@ export function FileItem({
 	commitHash,
 	isExpandedView = false,
 	projectId,
+	defaultApp,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
@@ -100,6 +103,7 @@ export function FileItem({
 			absolutePath,
 			relativePath: file.path,
 			cwd: worktreePath,
+			defaultApp,
 			projectId,
 		});
 

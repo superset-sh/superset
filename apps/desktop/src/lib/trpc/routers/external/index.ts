@@ -156,9 +156,15 @@ export const createExternalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const filePath = resolvePath(input.path, input.cwd);
-				// Preserve first-run behavior for terminal/file-link flows.
-				// If no project/global default editor is configured yet, fall back to Cursor.
-				const app = resolveDefaultEditor(input.projectId) ?? "cursor";
+				const app = resolveDefaultEditor(input.projectId);
+
+				if (!app) {
+					// No preferred editor configured yet.
+					// Fall back to OS default file handler so Cmd/Ctrl+click still works
+					// even when Cursor (or any specific editor) isn't installed.
+					await shell.openPath(filePath);
+					return;
+				}
 
 				await openPathInApp(filePath, app);
 			}),

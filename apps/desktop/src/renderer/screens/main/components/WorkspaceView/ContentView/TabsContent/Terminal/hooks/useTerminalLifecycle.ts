@@ -590,8 +590,17 @@ export function useTerminalLifecycle({
 				reattachRecovery.pendingFrame = null;
 
 				const now = Date.now();
-				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs)
+				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs) {
+					// Schedule a retry after the remaining throttle window so the recovery
+					// is not permanently lost when focus events fire in rapid succession.
+					const remaining =
+						reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
+					setTimeout(() => {
+						if (!isUnmounted)
+							scheduleReattachRecovery(reattachRecovery.pendingForceResize);
+					}, remaining + 1);
 					return;
+				}
 				reattachRecovery.lastRunAt = now;
 
 				const shouldForceResize = reattachRecovery.pendingForceResize;

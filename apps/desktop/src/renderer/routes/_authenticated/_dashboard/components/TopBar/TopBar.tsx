@@ -3,7 +3,6 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { NavigationControls } from "./components/NavigationControls";
-import { NotificationsCenter } from "./components/NotificationsCenter";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
@@ -60,7 +59,6 @@ export function TopBar() {
 				)}
 				<OrganizationDropdown />
 				{!isMac && <WindowControls />}
-				<NotificationsCenter />
 			</div>
 		</div>
 	);

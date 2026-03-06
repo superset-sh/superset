@@ -90,7 +90,7 @@ export default function Sidebar() {
 															href={item.href}
 															startWith="/docs"
 															title={item.title}
-															className="break-words text-nowrap w-[--fd-sidebar-width] pl-9"
+															className="break-words w-[--fd-sidebar-width] pl-9"
 														>
 															{item.title}
 														</AsideLink>

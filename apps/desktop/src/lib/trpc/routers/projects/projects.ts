@@ -338,6 +338,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					const git = simpleGit(project.mainRepoPath);
 
+					try {
+						await git.fetch(["--prune"]);
+					} catch {
+						// Best effort: continue with locally available refs when offline.
+					}
+
 					let hasOrigin = false;
 					try {
 						const remotes = await git.getRemotes();

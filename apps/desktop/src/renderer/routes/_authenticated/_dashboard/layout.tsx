@@ -11,6 +11,7 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
@@ -101,6 +102,9 @@ function DashboardLayout() {
 						maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
 						handleSide="right"
 						clampWidth={false}
+						onDoubleClickHandle={() =>
+							setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
+						}
 					>
 						<WorkspaceSidebar
 							isCollapsed={isWorkspaceSidebarCollapsed()}

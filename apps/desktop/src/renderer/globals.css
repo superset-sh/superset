@@ -267,6 +267,15 @@
 		background-color: var(--highlight-active);
 	}
 
+	/* CSS Custom Highlight API for chat search */
+	::highlight(chat-search-matches) {
+		background-color: var(--highlight-match);
+	}
+
+	::highlight(chat-search-active) {
+		background-color: var(--highlight-active);
+	}
+
 	/* Disable sonner toast hover animation for update toast only */
 	[data-sonner-toast]:has(.update-toast) {
 		transform: translateY(0);

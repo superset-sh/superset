@@ -45,6 +45,7 @@ import {
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
+import { setupTerminalHostSignalHandlers } from "./signal-handlers";
 import { TerminalHost } from "./terminal-host";
 
 // =============================================================================
@@ -789,28 +790,9 @@ async function stopServer(): Promise<void> {
 // =============================================================================
 
 function setupSignalHandlers() {
-	const shutdown = async (signal: string) => {
-		log("info", `Received ${signal}, shutting down...`);
-		await stopServer();
-		process.exit(0);
-	};
-
-	process.on("SIGINT", () => shutdown("SIGINT"));
-	process.on("SIGTERM", () => shutdown("SIGTERM"));
-	process.on("SIGHUP", () => shutdown("SIGHUP"));
-
-	// Handle uncaught errors
-	process.on("uncaughtException", (error) => {
-		log("error", "Uncaught exception", {
-			error: error.message,
-			stack: error.stack,
-		});
-		stopServer().then(() => process.exit(1));
-	});
-
-	process.on("unhandledRejection", (reason) => {
-		log("error", "Unhandled rejection", { reason });
-		stopServer().then(() => process.exit(1));
+	setupTerminalHostSignalHandlers({
+		log,
+		stopServer,
 	});
 }
 

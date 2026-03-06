@@ -99,8 +99,15 @@ export const organizations = authSchema.table(
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		metadata: text("metadata"),
 		stripeCustomerId: text("stripe_customer_id"),
+		allowedDomains: text("allowed_domains").array().default([]).notNull(),
 	},
-	(table) => [uniqueIndex("organizations_slug_idx").on(table.slug)],
+	(table) => [
+		uniqueIndex("organizations_slug_idx").on(table.slug),
+		index("organizations_allowed_domains_idx").using(
+			"gin",
+			table.allowedDomains,
+		),
+	],
 );
 
 export type SelectOrganization = typeof organizations.$inferSelect;

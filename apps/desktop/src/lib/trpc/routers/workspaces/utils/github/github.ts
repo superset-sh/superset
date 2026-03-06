@@ -42,7 +42,7 @@ export async function fetchGitHubPRStatus(
 
 		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath, branchName, repoContext),
+			getPRForBranch(worktreePath),
 		]);
 
 		const result: GitHubStatus = {
@@ -123,16 +123,13 @@ const PR_JSON_FIELDS =
 
 async function getPRForBranch(
 	worktreePath: string,
-	branchName: string,
-	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	const byTracking = await getPRByBranchTracking(worktreePath);
 	if (byTracking) {
 		return byTracking;
 	}
 
-	// Fallback for branches where local naming/casing diverges from PR head.
-	return findPRByHeadBranch(worktreePath, branchName, repoContext);
+	return findPRByHeadCommit(worktreePath);
 }
 
 /**
@@ -170,17 +167,23 @@ async function getPRByBranchTracking(
 	}
 }
 
-async function findPRByHeadBranch(
+/**
+ * Looks up PRs that have local HEAD as their head commit.
+ * This avoids matching unrelated PRs that merely contain the same commit.
+ */
+async function findPRByHeadCommit(
 	worktreePath: string,
-	branchName: string,
-	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	try {
-		// For fork repos, cross-repo PRs need head:forkowner:branchName format
-		const headQuery =
-			repoContext?.isFork && repoContext.forkNwo
-				? `head:${repoContext.forkNwo.split("/")[0]}:${branchName}`
-				: `head:${branchName}`;
+		const { stdout: headOutput } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "rev-parse", "HEAD"],
+			{ timeout: 10_000 },
+		);
+		const headSha = headOutput.trim();
+		if (!headSha) {
+			return null;
+		}
 
 		const { stdout } = await execWithShellEnv(
 			"gh",
@@ -190,7 +193,7 @@ async function findPRByHeadBranch(
 				"--state",
 				"all",
 				"--search",
-				headQuery,
+				`${headSha} is:pr`,
 				"--limit",
 				"20",
 				"--json",
@@ -201,7 +204,7 @@ async function findPRByHeadBranch(
 
 		const candidates = parsePRListResponse(stdout);
 		for (const candidate of candidates) {
-			if (await sharesAncestry(worktreePath, candidate.headRefOid)) {
+			if (candidate.headRefOid === headSha) {
 				return formatPRData(candidate);
 			}
 		}
