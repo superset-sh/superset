@@ -1,5 +1,7 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
-import { useCallback } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { CheckIcon, CopyIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { normalizeWorkspaceFilePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
 import { AttachmentChip } from "../AttachmentChip";
@@ -22,6 +24,11 @@ export function UserMessage({
 	workspaceCwd,
 }: UserMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const fullText = message.content
+		.flatMap((part) => (part.type === "text" ? [part.text] : []))
+		.join("\n");
+	const [copied, setCopied] = useState(false);
+
 	const openAttachment = useCallback(
 		(url: string, filename?: string) => {
 			addFileViewerPane(workspaceId, {
@@ -38,13 +45,43 @@ export function UserMessage({
 		},
 		[addFileViewerPane, workspaceId],
 	);
+	const handleCopy = useCallback(() => {
+		if (!fullText) return;
+		navigator.clipboard.writeText(fullText).then(
+			() => {
+				setCopied(true);
+				setTimeout(() => setCopied(false), 1500);
+			},
+			(error) => {
+				console.warn("[UserMessage] clipboard write failed", error);
+			},
+		);
+	}, [fullText]);
 
 	return (
 		<div
-			className="flex flex-col items-end gap-2"
+			className="group/msg relative flex flex-col items-end gap-2"
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
+			{fullText ? (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCopy}
+							className="absolute -top-2 right-0 rounded-md border border-border bg-background p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/msg:opacity-100"
+						>
+							{copied ? (
+								<CheckIcon className="size-3.5" />
+							) : (
+								<CopyIcon className="size-3.5" />
+							)}
+						</button>
+					</TooltipTrigger>
+					{!copied ? <TooltipContent side="top">Copy</TooltipContent> : null}
+				</Tooltip>
+			) : null}
 			{message.content.some(
 				(part) =>
 					part.type === "image" || (part as { type?: string }).type === "file",
