@@ -114,47 +114,10 @@ export function UserMessage({
 
 	return (
 		<div
-			className="group/msg relative flex flex-col items-end gap-2"
+			className="group/msg flex flex-col items-end gap-2"
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
-			{showActions ? (
-				<div className="absolute -top-3 right-0 z-10 opacity-0 transition-opacity group-hover/msg:opacity-100 group-focus-within/msg:opacity-100">
-					<MessageActions className="rounded-lg border border-border bg-background/95 p-1 shadow-sm backdrop-blur-xs">
-						<MessageAction
-							className="size-7 text-muted-foreground hover:text-foreground"
-							label="Resend message"
-							onClick={handleResend}
-							tooltip="Resend"
-							disabled={resendDisabled}
-						>
-							<RotateCcwIcon className="size-3.5" />
-						</MessageAction>
-						<MessageAction
-							className="size-7 text-muted-foreground hover:text-foreground"
-							label="Edit message"
-							onClick={handleEdit}
-							tooltip="Edit"
-						>
-							<PencilLineIcon className="size-3.5" />
-						</MessageAction>
-						{fullText ? (
-							<MessageAction
-								className="size-7 text-muted-foreground hover:text-foreground"
-								label={copied ? "Copied" : "Copy message"}
-								onClick={handleCopy}
-								tooltip={copied ? "Copied" : "Copy"}
-							>
-								{copied ? (
-									<CheckIcon className="size-3.5" />
-								) : (
-									<CopyIcon className="size-3.5" />
-								)}
-							</MessageAction>
-						) : null}
-					</MessageActions>
-				</div>
-			) : null}
 			{message.content.some(
 				(part) =>
 					part.type === "image" || (part as { type?: string }).type === "file",
@@ -259,6 +222,43 @@ export function UserMessage({
 				}
 				return null;
 			})}
+			{showActions ? (
+				<div className="opacity-0 transition-opacity group-hover/msg:opacity-100 group-focus-within/msg:opacity-100">
+					<MessageActions className="rounded-lg border border-border bg-background/95 p-1 shadow-sm backdrop-blur-xs">
+						<MessageAction
+							className="size-7 text-muted-foreground hover:text-foreground"
+							label="Resend message"
+							onClick={handleResend}
+							tooltip="Resend"
+							disabled={resendDisabled}
+						>
+							<RotateCcwIcon className="size-3.5" />
+						</MessageAction>
+						<MessageAction
+							className="size-7 text-muted-foreground hover:text-foreground"
+							label="Edit message"
+							onClick={handleEdit}
+							tooltip="Edit"
+						>
+							<PencilLineIcon className="size-3.5" />
+						</MessageAction>
+						{fullText ? (
+							<MessageAction
+								className="size-7 text-muted-foreground hover:text-foreground"
+								label={copied ? "Copied" : "Copy message"}
+								onClick={handleCopy}
+								tooltip={copied ? "Copied" : "Copy"}
+							>
+								{copied ? (
+									<CheckIcon className="size-3.5" />
+								) : (
+									<CopyIcon className="size-3.5" />
+								)}
+							</MessageAction>
+						) : null}
+					</MessageActions>
+				</div>
+			) : null}
 		</div>
 	);
 }
