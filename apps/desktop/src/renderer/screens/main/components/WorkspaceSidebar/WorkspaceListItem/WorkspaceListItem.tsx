@@ -14,6 +14,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -443,9 +444,20 @@ export function WorkspaceListItem({
 						{(showBranchSubtitle || pr) && (
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
-									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
-										{branch}
-									</span>
+									<div className="min-w-0">
+										<AnimatePresence initial={false} mode="wait">
+											<motion.span
+												key={branch}
+												className="block text-muted-foreground/60 truncate font-mono leading-tight"
+												initial={{ opacity: 0, y: 2 }}
+												animate={{ opacity: 1, y: 0 }}
+												exit={{ opacity: 0, y: -2 }}
+												transition={{ duration: 0.16, ease: "easeOut" }}
+											>
+												{branch}
+											</motion.span>
+										</AnimatePresence>
+									</div>
 								)}
 								{pr && (
 									<WorkspaceStatusBadge

@@ -15,8 +15,10 @@ import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
+import { usePendingBranchRenameStore } from "renderer/stores/pending-branch-rename";
 import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
 import { useSlashCommandExecutor } from "../../ChatPane/ChatInterface/hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "../../ChatPane/ChatInterface/hooks/useSlashCommands";
@@ -226,8 +228,18 @@ export function ChatMastraInterface({
 		null,
 	);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
+	const electronTrpcUtils = electronTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
+	const renameBranchFromPromptMutation =
+		electronTrpc.workspaces.renameBranchFromPrompt.useMutation({
+			onSuccess: async () => {
+				await electronTrpcUtils.workspaces.invalidate();
+			},
+		});
+	const clearPendingBranchRename = usePendingBranchRenameStore(
+		(state) => state.clearPending,
+	);
 	const captureChatEvent = useCallback(
 		(event: string, properties?: ChatAnalyticsProperties) => {
 			posthog.capture(event, {
@@ -327,6 +339,34 @@ export function ChatMastraInterface({
 			}
 		},
 		[chatMastraServiceTrpcUtils, cwd],
+	);
+
+	const maybeRenamePendingBranch = useCallback(
+		(prompt: string) => {
+			const pendingBranchRename =
+				usePendingBranchRenameStore.getState().getPending(workspaceId);
+			if (!pendingBranchRename) return;
+
+			void renameBranchFromPromptMutation
+				.mutateAsync({
+					workspaceId,
+					prompt,
+					expectedBranch: pendingBranchRename.expectedBranch,
+				})
+				.then((result) => {
+					if (result.success || result.reason === "branch-mismatch") {
+						clearPendingBranchRename(workspaceId);
+					}
+				})
+				.catch((error) => {
+					console.warn("[chat-mastra] Failed to rename pending branch", {
+						error,
+						expectedBranch: pendingBranchRename.expectedBranch,
+						workspaceId,
+					});
+				});
+		},
+		[clearPendingBranchRename, renameBranchFromPromptMutation, workspaceId],
 	);
 
 	const canAbort = Boolean(isRunning);
@@ -594,6 +634,9 @@ export function ChatMastraInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
+				if (!isSlashCommand) {
+					maybeRenamePendingBranch(content);
+				}
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
@@ -625,6 +668,7 @@ export function ChatMastraInterface({
 			clearRuntimeError,
 			commands,
 			isSessionReady,
+			maybeRenamePendingBranch,
 			messages?.length,
 			onStartFreshSession,
 			resolveSlashCommandInput,
@@ -697,6 +741,7 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				maybeRenamePendingBranch(prompt);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
@@ -745,6 +790,7 @@ export function ChatMastraInterface({
 		captureChatEvent,
 		clearRuntimeError,
 		commands,
+		maybeRenamePendingBranch,
 		ensureSessionReady,
 		initialLaunchConfig,
 		isSessionReady,

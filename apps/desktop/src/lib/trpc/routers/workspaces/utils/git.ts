@@ -1500,6 +1500,31 @@ export async function safeCheckoutBranch(
 	}
 }
 
+export async function renameCurrentBranch(
+	repoPath: string,
+	currentBranch: string,
+	newBranch: string,
+): Promise<string> {
+	const headBeforeRename = await getCurrentBranch(repoPath);
+	if (headBeforeRename !== currentBranch) {
+		throw new Error(
+			`Branch rename verification failed for "${repoPath}": expected HEAD on "${currentBranch}" before rename but found "${headBeforeRename ?? "detached HEAD"}"`,
+		);
+	}
+
+	const git = simpleGit(repoPath);
+	await git.branch(["-m", currentBranch, newBranch]);
+
+	const verifyBranch = await getCurrentBranch(repoPath);
+	if (verifyBranch !== newBranch) {
+		throw new Error(
+			`Branch rename verification failed for "${repoPath}": expected "${newBranch}" but HEAD is on "${verifyBranch ?? "detached HEAD"}"`,
+		);
+	}
+
+	return verifyBranch;
+}
+
 /**
  * PR info returned from GitHub CLI
  */

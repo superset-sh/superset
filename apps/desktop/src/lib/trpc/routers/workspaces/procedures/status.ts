@@ -1,13 +1,24 @@
-import { workspaces, worktrees } from "@superset/local-db";
+import { settings, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { generateWorkspaceBranchFromPrompt } from "../utils/ai-name";
 import {
 	getWorkspaceNotDeleting,
+	getWorkspaceWithRelations,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../utils/db-helpers";
+import {
+	getBranchPrefix,
+	getCurrentBranch,
+	listBranches,
+	renameCurrentBranch,
+	sanitizeAuthorPrefix,
+	sanitizeBranchNameWithMaxLength,
+} from "../utils/git";
+import { deduplicateBranchName } from "shared/utils/branch";
 
 export const createStatusProcedures = () => {
 	return router({
@@ -173,6 +184,102 @@ export const createStatusProcedures = () => {
 				}
 
 				return { success: true as const, changed: true as const };
+			}),
+
+		renameBranchFromPrompt: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					prompt: z.string().min(1),
+					expectedBranch: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const relations = getWorkspaceWithRelations(input.workspaceId);
+				if (!relations?.worktree || !relations.project) {
+					return { success: false as const, reason: "not-worktree" as const };
+				}
+
+				const { workspace, worktree, project } = relations;
+				const currentBranch = await getCurrentBranch(worktree.path);
+				if (!currentBranch || currentBranch !== input.expectedBranch) {
+					return {
+						success: false as const,
+						reason: "branch-mismatch" as const,
+					};
+				}
+
+				const generatedBranchName = await generateWorkspaceBranchFromPrompt(
+					input.prompt,
+				);
+				if (!generatedBranchName) {
+					return {
+						success: false as const,
+						reason: "no-branch-generated" as const,
+					};
+				}
+
+				const globalSettings = localDb.select().from(settings).get();
+				const projectOverrides = project.branchPrefixMode != null;
+				const prefixMode = projectOverrides
+					? project.branchPrefixMode
+					: (globalSettings?.branchPrefixMode ?? "none");
+				const customPrefix = projectOverrides
+					? project.branchPrefixCustom
+					: globalSettings?.branchPrefixCustom;
+
+				const rawPrefix = await getBranchPrefix({
+					repoPath: project.mainRepoPath,
+					mode: prefixMode,
+					customPrefix,
+				});
+				const branchPrefix = rawPrefix
+					? sanitizeAuthorPrefix(rawPrefix)
+					: undefined;
+
+				const { local, remote } = await listBranches(project.mainRepoPath);
+				const existingBranches = [...local, ...remote].filter(
+					(branchName) => branchName.toLowerCase() !== currentBranch.toLowerCase(),
+				);
+				const candidateBranch = sanitizeBranchNameWithMaxLength(
+					branchPrefix
+						? `${branchPrefix}/${generatedBranchName}`
+						: generatedBranchName,
+				);
+				const nextBranch = deduplicateBranchName(
+					candidateBranch,
+					existingBranches,
+				);
+
+				if (nextBranch === currentBranch) {
+					return {
+						success: true as const,
+						changed: false as const,
+						branch: currentBranch,
+					};
+				}
+
+				const renamedBranch = await renameCurrentBranch(
+					worktree.path,
+					currentBranch,
+					nextBranch,
+				);
+
+				touchWorkspace(workspace.id, {
+					branch: renamedBranch,
+					...(workspace.isUnnamed ? { name: renamedBranch } : {}),
+				});
+				localDb
+					.update(worktrees)
+					.set({ branch: renamedBranch })
+					.where(eq(worktrees.id, worktree.id))
+					.run();
+
+				return {
+					success: true as const,
+					changed: true as const,
+					branch: renamedBranch,
+				};
 			}),
 	});
 };
