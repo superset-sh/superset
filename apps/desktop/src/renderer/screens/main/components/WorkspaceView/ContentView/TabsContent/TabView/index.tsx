@@ -27,9 +27,11 @@ import { TabPane } from "./TabPane";
 
 interface TabViewProps {
 	tab: Tab;
+	/** Whether this tab is currently active/visible. Can be used by panes to throttle expensive effects. */
+	isActive?: boolean;
 }
 
-export function TabView({ tab }: TabViewProps) {
+export function TabView({ tab, isActive = true }: TabViewProps) {
 	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);

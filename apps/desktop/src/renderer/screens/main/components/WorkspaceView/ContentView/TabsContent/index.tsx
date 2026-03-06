@@ -55,7 +55,7 @@ export function TabsContent({
 						key={tab.id}
 						className={`w-full h-full ${tab.id === activeTabId ? "block" : "hidden"}`}
 					>
-						<TabView tab={tab} />
+						<TabView tab={tab} isActive={tab.id === activeTabId} />
 					</div>
 				))
 			) : (
