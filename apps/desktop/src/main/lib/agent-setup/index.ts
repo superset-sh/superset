@@ -8,6 +8,8 @@ import {
 	createCursorAgentWrapper,
 	createCursorHookScript,
 	createCursorHooksJson,
+	createDroidSettingsJson,
+	createDroidWrapper,
 	createGeminiHookScript,
 	createGeminiSettingsJson,
 	createGeminiWrapper,
@@ -46,6 +48,8 @@ export function setupAgentHooks(): void {
 	createNotifyScript();
 	createClaudeWrapper();
 	createCodexWrapper();
+	createDroidWrapper();
+	createDroidSettingsJson();
 	createOpenCodePlugin();
 	createOpenCodeWrapper();
 	createCursorHookScript();

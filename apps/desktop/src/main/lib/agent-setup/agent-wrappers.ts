@@ -41,6 +41,12 @@ export {
 	getCursorHooksJsonContent,
 } from "./agent-wrappers-cursor";
 export {
+	createDroidSettingsJson,
+	createDroidWrapper,
+	getDroidSettingsJsonContent,
+	getDroidSettingsJsonPath,
+} from "./agent-wrappers-droid";
+export {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
 	createGeminiWrapper,
