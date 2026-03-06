@@ -121,4 +121,63 @@ describe("DaemonTerminalManager kill tracking", () => {
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("exited");
 	});
+
+	it("only disconnects sessions attached to the affected generation", () => {
+		const manager = new DaemonTerminalManager();
+		const sessions = (
+			manager as unknown as { sessions: Map<string, SessionInfo> }
+		).sessions;
+		const daemonAliveSessionIds = (
+			manager as unknown as { daemonAliveSessionIds: Set<string> }
+		).daemonAliveSessionIds;
+
+		sessions.set("pane-old", {
+			paneId: "pane-old",
+			workspaceId: "ws-1",
+			generationId: "legacy",
+			isAlive: true,
+			lastActive: Date.now(),
+			cwd: "",
+			pid: 111,
+			cols: 80,
+			rows: 24,
+		});
+		sessions.set("pane-new", {
+			paneId: "pane-new",
+			workspaceId: "ws-1",
+			generationId: "v2.0.0",
+			isAlive: true,
+			lastActive: Date.now(),
+			cwd: "",
+			pid: 222,
+			cols: 80,
+			rows: 24,
+		});
+		daemonAliveSessionIds.add("pane-old");
+		daemonAliveSessionIds.add("pane-new");
+
+		let oldReason: string | undefined;
+		let newReason: string | undefined;
+		manager.on("disconnect:pane-old", (reason) => {
+			oldReason = reason;
+		});
+		manager.on("disconnect:pane-new", (reason) => {
+			newReason = reason;
+		});
+
+		mockClient.emit("generationDisconnect", {
+			generationId: "legacy",
+			sessionIds: ["pane-old"],
+			reason: "rolling daemon retired",
+		});
+
+		expect(oldReason).toBe("rolling daemon retired");
+		expect(newReason).toBeUndefined();
+		expect(sessions.get("pane-old")?.isAlive).toBe(false);
+		expect(sessions.get("pane-old")?.pid).toBeNull();
+		expect(sessions.get("pane-old")?.generationId).toBeUndefined();
+		expect(sessions.get("pane-new")?.isAlive).toBe(true);
+		expect(daemonAliveSessionIds.has("pane-old")).toBe(false);
+		expect(daemonAliveSessionIds.has("pane-new")).toBe(true);
+	});
 });

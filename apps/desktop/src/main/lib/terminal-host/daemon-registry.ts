@@ -1,6 +1,8 @@
 import {
 	chmodSync,
+	closeSync,
 	existsSync,
+	openSync,
 	readFileSync,
 	renameSync,
 	unlinkSync,
@@ -33,6 +35,10 @@ interface DaemonRegistryFile {
 
 const DEFAULT_REGISTRY_PATH = join(SUPERSET_HOME_DIR, "terminal-daemons.json");
 const DEBUG_REGISTRY = process.env.SUPERSET_TERMINAL_DEBUG === "1";
+const REGISTRY_LOCK_TIMEOUT_MS = 5_000;
+const REGISTRY_LOCK_STALE_MS = 30_000;
+const REGISTRY_LOCK_RETRY_MS = 25;
+const LOCK_SLEEP_BUFFER = new Int32Array(new SharedArrayBuffer(4));
 
 function nowIso(): string {
 	return new Date().toISOString();
@@ -69,6 +75,17 @@ function sortEntries(entries: DaemonRegistryEntry[]): DaemonRegistryEntry[] {
 	return [...entries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+function sleepSync(ms: number): void {
+	try {
+		Atomics.wait(LOCK_SLEEP_BUFFER, 0, 0, ms);
+	} catch {
+		const end = Date.now() + ms;
+		while (Date.now() < end) {
+			// busy-wait fallback; should be rare
+		}
+	}
+}
+
 export class TerminalDaemonRegistry {
 	constructor(private readonly registryPath = DEFAULT_REGISTRY_PATH) {}
 
@@ -82,7 +99,9 @@ export class TerminalDaemonRegistry {
 	}
 
 	write(entries: DaemonRegistryEntry[]): void {
-		this.writeFile({ version: 1, daemons: sortEntries(entries) });
+		this.withLock(() => {
+			this.writeFile({ version: 1, daemons: sortEntries(entries) });
+		});
 	}
 
 	get(generationId: string): DaemonRegistryEntry | null {
@@ -104,76 +123,116 @@ export class TerminalDaemonRegistry {
 	upsert(
 		entry: Omit<DaemonRegistryEntry, "createdAt" | "updatedAt" | "lastSeenAt">,
 	): DaemonRegistryEntry {
-		const now = nowIso();
-		const daemons = this.read();
-		const existing = daemons.find(
-			(daemon) => daemon.generationId === entry.generationId,
-		);
+		return this.mutate((daemons) => {
+			const now = nowIso();
+			const existing = daemons.find(
+				(daemon) => daemon.generationId === entry.generationId,
+			);
 
-		const next: DaemonRegistryEntry = existing
-			? {
-					...existing,
-					...entry,
-					updatedAt: now,
-					lastSeenAt: now,
-				}
-			: {
-					...entry,
-					createdAt: now,
-					updatedAt: now,
-					lastSeenAt: now,
-				};
+			const next: DaemonRegistryEntry = existing
+				? {
+						...existing,
+						...entry,
+						updatedAt: now,
+						lastSeenAt: now,
+					}
+				: {
+						...entry,
+						createdAt: now,
+						updatedAt: now,
+						lastSeenAt: now,
+					};
 
-		const filtered = daemons.filter(
-			(daemon) => daemon.generationId !== entry.generationId,
-		);
-		filtered.push(next);
-		this.write(filtered);
-		return next;
+			const filtered = daemons.filter(
+				(daemon) => daemon.generationId !== entry.generationId,
+			);
+			filtered.push(next);
+			return { entries: filtered, result: next };
+		});
 	}
 
 	markLastSeen(generationId: string): void {
-		const daemons = this.read();
-		const now = nowIso();
-		const updated = daemons.map((daemon) =>
-			daemon.generationId === generationId
-				? { ...daemon, lastSeenAt: now }
-				: daemon,
-		);
-		this.write(updated);
+		void this.mutate((daemons) => {
+			const now = nowIso();
+			return {
+				entries: daemons.map((daemon) =>
+					daemon.generationId === generationId
+						? { ...daemon, lastSeenAt: now }
+						: daemon,
+				),
+				result: undefined,
+			};
+		});
+	}
+
+	heartbeat(
+		entry: Omit<DaemonRegistryEntry, "createdAt" | "updatedAt" | "lastSeenAt">,
+	): DaemonRegistryEntry {
+		return this.mutate((daemons) => {
+			const now = nowIso();
+			const existing = daemons.find(
+				(daemon) => daemon.generationId === entry.generationId,
+			);
+			const next: DaemonRegistryEntry = existing
+				? {
+						...existing,
+						socketPath: entry.socketPath,
+						pid: entry.pid,
+						appVersion: entry.appVersion,
+						lastSeenAt: now,
+					}
+				: {
+						...entry,
+						createdAt: now,
+						updatedAt: now,
+						lastSeenAt: now,
+					};
+
+			const filtered = daemons.filter(
+				(daemon) => daemon.generationId !== entry.generationId,
+			);
+			filtered.push(next);
+			return { entries: filtered, result: next };
+		});
 	}
 
 	setState(generationId: string, state: DaemonState): void {
-		const daemons = this.read();
-		const now = nowIso();
-		const updated = daemons.map((daemon) =>
-			daemon.generationId === generationId
-				? { ...daemon, state, updatedAt: now }
-				: daemon,
-		);
-		this.write(updated);
+		void this.mutate((daemons) => {
+			const now = nowIso();
+			return {
+				entries: daemons.map((daemon) =>
+					daemon.generationId === generationId
+						? { ...daemon, state, updatedAt: now }
+						: daemon,
+				),
+				result: undefined,
+			};
+		});
 	}
 
 	remove(generationId: string): void {
-		const daemons = this.read().filter(
-			(daemon) => daemon.generationId !== generationId,
-		);
-		this.write(daemons);
+		void this.mutate((daemons) => ({
+			entries: daemons.filter((daemon) => daemon.generationId !== generationId),
+			result: undefined,
+		}));
 	}
 
 	markPreferredGeneration(generationId: string): void {
-		const daemons = this.read();
-		const now = nowIso();
-		const updated = daemons.map((daemon) => {
-			if (daemon.generationId === generationId) {
-				return { ...daemon, state: "preferred" as const, updatedAt: now };
-			}
-			if (daemon.state === "preferred") {
-				return { ...daemon, state: "draining" as const, updatedAt: now };
-			}
-			return daemon;
+		void this.mutate((daemons) => {
+			const now = nowIso();
+			return {
+				entries: daemons.map((daemon) => {
+					if (daemon.generationId === generationId) {
+						return { ...daemon, state: "preferred" as const, updatedAt: now };
+					}
+					if (daemon.state === "preferred") {
+						return { ...daemon, state: "draining" as const, updatedAt: now };
+					}
+					return daemon;
+				}),
+				result: undefined,
+			};
 		});
-		this.write(updated);
 	}
 
 	listActive(): DaemonRegistryEntry[] {
@@ -184,41 +243,138 @@ export class TerminalDaemonRegistry {
 		removedGenerations: string[];
 		removedSockets: string[];
 	} {
-		const daemons = this.read();
-		const removedGenerations: string[] = [];
-		const removedSockets: string[] = [];
-		const retained: DaemonRegistryEntry[] = [];
+		return this.mutate((daemons) => {
+			const removedGenerations: string[] = [];
+			const removedSockets: string[] = [];
+			const retained: DaemonRegistryEntry[] = [];
 
-		for (const daemon of daemons) {
-			const pidAlive = isProcessAlive(daemon.pid);
-			const socketExists = existsSync(daemon.socketPath);
+			for (const daemon of daemons) {
+				const pidAlive = isProcessAlive(daemon.pid);
+				const socketExists = existsSync(daemon.socketPath);
 
-			if (!pidAlive && socketExists) {
-				tryUnlink(daemon.socketPath);
-				removedSockets.push(daemon.socketPath);
+				if (!pidAlive && socketExists) {
+					tryUnlink(daemon.socketPath);
+					removedSockets.push(daemon.socketPath);
+				}
+
+				if (!pidAlive) {
+					removedGenerations.push(daemon.generationId);
+					continue;
+				}
+
+				retained.push(daemon);
 			}
 
-			if (!pidAlive) {
-				removedGenerations.push(daemon.generationId);
-				continue;
+			if (
+				DEBUG_REGISTRY &&
+				(removedGenerations.length > 0 || removedSockets.length > 0)
+			) {
+				console.log("[TerminalDaemonRegistry] Cleaned stale daemon entries", {
+					removedGenerations,
+					removedSockets,
+				});
 			}
 
-			retained.push(daemon);
+			return {
+				entries: retained,
+				result: { removedGenerations, removedSockets },
+			};
+		});
+	}
+
+	private mutate<T>(
+		mutation: (entries: DaemonRegistryEntry[]) => {
+			entries: DaemonRegistryEntry[];
+			result: T;
+		},
+	): T {
+		return this.withLock(() => {
+			const loaded = this.readFile();
+			const { entries, result } = mutation(sortEntries(loaded.daemons));
+			this.writeFile({ version: 1, daemons: sortEntries(entries) });
+			return result;
+		});
+	}
+
+	private withLock<T>(operation: () => T): T {
+		ensureSupersetHomeDirExists();
+		const lockPath = `${this.registryPath}.lock`;
+		const startTime = Date.now();
+
+		while (true) {
+			try {
+				const fd = openSync(lockPath, "wx", SUPERSET_SENSITIVE_FILE_MODE);
+				try {
+					writeFileSync(
+						fd,
+						JSON.stringify({
+							pid: process.pid,
+							acquiredAt: Date.now(),
+						}),
+						"utf-8",
+					);
+				} finally {
+					closeSync(fd);
+				}
+
+				try {
+					chmodSync(lockPath, SUPERSET_SENSITIVE_FILE_MODE);
+				} catch {
+					// best effort
+				}
+
+				try {
+					return operation();
+				} finally {
+					tryUnlink(lockPath);
+				}
+			} catch {
+				if (this.tryRecoverStaleLock(lockPath)) {
+					continue;
+				}
+
+				if (Date.now() - startTime >= REGISTRY_LOCK_TIMEOUT_MS) {
+					throw new Error(
+						`Timed out acquiring terminal daemon registry lock for ${this.registryPath}`,
+					);
+				}
+
+				sleepSync(REGISTRY_LOCK_RETRY_MS);
+			}
+		}
+	}
+
+	private tryRecoverStaleLock(lockPath: string): boolean {
+		if (!existsSync(lockPath)) {
+			return false;
 		}
 
-		this.write(retained);
+		try {
+			const raw = readFileSync(lockPath, "utf-8").trim();
+			if (!raw) {
+				tryUnlink(lockPath);
+				return true;
+			}
 
-		if (
-			DEBUG_REGISTRY &&
-			(removedGenerations.length > 0 || removedSockets.length > 0)
-		) {
-			console.log("[TerminalDaemonRegistry] Cleaned stale daemon entries", {
-				removedGenerations,
-				removedSockets,
-			});
+			const parsed = JSON.parse(raw) as {
+				pid?: number;
+				acquiredAt?: number;
+			};
+			const pidAlive =
+				typeof parsed.pid === "number" ? isProcessAlive(parsed.pid) : false;
+			const acquiredAt =
+				typeof parsed.acquiredAt === "number" ? parsed.acquiredAt : 0;
+			const stale =
+				!pidAlive || Date.now() - acquiredAt > REGISTRY_LOCK_STALE_MS;
+			if (!stale) {
+				return false;
+			}
+		} catch {
+			// If we cannot parse the lock, treat it as stale and replace it.
 		}
 
-		return { removedGenerations, removedSockets };
+		tryUnlink(lockPath);
+		return true;
 	}
 
 	private readFile(): DaemonRegistryFile {
@@ -266,8 +422,6 @@ export class TerminalDaemonRegistry {
 	}
 
 	private writeFile(file: DaemonRegistryFile): void {
-		ensureSupersetHomeDirExists();
-
 		const tempPath = `${this.registryPath}.tmp`;
 		const payload = `${JSON.stringify(file, null, 2)}\n`;
 

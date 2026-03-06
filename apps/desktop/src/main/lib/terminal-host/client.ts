@@ -159,12 +159,19 @@ export interface TerminalHostClientEvents {
 	connected: () => void;
 	disconnected: () => void;
 	error: (error: Error) => void;
+	generationDisconnect: (event: GenerationDisconnectEvent) => void;
 }
 
 interface GenerationClientOptions {
 	generationId: string;
 	initialState: "preferred" | "draining";
 	canSpawn: boolean;
+}
+
+interface GenerationDisconnectEvent {
+	generationId: string;
+	sessionIds: string[];
+	reason: string;
 }
 
 /**
@@ -1532,6 +1539,7 @@ class GenerationTerminalHostClient extends EventEmitter {
 export class TerminalHostClient extends EventEmitter {
 	private generationClients = new Map<string, GenerationTerminalHostClient>();
 	private sessionGenerationMap = new Map<string, string>();
+	private generationDisconnectReasons = new Map<string, string>();
 	private disposed = false;
 
 	private getOrCreateGenerationClient({
@@ -1572,9 +1580,21 @@ export class TerminalHostClient extends EventEmitter {
 				this.emit("terminalError", sessionId, error, code);
 			},
 		);
-		client.on("connected", () => this.emit("connected"));
-		client.on("disconnected", () => this.emit("disconnected"));
-		client.on("error", (error: Error) => this.emit("error", error));
+		client.on("connected", () => {
+			this.generationDisconnectReasons.delete(generationId);
+			this.emit("connected");
+		});
+		client.on("disconnected", () => {
+			const reason =
+				this.generationDisconnectReasons.get(generationId) ??
+				"Connection to terminal daemon lost";
+			this.generationDisconnectReasons.delete(generationId);
+			this.handleGenerationDisconnect({ generationId, reason });
+		});
+		client.on("error", (error: Error) => {
+			this.generationDisconnectReasons.set(generationId, error.message);
+			this.emit("error", error);
+		});
 
 		this.generationClients.set(generationId, client);
 		return client;
@@ -1631,6 +1651,35 @@ export class TerminalHostClient extends EventEmitter {
 		return session.generationId;
 	}
 
+	private getSessionIdsForGeneration(generationId: string): string[] {
+		return Array.from(this.sessionGenerationMap.entries())
+			.filter(([, mappedGenerationId]) => mappedGenerationId === generationId)
+			.map(([sessionId]) => sessionId);
+	}
+
+	private handleGenerationDisconnect({
+		generationId,
+		reason,
+	}: {
+		generationId: string;
+		reason: string;
+	}): void {
+		const sessionIds = this.getSessionIdsForGeneration(generationId);
+		if (sessionIds.length === 0) {
+			return;
+		}
+
+		for (const sessionId of sessionIds) {
+			this.sessionGenerationMap.delete(sessionId);
+		}
+
+		this.emit("generationDisconnect", {
+			generationId,
+			sessionIds,
+			reason,
+		} satisfies GenerationDisconnectEvent);
+	}
+
 	private async listSessionsAcrossGenerations({
 		includeCurrentSpawn,
 	}: {
@@ -1673,6 +1722,44 @@ export class TerminalHostClient extends EventEmitter {
 		return sessions;
 	}
 
+	private async probeSessionInGeneration({
+		sessionId,
+		generationId,
+	}: {
+		sessionId: string;
+		generationId: string;
+	}): Promise<"present" | "absent" | "unknown"> {
+		const client = this.getOrCreateGenerationClient({
+			generationId,
+			canSpawn: false,
+			initialState:
+				generationId === this.getCurrentGenerationId()
+					? "preferred"
+					: "draining",
+		});
+
+		try {
+			const connected = await client.tryConnectAndAuthenticate();
+			if (!connected) {
+				return "absent";
+			}
+
+			const response = await client.listSessions();
+			const session = response.sessions.find(
+				(entry) => entry.sessionId === sessionId && entry.isAlive,
+			);
+			if (!session) {
+				return "absent";
+			}
+
+			const resolvedGeneration = session.generationId ?? generationId;
+			this.sessionGenerationMap.set(sessionId, resolvedGeneration);
+			return "present";
+		} catch {
+			return "unknown";
+		}
+	}
+
 	private getPreferredGenerationId(): string {
 		return getPreferredGenerationIdFromRollout();
 	}
@@ -1713,10 +1800,25 @@ export class TerminalHostClient extends EventEmitter {
 	): Promise<CreateOrAttachResponse> {
 		const currentGenerationId = this.getCurrentGenerationId();
 		const preferredGenerationId = this.getPreferredGenerationId();
-		const existingGenerationId = await this.resolveSessionGeneration(
+		let existingGenerationId = await this.resolveSessionGeneration(
 			request.sessionId,
 		);
-		let targetGenerationId = existingGenerationId ?? preferredGenerationId;
+
+		if (
+			existingGenerationId &&
+			existingGenerationId !== preferredGenerationId
+		) {
+			const probe = await this.probeSessionInGeneration({
+				sessionId: request.sessionId,
+				generationId: existingGenerationId,
+			});
+			if (probe === "absent") {
+				this.sessionGenerationMap.delete(request.sessionId);
+				existingGenerationId = null;
+			}
+		}
+
+		const targetGenerationId = existingGenerationId ?? preferredGenerationId;
 
 		const callCreate = async (generationId: string) => {
 			const client = this.getOrCreateGenerationClient({
@@ -1738,17 +1840,8 @@ export class TerminalHostClient extends EventEmitter {
 			}
 			return response;
 		} catch (error) {
-			if (
-				existingGenerationId &&
-				existingGenerationId !== preferredGenerationId
-			) {
-				this.sessionGenerationMap.delete(request.sessionId);
-				targetGenerationId = preferredGenerationId;
-				const fallback = await callCreate(targetGenerationId);
-				if (fallback.generationId === currentGenerationId) {
-					markGenerationPreferred(currentGenerationId);
-				}
-				return fallback;
+			if (existingGenerationId && targetGenerationId === existingGenerationId) {
+				throw error;
 			}
 
 			for (const drainingGenerationId of listDrainingGenerations()) {

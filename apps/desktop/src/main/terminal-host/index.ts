@@ -214,7 +214,13 @@ function registerDaemon(state: DaemonState): void {
 
 function touchDaemonLiveness(): void {
 	try {
-		daemonRegistry.markLastSeen(DAEMON_GENERATION_ID);
+		daemonRegistry.heartbeat({
+			generationId: DAEMON_GENERATION_ID,
+			socketPath: SOCKET_PATH,
+			pid: process.pid,
+			appVersion: DAEMON_APP_VERSION,
+			state: DAEMON_INITIAL_STATE,
+		});
 	} catch {
 		// best-effort
 	}

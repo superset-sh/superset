@@ -130,4 +130,61 @@ describe("TerminalDaemonRegistry", () => {
 		expect(updated?.updatedAt).toBe(fixedUpdatedAt);
 		expect(updated?.lastSeenAt).not.toBe("2026-01-01T00:00:00.000Z");
 	});
+
+	it("restores a missing daemon entry during heartbeat without changing state", () => {
+		const { registryPath } = createTestPaths();
+		const registry = new TerminalDaemonRegistry(registryPath);
+
+		registry.write([
+			{
+				generationId: "gen-a",
+				socketPath: join(tmpdir(), "terminal-host.gen-a.sock"),
+				pid: process.pid,
+				appVersion: "1.0.0",
+				state: "draining",
+				createdAt: "2026-01-01T00:00:00.000Z",
+				updatedAt: "2026-01-01T00:00:00.000Z",
+				lastSeenAt: "2026-01-01T00:00:00.000Z",
+			},
+		]);
+
+		registry.heartbeat({
+			generationId: "gen-b",
+			socketPath: join(tmpdir(), "terminal-host.gen-b.sock"),
+			pid: process.pid,
+			appVersion: "2.0.0",
+			state: "preferred",
+		});
+
+		const restored = registry.get("gen-b");
+		expect(restored).not.toBeNull();
+		expect(restored?.state).toBe("preferred");
+		expect(restored?.updatedAt).toBe(restored?.lastSeenAt);
+	});
+
+	it("recovers stale lock files before mutating the registry", () => {
+		const { registryPath } = createTestPaths();
+		const registry = new TerminalDaemonRegistry(registryPath);
+		const lockPath = `${registryPath}.lock`;
+
+		writeFileSync(
+			lockPath,
+			JSON.stringify({
+				pid: 999_999_999,
+				acquiredAt: Date.now() - 60_000,
+			}),
+			"utf-8",
+		);
+
+		registry.upsert({
+			generationId: "gen-a",
+			socketPath: join(tmpdir(), "terminal-host.gen-a.sock"),
+			pid: process.pid,
+			appVersion: "1.0.0",
+			state: "preferred",
+		});
+
+		expect(registry.get("gen-a")?.generationId).toBe("gen-a");
+		expect(existsSync(lockPath)).toBe(false);
+	});
 });

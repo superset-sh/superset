@@ -214,35 +214,48 @@ export class DaemonTerminalManager extends EventEmitter {
 			},
 		);
 
-		this.client.on("disconnected", () => {
-			console.warn("[DaemonTerminalManager] Disconnected from daemon");
-			const activeSessionCount = Array.from(this.sessions.values()).filter(
-				(s) => s.isAlive,
-			).length;
-			track("terminal_daemon_disconnected", {
-				active_session_count: activeSessionCount,
-			});
-			this.daemonAliveSessionIds.clear();
-			this.daemonSessionIdsHydrated = false;
-			for (const [paneId, session] of this.sessions.entries()) {
-				if (session.isAlive) {
-					this.emit(
-						`disconnect:${paneId}`,
-						"Connection to terminal daemon lost",
-					);
+		this.client.on(
+			"generationDisconnect",
+			({
+				generationId,
+				sessionIds,
+				reason,
+			}: {
+				generationId: string;
+				sessionIds: string[];
+				reason: string;
+			}) => {
+				if (sessionIds.length === 0) {
+					return;
 				}
-			}
-		});
+
+				console.warn("[DaemonTerminalManager] Daemon generation disconnected", {
+					generationId,
+					sessionIds,
+					reason,
+				});
+				track("terminal_daemon_disconnected", {
+					active_session_count: sessionIds.length,
+					generation_id: generationId,
+				});
+
+				for (const paneId of sessionIds) {
+					this.daemonAliveSessionIds.delete(paneId);
+					const session = this.sessions.get(paneId);
+					if (session) {
+						session.isAlive = false;
+						session.pid = null;
+						session.generationId = undefined;
+					}
+					portManager.unregisterDaemonSession(paneId);
+					this.historyManager.closeHistoryWriter(paneId);
+					this.emit(`disconnect:${paneId}`, reason);
+				}
+			},
+		);
 
 		this.client.on("error", (error: Error) => {
 			console.error("[DaemonTerminalManager] Client error:", error.message);
-			this.daemonAliveSessionIds.clear();
-			this.daemonSessionIdsHydrated = false;
-			for (const [paneId, session] of this.sessions.entries()) {
-				if (session.isAlive) {
-					this.emit(`disconnect:${paneId}`, error.message);
-				}
-			}
 		});
 
 		this.client.on(
