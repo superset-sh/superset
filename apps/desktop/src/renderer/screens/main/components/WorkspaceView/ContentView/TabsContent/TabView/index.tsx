@@ -19,6 +19,7 @@ import {
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
 import { useTheme } from "renderer/stores/theme";
+import { useShallow } from "zustand/react/shallow";
 import { BrowserPane } from "./BrowserPane";
 import { ChatMastraPane } from "./ChatMastraPane";
 import { DevToolsPane } from "./DevToolsPane";
@@ -40,8 +41,13 @@ export function TabView({ tab }: TabViewProps) {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
-	const allTabs = useTabsStore((s) => s.tabs);
-	const allPanes = useTabsStore((s) => s.panes);
+	const workspaceTabs = useTabsStore(
+		useShallow((state) =>
+			state.tabs.filter(
+				(candidate) => candidate.workspaceId === tab.workspaceId,
+			),
+		),
+	);
 
 	// Get workspace path for file viewer panes
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
@@ -50,42 +56,30 @@ export function TabView({ tab }: TabViewProps) {
 	);
 	const worktreePath = workspace?.worktreePath ?? "";
 
-	// Get tabs in the same workspace for move targets
-	const workspaceTabs = useMemo(
-		() => allTabs.filter((t) => t.workspaceId === tab.workspaceId),
-		[allTabs, tab.workspaceId],
-	);
-
 	// Extract pane IDs from layout
 	const layoutPaneIds = useMemo(
 		() => extractPaneIdsFromLayout(tab.layout),
 		[tab.layout],
 	);
 
-	// Memoize the filtered panes to avoid creating new objects on every render
-	const tabPanes = useMemo(() => {
-		const result: Record<
-			string,
-			{
-				tabId: string;
-				type: string;
-				devtools?: { targetPaneId: string };
-			}
-		> = {};
-		for (const paneId of layoutPaneIds) {
-			const pane = allPanes[paneId];
-			if (pane?.tabId === tab.id) {
-				result[paneId] = {
-					tabId: pane.tabId,
-					type: pane.type,
-					devtools: pane.devtools,
-				};
-			}
-		}
-		return result;
-	}, [layoutPaneIds, allPanes, tab.id]);
+	const tabPaneEntries = useTabsStore(
+		useShallow((state) =>
+			layoutPaneIds.flatMap((paneId) => {
+				const pane = state.panes[paneId];
+				return pane?.tabId === tab.id ? [pane] : [];
+			}),
+		),
+	);
 
-	const validPaneIds = new Set(Object.keys(tabPanes));
+	const tabPanes = useMemo(
+		() => Object.fromEntries(tabPaneEntries.map((pane) => [pane.id, pane])),
+		[tabPaneEntries],
+	);
+
+	const validPaneIds = useMemo(
+		() => new Set(tabPaneEntries.map((pane) => pane.id)),
+		[tabPaneEntries],
+	);
 	const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
 
 	// Auto-remove tab when all panes are gone

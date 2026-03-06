@@ -2,7 +2,6 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import { focusTerminalInput } from "../helpers";
 import { scrollToBottom } from "../utils";
 
 export interface UseTerminalHotkeysOptions {
@@ -26,14 +25,6 @@ export function useTerminalHotkeys({
 			setIsSearchOpen(false);
 		}
 	}, [isFocused]);
-
-	useEffect(() => {
-		const xterm = xtermRef.current;
-		if (!xterm) return;
-		if (isFocused) {
-			focusTerminalInput(xterm);
-		}
-	}, [isFocused, xtermRef]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",

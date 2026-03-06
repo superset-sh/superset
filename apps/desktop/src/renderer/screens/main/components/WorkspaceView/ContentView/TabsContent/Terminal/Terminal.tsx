@@ -1,6 +1,5 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { FitAddon } from "ghostty-web";
-import { init } from "ghostty-web";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -16,6 +15,7 @@ import {
 	resolveTerminalFontFamily,
 	TERMINAL_ICON_FALLBACK_FAMILY,
 } from "./font-family";
+import { ensureGhosttyReady, isGhosttyReady } from "./ghostty-runtime";
 import { getDefaultTerminalBg } from "./helpers";
 import {
 	useFileLinkClick,
@@ -111,7 +111,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<TerminalSearchAdapter | null>(null);
-	const [isRendererReady, setIsRendererReady] = useState(false);
+	const [isRendererReady, setIsRendererReady] = useState(isGhosttyReady);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -129,7 +129,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	useEffect(() => {
 		let cancelled = false;
-		init()
+		ensureGhosttyReady()
 			.then(() => {
 				if (!cancelled) {
 					setIsRendererReady(true);
