@@ -13,10 +13,40 @@ import { join } from "node:path";
 import { createAuthStorage } from "mastracode";
 import { ANTHROPIC_AUTH_PROVIDER_ID } from "../provider-ids";
 
-interface ClaudeCredentials {
+export interface ClaudeCredentials {
 	apiKey: string;
 	source: "config" | "keychain" | "auth-storage" | "runtime-env";
 	kind: "apiKey" | "oauth";
+}
+
+export type AnthropicProviderOptions =
+	| { apiKey: string }
+	| {
+			authToken: string;
+			headers: {
+				"anthropic-beta": string;
+				"user-agent": string;
+				"x-app": string;
+			};
+	  };
+
+export function getAnthropicProviderOptions(
+	credentials: ClaudeCredentials,
+): AnthropicProviderOptions {
+	if (credentials.kind === "oauth") {
+		return {
+			authToken: credentials.apiKey,
+			headers: {
+				"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+				"user-agent": "claude-cli/2.1.2 (external, cli)",
+				"x-app": "cli",
+			},
+		};
+	}
+
+	return {
+		apiKey: credentials.apiKey,
+	};
 }
 
 interface ClaudeConfigFile {

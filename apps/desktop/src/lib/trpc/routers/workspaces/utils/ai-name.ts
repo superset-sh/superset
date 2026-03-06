@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import {
 	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
+	getAnthropicProviderOptions,
 	getOpenAICredentialsFromAnySource,
 } from "@superset/chat/host";
 import { workspaces } from "@superset/local-db";
@@ -27,27 +28,38 @@ export type WorkspaceAutoRenameResult =
 	  };
 
 type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
+type AnthropicCredentials = NonNullable<
+	ReturnType<typeof getAnthropicCredentialsFromAnySource>
+>;
+type OpenAICredentials = NonNullable<
+	ReturnType<typeof getOpenAICredentialsFromAnySource>
+>;
 
 interface TitleProvider {
 	name: "Anthropic" | "OpenAI";
 	agentId: string;
-	resolveApiKey: () => string | null;
-	createModel: (apiKey: string) => AgentModel;
+	resolveCredentials: () => AnthropicCredentials | OpenAICredentials | null;
+	createModel: (
+		credentials: AnthropicCredentials | OpenAICredentials,
+	) => AgentModel;
 }
 
 const TITLE_PROVIDERS: TitleProvider[] = [
 	{
 		name: "Anthropic",
 		agentId: "workspace-namer-anthropic",
-		resolveApiKey: () => getAnthropicCredentialsFromAnySource()?.apiKey ?? null,
-		createModel: (apiKey) =>
-			createAnthropic({ apiKey })("claude-haiku-4-5-20251001"),
+		resolveCredentials: () => getAnthropicCredentialsFromAnySource(),
+		createModel: (credentials) =>
+			createAnthropic(getAnthropicProviderOptions(credentials))(
+				"claude-haiku-4-5-20251001",
+			),
 	},
 	{
 		name: "OpenAI",
 		agentId: "workspace-namer-openai",
-		resolveApiKey: () => getOpenAICredentialsFromAnySource()?.apiKey ?? null,
-		createModel: (apiKey) => createOpenAI({ apiKey })("gpt-4o-mini"),
+		resolveCredentials: () => getOpenAICredentialsFromAnySource(),
+		createModel: (credentials) =>
+			createOpenAI({ apiKey: credentials.apiKey })("gpt-4o-mini"),
 	},
 ];
 
@@ -75,8 +87,8 @@ export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
 	for (const provider of TITLE_PROVIDERS) {
-		const apiKey = provider.resolveApiKey();
-		if (!apiKey) {
+		const credentials = provider.resolveCredentials();
+		if (!credentials) {
 			continue;
 		}
 
@@ -84,7 +96,7 @@ export async function generateWorkspaceNameFromPrompt(
 			const title = await generateTitleWithModel(
 				prompt,
 				provider.agentId,
-				provider.createModel(apiKey),
+				provider.createModel(credentials),
 			);
 			if (title) {
 				return title;

@@ -1,4 +1,6 @@
+export type { AnthropicProviderOptions, ClaudeCredentials } from "./anthropic";
 export {
+	getAnthropicProviderOptions,
 	getCredentialsFromAnySource,
 	getCredentialsFromAuthStorage,
 	getCredentialsFromConfig,
