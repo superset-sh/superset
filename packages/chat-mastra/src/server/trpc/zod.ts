@@ -31,12 +31,11 @@ export const sessionIdInput = z.object({
 
 export const sendMessagePayloadSchema = z.object({
 	content: z.string(),
-	files: z
+	images: z
 		.array(
 			z.object({
 				data: z.string(),
-				mediaType: z.string(),
-				filename: z.string().optional(),
+				mimeType: z.string(),
 			}),
 		)
 		.optional(),
