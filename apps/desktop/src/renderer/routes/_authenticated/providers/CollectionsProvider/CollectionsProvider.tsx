@@ -64,12 +64,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	if (useElectricCloud === undefined) {
-		return null;
-	}
+	// When PostHog is not configured (no key), feature flags stay undefined forever.
+	// Default to false (use proxy) so the app doesn't block rendering.
+	const isElectricCloud = useElectricCloud ?? false;
 
 	setElectricUrl(
-		useElectricCloud
+		isElectricCloud
 			? env.NEXT_PUBLIC_ELECTRIC_URL
 			: env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
 	);

@@ -24,8 +24,14 @@ export function registerRoute(props: {
 		const url = `http://localhost:${env.DESKTOP_VITE_PORT}/#/`;
 		console.log("[window-loader] Loading development URL:", url);
 		props.browserWindow.loadURL(url);
+	} else if (process.platform === "win32") {
+		// Production (Windows): use custom protocol for proper dynamic import support.
+		// file:// protocol breaks ES module dynamic imports (code-split chunks) on Windows.
+		const url = "superset-app://app/index.html#/";
+		console.log("[window-loader] Loading custom protocol URL:", url);
+		props.browserWindow.loadURL(url);
 	} else {
-		// Production: load from file with hash routing
+		// Production (macOS/Linux): load from file with hash routing
 		// TanStack Router uses hash-based routing, so we always start at #/
 		console.log("[window-loader] Loading file:", props.htmlFile);
 		props.browserWindow.loadFile(props.htmlFile, { hash: "/" });
