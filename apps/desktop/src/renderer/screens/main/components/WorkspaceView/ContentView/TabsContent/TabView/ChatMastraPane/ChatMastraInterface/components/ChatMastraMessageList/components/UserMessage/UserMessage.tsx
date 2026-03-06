@@ -10,6 +10,7 @@ import { parseUserMentions } from "./utils/parseUserMentions";
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
 >[number];
+type MastraMessagePart = MastraMessage["content"][number];
 
 interface UserMessageProps {
 	message: MastraMessage;
@@ -23,60 +24,27 @@ export function UserMessage({
 	workspaceCwd,
 }: UserMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const fullText = message.content
+		.flatMap((part) => (part.type === "text" ? [part.text] : []))
+		.join("\n");
+	const [copied, setCopied] = useState(false);
 
-	const handleAttachmentClick = useCallback(
+	const openAttachment = useCallback(
 		(url: string, filename?: string) => {
-			if (!workspaceId) return;
 			addFileViewerPane(workspaceId, {
 				filePath: url,
 				isPinned: true,
 				...(filename ? { displayName: filename } : {}),
 			});
 		},
-		[workspaceId, addFileViewerPane],
+		[addFileViewerPane, workspaceId],
 	);
-
 	const openMentionedFile = useCallback(
 		(filePath: string) => {
 			addFileViewerPane(workspaceId, { filePath, isPinned: true });
 		},
 		[addFileViewerPane, workspaceId],
 	);
-
-	const attachments: Array<{
-		key: string;
-		data: string;
-		mediaType: string;
-		filename?: string;
-	}> = [];
-	const textParts: Array<{ key: string; text: string }> = [];
-
-	const parts = message.content as Record<string, unknown>[];
-	for (let i = 0; i < parts.length; i++) {
-		const part = parts[i];
-		const key = `${message.id}-${i}`;
-		if (part.type === "text") {
-			textParts.push({ key, text: part.text as string });
-		} else if (part.type === "file" || part.type === "image") {
-			const mime =
-				(part.mediaType as string) ||
-				(part.mimeType as string) ||
-				"application/octet-stream";
-			const data = (part.data as string) || (part.image as string) || "";
-			if (data) {
-				attachments.push({
-					key,
-					data,
-					mediaType: mime,
-					filename: part.filename as string | undefined,
-				});
-			}
-		}
-	}
-
-	const fullText = textParts.map((tp) => tp.text).join("\n");
-	const [copied, setCopied] = useState(false);
-
 	const handleCopy = useCallback(() => {
 		if (!fullText) return;
 		navigator.clipboard.writeText(fullText).then(
@@ -84,16 +52,11 @@ export function UserMessage({
 				setCopied(true);
 				setTimeout(() => setCopied(false), 1500);
 			},
-			(err) => {
-				console.warn("[UserMessage] clipboard write failed", err);
+			(error) => {
+				console.warn("[UserMessage] clipboard write failed", error);
 			},
 		);
 	}, [fullText]);
-
-	const hasMentions = textParts.some((tp) => {
-		const segments = parseUserMentions(tp.text);
-		return segments.some((s) => s.type === "file-mention");
-	});
 
 	return (
 		<div
@@ -101,7 +64,7 @@ export function UserMessage({
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
-			{fullText && (
+			{fullText ? (
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
@@ -116,74 +79,113 @@ export function UserMessage({
 							)}
 						</button>
 					</TooltipTrigger>
-					{!copied && <TooltipContent side="top">Copy</TooltipContent>}
+					{!copied ? <TooltipContent side="top">Copy</TooltipContent> : null}
 				</Tooltip>
-			)}
-			<div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground">
-				{attachments.length > 0 && (
-					<div className="mb-2 flex flex-wrap gap-2">
-						{attachments.map((att) => (
-							<AttachmentChip
-								key={att.key}
-								data={att.data}
-								mediaType={att.mediaType}
-								filename={att.filename}
-								onClick={() => handleAttachmentClick(att.data, att.filename)}
-							/>
-						))}
-					</div>
-				)}
-				{hasMentions
-					? textParts.map(({ key, text }) => {
-							const mentionSegments = parseUserMentions(text);
+			) : null}
+			{message.content.some(
+				(part) =>
+					part.type === "image" || (part as { type?: string }).type === "file",
+			) && (
+				<div className="flex max-w-[85%] flex-wrap justify-end gap-2">
+					{message.content.map((part: MastraMessagePart, partIndex: number) => {
+						const rawPart = part as {
+							data?: string;
+							filename?: string;
+							mediaType?: string;
+							mimeType?: string;
+							type?: string;
+						};
+						if (part.type !== "image" && rawPart.type !== "file") {
+							return null;
+						}
+
+						const data = rawPart.data ?? "";
+						const mediaType =
+							rawPart.mediaType ??
+							rawPart.mimeType ??
+							"application/octet-stream";
+						if (!data) {
+							return null;
+						}
+
+						if (
+							part.type === "image" &&
+							"mimeType" in part &&
+							!rawPart.mediaType
+						) {
 							return (
-								<span key={key} className="whitespace-pre-wrap">
-									{mentionSegments.map((segment) => {
-										if (segment.type === "text") {
-											return (
-												<span
-													key={`${key}-text-${segment.value.slice(0, 20)}`}
-													className="whitespace-pre-wrap break-words"
-												>
-													{segment.value}
-												</span>
-											);
-										}
-
-										const normalizedPath = normalizeWorkspaceFilePath({
-											filePath: segment.relativePath,
-											workspaceRoot: workspaceCwd,
-										});
-										const canOpen = Boolean(normalizedPath);
-
-										return (
-											<button
-												type="button"
-												key={`${key}-mention-${segment.relativePath}`}
-												className="mx-0.5 inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 font-mono text-xs text-primary transition-colors hover:bg-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:opacity-60"
-												onClick={() => {
-													if (!normalizedPath) return;
-													openMentionedFile(normalizedPath);
-												}}
-												disabled={!canOpen}
-												aria-label={`Open file ${segment.relativePath}`}
-											>
-												<span className="font-semibold text-primary">@</span>
-												<span className="text-primary/95">
-													{segment.relativePath}
-												</span>
-											</button>
-										);
-									})}
-								</span>
+								<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
+									<img
+										src={`data:${part.mimeType};base64,${part.data}`}
+										alt="Attached"
+										className="max-h-48 rounded-lg object-contain"
+									/>
+								</div>
 							);
-						})
-					: textParts.map((tp) => (
-							<span key={tp.key} className="whitespace-pre-wrap">
-								{tp.text}
-							</span>
-						))}
-			</div>
+						}
+
+						return (
+							<AttachmentChip
+								key={`${message.id}-${partIndex}`}
+								data={data}
+								mediaType={mediaType}
+								filename={rawPart.filename}
+								onClick={() => openAttachment(data, rawPart.filename)}
+							/>
+						);
+					})}
+				</div>
+			)}
+			{message.content.map((part: MastraMessagePart, partIndex: number) => {
+				if (part.type === "text") {
+					const mentionSegments = parseUserMentions(part.text);
+					return (
+						<div
+							key={`${message.id}-${partIndex}`}
+							className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap"
+						>
+							{mentionSegments.map((segment, segmentIndex) => {
+								if (segment.type === "text") {
+									return (
+										<span
+											key={`${message.id}-${partIndex}-${segmentIndex}`}
+											className="whitespace-pre-wrap break-words"
+										>
+											{segment.value}
+										</span>
+									);
+								}
+
+								const normalizedPath = normalizeWorkspaceFilePath({
+									filePath: segment.relativePath,
+									workspaceRoot: workspaceCwd,
+								});
+								const canOpen = Boolean(normalizedPath);
+
+								return (
+									<button
+										type="button"
+										key={`${message.id}-${partIndex}-${segmentIndex}`}
+										className="mx-0.5 inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 font-mono text-xs text-primary transition-colors hover:bg-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:opacity-60"
+										onClick={() => {
+											if (!normalizedPath) return;
+											openMentionedFile(normalizedPath);
+										}}
+										disabled={!canOpen}
+										aria-label={`Open file ${segment.relativePath}`}
+									>
+										<span className="font-semibold text-primary">@</span>
+										<span className="text-primary/95">
+											{segment.relativePath}
+										</span>
+									</button>
+								);
+							})}
+						</div>
+					);
+				}
+				return null;
+			})}
 		</div>
 	);
 }

@@ -193,6 +193,8 @@ export function NewWorkspaceModal() {
 	}, [isOpen, selectedProjectId, mode]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.defaultPrevented) return;
+
 		const isTextareaTarget = e.target instanceof HTMLTextAreaElement;
 		const isSubmitShortcutInTextarea =
 			isTextareaTarget && (e.metaKey || e.ctrlKey);
@@ -335,17 +337,22 @@ export function NewWorkspaceModal() {
 			);
 
 			if (prompt && !result.wasExisting) {
-				generateName
-					.mutateAsync({ prompt })
-					.then((res) => {
-						if (res.name) {
-							updateWorkspace.mutate({
-								id: result.workspace.id,
-								patch: { name: res.name, isUnnamed: false },
-							});
-						}
-					})
-					.catch(() => {});
+				void (async () => {
+					try {
+						const res = await generateName.mutateAsync({ prompt });
+						if (!res.name) return;
+
+						await updateWorkspace.mutateAsync({
+							id: result.workspace.id,
+							patch: { name: res.name, isUnnamed: false },
+						});
+					} catch (error) {
+						console.error(
+							"[new-workspace/title] Failed to generate/apply workspace name",
+							error,
+						);
+					}
+				})();
 			}
 
 			const launchRequest = launchRequestTemplate

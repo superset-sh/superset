@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -35,6 +35,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.43",
+		"@ai-sdk/openai": "3.0.36",
 		"@ai-sdk/react": "^3.0.0",
 		"@ast-grep/napi": "^0.41.0",
 		"@better-auth/stripe": "1.4.18",
@@ -48,8 +49,8 @@
 		"@hookform/resolvers": "^5.2.2",
 		"@mastra/core": "^1.3.0",
 		"@monaco-editor/react": "^4.7.0",
-		"@outlit/browser": "^1.4.0",
-		"@outlit/node": "^1.1.0",
+		"@outlit/browser": "^1.4.3",
+		"@outlit/node": "^1.4.3",
 		"@pierre/diffs": "^1.0.10",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",

@@ -87,6 +87,14 @@ export const useSidebarStore = create<SidebarState>()(
 					);
 
 					if (width > 0) {
+						const { sidebarWidth, lastOpenSidebarWidth, isSidebarOpen } = get();
+						if (
+							sidebarWidth === clampedWidth &&
+							lastOpenSidebarWidth === clampedWidth &&
+							isSidebarOpen
+						) {
+							return;
+						}
 						set({
 							sidebarWidth: clampedWidth,
 							lastOpenSidebarWidth: clampedWidth,

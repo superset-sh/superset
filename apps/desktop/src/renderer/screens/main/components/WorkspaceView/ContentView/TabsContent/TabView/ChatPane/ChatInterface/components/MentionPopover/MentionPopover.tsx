@@ -27,6 +27,7 @@ import {
 	useState,
 } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 const MAX_RESULTS = 20;
@@ -86,23 +87,34 @@ export function MentionProvider({
 			setOpen(true);
 		}
 	}, [textInput.value]);
+	const immediateSearchQuery = searchQuery.trim();
+	const debouncedSearchQuery = useDebouncedValue(immediateSearchQuery, 120);
 
 	// File search via chatService (IPC to main process)
-	const { data: fileResults } = chatServiceTrpc.workspace.searchFiles.useQuery(
-		{
-			rootPath: cwd,
-			query: searchQuery,
-			includeHidden: false,
-			limit: MAX_RESULTS,
-		},
-		{
-			enabled: open && searchQuery.length > 0 && !!cwd,
-			staleTime: 1000,
-			placeholderData: (previous) => previous ?? [],
-		},
-	);
+	const { data: fileResults, isFetching: isSearchFetching } =
+		chatServiceTrpc.workspace.searchFiles.useQuery(
+			{
+				rootPath: cwd,
+				query: debouncedSearchQuery,
+				includeHidden: false,
+				limit: MAX_RESULTS,
+			},
+			{
+				enabled:
+					open &&
+					immediateSearchQuery.length > 0 &&
+					debouncedSearchQuery.length > 0 &&
+					!!cwd,
+				staleTime: 1000,
+				placeholderData: (previous) => previous ?? [],
+			},
+		);
 
-	const files = fileResults ?? [];
+	const files =
+		open && immediateSearchQuery.length > 0 ? (fileResults ?? []) : [];
+	const isSearchPending =
+		immediateSearchQuery.length > 0 &&
+		(immediateSearchQuery !== debouncedSearchQuery || isSearchFetching);
 
 	const handleSelectFile = (relativePath: string) => {
 		const current = textInput.value;
@@ -139,7 +151,9 @@ export function MentionProvider({
 								<CommandEmpty className="px-2 py-3 text-left text-xs text-muted-foreground">
 									{searchQuery.length === 0
 										? "Type to search files..."
-										: "No results found."}
+										: isSearchPending
+											? "Searching files..."
+											: "No results found."}
 								</CommandEmpty>
 							)}
 							{files.length > 0 && (

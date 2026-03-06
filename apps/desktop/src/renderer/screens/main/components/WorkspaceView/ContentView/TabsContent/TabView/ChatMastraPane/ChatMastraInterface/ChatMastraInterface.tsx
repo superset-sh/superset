@@ -39,6 +39,86 @@ import {
 	sendMessageForSession,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
+import { uploadFiles } from "./utils/uploadFiles";
+
+type HarnessFilePayload = {
+	data: string;
+	mediaType: string;
+	filename?: string;
+	uploaded?: boolean;
+};
+
+function MastraUploadFooter({
+	sessionId,
+	onError,
+	onSend,
+	...footerProps
+}: {
+	sessionId: string | null;
+	onError: (message: string) => void;
+	onSend: (payload: {
+		content: string;
+		files?: HarnessFilePayload[];
+	}) => void | Promise<void>;
+} & Omit<React.ComponentProps<typeof ChatInputFooter>, "onSend">) {
+	const attachments = useProviderAttachments();
+	const { entries, getUploadedFiles, isUploading } = useOptimisticUpload({
+		sessionId,
+		attachmentFiles: attachments.files,
+		removeAttachment: attachments.remove,
+		onError,
+	});
+
+	const handleSend = useCallback(
+		(message: PromptInputMessage) => {
+			const files = sessionId
+				? (() => {
+						const { files: uploadedFiles, ready } = getUploadedFiles();
+						if (!ready) return null;
+						return uploadedFiles.map((file) => ({
+							data: file.url,
+							mediaType: file.mediaType,
+							filename: file.filename,
+							uploaded: true,
+						}));
+					})()
+				: (message.files ?? []).map((file) => ({
+						data: file.url,
+						mediaType: file.mediaType,
+						filename: file.filename,
+						uploaded: false,
+					}));
+			if (files === null) return;
+
+			return onSend({
+				content: message.text,
+				files: files.length > 0 ? files : undefined,
+			});
+		},
+		[getUploadedFiles, onSend, sessionId],
+	);
+
+	const renderAttachment = useCallback(
+		(file: { id: string; type: "file"; url: string; mediaType: string }) => {
+			if (!sessionId) {
+				return <PromptInputAttachment data={file} />;
+			}
+			const entry = entries.get(file.id);
+			const loading = entry?.uploading ?? !entries.has(file.id);
+			return <PromptInputAttachment data={file} loading={loading} />;
+		},
+		[entries, sessionId],
+	);
+
+	return (
+		<ChatInputFooter
+			{...footerProps}
+			submitDisabled={sessionId ? isUploading : false}
+			renderAttachment={renderAttachment}
+			onSend={handleSend}
+		/>
+	);
+}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -58,78 +138,6 @@ function toErrorMessage(error: unknown): string | null {
 	if (typeof error === "string") return error;
 	if (error instanceof Error) return error.message;
 	return "Unknown chat error";
-}
-
-type HarnessFilePayload = {
-	data: string;
-	mediaType: string;
-	filename?: string;
-};
-
-function MastraUploadFooter({
-	sessionId,
-	onError,
-	onSend,
-	...footerProps
-}: {
-	sessionId: string | null;
-	onError: (message: string) => void;
-	onSend: (payload: { content: string; files?: HarnessFilePayload[] }) => void;
-} & Omit<
-	React.ComponentProps<typeof ChatInputFooter>,
-	"onSend" | "submitDisabled" | "renderAttachment"
->) {
-	const attachments = useProviderAttachments();
-	const { getUploadedFiles, isUploading, entries } = useOptimisticUpload({
-		sessionId,
-		attachmentFiles: attachments.files,
-		removeAttachment: attachments.remove,
-		onError,
-	});
-
-	const handleSend = useCallback(
-		(message: PromptInputMessage) => {
-			const { ready, files: uploadedFiles } = getUploadedFiles();
-			if (!ready) return;
-
-			const files: HarnessFilePayload[] = uploadedFiles.map((file) => ({
-				data: file.url,
-				mediaType: file.mediaType,
-				filename: file.filename,
-			}));
-
-			onSend({
-				content: message.text,
-				files: files.length > 0 ? files : undefined,
-			});
-		},
-		[getUploadedFiles, onSend],
-	);
-
-	const renderAttachment = useCallback(
-		(
-			file: { id: string } & {
-				url: string;
-				mediaType: string;
-				filename?: string;
-				type: "file";
-			},
-		) => {
-			const entry = entries.get(file.id);
-			const loading = entry?.uploading ?? !entries.has(file.id);
-			return <PromptInputAttachment data={file} loading={loading} />;
-		},
-		[entries],
-	);
-
-	return (
-		<ChatInputFooter
-			{...footerProps}
-			submitDisabled={isUploading}
-			renderAttachment={renderAttachment}
-			onSend={handleSend}
-		/>
-	);
 }
 
 const AUTO_LAUNCH_MAX_RETRIES = 3;
@@ -508,34 +516,83 @@ export function ChatMastraInterface({
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
+			let preparedFiles = payload.files;
+			let effectiveSessionId = sessionId;
+
+			if (preparedFiles?.some((file) => file.uploaded === false)) {
+				if (!effectiveSessionId) {
+					const startResult = await onStartFreshSession();
+					if (!startResult.created || !startResult.sessionId) {
+						throw new Error(
+							startResult.errorMessage ??
+								"Failed to create a chat session. Please retry.",
+						);
+					}
+					effectiveSessionId = startResult.sessionId;
+				}
+
+				const uploadedFiles = await uploadFiles(
+					effectiveSessionId,
+					preparedFiles.map((file) => ({
+						type: "file",
+						url: file.data,
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
+				);
+				preparedFiles = uploadedFiles.map((file) => ({
+					data: file.url,
+					mediaType: file.mediaType,
+					filename: file.filename,
+					uploaded: true,
+				}));
+			}
+
 			const sendInput: ChatSendMessageInput = {
 				payload: {
 					content,
-					...(payload.files?.length ? { files: payload.files } : {}),
+					...(preparedFiles?.length
+						? {
+								files: preparedFiles.map(({ data, filename, mediaType }) => ({
+									data,
+									mediaType,
+									filename,
+								})),
+							}
+						: {}),
 				},
 				metadata: {
 					model: activeModel?.id,
 				},
 			};
 			const immediateUserMessage =
-				sessionId && !isSessionReady
+				effectiveSessionId && !isSessionReady
 					? toOptimisticUserMessage(sendInput)
 					: null;
 			if (immediateUserMessage) {
 				setPendingImmediateUserMessage(immediateUserMessage);
 			}
 
-			let targetSessionId = sessionId;
+			let targetSessionId = effectiveSessionId;
 			try {
-				const sendResult = await sendMessageForSession({
-					currentSessionId: sessionId,
-					isSessionReady,
-					ensureSessionReady,
-					onStartFreshSession,
-					sendToCurrentSession: () => commands.sendMessage(sendInput),
-					sendToSession: (nextSessionId) =>
-						sendMessageToSession(nextSessionId, sendInput),
-				});
+				const sendResult =
+					effectiveSessionId && effectiveSessionId !== sessionId
+						? {
+								targetSessionId: effectiveSessionId,
+								value: await sendMessageToSession(
+									effectiveSessionId,
+									sendInput,
+								),
+							}
+						: await sendMessageForSession({
+								currentSessionId: effectiveSessionId,
+								isSessionReady,
+								ensureSessionReady,
+								onStartFreshSession,
+								sendToCurrentSession: () => commands.sendMessage(sendInput),
+								sendToSession: (nextSessionId) =>
+									sendMessageToSession(nextSessionId, sendInput),
+							});
 				targetSessionId = sendResult.targetSessionId;
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
@@ -567,13 +624,13 @@ export function ChatMastraInterface({
 			captureChatEvent,
 			clearRuntimeError,
 			commands,
-			messages?.length,
 			isSessionReady,
+			messages?.length,
 			onStartFreshSession,
 			resolveSlashCommandInput,
 			ensureSessionReady,
-			sendMessageToSession,
 			sessionId,
+			sendMessageToSession,
 			setRuntimeErrorMessage,
 		],
 	);
@@ -780,42 +837,35 @@ export function ChatMastraInterface({
 		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	return (
-		<div className="flex h-full flex-col bg-background">
-			<ChatMastraMessageList
-				messages={visibleMessages}
-				isFocused={isFocused}
-				isRunning={canAbort}
-				isConversationLoading={isConversationLoading}
-				isAwaitingAssistant={isAwaitingAssistant}
-				currentMessage={currentMessage ?? null}
-				interruptedMessage={interruptedMessage}
-				workspaceId={workspaceId}
-				sessionId={sessionId}
-				organizationId={organizationId}
-				workspaceCwd={cwd}
-				activeTools={activeTools}
-				toolInputBuffers={toolInputBuffers}
-				activeSubagents={activeSubagents}
-				pendingApproval={pendingApproval}
-				isApprovalSubmitting={approvalResponsePending}
-				onApprovalRespond={handleApprovalResponse}
-				pendingPlanApproval={pendingPlanApproval}
-				isPlanSubmitting={planResponsePending}
-				onPlanRespond={handlePlanResponse}
-				pendingQuestion={pendingQuestion}
-				isQuestionSubmitting={questionResponsePending}
-				onQuestionRespond={handleQuestionResponse}
-			/>
-			<McpControls mcpUi={mcpUi} />
-			<PromptInputProvider>
-				<MastraUploadFooter
+		<PromptInputProvider>
+			<div className="flex h-full flex-col bg-background">
+				<ChatMastraMessageList
+					messages={visibleMessages}
+					isFocused={isFocused}
+					isRunning={canAbort}
+					isConversationLoading={isConversationLoading}
+					isAwaitingAssistant={isAwaitingAssistant}
+					currentMessage={currentMessage ?? null}
+					interruptedMessage={interruptedMessage}
+					workspaceId={workspaceId}
 					sessionId={sessionId}
-					onError={setRuntimeErrorMessage}
-					onSend={(sendPayload) => {
-						void handleSend(sendPayload).catch((error) => {
-							console.debug("[chat-mastra] handleSend error", error);
-						});
-					}}
+					organizationId={organizationId}
+					workspaceCwd={cwd}
+					activeTools={activeTools}
+					toolInputBuffers={toolInputBuffers}
+					activeSubagents={activeSubagents}
+					pendingApproval={pendingApproval}
+					isApprovalSubmitting={approvalResponsePending}
+					onApprovalRespond={handleApprovalResponse}
+					pendingPlanApproval={pendingPlanApproval}
+					isPlanSubmitting={planResponsePending}
+					onPlanRespond={handlePlanResponse}
+					pendingQuestion={pendingQuestion}
+					isQuestionSubmitting={questionResponsePending}
+					onQuestionRespond={handleQuestionResponse}
+				/>
+				<McpControls mcpUi={mcpUi} />
+				<MastraUploadFooter
 					cwd={cwd}
 					isFocused={isFocused}
 					error={errorMessage}
@@ -831,14 +881,14 @@ export function ChatMastraInterface({
 					thinkingEnabled={thinkingEnabled}
 					setThinkingEnabled={setThinkingEnabled}
 					slashCommands={slashCommands}
+					sessionId={sessionId}
+					onError={setRuntimeErrorMessage}
+					onSend={handleSend}
 					onSubmitStart={() => setSubmitStatus("submitted")}
-					onSubmitEnd={() => {
-						if (!canAbort) setSubmitStatus(undefined);
-					}}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
 				/>
-			</PromptInputProvider>
-		</div>
+			</div>
+		</PromptInputProvider>
 	);
 }

@@ -2,8 +2,7 @@ import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { EnrichedPort } from "shared/types";
 
-/** Matches the port scanner's scan cycle in port-manager.ts */
-const PORTS_REFETCH_INTERVAL_MS = 2500;
+const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 10_000;
 
 export interface WorkspacePortGroup {
 	workspaceId: string;
@@ -18,7 +17,10 @@ export function usePortsData() {
 
 	const { data: detectedPorts } = electronTrpc.ports.getAll.useQuery(
 		undefined,
-		{ refetchInterval: PORTS_REFETCH_INTERVAL_MS },
+		{
+			// Keep a low-frequency safety net in case subscription events are missed.
+			refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
+		},
 	);
 
 	electronTrpc.ports.subscribe.useSubscription(undefined, {

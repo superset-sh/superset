@@ -30,6 +30,7 @@ export const createBranchesRouter = () => {
 					defaultBranch: string;
 					checkedOutBranches: Record<string, string>;
 					worktreeBaseBranch: string | null;
+					currentBranch: string | null;
 				}> => {
 					assertRegisteredWorktree(input.worktreePath);
 
@@ -83,6 +84,7 @@ export const createBranchesRouter = () => {
 						defaultBranch,
 						checkedOutBranches,
 						worktreeBaseBranch: configuredBaseBranch ?? persistedBaseBranch,
+						currentBranch,
 					};
 				},
 			),

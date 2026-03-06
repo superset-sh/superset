@@ -15,17 +15,37 @@ const DAYS_PER_YEAR = 365;
 const TWO_WEEKS_DAYS = 14;
 const TWO_MONTHS_DAYS = 60;
 
+interface GetRelativeTimeOptions {
+	format?: "default" | "compact";
+}
+
 /**
  * Returns a human-readable relative time string
  * e.g., "2 hours ago", "yesterday", "3 days ago"
  */
-export function getRelativeTime(timestamp: number): string {
+export function getRelativeTime(
+	timestamp: number,
+	options?: GetRelativeTimeOptions,
+): string {
+	const format = options?.format ?? "default";
 	const now = Date.now();
 	const diff = now - timestamp;
 
 	const minutes = Math.floor(diff / MS_PER_MINUTE);
 	const hours = Math.floor(diff / MS_PER_HOUR);
 	const days = Math.floor(diff / MS_PER_DAY);
+
+	if (format === "compact") {
+		if (minutes < 1) return "now";
+		if (minutes < MINUTES_PER_HOUR) return `${minutes}m ago`;
+		if (hours < HOURS_PER_DAY) return `${hours}h ago`;
+		if (days < DAYS_PER_WEEK) return `${days}d ago`;
+		if (days < DAYS_PER_MONTH)
+			return `${Math.floor(days / DAYS_PER_WEEK)}w ago`;
+		if (days < DAYS_PER_YEAR)
+			return `${Math.floor(days / DAYS_PER_MONTH)}mo ago`;
+		return `${Math.floor(days / DAYS_PER_YEAR)}y ago`;
+	}
 
 	if (minutes < 1) return "just now";
 	if (minutes < MINUTES_PER_HOUR) return `${minutes}m ago`;
