@@ -60,6 +60,7 @@ const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createCodexWrapper,
+	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
 	getCursorHooksJsonContent,
@@ -420,10 +421,10 @@ describe("agent-wrappers copilot", () => {
 					hooks: {
 						UserPromptSubmit: [
 							{
-								hooks: [{ type: "command", command: staleHookPath }],
-							},
-							{
-								hooks: [{ type: "command", command: "/opt/custom-prompt.sh" }],
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-prompt.sh" },
+								],
 							},
 						],
 						Notification: [
@@ -494,5 +495,40 @@ describe("agent-wrappers copilot", () => {
 			true,
 		);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("skips Droid settings writes when the existing JSON is invalid", () => {
+		const droidSettingsPath = path.join(
+			mockedHomeDir,
+			".factory",
+			"settings.json",
+		);
+		const invalidJson = "{not-json";
+
+		mkdirSync(path.dirname(droidSettingsPath), { recursive: true });
+		writeFileSync(droidSettingsPath, invalidJson);
+
+		expect(
+			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
+		).toBeNull();
+
+		createDroidSettingsJson();
+
+		expect(readFileSync(droidSettingsPath, "utf-8")).toBe(invalidJson);
+	});
+
+	it("skips Droid settings writes when the existing JSON is not an object", () => {
+		const droidSettingsPath = path.join(
+			mockedHomeDir,
+			".factory",
+			"settings.json",
+		);
+
+		mkdirSync(path.dirname(droidSettingsPath), { recursive: true });
+		writeFileSync(droidSettingsPath, JSON.stringify("not-an-object"));
+
+		expect(
+			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
+		).toBeNull();
 	});
 });
