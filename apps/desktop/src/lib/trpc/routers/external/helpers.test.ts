@@ -137,6 +137,15 @@ describe("getAppCommand", () => {
 			},
 		]);
 	});
+
+	test("returns Linux command candidates on Linux", () => {
+		const result = getAppCommand("intellij", "/path/to/file", "linux");
+		expect(result).toEqual([
+			{ command: "idea", args: ["/path/to/file"] },
+			{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
+			{ command: "intellij-idea-community", args: ["/path/to/file"] },
+		]);
+	});
 });
 
 describe("resolvePath", () => {

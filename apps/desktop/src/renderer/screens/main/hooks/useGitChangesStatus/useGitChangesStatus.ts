@@ -7,6 +7,8 @@ interface UseGitChangesStatusOptions {
 	refetchInterval?: number;
 	refetchOnWindowFocus?: boolean;
 	staleTime?: number;
+	branchRefetchInterval?: number;
+	branchRefetchOnWindowFocus?: boolean;
 }
 
 const LARGE_CHANGESET_THRESHOLD = 200;
@@ -18,10 +20,16 @@ export function useGitChangesStatus({
 	refetchInterval,
 	refetchOnWindowFocus,
 	staleTime,
+	branchRefetchInterval,
+	branchRefetchOnWindowFocus,
 }: UseGitChangesStatusOptions) {
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
-		{ enabled: enabled && !!worktreePath },
+		{
+			enabled: enabled && !!worktreePath,
+			refetchInterval: branchRefetchInterval,
+			refetchOnWindowFocus: branchRefetchOnWindowFocus,
+		},
 	);
 
 	const effectiveBaseBranch =

@@ -33,10 +33,15 @@ function toUserMessageSignature(message: MastraHistoryMessage): string | null {
 	return message.content
 		.map((part) => {
 			if (part.type === "text") return `text:${part.text}`;
-			// Runtime `file` parts from harness / optimistic messages
-			const anyPart = part as Record<string, unknown>;
-			if (anyPart.type === "file")
-				return `file:${anyPart.mediaType}:${anyPart.data}`;
+			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			if ((part as { type?: string }).type === "file") {
+				const filePart = part as {
+					data?: string;
+					filename?: string;
+					mediaType?: string;
+				};
+				return `file:${filePart.mediaType ?? ""}:${filePart.filename ?? ""}:${filePart.data ?? ""}`;
+			}
 			return `${part.type}:${JSON.stringify(part)}`;
 		})
 		.join("||");

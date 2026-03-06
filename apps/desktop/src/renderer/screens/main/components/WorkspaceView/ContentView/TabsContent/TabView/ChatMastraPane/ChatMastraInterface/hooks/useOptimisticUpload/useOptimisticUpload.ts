@@ -1,5 +1,11 @@
 import type { FileUIPart } from "ai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { uploadFiles } from "../../utils/uploadFiles";
 
 type AttachmentId = string;
@@ -10,14 +16,6 @@ interface UploadEntry {
 	uploading: boolean;
 }
 
-/**
- * Eagerly uploads attached files to Vercel Blob as soon as they appear in the
- * attachment list.  Returns a lookup so `handleSend` can resolve the permanent
- * URLs without waiting.
- *
- * Files that fail validation on the server (unsupported type, too large) are
- * automatically removed from the attachment list and surfaced via `onError`.
- */
 export function useOptimisticUpload({
 	sessionId,
 	attachmentFiles,
@@ -32,63 +30,103 @@ export function useOptimisticUpload({
 	const [entries, setEntries] = useState<Map<AttachmentId, UploadEntry>>(
 		() => new Map(),
 	);
+	const entriesRef = useRef(entries);
 	const inflightRef = useRef<Set<AttachmentId>>(new Set());
+	const sessionVersionRef = useRef(0);
+	const sessionIdRef = useRef(sessionId);
+	const attachmentIdsRef = useRef<Set<AttachmentId>>(new Set());
+
+	attachmentIdsRef.current = new Set(attachmentFiles.map((file) => file.id));
+
+	useEffect(() => {
+		entriesRef.current = entries;
+	}, [entries]);
+
+	useLayoutEffect(() => {
+		sessionIdRef.current = sessionId;
+		sessionVersionRef.current += 1;
+		inflightRef.current.clear();
+		entriesRef.current = new Map();
+		setEntries(new Map());
+	}, [sessionId]);
 
 	useEffect(() => {
 		if (!sessionId) return;
 
+		const sessionVersion = sessionVersionRef.current;
+		const isCurrentUpload = (attachmentId: AttachmentId): boolean =>
+			sessionVersionRef.current === sessionVersion &&
+			sessionIdRef.current === sessionId &&
+			attachmentIdsRef.current.has(attachmentId);
+
 		for (const file of attachmentFiles) {
-			if (entries.has(file.id) || inflightRef.current.has(file.id)) continue;
+			if (entriesRef.current.has(file.id) || inflightRef.current.has(file.id)) {
+				continue;
+			}
 
 			inflightRef.current.add(file.id);
-			setEntries((prev) => {
-				const next = new Map(prev);
-				next.set(file.id, { uploaded: null, error: null, uploading: true });
-				return next;
+			setEntries((previousEntries) => {
+				const nextEntries = new Map(previousEntries);
+				nextEntries.set(file.id, {
+					uploaded: null,
+					error: null,
+					uploading: true,
+				});
+				return nextEntries;
 			});
 
 			uploadFiles(sessionId, [file])
 				.then(([uploaded]) => {
-					setEntries((prev) => {
-						const next = new Map(prev);
-						next.set(file.id, {
-							uploaded: uploaded ?? null,
+					if (!uploaded) {
+						throw new Error("Upload failed");
+					}
+					if (!isCurrentUpload(file.id)) return;
+
+					inflightRef.current.delete(file.id);
+					setEntries((previousEntries) => {
+						const nextEntries = new Map(previousEntries);
+						nextEntries.set(file.id, {
+							uploaded,
 							error: null,
 							uploading: false,
 						});
-						return next;
+						return nextEntries;
 					});
 				})
-				.catch((err: unknown) => {
-					const message = err instanceof Error ? err.message : "Upload failed";
-					setEntries((prev) => {
-						const next = new Map(prev);
-						next.set(file.id, {
+				.catch((error: unknown) => {
+					if (!isCurrentUpload(file.id)) return;
+
+					inflightRef.current.delete(file.id);
+					const message =
+						error instanceof Error ? error.message : "Upload failed";
+					setEntries((previousEntries) => {
+						const nextEntries = new Map(previousEntries);
+						nextEntries.set(file.id, {
 							uploaded: null,
 							error: message,
 							uploading: false,
 						});
-						return next;
+						return nextEntries;
 					});
 					removeAttachment(file.id);
 					onError?.(message);
 				});
 		}
 
-		// Clean up entries for removed attachments
-		const currentIds = new Set(attachmentFiles.map((f) => f.id));
-		setEntries((prev) => {
+		const currentIds = new Set(attachmentFiles.map((file) => file.id));
+		setEntries((previousEntries) => {
 			let changed = false;
-			const next = new Map(prev);
-			for (const id of next.keys()) {
+			const nextEntries = new Map(previousEntries);
+			for (const id of nextEntries.keys()) {
 				if (!currentIds.has(id)) {
-					next.delete(id);
+					nextEntries.delete(id);
+					inflightRef.current.delete(id);
 					changed = true;
 				}
 			}
-			return changed ? next : prev;
+			return changed ? nextEntries : previousEntries;
 		});
-	}, [attachmentFiles, sessionId, removeAttachment, onError, entries.has]);
+	}, [attachmentFiles, onError, removeAttachment, sessionId]);
 
 	const getUploadedFiles = useCallback((): {
 		ready: boolean;
@@ -97,17 +135,23 @@ export function useOptimisticUpload({
 		const files: FileUIPart[] = [];
 		for (const file of attachmentFiles) {
 			const entry = entries.get(file.id);
-			if (!entry || entry.uploading) return { ready: false, files: [] };
-			if (entry.error) continue;
-			if (entry.uploaded) files.push(entry.uploaded);
+			if (!entry || entry.uploading) {
+				return { ready: false, files: [] };
+			}
+			if (entry.error || !entry.uploaded) {
+				return { ready: false, files: [] };
+			}
+			if (entry.uploaded) {
+				files.push(entry.uploaded);
+			}
 		}
 		return { ready: true, files };
 	}, [attachmentFiles, entries]);
 
-	const isUploading = attachmentFiles.some((f) => {
-		const entry = entries.get(f.id);
-		return entry?.uploading ?? !entries.has(f.id);
+	const isUploading = attachmentFiles.some((file) => {
+		const entry = entries.get(file.id);
+		return entry?.uploading ?? !entries.has(file.id);
 	});
 
-	return { getUploadedFiles, isUploading, entries };
+	return { entries, getUploadedFiles, isUploading };
 }

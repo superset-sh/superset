@@ -91,7 +91,7 @@ mock.module("./components/MessageScrollbackRail", () => ({
 }));
 
 mock.module("./components/SubagentExecutionMessage", () => ({
-	SubagentExecutionMessage: () => null,
+	SubagentExecutionMessage: () => <div>SUBAGENT_EXECUTION_MESSAGE</div>,
 }));
 
 mock.module("./components/PendingApprovalMessage", () => ({
@@ -99,11 +99,23 @@ mock.module("./components/PendingApprovalMessage", () => ({
 }));
 
 mock.module("./components/PendingPlanApprovalMessage", () => ({
-	PendingPlanApprovalMessage: () => null,
+	PendingPlanApprovalMessage: () => <div>PENDING_PLAN_APPROVAL_MESSAGE</div>,
 }));
 
 mock.module("./components/PendingQuestionMessage", () => ({
 	PendingQuestionMessage: () => null,
+}));
+
+mock.module("./components/ToolPreviewMessage", () => ({
+	ToolPreviewMessage: ({
+		pendingPlanToolCallId,
+	}: {
+		pendingPlanToolCallId?: string | null;
+	}) => (
+		<div data-pending-plan-tool-call-id={pendingPlanToolCallId ?? ""}>
+			TOOL_PREVIEW_MESSAGE
+		</div>
+	),
 }));
 
 mock.module("./hooks/useChatMessageSearch", () => ({
@@ -259,5 +271,103 @@ describe("ChatMastraMessageList", () => {
 		expect(html).not.toContain("interrupted snapshot text");
 		expect(html).not.toContain("Interrupted");
 		expect(html).not.toContain("Response stopped");
+	});
+
+	it("renders subagent activity while keeping anchored pending plan inline", () => {
+		const html = renderListHtml({
+			messages: [
+				{
+					id: "assistant-plan-1",
+					role: "assistant",
+					content: [
+						{
+							type: "tool_call",
+							id: "tool-call-1",
+							name: "submit_plan",
+							args: {},
+						},
+					],
+					createdAt: new Date("2026-03-03T00:00:01.000Z"),
+				},
+			] as never,
+			activeSubagents: new Map([
+				[
+					"tool-call-1",
+					{
+						status: "running",
+						task: "Run tests",
+					},
+				],
+			]) as never,
+			pendingPlanApproval: {
+				planId: "tool-call-1",
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).toContain("SUBAGENT_EXECUTION_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("shows tool preview while awaiting assistant when pending plan is anchored", () => {
+		const html = renderListHtml({
+			isAwaitingAssistant: true,
+			activeTools: new Map([
+				[
+					"tool-call-1",
+					{
+						name: "submit_plan",
+						status: "streaming_input",
+					},
+				],
+			]) as never,
+			pendingPlanApproval: {
+				toolCallId: "tool-call-1",
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).toContain("TOOL_PREVIEW_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("does not render standalone pending plan when anchored from interrupted preview", () => {
+		const html = renderListHtml({
+			messages: [
+				{
+					id: "assistant-1",
+					role: "assistant",
+					content: [
+						{
+							type: "tool_call",
+							id: "tool-call-interrupted",
+							name: "submit_plan",
+							args: {},
+						},
+					],
+					createdAt: new Date("2026-03-03T00:00:01.000Z"),
+				},
+			] as never,
+			interruptedMessage: {
+				id: "interrupted:assistant-1",
+				sourceMessageId: "assistant-1",
+				content: [
+					{
+						type: "tool_call",
+						id: "tool-call-interrupted",
+						name: "submit_plan",
+						args: {},
+					},
+				],
+			} as never,
+			pendingPlanApproval: {
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
 	});
 });

@@ -2,11 +2,11 @@ import { workspaces } from "@superset/local-db";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
-import { and, eq, isNull } from "drizzle-orm";
 import {
-	getCredentialsFromAnySource,
+	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
 	getOpenAICredentialsFromAnySource,
 } from "@superset/chat/host";
+import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { getWorkspaceAutoRenameDecision } from "./workspace-auto-rename";
 
@@ -26,54 +26,69 @@ export type WorkspaceAutoRenameResult =
 			warning?: string;
 	  };
 
-type NamingProvider =
-	| {
-			provider: "anthropic";
-			source: string;
-			kind: string;
-			model: ReturnType<typeof createAnthropic>;
-			modelId: string;
-	  }
-	| {
-			provider: "openai";
-			source: string;
-			kind: string;
-			model: ReturnType<typeof createOpenAI>;
-			modelId: string;
-	  };
+type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
 
-function resolveNamingProviders(): NamingProvider[] {
-	const providers: NamingProvider[] = [];
+interface TitleProvider {
+	provider: "anthropic" | "openai";
+	source: string;
+	kind: string;
+	apiKey: string;
+	agentId: string;
+	modelId: string;
+	createModel: (apiKey: string) => AgentModel;
+}
 
-	const anthropicCredentials = getCredentialsFromAnySource();
+function resolveTitleProviders(): TitleProvider[] {
+	const providers: TitleProvider[] = [];
+
+	const anthropicCredentials = getAnthropicCredentialsFromAnySource();
 	if (anthropicCredentials) {
-		const anthropic = createAnthropic({
-			apiKey: anthropicCredentials.apiKey,
-		});
 		providers.push({
 			provider: "anthropic",
 			source: anthropicCredentials.source,
 			kind: anthropicCredentials.kind,
-			model: anthropic,
+			apiKey: anthropicCredentials.apiKey,
+			agentId: "workspace-namer-anthropic",
 			modelId: "claude-haiku-4-5-20251001",
+			createModel: (apiKey) =>
+				createAnthropic({ apiKey })("claude-haiku-4-5-20251001"),
 		});
 	}
 
 	const openAICredentials = getOpenAICredentialsFromAnySource();
 	if (openAICredentials) {
-		const openai = createOpenAI({
-			apiKey: openAICredentials.apiKey,
-		});
 		providers.push({
 			provider: "openai",
 			source: openAICredentials.source,
 			kind: openAICredentials.kind,
-			model: openai,
-			modelId: "gpt-4.1",
+			apiKey: openAICredentials.apiKey,
+			agentId: "workspace-namer-openai",
+			modelId: "gpt-4o-mini",
+			createModel: (apiKey) => createOpenAI({ apiKey })("gpt-4o-mini"),
 		});
 	}
 
 	return providers;
+}
+
+async function generateTitleWithModel(
+	prompt: string,
+	agentId: string,
+	model: AgentModel,
+): Promise<string | null> {
+	const agent = new Agent({
+		id: agentId,
+		name: "Workspace Namer",
+		instructions: "You generate concise workspace titles.",
+		model,
+	});
+
+	const title = await agent.generateTitleFromUserMessage({
+		message: prompt,
+		tracingContext: {},
+	});
+
+	return title?.trim() || null;
 }
 
 export async function generateWorkspaceNameFromPrompt(
@@ -84,47 +99,38 @@ export async function generateWorkspaceNameFromPrompt(
 		promptPreview: prompt.slice(0, 120),
 	});
 
-	const namingProviders = resolveNamingProviders();
-	if (namingProviders.length === 0) {
+	const providers = resolveTitleProviders();
+	if (providers.length === 0) {
 		console.warn(
 			"[workspace-auto-name] Skipping generation because no Anthropic or OpenAI credentials are available",
 		);
 		return null;
 	}
 
-	for (const namingProvider of namingProviders) {
+	for (const provider of providers) {
 		console.log("[workspace-auto-name] Using credentials", {
-			provider: namingProvider.provider,
-			source: namingProvider.source,
-			kind: namingProvider.kind,
-			modelId: namingProvider.modelId,
+			provider: provider.provider,
+			source: provider.source,
+			kind: provider.kind,
+			modelId: provider.modelId,
 		});
 
 		try {
-			const agent = new Agent({
-				id: "workspace-namer",
-				name: "Workspace Namer",
-				instructions: "You generate concise workspace titles.",
-				model: namingProvider.model(namingProvider.modelId),
-			});
-
-			const title = await agent.generateTitleFromUserMessage({
-				message: prompt,
-				tracingContext: {},
-			});
-
-			const cleanedTitle = title?.trim() || null;
+			const title = await generateTitleWithModel(
+				prompt,
+				provider.agentId,
+				provider.createModel(provider.apiKey),
+			);
 			console.log("[workspace-auto-name] Generation completed", {
-				provider: namingProvider.provider,
-				generatedName: cleanedTitle,
+				provider: provider.provider,
+				generatedName: title,
 			});
-
-			if (cleanedTitle) {
-				return cleanedTitle;
+			if (title) {
+				return title;
 			}
 		} catch (error) {
 			console.error("[workspace-auto-name] Generation failed:", {
-				provider: namingProvider.provider,
+				provider: provider.provider,
 				error,
 			});
 		}
@@ -157,7 +163,7 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 	const generatedName = await generateWorkspaceNameFromPrompt(cleanedPrompt);
 	if (!generatedName) {
 		const hasCredentials =
-			getCredentialsFromAnySource() !== null ||
+			getAnthropicCredentialsFromAnySource() !== null ||
 			getOpenAICredentialsFromAnySource() !== null;
 		console.warn(
 			"[workspace-auto-name] Skipping rename because generation returned no name",
