@@ -213,6 +213,11 @@ export function AssistantMessage({
 						type="button"
 						key={`${message.id}-${partIndex}`}
 						className="max-w-[85%] cursor-pointer"
+						aria-label={
+							rawPart.filename
+								? `View ${rawPart.filename}`
+								: "View generated image"
+						}
 						onClick={() => handleAttachmentClick(data, rawPart.filename)}
 					>
 						<img
