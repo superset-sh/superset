@@ -1,4 +1,3 @@
-import { workspaces } from "@superset/local-db";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
@@ -6,6 +5,7 @@ import {
 	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
 	getOpenAICredentialsFromAnySource,
 } from "@superset/chat/host";
+import { workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { getWorkspaceAutoRenameDecision } from "./workspace-auto-rename";
@@ -128,32 +128,68 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 
 	const workspace = localDb
 		.select({
+			id: workspaces.id,
 			branch: workspaces.branch,
 			name: workspaces.name,
 			isUnnamed: workspaces.isUnnamed,
 			deletingAt: workspaces.deletingAt,
 		})
 		.from(workspaces)
-		.where(and(eq(workspaces.id, workspaceId), isNull(workspaces.deletingAt)))
+		.where(eq(workspaces.id, workspaceId))
 		.get();
 
 	const decision = getWorkspaceAutoRenameDecision({
 		workspace: workspace ?? null,
 		generatedName,
 	});
-	if (decision.kind !== "rename") {
+	if (decision.kind === "skip") {
 		return { status: "skipped", reason: decision.reason };
 	}
+	if (!workspace) {
+		return { status: "skipped", reason: "missing-workspace" };
+	}
 
-	localDb
+	const renameResult = localDb
 		.update(workspaces)
 		.set({
 			name: decision.name,
 			isUnnamed: false,
 			updatedAt: Date.now(),
 		})
-		.where(eq(workspaces.id, workspaceId))
+		.where(
+			and(
+				eq(workspaces.id, workspace.id),
+				eq(workspaces.branch, workspace.branch),
+				eq(workspaces.name, workspace.branch),
+				eq(workspaces.isUnnamed, true),
+				isNull(workspaces.deletingAt),
+			),
+		)
 		.run();
+	if (renameResult.changes > 0) {
+		return { status: "renamed", name: decision.name };
+	}
 
-	return { status: "renamed", name: decision.name };
+	const latestWorkspace = localDb
+		.select({
+			branch: workspaces.branch,
+			name: workspaces.name,
+			isUnnamed: workspaces.isUnnamed,
+			deletingAt: workspaces.deletingAt,
+		})
+		.from(workspaces)
+		.where(eq(workspaces.id, workspace.id))
+		.get();
+
+	const latestDecision = getWorkspaceAutoRenameDecision({
+		workspace: latestWorkspace ?? null,
+		generatedName,
+	});
+	return {
+		status: "skipped",
+		reason:
+			latestDecision.kind === "skip"
+				? latestDecision.reason
+				: "workspace-name-changed",
+	};
 }

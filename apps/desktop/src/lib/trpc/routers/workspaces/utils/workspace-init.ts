@@ -52,6 +52,31 @@ export async function initializeWorkspaceWorktree({
 	skipWorktreeCreation,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
+	const completeReadyState = async (): Promise<void> => {
+		let warning: string | undefined;
+		try {
+			const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId,
+				prompt: namingPrompt,
+			});
+			warning =
+				autoRenameResult.status === "skipped"
+					? autoRenameResult.warning
+					: undefined;
+		} catch (error) {
+			console.warn("[workspace-init] Auto naming failed", {
+				workspaceId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			warning = "Couldn't auto-name this workspace.";
+		}
+
+		if (manager.isCancellationRequested(workspaceId)) {
+			return;
+		}
+
+		manager.updateProgress(workspaceId, "ready", "Ready", undefined, warning);
+	};
 
 	try {
 		await manager.acquireProjectLock(projectId);
@@ -144,19 +169,7 @@ export async function initializeWorkspaceWorktree({
 				.where(eq(worktrees.id, worktreeId))
 				.run();
 
-			const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
-				workspaceId,
-				prompt: namingPrompt,
-			});
-			manager.updateProgress(
-				workspaceId,
-				"ready",
-				"Ready",
-				undefined,
-				autoRenameResult.status === "skipped"
-					? autoRenameResult.warning
-					: undefined,
-			);
+			await completeReadyState();
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -459,19 +472,7 @@ export async function initializeWorkspaceWorktree({
 			.where(eq(worktrees.id, worktreeId))
 			.run();
 
-		const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
-			workspaceId,
-			prompt: namingPrompt,
-		});
-		manager.updateProgress(
-			workspaceId,
-			"ready",
-			"Ready",
-			undefined,
-			autoRenameResult.status === "skipped"
-				? autoRenameResult.warning
-				: undefined,
-		);
+		await completeReadyState();
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,

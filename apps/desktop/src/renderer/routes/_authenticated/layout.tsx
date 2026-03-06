@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { Spinner } from "@superset/ui/spinner";
 import { toast } from "@superset/ui/sonner";
+import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
 	Navigate,

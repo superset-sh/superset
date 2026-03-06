@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -62,6 +63,12 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 					message: "Preparing...",
 				};
 				updateProgress(optimisticProgress);
+			}
+
+			if (!data.isInitializing && data.autoRenameWarning) {
+				toast.warning("Workspace created without auto-name", {
+					description: data.autoRenameWarning,
+				});
 			}
 
 			if (!data.wasExisting) {
