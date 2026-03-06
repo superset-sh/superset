@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	generateAndSetTitle,
 	type RuntimeSession,
+	restartRuntimeFromUserMessage,
 	subscribeToSessionEvents,
 } from "./runtime";
 
@@ -236,5 +237,100 @@ describe("runtime title generation", () => {
 		await generateAndSetTitle(runtime, apiClient);
 
 		expect(updateTitleInputs).toEqual([]);
+	});
+});
+
+describe("runtime message restart", () => {
+	it("clones the thread up to the target user message and resends from there", async () => {
+		const cloneThreadInputs: Array<Record<string, unknown>> = [];
+		const sendMessageInputs: Array<Record<string, unknown>> = [];
+		const switchThreadInputs: Array<Record<string, unknown>> = [];
+		const switchModelInputs: Array<Record<string, unknown>> = [];
+
+		const memoryStore = {
+			getThreadById: async () => ({
+				id: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+			}),
+			listMessages: async () => ({
+				messages: [
+					{ id: "user-1", role: "user" },
+					{ id: "assistant-1", role: "assistant" },
+					{ id: "user-2", role: "user" },
+					{ id: "assistant-2", role: "assistant" },
+				],
+			}),
+			cloneThread: async (input: Record<string, unknown>) => {
+				cloneThreadInputs.push(input);
+				return {
+					thread: {
+						id: "thread-2",
+						resourceId: "resource-1",
+						title: "Existing Thread",
+					},
+				};
+			},
+		};
+
+		const runtime: RuntimeSession = {
+			sessionId: "11111111-1111-1111-1111-111111111111",
+			harness: {
+				getCurrentThreadId: () => "thread-1",
+				abort: () => {},
+				switchThread: async (input: Record<string, unknown>) => {
+					switchThreadInputs.push(input);
+				},
+				switchModel: async (input: Record<string, unknown>) => {
+					switchModelInputs.push(input);
+				},
+				sendMessage: async (input: Record<string, unknown>) => {
+					sendMessageInputs.push(input);
+				},
+				config: {
+					storage: {
+						getStore: async () => memoryStore,
+					},
+				},
+			} as unknown as RuntimeSession["harness"],
+			mcpManager: null as RuntimeSession["mcpManager"],
+			hookManager: null as RuntimeSession["hookManager"],
+			mcpManualStatuses: new Map(),
+			lastErrorMessage: "stale error",
+			pendingSandboxQuestion: null,
+			cwd: "/tmp",
+		};
+
+		await restartRuntimeFromUserMessage(runtime, {
+			messageId: "user-2",
+			payload: {
+				content: "Edited prompt",
+			},
+			metadata: {
+				model: "anthropic/claude-sonnet-4",
+			},
+		});
+
+		expect(cloneThreadInputs).toEqual([
+			{
+				sourceThreadId: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+				options: {
+					messageFilter: {
+						messageIds: ["user-1", "assistant-1"],
+					},
+				},
+			},
+		]);
+		expect(switchThreadInputs).toEqual([{ threadId: "thread-2" }]);
+		expect(switchModelInputs).toEqual([
+			{
+				modelId: "anthropic/claude-sonnet-4",
+				scope: "thread",
+			},
+		]);
+		expect(sendMessageInputs).toEqual([{ content: "Edited prompt" }]);
+		expect(runtime.lastErrorMessage).toBeNull();
 	});
 });

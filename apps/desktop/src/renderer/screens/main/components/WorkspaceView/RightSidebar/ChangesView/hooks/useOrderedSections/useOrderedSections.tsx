@@ -103,7 +103,7 @@ export function useOrderedSections({
 		0,
 	);
 
-	const sectionDefinitions = {
+	const sectionDefinitions: Record<ChangeCategory, OrderedSection> = {
 		"against-base": {
 			id: "against-base",
 			title: `Against ${effectiveBaseBranch}`,

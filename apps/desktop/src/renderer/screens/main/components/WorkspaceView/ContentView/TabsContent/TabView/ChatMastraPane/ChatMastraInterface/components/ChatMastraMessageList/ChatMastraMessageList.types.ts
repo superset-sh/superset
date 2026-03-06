@@ -54,6 +54,11 @@ export interface UserMessageActionPayload {
 	}>;
 }
 
+export interface UserMessageRestartRequest {
+	messageId: string;
+	payload: UserMessageActionPayload;
+}
+
 export interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isFocused: boolean;
@@ -83,5 +88,12 @@ export interface ChatMastraMessageListProps {
 	pendingQuestion: MastraPendingQuestion;
 	isQuestionSubmitting: boolean;
 	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
-	onResendUserMessage: (payload: UserMessageActionPayload) => Promise<void>;
+	editingUserMessageId: string | null;
+	isEditSubmitting: boolean;
+	onStartEditUserMessage: (messageId: string) => void;
+	onCancelEditUserMessage: () => void;
+	onSubmitEditedUserMessage: (
+		request: UserMessageRestartRequest,
+	) => Promise<void>;
+	onRestartUserMessage: (request: UserMessageRestartRequest) => Promise<void>;
 }

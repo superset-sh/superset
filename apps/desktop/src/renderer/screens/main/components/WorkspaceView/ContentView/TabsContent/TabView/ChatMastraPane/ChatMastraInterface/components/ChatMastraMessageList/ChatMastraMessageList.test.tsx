@@ -184,7 +184,12 @@ function createBaseProps(
 		pendingQuestion: null,
 		isQuestionSubmitting: false,
 		onQuestionRespond: async () => {},
-		onResendUserMessage: async () => {},
+		editingUserMessageId: null,
+		isEditSubmitting: false,
+		onStartEditUserMessage: () => {},
+		onCancelEditUserMessage: () => {},
+		onSubmitEditedUserMessage: async () => {},
+		onRestartUserMessage: async () => {},
 		...overrides,
 	};
 }

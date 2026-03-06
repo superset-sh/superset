@@ -8,6 +8,7 @@ export {
 	type RuntimeMcpServerStatus,
 	type RuntimeSession,
 	reloadHookConfig,
+	restartRuntimeFromUserMessage,
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./runtime";

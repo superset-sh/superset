@@ -80,6 +80,18 @@ export const sendMessageInput = z.object({
 		.optional(),
 });
 
+export const restartFromMessageInput = z.object({
+	sessionId: z.uuid(),
+	cwd: z.string().optional(),
+	messageId: z.string().min(1),
+	payload: sendMessagePayloadSchema,
+	metadata: z
+		.object({
+			model: z.string().optional(),
+		})
+		.optional(),
+});
+
 export const approvalRespondInput = z.object({
 	sessionId: z.uuid(),
 	payload: approvalPayloadSchema,
@@ -106,6 +118,7 @@ export type PlanPayloadInput = z.infer<typeof planPayloadSchema>;
 export type DisplayStateInput = z.infer<typeof displayStateInput>;
 export type ListMessagesInput = z.infer<typeof listMessagesInput>;
 export type SendMessageInput = z.infer<typeof sendMessageInput>;
+export type RestartFromMessageInput = z.infer<typeof restartFromMessageInput>;
 export type ApprovalRespondInput = z.infer<typeof approvalRespondInput>;
 export type QuestionRespondInput = z.infer<typeof questionRespondInput>;
 export type PlanRespondInput = z.infer<typeof planRespondInput>;

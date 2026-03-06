@@ -56,7 +56,12 @@ export function ChatMastraMessageList({
 	pendingQuestion,
 	isQuestionSubmitting,
 	onQuestionRespond,
-	onResendUserMessage,
+	editingUserMessageId,
+	isEditSubmitting,
+	onStartEditUserMessage,
+	onCancelEditUserMessage,
+	onSubmitEditedUserMessage,
+	onRestartUserMessage,
 }: ChatMastraMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -186,8 +191,13 @@ export function ChatMastraMessageList({
 										message={message}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
-										onResend={onResendUserMessage}
-										resendDisabled={isAwaitingAssistant}
+										isEditing={editingUserMessageId === message.id}
+										isSubmitting={isEditSubmitting}
+										onStartEdit={onStartEditUserMessage}
+										onCancelEdit={onCancelEditUserMessage}
+										onSubmitEdit={onSubmitEditedUserMessage}
+										onRestart={onRestartUserMessage}
+										actionDisabled={isAwaitingAssistant}
 									/>
 								);
 							}
