@@ -7,6 +7,7 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
+import { BUNDLED_TERMINAL_FONT_SOURCE_FAMILY } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/fonts";
 import { FontPreview } from "../FontPreview";
 
 const DEFAULT_EDITOR_FONT_FAMILY = MONACO_EDITOR_OPTIONS.fontFamily;
@@ -102,6 +103,10 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 		(fontSizeDraft != null ? Number.parseInt(fontSizeDraft, 10) : undefined) ||
 		currentSize ||
 		config.defaultSize;
+	const familyPlaceholder =
+		variant === "terminal"
+			? BUNDLED_TERMINAL_FONT_SOURCE_FAMILY
+			: config.defaultFamily;
 
 	return (
 		<div>
@@ -111,6 +116,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 				{variant === "terminal" && (
 					<>
 						{" "}
+						Defaults to bundled {BUNDLED_TERMINAL_FONT_SOURCE_FAMILY}.{" "}
 						<a
 							href="https://www.nerdfonts.com"
 							target="_blank"
@@ -125,7 +131,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 			</p>
 			<div className="flex items-center gap-2">
 				<Input
-					placeholder={config.defaultFamily}
+					placeholder={familyPlaceholder}
 					value={fontDraft ?? currentFamily ?? ""}
 					onChange={(e) => setFontDraft(e.target.value)}
 					onBlur={(e) => {

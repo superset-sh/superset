@@ -78,8 +78,7 @@ async function preloadTerminalFonts(
 }
 
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
-	const pane = useTabsStore((s) => s.panes[paneId]);
-	const paneInitialCwd = pane?.initialCwd;
+	const paneInitialCwd = useTabsStore((s) => s.panes[paneId]?.initialCwd);
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 
 	const { data: workspaceData } = electronTrpc.workspaces.get.useQuery(

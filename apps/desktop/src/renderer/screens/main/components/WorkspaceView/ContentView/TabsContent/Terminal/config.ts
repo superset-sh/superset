@@ -1,4 +1,8 @@
 import type { ITerminalOptions } from "ghostty-web";
+import {
+	BUNDLED_TERMINAL_FONT_FAMILY,
+	BUNDLED_TERMINAL_FONT_SOURCE_FAMILY,
+} from "./fonts";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
@@ -9,10 +13,11 @@ export const DEBUG_TERMINAL =
 	typeof localStorage !== "undefined" &&
 	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
 
-// Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
+// Use the bundled Nerd Font first so terminal rendering is deterministic.
 export const DEFAULT_TERMINAL_FONT_FAMILY = [
+	BUNDLED_TERMINAL_FONT_FAMILY,
+	BUNDLED_TERMINAL_FONT_SOURCE_FAMILY,
 	"MesloLGM Nerd Font Mono",
-	"MesloLGS Nerd Font Mono",
 	"MesloLGM Nerd Font",
 	"MesloLGM NF",
 	"MesloLGS NF",

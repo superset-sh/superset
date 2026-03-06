@@ -5,6 +5,7 @@ import {
 	resolveTerminalFontFamily,
 	TERMINAL_ICON_FALLBACK_FAMILY,
 } from "./font-family";
+import { BUNDLED_TERMINAL_FONT_FAMILY } from "./fonts";
 
 describe("terminal font-family helpers", () => {
 	it("formats spaced font family names as valid CSS lists", () => {
@@ -25,6 +26,12 @@ describe("terminal font-family helpers", () => {
 	it("preserves generic families while adding icon fallback", () => {
 		expect(resolveTerminalFontFamily("monospace", 14)).toBe(
 			`monospace, "${TERMINAL_ICON_FALLBACK_FAMILY}"`,
+		);
+	});
+
+	it("keeps the bundled terminal font family as the resolved default", () => {
+		expect(resolveTerminalFontFamily(BUNDLED_TERMINAL_FONT_FAMILY, 14)).toBe(
+			`"${BUNDLED_TERMINAL_FONT_FAMILY}"`,
 		);
 	});
 });

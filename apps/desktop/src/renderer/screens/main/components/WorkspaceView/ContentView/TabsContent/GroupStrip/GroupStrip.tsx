@@ -26,6 +26,7 @@ import {
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import { useShallow } from "zustand/react/shallow";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
 
@@ -34,10 +35,40 @@ const NO_WORKSPACE_MATCH = "__no_workspace__";
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 
-	const allTabs = useTabsStore((s) => s.tabs);
-	const panes = useTabsStore((s) => s.panes);
-	const activeTabIds = useTabsStore((s) => s.activeTabIds);
-	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
+	const tabs = useTabsStore(
+		useShallow((state) =>
+			activeWorkspaceId
+				? state.tabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
+				: [],
+		),
+	);
+	const workspacePanes = useTabsStore(
+		useShallow((state) => {
+			if (!activeWorkspaceId) return [];
+			const workspaceTabIds = new Set(
+				state.tabs
+					.filter((tab) => tab.workspaceId === activeWorkspaceId)
+					.map((tab) => tab.id),
+			);
+			return Object.values(state.panes).filter((pane) =>
+				workspaceTabIds.has(pane.tabId),
+			);
+		}),
+	);
+	const activeTabId = useTabsStore(
+		useCallback(
+			(state) => {
+				if (!activeWorkspaceId) return null;
+				return resolveActiveTabIdForWorkspace({
+					workspaceId: activeWorkspaceId,
+					tabs: state.tabs,
+					activeTabIds: state.activeTabIds,
+					tabHistoryStacks: state.tabHistoryStacks,
+				});
+			},
+			[activeWorkspaceId],
+		),
+	);
 	const { addTab, openPreset } = useTabsWithPresets();
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
@@ -104,28 +135,10 @@ export function GroupStrip() {
 			},
 		});
 
-	const tabs = useMemo(
-		() =>
-			activeWorkspaceId
-				? allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
-				: [],
-		[activeWorkspaceId, allTabs],
-	);
-
-	const activeTabId = useMemo(() => {
-		if (!activeWorkspaceId) return null;
-		return resolveActiveTabIdForWorkspace({
-			workspaceId: activeWorkspaceId,
-			tabs: allTabs,
-			activeTabIds,
-			tabHistoryStacks,
-		});
-	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
-
 	// Compute aggregate status per tab using shared priority logic
 	const tabStatusMap = useMemo(() => {
 		const result = new Map<string, ActivePaneStatus>();
-		for (const pane of Object.values(panes)) {
+		for (const pane of workspacePanes) {
 			if (!pane.status || pane.status === "idle") continue;
 			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
 			if (higher !== "idle") {
@@ -133,19 +146,19 @@ export function GroupStrip() {
 			}
 		}
 		return result;
-	}, [panes]);
+	}, [workspacePanes]);
 
 	// Sync Electric session titles → tab names for all Mastra chat tabs in this workspace
 	const chatPaneSessionMap = useMemo(() => {
 		const map = new Map<string, string>(); // sessionId → tabId
-		for (const pane of Object.values(panes)) {
+		for (const pane of workspacePanes) {
 			if (pane.type === "chat-mastra" && pane.chatMastra?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
 				if (tab) map.set(pane.chatMastra.sessionId, tab.id);
 			}
 		}
 		return map;
-	}, [panes, tabs]);
+	}, [workspacePanes, tabs]);
 	const shouldSyncChatTitles =
 		Boolean(activeWorkspaceId) && chatPaneSessionMap.size > 0;
 	const workspaceIdForChatTitleSync = shouldSyncChatTitles

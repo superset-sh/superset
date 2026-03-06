@@ -2,6 +2,72 @@
 @import "tw-animate-css";
 @import "../../../../packages/ui/node_modules/streamdown/styles.css";
 
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Regular.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Italic.woff2") format("woff2");
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Bold.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "MesloLGS Nerd Font Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Regular.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "MesloLGS Nerd Font Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Italic.woff2") format("woff2");
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "MesloLGS Nerd Font Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-Bold.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "MesloLGS Nerd Font Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-BoldItalic.woff2")
+		format("woff2");
+	font-style: italic;
+	font-weight: 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("/fonts/terminal/MesloLGSNerdFontMono-BoldItalic.woff2")
+		format("woff2");
+	font-style: italic;
+	font-weight: 700;
+	font-display: swap;
+}
+
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";

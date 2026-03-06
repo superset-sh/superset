@@ -36,8 +36,7 @@ import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
-
-const EMPTY_HISTORY_STACK: string[] = [];
+import { useShallow } from "zustand/react/shallow";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/workspace/$workspaceId/",
@@ -118,12 +117,22 @@ function WorkspacePage() {
 	// - Interrupted workspaces that aren't currently initializing (shows resume option)
 	const showInitView = isInitializing || hasFailed || hasIncompleteInit;
 
-	const allTabs = useTabsStore((s) => s.tabs);
-	const activeTabIdForWorkspace = useTabsStore(
-		(s) => s.activeTabIds[workspaceId] ?? null,
+	const tabs = useTabsStore(
+		useShallow((state) =>
+			state.tabs.filter((tab) => tab.workspaceId === workspaceId),
+		),
 	);
-	const tabHistoryStack = useTabsStore(
-		(s) => s.tabHistoryStacks[workspaceId] ?? EMPTY_HISTORY_STACK,
+	const activeTabId = useTabsStore(
+		useCallback(
+			(state) =>
+				resolveActiveTabIdForWorkspace({
+					workspaceId,
+					tabs: state.tabs,
+					activeTabIds: state.activeTabIds,
+					tabHistoryStacks: state.tabHistoryStacks,
+				}),
+			[workspaceId],
+		),
 	);
 	const {
 		addTab,
@@ -144,20 +153,6 @@ function WorkspacePage() {
 	const setSidebarOpen = useSidebarStore((s) => s.setSidebarOpen);
 	const currentSidebarMode = useSidebarStore((s) => s.currentMode);
 	const setSidebarMode = useSidebarStore((s) => s.setMode);
-
-	const tabs = useMemo(
-		() => allTabs.filter((tab) => tab.workspaceId === workspaceId),
-		[workspaceId, allTabs],
-	);
-
-	const activeTabId = useMemo(() => {
-		return resolveActiveTabIdForWorkspace({
-			workspaceId,
-			tabs,
-			activeTabIds: { [workspaceId]: activeTabIdForWorkspace },
-			tabHistoryStacks: { [workspaceId]: tabHistoryStack },
-		});
-	}, [workspaceId, tabs, activeTabIdForWorkspace, tabHistoryStack]);
 
 	const activeTab = useMemo(
 		() => (activeTabId ? tabs.find((t) => t.id === activeTabId) : null),

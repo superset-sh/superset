@@ -1,3 +1,8 @@
+import {
+	BUNDLED_TERMINAL_FONT_FAMILY,
+	isBundledTerminalFontFamily,
+} from "./fonts";
+
 const GENERIC_FONT_FAMILIES: ReadonlySet<string> = new Set([
 	"serif",
 	"sans-serif",
@@ -14,7 +19,7 @@ const GENERIC_FONT_FAMILIES: ReadonlySet<string> = new Set([
 	"fangsong",
 ]);
 
-export const TERMINAL_ICON_FALLBACK_FAMILY = "Nerd Font Symbols";
+export const TERMINAL_ICON_FALLBACK_FAMILY = BUNDLED_TERMINAL_FONT_FAMILY;
 
 export function stripOuterQuotes(value: string): string {
 	const trimmed = value.trim();
@@ -136,6 +141,7 @@ function canLoadFontFamily(primary: string, fontSize: number): boolean {
 	const family = stripOuterQuotes(primary).trim();
 	if (!family) return false;
 	if (isGenericFontFamily(family)) return true;
+	if (isBundledTerminalFontFamily(family)) return true;
 	return isFontFamilyAvailableInBrowser(family, fontSize);
 }
 
