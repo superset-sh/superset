@@ -205,7 +205,7 @@ export function CodeEditor({
 				]),
 				saveKeymap,
 				themeCompartment.of([
-					getCodeSyntaxHighlighting(activeTheme),
+					getCodeSyntaxHighlighting(),
 					createCodeMirrorTheme(
 						activeTheme,
 						{
@@ -261,7 +261,7 @@ export function CodeEditor({
 
 		view.dispatch({
 			effects: themeCompartment.reconfigure([
-				getCodeSyntaxHighlighting(activeTheme),
+				getCodeSyntaxHighlighting(),
 				createCodeMirrorTheme(
 					activeTheme,
 					{
