@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuExternalLink, LuX } from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { EnrichedPort } from "shared/types";
@@ -16,6 +17,9 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
+	const { data: openLinksInApp } =
+		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { killPort } = useKillPort();
 
 	const displayContent = port.label ? (
@@ -43,8 +47,15 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	};
 
 	const handleOpenInBrowser = () => {
-		navigateToWorkspace(port.workspaceId, navigate);
-		openInBrowserPane(port.workspaceId, `http://localhost:${port.port}`);
+		const url = `http://localhost:${port.port}`;
+
+		if (openLinksInApp) {
+			navigateToWorkspace(port.workspaceId, navigate);
+			openInBrowserPane(port.workspaceId, url);
+			return;
+		}
+
+		openUrl.mutate(url);
 	};
 
 	const handleClose = () => {
