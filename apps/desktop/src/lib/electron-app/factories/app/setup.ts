@@ -56,7 +56,9 @@ export async function makeAppSetup(
 	return window;
 }
 
-PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
+// Disable GPU hardware acceleration on Linux and Windows to prevent black/blank
+// screens caused by GPU driver incompatibilities with Chromium's compositor.
+(PLATFORM.IS_LINUX || PLATFORM.IS_WINDOWS) && app.disableHardwareAcceleration();
 
 // macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
 if (PLATFORM.IS_MAC) {
