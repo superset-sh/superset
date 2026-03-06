@@ -513,9 +513,6 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				return;
 			}
-			if (text) {
-				onUserMessageSubmitted?.(text);
-			}
 			setInterruptedMessage(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
@@ -598,6 +595,9 @@ export function ChatMastraInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
+				if (content) {
+					onUserMessageSubmitted?.(content);
+				}
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
@@ -691,7 +691,6 @@ export function ChatMastraInterface({
 					model: modelId,
 				},
 			};
-			onUserMessageSubmitted?.(prompt);
 
 			try {
 				const sendResult = await sendMessageForSession({
@@ -703,6 +702,7 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				onUserMessageSubmitted?.(prompt);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
