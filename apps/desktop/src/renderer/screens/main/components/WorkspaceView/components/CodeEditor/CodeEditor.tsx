@@ -26,7 +26,6 @@ import {
 import { cn } from "@superset/ui/utils";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useThemeStore } from "renderer/stores/theme";
 import type { CodeEditorAdapter } from "../../ContentView/components";
 import { getCodeSyntaxHighlighting } from "../../utils/code-theme";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
@@ -142,7 +141,6 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
-	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
 		{
@@ -207,7 +205,6 @@ export function CodeEditor({
 				themeCompartment.of([
 					getCodeSyntaxHighlighting(),
 					createCodeMirrorTheme(
-						activeTheme,
 						{
 							fontFamily: editorFontFamily,
 							fontSize: editorFontSize,
@@ -263,7 +260,6 @@ export function CodeEditor({
 			effects: themeCompartment.reconfigure([
 				getCodeSyntaxHighlighting(),
 				createCodeMirrorTheme(
-					activeTheme,
 					{
 						fontFamily: editorFontFamily,
 						fontSize: editorFontSize,
@@ -272,13 +268,7 @@ export function CodeEditor({
 				),
 			]),
 		});
-	}, [
-		activeTheme,
-		editorFontFamily,
-		editorFontSize,
-		fillHeight,
-		themeCompartment,
-	]);
+	}, [editorFontFamily, editorFontSize, fillHeight, themeCompartment]);
 
 	useEffect(() => {
 		const view = viewRef.current;
