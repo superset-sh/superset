@@ -66,6 +66,71 @@ const {
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
 } = await import("./agent-wrappers");
+const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+
+describe("reconcileManagedEntries", () => {
+	it("preserves user-managed entries while replacing stale managed entries", () => {
+		const result = reconcileManagedEntries({
+			current: [
+				{ command: "/usr/local/bin/custom-hook Start", source: "user" },
+				{ command: "/tmp/.superset-old/hooks/notify.sh Start", source: "ours" },
+			],
+			desired: [
+				{ command: "/tmp/.superset-new/hooks/notify.sh Start", source: "ours" },
+			],
+			isManaged: (entry: { command: string }) =>
+				entry.command.includes("/.superset-"),
+			isEquivalent: (
+				entry: { command: string },
+				desired: { command: string },
+			) => entry.command === desired.command,
+		});
+
+		expect(result.entries).toEqual([
+			{ command: "/usr/local/bin/custom-hook Start", source: "user" },
+			{ command: "/tmp/.superset-new/hooks/notify.sh Start", source: "ours" },
+		]);
+		expect(result.replacedManagedEntries).toEqual([
+			{ command: "/tmp/.superset-old/hooks/notify.sh Start", source: "ours" },
+		]);
+	});
+
+	it("reconciles edited managed entries even when a managed hook already exists", () => {
+		const result = reconcileManagedEntries({
+			current: [
+				{
+					command: "/tmp/.superset-current/hooks/notify.sh Start --debug",
+					source: "edited",
+				},
+			],
+			desired: [
+				{
+					command: "/tmp/.superset-current/hooks/notify.sh Start",
+					source: "ours",
+				},
+			],
+			isManaged: (entry: { command: string }) =>
+				entry.command.includes("/.superset-"),
+			isEquivalent: (
+				entry: { command: string },
+				desired: { command: string },
+			) => entry.command === desired.command,
+		});
+
+		expect(result.entries).toEqual([
+			{
+				command: "/tmp/.superset-current/hooks/notify.sh Start",
+				source: "ours",
+			},
+		]);
+		expect(result.replacedManagedEntries).toEqual([
+			{
+				command: "/tmp/.superset-current/hooks/notify.sh Start --debug",
+				source: "edited",
+			},
+		]);
+	});
+});
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
