@@ -25,6 +25,7 @@ import type {
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
+import type { UserMessageActionPayload } from "./components/ChatMastraMessageList/ChatMastraMessageList.types";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
@@ -778,6 +779,12 @@ export function ChatMastraInterface({
 		},
 		[handleSend],
 	);
+	const handleResendUserMessage = useCallback(
+		async (payload: UserMessageActionPayload) => {
+			await handleSend(payload);
+		},
+		[handleSend],
+	);
 	const handleApprovalResponse = useCallback(
 		async (decision: "approve" | "decline" | "always_allow_category") => {
 			if (!pendingApproval?.toolCallId) return;
@@ -870,6 +877,7 @@ export function ChatMastraInterface({
 					pendingQuestion={pendingQuestion}
 					isQuestionSubmitting={questionResponsePending}
 					onQuestionRespond={handleQuestionResponse}
+					onResendUserMessage={handleResendUserMessage}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<MastraUploadFooter

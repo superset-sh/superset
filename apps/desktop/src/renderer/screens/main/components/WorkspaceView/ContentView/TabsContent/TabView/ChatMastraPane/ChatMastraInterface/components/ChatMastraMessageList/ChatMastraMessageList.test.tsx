@@ -184,6 +184,7 @@ function createBaseProps(
 		pendingQuestion: null,
 		isQuestionSubmitting: false,
 		onQuestionRespond: async () => {},
+		onResendUserMessage: async () => {},
 		...overrides,
 	};
 }

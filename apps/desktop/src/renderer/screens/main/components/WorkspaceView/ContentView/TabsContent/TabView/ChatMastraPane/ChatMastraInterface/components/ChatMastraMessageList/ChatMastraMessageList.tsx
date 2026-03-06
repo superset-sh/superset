@@ -56,6 +56,7 @@ export function ChatMastraMessageList({
 	pendingQuestion,
 	isQuestionSubmitting,
 	onQuestionRespond,
+	onResendUserMessage,
 }: ChatMastraMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -185,6 +186,8 @@ export function ChatMastraMessageList({
 										message={message}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
+										onResend={onResendUserMessage}
+										resendDisabled={isAwaitingAssistant}
 									/>
 								);
 							}

@@ -1,10 +1,21 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { CheckIcon, CopyIcon } from "lucide-react";
+import {
+	MessageAction,
+	MessageActions,
+} from "@superset/ui/ai-elements/message";
+import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
+import {
+	CheckIcon,
+	CopyIcon,
+	PencilLineIcon,
+	RotateCcwIcon,
+} from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { normalizeWorkspaceFilePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
+import type { UserMessageActionPayload } from "../../ChatMastraMessageList.types";
 import { AttachmentChip } from "../AttachmentChip";
+import { getUserMessageDraft } from "./utils/getUserMessageDraft";
 import { parseUserMentions } from "./utils/parseUserMentions";
 
 type MastraMessage = NonNullable<
@@ -16,17 +27,21 @@ interface UserMessageProps {
 	message: MastraMessage;
 	workspaceId: string;
 	workspaceCwd?: string;
+	onResend: (payload: UserMessageActionPayload) => Promise<void>;
+	resendDisabled?: boolean;
 }
 
 export function UserMessage({
 	message,
 	workspaceId,
 	workspaceCwd,
+	onResend,
+	resendDisabled = false,
 }: UserMessageProps) {
+	const { attachments, textInput } = usePromptInputController();
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
-	const fullText = message.content
-		.flatMap((part) => (part.type === "text" ? [part.text] : []))
-		.join("\n");
+	const draft = getUserMessageDraft(message);
+	const fullText = draft.text;
 	const [copied, setCopied] = useState(false);
 
 	const openAttachment = useCallback(
@@ -57,6 +72,45 @@ export function UserMessage({
 			},
 		);
 	}, [fullText]);
+	const focusComposer = useCallback(() => {
+		requestAnimationFrame(() => {
+			const textarea = document.querySelector<HTMLTextAreaElement>(
+				"[data-slot=input-group-control]",
+			);
+			if (!textarea) return;
+			textarea.focus();
+			const nextCursorPosition = textarea.value.length;
+			textarea.setSelectionRange(nextCursorPosition, nextCursorPosition);
+		});
+	}, []);
+	const handleEdit = useCallback(() => {
+		textInput.setInput(draft.text);
+		attachments.setFiles(draft.files);
+		focusComposer();
+	}, [attachments, draft.files, draft.text, focusComposer, textInput]);
+	const handleResend = useCallback(() => {
+		const resendPayload: UserMessageActionPayload = {
+			content: draft.text,
+			...(draft.files.length > 0
+				? {
+						files: draft.files.map((file) => ({
+							data: file.url,
+							mediaType: file.mediaType,
+							filename: file.filename,
+							uploaded: false as const,
+						})),
+					}
+				: {}),
+		};
+		if (!resendPayload.content && !resendPayload.files?.length) {
+			return;
+		}
+
+		void onResend(resendPayload).catch((error) => {
+			console.debug("[UserMessage] resend failed", error);
+		});
+	}, [draft.files, draft.text, onResend]);
+	const showActions = Boolean(fullText || draft.files.length > 0);
 
 	return (
 		<div
@@ -64,23 +118,42 @@ export function UserMessage({
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
-			{fullText ? (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleCopy}
-							className="absolute -top-2 right-0 rounded-md border border-border bg-background p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/msg:opacity-100"
+			{showActions ? (
+				<div className="absolute -top-3 right-0 z-10 opacity-0 transition-opacity group-hover/msg:opacity-100 group-focus-within/msg:opacity-100">
+					<MessageActions className="rounded-lg border border-border bg-background/95 p-1 shadow-sm backdrop-blur-xs">
+						<MessageAction
+							className="size-7 text-muted-foreground hover:text-foreground"
+							label="Resend message"
+							onClick={handleResend}
+							tooltip="Resend"
+							disabled={resendDisabled}
 						>
-							{copied ? (
-								<CheckIcon className="size-3.5" />
-							) : (
-								<CopyIcon className="size-3.5" />
-							)}
-						</button>
-					</TooltipTrigger>
-					{!copied ? <TooltipContent side="top">Copy</TooltipContent> : null}
-				</Tooltip>
+							<RotateCcwIcon className="size-3.5" />
+						</MessageAction>
+						<MessageAction
+							className="size-7 text-muted-foreground hover:text-foreground"
+							label="Edit message"
+							onClick={handleEdit}
+							tooltip="Edit"
+						>
+							<PencilLineIcon className="size-3.5" />
+						</MessageAction>
+						{fullText ? (
+							<MessageAction
+								className="size-7 text-muted-foreground hover:text-foreground"
+								label={copied ? "Copied" : "Copy message"}
+								onClick={handleCopy}
+								tooltip={copied ? "Copied" : "Copy"}
+							>
+								{copied ? (
+									<CheckIcon className="size-3.5" />
+								) : (
+									<CopyIcon className="size-3.5" />
+								)}
+							</MessageAction>
+						) : null}
+					</MessageActions>
+				</div>
 			) : null}
 			{message.content.some(
 				(part) =>
