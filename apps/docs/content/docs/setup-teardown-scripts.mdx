@@ -79,6 +79,53 @@ No merging occurs between levels—the first config found is used entirely.
 { "setup": [], "teardown": [] }
 ```
 
+## Local Config
+
+Extend or override your team's committed scripts without modifying the repo. Create `.superset/config.local.json` alongside `config.json` — it's gitignored automatically.
+
+### Prepend and/or append
+
+Add steps before or after the team's scripts:
+
+```json
+{
+  "setup": {
+    "before": ["echo 'running pre-setup'"],
+    "after": ["./.superset/my-post-setup.sh"]
+  },
+  "teardown": {
+    "after": ["./.superset/my-cleanup.sh"]
+  }
+}
+```
+
+Result: `before` → committed setup scripts → `after`. Keys you don't specify pass through unchanged.
+
+### Override entirely
+
+Use a plain array to replace the team's scripts completely:
+
+```json
+{
+  "setup": ["./.superset/my-custom-setup.sh"]
+}
+```
+
+### Mix and match
+
+Override one key while extending the other:
+
+```json
+{
+  "setup": { "after": ["bun run my-extra-step"] },
+  "teardown": ["my-custom-teardown.sh"]
+}
+```
+
+### Resolution order
+
+The local config merges on top of whichever base config wins the [priority order](#priority-order). If a `config.local.json` exists in both the worktree and main repo, the worktree's local config takes priority.
+
 ## Force Delete
 
 If teardown scripts fail during workspace deletion, you can force-delete to skip the failed teardown and continue cleanup.
@@ -93,4 +140,5 @@ When teardown fails:
 - Keep setup fast—runs every workspace creation
 - Commit `.superset/` to share with team
 - Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`
-- Use user overrides to customize scripts without creating git noise
+- Use `config.local.json` to add personal steps without touching the team's config
+- Use user overrides (`~/.superset/projects/`) to replace scripts entirely per-project

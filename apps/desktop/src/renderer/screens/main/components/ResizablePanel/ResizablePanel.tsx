@@ -27,6 +27,8 @@ interface ResizablePanelProps {
 	 * @default true
 	 */
 	clampWidth?: boolean;
+	/** Callback when the resize handle is double-clicked */
+	onDoubleClickHandle?: () => void;
 }
 
 export function ResizablePanel({
@@ -40,6 +42,7 @@ export function ResizablePanel({
 	handleSide,
 	className,
 	clampWidth = true,
+	onDoubleClickHandle,
 }: ResizablePanelProps) {
 	const startXRef = useRef(0);
 	const startWidthRef = useRef(0);
@@ -137,6 +140,7 @@ export function ResizablePanel({
 				aria-valuemax={maxWidth}
 				tabIndex={0}
 				onMouseDown={handleMouseDown}
+				onDoubleClick={onDoubleClickHandle}
 				className={cn(
 					"absolute top-0 w-5 h-full cursor-col-resize z-10",
 					"after:absolute after:top-0 after:w-1 after:h-full after:transition-colors",

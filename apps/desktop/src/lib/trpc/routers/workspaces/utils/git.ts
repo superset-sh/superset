@@ -394,7 +394,7 @@ export async function getBranchPrefix({
 		case "author": {
 			const authorName = await getGitAuthorName(repoPath);
 			if (authorName) {
-				return authorName.toLowerCase().replace(/\s+/g, "-");
+				return authorName.replace(/\s+/g, "-");
 			}
 			return null;
 		}

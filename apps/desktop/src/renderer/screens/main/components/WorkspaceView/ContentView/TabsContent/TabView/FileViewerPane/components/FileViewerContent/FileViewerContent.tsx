@@ -91,6 +91,8 @@ interface FileViewerContentProps {
 	// Context menu props
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
+	onSplitWithNewChat?: () => void;
+	onSplitWithNewBrowser?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -137,6 +139,8 @@ export function FileViewerContent({
 	// Context menu props
 	onSplitHorizontal,
 	onSplitVertical,
+	onSplitWithNewChat,
+	onSplitWithNewBrowser,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -249,6 +253,8 @@ export function FileViewerContent({
 				contextMenuProps={{
 					onSplitHorizontal,
 					onSplitVertical,
+					onSplitWithNewChat,
+					onSplitWithNewBrowser,
 					onClosePane,
 					currentTabId,
 					availableTabs,
@@ -363,6 +369,8 @@ export function FileViewerContent({
 			filePath={filePath}
 			onSplitHorizontal={onSplitHorizontal}
 			onSplitVertical={onSplitVertical}
+			onSplitWithNewChat={onSplitWithNewChat}
+			onSplitWithNewBrowser={onSplitWithNewBrowser}
 			onClosePane={onClosePane}
 			currentTabId={currentTabId}
 			availableTabs={availableTabs}

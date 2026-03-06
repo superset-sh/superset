@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Tab } from "renderer/stores/tabs/types";
+import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { isDiffEditable } from "shared/changes-types";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
@@ -30,11 +30,13 @@ interface FileViewerPaneProps {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneVertical: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
@@ -328,6 +330,12 @@ export function FileViewerPane({
 					// Context menu props
 					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 					onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+					onSplitWithNewChat={() =>
+						splitPaneVertical(tabId, paneId, path, { paneType: "chat-mastra" })
+					}
+					onSplitWithNewBrowser={() =>
+						splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+					}
 					onClosePane={() => removePane(paneId)}
 					currentTabId={tabId}
 					availableTabs={availableTabs}

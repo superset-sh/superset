@@ -39,29 +39,11 @@ export function getUsageSeverity(
 }
 
 export function getUsageClasses(
-	severity: UsageSeverity,
+	_severity: UsageSeverity,
 	nested = false,
 ): UsageClasses {
 	const normalRowClass = nested ? "bg-muted/30" : "";
 	const normalHoverClass = nested ? "hover:bg-muted/60" : "hover:bg-muted/50";
-
-	if (severity === "high") {
-		return {
-			rowClass: nested ? "bg-destructive/6" : "bg-destructive/4",
-			hoverClass: nested ? "hover:bg-destructive/10" : "hover:bg-destructive/8",
-			labelClass: "text-foreground",
-			metricClass: "text-destructive/90",
-		};
-	}
-
-	if (severity === "elevated") {
-		return {
-			rowClass: nested ? "bg-amber-500/8" : "bg-amber-500/4",
-			hoverClass: nested ? "hover:bg-amber-500/12" : "hover:bg-amber-500/8",
-			labelClass: "text-foreground",
-			metricClass: "text-amber-700 dark:text-amber-300",
-		};
-	}
 
 	return {
 		rowClass: normalRowClass,

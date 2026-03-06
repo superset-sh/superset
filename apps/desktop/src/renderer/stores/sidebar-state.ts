@@ -11,7 +11,7 @@ export enum RightSidebarTab {
 	Files = "files",
 }
 
-const DEFAULT_SIDEBAR_WIDTH = 250;
+export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const MIN_SIDEBAR_WIDTH = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
 

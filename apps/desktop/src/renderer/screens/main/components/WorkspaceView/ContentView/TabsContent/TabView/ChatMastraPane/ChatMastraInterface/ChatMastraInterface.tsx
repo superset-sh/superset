@@ -5,8 +5,10 @@ import {
 	useMastraChatDisplay,
 } from "@superset/chat-mastra/client";
 import {
+	PromptInputAttachment,
 	type PromptInputMessage,
 	PromptInputProvider,
+	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
@@ -25,6 +27,7 @@ import type {
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
+import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import type { ChatMastraInterfaceProps } from "./types";
 import {
 	hasMatchingUserMessage,
@@ -36,7 +39,86 @@ import {
 	sendMessageForSession,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
-import { toMastraImages } from "./utils/toMastraImages";
+import { uploadFiles } from "./utils/uploadFiles";
+
+type HarnessFilePayload = {
+	data: string;
+	mediaType: string;
+	filename?: string;
+	uploaded?: boolean;
+};
+
+function MastraUploadFooter({
+	sessionId,
+	onError,
+	onSend,
+	...footerProps
+}: {
+	sessionId: string | null;
+	onError: (message: string) => void;
+	onSend: (payload: {
+		content: string;
+		files?: HarnessFilePayload[];
+	}) => void | Promise<void>;
+} & Omit<React.ComponentProps<typeof ChatInputFooter>, "onSend">) {
+	const attachments = useProviderAttachments();
+	const { entries, getUploadedFiles, isUploading } = useOptimisticUpload({
+		sessionId,
+		attachmentFiles: attachments.files,
+		removeAttachment: attachments.remove,
+		onError,
+	});
+
+	const handleSend = useCallback(
+		(message: PromptInputMessage) => {
+			const files = sessionId
+				? (() => {
+						const { files: uploadedFiles, ready } = getUploadedFiles();
+						if (!ready) return null;
+						return uploadedFiles.map((file) => ({
+							data: file.url,
+							mediaType: file.mediaType,
+							filename: file.filename,
+							uploaded: true,
+						}));
+					})()
+				: (message.files ?? []).map((file) => ({
+						data: file.url,
+						mediaType: file.mediaType,
+						filename: file.filename,
+						uploaded: false,
+					}));
+			if (files === null) return;
+
+			return onSend({
+				content: message.text,
+				files: files.length > 0 ? files : undefined,
+			});
+		},
+		[getUploadedFiles, onSend, sessionId],
+	);
+
+	const renderAttachment = useCallback(
+		(file: { id: string; type: "file"; url: string; mediaType: string }) => {
+			if (!sessionId) {
+				return <PromptInputAttachment data={file} />;
+			}
+			const entry = entries.get(file.id);
+			const loading = entry?.uploading ?? !entries.has(file.id);
+			return <PromptInputAttachment data={file} loading={loading} />;
+		},
+		[entries, sessionId],
+	);
+
+	return (
+		<ChatInputFooter
+			{...footerProps}
+			submitDisabled={sessionId ? isUploading : false}
+			renderAttachment={renderAttachment}
+			onSend={handleSend}
+		/>
+	);
+}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -415,24 +497,18 @@ export function ChatMastraInterface({
 	}, [messages]);
 
 	const handleSend = useCallback(
-		async (message: PromptInputMessage) => {
-			let text = message.text.trim();
-			const files = (message.files ?? []).map((file) => ({
-				url: file.url,
-				mediaType: file.mediaType,
-				filename: file.filename,
-			}));
+		async (payload: { content: string; files?: HarnessFilePayload[] }) => {
+			let content = payload.content.trim();
 
-			const isSlashCommand = text.startsWith("/");
-			const slashCommandResult = await resolveSlashCommandInput(text);
+			const isSlashCommand = content.startsWith("/");
+			const slashCommandResult = await resolveSlashCommandInput(content);
 			if (slashCommandResult.handled) {
 				setSubmitStatus(undefined);
 				return;
 			}
-			text = slashCommandResult.nextText.trim();
+			content = slashCommandResult.nextText.trim();
 
-			const images = toMastraImages(files);
-			if (!text && images.length === 0) {
+			if (!content && (!payload.files || payload.files.length === 0)) {
 				setSubmitStatus(undefined);
 				return;
 			}
@@ -440,34 +516,83 @@ export function ChatMastraInterface({
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
+			let preparedFiles = payload.files;
+			let effectiveSessionId = sessionId;
+
+			if (preparedFiles?.some((file) => file.uploaded === false)) {
+				if (!effectiveSessionId) {
+					const startResult = await onStartFreshSession();
+					if (!startResult.created || !startResult.sessionId) {
+						throw new Error(
+							startResult.errorMessage ??
+								"Failed to create a chat session. Please retry.",
+						);
+					}
+					effectiveSessionId = startResult.sessionId;
+				}
+
+				const uploadedFiles = await uploadFiles(
+					effectiveSessionId,
+					preparedFiles.map((file) => ({
+						type: "file",
+						url: file.data,
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
+				);
+				preparedFiles = uploadedFiles.map((file) => ({
+					data: file.url,
+					mediaType: file.mediaType,
+					filename: file.filename,
+					uploaded: true,
+				}));
+			}
+
 			const sendInput: ChatSendMessageInput = {
 				payload: {
-					content: text || "",
-					...(images.length > 0 ? { images } : {}),
+					content,
+					...(preparedFiles?.length
+						? {
+								files: preparedFiles.map(({ data, filename, mediaType }) => ({
+									data,
+									mediaType,
+									filename,
+								})),
+							}
+						: {}),
 				},
 				metadata: {
 					model: activeModel?.id,
 				},
 			};
 			const immediateUserMessage =
-				sessionId && !isSessionReady
+				effectiveSessionId && !isSessionReady
 					? toOptimisticUserMessage(sendInput)
 					: null;
 			if (immediateUserMessage) {
 				setPendingImmediateUserMessage(immediateUserMessage);
 			}
 
-			let targetSessionId = sessionId;
+			let targetSessionId = effectiveSessionId;
 			try {
-				const sendResult = await sendMessageForSession({
-					currentSessionId: sessionId,
-					isSessionReady,
-					ensureSessionReady,
-					onStartFreshSession,
-					sendToCurrentSession: () => commands.sendMessage(sendInput),
-					sendToSession: (nextSessionId) =>
-						sendMessageToSession(nextSessionId, sendInput),
-				});
+				const sendResult =
+					effectiveSessionId && effectiveSessionId !== sessionId
+						? {
+								targetSessionId: effectiveSessionId,
+								value: await sendMessageToSession(
+									effectiveSessionId,
+									sendInput,
+								),
+							}
+						: await sendMessageForSession({
+								currentSessionId: effectiveSessionId,
+								isSessionReady,
+								ensureSessionReady,
+								onStartFreshSession,
+								sendToCurrentSession: () => commands.sendMessage(sendInput),
+								sendToSession: (nextSessionId) =>
+									sendMessageToSession(nextSessionId, sendInput),
+							});
 				targetSessionId = sendResult.targetSessionId;
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
@@ -488,9 +613,9 @@ export function ChatMastraInterface({
 				session_id: targetSessionId,
 				model_id: activeModel?.id ?? null,
 				mention_count: 0,
-				attachment_count: files.length,
+				attachment_count: payload.files?.length ?? 0,
 				is_slash_command: isSlashCommand,
-				message_length: text.length,
+				message_length: content.length,
 				turn_number: (messages?.length ?? 0) + 1,
 			});
 		},
@@ -499,13 +624,13 @@ export function ChatMastraInterface({
 			captureChatEvent,
 			clearRuntimeError,
 			commands,
-			messages?.length,
 			isSessionReady,
+			messages?.length,
 			onStartFreshSession,
 			resolveSlashCommandInput,
 			ensureSessionReady,
-			sendMessageToSession,
 			sessionId,
+			sendMessageToSession,
 			setRuntimeErrorMessage,
 		],
 	);
@@ -640,11 +765,9 @@ export function ChatMastraInterface({
 
 	const handleSlashCommandSend = useCallback(
 		(command: SlashCommand) => {
-			void handleSend({ text: `/${command.name}`, files: [] }).catch(
-				(error) => {
-					console.debug("[chat-mastra] handleSlashCommandSend error", error);
-				},
-			);
+			void handleSend({ content: `/${command.name}` }).catch((error) => {
+				console.debug("[chat-mastra] handleSlashCommandSend error", error);
+			});
 		},
 		[handleSend],
 	);
@@ -742,7 +865,7 @@ export function ChatMastraInterface({
 					onQuestionRespond={handleQuestionResponse}
 				/>
 				<McpControls mcpUi={mcpUi} />
-				<ChatInputFooter
+				<MastraUploadFooter
 					cwd={cwd}
 					isFocused={isFocused}
 					error={errorMessage}
@@ -758,6 +881,8 @@ export function ChatMastraInterface({
 					thinkingEnabled={thinkingEnabled}
 					setThinkingEnabled={setThinkingEnabled}
 					slashCommands={slashCommands}
+					sessionId={sessionId}
+					onError={setRuntimeErrorMessage}
 					onSend={handleSend}
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}

@@ -9,18 +9,19 @@ export function toOptimisticUserMessage(
 	input: ChatSendMessageInput,
 ): MastraHistoryMessage | null {
 	const text = input.payload.content.trim();
-	const images = input.payload.images ?? [];
-	if (!text && images.length === 0) return null;
+	const files = input.payload.files ?? [];
+	if (!text && files.length === 0) return null;
 
 	return {
 		id: `optimistic-${crypto.randomUUID()}`,
 		role: "user",
 		content: [
 			...(text ? [{ type: "text", text }] : []),
-			...images.map((image) => ({
-				type: "image",
-				data: image.data,
-				mimeType: image.mimeType,
+			...files.map((file) => ({
+				type: "file",
+				data: file.data,
+				mediaType: file.mediaType,
+				filename: file.filename,
 			})),
 		],
 		createdAt: new Date(),
@@ -33,6 +34,14 @@ function toUserMessageSignature(message: MastraHistoryMessage): string | null {
 		.map((part) => {
 			if (part.type === "text") return `text:${part.text}`;
 			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			if ((part as { type?: string }).type === "file") {
+				const filePart = part as {
+					data?: string;
+					filename?: string;
+					mediaType?: string;
+				};
+				return `file:${filePart.mediaType ?? ""}:${filePart.filename ?? ""}:${filePart.data ?? ""}`;
+			}
 			return `${part.type}:${JSON.stringify(part)}`;
 		})
 		.join("||");

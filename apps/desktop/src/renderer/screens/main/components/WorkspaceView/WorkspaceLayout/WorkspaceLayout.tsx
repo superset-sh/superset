@@ -1,5 +1,6 @@
 import type { ExternalApp } from "@superset/local-db";
 import {
+	DEFAULT_SIDEBAR_WIDTH,
 	MAX_SIDEBAR_WIDTH,
 	MIN_SIDEBAR_WIDTH,
 	SidebarMode,
@@ -55,6 +56,7 @@ export function WorkspaceLayout({
 					maxWidth={MAX_SIDEBAR_WIDTH}
 					handleSide="left"
 					className={isExpanded ? "border-l-0" : undefined}
+					onDoubleClickHandle={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
 				>
 					<RightSidebar />
 				</ResizablePanel>
