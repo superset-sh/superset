@@ -241,6 +241,10 @@ API keys grant full access to your organization. Keep them secret and never comm
 |------|-------------|
 | `start_agent_session` | Start an autonomous AI agent session for a task. Supports multiple agents: Claude, Codex, Gemini, OpenCode, Copilot, and Cursor Agent (defaults to Claude). Launches the agent with task context in the specified workspace. When `paneId` is provided, adds a new terminal pane to the tab containing that pane (subagent behavior) instead of initializing the workspace. |
 
+## Chat Integration
+
+In the built-in chat panel, use the `/mcp` slash command to see your workspace's configured MCP servers — their names, transport type (local/remote), and current state (enabled/disabled/invalid). This reads from your `.mcp.json`.
+
 ## Example Usage
 
 Once connected, you can ask your AI agent to:
