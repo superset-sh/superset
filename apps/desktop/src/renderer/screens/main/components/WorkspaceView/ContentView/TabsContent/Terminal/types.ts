@@ -110,6 +110,9 @@ export interface TerminalResizeInput {
 }
 
 export type TerminalResizeMutate = (input: TerminalResizeInput) => void;
+export type TerminalResizeMutateAsync = (
+	input: TerminalResizeInput,
+) => Promise<void>;
 
 export interface TerminalDetachInput {
 	paneId: string;

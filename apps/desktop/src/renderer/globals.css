@@ -163,6 +163,14 @@
 		-webkit-font-smoothing: antialiased;
 	}
 
+	input,
+	textarea,
+	[contenteditable="true"],
+	[contenteditable="plaintext-only"] {
+		-webkit-user-select: text;
+		user-select: text;
+	}
+
 	/* Ensure the React root fills the viewport and provides a positioning context */
 	/* biome-ignore lint/correctness/noUnknownTypeSelector: app is a custom element in index.html */
 	app {

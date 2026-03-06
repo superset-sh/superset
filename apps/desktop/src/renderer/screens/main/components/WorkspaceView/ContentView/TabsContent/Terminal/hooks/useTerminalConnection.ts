@@ -6,6 +6,7 @@ import type {
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
+	TerminalResizeMutateAsync,
 	TerminalWriteMutate,
 } from "../types";
 
@@ -57,8 +58,11 @@ export function useTerminalConnection({
 				callbacks?.onSettled?.();
 			});
 	});
+	const resizeAsyncRef = useRef<TerminalResizeMutateAsync>(async (input) => {
+		await electronTrpcClient.terminal.resize.mutate(input);
+	});
 	const resizeRef = useRef<TerminalResizeMutate>((input) => {
-		electronTrpcClient.terminal.resize.mutate(input).catch((error) => {
+		resizeAsyncRef.current(input).catch((error) => {
 			console.warn("[Terminal] Failed to resize terminal:", error);
 		});
 	});
@@ -88,6 +92,7 @@ export function useTerminalConnection({
 		refs: {
 			createOrAttach: createOrAttachRef,
 			write: writeRef,
+			resizeAsync: resizeAsyncRef,
 			resize: resizeRef,
 			detach: detachRef,
 			clearScrollback: clearScrollbackRef,

@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import type { ITheme, Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon, Terminal as GhosttyTerminal } from "ghostty-web";
-import { debounce } from "lodash";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
@@ -11,10 +10,10 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
+import { TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { isTerminalAtBottom, scrollToBottom } from "./utils";
+import { isTerminalAtBottom } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -106,6 +105,9 @@ export function createTerminalInstance(
 		},
 	};
 
+	// StrictMode and rapid pane remounts can leave stale ghostty-web DOM behind
+	// for a tick. Clear it before opening a new terminal to avoid double cursors.
+	container.replaceChildren();
 	xterm.open(container);
 	xterm.loadAddon(fitAddon);
 
@@ -166,6 +168,32 @@ export function createTerminalInstance(
 			rendererRef.current.dispose();
 		},
 	};
+}
+
+function getGhosttyRuntime(xterm: XTerm): { blur?: () => void } {
+	return xterm as XTerm & { blur?: () => void };
+}
+
+export function getTerminalTextarea(xterm: XTerm): HTMLTextAreaElement | null {
+	const textarea = xterm.textarea;
+	if (
+		textarea &&
+		typeof textarea.focus === "function" &&
+		typeof textarea.blur === "function"
+	) {
+		return textarea as HTMLTextAreaElement;
+	}
+	return null;
+}
+
+export function focusTerminalInput(xterm: XTerm): void {
+	xterm.focus();
+	getTerminalTextarea(xterm)?.focus();
+}
+
+export function blurTerminalInput(xterm: XTerm): void {
+	getGhosttyRuntime(xterm).blur?.();
+	getTerminalTextarea(xterm)?.blur();
 }
 
 export interface KeyboardHandlerOptions {
@@ -421,39 +449,36 @@ export function setupFocusListener(
 	xterm: XTerm,
 	onFocus: () => void,
 ): (() => void) | null {
+	const element = xterm.element;
 	const textarea = xterm.textarea;
-	if (!textarea) return null;
+	if (!element && !textarea) return null;
 
-	textarea.addEventListener("focus", onFocus);
+	element?.addEventListener("focus", onFocus);
+	textarea?.addEventListener("focus", onFocus);
 
 	return () => {
-		textarea.removeEventListener("focus", onFocus);
+		element?.removeEventListener("focus", onFocus);
+		textarea?.removeEventListener("focus", onFocus);
 	};
 }
 
 export function setupResizeHandlers(
 	container: HTMLDivElement,
 	xterm: XTerm,
-	fitAddon: FitAddon,
-	onResize: (cols: number, rows: number) => void,
+	onResize: (wasAtBottom: boolean) => void,
 ): () => void {
-	const debouncedHandleResize = debounce(() => {
+	const handleResize = () => {
 		const wasAtBottom = isTerminalAtBottom(xterm);
-		fitAddon.fit();
-		onResize(xterm.cols, xterm.rows);
-		if (wasAtBottom) {
-			requestAnimationFrame(() => scrollToBottom(xterm));
-		}
-	}, RESIZE_DEBOUNCE_MS);
+		onResize(wasAtBottom);
+	};
 
-	const resizeObserver = new ResizeObserver(debouncedHandleResize);
+	const resizeObserver = new ResizeObserver(handleResize);
 	resizeObserver.observe(container);
-	window.addEventListener("resize", debouncedHandleResize);
+	window.addEventListener("resize", handleResize);
 
 	return () => {
-		window.removeEventListener("resize", debouncedHandleResize);
+		window.removeEventListener("resize", handleResize);
 		resizeObserver.disconnect();
-		debouncedHandleResize.cancel();
 	};
 }
 
@@ -470,10 +495,18 @@ function getTerminalCoordsFromEvent(
 	xterm: XTerm,
 	event: MouseEvent,
 ): { col: number; row: number } | null {
-	const element = xterm.element;
-	if (!element) return null;
+	const canvas =
+		xterm.element?.querySelector("canvas") ??
+		(
+			xterm as unknown as {
+				renderer?: { getCanvas?: () => HTMLCanvasElement };
+			}
+		).renderer?.getCanvas?.() ??
+		null;
+	if (!canvas || typeof canvas.getBoundingClientRect !== "function")
+		return null;
 
-	const rect = element.getBoundingClientRect();
+	const rect = canvas.getBoundingClientRect();
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 

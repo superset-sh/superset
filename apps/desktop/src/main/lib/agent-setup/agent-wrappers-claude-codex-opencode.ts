@@ -49,6 +49,20 @@ export function getClaudeSettingsContent(notifyPath: string): string {
 		hooks: {
 			UserPromptSubmit: [{ hooks: [{ type: "command", command: notifyPath }] }],
 			Stop: [{ hooks: [{ type: "command", command: notifyPath }] }],
+			Notification: [
+				{
+					matcher: "idle_prompt",
+					hooks: [{ type: "command", command: notifyPath }],
+				},
+				{
+					matcher: "permission_prompt",
+					hooks: [{ type: "command", command: notifyPath }],
+				},
+				{
+					matcher: "elicitation_dialog",
+					hooks: [{ type: "command", command: notifyPath }],
+				},
+			],
 			PostToolUse: [
 				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
 			],

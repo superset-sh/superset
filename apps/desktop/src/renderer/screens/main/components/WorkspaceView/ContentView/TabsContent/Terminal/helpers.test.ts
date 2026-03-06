@@ -30,13 +30,23 @@ mock.module("renderer/lib/trpc-client", () => ({
 	electronReactClient: {},
 }));
 
+mock.module("renderer/stores/hotkeys", () => ({
+	getHotkeyKeys: (id: string) => (id === "CLEAR_TERMINAL" ? "meta+k" : null),
+	isAppHotkeyEvent: () => false,
+}));
+
 // Import after mocks are set up
 const {
+	blurTerminalInput,
+	focusTerminalInput,
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
+	setupClickToMoveCursor,
 	setupCopyHandler,
+	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
+	setupResizeHandlers,
 } = await import("./helpers");
 
 describe("getDefaultTerminalTheme", () => {
@@ -131,6 +141,60 @@ describe("setupKeyboardHandler", () => {
 		expect(captured.handler).toBeDefined();
 		cleanup();
 		expect(captured.handler).toBeDefined();
+	});
+
+	it("allows normal terminal typing through to ghostty-web", () => {
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "a",
+			code: "KeyA",
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+		expect(result).toBe(false);
+	});
+
+	it("blocks the clear shortcut from reaching the terminal", () => {
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const onClear = mock(() => {});
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm, { onClear });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "k",
+			code: "KeyK",
+			metaKey: true,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+		expect(result).toBe(true);
+		expect(onClear).toHaveBeenCalledTimes(1);
 	});
 });
 
@@ -339,5 +403,191 @@ describe("setupPasteHandler", () => {
 		expect(onWrite).not.toHaveBeenCalled();
 		expect(preventDefault).not.toHaveBeenCalled();
 		expect(stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+});
+
+describe("terminal focus helpers", () => {
+	it("focusTerminalInput focuses the terminal and textarea", () => {
+		const focusTerminal = mock(() => {});
+		const focusTextarea = mock(() => {});
+		const blurTextarea = mock(() => {});
+		const xterm = {
+			focus: focusTerminal,
+			textarea: {
+				focus: focusTextarea,
+				blur: blurTextarea,
+			},
+		} as unknown as XTerm;
+
+		focusTerminalInput(xterm);
+
+		expect(focusTerminal).toHaveBeenCalledTimes(1);
+		expect(focusTextarea).toHaveBeenCalledTimes(1);
+	});
+
+	it("blurTerminalInput blurs both ghostty root and textarea", () => {
+		const blurTerminal = mock(() => {});
+		const blurTextarea = mock(() => {});
+		const xterm = {
+			blur: blurTerminal,
+			textarea: {
+				focus: mock(() => {}),
+				blur: blurTextarea,
+			},
+		} as unknown as XTerm;
+
+		blurTerminalInput(xterm);
+
+		expect(blurTerminal).toHaveBeenCalledTimes(1);
+		expect(blurTextarea).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("setupFocusListener", () => {
+	it("listens on both the ghostty root and textarea", () => {
+		const elementListeners = new Map<string, EventListener>();
+		const textareaListeners = new Map<string, EventListener>();
+		const onFocus = mock(() => {});
+		const xterm = {
+			element: {
+				addEventListener: mock((eventName: string, listener: EventListener) => {
+					elementListeners.set(eventName, listener);
+				}),
+				removeEventListener: mock((eventName: string) => {
+					elementListeners.delete(eventName);
+				}),
+			},
+			textarea: {
+				focus: mock(() => {}),
+				blur: mock(() => {}),
+				addEventListener: mock((eventName: string, listener: EventListener) => {
+					textareaListeners.set(eventName, listener);
+				}),
+				removeEventListener: mock((eventName: string) => {
+					textareaListeners.delete(eventName);
+				}),
+			},
+		} as unknown as XTerm;
+
+		const cleanup = setupFocusListener(xterm, onFocus);
+
+		elementListeners.get("focus")?.({} as Event);
+		textareaListeners.get("focus")?.({} as Event);
+
+		expect(onFocus).toHaveBeenCalledTimes(2);
+
+		cleanup?.();
+		expect(elementListeners.has("focus")).toBe(false);
+		expect(textareaListeners.has("focus")).toBe(false);
+	});
+});
+
+describe("setupClickToMoveCursor", () => {
+	it("uses the rendered canvas bounds when translating click coordinates", () => {
+		const clickListeners = new Map<string, EventListener>();
+		const onWrite = mock(() => {});
+		const canvas = {
+			getBoundingClientRect: () => ({
+				left: 10,
+				top: 5,
+				width: 200,
+				height: 100,
+			}),
+		};
+		const normalBuffer = { cursorX: 0, cursorY: 0, viewportY: 0 };
+		const xterm = {
+			element: {
+				addEventListener: mock((eventName: string, listener: EventListener) => {
+					clickListeners.set(eventName, listener);
+				}),
+				removeEventListener: mock((eventName: string) => {
+					clickListeners.delete(eventName);
+				}),
+				querySelector: mock(() => canvas),
+			},
+			buffer: {
+				active: normalBuffer,
+				normal: normalBuffer,
+			},
+			hasSelection: mock(() => false),
+			cols: 80,
+			rows: 24,
+			renderer: {
+				getMetrics: () => ({ width: 10, height: 20 }),
+			},
+		} as unknown as XTerm;
+
+		setupClickToMoveCursor(xterm, { onWrite });
+
+		clickListeners.get("click")?.({
+			button: 0,
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+			clientX: 25,
+			clientY: 10,
+		} as MouseEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1b[C");
+	});
+});
+
+describe("setupResizeHandlers", () => {
+	const originalResizeObserver = globalThis.ResizeObserver;
+	const originalWindow = globalThis.window;
+
+	afterEach(() => {
+		globalThis.ResizeObserver = originalResizeObserver;
+		globalThis.window = originalWindow;
+	});
+
+	it("forwards resize events without the old debounce delay", () => {
+		let resizeCallback:
+			| ((entries: ResizeObserverEntry[], observer: ResizeObserver) => void)
+			| null = null;
+		const observe = mock(() => {});
+		const disconnect = mock(() => {});
+
+		globalThis.ResizeObserver = class {
+			constructor(callback: ResizeObserverCallback) {
+				resizeCallback = callback;
+			}
+
+			observe = observe;
+			disconnect = disconnect;
+		} as unknown as typeof ResizeObserver;
+
+		globalThis.window = {
+			addEventListener: mock(() => {}),
+			removeEventListener: mock(() => {}),
+		} as unknown as Window & typeof globalThis;
+
+		const onResize = mock(() => {});
+		const container = {} as HTMLDivElement;
+		const xterm = {
+			buffer: {
+				active: {
+					baseY: 10,
+					viewportY: 10,
+				},
+			},
+		} as unknown as XTerm;
+
+		const cleanup = setupResizeHandlers(container, xterm, onResize);
+
+		if (resizeCallback) {
+			(
+				resizeCallback as (
+					entries: ResizeObserverEntry[],
+					observer: ResizeObserver,
+				) => void
+			)([], {} as ResizeObserver);
+		}
+
+		expect(onResize).toHaveBeenCalledWith(true);
+
+		cleanup();
+		expect(disconnect).toHaveBeenCalledTimes(1);
 	});
 });

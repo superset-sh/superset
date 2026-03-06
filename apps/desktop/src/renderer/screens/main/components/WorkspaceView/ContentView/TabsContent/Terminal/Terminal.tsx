@@ -9,7 +9,13 @@ import { SessionKilledOverlay } from "./components";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
+	TERMINAL_PADDING_PX,
 } from "./config";
+import {
+	formatCssFontFamilyList,
+	resolveTerminalFontFamily,
+	TERMINAL_ICON_FALLBACK_FAMILY,
+} from "./font-family";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
@@ -36,6 +42,9 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
+const TERMINAL_FONT_LOAD_TEST_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
+const TERMINAL_ICON_LOAD_TEST_STRING = String.fromCodePoint(0xf024b);
+
 type GhosttyRuntimeRenderer = {
 	remeasureFont?: () => void;
 	resize?: (cols: number, rows: number) => void;
@@ -46,6 +55,27 @@ type GhosttyRuntimeRenderer = {
 
 const getRuntimeRenderer = (xterm: XTerm): GhosttyRuntimeRenderer | undefined =>
 	(xterm as unknown as { renderer?: GhosttyRuntimeRenderer }).renderer;
+
+async function preloadTerminalFonts(
+	family: string,
+	size: number,
+): Promise<void> {
+	if (typeof document === "undefined") return;
+	const fontFaceSet = document.fonts;
+	if (!fontFaceSet || typeof fontFaceSet.load !== "function") return;
+
+	try {
+		await Promise.all([
+			fontFaceSet.load(`${size}px ${family}`, TERMINAL_FONT_LOAD_TEST_STRING),
+			fontFaceSet.load(
+				`${size}px ${formatCssFontFamilyList(TERMINAL_ICON_FALLBACK_FAMILY)}`,
+				TERMINAL_ICON_LOAD_TEST_STRING,
+			),
+		]);
+	} catch (error) {
+		console.warn("[Terminal] Failed to preload terminal fonts:", error);
+	}
+}
 
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
@@ -122,7 +152,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		refs: {
 			createOrAttach: createOrAttachRef,
 			write: writeRef,
-			resize: resizeRef,
+			resizeAsync: resizeAsyncRef,
 			detach: detachRef,
 			clearScrollback: clearScrollbackRef,
 		},
@@ -362,7 +392,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		setRestoredCwd,
 		createOrAttachRef,
 		writeRef,
-		resizeRef,
+		resizeAsyncRef,
 		detachRef,
 		clearScrollbackRef,
 		isStreamReadyRef,
@@ -405,44 +435,69 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	);
 
 	useEffect(() => {
-		const xterm = xtermRef.current;
-		if (!xterm || !fontSettings) return;
+		const xterm = xtermInstance ?? xtermRef.current;
+		if (!xterm) return;
+		let cancelled = false;
 		const family =
-			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
-		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
-		const runtimeRenderer = getRuntimeRenderer(xterm);
-		if (runtimeRenderer?.setFontFamily && runtimeRenderer?.setFontSize) {
-			runtimeRenderer.setFontFamily(family);
-			runtimeRenderer.setFontSize(size);
-		} else {
-			xterm.options.fontFamily = family;
-			xterm.options.fontSize = size;
-		}
+			fontSettings?.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
+		const size = fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
 
-		const remeasureAndFit = () => {
-			const previousCols = xterm.cols;
-			const previousRows = xterm.rows;
+		const applyFont = async () => {
+			const resolvedFamily = resolveTerminalFontFamily(family, size);
+			await preloadTerminalFonts(resolvedFamily, size);
+			if (cancelled || xtermRef.current !== xterm) return;
+
+			const runtimeRenderer = getRuntimeRenderer(xterm);
+			if (runtimeRenderer?.setFontFamily && runtimeRenderer?.setFontSize) {
+				runtimeRenderer.setFontFamily(resolvedFamily);
+				runtimeRenderer.setFontSize(size);
+			} else {
+				xterm.options.fontFamily = resolvedFamily;
+				xterm.options.fontSize = size;
+			}
+
+			if (typeof document !== "undefined" && "fonts" in document) {
+				await (document as Document & { fonts: FontFaceSet }).fonts.ready;
+				if (cancelled || xtermRef.current !== xterm) return;
+			}
+
+			// ghostty-web measures font metrics asynchronously after updates.
+			await new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+			);
+			if (cancelled || xtermRef.current !== xterm) return;
+
 			runtimeRenderer?.remeasureFont?.();
-			// Keep canvas metrics aligned even when fit() resolves to same cols/rows.
 			runtimeRenderer?.resize?.(xterm.cols, xterm.rows);
-			fitAddonRef.current?.fit();
-			runtimeRenderer?.resize?.(xterm.cols, xterm.rows);
-			if (xterm.cols !== previousCols || xterm.rows !== previousRows) {
-				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+
+			const proposed = fitAddonRef.current?.proposeDimensions();
+			if (!proposed) return;
+
+			try {
+				await resizeAsyncRef.current({
+					paneId,
+					cols: proposed.cols,
+					rows: proposed.rows,
+				});
+				if (cancelled || xtermRef.current !== xterm) return;
+				xterm.resize(proposed.cols, proposed.rows);
+			} catch (error) {
+				console.warn("[Terminal] Failed to resize after font update:", error);
 			}
 		};
 
-		remeasureAndFit();
+		void applyFont();
 
-		if (typeof document !== "undefined" && "fonts" in document) {
-			void (document as Document & { fonts: FontFaceSet }).fonts.ready.then(
-				() => {
-					if (xtermRef.current !== xterm) return;
-					remeasureAndFit();
-				},
-			);
-		}
-	}, [fontSettings, paneId, resizeRef]);
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		xtermInstance,
+		fontSettings?.terminalFontFamily,
+		fontSettings?.terminalFontSize,
+		paneId,
+		resizeAsyncRef,
+	]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
@@ -487,7 +542,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div
+				ref={terminalRef}
+				className="h-full w-full"
+				style={{
+					caretColor: "transparent",
+					padding: TERMINAL_PADDING_PX,
+				}}
+			/>
 		</div>
 	);
 };

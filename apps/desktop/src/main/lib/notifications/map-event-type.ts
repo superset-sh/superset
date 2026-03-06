@@ -4,27 +4,44 @@ export function mapEventType(
 	if (!eventType) {
 		return null;
 	}
+	const normalized = eventType.trim();
+	if (!normalized) {
+		return null;
+	}
+
+	const lower = normalized.toLowerCase();
+
 	if (
-		eventType === "Start" ||
-		eventType === "UserPromptSubmit" ||
-		eventType === "PostToolUse" ||
-		eventType === "PostToolUseFailure" ||
-		eventType === "BeforeAgent" ||
-		eventType === "AfterTool" ||
-		eventType === "sessionStart" ||
-		eventType === "userPromptSubmitted" ||
-		eventType === "postToolUse"
+		lower === "start" ||
+		lower === "userpromptsubmit" ||
+		lower === "posttooluse" ||
+		lower === "posttoolusefailure" ||
+		lower === "beforeagent" ||
+		lower === "aftertool" ||
+		lower === "sessionstart" ||
+		lower === "userpromptsubmitted"
 	) {
 		return "Start";
 	}
-	if (eventType === "PermissionRequest" || eventType === "preToolUse") {
+	if (
+		lower === "permissionrequest" ||
+		lower === "pretooluse" ||
+		lower === "permission_prompt" ||
+		lower === "permissionprompt" ||
+		lower === "elicitation_dialog" ||
+		lower === "elicitationdialog"
+	) {
 		return "PermissionRequest";
 	}
 	if (
-		eventType === "Stop" ||
-		eventType === "agent-turn-complete" ||
-		eventType === "AfterAgent" ||
-		eventType === "sessionEnd"
+		lower === "stop" ||
+		lower === "agent-turn-complete" ||
+		lower === "afteragent" ||
+		lower === "sessionend" ||
+		lower === "idle_prompt" ||
+		lower === "idleprompt" ||
+		lower === "auth_success" ||
+		lower === "authsuccess"
 	) {
 		return "Stop";
 	}

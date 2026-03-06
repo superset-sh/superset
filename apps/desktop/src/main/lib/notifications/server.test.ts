@@ -43,6 +43,13 @@ describe("notifications/server", () => {
 			expect(mapEventType("PermissionRequest")).toBe("PermissionRequest");
 		});
 
+		it("should map Claude notification subtypes", () => {
+			expect(mapEventType("permission_prompt")).toBe("PermissionRequest");
+			expect(mapEventType("elicitation_dialog")).toBe("PermissionRequest");
+			expect(mapEventType("idle_prompt")).toBe("Stop");
+			expect(mapEventType("auth_success")).toBe("Stop");
+		});
+
 		it("should return null for unknown event types (forward compatibility)", () => {
 			expect(mapEventType("UnknownEvent")).toBeNull();
 			expect(mapEventType("FutureEvent")).toBeNull();

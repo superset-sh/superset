@@ -8,7 +8,9 @@ import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
+	blurTerminalInput,
 	createTerminalInstance,
+	focusTerminalInput,
 	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupFocusListener,
@@ -26,7 +28,7 @@ import type {
 	CreateOrAttachResult,
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
-	TerminalResizeMutate,
+	TerminalResizeMutateAsync,
 	TerminalWriteMutate,
 } from "../types";
 import { isTerminalAtBottom, scrollToBottom } from "../utils";
@@ -108,7 +110,7 @@ export interface UseTerminalLifecycleOptions {
 	setRestoredCwd: (cwd: string | null) => void;
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
-	resizeRef: MutableRefObject<TerminalResizeMutate>;
+	resizeAsyncRef: MutableRefObject<TerminalResizeMutateAsync>;
 	detachRef: MutableRefObject<TerminalDetachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
 	isStreamReadyRef: MutableRefObject<boolean>;
@@ -169,7 +171,7 @@ export function useTerminalLifecycle({
 	setRestoredCwd,
 	createOrAttachRef,
 	writeRef,
-	resizeRef,
+	resizeAsyncRef,
 	detachRef,
 	clearScrollbackRef,
 	isStreamReadyRef,
@@ -249,7 +251,14 @@ export function useTerminalLifecycle({
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
-			xterm.focus();
+			focusTerminalInput(xterm);
+		} else {
+			// ghostty-web focuses during open(); counter that for background panes.
+			blurTerminalInput(xterm);
+			setTimeout(() => {
+				if (isUnmounted || xtermRef.current !== xterm) return;
+				blurTerminalInput(xterm);
+			}, 0);
 		}
 
 		if (!isUnmounted) {
@@ -516,14 +525,94 @@ export function useTerminalLifecycle({
 		registerGetSelectionCallbackRef.current(paneId, handleGetSelection);
 		registerPasteCallbackRef.current(paneId, handlePaste);
 
+		let resizeInFlight = false;
+		let pendingResize = false;
+		let resizeRafId: number | null = null;
+		let resizeWasAtBottom = false;
+		let resizeForce = false;
+		let lastRequestedCols = 0;
+		let lastRequestedRows = 0;
+
+		const schedulePtyFirstResize = (options?: {
+			force?: boolean;
+			wasAtBottom?: boolean;
+		}) => {
+			if (isUnmounted || xtermRef.current !== xterm) return;
+
+			resizeForce ||= options?.force ?? false;
+			resizeWasAtBottom ||= options?.wasAtBottom ?? false;
+
+			if (resizeInFlight) {
+				pendingResize = true;
+				return;
+			}
+
+			resizeInFlight = true;
+			if (resizeRafId !== null) {
+				cancelAnimationFrame(resizeRafId);
+			}
+
+			resizeRafId = requestAnimationFrame(() => {
+				resizeRafId = null;
+
+				const runResize = async () => {
+					const shouldForce = resizeForce;
+					const shouldStickBottom = resizeWasAtBottom;
+					resizeForce = false;
+					resizeWasAtBottom = false;
+
+					const proposed = fitAddon.proposeDimensions();
+					if (!proposed) return;
+
+					const { cols, rows } = proposed;
+					if (
+						!shouldForce &&
+						cols === lastRequestedCols &&
+						rows === lastRequestedRows
+					) {
+						return;
+					}
+
+					lastRequestedCols = cols;
+					lastRequestedRows = rows;
+
+					try {
+						await resizeAsyncRef.current({ paneId, cols, rows });
+					} catch (error) {
+						lastRequestedCols = 0;
+						lastRequestedRows = 0;
+						console.warn("[Terminal] Failed to resize PTY:", error);
+						return;
+					}
+
+					if (isUnmounted || xtermRef.current !== xterm) return;
+					xterm.resize(cols, rows);
+
+					if (!shouldStickBottom) return;
+					requestAnimationFrame(() => {
+						if (isUnmounted || xtermRef.current !== xterm) return;
+						scrollToBottom(xterm);
+					});
+				};
+
+				void runResize().finally(() => {
+					resizeInFlight = false;
+					if (!pendingResize) return;
+					pendingResize = false;
+					schedulePtyFirstResize();
+				});
+			});
+		};
+
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
 		const cleanupResize = setupResizeHandlers(
 			container,
 			xterm,
-			fitAddon,
-			(cols, rows) => resizeRef.current({ paneId, cols, rows }),
+			(wasAtBottom) => {
+				schedulePtyFirstResize({ wasAtBottom });
+			},
 		);
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
@@ -556,28 +645,15 @@ export function useTerminalLifecycle({
 		const runReattachRecovery = (forceResize: boolean) => {
 			if (!isCurrentTerminalRenderable()) return;
 
-			const prevCols = xterm.cols;
-			const prevRows = xterm.rows;
 			const wasAtBottom = isTerminalAtBottom(xterm);
 
 			// Rebuild stale renderer state after occlusion.
 			rendererRef.current?.current.clearTextureAtlas?.();
-
-			fitAddon.fit();
-
-			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
-				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-			}
+			schedulePtyFirstResize({ force: forceResize, wasAtBottom });
 
 			if (isFocusedRef.current && document.hasFocus()) {
-				xterm.focus();
+				focusTerminalInput(xterm);
 			}
-
-			if (!wasAtBottom) return;
-			requestAnimationFrame(() => {
-				if (isUnmounted || xtermRef.current !== xterm) return;
-				scrollToBottom(xterm);
-			});
 		};
 
 		const scheduleReattachRecovery = (forceResize: boolean) => {
@@ -648,6 +724,10 @@ export function useTerminalLifecycle({
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();
+			if (resizeRafId !== null) {
+				cancelAnimationFrame(resizeRafId);
+				resizeRafId = null;
+			}
 			cleanupKeyboard();
 			cleanupClickToMove();
 			cleanupFocus?.();
@@ -680,7 +760,8 @@ export function useTerminalLifecycle({
 			resetModes();
 			renderDisposable?.dispose();
 
-			setTimeout(() => xterm.dispose(), 0);
+			xterm.dispose();
+			container.replaceChildren();
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;

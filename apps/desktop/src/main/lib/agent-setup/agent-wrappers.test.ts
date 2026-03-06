@@ -60,6 +60,7 @@ const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createCodexWrapper,
+	getClaudeSettingsContent,
 	createMastraWrapper,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
@@ -169,6 +170,44 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain("# Superset wrapper for mastracode");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("includes Claude Notification hooks for idle and permission prompts", () => {
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const parsed = JSON.parse(getClaudeSettingsContent(notifyPath)) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		const notifications = parsed.hooks.Notification;
+		expect(Array.isArray(notifications)).toBe(true);
+		expect(
+			notifications.some(
+				(entry) =>
+					entry.matcher === "idle_prompt" &&
+					entry.hooks[0]?.type === "command" &&
+					entry.hooks[0]?.command === notifyPath,
+			),
+		).toBe(true);
+		expect(
+			notifications.some(
+				(entry) =>
+					entry.matcher === "permission_prompt" &&
+					entry.hooks[0]?.command === notifyPath,
+			),
+		).toBe(true);
+		expect(
+			notifications.some(
+				(entry) =>
+					entry.matcher === "elicitation_dialog" &&
+					entry.hooks[0]?.command === notifyPath,
+			),
+		).toBe(true);
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {

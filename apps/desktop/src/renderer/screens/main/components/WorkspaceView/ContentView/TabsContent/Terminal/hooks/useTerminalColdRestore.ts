@@ -2,6 +2,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import type { FitAddon } from "ghostty-web";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { focusTerminalInput } from "../helpers";
 import { coldRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -128,7 +129,7 @@ export function useTerminalColdRestore({
 					maybeApplyInitialState();
 
 					if (isFocusedRef.current) {
-						currentXterm.focus();
+						focusTerminalInput(currentXterm);
 					}
 				},
 				onError: (error: { message?: string }) => {
@@ -214,7 +215,7 @@ export function useTerminalColdRestore({
 					setTimeout(() => {
 						const currentXterm = xtermRef.current;
 						if (currentXterm) {
-							currentXterm.focus();
+							focusTerminalInput(currentXterm);
 						}
 					}, 0);
 				},

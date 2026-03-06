@@ -47,12 +47,38 @@ export function useTerminalStream({
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
+	const pendingWriteBufferRef = useRef("");
+	const isWriteFlushScheduledRef = useRef(false);
 
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
 	updateModesRef.current = updateModesFromData;
 	const updateCwdRef = useRef(updateCwdFromData);
 	updateCwdRef.current = updateCwdFromData;
+
+	const flushPendingData = useCallback(() => {
+		isWriteFlushScheduledRef.current = false;
+
+		const pending = pendingWriteBufferRef.current;
+		if (!pending) return;
+
+		const activeTerminal = xtermRef.current;
+		if (!activeTerminal || !isStreamReadyRef.current) return;
+
+		pendingWriteBufferRef.current = "";
+		updateModesRef.current(pending);
+		activeTerminal.write(pending);
+		updateCwdRef.current(pending);
+	}, [xtermRef, isStreamReadyRef]);
+
+	const scheduleWriteFlush = useCallback(() => {
+		if (isWriteFlushScheduledRef.current) return;
+		isWriteFlushScheduledRef.current = true;
+
+		queueMicrotask(() => {
+			flushPendingData();
+		});
+	}, [flushPendingData]);
 
 	const handleTerminalExit = useCallback(
 		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => {
@@ -155,17 +181,25 @@ export function useTerminalStream({
 						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
 					);
 				}
-
-				updateModesRef.current(event.data);
-				xterm.write(event.data);
-				updateCwdRef.current(event.data);
+				pendingWriteBufferRef.current += event.data;
+				// The main process already batches PTY output to ~60fps. Adding another
+				// animation-frame delay in the renderer compounds latency, so only coalesce
+				// writes within the current task/microtask.
+				if (pendingWriteBufferRef.current.length >= 64 * 1024) {
+					flushPendingData();
+					return;
+				}
+				scheduleWriteFlush();
 			} else if (event.type === "exit") {
+				flushPendingData();
 				handleTerminalExit(event.exitCode, xterm, event.reason);
 			} else if (event.type === "disconnect") {
+				flushPendingData();
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",
 				);
 			} else if (event.type === "error") {
+				flushPendingData();
 				handleStreamError(event, xterm);
 			}
 		},
@@ -177,6 +211,8 @@ export function useTerminalStream({
 			handleTerminalExit,
 			handleStreamError,
 			setConnectionError,
+			flushPendingData,
+			scheduleWriteFlush,
 		],
 	);
 
