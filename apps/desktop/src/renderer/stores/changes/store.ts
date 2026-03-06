@@ -5,39 +5,12 @@ import type {
 } from "shared/changes-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import {
+	DEFAULT_CHANGE_SECTION_ORDER,
+	normalizeChangeSectionOrder,
+} from "./section-order";
 
 type FileListViewMode = "grouped" | "tree";
-
-const DEFAULT_SECTION_ORDER: ChangeCategory[] = [
-	"against-base",
-	"committed",
-	"staged",
-	"unstaged",
-];
-
-function normalizeSectionOrder(
-	sectionOrder: ChangeCategory[] | undefined,
-): ChangeCategory[] {
-	if (!sectionOrder || sectionOrder.length === 0) {
-		return [...DEFAULT_SECTION_ORDER];
-	}
-
-	const seen = new Set<ChangeCategory>();
-	const normalized: ChangeCategory[] = [];
-
-	for (const section of sectionOrder) {
-		if (seen.has(section)) continue;
-		seen.add(section);
-		normalized.push(section);
-	}
-
-	for (const section of DEFAULT_SECTION_ORDER) {
-		if (seen.has(section)) continue;
-		normalized.push(section);
-	}
-
-	return normalized;
-}
 
 interface SelectedFileState {
 	file: ChangedFile;
@@ -84,7 +57,7 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
-	sectionOrder: [...DEFAULT_SECTION_ORDER],
+	sectionOrder: [...DEFAULT_CHANGE_SECTION_ORDER],
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
 	focusMode: false,
@@ -147,7 +120,9 @@ export const useChangesStore = create<ChangesState>()(
 				moveSection: (fromSection, toSection) => {
 					if (fromSection === toSection) return;
 
-					const nextSectionOrder = normalizeSectionOrder(get().sectionOrder);
+					const nextSectionOrder = normalizeChangeSectionOrder(
+						get().sectionOrder,
+					);
 					const fromIndex = nextSectionOrder.indexOf(fromSection);
 					const toIndex = nextSectionOrder.indexOf(toSection);
 
@@ -202,9 +177,9 @@ export const useChangesStore = create<ChangesState>()(
 						delete state.baseBranch;
 					}
 					if (version < 3) {
-						state.sectionOrder = [...DEFAULT_SECTION_ORDER];
+						state.sectionOrder = [...DEFAULT_CHANGE_SECTION_ORDER];
 					}
-					state.sectionOrder = normalizeSectionOrder(
+					state.sectionOrder = normalizeChangeSectionOrder(
 						state.sectionOrder as ChangeCategory[] | undefined,
 					);
 					return state as unknown as ChangesState;

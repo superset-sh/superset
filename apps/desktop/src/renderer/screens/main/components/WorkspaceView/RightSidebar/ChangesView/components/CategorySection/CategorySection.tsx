@@ -4,16 +4,10 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import { type ReactNode, useEffect, useRef } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import type { ReactNode } from "react";
 import { HiChevronRight } from "react-icons/hi2";
+import { useChangesSectionDnd } from "renderer/screens/main/components/WorkspaceView/hooks/useChangesSectionDnd";
 import type { ChangeCategory } from "shared/changes-types";
-
-const CHANGES_SECTION_DND_TYPE = "CHANGES_SECTION";
-
-interface ChangesSectionDragItem {
-	draggedId: ChangeCategory;
-}
 
 interface CategorySectionProps {
 	id: ChangeCategory;
@@ -36,36 +30,8 @@ export function CategorySection({
 	actions,
 	onMove,
 }: CategorySectionProps) {
-	const containerRef = useRef<HTMLDivElement>(null);
-
-	const [{ isDragging }, drag] = useDrag(
-		() => ({
-			type: CHANGES_SECTION_DND_TYPE,
-			item: { draggedId: id },
-			collect: (monitor) => ({
-				isDragging: monitor.isDragging(),
-			}),
-		}),
-		[id],
-	);
-
-	const [{ isOver }, drop] = useDrop(
-		() => ({
-			accept: CHANGES_SECTION_DND_TYPE,
-			drop: (item: ChangesSectionDragItem) => {
-				if (item.draggedId === id) return;
-				onMove?.(item.draggedId, id);
-			},
-			collect: (monitor) => ({
-				isOver: monitor.isOver({ shallow: true }),
-			}),
-		}),
-		[id, onMove],
-	);
-
-	useEffect(() => {
-		drag(drop(containerRef));
-	}, [drag, drop]);
+	const { containerRef, isDragging, isOver } =
+		useChangesSectionDnd<HTMLDivElement>({ id, onMove });
 
 	if (count === 0) {
 		return null;

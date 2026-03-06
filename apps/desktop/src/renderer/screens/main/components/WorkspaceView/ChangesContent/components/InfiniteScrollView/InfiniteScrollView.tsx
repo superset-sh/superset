@@ -1,15 +1,14 @@
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useChangesStore } from "renderer/stores/changes";
-import type { ChangeCategory, GitChangesStatus } from "shared/changes-types";
+import type { GitChangesStatus } from "shared/changes-types";
 import { useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
 import { FileDiffSection } from "../FileDiffSection";
-import { VirtualizedFileList } from "../VirtualizedFileList";
 import { CategoryHeader } from "./components/CategoryHeader";
-import { CommitSection } from "./components/CommitSection";
 import { DiffToolbar } from "./components/DiffToolbar";
 import { useFileMutations } from "./hooks/useFileMutations";
 import { useFocusMode } from "./hooks/useFocusMode";
+import { useOrderedSections } from "./hooks/useOrderedSections";
 
 interface InfiniteScrollViewProps {
 	status: GitChangesStatus;
@@ -129,121 +128,32 @@ export function InfiniteScrollView({
 		status.commits.length > 0 ||
 		sortedStaged.length > 0 ||
 		sortedUnstaged.length > 0;
-	const allSections: ChangeCategory[] = [
-		"against-base",
-		"committed",
-		"staged",
-		"unstaged",
-	];
-	const orderedSectionIds = [
-		...sectionOrder,
-		...allSections.filter((section) => !sectionOrder.includes(section)),
-	];
-
-	const sectionDefinitions = {
-		"against-base": {
-			id: "against-base",
-			title: `Against ${baseBranch}`,
-			count: sortedAgainstBase.length,
-			isExpanded: expandedCategories["against-base"],
-			onToggle: () => toggleCategory("against-base"),
-			content: expandedCategories["against-base"] ? (
-				<VirtualizedFileList
-					files={sortedAgainstBase}
-					category="against-base"
-					worktreePath={worktreePath}
-					baseBranch={baseBranch}
-					collapsedFiles={collapsedFiles}
-					onToggleFile={toggleFile}
-					scrollElementRef={containerRef}
-				/>
-			) : null,
-		},
-		committed: {
-			id: "committed",
-			title: "Commits",
-			count: status.commits.length,
-			isExpanded: expandedCategories.committed,
-			onToggle: () => toggleCategory("committed"),
-			content: expandedCategories.committed ? (
-				<div>
-					{status.commits.map((commit) => (
-						<CommitSection
-							key={commit.hash}
-							commit={commit}
-							worktreePath={worktreePath}
-							collapsedFiles={collapsedFiles}
-							onToggleFile={toggleFile}
-							scrollElementRef={containerRef}
-						/>
-					))}
-				</div>
-			) : null,
-		},
-		staged: {
-			id: "staged",
-			title: "Staged",
-			count: sortedStaged.length,
-			isExpanded: expandedCategories.staged,
-			onToggle: () => toggleCategory("staged"),
-			content: expandedCategories.staged ? (
-				<VirtualizedFileList
-					files={sortedStaged}
-					category="staged"
-					worktreePath={worktreePath}
-					collapsedFiles={collapsedFiles}
-					onToggleFile={toggleFile}
-					scrollElementRef={containerRef}
-					onUnstage={(file) =>
-						unstageFileMutation.mutate({
-							worktreePath,
-							filePath: file.path,
-						})
-					}
-					onDiscard={handleDiscard}
-					isActioning={isActioning}
-				/>
-			) : null,
-		},
-		unstaged: {
-			id: "unstaged",
-			title: "Unstaged",
-			count: sortedUnstaged.length,
-			isExpanded: expandedCategories.unstaged,
-			onToggle: () => toggleCategory("unstaged"),
-			content: expandedCategories.unstaged ? (
-				<VirtualizedFileList
-					files={sortedUnstaged}
-					category="unstaged"
-					worktreePath={worktreePath}
-					collapsedFiles={collapsedFiles}
-					onToggleFile={toggleFile}
-					scrollElementRef={containerRef}
-					onStage={(file) =>
-						stageFileMutation.mutate({
-							worktreePath,
-							filePath: file.path,
-						})
-					}
-					onDiscard={handleDiscard}
-					isActioning={isActioning}
-				/>
-			) : null,
-		},
-	} satisfies Record<
-		ChangeCategory,
-		{
-			id: ChangeCategory;
-			title: string;
-			count: number;
-			isExpanded: boolean;
-			onToggle: () => void;
-			content: ReactNode;
-		}
-	>;
-	const orderedSections = orderedSectionIds.map(
-		(section) => sectionDefinitions[section],
-	);
+	const orderedSections = useOrderedSections({
+		sectionOrder,
+		baseBranch,
+		worktreePath,
+		scrollElementRef: containerRef,
+		collapsedFiles,
+		onToggleFile: toggleFile,
+		expandedSections: expandedCategories,
+		toggleSection: toggleCategory,
+		againstBaseFiles: sortedAgainstBase,
+		commits: status.commits,
+		stagedFiles: sortedStaged,
+		unstagedFiles: sortedUnstaged,
+		onUnstageFile: (file) =>
+			unstageFileMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			}),
+		onStageFile: (file) =>
+			stageFileMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			}),
+		onDiscardFile: handleDiscard,
+		isActioning,
+	});
 
 	if (!hasChanges) {
 		return (

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useChangesStore } from "renderer/stores/changes";
+import { getOrderedChangeSectionIds } from "renderer/stores/changes/section-order";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../context";
 
@@ -45,19 +46,10 @@ export function useFocusMode({
 	const { focusedFileKey, setFocusedFileKey, setActiveFileKey, activeFileKey } =
 		useScrollContext();
 	const { focusMode, toggleFocusMode } = useChangesStore();
-	const orderedSections = useMemo(() => {
-		const allSections: ChangeCategory[] = [
-			"against-base",
-			"committed",
-			"staged",
-			"unstaged",
-		];
-
-		return [
-			...sectionOrder,
-			...allSections.filter((section) => !sectionOrder.includes(section)),
-		];
-	}, [sectionOrder]);
+	const orderedSections = useMemo(
+		() => getOrderedChangeSectionIds(sectionOrder),
+		[sectionOrder],
+	);
 
 	const flatFileList = useMemo<FlatFileEntry[]>(() => {
 		const entries: FlatFileEntry[] = [];
