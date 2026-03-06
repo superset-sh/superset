@@ -89,6 +89,7 @@ export function ChatMastraPane({
 	});
 	const {
 		snapshotAvailableForSession,
+		debugSummary,
 		handleRawSnapshotChange,
 		handleCopyRawSnapshot,
 	} = useChatMastraRawSnapshot({ sessionId });
@@ -164,23 +165,30 @@ export function ChatMastraPane({
 								onClosePane={handlers.onClosePane}
 								leadingActions={
 									showDevToolbarActions ? (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={() => {
-														void handleCopyRawSnapshot();
-													}}
-													disabled={!snapshotAvailableForSession}
-													className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
-												>
-													<CopyIcon className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="bottom" showArrow={false}>
-												Copy raw chat JSON (dev)
-											</TooltipContent>
-										</Tooltip>
+										<div className="flex items-center gap-2">
+											{debugSummary ? (
+												<span className="max-w-[420px] truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+													{debugSummary}
+												</span>
+											) : null}
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={() => {
+															void handleCopyRawSnapshot();
+														}}
+														disabled={!snapshotAvailableForSession}
+														className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+													>
+														<CopyIcon className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="bottom" showArrow={false}>
+													Copy raw chat JSON (dev)
+												</TooltipContent>
+											</Tooltip>
+										</div>
 									) : null
 								}
 								closeHotkeyId="CLOSE_TERMINAL"

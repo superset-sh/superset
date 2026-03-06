@@ -463,6 +463,8 @@ export function ChatMastraInterface({
 		}
 		return [...messages, pendingImmediateUserMessage];
 	}, [messages, pendingImmediateUserMessage]);
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	useEffect(() => {
 		if (isRunning) {
@@ -479,18 +481,40 @@ export function ChatMastraInterface({
 	useEffect(() => {
 		onRawSnapshotChange?.({
 			sessionId,
+			cwd,
 			isRunning: canAbort,
+			displayIsRunning: isRunning,
+			submitStatus:
+				submitStatus === "submitted" || submitStatus === "streaming"
+					? submitStatus
+					: "ready",
+			isAwaitingAssistant,
 			currentMessage: currentMessage ?? null,
 			messages: messages ?? [],
+			messageCount: messages?.length ?? 0,
+			activeToolsCount: activeTools?.size ?? 0,
+			activeSubagentsCount: activeSubagents?.size ?? 0,
+			hasPendingApproval: Boolean(pendingApproval),
+			hasPendingPlanApproval: Boolean(pendingPlanApproval),
+			hasPendingQuestion: Boolean(pendingQuestion),
 			error,
 		});
 	}, [
+		activeSubagents,
+		activeTools,
+		cwd,
 		canAbort,
 		currentMessage,
 		error,
+		isAwaitingAssistant,
+		isRunning,
 		messages,
 		onRawSnapshotChange,
+		pendingApproval,
+		pendingPlanApproval,
+		pendingQuestion,
 		sessionId,
+		submitStatus,
 	]);
 
 	useEffect(() => {
@@ -840,8 +864,6 @@ export function ChatMastraInterface({
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	return (
 		<PromptInputProvider>
