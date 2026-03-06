@@ -7,6 +7,7 @@ import { searchFiles } from "./utils/file-search";
 import {
 	authenticateRuntimeMcpServer,
 	destroyRuntime,
+	generateAndSetTitle,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
 	type RuntimeSession,
@@ -107,7 +108,7 @@ export class ChatMastraService {
 					cwd: runtimeCwd,
 				};
 				await runSessionStartHook(runtime).catch(() => {});
-				subscribeToSessionEvents(runtime, this.apiClient);
+				subscribeToSessionEvents(runtime);
 				this.runtimes.set(sessionId, runtime);
 				return runtime;
 			} finally {
@@ -228,6 +229,7 @@ export class ChatMastraService {
 						const userMessage =
 							input.payload.content.trim() || "[non-text message]";
 						await onUserPromptSubmit(runtime, userMessage);
+						const submittedUserMessage = input.payload.content.trim();
 						const selectedModel = input.metadata?.model?.trim();
 						if (selectedModel) {
 							await runtime.harness.switchModel({
@@ -235,6 +237,12 @@ export class ChatMastraService {
 								scope: "thread",
 							});
 						}
+						void generateAndSetTitle(runtime, this.apiClient, {
+							submittedUserMessage:
+								submittedUserMessage.length > 0
+									? submittedUserMessage
+									: undefined,
+						});
 						return runtime.harness.sendMessage(input.payload);
 					}),
 

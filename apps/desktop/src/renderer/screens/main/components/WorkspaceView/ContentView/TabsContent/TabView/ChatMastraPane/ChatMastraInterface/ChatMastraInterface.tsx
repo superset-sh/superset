@@ -189,6 +189,7 @@ export function ChatMastraInterface({
 	ensureSessionReady,
 	onStartFreshSession,
 	onConsumeLaunchConfig,
+	onUserMessageSubmitted,
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
@@ -594,6 +595,9 @@ export function ChatMastraInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
+				if (content) {
+					onUserMessageSubmitted?.(content);
+				}
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
@@ -632,6 +636,7 @@ export function ChatMastraInterface({
 			sessionId,
 			sendMessageToSession,
 			setRuntimeErrorMessage,
+			onUserMessageSubmitted,
 		],
 	);
 
@@ -697,6 +702,7 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				onUserMessageSubmitted?.(prompt);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
@@ -753,6 +759,7 @@ export function ChatMastraInterface({
 		sendMessageToSession,
 		sessionId,
 		setRuntimeErrorMessage,
+		onUserMessageSubmitted,
 	]);
 
 	const handleStop = useCallback(

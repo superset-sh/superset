@@ -339,7 +339,9 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						if (!tab || tab.name === title) return state;
+						if (!tab || tab.name === title || tab.userTitle?.trim()) {
+							return state;
+						}
 						return {
 							tabs: state.tabs.map((t) =>
 								t.id === tabId ? { ...t, name: title } : t,
@@ -981,7 +983,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = {
 						...state.panes,
-						[paneId]: { ...pane, name },
+						[paneId]: { ...pane, name, userTitle: name },
 					};
 					const tabName = deriveTabName(newPanes, pane.tabId);
 
@@ -990,6 +992,20 @@ export const useTabsStore = create<TabsStore>()(
 						tabs: state.tabs.map((t) =>
 							t.id === pane.tabId ? { ...t, name: tabName } : t,
 						),
+					});
+				},
+				setPaneAutoTitle: (paneId, title) => {
+					set((state) => {
+						const pane = state.panes[paneId];
+						if (!pane || pane.name === title || pane.userTitle?.trim()) {
+							return state;
+						}
+						return {
+							panes: {
+								...state.panes,
+								[paneId]: { ...pane, name: title },
+							},
+						};
 					});
 				},
 

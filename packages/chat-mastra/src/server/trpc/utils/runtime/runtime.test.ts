@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { type RuntimeSession, subscribeToSessionEvents } from "./runtime";
+import {
+	generateAndSetTitle,
+	type RuntimeSession,
+	subscribeToSessionEvents,
+} from "./runtime";
 
 function createRuntimeForTest(): {
 	runtime: RuntimeSession;
@@ -32,15 +36,7 @@ function createRuntimeForTest(): {
 		cwd: "/tmp",
 	};
 
-	const apiClient = {
-		chat: {
-			updateTitle: {
-				mutate: async () => ({}),
-			},
-		},
-	} as unknown as Parameters<typeof subscribeToSessionEvents>[1];
-
-	subscribeToSessionEvents(runtime, apiClient);
+	subscribeToSessionEvents(runtime);
 
 	return {
 		runtime,
@@ -49,6 +45,57 @@ function createRuntimeForTest(): {
 			listener(event);
 		},
 	};
+}
+
+interface RuntimeTestMessage {
+	role: string;
+	content: Array<{ type: string; text?: string }>;
+}
+
+function createRuntimeForTitleTest(options?: {
+	messages?: RuntimeTestMessage[];
+	generatedTitle?: string;
+}): {
+	runtime: RuntimeSession;
+	apiClient: Parameters<typeof generateAndSetTitle>[1];
+	updateTitleInputs: Array<{ sessionId: string; title: string }>;
+} {
+	const updateTitleInputs: Array<{ sessionId: string; title: string }> = [];
+	const messages = options?.messages ?? [];
+	const generatedTitle = options?.generatedTitle ?? "";
+
+	const runtime: RuntimeSession = {
+		sessionId: "11111111-1111-1111-1111-111111111111",
+		harness: {
+			subscribe: () => () => {},
+			listMessages: async () => messages,
+			getCurrentMode: () => ({
+				agent: {
+					generateTitleFromUserMessage: async () => generatedTitle,
+				},
+			}),
+			getFullModelId: () => "anthropic/claude-opus-4-6",
+		} as RuntimeSession["harness"],
+		mcpManager: null as RuntimeSession["mcpManager"],
+		hookManager: null as RuntimeSession["hookManager"],
+		mcpManualStatuses: new Map(),
+		lastErrorMessage: null,
+		pendingSandboxQuestion: null,
+		cwd: "/tmp",
+	};
+
+	const apiClient = {
+		chat: {
+			updateTitle: {
+				mutate: async (input: { sessionId: string; title: string }) => {
+					updateTitleInputs.push(input);
+					return { updated: true };
+				},
+			},
+		},
+	} as unknown as Parameters<typeof generateAndSetTitle>[1];
+
+	return { runtime, apiClient, updateTitleInputs };
 }
 
 describe("runtime error propagation", () => {
@@ -124,5 +171,70 @@ describe("runtime error propagation", () => {
 
 		emit({ type: "agent_start" });
 		expect(runtime.pendingSandboxQuestion).toBeNull();
+	});
+});
+
+describe("runtime title generation", () => {
+	it("uses submitted user message when history has no persisted user messages", async () => {
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [],
+				generatedTitle: "Title from submit payload",
+			},
+		);
+
+		await generateAndSetTitle(runtime, apiClient, {
+			submittedUserMessage: "Title source from current submit",
+		});
+
+		expect(updateTitleInputs).toEqual([
+			{
+				sessionId: "11111111-1111-1111-1111-111111111111",
+				title: "Title from submit payload",
+			},
+		]);
+	});
+
+	it("does not double-count submitted message when already persisted", async () => {
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "duplicate-safe message" }],
+					},
+				],
+				generatedTitle: "Title from deduped submit",
+			},
+		);
+
+		await generateAndSetTitle(runtime, apiClient, {
+			submittedUserMessage: "duplicate-safe message",
+		});
+
+		expect(updateTitleInputs).toEqual([
+			{
+				sessionId: "11111111-1111-1111-1111-111111111111",
+				title: "Title from deduped submit",
+			},
+		]);
+	});
+
+	it("ignores malformed text parts without a text string", async () => {
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text" }],
+					},
+				],
+				generatedTitle: "should not be used",
+			},
+		);
+
+		await generateAndSetTitle(runtime, apiClient);
+
+		expect(updateTitleInputs).toEqual([]);
 	});
 });
