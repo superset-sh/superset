@@ -6,6 +6,7 @@ import {
 	execWithShellEnv,
 	getProcessEnvWithShellPath,
 } from "../workspaces/utils/shell-env";
+import { getRepoContext } from "../workspaces/utils/github/github";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
 import {
@@ -209,11 +210,22 @@ async function findOpenPRByHeadCommit(
 			return null;
 		}
 
+		// For forks, cross-repo PRs live on the upstream repo, not the fork.
+		const repoArgs: string[] = [];
+		const repoContext = await getRepoContext(worktreePath);
+		if (repoContext?.isFork) {
+			const normalized = normalizeGitHubRepoUrl(repoContext.upstreamUrl);
+			if (normalized) {
+				repoArgs.push("--repo", normalized.replace("https://github.com/", ""));
+			}
+		}
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"list",
+				...repoArgs,
 				"--state",
 				"open",
 				"--search",

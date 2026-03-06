@@ -42,7 +42,7 @@ export async function fetchGitHubPRStatus(
 
 		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath),
+			getPRForBranch(worktreePath, repoContext),
 		]);
 
 		const result: GitHubStatus = {
@@ -123,13 +123,14 @@ const PR_JSON_FIELDS =
 
 async function getPRForBranch(
 	worktreePath: string,
+	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	const byTracking = await getPRByBranchTracking(worktreePath);
 	if (byTracking) {
 		return byTracking;
 	}
 
-	return findPRByHeadCommit(worktreePath);
+	return findPRByHeadCommit(worktreePath, repoContext);
 }
 
 /**
@@ -173,6 +174,7 @@ async function getPRByBranchTracking(
  */
 async function findPRByHeadCommit(
 	worktreePath: string,
+	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		const { stdout: headOutput } = await execFileAsync(
@@ -185,11 +187,25 @@ async function findPRByHeadCommit(
 			return null;
 		}
 
+		// For forks, cross-repo PRs live on the upstream repo, not the fork.
+		const repoArgs: string[] = [];
+		if (repoContext?.isFork) {
+			try {
+				const nwo = new URL(repoContext.upstreamUrl).pathname.slice(1);
+				if (nwo) {
+					repoArgs.push("--repo", nwo);
+				}
+			} catch {
+				// Ignore malformed upstream URL; gh will search the default repo.
+			}
+		}
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"list",
+				...repoArgs,
 				"--state",
 				"all",
 				"--search",
