@@ -8,6 +8,7 @@ import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -254,6 +255,7 @@ function PlansPage() {
 		}
 
 		if (action === "contact") {
+			track("enterprise_trial_requested", { source: "billing_plans" });
 			openUrl.mutate("mailto:founders@superset.sh");
 			return;
 		}
@@ -362,7 +364,12 @@ function PlansPage() {
 						plan,{" "}
 						<button
 							type="button"
-							onClick={() => openUrl.mutate("mailto:founders@superset.sh")}
+							onClick={() => {
+								track("enterprise_trial_requested", {
+									source: "billing_plans_inline",
+								});
+								openUrl.mutate("mailto:founders@superset.sh");
+							}}
 							className="inline-flex items-center gap-1 text-primary hover:underline"
 						>
 							contact us
