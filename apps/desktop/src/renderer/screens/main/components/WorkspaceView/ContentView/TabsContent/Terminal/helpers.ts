@@ -15,6 +15,7 @@ import {
 	getTerminalColors,
 } from "shared/themes";
 import { TERMINAL_OPTIONS } from "./config";
+import { getTerminalCoordsFromEvent } from "./ghostty-adapter";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { isTerminalAtBottom } from "./utils";
 
@@ -137,32 +138,6 @@ export function createTerminalInstance(
 		xterm,
 		fitAddon,
 	};
-}
-
-function getGhosttyRuntime(xterm: XTerm): { blur?: () => void } {
-	return xterm as XTerm & { blur?: () => void };
-}
-
-export function getTerminalTextarea(xterm: XTerm): HTMLTextAreaElement | null {
-	const textarea = xterm.textarea;
-	if (
-		textarea &&
-		typeof textarea.focus === "function" &&
-		typeof textarea.blur === "function"
-	) {
-		return textarea as HTMLTextAreaElement;
-	}
-	return null;
-}
-
-export function focusTerminalInput(xterm: XTerm): void {
-	xterm.focus();
-	getTerminalTextarea(xterm)?.focus();
-}
-
-export function blurTerminalInput(xterm: XTerm): void {
-	getGhosttyRuntime(xterm).blur?.();
-	getTerminalTextarea(xterm)?.blur();
 }
 
 export interface KeyboardHandlerOptions {
@@ -458,48 +433,6 @@ export function setupResizeHandlers(
 export interface ClickToMoveOptions {
 	/** Callback to write data to the terminal PTY */
 	onWrite: (data: string) => void;
-}
-
-/**
- * Convert mouse event coordinates to terminal cell coordinates.
- * Returns null if coordinates cannot be determined.
- */
-function getTerminalCoordsFromEvent(
-	xterm: XTerm,
-	event: MouseEvent,
-): { col: number; row: number } | null {
-	const canvas =
-		xterm.element?.querySelector("canvas") ??
-		(
-			xterm as unknown as {
-				renderer?: { getCanvas?: () => HTMLCanvasElement };
-			}
-		).renderer?.getCanvas?.() ??
-		null;
-	if (!canvas || typeof canvas.getBoundingClientRect !== "function")
-		return null;
-
-	const rect = canvas.getBoundingClientRect();
-	const x = event.clientX - rect.left;
-	const y = event.clientY - rect.top;
-
-	const metrics = (
-		xterm as unknown as {
-			renderer?: { getMetrics: () => { width: number; height: number } };
-		}
-	).renderer?.getMetrics();
-	if (!metrics) return null;
-
-	const cellWidth = metrics.width;
-	const cellHeight = metrics.height;
-
-	if (cellWidth <= 0 || cellHeight <= 0) return null;
-
-	// Clamp to valid terminal grid range to prevent excessive delta calculations
-	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cellWidth)));
-	const row = Math.max(0, Math.min(xterm.rows - 1, Math.floor(y / cellHeight)));
-
-	return { col, row };
 }
 
 /**

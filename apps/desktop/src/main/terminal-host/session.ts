@@ -9,6 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
@@ -90,6 +91,7 @@ export class Session {
 	readonly tabId: string;
 	readonly shell: string;
 	readonly createdAt: Date;
+	readonly sessionGeneration: string;
 	private readonly spawnProcess: SpawnProcess;
 
 	private subprocess: ChildProcess | null = null;
@@ -140,6 +142,7 @@ export class Session {
 		this.tabId = options.tabId;
 		this.shell = options.shell || this.getDefaultShell();
 		this.createdAt = new Date();
+		this.sessionGeneration = randomUUID();
 		this.lastAttachedAt = new Date();
 		this.spawnProcess = options.spawnProcess ?? spawn;
 
@@ -878,6 +881,7 @@ export class Session {
 			type: "event",
 			event: eventType,
 			sessionId: this.sessionId,
+			sessionGeneration: this.sessionGeneration,
 			payload,
 		};
 

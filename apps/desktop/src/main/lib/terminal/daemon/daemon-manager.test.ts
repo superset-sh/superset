@@ -83,8 +83,8 @@ describe("DaemonTerminalManager kill tracking", () => {
 		});
 
 		let exitReason: string | undefined;
-		manager.on(`exit:${paneId}`, (_exitCode, _signal, reason) => {
-			exitReason = reason;
+		manager.on(`exit:${paneId}`, (event: { reason?: string }) => {
+			exitReason = event.reason;
 		});
 
 		await manager.kill({ paneId });
@@ -100,8 +100,8 @@ describe("DaemonTerminalManager kill tracking", () => {
 		const paneId = "pane-kill-2";
 
 		let exitReason: string | undefined;
-		manager.on(`exit:${paneId}`, (_exitCode, _signal, reason) => {
-			exitReason = reason;
+		manager.on(`exit:${paneId}`, (event: { reason?: string }) => {
+			exitReason = event.reason;
 		});
 
 		await manager.kill({ paneId });
@@ -114,11 +114,31 @@ describe("DaemonTerminalManager kill tracking", () => {
 		const paneId = "pane-exit-1";
 
 		let exitReason: string | undefined;
-		manager.on(`exit:${paneId}`, (_exitCode, _signal, reason) => {
-			exitReason = reason;
+		manager.on(`exit:${paneId}`, (event: { reason?: string }) => {
+			exitReason = event.reason;
 		});
 
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("exited");
+	});
+
+	it("forwards session generation on per-pane data events", () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-data-1";
+		let payload: { data: string; sessionGeneration?: string } | undefined;
+
+		manager.on(
+			`data:${paneId}`,
+			(event: { data: string; sessionGeneration?: string }) => {
+				payload = event;
+			},
+		);
+
+		mockClient.emit("data", paneId, "echo test\n", "gen-123");
+
+		expect(payload).toEqual({
+			data: "echo test\n",
+			sessionGeneration: "gen-123",
+		});
 	});
 });

@@ -1,7 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { focusTerminalInput } from "../helpers";
+import { focusTerminalInput } from "../ghostty-adapter";
 import { coldRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -15,6 +15,7 @@ export interface UseTerminalColdRestoreOptions {
 	tabId: string;
 	workspaceId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
+	activeSessionGenerationRef: React.MutableRefObject<string | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
@@ -27,6 +28,8 @@ export interface UseTerminalColdRestoreOptions {
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
+	onViewPending?: () => void;
+	onViewReady?: () => void;
 }
 
 export interface UseTerminalColdRestoreReturn {
@@ -51,6 +54,7 @@ export function useTerminalColdRestore({
 	tabId,
 	workspaceId,
 	xtermRef,
+	activeSessionGenerationRef,
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
@@ -63,6 +67,8 @@ export function useTerminalColdRestore({
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
+	onViewPending,
+	onViewReady,
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
@@ -76,7 +82,9 @@ export function useTerminalColdRestore({
 		const xterm = xtermRef.current;
 		if (!xterm) return;
 
+		onViewPending?.();
 		isStreamReadyRef.current = false;
+		activeSessionGenerationRef.current = null;
 		pendingInitialStateRef.current = null;
 
 		createOrAttachRef.current(
@@ -112,8 +120,11 @@ export function useTerminalColdRestore({
 								requestAnimationFrame(() => {
 									if (xtermRef.current !== currentXterm) return;
 									scrollToBottom(currentXterm);
+									onViewReady?.();
 								});
 							});
+						} else {
+							onViewReady?.();
 						}
 						return;
 					}
@@ -137,6 +148,7 @@ export function useTerminalColdRestore({
 					setConnectionError(error.message || "Connection failed");
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
+					onViewReady?.();
 				},
 			},
 		);
@@ -145,6 +157,7 @@ export function useTerminalColdRestore({
 		tabId,
 		workspaceId,
 		xtermRef,
+		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -155,6 +168,8 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		onViewPending,
+		onViewReady,
 	]);
 
 	const handleStartShell = useCallback(() => {
@@ -163,6 +178,7 @@ export function useTerminalColdRestore({
 
 		// Drop any queued events from the pre-restore session
 		pendingEventsRef.current = [];
+		onViewPending?.();
 
 		// Acknowledge cold restore to main process
 		trpcClient.terminal.ackColdRestore.mutate({ paneId }).catch((error) => {
@@ -177,6 +193,7 @@ export function useTerminalColdRestore({
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;
+		activeSessionGenerationRef.current = null;
 		isExitedRef.current = false;
 		wasKilledByUserRef.current = false;
 		setExitStatus(null);
@@ -217,6 +234,7 @@ export function useTerminalColdRestore({
 					coldRestoreState.delete(paneId);
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
+					onViewReady?.();
 				},
 			},
 		);
@@ -225,6 +243,7 @@ export function useTerminalColdRestore({
 		tabId,
 		workspaceId,
 		xtermRef,
+		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -236,6 +255,8 @@ export function useTerminalColdRestore({
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		onViewPending,
+		onViewReady,
 	]);
 
 	return {

@@ -158,6 +158,7 @@ export class TerminalHost {
 			isNew,
 			snapshot,
 			wasRecovered: !isNew && session.isAlive,
+			sessionGeneration: session.sessionGeneration,
 			pid: session.pid,
 		};
 	}

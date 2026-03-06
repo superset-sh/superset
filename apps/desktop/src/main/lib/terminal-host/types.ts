@@ -173,6 +173,7 @@ export interface CreateOrAttachResponse {
 	isNew: boolean;
 	snapshot: TerminalSnapshot;
 	wasRecovered: boolean;
+	sessionGeneration: string;
 	/** PTY process ID for port scanning (null if not yet spawned or exited) */
 	pid: number | null;
 }
@@ -302,6 +303,7 @@ export interface IpcEvent {
 	type: "event";
 	event: string;
 	sessionId: string;
+	sessionGeneration?: string;
 	payload: unknown;
 }
 

@@ -7,10 +7,9 @@ import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL } from "../config";
+import { blurTerminalInput, focusTerminalInput } from "../ghostty-adapter";
 import {
-	blurTerminalInput,
 	createTerminalInstance,
-	focusTerminalInput,
 	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupFocusListener,
@@ -111,11 +110,14 @@ export interface UseTerminalLifecycleOptions {
 	resizeAsyncRef: MutableRefObject<TerminalResizeMutateAsync>;
 	detachRef: MutableRefObject<TerminalDetachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
+	activeSessionGenerationRef: MutableRefObject<string | null>;
 	isStreamReadyRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
+	onViewPending?: () => void;
+	onViewReady?: () => void;
 	isAlternateScreenRef: MutableRefObject<boolean>;
 	isBracketedPasteRef: MutableRefObject<boolean>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
@@ -170,11 +172,14 @@ export function useTerminalLifecycle({
 	resizeAsyncRef,
 	detachRef,
 	clearScrollbackRef,
+	activeSessionGenerationRef,
 	isStreamReadyRef,
 	pendingInitialStateRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
+	onViewPending,
+	onViewReady,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
 	setPaneNameRef,
@@ -235,7 +240,9 @@ export function useTerminalLifecycle({
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
+		onViewPending?.();
 		isStreamReadyRef.current = false;
+		activeSessionGenerationRef.current = null;
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
@@ -254,8 +261,10 @@ export function useTerminalLifecycle({
 		}
 
 		const restartTerminalSession = () => {
+			onViewPending?.();
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
+			activeSessionGenerationRef.current = null;
 			wasKilledByUserRef.current = false;
 			setExitStatus(null);
 			resetModes();
@@ -386,18 +395,22 @@ export function useTerminalLifecycle({
 
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
+									activeSessionGenerationRef.current = null;
 									setIsRestoredMode(true);
 									setRestoredCwd(storedColdRestore.cwd);
 									if (storedColdRestore.scrollback && xterm) {
-										xterm.write(
-											storedColdRestore.scrollback,
-											scheduleScrollToBottom,
-										);
+										xterm.write(storedColdRestore.scrollback, () => {
+											scheduleScrollToBottom();
+											onViewReady?.();
+										});
+									} else {
+										onViewReady?.();
 									}
 									return;
 								}
 
 								if (result.isColdRestore) {
+									activeSessionGenerationRef.current = null;
 									const scrollback =
 										result.snapshot?.snapshotAnsi ?? result.scrollback;
 									coldRestoreState.set(paneId, {
@@ -408,7 +421,12 @@ export function useTerminalLifecycle({
 									setIsRestoredMode(true);
 									setRestoredCwd(result.previousCwd || null);
 									if (scrollback && xterm) {
-										xterm.write(scrollback, scheduleScrollToBottom);
+										xterm.write(scrollback, () => {
+											scheduleScrollToBottom();
+											onViewReady?.();
+										});
+									} else {
+										onViewReady?.();
 									}
 									return;
 								}
@@ -422,16 +440,20 @@ export function useTerminalLifecycle({
 									wasKilledByUserRef.current = true;
 									isExitedRef.current = true;
 									isStreamReadyRef.current = false;
+									activeSessionGenerationRef.current = null;
 									setExitStatus("killed");
 									setConnectionError(null);
+									onViewReady?.();
 									return;
 								}
 								console.error("[Terminal] Failed to create/attach:", error);
 								setConnectionError(
 									error.message || "Failed to connect to terminal",
 								);
+								activeSessionGenerationRef.current = null;
 								isStreamReadyRef.current = true;
 								flushPendingEvents();
+								onViewReady?.();
 							},
 							onSettled: () => finishAttach(),
 						},
@@ -715,6 +737,7 @@ export function useTerminalLifecycle({
 			}
 
 			isStreamReadyRef.current = false;
+			activeSessionGenerationRef.current = null;
 			pendingInitialStateRef.current = null;
 			resetModes();
 
@@ -732,6 +755,9 @@ export function useTerminalLifecycle({
 		flushPendingEvents,
 		setConnectionError,
 		resetModes,
+		activeSessionGenerationRef,
+		onViewPending,
+		onViewReady,
 		setIsRestoredMode,
 		setRestoredCwd,
 		isRendererReady,

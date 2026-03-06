@@ -135,7 +135,12 @@ export function TabPane({
 				closeLabel="Close Terminal"
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
+					<Terminal
+						key={paneId}
+						paneId={paneId}
+						tabId={tabId}
+						workspaceId={workspaceId}
+					/>
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>

@@ -1,6 +1,6 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { FitAddon } from "ghostty-web";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -15,6 +15,7 @@ import {
 	resolveTerminalFontFamily,
 	TERMINAL_ICON_FALLBACK_FAMILY,
 } from "./font-family";
+import { getRuntimeRenderer } from "./ghostty-adapter";
 import { ensureGhosttyReady, isGhosttyReady } from "./ghostty-runtime";
 import { getDefaultTerminalBg } from "./helpers";
 import {
@@ -44,17 +45,6 @@ const stripLeadingEmoji = (text: string) =>
 
 const TERMINAL_FONT_LOAD_TEST_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 const TERMINAL_ICON_LOAD_TEST_STRING = String.fromCodePoint(0xf024b);
-
-type GhosttyRuntimeRenderer = {
-	remeasureFont?: () => void;
-	resize?: (cols: number, rows: number) => void;
-	setTheme?: (theme: NonNullable<XTerm["options"]["theme"]>) => void;
-	setFontFamily?: (family: string) => void;
-	setFontSize?: (size: number) => void;
-};
-
-const getRuntimeRenderer = (xterm: XTerm): GhosttyRuntimeRenderer | undefined =>
-	(xterm as unknown as { renderer?: GhosttyRuntimeRenderer }).renderer;
 
 async function preloadTerminalFonts(
 	family: string,
@@ -112,6 +102,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const searchAddonRef = useRef<TerminalSearchAdapter | null>(null);
 	const [isRendererReady, setIsRendererReady] = useState(isGhosttyReady);
 	const isExitedRef = useRef(false);
+	const activeSessionGenerationRef = useRef<string | null>(null);
+	const [isTerminalViewReady, setIsTerminalViewReady] = useState(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
 	);
@@ -125,6 +117,19 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
+
+	useEffect(() => {
+		// React can reuse the Terminal subtree when pane props change. Reset any
+		// buffered stream/view state so a new pane never inherits the previous pane's
+		// queued output, retry budget, or exit UI.
+		pendingEventsRef.current = [];
+		commandBufferRef.current = "";
+		isExitedRef.current = false;
+		wasKilledByUserRef.current = false;
+		activeSessionGenerationRef.current = null;
+		setExitStatus(null);
+		setIsTerminalViewReady(false);
+	}, [paneId, tabId, workspaceId]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -200,6 +205,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			xterm: XTerm,
 		) => void
 	>(() => {});
+	const markTerminalViewPending = useCallback(() => {
+		setIsTerminalViewReady(false);
+	}, []);
+	const markTerminalViewReady = useCallback(() => {
+		setIsTerminalViewReady(true);
+	}, []);
 
 	const {
 		isFocused,
@@ -241,6 +252,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	} = useTerminalRestore({
 		paneId,
 		xtermRef,
+		activeSessionGenerationRef,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -252,6 +264,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 		onDisconnectEvent: (reason) =>
 			setConnectionError(reason || "Connection to terminal daemon lost"),
+		onViewReady: markTerminalViewReady,
 	});
 
 	// Cold restore handling
@@ -266,6 +279,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		tabId,
 		workspaceId,
 		xtermRef,
+		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -278,6 +292,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		onViewPending: markTerminalViewPending,
+		onViewReady: markTerminalViewReady,
 	});
 
 	// Avoid effect re-runs: track overlay states via refs for input gating
@@ -290,11 +306,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const retryCountRef = useRef(0);
 	const MAX_RETRIES = 5;
 
+	useEffect(() => {
+		retryCountRef.current = 0;
+		setConnectionError(null);
+	}, [paneId, tabId, workspaceId, setConnectionError]);
+
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
 		useTerminalStream({
 			paneId,
 			xtermRef,
+			activeSessionGenerationRef,
 			isStreamReadyRef,
 			isExitedRef,
 			wasKilledByUserRef,
@@ -388,11 +410,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		resizeAsyncRef,
 		detachRef,
 		clearScrollbackRef,
+		activeSessionGenerationRef,
 		isStreamReadyRef,
 		pendingInitialStateRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		onViewPending: markTerminalViewPending,
+		onViewReady: markTerminalViewReady,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
 		setPaneNameRef,
@@ -492,6 +517,11 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
+	const showLoadingMask =
+		!isTerminalViewReady &&
+		!connectionError &&
+		!isRestoredMode &&
+		exitStatus !== "killed";
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
@@ -534,12 +564,28 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
+			{showLoadingMask && (
+				<div
+					className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+					style={{
+						backgroundColor: terminalBg,
+						backgroundImage:
+							"linear-gradient(180deg, rgba(255,255,255,0.05), transparent 36%)",
+					}}
+				>
+					<div className="rounded-md border border-white/10 bg-black/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">
+						Restoring terminal
+					</div>
+				</div>
+			)}
 			<div
 				ref={terminalRef}
 				className="h-full w-full"
 				style={{
 					caretColor: "transparent",
+					opacity: showLoadingMask ? 0 : 1,
 					padding: TERMINAL_PADDING_PX,
+					transition: "opacity 120ms ease-out",
 				}}
 			/>
 		</div>

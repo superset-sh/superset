@@ -1,6 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
+import { matchesSessionGeneration } from "../session-generation";
 import type {
 	CreateOrAttachResult,
 	TerminalExitReason,
@@ -11,6 +12,7 @@ import { scrollToBottom } from "../utils";
 export interface UseTerminalRestoreOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
+	activeSessionGenerationRef: React.MutableRefObject<string | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	isAlternateScreenRef: React.MutableRefObject<boolean>;
 	isBracketedPasteRef: React.MutableRefObject<boolean>;
@@ -27,6 +29,7 @@ export interface UseTerminalRestoreOptions {
 		xterm: XTerm,
 	) => void;
 	onDisconnectEvent: (reason: string | undefined) => void;
+	onViewReady?: () => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -48,6 +51,7 @@ export interface UseTerminalRestoreReturn {
 export function useTerminalRestore({
 	paneId,
 	xtermRef,
+	activeSessionGenerationRef,
 	pendingEventsRef,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
@@ -57,6 +61,7 @@ export function useTerminalRestore({
 	onExitEvent,
 	onErrorEvent,
 	onDisconnectEvent,
+	onViewReady,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -86,18 +91,42 @@ export function useTerminalRestore({
 		);
 		for (const event of events) {
 			if (event.type === "data") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					continue;
+				}
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					continue;
+				}
 				onExitEventRef.current(event.exitCode, xterm, event.reason);
 			} else if (event.type === "error") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					continue;
+				}
 				onErrorEventRef.current(event, xterm);
 			} else if (event.type === "disconnect") {
 				onDisconnectEventRef.current(event.reason);
 			}
 		}
-	}, [xtermRef, pendingEventsRef]);
+	}, [xtermRef, activeSessionGenerationRef, pendingEventsRef]);
 
 	const maybeApplyInitialState = useCallback(() => {
 		const result = pendingInitialStateRef.current;
@@ -108,6 +137,7 @@ export function useTerminalRestore({
 
 		// Clear before applying to prevent double-apply on concurrent triggers
 		pendingInitialStateRef.current = null;
+		activeSessionGenerationRef.current = result.sessionGeneration ?? null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
 		try {
@@ -174,6 +204,7 @@ export function useTerminalRestore({
 						);
 					}
 					flushPendingEvents();
+					onViewReady?.();
 
 					scheduleScrollToBottom();
 				});
@@ -197,6 +228,7 @@ export function useTerminalRestore({
 					);
 				}
 				flushPendingEvents();
+				onViewReady?.();
 			};
 
 			const writeSnapshot = () => {
@@ -222,15 +254,18 @@ export function useTerminalRestore({
 			console.error("[Terminal] Restoration failed:", error);
 			isStreamReadyRef.current = true;
 			flushPendingEvents();
+			onViewReady?.();
 		}
 	}, [
 		paneId,
 		xtermRef,
 		pendingEventsRef,
+		activeSessionGenerationRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
 		modeScanBufferRef,
 		flushPendingEvents,
+		onViewReady,
 	]);
 
 	return {

@@ -17,6 +17,7 @@ export const DEBUG_TERMINAL =
 export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	BUNDLED_TERMINAL_FONT_FAMILY,
 	BUNDLED_TERMINAL_FONT_SOURCE_FAMILY,
+	"JetBrainsMono NFM",
 	"MesloLGM Nerd Font Mono",
 	"MesloLGM Nerd Font",
 	"MesloLGM NF",
@@ -26,7 +27,6 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	"Hack Nerd Font",
 	"FiraCode Nerd Font Mono",
 	"FiraCode Nerd Font",
-	"JetBrainsMono Nerd Font Mono",
 	"JetBrainsMono Nerd Font",
 	"CaskaydiaCove Nerd Font Mono",
 	"CaskaydiaCove Nerd Font",

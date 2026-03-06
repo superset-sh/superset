@@ -153,6 +153,7 @@ export const createTerminalRouter = () => {
 						isNew: result.isNew,
 						scrollback: result.scrollback,
 						wasRecovered: result.wasRecovered,
+						sessionGeneration: result.sessionGeneration,
 						// Cold restore fields (for reboot recovery)
 						isColdRestore: result.isColdRestore,
 						previousCwd: result.previousCwd,
@@ -437,15 +438,21 @@ export const createTerminalRouter = () => {
 			.input(z.string())
 			.subscription(({ input: paneId }) => {
 				return observable<
-					| { type: "data"; data: string }
+					| { type: "data"; data: string; sessionGeneration?: string }
 					| {
 							type: "exit";
 							exitCode: number;
 							signal?: number;
 							reason?: "killed" | "exited" | "error";
+							sessionGeneration?: string;
 					  }
 					| { type: "disconnect"; reason: string }
-					| { type: "error"; error: string; code?: string }
+					| {
+							type: "error";
+							error: string;
+							code?: string;
+							sessionGeneration?: string;
+					  }
 				>((emit) => {
 					if (DEBUG_TERMINAL) {
 						console.log(`[Terminal Stream] Subscribe: ${paneId}`);
@@ -453,36 +460,42 @@ export const createTerminalRouter = () => {
 
 					let firstDataReceived = false;
 
-					const onData = (data: string) => {
+					const onData = (payload: {
+						data: string;
+						sessionGeneration?: string;
+					}) => {
 						if (DEBUG_TERMINAL && !firstDataReceived) {
 							firstDataReceived = true;
 							console.log(
-								`[Terminal Stream] First data for ${paneId}: ${data.length} bytes`,
+								`[Terminal Stream] First data for ${paneId}: ${payload.data.length} bytes`,
 							);
 						}
-						emit.next({ type: "data", data });
+						emit.next({
+							type: "data",
+							data: payload.data,
+							sessionGeneration: payload.sessionGeneration,
+						});
 					};
 
-					const onExit = (
-						exitCode: number,
-						signal?: number,
-						reason?: "killed" | "exited" | "error",
-					) => {
+					const onExit = (payload: {
+						exitCode: number;
+						signal?: number;
+						reason?: "killed" | "exited" | "error";
+						sessionGeneration?: string;
+					}) => {
 						// Don't emit.complete() - paneId is reused across restarts, completion would strand listeners
-						emit.next({ type: "exit", exitCode, signal, reason });
+						emit.next({ type: "exit", ...payload });
 					};
 
 					const onDisconnect = (reason: string) => {
 						emit.next({ type: "disconnect", reason });
 					};
 
-					const onError = (payload: { error: string; code?: string }) => {
-						emit.next({
-							type: "error",
-							error: payload.error,
-							code: payload.code,
-						});
-					};
+					const onError = (payload: {
+						error: string;
+						code?: string;
+						sessionGeneration?: string;
+					}) => emit.next({ type: "error", ...payload });
 
 					terminal.on(`data:${paneId}`, onData);
 					terminal.on(`exit:${paneId}`, onExit);

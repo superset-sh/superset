@@ -161,30 +161,38 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	private setupClientEventHandlers(): void {
-		this.client.on("data", (sessionId: string, data: string) => {
-			const paneId = sessionId;
-			if (DEBUG_TERMINAL) {
-				const listenerCount = this.listenerCount(`data:${paneId}`);
-				console.log(
-					`[DaemonTerminalManager] Received data from daemon: paneId=${paneId}, bytes=${data.length}, listeners=${listenerCount}`,
+		this.client.on(
+			"data",
+			(sessionId: string, data: string, sessionGeneration?: string) => {
+				const paneId = sessionId;
+				if (DEBUG_TERMINAL) {
+					const listenerCount = this.listenerCount(`data:${paneId}`);
+					console.log(
+						`[DaemonTerminalManager] Received data from daemon: paneId=${paneId}, bytes=${data.length}, listeners=${listenerCount}`,
+					);
+				}
+
+				const session = this.sessions.get(paneId);
+				if (session) {
+					session.lastActive = Date.now();
+				}
+
+				portManager.checkOutputForHint(data, paneId);
+				this.historyManager.writeToHistory(paneId, data, () =>
+					this.sessions.get(paneId),
 				);
-			}
-
-			const session = this.sessions.get(paneId);
-			if (session) {
-				session.lastActive = Date.now();
-			}
-
-			portManager.checkOutputForHint(data, paneId);
-			this.historyManager.writeToHistory(paneId, data, () =>
-				this.sessions.get(paneId),
-			);
-			this.emit(`data:${paneId}`, data);
-		});
+				this.emit(`data:${paneId}`, { data, sessionGeneration });
+			},
+		);
 
 		this.client.on(
 			"exit",
-			(sessionId: string, exitCode: number, signal?: number) => {
+			(
+				sessionId: string,
+				exitCode: number,
+				signal?: number,
+				sessionGeneration?: string,
+			) => {
 				const paneId = sessionId;
 				this.daemonAliveSessionIds.delete(paneId);
 
@@ -202,7 +210,12 @@ export class DaemonTerminalManager extends EventEmitter {
 				if (session) {
 					session.exitReason = reason;
 				}
-				this.emit(`exit:${paneId}`, exitCode, signal, reason);
+				this.emit(`exit:${paneId}`, {
+					exitCode,
+					signal,
+					reason,
+					sessionGeneration,
+				});
 				this.emit("terminalExit", { paneId, exitCode, signal, reason });
 
 				const timeoutId = setTimeout(() => {
@@ -247,7 +260,12 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		this.client.on(
 			"terminalError",
-			(sessionId: string, error: string, code?: string) => {
+			(
+				sessionId: string,
+				error: string,
+				code?: string,
+				sessionGeneration?: string,
+			) => {
 				const paneId = sessionId;
 				console.error(
 					`[DaemonTerminalManager] Terminal error for ${paneId}: ${code ?? "UNKNOWN"}: ${error}`,
@@ -264,7 +282,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					);
 				}
 
-				this.emit(`error:${paneId}`, { error, code });
+				this.emit(`error:${paneId}`, { error, code, sessionGeneration });
 			},
 		);
 	}
@@ -461,6 +479,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				isNew: response.isNew,
 				scrollback: "",
 				wasRecovered: response.wasRecovered,
+				sessionGeneration: response.sessionGeneration,
 				snapshot: {
 					snapshotAnsi: response.snapshot.snapshotAnsi,
 					rehydrateSequences: response.snapshot.rehydrateSequences,

@@ -1,5 +1,6 @@
 export const BUNDLED_TERMINAL_FONT_FAMILY = "Superset Terminal Mono";
-export const BUNDLED_TERMINAL_FONT_SOURCE_FAMILY = "MesloLGS Nerd Font Mono";
+export const BUNDLED_TERMINAL_FONT_SOURCE_FAMILY =
+	"JetBrainsMono Nerd Font Mono";
 
 export function isBundledTerminalFontFamily(value: string): boolean {
 	const family = value.trim().toLowerCase();

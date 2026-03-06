@@ -141,10 +141,20 @@ interface PendingRequest {
 // =============================================================================
 
 export interface TerminalHostClientEvents {
-	data: (sessionId: string, data: string) => void;
-	exit: (sessionId: string, exitCode: number, signal?: number) => void;
+	data: (sessionId: string, data: string, sessionGeneration?: string) => void;
+	exit: (
+		sessionId: string,
+		exitCode: number,
+		signal?: number,
+		sessionGeneration?: string,
+	) => void;
 	/** Terminal-specific error (e.g., write queue full - paste dropped) */
-	terminalError: (sessionId: string, error: string, code?: string) => void;
+	terminalError: (
+		sessionId: string,
+		error: string,
+		code?: string,
+		sessionGeneration?: string,
+	) => void;
 	connected: () => void;
 	disconnected: () => void;
 	error: (error: Error) => void;
@@ -585,7 +595,7 @@ export class TerminalHostClient extends EventEmitter {
 			}
 		} else if (message.type === "event") {
 			// Event from daemon - narrow payload based on type field
-			const { sessionId, payload } = message;
+			const { sessionId, sessionGeneration, payload } = message;
 			const eventPayload = payload as
 				| TerminalDataEvent
 				| TerminalExitEvent
@@ -593,7 +603,7 @@ export class TerminalHostClient extends EventEmitter {
 
 			switch (eventPayload.type) {
 				case "data":
-					this.emit("data", sessionId, eventPayload.data);
+					this.emit("data", sessionId, eventPayload.data, sessionGeneration);
 					break;
 				case "exit":
 					this.emit(
@@ -601,6 +611,7 @@ export class TerminalHostClient extends EventEmitter {
 						sessionId,
 						eventPayload.exitCode,
 						eventPayload.signal,
+						sessionGeneration,
 					);
 					break;
 				case "error":
@@ -611,6 +622,7 @@ export class TerminalHostClient extends EventEmitter {
 						sessionId,
 						eventPayload.error,
 						eventPayload.code,
+						sessionGeneration,
 					);
 					break;
 			}

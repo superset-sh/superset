@@ -41,8 +41,6 @@ mock.module("renderer/stores/hotkeys", () => ({
 
 // Import after mocks are set up
 const {
-	blurTerminalInput,
-	focusTerminalInput,
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
 	setupClickToMoveCursor,
@@ -52,6 +50,9 @@ const {
 	setupPasteHandler,
 	setupResizeHandlers,
 } = await import("./helpers");
+const { blurTerminalInput, focusTerminalInput } = await import(
+	"./ghostty-adapter"
+);
 
 describe("getDefaultTerminalTheme", () => {
 	beforeEach(() => {

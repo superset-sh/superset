@@ -31,6 +31,7 @@ export type TerminalExitReason = "killed" | "exited" | "error";
 export interface TerminalDataEvent {
 	type: "data";
 	data: string;
+	sessionGeneration?: string;
 }
 
 export interface TerminalExitEvent {
@@ -38,6 +39,7 @@ export interface TerminalExitEvent {
 	exitCode: number;
 	signal?: number;
 	reason?: TerminalExitReason;
+	sessionGeneration?: string;
 }
 
 export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
@@ -51,6 +53,7 @@ export interface SessionResult {
 	 */
 	scrollback: string;
 	wasRecovered: boolean;
+	sessionGeneration?: string;
 	/**
 	 * True if this is a cold restore from disk after reboot/crash.
 	 * The daemon didn't have this session, but we found scrollback on disk

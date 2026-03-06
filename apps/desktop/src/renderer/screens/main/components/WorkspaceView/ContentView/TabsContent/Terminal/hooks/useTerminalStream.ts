@@ -3,11 +3,13 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";
+import { matchesSessionGeneration } from "../session-generation";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
 export interface UseTerminalStreamOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
+	activeSessionGenerationRef: React.MutableRefObject<string | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
@@ -35,6 +37,7 @@ export interface UseTerminalStreamReturn {
 export function useTerminalStream({
 	paneId,
 	xtermRef,
+	activeSessionGenerationRef,
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
@@ -48,6 +51,7 @@ export function useTerminalStream({
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
 	const pendingWriteBufferRef = useRef("");
+	const pendingWriteGenerationRef = useRef<string | null>(null);
 	const isWriteFlushScheduledRef = useRef(false);
 
 	// Refs to use latest values in callbacks
@@ -61,15 +65,26 @@ export function useTerminalStream({
 
 		const pending = pendingWriteBufferRef.current;
 		if (!pending) return;
+		if (
+			!matchesSessionGeneration(
+				activeSessionGenerationRef.current,
+				pendingWriteGenerationRef.current ?? undefined,
+			)
+		) {
+			pendingWriteBufferRef.current = "";
+			pendingWriteGenerationRef.current = null;
+			return;
+		}
 
 		const activeTerminal = xtermRef.current;
 		if (!activeTerminal || !isStreamReadyRef.current) return;
 
 		pendingWriteBufferRef.current = "";
+		pendingWriteGenerationRef.current = null;
 		updateModesRef.current(pending);
 		activeTerminal.write(pending);
 		updateCwdRef.current(pending);
-	}, [xtermRef, isStreamReadyRef]);
+	}, [xtermRef, activeSessionGenerationRef, isStreamReadyRef]);
 
 	const scheduleWriteFlush = useCallback(() => {
 		if (isWriteFlushScheduledRef.current) return;
@@ -175,12 +190,36 @@ export function useTerminalStream({
 
 			// Process events when stream is ready
 			if (event.type === "data") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					if (DEBUG_TERMINAL) {
+						console.log("[Terminal] Dropping stale data event:", {
+							paneId,
+							activeSessionGeneration: activeSessionGenerationRef.current,
+							eventSessionGeneration: event.sessionGeneration,
+						});
+					}
+					return;
+				}
 				if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
 					firstStreamDataReceivedRef.current = true;
 					console.log(
 						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
 					);
 				}
+				const eventGeneration = event.sessionGeneration ?? null;
+				if (
+					pendingWriteBufferRef.current &&
+					pendingWriteGenerationRef.current !== eventGeneration
+				) {
+					pendingWriteBufferRef.current = "";
+					pendingWriteGenerationRef.current = null;
+				}
+				pendingWriteGenerationRef.current = eventGeneration;
 				pendingWriteBufferRef.current += event.data;
 				// The main process already batches PTY output to ~60fps. Adding another
 				// animation-frame delay in the renderer compounds latency, so only coalesce
@@ -191,6 +230,14 @@ export function useTerminalStream({
 				}
 				scheduleWriteFlush();
 			} else if (event.type === "exit") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					return;
+				}
 				flushPendingData();
 				handleTerminalExit(event.exitCode, xterm, event.reason);
 			} else if (event.type === "disconnect") {
@@ -199,6 +246,14 @@ export function useTerminalStream({
 					event.reason || "Connection to terminal daemon lost",
 				);
 			} else if (event.type === "error") {
+				if (
+					!matchesSessionGeneration(
+						activeSessionGenerationRef.current,
+						event.sessionGeneration,
+					)
+				) {
+					return;
+				}
 				flushPendingData();
 				handleStreamError(event, xterm);
 			}
@@ -206,6 +261,7 @@ export function useTerminalStream({
 		[
 			paneId,
 			xtermRef,
+			activeSessionGenerationRef,
 			isStreamReadyRef,
 			pendingEventsRef,
 			handleTerminalExit,
