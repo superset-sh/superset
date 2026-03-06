@@ -3,6 +3,11 @@ import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import type { StatusResult } from "simple-git";
 import simpleGit from "simple-git";
 import { z } from "zod";
+import {
+	isGitWorkerEnabled,
+	submitGetCommitFiles,
+	submitGetStatus,
+} from "../../../../main/lib/git-worker";
 import { publicProcedure, router } from "../..";
 import { getStatusNoLock, NotGitRepoError } from "../workspaces/utils/git";
 import { assertRegisteredWorktree, secureFs } from "./security";
@@ -47,59 +52,21 @@ export const createStatusRouter = () => {
 
 				let statusPromise!: Promise<GitChangesStatus>;
 				statusPromise = (async (): Promise<GitChangesStatus> => {
-					const git = simpleGit(input.worktreePath);
-
-					let status: StatusResult;
-					try {
-						status = await getStatusNoLock(input.worktreePath);
-					} catch (error) {
-						if (error instanceof NotGitRepoError) {
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: error.message,
-							});
-						}
-						throw error;
+					if (isGitWorkerEnabled()) {
+						return await getStatusViaWorker(input.worktreePath, defaultBranch);
 					}
-					const parsed = parseGitStatus(status);
+					return await getStatusMainThread(input.worktreePath, defaultBranch);
+				})();
 
-					const [branchComparison, trackingStatus] = await Promise.all([
-						getBranchComparison(git, defaultBranch),
-						getTrackingBranchStatus(git),
-						applyNumstatToFiles(git, parsed.staged, [
-							"diff",
-							"--cached",
-							"--numstat",
-						]),
-						applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
-						applyUntrackedLineCount(input.worktreePath, parsed.untracked),
-					]);
-
-					const result: GitChangesStatus = {
-						branch: parsed.branch,
-						defaultBranch,
-						againstBase: branchComparison.againstBase,
-						commits: branchComparison.commits,
-						staged: parsed.staged,
-						unstaged: parsed.unstaged,
-						untracked: parsed.untracked,
-						ahead: branchComparison.ahead,
-						behind: branchComparison.behind,
-						pushCount: trackingStatus.pushCount,
-						pullCount: trackingStatus.pullCount,
-						hasUpstream: trackingStatus.hasUpstream,
-					};
+				setInFlightStatus(cacheKey, statusPromise);
+				try {
+					const result = await statusPromise;
 
 					// Guard against stale in-flight completion after explicit invalidation.
 					if (getInFlightStatus(cacheKey) === statusPromise) {
 						setCachedStatus(cacheKey, result);
 					}
 					return result;
-				})();
-
-				setInFlightStatus(cacheKey, statusPromise);
-				try {
-					return await statusPromise;
 				} finally {
 					if (getInFlightStatus(cacheKey) === statusPromise) {
 						clearInFlightStatus(cacheKey);
@@ -117,29 +84,122 @@ export const createStatusRouter = () => {
 			.query(async ({ input }): Promise<ChangedFile[]> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
-
-				const nameStatus = await git.raw([
-					"diff-tree",
-					"--no-commit-id",
-					"--name-status",
-					"-r",
+				if (isGitWorkerEnabled()) {
+					return await getCommitFilesViaWorker(
+						input.worktreePath,
+						input.commitHash,
+					);
+				}
+				return await getCommitFilesMainThread(
+					input.worktreePath,
 					input.commitHash,
-				]);
-				const files = parseNameStatus(nameStatus);
-
-				await applyNumstatToFiles(git, files, [
-					"diff-tree",
-					"--no-commit-id",
-					"--numstat",
-					"-r",
-					input.commitHash,
-				]);
-
-				return files;
+				);
 			}),
 	});
 };
+
+// ---------------------------------------------------------------------------
+// Worker-based implementations
+// ---------------------------------------------------------------------------
+
+async function getStatusViaWorker(
+	worktreePath: string,
+	defaultBranch: string,
+): Promise<GitChangesStatus> {
+	try {
+		return await submitGetStatus({ worktreePath, defaultBranch });
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		if (msg.includes("Not a git repository")) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: msg,
+			});
+		}
+		throw error;
+	}
+}
+
+async function getCommitFilesViaWorker(
+	worktreePath: string,
+	commitHash: string,
+): Promise<ChangedFile[]> {
+	return await submitGetCommitFiles({ worktreePath, commitHash });
+}
+
+// ---------------------------------------------------------------------------
+// Main-thread fallback implementations (SUPERSET_GIT_WORKER=0)
+// ---------------------------------------------------------------------------
+
+async function getStatusMainThread(
+	worktreePath: string,
+	defaultBranch: string,
+): Promise<GitChangesStatus> {
+	const git = simpleGit(worktreePath);
+
+	let status: StatusResult;
+	try {
+		status = await getStatusNoLock(worktreePath);
+	} catch (error) {
+		if (error instanceof NotGitRepoError) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: error.message,
+			});
+		}
+		throw error;
+	}
+	const parsed = parseGitStatus(status);
+
+	const [branchComparison, trackingStatus] = await Promise.all([
+		getBranchComparison(git, defaultBranch),
+		getTrackingBranchStatus(git),
+		applyNumstatToFiles(git, parsed.staged, ["diff", "--cached", "--numstat"]),
+		applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
+		applyUntrackedLineCount(worktreePath, parsed.untracked),
+	]);
+
+	return {
+		branch: parsed.branch,
+		defaultBranch,
+		againstBase: branchComparison.againstBase,
+		commits: branchComparison.commits,
+		staged: parsed.staged,
+		unstaged: parsed.unstaged,
+		untracked: parsed.untracked,
+		ahead: branchComparison.ahead,
+		behind: branchComparison.behind,
+		pushCount: trackingStatus.pushCount,
+		pullCount: trackingStatus.pullCount,
+		hasUpstream: trackingStatus.hasUpstream,
+	};
+}
+
+async function getCommitFilesMainThread(
+	worktreePath: string,
+	commitHash: string,
+): Promise<ChangedFile[]> {
+	const git = simpleGit(worktreePath);
+
+	const nameStatus = await git.raw([
+		"diff-tree",
+		"--no-commit-id",
+		"--name-status",
+		"-r",
+		commitHash,
+	]);
+	const files = parseNameStatus(nameStatus);
+
+	await applyNumstatToFiles(git, files, [
+		"diff-tree",
+		"--no-commit-id",
+		"--numstat",
+		"-r",
+		commitHash,
+	]);
+
+	return files;
+}
 
 interface BranchComparison {
 	commits: GitChangesStatus["commits"];

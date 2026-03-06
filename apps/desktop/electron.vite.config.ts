@@ -101,6 +101,10 @@ export default defineConfig({
 					"terminal-host": resolve("src/main/terminal-host/index.ts"),
 					// PTY subprocess - spawned by terminal-host for each terminal
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
+					// Git worker thread - offloads heavy git reads from main thread
+					"git-worker-thread": resolve(
+						"src/main/lib/git-worker/worker-thread.ts",
+					),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

@@ -27,6 +27,7 @@ import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
+import { destroyGitWorkerPool } from "./lib/git-worker";
 import { localDb } from "./lib/local-db";
 import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -187,11 +188,11 @@ app.on("before-quit", async (event) => {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
-
 	// Quit confirmed or no confirmation needed - exit immediately
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	await outlit.shutdown();
+	await destroyGitWorkerPool();
 	disposeTray();
 	app.exit(0);
 });
