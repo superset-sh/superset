@@ -3,7 +3,7 @@ import type { Extension } from "@codemirror/state";
 import { tags as t } from "@lezer/highlight";
 import type { DiffsThemeNames } from "@pierre/diffs/react";
 import type { CSSProperties } from "react";
-import type { Theme } from "shared/themes";
+import { getTerminalColors, type Theme } from "shared/themes";
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
@@ -18,7 +18,7 @@ const SHIKI_THEME_MAP: Record<
 	string,
 	{ light: DiffsThemeNames; dark: DiffsThemeNames }
 > = {
-	dark: { light: "github-light-default", dark: "github-dark-default" },
+	dark: { light: "github-light-default", dark: "vitesse-dark" },
 	light: { light: "github-light-default", dark: "github-dark-default" },
 	"one-dark": { light: "one-light", dark: "one-dark-pro" },
 	monokai: { light: "one-light", dark: "monokai" },
@@ -30,6 +30,18 @@ const DEFAULT_SHIKI_THEME = {
 	dark: "github-dark-default" as DiffsThemeNames,
 };
 
+function getTerminalTone(
+	theme: Theme | null,
+	normal: string | undefined,
+	bright: string | undefined,
+) {
+	if (theme?.type === "light") {
+		return normal ?? bright;
+	}
+
+	return bright ?? normal;
+}
+
 export function getDiffsTheme(theme: Theme | null) {
 	const themeId = theme?.id ?? "dark";
 	return SHIKI_THEME_MAP[themeId] ?? DEFAULT_SHIKI_THEME;
@@ -37,14 +49,21 @@ export function getDiffsTheme(theme: Theme | null) {
 
 export function getCodeSyntaxHighlighting(theme: Theme | null): Extension {
 	const ui = theme?.ui;
+	const terminal = theme ? getTerminalColors(theme) : null;
 	const styles = HighlightStyle.define([
 		{
 			tag: [t.keyword, t.modifier, t.controlKeyword],
-			color: ui?.chart4 ?? ui?.primary ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.magenta, terminal?.brightMagenta) ??
+				ui?.primary,
+			fontWeight: "600",
 		},
 		{
 			tag: [t.operatorKeyword, t.operator],
-			color: ui?.mutedForeground ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.magenta, terminal?.brightMagenta) ??
+				ui?.mutedForeground ??
+				ui?.foreground,
 		},
 		{
 			tag: [t.comment, t.lineComment, t.blockComment, t.docComment],
@@ -53,15 +72,21 @@ export function getCodeSyntaxHighlighting(theme: Theme | null): Extension {
 		},
 		{
 			tag: [t.string, t.special(t.string), t.regexp],
-			color: ui?.chart2 ?? ui?.primary ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.green, terminal?.brightGreen) ??
+				ui?.primary,
 		},
 		{
 			tag: [t.number, t.bool, t.null, t.atom],
-			color: ui?.chart3 ?? ui?.primary ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.yellow, terminal?.brightYellow) ??
+				ui?.primary,
 		},
 		{
 			tag: [t.className, t.typeName, t.namespace, t.definition(t.typeName)],
-			color: ui?.chart1 ?? ui?.primary ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.blue, terminal?.brightBlue) ??
+				ui?.primary,
 		},
 		{
 			tag: [
@@ -69,11 +94,16 @@ export function getCodeSyntaxHighlighting(theme: Theme | null): Extension {
 				t.function(t.propertyName),
 				t.labelName,
 			],
-			color: ui?.chart5 ?? ui?.primary ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.cyan, terminal?.brightCyan) ??
+				ui?.primary,
 		},
 		{
 			tag: [t.propertyName, t.attributeName],
-			color: ui?.foreground ?? "#f5f5f5",
+			color:
+				getTerminalTone(theme, terminal?.cyan, terminal?.brightCyan) ??
+				ui?.foreground ??
+				"#f5f5f5",
 		},
 		{
 			tag: [t.variableName, t.name, t.deleted, t.character],
@@ -81,10 +111,18 @@ export function getCodeSyntaxHighlighting(theme: Theme | null): Extension {
 		},
 		{
 			tag: [t.link, t.url, t.escape],
-			color: ui?.primary ?? ui?.chart1 ?? ui?.foreground,
+			color:
+				getTerminalTone(theme, terminal?.blue, terminal?.brightBlue) ??
+				ui?.primary,
 			textDecoration: "underline",
 		},
-		{ tag: [t.invalid], color: ui?.destructive ?? "#ef4444" },
+		{
+			tag: [t.invalid],
+			color:
+				getTerminalTone(theme, terminal?.red, terminal?.brightRed) ??
+				ui?.destructive ??
+				"#ef4444",
+		},
 		{
 			tag: [t.brace, t.squareBracket, t.paren, t.separator, t.punctuation],
 			color: ui?.mutedForeground ?? ui?.foreground,

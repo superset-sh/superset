@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import type { Theme } from "shared/themes";
+import { getTerminalColors, type Theme } from "shared/themes";
 
 interface CodeEditorFontSettings {
 	fontFamily?: string;
@@ -16,6 +16,7 @@ export function createCodeMirrorTheme(
 	fillHeight: boolean,
 ) {
 	const ui = theme?.ui;
+	const terminal = theme ? getTerminalColors(theme) : null;
 	const fontSize = fontSettings.fontSize ?? DEFAULT_CODE_EDITOR_FONT_SIZE;
 	const lineHeight = Math.round(fontSize * 1.5);
 
@@ -53,8 +54,14 @@ export function createCodeMirrorTheme(
 			},
 			".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection":
 				{
-					backgroundColor: ui?.accent ?? "rgba(59, 130, 246, 0.28)",
+					backgroundColor:
+						terminal?.selectionBackground ??
+						ui?.accent ??
+						"rgba(59, 130, 246, 0.28)",
 				},
+			".cm-selectionMatch": {
+				backgroundColor: ui?.highlightMatch ?? "rgba(250, 204, 21, 0.16)",
+			},
 			".cm-cursor, .cm-dropCursor": {
 				borderLeftColor: ui?.foreground ?? "#f5f5f5",
 			},
