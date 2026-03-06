@@ -331,7 +331,7 @@ export function ChangesView({
 
 	const commitsWithFiles = commits.map((commit) => ({
 		...commit,
-		files: commitFilesMap.get(commit.hash) || [],
+		files: commitFilesMap.get(commit.hash) || commit.files,
 	}));
 
 	const hasStagedChanges = stagedFiles.length > 0;
@@ -498,20 +498,22 @@ export function ChangesView({
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto" data-changes-scroll-container>
-					{orderedSections.map((section) => (
-						<CategorySection
-							key={section.id}
-							id={section.id}
-							title={section.title}
-							count={section.count}
-							isExpanded={section.isExpanded}
-							onToggle={section.onToggle}
-							actions={section.actions}
-							onMove={moveSection}
-						>
-							{section.content}
-						</CategorySection>
-					))}
+					{orderedSections
+						.filter((section) => section.count > 0)
+						.map((section) => (
+							<CategorySection
+								key={section.id}
+								id={section.id}
+								title={section.title}
+								count={section.count}
+								isExpanded={section.isExpanded}
+								onToggle={section.onToggle}
+								actions={section.actions}
+								onMove={moveSection}
+							>
+								{section.content}
+							</CategorySection>
+						))}
 				</div>
 			)}
 
