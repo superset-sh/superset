@@ -18,16 +18,31 @@ describe("deriveWorkspaceTitleFromPrompt", () => {
 });
 
 describe("deriveWorkspaceBranchFromPrompt", () => {
-	test("sanitizes prompt into branch-safe slug", () => {
-		expect(deriveWorkspaceBranchFromPrompt("Fix auth: add SSO + docs!")).toBe(
-			"fix-auth-add-sso-+-docs",
-		);
+	test("keeps the first three meaningful English keywords", () => {
+		expect(
+			deriveWorkspaceBranchFromPrompt(
+				"Please fix the auth flow for login redirects",
+			),
+		).toBe("fix-auth-flow");
+	});
+
+	test("translates common Spanish dev terms into English", () => {
+		expect(
+			deriveWorkspaceBranchFromPrompt(
+				"Arreglar autenticación de usuario en dashboard",
+			),
+		).toBe("fix-auth-user");
+	});
+
+	test("ensures at least two words", () => {
+		expect(deriveWorkspaceBranchFromPrompt("Auth")).toBe("update-auth");
 	});
 
 	test("caps generated branch length", () => {
-		const longPrompt = "very long prompt ".repeat(20);
-		expect(
-			deriveWorkspaceBranchFromPrompt(longPrompt).length,
-		).toBeLessThanOrEqual(100);
+		const longPrompt =
+			"Please improve the mobile authentication settings page and repo sync";
+		expect(deriveWorkspaceBranchFromPrompt(longPrompt, 16)).toBe(
+			"improve-mobile",
+		);
 	});
 });

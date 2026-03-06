@@ -1495,6 +1495,21 @@ export async function safeCheckoutBranch(
 	}
 }
 
+export async function renameCurrentBranch(
+	repoPath: string,
+	newBranch: string,
+): Promise<string> {
+	const git = simpleGit(repoPath);
+	await git.branch(["-m", newBranch]);
+
+	const verifyBranch = await getCurrentBranch(repoPath);
+	if (!verifyBranch) {
+		throw new Error("Could not determine renamed branch");
+	}
+
+	return verifyBranch;
+}
+
 /**
  * PR info returned from GitHub CLI
  */

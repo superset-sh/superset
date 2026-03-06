@@ -19,6 +19,7 @@ import {
 	useCreateWorkspace,
 	useUpdateWorkspace,
 } from "renderer/react-query/workspaces";
+import { usePendingBranchRenameStore } from "renderer/stores/pending-branch-rename";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -105,6 +106,9 @@ export function NewWorkspaceModal() {
 	const updateWorkspace = useUpdateWorkspace();
 	const generateName = electronTrpc.workspaces.generateName.useMutation();
 	const { openNew } = useOpenProject();
+	const markPendingBranchRename = usePendingBranchRenameStore(
+		(state) => state.markPending,
+	);
 	const selectableAgents =
 		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 
@@ -169,7 +173,9 @@ export function NewWorkspaceModal() {
 
 	const branchPreview =
 		branchSlug && applyPrefix && resolvedPrefix
-			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
+			? sanitizeBranchNameWithMaxLength(
+					`${resolvedPrefix}/${branchSlug}`,
+				)
 			: branchSlug;
 
 	const resetForm = () => {
@@ -325,7 +331,7 @@ export function NewWorkspaceModal() {
 				{
 					projectId: selectedProjectId,
 					name: workspaceName,
-					branchName: branchSlug || undefined,
+					branchName: branchNameEdited ? branchSlug || undefined : undefined,
 					baseBranch: baseBranch || undefined,
 					applyPrefix,
 				},
@@ -333,6 +339,10 @@ export function NewWorkspaceModal() {
 					? { agentLaunchRequest: launchRequestTemplate }
 					: undefined,
 			);
+
+			if (!result.wasExisting && !branchNameEdited) {
+				markPendingBranchRename(result.workspace.id, result.workspace.branch);
+			}
 
 			if (prompt && !result.wasExisting) {
 				generateName
