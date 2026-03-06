@@ -2,8 +2,10 @@ import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
+	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
@@ -11,9 +13,11 @@ import {
 	LuArrowRight,
 	LuFolder,
 	LuFolderGit2,
+	LuMinus,
 	LuRotateCw,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCloseWorkspace } from "renderer/react-query/workspaces";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
@@ -40,6 +44,26 @@ export function WorkspaceRow({
 	const [hasHovered, setHasHovered] = useState(false);
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+
+	const closeWorkspace = useCloseWorkspace();
+	const handleHide = () => {
+		if (!workspace.workspaceId) return;
+		toast.promise(closeWorkspace.mutateAsync({ id: workspace.workspaceId }), {
+			loading: "Hiding...",
+			success: (result) => {
+				if (result.terminalWarning) {
+					setTimeout(() => {
+						toast.warning("Terminal warning", {
+							description: result.terminalWarning ?? undefined,
+						});
+					}, 100);
+				}
+				return "Workspace hidden";
+			},
+			error: (error) =>
+				error instanceof Error ? error.message : "Failed to hide",
+		});
+	};
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
 	const { data: githubStatus } =
@@ -195,6 +219,15 @@ export function WorkspaceRow({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
 				<ContextMenuContent>
+					{isOpenWorkspace && (
+						<>
+							<ContextMenuItem onSelect={handleHide}>
+								<LuMinus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+								Hide
+							</ContextMenuItem>
+							<ContextMenuSeparator />
+						</>
+					)}
 					<ContextMenuItem
 						onSelect={() => handleDeleteClick()}
 						className="text-destructive focus:text-destructive"

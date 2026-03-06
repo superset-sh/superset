@@ -24,10 +24,12 @@ import {
 	LuEye,
 	LuEyeOff,
 	LuFolderOpen,
+	LuMinus,
 	LuPencil,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
+	useCloseWorkspace,
 	useReorderWorkspaces,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
@@ -134,6 +136,25 @@ export function WorkspaceListItem({
 
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+
+	const closeWorkspace = useCloseWorkspace();
+	const handleHide = () => {
+		toast.promise(closeWorkspace.mutateAsync({ id }), {
+			loading: "Hiding...",
+			success: (result) => {
+				if (result.terminalWarning) {
+					setTimeout(() => {
+						toast.warning("Terminal warning", {
+							description: result.terminalWarning ?? undefined,
+						});
+					}, 100);
+				}
+				return "Workspace hidden";
+			},
+			error: (error) =>
+				error instanceof Error ? error.message : "Failed to hide",
+		});
+	};
 
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
@@ -507,7 +528,14 @@ export function WorkspaceListItem({
 			<>
 				<ContextMenu>
 					<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
-					<ContextMenuContent>{commonContextMenuItems}</ContextMenuContent>
+					<ContextMenuContent>
+						<ContextMenuItem onSelect={handleHide}>
+							<LuMinus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Hide
+						</ContextMenuItem>
+						<ContextMenuSeparator />
+						{commonContextMenuItems}
+					</ContextMenuContent>
 				</ContextMenu>
 				<DeleteWorkspaceDialog
 					workspaceId={id}
@@ -535,6 +563,10 @@ export function WorkspaceListItem({
 						<ContextMenuItem onSelect={rename.startRename}>
 							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Rename
+						</ContextMenuItem>
+						<ContextMenuItem onSelect={handleHide}>
+							<LuMinus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Hide
 						</ContextMenuItem>
 						<ContextMenuSeparator />
 						{commonContextMenuItems}
