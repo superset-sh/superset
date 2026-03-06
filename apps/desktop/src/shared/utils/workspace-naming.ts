@@ -208,7 +208,10 @@ export function deriveWorkspaceBranchFromPrompt(
 			segmentMaxLength - selectedKeywords.join("-").length - 1,
 		);
 		if (remainingLength > 0) {
-			selectedKeywords.push(keywords[1].slice(0, remainingLength));
+			const fallbackKeyword = keywords[1].slice(0, remainingLength);
+			if (fallbackKeyword.length >= 2) {
+				selectedKeywords.push(fallbackKeyword);
+			}
 		}
 	}
 

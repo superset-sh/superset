@@ -259,7 +259,11 @@ export const createStatusProcedures = () => {
 					};
 				}
 
-				const renamedBranch = await renameCurrentBranch(worktree.path, nextBranch);
+				const renamedBranch = await renameCurrentBranch(
+					worktree.path,
+					currentBranch,
+					nextBranch,
+				);
 
 				touchWorkspace(workspace.id, {
 					branch: renamedBranch,

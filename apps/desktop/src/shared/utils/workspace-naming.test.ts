@@ -49,4 +49,8 @@ describe("deriveWorkspaceBranchFromPrompt", () => {
 			"improve-mobile",
 		);
 	});
+
+	test("does not append one-character fallback fragments", () => {
+		expect(deriveWorkspaceBranchFromPrompt("login", 8)).toBe("login");
+	});
 });
