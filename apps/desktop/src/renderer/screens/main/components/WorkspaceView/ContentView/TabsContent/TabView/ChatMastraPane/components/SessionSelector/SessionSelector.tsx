@@ -9,7 +9,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
 	HiMiniArrowPath,
-	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniPlus,
 } from "react-icons/hi2";
@@ -126,16 +125,15 @@ export function SessionSelector({
 				<button
 					type="button"
 					aria-busy={isSessionInitializing}
-					className="flex min-w-[220px] max-w-[680px] flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex w-full min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
-					<HiMiniChatBubbleLeftRight className="size-3.5" />
+					<HiMiniChevronDown className="size-3" />
 					<span className="min-w-0 flex-1 truncate text-left">
 						{currentTitle}
 					</span>
 					{isSessionInitializing && (
 						<HiMiniArrowPath className="size-3 animate-spin" />
 					)}
-					<HiMiniChevronDown className="size-3" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-80">
