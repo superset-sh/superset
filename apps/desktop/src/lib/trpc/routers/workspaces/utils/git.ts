@@ -1503,8 +1503,10 @@ export async function renameCurrentBranch(
 	await git.branch(["-m", newBranch]);
 
 	const verifyBranch = await getCurrentBranch(repoPath);
-	if (!verifyBranch) {
-		throw new Error("Could not determine renamed branch");
+	if (verifyBranch !== newBranch) {
+		throw new Error(
+			`Branch rename verification failed for "${repoPath}": expected "${newBranch}" but HEAD is on "${verifyBranch ?? "detached HEAD"}"`,
+		);
 	}
 
 	return verifyBranch;
