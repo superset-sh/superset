@@ -6,7 +6,8 @@ import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useSidebarStore } from "renderer/stores";
 
 export function SidebarControl() {
-	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
+	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 
 	return (
 		<Tooltip>

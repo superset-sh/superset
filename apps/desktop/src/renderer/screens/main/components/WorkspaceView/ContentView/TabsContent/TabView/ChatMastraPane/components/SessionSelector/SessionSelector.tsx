@@ -2,7 +2,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
@@ -40,7 +39,23 @@ interface SessionGroup {
 const SESSION_PAGE_SIZE = 20;
 
 function toSessionGroupLabel(updatedAt: Date): string {
-	return getRelativeTime(updatedAt.getTime(), { format: "compact" });
+	const startOfToday = new Date();
+	startOfToday.setHours(0, 0, 0, 0);
+
+	const startOfYesterday = new Date(startOfToday);
+	startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+	const startOfLastWeek = new Date(startOfToday);
+	startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+	const startOfLastMonth = new Date(startOfToday);
+	startOfLastMonth.setDate(startOfLastMonth.getDate() - 30);
+
+	if (updatedAt >= startOfToday) return "Today";
+	if (updatedAt >= startOfYesterday) return "Yesterday";
+	if (updatedAt >= startOfLastWeek) return "Last 7 days";
+	if (updatedAt >= startOfLastMonth) return "Last 30 days";
+	return getRelativeTime(updatedAt.getTime());
 }
 
 function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {

@@ -4,6 +4,16 @@ import path from "node:path";
 import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
 describe("getAppCommand", () => {
+	const originalPlatform = process.platform;
+
+	beforeEach(() => {
+		Object.defineProperty(process, "platform", { value: "darwin" });
+	});
+
+	afterEach(() => {
+		Object.defineProperty(process, "platform", { value: originalPlatform });
+	});
+
 	test("returns null for finder (handled specially)", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
@@ -125,6 +135,15 @@ describe("getAppCommand", () => {
 				command: "open",
 				args: ["-a", "Cursor", "/path/with spaces/file.ts"],
 			},
+		]);
+	});
+
+	test("returns Linux command candidates on Linux", () => {
+		const result = getAppCommand("intellij", "/path/to/file", "linux");
+		expect(result).toEqual([
+			{ command: "idea", args: ["/path/to/file"] },
+			{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
+			{ command: "intellij-idea-community", args: ["/path/to/file"] },
 		]);
 	});
 });

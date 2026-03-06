@@ -13,6 +13,7 @@ import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
+import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
 
 interface FileDiffSectionProps {
@@ -29,7 +30,7 @@ interface FileDiffSectionProps {
 	isActioning?: boolean;
 }
 
-const VISIBILITY_MARGIN = "200px 0px";
+const DIFF_LOAD_MARGIN = "150px 0px";
 const LARGE_DIFF_THRESHOLD = 500;
 
 const GENERATED_FILE_PATTERNS = [
@@ -83,6 +84,7 @@ export function FileDiffSection({
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
+	const [isInLoadRange, setIsInLoadRange] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
 
 	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
@@ -152,6 +154,12 @@ export function FileDiffSection({
 		[fileKey, setFileViewed, isExpanded, onToggleExpanded],
 	);
 
+	const handleToggleEdit = useCallback(() => {
+		if (!toggleEdit) return;
+		setActiveFileKey(fileKey);
+		toggleEdit();
+	}, [fileKey, setActiveFileKey, toggleEdit]);
+
 	useEffect(() => {
 		registerFileRef(file, category, commitHash, sectionRef.current);
 		return () => {
@@ -179,11 +187,12 @@ export function FileDiffSection({
 
 		const visibilityObserver = new IntersectionObserver(
 			([entry]) => {
+				setIsInLoadRange(entry.isIntersecting);
 				if (entry.isIntersecting) {
 					setHasBeenVisible(true);
 				}
 			},
-			{ root: container, rootMargin: VISIBILITY_MARGIN },
+			{ root: container, rootMargin: DIFF_LOAD_MARGIN },
 		);
 
 		activeObserver.observe(element);
@@ -194,6 +203,14 @@ export function FileDiffSection({
 			visibilityObserver.disconnect();
 		};
 	}, [fileKey, setActiveFileKey, containerRef]);
+
+	const statusBadgeColor = getStatusColor(file.status);
+	const statusIndicator = getStatusIndicator(file.status);
+	const showStats = file.additions > 0 || file.deletions > 0;
+	const canShowDiffBody =
+		isExpanded && (!isHiddenByDefault || loadHiddenDiff) && !!worktreePath;
+	const shouldLoadDiff =
+		canShowDiffBody && hasBeenVisible && (isInLoadRange || isEditing);
 
 	const { data: diffData, isLoading: isLoadingDiff } =
 		electronTrpc.changes.getFileContents.useQuery(
@@ -206,18 +223,19 @@ export function FileDiffSection({
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
-				enabled:
-					isExpanded &&
-					(!isHiddenByDefault || loadHiddenDiff) &&
-					!!worktreePath,
+				enabled: shouldLoadDiff,
 			},
 		);
+	const hasRenderedDiff = canShowDiffBody && !!diffData;
 
-	const statusBadgeColor = getStatusColor(file.status);
-	const statusIndicator = getStatusIndicator(file.status);
-	const showStats = file.additions > 0 || file.deletions > 0;
-
-	const shouldRenderEditor = hasBeenVisible && diffData;
+	const inactivePlaceholder = (
+		<div
+			className="flex items-center justify-center text-xs text-muted-foreground bg-background"
+			style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+		>
+			Diff preview loads when this file is on screen
+		</div>
+	);
 
 	return (
 		<div
@@ -239,7 +257,7 @@ export function FileDiffSection({
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
 					isEditing={isEditing}
-					onToggleEdit={toggleEdit}
+					onToggleEdit={handleToggleEdit}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
@@ -264,11 +282,14 @@ export function FileDiffSection({
 							</Button>
 						</div>
 					) : isLoadingDiff ? (
-						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
+						<div
+							className="flex items-center justify-center text-muted-foreground bg-background"
+							style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+						>
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
 						</div>
-					) : shouldRenderEditor ? (
+					) : hasRenderedDiff ? (
 						isEditing ? (
 							<DiffViewer
 								contents={diffData}
@@ -288,8 +309,13 @@ export function FileDiffSection({
 								filePath={file.path}
 							/>
 						)
+					) : !shouldLoadDiff ? (
+						inactivePlaceholder
 					) : (
-						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
+						<div
+							className="flex items-center justify-center text-muted-foreground bg-background"
+							style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+						>
 							{diffData ? (
 								<>
 									<LuLoader className="w-4 h-4 animate-spin mr-2" />

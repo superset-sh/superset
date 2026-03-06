@@ -68,25 +68,29 @@ describe("sanitizeSegment", () => {
 });
 
 describe("sanitizeAuthorPrefix", () => {
-	test("lowercases and trims", () => {
-		expect(sanitizeAuthorPrefix("  John Doe  ")).toBe("john-doe");
+	test("preserves case and trims", () => {
+		expect(sanitizeAuthorPrefix("  John Doe  ")).toBe("John-Doe");
 	});
 
 	test("replaces spaces with hyphens", () => {
-		expect(sanitizeAuthorPrefix("John Doe")).toBe("john-doe");
+		expect(sanitizeAuthorPrefix("John Doe")).toBe("John-Doe");
+	});
+
+	test("preserves GitHub username case", () => {
+		expect(sanitizeAuthorPrefix("Kitenite")).toBe("Kitenite");
 	});
 
 	test("removes special characters but keeps underscores and dots", () => {
-		expect(sanitizeAuthorPrefix("John's Name!")).toBe("johns-name");
+		expect(sanitizeAuthorPrefix("John's Name!")).toBe("Johns-Name");
 		expect(sanitizeAuthorPrefix("user_name")).toBe("user_name");
 	});
 
 	test("collapses multiple hyphens", () => {
-		expect(sanitizeAuthorPrefix("John--Doe")).toBe("john-doe");
+		expect(sanitizeAuthorPrefix("John--Doe")).toBe("John-Doe");
 	});
 
 	test("removes leading/trailing hyphens", () => {
-		expect(sanitizeAuthorPrefix("-John-")).toBe("john");
+		expect(sanitizeAuthorPrefix("-John-")).toBe("John");
 	});
 
 	test("handles empty string", () => {

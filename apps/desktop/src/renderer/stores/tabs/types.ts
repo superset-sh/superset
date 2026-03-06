@@ -82,8 +82,6 @@ export interface AddFileViewerPaneOptions {
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */
 	openInNewTab?: boolean;
-	/** Override the display name shown in the tab (defaults to filename from filePath) */
-	displayName?: string;
 }
 
 /**

@@ -24,27 +24,30 @@ async function uploadFile(
 		const detail = await getHttpErrorDetail(response);
 		throw new Error(`Failed to fetch attachment ${file.url}: ${detail}`);
 	}
+
 	const blob = await response.blob();
 	const filename = file.filename || "attachment";
-
 	const formData = new FormData();
 	formData.append("file", new File([blob], filename, { type: file.mediaType }));
 
 	const token = getAuthToken();
-	const res = await fetch(`${apiUrl}/api/chat/${sessionId}/attachments`, {
-		method: "POST",
-		signal,
-		headers: token ? { Authorization: `Bearer ${token}` } : {},
-		body: formData,
-	});
+	const uploadResponse = await fetch(
+		`${apiUrl}/api/chat/${sessionId}/attachments`,
+		{
+			method: "POST",
+			signal,
+			headers: token ? { Authorization: `Bearer ${token}` } : {},
+			body: formData,
+		},
+	);
 
-	if (!res.ok) {
-		const detail = await getHttpErrorDetail(res);
+	if (!uploadResponse.ok) {
+		const detail = await getHttpErrorDetail(uploadResponse);
 		throw new Error(`Upload failed for session ${sessionId}: ${detail}`);
 	}
 
-	const result: { url: string; mediaType: string; filename?: string } =
-		await res.json();
+	const result: { filename?: string; mediaType: string; url: string } =
+		await uploadResponse.json();
 	return { type: "file", ...result };
 }
 

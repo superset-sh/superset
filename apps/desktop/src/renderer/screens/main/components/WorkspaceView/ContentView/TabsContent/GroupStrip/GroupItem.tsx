@@ -13,7 +13,6 @@ import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuPencil } from "react-icons/lu";
 import { MosaicDragType } from "react-mosaic-component";
-import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
@@ -129,9 +128,13 @@ export function GroupItem({
 	);
 
 	useEffect(() => {
-		if (isEditing && inputRef.current) {
-			inputRef.current.focus();
-			inputRef.current.select();
+		if (isEditing) {
+			// Use rAF to ensure focus happens after context menu closes
+			const id = requestAnimationFrame(() => {
+				inputRef.current?.focus();
+				inputRef.current?.select();
+			});
+			return () => cancelAnimationFrame(id);
 		}
 	}, [isEditing]);
 
@@ -239,19 +242,14 @@ export function GroupItem({
 					)}
 				</div>
 			</ContextMenuTrigger>
-			<ContextMenuContent className="w-32">
-				<ContextMenuItem onSelect={startEditing} className="justify-between">
-					<span className="flex items-center gap-2">
-						<LuPencil className="size-4" />
-						Rename
-					</span>
+			<ContextMenuContent>
+				<ContextMenuItem onSelect={startEditing}>
+					<LuPencil className="size-4 mr-2" />
+					Rename
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={onClose} className="justify-between">
-					<span className="flex items-center gap-2">
-						<HiMiniXMark className="size-4" />
-						Close
-					</span>
-					<HotkeyMenuShortcut hotkeyId="CLOSE_TAB" variant="context" />
+				<ContextMenuItem onSelect={onClose}>
+					<HiMiniXMark className="size-4 mr-2" />
+					Close
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

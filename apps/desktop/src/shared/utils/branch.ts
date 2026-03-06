@@ -18,8 +18,29 @@ export function sanitizeSegment(
 		.slice(0, maxLength);
 }
 
+/**
+ * Like sanitizeSegment but preserves the original case.
+ * Used for author/GitHub username prefixes where case must match
+ * the git ref exactly to avoid case-mismatch issues with packed-refs.
+ */
+function sanitizeSegmentPreserveCase(
+	text: string,
+	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+): string {
+	return text
+		.trim()
+		.replace(/\s+/g, "-")
+		.replace(/[^a-zA-Z0-9._+@-]/g, "")
+		.replace(/\.{2,}/g, ".")
+		.replace(/@\{/g, "@")
+		.replace(/-+/g, "-")
+		.replace(/^[-.]|[-.]+$/g, "")
+		.replace(/\.lock$/g, "")
+		.slice(0, maxLength);
+}
+
 export function sanitizeAuthorPrefix(name: string): string {
-	return sanitizeSegment(name);
+	return sanitizeSegmentPreserveCase(name);
 }
 
 export function sanitizeBranchName(name: string): string {
@@ -111,5 +132,5 @@ export function resolveBranchPrefix({
 		default:
 			return null;
 	}
-	return prefix ? sanitizeSegment(prefix) : null;
+	return prefix ? sanitizeSegmentPreserveCase(prefix) : null;
 }
