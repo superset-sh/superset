@@ -41,7 +41,8 @@ function buildPreview(message: MastraMessage): string {
 	}
 
 	const attachmentCount = message.content.filter(
-		(part: MastraMessagePart) => part.type === "image",
+		(part: MastraMessagePart) =>
+			part.type === "image" || (part as { type?: string }).type === "file",
 	).length;
 	if (attachmentCount > 0) {
 		return attachmentCount === 1

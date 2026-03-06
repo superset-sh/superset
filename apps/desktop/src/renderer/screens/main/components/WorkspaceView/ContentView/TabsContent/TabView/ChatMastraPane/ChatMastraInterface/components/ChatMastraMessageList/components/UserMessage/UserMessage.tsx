@@ -2,6 +2,7 @@ import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { useCallback } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { normalizeWorkspaceFilePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
+import { AttachmentChip } from "../AttachmentChip";
 import { parseUserMentions } from "./utils/parseUserMentions";
 
 type MastraMessage = NonNullable<
@@ -21,6 +22,16 @@ export function UserMessage({
 	workspaceCwd,
 }: UserMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const openAttachment = useCallback(
+		(url: string, filename?: string) => {
+			addFileViewerPane(workspaceId, {
+				filePath: url,
+				isPinned: true,
+				...(filename ? { displayName: filename } : {}),
+			});
+		},
+		[addFileViewerPane, workspaceId],
+	);
 	const openMentionedFile = useCallback(
 		(filePath: string) => {
 			addFileViewerPane(workspaceId, { filePath, isPinned: true });
@@ -34,6 +45,60 @@ export function UserMessage({
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
+			{message.content.some(
+				(part) =>
+					part.type === "image" || (part as { type?: string }).type === "file",
+			) && (
+				<div className="flex max-w-[85%] flex-wrap justify-end gap-2">
+					{message.content.map((part: MastraMessagePart, partIndex: number) => {
+						const rawPart = part as {
+							data?: string;
+							filename?: string;
+							mediaType?: string;
+							mimeType?: string;
+							type?: string;
+						};
+						if (part.type !== "image" && rawPart.type !== "file") {
+							return null;
+						}
+
+						const data = rawPart.data ?? "";
+						const mediaType =
+							rawPart.mediaType ??
+							rawPart.mimeType ??
+							"application/octet-stream";
+						if (!data) {
+							return null;
+						}
+
+						if (
+							part.type === "image" &&
+							"mimeType" in part &&
+							!rawPart.mediaType
+						) {
+							return (
+								<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
+									<img
+										src={`data:${part.mimeType};base64,${part.data}`}
+										alt="Attached"
+										className="max-h-48 rounded-lg object-contain"
+									/>
+								</div>
+							);
+						}
+
+						return (
+							<AttachmentChip
+								key={`${message.id}-${partIndex}`}
+								data={data}
+								mediaType={mediaType}
+								filename={rawPart.filename}
+								onClick={() => openAttachment(data, rawPart.filename)}
+							/>
+						);
+					})}
+				</div>
+			)}
 			{message.content.map((part: MastraMessagePart, partIndex: number) => {
 				if (part.type === "text") {
 					const mentionSegments = parseUserMentions(part.text);
@@ -79,17 +144,6 @@ export function UserMessage({
 									</button>
 								);
 							})}
-						</div>
-					);
-				}
-				if (part.type === "image") {
-					return (
-						<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
-							<img
-								src={`data:${part.mimeType};base64,${part.data}`}
-								alt="Attached"
-								className="max-h-48 rounded-lg object-contain"
-							/>
 						</div>
 					);
 				}
