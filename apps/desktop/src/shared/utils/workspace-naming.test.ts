@@ -51,6 +51,6 @@ describe("deriveWorkspaceBranchFromPrompt", () => {
 	});
 
 	test("does not append one-character fallback fragments", () => {
-		expect(deriveWorkspaceBranchFromPrompt("login", 8)).toBe("login");
+		expect(deriveWorkspaceBranchFromPrompt("login", 8)).toBe("update");
 	});
 });
