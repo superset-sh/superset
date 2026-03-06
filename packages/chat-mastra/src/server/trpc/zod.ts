@@ -27,6 +27,7 @@ export const mcpServerAuthInput = z.object({
 
 export const sessionIdInput = z.object({
 	sessionId: z.uuid(),
+	cwd: z.string().optional(),
 });
 
 export const sendMessagePayloadSchema = z.object({
@@ -82,16 +83,19 @@ export const sendMessageInput = z.object({
 
 export const approvalRespondInput = z.object({
 	sessionId: z.uuid(),
+	cwd: z.string().optional(),
 	payload: approvalPayloadSchema,
 });
 
 export const questionRespondInput = z.object({
 	sessionId: z.uuid(),
+	cwd: z.string().optional(),
 	payload: questionPayloadSchema,
 });
 
 export const planRespondInput = z.object({
 	sessionId: z.uuid(),
+	cwd: z.string().optional(),
 	payload: planPayloadSchema,
 });
 

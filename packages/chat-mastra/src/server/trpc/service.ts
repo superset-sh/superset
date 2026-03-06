@@ -247,12 +247,18 @@ export class ChatMastraService {
 					}),
 
 				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-					const runtime = await this.getOrCreateRuntime(input.sessionId);
+					const runtime = await this.getOrCreateRuntime(
+						input.sessionId,
+						input.cwd,
+					);
 					runtime.harness.abort();
 				}),
 
 				abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-					const runtime = await this.getOrCreateRuntime(input.sessionId);
+					const runtime = await this.getOrCreateRuntime(
+						input.sessionId,
+						input.cwd,
+					);
 					runtime.harness.abort();
 				}),
 
@@ -260,7 +266,10 @@ export class ChatMastraService {
 					respond: t.procedure
 						.input(approvalRespondInput)
 						.mutation(async ({ input }) => {
-							const runtime = await this.getOrCreateRuntime(input.sessionId);
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
 							return runtime.harness.respondToToolApproval(input.payload);
 						}),
 				}),
@@ -269,7 +278,10 @@ export class ChatMastraService {
 					respond: t.procedure
 						.input(questionRespondInput)
 						.mutation(async ({ input }) => {
-							const runtime = await this.getOrCreateRuntime(input.sessionId);
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
 							if (
 								runtime.pendingSandboxQuestion?.questionId ===
 								input.payload.questionId
@@ -284,7 +296,10 @@ export class ChatMastraService {
 					respond: t.procedure
 						.input(planRespondInput)
 						.mutation(async ({ input }) => {
-							const runtime = await this.getOrCreateRuntime(input.sessionId);
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
 							return runtime.harness.respondToPlanApproval(input.payload);
 						}),
 				}),
