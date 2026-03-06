@@ -17,7 +17,11 @@ export function mapEventType(
 	) {
 		return "Start";
 	}
-	if (eventType === "PermissionRequest" || eventType === "preToolUse") {
+	if (
+		eventType === "PermissionRequest" ||
+		eventType === "Notification" ||
+		eventType === "preToolUse"
+	) {
 		return "PermissionRequest";
 	}
 	if (

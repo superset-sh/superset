@@ -6,6 +6,7 @@ export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const SUPERSET_MANAGED_BINARIES = [
 	"claude",
 	"codex",
+	"droid",
 	"opencode",
 	"gemini",
 	"copilot",
