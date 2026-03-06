@@ -61,7 +61,11 @@ export async function generateWorkspaceBranchFromPrompt(
 
 		const branchName = deriveWorkspaceBranchFromPrompt(title ?? prompt);
 		return branchName || fallbackBranchName || null;
-	} catch {
+	} catch (error) {
+		console.warn("[generateWorkspaceBranchFromPrompt] AI branch naming failed", {
+			error,
+			promptLength: prompt.length,
+		});
 		return fallbackBranchName || null;
 	}
 }

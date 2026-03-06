@@ -174,7 +174,11 @@ export function deriveWorkspaceBranchFromPrompt(
 
 	const keywords = [...allKeywords];
 	if (keywords.length < MIN_BRANCH_WORD_COUNT) {
-		keywords.unshift("update");
+		if (keywords[0] !== "update") {
+			keywords.unshift("update");
+		} else {
+			keywords.push("change");
+		}
 	}
 
 	const selectedKeywords: string[] = [];

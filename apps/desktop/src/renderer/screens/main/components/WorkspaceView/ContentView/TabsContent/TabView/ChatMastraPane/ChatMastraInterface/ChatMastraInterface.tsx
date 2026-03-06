@@ -334,9 +334,7 @@ export function ChatMastraInterface({
 	);
 
 	const maybeRenamePendingBranch = useCallback(
-		(prompt: string, isFirstMessage: boolean) => {
-			if (!isFirstMessage) return;
-
+		(prompt: string) => {
 			const pendingBranchRename =
 				usePendingBranchRenameStore.getState().getPending(workspaceId);
 			if (!pendingBranchRename) return;
@@ -347,8 +345,17 @@ export function ChatMastraInterface({
 					prompt,
 					expectedBranch: pendingBranchRename.expectedBranch,
 				})
-				.then(() => {
-					clearPendingBranchRename(workspaceId);
+				.then((result) => {
+					if (result.success || result.reason === "branch-mismatch") {
+						clearPendingBranchRename(workspaceId);
+					}
+				})
+				.catch((error) => {
+					console.warn("[chat-mastra] Failed to rename pending branch", {
+						error,
+						expectedBranch: pendingBranchRename.expectedBranch,
+						workspaceId,
+					});
 				});
 		},
 		[clearPendingBranchRename, renameBranchFromPromptMutation, workspaceId],
@@ -559,8 +566,6 @@ export function ChatMastraInterface({
 			}
 
 			let targetSessionId = sessionId;
-			const shouldRenamePendingBranch =
-				messagesLengthRef.current === 0 && !isSlashCommand;
 			try {
 				const sendResult = await sendMessageForSession({
 					currentSessionId: sessionId,
@@ -572,7 +577,9 @@ export function ChatMastraInterface({
 						sendMessageToSession(nextSessionId, sendInput),
 				});
 				targetSessionId = sendResult.targetSessionId;
-				maybeRenamePendingBranch(content, shouldRenamePendingBranch);
+				if (!isSlashCommand) {
+					maybeRenamePendingBranch(content);
+				}
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
@@ -668,7 +675,6 @@ export function ChatMastraInterface({
 			};
 
 			try {
-				const shouldRenamePendingBranch = messagesLengthRef.current === 0;
 				const sendResult = await sendMessageForSession({
 					currentSessionId: autoLaunchSessionLockRef.current[launchConfigKey],
 					isSessionReady,
@@ -678,7 +684,7 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
-				maybeRenamePendingBranch(prompt, shouldRenamePendingBranch);
+				maybeRenamePendingBranch(prompt);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;

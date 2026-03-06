@@ -38,6 +38,10 @@ describe("deriveWorkspaceBranchFromPrompt", () => {
 		expect(deriveWorkspaceBranchFromPrompt("Auth")).toBe("update-auth");
 	});
 
+	test("avoids duplicate fallback prefixes", () => {
+		expect(deriveWorkspaceBranchFromPrompt("update")).toBe("update-change");
+	});
+
 	test("caps generated branch length", () => {
 		const longPrompt =
 			"Please improve the mobile authentication settings page and repo sync";
