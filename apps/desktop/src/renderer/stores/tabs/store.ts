@@ -339,12 +339,9 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						if (!tab || tab.name === title) return state;
-						console.debug("[chat-title] setTabAutoTitle", {
-							tabId,
-							from: tab.name,
-							to: title,
-						});
+						if (!tab || tab.name === title || tab.userTitle?.trim()) {
+							return state;
+						}
 						return {
 							tabs: state.tabs.map((t) =>
 								t.id === tabId ? { ...t, name: title } : t,
@@ -986,7 +983,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = {
 						...state.panes,
-						[paneId]: { ...pane, name },
+						[paneId]: { ...pane, name, userTitle: name },
 					};
 					const tabName = deriveTabName(newPanes, pane.tabId);
 
@@ -1000,12 +997,9 @@ export const useTabsStore = create<TabsStore>()(
 				setPaneAutoTitle: (paneId, title) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						if (!pane || pane.name === title) return state;
-						console.debug("[chat-title] setPaneAutoTitle", {
-							paneId,
-							from: pane.name,
-							to: title,
-						});
+						if (!pane || pane.name === title || pane.userTitle?.trim()) {
+							return state;
+						}
 						return {
 							panes: {
 								...state.panes,

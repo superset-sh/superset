@@ -176,10 +176,12 @@ describe("runtime error propagation", () => {
 
 describe("runtime title generation", () => {
 	it("uses submitted user message when history has no persisted user messages", async () => {
-		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest({
-			messages: [],
-			generatedTitle: "Title from submit payload",
-		});
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [],
+				generatedTitle: "Title from submit payload",
+			},
+		);
 
 		await generateAndSetTitle(runtime, apiClient, {
 			submittedUserMessage: "Title source from current submit",
@@ -194,15 +196,17 @@ describe("runtime title generation", () => {
 	});
 
 	it("does not double-count submitted message when already persisted", async () => {
-		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest({
-			messages: [
-				{
-					role: "user",
-					content: [{ type: "text", text: "duplicate-safe message" }],
-				},
-			],
-			generatedTitle: "Title from deduped submit",
-		});
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "duplicate-safe message" }],
+					},
+				],
+				generatedTitle: "Title from deduped submit",
+			},
+		);
 
 		await generateAndSetTitle(runtime, apiClient, {
 			submittedUserMessage: "duplicate-safe message",
@@ -214,5 +218,23 @@ describe("runtime title generation", () => {
 				title: "Title from deduped submit",
 			},
 		]);
+	});
+
+	it("ignores malformed text parts without a text string", async () => {
+		const { runtime, apiClient, updateTitleInputs } = createRuntimeForTitleTest(
+			{
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text" }],
+					},
+				],
+				generatedTitle: "should not be used",
+			},
+		);
+
+		await generateAndSetTitle(runtime, apiClient);
+
+		expect(updateTitleInputs).toEqual([]);
 	});
 });

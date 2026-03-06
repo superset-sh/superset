@@ -194,44 +194,12 @@ export function GroupStrip() {
 	);
 
 	useEffect(() => {
-		console.debug("[chat-title] groupstrip sync snapshot", {
-			activeWorkspaceId,
-			shouldSyncChatTitles,
-			targetSessionIds,
-			chatSessionsCount: chatSessions?.length ?? 0,
-			chatSessionsSample:
-				chatSessions?.slice(0, 5).map((s) => ({
-					id: s.id,
-					workspaceId: s.workspaceId,
-					title: s.title || "New Chat",
-				})) ?? [],
-		});
-	}, [activeWorkspaceId, chatSessions, shouldSyncChatTitles, targetSessionIds]);
-
-	useEffect(() => {
 		if (!shouldSyncChatTitles) return;
 		if (!chatSessions) return;
-		console.debug("[chat-title] syncing sessions to tab/pane titles", {
-			sessionCount: chatSessions.length,
-			targetCount: chatSessionTargets.size,
-		});
 		for (const session of chatSessions) {
 			const target = chatSessionTargets.get(session.id);
-			if (!target) {
-				console.debug("[chat-title] session has no open pane target", {
-					sessionId: session.id,
-					title: session.title || "New Chat",
-				});
-				continue;
-			}
-			const title = session.title || "New Chat";
-			console.debug("[chat-title] applying session title", {
-				sessionId: session.id,
-				workspaceId: session.workspaceId,
-				title,
-				tabCount: target.tabIds.size,
-				paneCount: target.paneIds.size,
-			});
+			const title = session.title?.trim();
+			if (!target || !title) continue;
 			for (const tabId of target.tabIds) {
 				setTabAutoTitle(tabId, title);
 			}

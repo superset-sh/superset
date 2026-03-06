@@ -233,7 +233,10 @@ function extractProviderMessage(error: unknown): string | null {
 
 function extractTextContent(parts: MessageLike["content"]): string {
 	return parts
-		.filter((c): c is TextContentPart => c.type === "text")
+		.filter(
+			(c): c is TextContentPart =>
+				c.type === "text" && typeof c.text === "string",
+		)
 		.map((c) => c.text)
 		.join(" ");
 }

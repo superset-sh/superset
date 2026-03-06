@@ -67,12 +67,6 @@ export async function PUT(
 		organizationId: body.organizationId,
 		createdBy: session.user.id,
 	};
-	console.debug("[chat] create session request", {
-		sessionId,
-		organizationId: body.organizationId,
-		workspaceId: body.workspaceId ?? null,
-		userId: session.user.id,
-	});
 
 	try {
 		await db
@@ -105,7 +99,7 @@ export async function PUT(
 
 	if (body.workspaceId) {
 		try {
-			const [updated] = await db
+			await db
 				.update(chatSessions)
 				.set({ workspaceId: body.workspaceId })
 				.where(
@@ -116,11 +110,6 @@ export async function PUT(
 					),
 				)
 				.returning({ id: chatSessions.id });
-			console.debug("[chat] ensured workspace_id on session", {
-				sessionId,
-				workspaceId: body.workspaceId,
-				updated: Boolean(updated),
-			});
 		} catch (error) {
 			console.warn("[chat] failed to ensure workspace_id on session", {
 				sessionId,
