@@ -294,10 +294,10 @@ export async function generateAndSetTitle(
 		const agent =
 			typeof mode.agent === "function" ? mode.agent({}) : mode.agent;
 
-		const title = await agent.generateTitleFromUserMessage({
+		const title = await generateTitleFromMessage({
+			agent,
 			message: text,
-			model: runtime.harness.getFullModelId(),
-			tracingContext: {},
+			modelId: runtime.harness.getFullModelId(),
 		});
 		if (!title?.trim()) return;
 
@@ -309,3 +309,5 @@ export async function generateAndSetTitle(
 		console.warn("[chat-mastra] Title generation failed:", error);
 	}
 }
+
+import { generateTitleFromMessage } from "@superset/chat/host";

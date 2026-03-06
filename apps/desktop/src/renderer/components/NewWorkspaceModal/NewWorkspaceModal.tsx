@@ -15,10 +15,7 @@ import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useOpenProject } from "renderer/react-query/projects";
-import {
-	useCreateWorkspace,
-	useUpdateWorkspace,
-} from "renderer/react-query/workspaces";
+import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -102,8 +99,6 @@ export function NewWorkspaceModal() {
 		resolveInitialCommands: (commands) =>
 			runSetupScriptRef.current ? commands : null,
 	});
-	const updateWorkspace = useUpdateWorkspace();
-	const generateName = electronTrpc.workspaces.generateName.useMutation();
 	const { openNew } = useOpenProject();
 	const selectableAgents =
 		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
@@ -329,6 +324,7 @@ export function NewWorkspaceModal() {
 				{
 					projectId: selectedProjectId,
 					name: workspaceName,
+					prompt: prompt || undefined,
 					branchName: branchSlug || undefined,
 					baseBranch: baseBranch || undefined,
 					applyPrefix,
@@ -337,25 +333,6 @@ export function NewWorkspaceModal() {
 					? { agentLaunchRequest: launchRequestTemplate }
 					: undefined,
 			);
-
-			if (prompt && !result.wasExisting) {
-				void (async () => {
-					try {
-						const res = await generateName.mutateAsync({ prompt });
-						if (!res.name) return;
-
-						await updateWorkspace.mutateAsync({
-							id: result.workspace.id,
-							patch: { name: res.name, isUnnamed: false },
-						});
-					} catch (error) {
-						console.error(
-							"[new-workspace/title] Failed to generate/apply workspace name",
-							error,
-						);
-					}
-				})();
-			}
 
 			const launchRequest = launchRequestTemplate
 				? {

@@ -111,7 +111,8 @@ export function ChatMastraPane({
 			const paneName = pane?.name?.trim() ?? "";
 			const tabName = tab?.name?.trim() ?? "";
 			const hasCustomTabTitle = Boolean(tab?.userTitle?.trim());
-			const shouldSetPaneTitle = paneName.length === 0 || paneName === "New Chat";
+			const shouldSetPaneTitle =
+				paneName.length === 0 || paneName === "New Chat";
 			const shouldSetTabTitle =
 				!hasCustomTabTitle &&
 				(tabName.length === 0 ||

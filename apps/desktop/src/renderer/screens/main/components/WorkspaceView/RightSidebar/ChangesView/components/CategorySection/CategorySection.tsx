@@ -6,24 +6,33 @@ import {
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { HiChevronRight } from "react-icons/hi2";
+import { useChangesSectionDnd } from "renderer/screens/main/components/WorkspaceView/hooks/useChangesSectionDnd";
+import type { ChangeCategory } from "shared/changes-types";
 
 interface CategorySectionProps {
+	id: ChangeCategory;
 	title: string;
 	count: number;
 	isExpanded: boolean;
 	onToggle: () => void;
 	children: ReactNode;
 	actions?: ReactNode;
+	onMove?: (fromSection: ChangeCategory, toSection: ChangeCategory) => void;
 }
 
 export function CategorySection({
+	id,
 	title,
 	count,
 	isExpanded,
 	onToggle,
 	children,
 	actions,
+	onMove,
 }: CategorySectionProps) {
+	const { containerRef, isDragging, isOver } =
+		useChangesSectionDnd<HTMLDivElement>({ id, onMove });
+
 	if (count === 0) {
 		return null;
 	}
@@ -32,9 +41,18 @@ export function CategorySection({
 		<Collapsible
 			open={isExpanded}
 			onOpenChange={onToggle}
-			className="min-w-0 overflow-hidden"
+			className={cn(
+				"min-w-0 overflow-hidden transition-opacity",
+				isDragging && "opacity-45",
+			)}
 		>
-			<div className="group flex items-center min-w-0">
+			<div
+				ref={containerRef}
+				className={cn(
+					"group flex items-center min-w-0 cursor-grab active:cursor-grabbing",
+					isOver && "bg-accent/20",
+				)}
+			>
 				<CollapsibleTrigger
 					className={cn(
 						"flex-1 flex items-center gap-1.5 px-2 py-1.5 text-left min-w-0",

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useChangesStore } from "renderer/stores/changes";
+import { getOrderedChangeSectionIds } from "renderer/stores/changes/section-order";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../context";
 
@@ -22,6 +23,7 @@ interface FocusModeInput {
 	commits: { hash: string; files: ChangedFile[] }[];
 	sortedStaged: ChangedFile[];
 	sortedUnstaged: ChangedFile[];
+	sectionOrder: ChangeCategory[];
 	worktreePath: string;
 	baseBranch: string;
 	stageFile: (params: { worktreePath: string; filePath: string }) => void;
@@ -34,6 +36,7 @@ export function useFocusMode({
 	commits,
 	sortedStaged,
 	sortedUnstaged,
+	sectionOrder,
 	worktreePath,
 	baseBranch,
 	stageFile,
@@ -43,89 +46,130 @@ export function useFocusMode({
 	const { focusedFileKey, setFocusedFileKey, setActiveFileKey, activeFileKey } =
 		useScrollContext();
 	const { focusMode, toggleFocusMode } = useChangesStore();
+	const orderedSections = useMemo(
+		() => getOrderedChangeSectionIds(sectionOrder),
+		[sectionOrder],
+	);
 
 	const flatFileList = useMemo<FlatFileEntry[]>(() => {
 		const entries: FlatFileEntry[] = [];
-		for (const file of sortedAgainstBase) {
-			entries.push({
-				file,
-				category: "against-base",
-				key: createFileKey(file, "against-base"),
-			});
-		}
-		for (const commit of commits) {
-			for (const file of commit.files) {
-				entries.push({
-					file,
-					category: "committed",
-					commitHash: commit.hash,
-					key: createFileKey(file, "committed", commit.hash),
-				});
+
+		for (const section of orderedSections) {
+			switch (section) {
+				case "against-base":
+					for (const file of sortedAgainstBase) {
+						entries.push({
+							file,
+							category: "against-base",
+							key: createFileKey(file, "against-base"),
+						});
+					}
+					break;
+				case "committed":
+					for (const commit of commits) {
+						for (const file of commit.files) {
+							entries.push({
+								file,
+								category: "committed",
+								commitHash: commit.hash,
+								key: createFileKey(file, "committed", commit.hash),
+							});
+						}
+					}
+					break;
+				case "staged":
+					for (const file of sortedStaged) {
+						entries.push({
+							file,
+							category: "staged",
+							key: createFileKey(file, "staged"),
+						});
+					}
+					break;
+				case "unstaged":
+					for (const file of sortedUnstaged) {
+						entries.push({
+							file,
+							category: "unstaged",
+							key: createFileKey(file, "unstaged"),
+						});
+					}
+					break;
 			}
 		}
-		for (const file of sortedStaged) {
-			entries.push({
-				file,
-				category: "staged",
-				key: createFileKey(file, "staged"),
-			});
-		}
-		for (const file of sortedUnstaged) {
-			entries.push({
-				file,
-				category: "unstaged",
-				key: createFileKey(file, "unstaged"),
-			});
-		}
+
 		return entries;
-	}, [sortedAgainstBase, commits, sortedStaged, sortedUnstaged]);
+	}, [
+		sortedAgainstBase,
+		commits,
+		sortedStaged,
+		sortedUnstaged,
+		orderedSections,
+	]);
 
 	const sections = useMemo<SectionInfo[]>(() => {
 		const result: SectionInfo[] = [];
 		let offset = 0;
-
-		if (sortedAgainstBase.length > 0) {
-			result.push({
-				category: "against-base",
-				label: `Against ${baseBranch}`,
-				startIndex: offset,
-				count: sortedAgainstBase.length,
-			});
-			offset += sortedAgainstBase.length;
-		}
-
 		const commitFileCount = commits.reduce((acc, c) => acc + c.files.length, 0);
-		if (commitFileCount > 0) {
-			result.push({
-				category: "committed",
-				label: "Commits",
-				startIndex: offset,
-				count: commitFileCount,
-			});
-			offset += commitFileCount;
-		}
 
-		if (sortedStaged.length > 0) {
-			result.push({
-				category: "staged",
-				label: "Staged",
-				startIndex: offset,
-				count: sortedStaged.length,
-			});
-			offset += sortedStaged.length;
-		}
-
-		if (sortedUnstaged.length > 0) {
-			result.push({
-				category: "unstaged",
-				label: "Unstaged",
-				startIndex: offset,
-				count: sortedUnstaged.length,
-			});
+		for (const section of orderedSections) {
+			switch (section) {
+				case "against-base":
+					if (sortedAgainstBase.length > 0) {
+						result.push({
+							category: "against-base",
+							label: `Against ${baseBranch}`,
+							startIndex: offset,
+							count: sortedAgainstBase.length,
+						});
+						offset += sortedAgainstBase.length;
+					}
+					break;
+				case "committed":
+					if (commitFileCount > 0) {
+						result.push({
+							category: "committed",
+							label: "Commits",
+							startIndex: offset,
+							count: commitFileCount,
+						});
+						offset += commitFileCount;
+					}
+					break;
+				case "staged":
+					if (sortedStaged.length > 0) {
+						result.push({
+							category: "staged",
+							label: "Staged",
+							startIndex: offset,
+							count: sortedStaged.length,
+						});
+						offset += sortedStaged.length;
+					}
+					break;
+				case "unstaged":
+					if (sortedUnstaged.length > 0) {
+						result.push({
+							category: "unstaged",
+							label: "Unstaged",
+							startIndex: offset,
+							count: sortedUnstaged.length,
+						});
+						offset += sortedUnstaged.length;
+					}
+					break;
+			}
 		}
 
 		return result;
-	}, [sortedAgainstBase, commits, sortedStaged, sortedUnstaged, baseBranch]);
+	}, [
+		sortedAgainstBase,
+		commits,
+		sortedStaged,
+		sortedUnstaged,
+		baseBranch,
+		orderedSections,
+	]);
 
 	const focusedEntry = focusMode
 		? (flatFileList.find((e) => e.key === focusedFileKey) ??

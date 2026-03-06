@@ -5,7 +5,7 @@ import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { generateWorkspaceNameFromPrompt } from "../utils/ai-name";
+import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
@@ -290,6 +290,7 @@ export const createCreateProcedures = () => {
 				z.object({
 					projectId: z.string(),
 					name: z.string().optional(),
+					prompt: z.string().optional(),
 					branchName: z.string().optional(),
 					baseBranch: z.string().optional(),
 					useExistingBranch: z.boolean().optional(),
@@ -411,6 +412,24 @@ export const createCreateProcedures = () => {
 							branch,
 							name: input.name ?? branch,
 						});
+						let autoRenameWarning: string | undefined;
+						try {
+							const autoRenameResult =
+								await attemptWorkspaceAutoRenameFromPrompt({
+									workspaceId: workspace.id,
+									prompt: input.prompt,
+								});
+							autoRenameWarning =
+								autoRenameResult.status === "skipped"
+									? autoRenameResult.warning
+									: undefined;
+						} catch (error) {
+							console.warn("[workspaces/create] Auto naming failed", {
+								workspaceId: workspace.id,
+								error: error instanceof Error ? error.message : String(error),
+							});
+							autoRenameWarning = "Couldn't auto-name this workspace.";
+						}
 						activateProject(project);
 						const setupConfig = loadSetupConfig({
 							mainRepoPath: project.mainRepoPath,
@@ -423,6 +442,7 @@ export const createCreateProcedures = () => {
 							worktreePath: orphanedWorktree.path,
 							projectId: project.id,
 							isInitializing: false,
+							autoRenameWarning,
 							wasExisting: true,
 						};
 					}
@@ -491,6 +511,7 @@ export const createCreateProcedures = () => {
 					worktreePath,
 					branch,
 					mainRepoPath: project.mainRepoPath,
+					namingPrompt: input.prompt,
 					useExistingBranch: input.useExistingBranch,
 				});
 
@@ -952,14 +973,6 @@ export const createCreateProcedures = () => {
 					workspaceName,
 				});
 			}),
-
-		generateName: publicProcedure
-			.input(z.object({ prompt: z.string().min(1) }))
-			.mutation(async ({ input }) => {
-				const name = await generateWorkspaceNameFromPrompt(input.prompt);
-				return { name };
-			}),
-
 		importAllWorktrees: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.mutation(async ({ input }) => {

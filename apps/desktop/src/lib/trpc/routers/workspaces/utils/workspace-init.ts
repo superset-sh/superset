@@ -4,6 +4,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
+import { attemptWorkspaceAutoRenameFromPrompt } from "./ai-name";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
 import {
@@ -26,6 +27,7 @@ export interface WorkspaceInitParams {
 	worktreePath: string;
 	branch: string;
 	mainRepoPath: string;
+	namingPrompt?: string;
 	/** If true, use an existing branch instead of creating a new one */
 	useExistingBranch?: boolean;
 	/** If true, skip worktree creation (worktree already exists on disk) */
@@ -45,10 +47,36 @@ export async function initializeWorkspaceWorktree({
 	worktreePath,
 	branch,
 	mainRepoPath,
+	namingPrompt,
 	useExistingBranch,
 	skipWorktreeCreation,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
+	const completeReadyState = async (): Promise<void> => {
+		let warning: string | undefined;
+		try {
+			const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId,
+				prompt: namingPrompt,
+			});
+			warning =
+				autoRenameResult.status === "skipped"
+					? autoRenameResult.warning
+					: undefined;
+		} catch (error) {
+			console.warn("[workspace-init] Auto naming failed", {
+				workspaceId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			warning = "Couldn't auto-name this workspace.";
+		}
+
+		if (manager.isCancellationRequested(workspaceId)) {
+			return;
+		}
+
+		manager.updateProgress(workspaceId, "ready", "Ready", undefined, warning);
+	};
 
 	try {
 		await manager.acquireProjectLock(projectId);
@@ -141,7 +169,7 @@ export async function initializeWorkspaceWorktree({
 				.where(eq(worktrees.id, worktreeId))
 				.run();
 
-			manager.updateProgress(workspaceId, "ready", "Ready");
+			await completeReadyState();
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -444,7 +472,7 @@ export async function initializeWorkspaceWorktree({
 			.where(eq(worktrees.id, worktreeId))
 			.run();
 
-		manager.updateProgress(workspaceId, "ready", "Ready");
+		await completeReadyState();
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,
