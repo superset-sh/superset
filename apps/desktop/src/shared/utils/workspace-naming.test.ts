@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	deriveWorkspaceBranchFromPrompt,
 	deriveWorkspaceTitleFromPrompt,
+	resolveBranchSlug,
 } from "./workspace-naming";
 
 describe("deriveWorkspaceTitleFromPrompt", () => {
@@ -29,5 +30,36 @@ describe("deriveWorkspaceBranchFromPrompt", () => {
 		expect(
 			deriveWorkspaceBranchFromPrompt(longPrompt).length,
 		).toBeLessThanOrEqual(100);
+	});
+});
+
+describe("resolveBranchSlug", () => {
+	test("derives branch from title when branch name not manually edited", () => {
+		// Regression: before the fix, this returned "" when branchNameEdited=false,
+		// causing the backend to fall back to a random friendly-word branch name
+		// unrelated to the user's prompt.
+		expect(resolveBranchSlug("Fix auth flow", "", false)).toBe("fix-auth-flow");
+	});
+
+	test("derives branch from title with special characters when not edited", () => {
+		expect(resolveBranchSlug("Add SSO support + docs!", "", false)).toBe(
+			"add-sso-support-+-docs",
+		);
+	});
+
+	test("uses sanitized manually-edited branch name when branchNameEdited is true", () => {
+		expect(resolveBranchSlug("Fix auth flow", "my-custom-branch", true)).toBe(
+			"my-custom-branch",
+		);
+	});
+
+	test("returns empty string when title is empty and branch not edited", () => {
+		expect(resolveBranchSlug("", "", false)).toBe("");
+	});
+
+	test("sanitizes manually-edited branch name", () => {
+		expect(resolveBranchSlug("Fix auth flow", "My Branch Name!", true)).toBe(
+			"my-branch-name",
+		);
 	});
 });

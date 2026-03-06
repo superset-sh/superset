@@ -24,3 +24,19 @@ export function deriveWorkspaceBranchFromPrompt(
 	const generatedSlug = sanitizeSegment(prompt, segmentMaxLength);
 	return sanitizeBranchNameWithMaxLength(generatedSlug);
 }
+
+/**
+ * Resolves the branch slug to use when creating a workspace.
+ * When the user has manually edited the branch name, that value is sanitized and used.
+ * When the branch name has not been edited, the slug is derived from the prompt/title.
+ */
+export function resolveBranchSlug(
+	title: string,
+	branchName: string,
+	branchNameEdited: boolean,
+): string {
+	if (branchNameEdited) {
+		return sanitizeBranchNameWithMaxLength(branchName);
+	}
+	return deriveWorkspaceBranchFromPrompt(title);
+}

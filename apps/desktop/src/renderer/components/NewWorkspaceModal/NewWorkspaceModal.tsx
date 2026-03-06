@@ -28,6 +28,7 @@ import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
+import { resolveBranchSlug } from "shared/utils/workspace-naming";
 import type { ImportSourceTab } from "./components/ExistingWorktreesList";
 import { ImportFlow } from "./components/ImportFlow";
 import { NewWorkspaceAdvancedOptions } from "./components/NewWorkspaceAdvancedOptions";
@@ -161,9 +162,7 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const branchSlug = branchNameEdited
-		? sanitizeBranchNameWithMaxLength(branchName)
-		: "";
+	const branchSlug = resolveBranchSlug(title, branchName, branchNameEdited);
 
 	const applyPrefix = !branchNameEdited;
 
