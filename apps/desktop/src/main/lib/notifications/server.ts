@@ -21,6 +21,11 @@ export type {
  */
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
+const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
+const DEBUG_HOOKS_ENABLED =
+	debugHooksOverride === undefined
+		? SERVER_ENV === "development"
+		: !/^(0|false)$/i.test(debugHooksOverride);
 
 export const notificationsEmitter = new EventEmitter();
 
@@ -51,6 +56,7 @@ function resolvePaneId(
 	paneId: string | undefined,
 	tabId: string | undefined,
 	workspaceId: string | undefined,
+	sessionId: string | undefined,
 ): string | undefined {
 	try {
 		const tabsState = appState.data.tabsState;
@@ -80,6 +86,17 @@ function resolvePaneId(
 				}
 			}
 		}
+
+		// Resolve from Mastra chat session ID
+		if (sessionId) {
+			for (const [existingPaneId, pane] of Object.entries(
+				tabsState.panes ?? {},
+			)) {
+				if (pane.chatMastra?.sessionId === sessionId) {
+					return existingPaneId;
+				}
+			}
+		}
 	} catch {
 		// App state not initialized yet, ignore
 	}
@@ -93,6 +110,7 @@ app.get("/hook/complete", (req, res) => {
 		paneId,
 		tabId,
 		workspaceId,
+		sessionId,
 		eventType,
 		env: clientEnv,
 		version,
@@ -130,6 +148,7 @@ app.get("/hook/complete", (req, res) => {
 		paneId as string | undefined,
 		tabId as string | undefined,
 		workspaceId as string | undefined,
+		sessionId as string | undefined,
 	);
 
 	const event: AgentLifecycleEvent = {
@@ -138,6 +157,18 @@ app.get("/hook/complete", (req, res) => {
 		workspaceId: workspaceId as string | undefined,
 		eventType: mappedEventType,
 	};
+
+	if (DEBUG_HOOKS_ENABLED) {
+		console.log("[notifications] hook event received", {
+			eventType,
+			mappedEventType,
+			paneId: paneId as string | undefined,
+			tabId: tabId as string | undefined,
+			workspaceId: workspaceId as string | undefined,
+			sessionId: sessionId as string | undefined,
+			resolvedPaneId,
+		});
+	}
 
 	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
 

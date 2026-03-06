@@ -1,0 +1,22 @@
+{
+	"name": "electric-proxy",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "dotenv -e ../../.env -- sh -c 'wrangler dev --port ${WRANGLER_PORT:-8787}'",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/db": "workspace:*",
+		"drizzle-orm": "0.45.1",
+		"jose": "^6.1.3"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250214.0",
+		"@superset/typescript": "workspace:*",
+		"typescript": "^5.9.3",
+		"wrangler": "^4.14.4"
+	}
+}

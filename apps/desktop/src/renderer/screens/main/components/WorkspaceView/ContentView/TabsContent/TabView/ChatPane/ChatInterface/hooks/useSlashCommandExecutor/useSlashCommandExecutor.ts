@@ -1,7 +1,11 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
-import type { McpOverviewPayload, ModelOption } from "../../types";
+import type {
+	McpOverviewPayload,
+	ModelOption,
+	StartFreshSessionResult,
+} from "../../types";
 import {
 	findModelByQuery,
 	normalizeModelQueryFromActionArgument,
@@ -12,16 +16,15 @@ interface UseSlashCommandExecutorOptions {
 	cwd: string;
 	availableModels: ModelOption[];
 	canAbort: boolean;
-	onStartFreshSession: () => Promise<{
-		created: boolean;
-		errorMessage?: string;
-	}>;
+	onStartFreshSession: () => Promise<StartFreshSessionResult>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onOpenModelPicker: () => void;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
 	onShowMcpOverview: (overview: McpOverviewPayload) => void;
+	loadMcpOverview?: (cwd: string) => Promise<McpOverviewPayload>;
+	onTrackEvent?: (event: string, properties: Record<string, unknown>) => void;
 }
 
 interface ResolveSlashCommandResult {
@@ -40,6 +43,8 @@ export function useSlashCommandExecutor({
 	onSetErrorMessage,
 	onClearError,
 	onShowMcpOverview,
+	loadMcpOverview,
+	onTrackEvent,
 }: UseSlashCommandExecutorOptions) {
 	const { mutateAsync: resolveSlashCommandMutateAsync } =
 		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
@@ -76,15 +81,23 @@ export function useSlashCommandExecutor({
 							} else if (startResult.errorMessage) {
 								toast.error(startResult.errorMessage);
 							}
+							onTrackEvent?.("chat_slash_command_used", {
+								command_name: resolvedCommand.invokedAs ?? "new",
+								command_type: "new_session",
+							});
 							return { handled: true, nextText: "" };
 						}
 						case "stop_stream":
 							if (canAbort) {
 								toast.success("Stopped current response");
+								onStopActiveResponse();
 							} else {
 								toast.warning("No active response to stop");
 							}
-							onStopActiveResponse();
+							onTrackEvent?.("chat_slash_command_used", {
+								command_name: resolvedCommand.invokedAs ?? "stop",
+								command_type: "stop_stream",
+							});
 							return { handled: true, nextText: "" };
 						case "set_model": {
 							const modelQuery = normalizeModelQueryFromActionArgument(
@@ -110,14 +123,24 @@ export function useSlashCommandExecutor({
 							onSelectModel(matchedModel);
 							onClearError();
 							toast.success(`Model set to ${matchedModel.name}`);
+							onTrackEvent?.("chat_model_changed", {
+								model_id: matchedModel.id,
+								model_name: matchedModel.name,
+								trigger: "slash_command",
+							});
+							onTrackEvent?.("chat_slash_command_used", {
+								command_name: resolvedCommand.invokedAs ?? "model",
+								command_type: "set_model",
+							});
 							return { handled: true, nextText: "" };
 						}
 						case "show_mcp_overview": {
 							try {
-								const overview =
-									await chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
-										cwd,
-									});
+								const overview = loadMcpOverview
+									? await loadMcpOverview(cwd)
+									: await chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
+											cwd,
+										});
 								onClearError();
 								onShowMcpOverview(overview);
 							} catch (error) {
@@ -129,6 +152,10 @@ export function useSlashCommandExecutor({
 								onSetErrorMessage(overviewError);
 								toast.error(overviewError);
 							}
+							onTrackEvent?.("chat_slash_command_used", {
+								command_name: resolvedCommand.invokedAs ?? "mcp",
+								command_type: "show_mcp_overview",
+							});
 							return { handled: true, nextText: "" };
 						}
 						default: {
@@ -159,6 +186,15 @@ export function useSlashCommandExecutor({
 				}
 
 				onClearError();
+				if (promptResolution.handled) {
+					onTrackEvent?.("chat_slash_command_used", {
+						command_name:
+							resolvedCommand.invokedAs ??
+							resolvedCommand.commandName ??
+							"unknown",
+						command_type: "prompt",
+					});
+				}
 				return {
 					handled: promptResolution.handled,
 					nextText: promptResolution.nextText,
@@ -181,6 +217,8 @@ export function useSlashCommandExecutor({
 			onSelectModel,
 			onSetErrorMessage,
 			onShowMcpOverview,
+			onTrackEvent,
+			loadMcpOverview,
 			onStartFreshSession,
 			onStopActiveResponse,
 			chatServiceTrpcUtils.workspace.getMcpOverview,

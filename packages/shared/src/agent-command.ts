@@ -21,7 +21,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	claude: ["claude --dangerously-skip-permissions"],
 	codex: [
-		'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
@@ -48,7 +48,7 @@ export interface TaskInput {
 	labels: string[] | null;
 }
 
-function buildPrompt(task: TaskInput): string {
+export function buildAgentTaskPrompt(task: TaskInput): string {
 	const metadata = [
 		`Priority: ${task.priority}`,
 		task.statusName && `Status: ${task.statusName}`,
@@ -105,7 +105,7 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(
 			prompt,
 			delimiter,
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access',
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
 		),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
@@ -117,6 +117,23 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
 };
 
+export function buildAgentPromptCommand({
+	prompt,
+	randomId,
+	agent = "claude",
+}: {
+	prompt: string;
+	randomId: string;
+	agent?: AgentType;
+}): string {
+	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
+	while (prompt.includes(delimiter)) {
+		delimiter = `${delimiter}_X`;
+	}
+	const builder = AGENT_COMMANDS[agent];
+	return builder(prompt, delimiter);
+}
+
 export function buildAgentCommand({
 	task,
 	randomId,
@@ -126,13 +143,8 @@ export function buildAgentCommand({
 	randomId: string;
 	agent?: AgentType;
 }): string {
-	const prompt = buildPrompt(task);
-	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
-	while (prompt.includes(delimiter)) {
-		delimiter = `${delimiter}_X`;
-	}
-	const builder = AGENT_COMMANDS[agent];
-	return builder(prompt, delimiter);
+	const prompt = buildAgentTaskPrompt(task);
+	return buildAgentPromptCommand({ prompt, randomId, agent });
 }
 
 /** @deprecated Use `buildAgentCommand` instead */

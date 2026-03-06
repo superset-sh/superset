@@ -1,0 +1,28 @@
+{
+	"mcpServers": {
+		"superset": {
+			"command": "npx",
+			"args": ["-y", "mcp-remote", "https://api.superset.sh/api/agent/mcp"]
+		},
+		"maestro": {
+			"command": "maestro",
+			"args": ["mcp"]
+		},
+		"neon": {
+			"command": "npx",
+			"args": ["-y", "mcp-remote", "https://mcp.neon.tech/mcp"]
+		},
+		"linear": {
+			"command": "npx",
+			"args": ["-y", "mcp-remote", "https://mcp.linear.app/mcp"]
+		},
+		"sentry": {
+			"command": "npx",
+			"args": ["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"]
+		},
+		"desktop-automation": {
+			"command": "bun",
+			"args": ["run", "packages/desktop-mcp/src/bin.ts"]
+		}
+	}
+}

@@ -26,7 +26,6 @@ interface AnthropicOAuthDialogProps {
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
-	onPasteCode: () => void;
 	onSubmit: () => void;
 }
 
@@ -40,7 +39,6 @@ export function AnthropicOAuthDialog({
 	onCodeChange,
 	onOpenAuthUrl,
 	onCopyAuthUrl,
-	onPasteCode,
 	onSubmit,
 }: AnthropicOAuthDialogProps) {
 	return (
@@ -96,16 +94,6 @@ export function AnthropicOAuthDialog({
 								disabled={isPending}
 								className="h-11 font-mono"
 							/>
-							<InputGroupAddon align="inline-end" className="pr-1">
-								<InputGroupButton
-									size="xs"
-									variant="outline"
-									onClick={onPasteCode}
-									disabled={isPending}
-								>
-									Paste
-								</InputGroupButton>
-							</InputGroupAddon>
 						</InputGroup>
 						<p className="text-muted-foreground text-xs">
 							Paste `code#state` from Anthropic (or full callback URL).

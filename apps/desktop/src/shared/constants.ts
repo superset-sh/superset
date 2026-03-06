@@ -20,6 +20,7 @@ export const WORKTREES_DIR_NAME = "worktrees";
 export const PROJECTS_DIR_NAME = "projects";
 export const CONFIG_FILE_NAME = "config.json";
 export const PRESETS_FILE_NAME = "presets.json";
+export const LOCAL_CONFIG_FILE_NAME = "config.local.json";
 export const PORTS_FILE_NAME = "ports.json";
 
 export const CONFIG_TEMPLATE = `{
@@ -44,7 +45,7 @@ export const DEFAULT_AUTO_APPLY_DEFAULT_PRESET = true;
 export const DEFAULT_SHOW_PRESETS_BAR = true;
 export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;
-export const DEFAULT_SHOW_RESOURCE_MONITOR = false;
+export const DEFAULT_SHOW_RESOURCE_MONITOR = true;
 export const DEFAULT_OPEN_LINKS_IN_APP = false;
 
 // External links (documentation, help resources, etc.)

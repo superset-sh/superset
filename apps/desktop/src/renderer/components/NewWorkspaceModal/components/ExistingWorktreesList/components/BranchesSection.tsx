@@ -41,10 +41,6 @@ export function BranchesSection({
 }: BranchesSectionProps) {
 	return (
 		<div className="space-y-1.5">
-			<div className="border-t border-border pt-2" />
-			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-				Branches
-			</div>
 			<Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
 				<PopoverTrigger asChild>
 					<Button

@@ -1,3 +1,5 @@
+import { sanitizeBranchName } from "./branch";
+
 /**
  * Generates a URL-safe slug from a title with randomness to avoid collisions
  *
@@ -76,8 +78,11 @@ export function generateBranchName(title: string, prefix?: string): string {
 	const slug = generateSlug(title);
 
 	if (prefix) {
-		// Remove any trailing slashes from prefix
-		const cleanPrefix = prefix.replace(/\/+$/, "");
+		// Reuse shared branch sanitization rules for consistency.
+		const cleanPrefix = sanitizeBranchName(prefix);
+		if (!cleanPrefix) {
+			return slug;
+		}
 		return `${cleanPrefix}/${slug}`;
 	}
 

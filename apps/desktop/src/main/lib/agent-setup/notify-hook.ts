@@ -40,8 +40,8 @@ export function getNotifyScriptPath(): string {
 export function getNotifyScriptContent(): string {
 	const template = fs.readFileSync(NOTIFY_SCRIPT_TEMPLATE_PATH, "utf-8");
 	return template
-		.replace("{{MARKER}}", NOTIFY_SCRIPT_MARKER)
-		.replace("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
+		.replaceAll("{{MARKER}}", NOTIFY_SCRIPT_MARKER)
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 export function createNotifyScript(): void {

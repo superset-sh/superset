@@ -1,1 +1,2 @@
-export { type UseMcpUiReturn, useMcpUi } from "./useMcpUi";
+export type { UseMcpUiReturn } from "./useMcpUi";
+export { useMcpUi } from "./useMcpUi";

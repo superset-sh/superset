@@ -1,62 +1,45 @@
-import { Button } from "@superset/ui/button";
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
+	AGENT_PRESET_COMMANDS,
+	buildAgentPromptCommand,
+} from "@superset/shared/agent-command";
 import {
-	Command,
-	CommandEmpty,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@superset/ui/command";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@superset/ui/dialog";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
-import { Input } from "@superset/ui/input";
-import { Label } from "@superset/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+	type AgentLaunchRequest,
+	STARTABLE_AGENT_TYPES,
+	type StartableAgentType,
+} from "@superset/shared/agent-launch";
+import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
-import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GoGitBranch } from "react-icons/go";
-import {
-	HiCheck,
-	HiChevronDown,
-	HiChevronUpDown,
-	HiOutlinePencil,
-} from "react-icons/hi2";
-import { LuFolderOpen } from "react-icons/lu";
+import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateWorkspace,
+	useUpdateWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
-import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchNameWithMaxLength,
+} from "shared/utils/branch";
+import type { ImportSourceTab } from "./components/ExistingWorktreesList";
+import { ImportFlow } from "./components/ImportFlow";
+import { NewWorkspaceAdvancedOptions } from "./components/NewWorkspaceAdvancedOptions";
+import {
+	NewWorkspaceCreateFlow,
+	type WorkspaceCreateAgent,
+} from "./components/NewWorkspaceCreateFlow";
+import { NewWorkspaceHeader } from "./components/NewWorkspaceHeader";
+import { ProjectSelector } from "./components/ProjectSelector";
 
-function generateSlugFromTitle(title: string): string {
-	return sanitizeBranchName(title);
-}
-
-type Mode = "existing" | "new" | "cloud";
+type Mode = "existing" | "new";
+const WORKSPACE_AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 export function NewWorkspaceModal() {
 	const navigate = useNavigate();
@@ -75,9 +58,21 @@ export function NewWorkspaceModal() {
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [runSetupScript, setRunSetupScript] = useState(true);
+	const [importTab, setImportTab] = useState<ImportSourceTab>("pull-request");
+	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
+		() => {
+			if (typeof window === "undefined") return "none";
+			const stored = window.localStorage.getItem(WORKSPACE_AGENT_STORAGE_KEY);
+			if (stored === "none") return "none";
+			return stored &&
+				(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
+				? (stored as WorkspaceCreateAgent)
+				: "none";
+		},
+	);
 	const runSetupScriptRef = useRef(true);
 	runSetupScriptRef.current = runSetupScript;
-	const titleInputRef = useRef<HTMLInputElement>(null);
+	const titleInputRef = useRef<HTMLTextAreaElement>(null);
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
@@ -100,11 +95,18 @@ export function NewWorkspaceModal() {
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const terminalCreateOrAttach =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const createWorkspace = useCreateWorkspace({
 		resolveInitialCommands: (commands) =>
 			runSetupScriptRef.current ? commands : null,
 	});
+	const updateWorkspace = useUpdateWorkspace();
+	const generateName = electronTrpc.workspaces.generateName.useMutation();
 	const { openNew } = useOpenProject();
+	const selectableAgents =
+		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -138,6 +140,15 @@ export function NewWorkspaceModal() {
 		}
 	}, [isOpen]);
 
+	useEffect(() => {
+		if (selectedAgent === "none") return;
+		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
+			return;
+		}
+		setSelectedAgent("none");
+		window.localStorage.setItem(WORKSPACE_AGENT_STORAGE_KEY, "none");
+	}, [selectedAgent]);
+
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
 		workspaceBaseBranch: project?.workspaceBaseBranch,
@@ -151,14 +162,14 @@ export function NewWorkspaceModal() {
 	}, [selectedProjectId]);
 
 	const branchSlug = branchNameEdited
-		? sanitizeBranchName(branchName)
-		: generateSlugFromTitle(title);
+		? sanitizeBranchNameWithMaxLength(branchName)
+		: "";
 
 	const applyPrefix = !branchNameEdited;
 
 	const branchPreview =
 		branchSlug && applyPrefix && resolvedPrefix
-			? `${resolvedPrefix}/${branchSlug}`
+			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
 	const resetForm = () => {
@@ -167,6 +178,7 @@ export function NewWorkspaceModal() {
 		setBranchName("");
 		setBranchNameEdited(false);
 		setMode("new");
+		setImportTab("pull-request");
 		setBaseBranch(null);
 		setBranchSearch("");
 		setShowAdvanced(false);
@@ -181,6 +193,14 @@ export function NewWorkspaceModal() {
 	}, [isOpen, selectedProjectId, mode]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		const isTextareaTarget = e.target instanceof HTMLTextAreaElement;
+		const isSubmitShortcutInTextarea =
+			isTextareaTarget && (e.metaKey || e.ctrlKey);
+
+		if (isTextareaTarget && !isSubmitShortcutInTextarea) {
+			return;
+		}
+
 		if (
 			e.key === "Enter" &&
 			!e.shiftKey &&
@@ -232,24 +252,125 @@ export function NewWorkspaceModal() {
 	const selectedProject = recentProjects.find(
 		(p) => p.id === selectedProjectId,
 	);
+	const projectSelector = (
+		<ProjectSelector
+			selectedProjectId={selectedProjectId}
+			selectedProjectName={selectedProject?.name ?? null}
+			recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+			onSelectProject={setSelectedProjectId}
+			onImportRepo={handleImportRepo}
+		/>
+	);
+	const isCreateDisabled = createWorkspace.isPending || isBranchesError;
+	const buildLaunchRequestForWorkspace = (
+		workspaceId: string,
+		prompt: string,
+	): AgentLaunchRequest | null => {
+		if (selectedAgent === "none") {
+			return null;
+		}
+
+		if (selectedAgent === "superset-chat") {
+			return {
+				kind: "chat",
+				workspaceId,
+				agentType: "superset-chat",
+				source: "new-workspace",
+				chat: {
+					initialPrompt: prompt || undefined,
+					retryCount: 1,
+				},
+			};
+		}
+
+		const command = prompt
+			? buildAgentPromptCommand({
+					prompt,
+					randomId: window.crypto.randomUUID(),
+					agent: selectedAgent,
+				})
+			: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+
+		if (!command) {
+			return null;
+		}
+
+		return {
+			kind: "terminal",
+			workspaceId,
+			agentType: selectedAgent,
+			source: "new-workspace",
+			terminal: {
+				command,
+				name: "Agent",
+			},
+		};
+	};
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
+		// Keep the agent prompt uncapped; only trim surrounding whitespace.
+		const prompt = title.trim();
 
-		const workspaceName = title.trim() || undefined;
+		const workspaceName = undefined;
+		const launchRequestTemplate = buildLaunchRequestForWorkspace(
+			"pending-workspace",
+			prompt,
+		);
 
 		closeModal();
 
 		try {
-			const result = await createWorkspace.mutateAsync({
-				projectId: selectedProjectId,
-				name: workspaceName,
-				branchName: branchSlug || undefined,
-				baseBranch: baseBranch || undefined,
-				applyPrefix,
-			});
+			const result = await createWorkspace.mutateAsyncWithPendingSetup(
+				{
+					projectId: selectedProjectId,
+					name: workspaceName,
+					branchName: branchSlug || undefined,
+					baseBranch: baseBranch || undefined,
+					applyPrefix,
+				},
+				launchRequestTemplate
+					? { agentLaunchRequest: launchRequestTemplate }
+					: undefined,
+			);
 
-			if (result.isInitializing) {
+			if (prompt && !result.wasExisting) {
+				generateName
+					.mutateAsync({ prompt })
+					.then((res) => {
+						if (res.name) {
+							updateWorkspace.mutate({
+								id: result.workspace.id,
+								patch: { name: res.name, isUnnamed: false },
+							});
+						}
+					})
+					.catch(() => {});
+			}
+
+			const launchRequest = launchRequestTemplate
+				? {
+						...launchRequestTemplate,
+						workspaceId: result.workspace.id,
+					}
+				: null;
+
+			if (launchRequest && result.wasExisting) {
+				const launchResult = await launchAgentSession(launchRequest, {
+					source: "new-workspace",
+					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => terminalWrite.mutateAsync(input),
+				});
+				if (launchResult.status === "failed") {
+					toast.error("Failed to start agent", {
+						description: launchResult.error ?? "Failed to start agent session.",
+					});
+				}
+			}
+
+			if (result.wasExisting) {
+				toast.success("Opened existing workspace");
+			} else if (result.isInitializing) {
 				toast.success("Workspace created", {
 					description: "Setting up in the background...",
 				});
@@ -263,298 +384,90 @@ export function NewWorkspaceModal() {
 		}
 	};
 
+	const handleAgentChange = (value: WorkspaceCreateAgent) => {
+		setSelectedAgent(value);
+		window.localStorage.setItem(WORKSPACE_AGENT_STORAGE_KEY, value);
+	};
+
+	const handleBaseBranchSelect = (branchName: string) => {
+		setBaseBranch(branchName);
+		setBaseBranchOpen(false);
+		setBranchSearch("");
+	};
+
+	const advancedOptions = (
+		<NewWorkspaceAdvancedOptions
+			showAdvanced={showAdvanced}
+			onShowAdvancedChange={setShowAdvanced}
+			branchInputValue={branchNameEdited ? branchName : branchPreview}
+			onBranchInputChange={handleBranchNameChange}
+			onBranchInputBlur={handleBranchNameBlur}
+			onEditPrefix={() => {
+				handleClose();
+				navigate({ to: "/settings/behavior" });
+			}}
+			isBranchesError={isBranchesError}
+			isBranchesLoading={isBranchesLoading}
+			baseBranchOpen={baseBranchOpen}
+			onBaseBranchOpenChange={setBaseBranchOpen}
+			effectiveBaseBranch={effectiveBaseBranch}
+			defaultBranch={branchData?.defaultBranch}
+			branchSearch={branchSearch}
+			onBranchSearchChange={setBranchSearch}
+			filteredBranches={filteredBranches}
+			onSelectBaseBranch={handleBaseBranchSelect}
+			runSetupScript={runSetupScript}
+			onRunSetupScriptChange={setRunSetupScript}
+		/>
+	);
+
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
 				className="sm:max-w-[440px] gap-0 p-0 overflow-hidden"
 				onKeyDown={handleKeyDown}
+				showCloseButton={false}
 			>
-				<DialogHeader className="px-4 pt-4 pb-3">
-					<DialogTitle className="text-base">Open Workspace</DialogTitle>
-				</DialogHeader>
+				<NewWorkspaceHeader
+					mode={mode}
+					hasSelectedProject={!!selectedProjectId}
+					onBackToNew={() => setMode("new")}
+					onOpenImport={() => setMode("existing")}
+				/>
 
-				<div className="px-4 pb-3">
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								className="w-full h-8 text-sm justify-between font-normal"
-							>
-								<span
-									className={selectedProject ? "" : "text-muted-foreground"}
-								>
-									{selectedProject?.name ?? "Select project"}
-								</span>
-								<HiChevronDown className="size-4 text-muted-foreground" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="start"
-							className="w-[--radix-dropdown-menu-trigger-width]"
-						>
-							{recentProjects
-								.filter((project) => project.id)
-								.map((project) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() => setSelectedProjectId(project.id)}
-									>
-										{project.name}
-										{project.id === selectedProjectId && (
-											<HiCheck className="ml-auto size-4" />
-										)}
-									</DropdownMenuItem>
-								))}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={handleImportRepo}>
-								<LuFolderOpen className="size-4" />
-								Import repo
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
+				{!selectedProjectId && (
+					<div className="px-4 pb-3">{projectSelector}</div>
+				)}
 
 				{selectedProjectId && (
-					<>
-						<div className="px-4 pb-3">
-							<div className="flex p-0.5 bg-muted rounded-md">
-								<button
-									type="button"
-									onClick={() => setMode("new")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "new"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									New
-								</button>
-								<button
-									type="button"
-									onClick={() => setMode("existing")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "existing"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Import
-								</button>
-								<button
-									type="button"
-									onClick={() => setMode("cloud")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "cloud"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Cloud
-								</button>
-							</div>
-						</div>
-
-						<div className="px-4 pb-4">
-							{mode === "new" && (
-								<div className="space-y-3">
-									<Input
-										ref={titleInputRef}
-										id="title"
-										className="h-9 text-sm"
-										placeholder="Feature name (press Enter to create)"
-										value={title}
-										onChange={(e) => setTitle(e.target.value)}
-									/>
-
-									{(title || branchNameEdited) && (
-										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
-											<GoGitBranch className="size-3" />
-											<span className="font-mono">
-												{branchPreview || "branch-name"}
-											</span>
-											<span className="text-muted-foreground/60">
-												from {effectiveBaseBranch ?? "..."}
-											</span>
-										</p>
-									)}
-
-									<Collapsible
-										open={showAdvanced}
-										onOpenChange={setShowAdvanced}
-									>
-										<CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-											<HiChevronDown
-												className={`size-3 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
-											/>
-											Advanced options
-										</CollapsibleTrigger>
-										<CollapsibleContent className="pt-3 space-y-3">
-											<div className="space-y-1.5">
-												<div className="flex items-center justify-between">
-													<label
-														htmlFor="branch"
-														className="text-xs text-muted-foreground"
-													>
-														Branch name
-													</label>
-													<button
-														type="button"
-														onClick={() => {
-															handleClose();
-															navigate({ to: "/settings/behavior" });
-														}}
-														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<HiOutlinePencil className="size-3" />
-														<span>Edit prefix</span>
-													</button>
-												</div>
-												<Input
-													id="branch"
-													className="h-8 text-sm font-mono"
-													placeholder="auto-generated"
-													value={branchNameEdited ? branchName : branchPreview}
-													onChange={(e) =>
-														handleBranchNameChange(e.target.value)
-													}
-													onBlur={handleBranchNameBlur}
-												/>
-											</div>
-
-											<div className="space-y-1.5">
-												<span className="text-xs text-muted-foreground">
-													Base branch
-												</span>
-												{isBranchesError ? (
-													<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
-														Failed to load branches
-													</div>
-												) : (
-													<Popover
-														open={baseBranchOpen}
-														onOpenChange={setBaseBranchOpen}
-														modal={false}
-													>
-														<PopoverTrigger asChild>
-															<Button
-																variant="outline"
-																size="sm"
-																className="w-full h-8 justify-between font-normal"
-																disabled={isBranchesLoading}
-															>
-																<span className="flex items-center gap-2 truncate">
-																	<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																	<span className="truncate font-mono text-sm">
-																		{effectiveBaseBranch || "Select branch..."}
-																	</span>
-																	{effectiveBaseBranch ===
-																		branchData?.defaultBranch && (
-																		<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																			default
-																		</span>
-																	)}
-																</span>
-																<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
-															</Button>
-														</PopoverTrigger>
-														<PopoverContent
-															className="w-[--radix-popover-trigger-width] p-0"
-															align="start"
-															onWheel={(e) => e.stopPropagation()}
-														>
-															<Command shouldFilter={false}>
-																<CommandInput
-																	placeholder="Search branches..."
-																	value={branchSearch}
-																	onValueChange={setBranchSearch}
-																/>
-																<CommandList className="max-h-[200px]">
-																	<CommandEmpty>No branches found</CommandEmpty>
-																	{filteredBranches.map((branch) => (
-																		<CommandItem
-																			key={branch.name}
-																			value={branch.name}
-																			onSelect={() => {
-																				setBaseBranch(branch.name);
-																				setBaseBranchOpen(false);
-																				setBranchSearch("");
-																			}}
-																			className="flex items-center justify-between"
-																		>
-																			<span className="flex items-center gap-2 truncate">
-																				<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																				<span className="truncate">
-																					{branch.name}
-																				</span>
-																				{branch.name ===
-																					branchData?.defaultBranch && (
-																					<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																						default
-																					</span>
-																				)}
-																			</span>
-																			<span className="flex items-center gap-2 shrink-0">
-																				{branch.lastCommitDate > 0 && (
-																					<span className="text-xs text-muted-foreground">
-																						{formatRelativeTime(
-																							branch.lastCommitDate,
-																						)}
-																					</span>
-																				)}
-																				{effectiveBaseBranch ===
-																					branch.name && (
-																					<HiCheck className="size-4 text-primary" />
-																				)}
-																			</span>
-																		</CommandItem>
-																	))}
-																</CommandList>
-															</Command>
-														</PopoverContent>
-													</Popover>
-												)}
-											</div>
-											<div className="flex items-center justify-between">
-												<Label
-													htmlFor="run-setup-script"
-													className="text-xs text-muted-foreground"
-												>
-													Run setup script
-												</Label>
-												<Switch
-													id="run-setup-script"
-													checked={runSetupScript}
-													onCheckedChange={setRunSetupScript}
-												/>
-											</div>
-										</CollapsibleContent>
-									</Collapsible>
-
-									<Button
-										className="w-full h-8 text-sm"
-										onClick={handleCreateWorkspace}
-										disabled={createWorkspace.isPending || isBranchesError}
-									>
-										Create Workspace
-									</Button>
-								</div>
-							)}
-							{mode === "existing" && (
-								<ExistingWorktreesList
-									projectId={selectedProjectId}
-									onOpenSuccess={handleClose}
-								/>
-							)}
-							{mode === "cloud" && (
-								<div className="flex flex-col items-center justify-center py-8 text-center">
-									<div className="text-sm font-medium text-foreground mb-1">
-										Cloud Workspaces
-									</div>
-									<p className="text-xs text-muted-foreground">Coming soon</p>
-								</div>
-							)}
-						</div>
-					</>
+					<div className="px-4 pb-4 min-w-0">
+						{mode === "new" && (
+							<NewWorkspaceCreateFlow
+								projectSelector={projectSelector}
+								selectedAgent={selectedAgent}
+								agentOptions={selectableAgents}
+								onSelectedAgentChange={handleAgentChange}
+								title={title}
+								onTitleChange={setTitle}
+								titleInputRef={titleInputRef}
+								showBranchPreview={branchNameEdited}
+								branchPreview={branchPreview}
+								effectiveBaseBranch={effectiveBaseBranch}
+								onCreateWorkspace={handleCreateWorkspace}
+								isCreateDisabled={isCreateDisabled}
+								advancedOptions={advancedOptions}
+							/>
+						)}
+						{mode === "existing" && (
+							<ImportFlow
+								projectId={selectedProjectId}
+								projectSelector={projectSelector}
+								onOpenSuccess={handleClose}
+								activeTab={importTab}
+								onActiveTabChange={setImportTab}
+							/>
+						)}
+					</div>
 				)}
 
 				{!selectedProjectId && (

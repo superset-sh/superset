@@ -1,4 +1,10 @@
-export function sanitizeSegment(text: string, maxLength = 50): string {
+export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
+export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
+
+export function sanitizeSegment(
+	text: string,
+	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+): string {
 	return text
 		.toLowerCase()
 		.trim()
@@ -12,8 +18,29 @@ export function sanitizeSegment(text: string, maxLength = 50): string {
 		.slice(0, maxLength);
 }
 
+/**
+ * Like sanitizeSegment but preserves the original case.
+ * Used for author/GitHub username prefixes where case must match
+ * the git ref exactly to avoid case-mismatch issues with packed-refs.
+ */
+function sanitizeSegmentPreserveCase(
+	text: string,
+	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+): string {
+	return text
+		.trim()
+		.replace(/\s+/g, "-")
+		.replace(/[^a-zA-Z0-9._+@-]/g, "")
+		.replace(/\.{2,}/g, ".")
+		.replace(/@\{/g, "@")
+		.replace(/-+/g, "-")
+		.replace(/^[-.]|[-.]+$/g, "")
+		.replace(/\.lock$/g, "")
+		.slice(0, maxLength);
+}
+
 export function sanitizeAuthorPrefix(name: string): string {
-	return sanitizeSegment(name);
+	return sanitizeSegmentPreserveCase(name);
 }
 
 export function sanitizeBranchName(name: string): string {
@@ -22,6 +49,60 @@ export function sanitizeBranchName(name: string): string {
 		.map((s) => sanitizeSegment(s))
 		.filter(Boolean)
 		.join("/");
+}
+
+export function truncateBranchName(
+	branchName: string,
+	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+): string {
+	return branchName.slice(0, maxLength).replace(/\/+$/g, "");
+}
+
+export function sanitizeBranchNameWithMaxLength(
+	name: string,
+	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+): string {
+	return truncateBranchName(sanitizeBranchName(name), maxLength);
+}
+
+/**
+ * Returns a branch name that does not collide with existing names.
+ * If the candidate already exists, appends numeric suffixes (-1, -2, ...)
+ * to the last path segment until an available name is found.
+ */
+export function deduplicateBranchName(
+	candidate: string,
+	existingBranchNames: string[],
+): string {
+	const normalizedCandidate = candidate.trim();
+	if (!normalizedCandidate) {
+		return normalizedCandidate;
+	}
+
+	const existingSet = new Set(existingBranchNames.map((b) => b.toLowerCase()));
+	if (!existingSet.has(normalizedCandidate.toLowerCase())) {
+		return normalizedCandidate;
+	}
+
+	const segments = normalizedCandidate.split("/");
+	const lastSegment = segments.at(-1) ?? normalizedCandidate;
+	const prefix = segments.slice(0, -1).join("/");
+
+	const strippedBase = lastSegment.replace(/-\d+$/, "");
+	const baseSegment = strippedBase || lastSegment;
+	const append = (suffix: number) =>
+		prefix ? `${prefix}/${baseSegment}-${suffix}` : `${baseSegment}-${suffix}`;
+
+	for (let suffix = 1; suffix < 10_000; suffix++) {
+		const deduplicated = append(suffix);
+		if (!existingSet.has(deduplicated.toLowerCase())) {
+			return deduplicated;
+		}
+	}
+
+	return prefix
+		? `${prefix}/${baseSegment}-${Date.now()}`
+		: `${baseSegment}-${Date.now()}`;
 }
 
 export function resolveBranchPrefix({
@@ -51,5 +132,5 @@ export function resolveBranchPrefix({
 		default:
 			return null;
 	}
-	return prefix ? sanitizeSegment(prefix) : null;
+	return prefix ? sanitizeSegmentPreserveCase(prefix) : null;
 }

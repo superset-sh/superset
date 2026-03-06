@@ -118,6 +118,11 @@ Clean up this branch.`,
 			"Switch active model in this chat. Requested model: gpt-4.1",
 		);
 
+		const login = resolveSlashCommand(cwd, "/login");
+		expect(login.handled).toBe(true);
+		expect(login.action?.type).toBe("set_model");
+		expect(login.action?.argument).toBeUndefined();
+
 		const mcp = resolveSlashCommand(cwd, "/mcp");
 		expect(mcp.handled).toBe(true);
 		expect(mcp.action?.type).toBe("show_mcp_overview");

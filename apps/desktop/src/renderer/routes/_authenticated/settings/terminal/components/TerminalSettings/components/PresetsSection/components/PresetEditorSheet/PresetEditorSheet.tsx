@@ -35,7 +35,7 @@ interface PresetEditorSheetProps {
 	onCommandsBlur: () => void;
 	onModeChange: (mode: ExecutionMode) => void;
 	onToggleAutoApply: (field: AutoApplyField, enabled: boolean) => void;
-	modeValue: "split-pane" | "new-tab";
+	modeValue: ExecutionMode;
 	hasMultipleCommands: boolean;
 	isWorkspaceCreation: boolean;
 	isNewTab: boolean;
@@ -57,6 +57,9 @@ export function PresetEditorSheet({
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorSheetProps) {
+	const singleCommandModeValue =
+		modeValue === "split-pane" ? modeValue : "new-tab";
+
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className="sm:max-w-xl w-full flex flex-col gap-0 p-0">
@@ -133,7 +136,7 @@ export function PresetEditorSheet({
 							<div className="space-y-2">
 								<LabelWithTooltip
 									label="Launch Mode"
-									tooltip="Controls whether commands open in one tab with panes or separate tabs."
+									tooltip="Controls whether commands open in the current tab, one new tab with panes, or one new tab per command."
 								/>
 								{hasMultipleCommands ? (
 									<div className="rounded-md border border-border p-3">
@@ -154,7 +157,7 @@ export function PresetEditorSheet({
 													htmlFor="preset-multi-command-split-pane"
 													className="text-sm font-medium"
 												>
-													Run all commands in one tab using split panes
+													Open all commands in current tab using split panes
 												</Label>
 											</div>
 											<div className="flex items-start gap-2">
@@ -167,14 +170,27 @@ export function PresetEditorSheet({
 													htmlFor="preset-multi-command-new-tab"
 													className="text-sm font-medium"
 												>
-													Open each command in its own tab
+													Open each command in its own new tab
+												</Label>
+											</div>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-new-tab-split-pane"
+													value="new-tab-split-pane"
+													className="mt-0.5"
+												/>
+												<Label
+													htmlFor="preset-multi-command-new-tab-split-pane"
+													className="text-sm font-medium"
+												>
+													Open all commands in a new tab using split panes
 												</Label>
 											</div>
 										</RadioGroup>
 									</div>
 								) : (
 									<Select
-										value={modeValue}
+										value={singleCommandModeValue}
 										onValueChange={(value) =>
 											onModeChange(value as ExecutionMode)
 										}
@@ -183,8 +199,10 @@ export function PresetEditorSheet({
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="split-pane">Split Pane</SelectItem>
-											<SelectItem value="new-tab">New Tab</SelectItem>
+											<SelectItem value="split-pane">
+												Open in current tab
+											</SelectItem>
+											<SelectItem value="new-tab">Open in new tab</SelectItem>
 										</SelectContent>
 									</Select>
 								)}

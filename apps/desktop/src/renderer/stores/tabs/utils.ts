@@ -12,7 +12,7 @@ import type {
 	FileViewerMode,
 	FileViewerState,
 } from "shared/tabs-types";
-import type { Pane, PaneType, Tab } from "./types";
+import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -184,6 +184,8 @@ export interface CreateFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
+	/** Override the display name shown in the tab (defaults to filename from filePath) */
+	displayName?: string;
 }
 
 /**
@@ -214,8 +216,11 @@ export const createFileViewerPane = (
 		initialColumn: options.column,
 	};
 
-	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	// Use displayName override, or fall back to filename from path
+	const fileName =
+		options.displayName ||
+		options.filePath.split("/").pop() ||
+		options.filePath;
 
 	return {
 		id,
@@ -226,28 +231,12 @@ export const createFileViewerPane = (
 	};
 };
 
-/**
- * Creates a new chat pane
- */
-export const createChatPane = (tabId: string): Pane => {
+export const createChatMastraPane = (
+	tabId: string,
+	options?: AddChatMastraTabOptions,
+): Pane => {
 	const id = generateId("pane");
-
-	return {
-		id,
-		tabId,
-		type: "chat",
-		name: "New Chat",
-		chat: {
-			sessionId: null,
-		},
-	};
-};
-
-/**
- * Creates a new Mastra chat pane
- */
-export const createChatMastraPane = (tabId: string): Pane => {
-	const id = generateId("pane");
+	const sessionId = crypto.randomUUID();
 
 	return {
 		id,
@@ -255,7 +244,8 @@ export const createChatMastraPane = (tabId: string): Pane => {
 		type: "chat-mastra",
 		name: "New Chat",
 		chatMastra: {
-			sessionId: null,
+			sessionId,
+			launchConfig: options?.launchConfig ?? null,
 		},
 	};
 };
@@ -339,34 +329,12 @@ export const createBrowserTabWithPane = (
 	return { tab, pane };
 };
 
-/**
- * Creates a new tab with a chat pane atomically
- */
-export const createChatTabWithPane = (
-	workspaceId: string,
-): { tab: Tab; pane: Pane } => {
-	const tabId = generateId("tab");
-	const pane = createChatPane(tabId);
-
-	const tab: Tab = {
-		id: tabId,
-		name: "New Chat",
-		workspaceId,
-		layout: pane.id,
-		createdAt: Date.now(),
-	};
-
-	return { tab, pane };
-};
-
-/**
- * Creates a new tab with a Mastra chat pane atomically
- */
 export const createChatMastraTabWithPane = (
 	workspaceId: string,
+	options?: AddChatMastraTabOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createChatMastraPane(tabId);
+	const pane = createChatMastraPane(tabId, options);
 
 	const tab: Tab = {
 		id: tabId,

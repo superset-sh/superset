@@ -3,6 +3,7 @@ url = "https://api.superset.sh/api/agent/mcp"
 
 [mcp_servers.expo-mcp]
 url = "https://mcp.expo.dev/mcp"
+enabled = false
 
 [mcp_servers.maestro]
 command = "maestro"

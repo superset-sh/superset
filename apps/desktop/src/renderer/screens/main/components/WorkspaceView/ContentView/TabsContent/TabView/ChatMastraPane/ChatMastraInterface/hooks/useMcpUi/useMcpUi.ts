@@ -1,82 +1,66 @@
-import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { useCallback, useEffect, useState } from "react";
 import type { McpOverviewPayload } from "../../../../ChatPane/ChatInterface/types";
 
-type DisplayState = NonNullable<UseMastraChatDisplayReturn["displayState"]>;
-
 export interface UseMcpUiOptions {
-	chat: UseMastraChatDisplayReturn;
 	cwd: string;
 	loadOverview: (cwd: string) => Promise<McpOverviewPayload>;
+	authenticateServer?: (
+		cwd: string,
+		serverName: string,
+	) => Promise<McpOverviewPayload>;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
+	onTrackEvent?: (event: string, properties: Record<string, unknown>) => void;
+	pollIntervalMs?: number;
 }
 
 export interface UseMcpUiReturn {
 	overview: McpOverviewPayload | null;
 	overviewOpen: boolean;
 	isOverviewLoading: boolean;
+	authenticatingServerName: string | null;
 	showOverview: (overview: McpOverviewPayload) => void;
 	setOverviewOpen: (open: boolean) => void;
 	openOverview: () => Promise<void>;
 	refreshOverview: () => Promise<void>;
+	authenticateServer: (serverName: string) => Promise<void>;
 	resetUi: () => void;
-	pendingApproval: DisplayState["pendingApproval"] | null | undefined;
-	pendingQuestion: DisplayState["pendingQuestion"] | null | undefined;
-	pendingPlanApproval: DisplayState["pendingPlanApproval"] | null | undefined;
-	isApprovalPending: boolean;
-	isQuestionPending: boolean;
-	isPlanPending: boolean;
-	questionDraft: string;
-	planFeedback: string;
-	setQuestionDraft: (value: string) => void;
-	setPlanFeedback: (value: string) => void;
-	submitApprovalDecision: (decision: "approve" | "deny") => Promise<void>;
-	submitQuestionAnswer: (answer: string) => Promise<void>;
-	submitPlanDecision: (action: "accept" | "reject" | "revise") => Promise<void>;
 }
 
 export function useMcpUi({
-	chat,
 	cwd,
 	loadOverview,
+	authenticateServer,
 	onSetErrorMessage,
 	onClearError,
+	onTrackEvent,
+	pollIntervalMs = 5_000,
 }: UseMcpUiOptions): UseMcpUiReturn {
 	const [overview, setOverview] = useState<McpOverviewPayload | null>(null);
 	const [overviewOpen, setOverviewOpen] = useState(false);
 	const [isOverviewLoading, setIsOverviewLoading] = useState(false);
-	const [isApprovalPending, setIsApprovalPending] = useState(false);
-	const [isQuestionPending, setIsQuestionPending] = useState(false);
-	const [isPlanPending, setIsPlanPending] = useState(false);
-	const [questionDraft, setQuestionDraftState] = useState("");
-	const [planFeedback, setPlanFeedbackState] = useState("");
-
-	const pendingApproval = chat.displayState?.pendingApproval;
-	const pendingQuestion = chat.displayState?.pendingQuestion;
-	const pendingPlanApproval = chat.displayState?.pendingPlanApproval;
+	const [authenticatingServerName, setAuthenticatingServerName] = useState<
+		string | null
+	>(null);
 
 	const resetUi = useCallback(() => {
 		setOverview(null);
 		setOverviewOpen(false);
-		setQuestionDraftState("");
-		setPlanFeedbackState("");
+		setAuthenticatingServerName(null);
 	}, []);
 
-	useEffect(() => {
-		if (!pendingQuestion?.questionId) return;
-		setQuestionDraftState("");
-	}, [pendingQuestion?.questionId]);
-
-	useEffect(() => {
-		if (!pendingPlanApproval?.planId) return;
-		setPlanFeedbackState("");
-	}, [pendingPlanApproval?.planId]);
-
-	const showOverview = useCallback((nextOverview: McpOverviewPayload) => {
-		setOverview(nextOverview);
-		setOverviewOpen(true);
-	}, []);
+	const showOverview = useCallback(
+		(nextOverview: McpOverviewPayload) => {
+			setOverview(nextOverview);
+			setOverviewOpen(true);
+			const servers = nextOverview.servers ?? [];
+			onTrackEvent?.("chat_mcp_overview_opened", {
+				server_count: servers.length,
+				enabled_count: servers.filter((s) => s.state === "enabled").length,
+			});
+		},
+		[onTrackEvent],
+	);
 
 	const openOverview = useCallback(async () => {
 		if (!cwd) {
@@ -102,102 +86,61 @@ export function useMcpUi({
 			const nextOverview = await loadOverview(cwd);
 			setOverview(nextOverview);
 		} catch {
-			// keep existing overview when background refresh fails
+			// Keep existing overview when background refresh fails.
 		}
 	}, [cwd, loadOverview]);
 
-	const submitApprovalDecision = useCallback(
-		async (decision: "approve" | "deny") => {
-			if (!pendingApproval) return;
-			setIsApprovalPending(true);
-			onClearError();
+	const authenticateMcpServer = useCallback(
+		async (serverName: string) => {
+			if (!cwd) {
+				onSetErrorMessage("Workspace path is missing");
+				return;
+			}
+
+			setAuthenticatingServerName(serverName);
 			try {
-				await chat.respondToApproval({
-					decision,
-					toolCallId: pendingApproval.toolCallId || undefined,
+				const nextOverview = authenticateServer
+					? await authenticateServer(cwd, serverName)
+					: await loadOverview(cwd);
+				onClearError();
+				setOverview(nextOverview);
+				onTrackEvent?.("chat_mcp_server_auth_triggered", {
+					server_name: serverName,
 				});
-			} catch (error) {
-				onSetErrorMessage(
-					error instanceof Error
-						? error.message
-						: "Failed to submit approval response",
-				);
+			} catch {
+				onSetErrorMessage(`Failed to authenticate MCP server: ${serverName}`);
 			} finally {
-				setIsApprovalPending(false);
+				setAuthenticatingServerName(null);
 			}
 		},
-		[chat, onClearError, onSetErrorMessage, pendingApproval],
+		[
+			cwd,
+			authenticateServer,
+			loadOverview,
+			onClearError,
+			onSetErrorMessage,
+			onTrackEvent,
+		],
 	);
 
-	const submitQuestionAnswer = useCallback(
-		async (answer: string) => {
-			if (!pendingQuestion) return;
-			const trimmed = answer.trim();
-			if (!trimmed) return;
-			setIsQuestionPending(true);
-			onClearError();
-			try {
-				await chat.respondToQuestion({
-					questionId: pendingQuestion.questionId,
-					answer: trimmed,
-				});
-				setQuestionDraftState("");
-			} catch (error) {
-				onSetErrorMessage(
-					error instanceof Error ? error.message : "Failed to answer question",
-				);
-			} finally {
-				setIsQuestionPending(false);
-			}
-		},
-		[chat, onClearError, onSetErrorMessage, pendingQuestion],
-	);
-
-	const submitPlanDecision = useCallback(
-		async (action: "accept" | "reject" | "revise") => {
-			if (!pendingPlanApproval) return;
-			setIsPlanPending(true);
-			onClearError();
-			try {
-				await chat.respondToPlan({
-					planId: pendingPlanApproval.planId,
-					action,
-					feedback: planFeedback.trim() || undefined,
-				});
-			} catch (error) {
-				onSetErrorMessage(
-					error instanceof Error
-						? error.message
-						: "Failed to submit plan response",
-				);
-			} finally {
-				setIsPlanPending(false);
-			}
-		},
-		[chat, onClearError, onSetErrorMessage, pendingPlanApproval, planFeedback],
-	);
+	useEffect(() => {
+		if (!overviewOpen || !cwd) return;
+		const intervalId = setInterval(() => {
+			void refreshOverview();
+		}, pollIntervalMs);
+		return () => clearInterval(intervalId);
+	}, [cwd, overviewOpen, pollIntervalMs, refreshOverview]);
 
 	return {
 		overview,
 		overviewOpen,
 		isOverviewLoading,
+		authenticatingServerName,
 		showOverview,
 		setOverviewOpen,
 		openOverview,
 		refreshOverview,
+		authenticateServer: authenticateMcpServer,
 		resetUi,
-		pendingApproval,
-		pendingQuestion,
-		pendingPlanApproval,
-		isApprovalPending,
-		isQuestionPending,
-		isPlanPending,
-		questionDraft,
-		planFeedback,
-		setQuestionDraft: setQuestionDraftState,
-		setPlanFeedback: setPlanFeedbackState,
-		submitApprovalDecision,
-		submitQuestionAnswer,
-		submitPlanDecision,
 	};
 }

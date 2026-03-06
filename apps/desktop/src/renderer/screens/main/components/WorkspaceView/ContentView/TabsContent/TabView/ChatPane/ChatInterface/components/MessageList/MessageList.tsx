@@ -21,6 +21,7 @@ interface MessageListProps {
 	isStreaming: boolean;
 	submitStatus?: ChatStatus;
 	workspaceId?: string;
+	workspaceCwd?: string;
 	onAnswer: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -56,6 +57,7 @@ export function MessageList({
 	isStreaming,
 	submitStatus,
 	workspaceId,
+	workspaceCwd,
 	onAnswer,
 }: MessageListProps) {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
@@ -161,6 +163,7 @@ export function MessageList({
 											isLastAssistant={isLastAssistant}
 											isStreaming={shouldAnimateStreaming}
 											workspaceId={workspaceId}
+											workspaceCwd={workspaceCwd}
 											onAnswer={onAnswer}
 										/>
 									)}
@@ -177,6 +180,7 @@ export function MessageList({
 								isLastAssistant={false}
 								isStreaming={false}
 								workspaceId={workspaceId}
+								workspaceCwd={workspaceCwd}
 								onAnswer={onAnswer}
 							/>
 							<div className="flex items-center gap-2 text-xs text-muted-foreground">

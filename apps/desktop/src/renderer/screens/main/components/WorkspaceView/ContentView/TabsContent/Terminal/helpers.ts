@@ -346,8 +346,17 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 			.map((line) => line.trimEnd())
 			.join("\n");
 
-		event.preventDefault();
-		event.clipboardData?.setData("text/plain", trimmedText);
+		// On Linux/Wayland in Electron, clipboardData can be null for copy events.
+		// Only cancel default behavior when we can write directly to event clipboardData.
+		if (event.clipboardData) {
+			event.preventDefault();
+			event.clipboardData.setData("text/plain", trimmedText);
+			return;
+		}
+
+		// Fallback path when clipboardData is unavailable.
+		// Keep default browser copy behavior and best-effort write trimmed text.
+		void navigator.clipboard?.writeText(trimmedText).catch(() => {});
 	};
 
 	element.addEventListener("copy", handleCopy);

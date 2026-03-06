@@ -1,5 +1,5 @@
 export {
+	ChatMastraService,
+	type ChatMastraServiceOptions,
 	type ChatMastraServiceRouter,
-	type CreateChatMastraServiceRouterOptions,
-	createChatMastraServiceRouter,
-} from "./router";
+} from "./service";

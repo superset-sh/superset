@@ -1,5 +1,6 @@
 import type { TerminalPreset } from "@superset/local-db";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
@@ -27,6 +28,8 @@ import {
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
+
+const NO_WORKSPACE_MATCH = "__no_workspace__";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -132,31 +135,40 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync Electric session titles → tab names for all chat tabs in this workspace
+	// Sync Electric session titles → tab names for all Mastra chat tabs in this workspace
 	const chatPaneSessionMap = useMemo(() => {
 		const map = new Map<string, string>(); // sessionId → tabId
 		for (const pane of Object.values(panes)) {
-			if (pane.type === "chat" && pane.chat?.sessionId) {
+			if (pane.type === "chat-mastra" && pane.chatMastra?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
-				if (tab) map.set(pane.chat.sessionId, tab.id);
+				if (tab) map.set(pane.chatMastra.sessionId, tab.id);
 			}
 		}
 		return map;
 	}, [panes, tabs]);
+	const shouldSyncChatTitles =
+		Boolean(activeWorkspaceId) && chatPaneSessionMap.size > 0;
+	const workspaceIdForChatTitleSync = shouldSyncChatTitles
+		? activeWorkspaceId
+		: NO_WORKSPACE_MATCH;
 
 	const collections = useCollections();
 	const { data: chatSessions } = useLiveQuery(
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
+				.where(({ chatSessions }) =>
+					eq(chatSessions.workspaceId, workspaceIdForChatTitleSync),
+				)
 				.select(({ chatSessions }) => ({
 					id: chatSessions.id,
 					title: chatSessions.title,
 				})),
-		[collections.chatSessions],
+		[collections.chatSessions, workspaceIdForChatTitleSync],
 	);
 
 	useEffect(() => {
+		if (!shouldSyncChatTitles) return;
 		if (!chatSessions) return;
 		for (const session of chatSessions) {
 			const tabId = chatPaneSessionMap.get(session.id);
@@ -164,7 +176,7 @@ export function GroupStrip() {
 				setTabAutoTitle(tabId, session.title || "New Chat");
 			}
 		}
-	}, [chatSessions, chatPaneSessionMap, setTabAutoTitle]);
+	}, [chatSessions, chatPaneSessionMap, setTabAutoTitle, shouldSyncChatTitles]);
 
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;

@@ -1,8 +1,2 @@
 export type { OpenInButtonProps } from "./OpenInButton";
-export {
-	APP_OPTIONS,
-	getAppOption,
-	JETBRAINS_OPTIONS,
-	OpenInButton,
-	VSCODE_OPTIONS,
-} from "./OpenInButton";
+export { OpenInButton } from "./OpenInButton";

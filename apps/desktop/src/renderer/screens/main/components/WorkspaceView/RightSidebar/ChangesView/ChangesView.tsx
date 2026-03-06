@@ -23,6 +23,7 @@ import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
+import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -42,21 +43,24 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const worktreePath = workspace?.worktreePath;
 	const projectId = workspace?.projectId;
 
-	const { status, isLoading, effectiveBaseBranch, refetch } =
+	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
 			worktreePath,
 			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
 		});
 
-	const { data: githubStatus, refetch: refetchGithubStatus } =
-		electronTrpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: workspaceId ?? "" },
-			{
-				enabled: !!workspaceId,
-				refetchInterval: 10000,
-			},
-		);
+	const {
+		data: githubStatus,
+		isLoading: isGitHubStatusLoading,
+		refetch: refetchGithubStatus,
+	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
+		{ workspaceId: workspaceId ?? "" },
+		{
+			enabled: !!workspaceId,
+			refetchInterval: 10000,
+		},
+	);
 
 	useBranchSyncInvalidation({
 		gitBranch: status?.branch,
@@ -98,6 +102,28 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		onError: (error, variables) => {
 			console.error(`Failed to unstage file ${variables.filePath}:`, error);
 			toast.error(`Failed to unstage ${variables.filePath}: ${error.message}`);
+		},
+	});
+
+	const stageFilesMutation = electronTrpc.changes.stageFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to stage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to stage files: ${error.message}`);
+		},
+	});
+
+	const unstageFilesMutation = electronTrpc.changes.unstageFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to unstage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to unstage files: ${error.message}`);
 		},
 	});
 
@@ -221,8 +247,16 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);
 
+	const expandedCommitHashes = useMemo(
+		() =>
+			expandedSections.committed
+				? Array.from(expandedCommits)
+				: ([] as string[]),
+		[expandedSections.committed, expandedCommits],
+	);
+
 	const commitFilesQueries = electronTrpc.useQueries((t) =>
-		Array.from(expandedCommits).map((hash) =>
+		expandedCommitHashes.map((hash) =>
 			t.changes.getCommitFiles({
 				worktreePath: worktreePath || "",
 				commitHash: hash,
@@ -230,13 +264,16 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		),
 	);
 
-	const commitFilesMap = new Map<string, ChangedFile[]>();
-	Array.from(expandedCommits).forEach((hash, index) => {
-		const query = commitFilesQueries[index];
-		if (query?.data) {
-			commitFilesMap.set(hash, query.data);
-		}
-	});
+	const commitFilesMap = useMemo(() => {
+		const map = new Map<string, ChangedFile[]>();
+		expandedCommitHashes.forEach((hash, index) => {
+			const query = commitFilesQueries[index];
+			if (query?.data) {
+				map.set(hash, query.data);
+			}
+		});
+		return map;
+	}, [expandedCommitHashes, commitFilesQueries]);
 
 	const combinedUnstaged = useMemo(
 		() =>
@@ -316,6 +353,21 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const hasStagedChanges = status.staged.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
+	const hasGitHubRepo = !!githubStatus?.repoUrl;
+	const defaultBranch = branchData?.defaultBranch ?? status.defaultBranch;
+	const isDefaultBranch = status.branch === defaultBranch;
+	const prActionState = getPRActionState({
+		hasRepo: hasGitHubRepo,
+		hasExistingPR,
+		hasUpstream: status.hasUpstream,
+		pushCount: status.pushCount,
+		pullCount: status.pullCount,
+		isDefaultBranch,
+	});
+	const shouldAutoCreatePR = shouldAutoCreatePRAfterPublish({
+		hasExistingPR,
+		isDefaultBranch,
+	});
 
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
@@ -324,7 +376,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
-				workspaceId={workspaceId}
+				pr={githubStatus?.pr ?? null}
+				isPRStatusLoading={isGitHubStatusLoading}
+				canCreatePR={prActionState.canCreatePR}
+				createPRBlockedReason={prActionState.createPRBlockedReason}
 				onStash={() => stashMutation.mutate({ worktreePath })}
 				onStashIncludeUntracked={() =>
 					stashIncludeUntrackedMutation.mutate({ worktreePath })
@@ -344,6 +399,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				pullCount={status.pullCount}
 				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
+				canCreatePR={prActionState.canCreatePR}
+				shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
 			/>
@@ -353,24 +410,26 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 					No changes detected
 				</div>
 			) : (
-				<div className="flex-1 overflow-y-auto">
+				<div className="flex-1 overflow-y-auto" data-changes-scroll-container>
 					<CategorySection
 						title={`Against ${effectiveBaseBranch}`}
 						count={status.againstBase.length}
 						isExpanded={expandedSections["against-base"]}
 						onToggle={() => toggleSection("against-base")}
 					>
-						<FileList
-							files={status.againstBase}
-							viewMode={fileListViewMode}
-							selectedFile={selectedFile}
-							selectedCommitHash={selectedCommitHash}
-							onFileSelect={(file) => handleFileSelect(file, "against-base")}
-							worktreePath={worktreePath}
-							projectId={projectId}
-							category="against-base"
-							isExpandedView={isExpandedView}
-						/>
+						{expandedSections["against-base"] ? (
+							<FileList
+								files={status.againstBase}
+								viewMode={fileListViewMode}
+								selectedFile={selectedFile}
+								selectedCommitHash={selectedCommitHash}
+								onFileSelect={(file) => handleFileSelect(file, "against-base")}
+								worktreePath={worktreePath}
+								projectId={projectId}
+								category="against-base"
+								isExpandedView={isExpandedView}
+							/>
+						) : null}
 					</CategorySection>
 
 					<CategorySection
@@ -379,21 +438,23 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 						isExpanded={expandedSections.committed}
 						onToggle={() => toggleSection("committed")}
 					>
-						{commitsWithFiles.map((commit) => (
-							<CommitItem
-								key={commit.hash}
-								commit={commit}
-								isExpanded={expandedCommits.has(commit.hash)}
-								onToggle={() => handleCommitToggle(commit.hash)}
-								selectedFile={selectedFile}
-								selectedCommitHash={selectedCommitHash}
-								onFileSelect={handleCommitFileSelect}
-								viewMode={fileListViewMode}
-								worktreePath={worktreePath}
-								projectId={projectId}
-								isExpandedView={isExpandedView}
-							/>
-						))}
+						{expandedSections.committed
+							? commitsWithFiles.map((commit) => (
+									<CommitItem
+										key={commit.hash}
+										commit={commit}
+										isExpanded={expandedCommits.has(commit.hash)}
+										onToggle={() => handleCommitToggle(commit.hash)}
+										selectedFile={selectedFile}
+										selectedCommitHash={selectedCommitHash}
+										onFileSelect={handleCommitFileSelect}
+										viewMode={fileListViewMode}
+										worktreePath={worktreePath}
+										projectId={projectId}
+										isExpandedView={isExpandedView}
+									/>
+								))
+							: null}
 					</CategorySection>
 
 					<CategorySection
@@ -440,24 +501,37 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							</div>
 						}
 					>
-						<FileList
-							files={status.staged}
-							viewMode={fileListViewMode}
-							selectedFile={selectedFile}
-							selectedCommitHash={selectedCommitHash}
-							onFileSelect={(file) => handleFileSelect(file, "staged")}
-							onUnstage={(file) =>
-								unstageFileMutation.mutate({
-									worktreePath: worktreePath || "",
-									filePath: file.path,
-								})
-							}
-							isActioning={unstageFileMutation.isPending}
-							worktreePath={worktreePath}
-							projectId={projectId}
-							category="staged"
-							isExpandedView={isExpandedView}
-						/>
+						{expandedSections.staged ? (
+							<FileList
+								files={status.staged}
+								viewMode={fileListViewMode}
+								selectedFile={selectedFile}
+								selectedCommitHash={selectedCommitHash}
+								onFileSelect={(file) => handleFileSelect(file, "staged")}
+								onUnstage={(file) =>
+									unstageFileMutation.mutate({
+										worktreePath: worktreePath || "",
+										filePath: file.path,
+									})
+								}
+								onUnstageFiles={(files) =>
+									unstageFilesMutation.mutate({
+										worktreePath: worktreePath || "",
+										filePaths: files.map((f) => f.path),
+									})
+								}
+								isActioning={
+									unstageFileMutation.isPending ||
+									unstageFilesMutation.isPending ||
+									unstageAllMutation.isPending ||
+									discardAllStagedMutation.isPending
+								}
+								worktreePath={worktreePath}
+								projectId={projectId}
+								category="staged"
+								isExpandedView={isExpandedView}
+							/>
+						) : null}
 					</CategorySection>
 
 					<CategorySection
@@ -504,29 +578,40 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							</div>
 						}
 					>
-						<FileList
-							files={combinedUnstaged}
-							viewMode={fileListViewMode}
-							selectedFile={selectedFile}
-							selectedCommitHash={selectedCommitHash}
-							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
-							onStage={(file) =>
-								stageFileMutation.mutate({
-									worktreePath: worktreePath || "",
-									filePath: file.path,
-								})
-							}
-							isActioning={
-								stageFileMutation.isPending ||
-								discardChangesMutation.isPending ||
-								deleteUntrackedMutation.isPending
-							}
-							worktreePath={worktreePath}
-							projectId={projectId}
-							onDiscard={handleDiscard}
-							category="unstaged"
-							isExpandedView={isExpandedView}
-						/>
+						{expandedSections.unstaged ? (
+							<FileList
+								files={combinedUnstaged}
+								viewMode={fileListViewMode}
+								selectedFile={selectedFile}
+								selectedCommitHash={selectedCommitHash}
+								onFileSelect={(file) => handleFileSelect(file, "unstaged")}
+								onStage={(file) =>
+									stageFileMutation.mutate({
+										worktreePath: worktreePath || "",
+										filePath: file.path,
+									})
+								}
+								onStageFiles={(files) =>
+									stageFilesMutation.mutate({
+										worktreePath: worktreePath || "",
+										filePaths: files.map((f) => f.path),
+									})
+								}
+								isActioning={
+									stageFileMutation.isPending ||
+									stageFilesMutation.isPending ||
+									stageAllMutation.isPending ||
+									discardChangesMutation.isPending ||
+									deleteUntrackedMutation.isPending ||
+									discardAllUnstagedMutation.isPending
+								}
+								worktreePath={worktreePath}
+								projectId={projectId}
+								onDiscard={handleDiscard}
+								category="unstaged"
+								isExpandedView={isExpandedView}
+							/>
+						) : null}
 					</CategorySection>
 				</div>
 			)}

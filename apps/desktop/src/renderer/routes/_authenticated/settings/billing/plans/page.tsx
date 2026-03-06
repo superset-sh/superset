@@ -4,11 +4,13 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PlanTier } from "../constants";
 
@@ -199,6 +201,7 @@ function PlansPage() {
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const { data: session } = authClient.useSession();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const collections = useCollections();
 
 	const activeOrgId = session?.session?.activeOrganizationId;
@@ -214,6 +217,14 @@ function PlansPage() {
 
 	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
 	const cancelAt = subscriptionData?.cancelAt;
+
+	const isCurrentlyYearly =
+		subscriptionData?.periodStart &&
+		subscriptionData?.periodEnd &&
+		differenceInDays(
+			new Date(subscriptionData.periodEnd),
+			new Date(subscriptionData.periodStart),
+		) > 60;
 
 	const { data: membersData } = useLiveQuery(
 		(q) =>
@@ -244,7 +255,8 @@ function PlansPage() {
 		}
 
 		if (action === "contact") {
-			window.open("mailto:founders@superset.sh", "_blank");
+			track("enterprise_trial_requested", { source: "billing_plans" });
+			openUrl.mutate("mailto:founders@superset.sh");
 			return;
 		}
 
@@ -295,6 +307,7 @@ function PlansPage() {
 					seats: memberCount,
 					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
+					returnUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
 				},
 				{
@@ -349,13 +362,19 @@ function PlansPage() {
 						</span>
 						. If you have any questions or would like further support with your
 						plan,{" "}
-						<a
-							href="mailto:founders@superset.sh"
+						<button
+							type="button"
+							onClick={() => {
+								track("billing_support_contacted", {
+									source: "billing_plans_inline",
+								});
+								openUrl.mutate("mailto:founders@superset.sh");
+							}}
 							className="inline-flex items-center gap-1 text-primary hover:underline"
 						>
 							contact us
 							<HiArrowUpRight className="h-3 w-3" />
-						</a>
+						</button>
 						.
 					</p>
 				</div>
@@ -387,9 +406,20 @@ function PlansPage() {
 									const isCurrent = currentPlanLabel === plan.name;
 									const isDowngrade =
 										plan.id === "free" && currentPlan !== "free";
+									const isOnEnterprise = currentPlan === "enterprise";
 
 									let planActions: typeof plan.actions;
-									if (isCurrent && cancelAt) {
+									if (isOnEnterprise) {
+										planActions = [
+											{
+												label: isCurrent
+													? "Current plan"
+													: "Included in Enterprise",
+												action: "current" as const,
+												variant: "secondary" as const,
+											},
+										];
+									} else if (isCurrent && cancelAt) {
 										planActions = [
 											{
 												label: isRestoring ? "Restoring..." : "Restore plan",
@@ -397,6 +427,29 @@ function PlansPage() {
 												variant: "default" as const,
 											},
 										];
+									} else if (isCurrent && plan.id === "pro") {
+										const intervalMatches = isYearly === !!isCurrentlyYearly;
+										if (intervalMatches) {
+											planActions = [
+												{
+													label: "Current plan",
+													action: "current" as const,
+													variant: "secondary" as const,
+												},
+											];
+										} else {
+											planActions = [
+												{
+													label: isUpgrading
+														? "Changing..."
+														: isYearly
+															? "Change to Annual"
+															: "Change to Monthly",
+													action: "upgrade" as const,
+													variant: "default" as const,
+												},
+											];
+										}
 									} else if (isCurrent) {
 										planActions = [
 											{

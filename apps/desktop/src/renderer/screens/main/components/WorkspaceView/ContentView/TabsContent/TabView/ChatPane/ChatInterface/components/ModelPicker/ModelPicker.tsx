@@ -10,14 +10,19 @@ import {
 import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
 import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { ChevronDownIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PILL_BUTTON_CLASS } from "../../styles";
 import type { ModelOption } from "../../types";
+import { AnthropicApiKeyDialog } from "./components/AnthropicApiKeyDialog";
 import { AnthropicOAuthDialog } from "./components/AnthropicOAuthDialog";
 import { ModelProviderGroup } from "./components/ModelProviderGroup";
 import { OpenAIApiKeyDialog } from "./components/OpenAIApiKeyDialog";
+import { OpenAIOAuthDialog } from "./components/OpenAIOAuthDialog";
+import { ProviderAuthMethodDialog } from "./components/ProviderAuthMethodDialog";
+import { useAnthropicApiKey } from "./hooks/useAnthropicApiKey";
 import { useAnthropicOAuth } from "./hooks/useAnthropicOAuth";
 import { useOpenAIApiKey } from "./hooks/useOpenAIApiKey";
+import { useOpenAIOAuth } from "./hooks/useOpenAIOAuth";
 import { groupModelsByProvider } from "./utils/groupModelsByProvider";
 import {
 	ANTHROPIC_LOGO_PROVIDER,
@@ -32,6 +37,8 @@ interface ModelPickerProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+type AuthProvider = "anthropic" | "openai";
+
 export function ModelPicker({
 	models,
 	selectedModel,
@@ -43,6 +50,8 @@ export function ModelPicker({
 	const selectedLogo = selectedModel
 		? providerToLogo(selectedModel.provider)
 		: null;
+	const [authMethodProvider, setAuthMethodProvider] =
+		useState<AuthProvider | null>(null);
 
 	const {
 		isAnthropicAuthenticated,
@@ -50,6 +59,15 @@ export function ModelPicker({
 		startAnthropicOAuth,
 		oauthDialog: anthropicOAuthDialog,
 	} = useAnthropicOAuth({
+		isModelSelectorOpen: open,
+		onModelSelectorOpenChange: onOpenChange,
+	});
+	const {
+		isAnthropicApiKeyConfigured,
+		isSavingAnthropicApiKey,
+		openAnthropicApiKeyDialog,
+		apiKeyDialog: anthropicApiKeyDialog,
+	} = useAnthropicApiKey({
 		isModelSelectorOpen: open,
 		onModelSelectorOpenChange: onOpenChange,
 	});
@@ -63,6 +81,32 @@ export function ModelPicker({
 		isModelSelectorOpen: open,
 		onModelSelectorOpenChange: onOpenChange,
 	});
+	const {
+		isStartingOAuth: isStartingOpenAIOAuth,
+		startOpenAIOAuth,
+		oauthDialog: openAIOAuthDialog,
+	} = useOpenAIOAuth({
+		isModelSelectorOpen: open,
+		onModelSelectorOpenChange: onOpenChange,
+	});
+	const isAuthMethodDialogOpen = authMethodProvider !== null;
+	const isAuthMethodDialogPending =
+		isSavingAnthropicApiKey ||
+		isStartingOAuth ||
+		isSavingOpenAIApiKey ||
+		isStartingOpenAIOAuth;
+
+	const openAuthMethodDialog = (provider: AuthProvider) => {
+		setAuthMethodProvider(provider);
+		onOpenChange(false);
+	};
+
+	const closeAuthMethodDialog = (restoreModelSelector: boolean) => {
+		setAuthMethodProvider(null);
+		if (restoreModelSelector) {
+			onOpenChange(true);
+		}
+	};
 
 	return (
 		<>
@@ -91,12 +135,16 @@ export function ModelPicker({
 								models={providerModels}
 								isAnthropicAuthenticated={isAnthropicAuthenticated}
 								isAnthropicOAuthPending={isStartingOAuth}
-								onStartAnthropicOAuth={() => {
-									void startAnthropicOAuth();
+								isAnthropicApiKeyPending={isSavingAnthropicApiKey}
+								onOpenAnthropicAuthModal={() => {
+									openAuthMethodDialog("anthropic");
 								}}
 								isOpenAIAuthenticated={isOpenAIAuthenticated}
+								isOpenAIOAuthPending={isStartingOpenAIOAuth}
 								isOpenAIApiKeyPending={isSavingOpenAIApiKey}
-								onOpenOpenAIApiKeyDialog={openOpenAIApiKeyDialog}
+								onOpenOpenAIAuthModal={() => {
+									openAuthMethodDialog("openai");
+								}}
 								onSelectModel={onSelectModel}
 								onCloseModelSelector={() => {
 									onOpenChange(false);
@@ -107,11 +155,41 @@ export function ModelPicker({
 				</ModelSelectorContent>
 			</ModelSelector>
 
+			<ProviderAuthMethodDialog
+				open={isAuthMethodDialogOpen}
+				provider={authMethodProvider}
+				isPending={isAuthMethodDialogPending}
+				onOpenChange={(nextOpen) => {
+					if (nextOpen) return;
+					closeAuthMethodDialog(true);
+				}}
+				onSelectApiKey={() => {
+					if (authMethodProvider === "anthropic") {
+						openAnthropicApiKeyDialog();
+					} else if (authMethodProvider === "openai") {
+						openOpenAIApiKeyDialog();
+					}
+					closeAuthMethodDialog(false);
+				}}
+				onSelectOAuth={() => {
+					if (authMethodProvider === "anthropic") {
+						void startAnthropicOAuth();
+					} else if (authMethodProvider === "openai") {
+						void startOpenAIOAuth();
+					}
+					closeAuthMethodDialog(false);
+				}}
+			/>
+			<AnthropicApiKeyDialog
+				{...anthropicApiKeyDialog}
+				canClearApiKey={isAnthropicApiKeyConfigured}
+			/>
 			<AnthropicOAuthDialog {...anthropicOAuthDialog} />
 			<OpenAIApiKeyDialog
 				{...apiKeyDialog}
 				canClearApiKey={isOpenAIApiKeyConfigured}
 			/>
+			<OpenAIOAuthDialog {...openAIOAuthDialog} />
 		</>
 	);
 }

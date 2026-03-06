@@ -1,6 +1,7 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
+import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -17,8 +18,8 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
+	createChatMastraPane,
 	createChatMastraTabWithPane,
-	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
@@ -144,13 +145,22 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
+					});
+
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
-				addChatTab: (workspaceId: string) => {
+				addChatMastraTab: (workspaceId: string, options) => {
 					const state = get();
 
-					const { tab, pane } = createChatTabWithPane(workspaceId);
+					const { tab, pane } = createChatMastraTabWithPane(
+						workspaceId,
+						options,
+					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -178,38 +188,10 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
-					return { tabId: tab.id, paneId: pane.id };
-				},
-
-				addChatMastraTab: (workspaceId: string) => {
-					const state = get();
-
-					const { tab, pane } = createChatMastraTabWithPane(workspaceId);
-
-					const currentActiveId = state.activeTabIds[workspaceId];
-					const historyStack = state.tabHistoryStacks[workspaceId] || [];
-					const newHistoryStack = currentActiveId
-						? [
-								currentActiveId,
-								...historyStack.filter((id) => id !== currentActiveId),
-							]
-						: historyStack;
-
-					set({
-						tabs: [...state.tabs, tab],
-						panes: { ...state.panes, [pane.id]: pane },
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: tab.id,
-						},
-						focusedPaneIds: {
-							...state.focusedPaneIds,
-							[tab.id]: pane.id,
-						},
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: newHistoryStack,
-						},
+					posthog.capture("panel_opened", {
+						panel_type: "chat",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
@@ -272,6 +254,14 @@ export const useTabsStore = create<TabsStore>()(
 							[workspaceId]: newHistoryStack,
 						},
 					});
+
+					for (const paneId of paneIds) {
+						posthog.capture("panel_opened", {
+							panel_type: "terminal",
+							workspace_id: workspaceId,
+							pane_id: paneId,
+						});
+					}
 
 					return { tabId: tab.id, paneIds };
 				},
@@ -532,6 +522,48 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
+
+					return newPane.id;
+				},
+				addChatMastraPane: (tabId, options) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return "";
+
+					const newPane = createChatMastraPane(tabId, options);
+
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: tab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
+						),
+						panes: newPanes,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: newPane.id,
+						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "chat",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
+
 					return newPane.id;
 				},
 
@@ -574,6 +606,14 @@ export const useTabsStore = create<TabsStore>()(
 							[tabId]: paneIds[0],
 						},
 					});
+
+					for (const paneId of paneIds) {
+						posthog.capture("panel_opened", {
+							panel_type: "terminal",
+							workspace_id: tab.workspaceId,
+							pane_id: paneId,
+						});
+					}
 
 					return paneIds;
 				},
@@ -701,7 +741,9 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName ||
+							options.filePath.split("/").pop() ||
+							options.filePath;
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,
@@ -778,6 +820,12 @@ export const useTabsStore = create<TabsStore>()(
 							},
 						});
 
+						posthog.capture("panel_opened", {
+							panel_type: "file_viewer",
+							workspace_id: workspaceId,
+							pane_id: newPane.id,
+						});
+
 						return newPane.id;
 					}
 
@@ -804,6 +852,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[activeTab.id]: newPane.id,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "file_viewer",
+						workspace_id: activeTab.workspaceId,
+						pane_id: newPane.id,
 					});
 
 					return newPane.id;
@@ -1067,8 +1121,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1109,6 +1174,12 @@ export const useTabsStore = create<TabsStore>()(
 							[tabId]: newPane.id,
 						},
 					});
+
+					posthog.capture("panel_opened", {
+						panel_type: panelType,
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
 				},
 
 				splitPaneHorizontal: (tabId, sourcePaneId, path, options) => {
@@ -1119,8 +1190,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1160,6 +1242,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: panelType,
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
 					});
 				},
 
@@ -1252,6 +1340,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.tabHistoryStacks,
 							[workspaceId]: newHistoryStack,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "browser",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
@@ -1373,6 +1467,12 @@ export const useTabsStore = create<TabsStore>()(
 								...state.focusedPaneIds,
 								[activeTab.id]: newPane.id,
 							},
+						});
+
+						posthog.capture("panel_opened", {
+							panel_type: "browser",
+							workspace_id: workspaceId,
+							pane_id: newPane.id,
 						});
 					}
 				},
@@ -1597,6 +1697,12 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
+					posthog.capture("panel_opened", {
+						panel_type: "devtools",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
+
 					return newPane.id;
 				},
 
@@ -1685,33 +1791,38 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Chat operations
-				switchChatSession: (paneId, sessionId) => {
+				switchChatMastraSession: (paneId, sessionId) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane?.chat) return;
+					if (!pane || pane.type !== "chat-mastra") return;
 
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chat: { sessionId },
+								chatMastra: {
+									...pane.chatMastra,
+									sessionId,
+								},
 							},
 						},
 					});
 				},
-
-				switchChatMastraSession: (paneId, sessionId) => {
+				setChatMastraLaunchConfig: (paneId, launchConfig) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane?.chatMastra) return;
-
+					if (!pane || pane.type !== "chat-mastra") return;
+					const sessionId = pane.chatMastra?.sessionId ?? null;
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: { sessionId },
+								chatMastra: {
+									sessionId,
+									launchConfig: launchConfig ?? null,
+								},
 							},
 						},
 					});
@@ -1748,7 +1859,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 5,
+				version: 7,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -1777,8 +1888,21 @@ export const useTabsStore = create<TabsStore>()(
 					}
 					if (version < 5 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							if (pane.chat) {
-								pane.chat.sessionId = null;
+							if (pane.chatMastra) {
+								pane.chatMastra.sessionId = null;
+							}
+						}
+					}
+					if (version < 7 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
+							const legacyPane = pane as any;
+							if (legacyPane.type === "chat") {
+								legacyPane.type = "chat-mastra";
+								legacyPane.chatMastra = {
+									sessionId: legacyPane.chat?.sessionId ?? null,
+								};
+								delete legacyPane.chat;
 							}
 						}
 					}

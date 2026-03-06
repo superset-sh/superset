@@ -1,14 +1,25 @@
-import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
-import { useTabsStore } from "renderer/stores/tabs/store";
-import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
+import {
+	chatLaunchConfigSchema,
+	normalizeAgentLaunchRequest,
+	STARTABLE_AGENT_TYPES,
+} from "@superset/shared/agent-launch";
+import {
+	launchAgentSession,
+	queueAgentSessionLaunch,
+} from "renderer/lib/agent-session-orchestrator";
 import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
 const schema = z.object({
-	command: z.string(),
-	name: z.string(),
 	workspaceId: z.string(),
+	command: z.string().optional(),
+	name: z.string().optional(),
 	paneId: z.string().optional(),
+	openChatPane: z.boolean().optional(),
+	chatLaunchConfig: chatLaunchConfigSchema.partial().optional(),
+	idempotencyKey: z.string().optional(),
+	agentType: z.enum(STARTABLE_AGENT_TYPES).optional(),
+	request: z.unknown().optional(),
 });
 
 async function execute(
@@ -29,73 +40,63 @@ async function execute(
 	}
 
 	try {
-		if (params.paneId) {
-			const tabsStore = useTabsStore.getState();
-			const pane = tabsStore.panes[params.paneId];
-			if (!pane) {
-				return {
-					success: false,
-					error: `Pane not found: ${params.paneId}`,
-				};
-			}
+		const fallbackRequest = {
+			workspaceId: params.workspaceId,
+			command: params.command,
+			name: params.name,
+			paneId: params.paneId,
+			openChatPane: params.openChatPane,
+			chatLaunchConfig: params.chatLaunchConfig,
+			idempotencyKey: params.idempotencyKey,
+			agentType: params.agentType,
+			source: "command-watcher",
+		};
+		const mergedRequest =
+			params.request && typeof params.request === "object"
+				? { ...fallbackRequest, ...(params.request as Record<string, unknown>) }
+				: fallbackRequest;
+		const request = normalizeAgentLaunchRequest(mergedRequest);
 
-			const tab = tabsStore.tabs.find((t) => t.id === pane.tabId);
-			if (!tab || tab.workspaceId !== workspace.id) {
-				return {
-					success: false,
-					error: `Tab not found for pane: ${params.paneId}`,
-				};
-			}
-
-			const newPaneId = tabsStore.addPane(tab.id);
-
-			if (!newPaneId) {
-				return { success: false, error: "Failed to add pane" };
-			}
-
-			try {
-				await launchCommandInPane({
-					paneId: newPaneId,
-					tabId: tab.id,
-					workspaceId: workspace.id,
-					command: params.command,
-					createOrAttach: (input) =>
-						ctx.terminalCreateOrAttach.mutateAsync(input),
-					write: (input) => ctx.terminalWrite.mutateAsync(input),
-				});
-			} catch (error) {
-				tabsStore.removePane(newPaneId);
-				return {
-					success: false,
-					error:
-						error instanceof Error
-							? error.message
-							: "Failed to start agent session",
-				};
-			}
-
+		if (request.workspaceId !== params.workspaceId) {
 			return {
-				success: true,
-				data: { workspaceId: workspace.id, paneId: newPaneId },
+				success: false,
+				error: `Workspace mismatch: ${request.workspaceId} (expected ${params.workspaceId})`,
 			};
 		}
 
-		// Without paneId: init workspace path
-		const store = useWorkspaceInitStore.getState();
-		const pending = store.pendingTerminalSetups[workspace.id];
-		store.addPendingTerminalSetup({
-			workspaceId: workspace.id,
-			projectId: pending?.projectId ?? workspace.projectId,
-			initialCommands: pending?.initialCommands ?? null,
-			defaultPresets: pending?.defaultPresets,
-			agentCommand: params.command,
-		});
+		const hasExplicitPaneTarget =
+			request.kind === "terminal"
+				? Boolean(request.terminal.paneId)
+				: Boolean(request.chat.paneId);
+
+		const launchResult = hasExplicitPaneTarget
+			? await launchAgentSession(request, {
+					source: "command-watcher",
+					createOrAttach: (input) =>
+						ctx.terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => ctx.terminalWrite.mutateAsync(input),
+				})
+			: queueAgentSessionLaunch({
+					request,
+					projectId: workspace.projectId,
+				});
+
+		if (launchResult.status === "failed") {
+			return {
+				success: false,
+				error: launchResult.error ?? "Failed to start agent session",
+			};
+		}
 
 		return {
 			success: true,
 			data: {
-				workspaceId: workspace.id,
+				workspaceId: launchResult.workspaceId,
 				branch: workspace.branch,
+				tabId: launchResult.tabId,
+				paneId: launchResult.paneId,
+				sessionId: launchResult.sessionId,
+				status: launchResult.status,
 			},
 		};
 	} catch (error) {

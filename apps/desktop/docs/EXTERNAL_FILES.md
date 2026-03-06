@@ -39,6 +39,10 @@ agent commands and inject Superset-specific configuration.
 | `init.zsh` | Zsh initialization script (sources .zshrc, sets up PATH) |
 | `init.bash` | Bash initialization script (sources .bashrc, sets up PATH) |
 
+Shell integration keeps interactive startup close to native shell behavior:
+- Interactive startup applies idempotent PATH prepend only (no persistent command interception functions).
+- App-owned non-interactive `-c` command execution still routes managed binaries through absolute Superset wrapper paths.
+
 ## Global Files (AVOID ADDING NEW ONES)
 
 **DO NOT write to global locations** like `~/.config/`, `~/Library/`, etc.

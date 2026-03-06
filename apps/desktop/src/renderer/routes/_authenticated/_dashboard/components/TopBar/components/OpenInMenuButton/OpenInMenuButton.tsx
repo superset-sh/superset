@@ -2,12 +2,7 @@ import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuShortcut,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
@@ -15,16 +10,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { memo, useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
-import { LuCopy, LuExternalLink } from "react-icons/lu";
-import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
-import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
+import { LuExternalLink } from "react-icons/lu";
 import {
-	APP_OPTIONS,
 	getAppOption,
-	JETBRAINS_OPTIONS,
-	VSCODE_OPTIONS,
-} from "renderer/components/OpenInButton";
+	OpenInExternalDropdownItems,
+} from "renderer/components/OpenInExternalDropdown";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useThemeStore } from "renderer/stores";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface OpenInMenuButtonProps {
@@ -38,6 +30,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	branch,
 	projectId,
 }: OpenInMenuButtonProps) {
+	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const utils = electronTrpc.useUtils();
 	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
 		{ projectId: projectId as string },
@@ -65,6 +58,8 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	const showOpenInShortcut = openInShortcut !== "Unassigned";
 	const showCopyPathShortcut = copyPathShortcut !== "Unassigned";
 	const isLoading = openInApp.isPending || copyPath.isPending;
+
+	const isDark = activeTheme?.type === "dark";
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
@@ -116,7 +111,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 					>
 						{currentApp ? (
 							<img
-								src={currentApp.icon}
+								src={isDark ? currentApp.darkIcon : currentApp.lightIcon}
 								alt=""
 								className="size-3.5 object-contain shrink-0"
 							/>
@@ -174,85 +169,36 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent align="end" className="w-48">
-					{APP_OPTIONS.map((app) => (
-						<DropdownMenuItem
-							key={app.id}
-							onClick={() => handleOpenInOtherApp(app.id)}
-						>
-							<img
-								src={app.icon}
-								alt=""
-								className="size-4 object-contain mr-2"
-							/>
-							{app.label}
-							{app.id === defaultApp && showOpenInShortcut && (
+					<OpenInExternalDropdownItems
+						isDark={isDark}
+						activeApp={defaultApp ?? undefined}
+						onOpenIn={handleOpenInOtherApp}
+						onCopyPath={handleCopyPath}
+						renderAppTrailing={(appId, group) => {
+							if (
+								appId !== defaultApp ||
+								!showOpenInShortcut ||
+								group === "jetbrains"
+							) {
+								return null;
+							}
+							return (
 								<DropdownMenuShortcut>{openInShortcut}</DropdownMenuShortcut>
-							)}
-						</DropdownMenuItem>
-					))}
-					<DropdownMenuSub>
-						<DropdownMenuSubTrigger>
-							<img
-								src={vscodeIcon}
-								alt=""
-								className="size-4 object-contain mr-2"
-							/>
-							VS Code
-						</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent className="w-40">
-							{VSCODE_OPTIONS.map((app) => (
-								<DropdownMenuItem
-									key={app.id}
-									onClick={() => handleOpenInOtherApp(app.id)}
-								>
-									<img
-										src={app.icon}
-										alt=""
-										className="size-4 object-contain mr-2"
-									/>
-									{app.label}
-									{app.id === defaultApp && showOpenInShortcut && (
-										<DropdownMenuShortcut>
-											{openInShortcut}
-										</DropdownMenuShortcut>
-									)}
-								</DropdownMenuItem>
-							))}
-						</DropdownMenuSubContent>
-					</DropdownMenuSub>
-					<DropdownMenuSub>
-						<DropdownMenuSubTrigger>
-							<img
-								src={jetbrainsIcon}
-								alt=""
-								className="size-4 object-contain mr-2"
-							/>
-							JetBrains
-						</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent className="w-40">
-							{JETBRAINS_OPTIONS.map((app) => (
-								<DropdownMenuItem
-									key={app.id}
-									onClick={() => handleOpenInOtherApp(app.id)}
-								>
-									<img
-										src={app.icon}
-										alt=""
-										className="size-4 object-contain mr-2"
-									/>
-									{app.label}
-								</DropdownMenuItem>
-							))}
-						</DropdownMenuSubContent>
-					</DropdownMenuSub>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem onClick={handleCopyPath}>
-						<LuCopy className="size-4 mr-2" />
-						Copy path
-						{showCopyPathShortcut && (
-							<DropdownMenuShortcut>{copyPathShortcut}</DropdownMenuShortcut>
-						)}
-					</DropdownMenuItem>
+							);
+						}}
+						copyPathTrailing={
+							showCopyPathShortcut ? (
+								<DropdownMenuShortcut>{copyPathShortcut}</DropdownMenuShortcut>
+							) : null
+						}
+						subContentClassName="w-40"
+						appContentClassName="gap-0"
+						appIconClassName="size-4 object-contain mr-2"
+						subTriggerIconClassName="size-4 object-contain mr-2"
+						subTriggerContentClassName="flex items-center gap-0"
+						copyPathContentClassName="gap-0"
+						copyPathIconClassName="mr-2"
+					/>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</div>

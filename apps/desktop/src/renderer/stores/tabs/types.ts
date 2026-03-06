@@ -4,6 +4,7 @@ import type {
 	BaseTab,
 	BaseTabsState,
 	BrowserLoadError,
+	ChatMastraLaunchConfig,
 	FileViewerMode,
 	Pane,
 	PaneStatus,
@@ -47,6 +48,15 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
+export interface SplitPaneOptions {
+	initialCwd?: string;
+	paneType?: "terminal" | "chat-mastra" | "webview";
+}
+
+export interface AddChatMastraTabOptions {
+	launchConfig?: ChatMastraLaunchConfig | null;
+}
+
 export interface AddTabWithMultiplePanesOptions {
 	commands: string[];
 	initialCwd?: string;
@@ -72,6 +82,8 @@ export interface AddFileViewerPaneOptions {
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */
 	openInNewTab?: boolean;
+	/** Override the display name shown in the tab (defaults to filename from filePath) */
+	displayName?: string;
 }
 
 /**
@@ -83,8 +95,10 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
-	addChatTab: (workspaceId: string) => { tabId: string; paneId: string };
-	addChatMastraTab: (workspaceId: string) => { tabId: string; paneId: string };
+	addChatMastraTab: (
+		workspaceId: string,
+		options?: AddChatMastraTabOptions,
+	) => { tabId: string; paneId: string };
 	addTabWithMultiplePanes: (
 		workspaceId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -103,6 +117,10 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addChatMastraPane: (
+		tabId: string,
+		options?: AddChatMastraTabOptions,
+	) => string;
 	addPanesToTab: (
 		tabId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -132,20 +150,20 @@ export interface TabsStore extends TabsState {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneHorizontal: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 
 	// Move operations
@@ -182,10 +200,12 @@ export interface TabsStore extends TabsState {
 	reopenClosedTab: (workspaceId: string) => boolean;
 
 	// Chat operations
-	/** Switch a chat pane to a different session */
-	switchChatSession: (paneId: string, sessionId: string | null) => void;
 	/** Switch a Mastra chat pane to a different session */
 	switchChatMastraSession: (paneId: string, sessionId: string | null) => void;
+	setChatMastraLaunchConfig: (
+		paneId: string,
+		launchConfig: AddChatMastraTabOptions["launchConfig"],
+	) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

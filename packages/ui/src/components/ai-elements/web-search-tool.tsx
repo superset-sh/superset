@@ -35,12 +35,7 @@ export const WebSearchTool = ({
 		query && query.length > 40 ? `${query.slice(0, 37)}...` : query;
 
 	return (
-		<div
-			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30",
-				className,
-			)}
-		>
+		<div className={cn("overflow-hidden rounded-md", className)}>
 			{/* Header */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
@@ -48,7 +43,7 @@ export const WebSearchTool = ({
 					"flex h-7 items-center justify-between px-2.5",
 					hasResults &&
 						!isPending &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
+						"cursor-pointer transition-colors duration-150 hover:bg-muted/30",
 				)}
 				onClick={() => hasResults && !isPending && setIsExpanded(!isExpanded)}
 			>
@@ -84,10 +79,10 @@ export const WebSearchTool = ({
 
 			{/* Results list */}
 			{hasResults && isExpanded && (
-				<div className="max-h-[200px] overflow-y-auto border-t border-border">
+				<div className="mt-0.5 max-h-[200px] overflow-y-auto">
 					{results.map((result, idx) => (
 						<a
-							className="group flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-muted/50"
+							className="group flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-muted/30"
 							href={result.url}
 							key={`${result.url}-${idx}`}
 							rel="noopener noreferrer"

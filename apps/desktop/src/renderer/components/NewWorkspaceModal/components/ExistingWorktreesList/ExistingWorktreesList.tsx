@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -25,11 +26,19 @@ import { BranchesSection, PrUrlSection, WorktreesSection } from "./components";
 interface ExistingWorktreesListProps {
 	projectId: string;
 	onOpenSuccess: () => void;
+	activeTab?: ImportSourceTab;
+	onActiveTabChange?: (tab: ImportSourceTab) => void;
+	showTabs?: boolean;
 }
+
+export type ImportSourceTab = "pull-request" | "branches" | "worktrees";
 
 export function ExistingWorktreesList({
 	projectId,
 	onOpenSuccess,
+	activeTab,
+	onActiveTabChange,
+	showTabs = true,
 }: ExistingWorktreesListProps) {
 	const { data: worktrees = [], isLoading: isWorktreesLoading } =
 		electronTrpc.workspaces.getWorktreesByProject.useQuery({ projectId });
@@ -50,6 +59,10 @@ export function ExistingWorktreesList({
 	const [worktreeOpen, setWorktreeOpen] = useState(false);
 	const [worktreeSearch, setWorktreeSearch] = useState("");
 	const [prUrl, setPrUrl] = useState("");
+	const [internalActiveTab, setInternalActiveTab] =
+		useState<ImportSourceTab>("pull-request");
+	const selectedTab = activeTab ?? internalActiveTab;
+	const setSelectedTab = onActiveTabChange ?? setInternalActiveTab;
 
 	const closedWorktrees = worktrees
 		.filter((wt) => !wt.hasActiveWorkspace && wt.existsOnDisk)
@@ -208,42 +221,82 @@ export function ExistingWorktreesList({
 
 	return (
 		<div className="space-y-3 max-h-[350px] overflow-y-auto">
-			<PrUrlSection
-				prUrl={prUrl}
-				onPrUrlChange={setPrUrl}
-				onSubmit={handleCreateFromPr}
-				isPending={createFromPr.isPending}
-			/>
+			{showTabs && (
+				<Tabs
+					value={selectedTab}
+					onValueChange={(value) => setSelectedTab(value as ImportSourceTab)}
+				>
+					<TabsList className="h-8 bg-transparent p-0 gap-1">
+						<TabsTrigger
+							value="pull-request"
+							className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+						>
+							Pull request
+						</TabsTrigger>
+						<TabsTrigger
+							value="branches"
+							className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+						>
+							Branches
+						</TabsTrigger>
+						<TabsTrigger
+							value="worktrees"
+							className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+						>
+							Worktrees
+						</TabsTrigger>
+					</TabsList>
+				</Tabs>
+			)}
 
-			{hasBranches && (
-				<BranchesSection
-					branches={filteredBranches}
-					defaultBranch={branchData?.defaultBranch}
-					searchValue={branchSearch}
-					onSearchChange={setBranchSearch}
-					isOpen={branchOpen}
-					onOpenChange={setBranchOpen}
-					onSelectBranch={handleCreateFromBranch}
-					disabled={isPending}
+			{selectedTab === "pull-request" && (
+				<PrUrlSection
+					prUrl={prUrl}
+					onPrUrlChange={setPrUrl}
+					onSubmit={handleCreateFromPr}
+					isPending={createFromPr.isPending}
 				/>
 			)}
 
-			{hasWorktrees && (
-				<WorktreesSection
-					closedWorktrees={closedWorktrees}
-					openWorktrees={openWorktrees}
-					externalWorktrees={externalWorktrees}
-					searchValue={worktreeSearch}
-					onSearchChange={setWorktreeSearch}
-					isOpen={worktreeOpen}
-					onOpenChange={setWorktreeOpen}
-					onOpenWorktree={handleOpenWorktree}
-					onOpenExternalWorktree={handleOpenExternalWorktree}
-					disabled={isPending}
-				/>
-			)}
+			{selectedTab === "branches" &&
+				(hasBranches ? (
+					<BranchesSection
+						branches={filteredBranches}
+						defaultBranch={branchData?.defaultBranch}
+						searchValue={branchSearch}
+						onSearchChange={setBranchSearch}
+						isOpen={branchOpen}
+						onOpenChange={setBranchOpen}
+						onSelectBranch={handleCreateFromBranch}
+						disabled={isPending}
+					/>
+				) : (
+					<div className="py-4 text-center text-xs text-muted-foreground">
+						No branches available to import.
+					</div>
+				))}
 
-			{importableCount > 0 && (
+			{selectedTab === "worktrees" &&
+				(hasWorktrees ? (
+					<WorktreesSection
+						closedWorktrees={closedWorktrees}
+						openWorktrees={openWorktrees}
+						externalWorktrees={externalWorktrees}
+						searchValue={worktreeSearch}
+						onSearchChange={setWorktreeSearch}
+						isOpen={worktreeOpen}
+						onOpenChange={setWorktreeOpen}
+						onOpenWorktree={handleOpenWorktree}
+						onOpenExternalWorktree={handleOpenExternalWorktree}
+						disabled={isPending}
+					/>
+				) : (
+					<div className="py-4 text-center text-xs text-muted-foreground">
+						No worktrees available to import.
+					</div>
+				))}
+
+			{selectedTab === "worktrees" && importableCount > 0 && (
 				<AlertDialog>
 					<AlertDialogTrigger asChild>
 						<Button
@@ -277,11 +330,11 @@ export function ExistingWorktreesList({
 				</AlertDialog>
 			)}
 
-			{!hasWorktrees && !hasBranches && (
+			{selectedTab === "pull-request" && !hasWorktrees && !hasBranches && (
 				<div className="py-4 text-center text-xs text-muted-foreground">
-					No existing worktrees or branches.
+					No existing worktrees or branches found.
 					<br />
-					Paste a PR URL above or create a new branch.
+					Use Pull request tab to paste a PR URL.
 				</div>
 			)}
 		</div>

@@ -12,6 +12,14 @@ import {
 	parseGitStatus,
 	parseNameStatus,
 } from "./utils/parse-status";
+import {
+	clearInFlightStatus,
+	getCachedStatus,
+	getInFlightStatus,
+	makeStatusCacheKey,
+	setCachedStatus,
+	setInFlightStatus,
+} from "./utils/status-cache";
 
 export const createStatusRouter = () => {
 	return router({
@@ -26,48 +34,77 @@ export const createStatusRouter = () => {
 				assertRegisteredWorktree(input.worktreePath);
 
 				const defaultBranch = input.defaultBranch || "main";
-				const git = simpleGit(input.worktreePath);
-
-				let status: StatusResult;
-				try {
-					status = await getStatusNoLock(input.worktreePath);
-				} catch (error) {
-					if (error instanceof NotGitRepoError) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: error.message,
-						});
-					}
-					throw error;
+				const cacheKey = makeStatusCacheKey(input.worktreePath, defaultBranch);
+				const cached = getCachedStatus(cacheKey);
+				if (cached) {
+					return cached;
 				}
-				const parsed = parseGitStatus(status);
 
-				const [branchComparison, trackingStatus] = await Promise.all([
-					getBranchComparison(git, defaultBranch),
-					getTrackingBranchStatus(git),
-					applyNumstatToFiles(git, parsed.staged, [
-						"diff",
-						"--cached",
-						"--numstat",
-					]),
-					applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
-					applyUntrackedLineCount(input.worktreePath, parsed.untracked),
-				]);
+				const inFlight = getInFlightStatus(cacheKey);
+				if (inFlight) {
+					return inFlight;
+				}
 
-				return {
-					branch: parsed.branch,
-					defaultBranch,
-					againstBase: branchComparison.againstBase,
-					commits: branchComparison.commits,
-					staged: parsed.staged,
-					unstaged: parsed.unstaged,
-					untracked: parsed.untracked,
-					ahead: branchComparison.ahead,
-					behind: branchComparison.behind,
-					pushCount: trackingStatus.pushCount,
-					pullCount: trackingStatus.pullCount,
-					hasUpstream: trackingStatus.hasUpstream,
-				};
+				let statusPromise!: Promise<GitChangesStatus>;
+				statusPromise = (async (): Promise<GitChangesStatus> => {
+					const git = simpleGit(input.worktreePath);
+
+					let status: StatusResult;
+					try {
+						status = await getStatusNoLock(input.worktreePath);
+					} catch (error) {
+						if (error instanceof NotGitRepoError) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: error.message,
+							});
+						}
+						throw error;
+					}
+					const parsed = parseGitStatus(status);
+
+					const [branchComparison, trackingStatus] = await Promise.all([
+						getBranchComparison(git, defaultBranch),
+						getTrackingBranchStatus(git),
+						applyNumstatToFiles(git, parsed.staged, [
+							"diff",
+							"--cached",
+							"--numstat",
+						]),
+						applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
+						applyUntrackedLineCount(input.worktreePath, parsed.untracked),
+					]);
+
+					const result: GitChangesStatus = {
+						branch: parsed.branch,
+						defaultBranch,
+						againstBase: branchComparison.againstBase,
+						commits: branchComparison.commits,
+						staged: parsed.staged,
+						unstaged: parsed.unstaged,
+						untracked: parsed.untracked,
+						ahead: branchComparison.ahead,
+						behind: branchComparison.behind,
+						pushCount: trackingStatus.pushCount,
+						pullCount: trackingStatus.pullCount,
+						hasUpstream: trackingStatus.hasUpstream,
+					};
+
+					// Guard against stale in-flight completion after explicit invalidation.
+					if (getInFlightStatus(cacheKey) === statusPromise) {
+						setCachedStatus(cacheKey, result);
+					}
+					return result;
+				})();
+
+				setInFlightStatus(cacheKey, statusPromise);
+				try {
+					return await statusPromise;
+				} finally {
+					if (getInFlightStatus(cacheKey) === statusPromise) {
+						clearInFlightStatus(cacheKey);
+					}
+				}
 			}),
 
 		getCommitFiles: publicProcedure

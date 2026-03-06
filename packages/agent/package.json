@@ -19,7 +19,7 @@
 		"@mastra/core": "^1.3.0",
 		"@mastra/memory": "^1.2.0",
 		"cheerio": "^1.2.0",
-		"mastracode": "^0.3.0",
+		"mastracode": "^0.4.0",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {

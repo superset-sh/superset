@@ -6,16 +6,16 @@ interface OpenAIProviderHeadingProps {
 	heading: string;
 	isConnected: boolean;
 	isPending: boolean;
-	onConfigureApiKey: () => void;
+	onOpenAuthModal: () => void;
 }
 
 export function OpenAIProviderHeading({
 	heading,
 	isConnected,
 	isPending,
-	onConfigureApiKey,
+	onOpenAuthModal,
 }: OpenAIProviderHeadingProps) {
-	const tooltipLabel = isConnected ? "Update OpenAI key" : "Connect OpenAI";
+	const tooltipLabel = isConnected ? "Manage OpenAI auth" : "Connect OpenAI";
 
 	return (
 		<div className="text-muted-foreground flex items-center justify-between px-2 py-1.5 text-xs font-medium">
@@ -32,7 +32,7 @@ export function OpenAIProviderHeading({
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							onConfigureApiKey();
+							onOpenAuthModal();
 						}}
 					>
 						{isPending ? (

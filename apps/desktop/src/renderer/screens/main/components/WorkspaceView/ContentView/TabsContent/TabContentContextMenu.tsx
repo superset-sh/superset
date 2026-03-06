@@ -4,9 +4,6 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 	ContextMenuShortcut,
-	ContextMenuSub,
-	ContextMenuSubContent,
-	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import type { ReactNode } from "react";
@@ -15,15 +12,13 @@ import {
 	LuArrowDownToLine,
 	LuClipboard,
 	LuClipboardCopy,
-	LuColumns2,
 	LuEraser,
-	LuMoveRight,
-	LuPlus,
-	LuRows2,
-	LuX,
 } from "react-icons/lu";
 import { useHotkeyText } from "renderer/stores/hotkeys";
-import type { Tab } from "renderer/stores/tabs/types";
+import {
+	type PaneContextMenuActions,
+	PaneContextMenuItems,
+} from "../components/PaneContextMenuItems";
 
 function getModifierKeyLabel() {
 	const isMac = navigator.platform.toLowerCase().includes("mac");
@@ -32,23 +27,28 @@ function getModifierKeyLabel() {
 
 interface TabContentContextMenuProps {
 	children: ReactNode;
-	onSplitHorizontal: () => void;
-	onSplitVertical: () => void;
-	onClosePane: () => void;
-	onClearTerminal: () => void;
-	onScrollToBottom: () => void;
+	onSplitHorizontal: PaneContextMenuActions["onSplitHorizontal"];
+	onSplitVertical: PaneContextMenuActions["onSplitVertical"];
+	onSplitWithNewChat?: PaneContextMenuActions["onSplitWithNewChat"];
+	onSplitWithNewBrowser?: PaneContextMenuActions["onSplitWithNewBrowser"];
+	onClosePane: PaneContextMenuActions["onClosePane"];
+	onClearTerminal?: () => void;
+	onScrollToBottom?: () => void;
 	getSelection?: () => string;
 	onPaste?: (text: string) => void;
-	currentTabId: string;
-	availableTabs: Tab[];
-	onMoveToTab: (tabId: string) => void;
-	onMoveToNewTab: () => void;
+	currentTabId: PaneContextMenuActions["currentTabId"];
+	availableTabs: PaneContextMenuActions["availableTabs"];
+	onMoveToTab: PaneContextMenuActions["onMoveToTab"];
+	onMoveToNewTab: PaneContextMenuActions["onMoveToNewTab"];
+	closeLabel?: string;
 }
 
 export function TabContentContextMenu({
 	children,
 	onSplitHorizontal,
 	onSplitVertical,
+	onSplitWithNewChat,
+	onSplitWithNewBrowser,
 	onClosePane,
 	onClearTerminal,
 	onScrollToBottom,
@@ -58,14 +58,14 @@ export function TabContentContextMenu({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	closeLabel = "Close Pane",
 }: TabContentContextMenuProps) {
-	// Filter out current tab from available targets
-	const targetTabs = availableTabs.filter((t) => t.id !== currentTabId);
 	const clearShortcut = useHotkeyText("CLEAR_TERMINAL");
 	const showClearShortcut = clearShortcut !== "Unassigned";
 	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
 	const modKey = getModifierKeyLabel();
+	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;
 
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasClipboard, setHasClipboard] = useState(false);
@@ -116,55 +116,41 @@ export function TabContentContextMenu({
 					</ContextMenuItem>
 				)}
 				{(getSelection || onPaste) && <ContextMenuSeparator />}
-				<ContextMenuItem onSelect={onSplitHorizontal}>
-					<LuRows2 className="size-4" />
-					Split Horizontally
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={onSplitVertical}>
-					<LuColumns2 className="size-4" />
-					Split Vertically
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={onClearTerminal}>
-					<LuEraser className="size-4" />
-					Clear Terminal
-					{showClearShortcut && (
-						<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
-					)}
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={onScrollToBottom}>
-					<LuArrowDownToLine className="size-4" />
-					Scroll to Bottom
-					{showScrollToBottomShortcut && (
-						<ContextMenuShortcut>{scrollToBottomShortcut}</ContextMenuShortcut>
-					)}
-				</ContextMenuItem>
-				<ContextMenuSeparator />
-				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-2">
-						<LuMoveRight className="size-4" />
-						Move to Tab
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent>
-						{targetTabs.map((tab) => (
-							<ContextMenuItem
-								key={tab.id}
-								onSelect={() => onMoveToTab(tab.id)}
-							>
-								{tab.name}
-							</ContextMenuItem>
-						))}
-						{targetTabs.length > 0 && <ContextMenuSeparator />}
-						<ContextMenuItem onSelect={onMoveToNewTab}>
-							<LuPlus className="size-4" />
-							New Tab
-						</ContextMenuItem>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSeparator />
-				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
-					<LuX className="size-4" />
-					Close Terminal
-				</ContextMenuItem>
+				{onClearTerminal && (
+					<ContextMenuItem onSelect={onClearTerminal}>
+						<LuEraser className="size-4" />
+						Clear Terminal
+						{showClearShortcut && (
+							<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
+						)}
+					</ContextMenuItem>
+				)}
+				{onScrollToBottom && (
+					<ContextMenuItem onSelect={onScrollToBottom}>
+						<LuArrowDownToLine className="size-4" />
+						Scroll to Bottom
+						{showScrollToBottomShortcut && (
+							<ContextMenuShortcut>
+								{scrollToBottomShortcut}
+							</ContextMenuShortcut>
+						)}
+					</ContextMenuItem>
+				)}
+				{hasTerminalActions && <ContextMenuSeparator />}
+				<PaneContextMenuItems
+					actions={{
+						onSplitHorizontal,
+						onSplitVertical,
+						onSplitWithNewChat,
+						onSplitWithNewBrowser,
+						onClosePane,
+						currentTabId,
+						availableTabs,
+						onMoveToTab,
+						onMoveToNewTab,
+					}}
+					closeLabel={closeLabel}
+				/>
 			</ContextMenuContent>
 		</ContextMenu>
 	);

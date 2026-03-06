@@ -1,4 +1,5 @@
 import type { TerminalPreset } from "@superset/local-db";
+import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
@@ -11,6 +12,8 @@ export interface PendingTerminalSetup {
 	defaultPresets?: TerminalPreset[];
 	/** Agent command to run in a separate pane from the setup script */
 	agentCommand?: string;
+	/** Canonical launch request used by the orchestrator */
+	agentLaunchRequest?: AgentLaunchRequest;
 }
 
 interface WorkspaceInitState {

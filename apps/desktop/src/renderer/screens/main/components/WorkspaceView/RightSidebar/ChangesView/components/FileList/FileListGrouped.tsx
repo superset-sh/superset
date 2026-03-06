@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import type { ExternalApp } from "@superset/local-db";
+import { useCallback, useMemo, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
@@ -11,6 +12,8 @@ interface FileListGroupedProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -18,6 +21,7 @@ interface FileListGroupedProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 interface FolderGroup {
@@ -66,6 +70,8 @@ interface FolderGroupItemProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -73,6 +79,7 @@ interface FolderGroupItemProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function FolderGroupItem({
@@ -82,6 +89,8 @@ function FolderGroupItem({
 	showStats,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -89,23 +98,30 @@ function FolderGroupItem({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const displayName = group.folderPath || "Root Path";
 
 	const handleStageAll = useCallback(() => {
-		if (!onStage) return;
-		for (const file of group.files) {
-			onStage(file);
+		if (onStageFiles) {
+			onStageFiles(group.files);
+		} else if (onStage) {
+			for (const file of group.files) {
+				onStage(file);
+			}
 		}
-	}, [group.files, onStage]);
+	}, [group.files, onStage, onStageFiles]);
 
 	const handleUnstageAll = useCallback(() => {
-		if (!onUnstage) return;
-		for (const file of group.files) {
-			onUnstage(file);
+		if (onUnstageFiles) {
+			onUnstageFiles(group.files);
+		} else if (onUnstage) {
+			for (const file of group.files) {
+				onUnstage(file);
+			}
 		}
-	}, [group.files, onUnstage]);
+	}, [group.files, onUnstage, onUnstageFiles]);
 
 	const handleDiscardAll = useCallback(() => {
 		if (!onDiscard) return;
@@ -124,8 +140,9 @@ function FolderGroupItem({
 			folderPath={group.folderPath}
 			worktreePath={worktreePath}
 			projectId={projectId}
-			onStageAll={onStage ? handleStageAll : undefined}
-			onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+			defaultApp={defaultApp}
+			onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
+			onUnstageAll={onUnstage || onUnstageFiles ? handleUnstageAll : undefined}
 			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
 			isActioning={isActioning}
 		>
@@ -141,6 +158,7 @@ function FolderGroupItem({
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					projectId={projectId}
+					defaultApp={defaultApp}
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 					category={category}
 					commitHash={commitHash}
@@ -158,6 +176,8 @@ export function FileListGrouped({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -165,8 +185,9 @@ export function FileListGrouped({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: FileListGroupedProps) {
-	const groups = groupFilesByFolder(files);
+	const groups = useMemo(() => groupFilesByFolder(files), [files]);
 
 	return (
 		<div className="flex flex-col overflow-hidden">
@@ -179,6 +200,8 @@ export function FileListGrouped({
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
+					onStageFiles={onStageFiles}
+					onUnstageFiles={onUnstageFiles}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}
@@ -186,6 +209,7 @@ export function FileListGrouped({
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}
 					projectId={projectId}
+					defaultApp={defaultApp}
 				/>
 			))}
 		</div>

@@ -422,7 +422,7 @@ step_write_env() {
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
     #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
-    #          +12 desktop automation (CDP)
+    #          +12 desktop automation (CDP), +13 wrangler (electric-proxy worker)
     local BASE=$SUPERSET_PORT_BASE
 
     # App ports (fixed offsets from base)
@@ -439,6 +439,7 @@ step_write_env() {
     local CADDY_ELECTRIC_PORT=$((BASE + 10))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
+    local WRANGLER_PORT=$((BASE + 13))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -456,6 +457,7 @@ step_write_env() {
     write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
+    write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -478,6 +480,7 @@ step_write_env() {
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
     echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
     write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
   } >> .env
 
   success "Workspace .env written"
@@ -510,11 +513,20 @@ step_write_env() {
     { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
     { "port": $ELECTRIC_PORT, "label": "Electric" },
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
-    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }
+    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" },
+    { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" }
   ]
 }
 PORTSJSON
   success "Port name mapping written to .superset/ports.json"
+
+  cat > apps/electric-proxy/.dev.vars <<DEVVARS
+AUTH_URL=http://localhost:$API_PORT
+ELECTRIC_CLOUD_URL=${ELECTRIC_CLOUD_URL:-https://api.electric-sql.cloud}
+ELECTRIC_SOURCE_ID=${ELECTRIC_SOURCE_ID:-}
+ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}
+DEVVARS
+  success "Electric proxy .dev.vars written"
 
   return 0
 }

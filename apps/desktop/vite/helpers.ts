@@ -78,7 +78,14 @@ export function htmlEnvTransformPlugin(): Plugin {
 					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
 					new URL(
 						process.env.NEXT_PUBLIC_ELECTRIC_URL ||
-							"https://api.superset.sh/api/electric",
+							"https://electric-proxy.avi-6ac.workers.dev",
+					).origin,
+				)
+				.replace(
+					/%NEXT_PUBLIC_ELECTRIC_PROXY_URL%/g,
+					new URL(
+						process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL ||
+							"https://api.superset.sh",
 					).origin,
 				)
 				.replace(

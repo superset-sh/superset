@@ -1,1 +1,1 @@
-export { ChatService, type ChatServiceHostConfig } from "./chat-service";
+export { ChatService } from "./chat-service";

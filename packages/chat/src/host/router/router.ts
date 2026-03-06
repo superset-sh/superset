@@ -29,17 +29,20 @@ export const resolveSlashCommandInput = z.object({
 });
 export const previewSlashCommandInput = resolveSlashCommandInput;
 
-export const sessionIdInput = z.object({
-	sessionId: z.string().uuid(),
-});
-
-export const ensureRuntimeInput = z.object({
-	sessionId: z.string().uuid(),
-	cwd: z.string().optional(),
-});
-
 export const anthropicOAuthCodeInput = z.object({
 	code: z.string().min(1),
+});
+
+export const openAIOAuthCodeInput = z.object({
+	code: z.string().optional(),
+});
+
+export const anthropicApiKeyInput = z.object({
+	apiKey: z.string().min(1),
+});
+
+export const anthropicEnvConfigInput = z.object({
+	envText: z.string(),
 });
 
 export const openAIApiKeyInput = z.object({
@@ -52,18 +55,6 @@ function resolveWorkspaceSlashCommand(input: { cwd: string; text: string }) {
 
 export function createChatServiceRouter(service: ChatService) {
 	return t.router({
-		start: t.procedure
-			.input(z.object({ organizationId: z.string() }))
-			.mutation(async ({ input }) => {
-				await service.start(input);
-				return { success: true };
-			}),
-
-		stop: t.procedure.mutation(() => {
-			service.stop();
-			return { success: true };
-		}),
-
 		workspace: t.router({
 			searchFiles: t.procedure
 				.input(searchFilesInput)
@@ -108,6 +99,17 @@ export function createChatServiceRouter(service: ChatService) {
 			getOpenAIStatus: t.procedure.query(() => {
 				return service.getOpenAIAuthStatus();
 			}),
+			startOpenAIOAuth: t.procedure.mutation(() => {
+				return service.startOpenAIOAuth();
+			}),
+			completeOpenAIOAuth: t.procedure
+				.input(openAIOAuthCodeInput)
+				.mutation(async ({ input }) => {
+					return service.completeOpenAIOAuth({ code: input.code });
+				}),
+			cancelOpenAIOAuth: t.procedure.mutation(() => {
+				return service.cancelOpenAIOAuth();
+			}),
 			startAnthropicOAuth: t.procedure.mutation(() => {
 				return service.startAnthropicOAuth();
 			}),
@@ -119,6 +121,27 @@ export function createChatServiceRouter(service: ChatService) {
 			cancelAnthropicOAuth: t.procedure.mutation(() => {
 				return service.cancelAnthropicOAuth();
 			}),
+			setAnthropicApiKey: t.procedure
+				.input(anthropicApiKeyInput)
+				.mutation(({ input }) => {
+					return service.setAnthropicApiKey({ apiKey: input.apiKey });
+				}),
+			getAnthropicEnvConfig: t.procedure.query(() => {
+				return service.getAnthropicEnvConfig();
+			}),
+			setAnthropicEnvConfig: t.procedure
+				.input(anthropicEnvConfigInput)
+				.mutation(({ input }) => {
+					return service.setAnthropicEnvConfig({
+						envText: input.envText,
+					});
+				}),
+			clearAnthropicEnvConfig: t.procedure.mutation(() => {
+				return service.clearAnthropicEnvConfig();
+			}),
+			clearAnthropicApiKey: t.procedure.mutation(() => {
+				return service.clearAnthropicApiKey();
+			}),
 			setOpenAIApiKey: t.procedure
 				.input(openAIApiKeyInput)
 				.mutation(({ input }) => {
@@ -127,36 +150,6 @@ export function createChatServiceRouter(service: ChatService) {
 			clearOpenAIApiKey: t.procedure.mutation(() => {
 				return service.clearOpenAIApiKey();
 			}),
-		}),
-
-		session: t.router({
-			isActive: t.procedure.input(sessionIdInput).query(({ input }) => {
-				return {
-					active: service.hasWatcher(input.sessionId),
-				};
-			}),
-
-			ensureRuntime: t.procedure
-				.input(ensureRuntimeInput)
-				.mutation(async ({ input }) => {
-					return service.ensureWatcher(input.sessionId, input.cwd);
-				}),
-
-			config: t.procedure
-				.input(
-					z.object({
-						sessionId: z.string().uuid(),
-						model: z.string().optional(),
-						cwd: z.string().optional(),
-						permissionMode: z.string().optional(),
-						thinkingEnabled: z.boolean().optional(),
-					}),
-				)
-				.mutation(() => {
-					// Config is applied directly on the service's watcher for this session
-					// For now this is a no-op placeholder — the stream watcher reads config from its SessionHost
-					return { success: true };
-				}),
 		}),
 	});
 }

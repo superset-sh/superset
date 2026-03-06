@@ -1,1 +1,4 @@
-export { ExistingWorktreesList } from "./ExistingWorktreesList";
+export {
+	ExistingWorktreesList,
+	type ImportSourceTab,
+} from "./ExistingWorktreesList";

@@ -12,10 +12,8 @@ interface CloneRepoTabProps {
 export function CloneRepoTab({ onError, parentDir }: CloneRepoTabProps) {
 	const [url, setUrl] = useState("");
 	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation();
-	const { handleResult, handleError, isCreatingWorkspace } =
-		useProjectCreationHandler(onError);
-
-	const isLoading = cloneRepo.isPending || isCreatingWorkspace;
+	const { handleResult, handleError } = useProjectCreationHandler(onError);
+	const isLoading = cloneRepo.isPending;
 
 	const handleClone = () => {
 		if (!url.trim()) {

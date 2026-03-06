@@ -1,25 +1,23 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Hono } from "hono";
-import {
-	type ChatMastraServiceRouter,
-	type CreateChatMastraServiceRouterOptions,
-	createChatMastraServiceRouter,
-} from "../trpc";
+import { ChatMastraService, type ChatMastraServiceRouter } from "../trpc";
 
 export interface CreateChatMastraHonoAppOptions {
-	routerOptions: CreateChatMastraServiceRouterOptions;
 	endpoint?: string;
 }
 
 export function createChatMastraHonoApp({
-	routerOptions,
 	endpoint = "/trpc/chat-mastra",
-}: CreateChatMastraHonoAppOptions): {
+}: CreateChatMastraHonoAppOptions = {}): {
 	app: Hono;
 	router: ChatMastraServiceRouter;
 } {
 	const app = new Hono();
-	const router = createChatMastraServiceRouter(routerOptions);
+	const service = new ChatMastraService({
+		headers: () => ({}),
+		apiUrl: "",
+	});
+	const router = service.createRouter();
 
 	app.all(`${endpoint}/*`, async (c) => {
 		return fetchRequestHandler({

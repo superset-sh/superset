@@ -33,12 +33,13 @@ export function LightDiffViewer({
 	hideUnchangedRegions,
 	filePath,
 }: LightDiffViewerProps) {
-	const themeId = useThemeStore((s) => s.activeTheme?.id ?? "dark");
+	const activeTheme = useThemeStore((s) => s.activeTheme);
+	const themeId = activeTheme?.id ?? "dark";
 	const themeType = useThemeStore((s) =>
 		s.activeTheme?.type === "light" ? ("light" as const) : ("dark" as const),
 	);
 
-	const theme = SHIKI_THEME_MAP[themeId] ?? DEFAULT_THEMES;
+	const shikiTheme = SHIKI_THEME_MAP[themeId] ?? DEFAULT_THEMES;
 
 	return (
 		<MultiFileDiff
@@ -47,7 +48,7 @@ export function LightDiffViewer({
 			options={{
 				diffStyle: viewMode === "side-by-side" ? "split" : "unified",
 				expandUnchanged: !hideUnchangedRegions,
-				theme,
+				theme: shikiTheme,
 				themeType,
 				overflow: "wrap",
 				disableFileHeader: true,

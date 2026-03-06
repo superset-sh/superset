@@ -23,7 +23,9 @@ interface PresetBarItemProps {
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
 	canOpen: boolean;
+	canOpenInCurrentTerminal: boolean;
 	onOpenDefault: (preset: TerminalPreset) => void;
+	onOpenInCurrentTerminal: (preset: TerminalPreset) => void;
 	onOpenInNewTab: (preset: TerminalPreset) => void;
 	onOpenInPane: (preset: TerminalPreset) => void;
 	onEdit: (preset: TerminalPreset) => void;
@@ -37,7 +39,9 @@ export function PresetBarItem({
 	hotkeyId,
 	isDark,
 	canOpen,
+	canOpenInCurrentTerminal,
 	onOpenDefault,
+	onOpenInCurrentTerminal,
 	onOpenInNewTab,
 	onOpenInPane,
 	onEdit,
@@ -116,16 +120,22 @@ export function PresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem
-					disabled={!canOpen}
-					onSelect={() => onOpenInNewTab(preset)}
+					disabled={!canOpenInCurrentTerminal}
+					onSelect={() => onOpenInCurrentTerminal(preset)}
 				>
-					Open in new tab
+					Open in current terminal
 				</ContextMenuItem>
 				<ContextMenuItem
 					disabled={!canOpen}
 					onSelect={() => onOpenInPane(preset)}
 				>
-					Open in pane
+					Open in current tab
+				</ContextMenuItem>
+				<ContextMenuItem
+					disabled={!canOpen}
+					onSelect={() => onOpenInNewTab(preset)}
+				>
+					Open in new tab
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>

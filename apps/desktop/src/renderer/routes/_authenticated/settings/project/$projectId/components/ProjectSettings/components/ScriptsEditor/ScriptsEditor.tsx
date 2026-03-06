@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HiArrowTopRightOnSquare, HiDocumentArrowUp } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { EXTERNAL_LINKS } from "shared/constants";
@@ -35,7 +35,6 @@ interface ScriptTextareaProps {
 	placeholder: string;
 	value: string;
 	onChange: (value: string) => void;
-	onImportFile: () => void;
 }
 
 function ScriptTextarea({
@@ -44,9 +43,28 @@ function ScriptTextarea({
 	placeholder,
 	value,
 	onChange,
-	onImportFile,
 }: ScriptTextareaProps) {
 	const [isDragOver, setIsDragOver] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const importFirstFile = useCallback(
+		async (files: File[]) => {
+			const scriptFile = files.find((file) =>
+				file.name.match(/\.(sh|bash|zsh|command)$/i),
+			);
+			if (!scriptFile) {
+				return;
+			}
+
+			try {
+				const content = await scriptFile.text();
+				onChange(content);
+			} catch (error) {
+				console.error("[scripts/import] Failed to read file:", error);
+			}
+		},
+		[onChange],
+	);
 
 	const handleDragOver = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
@@ -66,32 +84,19 @@ function ScriptTextarea({
 			e.stopPropagation();
 			setIsDragOver(false);
 
-			const files = Array.from(e.dataTransfer.files);
-			const scriptFile = files.find((f) =>
-				f.name.match(/\.(sh|bash|zsh|command)$/i),
-			);
-
-			if (scriptFile) {
-				const filePath = window.webUtils.getPathForFile(scriptFile);
-				if (filePath) {
-					try {
-						const response = await window.ipcRenderer.invoke(
-							"read-script-file",
-							filePath,
-						);
-						if (response && typeof response === "string") {
-							onChange(response);
-						}
-					} catch (error) {
-						console.error(
-							"[scripts/import] Failed to read dropped file:",
-							error,
-						);
-					}
-				}
-			}
+			await importFirstFile(Array.from(e.dataTransfer.files));
 		},
-		[onChange],
+		[importFirstFile],
+	);
+
+	const handleFileInputChange = useCallback(
+		async (event: React.ChangeEvent<HTMLInputElement>) => {
+			const files = event.target.files ? Array.from(event.target.files) : [];
+			await importFirstFile(files);
+			// Reset value so re-selecting the same file triggers onChange again.
+			event.target.value = "";
+		},
+		[importFirstFile],
 	);
 
 	return (
@@ -135,12 +140,19 @@ function ScriptTextarea({
 			<Button
 				variant="ghost"
 				size="sm"
-				onClick={onImportFile}
+				onClick={() => fileInputRef.current?.click()}
 				className="gap-1.5 text-muted-foreground"
 			>
 				<HiDocumentArrowUp className="h-3.5 w-3.5" />
 				Import file
 			</Button>
+			<input
+				ref={fileInputRef}
+				type="file"
+				accept=".sh,.bash,.zsh,.command"
+				onChange={handleFileInputChange}
+				className="hidden"
+			/>
 		</div>
 	);
 }
@@ -184,39 +196,6 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		setTeardownContent(value);
 		setHasChanges(true);
 	}, []);
-
-	const handleImportFile = useCallback(
-		async (setter: (value: string) => void) => {
-			try {
-				const result = await window.ipcRenderer.invoke("open-file-dialog", {
-					filters: [{ name: "Scripts", extensions: ["sh", "bash", "zsh"] }],
-				});
-				if (result && typeof result === "string") {
-					const content = await window.ipcRenderer.invoke(
-						"read-script-file",
-						result,
-					);
-					if (content && typeof content === "string") {
-						setter(content);
-						setHasChanges(true);
-					}
-				}
-			} catch (error) {
-				console.error("[scripts/import] Failed to import file:", error);
-			}
-		},
-		[],
-	);
-
-	const handleImportSetupFile = useCallback(
-		() => handleImportFile(setSetupContent),
-		[handleImportFile],
-	);
-
-	const handleImportTeardownFile = useCallback(
-		() => handleImportFile(setTeardownContent),
-		[handleImportFile],
-	);
 
 	const handleSave = useCallback(() => {
 		const setup = setupContent.trim() ? [setupContent.trim()] : [];
@@ -271,7 +250,6 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun install && bun run dev"
 				value={setupContent}
 				onChange={handleSetupChange}
-				onImportFile={handleImportSetupFile}
 			/>
 
 			<ScriptTextarea
@@ -280,7 +258,6 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. docker compose down"
 				value={teardownContent}
 				onChange={handleTeardownChange}
-				onImportFile={handleImportTeardownFile}
 			/>
 		</div>
 	);

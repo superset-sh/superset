@@ -394,7 +394,7 @@ export async function getBranchPrefix({
 		case "author": {
 			const authorName = await getGitAuthorName(repoPath);
 			if (authorName) {
-				return authorName.toLowerCase().replace(/\s+/g, "-");
+				return authorName.replace(/\s+/g, "-");
 			}
 			return null;
 		}
@@ -406,6 +406,7 @@ export async function getBranchPrefix({
 export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
 
 export function generateBranchName({
@@ -415,7 +416,8 @@ export function generateBranchName({
 	existingBranches?: string[];
 	authorPrefix?: string;
 } = {}): string {
-	const words = friendlyWords.objects as string[];
+	const predicates = friendlyWords.predicates as string[];
+	const objects = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
 	const prefixWouldCollide =
@@ -429,15 +431,20 @@ export function generateBranchName({
 		return name;
 	};
 
+	const randomTwoWord = () => {
+		const predicate = predicates[Math.floor(Math.random() * predicates.length)];
+		const object = objects[Math.floor(Math.random() * objects.length)];
+		return `${predicate}-${object}`;
+	};
+
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
-		const word = words[Math.floor(Math.random() * words.length)];
-		const candidate = addPrefix(word);
+		const candidate = addPrefix(randomTwoWord());
 		if (!existingSet.has(candidate.toLowerCase())) {
 			return candidate;
 		}
 	}
 
-	const baseWord = words[Math.floor(Math.random() * words.length)];
+	const baseWord = randomTwoWord();
 	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
 		const candidate = addPrefix(`${baseWord}-${n}`);
 		if (!existingSet.has(candidate.toLowerCase())) {

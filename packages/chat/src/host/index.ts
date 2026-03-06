@@ -1,9 +1,15 @@
 export {
+	getCredentialsFromAnySource,
+	getCredentialsFromAuthStorage,
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
+	getCredentialsFromRuntimeEnv,
 } from "./auth/anthropic";
-export type { ChatServiceHostConfig } from "./chat-service";
+export {
+	getOpenAICredentialsFromAnySource,
+	getOpenAICredentialsFromAuthStorage,
+	getOpenAICredentialsFromRuntimeEnv,
+} from "./auth/openai";
 export { ChatService } from "./chat-service";
-export type { GetHeaders } from "./lib/auth/auth";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";

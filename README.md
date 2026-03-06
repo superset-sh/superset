@@ -196,6 +196,10 @@ Scripts have access to environment variables:
 - `SUPERSET_WORKSPACE_NAME` — Name of the workspace
 - `SUPERSET_ROOT_PATH` — Path to the main repository
 
+## Internal Dependency Overrides
+
+For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/mastracode-fork-workflow.md](docs/mastracode-fork-workflow.md).
+
 ## Tech Stack
 
 <p>

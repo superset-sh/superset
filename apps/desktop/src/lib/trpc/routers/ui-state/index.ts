@@ -27,13 +27,29 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
+const chatMastraLaunchConfigSchema = z.object({
+	initialPrompt: z.string().optional(),
+	metadata: z
+		.object({
+			model: z.string().optional(),
+		})
+		.optional(),
+	retryCount: z.number().int().min(0).optional(),
+});
+
 /**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
+	type: z.enum([
+		"terminal",
+		"webview",
+		"file-viewer",
+		"chat-mastra",
+		"devtools",
+	]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -42,7 +58,12 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chat: z.object({ sessionId: z.string().nullable() }).optional(),
+	chatMastra: z
+		.object({
+			sessionId: z.string().nullable(),
+			launchConfig: chatMastraLaunchConfigSchema.nullable().optional(),
+		})
+		.optional(),
 	browser: z
 		.object({
 			currentUrl: z.string(),

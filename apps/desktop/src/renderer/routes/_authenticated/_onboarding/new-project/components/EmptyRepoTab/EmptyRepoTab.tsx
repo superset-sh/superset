@@ -12,10 +12,8 @@ interface EmptyRepoTabProps {
 export function EmptyRepoTab({ onError, parentDir }: EmptyRepoTabProps) {
 	const [name, setName] = useState("");
 	const createEmptyRepo = electronTrpc.projects.createEmptyRepo.useMutation();
-	const { handleResult, handleError, isCreatingWorkspace } =
-		useProjectCreationHandler(onError);
-
-	const isLoading = createEmptyRepo.isPending || isCreatingWorkspace;
+	const { handleResult, handleError } = useProjectCreationHandler(onError);
+	const isLoading = createEmptyRepo.isPending;
 
 	const handleCreate = () => {
 		const trimmed = name.trim();

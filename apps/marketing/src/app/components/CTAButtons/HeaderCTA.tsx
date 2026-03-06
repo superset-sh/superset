@@ -2,10 +2,10 @@
 
 import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Download } from "lucide-react";
-import posthog from "posthog-js";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiMiniClock } from "react-icons/hi2";
+import { track } from "@/lib/analytics";
 import { usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
@@ -65,7 +65,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 				<a
 					href={DOWNLOAD_URL_MAC_ARM64}
 					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
-					onClick={() => posthog.capture("download_clicked")}
+					onClick={() => track("download_clicked")}
 				>
 					Download for macOS
 					<Download className="size-4" aria-hidden="true" />
@@ -75,7 +75,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 					type="button"
 					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
 					onClick={() => {
-						posthog.capture("waitlist_clicked");
+						track("waitlist_clicked");
 						setIsWaitlistOpen(true);
 					}}
 				>

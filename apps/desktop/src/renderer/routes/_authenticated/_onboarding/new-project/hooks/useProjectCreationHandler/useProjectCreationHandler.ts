@@ -1,9 +1,9 @@
+import { useNavigate } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 export function useProjectCreationHandler(onError: (error: string) => void) {
 	const utils = electronTrpc.useUtils();
-	const createWorkspace = useCreateWorkspace();
+	const navigate = useNavigate();
 
 	const handleResult = (
 		result: {
@@ -17,13 +17,12 @@ export function useProjectCreationHandler(onError: (error: string) => void) {
 		if (result.canceled) return;
 		if (result.success && result.project) {
 			utils.projects.getRecents.invalidate();
-			createWorkspace.mutate(
-				{ projectId: result.project.id },
-				{
-					onSuccess: () => resetState?.(),
-					onError: (err) => onError(err.message || "Failed to open project"),
-				},
-			);
+			resetState?.();
+			navigate({
+				to: "/project/$projectId",
+				params: { projectId: result.project.id },
+				replace: true,
+			});
 		} else if (!result.success && result.error) {
 			onError(result.error);
 		}
@@ -36,6 +35,5 @@ export function useProjectCreationHandler(onError: (error: string) => void) {
 	return {
 		handleResult,
 		handleError,
-		isCreatingWorkspace: createWorkspace.isPending,
 	};
 }

@@ -87,6 +87,9 @@ export default defineConfig({
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
 			),
+			"process.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
+			),
 		},
 
 		build: {
@@ -109,6 +112,8 @@ export default defineConfig({
 					"pg-native",
 					"@ast-grep/napi",
 					"libsql",
+					"bufferutil",
+					"utf-8-validate",
 				],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
@@ -167,6 +172,10 @@ export default defineConfig({
 			),
 			"process.env.NEXT_PUBLIC_ELECTRIC_URL": defineEnv(
 				process.env.NEXT_PUBLIC_ELECTRIC_URL,
+				"https://electric-proxy.avi-6ac.workers.dev",
+			),
+			"process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL": defineEnv(
+				process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
 				"https://api.superset.sh/api/electric",
 			),
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
@@ -194,6 +203,9 @@ export default defineConfig({
 			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
+			),
+			"import.meta.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
 			),
 		},
 

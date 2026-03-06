@@ -5,6 +5,7 @@ import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { generateWorkspaceNameFromPrompt } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
@@ -32,7 +33,7 @@ import {
 	parsePrUrl,
 	safeCheckoutBranch,
 	sanitizeAuthorPrefix,
-	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
@@ -368,7 +369,9 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					branch = withPrefix(sanitizeBranchName(input.branchName));
+					branch = sanitizeBranchNameWithMaxLength(
+						withPrefix(input.branchName),
+					);
 				} else {
 					branch = generateBranchName({
 						existingBranches,
@@ -946,6 +949,13 @@ export const createCreateProcedures = () => {
 					localBranchName,
 					workspaceName,
 				});
+			}),
+
+		generateName: publicProcedure
+			.input(z.object({ prompt: z.string().min(1) }))
+			.mutation(async ({ input }) => {
+				const name = await generateWorkspaceNameFromPrompt(input.prompt);
+				return { name };
 			}),
 
 		importAllWorktrees: publicProcedure

@@ -11,7 +11,8 @@
 		},
 		"expo-mcp": {
 			"type": "remote",
-			"url": "https://mcp.expo.dev/mcp"
+			"url": "https://mcp.expo.dev/mcp",
+			"enabled": false
 		},
 		"maestro": {
 			"type": "local",

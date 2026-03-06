@@ -121,7 +121,9 @@ function NewProjectPage() {
 						{mode === "clone" && (
 							<CloneRepoTab onError={setError} parentDir={parentDir} />
 						)}
-						{mode === "template" && <TemplateTab />}
+						{mode === "template" && (
+							<TemplateTab onError={setError} parentDir={parentDir} />
+						)}
 
 						{error && (
 							<div className="w-full flex items-start gap-2 rounded-md px-4 py-3 bg-destructive/10 border border-destructive/20">

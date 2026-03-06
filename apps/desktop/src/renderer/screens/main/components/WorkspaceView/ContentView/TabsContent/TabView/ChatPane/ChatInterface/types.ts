@@ -16,6 +16,9 @@ export interface McpServerOverviewItem {
 	state: McpServerState;
 	transport: McpServerTransport;
 	target: string;
+	connected?: boolean;
+	toolCount?: number;
+	error?: string;
 }
 
 export interface McpOverviewPayload {
@@ -32,6 +35,12 @@ export type InterruptedMessage = {
 export type InterruptedMessagePreview = {
 	id: string;
 	parts: UIMessage["parts"];
+};
+
+export type StartFreshSessionResult = {
+	created: boolean;
+	sessionId?: string;
+	errorMessage?: string;
 };
 
 export interface ChatInterfaceProps {

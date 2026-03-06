@@ -257,6 +257,17 @@ describe("env", () => {
 				expect(result.RBENV_ROOT).toBe("/Users/test/.rbenv");
 			});
 
+			it("should include shell wrapper control vars", () => {
+				const env = {
+					ZDOTDIR: "/Users/test/.superset-dev/zsh",
+					BASH_ENV: "/Users/test/.superset-dev/bash/rcfile",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.ZDOTDIR).toBe("/Users/test/.superset-dev/zsh");
+				expect(result.BASH_ENV).toBe("/Users/test/.superset-dev/bash/rcfile");
+			});
+
 			it("should include proxy vars (both cases)", () => {
 				const env = {
 					HTTP_PROXY: "http://proxy:8080",

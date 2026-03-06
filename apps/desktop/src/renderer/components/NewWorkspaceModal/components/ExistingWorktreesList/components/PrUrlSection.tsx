@@ -25,14 +25,11 @@ export function PrUrlSection({
 
 	return (
 		<div className="space-y-1.5">
-			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-				Pull Request
-			</div>
-			<div className="flex gap-2">
-				<div className="relative flex-1">
+			<div className="flex min-w-0 gap-2">
+				<div className="relative min-w-0 flex-1">
 					<GoGitPullRequest className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
 					<Input
-						className="h-8 text-sm pl-8 pr-3"
+						className="h-8 w-full min-w-0 max-w-full text-sm pl-8 pr-3"
 						placeholder="Paste PR URL..."
 						value={prUrl}
 						onChange={(e) => onPrUrlChange(e.target.value)}
