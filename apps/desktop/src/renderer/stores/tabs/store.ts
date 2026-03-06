@@ -349,8 +349,13 @@ export const useTabsStore = create<TabsStore>()(
 								set({ pendingCloseTabId: tabId });
 								return;
 							}
-						} catch {
-							// fall through to close
+						} catch (error) {
+							console.warn(
+								"[requestRemoveTab] Failed to check active processes, showing warning",
+								error,
+							);
+							set({ pendingCloseTabId: tabId });
+							return;
 						}
 					}
 
@@ -384,8 +389,13 @@ export const useTabsStore = create<TabsStore>()(
 								set({ pendingClosePaneId: paneId });
 								return;
 							}
-						} catch {
-							// fall through to close
+						} catch (error) {
+							console.warn(
+								"[requestRemovePane] Failed to check active processes, showing warning",
+								error,
+							);
+							set({ pendingClosePaneId: paneId });
+							return;
 						}
 					}
 
@@ -2003,6 +2013,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Clear stale transient statuses on startup:
 					// - "working": Agent can't be working if app just restarted
 					// - "permission": Permission dialog is gone after restart
+					// - pendingClose*: Dialog is gone after restart
 					// Note: "review" is intentionally preserved so users see missed completions
 					if (persisted.panes) {
 						for (const pane of Object.values(persisted.panes)) {
@@ -2011,6 +2022,8 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
+					persisted.pendingCloseTabId = null;
+					persisted.pendingClosePaneId = null;
 
 					const mergedState = { ...currentState, ...persisted };
 
