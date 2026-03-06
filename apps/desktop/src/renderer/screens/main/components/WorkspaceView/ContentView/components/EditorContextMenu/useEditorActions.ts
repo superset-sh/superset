@@ -1,10 +1,10 @@
 import { toast } from "@superset/ui/sonner";
-import type * as Monaco from "monaco-editor";
 import { useCallback } from "react";
+import type { CodeEditorAdapter } from "../CodeEditorAdapter";
 import type { EditorActions } from "./EditorContextMenu";
 
 interface UseEditorActionsProps {
-	getEditor: () => Monaco.editor.IStandaloneCodeEditor | null | undefined;
+	getEditor: () => CodeEditorAdapter | null | undefined;
 	filePath: string;
 	/** If true, includes cut/paste actions (for editable editors) */
 	editable?: boolean;
@@ -26,33 +26,25 @@ export function useEditorActions({
 	const handleCut = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardCutAction", null);
+		editor.cut();
 	}, [getEditor]);
 
 	const handleCopy = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardCopyAction", null);
+		editor.copy();
 	}, [getEditor]);
 
 	const handlePaste = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardPasteAction", null);
+		editor.paste();
 	}, [getEditor]);
 
 	const handleSelectAll = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		const model = editor.getModel();
-		if (model) {
-			const fullRange = model.getFullModelRange();
-			editor.setSelection(fullRange);
-		}
+		editor.selectAll();
 	}, [getEditor]);
 
 	const handleCopyPath = useCallback(async () => {
@@ -89,7 +81,7 @@ export function useEditorActions({
 			return;
 		}
 
-		const selection = editor.getSelection();
+		const selection = editor.getSelectionLines();
 		if (!selection) {
 			console.error(
 				"[handleCopyPathWithLine] Selection is missing, falling back to filePath only",
@@ -108,11 +100,11 @@ export function useEditorActions({
 			return;
 		}
 
-		const { startLineNumber, endLineNumber } = selection;
+		const { startLine, endLine } = selection;
 		const pathWithLine =
-			startLineNumber === endLineNumber
-				? `${filePath}:${startLineNumber}`
-				: `${filePath}:${startLineNumber}-${endLineNumber}`;
+			startLine === endLine
+				? `${filePath}:${startLine}`
+				: `${filePath}:${startLine}-${endLine}`;
 
 		try {
 			await navigator.clipboard.writeText(pathWithLine);
@@ -130,16 +122,13 @@ export function useEditorActions({
 	const handleFind = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "actions.find", null);
+		editor.openFind();
 	}, [getEditor]);
 
 	const handleChangeAllOccurrences = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		// Use selectHighlights which is available in standalone Monaco
-		editor.trigger("contextMenu", "editor.action.selectHighlights", null);
+		editor.selectHighlights();
 	}, [getEditor]);
 
 	return {

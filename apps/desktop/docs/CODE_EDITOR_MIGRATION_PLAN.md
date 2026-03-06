@@ -8,7 +8,7 @@ The target architecture is:
 
 - **Raw file editing:** CodeMirror 6
 - **Diff experience:** `diffs.com`
-- **Rollout strategy:** feature-flagged, incremental, measurable
+- **Rollout strategy:** direct migration, incremental, measurable
 
 This is intentionally not a big-bang rewrite. The main risk is not rendering text; it is preserving current editor behavior while reducing startup cost, memory usage, and typing latency.
 
@@ -40,7 +40,7 @@ The main replacement scope is concentrated in these files:
 2. Replace the raw editor with a lighter, more modular editor.
 3. Decouple editor-dependent behaviors from Monaco-specific APIs.
 4. Move diff rendering to `diffs.com` instead of rebuilding Monaco diff behavior locally.
-5. Ship the migration behind a feature flag and compare performance before removing Monaco.
+5. Compare performance as the migration lands and remove Monaco once parity is confirmed.
 
 ## Non-Goals
 
@@ -132,18 +132,7 @@ Exit criteria:
 - context menu is editor-agnostic
 - file pane state no longer imports Monaco types directly outside the Monaco wrapper
 
-### Phase 2: Introduce a Feature Flag
-
-Add a feature flag such as `desktop.codemirrorEditor`.
-
-Behavior:
-
-- `false`: existing Monaco path
-- `true`: CodeMirror raw editor path + `diffs.com` diff path
-
-This allows side-by-side QA and rollback without blocking release.
-
-### Phase 3: Migrate Raw File Editing to CodeMirror 6
+### Phase 2: Migrate Raw File Editing to CodeMirror 6
 
 Build a `CodeEditor` wrapper component backed by CodeMirror 6 and use it in the raw editor path.
 
@@ -169,10 +158,9 @@ Suggested implementation shape:
 Exit criteria:
 
 - raw file editing no longer depends on `@monaco-editor/react`
-- raw file editing works with the feature flag enabled
 - save and unsaved-change behavior matches current behavior
 
-### Phase 4: Replace Diff Viewer with `diffs.com`
+### Phase 3: Replace Diff Viewer with `diffs.com`
 
 Do not port the current Monaco diff viewer one-to-one unless needed. Treat diff as a separate product surface.
 
@@ -202,17 +190,15 @@ Exit criteria:
 - editable diff save flow still works, or the product intentionally scopes editable diff differently
 - users can review file changes without loading Monaco
 
-### Phase 5: Remove Monaco from the Root Layout
+### Phase 4: Remove Monaco from the Root Layout
 
-Once both the raw editor and diff no longer depend on Monaco for the flagged path:
+Once both the raw editor and diff no longer depend on Monaco:
 
 - stop mounting `MonacoProvider` at the app root
 - remove global worker setup from normal startup
-- isolate any remaining Monaco fallback code behind the feature flag
-
 This is where the startup win should become most visible.
 
-### Phase 6: Rollout, Compare, and Delete
+### Phase 5: Rollout, Compare, and Delete
 
 Roll out to internal users first.
 
@@ -275,12 +261,12 @@ Mitigation:
 
 ### Rollout Complexity
 
-Maintaining both Monaco and CodeMirror paths temporarily adds complexity.
+Landing the migration directly raises the risk of broad regressions if too many behaviors move at once.
 
 Mitigation:
 
 - keep the adapter small
-- keep the feature flag local to the file viewer and diff viewer
+- migrate raw editing and diff rendering in clearly separated commits
 - delete Monaco quickly after validation
 
 ## Recommended Sequence
@@ -295,7 +281,6 @@ Mitigation:
 ### Week 2
 
 - implement CodeMirror 6 raw editor
-- wire feature flag
 - internal QA on raw editing flows
 
 ### Week 3
@@ -318,7 +303,6 @@ Mitigation:
 - [ ] Refactor `useFileSave.ts` to consume adapter methods
 - [ ] Refactor `useEditorActions.ts` to consume adapter methods
 - [ ] Replace Monaco copy-path action registration
-- [ ] Add `desktop.codemirrorEditor` feature flag
 - [ ] Implement CodeMirror 6 raw editor wrapper
 - [ ] Migrate raw editor path in `FileViewerContent.tsx`
 - [ ] Integrate `diffs.com` for diff rendering

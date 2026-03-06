@@ -1,27 +1,19 @@
-import Editor, { type OnMount } from "@monaco-editor/react";
-import type * as Monaco from "monaco-editor";
 import {
 	type MutableRefObject,
 	type RefObject,
-	useCallback,
 	useEffect,
 	useRef,
 } from "react";
 import { LuLoader } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
-import {
-	registerSaveAction,
-	SUPERSET_THEME,
-	useMonacoEditorOptions,
-	useMonacoReady,
-} from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
-import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
-import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
+import { LightDiffViewer } from "../../../../../../ChangesContent/components/LightDiffViewer";
+import { CodeEditor } from "../../../../../../components/CodeEditor";
+import type { CodeEditorAdapter } from "../../../../../components";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
 
@@ -75,8 +67,7 @@ interface FileViewerContentProps {
 	rawFileData: RawFileResult;
 	imageData?: ImageResult;
 	diffData: DiffData | undefined;
-	isDiffEditable: boolean;
-	editorRef: MutableRefObject<Monaco.editor.IStandaloneCodeEditor | null>;
+	editorRef: MutableRefObject<CodeEditorAdapter | null>;
 	originalContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
 	initialLine?: number;
@@ -84,11 +75,8 @@ interface FileViewerContentProps {
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
-	onSaveDiff?: (content: string) => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
-	onDiffChange?: (content: string) => void;
 	setIsDirty: (dirty: boolean) => void;
-	// Context menu props
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
@@ -98,7 +86,6 @@ interface FileViewerContentProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
-	// Markdown search props
 	markdownContainerRef: RefObject<HTMLDivElement | null>;
 	markdownSearch: {
 		isSearchOpen: boolean;
@@ -123,7 +110,6 @@ export function FileViewerContent({
 	rawFileData,
 	imageData,
 	diffData,
-	isDiffEditable,
 	editorRef,
 	originalContentRef,
 	draftContentRef,
@@ -132,11 +118,8 @@ export function FileViewerContent({
 	diffViewMode,
 	hideUnchangedRegions,
 	onSaveRaw,
-	onSaveDiff,
 	onEditorChange,
-	onDiffChange,
 	setIsDirty,
-	// Context menu props
 	onSplitHorizontal,
 	onSplitVertical,
 	onSplitWithNewChat,
@@ -146,13 +129,10 @@ export function FileViewerContent({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
-	// Markdown search props
 	markdownContainerRef,
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
-	const isMonacoReady = useMonacoReady();
-	const monacoEditorOptions = useMonacoEditorOptions();
 	const hasAppliedInitialLocationRef = useRef(false);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
@@ -160,30 +140,27 @@ export function FileViewerContent({
 		hasAppliedInitialLocationRef.current = false;
 	}, [filePath]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only reset when coordinates change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset when requested cursor target changes
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
 	}, [initialLine, initialColumn]);
 
-	const handleEditorMount: OnMount = useCallback(
-		(editor) => {
-			editorRef.current = editor;
-			if (!draftContentRef.current) {
-				originalContentRef.current = editor.getValue();
-			}
-			setIsDirty(editor.getValue() !== originalContentRef.current);
-			registerSaveAction(editor, onSaveRaw);
-			registerCopyPathLineAction(editor, filePath);
-		},
-		[
-			onSaveRaw,
-			editorRef,
-			originalContentRef,
-			draftContentRef,
-			setIsDirty,
-			filePath,
-		],
-	);
+	useEffect(() => {
+		if (viewMode !== "raw") return;
+		if (isLoadingRaw) return;
+		if (!rawFileData?.ok) return;
+		if (draftContentRef.current) return;
+
+		originalContentRef.current = rawFileData.content;
+		setIsDirty(false);
+	}, [
+		viewMode,
+		isLoadingRaw,
+		rawFileData,
+		draftContentRef,
+		originalContentRef,
+		setIsDirty,
+	]);
 
 	useEffect(() => {
 		if (
@@ -197,80 +174,50 @@ export function FileViewerContent({
 			return;
 		}
 
-		const editor = editorRef.current;
-		const model = editor.getModel();
-		if (!model) return;
-
-		const lineCount = model.getLineCount();
-		const safeLine = Math.max(1, Math.min(initialLine, lineCount));
-		const maxColumn = model.getLineMaxColumn(safeLine);
-		const safeColumn = Math.max(1, Math.min(initialColumn ?? 1, maxColumn));
-
-		const position = { lineNumber: safeLine, column: safeColumn };
-		editor.setPosition(position);
-		editor.revealPositionInCenter(position);
-		editor.focus();
-
+		editorRef.current.revealPosition(initialLine, initialColumn ?? 1);
 		hasAppliedInitialLocationRef.current = true;
 	}, [
 		viewMode,
+		editorRef,
 		initialLine,
 		initialColumn,
 		isLoadingRaw,
 		rawFileData,
-		editorRef,
 	]);
 
 	if (viewMode === "diff") {
 		if (isLoadingDiff) {
 			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
+				<div className="flex h-full items-center justify-center text-muted-foreground">
 					Loading diff...
 				</div>
 			);
 		}
+
 		if (!diffData) {
 			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
+				<div className="flex h-full items-center justify-center text-muted-foreground">
 					No diff available
 				</div>
 			);
 		}
+
 		return (
-			<DiffViewer
+			<LightDiffViewer
 				key={filePath}
-				contents={{
-					original: diffData.original,
-					modified: diffData.modified,
-					language: diffData.language,
-				}}
+				contents={diffData}
 				viewMode={diffViewMode}
 				hideUnchangedRegions={hideUnchangedRegions}
 				filePath={filePath}
-				editable={isDiffEditable}
-				onSave={isDiffEditable ? onSaveDiff : undefined}
-				onChange={isDiffEditable ? onDiffChange : undefined}
-				contextMenuProps={{
-					onSplitHorizontal,
-					onSplitVertical,
-					onSplitWithNewChat,
-					onSplitWithNewBrowser,
-					onClosePane,
-					currentTabId,
-					availableTabs,
-					onMoveToTab,
-					onMoveToNewTab,
-				}}
 			/>
 		);
 	}
 
-	// Handle image files in rendered mode
 	if (viewMode === "rendered" && isImage) {
 		if (isLoadingImage) {
 			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
-					<LuLoader className="w-4 h-4 animate-spin mr-2" />
+				<div className="flex h-full items-center justify-center text-muted-foreground">
+					<LuLoader className="mr-2 h-4 w-4 animate-spin" />
 					<span>Loading image...</span>
 				</div>
 			);
@@ -287,19 +234,20 @@ export function FileViewerContent({
 							: imageData?.reason === "not-image"
 								? "Not a supported image format"
 								: "Image not found";
+
 			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
+				<div className="flex h-full items-center justify-center text-muted-foreground">
 					{errorMessage}
 				</div>
 			);
 		}
 
 		return (
-			<div className="flex items-center justify-center h-full overflow-auto p-4 bg-[#0d0d0d]">
+			<div className="flex h-full items-center justify-center overflow-auto bg-[#0d0d0d] p-4">
 				<img
 					src={imageData.dataUrl}
 					alt={filePath.split("/").pop() || "Image"}
-					className="max-w-full max-h-full object-contain"
+					className="max-h-full max-w-full object-contain"
 					style={{ imageRendering: "auto" }}
 				/>
 			</div>
@@ -308,7 +256,7 @@ export function FileViewerContent({
 
 	if (isLoadingRaw) {
 		return (
-			<div className="flex items-center justify-center h-full text-muted-foreground">
+			<div className="flex h-full items-center justify-center text-muted-foreground">
 				Loading...
 			</div>
 		);
@@ -325,8 +273,9 @@ export function FileViewerContent({
 						: rawFileData?.reason === "symlink-escape"
 							? "File is a symlink pointing outside worktree"
 							: "File not found";
+
 		return (
-			<div className="flex items-center justify-center h-full text-muted-foreground">
+			<div className="flex h-full items-center justify-center text-muted-foreground">
 				{errorMessage}
 			</div>
 		);
@@ -347,18 +296,9 @@ export function FileViewerContent({
 					onFindPrevious={markdownSearch.findPrevious}
 					onClose={markdownSearch.closeSearch}
 				/>
-				<div ref={markdownContainerRef} className="p-4 overflow-auto h-full">
+				<div ref={markdownContainerRef} className="h-full overflow-auto p-4">
 					<MarkdownRenderer content={rawFileData.content} />
 				</div>
-			</div>
-		);
-	}
-
-	if (!isMonacoReady) {
-		return (
-			<div className="flex items-center justify-center h-full text-muted-foreground">
-				<LuLoader className="w-4 h-4 animate-spin mr-2" />
-				<span>Loading editor...</span>
 			</div>
 		);
 	}
@@ -377,25 +317,17 @@ export function FileViewerContent({
 			onMoveToTab={onMoveToTab}
 			onMoveToNewTab={onMoveToNewTab}
 		>
-			<div className="w-full h-full">
-				<Editor
+			<div className="h-full w-full">
+				<CodeEditor
 					key={filePath}
-					height="100%"
 					language={detectLanguage(filePath)}
 					value={draftContentRef.current ?? rawFileData.content}
-					theme={SUPERSET_THEME}
-					onMount={handleEditorMount}
 					onChange={onEditorChange}
-					loading={
-						<div className="flex items-center justify-center h-full text-muted-foreground">
-							<LuLoader className="w-4 h-4 animate-spin mr-2" />
-							<span>Loading editor...</span>
-						</div>
-					}
-					options={{
-						...monacoEditorOptions,
-						contextmenu: false, // Disable Monaco's native context menu to use our custom one
+					onSave={() => {
+						void onSaveRaw();
 					}}
+					editorRef={editorRef}
+					fillHeight
 				/>
 			</div>
 		</FileEditorContextMenu>
