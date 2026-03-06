@@ -1,7 +1,5 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -20,10 +18,7 @@ export function useCommandWatcher() {
 	const collections = useCollections();
 
 	const organizationId = session?.session?.activeOrganizationId;
-	const remoteAgentDisabled = useFeatureFlagEnabled(
-		FEATURE_FLAGS.DISABLE_REMOTE_AGENT,
-	);
-	const shouldWatch = !!deviceInfo && !!organizationId && !remoteAgentDisabled;
+	const shouldWatch = !!deviceInfo && !!organizationId;
 
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();

@@ -83,6 +83,21 @@ export function withoutActiveTurnAssistantHistory({
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
+function hasFileOrImagePart(message: HistoryMessage): boolean {
+	return message.content.some(
+		(part: HistoryMessagePart) =>
+			(part as Record<string, unknown>).type === "file" ||
+			part.type === "image",
+	);
+}
+
+function countFileMessages(messages: ListMessagesOutput): number {
+	return messages.filter(
+		(message: HistoryMessage) =>
+			message.role === "user" && hasFileOrImagePart(message),
+	).length;
+}
+
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
@@ -131,25 +146,38 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		ListMessagesOutput[number] | null
 	>(null);
 	const optimisticTextRef = useRef<string | null>(null);
+	const optimisticIdRef = useRef<string | null>(null);
+	const fileMessageCountAtSendRef = useRef<number | null>(null);
 
 	useEffect(() => {
-		const optimisticText = optimisticTextRef.current;
-		if (!optimisticText) return;
+		if (!optimisticIdRef.current) return;
 
-		const found = historicalMessages.some(
-			(message: HistoryMessage) =>
-				message.role === "user" &&
-				message.content.some(
-					(part: HistoryMessagePart) =>
-						part.type === "text" &&
-						"text" in part &&
-						part.text === optimisticText,
-				),
-		);
+		const optimisticText = optimisticTextRef.current;
+
+		const found = optimisticText
+			? historicalMessages.some(
+					(message: HistoryMessage) =>
+						message.role === "user" &&
+						message.content.some(
+							(part: HistoryMessagePart) =>
+								part.type === "text" &&
+								"text" in part &&
+								part.text === optimisticText,
+						),
+				)
+			: (() => {
+					const currentFileMessageCount = countFileMessages(historicalMessages);
+					return (
+						fileMessageCountAtSendRef.current !== null &&
+						currentFileMessageCount > fileMessageCountAtSendRef.current
+					);
+				})();
 		if (!found) return;
 
 		setOptimisticUserMessage(null);
 		optimisticTextRef.current = null;
+		optimisticIdRef.current = null;
+		fileMessageCountAtSendRef.current = null;
 	}, [historicalMessages]);
 
 	const messages = useMemo(() => {
@@ -181,12 +209,36 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					typeof input.payload?.content === "string"
 						? input.payload.content
 						: "";
-				if (text) {
-					optimisticTextRef.current = text;
+				const files = input.payload?.files;
+				if (text || (files && files.length > 0)) {
+					const optimisticId = `optimistic-${Date.now()}`;
+					optimisticTextRef.current = text || null;
+					optimisticIdRef.current = optimisticId;
+					if (!text) {
+						fileMessageCountAtSendRef.current =
+							countFileMessages(historicalMessages);
+					}
+					const content: ListMessagesOutput[number]["content"] = [];
+					if (files) {
+						for (const f of files) {
+							content.push({
+								type: "file",
+								data: f.data,
+								mediaType: f.mediaType,
+								filename: f.filename,
+							} as unknown as ListMessagesOutput[number]["content"][number]);
+						}
+					}
+					if (text) {
+						content.push({
+							type: "text",
+							text,
+						} as ListMessagesOutput[number]["content"][number]);
+					}
 					setOptimisticUserMessage({
-						id: `optimistic-${Date.now()}`,
+						id: optimisticId,
 						role: "user",
-						content: [{ type: "text", text }],
+						content,
 						createdAt: new Date(),
 					} as ListMessagesOutput[number]);
 				}
@@ -201,6 +253,8 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					setCommandError(error);
 					setOptimisticUserMessage(null);
 					optimisticTextRef.current = null;
+					optimisticIdRef.current = null;
+					fileMessageCountAtSendRef.current = null;
 					throw error;
 				}
 			},
@@ -270,7 +324,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, sessionId, utils],
+		[cwd, sessionId, utils, historicalMessages],
 	);
 
 	return {

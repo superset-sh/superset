@@ -11,28 +11,27 @@ import { useEffect, useId, useRef, useState } from "react";
 
 type PendingPlanApproval = UseMastraChatDisplayReturn["pendingPlanApproval"];
 
-interface PendingPlanApprovalMessageProps {
+export interface PendingPlanApprovalMessageProps {
 	planApproval: PendingPlanApproval;
 	isSubmitting: boolean;
-	inline?: boolean;
 	onRespond: (response: {
 		action: "approved" | "rejected";
 		feedback?: string;
 	}) => Promise<void>;
+	inline?: boolean;
 }
 
 export function PendingPlanApprovalMessage({
 	planApproval,
 	isSubmitting,
-	inline = false,
 	onRespond,
+	inline,
 }: PendingPlanApprovalMessageProps) {
 	const [feedback, setFeedback] = useState("");
 	const [selectedAction, setSelectedAction] = useState<
 		"approved" | "rejected" | null
 	>(null);
-	const [renderMarkdown, setRenderMarkdown] = useState(true);
-	const [resolvedPlanId, setResolvedPlanId] = useState<string | null>(null);
+	const [renderMarkdown, setRenderMarkdown] = useState(false);
 	const inFlightResponseRef = useRef(false);
 	const previousPlanIdRef = useRef<string | null>(null);
 	const feedbackTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -44,14 +43,12 @@ export function PendingPlanApprovalMessage({
 		previousPlanIdRef.current = currentPlanId;
 		setFeedback("");
 		setSelectedAction(null);
-		setRenderMarkdown(true);
-		setResolvedPlanId(null);
+		setRenderMarkdown(false);
 	}, [planApproval]);
 
 	if (!planApproval) return null;
 
 	const planId = planApproval.planId?.trim() ?? "";
-	if (resolvedPlanId && resolvedPlanId === planId) return null;
 	const title = planApproval.title?.trim() || "Implementation plan";
 	const planBody =
 		planApproval.plan?.trim() || "No plan details were provided.";
@@ -72,7 +69,6 @@ export function PendingPlanApprovalMessage({
 				action,
 				...(latestFeedback ? { feedback: latestFeedback } : {}),
 			});
-			setResolvedPlanId(planId);
 		} catch (error) {
 			console.error("Failed to submit plan approval response", error);
 			setSelectedAction(null);

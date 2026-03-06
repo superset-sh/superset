@@ -1,7 +1,9 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type RefObject, useRef } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { createFileKey } from "../../context";
 import { FileDiffSection } from "../FileDiffSection";
+import { getEstimatedFileDiffSectionHeight } from "./utils/getEstimatedFileDiffSectionHeight";
 
 interface VirtualizedFileListProps {
 	files: ChangedFile[];
@@ -18,8 +20,7 @@ interface VirtualizedFileListProps {
 	isActioning?: boolean;
 }
 
-const ESTIMATED_COLLAPSED_HEIGHT = 60;
-const OVERSCAN = 5;
+const OVERSCAN = 1;
 
 export function VirtualizedFileList({
 	files,
@@ -40,7 +41,14 @@ export function VirtualizedFileList({
 	const virtualizer = useVirtualizer({
 		count: files.length,
 		getScrollElement: () => scrollElementRef.current,
-		estimateSize: () => ESTIMATED_COLLAPSED_HEIGHT,
+		estimateSize: (index) => {
+			const file = files[index];
+			const fileKey = createFileKey(file, category, commitHash);
+			return getEstimatedFileDiffSectionHeight({
+				file,
+				isCollapsed: collapsedFiles.has(fileKey),
+			});
+		},
 		rangeExtractor: defaultRangeExtractor,
 		overscan: OVERSCAN,
 		scrollMargin: listRef.current?.offsetTop ?? 0,
@@ -56,9 +64,7 @@ export function VirtualizedFileList({
 			>
 				{items.map((virtualRow) => {
 					const file = files[virtualRow.index];
-					const fileKey = commitHash
-						? `${category}:${commitHash}:${file.path}`
-						: `${category}::${file.path}`;
+					const fileKey = createFileKey(file, category, commitHash);
 
 					return (
 						<div

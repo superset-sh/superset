@@ -1,5 +1,9 @@
 import { createAuthStorage } from "mastracode";
 import {
+	ANTHROPIC_AUTH_PROVIDER_ID,
+	OPENAI_AUTH_PROVIDER_ID,
+} from "../auth/provider-ids";
+import {
 	type AnthropicEnvVariables,
 	type AnthropicRuntimeEnv,
 	applyAnthropicRuntimeEnv as applyAnthropicRuntimeEnvToProcess,
@@ -28,9 +32,6 @@ type OpenAIAuthMethod = AuthMethod;
 type AnthropicAuthMethod = AuthMethod;
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
-
-const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
-const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
 
 interface ChatServiceOptions {
 	anthropicEnvConfigPath?: string;

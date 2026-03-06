@@ -1,0 +1,2 @@
+ALTER TABLE "auth"."organizations" ADD COLUMN "allowed_domains" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+CREATE INDEX "organizations_allowed_domains_idx" ON "auth"."organizations" USING gin ("allowed_domains");

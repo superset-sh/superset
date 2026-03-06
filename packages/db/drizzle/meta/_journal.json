@@ -169,6 +169,13 @@
       "when": 1771866677057,
       "tag": "0023_agent_commands_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772675221034,
+      "tag": "0024_add_allowed_domains_to_organizations",
+      "breakpoints": true
     }
   ]
 }

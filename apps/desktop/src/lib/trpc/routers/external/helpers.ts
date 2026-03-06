@@ -91,9 +91,8 @@ const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
-	platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] }[] | null {
-	if (platform === "darwin") {
+	if (process.platform === "darwin") {
 		const bundleIds = BUNDLE_ID_CANDIDATES[app];
 		if (bundleIds) {
 			return bundleIds.map((id) => ({

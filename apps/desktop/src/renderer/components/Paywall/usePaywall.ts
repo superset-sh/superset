@@ -2,7 +2,7 @@ import { authClient } from "renderer/lib/auth-client";
 import type { GatedFeature } from "./constants";
 import { paywall } from "./Paywall";
 
-type UserPlan = "free" | "pro";
+type UserPlan = "free" | "pro" | "enterprise";
 
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
@@ -11,7 +11,7 @@ export function usePaywall() {
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;
-		return userPlan === "pro";
+		return userPlan === "pro" || userPlan === "enterprise";
 	}
 
 	function gateFeature(

@@ -1,5 +1,4 @@
-import os from "node:os";
-import { projects, workspaces } from "@superset/local-db";
+import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import { localDb } from "main/lib/local-db";
@@ -22,8 +21,6 @@ interface SessionMetrics {
 
 interface WorkspaceMetrics {
 	workspaceId: string;
-	projectId: string;
-	projectName: string;
 	workspaceName: string;
 	cpu: number;
 	memory: number;
@@ -36,187 +33,14 @@ interface AppMetrics extends ProcessMetrics {
 	other: ProcessMetrics;
 }
 
-interface HostMetrics {
-	totalMemory: number;
-	freeMemory: number;
-	usedMemory: number;
-	memoryUsagePercent: number;
-	cpuCoreCount: number;
-	loadAverage1m: number;
-}
-
 export interface ResourceMetricsSnapshot {
 	app: AppMetrics;
 	workspaces: WorkspaceMetrics[];
-	host: HostMetrics;
 	totalCpu: number;
 	totalMemory: number;
-	collectedAt: number;
 }
 
-type SnapshotMode = "interactive" | "idle";
-
-interface CollectResourceMetricsOptions {
-	mode?: SnapshotMode;
-	force?: boolean;
-}
-
-const SNAPSHOT_MAX_AGE_MS: Record<SnapshotMode, number> = {
-	interactive: 2500,
-	idle: 15000,
-};
-
-let cachedSnapshot: ResourceMetricsSnapshot | null = null;
-let inflightCollection: Promise<ResourceMetricsSnapshot> | null = null;
-
-function normalizeFiniteNumber(value: unknown): number {
-	if (typeof value !== "number" || !Number.isFinite(value)) return 0;
-	return Math.max(0, value);
-}
-
-function createHostMetrics(): HostMetrics {
-	const totalHostMemory = normalizeFiniteNumber(os.totalmem());
-	const freeHostMemory = normalizeFiniteNumber(os.freemem());
-	const usedHostMemory = Math.max(0, totalHostMemory - freeHostMemory);
-	const cpuCoreCount = Math.max(1, os.cpus().length);
-	const loadAverage1m = normalizeFiniteNumber(os.loadavg()[0]);
-
-	return {
-		totalMemory: totalHostMemory,
-		freeMemory: freeHostMemory,
-		usedMemory: usedHostMemory,
-		memoryUsagePercent:
-			totalHostMemory > 0 ? (usedHostMemory / totalHostMemory) * 100 : 0,
-		cpuCoreCount,
-		loadAverage1m,
-	};
-}
-
-function createEmptySnapshot(): ResourceMetricsSnapshot {
-	return {
-		app: {
-			cpu: 0,
-			memory: 0,
-			main: { cpu: 0, memory: 0 },
-			renderer: { cpu: 0, memory: 0 },
-			other: { cpu: 0, memory: 0 },
-		},
-		workspaces: [],
-		host: createHostMetrics(),
-		totalCpu: 0,
-		totalMemory: 0,
-		collectedAt: Date.now(),
-	};
-}
-
-function normalizeSnapshot(
-	snapshot: ResourceMetricsSnapshot,
-): ResourceMetricsSnapshot {
-	const appMain = {
-		cpu: normalizeFiniteNumber(snapshot.app.main.cpu),
-		memory: normalizeFiniteNumber(snapshot.app.main.memory),
-	};
-	const appRenderer = {
-		cpu: normalizeFiniteNumber(snapshot.app.renderer.cpu),
-		memory: normalizeFiniteNumber(snapshot.app.renderer.memory),
-	};
-	const appOther = {
-		cpu: normalizeFiniteNumber(snapshot.app.other.cpu),
-		memory: normalizeFiniteNumber(snapshot.app.other.memory),
-	};
-	const workspaces = snapshot.workspaces.map((workspace) => {
-		const sessions = workspace.sessions.map((session) => ({
-			sessionId: session.sessionId,
-			paneId: session.paneId,
-			pid: Math.max(0, Math.floor(normalizeFiniteNumber(session.pid))),
-			cpu: normalizeFiniteNumber(session.cpu),
-			memory: normalizeFiniteNumber(session.memory),
-		}));
-
-		return {
-			workspaceId: workspace.workspaceId,
-			projectId: workspace.projectId,
-			projectName: workspace.projectName,
-			workspaceName: workspace.workspaceName,
-			cpu: normalizeFiniteNumber(workspace.cpu),
-			memory: normalizeFiniteNumber(workspace.memory),
-			sessions,
-		};
-	});
-	const sessionCpuTotal = workspaces.reduce(
-		(sum, workspace) => sum + workspace.cpu,
-		0,
-	);
-	const sessionMemoryTotal = workspaces.reduce(
-		(sum, workspace) => sum + workspace.memory,
-		0,
-	);
-	const host = createHostMetrics();
-	const app = {
-		main: appMain,
-		renderer: appRenderer,
-		other: appOther,
-		cpu: appMain.cpu + appRenderer.cpu + appOther.cpu,
-		memory: appMain.memory + appRenderer.memory + appOther.memory,
-	};
-
-	return {
-		app,
-		workspaces,
-		host,
-		totalCpu: app.cpu + sessionCpuTotal,
-		totalMemory: app.memory + sessionMemoryTotal,
-		collectedAt:
-			typeof snapshot.collectedAt === "number" &&
-			Number.isFinite(snapshot.collectedAt)
-				? snapshot.collectedAt
-				: Date.now(),
-	};
-}
-
-function getSnapshotMaxAge(mode: SnapshotMode): number {
-	return SNAPSHOT_MAX_AGE_MS[mode];
-}
-
-export async function collectResourceMetrics(
-	options: CollectResourceMetricsOptions = {},
-): Promise<ResourceMetricsSnapshot> {
-	const mode = options.mode ?? "interactive";
-	const maxAgeMs = getSnapshotMaxAge(mode);
-
-	if (!options.force && cachedSnapshot) {
-		const ageMs = Date.now() - cachedSnapshot.collectedAt;
-		if (ageMs <= maxAgeMs) {
-			return cachedSnapshot;
-		}
-	}
-
-	// Avoid duplicate expensive process-tree scans for concurrent callers.
-	if (inflightCollection) {
-		return inflightCollection;
-	}
-
-	inflightCollection = collectResourceMetricsNow()
-		.catch((error) => {
-			console.warn(
-				"[resource-metrics] Failed to collect resource metrics; returning a safe fallback snapshot",
-				error,
-			);
-			return cachedSnapshot ?? createEmptySnapshot();
-		})
-		.then((snapshot) => {
-			const normalized = normalizeSnapshot(snapshot);
-			cachedSnapshot = normalized;
-			return normalized;
-		})
-		.finally(() => {
-			inflightCollection = null;
-		});
-
-	return inflightCollection;
-}
-
-async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
+export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot> {
 	const registry = getWorkspaceRuntimeRegistry();
 	const { sessions } = await registry
 		.getDefault()
@@ -246,17 +70,17 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	const sessionPidTrees = await Promise.all(
 		allEntries.map(async (entry) => ({
 			entry,
-			treePids: await getProcessTree(entry.pid).catch(() => [entry.pid]),
+			treePids: await getProcessTree(entry.pid),
 		})),
 	);
 
-	const allPids = [...new Set(sessionPidTrees.flatMap((s) => s.treePids))];
+	const allPids = sessionPidTrees.flatMap((s) => s.treePids);
 	let pidStats: Record<number, pidusage.Status> = {};
 	if (allPids.length > 0) {
 		try {
 			pidStats = await pidusage(allPids);
 		} catch {
-			// PIDs may have exited between listing and querying.
+			// PIDs may have exited between listing and querying
 		}
 	}
 
@@ -271,16 +95,13 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	};
 
 	for (const proc of electronMetrics) {
-		const cpu = normalizeFiniteNumber(proc.cpu?.percentCPUUsage);
-		// Electron returns workingSetSize in KB.
-		const memory = normalizeFiniteNumber(proc.memory?.workingSetSize) * 1024;
+		const cpu = proc.cpu.percentCPUUsage;
+		// workingSetSize is in KB
+		const memory = proc.memory.workingSetSize * 1024;
 		let target = other;
 		if (proc.type === "Browser") {
 			target = main;
-		} else if (
-			typeof proc.type === "string" &&
-			isRendererProcessType(proc.type)
-		) {
+		} else if (isRendererProcessType(proc.type)) {
 			target = renderer;
 		}
 		target.cpu += cpu;
@@ -301,36 +122,24 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 		for (const pid of treePids) {
 			const stats = pidStats[pid];
 			if (stats) {
-				cpu += normalizeFiniteNumber(stats.cpu);
-				memory += normalizeFiniteNumber(stats.memory);
+				cpu += stats.cpu;
+				memory += stats.memory;
 			}
 		}
 		sessionAggregated.set(entry.sessionId, { cpu, memory });
 	}
 
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
-	const workspaceMetaCache = new Map<
-		string,
-		{ workspaceName: string; projectId: string; projectName: string }
-	>();
+	const nameCache = new Map<string, string>();
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
-		if (!workspaceMetaCache.has(workspaceId)) {
+		if (!nameCache.has(workspaceId)) {
 			const ws = localDb
-				.select({
-					workspaceName: workspaces.name,
-					projectId: workspaces.projectId,
-					projectName: projects.name,
-				})
+				.select({ name: workspaces.name })
 				.from(workspaces)
-				.leftJoin(projects, eq(projects.id, workspaces.projectId))
 				.where(eq(workspaces.id, workspaceId))
 				.get();
-			workspaceMetaCache.set(workspaceId, {
-				workspaceName: ws?.workspaceName ?? "Unknown",
-				projectId: ws?.projectId ?? "unknown",
-				projectName: ws?.projectName ?? "Unknown Project",
-			});
+			nameCache.set(workspaceId, ws?.name ?? "Unknown");
 		}
 
 		const sessionMetrics: SessionMetrics[] = [];
@@ -357,11 +166,7 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 
 		workspaceMetricsList.push({
 			workspaceId,
-			projectId: workspaceMetaCache.get(workspaceId)?.projectId ?? "unknown",
-			projectName:
-				workspaceMetaCache.get(workspaceId)?.projectName ?? "Unknown Project",
-			workspaceName:
-				workspaceMetaCache.get(workspaceId)?.workspaceName ?? "Unknown",
+			workspaceName: nameCache.get(workspaceId) ?? "Unknown",
 			cpu: wsCpu,
 			memory: wsMemory,
 			sessions: sessionMetrics,
@@ -377,12 +182,10 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 		0,
 	);
 
-	return normalizeSnapshot({
+	return {
 		app: appMetrics,
 		workspaces: workspaceMetricsList,
-		host: createHostMetrics(),
 		totalCpu: appMetrics.cpu + sessionCpuTotal,
 		totalMemory: appMetrics.memory + sessionMemoryTotal,
-		collectedAt: Date.now(),
-	});
+	};
 }

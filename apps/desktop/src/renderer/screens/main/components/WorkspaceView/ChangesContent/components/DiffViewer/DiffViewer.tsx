@@ -39,6 +39,8 @@ function scrollToFirstDiff(
 export interface DiffViewerContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
+	onSplitWithNewChat?: () => void;
+	onSplitWithNewBrowser?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -317,6 +319,8 @@ export function DiffViewer({
 	const paneActions: PaneActions = {
 		onSplitHorizontal: contextMenuProps.onSplitHorizontal,
 		onSplitVertical: contextMenuProps.onSplitVertical,
+		onSplitWithNewChat: contextMenuProps.onSplitWithNewChat,
+		onSplitWithNewBrowser: contextMenuProps.onSplitWithNewBrowser,
 		onClosePane: contextMenuProps.onClosePane,
 		currentTabId: contextMenuProps.currentTabId,
 		availableTabs: contextMenuProps.availableTabs,
