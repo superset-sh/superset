@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
-import { sanitizeForTitle } from "../commandBuffer";
+import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
 	createTerminalInstance,
@@ -326,9 +326,12 @@ export function useTerminalLifecycle({
 			const { domEvent } = event;
 			if (domEvent.key === "Enter") {
 				if (!isAlternateScreenRef.current) {
-					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title) {
-						setPaneNameRef.current(paneId, title);
+					const buffer = commandBufferRef.current;
+					if (isCommandEchoed(xterm, buffer)) {
+						const title = sanitizeForTitle(buffer);
+						if (title) {
+							setPaneNameRef.current(paneId, title);
+						}
 					}
 				}
 				commandBufferRef.current = "";
