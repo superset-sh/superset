@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { RuntimeSession } from "./utils/runtime";
 import { ChatMastraService } from "./service";
+import type { RuntimeSession } from "./utils/runtime";
 
 const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CWD = "/tmp/project";
@@ -34,7 +34,7 @@ function createServiceHarness() {
 		apiUrl: "http://localhost:3000",
 	});
 	const getOrCreateRuntime = mock(
-		async (sessionId: string, cwd?: string) => runtime,
+		async (_sessionId: string, _cwd?: string) => runtime,
 	);
 
 	(
@@ -50,12 +50,15 @@ function createServiceHarness() {
 		getOrCreateRuntime,
 		runtime,
 		abort: runtime.harness.abort as ReturnType<typeof mock>,
-		respondToToolApproval:
-			runtime.harness.respondToToolApproval as ReturnType<typeof mock>,
-		respondToQuestion:
-			runtime.harness.respondToQuestion as ReturnType<typeof mock>,
-		respondToPlanApproval:
-			runtime.harness.respondToPlanApproval as ReturnType<typeof mock>,
+		respondToToolApproval: runtime.harness.respondToToolApproval as ReturnType<
+			typeof mock
+		>,
+		respondToQuestion: runtime.harness.respondToQuestion as ReturnType<
+			typeof mock
+		>,
+		respondToPlanApproval: runtime.harness.respondToPlanApproval as ReturnType<
+			typeof mock
+		>,
 	};
 }
 

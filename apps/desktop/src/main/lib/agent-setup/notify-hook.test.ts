@@ -1,6 +1,6 @@
+import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
 
 describe("getNotifyScriptContent", () => {
 	it("prefers Mastra resourceId over internal session_id", () => {
@@ -10,11 +10,13 @@ describe("getNotifyScriptContent", () => {
 		);
 
 		expect(script).toContain('RESOURCE_ID=$(echo "$INPUT"');
-		expect(script).toContain('SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}');
+		expect(script).toContain("SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}");
 		expect(script).toContain('--data-urlencode "resourceId=$RESOURCE_ID"');
-		expect(script).toContain('--data-urlencode "hookSessionId=$HOOK_SESSION_ID"');
 		expect(script).toContain(
-			'event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID',
+			'--data-urlencode "hookSessionId=$HOOK_SESSION_ID"',
+		);
+		expect(script).toContain(
+			"event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID",
 		);
 	});
 });
