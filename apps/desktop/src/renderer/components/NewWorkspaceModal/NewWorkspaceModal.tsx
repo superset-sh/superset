@@ -24,10 +24,8 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import {
-	resolveBranchPrefix,
-	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+import { resolveBranchPrefix, sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
+import { resolveWorkspaceBranchDraft } from "./workspaceBranchDraft";
 import type { ImportSourceTab } from "./components/ExistingWorktreesList";
 import { ImportFlow } from "./components/ImportFlow";
 import { NewWorkspaceAdvancedOptions } from "./components/NewWorkspaceAdvancedOptions";
@@ -161,11 +159,11 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const branchSlug = branchNameEdited
-		? sanitizeBranchNameWithMaxLength(branchName)
-		: "";
-
-	const applyPrefix = !branchNameEdited;
+	const { branchSlug, applyPrefix } = resolveWorkspaceBranchDraft({
+		title,
+		branchName,
+		branchNameEdited,
+	});
 
 	const branchPreview =
 		branchSlug && applyPrefix && resolvedPrefix
