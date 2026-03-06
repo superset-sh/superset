@@ -1,11 +1,13 @@
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
+import { toast } from "@superset/ui/sonner";
 import {
 	createFileRoute,
 	Navigate,
 	Outlet,
 	useNavigate,
 } from "@tanstack/react-router";
+import { useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
@@ -41,6 +43,7 @@ function AuthenticatedLayout() {
 	const isOnline = useOnlineStatus();
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
+	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -56,6 +59,15 @@ function AuthenticatedLayout() {
 	electronTrpc.workspaces.onInitProgress.useSubscription(undefined, {
 		onData: (progress) => {
 			updateInitProgress(progress);
+			if (
+				progress.warning &&
+				!shownWorkspaceInitWarningsRef.current.has(progress.workspaceId)
+			) {
+				shownWorkspaceInitWarningsRef.current.add(progress.workspaceId);
+				toast.warning("Workspace created without auto-name", {
+					description: progress.warning,
+				});
+			}
 			if (progress.step === "ready" || progress.step === "failed") {
 				// Invalidate both the grouped list AND the specific workspace
 				utils.workspaces.getAllGrouped.invalidate();

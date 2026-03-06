@@ -20,6 +20,7 @@ export interface WorkspaceInitProgress {
 	step: WorkspaceInitStep;
 	message: string;
 	error?: string;
+	warning?: string;
 }
 
 export const INIT_STEP_MESSAGES: Record<WorkspaceInitStep, string> = {

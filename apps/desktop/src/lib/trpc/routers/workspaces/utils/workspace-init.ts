@@ -4,6 +4,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
+import { attemptWorkspaceAutoRenameFromPrompt } from "./ai-name";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
 import {
@@ -26,6 +27,7 @@ export interface WorkspaceInitParams {
 	worktreePath: string;
 	branch: string;
 	mainRepoPath: string;
+	namingPrompt?: string;
 	/** If true, use an existing branch instead of creating a new one */
 	useExistingBranch?: boolean;
 	/** If true, skip worktree creation (worktree already exists on disk) */
@@ -45,6 +47,7 @@ export async function initializeWorkspaceWorktree({
 	worktreePath,
 	branch,
 	mainRepoPath,
+	namingPrompt,
 	useExistingBranch,
 	skipWorktreeCreation,
 }: WorkspaceInitParams): Promise<void> {
@@ -141,7 +144,23 @@ export async function initializeWorkspaceWorktree({
 				.where(eq(worktrees.id, worktreeId))
 				.run();
 
-			manager.updateProgress(workspaceId, "ready", "Ready");
+			const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId,
+				prompt: namingPrompt,
+			});
+			console.log("[workspace-init] Auto naming completed", {
+				workspaceId,
+				autoRenameResult,
+			});
+			manager.updateProgress(
+				workspaceId,
+				"ready",
+				"Ready",
+				undefined,
+				autoRenameResult.status === "skipped"
+					? autoRenameResult.warning
+					: undefined,
+			);
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -444,7 +463,23 @@ export async function initializeWorkspaceWorktree({
 			.where(eq(worktrees.id, worktreeId))
 			.run();
 
-		manager.updateProgress(workspaceId, "ready", "Ready");
+		const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
+			workspaceId,
+			prompt: namingPrompt,
+		});
+		console.log("[workspace-init] Auto naming completed", {
+			workspaceId,
+			autoRenameResult,
+		});
+		manager.updateProgress(
+			workspaceId,
+			"ready",
+			"Ready",
+			undefined,
+			autoRenameResult.status === "skipped"
+				? autoRenameResult.warning
+				: undefined,
+		);
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,

@@ -5,7 +5,10 @@ import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { generateWorkspaceNameFromPrompt } from "../utils/ai-name";
+import {
+	attemptWorkspaceAutoRenameFromPrompt,
+	generateWorkspaceNameFromPrompt,
+} from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
@@ -290,6 +293,7 @@ export const createCreateProcedures = () => {
 				z.object({
 					projectId: z.string(),
 					name: z.string().optional(),
+					prompt: z.string().optional(),
 					branchName: z.string().optional(),
 					baseBranch: z.string().optional(),
 					useExistingBranch: z.boolean().optional(),
@@ -409,6 +413,10 @@ export const createCreateProcedures = () => {
 							branch,
 							name: input.name ?? branch,
 						});
+						void attemptWorkspaceAutoRenameFromPrompt({
+							workspaceId: workspace.id,
+							prompt: input.prompt,
+						});
 						activateProject(project);
 						const setupConfig = loadSetupConfig({
 							mainRepoPath: project.mainRepoPath,
@@ -489,6 +497,7 @@ export const createCreateProcedures = () => {
 					worktreePath,
 					branch,
 					mainRepoPath: project.mainRepoPath,
+					namingPrompt: input.prompt,
 					useExistingBranch: input.useExistingBranch,
 				});
 
