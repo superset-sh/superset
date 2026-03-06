@@ -1,7 +1,8 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import { Agent } from "@mastra/core/agent";
+import type { Agent } from "@mastra/core/agent";
 import {
+	generateTitleFromMessage,
 	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
 	getAnthropicProviderOptions,
 	getOpenAICredentialsFromAnySource,
@@ -63,26 +64,6 @@ const TITLE_PROVIDERS: TitleProvider[] = [
 	},
 ];
 
-async function generateTitleWithModel(
-	prompt: string,
-	agentId: string,
-	model: AgentModel,
-): Promise<string | null> {
-	const agent = new Agent({
-		id: agentId,
-		name: "Workspace Namer",
-		instructions: "You generate concise workspace titles.",
-		model,
-	});
-
-	const title = await agent.generateTitleFromUserMessage({
-		message: prompt,
-		tracingContext: {},
-	});
-
-	return title?.trim() || null;
-}
-
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
@@ -93,11 +74,13 @@ export async function generateWorkspaceNameFromPrompt(
 		}
 
 		try {
-			const title = await generateTitleWithModel(
-				prompt,
-				provider.agentId,
-				provider.createModel(credentials),
-			);
+			const title = await generateTitleFromMessage({
+				message: prompt,
+				agentModel: provider.createModel(credentials),
+				agentId: provider.agentId,
+				agentName: "Workspace Namer",
+				instructions: "You generate concise workspace titles.",
+			});
 			if (title) {
 				return title;
 			}

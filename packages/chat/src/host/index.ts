@@ -18,3 +18,4 @@ export {
 export { ChatService } from "./chat-service";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
+export { generateTitleFromMessage } from "./title-generation";
