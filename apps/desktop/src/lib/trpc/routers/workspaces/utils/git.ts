@@ -7,6 +7,11 @@ import { promisify } from "node:util";
 import friendlyWords = require("friendly-words");
 
 import type { BranchPrefixMode } from "@superset/local-db";
+import {
+	sanitizeAuthorPrefix,
+	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
+} from "shared/utils/branch";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
@@ -394,7 +399,7 @@ export async function getBranchPrefix({
 		case "author": {
 			const authorName = await getGitAuthorName(repoPath);
 			if (authorName) {
-				return authorName.replace(/\s+/g, "-");
+				return sanitizeAuthorPrefix(authorName);
 			}
 			return null;
 		}
@@ -407,7 +412,7 @@ export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+};
 
 export function generateBranchName({
 	existingBranches = [],

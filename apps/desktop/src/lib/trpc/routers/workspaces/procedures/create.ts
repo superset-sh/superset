@@ -371,6 +371,8 @@ export const createCreateProcedures = () => {
 				} else if (input.branchName?.trim()) {
 					branch = sanitizeBranchNameWithMaxLength(
 						withPrefix(input.branchName),
+						undefined,
+						{ preserveFirstSegmentCase: true },
 					);
 				} else {
 					branch = generateBranchName({

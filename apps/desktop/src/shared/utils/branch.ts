@@ -1,36 +1,28 @@
 export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
 export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
 
+interface SanitizeSegmentOptions {
+	preserveCase?: boolean;
+}
+
+interface SanitizeBranchNameOptions {
+	preserveFirstSegmentCase?: boolean;
+}
+
 export function sanitizeSegment(
 	text: string,
 	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+	{ preserveCase = false }: SanitizeSegmentOptions = {},
 ): string {
-	return text
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, "-")
-		.replace(/[^a-z0-9._+@-]/g, "")
-		.replace(/\.{2,}/g, ".")
-		.replace(/@\{/g, "@")
-		.replace(/-+/g, "-")
-		.replace(/^[-.]|[-.]+$/g, "")
-		.replace(/\.lock$/g, "")
-		.slice(0, maxLength);
-}
+	const normalized = preserveCase ? text : text.toLowerCase();
+	const allowedCharacters = preserveCase
+		? /[^a-zA-Z0-9._+@-]/g
+		: /[^a-z0-9._+@-]/g;
 
-/**
- * Like sanitizeSegment but preserves the original case.
- * Used for author/GitHub username prefixes where case must match
- * the git ref exactly to avoid case-mismatch issues with packed-refs.
- */
-function sanitizeSegmentPreserveCase(
-	text: string,
-	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
-): string {
-	return text
+	return normalized
 		.trim()
 		.replace(/\s+/g, "-")
-		.replace(/[^a-zA-Z0-9._+@-]/g, "")
+		.replace(allowedCharacters, "")
 		.replace(/\.{2,}/g, ".")
 		.replace(/@\{/g, "@")
 		.replace(/-+/g, "-")
@@ -40,13 +32,22 @@ function sanitizeSegmentPreserveCase(
 }
 
 export function sanitizeAuthorPrefix(name: string): string {
-	return sanitizeSegmentPreserveCase(name);
+	return sanitizeSegment(name, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+		preserveCase: true,
+	});
 }
 
-export function sanitizeBranchName(name: string): string {
+export function sanitizeBranchName(
+	name: string,
+	{ preserveFirstSegmentCase = false }: SanitizeBranchNameOptions = {},
+): string {
 	return name
 		.split("/")
-		.map((s) => sanitizeSegment(s))
+		.map((segment, index) =>
+			sanitizeSegment(segment, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+				preserveCase: preserveFirstSegmentCase && index === 0,
+			}),
+		)
 		.filter(Boolean)
 		.join("/");
 }
@@ -61,8 +62,9 @@ export function truncateBranchName(
 export function sanitizeBranchNameWithMaxLength(
 	name: string,
 	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+	options?: SanitizeBranchNameOptions,
 ): string {
-	return truncateBranchName(sanitizeBranchName(name), maxLength);
+	return truncateBranchName(sanitizeBranchName(name, options), maxLength);
 }
 
 /**
@@ -132,5 +134,9 @@ export function resolveBranchPrefix({
 		default:
 			return null;
 	}
-	return prefix ? sanitizeSegmentPreserveCase(prefix) : null;
+	return prefix
+		? sanitizeSegment(prefix, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+				preserveCase: true,
+			})
+		: null;
 }
