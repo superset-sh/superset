@@ -8,6 +8,37 @@ import { devtools, persist } from "zustand/middleware";
 
 type FileListViewMode = "grouped" | "tree";
 
+const DEFAULT_SECTION_ORDER: ChangeCategory[] = [
+	"against-base",
+	"committed",
+	"staged",
+	"unstaged",
+];
+
+function normalizeSectionOrder(
+	sectionOrder: ChangeCategory[] | undefined,
+): ChangeCategory[] {
+	if (!sectionOrder || sectionOrder.length === 0) {
+		return [...DEFAULT_SECTION_ORDER];
+	}
+
+	const seen = new Set<ChangeCategory>();
+	const normalized: ChangeCategory[] = [];
+
+	for (const section of sectionOrder) {
+		if (seen.has(section)) continue;
+		seen.add(section);
+		normalized.push(section);
+	}
+
+	for (const section of DEFAULT_SECTION_ORDER) {
+		if (seen.has(section)) continue;
+		normalized.push(section);
+	}
+
+	return normalized;
+}
+
 interface SelectedFileState {
 	file: ChangedFile;
 	category: ChangeCategory;
@@ -19,6 +50,7 @@ interface ChangesState {
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
+	sectionOrder: ChangeCategory[];
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
 	focusMode: boolean;
@@ -34,6 +66,7 @@ interface ChangesState {
 	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
+	moveSection: (fromSection: ChangeCategory, toSection: ChangeCategory) => void;
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
@@ -51,6 +84,7 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
+	sectionOrder: [...DEFAULT_SECTION_ORDER],
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
 	focusMode: false,
@@ -110,6 +144,23 @@ export const useChangesStore = create<ChangesState>()(
 					});
 				},
 
+				moveSection: (fromSection, toSection) => {
+					if (fromSection === toSection) return;
+
+					const nextSectionOrder = normalizeSectionOrder(get().sectionOrder);
+					const fromIndex = nextSectionOrder.indexOf(fromSection);
+					const toIndex = nextSectionOrder.indexOf(toSection);
+
+					if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+						return;
+					}
+
+					const reordered = [...nextSectionOrder];
+					const [moved] = reordered.splice(fromIndex, 1);
+					reordered.splice(toIndex, 0, moved);
+					set({ sectionOrder: reordered });
+				},
+
 				toggleRenderedMarkdown: (worktreePath) => {
 					const { showRenderedMarkdown } = get();
 					set({
@@ -144,12 +195,18 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
-				version: 2,
+				version: 3,
 				migrate: (persisted, version) => {
 					const state = persisted as Record<string, unknown>;
 					if (version < 2) {
 						delete state.baseBranch;
 					}
+					if (version < 3) {
+						state.sectionOrder = [...DEFAULT_SECTION_ORDER];
+					}
+					state.sectionOrder = normalizeSectionOrder(
+						state.sectionOrder as ChangeCategory[] | undefined,
+					);
 					return state as unknown as ChangesState;
 				},
 				partialize: (state) => ({
@@ -157,6 +214,7 @@ export const useChangesStore = create<ChangesState>()(
 					viewMode: state.viewMode,
 					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
+					sectionOrder: state.sectionOrder,
 					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
 					focusMode: state.focusMode,
