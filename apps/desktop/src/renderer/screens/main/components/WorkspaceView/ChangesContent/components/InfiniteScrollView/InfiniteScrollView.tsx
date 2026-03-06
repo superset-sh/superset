@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useChangesStore } from "renderer/stores/changes";
-import type { GitChangesStatus } from "shared/changes-types";
+import type { ChangeCategory, GitChangesStatus } from "shared/changes-types";
 import { useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
 import { FileDiffSection } from "../FileDiffSection";
@@ -29,7 +29,9 @@ export function InfiniteScrollView({
 		hideUnchangedRegions,
 		toggleHideUnchangedRegions,
 		fileListViewMode,
+		sectionOrder,
 		expandedSections: expandedCategories,
+		moveSection,
 		toggleSection: toggleCategory,
 	} = useChangesStore();
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
@@ -114,6 +116,7 @@ export function InfiniteScrollView({
 		commits: status.commits,
 		sortedStaged,
 		sortedUnstaged,
+		sectionOrder,
 		worktreePath,
 		baseBranch,
 		stageFile: (params) => stageFileMutation.mutate(params),
@@ -126,6 +129,121 @@ export function InfiniteScrollView({
 		status.commits.length > 0 ||
 		sortedStaged.length > 0 ||
 		sortedUnstaged.length > 0;
+	const allSections: ChangeCategory[] = [
+		"against-base",
+		"committed",
+		"staged",
+		"unstaged",
+	];
+	const orderedSectionIds = [
+		...sectionOrder,
+		...allSections.filter((section) => !sectionOrder.includes(section)),
+	];
+
+	const sectionDefinitions = {
+		"against-base": {
+			id: "against-base",
+			title: `Against ${baseBranch}`,
+			count: sortedAgainstBase.length,
+			isExpanded: expandedCategories["against-base"],
+			onToggle: () => toggleCategory("against-base"),
+			content: expandedCategories["against-base"] ? (
+				<VirtualizedFileList
+					files={sortedAgainstBase}
+					category="against-base"
+					worktreePath={worktreePath}
+					baseBranch={baseBranch}
+					collapsedFiles={collapsedFiles}
+					onToggleFile={toggleFile}
+					scrollElementRef={containerRef}
+				/>
+			) : null,
+		},
+		committed: {
+			id: "committed",
+			title: "Commits",
+			count: status.commits.length,
+			isExpanded: expandedCategories.committed,
+			onToggle: () => toggleCategory("committed"),
+			content: expandedCategories.committed ? (
+				<div>
+					{status.commits.map((commit) => (
+						<CommitSection
+							key={commit.hash}
+							commit={commit}
+							worktreePath={worktreePath}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+						/>
+					))}
+				</div>
+			) : null,
+		},
+		staged: {
+			id: "staged",
+			title: "Staged",
+			count: sortedStaged.length,
+			isExpanded: expandedCategories.staged,
+			onToggle: () => toggleCategory("staged"),
+			content: expandedCategories.staged ? (
+				<VirtualizedFileList
+					files={sortedStaged}
+					category="staged"
+					worktreePath={worktreePath}
+					collapsedFiles={collapsedFiles}
+					onToggleFile={toggleFile}
+					scrollElementRef={containerRef}
+					onUnstage={(file) =>
+						unstageFileMutation.mutate({
+							worktreePath,
+							filePath: file.path,
+						})
+					}
+					onDiscard={handleDiscard}
+					isActioning={isActioning}
+				/>
+			) : null,
+		},
+		unstaged: {
+			id: "unstaged",
+			title: "Unstaged",
+			count: sortedUnstaged.length,
+			isExpanded: expandedCategories.unstaged,
+			onToggle: () => toggleCategory("unstaged"),
+			content: expandedCategories.unstaged ? (
+				<VirtualizedFileList
+					files={sortedUnstaged}
+					category="unstaged"
+					worktreePath={worktreePath}
+					collapsedFiles={collapsedFiles}
+					onToggleFile={toggleFile}
+					scrollElementRef={containerRef}
+					onStage={(file) =>
+						stageFileMutation.mutate({
+							worktreePath,
+							filePath: file.path,
+						})
+					}
+					onDiscard={handleDiscard}
+					isActioning={isActioning}
+				/>
+			) : null,
+		},
+	} satisfies Record<
+		ChangeCategory,
+		{
+			id: ChangeCategory;
+			title: string;
+			count: number;
+			isExpanded: boolean;
+			onToggle: () => void;
+			content: ReactNode;
+		}
+	>;
+	const orderedSections = orderedSectionIds.map(
+		(section) => sectionDefinitions[section],
+	);
 
 	if (!hasChanges) {
 		return (
@@ -161,131 +279,38 @@ export function InfiniteScrollView({
 				isLastFile={focusedIndex >= flatFileList.length - 1}
 			/>
 
-			{focusMode ? (
-				focusedEntry && (
-					<FileDiffSection
-						key={focusedEntry.key}
-						file={focusedEntry.file}
-						category={focusedEntry.category}
-						commitHash={focusedEntry.commitHash}
-						worktreePath={worktreePath}
-						baseBranch={
-							focusedEntry.category === "against-base" ? baseBranch : undefined
-						}
-						isExpanded={!collapsedFiles.has(focusedEntry.key)}
-						onToggleExpanded={() => toggleFile(focusedEntry.key)}
-						{...getFocusedFileActions(focusedEntry)}
-						isActioning={isActioning}
-					/>
-				)
-			) : (
-				<>
-					{sortedAgainstBase.length > 0 && (
-						<>
+			{focusMode
+				? focusedEntry && (
+						<FileDiffSection
+							key={focusedEntry.key}
+							file={focusedEntry.file}
+							category={focusedEntry.category}
+							commitHash={focusedEntry.commitHash}
+							worktreePath={worktreePath}
+							baseBranch={
+								focusedEntry.category === "against-base"
+									? baseBranch
+									: undefined
+							}
+							isExpanded={!collapsedFiles.has(focusedEntry.key)}
+							onToggleExpanded={() => toggleFile(focusedEntry.key)}
+							{...getFocusedFileActions(focusedEntry)}
+							isActioning={isActioning}
+						/>
+					)
+				: orderedSections.map((section) => (
+						<div key={section.id}>
 							<CategoryHeader
-								title={`Against ${baseBranch}`}
-								count={sortedAgainstBase.length}
-								isExpanded={expandedCategories["against-base"]}
-								onToggle={() => toggleCategory("against-base")}
+								id={section.id}
+								title={section.title}
+								count={section.count}
+								isExpanded={section.isExpanded}
+								onToggle={section.onToggle}
+								onMove={moveSection}
 							/>
-							{expandedCategories["against-base"] && (
-								<VirtualizedFileList
-									files={sortedAgainstBase}
-									category="against-base"
-									worktreePath={worktreePath}
-									baseBranch={baseBranch}
-									collapsedFiles={collapsedFiles}
-									onToggleFile={toggleFile}
-									scrollElementRef={containerRef}
-								/>
-							)}
-						</>
-					)}
-
-					{status.commits.length > 0 && (
-						<>
-							<CategoryHeader
-								title="Commits"
-								count={status.commits.length}
-								isExpanded={expandedCategories.committed}
-								onToggle={() => toggleCategory("committed")}
-							/>
-							{expandedCategories.committed && (
-								<div>
-									{status.commits.map((commit) => (
-										<CommitSection
-											key={commit.hash}
-											commit={commit}
-											worktreePath={worktreePath}
-											collapsedFiles={collapsedFiles}
-											onToggleFile={toggleFile}
-											scrollElementRef={containerRef}
-										/>
-									))}
-								</div>
-							)}
-						</>
-					)}
-
-					{sortedStaged.length > 0 && (
-						<>
-							<CategoryHeader
-								title="Staged"
-								count={sortedStaged.length}
-								isExpanded={expandedCategories.staged}
-								onToggle={() => toggleCategory("staged")}
-							/>
-							{expandedCategories.staged && (
-								<VirtualizedFileList
-									files={sortedStaged}
-									category="staged"
-									worktreePath={worktreePath}
-									collapsedFiles={collapsedFiles}
-									onToggleFile={toggleFile}
-									scrollElementRef={containerRef}
-									onUnstage={(file) =>
-										unstageFileMutation.mutate({
-											worktreePath,
-											filePath: file.path,
-										})
-									}
-									onDiscard={handleDiscard}
-									isActioning={isActioning}
-								/>
-							)}
-						</>
-					)}
-
-					{sortedUnstaged.length > 0 && (
-						<>
-							<CategoryHeader
-								title="Unstaged"
-								count={sortedUnstaged.length}
-								isExpanded={expandedCategories.unstaged}
-								onToggle={() => toggleCategory("unstaged")}
-							/>
-							{expandedCategories.unstaged && (
-								<VirtualizedFileList
-									files={sortedUnstaged}
-									category="unstaged"
-									worktreePath={worktreePath}
-									collapsedFiles={collapsedFiles}
-									onToggleFile={toggleFile}
-									scrollElementRef={containerRef}
-									onStage={(file) =>
-										stageFileMutation.mutate({
-											worktreePath,
-											filePath: file.path,
-										})
-									}
-									onDiscard={handleDiscard}
-									isActioning={isActioning}
-								/>
-							)}
-						</>
-					)}
-				</>
-			)}
+							{section.content}
+						</div>
+					))}
 		</div>
 	);
 }
