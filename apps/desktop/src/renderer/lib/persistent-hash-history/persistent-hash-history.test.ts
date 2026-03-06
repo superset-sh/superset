@@ -238,6 +238,84 @@ describe("createPersistentHashHistory", () => {
 			expect(stored.entries[0]).toBe("/page/11");
 			expect(stored.entries[99]).toBe("/page/110");
 		});
+
+		it("stores non-negative cappedIndex when current position is in the dropped portion", () => {
+			// Build 111 entries (index 0="/", 1-110="/page/N"), then navigate
+			// back to index 5. At this point entries.length=111 and index=5.
+			// persistState caps to 100 entries, computing:
+			//   cappedIndex = 5 - (111 - 100) = -6
+			// Without the Math.max(0, ...) fix this would store a negative index.
+			const history = createPersistentHashHistory();
+			for (let i = 1; i <= 110; i++) {
+				history.push(`/page/${i}`);
+			}
+			// Navigate back to index 5 — go() calls persistState internally
+			history.go(-105);
+
+			// Check localStorage immediately after go(), before any push that
+			// would truncate entries and sidestep the overflow path.
+			const stored = JSON.parse(storage.get("router-history") ?? "{}");
+			expect(stored.index).toBeGreaterThanOrEqual(0);
+		});
+	});
+
+	describe("entry type validation", () => {
+		it("falls back to / when entries contain non-string values (object format from old versions)", () => {
+			// Simulate localStorage written by a hypothetical older version that stored
+			// entries as objects instead of plain strings. If loaded without validation,
+			// parseHref would receive an object, throw a TypeError, and crash the app
+			// before the React error boundary is set up — resulting in a blank window.
+			storage.set(
+				"router-history",
+				JSON.stringify({
+					entries: [
+						{ path: "/", state: {} },
+						{ path: "/workspace/abc", state: {} },
+					],
+					index: 1,
+				}),
+			);
+
+			const history = createPersistentHashHistory();
+			expect(history.length).toBe(1);
+			expect(history.location.pathname).toBe("/");
+		});
+
+		it("falls back to / when entries contain null values", () => {
+			storage.set(
+				"router-history",
+				JSON.stringify({ entries: [null, "/workspace/abc"], index: 1 }),
+			);
+
+			const history = createPersistentHashHistory();
+			expect(history.length).toBe(1);
+			expect(history.location.pathname).toBe("/");
+		});
+
+		it("falls back to / when entries contain empty strings", () => {
+			storage.set(
+				"router-history",
+				JSON.stringify({ entries: ["", "/workspace/abc"], index: 1 }),
+			);
+
+			const history = createPersistentHashHistory();
+			expect(history.length).toBe(1);
+			expect(history.location.pathname).toBe("/");
+		});
+
+		it("accepts entries that are all valid non-empty strings", () => {
+			storage.set(
+				"router-history",
+				JSON.stringify({
+					entries: ["/", "/tasks", "/workspace/abc"],
+					index: 2,
+				}),
+			);
+
+			const history = createPersistentHashHistory();
+			expect(history.length).toBe(3);
+			expect(history.location.pathname).toBe("/workspace/abc");
+		});
 	});
 
 	describe("getEntries", () => {

@@ -98,6 +98,20 @@ function countFileMessages(messages: ListMessagesOutput): number {
 	).length;
 }
 
+function getLegacyImagePayload(
+	payload: SessionInputs["sendMessage"]["payload"],
+): Array<{ data: string; mimeType: string }> {
+	const images = (payload as { images?: unknown }).images;
+	if (!Array.isArray(images)) return [];
+	return images.flatMap((image) => {
+		const record = image as { data?: unknown; mimeType?: unknown };
+		return typeof record.data === "string" &&
+			typeof record.mimeType === "string"
+			? [{ data: record.data, mimeType: record.mimeType }]
+			: [];
+	});
+}
+
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
@@ -209,8 +223,9 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					typeof input.payload?.content === "string"
 						? input.payload.content
 						: "";
-				const files = input.payload?.files;
-				if (text || (files && files.length > 0)) {
+				const files = input.payload?.files ?? [];
+				const legacyImages = getLegacyImagePayload(input.payload);
+				if (text || files.length > 0 || legacyImages.length > 0) {
 					const optimisticId = `optimistic-${Date.now()}`;
 					optimisticTextRef.current = text || null;
 					optimisticIdRef.current = optimisticId;
@@ -219,15 +234,20 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 							countFileMessages(historicalMessages);
 					}
 					const content: ListMessagesOutput[number]["content"] = [];
-					if (files) {
-						for (const f of files) {
-							content.push({
-								type: "file",
-								data: f.data,
-								mediaType: f.mediaType,
-								filename: f.filename,
-							} as unknown as ListMessagesOutput[number]["content"][number]);
-						}
+					for (const file of files) {
+						content.push({
+							type: "file",
+							data: file.data,
+							mediaType: file.mediaType,
+							filename: file.filename,
+						} as unknown as ListMessagesOutput[number]["content"][number]);
+					}
+					for (const image of legacyImages) {
+						content.push({
+							type: "image",
+							data: image.data,
+							mimeType: image.mimeType,
+						} as unknown as ListMessagesOutput[number]["content"][number]);
 					}
 					if (text) {
 						content.push({
@@ -324,7 +344,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, sessionId, utils, historicalMessages],
+		[cwd, historicalMessages, sessionId, utils],
 	);
 
 	return {
