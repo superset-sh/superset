@@ -302,6 +302,11 @@ describe("detectLanguage", () => {
 		expect(detectLanguage("App.java")).toBe("java");
 	});
 
+	test("detects Objective-C files", () => {
+		expect(detectLanguage("AppDelegate.m")).toBe("objective-c");
+		expect(detectLanguage("ViewController.mm")).toBe("objective-c");
+	});
+
 	test("returns plaintext for unknown extensions", () => {
 		expect(detectLanguage("file.unknown")).toBe("plaintext");
 		expect(detectLanguage("noextension")).toBe("plaintext");
