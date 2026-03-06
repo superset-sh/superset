@@ -4,6 +4,7 @@ import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
+import { beginAttachAttempt, isCurrentAttachAttempt } from "../attach-attempt";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL } from "../config";
@@ -87,6 +88,7 @@ export interface UseTerminalLifecycleOptions {
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<TerminalSearchAdapter | null>;
+	attachAttemptRef: MutableRefObject<number>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
@@ -151,6 +153,7 @@ export function useTerminalLifecycle({
 	xtermRef,
 	fitAddonRef,
 	searchAddonRef,
+	attachAttemptRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	commandBufferRef,
@@ -261,6 +264,7 @@ export function useTerminalLifecycle({
 		}
 
 		const restartTerminalSession = () => {
+			const attachAttempt = beginAttachAttempt(attachAttemptRef);
 			onViewPending?.();
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
@@ -280,10 +284,22 @@ export function useTerminalLifecycle({
 				},
 				{
 					onSuccess: (result) => {
+						if (
+							xtermRef.current !== xterm ||
+							!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+						) {
+							return;
+						}
 						pendingInitialStateRef.current = result;
 						maybeApplyInitialState();
 					},
 					onError: (error) => {
+						if (
+							xtermRef.current !== xterm ||
+							!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+						) {
+							return;
+						}
 						console.error("[Terminal] Failed to restart:", error);
 						setConnectionError(error.message || "Failed to restart terminal");
 						isStreamReadyRef.current = true;
@@ -365,8 +381,12 @@ export function useTerminalLifecycle({
 
 					activeAttachId = ++attachSequence;
 					const attachId = activeAttachId;
+					const attachAttempt = beginAttachAttempt(attachAttemptRef);
 					const isAttachActive = () =>
-						!isUnmounted && !attachCanceled && attachId === activeAttachId;
+						!isUnmounted &&
+						!attachCanceled &&
+						attachId === activeAttachId &&
+						isCurrentAttachAttempt(attachAttemptRef, attachAttempt);
 
 					markAttachInFlight(paneId, attachId);
 
@@ -691,6 +711,7 @@ export function useTerminalLifecycle({
 			if (DEBUG_TERMINAL) {
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
+			beginAttachAttempt(attachAttemptRef);
 			cancelInitialAttach();
 			isUnmounted = true;
 			attachCanceled = true;

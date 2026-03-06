@@ -9,6 +9,8 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 
+const RESTORE_WRITE_TIMEOUT_MS = 4_000;
+
 export interface UseTerminalRestoreOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
@@ -140,7 +142,12 @@ export function useTerminalRestore({
 		activeSessionGenerationRef.current = result.sessionGeneration ?? null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
+		let restoreTimeoutId: ReturnType<typeof setTimeout> | null = null;
 		try {
+			// Reattach/restart replays a full frontend snapshot. Reset the terminal
+			// surface first so restored state never layers on top of stale content.
+			xterm.reset();
+
 			const scheduleScrollToBottom = () => {
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
@@ -148,6 +155,32 @@ export function useTerminalRestore({
 					scrollToBottom(xterm);
 				});
 			};
+			let restoreCompleted = false;
+			const completeRestore = () => {
+				if (restoreCompleted) return;
+				restoreCompleted = true;
+				if (restoreTimeoutId !== null) {
+					clearTimeout(restoreTimeoutId);
+					restoreTimeoutId = null;
+				}
+				isStreamReadyRef.current = true;
+				scheduleScrollToBottom();
+				if (DEBUG_TERMINAL) {
+					console.log(
+						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
+					);
+				}
+				flushPendingEvents();
+				onViewReady?.();
+			};
+			restoreTimeoutId = setTimeout(() => {
+				if (xtermRef.current !== xterm) return;
+				if (restoreSequenceRef.current !== restoreSequence) return;
+				console.warn(
+					`[Terminal] Restore write timed out after ${RESTORE_WRITE_TIMEOUT_MS}ms: ${paneId}`,
+				);
+				completeRestore();
+			}, RESTORE_WRITE_TIMEOUT_MS);
 
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback
 			const initialAnsi = result.snapshot?.snapshotAnsi ?? result.scrollback;
@@ -197,15 +230,12 @@ export function useTerminalRestore({
 						}
 					}
 
-					isStreamReadyRef.current = true;
 					if (DEBUG_TERMINAL) {
 						console.log(
 							`[Terminal] isStreamReady=true (altScreen): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
 						);
 					}
-					flushPendingEvents();
-					onViewReady?.();
-
+					completeRestore();
 					scheduleScrollToBottom();
 				});
 
@@ -219,24 +249,12 @@ export function useTerminalRestore({
 
 			const rehydrateSequences = result.snapshot?.rehydrateSequences ?? "";
 
-			const finalizeRestore = () => {
-				isStreamReadyRef.current = true;
-				scheduleScrollToBottom();
-				if (DEBUG_TERMINAL) {
-					console.log(
-						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
-					);
-				}
-				flushPendingEvents();
-				onViewReady?.();
-			};
-
 			const writeSnapshot = () => {
 				if (!initialAnsi) {
-					finalizeRestore();
+					completeRestore();
 					return;
 				}
-				xterm.write(initialAnsi, finalizeRestore);
+				xterm.write(initialAnsi, completeRestore);
 			};
 
 			if (rehydrateSequences) {
@@ -251,6 +269,9 @@ export function useTerminalRestore({
 				updateCwdRef.current(initialAnsi);
 			}
 		} catch (error) {
+			if (restoreTimeoutId !== null) {
+				clearTimeout(restoreTimeoutId);
+			}
 			console.error("[Terminal] Restoration failed:", error);
 			isStreamReadyRef.current = true;
 			flushPendingEvents();

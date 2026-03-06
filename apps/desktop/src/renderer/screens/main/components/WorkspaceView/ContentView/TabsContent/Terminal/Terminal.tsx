@@ -45,6 +45,7 @@ const stripLeadingEmoji = (text: string) =>
 
 const TERMINAL_FONT_LOAD_TEST_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 const TERMINAL_ICON_LOAD_TEST_STRING = String.fromCodePoint(0xf024b);
+const TERMINAL_RESTORE_MASK_TIMEOUT_MS = 4_000;
 
 async function preloadTerminalFonts(
 	family: string,
@@ -103,6 +104,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const [isRendererReady, setIsRendererReady] = useState(isGhosttyReady);
 	const isExitedRef = useRef(false);
 	const activeSessionGenerationRef = useRef<string | null>(null);
+	const attachAttemptRef = useRef(0);
 	const [isTerminalViewReady, setIsTerminalViewReady] = useState(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -117,19 +119,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
-
-	useEffect(() => {
-		// React can reuse the Terminal subtree when pane props change. Reset any
-		// buffered stream/view state so a new pane never inherits the previous pane's
-		// queued output, retry budget, or exit UI.
-		pendingEventsRef.current = [];
-		commandBufferRef.current = "";
-		isExitedRef.current = false;
-		wasKilledByUserRef.current = false;
-		activeSessionGenerationRef.current = null;
-		setExitStatus(null);
-		setIsTerminalViewReady(false);
-	}, [paneId, tabId, workspaceId]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -205,11 +194,37 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			xterm: XTerm,
 		) => void
 	>(() => {});
+	const terminalViewReadyTimeoutRef = useRef<ReturnType<
+		typeof setTimeout
+	> | null>(null);
 	const markTerminalViewPending = useCallback(() => {
+		if (terminalViewReadyTimeoutRef.current) {
+			clearTimeout(terminalViewReadyTimeoutRef.current);
+		}
 		setIsTerminalViewReady(false);
-	}, []);
+		terminalViewReadyTimeoutRef.current = setTimeout(() => {
+			console.warn(
+				`[Terminal] Restore view timed out after ${TERMINAL_RESTORE_MASK_TIMEOUT_MS}ms: ${paneId}`,
+			);
+			setIsTerminalViewReady(true);
+			terminalViewReadyTimeoutRef.current = null;
+		}, TERMINAL_RESTORE_MASK_TIMEOUT_MS);
+	}, [paneId]);
 	const markTerminalViewReady = useCallback(() => {
+		if (terminalViewReadyTimeoutRef.current) {
+			clearTimeout(terminalViewReadyTimeoutRef.current);
+			terminalViewReadyTimeoutRef.current = null;
+		}
 		setIsTerminalViewReady(true);
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			if (terminalViewReadyTimeoutRef.current) {
+				clearTimeout(terminalViewReadyTimeoutRef.current);
+				terminalViewReadyTimeoutRef.current = null;
+			}
+		};
 	}, []);
 
 	const {
@@ -279,6 +294,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		tabId,
 		workspaceId,
 		xtermRef,
+		attachAttemptRef,
 		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
@@ -305,11 +321,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Auto-retry connection with exponential backoff
 	const retryCountRef = useRef(0);
 	const MAX_RETRIES = 5;
-
-	useEffect(() => {
-		retryCountRef.current = 0;
-		setConnectionError(null);
-	}, [paneId, tabId, workspaceId, setConnectionError]);
 
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
@@ -389,6 +400,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		xtermRef,
 		fitAddonRef,
 		searchAddonRef,
+		attachAttemptRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		commandBufferRef,

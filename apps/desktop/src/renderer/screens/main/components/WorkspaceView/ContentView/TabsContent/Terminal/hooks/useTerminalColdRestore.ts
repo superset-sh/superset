@@ -1,6 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { beginAttachAttempt, isCurrentAttachAttempt } from "../attach-attempt";
 import { focusTerminalInput } from "../ghostty-adapter";
 import { coldRestoreState } from "../state";
 import type {
@@ -15,6 +16,7 @@ export interface UseTerminalColdRestoreOptions {
 	tabId: string;
 	workspaceId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
+	attachAttemptRef: React.MutableRefObject<number>;
 	activeSessionGenerationRef: React.MutableRefObject<string | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
@@ -54,6 +56,7 @@ export function useTerminalColdRestore({
 	tabId,
 	workspaceId,
 	xtermRef,
+	attachAttemptRef,
 	activeSessionGenerationRef,
 	isStreamReadyRef,
 	isExitedRef,
@@ -81,6 +84,7 @@ export function useTerminalColdRestore({
 		setConnectionError(null);
 		const xterm = xtermRef.current;
 		if (!xterm) return;
+		const attachAttempt = beginAttachAttempt(attachAttemptRef);
 
 		onViewPending?.();
 		isStreamReadyRef.current = false;
@@ -97,11 +101,15 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
-					const currentXterm = xtermRef.current;
-					if (!currentXterm) return;
+					if (
+						xtermRef.current !== xterm ||
+						!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+					) {
+						return;
+					}
 
 					setConnectionError(null);
-					currentXterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
+					xterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
 
 					if (result.isColdRestore) {
 						const scrollback =
@@ -114,12 +122,17 @@ export function useTerminalColdRestore({
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
 
-						currentXterm.clear();
+						xterm.clear();
 						if (scrollback) {
-							currentXterm.write(scrollback, () => {
+							xterm.write(scrollback, () => {
 								requestAnimationFrame(() => {
-									if (xtermRef.current !== currentXterm) return;
-									scrollToBottom(currentXterm);
+									if (
+										xtermRef.current !== xterm ||
+										!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+									) {
+										return;
+									}
+									scrollToBottom(xterm);
 									onViewReady?.();
 								});
 							});
@@ -133,10 +146,16 @@ export function useTerminalColdRestore({
 					maybeApplyInitialState();
 
 					if (isFocusedRef.current) {
-						focusTerminalInput(currentXterm);
+						focusTerminalInput(xterm);
 					}
 				},
 				onError: (error: { message?: string }) => {
+					if (
+						xtermRef.current !== xterm ||
+						!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+					) {
+						return;
+					}
 					if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
 						wasKilledByUserRef.current = true;
 						isExitedRef.current = true;
@@ -157,6 +176,7 @@ export function useTerminalColdRestore({
 		tabId,
 		workspaceId,
 		xtermRef,
+		attachAttemptRef,
 		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
@@ -175,6 +195,7 @@ export function useTerminalColdRestore({
 	const handleStartShell = useCallback(() => {
 		const xterm = xtermRef.current;
 		if (!xterm) return;
+		const attachAttempt = beginAttachAttempt(attachAttemptRef);
 
 		// Drop any queued events from the pre-restore session
 		pendingEventsRef.current = [];
@@ -214,6 +235,12 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					if (
+						xtermRef.current !== xterm ||
+						!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+					) {
+						return;
+					}
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
@@ -221,13 +248,22 @@ export function useTerminalColdRestore({
 					coldRestoreState.delete(paneId);
 
 					setTimeout(() => {
-						const currentXterm = xtermRef.current;
-						if (currentXterm) {
-							focusTerminalInput(currentXterm);
+						if (
+							xtermRef.current !== xterm ||
+							!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+						) {
+							return;
 						}
+						focusTerminalInput(xterm);
 					}, 0);
 				},
 				onError: (error: { message?: string }) => {
+					if (
+						xtermRef.current !== xterm ||
+						!isCurrentAttachAttempt(attachAttemptRef, attachAttempt)
+					) {
+						return;
+					}
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
@@ -243,6 +279,7 @@ export function useTerminalColdRestore({
 		tabId,
 		workspaceId,
 		xtermRef,
+		attachAttemptRef,
 		activeSessionGenerationRef,
 		isStreamReadyRef,
 		isExitedRef,
