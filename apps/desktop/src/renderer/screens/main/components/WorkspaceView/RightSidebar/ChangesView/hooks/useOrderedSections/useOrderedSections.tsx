@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { type ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { LuUndo2 } from "react-icons/lu";
 import { getOrderedChangeSectionIds } from "renderer/stores/changes/section-order";
@@ -98,205 +98,165 @@ export function useOrderedSections({
 	isStageAllPending,
 	isUnstagedActioning,
 }: UseOrderedSectionsInput) {
-	return useMemo(() => {
-		const sectionDefinitions = {
-			"against-base": {
-				id: "against-base",
-				title: `Against ${effectiveBaseBranch}`,
-				count: againstBaseFiles.length,
-				isExpanded: expandedSections["against-base"],
-				onToggle: () => toggleSection("against-base"),
-				content: expandedSections["against-base"] ? (
-					<FileList
-						files={againstBaseFiles}
-						viewMode={fileListViewMode}
-						selectedFile={selectedFile}
-						selectedCommitHash={selectedCommitHash}
-						onFileSelect={onAgainstBaseFileSelect}
-						worktreePath={worktreePath}
-						projectId={projectId}
-						category="against-base"
-						isExpandedView={isExpandedView}
-					/>
-				) : null,
-			},
-			committed: {
-				id: "committed",
-				title: "Commits",
-				count: commitsWithFiles.length,
-				isExpanded: expandedSections.committed,
-				onToggle: () => toggleSection("committed"),
-				content: expandedSections.committed
-					? commitsWithFiles.map((commit) => (
-							<CommitItem
-								key={commit.hash}
-								commit={commit}
-								isExpanded={expandedCommits.has(commit.hash)}
-								onToggle={() => onCommitToggle(commit.hash)}
-								selectedFile={selectedFile}
-								selectedCommitHash={selectedCommitHash}
-								onFileSelect={onCommitFileSelect}
-								viewMode={fileListViewMode}
-								worktreePath={worktreePath}
-								projectId={projectId}
-								isExpandedView={isExpandedView}
-							/>
-						))
-					: null,
-			},
-			staged: {
-				id: "staged",
-				title: "Staged",
-				count: stagedFiles.length,
-				isExpanded: expandedSections.staged,
-				onToggle: () => toggleSection("staged"),
-				actions: (
-					<div className="flex items-center gap-0.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-									onClick={onShowDiscardStagedDialog}
-									disabled={isDiscardAllStagedPending}
-								>
-									<LuUndo2 className="w-3.5 h-3.5" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Discard all staged</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6"
-									onClick={onUnstageAll}
-									disabled={isUnstageAllPending}
-								>
-									<HiMiniMinus className="w-4 h-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Unstage all</TooltipContent>
-						</Tooltip>
-					</div>
-				),
-				content: expandedSections.staged ? (
-					<FileList
-						files={stagedFiles}
-						viewMode={fileListViewMode}
-						selectedFile={selectedFile}
-						selectedCommitHash={selectedCommitHash}
-						onFileSelect={onStagedFileSelect}
-						onUnstage={onUnstageFile}
-						onUnstageFiles={onUnstageFiles}
-						isActioning={isStagedActioning}
-						worktreePath={worktreePath}
-						projectId={projectId}
-						category="staged"
-						isExpandedView={isExpandedView}
-					/>
-				) : null,
-			},
-			unstaged: {
-				id: "unstaged",
-				title: "Unstaged",
-				count: unstagedFiles.length,
-				isExpanded: expandedSections.unstaged,
-				onToggle: () => toggleSection("unstaged"),
-				actions: (
-					<div className="flex items-center gap-0.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-									onClick={onShowDiscardUnstagedDialog}
-									disabled={isDiscardAllUnstagedPending}
-								>
-									<LuUndo2 className="w-3.5 h-3.5" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">
-								Discard all unstaged
-							</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6"
-									onClick={onStageAll}
-									disabled={isStageAllPending}
-								>
-									<HiMiniPlus className="w-4 h-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Stage all</TooltipContent>
-						</Tooltip>
-					</div>
-				),
-				content: expandedSections.unstaged ? (
-					<FileList
-						files={unstagedFiles}
-						viewMode={fileListViewMode}
-						selectedFile={selectedFile}
-						selectedCommitHash={selectedCommitHash}
-						onFileSelect={onUnstagedFileSelect}
-						onStage={onStageFile}
-						onStageFiles={onStageFiles}
-						isActioning={isUnstagedActioning}
-						worktreePath={worktreePath}
-						projectId={projectId}
-						onDiscard={onDiscardFile}
-						category="unstaged"
-						isExpandedView={isExpandedView}
-					/>
-				) : null,
-			},
-		} satisfies Record<ChangeCategory, OrderedSection>;
+	const sectionDefinitions = {
+		"against-base": {
+			id: "against-base",
+			title: `Against ${effectiveBaseBranch}`,
+			count: againstBaseFiles.length,
+			isExpanded: expandedSections["against-base"],
+			onToggle: () => toggleSection("against-base"),
+			content: expandedSections["against-base"] ? (
+				<FileList
+					files={againstBaseFiles}
+					viewMode={fileListViewMode}
+					selectedFile={selectedFile}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={onAgainstBaseFileSelect}
+					worktreePath={worktreePath}
+					projectId={projectId}
+					category="against-base"
+					isExpandedView={isExpandedView}
+				/>
+			) : null,
+		},
+		committed: {
+			id: "committed",
+			title: "Commits",
+			count: commitsWithFiles.length,
+			isExpanded: expandedSections.committed,
+			onToggle: () => toggleSection("committed"),
+			content: expandedSections.committed
+				? commitsWithFiles.map((commit) => (
+						<CommitItem
+							key={commit.hash}
+							commit={commit}
+							isExpanded={expandedCommits.has(commit.hash)}
+							onToggle={() => onCommitToggle(commit.hash)}
+							selectedFile={selectedFile}
+							selectedCommitHash={selectedCommitHash}
+							onFileSelect={onCommitFileSelect}
+							viewMode={fileListViewMode}
+							worktreePath={worktreePath}
+							projectId={projectId}
+							isExpandedView={isExpandedView}
+						/>
+					))
+				: null,
+		},
+		staged: {
+			id: "staged",
+			title: "Staged",
+			count: stagedFiles.length,
+			isExpanded: expandedSections.staged,
+			onToggle: () => toggleSection("staged"),
+			actions: (
+				<div className="flex items-center gap-0.5">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+								onClick={onShowDiscardStagedDialog}
+								disabled={isDiscardAllStagedPending}
+							>
+								<LuUndo2 className="w-3.5 h-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">Discard all staged</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6"
+								onClick={onUnstageAll}
+								disabled={isUnstageAllPending}
+							>
+								<HiMiniMinus className="w-4 h-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">Unstage all</TooltipContent>
+					</Tooltip>
+				</div>
+			),
+			content: expandedSections.staged ? (
+				<FileList
+					files={stagedFiles}
+					viewMode={fileListViewMode}
+					selectedFile={selectedFile}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={onStagedFileSelect}
+					onUnstage={onUnstageFile}
+					onUnstageFiles={onUnstageFiles}
+					isActioning={isStagedActioning}
+					worktreePath={worktreePath}
+					projectId={projectId}
+					category="staged"
+					isExpandedView={isExpandedView}
+				/>
+			) : null,
+		},
+		unstaged: {
+			id: "unstaged",
+			title: "Unstaged",
+			count: unstagedFiles.length,
+			isExpanded: expandedSections.unstaged,
+			onToggle: () => toggleSection("unstaged"),
+			actions: (
+				<div className="flex items-center gap-0.5">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+								onClick={onShowDiscardUnstagedDialog}
+								disabled={isDiscardAllUnstagedPending}
+							>
+								<LuUndo2 className="w-3.5 h-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">Discard all unstaged</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6"
+								onClick={onStageAll}
+								disabled={isStageAllPending}
+							>
+								<HiMiniPlus className="w-4 h-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">Stage all</TooltipContent>
+					</Tooltip>
+				</div>
+			),
+			content: expandedSections.unstaged ? (
+				<FileList
+					files={unstagedFiles}
+					viewMode={fileListViewMode}
+					selectedFile={selectedFile}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={onUnstagedFileSelect}
+					onStage={onStageFile}
+					onStageFiles={onStageFiles}
+					isActioning={isUnstagedActioning}
+					worktreePath={worktreePath}
+					projectId={projectId}
+					onDiscard={onDiscardFile}
+					category="unstaged"
+					isExpandedView={isExpandedView}
+				/>
+			) : null,
+		},
+	} satisfies Record<ChangeCategory, OrderedSection>;
 
-		return getOrderedChangeSectionIds(sectionOrder).map(
-			(section) => sectionDefinitions[section],
-		);
-	}, [
-		againstBaseFiles,
-		commitsWithFiles,
-		effectiveBaseBranch,
-		expandedCommits,
-		expandedSections,
-		fileListViewMode,
-		isDiscardAllStagedPending,
-		isDiscardAllUnstagedPending,
-		isExpandedView,
-		isStageAllPending,
-		isStagedActioning,
-		isUnstageAllPending,
-		isUnstagedActioning,
-		onAgainstBaseFileSelect,
-		onCommitFileSelect,
-		onCommitToggle,
-		onDiscardFile,
-		onShowDiscardStagedDialog,
-		onShowDiscardUnstagedDialog,
-		onStageAll,
-		onStageFile,
-		onStageFiles,
-		onStagedFileSelect,
-		onUnstageAll,
-		onUnstageFile,
-		onUnstageFiles,
-		onUnstagedFileSelect,
-		projectId,
-		sectionOrder,
-		selectedCommitHash,
-		selectedFile,
-		stagedFiles,
-		toggleSection,
-		unstagedFiles,
-		worktreePath,
-	]);
+	return getOrderedChangeSectionIds(sectionOrder).map(
+		(section) => sectionDefinitions[section],
+	);
 }

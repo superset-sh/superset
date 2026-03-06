@@ -208,19 +208,21 @@ export function InfiniteScrollView({
 							isActioning={isActioning}
 						/>
 					)
-				: orderedSections.map((section) => (
-						<div key={section.id}>
-							<CategoryHeader
-								id={section.id}
-								title={section.title}
-								count={section.count}
-								isExpanded={section.isExpanded}
-								onToggle={section.onToggle}
-								onMove={moveSection}
-							/>
-							{section.content}
-						</div>
-					))}
+				: orderedSections
+						.filter((section) => section.count > 0)
+						.map((section) => (
+							<div key={section.id}>
+								<CategoryHeader
+									id={section.id}
+									title={section.title}
+									count={section.count}
+									isExpanded={section.isExpanded}
+									onToggle={section.onToggle}
+									onMove={moveSection}
+								/>
+								{section.content}
+							</div>
+						))}
 		</div>
 	);
 }

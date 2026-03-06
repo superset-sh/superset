@@ -14,10 +14,12 @@ export function normalizeChangeSectionOrder(
 		return [...DEFAULT_CHANGE_SECTION_ORDER];
 	}
 
+	const validSections = new Set(DEFAULT_CHANGE_SECTION_ORDER);
 	const seen = new Set<ChangeCategory>();
 	const normalized: ChangeCategory[] = [];
 
 	for (const section of sectionOrder) {
+		if (!validSections.has(section)) continue;
 		if (seen.has(section)) continue;
 		seen.add(section);
 		normalized.push(section);

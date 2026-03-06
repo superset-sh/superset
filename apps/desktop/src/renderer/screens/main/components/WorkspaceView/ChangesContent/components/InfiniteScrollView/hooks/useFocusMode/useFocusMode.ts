@@ -155,6 +155,7 @@ export function useFocusMode({
 							startIndex: offset,
 							count: sortedUnstaged.length,
 						});
+						offset += sortedUnstaged.length;
 					}
 					break;
 			}
