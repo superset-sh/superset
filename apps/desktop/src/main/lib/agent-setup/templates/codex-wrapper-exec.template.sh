@@ -72,6 +72,12 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
   SUPERSET_CODEX_START_WATCHER_PID=$!
 fi
 
+# If codex resolves to a shim (for example taskmaster), provide the underlying
+# binary so shim wrappers can avoid rebounding into Superset's wrapper path.
+if [ -z "$TASKMASTER_REAL_CODEX_BIN" ] && [ -n "$REAL_BIN_ROOT" ] && [ "$REAL_BIN_ROOT" != "$REAL_BIN" ]; then
+  export TASKMASTER_REAL_CODEX_BIN="$REAL_BIN_ROOT"
+fi
+
 "$REAL_BIN" -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 
