@@ -3,15 +3,13 @@
  * "When I switch between terminal tab and browser tab the terminal stuck for a
  * while to load. Additionally, the terminal leaving a large blank space."
  *
- * Root cause: `scheduleReattachRecovery` in useTerminalLifecycle.ts silently
- * drops recovery requests when called within the 120ms throttle window, with
- * no retry scheduled.
+ * Original root cause: `scheduleReattachRecovery` in useTerminalLifecycle.ts
+ * throttled recovery requests within the 120ms window without scheduling a
+ * retry.
  *
  * When a user returns from an external browser to the Electron app, the
- * `window.focus` event fires and schedules reattach recovery. This recovery:
- *   1. Clears the stale WebGL texture atlas (`clearTextureAtlas`)
- *   2. Re-fits the terminal to its container (`fitAddon.fit()`)
- *   3. Forces a full repaint (`xterm.refresh()`)
+ * `window.focus` event fires and schedules reattach recovery. This recovery
+ * forces a PTY-first resize and re-focuses the active Ghostty input surface.
  *
  * If the user switches focus multiple times in rapid succession (within 120ms),
  * subsequent recovery calls hit the throttle and return early — without ever
@@ -115,7 +113,7 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		expect(calls).toBe(1);
 	});
 
-	it("second schedule within 120ms throttle window is silently dropped", () => {
+	it("second schedule within 120ms throttle window is deferred", () => {
 		let calls = 0;
 		const { schedule, flush, state } = makeScheduler(() => {
 			calls++;
@@ -127,21 +125,14 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		schedule(false);
 		flush();
 
-		// Recovery was dropped because lastRunAt is only 50ms ago (< 120ms throttle)
+		// Recovery is deferred because lastRunAt is only 50ms ago (< 120ms throttle)
 		expect(calls).toBe(0);
 	});
 
 	/**
-	 * REPRODUCTION TEST — this test currently FAILS, demonstrating the bug.
-	 *
 	 * Expected behaviour: when a recovery call is throttled, a retry should be
 	 * scheduled to run after the remaining throttle window expires. Without a
 	 * retry the terminal is permanently blank until the user resizes the window.
-	 *
-	 * Fix: in scheduleReattachRecovery (useTerminalLifecycle.ts), when the
-	 * throttle fires, add:
-	 *   const remaining = reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
-	 *   setTimeout(() => { if (!isUnmounted) scheduleReattachRecovery(reattachRecovery.pendingForceResize); }, remaining + 1);
 	 */
 	it("throttled recovery is retried after throttle window expires", async () => {
 		let calls = 0;
@@ -152,7 +143,7 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// Simulate a recovery that ran 50ms ago (within the 120ms throttle window)
 		state.lastRunAt = Date.now() - 50;
 
-		// This call hits the throttle; current code silently drops it
+		// This call hits the throttle and is deferred.
 		schedule(false);
 		flush();
 		expect(calls).toBe(0); // correctly throttled
@@ -163,8 +154,6 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// With the fix, a setTimeout was scheduled that queued a new rAF
 		flush(); // run the retried rAF
 
-		// FAILS with current code: calls is still 0 because no retry was scheduled
-		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
 	});
 });

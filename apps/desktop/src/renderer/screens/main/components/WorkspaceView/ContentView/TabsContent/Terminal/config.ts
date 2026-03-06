@@ -3,9 +3,6 @@ import type { ITerminalOptions } from "ghostty-web";
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 
-// Fallback timeout for first render (in case xterm doesn't emit onRender)
-export const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
-
 // Debug logging for terminal lifecycle (enable via localStorage)
 // Run in DevTools console: localStorage.setItem('SUPERSET_TERMINAL_DEBUG', '1')
 export const DEBUG_TERMINAL =

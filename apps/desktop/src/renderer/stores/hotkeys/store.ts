@@ -42,6 +42,12 @@ const DEFAULT_STATE: HotkeysState = {
 	byPlatform: { darwin: {}, win32: {}, linux: {} },
 };
 
+const FORWARDED_APP_HOTKEY_EVENT = "superset:app-hotkey";
+
+type ForwardedAppHotkeyDetail = {
+	keyboardEvent: KeyboardEvent;
+};
+
 function getOverridesForPlatform(
 	state: HotkeysState,
 	platform: HotkeyPlatform,
@@ -349,9 +355,39 @@ export function useAppHotkey(
 			callbackRef.current(event, undefined);
 		};
 
+		const onForwardedHotkey = (event: Event) => {
+			const forwarded = event as CustomEvent<ForwardedAppHotkeyDetail>;
+			const keyboardEvent = forwarded.detail?.keyboardEvent;
+			if (!keyboardEvent || !matchesHotkeyEvent(keyboardEvent, keys)) return;
+			callbackRef.current(keyboardEvent, forwarded);
+		};
+
 		document.addEventListener("keydown", onKeyDown);
+		document.addEventListener(
+			FORWARDED_APP_HOTKEY_EVENT,
+			onForwardedHotkey as EventListener,
+		);
 		return () => {
 			document.removeEventListener("keydown", onKeyDown);
+			document.removeEventListener(
+				FORWARDED_APP_HOTKEY_EVENT,
+				onForwardedHotkey as EventListener,
+			);
 		};
 	}, [enabled, keys, preventDefault]);
+}
+
+export function forwardAppHotkeyEvent(event: KeyboardEvent): void {
+	if (
+		typeof document === "undefined" ||
+		typeof document.dispatchEvent !== "function"
+	) {
+		return;
+	}
+
+	document.dispatchEvent(
+		new CustomEvent<ForwardedAppHotkeyDetail>(FORWARDED_APP_HOTKEY_EVENT, {
+			detail: { keyboardEvent: event },
+		}),
+	);
 }

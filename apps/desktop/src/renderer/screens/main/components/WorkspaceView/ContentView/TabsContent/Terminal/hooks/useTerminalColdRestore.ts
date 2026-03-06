@@ -1,5 +1,4 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
-import type { FitAddon } from "ghostty-web";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { focusTerminalInput } from "../helpers";
@@ -16,12 +15,10 @@ export interface UseTerminalColdRestoreOptions {
 	tabId: string;
 	workspaceId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
-	fitAddonRef: React.MutableRefObject<FitAddon | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
 	isFocusedRef: React.MutableRefObject<boolean>;
-	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
@@ -54,12 +51,10 @@ export function useTerminalColdRestore({
 	tabId,
 	workspaceId,
 	xtermRef,
-	fitAddonRef,
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	isFocusedRef,
-	didFirstRenderRef,
 	pendingInitialStateRef,
 	pendingEventsRef,
 	createOrAttachRef,
@@ -120,8 +115,6 @@ export function useTerminalColdRestore({
 								});
 							});
 						}
-
-						didFirstRenderRef.current = true;
 						return;
 					}
 
@@ -156,7 +149,6 @@ export function useTerminalColdRestore({
 		isExitedRef,
 		wasKilledByUserRef,
 		isFocusedRef,
-		didFirstRenderRef,
 		pendingInitialStateRef,
 		createOrAttachRef,
 		setConnectionError,
@@ -167,8 +159,7 @@ export function useTerminalColdRestore({
 
 	const handleStartShell = useCallback(() => {
 		const xterm = xtermRef.current;
-		const fitAddon = fitAddonRef.current;
-		if (!xterm || !fitAddon) return;
+		if (!xterm) return;
 
 		// Drop any queued events from the pre-restore session
 		pendingEventsRef.current = [];
@@ -234,7 +225,6 @@ export function useTerminalColdRestore({
 		tabId,
 		workspaceId,
 		xtermRef,
-		fitAddonRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,

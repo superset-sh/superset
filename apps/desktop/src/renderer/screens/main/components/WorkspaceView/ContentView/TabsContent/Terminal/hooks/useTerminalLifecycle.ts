@@ -1,4 +1,4 @@
-import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
+import type { ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { FitAddon } from "ghostty-web";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -6,7 +6,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
-import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
+import { DEBUG_TERMINAL } from "../config";
 import {
 	blurTerminalInput,
 	createTerminalInstance,
@@ -17,7 +17,6 @@ import {
 	setupKeyboardHandler,
 	setupPasteHandler,
 	setupResizeHandlers,
-	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
@@ -89,7 +88,6 @@ export interface UseTerminalLifecycleOptions {
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<TerminalSearchAdapter | null>;
-	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
@@ -114,7 +112,6 @@ export interface UseTerminalLifecycleOptions {
 	detachRef: MutableRefObject<TerminalDetachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
 	isStreamReadyRef: MutableRefObject<boolean>;
-	didFirstRenderRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
@@ -152,7 +149,6 @@ export function useTerminalLifecycle({
 	xtermRef,
 	fitAddonRef,
 	searchAddonRef,
-	rendererRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	commandBufferRef,
@@ -175,7 +171,6 @@ export function useTerminalLifecycle({
 	detachRef,
 	clearScrollbackRef,
 	isStreamReadyRef,
-	didFirstRenderRef,
 	pendingInitialStateRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
@@ -221,12 +216,7 @@ export function useTerminalLifecycle({
 		let activeAttachId = 0;
 		let cancelAttachWait: (() => void) | null = null;
 
-		const {
-			xterm,
-			fitAddon,
-			renderer,
-			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
+		const { xterm, fitAddon } = createTerminalInstance(container, {
 			cwd: workspaceCwdRef.current ?? undefined,
 			initialTheme: initialThemeRef.current,
 			onFileLinkClick: (path, line, column) =>
@@ -243,11 +233,9 @@ export function useTerminalLifecycle({
 
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
-		rendererRef.current = renderer;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
 		isStreamReadyRef.current = false;
-		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
@@ -264,27 +252,6 @@ export function useTerminalLifecycle({
 		if (!isUnmounted) {
 			searchAddonRef.current = createTerminalSearchAdapter(xterm);
 		}
-
-		// Wait for first render before applying restoration
-		let renderDisposable: IDisposable | null = null;
-		let firstRenderFallback: ReturnType<typeof setTimeout> | null = null;
-
-		renderDisposable = xterm.onRender(() => {
-			if (firstRenderFallback) {
-				clearTimeout(firstRenderFallback);
-				firstRenderFallback = null;
-			}
-			renderDisposable?.dispose();
-			renderDisposable = null;
-			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		});
-
-		firstRenderFallback = setTimeout(() => {
-			if (isUnmounted || didFirstRenderRef.current) return;
-			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
 		const restartTerminalSession = () => {
 			isExitedRef.current = false;
@@ -427,7 +394,6 @@ export function useTerminalLifecycle({
 											scheduleScrollToBottom,
 										);
 									}
-									didFirstRenderRef.current = true;
 									return;
 								}
 
@@ -444,7 +410,6 @@ export function useTerminalLifecycle({
 									if (scrollback && xterm) {
 										xterm.write(scrollback, scheduleScrollToBottom);
 									}
-									didFirstRenderRef.current = true;
 									return;
 								}
 
@@ -646,9 +611,6 @@ export function useTerminalLifecycle({
 			if (!isCurrentTerminalRenderable()) return;
 
 			const wasAtBottom = isTerminalAtBottom(xterm);
-
-			// Rebuild stale renderer state after occlusion.
-			rendererRef.current?.current.clearTextureAtlas?.();
 			schedulePtyFirstResize({ force: forceResize, wasAtBottom });
 
 			if (isFocusedRef.current && document.hasFocus()) {
@@ -717,7 +679,6 @@ export function useTerminalLifecycle({
 				cancelAttachWait = null;
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
-			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", handleWindowFocus);
@@ -734,7 +695,6 @@ export function useTerminalLifecycle({
 			cleanupResize();
 			cleanupPaste();
 			cleanupCopy();
-			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			unregisterGetSelectionCallbackRef.current(paneId);
@@ -755,17 +715,14 @@ export function useTerminalLifecycle({
 			}
 
 			isStreamReadyRef.current = false;
-			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			resetModes();
-			renderDisposable?.dispose();
 
 			xterm.dispose();
 			container.replaceChildren();
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;
-			rendererRef.current = null;
 			setXtermInstance(null);
 		};
 	}, [

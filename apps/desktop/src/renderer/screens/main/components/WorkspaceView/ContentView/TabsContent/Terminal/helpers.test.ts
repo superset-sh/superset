@@ -30,9 +30,13 @@ mock.module("renderer/lib/trpc-client", () => ({
 	electronReactClient: {},
 }));
 
+const forwardAppHotkeyEventMock = mock(() => {});
+let isAppHotkeyEventResult = false;
+
 mock.module("renderer/stores/hotkeys", () => ({
 	getHotkeyKeys: (id: string) => (id === "CLEAR_TERMINAL" ? "meta+k" : null),
-	isAppHotkeyEvent: () => false,
+	forwardAppHotkeyEvent: forwardAppHotkeyEventMock,
+	isAppHotkeyEvent: () => isAppHotkeyEventResult,
 }));
 
 // Import after mocks are set up
@@ -125,6 +129,11 @@ describe("getDefaultTerminalBg", () => {
 });
 
 describe("setupKeyboardHandler", () => {
+	beforeEach(() => {
+		forwardAppHotkeyEventMock.mockClear();
+		isAppHotkeyEventResult = false;
+	});
+
 	it("attaches and cleans up the custom key handler", () => {
 		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
 			handler: null,
@@ -195,6 +204,46 @@ describe("setupKeyboardHandler", () => {
 		} as KeyboardEvent);
 		expect(result).toBe(true);
 		expect(onClear).toHaveBeenCalledTimes(1);
+	});
+
+	it("forwards app hotkeys into the app layer and blocks terminal input", () => {
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		isAppHotkeyEventResult = true;
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+
+		const preventDefault = mock(() => {});
+		const stopPropagation = mock(() => {});
+		const stopImmediatePropagation = mock(() => {});
+		const event = {
+			type: "keydown",
+			key: "d",
+			code: "KeyD",
+			metaKey: true,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+			preventDefault,
+			stopPropagation,
+			stopImmediatePropagation,
+		} as unknown as KeyboardEvent;
+
+		const result = captured.handler?.(event);
+		expect(result).toBe(true);
+		expect(preventDefault).toHaveBeenCalledTimes(1);
+		expect(stopPropagation).toHaveBeenCalledTimes(1);
+		expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+		expect(forwardAppHotkeyEventMock).toHaveBeenCalledWith(event);
 	});
 });
 

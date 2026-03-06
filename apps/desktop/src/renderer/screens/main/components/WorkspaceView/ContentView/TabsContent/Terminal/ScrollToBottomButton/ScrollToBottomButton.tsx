@@ -25,11 +25,9 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 		checkScrollPosition();
 
-		const renderDisposable = terminal.onRender(() => checkScrollPosition());
 		const scrollDisposable = terminal.onScroll(checkScrollPosition);
 
 		return () => {
-			renderDisposable.dispose();
 			scrollDisposable.dispose();
 		};
 	}, [terminal, checkScrollPosition]);

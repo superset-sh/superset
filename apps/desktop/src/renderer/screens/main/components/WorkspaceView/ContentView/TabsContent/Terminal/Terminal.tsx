@@ -16,7 +16,7 @@ import {
 	resolveTerminalFontFamily,
 	TERMINAL_ICON_FALLBACK_FAMILY,
 } from "./font-family";
-import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
+import { getDefaultTerminalBg } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -111,7 +111,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<TerminalSearchAdapter | null>(null);
-	const rendererRef = useRef<TerminalRendererRef | null>(null);
 	const [isRendererReady, setIsRendererReady] = useState(false);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
@@ -237,14 +236,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Terminal restore logic
 	const {
 		isStreamReadyRef,
-		didFirstRenderRef,
 		pendingInitialStateRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
 	} = useTerminalRestore({
 		paneId,
 		xtermRef,
-		fitAddonRef,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -270,12 +267,10 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		tabId,
 		workspaceId,
 		xtermRef,
-		fitAddonRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		isFocusedRef,
-		didFirstRenderRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
 		createOrAttachRef,
@@ -373,7 +368,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		xtermRef,
 		fitAddonRef,
 		searchAddonRef,
-		rendererRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		commandBufferRef,
@@ -396,7 +390,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		detachRef,
 		clearScrollbackRef,
 		isStreamReadyRef,
-		didFirstRenderRef,
 		pendingInitialStateRef,
 		maybeApplyInitialState,
 		flushPendingEvents,

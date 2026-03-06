@@ -1,5 +1,4 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
-import type { FitAddon } from "ghostty-web";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
 import type {
@@ -12,7 +11,6 @@ import { scrollToBottom } from "../utils";
 export interface UseTerminalRestoreOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
-	fitAddonRef: React.MutableRefObject<FitAddon | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	isAlternateScreenRef: React.MutableRefObject<boolean>;
 	isBracketedPasteRef: React.MutableRefObject<boolean>;
@@ -33,9 +31,7 @@ export interface UseTerminalRestoreOptions {
 
 export interface UseTerminalRestoreReturn {
 	isStreamReadyRef: React.MutableRefObject<boolean>;
-	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
-	restoreSequenceRef: React.MutableRefObject<number>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 }
@@ -52,7 +48,6 @@ export interface UseTerminalRestoreReturn {
 export function useTerminalRestore({
 	paneId,
 	xtermRef,
-	fitAddonRef,
 	pendingEventsRef,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
@@ -65,8 +60,6 @@ export function useTerminalRestore({
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
-	// Gate restoration until xterm has rendered at least once
-	const didFirstRenderRef = useRef(false);
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
 	const restoreSequenceRef = useRef(0);
 
@@ -107,24 +100,21 @@ export function useTerminalRestore({
 	}, [xtermRef, pendingEventsRef]);
 
 	const maybeApplyInitialState = useCallback(() => {
-		if (!didFirstRenderRef.current) return;
 		const result = pendingInitialStateRef.current;
 		if (!result) return;
 
 		const xterm = xtermRef.current;
-		const fitAddon = fitAddonRef.current;
-		if (!xterm || !fitAddon) return;
+		if (!xterm) return;
 
 		// Clear before applying to prevent double-apply on concurrent triggers
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
 		try {
-			const scheduleFitAndScroll = () => {
+			const scheduleScrollToBottom = () => {
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
-					fitAddon.fit();
 					scrollToBottom(xterm);
 				});
 			};
@@ -162,7 +152,7 @@ export function useTerminalRestore({
 			const isAltScreenReattach =
 				!result.isNew && result.snapshot?.modes.alternateScreen;
 
-			// For alt-screen (TUI) sessions, enter alt-screen and trigger SIGWINCH
+			// For alt-screen (TUI) sessions, re-enter the alternate screen buffer first.
 			if (isAltScreenReattach) {
 				xterm.write("\x1b[?1049h", () => {
 					if (result.snapshot?.rehydrateSequences) {
@@ -185,7 +175,7 @@ export function useTerminalRestore({
 					}
 					flushPendingEvents();
 
-					scheduleFitAndScroll();
+					scheduleScrollToBottom();
 				});
 
 				if (result.snapshot?.cwd) {
@@ -200,7 +190,7 @@ export function useTerminalRestore({
 
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
-				scheduleFitAndScroll();
+				scheduleScrollToBottom();
 				if (DEBUG_TERMINAL) {
 					console.log(
 						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
@@ -236,7 +226,6 @@ export function useTerminalRestore({
 	}, [
 		paneId,
 		xtermRef,
-		fitAddonRef,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -246,9 +235,7 @@ export function useTerminalRestore({
 
 	return {
 		isStreamReadyRef,
-		didFirstRenderRef,
 		pendingInitialStateRef,
-		restoreSequenceRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
 	};

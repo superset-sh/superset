@@ -2,7 +2,11 @@ import { toast } from "@superset/ui/sonner";
 import type { ITheme, Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon, Terminal as GhosttyTerminal } from "ghostty-web";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
+import {
+	forwardAppHotkeyEvent,
+	getHotkeyKeys,
+	isAppHotkeyEvent,
+} from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
 import {
@@ -12,7 +16,6 @@ import {
 } from "shared/themes";
 import { TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
-import { suppressQueryResponses } from "./suppressQueryResponses";
 import { isTerminalAtBottom } from "./utils";
 
 /**
@@ -51,28 +54,11 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
-/**
- * Renderer metadata (ghostty-web uses an internal canvas renderer).
- */
-export type TerminalRenderer = {
-	kind: "canvas";
-	dispose: () => void;
-	clearTextureAtlas?: () => void;
-};
-
 export interface CreateTerminalOptions {
 	cwd?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
-}
-
-/**
- * Mutable reference to the terminal renderer.
- * Used because the GPU renderer is loaded asynchronously after the terminal is created.
- */
-export interface TerminalRendererRef {
-	current: TerminalRenderer;
 }
 
 export function createTerminalInstance(
@@ -81,8 +67,6 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	renderer: TerminalRendererRef;
-	cleanup: () => void;
 } {
 	const {
 		cwd,
@@ -97,21 +81,11 @@ export function createTerminalInstance(
 	const xterm = new GhosttyTerminal(terminalOptions) as unknown as XTerm;
 	const fitAddon = new FitAddon();
 
-	const rendererRef: TerminalRendererRef = {
-		current: {
-			kind: "canvas",
-			dispose: () => {},
-			clearTextureAtlas: undefined,
-		},
-	};
-
 	// StrictMode and rapid pane remounts can leave stale ghostty-web DOM behind
 	// for a tick. Clear it before opening a new terminal to avoid double cursors.
 	container.replaceChildren();
 	xterm.open(container);
 	xterm.loadAddon(fitAddon);
-
-	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
 		const handler = urlClickRef?.current;
@@ -162,11 +136,6 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
-		renderer: rendererRef,
-		cleanup: () => {
-			cleanupQuerySuppression();
-			rendererRef.current.dispose();
-		},
 	};
 }
 
@@ -404,7 +373,7 @@ export function setupPasteHandler(
 
 /**
  * Setup keyboard handling for terminal including:
- * - Shortcut forwarding: app hotkeys bubble to document where useAppHotkey listens
+ * - Shortcut forwarding: app hotkeys are explicitly forwarded to useAppHotkey
  * - Clear terminal: uses the configured clear shortcut
  *
  * Returns a cleanup function to remove the handler.
@@ -428,8 +397,12 @@ export function setupKeyboardHandler(
 		}
 
 		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent terminal from processing the key.
-			// The original event bubbles to document where useAppHotkey handles it.
+			if (event.type === "keydown") {
+				event.preventDefault();
+				event.stopPropagation();
+				event.stopImmediatePropagation?.();
+				forwardAppHotkeyEvent(event);
+			}
 			return false;
 		}
 
