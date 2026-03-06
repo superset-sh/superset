@@ -203,13 +203,16 @@ export function FileViewerContent({
 		}
 
 		return (
-			<LightDiffViewer
-				key={filePath}
-				contents={diffData}
-				viewMode={diffViewMode}
-				hideUnchangedRegions={hideUnchangedRegions}
-				filePath={filePath}
-			/>
+			<div className="h-full min-h-0 overflow-auto bg-background">
+				<LightDiffViewer
+					key={filePath}
+					contents={diffData}
+					viewMode={diffViewMode}
+					hideUnchangedRegions={hideUnchangedRegions}
+					filePath={filePath}
+					className="min-h-full"
+				/>
+			</div>
 		);
 	}
 

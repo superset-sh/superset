@@ -5,12 +5,7 @@ import {
 	indentWithTab,
 	selectAll,
 } from "@codemirror/commands";
-import {
-	bracketMatching,
-	defaultHighlightStyle,
-	indentOnInput,
-	syntaxHighlighting,
-} from "@codemirror/language";
+import { bracketMatching, indentOnInput } from "@codemirror/language";
 import {
 	highlightSelectionMatches,
 	openSearchPanel,
@@ -18,7 +13,6 @@ import {
 	selectSelectionMatches,
 } from "@codemirror/search";
 import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
 import {
 	drawSelection,
 	dropCursor,
@@ -34,6 +28,7 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores/theme";
 import type { CodeEditorAdapter } from "../../ContentView/components";
+import { getCodeSyntaxHighlighting } from "../../utils/code-theme";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { loadLanguageSupport } from "./loadLanguageSupport";
 
@@ -209,33 +204,17 @@ export function CodeEditor({
 					...searchKeymap,
 				]),
 				saveKeymap,
-				themeCompartment.of(
-					activeTheme?.type === "dark"
-						? [
-								oneDark,
-								createCodeMirrorTheme(
-									activeTheme,
-									{
-										fontFamily: editorFontFamily,
-										fontSize: editorFontSize,
-									},
-									fillHeight,
-								),
-							]
-						: [
-								syntaxHighlighting(defaultHighlightStyle, {
-									fallback: true,
-								}),
-								createCodeMirrorTheme(
-									activeTheme,
-									{
-										fontFamily: editorFontFamily,
-										fontSize: editorFontSize,
-									},
-									fillHeight,
-								),
-							],
-				),
+				themeCompartment.of([
+					getCodeSyntaxHighlighting(activeTheme),
+					createCodeMirrorTheme(
+						activeTheme,
+						{
+							fontFamily: editorFontFamily,
+							fontSize: editorFontSize,
+						},
+						fillHeight,
+					),
+				]),
 				languageCompartment.of([]),
 				updateListener,
 			],
@@ -281,31 +260,17 @@ export function CodeEditor({
 		if (!view) return;
 
 		view.dispatch({
-			effects: themeCompartment.reconfigure(
-				activeTheme?.type === "dark"
-					? [
-							oneDark,
-							createCodeMirrorTheme(
-								activeTheme,
-								{
-									fontFamily: editorFontFamily,
-									fontSize: editorFontSize,
-								},
-								fillHeight,
-							),
-						]
-					: [
-							syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-							createCodeMirrorTheme(
-								activeTheme,
-								{
-									fontFamily: editorFontFamily,
-									fontSize: editorFontSize,
-								},
-								fillHeight,
-							),
-						],
-			),
+			effects: themeCompartment.reconfigure([
+				getCodeSyntaxHighlighting(activeTheme),
+				createCodeMirrorTheme(
+					activeTheme,
+					{
+						fontFamily: editorFontFamily,
+						fontSize: editorFontSize,
+					},
+					fillHeight,
+				),
+			]),
 		});
 	}, [
 		activeTheme,
