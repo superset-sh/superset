@@ -17,11 +17,22 @@ export function SessionsSection() {
 
 	const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
+	const { data: allWorkspaces } = electronTrpc.workspaces.getAll.useQuery();
 	const sessions = daemonSessions?.sessions ?? [];
 	const aliveSessions = useMemo(
 		() => sessions.filter((session) => session.isAlive),
 		[sessions],
 	);
+	const workspaceNames = useMemo(() => {
+		if (!allWorkspaces) return {};
+		return allWorkspaces.reduce(
+			(acc, workspace) => {
+				acc[workspace.id] = workspace.name;
+				return acc;
+			},
+			{} as Record<string, string>,
+		);
+	}, [allWorkspaces]);
 	const sessionsSorted = useMemo(() => {
 		return [...aliveSessions].sort((a, b) => {
 			if (a.attachedClients !== b.attachedClients) {
@@ -200,7 +211,9 @@ export function SessionsSection() {
 										<th className="px-2 py-2 text-left font-medium">
 											Workspace
 										</th>
-										<th className="px-2 py-2 text-left font-medium">Session</th>
+										<th className="px-2 py-2 text-left font-medium">
+											Session / Created
+										</th>
 										<th className="px-2 py-2 text-right font-medium">
 											Clients
 										</th>
@@ -214,11 +227,22 @@ export function SessionsSection() {
 								<tbody className="divide-y divide-border/60">
 									{sessionsSorted.map((session) => (
 										<tr key={session.sessionId} className="hover:bg-muted/30">
-											<td className="px-2 py-2 font-mono">
-												{session.workspaceId}
+											<td className="px-2 py-2 align-top">
+												<div className="min-w-0">
+													<div className="truncate font-medium">
+														{workspaceNames[session.workspaceId] ??
+															"Unknown workspace"}
+													</div>
+													<div className="font-mono text-[11px] text-muted-foreground">
+														{session.workspaceId}
+													</div>
+												</div>
 											</td>
-											<td className="px-2 py-2 font-mono">
-												{session.sessionId}
+											<td className="px-2 py-2 align-top">
+												<div className="font-mono">{session.sessionId}</div>
+												<div className="text-[11px] text-muted-foreground">
+													{formatTimestamp(session.createdAt)}
+												</div>
 											</td>
 											<td className="px-2 py-2 text-right">
 												{session.attachedClients}
