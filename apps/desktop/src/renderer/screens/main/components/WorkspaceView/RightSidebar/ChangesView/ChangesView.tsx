@@ -19,7 +19,7 @@ import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { useOrderedSections } from "./hooks";
-import { getPRActionState } from "./utils";
+import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -338,8 +338,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		pullCount: status?.pullCount ?? 0,
 		isDefaultBranch,
 	});
-	const shouldAutoCreatePRAfterPublish =
-		hasGitHubRepo && !isDefaultBranch && !hasExistingPR;
+	const shouldAutoCreatePR =
+		hasGitHubRepo &&
+		shouldAutoCreatePRAfterPublish({
+			hasExistingPR,
+			isDefaultBranch,
+		});
 	const orderedSections = useOrderedSections({
 		sectionOrder,
 		effectiveBaseBranch: effectiveBaseBranch ?? "",
@@ -472,7 +476,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
 				canCreatePR={prActionState.canCreatePR}
-				shouldAutoCreatePRAfterPublish={shouldAutoCreatePRAfterPublish}
+				shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
 			/>
