@@ -306,7 +306,7 @@ function mapPRState(
 	return "open";
 }
 
-function mapReviewDecision(
+export function mapReviewDecision(
 	decision: GHPRResponse["reviewDecision"],
 ): NonNullable<GitHubStatus["pr"]>["reviewDecision"] {
 	if (decision === "APPROVED") return "approved";
