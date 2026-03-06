@@ -19,6 +19,18 @@ export interface HistoryEntry {
 	timestamp: number;
 }
 
+function normalizePath(path: string): string {
+	const trimmed = path.trim();
+	if (!trimmed) return "/";
+	return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+function getInitialHashPath(): string | null {
+	const rawHash = window.location.hash;
+	if (!rawHash || rawHash === "#") return null;
+	return normalizePath(rawHash.startsWith("#") ? rawHash.slice(1) : rawHash);
+}
+
 function loadPersistedState(): PersistedState {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
@@ -107,7 +119,16 @@ export interface PersistentHashHistory extends RouterHistory {
 }
 
 export function createPersistentHashHistory(): PersistentHashHistory {
-	const persisted = loadPersistedState();
+	const initialHashPath = getInitialHashPath();
+	const isPaneWindow = initialHashPath?.startsWith("/pane/") ?? false;
+	const shouldPersist = !isPaneWindow;
+
+	const persisted = shouldPersist
+		? loadPersistedState()
+		: {
+				entries: [initialHashPath ?? "/"],
+				index: 0,
+			};
 
 	const entries: string[] = [...persisted.entries];
 	const timestamps: number[] = entries.map(() => Date.now());
@@ -139,29 +160,39 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 			states.push(state as LocationState);
 			index = entries.length - 1;
 			syncHash(path);
-			persistState(entries, index);
+			if (shouldPersist) {
+				persistState(entries, index);
+			}
 		},
 		replaceState: (path, state) => {
 			entries[index] = path;
 			timestamps[index] = Date.now();
 			states[index] = state as LocationState;
 			syncHash(path);
-			persistState(entries, index);
+			if (shouldPersist) {
+				persistState(entries, index);
+			}
 		},
 		back: () => {
 			index = Math.max(index - 1, 0);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			if (shouldPersist) {
+				persistState(entries, index);
+			}
 		},
 		forward: () => {
 			index = Math.min(index + 1, entries.length - 1);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			if (shouldPersist) {
+				persistState(entries, index);
+			}
 		},
 		go: (n) => {
 			index = Math.min(Math.max(index + n, 0), entries.length - 1);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			if (shouldPersist) {
+				persistState(entries, index);
+			}
 		},
 		createHref: (path) =>
 			`${window.location.pathname}${window.location.search}#${path}`,

@@ -5,7 +5,13 @@ import type { BrowserWindow } from "electron";
 import { app, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
+import {
+	detachWindowFromIpcHandler,
+	getIpcHandler,
+	setIpcHandler,
+} from "main/lib/ipc-handler";
 import { localDb } from "main/lib/local-db";
+import { cleanupPanePresenceForWebContents } from "main/lib/pane-presence";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
 import {
 	env,
@@ -34,9 +40,6 @@ import {
 	saveWindowState,
 } from "../lib/window-state";
 import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
-
-// Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
-let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	if (!workspaceId) return "Workspace";
@@ -129,19 +132,24 @@ export async function MainWindow() {
 	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
+	const windowWebContentsId = window.webContents.id;
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
 		window.webContents.setBackgroundThrottling(false);
 	}
 
+	const ipcHandler = getIpcHandler();
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
 	} else {
-		ipcHandler = createIPCHandler({
-			router: createAppRouter(getWindow),
-			windows: [window],
-		});
+		setIpcHandler(
+			createIPCHandler({
+				router: createAppRouter(getWindow),
+				createContext: async ({ event }) => ({ event }),
+				windows: [window],
+			}),
+		);
 	}
 
 	const server = notificationsApp.listen(
@@ -219,6 +227,10 @@ export async function MainWindow() {
 			window.webContents.invalidate();
 		});
 	}
+
+	window.webContents.on("destroyed", () => {
+		cleanupPanePresenceForWebContents(windowWebContentsId);
+	});
 
 	// Persist window bounds on move/resize so state survives app.exit(0)
 	// (which skips the close handler — e.g. electron-vite SIGTERM during dev).
@@ -303,7 +315,7 @@ export async function MainWindow() {
 		// Remove terminal listeners to prevent duplicates when window reopens on macOS
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		// Detach window from IPC handler (handler stays alive for window reopen)
-		ipcHandler?.detachWindow(window);
+		detachWindowFromIpcHandler(window);
 		currentWindow = null;
 	});
 

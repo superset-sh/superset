@@ -3,6 +3,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
@@ -192,11 +193,34 @@ export function useTerminalLifecycle({
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
 	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
+	const shouldKeepAttachedForLivePaneWindow = useCallback(
+		async (targetPaneId: string) => {
+			try {
+				const { hasLiveWindow } =
+					await electronTrpcClient.window.hasLivePaneWindow.query({
+						paneId: targetPaneId,
+					});
+				return hasLiveWindow;
+			} catch (error) {
+				console.warn(
+					"[Terminal] Failed to query pane window state before detach:",
+					error,
+				);
+				return false;
+			}
+		},
+		[],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
+		void electronTrpcClient.window.markPaneMounted
+			.mutate({ paneId })
+			.catch((error) => {
+				console.warn("[Terminal] Failed to mark pane mounted:", error);
+			});
 
 		if (DEBUG_TERMINAL) {
 			console.log(`[Terminal] Mount: ${paneId}`);
@@ -661,6 +685,11 @@ export function useTerminalLifecycle({
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
+			void electronTrpcClient.window.markPaneUnmounted
+				.mutate({ paneId })
+				.catch((error) => {
+					console.warn("[Terminal] Failed to mark pane unmounted:", error);
+				});
 
 			if (isPaneDestroyedInStore()) {
 				// Pane was explicitly destroyed, so kill the session.
@@ -669,9 +698,23 @@ export function useTerminalLifecycle({
 				pendingDetaches.delete(paneId);
 			} else {
 				const detachTimeout = setTimeout(() => {
-					detachRef.current({ paneId });
-					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
+					void (async () => {
+						// Abort stale async detach work if this timeout was canceled/replaced.
+						if (pendingDetaches.get(paneId) !== detachTimeout) return;
+
+						const keepAttached =
+							await shouldKeepAttachedForLivePaneWindow(paneId);
+
+						// Re-check after await to avoid racing a quick remount.
+						if (pendingDetaches.get(paneId) !== detachTimeout) return;
+						if (!keepAttached) {
+							detachRef.current({ paneId });
+						}
+						if (pendingDetaches.get(paneId) === detachTimeout) {
+							pendingDetaches.delete(paneId);
+							coldRestoreState.delete(paneId);
+						}
+					})();
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
 			}
@@ -698,6 +741,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		shouldKeepAttachedForLivePaneWindow,
 	]);
 
 	return { xtermInstance, restartTerminal };

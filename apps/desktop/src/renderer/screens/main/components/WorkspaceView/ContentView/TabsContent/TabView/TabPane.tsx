@@ -1,5 +1,8 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
+import { TbExternalLink } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import {
 	registerPaneRef,
@@ -17,6 +20,7 @@ interface TabPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	workspaceId: string;
+	workspaceName?: string;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -47,6 +51,7 @@ export function TabPane({
 	path,
 	tabId,
 	workspaceId,
+	workspaceName,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
@@ -58,6 +63,7 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const openPaneWindowMutation = electronTrpc.window.openPane.useMutation();
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -87,6 +93,14 @@ export function TabPane({
 		getScrollToBottomCallback(paneId)?.();
 	};
 
+	const handleOpenPaneWindow = () => {
+		openPaneWindowMutation.mutate({
+			paneId,
+			paneName: paneName || "Terminal",
+			workspaceName: workspaceName?.trim() || undefined,
+		});
+	};
+
 	return (
 		<BasePaneWindow
 			paneId={paneId}
@@ -110,6 +124,25 @@ export function TabPane({
 						onSplitPane={handlers.onSplitPane}
 						onClosePane={handlers.onClosePane}
 						closeHotkeyId="CLOSE_TERMINAL"
+						leadingActions={
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<button
+										type="button"
+										aria-label="Open pane in new window"
+										title="Open in window"
+										onClick={handleOpenPaneWindow}
+										disabled={openPaneWindowMutation.isPending}
+										className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+									>
+										<TbExternalLink className="size-3.5" />
+									</button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" showArrow={false}>
+									Open in window
+								</TooltipContent>
+							</Tooltip>
+						}
 					/>
 				</div>
 			)}

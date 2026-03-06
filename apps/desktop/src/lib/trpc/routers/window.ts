@@ -1,8 +1,13 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { BrowserWindow } from "electron";
-import { dialog } from "electron";
+import { BrowserWindow, dialog } from "electron";
+import {
+	hasOtherMountedPaneClient,
+	markPaneClientMounted,
+	markPaneClientUnmounted,
+} from "main/lib/pane-presence";
+import { hasOtherLivePaneWindow, openPaneWindow } from "main/windows/pane";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
@@ -32,6 +37,69 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			window.close();
 			return { success: true };
 		}),
+
+		openPane: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string().min(1),
+					paneName: z.string().optional(),
+					workspaceName: z.string().optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const result = openPaneWindow(input);
+				return { success: true, reused: result.reused };
+			}),
+
+		hasLivePaneWindow: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string().min(1),
+				}),
+			)
+			.query(({ ctx, input }) => {
+				const callerWindow = ctx.event
+					? BrowserWindow.fromWebContents(ctx.event.sender)
+					: null;
+				const callerWebContentsId = ctx.event?.sender.id;
+				const hasOtherMountedClient =
+					typeof callerWebContentsId === "number"
+						? hasOtherMountedPaneClient(input.paneId, callerWebContentsId)
+						: false;
+				return {
+					hasLiveWindow:
+						hasOtherLivePaneWindow(input.paneId, callerWindow) ||
+						hasOtherMountedClient,
+				};
+			}),
+
+		markPaneMounted: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string().min(1),
+				}),
+			)
+			.mutation(({ ctx, input }) => {
+				const callerWebContentsId = ctx.event?.sender.id;
+				if (typeof callerWebContentsId === "number") {
+					markPaneClientMounted(input.paneId, callerWebContentsId);
+				}
+				return { success: true };
+			}),
+
+		markPaneUnmounted: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string().min(1),
+				}),
+			)
+			.mutation(({ ctx, input }) => {
+				const callerWebContentsId = ctx.event?.sender.id;
+				if (typeof callerWebContentsId === "number") {
+					markPaneClientUnmounted(input.paneId, callerWebContentsId);
+				}
+				return { success: true };
+			}),
 
 		isMaximized: publicProcedure.query(() => {
 			const window = getWindow();

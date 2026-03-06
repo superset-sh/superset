@@ -22,6 +22,13 @@ interface TrpcStorageConfig {
 	set: (input: unknown) => Promise<unknown>;
 }
 
+function isPaneWindowRoute(): boolean {
+	const rawHash = window.location.hash;
+	if (!rawHash || rawHash === "#") return false;
+	const path = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
+	return path.startsWith("/pane/");
+}
+
 function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 	return {
 		getItem: async (name: string): Promise<string | null> => {
@@ -63,11 +70,22 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 /**
  * Zustand storage adapter for tabs state using tRPC
  */
+type TabsStateInput = Parameters<
+	typeof electronTrpcClient.uiState.tabs.set.mutate
+>[0];
+
 export const trpcTabsStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
 		get: () => electronTrpcClient.uiState.tabs.get.query(),
-		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
-		set: (input) => electronTrpcClient.uiState.tabs.set.mutate(input as any),
+		set: (input) => {
+			// Pane popout windows should mirror state only and must never persist full tabs snapshots.
+			if (isPaneWindowRoute()) {
+				return Promise.resolve();
+			}
+			return electronTrpcClient.uiState.tabs.set.mutate(
+				input as TabsStateInput,
+			);
+		},
 	}),
 );
 

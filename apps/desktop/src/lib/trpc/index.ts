@@ -1,5 +1,6 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { initTRPC } from "@trpc/server";
+import type { IpcMainInvokeEvent } from "electron";
 import superjson from "superjson";
 import type { AppRouter } from "./routers";
 import { NotGitRepoError } from "./routers/workspaces/utils/git";
@@ -8,7 +9,11 @@ import { NotGitRepoError } from "./routers/workspaces/utils/git";
  * Core tRPC initialization
  * This provides the base router and procedure builders used by all routers
  */
-const t = initTRPC.create({
+type TrpcContext = {
+	event?: IpcMainInvokeEvent;
+};
+
+const t = initTRPC.context<TrpcContext>().create({
 	transformer: superjson,
 	isServer: true,
 });

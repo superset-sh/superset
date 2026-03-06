@@ -34,6 +34,7 @@ Object.defineProperty(globalThis, "window", {
 		location: {
 			pathname: "/",
 			search: "",
+			hash: "",
 		},
 	},
 	writable: true,
@@ -48,6 +49,7 @@ const { createPersistentHashHistory } = await import(
 beforeEach(() => {
 	storage.clear();
 	mockReplaceState.mockClear();
+	window.location.hash = "";
 });
 
 afterEach(() => {
@@ -222,6 +224,16 @@ describe("createPersistentHashHistory", () => {
 			const history = createPersistentHashHistory();
 			expect(history.length).toBe(1);
 			expect(history.location.pathname).toBe("/");
+		});
+
+		it("uses isolated history for pane windows", () => {
+			window.location.hash = "#/pane/pane-123";
+			const history = createPersistentHashHistory();
+			expect(history.length).toBe(1);
+			expect(history.location.pathname).toBe("/pane/pane-123");
+
+			history.push("/pane/pane-123?test=1");
+			expect(storage.get("router-history")).toBeUndefined();
 		});
 	});
 
