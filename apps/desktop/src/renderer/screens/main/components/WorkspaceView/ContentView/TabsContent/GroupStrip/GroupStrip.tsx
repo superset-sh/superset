@@ -42,7 +42,7 @@ export function GroupStrip() {
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
-	const removeTab = useTabsStore((s) => s.removeTab);
+	const removeTab = useTabsStore((s) => s.requestRemoveTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);

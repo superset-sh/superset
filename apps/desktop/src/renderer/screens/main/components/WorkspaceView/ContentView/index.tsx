@@ -3,6 +3,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { SidebarControl } from "../../SidebarControl";
 import { ContentHeader } from "./ContentHeader";
+import { ActiveAgentWarningDialog } from "./components/ActiveAgentWarningDialog";
 import { PresetsBar } from "./components/PresetsBar";
 import { TabsContent } from "./TabsContent";
 import { GroupStrip } from "./TabsContent/GroupStrip";
@@ -35,6 +36,7 @@ export function ContentView({
 				onOpenInApp={onOpenInApp}
 				onOpenQuickOpen={onOpenQuickOpen}
 			/>
+			<ActiveAgentWarningDialog />
 		</div>
 	);
 }

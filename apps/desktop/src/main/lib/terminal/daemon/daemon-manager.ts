@@ -717,6 +717,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			isAlive: session.isAlive,
 			cwd: session.cwd,
 			lastActive: session.lastActive,
+			pid: session.pid,
 		};
 	}
 

@@ -101,7 +101,7 @@ export interface TerminalSessionOperations {
 	/** Get session info */
 	getSession(
 		paneId: string,
-	): { isAlive: boolean; cwd: string; lastActive: number } | null;
+	): { isAlive: boolean; cwd: string; lastActive: number; pid: number | null } | null;
 }
 
 // =============================================================================

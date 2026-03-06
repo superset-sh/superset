@@ -2,6 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -108,6 +109,8 @@ export const useTabsStore = create<TabsStore>()(
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
 				closedTabsStack: [],
+				pendingCloseTabId: null,
+				pendingClosePaneId: null,
 
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
@@ -326,6 +329,79 @@ export const useTabsStore = create<TabsStore>()(
 							[workspaceId]: newHistoryStack,
 						},
 					});
+				},
+
+				requestRemoveTab: async (tabId) => {
+					const state = get();
+					const paneIds = getPaneIdsForTab(state.panes, tabId);
+					const terminalPaneIds = paneIds.filter((id) => {
+						const type = state.panes[id]?.type;
+						return type === "terminal";
+					});
+
+					if (terminalPaneIds.length > 0) {
+						try {
+							const hasActive =
+								await electronTrpcClient.terminal.hasActiveProcesses.query(
+									terminalPaneIds,
+								);
+							if (hasActive) {
+								set({ pendingCloseTabId: tabId });
+								return;
+							}
+						} catch {
+							// fall through to close
+						}
+					}
+
+					get().removeTab(tabId);
+				},
+
+				confirmRemoveTab: () => {
+					const tabId = get().pendingCloseTabId;
+					if (tabId) {
+						set({ pendingCloseTabId: null });
+						get().removeTab(tabId);
+					}
+				},
+
+				cancelRemoveTab: () => {
+					set({ pendingCloseTabId: null });
+				},
+
+				requestRemovePane: async (paneId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane) return;
+
+					if (pane.type === "terminal") {
+						try {
+							const hasActive =
+								await electronTrpcClient.terminal.hasActiveProcesses.query([
+									paneId,
+								]);
+							if (hasActive) {
+								set({ pendingClosePaneId: paneId });
+								return;
+							}
+						} catch {
+							// fall through to close
+						}
+					}
+
+					get().removePane(paneId);
+				},
+
+				confirmRemovePane: () => {
+					const paneId = get().pendingClosePaneId;
+					if (paneId) {
+						set({ pendingClosePaneId: null });
+						get().removePane(paneId);
+					}
+				},
+
+				cancelRemovePane: () => {
+					set({ pendingClosePaneId: null });
 				},
 
 				renameTab: (tabId, newName) => {

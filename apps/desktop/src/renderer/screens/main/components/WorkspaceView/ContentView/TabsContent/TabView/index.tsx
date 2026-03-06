@@ -33,7 +33,7 @@ interface TabViewProps {
 export function TabView({ tab }: TabViewProps) {
 	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
-	const removePane = useTabsStore((s) => s.removePane);
+	const removePane = useTabsStore((s) => s.requestRemovePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
 		useTabsWithPresets();

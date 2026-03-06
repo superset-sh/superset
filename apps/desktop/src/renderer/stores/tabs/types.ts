@@ -39,6 +39,8 @@ export interface Tab extends BaseTab {
 export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
 	closedTabsStack: ClosedTabEntry[];
+	pendingCloseTabId: string | null;
+	pendingClosePaneId: string | null;
 }
 
 /**
@@ -102,6 +104,12 @@ export interface TabsStore extends TabsState {
 		options: AddTabWithMultiplePanesOptions,
 	) => { tabId: string; paneIds: string[] };
 	removeTab: (tabId: string) => void;
+	requestRemoveTab: (tabId: string) => Promise<void>;
+	confirmRemoveTab: () => void;
+	cancelRemoveTab: () => void;
+	requestRemovePane: (paneId: string) => Promise<void>;
+	confirmRemovePane: () => void;
+	cancelRemovePane: () => void;
 	renameTab: (tabId: string, newName: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
