@@ -129,6 +129,10 @@ export const createTerminalRouter = () => {
 					persistedThemeState: appState.data.themeState,
 				});
 
+				const wasRegistered = bus.isPaneRegistered(paneId);
+				// Register before attach to avoid dropping earliest output events.
+				bus.registerPane(paneId, workspaceId);
+
 				try {
 					const result = await terminal.createOrAttach({
 						paneId,
@@ -144,8 +148,6 @@ export const createTerminalRouter = () => {
 						allowKilled,
 						themeType: resolvedThemeType,
 					});
-
-					bus.registerPane(paneId, workspaceId);
 
 					if (DEBUG_TERMINAL) {
 						console.log("[Terminal Router] createOrAttach result:", {
@@ -183,10 +185,17 @@ export const createTerminalRouter = () => {
 								},
 							);
 						}
+						if (!wasRegistered) {
+							bus.unregisterPane(paneId);
+						}
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: TERMINAL_SESSION_KILLED_MESSAGE,
 						});
+					}
+					// createOrAttach failed; remove stale pane registration.
+					if (!wasRegistered) {
+						bus.unregisterPane(paneId);
 					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
@@ -280,6 +289,7 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				await terminal.kill(input);
+				bus.unregisterPane(input.paneId);
 			}),
 
 		detach: publicProcedure
@@ -323,8 +333,12 @@ export const createTerminalRouter = () => {
 					beforeIds.map((paneId) => terminal.kill({ paneId })),
 				);
 				for (const [index, result] of results.entries()) {
+					const paneId = beforeIds[index];
+					if (result.status === "fulfilled") {
+						bus.unregisterPane(paneId);
+						continue;
+					}
 					if (result.status === "rejected") {
-						const paneId = beforeIds[index];
 						logger.error(
 							`[killAllDaemonSessions] terminal.kill failed for paneId=${paneId}`,
 							{
@@ -385,8 +399,12 @@ export const createTerminalRouter = () => {
 						paneIds.map((paneId) => terminal.kill({ paneId })),
 					);
 					for (const [index, result] of results.entries()) {
+						const paneId = paneIds[index];
+						if (result.status === "fulfilled") {
+							bus.unregisterPane(paneId);
+							continue;
+						}
 						if (result.status === "rejected") {
-							const paneId = paneIds[index];
 							logger.error(
 								`[killDaemonSessionsForWorkspace] terminal.kill failed for paneId=${paneId}`,
 								{

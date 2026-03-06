@@ -159,6 +159,18 @@ interface WorkspaceState {
 	listeners: Set<Listener>;
 }
 
+// Per-pane listener handles used for cleanup
+interface PaneListeners {
+	onData: (data: string) => void;
+	onExit: (
+		exitCode: number,
+		signal?: number,
+		reason?: "killed" | "exited" | "error",
+	) => void;
+	onDisconnect: (reason: string) => void;
+	onError: (payload: { error: string; code?: string }) => void;
+}
+
 // ---------------------------------------------------------------------------
 // WorkspaceStreamBus
 // ---------------------------------------------------------------------------
@@ -166,27 +178,54 @@ interface WorkspaceState {
 export class WorkspaceStreamBus {
 	private workspaces = new Map<string, WorkspaceState>();
 	private paneToWorkspace = new Map<string, string>();
-	private attached = false;
+	private paneListeners = new Map<string, PaneListeners>();
+	private terminal: TerminalRuntime | null = null;
 
 	attach(terminal: TerminalRuntime): void {
-		if (this.attached) return;
-		this.attached = true;
+		if (this.terminal === terminal) return;
 
-		const originalEmit = terminal.emit.bind(terminal);
-		terminal.emit = (event: string | symbol, ...args: unknown[]): boolean => {
-			if (typeof event === "string") {
-				this.interceptEmit(event, args);
+		if (this.terminal) {
+			// Detach existing listeners from previous runtime instance.
+			for (const paneId of Array.from(this.paneListeners.keys())) {
+				this.teardownPaneListeners(paneId);
 			}
-			return originalEmit(event, ...args);
-		};
+		}
+
+		this.terminal = terminal;
+
+		// Rehydrate listeners for already-registered panes.
+		for (const [paneId, workspaceId] of this.paneToWorkspace.entries()) {
+			this.setupPaneListeners(paneId, workspaceId);
+		}
 	}
 
 	registerPane(paneId: string, workspaceId: string): void {
+		// If already registered for same workspace, skip
+		if (this.paneToWorkspace.get(paneId) === workspaceId) return;
+
+		// If registered to a different workspace, clean up old listeners first
+		if (this.paneToWorkspace.has(paneId)) {
+			this.teardownPaneListeners(paneId);
+		}
+
 		this.paneToWorkspace.set(paneId, workspaceId);
+		this.setupPaneListeners(paneId, workspaceId);
+	}
+
+	isPaneRegistered(paneId: string): boolean {
+		return this.paneToWorkspace.has(paneId);
 	}
 
 	unregisterPane(paneId: string): void {
+		const workspaceId = this.paneToWorkspace.get(paneId);
+		this.teardownPaneListeners(paneId);
 		this.paneToWorkspace.delete(paneId);
+
+		// Keep per-session counters bounded over long-lived app sessions.
+		if (workspaceId) {
+			const ws = this.workspaces.get(workspaceId);
+			ws?.sessionSeqCounters.delete(paneId);
+		}
 	}
 
 	subscribe(
@@ -209,16 +248,6 @@ export class WorkspaceStreamBus {
 		// Replay if requested
 		if (sinceEventId != null) {
 			const replayed = ws.buffer.replaySince(sinceEventId);
-			const oldest = ws.buffer.oldestEventId();
-			if (oldest !== null && sinceEventId < oldest) {
-				// sinceEventId is older than retention — emit fresh watermark
-				this.safeCall(listener, {
-					type: "terminal.watermark",
-					workspaceId,
-					eventId: oldest,
-					ts: Date.now(),
-				});
-			}
 			for (const event of replayed) {
 				this.safeCall(listener, event);
 			}
@@ -230,53 +259,66 @@ export class WorkspaceStreamBus {
 	}
 
 	dispose(): void {
+		// Remove all pane listeners from terminal
+		for (const paneId of Array.from(this.paneListeners.keys())) {
+			this.teardownPaneListeners(paneId);
+		}
 		for (const ws of this.workspaces.values()) {
 			ws.listeners.clear();
 			ws.buffer.clear();
 		}
 		this.workspaces.clear();
 		this.paneToWorkspace.clear();
-		this.attached = false;
+		this.terminal = null;
 	}
 
 	// -----------------------------------------------------------------------
-	// Internals
+	// Pane listener wiring
 	// -----------------------------------------------------------------------
 
-	private interceptEmit(event: string, args: unknown[]): void {
-		const colonIdx = event.indexOf(":");
-		if (colonIdx === -1) return;
+	private setupPaneListeners(paneId: string, workspaceId: string): void {
+		if (!this.terminal) return;
 
-		const type = event.slice(0, colonIdx);
-		const paneId = event.slice(colonIdx + 1);
-		const workspaceId = this.paneToWorkspace.get(paneId);
-		if (!workspaceId) return;
+		const onData = (data: string) => {
+			this.pushData(workspaceId, paneId, data);
+		};
+		const onExit = (
+			exitCode: number,
+			signal?: number,
+			reason?: "killed" | "exited" | "error",
+		) => {
+			this.pushExit(workspaceId, paneId, exitCode, signal, reason);
+		};
+		const onDisconnect = (reason: string) => {
+			this.pushDisconnect(workspaceId, paneId, reason);
+		};
+		const onError = (payload: { error: string; code?: string }) => {
+			this.pushError(workspaceId, paneId, payload);
+		};
 
-		switch (type) {
-			case "data":
-				this.pushData(workspaceId, paneId, args[0] as string);
-				break;
-			case "exit":
-				this.pushExit(
-					workspaceId,
-					paneId,
-					args[0] as number,
-					args[1] as number | undefined,
-					args[2] as "killed" | "exited" | "error" | undefined,
-				);
-				break;
-			case "disconnect":
-				this.pushDisconnect(workspaceId, paneId, args[0] as string);
-				break;
-			case "error":
-				this.pushError(
-					workspaceId,
-					paneId,
-					args[0] as { error: string; code?: string },
-				);
-				break;
-		}
+		this.terminal.on(`data:${paneId}`, onData);
+		this.terminal.on(`exit:${paneId}`, onExit);
+		this.terminal.on(`disconnect:${paneId}`, onDisconnect);
+		this.terminal.on(`error:${paneId}`, onError);
+
+		this.paneListeners.set(paneId, { onData, onExit, onDisconnect, onError });
 	}
+
+	private teardownPaneListeners(paneId: string): void {
+		const handles = this.paneListeners.get(paneId);
+		if (!handles || !this.terminal) return;
+
+		this.terminal.off(`data:${paneId}`, handles.onData);
+		this.terminal.off(`exit:${paneId}`, handles.onExit);
+		this.terminal.off(`disconnect:${paneId}`, handles.onDisconnect);
+		this.terminal.off(`error:${paneId}`, handles.onError);
+
+		this.paneListeners.delete(paneId);
+	}
+
+	// -----------------------------------------------------------------------
+	// Event builders
+	// -----------------------------------------------------------------------
 
 	private pushData(workspaceId: string, paneId: string, data: string): void {
 		const ws = this.getOrCreateWorkspace(workspaceId);
@@ -290,7 +332,7 @@ export class WorkspaceStreamBus {
 			ts: Date.now(),
 			data,
 		};
-		this.emit(ws, event);
+		this.broadcast(ws, event);
 	}
 
 	private pushExit(
@@ -313,7 +355,7 @@ export class WorkspaceStreamBus {
 			signal,
 			reason,
 		};
-		this.emit(ws, event);
+		this.broadcast(ws, event);
 	}
 
 	private pushDisconnect(
@@ -332,7 +374,7 @@ export class WorkspaceStreamBus {
 			ts: Date.now(),
 			reason,
 		};
-		this.emit(ws, event);
+		this.broadcast(ws, event);
 	}
 
 	private pushError(
@@ -352,10 +394,14 @@ export class WorkspaceStreamBus {
 			message: payload.error,
 			code: payload.code,
 		};
-		this.emit(ws, event);
+		this.broadcast(ws, event);
 	}
 
-	private emit(ws: WorkspaceState, event: WorkspaceStreamEvent): void {
+	// -----------------------------------------------------------------------
+	// Helpers
+	// -----------------------------------------------------------------------
+
+	private broadcast(ws: WorkspaceState, event: WorkspaceStreamEvent): void {
 		ws.buffer.push(event);
 		for (const listener of ws.listeners) {
 			this.safeCall(listener, event);
