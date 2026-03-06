@@ -10,10 +10,12 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+import { createAuthStorage } from "mastracode";
+import { ANTHROPIC_AUTH_PROVIDER_ID } from "../provider-ids";
 
 interface ClaudeCredentials {
 	apiKey: string;
-	source: "config" | "keychain";
+	source: "config" | "keychain" | "auth-storage" | "runtime-env";
 	kind: "apiKey" | "oauth";
 }
 
@@ -122,4 +124,72 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 	}
 
 	return null;
+}
+
+export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
+	try {
+		const authStorage = createAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (!credential) return null;
+
+		if (
+			credential.type === "api_key" &&
+			typeof credential.key === "string" &&
+			credential.key.trim().length > 0
+		) {
+			return {
+				apiKey: credential.key.trim(),
+				source: "auth-storage",
+				kind: "apiKey",
+			};
+		}
+
+		if (
+			credential.type === "oauth" &&
+			typeof credential.access === "string" &&
+			credential.access.trim().length > 0
+		) {
+			return {
+				apiKey: credential.access.trim(),
+				source: "auth-storage",
+				kind: "oauth",
+			};
+		}
+	} catch (error) {
+		console.warn("[claude/auth] Failed to read auth storage:", error);
+	}
+
+	return null;
+}
+
+export function getCredentialsFromRuntimeEnv(): ClaudeCredentials | null {
+	const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+	if (apiKey) {
+		return {
+			apiKey,
+			source: "runtime-env",
+			kind: "apiKey",
+		};
+	}
+
+	const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
+	if (authToken) {
+		return {
+			apiKey: authToken,
+			source: "runtime-env",
+			kind: "oauth",
+		};
+	}
+
+	return null;
+}
+
+export function getCredentialsFromAnySource(): ClaudeCredentials | null {
+	return (
+		getCredentialsFromConfig() ??
+		getCredentialsFromKeychain() ??
+		getCredentialsFromAuthStorage() ??
+		getCredentialsFromRuntimeEnv()
+	);
 }

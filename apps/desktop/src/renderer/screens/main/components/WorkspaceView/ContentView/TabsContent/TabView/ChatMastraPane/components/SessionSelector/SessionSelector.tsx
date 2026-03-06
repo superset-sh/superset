@@ -2,6 +2,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
@@ -87,21 +88,6 @@ export function SessionSelector({
 		setVisibleCount(SESSION_PAGE_SIZE);
 	}, [isOpen]);
 
-	useEffect(() => {
-		console.debug("[chat-sessions] session selector render", {
-			isOpen,
-			currentSessionId,
-			sessionCount: sessions.length,
-			visibleCount,
-			hasMoreSessions: sessions.length > visibleCount,
-			sessionsSample: sessions.slice(0, 8).map((session) => ({
-				id: session.sessionId,
-				title: session.title,
-				updatedAt: session.updatedAt.toISOString(),
-			})),
-		});
-	}, [currentSessionId, isOpen, sessions, visibleCount]);
-
 	const loadMoreSessions = () => {
 		setVisibleCount((count) =>
 			Math.min(count + SESSION_PAGE_SIZE, sessions.length),
@@ -127,7 +113,9 @@ export function SessionSelector({
 					className="flex min-w-[220px] max-w-[680px] flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<HiMiniChatBubbleLeftRight className="size-3.5" />
-					<span className="min-w-0 flex-1 truncate text-left">{currentTitle}</span>
+					<span className="min-w-0 flex-1 truncate text-left">
+						{currentTitle}
+					</span>
 					{isSessionInitializing && (
 						<HiMiniArrowPath className="size-3 animate-spin" />
 					)}
@@ -135,6 +123,8 @@ export function SessionSelector({
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-80">
+				<DropdownMenuLabel className="text-xs">Sessions</DropdownMenuLabel>
+				<DropdownMenuSeparator />
 				<div className="max-h-80 overflow-y-auto">
 					{sessions.length > 0 ? (
 						<>

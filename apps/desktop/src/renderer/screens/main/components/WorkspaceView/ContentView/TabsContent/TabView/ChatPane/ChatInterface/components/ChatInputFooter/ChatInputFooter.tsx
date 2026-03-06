@@ -5,8 +5,9 @@ import {
 	type PromptInputMessage,
 	PromptInputTextarea,
 } from "@superset/ui/ai-elements/prompt-input";
-import type { ChatStatus } from "ai";
+import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
@@ -37,6 +38,8 @@ interface ChatInputFooterProps {
 	thinkingEnabled: boolean;
 	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 	slashCommands: SlashCommand[];
+	submitDisabled?: boolean;
+	renderAttachment?: (file: FileUIPart & { id: string }) => ReactNode;
 	onSubmitStart?: () => void;
 	onSubmitEnd?: () => void;
 	onSend: (message: PromptInputMessage) => Promise<void> | void;
@@ -60,6 +63,8 @@ export function ChatInputFooter({
 	thinkingEnabled,
 	setThinkingEnabled,
 	slashCommands,
+	submitDisabled,
+	renderAttachment,
 	onSubmitStart,
 	onSubmitEnd,
 	onSend,
@@ -124,7 +129,8 @@ export function ChatInputFooter({
 										/>
 										<FileDropOverlay visible={dragType === "files"} />
 										<PromptInputAttachments>
-											{(file) => <PromptInputAttachment data={file} />}
+											{renderAttachment ??
+												((file) => <PromptInputAttachment data={file} />)}
 										</PromptInputAttachments>
 										<SlashCommandPreview
 											cwd={cwd}
@@ -146,6 +152,7 @@ export function ChatInputFooter({
 											setThinkingEnabled={setThinkingEnabled}
 											canAbort={canAbort}
 											submitStatus={submitStatus}
+											submitDisabled={submitDisabled}
 											onStop={onStop}
 											onLinkIssue={() => setIssueLinkOpen(true)}
 										/>

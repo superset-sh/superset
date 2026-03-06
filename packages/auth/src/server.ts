@@ -24,7 +24,7 @@ import {
 	organization,
 } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -100,18 +100,60 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
-					const org = await auth.api.createOrganization({
-						body: {
-							name: `${user.name}'s Team`,
-							slug: `${user.id.slice(0, 8)}-team`,
-							userId: user.id,
-						},
-					});
+					const domain = user.email.split("@")[1]?.toLowerCase();
+					let enrolledOrgId: string | null = null;
 
-					if (org?.id) {
+					if (domain) {
+						const matchingOrgs = await db.query.organizations.findMany({
+							where: sql`${authSchema.organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
+						});
+
+						for (const org of matchingOrgs) {
+							try {
+								await auth.api.addMember({
+									body: {
+										organizationId: org.id,
+										userId: user.id,
+										role: "member",
+									},
+								});
+								if (!enrolledOrgId) {
+									enrolledOrgId = org.id;
+								}
+							} catch (error) {
+								console.error(
+									`[auto-enroll] Failed to add user ${user.id} to org ${org.id}:`,
+									error,
+								);
+								// addMember may have created the DB record before a downstream error (e.g. Stripe) — check
+								const memberExists = await db.query.members.findFirst({
+									where: and(
+										eq(authSchema.members.organizationId, org.id),
+										eq(authSchema.members.userId, user.id),
+									),
+								});
+								if (memberExists && !enrolledOrgId) {
+									enrolledOrgId = org.id;
+								}
+							}
+						}
+					}
+
+					if (!enrolledOrgId) {
+						const personalOrg = await auth.api.createOrganization({
+							body: {
+								name: `${user.name}'s Team`,
+								slug: `${user.id.slice(0, 8)}-team`,
+								userId: user.id,
+							},
+						});
+						enrolledOrgId = personalOrg?.id ?? null;
+					}
+
+					if (enrolledOrgId) {
 						await db
 							.update(authSchema.sessions)
-							.set({ activeOrganizationId: org.id })
+							.set({ activeOrganizationId: enrolledOrgId })
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 				},

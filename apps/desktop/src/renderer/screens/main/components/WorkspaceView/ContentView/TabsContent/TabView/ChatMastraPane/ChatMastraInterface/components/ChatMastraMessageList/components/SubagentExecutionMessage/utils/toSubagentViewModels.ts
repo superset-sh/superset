@@ -9,7 +9,6 @@ type MastraActiveSubagent =
 		: never;
 
 export type SubagentEntries = Array<[string, MastraActiveSubagent]>;
-export type SubagentStatus = "running" | "completed" | "error";
 
 interface SubagentToolCall {
 	name: string;
@@ -21,7 +20,7 @@ export interface SubagentViewModel {
 	agentType: string;
 	task: string;
 	modelId?: string;
-	status: SubagentStatus;
+	status: "running" | "completed" | "error";
 	text: string;
 	durationMs?: number;
 	toolCalls: SubagentToolCall[];
@@ -40,43 +39,13 @@ function asString(value: unknown): string | null {
 	return trimmed.length > 0 ? trimmed : null;
 }
 
-function asStatus(value: unknown): SubagentStatus | undefined {
+function asStatus(
+	value: unknown,
+): "running" | "completed" | "error" | undefined {
 	if (value === "running" || value === "completed" || value === "error") {
 		return value;
 	}
 	return undefined;
-}
-
-function asDurationMs(value: unknown): number | undefined {
-	if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-		return undefined;
-	}
-	return value;
-}
-
-function hasErrorSignal(record: Record<string, unknown> | null): boolean {
-	if (!record) return false;
-	return record.isError === true || asString(record.error) !== null;
-}
-
-function hasCompletionSignal(record: Record<string, unknown> | null): boolean {
-	if (!record) return false;
-	return (
-		record.result !== undefined || asDurationMs(record.durationMs) !== undefined
-	);
-}
-
-export function inferSubagentStatus(subagent: unknown): SubagentStatus {
-	const record = asRecord(subagent);
-	const explicitStatus = asStatus(record?.status);
-	if (explicitStatus) return explicitStatus;
-	if (hasErrorSignal(record)) return "error";
-	if (hasCompletionSignal(record)) return "completed";
-	return "running";
-}
-
-export function isSubagentRunning(subagent: unknown): boolean {
-	return inferSubagentStatus(subagent) === "running";
 }
 
 function toToolCalls(value: unknown): SubagentToolCall[] {
@@ -95,18 +64,38 @@ function toToolCalls(value: unknown): SubagentToolCall[] {
 		.filter((item): item is SubagentToolCall => item !== null);
 }
 
+export function inferSubagentStatus(
+	subagent: unknown,
+): "running" | "completed" | "error" {
+	const record = asRecord(subagent);
+	const explicit = asStatus(record?.status);
+	if (explicit) return explicit;
+	if (record?.error) return "error";
+	if (record?.result) return "completed";
+	return "running";
+}
+
+export function isSubagentRunning(subagent: unknown): boolean {
+	return inferSubagentStatus(subagent) === "running";
+}
+
 export function toSubagentViewModels(
 	entries: SubagentEntries,
 ): SubagentViewModel[] {
 	return entries.map(([toolCallId, subagent]) => {
 		const record = asRecord(subagent);
-		const durationMs = asDurationMs(record?.durationMs);
 		const status = inferSubagentStatus(subagent);
 		const text =
 			asString(status === "running" ? record?.textDelta : record?.result) ??
 			asString(record?.textDelta) ??
 			asString(record?.result) ??
 			"";
+		const durationMs =
+			typeof record?.durationMs === "number" &&
+			Number.isFinite(record.durationMs) &&
+			record.durationMs >= 0
+				? record.durationMs
+				: undefined;
 
 		return {
 			toolCallId,

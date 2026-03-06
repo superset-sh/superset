@@ -184,6 +184,8 @@ export interface CreateFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
+	/** Override the display name shown in the tab (defaults to filename from filePath) */
+	displayName?: string;
 }
 
 /**
@@ -214,8 +216,11 @@ export const createFileViewerPane = (
 		initialColumn: options.column,
 	};
 
-	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	// Use displayName override, or fall back to filename from path
+	const fileName =
+		options.displayName ||
+		options.filePath.split("/").pop() ||
+		options.filePath;
 
 	return {
 		id,

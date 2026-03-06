@@ -16,7 +16,7 @@ import {
 	type PresetOpenTarget,
 } from "./preset-launch";
 import { useTabsStore } from "./store";
-import type { AddTabOptions } from "./types";
+import type { AddTabOptions, SplitPaneOptions } from "./types";
 import { resolveActiveTabIdForWorkspace } from "./utils";
 
 interface OpenPresetOptions {
@@ -362,7 +362,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneVertical(tabId, sourcePaneId, path, options);
@@ -384,7 +384,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneHorizontal(tabId, sourcePaneId, path, options);
@@ -407,7 +407,7 @@ export function useTabsWithPresets() {
 			sourcePaneId: string,
 			dimensions: { width: number; height: number },
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneAuto(

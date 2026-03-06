@@ -43,15 +43,6 @@ export function ResizablePanel({
 }: ResizablePanelProps) {
 	const startXRef = useRef(0);
 	const startWidthRef = useRef(0);
-	const pendingWidthRef = useRef<number | null>(null);
-	const rafIdRef = useRef<number | null>(null);
-
-	const flushPendingWidth = useCallback(() => {
-		const pendingWidth = pendingWidthRef.current;
-		pendingWidthRef.current = null;
-		if (pendingWidth === null) return;
-		onWidthChange(pendingWidth);
-	}, [onWidthChange]);
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
@@ -75,27 +66,16 @@ export function ResizablePanel({
 			const finalWidth = clampWidth
 				? Math.max(minWidth, Math.min(maxWidth, newWidth))
 				: newWidth;
-			pendingWidthRef.current = finalWidth;
-
-			if (rafIdRef.current !== null) return;
-			rafIdRef.current = requestAnimationFrame(() => {
-				rafIdRef.current = null;
-				flushPendingWidth();
-			});
+			onWidthChange(finalWidth);
 		},
-		[isResizing, minWidth, maxWidth, handleSide, clampWidth, flushPendingWidth],
+		[isResizing, onWidthChange, minWidth, maxWidth, handleSide, clampWidth],
 	);
 
 	const handleMouseUp = useCallback(() => {
-		if (!isResizing) return;
-
-		if (rafIdRef.current !== null) {
-			cancelAnimationFrame(rafIdRef.current);
-			rafIdRef.current = null;
+		if (isResizing) {
+			onResizingChange(false);
 		}
-		flushPendingWidth();
-		onResizingChange(false);
-	}, [isResizing, onResizingChange, flushPendingWidth]);
+	}, [isResizing, onResizingChange]);
 
 	useEffect(() => {
 		if (isResizing) {
@@ -110,11 +90,6 @@ export function ResizablePanel({
 			document.removeEventListener("mouseup", handleMouseUp);
 			document.body.style.userSelect = "";
 			document.body.style.cursor = "";
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-				rafIdRef.current = null;
-			}
-			pendingWidthRef.current = null;
 		};
 	}, [isResizing, handleMouseMove, handleMouseUp]);
 

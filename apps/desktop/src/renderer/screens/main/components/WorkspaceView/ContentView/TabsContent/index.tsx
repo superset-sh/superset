@@ -1,4 +1,3 @@
-import type { ExternalApp } from "@superset/local-db";
 import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -6,17 +5,7 @@ import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
-interface TabsContentProps {
-	defaultExternalApp?: ExternalApp | null;
-	onOpenInApp: () => void;
-	onOpenQuickOpen: () => void;
-}
-
-export function TabsContent({
-	defaultExternalApp,
-	onOpenInApp,
-	onOpenQuickOpen,
-}: TabsContentProps) {
+export function TabsContent() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -45,15 +34,7 @@ export function TabsContent({
 
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? (
-				<TabView tab={tabToRender} />
-			) : (
-				<EmptyTabView
-					defaultExternalApp={defaultExternalApp}
-					onOpenInApp={onOpenInApp}
-					onOpenQuickOpen={onOpenQuickOpen}
-				/>
-			)}
+			{tabToRender ? <TabView tab={tabToRender} /> : <EmptyTabView />}
 		</div>
 	);
 }

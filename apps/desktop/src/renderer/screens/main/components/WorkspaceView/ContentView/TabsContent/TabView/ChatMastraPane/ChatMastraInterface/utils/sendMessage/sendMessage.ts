@@ -3,7 +3,7 @@ import type { StartFreshSessionResult } from "../../../../ChatPane/ChatInterface
 export type ChatSendMessageInput = {
 	payload: {
 		content: string;
-		images?: Array<{ data: string; mimeType: string }>;
+		files?: Array<{ data: string; mediaType: string; filename?: string }>;
 	};
 	metadata: {
 		model?: string;

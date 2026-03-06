@@ -48,6 +48,11 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
+export interface SplitPaneOptions {
+	initialCwd?: string;
+	paneType?: "terminal" | "chat-mastra" | "webview";
+}
+
 export interface AddChatMastraTabOptions {
 	launchConfig?: ChatMastraLaunchConfig | null;
 }
@@ -77,6 +82,8 @@ export interface AddFileViewerPaneOptions {
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */
 	openInNewTab?: boolean;
+	/** Override the display name shown in the tab (defaults to filename from filePath) */
+	displayName?: string;
 }
 
 /**
@@ -144,20 +151,20 @@ export interface TabsStore extends TabsState {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneHorizontal: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 
 	// Move operations

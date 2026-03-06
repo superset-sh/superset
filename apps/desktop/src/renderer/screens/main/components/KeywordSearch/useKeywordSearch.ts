@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSearchDialogStore } from "renderer/stores/search-dialog-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -46,22 +45,19 @@ export function useKeywordSearch({
 		(state) => state.setFiltersOpen,
 	);
 	const trimmedQuery = query.trim();
-	const debouncedQuery = useDebouncedValue(trimmedQuery, 150);
-	const isDebouncing =
-		trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
 
 	const { data: searchResults, isFetching } =
 		electronTrpc.filesystem.searchKeyword.useQuery(
 			{
 				rootPath: worktreePath ?? "",
-				query: debouncedQuery,
+				query: trimmedQuery,
 				includePattern,
 				excludePattern,
 				includeHidden: false,
 				limit: SEARCH_LIMIT,
 			},
 			{
-				enabled: open && Boolean(worktreePath) && debouncedQuery.length > 0,
+				enabled: open && Boolean(worktreePath) && trimmedQuery.length > 0,
 				staleTime: 1000,
 				placeholderData: (previous) => previous ?? [],
 			},
@@ -130,6 +126,6 @@ export function useKeywordSearch({
 		toggle,
 		selectMatch,
 		searchResults: searchResults ?? [],
-		isFetching: isFetching || isDebouncing,
+		isFetching,
 	};
 }

@@ -325,8 +325,7 @@ export function useAppHotkey(
 	id: HotkeyId,
 	callback: (event: KeyboardEvent, handler: unknown) => void,
 	options?: { enabled?: boolean; preventDefault?: boolean },
-	// Deprecated: callback refs keep handlers fresh without listener re-registration.
-	_deps: unknown[] = [],
+	deps: unknown[] = [],
 ) {
 	const keys = useHotkeyKeys(id);
 	const enabled = Boolean(keys) && (options?.enabled ?? true);
@@ -353,5 +352,5 @@ export function useAppHotkey(
 		return () => {
 			document.removeEventListener("keydown", onKeyDown);
 		};
-	}, [enabled, keys, preventDefault]);
+	}, [enabled, keys, preventDefault, ...deps]);
 }
