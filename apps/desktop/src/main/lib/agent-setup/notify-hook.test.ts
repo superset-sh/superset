@@ -10,7 +10,9 @@ describe("getNotifyScriptContent", () => {
 		);
 
 		expect(script).toContain('RESOURCE_ID=$(echo "$INPUT"');
-		expect(script).toContain("SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}");
+		expect(script).toContain(
+			"SESSION_ID=" + "\u0024{RESOURCE_ID:-$HOOK_SESSION_ID}",
+		);
 		expect(script).toContain('--data-urlencode "resourceId=$RESOURCE_ID"');
 		expect(script).toContain(
 			'--data-urlencode "hookSessionId=$HOOK_SESSION_ID"',
