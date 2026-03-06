@@ -30,8 +30,6 @@ type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
 
 interface TitleProvider {
 	provider: "anthropic" | "openai";
-	source: string;
-	kind: string;
 	apiKey: string;
 	agentId: string;
 	modelId: string;
@@ -45,8 +43,6 @@ function resolveTitleProviders(): TitleProvider[] {
 	if (anthropicCredentials) {
 		providers.push({
 			provider: "anthropic",
-			source: anthropicCredentials.source,
-			kind: anthropicCredentials.kind,
 			apiKey: anthropicCredentials.apiKey,
 			agentId: "workspace-namer-anthropic",
 			modelId: "claude-haiku-4-5-20251001",
@@ -59,8 +55,6 @@ function resolveTitleProviders(): TitleProvider[] {
 	if (openAICredentials) {
 		providers.push({
 			provider: "openai",
-			source: openAICredentials.source,
-			kind: openAICredentials.kind,
 			apiKey: openAICredentials.apiKey,
 			agentId: "workspace-namer-openai",
 			modelId: "gpt-4o-mini",
@@ -94,37 +88,18 @@ async function generateTitleWithModel(
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
-	console.log("[workspace-auto-name] Generating name", {
-		promptLength: prompt.length,
-		promptPreview: prompt.slice(0, 120),
-	});
-
 	const providers = resolveTitleProviders();
 	if (providers.length === 0) {
-		console.warn(
-			"[workspace-auto-name] Skipping generation because no Anthropic or OpenAI credentials are available",
-		);
 		return null;
 	}
 
 	for (const provider of providers) {
-		console.log("[workspace-auto-name] Using credentials", {
-			provider: provider.provider,
-			source: provider.source,
-			kind: provider.kind,
-			modelId: provider.modelId,
-		});
-
 		try {
 			const title = await generateTitleWithModel(
 				prompt,
 				provider.agentId,
 				provider.createModel(provider.apiKey),
 			);
-			console.log("[workspace-auto-name] Generation completed", {
-				provider: provider.provider,
-				generatedName: title,
-			});
 			if (title) {
 				return title;
 			}
@@ -148,27 +123,14 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 }): Promise<WorkspaceAutoRenameResult> {
 	const cleanedPrompt = prompt?.trim();
 	if (!cleanedPrompt) {
-		console.log("[workspace-auto-name] Skipping rename because prompt is empty", {
-			workspaceId,
-		});
 		return { status: "skipped", reason: "empty-prompt" };
 	}
-
-	console.log("[workspace-auto-name] Attempting rename", {
-		workspaceId,
-		promptLength: cleanedPrompt.length,
-		promptPreview: cleanedPrompt.slice(0, 120),
-	});
 
 	const generatedName = await generateWorkspaceNameFromPrompt(cleanedPrompt);
 	if (!generatedName) {
 		const hasCredentials =
 			getAnthropicCredentialsFromAnySource() !== null ||
 			getOpenAICredentialsFromAnySource() !== null;
-		console.warn(
-			"[workspace-auto-name] Skipping rename because generation returned no name",
-			{ workspaceId, hasCredentials },
-		);
 		return {
 			status: "skipped",
 			reason: hasCredentials ? "generation-failed" : "missing-credentials",
@@ -194,12 +156,6 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		generatedName,
 	});
 	if (decision.kind !== "rename") {
-		console.log("[workspace-auto-name] Skipping rename", {
-			workspaceId,
-			reason: decision.reason,
-			workspace,
-			generatedName,
-		});
 		return { status: "skipped", reason: decision.reason };
 	}
 
@@ -212,12 +168,6 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		})
 		.where(eq(workspaces.id, workspaceId))
 		.run();
-
-	console.log("[workspace-auto-name] Renamed workspace", {
-		workspaceId,
-		fromName: workspace?.name ?? null,
-		toName: decision.name,
-	});
 
 	return { status: "renamed", name: decision.name };
 }

@@ -148,10 +148,6 @@ export async function initializeWorkspaceWorktree({
 				workspaceId,
 				prompt: namingPrompt,
 			});
-			console.log("[workspace-init] Auto naming completed", {
-				workspaceId,
-				autoRenameResult,
-			});
 			manager.updateProgress(
 				workspaceId,
 				"ready",
@@ -466,10 +462,6 @@ export async function initializeWorkspaceWorktree({
 		const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
 			workspaceId,
 			prompt: namingPrompt,
-		});
-		console.log("[workspace-init] Auto naming completed", {
-			workspaceId,
-			autoRenameResult,
 		});
 		manager.updateProgress(
 			workspaceId,
