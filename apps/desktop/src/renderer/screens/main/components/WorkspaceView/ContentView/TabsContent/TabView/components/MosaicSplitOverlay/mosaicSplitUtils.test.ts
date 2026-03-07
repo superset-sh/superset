@@ -89,9 +89,6 @@ describe("splitBox", () => {
 
 describe("collectSplits", () => {
 	test("leaf node produces no splits", () => {
-		const out: ReturnType<typeof collectSplits> extends void
-			? never
-			: unknown[] = [];
 		const splits: Parameters<typeof collectSplits>[3] = [];
 		collectSplits("pane-a", emptyBox, [], splits);
 		expect(splits).toHaveLength(0);
@@ -195,5 +192,5 @@ describe("equalizeSplitPercentages", () => {
 
 describe("constants", () => {
 	test("MIN_PERCENTAGE is 20", () => expect(MIN_PERCENTAGE).toBe(20));
-	test("KEYBOARD_STEP is positive", () => expect(KEYBOARD_STEP).toBeGreaterThan(0));
+	test("KEYBOARD_STEP is 5", () => expect(KEYBOARD_STEP).toBe(5));
 });

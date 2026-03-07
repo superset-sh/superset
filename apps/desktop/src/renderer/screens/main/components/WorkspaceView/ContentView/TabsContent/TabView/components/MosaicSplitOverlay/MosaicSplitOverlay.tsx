@@ -2,117 +2,18 @@ import { cn } from "@superset/ui/utils";
 import { useCallback, useRef } from "react";
 import type { MosaicNode, MosaicPath } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
-
-interface BoundingBox {
-	top: number;
-	right: number;
-	bottom: number;
-	left: number;
-}
-
-interface SplitInfo {
-	path: MosaicPath;
-	direction: "row" | "column";
-	boundingBox: BoundingBox;
-	splitPercentage: number;
-}
-
-function getAbsoluteSplitPercentage(
-	box: BoundingBox,
-	splitPercentage: number,
-	direction: "row" | "column",
-): number {
-	if (direction === "column") {
-		const height = 100 - box.top - box.bottom;
-		return (height * splitPercentage) / 100 + box.top;
-	}
-	const width = 100 - box.right - box.left;
-	return (width * splitPercentage) / 100 + box.left;
-}
-
-function getRelativeSplitPercentage(
-	box: BoundingBox,
-	absolutePercentage: number,
-	direction: "row" | "column",
-): number {
-	if (direction === "column") {
-		const height = 100 - box.top - box.bottom;
-		return ((absolutePercentage - box.top) / height) * 100;
-	}
-	const width = 100 - box.right - box.left;
-	return ((absolutePercentage - box.left) / width) * 100;
-}
-
-function splitBox(
-	box: BoundingBox,
-	splitPercentage: number,
-	direction: "row" | "column",
-): { first: BoundingBox; second: BoundingBox } {
-	const abs = getAbsoluteSplitPercentage(box, splitPercentage, direction);
-	if (direction === "column") {
-		return {
-			first: { ...box, bottom: 100 - abs },
-			second: { ...box, top: abs },
-		};
-	}
-	return {
-		first: { ...box, right: 100 - abs },
-		second: { ...box, left: abs },
-	};
-}
-
-function collectSplits(
-	node: MosaicNode<string>,
-	box: BoundingBox,
-	path: MosaicPath,
-	out: SplitInfo[],
-): void {
-	if (typeof node === "string") return;
-
-	const pct = node.splitPercentage ?? 50;
-	out.push({
-		path,
-		direction: node.direction,
-		boundingBox: box,
-		splitPercentage: pct,
-	});
-
-	const { first, second } = splitBox(box, pct, node.direction);
-	collectSplits(node.first, first, [...path, "first"], out);
-	collectSplits(node.second, second, [...path, "second"], out);
-}
-
-const MIN_PERCENTAGE = 20;
-const HANDLE_SIZE = 20;
-
-function updateSplitPercentage(
-	node: MosaicNode<string>,
-	path: MosaicPath,
-	newPercentage: number,
-): MosaicNode<string> {
-	if (path.length === 0) {
-		if (typeof node === "string") return node;
-		return { ...node, splitPercentage: newPercentage };
-	}
-	if (typeof node === "string") return node;
-	const [head, ...rest] = path;
-	return {
-		...node,
-		[head]: updateSplitPercentage(node[head], rest, newPercentage),
-	};
-}
-
-function equalizeSplitPercentages(
-	node: MosaicNode<string>,
-): MosaicNode<string> {
-	if (typeof node === "string") return node;
-	return {
-		...node,
-		splitPercentage: 50,
-		first: equalizeSplitPercentages(node.first),
-		second: equalizeSplitPercentages(node.second),
-	};
-}
+import {
+	HANDLE_SIZE,
+	KEYBOARD_STEP,
+	MIN_PERCENTAGE,
+	type SplitInfo,
+	collectSplits,
+	equalizeSplitPercentages,
+	getAbsoluteSplitPercentage,
+	getRelativeSplitPercentage,
+	splitBox,
+	updateSplitPercentage,
+} from "./mosaicSplitUtils";
 
 interface MosaicSplitOverlayProps {
 	layout: MosaicNode<string>;
@@ -124,7 +25,7 @@ export function MosaicSplitOverlay({
 	onLayoutChange,
 }: MosaicSplitOverlayProps) {
 	const splits: SplitInfo[] = [];
-	const emptyBox: BoundingBox = { top: 0, right: 0, bottom: 0, left: 0 };
+	const emptyBox = { top: 0, right: 0, bottom: 0, left: 0 };
 	collectSplits(layout, emptyBox, [], splits);
 
 	if (splits.length === 0) return null;
@@ -234,6 +135,27 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 		[layout, onLayoutChange],
 	);
 
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			const increase = isRow ? "ArrowRight" : "ArrowDown";
+			const decrease = isRow ? "ArrowLeft" : "ArrowUp";
+
+			if (e.key === increase || e.key === decrease) {
+				e.preventDefault();
+				const delta = e.key === increase ? KEYBOARD_STEP : -KEYBOARD_STEP;
+				const next = Math.max(
+					MIN_PERCENTAGE,
+					Math.min(100 - MIN_PERCENTAGE, split.splitPercentage + delta),
+				);
+				onLayoutChange(updateSplitPercentage(layout, split.path, next));
+			} else if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				onLayoutChange(equalizeSplitPercentages(layout));
+			}
+		},
+		[isRow, layout, onLayoutChange, split.path, split.splitPercentage],
+	);
+
 	const style: React.CSSProperties = isRow
 		? {
 				top: `${split.boundingBox.top}%`,
@@ -254,15 +176,19 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 			role="separator"
 			aria-orientation={isRow ? "vertical" : "horizontal"}
 			aria-valuenow={Math.round(split.splitPercentage)}
+			aria-valuemin={MIN_PERCENTAGE}
+			aria-valuemax={100 - MIN_PERCENTAGE}
+			aria-label={isRow ? "Vertical split handle" : "Horizontal split handle"}
 			tabIndex={0}
 			ref={containerRef}
 			onMouseDown={handleMouseDown}
 			onDoubleClick={handleDoubleClick}
+			onKeyDown={handleKeyDown}
 			className={cn(
 				"absolute z-20",
 				isRow ? "cursor-col-resize" : "cursor-row-resize",
 				"after:absolute after:transition-colors",
-				"hover:after:bg-border",
+				"hover:after:bg-border focus-visible:after:bg-border",
 				isRow
 					? "after:top-0 after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-px"
 					: "after:left-0 after:right-0 after:top-1/2 after:-translate-y-1/2 after:h-px",
