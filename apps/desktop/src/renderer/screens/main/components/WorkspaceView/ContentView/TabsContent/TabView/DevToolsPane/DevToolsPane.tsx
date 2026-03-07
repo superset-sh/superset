@@ -7,6 +7,8 @@ interface DevToolsPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	targetPaneId: string;
+	/** Whether this pane's tab is currently active/visible */
+	isActive?: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -22,6 +24,7 @@ export function DevToolsPane({
 	path,
 	tabId,
 	targetPaneId,
+	isActive: _isActive,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,

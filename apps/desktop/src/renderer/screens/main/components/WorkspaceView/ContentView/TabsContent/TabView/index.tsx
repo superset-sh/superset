@@ -164,6 +164,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						worktreePath={worktreePath}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
@@ -184,6 +185,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						workspaceId={tab.workspaceId}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
@@ -203,6 +205,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 						paneId={paneId}
 						path={path}
 						tabId={tab.id}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
@@ -218,6 +221,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						targetPaneId={paneInfo.devtools.targetPaneId}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
@@ -232,6 +236,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 					path={path}
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
+					isActive={isActive}
 					splitPaneAuto={splitPaneAuto}
 					splitPaneHorizontal={splitPaneHorizontal}
 					splitPaneVertical={splitPaneVertical}
@@ -248,6 +253,7 @@ export function TabView({ tab, isActive = true }: TabViewProps) {
 			tab.id,
 			tab.workspaceId,
 			worktreePath,
+			isActive,
 			splitPaneAuto,
 			splitPaneHorizontal,
 			splitPaneVertical,
