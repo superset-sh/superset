@@ -96,7 +96,39 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	return { defaultBranch };
 }
 
-function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
+async function syncProjectGitHubMetadata(project: Project): Promise<Project> {
+	const repoIdentity = await fetchGitHubRepoIdentity(project.mainRepoPath);
+	if (!repoIdentity) {
+		return project;
+	}
+
+	if (
+		project.githubOwner === repoIdentity.owner &&
+		project.githubRepoName === repoIdentity.repoName
+	) {
+		return project;
+	}
+
+	localDb
+		.update(projects)
+		.set({
+			githubOwner: repoIdentity.owner,
+			githubRepoName: repoIdentity.repoName,
+		})
+		.where(eq(projects.id, project.id))
+		.run();
+
+	return {
+		...project,
+		githubOwner: repoIdentity.owner,
+		githubRepoName: repoIdentity.repoName,
+	};
+}
+
+async function upsertProject(
+	mainRepoPath: string,
+	defaultBranch: string,
+): Promise<Project> {
 	const name = basename(mainRepoPath);
 
 	const existing = localDb
@@ -111,7 +143,11 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 			.set({ lastOpenedAt: Date.now(), defaultBranch })
 			.where(eq(projects.id, existing.id))
 			.run();
-		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
+		return syncProjectGitHubMetadata({
+			...existing,
+			lastOpenedAt: Date.now(),
+			defaultBranch,
+		});
 	}
 
 	const project = localDb
@@ -125,7 +161,7 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		.returning()
 		.get();
 
-	return project;
+	return syncProjectGitHubMetadata(project);
 }
 
 async function ensureMainWorkspace(project: Project): Promise<void> {
@@ -281,6 +317,32 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
 				return resolveDefaultEditor(input.projectId);
+			}),
+
+		refreshGitHubMetadata: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				const hydratedProject = await syncProjectGitHubMetadata(project);
+
+				return {
+					project: hydratedProject,
+					found:
+						Boolean(hydratedProject.githubOwner) &&
+						Boolean(hydratedProject.githubRepoName),
+				};
 			}),
 
 		getRecents: publicProcedure.query((): Project[] => {
@@ -517,7 +579,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					const mainRepoPath = await getGitRoot(selectedPath);
 					const defaultBranch = await getDefaultBranch(mainRepoPath);
 
-					const project = upsertProject(mainRepoPath, defaultBranch);
+					const project = await upsertProject(mainRepoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 
 					track("project_opened", {
@@ -589,7 +651,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				const defaultBranch = await getDefaultBranch(mainRepoPath);
 
-				const project = upsertProject(mainRepoPath, defaultBranch);
+				const project = await upsertProject(mainRepoPath, defaultBranch);
 				await ensureMainWorkspace(project);
 
 				track("project_opened", {
@@ -608,7 +670,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			.mutation(async ({ input }) => {
 				const { defaultBranch } = await initGitRepo(input.path);
 
-				const project = upsertProject(input.path, defaultBranch);
+				const project = await upsertProject(input.path, defaultBranch);
 				await ensureMainWorkspace(project);
 
 				track("project_opened", {
@@ -700,10 +762,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								.run();
 
 							// Auto-create main workspace if it doesn't exist
-							await ensureMainWorkspace({
+							const hydratedProject = await syncProjectGitHubMetadata({
 								...existingProject,
 								lastOpenedAt: Date.now(),
 							});
+							await ensureMainWorkspace(hydratedProject);
 
 							track("project_opened", {
 								project_id: existingProject.id,
@@ -713,7 +776,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							return {
 								canceled: false as const,
 								success: true as const,
-								project: { ...existingProject, lastOpenedAt: Date.now() },
+								project: hydratedProject,
 							};
 						} catch {
 							// Directory is missing - remove the stale project record and continue with clone
@@ -752,7 +815,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.get();
 
 					// Auto-create main workspace if it doesn't exist
-					await ensureMainWorkspace(project);
+					const hydratedProject = await syncProjectGitHubMetadata(project);
+					await ensureMainWorkspace(hydratedProject);
 
 					track("project_opened", {
 						project_id: project.id,
@@ -762,7 +826,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return {
 						canceled: false as const,
 						success: true as const,
-						project,
+						project: hydratedProject,
 					};
 				} catch (error) {
 					const errorMessage =
@@ -812,7 +876,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						await rm(repoPath, { recursive: true, force: true });
 						throw gitErr;
 					}
-					const project = upsertProject(repoPath, defaultBranch);
+					const project = await upsertProject(repoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 
 					track("project_opened", {
@@ -1089,7 +1153,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return null;
 				}
 
-				if (project.githubOwner && project.githubRepoName) {
+				if (project.githubOwner) {
 					console.log(
 						"[getGitHubAvatar] Using cached owner:",
 						project.githubOwner,
@@ -1107,30 +1171,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const repoIdentity = await fetchGitHubRepoIdentity(
 					project.mainRepoPath,
 				);
-
 				const owner = repoIdentity?.owner ?? project.githubOwner;
-				const repoName = repoIdentity?.repoName ?? project.githubRepoName;
 
 				if (!owner) {
 					console.log("[getGitHubAvatar] Failed to fetch repo identity");
-					return project.githubOwner
-						? {
-								owner: project.githubOwner,
-								avatarUrl: getGitHubAvatarUrl(project.githubOwner),
-							}
-						: null;
+					return null;
 				}
 
-				console.log("[getGitHubAvatar] Fetched repo identity:", {
-					owner,
-					repoName,
-				});
-
-				localDb
-					.update(projects)
-					.set({ githubOwner: owner, githubRepoName: repoName ?? null })
-					.where(eq(projects.id, input.id))
-					.run();
+				console.log("[getGitHubAvatar] Fetched repo identity:", { owner });
 
 				return {
 					owner,

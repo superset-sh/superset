@@ -90,9 +90,27 @@ export function PullRequestsGroup({
 		return map;
 	}, [allWorkspaces, projectId]);
 
-	const openPrs = useMemo(
-		() => (pullRequests ?? []).filter((pr) => pr.state === "open").slice(0, 30),
+	const allOpenPrs = useMemo(
+		() =>
+			[...(pullRequests ?? [])]
+				.filter((pr) => pr.state === "open")
+				.sort((a, b) => {
+					const aUpdated =
+						a.updatedAt instanceof Date
+							? a.updatedAt.getTime()
+							: new Date(a.updatedAt).getTime();
+					const bUpdated =
+						b.updatedAt instanceof Date
+							? b.updatedAt.getTime()
+							: new Date(b.updatedAt).getTime();
+					return bUpdated - aUpdated;
+				}),
 		[pullRequests],
+	);
+	const hasSearchQuery = searchQuery.trim().length > 0;
+	const openPrs = useMemo(
+		() => (hasSearchQuery ? allOpenPrs : allOpenPrs.slice(0, 30)),
+		[allOpenPrs, hasSearchQuery],
 	);
 	const manualPr = useMemo(() => parseGitHubPrUrl(searchQuery), [searchQuery]);
 	const manualPrUrl = useMemo(
@@ -104,11 +122,11 @@ export function PullRequestsGroup({
 			return false;
 		}
 
-		return openPrs.some((pr) => {
+		return allOpenPrs.some((pr) => {
 			const parsedUrl = parseGitHubPrUrl(pr.url);
 			return toCanonicalGitHubPrUrl(parsedUrl) === manualPrUrl;
 		});
-	}, [manualPrUrl, openPrs]);
+	}, [allOpenPrs, manualPrUrl]);
 	const showManualPrOption =
 		Boolean(projectId) && Boolean(manualPrUrl) && !hasSyncedManualMatch;
 
