@@ -98,10 +98,7 @@ export function useOrderedSections({
 	isStageAllPending,
 	isUnstagedActioning,
 }: UseOrderedSectionsInput) {
-	const committedFileCount = commitsWithFiles.reduce(
-		(acc, commit) => acc + commit.files.length,
-		0,
-	);
+	const commitCount = commitsWithFiles.length;
 
 	const sectionDefinitions: Record<ChangeCategory, OrderedSection> = {
 		"against-base": {
@@ -127,7 +124,7 @@ export function useOrderedSections({
 		committed: {
 			id: "committed",
 			title: "Commits",
-			count: committedFileCount,
+			count: commitCount,
 			isExpanded: expandedSections.committed,
 			onToggle: () => toggleSection("committed"),
 			content: expandedSections.committed
