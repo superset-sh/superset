@@ -14,5 +14,10 @@ import { $ } from "bun";
 // Run sherif for workspace validation
 await $`sherif`.nothrow();
 
+// Patch node-pty gyp files for Windows builds
+if (process.platform === "win32") {
+	await $`bun run ${import.meta.dir}/patch-node-pty-win.ts`.nothrow();
+}
+
 // Install native dependencies for desktop app
 await $`bun run --filter=@superset/desktop install:deps`;

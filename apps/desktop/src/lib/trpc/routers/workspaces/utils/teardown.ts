@@ -7,6 +7,7 @@ import {
 } from "main/lib/agent-setup/shell-wrappers";
 import { buildSafeEnv, getDefaultShell, sanitizeEnv } from "main/lib/terminal/env";
 import { SUPERSET_DIR_NAME } from "shared/constants";
+import treeKill from "tree-kill";
 import { removeWorktree } from "./git";
 import { loadSetupConfig } from "./setup";
 
@@ -116,7 +117,6 @@ export async function runTeardown({
 						if (child.pid) {
 						if (process.platform === "win32") {
 							// Windows: can't use negative PID for process group kill
-							const { default: treeKill } = await import("tree-kill");
 							treeKill(child.pid, "SIGKILL");
 						} else {
 							process.kill(-child.pid, "SIGKILL");
