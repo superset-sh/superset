@@ -3,6 +3,7 @@ import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -16,6 +17,7 @@ import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
+import { getFileDiffSaveContent } from "./utils/getFileDiffSaveContent";
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -75,6 +77,7 @@ export function FileDiffSection({
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const editorRef = useRef<CodeEditorAdapter | null>(null);
 	const {
 		registerFileRef,
 		viewedFiles,
@@ -312,7 +315,16 @@ export function FileDiffSection({
 									onChange={(value) => {
 										setEditedContent(value);
 									}}
-									onSave={() => handleSave(editedContent ?? diffData.modified)}
+									onSave={() =>
+										handleSave(
+											getFileDiffSaveContent({
+												editorValue: editorRef.current?.getValue(),
+												editedContent,
+												modifiedContent: diffData.modified,
+											}),
+										)
+									}
+									editorRef={editorRef}
 									fillHeight={false}
 								/>
 							</div>

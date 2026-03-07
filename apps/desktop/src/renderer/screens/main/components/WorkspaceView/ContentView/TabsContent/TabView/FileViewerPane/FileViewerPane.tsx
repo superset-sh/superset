@@ -13,7 +13,6 @@ import { useFileContent } from "./hooks/useFileContent";
 import { useFileSave } from "./hooks/useFileSave";
 import { useMarkdownSearch } from "./hooks/useMarkdownSearch";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
-import { getEditorDirtyState } from "./utils/getEditorDirtyState";
 
 interface FileViewerPaneProps {
 	paneId: string;
@@ -127,23 +126,15 @@ export function FileViewerPane({
 		originalDiffContentRef,
 	});
 
-	const handleEditorChange = useCallback(
-		(value: string | undefined, loadedContent: string) => {
-			if (value === undefined) return;
-
-			draftContentRef.current = value;
-			const { isDirty: nextIsDirty, normalizedOriginalContent } =
-				getEditorDirtyState({
-					nextValue: value,
-					originalContent: originalContentRef.current,
-					loadedContent,
-				});
-
-			originalContentRef.current = normalizedOriginalContent;
-			setIsDirty(nextIsDirty);
-		},
-		[],
-	);
+	const handleEditorChange = useCallback((value: string | undefined) => {
+		if (value === undefined) return;
+		draftContentRef.current = value;
+		if (originalContentRef.current === "") {
+			originalContentRef.current = value;
+			return;
+		}
+		setIsDirty(value !== originalContentRef.current);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
