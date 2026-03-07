@@ -18,10 +18,10 @@ const MIDNIGHT_DIFF_THEME = {
 };
 
 const MIDNIGHT_DIFF_COLORS = {
-	background: "#282c34",
-	buffer: "#21252b",
-	hover: "#2f343f",
-	separator: "#21252b",
+	background: "#000000",
+	buffer: "#0a0a0a",
+	hover: "#111111",
+	separator: "#0a0a0a",
 	lineNumber: "#636d83",
 	addition: "#98c379",
 	deletion: "#e06c75",

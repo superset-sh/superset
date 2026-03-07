@@ -9,14 +9,14 @@ export const DEFAULT_CODE_EDITOR_FONT_FAMILY =
 	"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace";
 export const DEFAULT_CODE_EDITOR_FONT_SIZE = 13;
 
-const MIDNIGHT_EDITOR_BACKGROUND = "#282c34";
-const MIDNIGHT_EDITOR_BORDER = "#21252b";
+const MIDNIGHT_EDITOR_BACKGROUND = "#000000";
+const MIDNIGHT_EDITOR_BORDER = "#111111";
 const MIDNIGHT_EDITOR_MUTED = "#636d83";
 const MIDNIGHT_EDITOR_SELECTION = "#3e4451";
 const MIDNIGHT_EDITOR_SEARCH = "#e5c07b33";
 const MIDNIGHT_EDITOR_SEARCH_ACTIVE = "#e5c07b55";
-const MIDNIGHT_EDITOR_PANEL = "#21252b";
-const MIDNIGHT_EDITOR_SURFACE = "#2c313c";
+const MIDNIGHT_EDITOR_PANEL = "#0a0a0a";
+const MIDNIGHT_EDITOR_SURFACE = "#111111";
 const MIDNIGHT_EDITOR_FOREGROUND = "#abb2bf";
 
 export function createCodeMirrorTheme(
