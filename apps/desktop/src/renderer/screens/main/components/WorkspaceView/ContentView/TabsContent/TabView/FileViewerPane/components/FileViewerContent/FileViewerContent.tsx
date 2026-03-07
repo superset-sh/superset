@@ -75,7 +75,7 @@ interface FileViewerContentProps {
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
-	onEditorChange: (value: string | undefined) => void;
+	onEditorChange: (value: string | undefined, loadedContent: string) => void;
 	setIsDirty: (dirty: boolean) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
@@ -325,7 +325,7 @@ export function FileViewerContent({
 					key={filePath}
 					language={detectLanguage(filePath)}
 					value={draftContentRef.current ?? rawFileData.content}
-					onChange={onEditorChange}
+					onChange={(value) => onEditorChange(value, rawFileData.content)}
 					onSave={() => {
 						void onSaveRaw();
 					}}
