@@ -1,6 +1,6 @@
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -680,25 +680,11 @@ export async function removeWorktree(
 		});
 
 		// Delete the moved directory in the background — don't block the caller.
-		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
-		// when encountering .app bundles with extended attributes.
-		const child = spawn("/bin/rm", ["-rf", tempPath], {
-			detached: true,
-			stdio: "ignore",
-		});
-		child.unref();
-		child.on("error", (err) => {
+		rm(tempPath, { recursive: true, force: true }).catch((err) => {
 			console.error(
-				`[removeWorktree] Failed to spawn rm for ${tempPath}:`,
+				`[removeWorktree] Background cleanup of ${tempPath} failed:`,
 				err.message,
 			);
-		});
-		child.on("exit", (code: number | null) => {
-			if (code !== 0) {
-				console.error(
-					`[removeWorktree] Background cleanup of ${tempPath} failed (exit ${code})`,
-				);
-			}
 		});
 	} catch (error) {
 		const code = (error as NodeJS.ErrnoException).code;

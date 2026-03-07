@@ -1104,13 +1104,14 @@ export class TerminalHostClient extends EventEmitter {
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
 				child = spawn(process.execPath, [daemonScript], {
-					detached: true,
+					detached: process.platform !== "win32",
 					stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
 					env: {
 						...process.env,
 						ELECTRON_RUN_AS_NODE: "1",
 						NODE_ENV: process.env.NODE_ENV,
 					},
+					...(process.platform === "win32" ? { windowsHide: true } : {}),
 				});
 			} finally {
 				if (logFd >= 0) {

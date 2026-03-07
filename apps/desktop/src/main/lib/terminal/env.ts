@@ -1,4 +1,4 @@
-import { exec } from "node:child_process";
+import { exec, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import defaultShell from "default-shell";
@@ -11,6 +11,14 @@ let localeProbeInFlight = false;
 
 function startLocaleProbe(): void {
 	if (cachedUtf8Locale || localeProbeInFlight) return;
+
+	// Windows doesn't have the `locale` command.
+	// Windows 10 1903+ supports UTF-8 as system locale.
+	if (os.platform() === "win32") {
+		cachedUtf8Locale = "en_US.UTF-8";
+		return;
+	}
+
 	localeProbeInFlight = true;
 
 	exec(
@@ -37,6 +45,15 @@ export const HOOK_PROTOCOL_VERSION = "2";
 export const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
 export const SHELL_CRASH_THRESHOLD_MS = 1000;
 
+function commandExistsOnWindows(cmd: string): boolean {
+	try {
+		execFileSync("where", [cmd], { stdio: "ignore", timeout: 2000 });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export function getDefaultShell(): string {
 	if (defaultShell) {
 		return defaultShell;
@@ -45,6 +62,9 @@ export function getDefaultShell(): string {
 	const platform = os.platform();
 
 	if (platform === "win32") {
+		if (commandExistsOnWindows("pwsh.exe")) {
+			return "pwsh.exe";
+		}
 		return process.env.COMSPEC || "powershell.exe";
 	}
 
