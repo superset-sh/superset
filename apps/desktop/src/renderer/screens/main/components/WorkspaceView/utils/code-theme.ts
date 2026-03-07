@@ -13,8 +13,8 @@ interface CodeThemeFontSettings {
 }
 
 const MIDNIGHT_DIFF_THEME = {
-	light: "one-light" as DiffsThemeNames,
-	dark: "one-dark-pro" as DiffsThemeNames,
+	light: "pierre-light" as DiffsThemeNames,
+	dark: "pierre-dark" as DiffsThemeNames,
 };
 
 const MIDNIGHT_DIFF_COLORS = {
@@ -27,6 +27,14 @@ const MIDNIGHT_DIFF_COLORS = {
 	deletion: "#e06c75",
 	modified: "#61afef",
 	selection: "#3e4451",
+	additionBackground: "#050705",
+	additionNumberBackground: "#090d09",
+	additionHoverBackground: "#0d120d",
+	additionEmphasisBackground: "#132013",
+	deletionBackground: "#070505",
+	deletionNumberBackground: "#0d0909",
+	deletionHoverBackground: "#120d0d",
+	deletionEmphasisBackground: "#241316",
 };
 
 export function getDiffsTheme() {
@@ -57,6 +65,20 @@ export function getDiffViewerStyle(
 		"--diffs-deletion-color-override": MIDNIGHT_DIFF_COLORS.deletion,
 		"--diffs-modified-color-override": MIDNIGHT_DIFF_COLORS.modified,
 		"--diffs-selection-color-override": MIDNIGHT_DIFF_COLORS.selection,
+		"--diffs-bg-addition-override": MIDNIGHT_DIFF_COLORS.additionBackground,
+		"--diffs-bg-addition-number-override":
+			MIDNIGHT_DIFF_COLORS.additionNumberBackground,
+		"--diffs-bg-addition-hover-override":
+			MIDNIGHT_DIFF_COLORS.additionHoverBackground,
+		"--diffs-bg-addition-emphasis-override":
+			MIDNIGHT_DIFF_COLORS.additionEmphasisBackground,
+		"--diffs-bg-deletion-override": MIDNIGHT_DIFF_COLORS.deletionBackground,
+		"--diffs-bg-deletion-number-override":
+			MIDNIGHT_DIFF_COLORS.deletionNumberBackground,
+		"--diffs-bg-deletion-hover-override":
+			MIDNIGHT_DIFF_COLORS.deletionHoverBackground,
+		"--diffs-bg-deletion-emphasis-override":
+			MIDNIGHT_DIFF_COLORS.deletionEmphasisBackground,
 		backgroundColor: MIDNIGHT_DIFF_COLORS.background,
 		color: "#abb2bf",
 	} as CSSProperties;
