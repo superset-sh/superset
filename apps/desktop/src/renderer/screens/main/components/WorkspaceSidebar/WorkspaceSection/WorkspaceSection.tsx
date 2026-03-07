@@ -63,6 +63,11 @@ export function WorkspaceSection({
 	const mutations = useSectionMutations(sectionId);
 
 	const hasColor = color && color !== PROJECT_COLOR_DEFAULT;
+	const sectionBorderStyle = {
+		borderLeft: hasColor
+			? `2px solid ${color}`
+			: "2px solid var(--color-border)",
+	};
 
 	const dropZone = useSectionDropZone({
 		canAccept: (item) =>
@@ -170,26 +175,36 @@ export function WorkspaceSection({
 
 	if (isSidebarCollapsed) {
 		return (
-			<WorkspaceList
-				workspaces={workspaces}
-				shortcutBaseIndex={shortcutBaseIndex}
-				sectionId={sectionId}
-				sections={allSections}
-				isCollapsed={isSidebarCollapsed}
-				orderedWorkspaceIds={orderedWorkspaceIds}
-			/>
+			<div
+				ref={sectionDrop}
+				{...dropZone.handlers}
+				className={cn(
+					"relative flex flex-col -ml-0.5",
+					isSectionDragging && "opacity-30",
+				)}
+				style={sectionBorderStyle}
+			>
+				<div
+					ref={sectionDrag}
+					className="absolute inset-y-0 -left-1 w-2 cursor-grab"
+				/>
+				<WorkspaceList
+					workspaces={workspaces}
+					shortcutBaseIndex={shortcutBaseIndex}
+					sectionId={sectionId}
+					sections={allSections}
+					isCollapsed={isSidebarCollapsed}
+					orderedWorkspaceIds={orderedWorkspaceIds}
+				/>
+			</div>
 		);
 	}
 
 	return (
 		<div
 			{...dropZone.handlers}
-			className={cn("ml-3", isSectionDragging && "opacity-30")}
-			style={{
-				borderLeft: hasColor
-					? `2px solid ${color}`
-					: "2px solid var(--color-border)",
-			}}
+			className={cn(isSectionDragging && "opacity-30")}
+			style={sectionBorderStyle}
 		>
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
