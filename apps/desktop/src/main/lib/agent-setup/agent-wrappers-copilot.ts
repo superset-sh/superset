@@ -8,7 +8,8 @@ import {
 } from "./agent-wrappers-common";
 import { HOOKS_DIR } from "./paths";
 
-export const COPILOT_HOOK_SCRIPT_NAME = "copilot-hook.sh";
+export const COPILOT_HOOK_SCRIPT_NAME =
+	process.platform === "win32" ? "copilot-hook.ps1" : "copilot-hook.sh";
 
 const COPILOT_HOOK_SIGNATURE = "# Superset copilot hook";
 const COPILOT_HOOK_VERSION = "v1";
@@ -17,7 +18,9 @@ export const COPILOT_HOOK_MARKER = `${COPILOT_HOOK_SIGNATURE} ${COPILOT_HOOK_VER
 const COPILOT_HOOK_TEMPLATE_PATH = path.join(
 	__dirname,
 	"templates",
-	"copilot-hook.template.sh",
+	process.platform === "win32"
+		? "copilot-hook.template.ps1"
+		: "copilot-hook.template.sh",
 );
 
 export function getCopilotHookScriptPath(): string {

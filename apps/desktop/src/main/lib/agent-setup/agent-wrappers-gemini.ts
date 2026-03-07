@@ -11,7 +11,8 @@ import {
 } from "./agent-wrappers-common";
 import { HOOKS_DIR } from "./paths";
 
-export const GEMINI_HOOK_SCRIPT_NAME = "gemini-hook.sh";
+export const GEMINI_HOOK_SCRIPT_NAME =
+	process.platform === "win32" ? "gemini-hook.ps1" : "gemini-hook.sh";
 
 const GEMINI_HOOK_SIGNATURE = "# Superset gemini hook";
 const GEMINI_HOOK_VERSION = "v1";
@@ -20,7 +21,9 @@ export const GEMINI_HOOK_MARKER = `${GEMINI_HOOK_SIGNATURE} ${GEMINI_HOOK_VERSIO
 const GEMINI_HOOK_TEMPLATE_PATH = path.join(
 	__dirname,
 	"templates",
-	"gemini-hook.template.sh",
+	process.platform === "win32"
+		? "gemini-hook.template.ps1"
+		: "gemini-hook.template.sh",
 );
 
 interface GeminiHookConfig {
