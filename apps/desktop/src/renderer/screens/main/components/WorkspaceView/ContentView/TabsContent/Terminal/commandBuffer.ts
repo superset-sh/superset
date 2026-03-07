@@ -1,7 +1,22 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
 import stripAnsi from "strip-ansi";
 
 const MAX_TITLE_LENGTH = 32;
+
+interface TerminalLineLike {
+	isWrapped: boolean;
+	translateToString(trimRight?: boolean): string;
+}
+
+interface CommandBufferTerminalLike {
+	buffer: {
+		active: {
+			cursorX: number;
+			cursorY: number;
+			viewportY: number;
+			getLine(index: number): TerminalLineLike | undefined;
+		};
+	};
+}
 
 export function sanitizeForTitle(text: string): string | null {
 	const cleaned = stripAnsi(text).trim().slice(0, MAX_TITLE_LENGTH);
@@ -9,7 +24,9 @@ export function sanitizeForTitle(text: string): string | null {
 	return cleaned || null;
 }
 
-function getVisiblePromptBlockToCursor(xterm: XTerm): string | null {
+function getVisiblePromptBlockToCursor(
+	xterm: CommandBufferTerminalLike,
+): string | null {
 	const active = xterm.buffer.active;
 	const lineIndex = active.cursorY + active.viewportY;
 	const currentLine = active.getLine(lineIndex);
@@ -34,7 +51,10 @@ function getVisiblePromptBlockToCursor(xterm: XTerm): string | null {
 	return rendered;
 }
 
-export function isCommandEchoed(xterm: XTerm, command: string): boolean {
+export function isCommandEchoed(
+	xterm: CommandBufferTerminalLike,
+	command: string,
+): boolean {
 	const normalizedCommand = stripAnsi(command).trimEnd();
 	if (!normalizedCommand) return false;
 

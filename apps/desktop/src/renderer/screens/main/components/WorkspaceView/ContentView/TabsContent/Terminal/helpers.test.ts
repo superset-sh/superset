@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as XTerm } from "ghostty-web";
 
 // Mock localStorage for Node.js test environment
 const mockStorage = new Map<string, string>();
@@ -12,6 +12,8 @@ const mockLocalStorage = {
 
 // @ts-expect-error - mocking global localStorage
 globalThis.localStorage = mockLocalStorage;
+// @ts-expect-error - minimal window shim for xterm addon imports
+globalThis.window = { localStorage: mockLocalStorage };
 
 // Mock trpc-client to avoid electronTRPC dependency
 mock.module("renderer/lib/trpc-client", () => ({
@@ -28,6 +30,19 @@ mock.module("renderer/lib/trpc-client", () => ({
 		},
 	},
 	electronReactClient: {},
+}));
+
+mock.module("renderer/stores/hotkeys", () => ({
+	getHotkeyKeys: mock(() => "meta+shift+k"),
+	isAppHotkeyEvent: mock(
+		(event: KeyboardEvent) =>
+			event.type === "keydown" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey &&
+			event.key.toLowerCase() === "d",
+	),
 }));
 
 // Import after mocks are set up
@@ -140,7 +155,7 @@ describe("setupKeyboardHandler", () => {
 		const onWrite = mock(() => {});
 		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
 
-		captured.handler?.({
+		const leftResult = captured.handler?.({
 			type: "keydown",
 			key: "ArrowLeft",
 			altKey: true,
@@ -148,7 +163,7 @@ describe("setupKeyboardHandler", () => {
 			ctrlKey: false,
 			shiftKey: false,
 		} as KeyboardEvent);
-		captured.handler?.({
+		const rightResult = captured.handler?.({
 			type: "keydown",
 			key: "ArrowRight",
 			altKey: true,
@@ -159,6 +174,8 @@ describe("setupKeyboardHandler", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+		expect(leftResult).toBe(true);
+		expect(rightResult).toBe(true);
 	});
 
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
@@ -179,7 +196,7 @@ describe("setupKeyboardHandler", () => {
 		const onWrite = mock(() => {});
 		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
 
-		captured.handler?.({
+		const leftResult = captured.handler?.({
 			type: "keydown",
 			key: "ArrowLeft",
 			altKey: false,
@@ -187,7 +204,7 @@ describe("setupKeyboardHandler", () => {
 			ctrlKey: true,
 			shiftKey: false,
 		} as KeyboardEvent);
-		captured.handler?.({
+		const rightResult = captured.handler?.({
 			type: "keydown",
 			key: "ArrowRight",
 			altKey: false,
@@ -198,6 +215,38 @@ describe("setupKeyboardHandler", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+		expect(leftResult).toBe(true);
+		expect(rightResult).toBe(true);
+	});
+
+	it("consumes app hotkeys so Ghostty does not send them to the PTY", () => {
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+
+		const preventDefault = mock(() => {});
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "d",
+			code: "KeyD",
+			metaKey: true,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+			preventDefault,
+		} as unknown as KeyboardEvent);
+
+		expect(result).toBe(true);
+		expect(preventDefault).toHaveBeenCalled();
 	});
 });
 

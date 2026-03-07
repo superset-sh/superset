@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { terminalDebugLog } from "../debug";
 import type {
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
@@ -58,16 +59,22 @@ export function useTerminalConnection({
 			});
 	});
 	const resizeRef = useRef<TerminalResizeMutate>((input) => {
+		terminalDebugLog("resize", input.paneId, "resize", {
+			cols: input.cols,
+			rows: input.rows,
+		});
 		electronTrpcClient.terminal.resize.mutate(input).catch((error) => {
 			console.warn("[Terminal] Failed to resize terminal:", error);
 		});
 	});
 	const detachRef = useRef<TerminalDetachMutate>((input) => {
+		terminalDebugLog("connection", input.paneId, "detach");
 		electronTrpcClient.terminal.detach.mutate(input).catch((error) => {
 			console.warn("[Terminal] Failed to detach terminal:", error);
 		});
 	});
 	const clearScrollbackRef = useRef<TerminalClearScrollbackMutate>((input) => {
+		terminalDebugLog("connection", input.paneId, "clearScrollback");
 		electronTrpcClient.terminal.clearScrollback.mutate(input).catch((error) => {
 			console.warn("[Terminal] Failed to clear scrollback:", error);
 		});

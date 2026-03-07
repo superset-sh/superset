@@ -6,6 +6,7 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
+import { BUNDLED_TERMINAL_FONT_DISPLAY_NAME } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/fonts";
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
@@ -20,6 +21,7 @@ const VARIANT_CONFIG = {
 		title: "Editor Font",
 		description: "Font used in diff views and file editors",
 		defaultFamily: DEFAULT_EDITOR_FONT_FAMILY,
+		defaultFamilyLabel: DEFAULT_EDITOR_FONT_FAMILY,
 		defaultSize: DEFAULT_EDITOR_FONT_SIZE,
 		familyKey: "editorFontFamily",
 		sizeKey: "editorFontSize",
@@ -28,6 +30,7 @@ const VARIANT_CONFIG = {
 		title: "Terminal Font",
 		description: "Font used in terminal panels.",
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
+		defaultFamilyLabel: `${BUNDLED_TERMINAL_FONT_DISPLAY_NAME} (bundled)`,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
 		familyKey: "terminalFontFamily",
 		sizeKey: "terminalFontSize",
@@ -114,6 +117,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 				{variant === "terminal" && (
 					<>
 						{" "}
+						Bundled default: {BUNDLED_TERMINAL_FONT_DISPLAY_NAME}.{" "}
 						<a
 							href="https://www.nerdfonts.com"
 							target="_blank"
@@ -128,7 +132,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 			</p>
 			<div className="flex items-center gap-2">
 				<Input
-					placeholder={config.defaultFamily}
+					placeholder={config.defaultFamilyLabel}
 					value={fontDraft ?? currentFamily ?? ""}
 					onChange={(e) => setFontDraft(e.target.value)}
 					onBlur={(e) => {

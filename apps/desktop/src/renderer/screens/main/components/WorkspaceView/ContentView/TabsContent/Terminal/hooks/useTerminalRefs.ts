@@ -1,7 +1,8 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
 import type { MutableRefObject } from "react";
 import { useRef } from "react";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
+import { terminalDebugLog } from "../debug";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type RegisterGetSelectionCallback = (
@@ -17,6 +18,7 @@ type UnregisterCallback = (paneId: string) => void;
 export interface UseTerminalRefsOptions {
 	paneId: string;
 	tabId: string;
+	isVisible: boolean;
 	focusedPaneId: string | undefined;
 	terminalTheme: ITheme | null;
 	paneInitialCwd?: string;
@@ -52,6 +54,7 @@ export interface UseTerminalRefsReturn {
 export function useTerminalRefs({
 	paneId,
 	tabId,
+	isVisible,
 	focusedPaneId,
 	terminalTheme,
 	paneInitialCwd,
@@ -62,7 +65,7 @@ export function useTerminalRefs({
 	setFocusedPane,
 }: UseTerminalRefsOptions): UseTerminalRefsReturn {
 	const initialThemeRef = useRef(terminalTheme);
-	const isFocused = focusedPaneId === paneId;
+	const isFocused = isVisible && focusedPaneId === paneId;
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
 
@@ -82,6 +85,8 @@ export function useTerminalRefs({
 
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
+		if (!isVisible) return;
+		terminalDebugLog("focus", paneId, "setFocusedPane", { tabId });
 		setFocusedPane(tabId, paneId);
 	};
 

@@ -1,8 +1,8 @@
 import { toast } from "@superset/ui/sonner";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as XTerm } from "ghostty-web";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { DEBUG_TERMINAL } from "../config";
+import { terminalDebugLog } from "../debug";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
 export interface UseTerminalStreamOptions {
@@ -56,6 +56,7 @@ export function useTerminalStream({
 
 	const handleTerminalExit = useCallback(
 		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => {
+			terminalDebugLog("stream", paneId, "exit", { exitCode, reason });
 			isExitedRef.current = true;
 			isStreamReadyRef.current = false;
 
@@ -102,6 +103,10 @@ export function useTerminalStream({
 			const message = event.code
 				? `${event.code}: ${event.error}`
 				: event.error;
+			terminalDebugLog("stream", paneId, "error", {
+				code: event.code,
+				message,
+			});
 			console.warn("[Terminal] stream error:", message);
 
 			if (
@@ -128,7 +133,7 @@ export function useTerminalStream({
 				setConnectionError(message);
 			}
 		},
-		[setConnectionError],
+		[paneId, setConnectionError],
 	);
 
 	const handleStreamData = useCallback(
@@ -138,10 +143,11 @@ export function useTerminalStream({
 			// Queue ALL events until terminal is ready, preserving order
 			// flushPendingEvents will process them in sequence after restore
 			if (!xterm || !isStreamReadyRef.current) {
-				if (DEBUG_TERMINAL && event.type === "data") {
-					console.log(
-						`[Terminal] Queuing event (not ready): ${paneId}, type=${event.type}, bytes=${event.data.length}`,
-					);
+				if (pendingEventsRef.current.length === 0) {
+					terminalDebugLog("stream", paneId, "queue:first-event", {
+						type: event.type,
+						bytes: event.type === "data" ? event.data.length : undefined,
+					});
 				}
 				pendingEventsRef.current.push(event);
 				return;
@@ -149,11 +155,11 @@ export function useTerminalStream({
 
 			// Process events when stream is ready
 			if (event.type === "data") {
-				if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
+				if (!firstStreamDataReceivedRef.current) {
 					firstStreamDataReceivedRef.current = true;
-					console.log(
-						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
-					);
+					terminalDebugLog("stream", paneId, "data:first-chunk", {
+						bytes: event.data.length,
+					});
 				}
 
 				updateModesRef.current(event.data);
@@ -162,6 +168,9 @@ export function useTerminalStream({
 			} else if (event.type === "exit") {
 				handleTerminalExit(event.exitCode, xterm, event.reason);
 			} else if (event.type === "disconnect") {
+				terminalDebugLog("stream", paneId, "disconnect", {
+					reason: event.reason,
+				});
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",
 				);

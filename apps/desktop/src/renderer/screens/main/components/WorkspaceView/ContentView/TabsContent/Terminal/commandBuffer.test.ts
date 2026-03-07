@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import type { Terminal as XTerm } from "@xterm/xterm";
 import { isCommandEchoed, sanitizeForTitle } from "./commandBuffer";
 
 function makeXterm(
@@ -9,7 +8,7 @@ function makeXterm(
 		cursorY?: number;
 		viewportY?: number;
 	} = {},
-): XTerm {
+) {
 	const {
 		cursorX = lines.at(-1)?.text.length ?? 0,
 		cursorY = Math.max(lines.length - 1, 0),
@@ -33,7 +32,7 @@ function makeXterm(
 				},
 			},
 		},
-	} as unknown as XTerm;
+	};
 }
 
 describe("sanitizeForTitle", () => {

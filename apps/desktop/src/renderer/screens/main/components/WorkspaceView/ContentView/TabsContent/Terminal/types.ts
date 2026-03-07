@@ -2,6 +2,7 @@ export interface TerminalProps {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
+	isVisible?: boolean;
 }
 
 export type TerminalExitReason = "killed" | "exited" | "error";

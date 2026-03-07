@@ -5,6 +5,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
+import { PersistentTerminal } from "./Terminal/PersistentTerminal";
 
 interface TabsContentProps {
 	defaultExternalApp?: ExternalApp | null;
@@ -19,6 +20,7 @@ export function TabsContent({
 }: TabsContentProps) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
+	const allPanes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 
@@ -43,10 +45,39 @@ export function TabsContent({
 		return allTabs.find((tab) => tab.id === activeTabId) || null;
 	}, [activeTabId, allTabs]);
 
+	const workspaceTerminalPanes = useMemo(() => {
+		if (!activeWorkspaceId) return [];
+
+		const workspaceTabIds = new Set(
+			allTabs
+				.filter((tab) => tab.workspaceId === activeWorkspaceId)
+				.map((tab) => tab.id),
+		);
+
+		return Object.entries(allPanes)
+			.filter(
+				([, pane]) =>
+					pane.type === "terminal" && workspaceTabIds.has(pane.tabId),
+			)
+			.map(([paneId, pane]) => ({
+				paneId,
+				tabId: pane.tabId,
+				workspaceId: activeWorkspaceId,
+			}));
+	}, [activeWorkspaceId, allPanes, allTabs]);
+
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
+			{workspaceTerminalPanes.map(({ paneId, tabId, workspaceId }) => (
+				<PersistentTerminal
+					key={paneId}
+					paneId={paneId}
+					tabId={tabId}
+					workspaceId={workspaceId}
+				/>
+			))}
 			{tabToRender ? (
-				<TabView tab={tabToRender} />
+				<TabView key={tabToRender.id} tab={tabToRender} />
 			) : (
 				<EmptyTabView
 					defaultExternalApp={defaultExternalApp}

@@ -1,16 +1,12 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import type { SearchAddon } from "@xterm/addon-search";
-import type { Terminal as XTerm } from "@xterm/xterm";
-import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
+import type { FitAddon, Terminal as XTerm } from "ghostty-web";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
-import {
-	DEFAULT_TERMINAL_FONT_FAMILY,
-	DEFAULT_TERMINAL_FONT_SIZE,
-} from "./config";
+import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
+import { preloadTerminalFonts, resolveTerminalFontFamily } from "./font-family";
+import { ensureGhosttyRuntime } from "./ghostty-runtime";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
@@ -36,7 +32,12 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
-export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
+export const Terminal = ({
+	paneId,
+	tabId,
+	workspaceId,
+	isVisible = true,
+}: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
@@ -69,7 +70,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
-	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
@@ -166,6 +166,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	} = useTerminalRefs({
 		paneId,
 		tabId,
+		isVisible,
 		focusedPaneId,
 		terminalTheme,
 		paneInitialCwd,
@@ -237,6 +238,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Auto-retry connection with exponential backoff
 	const retryCountRef = useRef(0);
 	const MAX_RETRIES = 5;
+	const [isRendererReady, setIsRendererReady] = useState(false);
+	const [isInitialFontReady, setIsInitialFontReady] = useState(false);
+	const [isDisplayReady, setIsDisplayReady] = useState(false);
 
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
@@ -257,6 +261,30 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Populate handler refs for flushPendingEvents to use
 	handleTerminalExitRef.current = handleTerminalExit;
 	handleStreamErrorRef.current = handleStreamError;
+
+	useEffect(() => {
+		let isCancelled = false;
+
+		ensureGhosttyRuntime()
+			.then(() => {
+				if (isCancelled) return;
+				setIsRendererReady(true);
+			})
+			.catch((error) => {
+				if (isCancelled) return;
+
+				console.error("[Terminal] Failed to initialize Ghostty:", error);
+				setConnectionError(
+					error instanceof Error
+						? error.message
+						: "Failed to initialize terminal renderer",
+				);
+			});
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [setConnectionError]);
 
 	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {
@@ -301,19 +329,59 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
 		isFocused,
 		xtermRef,
+		supportsSearch: false,
 	});
 	useEffect(() => {
 		if (!isRestoredMode) return;
 		handleStartShell();
 	}, [isRestoredMode, handleStartShell]);
+
+	const { data: fontSettings, isPending: isFontSettingsPending } =
+		electronTrpc.settings.getFontSettings.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+	const terminalFontFamily = resolveTerminalFontFamily(
+		fontSettings?.terminalFontFamily,
+	);
+	const terminalFontSize =
+		fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+	const initialFontFamilyRef = useRef(terminalFontFamily);
+	const initialFontSizeRef = useRef(terminalFontSize);
+	initialFontFamilyRef.current = terminalFontFamily;
+	initialFontSizeRef.current = terminalFontSize;
+	const isTerminalBootReady =
+		isRendererReady && isInitialFontReady && !isFontSettingsPending;
+
+	useEffect(() => {
+		if (isFontSettingsPending) return;
+		if (isInitialFontReady) return;
+
+		let isCancelled = false;
+		void preloadTerminalFonts(terminalFontFamily, terminalFontSize).finally(
+			() => {
+				if (isCancelled) return;
+				setIsInitialFontReady(true);
+			},
+		);
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [
+		isFontSettingsPending,
+		isInitialFontReady,
+		terminalFontFamily,
+		terminalFontSize,
+	]);
+
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
 		tabIdRef,
 		workspaceId,
 		terminalRef,
+		isRendererReady: isTerminalBootReady,
 		xtermRef,
 		fitAddonRef,
-		searchAddonRef,
 		rendererRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -322,6 +390,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isRestoredModeRef,
 		connectionErrorRef,
 		initialThemeRef,
+		initialFontFamilyRef,
+		initialFontSizeRef,
 		workspaceCwdRef,
 		handleFileLinkClickRef,
 		handleUrlClickRef,
@@ -360,26 +430,123 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
-		xterm.options.theme = terminalTheme;
+		// ghostty-web doesn't support runtime theme changes via options.theme.
+		// Apply theme directly to the canvas renderer and force a re-render.
+		const renderer = (xterm as unknown as { renderer?: { setTheme: (t: typeof terminalTheme) => void } }).renderer;
+		if (renderer?.setTheme) {
+			renderer.setTheme(terminalTheme);
+		}
 	}, [terminalTheme]);
-
-	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
-		undefined,
-		{
-			staleTime: 30_000,
-		},
-	);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		if (!xterm || !fontSettings) return;
-		const family =
-			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
-		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
-		xterm.options.fontFamily = family;
-		xterm.options.fontSize = size;
-		fitAddonRef.current?.fit();
-	}, [fontSettings]);
+		const fitAddon = fitAddonRef.current;
+		if (!xterm || !fitAddon) return;
+
+		let isCancelled = false;
+
+		const applyTerminalFont = async () => {
+			await preloadTerminalFonts(terminalFontFamily, terminalFontSize);
+			if (
+				isCancelled ||
+				xtermRef.current !== xterm ||
+				fitAddonRef.current !== fitAddon
+			) {
+				return;
+			}
+
+			xterm.options.fontFamily = terminalFontFamily;
+			xterm.options.fontSize = terminalFontSize;
+
+			if (!isVisible) return;
+
+			const proposed = fitAddon.proposeDimensions();
+			if (!proposed || proposed.cols <= 0 || proposed.rows <= 0) return;
+
+			resizeRef.current({
+				paneId,
+				cols: proposed.cols,
+				rows: proposed.rows,
+			});
+			xterm.resize(proposed.cols, proposed.rows);
+		};
+
+		void applyTerminalFont();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [isVisible, paneId, resizeRef, terminalFontFamily, terminalFontSize]);
+
+	useLayoutEffect(() => {
+		const xterm = xtermRef.current;
+		const fitAddon = fitAddonRef.current;
+		if (!isTerminalBootReady) {
+			setIsDisplayReady(false);
+			return;
+		}
+		if (!xterm || !fitAddon) return;
+
+		if (!isVisible) {
+			setIsDisplayReady(false);
+			xterm.blur();
+			return;
+		}
+
+		let isCancelled = false;
+		const syncVisibleLayout = () => {
+			if (
+				isCancelled ||
+				xtermRef.current !== xterm ||
+				fitAddonRef.current !== fitAddon
+			)
+				return false;
+
+			const proposed = fitAddon.proposeDimensions();
+			if (!proposed || proposed.cols <= 0 || proposed.rows <= 0) {
+				return false;
+			}
+
+			if (proposed.cols !== xterm.cols || proposed.rows !== xterm.rows) {
+				resizeRef.current({
+					paneId,
+					cols: proposed.cols,
+					rows: proposed.rows,
+				});
+				xterm.resize(proposed.cols, proposed.rows);
+			}
+
+			if (isFocusedRef.current) {
+				xterm.focus();
+			}
+			setIsDisplayReady(true);
+			return true;
+		};
+
+		setIsDisplayReady(false);
+
+		if (syncVisibleLayout()) {
+			return () => {
+				isCancelled = true;
+			};
+		}
+
+		let frame = requestAnimationFrame(function retryVisibleLayout() {
+			if (syncVisibleLayout()) {
+				frame = 0;
+				return;
+			}
+			if (isCancelled) return;
+			frame = requestAnimationFrame(retryVisibleLayout);
+		});
+
+		return () => {
+			isCancelled = true;
+			if (frame) {
+				cancelAnimationFrame(frame);
+			}
+		};
+	}, [isFocusedRef, isTerminalBootReady, isVisible, paneId, resizeRef, xtermInstance]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
@@ -416,7 +583,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			onDrop={handleDrop}
 		>
 			<TerminalSearch
-				searchAddon={searchAddonRef.current}
+				searchAddon={null}
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
@@ -424,7 +591,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div
+				ref={terminalRef}
+				className="h-full w-full"
+				style={{
+					opacity: isDisplayReady ? 1 : 0,
+					visibility: isDisplayReady ? "visible" : "hidden",
+				}}
+			/>
 		</div>
 	);
 };

@@ -6,6 +6,24 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("./assets/fonts/terminal/JetBrainsMonoNerdFontMono-Regular.ttf")
+		format("truetype");
+	font-style: normal;
+	font-weight: 400;
+	font-display: block;
+}
+
+@font-face {
+	font-family: "Superset Terminal Mono";
+	src: url("./assets/fonts/terminal/JetBrainsMonoNerdFontMono-Bold.ttf")
+		format("truetype");
+	font-style: normal;
+	font-weight: 700;
+	font-display: block;
+}
+
 /**
  * Theme CSS Variables
  *

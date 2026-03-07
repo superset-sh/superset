@@ -1,15 +1,28 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
+import type { ILink, Terminal } from "ghostty-web";
+
+type MockBufferLine = {
+	translateToString: (
+		trimRight?: boolean,
+		startColumn?: number,
+		endColumn?: number,
+	) => string;
+	isWrapped: boolean;
+	length: number;
+	getCell: (...args: unknown[]) => unknown;
+	getCells: (...args: unknown[]) => unknown[];
+};
+
 import { UrlLinkProvider } from "./url-link-provider";
 
-function createMockLine(text: string, isWrapped = false): IBufferLine {
+function createMockLine(text: string, isWrapped = false): MockBufferLine {
 	return {
 		translateToString: () => text,
 		isWrapped,
 		length: text.length,
 		getCell: mock(() => null),
 		getCells: mock(() => []),
-	} as unknown as IBufferLine;
+	} as unknown as MockBufferLine;
 }
 
 function createMockTerminal(
@@ -534,7 +547,7 @@ describe("UrlLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			firstLinksTail[0].activate(event, firstLinksTail[0].text);
+			firstLinksTail[0].activate(event);
 			expect(onOpen).toHaveBeenCalledTimes(1);
 			expect(onOpen.mock.calls[0][1]).toBe(expectedFirstUrl);
 		});
@@ -772,7 +785,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).not.toHaveBeenCalled();
 		});
@@ -789,7 +802,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("https://example.com");
@@ -807,7 +820,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 		});

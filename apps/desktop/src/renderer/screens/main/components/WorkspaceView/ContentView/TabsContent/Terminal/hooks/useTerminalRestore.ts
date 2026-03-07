@@ -1,7 +1,6 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { FitAddon, Terminal as XTerm } from "ghostty-web";
 import { useCallback, useRef } from "react";
-import { DEBUG_TERMINAL } from "../config";
+import { terminalDebugLog } from "../debug";
 import type {
 	CreateOrAttachResult,
 	TerminalExitReason,
@@ -87,6 +86,9 @@ export function useTerminalRestore({
 		if (!xterm) return;
 		if (pendingEventsRef.current.length === 0) return;
 
+		terminalDebugLog("restore", paneId, "flushPendingEvents", {
+			count: pendingEventsRef.current.length,
+		});
 		const events = pendingEventsRef.current.splice(
 			0,
 			pendingEventsRef.current.length,
@@ -104,7 +106,7 @@ export function useTerminalRestore({
 				onDisconnectEventRef.current(event.reason);
 			}
 		}
-	}, [xtermRef, pendingEventsRef]);
+	}, [xtermRef, pendingEventsRef, paneId]);
 
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;
@@ -120,6 +122,19 @@ export function useTerminalRestore({
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
 		try {
+			terminalDebugLog("restore", paneId, "applyInitialState:start", {
+				isNew: result.isNew,
+				isColdRestore: result.isColdRestore,
+				hasSnapshot: !!result.snapshot,
+				hasScrollback: !!result.scrollback,
+				alternateScreen: result.snapshot?.modes.alternateScreen ?? false,
+			});
+
+			// Ghostty remounts are much less tolerant of replaying on top of an
+			// existing frontend state than xterm was. Reset before any restore path.
+			xterm.reset();
+			fitAddon.fit();
+
 			const scheduleFitAndScroll = () => {
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
@@ -178,11 +193,9 @@ export function useTerminalRestore({
 					}
 
 					isStreamReadyRef.current = true;
-					if (DEBUG_TERMINAL) {
-						console.log(
-							`[Terminal] isStreamReady=true (altScreen): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
-						);
-					}
+					terminalDebugLog("restore", paneId, "applyInitialState:alt-screen", {
+						pendingEvents: pendingEventsRef.current.length,
+					});
 					flushPendingEvents();
 
 					scheduleFitAndScroll();
@@ -201,11 +214,9 @@ export function useTerminalRestore({
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
 				scheduleFitAndScroll();
-				if (DEBUG_TERMINAL) {
-					console.log(
-						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
-					);
-				}
+				terminalDebugLog("restore", paneId, "applyInitialState:complete", {
+					pendingEvents: pendingEventsRef.current.length,
+				});
 				flushPendingEvents();
 			};
 
@@ -229,6 +240,7 @@ export function useTerminalRestore({
 				updateCwdRef.current(initialAnsi);
 			}
 		} catch (error) {
+			terminalDebugLog("restore", paneId, "applyInitialState:failed", error);
 			console.error("[Terminal] Restoration failed:", error);
 			isStreamReadyRef.current = true;
 			flushPendingEvents();

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import {
@@ -9,14 +9,13 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
-import { Terminal } from "../Terminal";
+import { terminalDebugLog } from "../Terminal/debug";
 import { BasePaneWindow, PaneToolbarActions } from "./components";
 
 interface TabPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	tabId: string;
-	workspaceId: string;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -46,7 +45,6 @@ export function TabPane({
 	paneId,
 	path,
 	tabId,
-	workspaceId,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
@@ -59,7 +57,6 @@ export function TabPane({
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 
-	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
 	const getScrollToBottomCallback = useTerminalCallbacksStore(
 		(s) => s.getScrollToBottomCallback,
@@ -69,15 +66,22 @@ export function TabPane({
 	);
 	const getPasteCallback = useTerminalCallbacksStore((s) => s.getPasteCallback);
 
-	useEffect(() => {
-		const container = terminalContainerRef.current;
-		if (container) {
-			registerPaneRef(paneId, container);
-		}
-		return () => {
+	const setTerminalContainerRef = useCallback(
+		(container: HTMLDivElement | null) => {
+			if (container) {
+				const rect = container.getBoundingClientRect();
+				terminalDebugLog("dom", paneId, "pane-host:register", {
+					width: Math.round(rect.width),
+					height: Math.round(rect.height),
+				});
+				registerPaneRef(paneId, container);
+				return;
+			}
+			terminalDebugLog("dom", paneId, "pane-host:unregister");
 			unregisterPaneRef(paneId);
-		};
-	}, [paneId]);
+		},
+		[paneId],
+	);
 
 	const handleClearTerminal = () => {
 		getClearCallback(paneId)?.();
@@ -134,9 +138,7 @@ export function TabPane({
 				onMoveToNewTab={onMoveToNewTab}
 				closeLabel="Close Terminal"
 			>
-				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
-				</div>
+				<div ref={setTerminalContainerRef} className="h-full w-full" />
 			</TabContentContextMenu>
 		</BasePaneWindow>
 	);
