@@ -55,8 +55,8 @@ export interface UserMessageActionPayload {
 }
 
 export interface UserMessageRestartRequest {
-	anchorMessageId: string | null;
 	messageId: string;
+	prefixMessages: MastraMessage[];
 	payload: UserMessageActionPayload;
 }
 

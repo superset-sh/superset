@@ -28,7 +28,7 @@ type MastraMessagePart = MastraMessage["content"][number];
 
 interface UserMessageProps {
 	message: MastraMessage;
-	anchorMessageId: string | null;
+	prefixMessages: MastraMessage[];
 	workspaceId: string;
 	workspaceCwd?: string;
 	isEditing: boolean;
@@ -42,7 +42,7 @@ interface UserMessageProps {
 
 export function UserMessage({
 	message,
-	anchorMessageId,
+	prefixMessages,
 	workspaceId,
 	workspaceCwd,
 	isEditing,
@@ -108,13 +108,13 @@ export function UserMessage({
 		}
 
 		void onRestart({
-			anchorMessageId,
 			messageId: message.id,
+			prefixMessages,
 			payload: resendPayload,
 		}).catch((error) => {
 			console.debug("[UserMessage] resend failed", error);
 		});
-	}, [anchorMessageId, draft.files, draft.text, message.id, onRestart]);
+	}, [draft.files, draft.text, message.id, onRestart, prefixMessages]);
 	const showActions =
 		!isEditing &&
 		Boolean(fullText || draft.files.length > 0) &&
@@ -133,8 +133,8 @@ export function UserMessage({
 					onCancel={onCancelEdit}
 					onSubmit={(payload) =>
 						onSubmitEdit({
-							anchorMessageId,
 							messageId: message.id,
+							prefixMessages,
 							payload,
 						})
 					}

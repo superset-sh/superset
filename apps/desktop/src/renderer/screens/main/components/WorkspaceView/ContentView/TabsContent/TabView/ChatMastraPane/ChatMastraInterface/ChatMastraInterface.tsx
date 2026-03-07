@@ -222,7 +222,7 @@ export function ChatMastraInterface({
 		string | null
 	>(null);
 	const [pendingRestartUserMessage, setPendingRestartUserMessage] = useState<{
-		anchorMessageId: string | null;
+		prefixMessages: MastraHistoryMessage[];
 		sourceMessageId: string;
 		message: MastraHistoryMessage;
 	} | null>(null);
@@ -462,17 +462,24 @@ export function ChatMastraInterface({
 		}
 	}, [messages, pendingImmediateUserMessage]);
 
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
+
 	useEffect(() => {
 		if (!pendingRestartUserMessage) return;
+		if (isAwaitingAssistant) return;
 		if (
 			hasMatchingUserMessage({
 				messages,
 				candidate: pendingRestartUserMessage.message,
 			})
 		) {
+			console.debug("[chat-mastra] cleared restart overlay", {
+				sourceMessageId: pendingRestartUserMessage.sourceMessageId,
+			});
 			setPendingRestartUserMessage(null);
 		}
-	}, [messages, pendingRestartUserMessage]);
+	}, [isAwaitingAssistant, messages, pendingRestartUserMessage]);
 
 	useEffect(() => {
 		if (!editingUserMessageId) return;
@@ -482,35 +489,15 @@ export function ChatMastraInterface({
 
 	const visibleMessages = useMemo(() => {
 		if (pendingRestartUserMessage) {
-			const restartBaseMessages =
-				sessionId === null
-					? messages
-					: (chatMastraServiceTrpcUtils.session.listMessages.getData({
-							sessionId,
-							...(cwd ? { cwd } : {}),
-						}) ?? messages);
-			if (
-				!hasMatchingUserMessage({
-					messages: restartBaseMessages,
-					candidate: pendingRestartUserMessage.message,
-				})
-			) {
-				const anchorMessageIndex =
-					pendingRestartUserMessage.anchorMessageId === null
-						? -1
-						: restartBaseMessages.findIndex(
-								(message) =>
-									message.id === pendingRestartUserMessage.anchorMessageId,
-							);
-				if (
-					pendingRestartUserMessage.anchorMessageId === null ||
-					anchorMessageIndex >= 0
-				) {
-					return [
-						...restartBaseMessages.slice(0, anchorMessageIndex + 1),
-						pendingRestartUserMessage.message,
-					];
-				}
+			const hasPersistedRestartMessage = hasMatchingUserMessage({
+				messages,
+				candidate: pendingRestartUserMessage.message,
+			});
+			if (isAwaitingAssistant || !hasPersistedRestartMessage) {
+				return [
+					...pendingRestartUserMessage.prefixMessages,
+					pendingRestartUserMessage.message,
+				];
 			}
 		}
 		if (!pendingImmediateUserMessage) return messages;
@@ -524,15 +511,11 @@ export function ChatMastraInterface({
 		}
 		return [...messages, pendingImmediateUserMessage];
 	}, [
-		chatMastraServiceTrpcUtils.session.listMessages,
-		cwd,
+		isAwaitingAssistant,
 		messages,
 		pendingImmediateUserMessage,
 		pendingRestartUserMessage,
-		sessionId,
 	]);
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	useEffect(() => {
 		if (isRunning) {
@@ -863,21 +846,19 @@ export function ChatMastraInterface({
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
-			const previousMessages = messages;
 			const optimisticMessage = toOptimisticUserMessage({
 				payload: request.payload,
 				metadata: {
 					model: activeModel?.id,
 				},
 			});
-			const hasRestartAnchor =
-				request.anchorMessageId === null ||
-				previousMessages.some(
-					(message) => message.id === request.anchorMessageId,
-				);
-			if (optimisticMessage && hasRestartAnchor) {
+			if (optimisticMessage) {
+				console.debug("[chat-mastra] set restart overlay", {
+					sourceMessageId: request.messageId,
+					prefixCount: request.prefixMessages.length,
+				});
 				setPendingRestartUserMessage({
-					anchorMessageId: request.anchorMessageId,
+					prefixMessages: request.prefixMessages,
 					sourceMessageId: request.messageId,
 					message: optimisticMessage,
 				});

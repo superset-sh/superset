@@ -189,11 +189,7 @@ export function ChatMastraMessageList({
 									<UserMessage
 										key={message.id}
 										message={message}
-										anchorMessageId={
-											messageIndex > 0
-												? (renderedMessages[messageIndex - 1]?.id ?? null)
-												: null
-										}
+										prefixMessages={renderedMessages.slice(0, messageIndex)}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
 										isEditing={editingUserMessageId === message.id}
