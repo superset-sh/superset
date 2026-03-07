@@ -207,10 +207,12 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 				document.body.style.cursor = "";
 				document.removeEventListener("mousemove", onMouseMove);
 				document.removeEventListener("mouseup", onMouseUp);
+				window.removeEventListener("blur", onMouseUp);
 			};
 
 			document.addEventListener("mousemove", onMouseMove);
 			document.addEventListener("mouseup", onMouseUp);
+			window.addEventListener("blur", onMouseUp);
 		},
 		[
 			isRow,
