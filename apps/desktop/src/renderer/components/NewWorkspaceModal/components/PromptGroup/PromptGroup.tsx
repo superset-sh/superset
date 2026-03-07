@@ -19,13 +19,22 @@ import {
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
-import { useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GoGitBranch } from "react-icons/go";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchNameWithMaxLength,
+} from "shared/utils/branch";
+import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOptions";
 
 type WorkspaceCreateAgent = StartableAgentType | "none";
 
@@ -37,12 +46,25 @@ interface PromptGroupProps {
 }
 
 export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
+	const navigate = useNavigate();
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isDark = useIsDarkTheme();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [prompt, setPrompt] = useState("");
-	const createWorkspace = useCreateWorkspace();
+	const [branchName, setBranchName] = useState("");
+	const [branchNameEdited, setBranchNameEdited] = useState(false);
+	const [baseBranch, setBaseBranch] = useState<string | null>(null);
+	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
+	const [branchSearch, setBranchSearch] = useState("");
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [runSetupScript, setRunSetupScript] = useState(true);
+	const runSetupScriptRef = useRef(runSetupScript);
+	runSetupScriptRef.current = runSetupScript;
+	const createWorkspace = useCreateWorkspace({
+		resolveInitialCommands: (commands) =>
+			runSetupScriptRef.current ? commands : null,
+	});
 	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
 		() => {
 			if (typeof window === "undefined") return "none";
@@ -54,6 +76,77 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				: "none";
 		},
 	);
+	const trimmedPrompt = prompt.trim();
+
+	const { data: project } = electronTrpc.projects.get.useQuery(
+		{ id: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
+	const {
+		data: branchData,
+		isLoading: isBranchesLoading,
+		isError: isBranchesError,
+	} = electronTrpc.projects.getBranches.useQuery(
+		{ projectId: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+
+	const resolvedPrefix = useMemo(() => {
+		const projectOverrides = project?.branchPrefixMode != null;
+		return resolveBranchPrefix({
+			mode: projectOverrides
+				? project?.branchPrefixMode
+				: (globalBranchPrefix?.mode ?? "none"),
+			customPrefix: projectOverrides
+				? project?.branchPrefixCustom
+				: globalBranchPrefix?.customPrefix,
+			authorPrefix: gitAuthor?.prefix,
+			githubUsername: gitInfo?.githubUsername,
+		});
+	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
+
+	const filteredBranches = useMemo(() => {
+		if (!branchData?.branches) return [];
+		if (!branchSearch) return branchData.branches;
+		const searchLower = branchSearch.toLowerCase();
+		return branchData.branches.filter((branch) =>
+			branch.name.toLowerCase().includes(searchLower),
+		);
+	}, [branchData?.branches, branchSearch]);
+
+	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: baseBranch,
+		workspaceBaseBranch: project?.workspaceBaseBranch,
+		defaultBranch: branchData?.defaultBranch,
+		branches: branchData?.branches,
+	});
+
+	const branchSlug = branchNameEdited
+		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
+				preserveFirstSegmentCase: true,
+			})
+		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
+
+	const applyPrefix = !branchNameEdited;
+
+	const branchPreview =
+		branchSlug && applyPrefix && resolvedPrefix
+			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
+			: branchSlug;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset advanced branch state when project changes
+	useEffect(() => {
+		setBaseBranch(null);
+		setBaseBranchOpen(false);
+		setBranchSearch("");
+	}, [projectId]);
 
 	const handleAgentChange = (value: WorkspaceCreateAgent) => {
 		setSelectedAgent(value);
@@ -104,7 +197,6 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			toast.error("Select a project first");
 			return;
 		}
-		const trimmedPrompt = prompt.trim();
 		const launchRequest = buildLaunchRequest(trimmedPrompt);
 
 		onClose();
@@ -113,6 +205,9 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				{
 					projectId,
 					prompt: trimmedPrompt || undefined,
+					branchName: branchSlug || undefined,
+					baseBranch: baseBranch || undefined,
+					applyPrefix,
 				},
 				launchRequest ? { agentLaunchRequest: launchRequest } : undefined,
 			),
@@ -123,6 +218,24 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 					err instanceof Error ? err.message : "Failed to create workspace",
 			},
 		);
+	};
+
+	const handleBranchNameChange = (value: string) => {
+		setBranchName(value);
+		setBranchNameEdited(true);
+	};
+
+	const handleBranchNameBlur = () => {
+		if (!branchName.trim()) {
+			setBranchName("");
+			setBranchNameEdited(false);
+		}
+	};
+
+	const handleBaseBranchSelect = (selectedBaseBranch: string) => {
+		setBaseBranch(selectedBaseBranch);
+		setBaseBranchOpen(false);
+		setBranchSearch("");
 	};
 
 	return (
@@ -176,7 +289,23 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				}}
 			/>
 
-			<Button className="w-full h-8 text-sm" onClick={handleCreate}>
+			{(trimmedPrompt || branchNameEdited) && (
+				<p className="text-xs text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 min-w-0">
+					<GoGitBranch className="size-3" />
+					<span className="font-mono min-w-0 truncate">
+						{branchPreview || "branch-name"}
+					</span>
+					<span className="text-muted-foreground/60 whitespace-nowrap">
+						from {effectiveBaseBranch ?? "..."}
+					</span>
+				</p>
+			)}
+
+			<Button
+				className="w-full h-8 text-sm"
+				onClick={handleCreate}
+				disabled={createWorkspace.isPending}
+			>
 				Create Workspace
 				<KbdGroup className="ml-1.5 opacity-70">
 					<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
@@ -187,6 +316,30 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 					</Kbd>
 				</KbdGroup>
 			</Button>
+
+			<PromptGroupAdvancedOptions
+				showAdvanced={showAdvanced}
+				onShowAdvancedChange={setShowAdvanced}
+				branchInputValue={branchNameEdited ? branchName : branchPreview}
+				onBranchInputChange={handleBranchNameChange}
+				onBranchInputBlur={handleBranchNameBlur}
+				onEditPrefix={() => {
+					onClose();
+					navigate({ to: "/settings/behavior" });
+				}}
+				isBranchesError={isBranchesError}
+				isBranchesLoading={isBranchesLoading}
+				baseBranchOpen={baseBranchOpen}
+				onBaseBranchOpenChange={setBaseBranchOpen}
+				effectiveBaseBranch={effectiveBaseBranch}
+				defaultBranch={branchData?.defaultBranch}
+				branchSearch={branchSearch}
+				onBranchSearchChange={setBranchSearch}
+				filteredBranches={filteredBranches}
+				onSelectBaseBranch={handleBaseBranchSelect}
+				runSetupScript={runSetupScript}
+				onRunSetupScriptChange={setRunSetupScript}
+			/>
 		</div>
 	);
 }
