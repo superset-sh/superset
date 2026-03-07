@@ -24,7 +24,11 @@ export function ViewModeToggle({
 					size="icon"
 					onClick={handleToggle}
 					className="size-6 p-0"
-					aria-label={viewMode === "grouped" ? "Grouped view" : "Tree view"}
+					aria-label={
+						viewMode === "grouped"
+							? "Switch to tree view"
+							: "Switch to grouped view"
+					}
 				>
 					{viewMode === "grouped" ? (
 						<VscListTree className="size-3.5" />
