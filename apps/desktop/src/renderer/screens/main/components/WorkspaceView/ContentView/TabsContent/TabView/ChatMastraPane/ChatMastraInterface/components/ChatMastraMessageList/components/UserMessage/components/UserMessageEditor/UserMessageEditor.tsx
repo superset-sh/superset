@@ -52,7 +52,7 @@ export function UserMessageEditor({
 	};
 
 	return (
-		<div className="flex w-full max-w-[85%] flex-col gap-2 rounded-2xl bg-muted/45 px-3 py-2">
+		<div className="flex w-full max-w-[85%] flex-col gap-2">
 			{files.length > 0 ? (
 				<div className="flex flex-wrap justify-end gap-2">
 					{files.map((file, index) => (
@@ -81,7 +81,7 @@ export function UserMessageEditor({
 					handleSubmit();
 				}}
 				placeholder="Edit message..."
-				className="h-9 w-full rounded-xl border border-transparent bg-transparent px-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-border focus:bg-background/70"
+				className="h-9 w-full rounded-xl border border-transparent bg-muted/45 px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-border focus:bg-background/70"
 			/>
 			<div className="flex justify-end gap-1">
 				<Button

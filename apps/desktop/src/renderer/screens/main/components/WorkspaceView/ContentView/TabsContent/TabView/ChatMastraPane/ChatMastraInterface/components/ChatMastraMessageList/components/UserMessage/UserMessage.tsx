@@ -254,7 +254,7 @@ export function UserMessage({
 				: null}
 			{showActions ? (
 				<div className="opacity-0 transition-opacity group-hover/msg:opacity-100 group-focus-within/msg:opacity-100">
-					<MessageActions className="rounded-lg border border-border bg-background/95 p-1 shadow-sm backdrop-blur-xs">
+					<MessageActions className="rounded-lg bg-background/95 p-1 shadow-sm backdrop-blur-xs">
 						<MessageAction
 							className="size-7 text-muted-foreground hover:text-foreground"
 							label="Resend message"
