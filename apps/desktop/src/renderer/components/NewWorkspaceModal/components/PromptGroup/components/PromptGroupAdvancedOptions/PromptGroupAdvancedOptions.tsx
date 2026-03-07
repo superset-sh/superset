@@ -11,17 +11,11 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Switch } from "@superset/ui/switch";
 import { GoGitBranch } from "react-icons/go";
-import {
-	HiCheck,
-	HiChevronDown,
-	HiChevronUpDown,
-	HiOutlinePencil,
-} from "react-icons/hi2";
+import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 
 interface BranchOption {
@@ -32,10 +26,6 @@ interface BranchOption {
 interface PromptGroupAdvancedOptionsProps {
 	showAdvanced: boolean;
 	onShowAdvancedChange: (open: boolean) => void;
-	branchInputValue: string;
-	onBranchInputChange: (value: string) => void;
-	onBranchInputBlur: () => void;
-	onEditPrefix: () => void;
 	isBranchesError: boolean;
 	isBranchesLoading: boolean;
 	baseBranchOpen: boolean;
@@ -53,10 +43,6 @@ interface PromptGroupAdvancedOptionsProps {
 export function PromptGroupAdvancedOptions({
 	showAdvanced,
 	onShowAdvancedChange,
-	branchInputValue,
-	onBranchInputChange,
-	onBranchInputBlur,
-	onEditPrefix,
 	isBranchesError,
 	isBranchesLoading,
 	baseBranchOpen,
@@ -79,30 +65,6 @@ export function PromptGroupAdvancedOptions({
 				Advanced options
 			</CollapsibleTrigger>
 			<CollapsibleContent className="pt-3 space-y-3">
-				<div className="space-y-1.5">
-					<div className="flex items-center justify-between">
-						<label htmlFor="branch" className="text-xs text-muted-foreground">
-							Branch name
-						</label>
-						<button
-							type="button"
-							onClick={onEditPrefix}
-							className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-						>
-							<HiOutlinePencil className="size-3" />
-							<span>Edit prefix</span>
-						</button>
-					</div>
-					<Input
-						id="branch"
-						className="h-8 text-sm font-mono"
-						placeholder="auto-generated"
-						value={branchInputValue}
-						onChange={(event) => onBranchInputChange(event.target.value)}
-						onBlur={onBranchInputBlur}
-					/>
-				</div>
-
 				<div className="space-y-1.5">
 					<span className="text-xs text-muted-foreground">Base branch</span>
 					{isBranchesError ? (

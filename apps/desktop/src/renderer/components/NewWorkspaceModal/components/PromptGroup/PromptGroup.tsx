@@ -9,6 +9,7 @@ import {
 	type StartableAgentType,
 } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import {
 	Select,
@@ -22,6 +23,7 @@ import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
+import { HiOutlinePencil } from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -289,17 +291,36 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				}}
 			/>
 
-			{(trimmedPrompt || branchNameEdited) && (
-				<p className="text-xs text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 min-w-0">
-					<GoGitBranch className="size-3" />
-					<span className="font-mono min-w-0 truncate">
-						{branchPreview || "branch-name"}
-					</span>
-					<span className="text-muted-foreground/60 whitespace-nowrap">
-						from {effectiveBaseBranch ?? "..."}
-					</span>
-				</p>
-			)}
+			<div className="space-y-1.5">
+				<div className="flex items-center justify-between">
+					<label
+						htmlFor="branch"
+						className="text-xs text-muted-foreground flex items-center gap-1"
+					>
+						<GoGitBranch className="size-3" />
+						Branch name
+					</label>
+					<button
+						type="button"
+						onClick={() => {
+							onClose();
+							navigate({ to: "/settings/behavior" });
+						}}
+						className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					>
+						<HiOutlinePencil className="size-3" />
+						<span>Edit prefix</span>
+					</button>
+				</div>
+				<Input
+					id="branch"
+					className="h-8 text-sm font-mono"
+					placeholder={`auto-generated (from ${effectiveBaseBranch ?? "..."})`}
+					value={branchNameEdited ? branchName : branchPreview}
+					onChange={(e) => handleBranchNameChange(e.target.value)}
+					onBlur={handleBranchNameBlur}
+				/>
+			</div>
 
 			<Button
 				className="w-full h-8 text-sm"
@@ -320,13 +341,6 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			<PromptGroupAdvancedOptions
 				showAdvanced={showAdvanced}
 				onShowAdvancedChange={setShowAdvanced}
-				branchInputValue={branchNameEdited ? branchName : branchPreview}
-				onBranchInputChange={handleBranchNameChange}
-				onBranchInputBlur={handleBranchNameBlur}
-				onEditPrefix={() => {
-					onClose();
-					navigate({ to: "/settings/behavior" });
-				}}
 				isBranchesError={isBranchesError}
 				isBranchesLoading={isBranchesLoading}
 				baseBranchOpen={baseBranchOpen}
