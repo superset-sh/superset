@@ -5,6 +5,7 @@ import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
+import { shouldDisablePanePointerEvents } from "./pointer-events";
 
 export interface PaneHandlers {
 	onFocus: () => void;
@@ -56,10 +57,15 @@ export function BasePaneWindow({
 	const isActive = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
-	const isDragging = useDragPaneStore((s) => s.draggingPaneId !== null);
+	const draggingPaneId = useDragPaneStore((s) => s.draggingPaneId);
 	const isResizing = useDragPaneStore((s) => s.isResizing);
 	const setDragging = useDragPaneStore((s) => s.setDragging);
 	const clearDragging = useDragPaneStore((s) => s.clearDragging);
+	const shouldDisablePointerEvents = shouldDisablePanePointerEvents({
+		draggingPaneId,
+		paneId,
+		isResizing,
+	});
 
 	const handleFocus = () => {
 		setFocusedPane(tabId, paneId);
@@ -107,7 +113,7 @@ export function BasePaneWindow({
 			<div
 				ref={containerRef}
 				className={contentClassName}
-				style={isDragging || isResizing ? { pointerEvents: "none" } : undefined}
+				style={shouldDisablePointerEvents ? { pointerEvents: "none" } : undefined}
 				onClick={handleFocus}
 			>
 				{children}
