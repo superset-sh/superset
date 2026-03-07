@@ -39,8 +39,8 @@ export function OpenAIApiKeyDialog({
 				<DialogHeader>
 					<DialogTitle>Connect OpenAI</DialogTitle>
 					<DialogDescription>
-						Paste your OpenAI API key to enable GPT-4o, o3, and Codex models in
-						chat.
+						Paste your OpenAI-compatible API key to enable OpenAI and Novita
+						models in chat.
 					</DialogDescription>
 				</DialogHeader>
 
