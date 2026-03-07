@@ -333,6 +333,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				requestRemoveTab: async (tabId) => {
 					const state = get();
+					if (state.pendingCloseTabId || state.pendingClosePaneId) return;
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
 					const terminalPaneIds = paneIds.filter((id) => {
 						const type = state.panes[id]?.type;
@@ -376,6 +377,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				requestRemovePane: async (paneId) => {
 					const state = get();
+					if (state.pendingCloseTabId || state.pendingClosePaneId) return;
 					const pane = state.panes[paneId];
 					if (!pane) return;
 

@@ -416,8 +416,12 @@ export const createTerminalRouter = () => {
 				for (const paneId of paneIds) {
 					const session = terminal.getSession(paneId);
 					if (!session?.isAlive || !session.pid) continue;
-					const tree = await getProcessTree(session.pid);
-					if (tree.length > 1) return true;
+					try {
+						const tree = await getProcessTree(session.pid);
+						if (tree.length > 1) return true;
+					} catch {
+						continue;
+					}
 				}
 				return false;
 			}),
