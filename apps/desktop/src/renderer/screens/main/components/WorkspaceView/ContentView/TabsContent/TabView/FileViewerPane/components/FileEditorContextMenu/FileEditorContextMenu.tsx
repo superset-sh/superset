@@ -1,11 +1,14 @@
-import type * as Monaco from "monaco-editor";
 import { type MutableRefObject, type ReactNode, useCallback } from "react";
 import type { Tab } from "renderer/stores/tabs/types";
-import { EditorContextMenu, useEditorActions } from "../../../../../components";
+import {
+	type CodeEditorAdapter,
+	EditorContextMenu,
+	useEditorActions,
+} from "../../../../../components";
 
 interface FileEditorContextMenuProps {
 	children: ReactNode;
-	editorRef: MutableRefObject<Monaco.editor.IStandaloneCodeEditor | null>;
+	editorRef: MutableRefObject<CodeEditorAdapter | null>;
 	filePath: string;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;

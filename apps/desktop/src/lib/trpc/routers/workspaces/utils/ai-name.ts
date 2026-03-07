@@ -1,6 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import type { Agent } from "@mastra/core/agent";
 import {
 	generateTitleFromMessage,
 	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
@@ -28,7 +27,10 @@ export type WorkspaceAutoRenameResult =
 			warning?: string;
 	  };
 
-type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
+type AgentModel = Extract<
+	Parameters<typeof generateTitleFromMessage>[0],
+	{ agentModel: unknown }
+>["agentModel"];
 type AnthropicCredentials = NonNullable<
 	ReturnType<typeof getAnthropicCredentialsFromAnySource>
 >;

@@ -1,3 +1,4 @@
+export const WORKSPACE_DND_TYPE = "WORKSPACE";
 export const MAX_KEYBOARD_SHORTCUT_INDEX = 9;
 export const GITHUB_STATUS_STALE_TIME = 30_000;
 export const HOVER_CARD_OPEN_DELAY = 400;

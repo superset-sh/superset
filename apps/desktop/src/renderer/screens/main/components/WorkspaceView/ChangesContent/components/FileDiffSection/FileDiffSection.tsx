@@ -3,14 +3,15 @@ import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { detectLanguage } from "shared/detect-language";
 import {
 	getStatusColor,
 	getStatusIndicator,
 } from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
-import { DiffViewer } from "../DiffViewer";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
@@ -86,6 +87,7 @@ export function FileDiffSection({
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 	const [isInLoadRange, setIsInLoadRange] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
+	const [editedContent, setEditedContent] = useState<string | null>(null);
 
 	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
 		category,
@@ -227,6 +229,17 @@ export function FileDiffSection({
 			},
 		);
 	const hasRenderedDiff = canShowDiffBody && !!diffData;
+	const modifiedDiffContent = diffData?.modified;
+
+	useEffect(() => {
+		if (!isEditing) {
+			setEditedContent(null);
+			return;
+		}
+
+		if (modifiedDiffContent == null) return;
+		setEditedContent((current) => current ?? modifiedDiffContent);
+	}, [isEditing, modifiedDiffContent]);
 
 	const inactivePlaceholder = (
 		<div
@@ -291,16 +304,18 @@ export function FileDiffSection({
 						</div>
 					) : hasRenderedDiff ? (
 						isEditing ? (
-							<DiffViewer
-								contents={diffData}
-								viewMode={diffViewMode}
-								hideUnchangedRegions={hideUnchangedRegions}
-								filePath={file.path}
-								editable
-								onSave={handleSave}
-								fitContent
-								captureScroll={false}
-							/>
+							<div className="max-h-[70vh] min-h-[240px] overflow-auto bg-background">
+								<CodeEditor
+									key={`${file.path}-edit`}
+									value={editedContent ?? diffData.modified}
+									language={detectLanguage(file.path)}
+									onChange={(value) => {
+										setEditedContent(value);
+									}}
+									onSave={() => handleSave(editedContent ?? diffData.modified)}
+									fillHeight={false}
+								/>
+							</div>
 						) : (
 							<LightDiffViewer
 								contents={diffData}

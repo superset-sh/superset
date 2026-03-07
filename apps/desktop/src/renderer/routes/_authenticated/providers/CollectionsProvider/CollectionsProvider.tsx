@@ -64,7 +64,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	if (useElectricCloud === undefined) {
+	if (useElectricCloud === undefined && !env.SKIP_ENV_VALIDATION) {
 		return null;
 	}
 

@@ -44,6 +44,22 @@ export interface InterruptedMessagePreview {
 	content: MastraMessage["content"];
 }
 
+export interface UserMessageActionPayload {
+	content: string;
+	files?: Array<{
+		data: string;
+		mediaType: string;
+		filename?: string;
+		uploaded: false;
+	}>;
+}
+
+export interface UserMessageRestartRequest {
+	messageId: string;
+	prefixMessages: MastraMessage[];
+	payload: UserMessageActionPayload;
+}
+
 export interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isFocused: boolean;
@@ -73,4 +89,12 @@ export interface ChatMastraMessageListProps {
 	pendingQuestion: MastraPendingQuestion;
 	isQuestionSubmitting: boolean;
 	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
+	editingUserMessageId: string | null;
+	isEditSubmitting: boolean;
+	onStartEditUserMessage: (messageId: string) => void;
+	onCancelEditUserMessage: () => void;
+	onSubmitEditedUserMessage: (
+		request: UserMessageRestartRequest,
+	) => Promise<void>;
+	onRestartUserMessage: (request: UserMessageRestartRequest) => Promise<void>;
 }

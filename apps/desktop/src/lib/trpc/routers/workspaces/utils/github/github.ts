@@ -7,6 +7,7 @@ import {
 	type GHPRResponse,
 	GHPRResponseSchema,
 	GHRepoResponseSchema,
+	type RepoContext,
 } from "./types";
 
 const execFileAsync = promisify(execFile);
@@ -27,8 +28,8 @@ export async function fetchGitHubPRStatus(
 	}
 
 	try {
-		const repoUrl = await getRepoUrl(worktreePath);
-		if (!repoUrl) {
+		const repoContext = await getRepoContext(worktreePath);
+		if (!repoContext) {
 			return null;
 		}
 
@@ -41,12 +42,14 @@ export async function fetchGitHubPRStatus(
 
 		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath),
+			getPRForBranch(worktreePath, repoContext),
 		]);
 
 		const result: GitHubStatus = {
 			pr: prInfo,
-			repoUrl,
+			repoUrl: repoContext.repoUrl,
+			upstreamUrl: repoContext.upstreamUrl,
+			isFork: repoContext.isFork,
 			branchExistsOnRemote: branchCheck.status === "exists",
 			lastRefreshed: Date.now(),
 		};
@@ -59,11 +62,24 @@ export async function fetchGitHubPRStatus(
 	}
 }
 
-async function getRepoUrl(worktreePath: string): Promise<string | null> {
+const repoContextCache = new Map<
+	string,
+	{ data: RepoContext; timestamp: number }
+>();
+const REPO_CONTEXT_CACHE_TTL_MS = 300_000; // 5 minutes
+
+export async function getRepoContext(
+	worktreePath: string,
+): Promise<RepoContext | null> {
+	const cached = repoContextCache.get(worktreePath);
+	if (cached && Date.now() - cached.timestamp < REPO_CONTEXT_CACHE_TTL_MS) {
+		return cached.data;
+	}
+
 	try {
 		const { stdout } = await execWithShellEnv(
 			"gh",
-			["repo", "view", "--json", "url"],
+			["repo", "view", "--json", "url,isFork,parent"],
 			{ cwd: worktreePath },
 		);
 		const raw = JSON.parse(stdout);
@@ -73,10 +89,97 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
 			return null;
 		}
-		return result.data.url;
+
+		const data = result.data;
+		let context: RepoContext;
+
+		if (data.isFork && data.parent) {
+			context = {
+				repoUrl: data.url,
+				upstreamUrl: data.parent.url,
+				isFork: true,
+			};
+		} else {
+			const originUrl = await getOriginUrl(worktreePath);
+			const ghUrl = normalizeGitHubUrl(data.url);
+
+			if (originUrl && ghUrl && originUrl !== ghUrl) {
+				context = {
+					repoUrl: originUrl,
+					upstreamUrl: ghUrl,
+					isFork: true,
+				};
+			} else {
+				context = {
+					repoUrl: data.url,
+					upstreamUrl: data.url,
+					isFork: false,
+				};
+			}
+		}
+
+		repoContextCache.set(worktreePath, {
+			data: context,
+			timestamp: Date.now(),
+		});
+		return context;
 	} catch {
 		return null;
 	}
+}
+
+async function getOriginUrl(worktreePath: string): Promise<string | null> {
+	try {
+		const { stdout } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "remote", "get-url", "origin"],
+			{ timeout: 10_000 },
+		);
+		return normalizeGitHubUrl(stdout.trim());
+	} catch {
+		return null;
+	}
+}
+
+function normalizeGitHubUrl(remoteUrl: string): string | null {
+	const trimmed = remoteUrl.trim();
+	const patterns = [
+		/^git@github\.com:(?<nwo>[^/]+\/[^/]+?)(?:\.git)?$/,
+		/^ssh:\/\/git@github\.com\/(?<nwo>[^/]+\/[^/]+?)(?:\.git)?$/,
+		/^https:\/\/github\.com\/(?<nwo>[^/]+\/[^/]+?)(?:\.git)?\/?$/,
+	];
+	for (const pattern of patterns) {
+		const match = pattern.exec(trimmed);
+		if (match?.groups?.nwo) {
+			return `https://github.com/${match.groups.nwo}`;
+		}
+	}
+	return null;
+}
+
+function extractNwoFromUrl(normalizedUrl: string): string | null {
+	try {
+		const path = new URL(normalizedUrl).pathname.slice(1);
+		return path || null;
+	} catch {
+		return null;
+	}
+}
+
+export function getPullRequestRepoArgs(
+	repoContext?: Pick<RepoContext, "isFork" | "upstreamUrl"> | null,
+): string[] {
+	if (!repoContext?.isFork) {
+		return [];
+	}
+
+	const normalizedUpstreamUrl = normalizeGitHubUrl(repoContext.upstreamUrl);
+	if (!normalizedUpstreamUrl) {
+		return [];
+	}
+
+	const repoNameWithOwner = extractNwoFromUrl(normalizedUpstreamUrl);
+	return repoNameWithOwner ? ["--repo", repoNameWithOwner] : [];
 }
 
 const PR_JSON_FIELDS =
@@ -84,13 +187,14 @@ const PR_JSON_FIELDS =
 
 async function getPRForBranch(
 	worktreePath: string,
+	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	const byTracking = await getPRByBranchTracking(worktreePath);
 	if (byTracking) {
 		return byTracking;
 	}
 
-	return findPRByHeadCommit(worktreePath);
+	return findPRByHeadCommit(worktreePath, repoContext);
 }
 
 /**
@@ -134,6 +238,7 @@ async function getPRByBranchTracking(
  */
 async function findPRByHeadCommit(
 	worktreePath: string,
+	repoContext?: RepoContext,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		const { stdout: headOutput } = await execFileAsync(
@@ -151,6 +256,7 @@ async function findPRByHeadCommit(
 			[
 				"pr",
 				"list",
+				...getPullRequestRepoArgs(repoContext),
 				"--state",
 				"all",
 				"--search",

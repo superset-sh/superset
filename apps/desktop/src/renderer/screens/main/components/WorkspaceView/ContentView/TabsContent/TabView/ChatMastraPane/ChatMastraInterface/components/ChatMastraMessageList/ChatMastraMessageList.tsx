@@ -56,6 +56,12 @@ export function ChatMastraMessageList({
 	pendingQuestion,
 	isQuestionSubmitting,
 	onQuestionRespond,
+	editingUserMessageId,
+	isEditSubmitting,
+	onStartEditUserMessage,
+	onCancelEditUserMessage,
+	onSubmitEditedUserMessage,
+	onRestartUserMessage,
 }: ChatMastraMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -177,14 +183,22 @@ export function ChatMastraMessageList({
 							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 						/>
 					) : (
-						renderedMessages.map((message) => {
+						renderedMessages.map((message, messageIndex) => {
 							if (message.role === "user") {
 								return (
 									<UserMessage
 										key={message.id}
 										message={message}
+										prefixMessages={renderedMessages.slice(0, messageIndex)}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
+										isEditing={editingUserMessageId === message.id}
+										isSubmitting={isEditSubmitting}
+										onStartEdit={onStartEditUserMessage}
+										onCancelEdit={onCancelEditUserMessage}
+										onSubmitEdit={onSubmitEditedUserMessage}
+										onRestart={onRestartUserMessage}
+										actionDisabled={isAwaitingAssistant}
 									/>
 								);
 							}

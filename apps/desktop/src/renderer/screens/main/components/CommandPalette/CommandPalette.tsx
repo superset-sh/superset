@@ -2,7 +2,7 @@ import {
 	SearchDialog,
 	type SearchDialogItem,
 } from "renderer/screens/main/components/SearchDialog";
-import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils/file-icons";
+import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 interface CommandPaletteResult extends SearchDialogItem {
 	name: string;
@@ -64,10 +64,9 @@ export function CommandPalette({
 			getItemValue={(file) => `${file.path} ${query}`}
 			onSelectItem={(file) => onSelectFile(file.relativePath)}
 			renderItem={(file) => {
-				const { icon: Icon, color } = getFileIcon(file.name, false);
 				return (
 					<>
-						<Icon className={`size-3.5 shrink-0 ${color}`} />
+						<FileIcon fileName={file.name} className="size-3.5 shrink-0" />
 						<span className="truncate font-medium">{file.name}</span>
 						<span className="truncate text-muted-foreground text-xs ml-auto">
 							{file.relativePath}

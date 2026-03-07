@@ -121,11 +121,15 @@ export const workspaces = sqliteTable(
 		// Allocated port base for multi-worktree dev instances.
 		// Each workspace gets a range of 10 ports starting from this base.
 		portBase: integer("port_base"),
+		sectionId: text("section_id").references(() => workspaceSections.id, {
+			onDelete: "set null",
+		}),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
 		index("workspaces_worktree_id_idx").on(table.worktreeId),
 		index("workspaces_last_opened_at_idx").on(table.lastOpenedAt),
+		index("workspaces_section_id_idx").on(table.sectionId),
 		// NOTE: Migration 0006 creates an additional partial unique index:
 		// CREATE UNIQUE INDEX workspaces_unique_branch_per_project
 		//   ON workspaces(project_id) WHERE type = 'branch'
@@ -137,6 +141,32 @@ export const workspaces = sqliteTable(
 
 export type InsertWorkspace = typeof workspaces.$inferInsert;
 export type SelectWorkspace = typeof workspaces.$inferSelect;
+
+/**
+ * Workspace sections - user-created groups within a project for organizing workspaces
+ */
+export const workspaceSections = sqliteTable(
+	"workspace_sections",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		tabOrder: integer("tab_order").notNull(),
+		isCollapsed: integer("is_collapsed", { mode: "boolean" }).default(false),
+		color: text("color"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [index("workspace_sections_project_id_idx").on(table.projectId)],
+);
+
+export type InsertWorkspaceSection = typeof workspaceSections.$inferInsert;
+export type SelectWorkspaceSection = typeof workspaceSections.$inferSelect;
 
 export const settings = sqliteTable("settings", {
 	id: integer("id").primaryKey().default(1),

@@ -12,6 +12,7 @@ import {
 	onUserPromptSubmit,
 	type RuntimeSession,
 	reloadHookConfig,
+	restartRuntimeFromUserMessage,
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
@@ -24,6 +25,7 @@ import {
 	mcpServerAuthInput,
 	planRespondInput,
 	questionRespondInput,
+	restartFromMessageInput,
 	searchFilesInput,
 	sendMessageInput,
 	sessionIdInput,
@@ -244,6 +246,31 @@ export class ChatMastraService {
 									: undefined,
 						});
 						return runtime.harness.sendMessage(input.payload);
+					}),
+
+				restartFromMessage: t.procedure
+					.input(restartFromMessageInput)
+					.mutation(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						runtime.lastErrorMessage = null;
+						const userMessage =
+							input.payload.content.trim() || "[non-text message]";
+						await onUserPromptSubmit(runtime, userMessage);
+						const submittedUserMessage = input.payload.content.trim();
+						await restartRuntimeFromUserMessage(runtime, {
+							messageId: input.messageId,
+							payload: input.payload,
+							metadata: input.metadata,
+						});
+						void generateAndSetTitle(runtime, this.apiClient, {
+							submittedUserMessage:
+								submittedUserMessage.length > 0
+									? submittedUserMessage
+									: undefined,
+						});
 					}),
 
 				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {

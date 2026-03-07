@@ -52,6 +52,14 @@ export const GHPRResponseSchema = z.object({
 
 export const GHRepoResponseSchema = z.object({
 	url: z.string(),
+	isFork: z.boolean().optional().default(false),
+	parent: z.object({ url: z.string() }).nullable().optional(),
 });
+
+export interface RepoContext {
+	repoUrl: string;
+	upstreamUrl: string;
+	isFork: boolean;
+}
 
 export type GHPRResponse = z.infer<typeof GHPRResponseSchema>;

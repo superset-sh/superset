@@ -1,11 +1,16 @@
 export { useCloseWorkspace } from "./useCloseWorkspace";
 export { useCreateBranchWorkspace } from "./useCreateBranchWorkspace";
 export { useCreateFromPr } from "./useCreateFromPr";
+export { useCreateSectionFromWorkspaces } from "./useCreateSectionFromWorkspaces";
 export { useCreateWorkspace } from "./useCreateWorkspace";
 export { useDeleteWorkspace } from "./useDeleteWorkspace";
 export { useDeleteWorktree } from "./useDeleteWorktree";
 export { useImportAllWorktrees } from "./useImportAllWorktrees";
+export { useMoveWorkspacesToSection } from "./useMoveWorkspacesToSection";
+export { useMoveWorkspaceToSection } from "./useMoveWorkspaceToSection";
 export { useOpenExternalWorktree } from "./useOpenExternalWorktree";
+export { useReorderSections } from "./useReorderSections";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";
+export { useReorderWorkspacesInSection } from "./useReorderWorkspacesInSection";
 export { useUpdateWorkspace } from "./useUpdateWorkspace";
 export { useWorkspaceDeleteHandler } from "./useWorkspaceDeleteHandler";

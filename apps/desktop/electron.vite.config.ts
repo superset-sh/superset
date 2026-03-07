@@ -241,10 +241,6 @@ export default defineConfig({
 			format: "es",
 		},
 
-		optimizeDeps: {
-			include: ["monaco-editor"],
-		},
-
 		publicDir: resolve(resources, "public"),
 
 		build: {

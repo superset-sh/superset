@@ -16,7 +16,10 @@ export function useWorkspaceShortcuts() {
 	const navigate = useNavigate();
 
 	// Flatten workspaces for keyboard navigation
-	const allWorkspaces = groups.flatMap((group) => group.workspaces);
+	const allWorkspaces = groups.flatMap((group) => [
+		...group.workspaces,
+		...(group.sections ?? []).flatMap((s) => s.workspaces),
+	]);
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {

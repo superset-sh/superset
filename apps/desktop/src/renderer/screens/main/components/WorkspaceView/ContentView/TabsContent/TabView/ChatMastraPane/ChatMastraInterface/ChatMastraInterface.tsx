@@ -25,20 +25,22 @@ import type {
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
+import type { UserMessageRestartRequest } from "./components/ChatMastraMessageList/ChatMastraMessageList.types";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import type { ChatMastraInterfaceProps } from "./types";
-import {
-	hasMatchingUserMessage,
-	type MastraHistoryMessage,
-	toOptimisticUserMessage,
-} from "./utils/optimisticUserMessage";
+import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
+import {
+	getVisibleMessagesWithPendingUserTurn,
+	type PendingUserTurn,
+	shouldClearPendingUserTurn,
+} from "./utils/transientUserTurn";
 import { uploadFiles } from "./utils/uploadFiles";
 
 type HarnessFilePayload = {
@@ -212,11 +214,14 @@ export function ChatMastraInterface({
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
-	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
-		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
+	const [editingUserMessageId, setEditingUserMessageId] = useState<
+		string | null
+	>(null);
+	const [pendingUserTurn, setPendingUserTurn] =
+		useState<PendingUserTurn | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
@@ -267,6 +272,8 @@ export function ChatMastraInterface({
 		pendingPlanApproval = null,
 		pendingQuestion = null,
 	} = chat;
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	const clearRuntimeError = useCallback(() => {
 		setRuntimeError(null);
@@ -432,7 +439,8 @@ export function ChatMastraInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		setInterruptedMessage(null);
-		setPendingImmediateUserMessage(null);
+		setPendingUserTurn(null);
+		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
@@ -440,31 +448,30 @@ export function ChatMastraInterface({
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
-		if (!pendingImmediateUserMessage) return;
 		if (
-			hasMatchingUserMessage({
+			shouldClearPendingUserTurn({
 				messages,
-				candidate: pendingImmediateUserMessage,
+				pendingUserTurn,
+				isAwaitingAssistant,
 			})
 		) {
-			setPendingImmediateUserMessage(null);
+			setPendingUserTurn(null);
 		}
-	}, [messages, pendingImmediateUserMessage]);
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
+
+	useEffect(() => {
+		if (!editingUserMessageId) return;
+		if (messages.some((message) => message.id === editingUserMessageId)) return;
+		setEditingUserMessageId(null);
+	}, [editingUserMessageId, messages]);
 
 	const visibleMessages = useMemo(() => {
-		if (!pendingImmediateUserMessage) return messages;
-		if (
-			hasMatchingUserMessage({
-				messages,
-				candidate: pendingImmediateUserMessage,
-			})
-		) {
-			return messages;
-		}
-		return [...messages, pendingImmediateUserMessage];
-	}, [messages, pendingImmediateUserMessage]);
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
+		return getVisibleMessagesWithPendingUserTurn({
+			messages,
+			pendingUserTurn,
+			isAwaitingAssistant,
+		});
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -573,7 +580,10 @@ export function ChatMastraInterface({
 					? toOptimisticUserMessage(sendInput)
 					: null;
 			if (immediateUserMessage) {
-				setPendingImmediateUserMessage(immediateUserMessage);
+				setPendingUserTurn({
+					kind: "append",
+					message: immediateUserMessage,
+				});
 			}
 
 			let targetSessionId = effectiveSessionId;
@@ -605,10 +615,11 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
 				if (immediateUserMessage) {
-					setPendingImmediateUserMessage((previousMessage) =>
-						previousMessage?.id === immediateUserMessage.id
+					setPendingUserTurn((previousTurn) =>
+						previousTurn?.kind === "append" &&
+						previousTurn.message.id === immediateUserMessage.id
 							? null
-							: previousMessage,
+							: previousTurn,
 					);
 				}
 				if (error instanceof Error) throw error;
@@ -780,6 +791,94 @@ export function ChatMastraInterface({
 		},
 		[handleSend],
 	);
+	const restartFromUserMessage = useCallback(
+		async (
+			request: UserMessageRestartRequest,
+			options?: { trigger?: "edit" | "resend" },
+		) => {
+			if (!sessionId) {
+				throw new Error("Chat session is still starting. Please retry.");
+			}
+
+			setInterruptedMessage(null);
+			setPendingUserTurn(null);
+			setSubmitStatus("submitted");
+			clearRuntimeError();
+
+			const optimisticMessage = toOptimisticUserMessage({
+				payload: request.payload,
+				metadata: {
+					model: activeModel?.id,
+				},
+			});
+			if (optimisticMessage) {
+				setPendingUserTurn({
+					kind: "restart",
+					prefixMessages: request.prefixMessages,
+					message: optimisticMessage,
+				});
+			}
+
+			try {
+				await chatMastraServiceTrpcUtils.client.session.restartFromMessage.mutate(
+					{
+						sessionId,
+						...(cwd ? { cwd } : {}),
+						messageId: request.messageId,
+						payload: request.payload,
+						metadata: {
+							model: activeModel?.id,
+						},
+					},
+				);
+				setEditingUserMessageId(null);
+				if (request.payload.content) {
+					onUserMessageSubmitted?.(request.payload.content);
+				}
+				captureChatEvent("chat_message_sent", {
+					session_id: sessionId,
+					model_id: activeModel?.id ?? null,
+					mention_count: 0,
+					attachment_count: request.payload.files?.length ?? 0,
+					is_slash_command: false,
+					message_length: request.payload.content.length,
+					turn_number: (messages?.length ?? 0) + 1,
+					send_trigger: options?.trigger ?? "resend",
+					restarted_from_message_id: request.messageId,
+				});
+			} catch (error) {
+				setPendingUserTurn(null);
+				const sendErrorMessage = toSendFailureMessage(error);
+				setSubmitStatus(undefined);
+				setRuntimeErrorMessage(sendErrorMessage);
+				if (error instanceof Error) throw error;
+				throw new Error(sendErrorMessage);
+			}
+		},
+		[
+			activeModel?.id,
+			captureChatEvent,
+			chatMastraServiceTrpcUtils.client.session.restartFromMessage,
+			clearRuntimeError,
+			cwd,
+			messages,
+			onUserMessageSubmitted,
+			sessionId,
+			setRuntimeErrorMessage,
+		],
+	);
+	const handleResendUserMessage = useCallback(
+		async (request: UserMessageRestartRequest) => {
+			await restartFromUserMessage(request, { trigger: "resend" });
+		},
+		[restartFromUserMessage],
+	);
+	const handleSubmitEditedUserMessage = useCallback(
+		async (request: UserMessageRestartRequest) => {
+			await restartFromUserMessage(request, { trigger: "edit" });
+		},
+		[restartFromUserMessage],
+	);
 	const handleApprovalResponse = useCallback(
 		async (decision: "approve" | "decline" | "always_allow_category") => {
 			if (!pendingApproval?.toolCallId) return;
@@ -870,6 +969,12 @@ export function ChatMastraInterface({
 					pendingQuestion={pendingQuestion}
 					isQuestionSubmitting={questionResponsePending}
 					onQuestionRespond={handleQuestionResponse}
+					editingUserMessageId={editingUserMessageId}
+					isEditSubmitting={isAwaitingAssistant}
+					onStartEditUserMessage={setEditingUserMessageId}
+					onCancelEditUserMessage={() => setEditingUserMessageId(null)}
+					onSubmitEditedUserMessage={handleSubmitEditedUserMessage}
+					onRestartUserMessage={handleResendUserMessage}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<MastraUploadFooter

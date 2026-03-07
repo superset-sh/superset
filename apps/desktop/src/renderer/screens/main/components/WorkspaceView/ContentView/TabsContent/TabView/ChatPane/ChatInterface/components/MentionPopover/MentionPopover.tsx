@@ -17,7 +17,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@superset/ui/popover";
-import { cn } from "@superset/ui/utils";
 import {
 	createContext,
 	type ReactNode,
@@ -28,7 +27,7 @@ import {
 } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
-import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 const MAX_RESULTS = 20;
 
@@ -160,18 +159,16 @@ export function MentionProvider({
 								<CommandGroup heading="Files">
 									{files.map((file) => {
 										const dirPath = getDirectoryPath(file.relativePath);
-										const { icon: Icon, color } = getFileIcon(
-											file.name,
-											false,
-											false,
-										);
 										return (
 											<CommandItem
 												key={file.id}
 												value={file.relativePath}
 												onSelect={() => handleSelectFile(file.relativePath)}
 											>
-												<Icon className={cn("size-3.5 shrink-0", color)} />
+												<FileIcon
+													fileName={file.name}
+													className="size-3.5 shrink-0"
+												/>
 												<span className="truncate text-xs">{file.name}</span>
 												{dirPath && (
 													<span className="min-w-0 truncate font-mono text-xs text-muted-foreground">

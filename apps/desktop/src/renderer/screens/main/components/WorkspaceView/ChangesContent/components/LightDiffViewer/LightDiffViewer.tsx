@@ -1,30 +1,20 @@
-import type { DiffsThemeNames } from "@pierre/diffs/react";
 import { MultiFileDiff } from "@pierre/diffs/react";
-import { useThemeStore } from "renderer/stores/theme";
+import { cn } from "@superset/ui/utils";
+import type { CSSProperties } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getDiffsTheme,
+	getDiffViewerStyle,
+} from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-
-// Superset theme ID → closest Shiki bundled equivalent
-const SHIKI_THEME_MAP: Record<
-	string,
-	{ light: DiffsThemeNames; dark: DiffsThemeNames }
-> = {
-	dark: { light: "github-light-default", dark: "github-dark-default" },
-	light: { light: "github-light-default", dark: "github-dark-default" },
-	"one-dark": { light: "one-light", dark: "one-dark-pro" },
-	monokai: { light: "one-light", dark: "monokai" },
-	ember: { light: "one-light", dark: "vitesse-dark" },
-};
-
-const DEFAULT_THEMES = {
-	light: "github-light-default" as DiffsThemeNames,
-	dark: "github-dark-default" as DiffsThemeNames,
-};
 
 interface LightDiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
 	hideUnchangedRegions?: boolean;
 	filePath: string;
+	className?: string;
+	style?: CSSProperties;
 }
 
 export function LightDiffViewer({
@@ -32,24 +22,43 @@ export function LightDiffViewer({
 	viewMode,
 	hideUnchangedRegions,
 	filePath,
+	className,
+	style,
 }: LightDiffViewerProps) {
-	const activeTheme = useThemeStore((s) => s.activeTheme);
-	const themeId = activeTheme?.id ?? "dark";
-	const themeType = useThemeStore((s) =>
-		s.activeTheme?.type === "light" ? ("light" as const) : ("dark" as const),
+	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
+		undefined,
+		{
+			staleTime: 30_000,
+		},
 	);
-
-	const shikiTheme = SHIKI_THEME_MAP[themeId] ?? DEFAULT_THEMES;
+	const shikiTheme = getDiffsTheme();
+	const parsedEditorFontSize =
+		typeof fontSettings?.editorFontSize === "number"
+			? fontSettings.editorFontSize
+			: typeof fontSettings?.editorFontSize === "string"
+				? Number.parseFloat(fontSettings.editorFontSize)
+				: Number.NaN;
+	const diffStyle = getDiffViewerStyle({
+		fontFamily: fontSettings?.editorFontFamily ?? undefined,
+		fontSize: Number.isFinite(parsedEditorFontSize)
+			? parsedEditorFontSize
+			: undefined,
+	});
 
 	return (
 		<MultiFileDiff
 			oldFile={{ name: filePath, contents: contents.original }}
 			newFile={{ name: filePath, contents: contents.modified }}
+			className={cn(className)}
+			style={{
+				...diffStyle,
+				...style,
+			}}
 			options={{
 				diffStyle: viewMode === "side-by-side" ? "split" : "unified",
 				expandUnchanged: !hideUnchangedRegions,
 				theme: shikiTheme,
-				themeType,
+				themeType: "dark",
 				overflow: "wrap",
 				disableFileHeader: true,
 			}}

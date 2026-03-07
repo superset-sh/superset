@@ -1,6 +1,7 @@
 import type { AppRouter } from "@superset/trpc";
 import type { createTRPCClient } from "@trpc/client";
 import type { createMastraCode } from "mastracode";
+import { generateTitleFromMessage } from "./title-generation";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
@@ -42,6 +43,78 @@ interface TextContentPart {
 interface MessageLike {
 	role: string;
 	content: Array<{ type: string; text?: string }>;
+}
+
+interface RuntimeRestartPayload {
+	messageId: string;
+	payload: {
+		content: string;
+		files?: Array<{
+			data: string;
+			mediaType: string;
+			filename?: string;
+		}>;
+	};
+	metadata?: {
+		model?: string;
+	};
+}
+
+interface RuntimeStoredMessage {
+	id: string;
+	role: string;
+}
+
+interface RuntimeStoredThread {
+	id: string;
+	resourceId: string;
+	title?: string;
+}
+
+interface RuntimeMemoryStore {
+	getThreadById(args: {
+		threadId: string;
+	}): Promise<RuntimeStoredThread | null>;
+	listMessages(args: {
+		threadId: string;
+		perPage: false;
+		orderBy: { field: "createdAt"; direction: "ASC" };
+	}): Promise<{ messages: RuntimeStoredMessage[] }>;
+	cloneThread(args: {
+		sourceThreadId: string;
+		resourceId?: string;
+		title?: string;
+		options?: {
+			messageFilter?: {
+				messageIds?: string[];
+			};
+		};
+	}): Promise<{ thread: RuntimeStoredThread }>;
+}
+
+interface HarnessWithConfig {
+	config?: {
+		storage?: {
+			getStore: (domain: "memory") => Promise<RuntimeMemoryStore | null>;
+		};
+	};
+}
+
+async function getRuntimeMemoryStore(
+	runtime: RuntimeSession,
+): Promise<RuntimeMemoryStore> {
+	const harness = runtime.harness as unknown as HarnessWithConfig;
+	const storage = harness.config?.storage;
+	if (!storage) {
+		throw new Error("Mastra storage is not configured for this session");
+	}
+
+	const memoryStore = await storage.getStore("memory");
+	if (!memoryStore) {
+		throw new Error("Mastra memory storage is unavailable for this session");
+	}
+
+	return memoryStore;
 }
 
 /**
@@ -231,6 +304,66 @@ function extractProviderMessage(error: unknown): string | null {
 	return null;
 }
 
+export async function restartRuntimeFromUserMessage(
+	runtime: RuntimeSession,
+	input: RuntimeRestartPayload,
+): Promise<void> {
+	const threadId = runtime.harness.getCurrentThreadId();
+	if (!threadId) {
+		throw new Error("No active Mastra thread is available for editing");
+	}
+
+	const memoryStore = await getRuntimeMemoryStore(runtime);
+	const sourceThread = await memoryStore.getThreadById({ threadId });
+	if (!sourceThread) {
+		throw new Error(`Mastra thread not found: ${threadId}`);
+	}
+
+	const sourceMessages = await memoryStore.listMessages({
+		threadId,
+		perPage: false,
+		orderBy: { field: "createdAt", direction: "ASC" },
+	});
+	const targetIndex = sourceMessages.messages.findIndex(
+		(message) => message.id === input.messageId,
+	);
+	if (targetIndex === -1) {
+		throw new Error("The selected message is no longer available to edit");
+	}
+
+	const targetMessage = sourceMessages.messages[targetIndex];
+	if (targetMessage?.role !== "user") {
+		throw new Error("Only user messages can be edited or resent");
+	}
+
+	const clonedThread = await memoryStore.cloneThread({
+		sourceThreadId: threadId,
+		resourceId: sourceThread.resourceId,
+		title: sourceThread.title,
+		options: {
+			messageFilter: {
+				messageIds: sourceMessages.messages
+					.slice(0, targetIndex)
+					.map((message) => message.id),
+			},
+		},
+	});
+
+	runtime.harness.abort();
+	await runtime.harness.switchThread({ threadId: clonedThread.thread.id });
+
+	const selectedModel = input.metadata?.model?.trim();
+	if (selectedModel) {
+		await runtime.harness.switchModel({
+			modelId: selectedModel,
+			scope: "thread",
+		});
+	}
+
+	runtime.lastErrorMessage = null;
+	await runtime.harness.sendMessage(input.payload);
+}
+
 function extractTextContent(parts: MessageLike["content"]): string {
 	return parts
 		.filter(
@@ -309,5 +442,3 @@ export async function generateAndSetTitle(
 		console.warn("[chat-mastra] Title generation failed:", error);
 	}
 }
-
-import { generateTitleFromMessage } from "@superset/chat/host";
