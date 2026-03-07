@@ -16,11 +16,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	useClearNewWorkspaceModalInputs,
-	useClearNewWorkspaceModalInputsIfDraftVersion,
-	useNewWorkspaceModalDraftVersion,
-} from "renderer/stores/new-workspace-modal";
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
@@ -39,10 +34,6 @@ export function PullRequestsGroup({
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
-	const clearInputs = useClearNewWorkspaceModalInputs();
-	const clearInputsIfDraftVersion =
-		useClearNewWorkspaceModalInputsIfDraftVersion();
-	const draftVersion = useNewWorkspaceModalDraftVersion();
 
 	// Match GitHub repository by owner + name from the local project
 	const { data: repoData } = useLiveQuery(
@@ -147,30 +138,25 @@ export function PullRequestsGroup({
 						}
 						const existingId = workspaceByBranch.get(pr.headBranch);
 						if (existingId) {
-							clearInputs();
 							onClose();
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						const submitDraftVersion = draftVersion;
-						const createWorkspacePromise = createFromPr.mutateAsync({
-							projectId,
-							prUrl: pr.url,
-						});
 						onClose();
-						toast.promise(createWorkspacePromise, {
-							loading: "Creating workspace from PR...",
-							success: "Workspace created",
-							error: (err) =>
-								err instanceof Error
-									? err.message
-									: "Failed to create workspace",
-						});
-						void createWorkspacePromise
-							.then(() => {
-								clearInputsIfDraftVersion(submitDraftVersion);
-							})
-							.catch(() => undefined);
+						toast.promise(
+							createFromPr.mutateAsync({
+								projectId,
+								prUrl: pr.url,
+							}),
+							{
+								loading: "Creating workspace from PR...",
+								success: "Workspace created",
+								error: (err) =>
+									err instanceof Error
+										? err.message
+										: "Failed to create workspace",
+							},
+						);
 					}}
 					className="group h-12"
 				>

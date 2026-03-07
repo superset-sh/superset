@@ -19,11 +19,6 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	useClearNewWorkspaceModalInputs,
-	useClearNewWorkspaceModalInputsIfDraftVersion,
-	useNewWorkspaceModalDraftVersion,
-} from "renderer/stores/new-workspace-modal";
 
 interface IssuesGroupProps {
 	projectId: string | null;
@@ -35,10 +30,6 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createWorkspace = useCreateWorkspace();
-	const clearInputs = useClearNewWorkspaceModalInputs();
-	const clearInputsIfDraftVersion =
-		useClearNewWorkspaceModalInputsIfDraftVersion();
-	const draftVersion = useNewWorkspaceModalDraftVersion();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -134,31 +125,26 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 						}
 						const existingId = workspaceByBranch.get(task.slug.toLowerCase());
 						if (existingId) {
-							clearInputs();
 							onClose();
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						const submitDraftVersion = draftVersion;
-						const createWorkspacePromise = createWorkspace.mutateAsync({
-							projectId,
-							name: task.title,
-							branchName: task.slug.toLowerCase(),
-						});
 						onClose();
-						toast.promise(createWorkspacePromise, {
-							loading: "Creating workspace...",
-							success: "Workspace created",
-							error: (err) =>
-								err instanceof Error
-									? err.message
-									: "Failed to create workspace",
-						});
-						void createWorkspacePromise
-							.then(() => {
-								clearInputsIfDraftVersion(submitDraftVersion);
-							})
-							.catch(() => undefined);
+						toast.promise(
+							createWorkspace.mutateAsync({
+								projectId,
+								name: task.title,
+								branchName: task.slug.toLowerCase(),
+							}),
+							{
+								loading: "Creating workspace...",
+								success: "Workspace created",
+								error: (err) =>
+									err instanceof Error
+										? err.message
+										: "Failed to create workspace",
+							},
+						);
 					}}
 					className="group h-12"
 				>
