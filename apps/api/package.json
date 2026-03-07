@@ -43,7 +43,7 @@
 		"lodash.chunk": "^4.2.0",
 		"next": "^16.0.10",
 		"react": "19.2.0",
-		"react-dom": "19.2.0",
+		"react-dom": "19.2.4",
 		"require-in-the-middle": "8.0.1",
 		"stripe": "^20.2.0",
 		"zod": "^4.3.5"
