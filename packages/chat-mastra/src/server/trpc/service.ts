@@ -1,7 +1,12 @@
+import {
+	applyAnthropicRuntimeEnv,
+	buildAnthropicRuntimeEnv,
+	getAnthropicEnvConfig,
+} from "@superset/chat/host";
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
-import { createMastraCode } from "mastracode";
+import { createAuthStorage, createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
@@ -36,6 +41,7 @@ const ENABLE_MASTRA_MCP_SERVERS = false;
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
+	anthropicEnvConfigPath?: string;
 }
 
 export class ChatMastraService {
@@ -45,6 +51,7 @@ export class ChatMastraService {
 		Promise<RuntimeSession>
 	>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
+	private currentAnthropicRuntimeEnv: Record<string, string> = {};
 
 	constructor(readonly opts: ChatMastraServiceOptions) {
 		this.apiClient = createTRPCClient<AppRouter>({
@@ -58,6 +65,7 @@ export class ChatMastraService {
 				}),
 			],
 		});
+		this.syncAnthropicGatewayConfig();
 	}
 
 	private async getOrCreateRuntime(
@@ -85,6 +93,7 @@ export class ChatMastraService {
 
 		const creationPromise = (async () => {
 			try {
+				this.syncAnthropicGatewayConfig();
 				const extraTools = await getSupersetMcpTools(
 					() => Promise.resolve(this.opts.headers()),
 					this.opts.apiUrl,
@@ -120,6 +129,48 @@ export class ChatMastraService {
 
 		this.runtimeCreations.set(runtimeKey, creationPromise);
 		return creationPromise;
+	}
+
+	private syncAnthropicGatewayConfig(): void {
+		const persistedConfig = getAnthropicEnvConfig({
+			configPath: this.opts.anthropicEnvConfigPath,
+		});
+		const runtimeEnv = buildAnthropicRuntimeEnv(persistedConfig.variables, {
+			fallbackApiKey:
+				process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN,
+		});
+		applyAnthropicRuntimeEnv(runtimeEnv, {
+			previousRuntimeEnv: this.currentAnthropicRuntimeEnv,
+		});
+		this.currentAnthropicRuntimeEnv = runtimeEnv;
+
+		const authStorage = createAuthStorage();
+		authStorage.reload();
+
+		const hasPersistedEnvConfig =
+			Object.keys(persistedConfig.variables).length > 0;
+		const hasProcessEnvOverride =
+			typeof process.env.ANTHROPIC_BASE_URL === "string" ||
+			typeof process.env.ANTHROPIC_API_KEY === "string" ||
+			typeof process.env.ANTHROPIC_AUTH_TOKEN === "string";
+		if (!hasPersistedEnvConfig && !hasProcessEnvOverride) {
+			return;
+		}
+
+		const existingCredential = authStorage.get("anthropic");
+		if (hasPersistedEnvConfig && existingCredential?.type === "oauth") {
+			authStorage.remove("anthropic");
+		}
+
+		const apiKey = runtimeEnv.ANTHROPIC_API_KEY?.trim();
+		if (!apiKey) {
+			return;
+		}
+
+		authStorage.set("anthropic", {
+			type: "api_key",
+			key: apiKey,
+		});
 	}
 
 	createRouter() {

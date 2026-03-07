@@ -16,6 +16,14 @@ export {
 	getOpenAICredentialsFromRuntimeEnv,
 } from "./auth/openai";
 export { ChatService } from "./chat-service";
+export {
+	applyAnthropicRuntimeEnv,
+	buildAnthropicRuntimeEnv,
+	clearAnthropicEnvConfig,
+	getAnthropicEnvConfig,
+	parseAnthropicEnvText,
+	setAnthropicEnvConfig,
+} from "./chat-service/anthropic-env-config";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
 export { generateTitleFromMessage } from "./title-generation";
