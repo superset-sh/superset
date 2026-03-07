@@ -176,7 +176,9 @@ export function WorkspaceSection({
 	if (isSidebarCollapsed) {
 		return (
 			<div
-				ref={sectionDrop}
+				ref={(node) => {
+					sectionDrop(node);
+				}}
 				{...dropZone.handlers}
 				className={cn(
 					"relative flex flex-col -ml-0.5",
@@ -185,7 +187,9 @@ export function WorkspaceSection({
 				style={sectionBorderStyle}
 			>
 				<div
-					ref={sectionDrag}
+					ref={(node) => {
+						sectionDrag(node);
+					}}
 					className="absolute inset-y-0 -left-1 w-2 cursor-grab"
 				/>
 				<WorkspaceList
