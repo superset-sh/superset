@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -18,6 +19,7 @@ import {
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
+import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -61,8 +63,20 @@ export const createGitStatusProcedures = () => {
 
 				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 
+				// Repair stale worktree path if directory was moved/unnested
+				const worktreePath =
+					(await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+
+				if (!existsSync(worktreePath)) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Worktree path does not exist on disk",
+						cause: { reason: "path_missing", path: worktreePath },
+					});
+				}
+
 				const { ahead, behind } = await getAheadBehindCount({
-					repoPath: worktree.path,
+					repoPath: worktreePath,
 					defaultBranch,
 				});
 
@@ -117,7 +131,12 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				const worktreePath = await resolveWorktreePathWithRepair(worktree.id);
+				if (!worktreePath) {
+					return null;
+				}
+
+				const freshStatus = await fetchGitHubPRStatus(worktreePath);
 
 				if (freshStatus) {
 					localDb
@@ -132,7 +151,7 @@ export const createGitStatusProcedures = () => {
 
 		getWorktreeInfo: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
-			.query(({ input }) => {
+			.query(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					return null;
@@ -145,7 +164,9 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
+				const worktreePath =
+					(await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+				const worktreeName = worktreePath.split("/").pop() ?? worktree.branch;
 				const branchName = worktree.branch;
 
 				return {

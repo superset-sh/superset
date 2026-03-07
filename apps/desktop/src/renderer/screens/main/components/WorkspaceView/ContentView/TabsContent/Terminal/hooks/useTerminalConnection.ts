@@ -3,6 +3,7 @@ import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWith
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
+	CreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
@@ -30,6 +31,7 @@ export function useTerminalConnection({
 	workspaceId,
 }: UseTerminalConnectionOptions) {
 	const [connectionError, setConnectionError] = useState<string | null>(null);
+	const utils = electronTrpc.useUtils();
 
 	// tRPC mutations
 	const createOrAttachMutation = useCreateOrAttachWithTheme();
@@ -38,8 +40,27 @@ export function useTerminalConnection({
 	const { data: workspaceCwd } =
 		electronTrpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
+	const runCreateOrAttach: CreateOrAttachMutate = (input, callbacks) => {
+		createOrAttachMutation.mutate(input, {
+			onSuccess: (data) => {
+				void Promise.all([
+					utils.workspaces.get.invalidate({ id: workspaceId }),
+					utils.workspaces.getAllGrouped.invalidate(),
+					utils.terminal.getWorkspaceCwd.invalidate(workspaceId),
+				]);
+				callbacks?.onSuccess?.(data);
+			},
+			onError: (error) => {
+				callbacks?.onError?.({ message: error.message });
+			},
+			onSettled: () => {
+				callbacks?.onSettled?.();
+			},
+		});
+	};
+
 	// Stable refs - these don't change identity on re-render
-	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
+	const createOrAttachRef = useRef<CreateOrAttachMutate>(runCreateOrAttach);
 	// Use imperative client calls for write/resize/detach/clear to avoid
 	// mutation-observer re-renders on every keystroke.
 	const writeRef = useRef<TerminalWriteMutate>((input, callbacks) => {
@@ -74,7 +95,7 @@ export function useTerminalConnection({
 	});
 
 	// Keep refs up to date
-	createOrAttachRef.current = createOrAttachMutation.mutate;
+	createOrAttachRef.current = runCreateOrAttach;
 
 	return {
 		// Connection error state

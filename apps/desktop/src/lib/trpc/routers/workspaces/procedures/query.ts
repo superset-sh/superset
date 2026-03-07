@@ -1,5 +1,6 @@
 import {
 	projects,
+	type SelectWorkspace,
 	workspaceSections,
 	workspaces,
 	worktrees,
@@ -10,10 +11,23 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
+import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
-type WorktreePathMap = Map<string, string>;
+async function getWorkspacePathForQuery(
+	workspace: SelectWorkspace,
+): Promise<string | null> {
+	if (workspace.type === "branch") {
+		return getWorkspacePath(workspace);
+	}
+
+	if (!workspace.worktreeId) {
+		return null;
+	}
+
+	return resolveWorktreePathWithRepair(workspace.worktreeId);
+}
 
 /** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
 function getWorkspacesInVisualOrder(): string[] {
@@ -63,7 +77,7 @@ export const createQueryProcedures = () => {
 				return {
 					...workspace,
 					type: workspace.type as "worktree" | "branch",
-					worktreePath: getWorkspacePath(workspace) ?? "",
+					worktreePath: (await getWorkspacePathForQuery(workspace)) ?? "",
 					project: project
 						? {
 								id: project.id,
@@ -92,7 +106,7 @@ export const createQueryProcedures = () => {
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
-		getAllGrouped: publicProcedure.query(() => {
+		getAllGrouped: publicProcedure.query(async () => {
 			type WorkspaceItem = {
 				id: string;
 				projectId: string;
@@ -125,13 +139,7 @@ export const createQueryProcedures = () => {
 				.where(isNotNull(projects.tabOrder))
 				.all();
 
-			const allWorktrees = localDb.select().from(worktrees).all();
-			const worktreePathMap: WorktreePathMap = new Map(
-				allWorktrees.map((wt) => [wt.id, wt.path]),
-			);
-
 			const allSections = localDb.select().from(workspaceSections).all();
-
 			const groupsMap = new Map<
 				string,
 				{
@@ -152,14 +160,14 @@ export const createQueryProcedures = () => {
 
 			for (const project of activeProjects) {
 				const projectSections = allSections
-					.filter((s) => s.projectId === project.id)
+					.filter((section) => section.projectId === project.id)
 					.sort((a, b) => a.tabOrder - b.tabOrder)
-					.map((s) => ({
-						id: s.id,
-						name: s.name,
-						tabOrder: s.tabOrder,
-						isCollapsed: s.isCollapsed ?? false,
-						color: s.color ?? null,
+					.map((section) => ({
+						id: section.id,
+						name: section.name,
+						tabOrder: section.tabOrder,
+						isCollapsed: section.isCollapsed ?? false,
+						color: section.color ?? null,
 						workspaces: [] as WorkspaceItem[],
 					}));
 
@@ -187,16 +195,16 @@ export const createQueryProcedures = () => {
 				.all()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 
-			for (const workspace of allWorkspaces) {
+			const workspacesWithResolvedPaths = await Promise.all(
+				allWorkspaces.map(async (workspace) => ({
+					workspace,
+					worktreePath: (await getWorkspacePathForQuery(workspace)) ?? "",
+				})),
+			);
+
+			for (const { workspace, worktreePath } of workspacesWithResolvedPaths) {
 				const group = groupsMap.get(workspace.projectId);
 				if (group) {
-					let worktreePath = "";
-					if (workspace.type === "worktree" && workspace.worktreeId) {
-						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
-					} else if (workspace.type === "branch") {
-						worktreePath = group.project.mainRepoPath;
-					}
-
 					const item: WorkspaceItem = {
 						...workspace,
 						sectionId: workspace.sectionId ?? null,
@@ -208,7 +216,7 @@ export const createQueryProcedures = () => {
 
 					if (workspace.sectionId) {
 						const section = group.sections.find(
-							(s) => s.id === workspace.sectionId,
+							(groupSection) => groupSection.id === workspace.sectionId,
 						);
 						if (section) {
 							section.workspaces.push(item);
