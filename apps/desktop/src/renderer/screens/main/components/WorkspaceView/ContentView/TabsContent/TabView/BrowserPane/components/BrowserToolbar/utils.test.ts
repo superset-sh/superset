@@ -66,6 +66,38 @@ describe("normalizeUrl", () => {
 		);
 	});
 
+	test("leaves about:blank unchanged", () => {
+		expect(normalizeUrl("about:blank")).toBe("about:blank");
+	});
+
+	test("leaves data: URLs unchanged", () => {
+		expect(normalizeUrl("data:text/html,<h1>hi</h1>")).toBe(
+			"data:text/html,<h1>hi</h1>",
+		);
+	});
+
+	test("prepends http:// to bare localhost", () => {
+		expect(normalizeUrl("localhost")).toBe("http://localhost");
+	});
+
+	test("prepends http:// to localhost with port", () => {
+		expect(normalizeUrl("localhost:3000")).toBe("http://localhost:3000");
+	});
+
+	test("prepends http:// to localhost with path", () => {
+		expect(normalizeUrl("localhost:3000/api/health")).toBe(
+			"http://localhost:3000/api/health",
+		);
+	});
+
+	test("prepends http:// to 127.0.0.1", () => {
+		expect(normalizeUrl("127.0.0.1:8080")).toBe("http://127.0.0.1:8080");
+	});
+
+	test("prepends http:// to [::1]", () => {
+		expect(normalizeUrl("[::1]:4000")).toBe("http://[::1]:4000");
+	});
+
 	test("trims whitespace before normalizing", () => {
 		expect(normalizeUrl("  github.com  ")).toBe("https://github.com");
 	});
