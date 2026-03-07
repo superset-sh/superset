@@ -16,6 +16,12 @@ const TERMINAL_STATE_PATHS = [
 	"terminal-host.spawn.lock",
 	"terminal-host.mtime",
 	"daemon.log",
+	"terminal-supervisor.sock",
+	"terminal-supervisor.token",
+	"terminal-supervisor.pid",
+	"terminal-supervisor.spawn.lock",
+	"terminal-supervisor.mtime",
+	"terminal-supervisor.log",
 ] as const;
 
 export async function resetTerminalStateDev(): Promise<void> {
