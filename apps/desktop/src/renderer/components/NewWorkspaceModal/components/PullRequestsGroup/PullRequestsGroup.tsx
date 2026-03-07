@@ -21,24 +21,37 @@ import {
 	useClearNewWorkspaceModalInputsIfDraftVersion,
 	useNewWorkspaceModalDraftVersion,
 } from "renderer/stores/new-workspace-modal";
+import {
+	getGitHubRepoRef,
+	parseGitHubPrUrl,
+	toCanonicalGitHubPrUrl,
+} from "shared/utils/github-repo";
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
 	githubOwner: string | null;
-	repoName: string | null;
+	githubRepoName: string | null;
+	mainRepoPath: string | null;
+	searchQuery: string;
 	onClose: () => void;
 }
 
 export function PullRequestsGroup({
 	projectId,
 	githubOwner,
-	repoName,
+	githubRepoName,
+	mainRepoPath,
+	searchQuery,
 	onClose,
 }: PullRequestsGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
+	const repoRef = useMemo(
+		() => getGitHubRepoRef({ githubOwner, githubRepoName, mainRepoPath }),
+		[githubOwner, githubRepoName, mainRepoPath],
+	);
 	const clearInputs = useClearNewWorkspaceModalInputs();
 	const clearInputsIfDraftVersion =
 		useClearNewWorkspaceModalInputsIfDraftVersion();
@@ -51,14 +64,14 @@ export function PullRequestsGroup({
 				.from({ repos: collections.githubRepositories })
 				.where(({ repos }) =>
 					and(
-						eq(repos.owner, githubOwner ?? ""),
-						eq(repos.name, repoName ?? ""),
+						eq(repos.owner, repoRef?.owner ?? ""),
+						eq(repos.name, repoRef?.repoName ?? ""),
 					),
 				)
 				.select(({ repos }) => ({
 					id: repos.id,
 				})),
-		[collections, githubOwner, repoName],
+		[collections, repoRef],
 	);
 
 	const githubRepositoryId = repoData?.[0]?.id ?? null;
@@ -68,7 +81,12 @@ export function PullRequestsGroup({
 		(q) =>
 			q
 				.from({ prs: collections.githubPullRequests })
-				.where(({ prs }) => eq(prs.repositoryId, githubRepositoryId ?? ""))
+				.where(({ prs }) =>
+					and(
+						eq(prs.repositoryId, githubRepositoryId ?? ""),
+						eq(prs.state, "open"),
+					),
+				)
 				.select(({ prs }) => ({ ...prs })),
 		[collections, githubRepositoryId],
 	);
@@ -86,10 +104,43 @@ export function PullRequestsGroup({
 		return map;
 	}, [allWorkspaces, projectId]);
 
-	const openPrs = useMemo(
-		() => (pullRequests ?? []).filter((pr) => pr.state === "open").slice(0, 30),
+	const allOpenPrs = useMemo(
+		() =>
+			[...(pullRequests ?? [])].sort((a, b) => {
+				const aUpdated =
+					a.updatedAt instanceof Date
+						? a.updatedAt.getTime()
+						: new Date(a.updatedAt).getTime();
+				const bUpdated =
+					b.updatedAt instanceof Date
+						? b.updatedAt.getTime()
+						: new Date(b.updatedAt).getTime();
+				return bUpdated - aUpdated;
+			}),
 		[pullRequests],
 	);
+	const hasSearchQuery = searchQuery.trim().length > 0;
+	const openPrs = useMemo(
+		() => (hasSearchQuery ? allOpenPrs : allOpenPrs.slice(0, 30)),
+		[allOpenPrs, hasSearchQuery],
+	);
+	const manualPr = useMemo(() => parseGitHubPrUrl(searchQuery), [searchQuery]);
+	const manualPrUrl = useMemo(
+		() => toCanonicalGitHubPrUrl(manualPr),
+		[manualPr],
+	);
+	const hasSyncedManualMatch = useMemo(() => {
+		if (!manualPrUrl) {
+			return false;
+		}
+
+		return allOpenPrs.some((pr) => {
+			const parsedUrl = parseGitHubPrUrl(pr.url);
+			return toCanonicalGitHubPrUrl(parsedUrl) === manualPrUrl;
+		});
+	}, [allOpenPrs, manualPrUrl]);
+	const showManualPrOption =
+		Boolean(projectId) && Boolean(manualPrUrl) && !hasSyncedManualMatch;
 
 	if (!projectId) {
 		return (
@@ -99,103 +150,164 @@ export function PullRequestsGroup({
 		);
 	}
 
+	const manualPrItem = showManualPrOption ? (
+		<CommandGroup heading="From URL">
+			<CommandItem
+				value={`${manualPrUrl} create from url`}
+				onSelect={() => {
+					if (!projectId || !manualPrUrl) {
+						toast.error("Select a project first");
+						return;
+					}
+					const submitDraftVersion = draftVersion;
+					const createWorkspacePromise = createFromPr.mutateAsync({
+						projectId,
+						prUrl: manualPrUrl,
+					});
+					onClose();
+					toast.promise(createWorkspacePromise, {
+						loading: "Creating workspace from PR...",
+						success: "Workspace created",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to create workspace",
+					});
+					void createWorkspacePromise
+						.then(() => {
+							clearInputsIfDraftVersion(submitDraftVersion);
+						})
+						.catch(() => undefined);
+				}}
+			>
+				<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+				<span className="truncate flex-1">
+					{manualPr
+						? `${manualPr.owner}/${manualPr.repo} #${manualPr.number}`
+						: manualPrUrl}
+				</span>
+				<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
+					Create from URL
+				</span>
+				<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+					Create ↵
+				</span>
+			</CommandItem>
+		</CommandGroup>
+	) : null;
+
 	if (!githubOwner) {
 		return (
-			<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
-				<SiGithub className="size-6 text-muted-foreground" />
-				<div className="space-y-1">
-					<p className="text-sm font-medium">Connect GitHub</p>
-					<p className="text-xs text-muted-foreground">
-						Sync pull requests from GitHub to create workspaces
-					</p>
+			<>
+				{manualPrItem}
+				<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
+					<SiGithub className="size-6 text-muted-foreground" />
+					<div className="space-y-1">
+						<p className="text-sm font-medium">Connect GitHub</p>
+						<p className="text-xs text-muted-foreground">
+							Sync pull requests from GitHub or paste a PR URL to create a
+							workspace
+						</p>
+					</div>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => {
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
+								onClose();
+								navigate({ to: "/settings/integrations" });
+							});
+						}}
+					>
+						Connect
+					</Button>
 				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => {
-						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							onClose();
-							navigate({ to: "/settings/integrations" });
-						});
-					}}
-				>
-					Connect
-				</Button>
-			</div>
+			</>
 		);
 	}
 
 	if (!githubRepositoryId) {
 		return (
-			<CommandGroup>
-				<CommandEmpty>No GitHub repository found.</CommandEmpty>
-			</CommandGroup>
+			<>
+				{manualPrItem}
+				<CommandGroup>
+					<CommandEmpty>
+						No synced GitHub repository found. Paste a PR URL to create a
+						workspace anyway.
+					</CommandEmpty>
+				</CommandGroup>
+			</>
 		);
 	}
 
 	return (
-		<CommandGroup>
-			<CommandEmpty>No pull requests found.</CommandEmpty>
-			{openPrs.map((pr) => (
-				<CommandItem
-					key={pr.id}
-					value={`#${pr.prNumber} ${pr.title} ${pr.authorLogin} ${pr.url}`}
-					onSelect={() => {
-						if (!projectId) {
-							toast.error("Select a project first");
-							return;
-						}
-						const existingId = workspaceByBranch.get(pr.headBranch);
-						if (existingId) {
-							clearInputs();
+		<>
+			{manualPrItem}
+			<CommandGroup>
+				<CommandEmpty>
+					{searchQuery.trim()
+						? "No matching pull requests found."
+						: "No pull requests found."}
+				</CommandEmpty>
+				{openPrs.map((pr) => (
+					<CommandItem
+						key={pr.id}
+						value={`#${pr.prNumber} ${pr.title} ${pr.authorLogin} ${pr.url}`}
+						onSelect={() => {
+							if (!projectId) {
+								toast.error("Select a project first");
+								return;
+							}
+							const existingId = workspaceByBranch.get(pr.headBranch);
+							if (existingId) {
+								clearInputs();
+								onClose();
+								navigateToWorkspace(existingId, navigate);
+								return;
+							}
+							const submitDraftVersion = draftVersion;
+							const createWorkspacePromise = createFromPr.mutateAsync({
+								projectId,
+								prUrl: pr.url,
+							});
 							onClose();
-							navigateToWorkspace(existingId, navigate);
-							return;
-						}
-						const submitDraftVersion = draftVersion;
-						const createWorkspacePromise = createFromPr.mutateAsync({
-							projectId,
-							prUrl: pr.url,
-						});
-						onClose();
-						toast.promise(createWorkspacePromise, {
-							loading: "Creating workspace from PR...",
-							success: "Workspace created",
-							error: (err) =>
-								err instanceof Error
-									? err.message
-									: "Failed to create workspace",
-						});
-						void createWorkspacePromise
-							.then(() => {
-								clearInputsIfDraftVersion(submitDraftVersion);
-							})
-							.catch(() => undefined);
-					}}
-					className="group h-12"
-				>
-					{workspaceByBranch.has(pr.headBranch) ? (
-						<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
-					) : pr.isDraft ? (
-						<GoGitPullRequestDraft className="size-4 shrink-0 text-muted-foreground" />
-					) : (
-						<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
-					)}
-					<span
-						className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
-						style={{ width: "2.8rem" }}
+							toast.promise(createWorkspacePromise, {
+								loading: "Creating workspace from PR...",
+								success: "Workspace created",
+								error: (err) =>
+									err instanceof Error
+										? err.message
+										: "Failed to create workspace",
+							});
+							void createWorkspacePromise
+								.then(() => {
+									clearInputsIfDraftVersion(submitDraftVersion);
+								})
+								.catch(() => undefined);
+						}}
+						className="group h-12"
 					>
-						#{pr.prNumber}
-					</span>
-					<span className="truncate flex-1">{pr.title}</span>
-					<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
-						{pr.authorLogin}
-					</span>
-					<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
-						{workspaceByBranch.has(pr.headBranch) ? "Open" : "Create"} ↵
-					</span>
-				</CommandItem>
-			))}
-		</CommandGroup>
+						{workspaceByBranch.has(pr.headBranch) ? (
+							<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+						) : pr.isDraft ? (
+							<GoGitPullRequestDraft className="size-4 shrink-0 text-muted-foreground" />
+						) : (
+							<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+						)}
+						<span
+							className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
+							style={{ width: "2.8rem" }}
+						>
+							#{pr.prNumber}
+						</span>
+						<span className="truncate flex-1">{pr.title}</span>
+						<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
+							{pr.authorLogin}
+						</span>
+						<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+							{workspaceByBranch.has(pr.headBranch) ? "Open" : "Create"} ↵
+						</span>
+					</CommandItem>
+				))}
+			</CommandGroup>
+		</>
 	);
 }

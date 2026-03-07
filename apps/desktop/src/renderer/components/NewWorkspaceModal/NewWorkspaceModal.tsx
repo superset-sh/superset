@@ -157,7 +157,7 @@ export function NewWorkspaceModal() {
 									? "Search by slug, title, or description"
 									: activeTab === "branches"
 										? "Search by name"
-										: "Search by title, number, or author"
+										: "Search by title, number, author, or PR URL"
 							}
 						/>
 
@@ -166,7 +166,9 @@ export function NewWorkspaceModal() {
 								<PullRequestsGroup
 									projectId={selectedProjectId}
 									githubOwner={selectedProject?.githubOwner ?? null}
-									repoName={selectedProject?.name ?? null}
+									githubRepoName={selectedProject?.githubRepoName ?? null}
+									mainRepoPath={selectedProject?.mainRepoPath ?? null}
+									searchQuery={pullRequestsQuery}
 									onClose={closeModal}
 								/>
 							)}

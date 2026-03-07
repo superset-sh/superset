@@ -1,20 +1,38 @@
 import { execWithShellEnv } from "../../workspaces/utils/shell-env";
 
+interface GhRepoViewResponse {
+	owner?: {
+		login?: string;
+	};
+	name?: string;
+}
+
+export interface GitHubRepoIdentity {
+	owner: string;
+	repoName: string;
+}
+
 /**
- * Fetches the GitHub owner (user or org) for a repository using the `gh` CLI.
+ * Fetches the GitHub owner and canonical repo name for a repository using the `gh` CLI.
  * Returns null if `gh` is not installed, not authenticated, or on error.
  */
-export async function fetchGitHubOwner(
+export async function fetchGitHubRepoIdentity(
 	repoPath: string,
-): Promise<string | null> {
+): Promise<GitHubRepoIdentity | null> {
 	try {
 		const { stdout } = await execWithShellEnv(
 			"gh",
-			["repo", "view", "--jq", ".owner.login"],
+			["repo", "view", "--json", "owner,name"],
 			{ cwd: repoPath },
 		);
-		const owner = stdout.trim();
-		return owner || null;
+		const parsed = JSON.parse(stdout) as GhRepoViewResponse;
+		const owner = parsed.owner?.login?.trim();
+		const repoName = parsed.name?.trim();
+		if (!owner || !repoName) {
+			return null;
+		}
+
+		return { owner, repoName };
 	} catch {
 		return null;
 	}

@@ -10,6 +10,7 @@ import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChatMastraLaunchConfig } from "shared/tabs-types";
+import { getGitHubRepoRef } from "shared/utils/github-repo";
 import type { StartFreshSessionResult } from "../../../ChatPane/ChatInterface/types";
 import { reportChatMastraError } from "../../utils/reportChatMastraError";
 import { createSessionInitRunner } from "../../utils/session-init-runner";
@@ -161,8 +162,8 @@ export function useChatMastraPaneController({
 		if (ensuredRef.current === workspaceId) return;
 
 		const project = workspace.project;
-		const repoName = project.mainRepoPath.split("/").pop();
-		if (!repoName || !project.githubOwner) return;
+		const repoRef = getGitHubRepoRef(project);
+		if (!repoRef) return;
 
 		ensuredRef.current = workspaceId;
 
@@ -171,10 +172,10 @@ export function useChatMastraPaneController({
 				organizationId,
 				project: {
 					name: project.name,
-					slug: repoName.toLowerCase(),
-					repoOwner: project.githubOwner,
-					repoName,
-					repoUrl: `https://github.com/${project.githubOwner}/${repoName}`,
+					slug: repoRef.repoName.toLowerCase(),
+					repoOwner: repoRef.owner,
+					repoName: repoRef.repoName,
+					repoUrl: repoRef.repoUrl,
 					defaultBranch: project.defaultBranch ?? "main",
 				},
 				workspace: {

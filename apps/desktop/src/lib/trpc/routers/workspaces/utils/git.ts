@@ -12,6 +12,7 @@ import {
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
+import { parseGitHubPrUrl } from "shared/utils/github-repo";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
@@ -1541,32 +1542,7 @@ export function parsePrUrl(url: string): {
 	repo: string;
 	number: number;
 } | null {
-	// Normalize URL - add https:// if missing
-	let normalizedUrl = url.trim();
-	if (!normalizedUrl.startsWith("http")) {
-		normalizedUrl = `https://${normalizedUrl}`;
-	}
-
-	try {
-		const urlObj = new URL(normalizedUrl);
-		if (!urlObj.hostname.includes("github.com")) {
-			return null;
-		}
-
-		// Match /owner/repo/pull/number pattern
-		const match = urlObj.pathname.match(/^\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
-		if (!match) {
-			return null;
-		}
-
-		return {
-			owner: match[1],
-			repo: match[2],
-			number: Number.parseInt(match[3], 10),
-		};
-	} catch {
-		return null;
-	}
+	return parseGitHubPrUrl(url);
 }
 
 /**
