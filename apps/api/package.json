@@ -51,7 +51,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/lodash.chunk": "^4.2.9",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.3.0",
 		"@types/react": "~19.2.2",
 		"@types/react-dom": "^19.2.3",
 		"babel-plugin-react-compiler": "^1.0.0",
