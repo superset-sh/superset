@@ -77,10 +77,17 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	const [customPrefixInput, setCustomPrefixInput] = useState(
 		branchPrefix?.customPrefix ?? "",
 	);
+	const [separatorInput, setSeparatorInput] = useState(
+		branchPrefix?.separator ?? "/",
+	);
 
 	useEffect(() => {
 		setCustomPrefixInput(branchPrefix?.customPrefix ?? "");
 	}, [branchPrefix?.customPrefix]);
+
+	useEffect(() => {
+		setSeparatorInput(branchPrefix?.separator ?? "/");
+	}, [branchPrefix?.separator]);
 
 	const setBranchPrefix = electronTrpc.settings.setBranchPrefix.useMutation({
 		onError: (err) => {
@@ -95,6 +102,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		setBranchPrefix.mutate({
 			mode,
 			customPrefix: customPrefixInput || null,
+			separator: separatorInput || "/",
 		});
 	};
 
@@ -104,6 +112,15 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		setBranchPrefix.mutate({
 			mode: "custom",
 			customPrefix: sanitized || null,
+			separator: separatorInput || "/",
+		});
+	};
+
+	const handleSeparatorBlur = () => {
+		setBranchPrefix.mutate({
+			mode: branchPrefix?.mode ?? "none",
+			customPrefix: customPrefixInput || null,
+			separator: separatorInput || "/",
 		});
 	};
 
@@ -131,6 +148,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
 
+	const resolvedSeparator = separatorInput || "/";
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -185,7 +203,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								Preview:{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
-										? `${previewPrefix}/branch-name`
+										? `${previewPrefix}${resolvedSeparator}branch-name`
 										: "branch-name"}
 								</code>
 							</p>
@@ -222,6 +240,17 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 									onBlur={handleCustomPrefixBlur}
 									className="w-[120px]"
 									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+								/>
+							)}
+							{branchPrefix?.mode !== "none" && (
+								<Input
+									placeholder="/"
+									value={separatorInput}
+									onChange={(e) => setSeparatorInput(e.target.value)}
+									onBlur={handleSeparatorBlur}
+									className="w-[60px] text-center"
+									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+									title="Separator between prefix and branch name"
 								/>
 							)}
 						</div>
