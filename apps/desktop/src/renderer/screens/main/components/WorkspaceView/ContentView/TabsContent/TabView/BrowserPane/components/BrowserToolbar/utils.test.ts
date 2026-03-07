@@ -115,4 +115,8 @@ describe("normalizeUrl", () => {
 			"https://api.example.com/v1",
 		);
 	});
+
+	test("prepends https:// to hostname with port (not treated as scheme)", () => {
+		expect(normalizeUrl("github.com:3000")).toBe("https://github.com:3000");
+	});
 });

@@ -32,10 +32,11 @@ export function normalizeUrl(input: string): string {
 	if (!trimmed) return trimmed;
 
 	// Already has a scheme (`scheme:` or `scheme://`).
-	// Exception: `localhost:port` looks like a scheme but is a host:port pair.
+	// Exceptions: `localhost:port` and `hostname.com:port` look like schemes but are host:port pairs.
+	// Real scheme names (https, about, data, file…) contain no dots and are not known hostnames.
 	if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)) {
 		const potentialHost = trimmed.split(":")[0];
-		if (!LOCALHOST_HOSTS.has(potentialHost)) return trimmed;
+		if (!LOCALHOST_HOSTS.has(potentialHost) && !potentialHost.includes(".")) return trimmed;
 	}
 
 	const scheme = LOCALHOST_HOSTS.has(extractHost(trimmed)) ? "http" : "https";
