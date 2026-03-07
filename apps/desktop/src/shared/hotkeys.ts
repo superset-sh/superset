@@ -459,6 +459,12 @@ export const HOTKEYS = {
 		label: "Next Workspace",
 		category: "Workspace",
 	}),
+	CLOSE_WORKSPACE: defineHotkey({
+		keys: "meta+alt+w",
+		label: "Close Workspace",
+		category: "Workspace",
+		description: "Close the current workspace",
+	}),
 
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({

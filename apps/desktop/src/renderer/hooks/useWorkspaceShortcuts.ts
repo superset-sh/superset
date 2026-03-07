@@ -1,6 +1,7 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCloseWorkspace } from "renderer/react-query/workspaces/useCloseWorkspace";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
@@ -14,6 +15,16 @@ export function useWorkspaceShortcuts() {
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
+	const closeWorkspace = useCloseWorkspace();
+
+	// Resolve the currently active workspace from the URL
+	const currentWorkspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const currentWorkspaceId =
+		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => [
@@ -58,6 +69,17 @@ export function useWorkspaceShortcuts() {
 	useAppHotkey("JUMP_TO_WORKSPACE_9", () => switchToWorkspace(8), undefined, [
 		switchToWorkspace,
 	]);
+
+	useAppHotkey(
+		"CLOSE_WORKSPACE",
+		() => {
+			if (currentWorkspaceId) {
+				closeWorkspace.mutate({ id: currentWorkspaceId });
+			}
+		},
+		undefined,
+		[currentWorkspaceId, closeWorkspace],
+	);
 
 	return {
 		groups,
