@@ -32,11 +32,12 @@ import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseB
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
-	useClearNewWorkspaceModalInputs,
+	useClearNewWorkspaceModalInputsIfDraftVersion,
 	useNewWorkspaceModalBaseBranch,
 	useNewWorkspaceModalBranchName,
 	useNewWorkspaceModalBranchNameEdited,
 	useNewWorkspaceModalBranchSearch,
+	useNewWorkspaceModalDraftVersion,
 	useNewWorkspaceModalPrompt,
 	useNewWorkspaceModalRunSetupScript,
 	useNewWorkspaceModalShowAdvanced,
@@ -83,7 +84,9 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	const setRunSetupScript = useSetNewWorkspaceModalRunSetupScript();
 	const branchSearch = useNewWorkspaceModalBranchSearch();
 	const setBranchSearch = useSetNewWorkspaceModalBranchSearch();
-	const clearInputs = useClearNewWorkspaceModalInputs();
+	const clearInputsIfDraftVersion =
+		useClearNewWorkspaceModalInputsIfDraftVersion();
+	const draftVersion = useNewWorkspaceModalDraftVersion();
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
@@ -167,12 +170,17 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset base branch controls when project changes
+	const previousProjectIdRef = useRef(projectId);
+
 	useEffect(() => {
+		if (previousProjectIdRef.current === projectId) {
+			return;
+		}
+		previousProjectIdRef.current = projectId;
 		setBaseBranch(null);
 		setBaseBranchOpen(false);
 		setBranchSearch("");
-	}, [projectId]);
+	}, [projectId, setBaseBranch, setBranchSearch]);
 
 	const handleAgentChange = (value: WorkspaceCreateAgent) => {
 		setSelectedAgent(value);
@@ -224,6 +232,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			return;
 		}
 		const launchRequest = buildLaunchRequest(trimmedPrompt);
+		const submitDraftVersion = draftVersion;
 		const createWorkspacePromise = createWorkspace.mutateAsyncWithPendingSetup(
 			{
 				projectId,
@@ -244,7 +253,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 		});
 		void createWorkspacePromise
 			.then(() => {
-				clearInputs();
+				clearInputsIfDraftVersion(submitDraftVersion);
 			})
 			.catch(() => undefined);
 	};

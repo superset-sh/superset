@@ -19,7 +19,11 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useClearNewWorkspaceModalInputs } from "renderer/stores/new-workspace-modal";
+import {
+	useClearNewWorkspaceModalInputs,
+	useClearNewWorkspaceModalInputsIfDraftVersion,
+	useNewWorkspaceModalDraftVersion,
+} from "renderer/stores/new-workspace-modal";
 
 interface IssuesGroupProps {
 	projectId: string | null;
@@ -32,6 +36,9 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 	const { gateFeature } = usePaywall();
 	const createWorkspace = useCreateWorkspace();
 	const clearInputs = useClearNewWorkspaceModalInputs();
+	const clearInputsIfDraftVersion =
+		useClearNewWorkspaceModalInputsIfDraftVersion();
+	const draftVersion = useNewWorkspaceModalDraftVersion();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -132,6 +139,7 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
+						const submitDraftVersion = draftVersion;
 						const createWorkspacePromise = createWorkspace.mutateAsync({
 							projectId,
 							name: task.title,
@@ -148,7 +156,7 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 						});
 						void createWorkspacePromise
 							.then(() => {
-								clearInputs();
+								clearInputsIfDraftVersion(submitDraftVersion);
 							})
 							.catch(() => undefined);
 					}}

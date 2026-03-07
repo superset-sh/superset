@@ -57,8 +57,11 @@ export function NewWorkspaceModal() {
 
 	useEffect(() => {
 		if (!isOpen) return;
-		if (recentProjects.length > 0 && !selectedProjectId) {
-			setSelectedProjectId(recentProjects[0].id);
+		const hasSelectedProject = recentProjects.some(
+			(project) => project.id === selectedProjectId,
+		);
+		if (!hasSelectedProject) {
+			setSelectedProjectId(recentProjects[0]?.id ?? null);
 		}
 	}, [isOpen, recentProjects, selectedProjectId, setSelectedProjectId]);
 

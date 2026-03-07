@@ -9,6 +9,7 @@ export type NewWorkspaceModalTab =
 
 interface NewWorkspaceModalState {
 	isOpen: boolean;
+	draftVersion: number;
 	activeTab: NewWorkspaceModalTab;
 	selectedProjectId: string | null;
 	prompt: string;
@@ -36,12 +37,14 @@ interface NewWorkspaceModalState {
 	setPullRequestsQuery: (query: string) => void;
 	setBranchesQuery: (query: string) => void;
 	clearInputs: () => void;
+	clearInputsIfDraftVersion: (draftVersion: number) => void;
 }
 
 export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 	devtools(
 		(set) => ({
 			isOpen: false,
+			draftVersion: 0,
 			activeTab: "prompt",
 			selectedProjectId: null,
 			prompt: "",
@@ -59,6 +62,10 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 				set((state) => ({
 					isOpen: true,
 					selectedProjectId: projectId ?? state.selectedProjectId,
+					draftVersion:
+						projectId != null && projectId !== state.selectedProjectId
+							? state.draftVersion + 1
+							: state.draftVersion,
 				}));
 			},
 
@@ -66,20 +73,56 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 				set({ isOpen: false });
 			},
 
-			setActiveTab: (activeTab) => set({ activeTab }),
-			setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
-			setPrompt: (prompt) => set({ prompt }),
-			setBranchName: (branchName) => set({ branchName }),
-			setBranchNameEdited: (branchNameEdited) => set({ branchNameEdited }),
-			setBaseBranch: (baseBranch) => set({ baseBranch }),
-			setShowAdvanced: (showAdvanced) => set({ showAdvanced }),
-			setRunSetupScript: (runSetupScript) => set({ runSetupScript }),
-			setBranchSearch: (branchSearch) => set({ branchSearch }),
-			setIssuesQuery: (issuesQuery) => set({ issuesQuery }),
-			setPullRequestsQuery: (pullRequestsQuery) => set({ pullRequestsQuery }),
-			setBranchesQuery: (branchesQuery) => set({ branchesQuery }),
+			setActiveTab: (activeTab) =>
+				set((state) => ({ activeTab, draftVersion: state.draftVersion + 1 })),
+			setSelectedProjectId: (selectedProjectId) =>
+				set((state) => ({
+					selectedProjectId,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setPrompt: (prompt) =>
+				set((state) => ({ prompt, draftVersion: state.draftVersion + 1 })),
+			setBranchName: (branchName) =>
+				set((state) => ({ branchName, draftVersion: state.draftVersion + 1 })),
+			setBranchNameEdited: (branchNameEdited) =>
+				set((state) => ({
+					branchNameEdited,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setBaseBranch: (baseBranch) =>
+				set((state) => ({ baseBranch, draftVersion: state.draftVersion + 1 })),
+			setShowAdvanced: (showAdvanced) =>
+				set((state) => ({
+					showAdvanced,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setRunSetupScript: (runSetupScript) =>
+				set((state) => ({
+					runSetupScript,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setBranchSearch: (branchSearch) =>
+				set((state) => ({
+					branchSearch,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setIssuesQuery: (issuesQuery) =>
+				set((state) => ({
+					issuesQuery,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setPullRequestsQuery: (pullRequestsQuery) =>
+				set((state) => ({
+					pullRequestsQuery,
+					draftVersion: state.draftVersion + 1,
+				})),
+			setBranchesQuery: (branchesQuery) =>
+				set((state) => ({
+					branchesQuery,
+					draftVersion: state.draftVersion + 1,
+				})),
 			clearInputs: () =>
-				set({
+				set((state) => ({
 					prompt: "",
 					branchName: "",
 					branchNameEdited: false,
@@ -90,7 +133,26 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 					issuesQuery: "",
 					pullRequestsQuery: "",
 					branchesQuery: "",
-				}),
+					draftVersion: state.draftVersion + 1,
+				})),
+			clearInputsIfDraftVersion: (draftVersion) =>
+				set((state) =>
+					state.draftVersion !== draftVersion
+						? {}
+						: {
+								prompt: "",
+								branchName: "",
+								branchNameEdited: false,
+								baseBranch: null,
+								showAdvanced: false,
+								runSetupScript: true,
+								branchSearch: "",
+								issuesQuery: "",
+								pullRequestsQuery: "",
+								branchesQuery: "",
+								draftVersion: state.draftVersion + 1,
+							},
+				),
 		}),
 		{ name: "NewWorkspaceModalStore" },
 	),
@@ -99,6 +161,8 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 // Convenience hooks
 export const useNewWorkspaceModalOpen = () =>
 	useNewWorkspaceModalStore((state) => state.isOpen);
+export const useNewWorkspaceModalDraftVersion = () =>
+	useNewWorkspaceModalStore((state) => state.draftVersion);
 export const useOpenNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.openModal);
 export const useCloseNewWorkspaceModal = () =>
@@ -153,3 +217,5 @@ export const useSetNewWorkspaceModalBranchesQuery = () =>
 	useNewWorkspaceModalStore((state) => state.setBranchesQuery);
 export const useClearNewWorkspaceModalInputs = () =>
 	useNewWorkspaceModalStore((state) => state.clearInputs);
+export const useClearNewWorkspaceModalInputsIfDraftVersion = () =>
+	useNewWorkspaceModalStore((state) => state.clearInputsIfDraftVersion);
