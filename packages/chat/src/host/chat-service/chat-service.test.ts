@@ -57,6 +57,10 @@ const MANAGED_ANTHROPIC_ENV_KEYS = [
 	"AWS_REGION",
 	"AWS_PROFILE",
 ] as const;
+const EXTERNAL_OPENAI_ENV_KEYS = [
+	"OPENAI_API_KEY",
+	"OPENAI_AUTH_TOKEN",
+] as const;
 const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 const originalAnthropicEnvValues = {
 	ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
@@ -65,6 +69,10 @@ const originalAnthropicEnvValues = {
 	CLAUDE_CODE_USE_BEDROCK: process.env.CLAUDE_CODE_USE_BEDROCK,
 	AWS_REGION: process.env.AWS_REGION,
 	AWS_PROFILE: process.env.AWS_PROFILE,
+};
+const originalOpenAIEnvValues = {
+	OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+	OPENAI_AUTH_TOKEN: process.env.OPENAI_AUTH_TOKEN,
 };
 let testSupersetHomeDir: string | null = null;
 
@@ -88,6 +96,9 @@ describe("ChatService OpenAI auth storage", () => {
 		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
 			delete process.env[key];
 		}
+		for (const key of EXTERNAL_OPENAI_ENV_KEYS) {
+			delete process.env[key];
+		}
 	});
 
 	afterEach(() => {
@@ -102,6 +113,14 @@ describe("ChatService OpenAI auth storage", () => {
 		}
 		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
 			const value = originalAnthropicEnvValues[key];
+			if (value) {
+				process.env[key] = value;
+			} else {
+				delete process.env[key];
+			}
+		}
+		for (const key of EXTERNAL_OPENAI_ENV_KEYS) {
+			const value = originalOpenAIEnvValues[key];
 			if (value) {
 				process.env[key] = value;
 			} else {
@@ -209,6 +228,22 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
 	});
 
+	it("prefers external Anthropic runtime credentials over managed auth storage", () => {
+		const chatService = new ChatService();
+
+		process.env.ANTHROPIC_AUTH_TOKEN = "external-oauth-token";
+		fakeAuthStorage.set("anthropic", {
+			type: "api_key",
+			key: "managed-api-key",
+		});
+
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "oauth",
+			source: "external",
+		});
+	});
+
 	it("saves Anthropic gateway env config and uses env auth method", async () => {
 		const chatService = new ChatService();
 
@@ -237,6 +272,7 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "env",
+			source: "managed",
 		});
 	});
 
@@ -274,6 +310,7 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "env",
+			source: "managed",
 		});
 	});
 
@@ -398,13 +435,35 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(status.method).toBe("oauth");
 	});
 
-	it("ignores OPENAI_API_KEY env value without auth storage credentials", async () => {
+	it("uses OPENAI_API_KEY env value automatically", async () => {
 		const chatService = new ChatService();
 
 		process.env.OPENAI_API_KEY = "externally-provided-key";
 		const status = await chatService.getOpenAIAuthStatus();
-		expect(status.method).toBeNull();
+		expect(status).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "external",
+		});
 		delete process.env.OPENAI_API_KEY;
+	});
+
+	it("prefers external OpenAI runtime credentials over managed auth storage", async () => {
+		const chatService = new ChatService();
+
+		process.env.OPENAI_API_KEY = "external-openai-key";
+		fakeAuthStorage.set("openai-codex", {
+			type: "oauth",
+			access: "managed-openai-oauth",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+
+		const status = await chatService.getOpenAIAuthStatus();
+		expect(status).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "external",
+		});
 	});
 
 	it("completes OpenAI OAuth when provider flow does not require manual code", async () => {

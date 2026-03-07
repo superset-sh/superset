@@ -1,5 +1,11 @@
 import { createAuthStorage } from "mastracode";
 import {
+	getCredentialsFromConfig as getAnthropicCredentialsFromConfig,
+	getCredentialsFromKeychain as getAnthropicCredentialsFromKeychain,
+	getCredentialsFromRuntimeEnv as getAnthropicCredentialsFromRuntimeEnv,
+} from "../auth/anthropic";
+import { getOpenAICredentialsFromRuntimeEnv } from "../auth/openai";
+import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_ID,
 } from "../auth/provider-ids";
@@ -13,7 +19,7 @@ import {
 	parseAnthropicEnvText,
 	setAnthropicEnvConfig as setAnthropicEnvConfigOnDisk,
 } from "./anthropic-env-config";
-import type { AuthMethod } from "./auth-storage-types";
+import type { AuthStatus } from "./auth-storage-types";
 import {
 	clearApiKeyForProvider,
 	resolveAuthMethodForProvider,
@@ -27,9 +33,6 @@ import {
 	parseOpenAIOAuthUrl,
 	summarizeOpenAIManualInput,
 } from "./openai-oauth-debug";
-
-type OpenAIAuthMethod = AuthMethod;
-type AnthropicAuthMethod = AuthMethod;
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
@@ -56,38 +59,54 @@ export class ChatService {
 		this.applyAnthropicRuntimeEnv(persistedConfig.variables);
 	}
 
-	getAnthropicAuthStatus(): {
-		authenticated: boolean;
-		method: AnthropicAuthMethod;
-	} {
+	getAnthropicAuthStatus(): AuthStatus {
+		const externalCredential = this.getExternalAnthropicCredential();
+		if (externalCredential) {
+			return {
+				authenticated: true,
+				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
+				source: "external",
+			};
+		}
+
 		const storageMethod = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			ANTHROPIC_AUTH_PROVIDER_ID,
 			(credential) => credential.access.trim().length > 0,
 		);
-		if (storageMethod === "oauth") {
-			return { authenticated: true, method: "oauth" };
-		}
 		const hasEnvConfig =
 			Object.keys(this.getAnthropicEnvConfig().variables).length > 0;
 		if (hasEnvConfig) {
-			return { authenticated: true, method: "env" };
+			return { authenticated: true, method: "env", source: "managed" };
+		}
+		if (storageMethod === "oauth") {
+			return { authenticated: true, method: "oauth", source: "managed" };
 		}
 		if (storageMethod === "api_key") {
-			return { authenticated: true, method: "api_key" };
+			return { authenticated: true, method: "api_key", source: "managed" };
 		}
-		return { authenticated: false, method: null };
+		return { authenticated: false, method: null, source: null };
 	}
 
-	async getOpenAIAuthStatus(): Promise<{
-		authenticated: boolean;
-		method: OpenAIAuthMethod;
-	}> {
+	async getOpenAIAuthStatus(): Promise<AuthStatus> {
+		const externalCredential = getOpenAICredentialsFromRuntimeEnv();
+		if (externalCredential) {
+			return {
+				authenticated: true,
+				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
+				source: "external",
+			};
+		}
+
 		const method = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			OPENAI_AUTH_PROVIDER_ID,
 		);
-		return { authenticated: method !== null, method };
+		return {
+			authenticated: method !== null,
+			method,
+			source: method !== null ? "managed" : null,
+		};
 	}
 
 	async setOpenAIApiKey(input: { apiKey: string }): Promise<{ success: true }> {
@@ -352,5 +371,40 @@ export class ChatService {
 			event,
 			...details,
 		});
+	}
+
+	private getExternalAnthropicCredential():
+		| ReturnType<typeof getAnthropicCredentialsFromConfig>
+		| ReturnType<typeof getAnthropicCredentialsFromKeychain>
+		| ReturnType<typeof getAnthropicCredentialsFromRuntimeEnv> {
+		return (
+			getAnthropicCredentialsFromConfig() ??
+			getAnthropicCredentialsFromKeychain() ??
+			this.getExternalAnthropicRuntimeCredential()
+		);
+	}
+
+	private getExternalAnthropicRuntimeCredential() {
+		const runtimeCredential = getAnthropicCredentialsFromRuntimeEnv();
+		if (!runtimeCredential) {
+			return null;
+		}
+
+		const managedApiKey =
+			this.currentAnthropicRuntimeEnv.ANTHROPIC_API_KEY?.trim();
+		const managedAuthToken =
+			this.currentAnthropicRuntimeEnv.ANTHROPIC_AUTH_TOKEN?.trim();
+		if (
+			(runtimeCredential.kind === "apiKey" &&
+				managedApiKey &&
+				runtimeCredential.apiKey === managedApiKey) ||
+			(runtimeCredential.kind === "oauth" &&
+				managedAuthToken &&
+				runtimeCredential.apiKey === managedAuthToken)
+		) {
+			return null;
+		}
+
+		return runtimeCredential;
 	}
 }
