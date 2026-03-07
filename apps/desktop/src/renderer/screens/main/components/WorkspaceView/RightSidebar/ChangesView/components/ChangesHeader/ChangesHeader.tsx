@@ -246,13 +246,22 @@ const reviewTagLabels = {
 
 function ReviewTag({
 	status,
-}: { status: "approved" | "changes_requested" | "pending" }) {
+	requestedReviewers,
+}: {
+	status: "approved" | "changes_requested" | "pending";
+	requestedReviewers?: string[];
+}) {
+	const label =
+		status === "pending" && requestedReviewers && requestedReviewers.length > 0
+			? `Awaiting ${requestedReviewers.join(", ")}`
+			: reviewTagLabels[status];
+
 	return (
 		<span
-			className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 ${reviewTagStyles[status]}`}
-			title={reviewTagLabels[status]}
+			className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[140px] ${reviewTagStyles[status]}`}
+			title={label}
 		>
-			{reviewTagLabels[status]}
+			{label}
 		</span>
 	);
 }
@@ -282,7 +291,12 @@ export function ChangesHeader({
 			/>
 			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
 			<RefreshButton onRefresh={onRefresh} />
-			{pr && pr.state === "open" && <ReviewTag status={pr.reviewDecision} />}
+			{pr && pr.state === "open" && (
+				<ReviewTag
+					status={pr.reviewDecision}
+					requestedReviewers={pr.requestedReviewers}
+				/>
+			)}
 			<PRButton
 				pr={pr}
 				isLoading={isPRStatusLoading}
