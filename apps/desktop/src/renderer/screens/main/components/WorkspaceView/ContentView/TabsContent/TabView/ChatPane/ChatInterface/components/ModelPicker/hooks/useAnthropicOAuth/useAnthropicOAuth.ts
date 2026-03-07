@@ -20,10 +20,12 @@ interface AnthropicOAuthDialogState {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -52,6 +54,8 @@ export function useAnthropicOAuth({
 		chatServiceTrpc.auth.completeAnthropicOAuth.useMutation();
 	const cancelAnthropicOAuthMutation =
 		chatServiceTrpc.auth.cancelAnthropicOAuth.useMutation();
+	const disconnectAnthropicOAuthMutation =
+		chatServiceTrpc.auth.disconnectAnthropicOAuth.useMutation();
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
@@ -129,6 +133,27 @@ export function useAnthropicOAuth({
 		refetchAnthropicStatus,
 	]);
 
+	const disconnectAnthropicOAuth = useCallback(async () => {
+		setOauthError(null);
+		try {
+			await disconnectAnthropicOAuthMutation.mutateAsync();
+			setHasPendingOAuthSession(false);
+			setOauthDialogOpen(false);
+			setOauthUrl(null);
+			setOauthCode("");
+			onModelSelectorOpenChange(true);
+			await refetchAnthropicStatus();
+		} catch (error) {
+			setOauthError(
+				getErrorMessage(error, "Failed to disconnect Anthropic OAuth"),
+			);
+		}
+	}, [
+		disconnectAnthropicOAuthMutation,
+		onModelSelectorOpenChange,
+		refetchAnthropicStatus,
+	]);
+
 	const onOAuthDialogOpenChange = useCallback(
 		(nextOpen: boolean) => {
 			setOauthDialogOpen(nextOpen);
@@ -172,7 +197,13 @@ export function useAnthropicOAuth({
 			authUrl: oauthUrl,
 			code: oauthCode,
 			errorMessage: oauthError,
-			isPending: completeAnthropicOAuthMutation.isPending,
+			isPending:
+				completeAnthropicOAuthMutation.isPending ||
+				disconnectAnthropicOAuthMutation.isPending,
+			canDisconnect:
+				anthropicStatus?.source === "managed" &&
+				anthropicStatus.method === "oauth" &&
+				!hasPendingOAuthSession,
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
@@ -183,14 +214,22 @@ export function useAnthropicOAuth({
 			onCopyAuthUrl: () => {
 				void copyOAuthUrl();
 			},
+			onDisconnect: () => {
+				void disconnectAnthropicOAuth();
+			},
 			onSubmit: () => {
 				void completeAnthropicOAuth();
 			},
 		}),
 		[
+			anthropicStatus?.method,
+			anthropicStatus?.source,
 			completeAnthropicOAuth,
 			completeAnthropicOAuthMutation.isPending,
 			copyOAuthUrl,
+			disconnectAnthropicOAuth,
+			disconnectAnthropicOAuthMutation.isPending,
+			hasPendingOAuthSession,
 			onOAuthDialogOpenChange,
 			openOAuthUrl,
 			oauthCode,
