@@ -22,6 +22,7 @@ import {
 	LuEyeOff,
 	LuFolderOpen,
 	LuFolderPlus,
+	LuMinus,
 	LuPencil,
 } from "react-icons/lu";
 import {
@@ -150,7 +151,8 @@ export function WorkspaceContextMenu({
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={() => handleMoveToSection(null)}>
-						No Section
+						<LuMinus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						Ungrouped
 					</ContextMenuItem>
 					{sections.length > 0 && <ContextMenuSeparator />}
 					{sections.map((section) => (
