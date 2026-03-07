@@ -1,5 +1,6 @@
+import { syntaxHighlighting } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { oneDarkHighlightStyle } from "@codemirror/theme-one-dark";
 import type { DiffsThemeNames } from "@pierre/diffs/react";
 import type { CSSProperties } from "react";
 import {
@@ -42,7 +43,7 @@ export function getDiffsTheme() {
 }
 
 export function getCodeSyntaxHighlighting(): Extension {
-	return oneDark;
+	return syntaxHighlighting(oneDarkHighlightStyle);
 }
 
 export function getDiffViewerStyle(
