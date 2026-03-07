@@ -538,4 +538,10 @@ describe("parsePrUrl", () => {
 			parsePrUrl("https://notgithub.com/superset-sh/superset/pull/1781"),
 		).toBe(null);
 	});
+
+	test("returns null for malformed PR number suffixes", () => {
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/pull/1781abc"),
+		).toBe(null);
+	});
 });

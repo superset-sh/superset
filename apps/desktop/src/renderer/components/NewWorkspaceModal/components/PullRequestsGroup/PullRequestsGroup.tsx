@@ -72,7 +72,12 @@ export function PullRequestsGroup({
 		(q) =>
 			q
 				.from({ prs: collections.githubPullRequests })
-				.where(({ prs }) => eq(prs.repositoryId, githubRepositoryId ?? ""))
+				.where(({ prs }) =>
+					and(
+						eq(prs.repositoryId, githubRepositoryId ?? ""),
+						eq(prs.state, "open"),
+					),
+				)
 				.select(({ prs }) => ({ ...prs })),
 		[collections, githubRepositoryId],
 	);
@@ -92,19 +97,17 @@ export function PullRequestsGroup({
 
 	const allOpenPrs = useMemo(
 		() =>
-			[...(pullRequests ?? [])]
-				.filter((pr) => pr.state === "open")
-				.sort((a, b) => {
-					const aUpdated =
-						a.updatedAt instanceof Date
-							? a.updatedAt.getTime()
-							: new Date(a.updatedAt).getTime();
-					const bUpdated =
-						b.updatedAt instanceof Date
-							? b.updatedAt.getTime()
-							: new Date(b.updatedAt).getTime();
-					return bUpdated - aUpdated;
-				}),
+			[...(pullRequests ?? [])].sort((a, b) => {
+				const aUpdated =
+					a.updatedAt instanceof Date
+						? a.updatedAt.getTime()
+						: new Date(a.updatedAt).getTime();
+				const bUpdated =
+					b.updatedAt instanceof Date
+						? b.updatedAt.getTime()
+						: new Date(b.updatedAt).getTime();
+				return bUpdated - aUpdated;
+			}),
 		[pullRequests],
 	);
 	const hasSearchQuery = searchQuery.trim().length > 0;

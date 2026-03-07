@@ -125,6 +125,30 @@ async function syncProjectGitHubMetadata(project: Project): Promise<Project> {
 	};
 }
 
+function projectNeedsGitHubMetadataRefresh(project: Project): boolean {
+	return !project.githubOwner || !project.githubRepoName;
+}
+
+async function hydrateProjectGitHubMetadataIfMissing(
+	project: Project,
+): Promise<Project> {
+	if (!projectNeedsGitHubMetadataRefresh(project)) {
+		return project;
+	}
+
+	return syncProjectGitHubMetadata(project);
+}
+
+async function hydrateProjectsGitHubMetadataIfMissing(
+	projectList: Project[],
+): Promise<Project[]> {
+	return Promise.all(
+		projectList.map((project) =>
+			hydrateProjectGitHubMetadataIfMissing(project),
+		),
+	);
+}
+
 async function upsertProject(
 	mainRepoPath: string,
 	defaultBranch: string,
@@ -296,7 +320,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
-			.query(({ input }): Project => {
+			.query(async ({ input }): Promise<Project> => {
 				const project = localDb
 					.select()
 					.from(projects)
@@ -310,7 +334,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					});
 				}
 
-				return project;
+				return hydrateProjectGitHubMetadataIfMissing(project);
 			}),
 
 		getDefaultApp: publicProcedure
@@ -335,7 +359,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					});
 				}
 
-				const hydratedProject = await syncProjectGitHubMetadata(project);
+				const hydratedProject =
+					await hydrateProjectGitHubMetadataIfMissing(project);
 
 				return {
 					project: hydratedProject,
@@ -345,13 +370,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				};
 			}),
 
-		getRecents: publicProcedure.query((): Project[] => {
-			return localDb
+		getRecents: publicProcedure.query(async (): Promise<Project[]> => {
+			const projectList = localDb
 				.select()
 				.from(projects)
 				.where(isNotNull(projects.tabOrder))
 				.orderBy(desc(projects.lastOpenedAt))
 				.all();
+
+			return hydrateProjectsGitHubMetadataIfMissing(projectList);
 		}),
 
 		selectDirectory: publicProcedure
@@ -1164,21 +1191,25 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					};
 				}
 
-				console.log(
-					"[getGitHubAvatar] Fetching repo identity for:",
-					project.mainRepoPath,
-				);
+				console.log("[getGitHubAvatar] Fetching repo identity", {
+					projectId: project.id,
+				});
 				const repoIdentity = await fetchGitHubRepoIdentity(
 					project.mainRepoPath,
 				);
 				const owner = repoIdentity?.owner ?? project.githubOwner;
 
 				if (!owner) {
-					console.log("[getGitHubAvatar] Failed to fetch repo identity");
+					console.log("[getGitHubAvatar] Failed to fetch repo identity", {
+						projectId: project.id,
+					});
 					return null;
 				}
 
-				console.log("[getGitHubAvatar] Fetched repo identity:", { owner });
+				console.log("[getGitHubAvatar] Fetched repo identity", {
+					projectId: project.id,
+					found: true,
+				});
 
 				return {
 					owner,

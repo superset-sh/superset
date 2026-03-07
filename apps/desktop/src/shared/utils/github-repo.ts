@@ -67,7 +67,9 @@ export function parseGitHubPrUrl(url: string): ParsedGitHubPrUrl | null {
 			return null;
 		}
 
-		const match = urlObj.pathname.match(/^\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+		const match = urlObj.pathname.match(
+			/^\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:\/)?$/,
+		);
 		if (!match) {
 			return null;
 		}

@@ -89,6 +89,12 @@ describe("parseGitHubPrUrl", () => {
 			parseGitHubPrUrl("https://notgithub.com/superset-sh/superset/pull/1781"),
 		).toBeNull();
 	});
+
+	test("rejects PR URLs with malformed numeric suffixes", () => {
+		expect(
+			parseGitHubPrUrl("https://github.com/superset-sh/superset/pull/1781abc"),
+		).toBeNull();
+	});
 });
 
 describe("toCanonicalGitHubPrUrl", () => {
