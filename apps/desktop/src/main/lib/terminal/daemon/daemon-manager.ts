@@ -707,7 +707,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	getSession(
 		paneId: string,
-	): { isAlive: boolean; cwd: string; lastActive: number } | null {
+	): { isAlive: boolean; cwd: string; lastActive: number; pid: number | null } | null {
 		const session = this.sessions.get(paneId);
 		if (!session) {
 			return null;
