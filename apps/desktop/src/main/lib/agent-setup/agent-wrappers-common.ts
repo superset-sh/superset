@@ -6,6 +6,7 @@ export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const SUPERSET_MANAGED_BINARIES = [
 	"claude",
 	"codex",
+	"droid",
 	"opencode",
 	"gemini",
 	"copilot",
@@ -43,6 +44,44 @@ export function isSupersetManagedHookCommand(
 	const normalized = command.replaceAll("\\", "/");
 	if (!normalized.includes(`/hooks/${scriptName}`)) return false;
 	return SUPERSET_MANAGED_HOOK_PATH_PATTERN.test(normalized);
+}
+
+interface ReconcileManagedEntriesOptions<T> {
+	current: T[] | undefined;
+	desired: T[];
+	isManaged: (entry: T) => boolean;
+	isEquivalent: (entry: T, desiredEntry: T) => boolean;
+}
+
+interface ReconcileManagedEntriesResult<T> {
+	entries: T[];
+	replacedManagedEntries: T[];
+}
+
+export function reconcileManagedEntries<T>({
+	current,
+	desired,
+	isManaged,
+	isEquivalent,
+}: ReconcileManagedEntriesOptions<T>): ReconcileManagedEntriesResult<T> {
+	const existing = Array.isArray(current) ? current : [];
+	const entries: T[] = [];
+	const replacedManagedEntries: T[] = [];
+
+	for (const entry of existing) {
+		if (!isManaged(entry)) {
+			entries.push(entry);
+			continue;
+		}
+
+		if (!desired.some((desiredEntry) => isEquivalent(entry, desiredEntry))) {
+			replacedManagedEntries.push(entry);
+		}
+	}
+
+	entries.push(...desired);
+
+	return { entries, replacedManagedEntries };
 }
 
 function buildRealBinaryResolver(): string {

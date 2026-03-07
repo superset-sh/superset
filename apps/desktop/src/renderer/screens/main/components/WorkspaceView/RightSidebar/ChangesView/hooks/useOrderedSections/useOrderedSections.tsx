@@ -259,7 +259,7 @@ export function useOrderedSections({
 				/>
 			) : null,
 		},
-	} satisfies Record<ChangeCategory, OrderedSection>;
+	};
 
 	return getOrderedChangeSectionIds(sectionOrder).map(
 		(section) => sectionDefinitions[section],

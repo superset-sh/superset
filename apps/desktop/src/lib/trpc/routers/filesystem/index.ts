@@ -195,27 +195,15 @@ function matchesPathFilters(
 	return true;
 }
 
-function getSearchCacheKey({
-	rootPath,
-	includeHidden,
-}: {
-	rootPath: string;
-	includeHidden: boolean;
-}) {
-	return `${rootPath}::${includeHidden ? "hidden" : "visible"}`;
+function getSearchCacheKey(rootPath: string) {
+	return rootPath;
 }
 
-async function buildSearchIndex({
-	rootPath,
-	includeHidden,
-}: {
-	rootPath: string;
-	includeHidden: boolean;
-}): Promise<FileSearchIndex> {
+async function buildSearchIndex(rootPath: string): Promise<FileSearchIndex> {
 	const entries = await fg("**/*", {
 		cwd: rootPath,
 		onlyFiles: true,
-		dot: includeHidden,
+		dot: true,
 		followSymbolicLinks: false,
 		unique: true,
 		suppressErrors: true,
@@ -235,14 +223,8 @@ async function buildSearchIndex({
 	return { items, fuse };
 }
 
-async function getSearchIndex({
-	rootPath,
-	includeHidden,
-}: {
-	rootPath: string;
-	includeHidden: boolean;
-}): Promise<FileSearchIndex> {
-	const cacheKey = getSearchCacheKey({ rootPath, includeHidden });
+async function getSearchIndex(rootPath: string): Promise<FileSearchIndex> {
+	const cacheKey = getSearchCacheKey(rootPath);
 	const cached = searchIndexCache.get(cacheKey);
 	const now = Date.now();
 	const inFlight = searchIndexBuilds.get(cacheKey);
@@ -252,7 +234,7 @@ async function getSearchIndex({
 	}
 
 	if (cached && !inFlight) {
-		const buildPromise = buildSearchIndex({ rootPath, includeHidden })
+		const buildPromise = buildSearchIndex(rootPath)
 			.then((index) => {
 				searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
 				searchIndexBuilds.delete(cacheKey);
@@ -274,7 +256,7 @@ async function getSearchIndex({
 		return await inFlight;
 	}
 
-	const buildPromise = buildSearchIndex({ rootPath, includeHidden })
+	const buildPromise = buildSearchIndex(rootPath)
 		.then((index) => {
 			searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
 			searchIndexBuilds.delete(cacheKey);
@@ -340,7 +322,6 @@ function rankKeywordMatches(
 interface SearchKeywordWithRipgrepOptions {
 	rootPath: string;
 	query: string;
-	includeHidden: boolean;
 	includePattern: string;
 	excludePattern: string;
 	limit: number;
@@ -349,7 +330,6 @@ interface SearchKeywordWithRipgrepOptions {
 async function searchKeywordWithRipgrep({
 	rootPath,
 	query,
-	includeHidden,
 	includePattern,
 	excludePattern,
 	limit,
@@ -370,9 +350,7 @@ async function searchKeywordWithRipgrep({
 		String(KEYWORD_SEARCH_MAX_COUNT_PER_FILE),
 	];
 
-	if (includeHidden) {
-		args.push("--hidden");
-	}
+	args.push("--hidden", "--no-ignore");
 
 	for (const pattern of DEFAULT_IGNORE_PATTERNS) {
 		args.push("--glob", `!${pattern}`);
@@ -586,17 +564,15 @@ export const createFilesystemRouter = () => {
 				z.object({
 					dirPath: z.string(),
 					rootPath: z.string(),
-					includeHidden: z.boolean().default(false),
 				}),
 			)
 			.query(async ({ input }): Promise<DirectoryEntry[]> => {
-				const { dirPath, rootPath, includeHidden } = input;
+				const { dirPath, rootPath } = input;
 
 				try {
 					const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
 					return entries
-						.filter((entry) => includeHidden || !entry.name.startsWith("."))
 						.map((entry) => {
 							const fullPath = path.join(dirPath, entry.name);
 							const relativePath = path.relative(rootPath, fullPath);
@@ -630,19 +606,12 @@ export const createFilesystemRouter = () => {
 					query: z.string(),
 					includePattern: z.string().default(""),
 					excludePattern: z.string().default(""),
-					includeHidden: z.boolean().default(false),
 					limit: z.number().default(200),
 				}),
 			)
 			.query(async ({ input }) => {
-				const {
-					rootPath,
-					query,
-					includePattern,
-					excludePattern,
-					includeHidden,
-					limit,
-				} = input;
+				const { rootPath, query, includePattern, excludePattern, limit } =
+					input;
 				const trimmedQuery = query.trim();
 
 				if (!trimmedQuery) {
@@ -650,7 +619,7 @@ export const createFilesystemRouter = () => {
 				}
 
 				try {
-					const index = await getSearchIndex({ rootPath, includeHidden });
+					const index = await getSearchIndex(rootPath);
 					const pathMatcher = createPathFilterMatcher({
 						includePattern,
 						excludePattern,
@@ -697,19 +666,12 @@ export const createFilesystemRouter = () => {
 					query: z.string(),
 					includePattern: z.string().default(""),
 					excludePattern: z.string().default(""),
-					includeHidden: z.boolean().default(false),
 					limit: z.number().default(200),
 				}),
 			)
 			.query(async ({ input }): Promise<KeywordSearchMatch[]> => {
-				const {
-					rootPath,
-					query,
-					includePattern,
-					excludePattern,
-					includeHidden,
-					limit,
-				} = input;
+				const { rootPath, query, includePattern, excludePattern, limit } =
+					input;
 				const trimmedQuery = query.trim();
 
 				if (!trimmedQuery) {
@@ -717,7 +679,7 @@ export const createFilesystemRouter = () => {
 				}
 
 				try {
-					const index = await getSearchIndex({ rootPath, includeHidden });
+					const index = await getSearchIndex(rootPath);
 					const pathMatcher = createPathFilterMatcher({
 						includePattern,
 						excludePattern,
@@ -726,7 +688,6 @@ export const createFilesystemRouter = () => {
 						return await searchKeywordWithRipgrep({
 							rootPath,
 							query: trimmedQuery,
-							includeHidden,
 							includePattern,
 							excludePattern,
 							limit,

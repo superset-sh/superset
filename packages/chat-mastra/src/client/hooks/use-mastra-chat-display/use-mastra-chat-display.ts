@@ -116,9 +116,9 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
-	const queryInput = sessionId
-		? { sessionId, ...(cwd ? { cwd } : {}) }
-		: skipToken;
+	const sessionCommandInput =
+		sessionId === null ? null : { sessionId, ...(cwd ? { cwd } : {}) };
+	const queryInput = sessionCommandInput ?? skipToken;
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
 	const queryOptions = {
@@ -279,20 +279,20 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 			stop: async () => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.stop.mutate({ sessionId });
+					return await utils.client.session.stop.mutate(sessionCommandInput);
 				} catch (error) {
 					setCommandError(error);
 					return;
 				}
 			},
 			abort: async () => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.abort.mutate({ sessionId });
+					return await utils.client.session.abort.mutate(sessionCommandInput);
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -301,11 +301,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToApproval: async (
 				input: Omit<SessionInputs["approval"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.approval.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -316,11 +316,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToQuestion: async (
 				input: Omit<SessionInputs["question"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.question.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -331,11 +331,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToPlan: async (
 				input: Omit<SessionInputs["plan"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.plan.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -344,7 +344,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, historicalMessages, sessionId, utils],
+		[cwd, historicalMessages, sessionCommandInput, sessionId, utils],
 	);
 
 	return {

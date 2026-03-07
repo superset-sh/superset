@@ -57,7 +57,6 @@ export function useKeywordSearch({
 				query: debouncedQuery,
 				includePattern,
 				excludePattern,
-				includeHidden: false,
 				limit: SEARCH_LIMIT,
 			},
 			{

@@ -111,6 +111,8 @@ app.get("/hook/complete", (req, res) => {
 		tabId,
 		workspaceId,
 		sessionId,
+		hookSessionId,
+		resourceId,
 		eventType,
 		env: clientEnv,
 		version,
@@ -166,6 +168,8 @@ app.get("/hook/complete", (req, res) => {
 			tabId: tabId as string | undefined,
 			workspaceId: workspaceId as string | undefined,
 			sessionId: sessionId as string | undefined,
+			hookSessionId: hookSessionId as string | undefined,
+			resourceId: resourceId as string | undefined,
 			resolvedPaneId,
 		});
 	}

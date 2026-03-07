@@ -60,12 +60,54 @@ const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createCodexWrapper,
+	createDroidSettingsJson,
+	createDroidWrapper,
 	createMastraWrapper,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
+	getDroidSettingsJsonContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
 } = await import("./agent-wrappers");
+const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+
+describe("reconcileManagedEntries", () => {
+	it("preserves user-managed entries while replacing stale managed entries", () => {
+		const result = reconcileManagedEntries({
+			current: [
+				"/usr/local/bin/custom-hook Start",
+				"/tmp/.superset-old/hooks/notify.sh Start",
+			],
+			desired: ["/tmp/.superset-new/hooks/notify.sh Start"],
+			isManaged: (entry: string) => entry.includes("/.superset-"),
+			isEquivalent: (entry: string, desired: string) => entry === desired,
+		});
+
+		expect(result.entries).toEqual([
+			"/usr/local/bin/custom-hook Start",
+			"/tmp/.superset-new/hooks/notify.sh Start",
+		]);
+		expect(result.replacedManagedEntries).toEqual([
+			"/tmp/.superset-old/hooks/notify.sh Start",
+		]);
+	});
+
+	it("reconciles edited managed entries even when a managed hook already exists", () => {
+		const result = reconcileManagedEntries({
+			current: ["/tmp/.superset-current/hooks/notify.sh Start --debug"],
+			desired: ["/tmp/.superset-current/hooks/notify.sh Start"],
+			isManaged: (entry: string) => entry.includes("/.superset-"),
+			isEquivalent: (entry: string, desired: string) => entry === desired,
+		});
+
+		expect(result.entries).toEqual([
+			"/tmp/.superset-current/hooks/notify.sh Start",
+		]);
+		expect(result.replacedManagedEntries).toEqual([
+			"/tmp/.superset-current/hooks/notify.sh Start --debug",
+		]);
+	});
+});
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
@@ -168,6 +210,17 @@ describe("agent-wrappers copilot", () => {
 
 		expect(wrapper).toContain("# Superset wrapper for mastracode");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates droid wrapper passthrough", () => {
+		createDroidWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "droid");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for droid");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "droid")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
@@ -388,5 +441,142 @@ describe("agent-wrappers copilot", () => {
 			),
 		).toBe(true);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("replaces stale Droid hook commands from old superset paths", () => {
+		const droidSettingsPath = path.join(
+			mockedHomeDir,
+			".factory",
+			"settings.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(droidSettingsPath), { recursive: true });
+		writeFileSync(
+			droidSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-prompt.sh" },
+								],
+							},
+						],
+						Notification: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+						Stop: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+						PostToolUse: [
+							{
+								matcher: "*",
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getDroidSettingsJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) {
+			throw new Error("Expected Droid settings content for valid JSON object");
+		}
+		writeFileSync(droidSettingsPath, content);
+
+		const content2 = getDroidSettingsJsonContent(currentHookPath);
+		expect(content2).not.toBeNull();
+		if (content2 === null) {
+			throw new Error("Expected Droid settings content after rewrite");
+		}
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		const managedEvents = [
+			"UserPromptSubmit",
+			"Notification",
+			"Stop",
+			"PostToolUse",
+		] as const;
+
+		for (const eventName of managedEvents) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === currentHookPath),
+				),
+			).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+		}
+
+		expect(
+			parsed.hooks.UserPromptSubmit.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-prompt.sh"),
+			),
+		).toBe(true);
+		expect(parsed.hooks.PostToolUse.some((def) => def.matcher === "*")).toBe(
+			true,
+		);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("skips Droid settings writes when the existing JSON is invalid", () => {
+		const droidSettingsPath = path.join(
+			mockedHomeDir,
+			".factory",
+			"settings.json",
+		);
+		const invalidJson = "{not-json";
+
+		mkdirSync(path.dirname(droidSettingsPath), { recursive: true });
+		writeFileSync(droidSettingsPath, invalidJson);
+
+		expect(
+			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
+		).toBeNull();
+
+		createDroidSettingsJson();
+
+		expect(readFileSync(droidSettingsPath, "utf-8")).toBe(invalidJson);
+	});
+
+	it("skips Droid settings writes when the existing JSON is not an object", () => {
+		const droidSettingsPath = path.join(
+			mockedHomeDir,
+			".factory",
+			"settings.json",
+		);
+
+		mkdirSync(path.dirname(droidSettingsPath), { recursive: true });
+		writeFileSync(droidSettingsPath, JSON.stringify("not-an-object"));
+
+		expect(
+			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
+		).toBeNull();
 	});
 });

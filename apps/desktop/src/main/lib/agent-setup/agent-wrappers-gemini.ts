@@ -6,6 +6,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
+	reconcileManagedEntries,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { HOOKS_DIR } from "./paths";
@@ -83,26 +84,33 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 
 	for (const eventName of eventNames) {
 		const current = existing.hooks[eventName];
-		if (Array.isArray(current)) {
-			const filtered = current.filter(
-				(def: GeminiHookDefinition) =>
-					!def.hooks?.some(
-						(h) =>
-							h.command?.includes(hookScriptPath) ||
-							isSupersetManagedHookCommand(h.command, GEMINI_HOOK_SCRIPT_NAME),
-					),
-			);
-			filtered.push({
+		const desiredEntries: GeminiHookDefinition[] = [
+			{
 				hooks: [{ type: "command", command: hookScriptPath }],
-			});
-			existing.hooks[eventName] = filtered;
-		} else {
-			existing.hooks[eventName] = [
-				{
-					hooks: [{ type: "command", command: hookScriptPath }],
-				},
-			];
-		}
+			},
+		];
+		const { entries } = reconcileManagedEntries({
+			current,
+			desired: desiredEntries,
+			isManaged: (definition: GeminiHookDefinition) =>
+				Boolean(
+					definition.hooks?.some(
+						(hook) =>
+							hook.command?.includes(hookScriptPath) ||
+							isSupersetManagedHookCommand(
+								hook.command,
+								GEMINI_HOOK_SCRIPT_NAME,
+							),
+					),
+				),
+			isEquivalent: (
+				definition: GeminiHookDefinition,
+				desiredDefinition: GeminiHookDefinition,
+			) =>
+				JSON.stringify(definition.hooks ?? []) ===
+				JSON.stringify(desiredDefinition.hooks ?? []),
+		});
+		existing.hooks[eventName] = entries;
 	}
 
 	return JSON.stringify(existing, null, 2);

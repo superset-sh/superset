@@ -25,6 +25,13 @@ export const GHCheckContextSchema = z.object({
 	workflowName: z.string().optional(),
 });
 
+export const GHReviewRequestSchema = z.object({
+	login: z.string().optional(),
+	name: z.string().optional(),
+	slug: z.string().optional(),
+	type: z.enum(["User", "Team"]).optional(),
+});
+
 export const GHPRResponseSchema = z.object({
 	number: z.number(),
 	title: z.string(),
@@ -40,6 +47,7 @@ export const GHPRResponseSchema = z.object({
 		.nullable(),
 	// statusCheckRollup is an array directly, not { contexts: [...] }
 	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
+	reviewRequests: z.array(GHReviewRequestSchema).nullable().optional(),
 });
 
 export const GHRepoResponseSchema = z.object({

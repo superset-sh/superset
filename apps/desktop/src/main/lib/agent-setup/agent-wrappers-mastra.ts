@@ -5,6 +5,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
+	reconcileManagedEntries,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -70,19 +71,18 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 
 	for (const eventName of managedEvents) {
 		const current = existing[eventName];
-		if (Array.isArray(current)) {
-			const filtered = current.filter(
-				(entry: MastraHookDefinition) =>
-					!(
-						entry.command?.includes(notifyScriptPath) ||
-						isSupersetManagedHookCommand(entry.command, NOTIFY_SCRIPT_NAME)
-					),
-			);
-			filtered.push({ type: "command", command: notifyCommand });
-			existing[eventName] = filtered;
-		} else {
-			existing[eventName] = [{ type: "command", command: notifyCommand }];
-		}
+		const { entries } = reconcileManagedEntries({
+			current,
+			desired: [{ type: "command", command: notifyCommand }],
+			isManaged: (entry: MastraHookDefinition) =>
+				entry.command?.includes(notifyScriptPath) ||
+				isSupersetManagedHookCommand(entry.command, NOTIFY_SCRIPT_NAME),
+			isEquivalent: (
+				entry: MastraHookDefinition,
+				desiredEntry: MastraHookDefinition,
+			) => entry.command === desiredEntry.command,
+		});
+		existing[eventName] = entries;
 	}
 
 	return JSON.stringify(existing, null, 2);

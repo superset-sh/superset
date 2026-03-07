@@ -474,6 +474,8 @@ export function ChatMastraInterface({
 		}
 		return [...messages, pendingImmediateUserMessage];
 	}, [messages, pendingImmediateUserMessage]);
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	useEffect(() => {
 		if (isRunning) {
@@ -952,8 +954,6 @@ export function ChatMastraInterface({
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	return (
 		<PromptInputProvider>

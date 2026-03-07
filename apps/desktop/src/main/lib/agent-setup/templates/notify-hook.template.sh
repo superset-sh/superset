@@ -9,8 +9,15 @@ else
   INPUT=$(cat)
 fi
 
-# Extract Mastra session ID when available (mastracode hooks)
-SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+# Extract Mastra identifiers when available (mastracode hooks)
+# `resourceId` / `resource_id` is the Superset chat session id we assign via
+# harness.setResourceId(...). `session_id` is Mastra's internal runtime id.
+HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resourceId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$RESOURCE_ID" ]; then
+  RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
+SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
 # Skip if this isn't a Superset terminal hook and no Mastra session context exists
 [ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0
@@ -53,7 +60,7 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 # Timeouts prevent blocking agent completion if notification server is unresponsive
@@ -64,6 +71,8 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "tabId=$SUPERSET_TAB_ID" \
     --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
     --data-urlencode "sessionId=$SESSION_ID" \
+    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
+    --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$EVENT_TYPE" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
@@ -76,6 +85,8 @@ else
     --data-urlencode "tabId=$SUPERSET_TAB_ID" \
     --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
     --data-urlencode "sessionId=$SESSION_ID" \
+    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
+    --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$EVENT_TYPE" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
