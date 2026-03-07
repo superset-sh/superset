@@ -31,6 +31,28 @@ describe("launchCommandInPane", () => {
 		});
 	});
 
+	it("passes cwd override when provided", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			cwd: "./apps",
+			command: "pwd",
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			cwd: "./apps",
+		});
+	});
+
 	it("does not append a second newline when command already has one", async () => {
 		const createOrAttach = mock(async () => ({}));
 		const write = mock(async () => ({}));
