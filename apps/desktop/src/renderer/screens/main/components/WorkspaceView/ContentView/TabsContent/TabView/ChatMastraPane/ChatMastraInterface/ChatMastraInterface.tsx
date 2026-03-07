@@ -222,6 +222,7 @@ export function ChatMastraInterface({
 		string | null
 	>(null);
 	const [pendingRestartUserMessage, setPendingRestartUserMessage] = useState<{
+		anchorMessageId: string | null;
 		sourceMessageId: string;
 		message: MastraHistoryMessage;
 	} | null>(null);
@@ -481,19 +482,28 @@ export function ChatMastraInterface({
 
 	const visibleMessages = useMemo(() => {
 		if (pendingRestartUserMessage) {
-			const targetMessageIndex = messages.findIndex(
-				(message) => message.id === pendingRestartUserMessage.sourceMessageId,
-			);
 			if (
-				targetMessageIndex >= 0 &&
 				!hasMatchingUserMessage({
 					messages,
 					candidate: pendingRestartUserMessage.message,
 				})
 			) {
-				const nextMessages = messages.slice(0, targetMessageIndex + 1);
-				nextMessages[targetMessageIndex] = pendingRestartUserMessage.message;
-				return nextMessages;
+				const anchorMessageIndex =
+					pendingRestartUserMessage.anchorMessageId === null
+						? -1
+						: messages.findIndex(
+								(message) =>
+									message.id === pendingRestartUserMessage.anchorMessageId,
+							);
+				if (
+					pendingRestartUserMessage.anchorMessageId === null ||
+					anchorMessageIndex >= 0
+				) {
+					return [
+						...messages.slice(0, anchorMessageIndex + 1),
+						pendingRestartUserMessage.message,
+					];
+				}
 			}
 		}
 		if (!pendingImmediateUserMessage) return messages;
@@ -840,17 +850,20 @@ export function ChatMastraInterface({
 			clearRuntimeError();
 
 			const previousMessages = messages;
-			const targetMessageIndex = previousMessages.findIndex(
-				(message) => message.id === request.messageId,
-			);
 			const optimisticMessage = toOptimisticUserMessage({
 				payload: request.payload,
 				metadata: {
 					model: activeModel?.id,
 				},
 			});
-			if (targetMessageIndex >= 0 && optimisticMessage) {
+			const hasRestartAnchor =
+				request.anchorMessageId === null ||
+				previousMessages.some(
+					(message) => message.id === request.anchorMessageId,
+				);
+			if (optimisticMessage && hasRestartAnchor) {
 				setPendingRestartUserMessage({
+					anchorMessageId: request.anchorMessageId,
 					sourceMessageId: request.messageId,
 					message: optimisticMessage,
 				});

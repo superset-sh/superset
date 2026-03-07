@@ -183,12 +183,17 @@ export function ChatMastraMessageList({
 							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 						/>
 					) : (
-						renderedMessages.map((message) => {
+						renderedMessages.map((message, messageIndex) => {
 							if (message.role === "user") {
 								return (
 									<UserMessage
 										key={message.id}
 										message={message}
+										anchorMessageId={
+											messageIndex > 0
+												? (renderedMessages[messageIndex - 1]?.id ?? null)
+												: null
+										}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
 										isEditing={editingUserMessageId === message.id}
