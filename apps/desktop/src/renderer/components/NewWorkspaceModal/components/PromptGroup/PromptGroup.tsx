@@ -9,6 +9,7 @@ import {
 	type StartableAgentType,
 } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
+import { ButtonGroup, ButtonGroupSeparator } from "@superset/ui/button-group";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import {
 	Select,
@@ -21,7 +22,7 @@ import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GoGitBranch } from "react-icons/go";
+import { HiChevronDown } from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -317,57 +318,62 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				}}
 			/>
 
-			{(trimmedPrompt || branchNameEdited) && (
-				<p className="text-xs text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 min-w-0">
-					<GoGitBranch className="size-3" />
-					<span className="font-mono min-w-0 truncate">
-						{branchPreview || "branch-name"}
-					</span>
-					<span className="text-muted-foreground/60 whitespace-nowrap">
-						from {effectiveBaseBranch ?? "..."}
-					</span>
-				</p>
+			<ButtonGroup className="w-full">
+				<Button
+					className="h-8 flex-1 text-sm"
+					onClick={handleCreate}
+					disabled={createWorkspace.isPending}
+				>
+					Create Workspace
+					<KbdGroup className="ml-1.5 opacity-70">
+						<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+							{modKey}
+						</Kbd>
+						<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+							↵
+						</Kbd>
+					</KbdGroup>
+				</Button>
+				<ButtonGroupSeparator />
+				<Button
+					size="sm"
+					className="h-8 px-2.5"
+					aria-label={
+						showAdvanced ? "Hide advanced options" : "Show advanced options"
+					}
+					aria-expanded={showAdvanced}
+					onClick={() => setShowAdvanced(!showAdvanced)}
+					disabled={createWorkspace.isPending}
+				>
+					<HiChevronDown
+						className={`size-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+					/>
+				</Button>
+			</ButtonGroup>
+
+			{showAdvanced && (
+				<PromptGroupAdvancedOptions
+					branchInputValue={branchNameEdited ? branchName : branchPreview}
+					onBranchInputChange={handleBranchNameChange}
+					onBranchInputBlur={handleBranchNameBlur}
+					onEditPrefix={() => {
+						onClose();
+						navigate({ to: "/settings/behavior" });
+					}}
+					isBranchesError={isBranchesError}
+					isBranchesLoading={isBranchesLoading}
+					baseBranchOpen={baseBranchOpen}
+					onBaseBranchOpenChange={setBaseBranchOpen}
+					effectiveBaseBranch={effectiveBaseBranch}
+					defaultBranch={branchData?.defaultBranch}
+					branchSearch={branchSearch}
+					onBranchSearchChange={setBranchSearch}
+					filteredBranches={filteredBranches}
+					onSelectBaseBranch={handleBaseBranchSelect}
+					runSetupScript={runSetupScript}
+					onRunSetupScriptChange={setRunSetupScript}
+				/>
 			)}
-
-			<Button
-				className="w-full h-8 text-sm"
-				onClick={handleCreate}
-				disabled={createWorkspace.isPending}
-			>
-				Create Workspace
-				<KbdGroup className="ml-1.5 opacity-70">
-					<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
-						{modKey}
-					</Kbd>
-					<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
-						↵
-					</Kbd>
-				</KbdGroup>
-			</Button>
-
-			<PromptGroupAdvancedOptions
-				showAdvanced={showAdvanced}
-				onShowAdvancedChange={setShowAdvanced}
-				branchInputValue={branchNameEdited ? branchName : branchPreview}
-				onBranchInputChange={handleBranchNameChange}
-				onBranchInputBlur={handleBranchNameBlur}
-				onEditPrefix={() => {
-					onClose();
-					navigate({ to: "/settings/behavior" });
-				}}
-				isBranchesError={isBranchesError}
-				isBranchesLoading={isBranchesLoading}
-				baseBranchOpen={baseBranchOpen}
-				onBaseBranchOpenChange={setBaseBranchOpen}
-				effectiveBaseBranch={effectiveBaseBranch}
-				defaultBranch={branchData?.defaultBranch}
-				branchSearch={branchSearch}
-				onBranchSearchChange={setBranchSearch}
-				filteredBranches={filteredBranches}
-				onSelectBaseBranch={handleBaseBranchSelect}
-				runSetupScript={runSetupScript}
-				onRunSetupScriptChange={setRunSetupScript}
-			/>
 		</div>
 	);
 }
