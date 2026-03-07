@@ -1,5 +1,6 @@
 export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
 export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
+export const DEFAULT_BRANCH_PREFIX_SEPARATOR = "/";
 
 interface SanitizeSegmentOptions {
 	preserveCase?: boolean;
@@ -107,6 +108,21 @@ export function deduplicateBranchName(
 		: `${baseSegment}-${Date.now()}`;
 }
 
+/**
+ * Joins a branch prefix and branch name with the given separator.
+ * If prefix is absent, returns the name unchanged.
+ * Separator defaults to "/" when null/undefined.
+ */
+export function applyBranchPrefix(
+	name: string,
+	prefix: string | null | undefined,
+	separator: string | null | undefined = DEFAULT_BRANCH_PREFIX_SEPARATOR,
+): string {
+	if (!prefix) return name;
+	const sep = separator ?? DEFAULT_BRANCH_PREFIX_SEPARATOR;
+	return `${prefix}${sep}${name}`;
+}
+
 export function resolveBranchPrefix({
 	mode,
 	customPrefix,
@@ -136,7 +152,7 @@ export function resolveBranchPrefix({
 	}
 	return prefix
 		? sanitizeSegment(prefix, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
-				preserveCase: true,
-			})
+			preserveCase: true,
+		})
 		: null;
 }

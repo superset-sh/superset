@@ -85,8 +85,8 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 		) {
 			throw new Error(
 				"Git user not configured. Please run:\n" +
-					'  git config --global user.name "Your Name"\n' +
-					'  git config --global user.email "you@example.com"',
+				'  git config --global user.name "Your Name"\n' +
+				'  git config --global user.email "you@example.com"',
 			);
 		}
 		throw new Error(`Failed to create initial commit: ${errorMessage}`);
@@ -245,7 +245,7 @@ function extractRepoName(urlInput: string): string | null {
 
 	try {
 		repoSegment = decodeURIComponent(repoSegment);
-	} catch {}
+	} catch { }
 
 	repoSegment = repoSegment.trim();
 
@@ -349,7 +349,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					try {
 						const remotes = await git.getRemotes();
 						hasOrigin = remotes.some((r) => r.name === "origin");
-					} catch {}
+					} catch { }
 
 					const branchSummary = await git.branch(["-a"]);
 
@@ -851,6 +851,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							.optional(),
 						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
 						branchPrefixCustom: z.string().nullable().optional(),
+						branchPrefixSeparator: z.string().nullable().optional(),
 						workspaceBaseBranch: z.string().nullable().optional(),
 						worktreeBaseDir: z.string().nullable().optional(),
 						hideImage: z.boolean().optional(),
@@ -880,6 +881,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}),
 						...(input.patch.branchPrefixCustom !== undefined && {
 							branchPrefixCustom: input.patch.branchPrefixCustom,
+						}),
+						...(input.patch.branchPrefixSeparator !== undefined && {
+							branchPrefixSeparator: input.patch.branchPrefixSeparator,
 						}),
 						...(input.patch.workspaceBaseBranch !== undefined && {
 							workspaceBaseBranch: input.patch.workspaceBaseBranch,
