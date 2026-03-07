@@ -13,7 +13,8 @@ export type PaneType =
 	| "webview"
 	| "file-viewer"
 	| "chat-mastra"
-	| "devtools";
+	| "devtools"
+	| "task-viewer";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -140,6 +141,15 @@ export interface Pane {
 	chatMastra?: ChatMastraPaneState; // For Mastra chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
+	taskViewer?: TaskViewerState; // For task-viewer panes
+}
+
+/**
+ * Task viewer pane-specific properties
+ */
+export interface TaskViewerState {
+	/** Task slug (e.g. "SUPER-188") used to look up the task */
+	taskSlug: string;
 }
 
 export interface ChatMastraLaunchConfig {

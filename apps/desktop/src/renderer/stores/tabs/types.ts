@@ -127,6 +127,7 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options: AddFileViewerPaneOptions,
 	) => string;
+	addTaskViewerPane: (workspaceId: string, taskSlug: string) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;

@@ -53,7 +53,8 @@ export function GroupStrip() {
 	const { presets } = usePresets();
 	const navigate = useNavigate();
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
+	const hasAiChat =
+		import.meta.env.DEV || useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);

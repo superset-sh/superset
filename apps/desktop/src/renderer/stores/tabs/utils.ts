@@ -11,6 +11,7 @@ import type {
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
+	TaskViewerState,
 } from "shared/tabs-types";
 import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
 
@@ -295,6 +296,21 @@ export const createDevToolsPane = (
 		type: "devtools",
 		name: "DevTools",
 		devtools,
+	};
+};
+
+/**
+ * Creates a new task-viewer pane for displaying a task's markdown
+ */
+export const createTaskViewerPane = (tabId: string, taskSlug: string): Pane => {
+	const id = generateId("pane");
+	const taskViewer: TaskViewerState = { taskSlug };
+	return {
+		id,
+		tabId,
+		type: "task-viewer",
+		name: taskSlug,
+		taskViewer,
 	};
 };
 

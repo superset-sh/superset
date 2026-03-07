@@ -4,8 +4,9 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { normalizeWorkspaceFilePath } from "../../../../../../ChatPane/ChatInterface/utils/file-paths";
+import { LinkedTaskChip } from "../../../../../../components/LinkedTaskChip";
+import { parseUserMentions } from "../../../../../../utils/parseUserMentions";
 import { AttachmentChip } from "../AttachmentChip";
-import { parseUserMentions } from "./utils/parseUserMentions";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -139,48 +140,79 @@ export function UserMessage({
 			{message.content.map((part: MastraMessagePart, partIndex: number) => {
 				if (part.type === "text") {
 					const mentionSegments = parseUserMentions(part.text);
+					const taskMentions = mentionSegments.filter(
+						(s) => s.type === "task-mention",
+					);
+					const otherSegments = mentionSegments.filter(
+						(s) => s.type !== "task-mention",
+					);
+					const hasNonTaskContent = otherSegments.some(
+						(s) =>
+							(s.type === "text" && s.value.trim()) ||
+							s.type === "file-mention",
+					);
+
 					return (
 						<div
 							key={`${message.id}-${partIndex}`}
-							className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap"
+							className="flex max-w-[85%] flex-col items-end gap-2"
 						>
-							{mentionSegments.map((segment, segmentIndex) => {
-								if (segment.type === "text") {
-									return (
-										<span
-											key={`${message.id}-${partIndex}-${segmentIndex}`}
-											className="whitespace-pre-wrap break-words"
-										>
-											{segment.value}
-										</span>
-									);
-								}
+							{taskMentions.length > 0 && (
+								<div className="flex flex-wrap justify-end gap-2">
+									{taskMentions.map((segment, segmentIndex) => (
+										<LinkedTaskChip
+											key={`${message.id}-${partIndex}-task-${segmentIndex}`}
+											slug={segment.slug}
+											workspaceId={workspaceId}
+										/>
+									))}
+								</div>
+							)}
+							{hasNonTaskContent && (
+								<div className="rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
+									{otherSegments.map((segment, segmentIndex) => {
+										if (segment.type === "text") {
+											return (
+												<span
+													key={`${message.id}-${partIndex}-${segmentIndex}`}
+													className="whitespace-pre-wrap break-words"
+												>
+													{segment.value}
+												</span>
+											);
+										}
 
-								const normalizedPath = normalizeWorkspaceFilePath({
-									filePath: segment.relativePath,
-									workspaceRoot: workspaceCwd,
-								});
-								const canOpen = Boolean(normalizedPath);
+										if (segment.type === "file-mention") {
+											const normalizedPath = normalizeWorkspaceFilePath({
+												filePath: segment.relativePath,
+												workspaceRoot: workspaceCwd,
+											});
+											const canOpen = Boolean(normalizedPath);
 
-								return (
-									<button
-										type="button"
-										key={`${message.id}-${partIndex}-${segmentIndex}`}
-										className="mx-0.5 inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 font-mono text-xs text-primary transition-colors hover:bg-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:opacity-60"
-										onClick={() => {
-											if (!normalizedPath) return;
-											openMentionedFile(normalizedPath);
-										}}
-										disabled={!canOpen}
-										aria-label={`Open file ${segment.relativePath}`}
-									>
-										<span className="font-semibold text-primary">@</span>
-										<span className="text-primary/95">
-											{segment.relativePath}
-										</span>
-									</button>
-								);
-							})}
+											return (
+												<button
+													type="button"
+													key={`${message.id}-${partIndex}-${segmentIndex}`}
+													className="mx-0.5 inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 font-mono text-xs text-primary transition-colors hover:bg-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:opacity-60"
+													onClick={() => {
+														if (!normalizedPath) return;
+														openMentionedFile(normalizedPath);
+													}}
+													disabled={!canOpen}
+													aria-label={`Open file ${segment.relativePath}`}
+												>
+													<span className="font-semibold text-primary">@</span>
+													<span className="text-primary/95">
+														{segment.relativePath}
+													</span>
+												</button>
+											);
+										}
+
+										return null;
+									})}
+								</div>
+							)}
 						</div>
 					);
 				}

@@ -24,6 +24,7 @@ import {
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
+	createTaskViewerPane,
 	extractPaneIdsFromLayout,
 	generateId,
 	generateTabName,
@@ -858,6 +859,75 @@ export const useTabsStore = create<TabsStore>()(
 						panel_type: "file_viewer",
 						workspace_id: activeTab.workspaceId,
 						pane_id: newPane.id,
+					});
+
+					return newPane.id;
+				},
+
+				addTaskViewerPane: (workspaceId: string, taskSlug: string) => {
+					const state = get();
+					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
+						workspaceId,
+						tabs: state.tabs,
+						activeTabIds: state.activeTabIds,
+						tabHistoryStacks: state.tabHistoryStacks,
+					});
+					const activeTab = resolvedActiveTabId
+						? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						: null;
+
+					if (!activeTab) {
+						const { tabId, paneId } = get().addTab(workspaceId);
+						const taskPane = createTaskViewerPane(tabId, taskSlug);
+						set((s) => ({
+							panes: {
+								...s.panes,
+								[paneId]: { ...taskPane, id: paneId },
+							},
+						}));
+						return paneId;
+					}
+
+					// Check if this task is already open in a pane
+					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
+					const existingPane = tabPaneIds
+						.map((id) => state.panes[id])
+						.find(
+							(p) =>
+								p?.type === "task-viewer" &&
+								p.taskViewer?.taskSlug === taskSlug,
+						);
+
+					if (existingPane) {
+						set({
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[activeTab.id]: existingPane.id,
+							},
+						});
+						return existingPane.id;
+					}
+
+					// Create new pane split with current layout
+					const newPane = createTaskViewerPane(activeTab.id, taskSlug);
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: activeTab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
+						),
+						panes: newPanes,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[activeTab.id]: newPane.id,
+						},
 					});
 
 					return newPane.id;

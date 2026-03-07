@@ -25,6 +25,7 @@ import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
+import { TaskViewerPane } from "./TaskViewerPane";
 
 interface TabViewProps {
 	tab: Tab;
@@ -40,7 +41,8 @@ export function TabView({ tab }: TabViewProps) {
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
+	const hasAiChat =
+		import.meta.env.DEV || useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const allTabs = useTabsStore((s) => s.tabs);
 	const allPanes = useTabsStore((s) => s.panes);
 
@@ -224,6 +226,30 @@ export function TabView({ tab }: TabViewProps) {
 				);
 			}
 
+			// Route task-viewer panes
+			if (paneInfo.type === "task-viewer") {
+				const pane = allPanes[paneId];
+				const taskSlug = pane?.taskViewer?.taskSlug;
+				if (!taskSlug) {
+					return (
+						<div className="w-full h-full flex items-center justify-center text-muted-foreground">
+							Task slug unavailable
+						</div>
+					);
+				}
+				return (
+					<TaskViewerPane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
+						taskSlug={taskSlug}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
 			// Default: terminal panes
 			return (
 				<TabPane
@@ -256,6 +282,7 @@ export function TabView({ tab }: TabViewProps) {
 			movePaneToTab,
 			movePaneToNewTab,
 			hasAiChat,
+			allPanes,
 		],
 	);
 
