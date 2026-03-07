@@ -25,8 +25,8 @@ import {
 import { cn } from "@superset/ui/utils";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { CodeEditorAdapter } from "../../ContentView/components";
-import { getCodeSyntaxHighlighting } from "../../utils/code-theme";
+import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
+import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { loadLanguageSupport } from "./loadLanguageSupport";
 

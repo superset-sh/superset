@@ -32,9 +32,17 @@ export function LightDiffViewer({
 		},
 	);
 	const shikiTheme = getDiffsTheme();
+	const parsedEditorFontSize =
+		typeof fontSettings?.editorFontSize === "number"
+			? fontSettings.editorFontSize
+			: typeof fontSettings?.editorFontSize === "string"
+				? Number.parseFloat(fontSettings.editorFontSize)
+				: Number.NaN;
 	const diffStyle = getDiffViewerStyle({
 		fontFamily: fontSettings?.editorFontFamily ?? undefined,
-		fontSize: fontSettings?.editorFontSize ?? undefined,
+		fontSize: Number.isFinite(parsedEditorFontSize)
+			? parsedEditorFontSize
+			: undefined,
 	});
 
 	return (
