@@ -8,7 +8,6 @@ import {
 	MIN_PERCENTAGE,
 	type SplitInfo,
 	collectSplits,
-	equalizeSplitPercentages,
 	getAbsoluteSplitPercentage,
 	getRelativeSplitPercentage,
 	splitBox,
@@ -130,9 +129,9 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 		(e: React.MouseEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
-			onLayoutChange(equalizeSplitPercentages(layout));
+			onLayoutChange(updateSplitPercentage(layout, split.path, 50));
 		},
-		[layout, onLayoutChange],
+		[layout, onLayoutChange, split.path],
 	);
 
 	const handleKeyDown = useCallback(
@@ -150,7 +149,7 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 				onLayoutChange(updateSplitPercentage(layout, split.path, next));
 			} else if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
-				onLayoutChange(equalizeSplitPercentages(layout));
+				onLayoutChange(updateSplitPercentage(layout, split.path, 50));
 			}
 		},
 		[isRow, layout, onLayoutChange, split.path, split.splitPercentage],
