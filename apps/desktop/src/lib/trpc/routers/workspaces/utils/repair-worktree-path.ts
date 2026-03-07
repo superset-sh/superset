@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from "node:fs";
-import { projects, worktrees } from "@superset/local-db";
+import { projects, type SelectWorktree, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { getBranchWorktreePath } from "./git";
@@ -94,4 +94,72 @@ export async function resolveWorktreePathWithRepair(
 	if (existsSync(worktree.path)) return worktree.path;
 
 	return tryRepairWorktreePath(worktreeId);
+}
+
+export async function resolveTrackedWorktree(
+	worktree: SelectWorktree,
+): Promise<{
+	worktree: SelectWorktree;
+	existsOnDisk: boolean;
+}> {
+	const resolvedPath = await resolveWorktreePathWithRepair(worktree.id);
+
+	if (!resolvedPath) {
+		return {
+			worktree,
+			existsOnDisk: false,
+		};
+	}
+
+	if (resolvedPath === worktree.path) {
+		return {
+			worktree,
+			existsOnDisk: true,
+		};
+	}
+
+	return {
+		worktree: {
+			...worktree,
+			path: resolvedPath,
+		},
+		existsOnDisk: true,
+	};
+}
+
+export async function listProjectWorktreesWithCurrentPaths(
+	projectId: string,
+): Promise<
+	Array<{
+		worktree: SelectWorktree;
+		existsOnDisk: boolean;
+	}>
+> {
+	const projectWorktrees = localDb
+		.select()
+		.from(worktrees)
+		.where(eq(worktrees.projectId, projectId))
+		.all();
+
+	return Promise.all(projectWorktrees.map(resolveTrackedWorktree));
+}
+
+export async function findProjectWorktreeByCurrentPath(
+	projectId: string,
+	worktreePath: string,
+): Promise<SelectWorktree | null> {
+	const trackedWorktrees =
+		await listProjectWorktreesWithCurrentPaths(projectId);
+
+	for (const trackedWorktree of trackedWorktrees) {
+		if (!trackedWorktree.existsOnDisk) {
+			continue;
+		}
+
+		if (trackedWorktree.worktree.path === worktreePath) {
+			return trackedWorktree.worktree;
+		}
+	}
+
+	return null;
 }

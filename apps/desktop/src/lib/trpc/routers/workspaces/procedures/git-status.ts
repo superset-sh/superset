@@ -19,7 +19,10 @@ import {
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
-import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
+import {
+	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathWithRepair,
+} from "../utils/repair-worktree-path";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -180,28 +183,26 @@ export const createGitStatusProcedures = () => {
 
 		getWorktreesByProject: publicProcedure
 			.input(z.object({ projectId: z.string() }))
-			.query(({ input }) => {
-				const projectWorktrees = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.projectId, input.projectId))
-					.all();
+			.query(async ({ input }) => {
+				const projectWorktrees = await listProjectWorktreesWithCurrentPaths(
+					input.projectId,
+				);
 
-				return projectWorktrees.map((wt) => {
+				return projectWorktrees.map(({ worktree, existsOnDisk }) => {
 					const workspace = localDb
 						.select()
 						.from(workspaces)
 						.where(
 							and(
-								eq(workspaces.worktreeId, wt.id),
+								eq(workspaces.worktreeId, worktree.id),
 								isNull(workspaces.deletingAt),
 							),
 						)
 						.get();
 					return {
-						...wt,
+						...worktree,
 						hasActiveWorkspace: workspace !== undefined,
-						existsOnDisk: existsSync(wt.path),
+						existsOnDisk,
 						workspace: workspace ?? null,
 					};
 				});
@@ -217,12 +218,14 @@ export const createGitStatusProcedures = () => {
 
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
 
-				const trackedWorktrees = localDb
-					.select({ path: worktrees.path })
-					.from(worktrees)
-					.where(eq(worktrees.projectId, input.projectId))
-					.all();
-				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
+				const trackedWorktrees = await listProjectWorktreesWithCurrentPaths(
+					input.projectId,
+				);
+				const trackedPaths = new Set(
+					trackedWorktrees
+						.filter((trackedWorktree) => trackedWorktree.existsOnDisk)
+						.map((trackedWorktree) => trackedWorktree.worktree.path),
+				);
 
 				return allWorktrees
 					.filter((wt) => {

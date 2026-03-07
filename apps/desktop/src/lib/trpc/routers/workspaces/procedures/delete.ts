@@ -22,7 +22,14 @@ import {
 	hasUnpushedCommits,
 	worktreeExists,
 } from "../utils/git";
+import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+
+async function getTrackedWorktreePath(
+	worktree: SelectWorktree,
+): Promise<string> {
+	return (await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+}
 
 export const createDeleteProcedures = () => {
 	return router({
@@ -93,9 +100,10 @@ export const createDeleteProcedures = () => {
 
 				if (worktree && project) {
 					try {
+						const worktreePath = await getTrackedWorktreePath(worktree);
 						const exists = await worktreeExists(
 							project.mainRepoPath,
-							worktree.path,
+							worktreePath,
 						);
 
 						if (!exists) {
@@ -112,8 +120,8 @@ export const createDeleteProcedures = () => {
 						}
 
 						const [hasChanges, unpushedCommits] = await Promise.all([
-							hasUncommittedChanges(worktree.path),
-							hasUnpushedCommits(worktree.path),
+							hasUncommittedChanges(worktreePath),
+							hasUnpushedCommits(worktreePath),
 						]);
 
 						return {
@@ -194,6 +202,7 @@ export const createDeleteProcedures = () => {
 				const project = getProject(workspace.projectId);
 
 				let worktree: SelectWorktree | undefined;
+				let worktreePath: string | undefined;
 
 				const terminalPromise = getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)
@@ -204,17 +213,20 @@ export const createDeleteProcedures = () => {
 					| undefined;
 				if (workspace.type === "worktree" && workspace.worktreeId) {
 					worktree = getWorktree(workspace.worktreeId);
+					worktreePath = worktree
+						? await getTrackedWorktreePath(worktree)
+						: undefined;
 
-					if (worktree && project && existsSync(worktree.path)) {
+					if (worktreePath && project && existsSync(worktreePath)) {
 						teardownPromise = runTeardown({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
+							worktreePath,
 							workspaceName: workspace.name,
 							projectId: project.id,
 						});
 					} else {
 						console.warn(
-							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
+							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktreePath ? existsSync(worktreePath) : "N/A"}`,
 						);
 					}
 				} else {
@@ -254,7 +266,7 @@ export const createDeleteProcedures = () => {
 					try {
 						const removeResult = await removeWorktreeFromDisk({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
+							worktreePath: worktreePath ?? worktree.path,
 						});
 						if (!removeResult.success) {
 							clearWorkspaceDeletingStatus(input.id);
@@ -372,9 +384,10 @@ export const createDeleteProcedures = () => {
 				}
 
 				try {
+					const worktreePath = await getTrackedWorktreePath(worktree);
 					const exists = await worktreeExists(
 						project.mainRepoPath,
-						worktree.path,
+						worktreePath,
 					);
 
 					if (!exists) {
@@ -390,8 +403,8 @@ export const createDeleteProcedures = () => {
 					}
 
 					const [hasChanges, unpushedCommits] = await Promise.all([
-						hasUncommittedChanges(worktree.path),
-						hasUnpushedCommits(worktree.path),
+						hasUncommittedChanges(worktreePath),
+						hasUnpushedCommits(worktreePath),
 					]);
 
 					return {
@@ -436,15 +449,16 @@ export const createDeleteProcedures = () => {
 				await workspaceInitManager.acquireProjectLock(project.id);
 
 				try {
+					const worktreePath = await getTrackedWorktreePath(worktree);
 					const exists = await worktreeExists(
 						project.mainRepoPath,
-						worktree.path,
+						worktreePath,
 					);
 
 					if (exists) {
 						const teardownResult = await runTeardown({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
+							worktreePath,
 							workspaceName: worktree.branch,
 							projectId: project.id,
 						});
@@ -467,7 +481,7 @@ export const createDeleteProcedures = () => {
 					if (exists) {
 						const removeResult = await removeWorktreeFromDisk({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
+							worktreePath,
 						});
 						if (!removeResult.success) {
 							return removeResult;

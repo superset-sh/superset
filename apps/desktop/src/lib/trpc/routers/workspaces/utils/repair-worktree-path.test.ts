@@ -73,13 +73,35 @@ mock.module("main/lib/local-db", () => ({
 	localDb: {
 		select: () => ({
 			from: (table: symbol) => ({
-				where: (id: string) => ({
+				where: (value: string) => ({
 					get: () => {
-						if (table === WORKTREES_TABLE) return mockWorktrees.get(id);
-						if (table === PROJECTS_TABLE) return mockProjects.get(id);
+						if (table === WORKTREES_TABLE) return mockWorktrees.get(value);
+						if (table === PROJECTS_TABLE) return mockProjects.get(value);
 						return undefined;
 					},
+					all: () => {
+						if (table === WORKTREES_TABLE) {
+							return Array.from(mockWorktrees.values()).filter(
+								(worktree) => worktree.projectId === value,
+							);
+						}
+						if (table === PROJECTS_TABLE) {
+							return Array.from(mockProjects.values()).filter(
+								(project) => project.id === value,
+							);
+						}
+						return [];
+					},
 				}),
+				all: () => {
+					if (table === WORKTREES_TABLE) {
+						return Array.from(mockWorktrees.values());
+					}
+					if (table === PROJECTS_TABLE) {
+						return Array.from(mockProjects.values());
+					}
+					return [];
+				},
 			}),
 		}),
 		update: (_table: symbol) => ({
@@ -96,9 +118,12 @@ mock.module("main/lib/local-db", () => ({
 }));
 
 // Import after mocks are registered
-const { resolveWorktreePathWithRepair, tryRepairWorktreePath } = await import(
-	"./repair-worktree-path"
-);
+const {
+	findProjectWorktreeByCurrentPath,
+	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathWithRepair,
+	tryRepairWorktreePath,
+} = await import("./repair-worktree-path");
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -224,6 +249,72 @@ describe("tryRepairWorktreePath", () => {
 		const result = await resolveWorktreePathWithRepair("wt-resolve-2");
 		expect(result).toBe(newPath);
 		expect(mockWorktrees.get("wt-resolve-2")?.path).toBe(newPath);
+	});
+
+	test("listProjectWorktreesWithCurrentPaths returns repaired paths for moved worktrees", async () => {
+		const mainRepo = createTestRepo("main-list-project");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-list-old");
+		const newPath = join(TEST_DIR, "wt-list-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-list-project HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`git -C "${mainRepo}" worktree move "${oldPath}" "${newPath}"`, {
+			stdio: "ignore",
+		});
+
+		mockWorktrees.set("wt-list-1", {
+			id: "wt-list-1",
+			path: oldPath,
+			branch: "feat-list-project",
+			projectId: "proj-list-1",
+		});
+		mockProjects.set("proj-list-1", {
+			id: "proj-list-1",
+			mainRepoPath: mainRepo,
+		});
+
+		const result = await listProjectWorktreesWithCurrentPaths("proj-list-1");
+		expect(result).toHaveLength(1);
+		expect(result[0]?.existsOnDisk).toBe(true);
+		expect(result[0]?.worktree.path).toBe(newPath);
+		expect(mockWorktrees.get("wt-list-1")?.path).toBe(newPath);
+	});
+
+	test("findProjectWorktreeByCurrentPath matches repaired worktree paths", async () => {
+		const mainRepo = createTestRepo("main-find-project");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-find-old");
+		const newPath = join(TEST_DIR, "wt-find-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-find-project HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`git -C "${mainRepo}" worktree move "${oldPath}" "${newPath}"`, {
+			stdio: "ignore",
+		});
+
+		mockWorktrees.set("wt-find-1", {
+			id: "wt-find-1",
+			path: oldPath,
+			branch: "feat-find-project",
+			projectId: "proj-find-1",
+		});
+		mockProjects.set("proj-find-1", {
+			id: "proj-find-1",
+			mainRepoPath: mainRepo,
+		});
+
+		const result = await findProjectWorktreeByCurrentPath(
+			"proj-find-1",
+			newPath,
+		);
+		expect(result?.id).toBe("wt-find-1");
+		expect(result?.path).toBe(newPath);
+		expect(mockWorktrees.get("wt-find-1")?.path).toBe(newPath);
 	});
 
 	test("rejects candidate when it equals the main repo path", async () => {

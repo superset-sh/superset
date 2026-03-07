@@ -36,6 +36,11 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import {
+	findProjectWorktreeByCurrentPath,
+	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathWithRepair,
+} from "../utils/repair-worktree-path";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
@@ -77,6 +82,12 @@ function getPrWorkspaceName(prInfo: PullRequestInfo): string {
 	return prInfo.title || `PR #${prInfo.number}`;
 }
 
+async function getTrackedWorktreePath(
+	worktree: typeof worktrees.$inferSelect,
+): Promise<string> {
+	return (await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+}
+
 interface PrWorkspaceResult {
 	workspace: typeof workspaces.$inferSelect;
 	initialCommands: string[] | null;
@@ -95,13 +106,14 @@ interface HandleExistingWorktreeParams {
 	workspaceName: string;
 }
 
-function handleExistingWorktree({
+async function handleExistingWorktree({
 	existingWorktree,
 	project,
 	prInfo,
 	localBranchName,
 	workspaceName,
-}: HandleExistingWorktreeParams): PrWorkspaceResult {
+}: HandleExistingWorktreeParams): Promise<PrWorkspaceResult> {
+	const worktreePath = await getTrackedWorktreePath(existingWorktree);
 	const existingWorkspace = localDb
 		.select()
 		.from(workspaces)
@@ -120,7 +132,7 @@ function handleExistingWorktree({
 		return {
 			workspace: existingWorkspace,
 			initialCommands: null,
-			worktreePath: existingWorktree.path,
+			worktreePath,
 			projectId: project.id,
 			prNumber: prInfo.number,
 			prTitle: prInfo.title,
@@ -147,14 +159,14 @@ function handleExistingWorktree({
 
 	const setupConfig = loadSetupConfig({
 		mainRepoPath: project.mainRepoPath,
-		worktreePath: existingWorktree.path,
+		worktreePath,
 		projectId: project.id,
 	});
 
 	return {
 		workspace,
 		initialCommands: setupConfig?.setup || null,
-		worktreePath: existingWorktree.path,
+		worktreePath,
 		projectId: project.id,
 		prNumber: prInfo.number,
 		prTitle: prInfo.title,
@@ -388,13 +400,16 @@ export const createCreateProcedures = () => {
 						branch,
 					});
 					if (existing) {
+						const worktreePath = await getTrackedWorktreePath(
+							existing.worktree,
+						);
 						touchWorkspace(existing.workspace.id);
 						setLastActiveWorkspace(existing.workspace.id);
 						activateProject(project);
 						return {
 							workspace: existing.workspace,
 							initialCommands: null,
-							worktreePath: existing.worktree.path,
+							worktreePath,
 							projectId: project.id,
 							isInitializing: false,
 							wasExisting: true,
@@ -406,6 +421,7 @@ export const createCreateProcedures = () => {
 						branch,
 					});
 					if (orphanedWorktree) {
+						const worktreePath = await getTrackedWorktreePath(orphanedWorktree);
 						const workspace = createWorkspaceFromWorktree({
 							projectId: input.projectId,
 							worktreeId: orphanedWorktree.id,
@@ -433,13 +449,13 @@ export const createCreateProcedures = () => {
 						activateProject(project);
 						const setupConfig = loadSetupConfig({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: orphanedWorktree.path,
+							worktreePath,
 							projectId: project.id,
 						});
 						return {
 							workspace,
 							initialCommands: setupConfig?.setup || null,
-							worktreePath: orphanedWorktree.path,
+							worktreePath,
 							projectId: project.id,
 							isInitializing: false,
 							autoRenameWarning,
@@ -679,10 +695,8 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${worktree.projectId} not found`);
 				}
 
-				const exists = await worktreeExists(
-					project.mainRepoPath,
-					worktree.path,
-				);
+				const worktreePath = await getTrackedWorktreePath(worktree);
+				const exists = await worktreeExists(project.mainRepoPath, worktreePath);
 				if (!exists) {
 					throw new Error("Worktree no longer exists on disk");
 				}
@@ -708,7 +722,7 @@ export const createCreateProcedures = () => {
 
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
-					worktreePath: worktree.path,
+					worktreePath,
 					projectId: project.id,
 				});
 
@@ -721,7 +735,7 @@ export const createCreateProcedures = () => {
 				return {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
-					worktreePath: worktree.path,
+					worktreePath,
 					projectId: project.id,
 				};
 			}),
@@ -748,16 +762,10 @@ export const createCreateProcedures = () => {
 					throw new Error("Worktree no longer exists on disk");
 				}
 
-				const existingWorktree = localDb
-					.select()
-					.from(worktrees)
-					.where(
-						and(
-							eq(worktrees.projectId, input.projectId),
-							eq(worktrees.path, input.worktreePath),
-						),
-					)
-					.get();
+				const existingWorktree = await findProjectWorktreeByCurrentPath(
+					input.projectId,
+					input.worktreePath,
+				);
 
 				if (existingWorktree) {
 					// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
@@ -990,13 +998,12 @@ export const createCreateProcedures = () => {
 				let imported = 0;
 
 				// 1. Import closed worktrees (tracked in DB but no active workspace)
-				const projectWorktrees = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.projectId, input.projectId))
-					.all();
+				const projectWorktrees = await listProjectWorktreesWithCurrentPaths(
+					input.projectId,
+				);
 
-				for (const wt of projectWorktrees) {
+				for (const trackedWorktree of projectWorktrees) {
+					const wt = trackedWorktree.worktree;
 					const existingWorkspace = localDb
 						.select()
 						.from(workspaces)
@@ -1010,6 +1017,7 @@ export const createCreateProcedures = () => {
 
 					if (existingWorkspace) continue;
 
+					if (!trackedWorktree.existsOnDisk) continue;
 					const exists = await worktreeExists(project.mainRepoPath, wt.path);
 					if (!exists) continue;
 
@@ -1034,7 +1042,11 @@ export const createCreateProcedures = () => {
 				const allExternalWorktrees = await listExternalWorktrees(
 					project.mainRepoPath,
 				);
-				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
+				const trackedPaths = new Set(
+					projectWorktrees
+						.filter((trackedWorktree) => trackedWorktree.existsOnDisk)
+						.map((trackedWorktree) => trackedWorktree.worktree.path),
+				);
 
 				const externalWorktrees = allExternalWorktrees.filter((wt) => {
 					if (wt.path === project.mainRepoPath) return false;
