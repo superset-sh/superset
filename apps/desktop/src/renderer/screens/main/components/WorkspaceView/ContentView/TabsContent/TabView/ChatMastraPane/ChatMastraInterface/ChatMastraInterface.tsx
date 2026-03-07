@@ -30,16 +30,17 @@ import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import type { ChatMastraInterfaceProps } from "./types";
-import {
-	hasMatchingUserMessage,
-	type MastraHistoryMessage,
-	toOptimisticUserMessage,
-} from "./utils/optimisticUserMessage";
+import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
+import {
+	getVisibleMessagesWithPendingUserTurn,
+	type PendingUserTurn,
+	shouldClearPendingUserTurn,
+} from "./utils/transientUserTurn";
 import { uploadFiles } from "./utils/uploadFiles";
 
 type HarnessFilePayload = {
@@ -213,19 +214,14 @@ export function ChatMastraInterface({
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
-	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
-		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
 	const [editingUserMessageId, setEditingUserMessageId] = useState<
 		string | null
 	>(null);
-	const [pendingRestartUserMessage, setPendingRestartUserMessage] = useState<{
-		prefixMessages: MastraHistoryMessage[];
-		sourceMessageId: string;
-		message: MastraHistoryMessage;
-	} | null>(null);
+	const [pendingUserTurn, setPendingUserTurn] =
+		useState<PendingUserTurn | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
@@ -276,6 +272,8 @@ export function ChatMastraInterface({
 		pendingPlanApproval = null,
 		pendingQuestion = null,
 	} = chat;
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	const clearRuntimeError = useCallback(() => {
 		setRuntimeError(null);
@@ -441,8 +439,7 @@ export function ChatMastraInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		setInterruptedMessage(null);
-		setPendingImmediateUserMessage(null);
-		setPendingRestartUserMessage(null);
+		setPendingUserTurn(null);
 		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
@@ -451,35 +448,16 @@ export function ChatMastraInterface({
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
-		if (!pendingImmediateUserMessage) return;
 		if (
-			hasMatchingUserMessage({
+			shouldClearPendingUserTurn({
 				messages,
-				candidate: pendingImmediateUserMessage,
+				pendingUserTurn,
+				isAwaitingAssistant,
 			})
 		) {
-			setPendingImmediateUserMessage(null);
+			setPendingUserTurn(null);
 		}
-	}, [messages, pendingImmediateUserMessage]);
-
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
-
-	useEffect(() => {
-		if (!pendingRestartUserMessage) return;
-		if (isAwaitingAssistant) return;
-		if (
-			hasMatchingUserMessage({
-				messages,
-				candidate: pendingRestartUserMessage.message,
-			})
-		) {
-			console.debug("[chat-mastra] cleared restart overlay", {
-				sourceMessageId: pendingRestartUserMessage.sourceMessageId,
-			});
-			setPendingRestartUserMessage(null);
-		}
-	}, [isAwaitingAssistant, messages, pendingRestartUserMessage]);
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
 
 	useEffect(() => {
 		if (!editingUserMessageId) return;
@@ -488,34 +466,12 @@ export function ChatMastraInterface({
 	}, [editingUserMessageId, messages]);
 
 	const visibleMessages = useMemo(() => {
-		if (pendingRestartUserMessage) {
-			const hasPersistedRestartMessage = hasMatchingUserMessage({
-				messages,
-				candidate: pendingRestartUserMessage.message,
-			});
-			if (isAwaitingAssistant || !hasPersistedRestartMessage) {
-				return [
-					...pendingRestartUserMessage.prefixMessages,
-					pendingRestartUserMessage.message,
-				];
-			}
-		}
-		if (!pendingImmediateUserMessage) return messages;
-		if (
-			hasMatchingUserMessage({
-				messages,
-				candidate: pendingImmediateUserMessage,
-			})
-		) {
-			return messages;
-		}
-		return [...messages, pendingImmediateUserMessage];
-	}, [
-		isAwaitingAssistant,
-		messages,
-		pendingImmediateUserMessage,
-		pendingRestartUserMessage,
-	]);
+		return getVisibleMessagesWithPendingUserTurn({
+			messages,
+			pendingUserTurn,
+			isAwaitingAssistant,
+		});
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -624,7 +580,10 @@ export function ChatMastraInterface({
 					? toOptimisticUserMessage(sendInput)
 					: null;
 			if (immediateUserMessage) {
-				setPendingImmediateUserMessage(immediateUserMessage);
+				setPendingUserTurn({
+					kind: "append",
+					message: immediateUserMessage,
+				});
 			}
 
 			let targetSessionId = effectiveSessionId;
@@ -656,10 +615,11 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
 				if (immediateUserMessage) {
-					setPendingImmediateUserMessage((previousMessage) =>
-						previousMessage?.id === immediateUserMessage.id
+					setPendingUserTurn((previousTurn) =>
+						previousTurn?.kind === "append" &&
+						previousTurn.message.id === immediateUserMessage.id
 							? null
-							: previousMessage,
+							: previousTurn,
 					);
 				}
 				if (error instanceof Error) throw error;
@@ -841,8 +801,7 @@ export function ChatMastraInterface({
 			}
 
 			setInterruptedMessage(null);
-			setPendingImmediateUserMessage(null);
-			setPendingRestartUserMessage(null);
+			setPendingUserTurn(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
@@ -853,13 +812,9 @@ export function ChatMastraInterface({
 				},
 			});
 			if (optimisticMessage) {
-				console.debug("[chat-mastra] set restart overlay", {
-					sourceMessageId: request.messageId,
-					prefixCount: request.prefixMessages.length,
-				});
-				setPendingRestartUserMessage({
+				setPendingUserTurn({
+					kind: "restart",
 					prefixMessages: request.prefixMessages,
-					sourceMessageId: request.messageId,
 					message: optimisticMessage,
 				});
 			}
@@ -892,7 +847,7 @@ export function ChatMastraInterface({
 					restarted_from_message_id: request.messageId,
 				});
 			} catch (error) {
-				setPendingRestartUserMessage(null);
+				setPendingUserTurn(null);
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
