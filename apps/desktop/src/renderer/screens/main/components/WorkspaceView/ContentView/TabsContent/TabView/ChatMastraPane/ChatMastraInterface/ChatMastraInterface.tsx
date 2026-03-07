@@ -221,6 +221,10 @@ export function ChatMastraInterface({
 	const [editingUserMessageId, setEditingUserMessageId] = useState<
 		string | null
 	>(null);
+	const [pendingRestartUserMessage, setPendingRestartUserMessage] = useState<{
+		sourceMessageId: string;
+		message: MastraHistoryMessage;
+	} | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
@@ -437,6 +441,7 @@ export function ChatMastraInterface({
 		setRuntimeError(null);
 		setInterruptedMessage(null);
 		setPendingImmediateUserMessage(null);
+		setPendingRestartUserMessage(null);
 		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
@@ -457,12 +462,41 @@ export function ChatMastraInterface({
 	}, [messages, pendingImmediateUserMessage]);
 
 	useEffect(() => {
+		if (!pendingRestartUserMessage) return;
+		if (
+			hasMatchingUserMessage({
+				messages,
+				candidate: pendingRestartUserMessage.message,
+			})
+		) {
+			setPendingRestartUserMessage(null);
+		}
+	}, [messages, pendingRestartUserMessage]);
+
+	useEffect(() => {
 		if (!editingUserMessageId) return;
 		if (messages.some((message) => message.id === editingUserMessageId)) return;
 		setEditingUserMessageId(null);
 	}, [editingUserMessageId, messages]);
 
 	const visibleMessages = useMemo(() => {
+		if (pendingRestartUserMessage) {
+			const targetMessageIndex = messages.findIndex(
+				(message) => message.id === pendingRestartUserMessage.sourceMessageId,
+			);
+			if (
+				targetMessageIndex >= 0 &&
+				!hasMatchingUserMessage({
+					messages,
+					candidate: pendingRestartUserMessage.message,
+				})
+			) {
+				return [
+					...messages.slice(0, targetMessageIndex),
+					pendingRestartUserMessage.message,
+				];
+			}
+		}
 		if (!pendingImmediateUserMessage) return messages;
 		if (
 			hasMatchingUserMessage({
@@ -473,7 +507,7 @@ export function ChatMastraInterface({
 			return messages;
 		}
 		return [...messages, pendingImmediateUserMessage];
-	}, [messages, pendingImmediateUserMessage]);
+	}, [messages, pendingImmediateUserMessage, pendingRestartUserMessage]);
 	const isAwaitingAssistant =
 		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
@@ -802,14 +836,11 @@ export function ChatMastraInterface({
 
 			setInterruptedMessage(null);
 			setPendingImmediateUserMessage(null);
+			setPendingRestartUserMessage(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
-			const queryInput = {
-				sessionId,
-				...(cwd ? { cwd } : {}),
-			};
-			const previousMessages = messages ?? [];
+			const previousMessages = messages;
 			const targetMessageIndex = previousMessages.findIndex(
 				(message) => message.id === request.messageId,
 			);
@@ -819,11 +850,11 @@ export function ChatMastraInterface({
 					model: activeModel?.id,
 				},
 			});
-			if (targetMessageIndex >= 0) {
-				chatMastraServiceTrpcUtils.session.listMessages.setData(queryInput, [
-					...previousMessages.slice(0, targetMessageIndex),
-					...(optimisticMessage ? [optimisticMessage] : []),
-				]);
+			if (targetMessageIndex >= 0 && optimisticMessage) {
+				setPendingRestartUserMessage({
+					sourceMessageId: request.messageId,
+					message: optimisticMessage,
+				});
 			}
 
 			try {
@@ -854,12 +885,7 @@ export function ChatMastraInterface({
 					restarted_from_message_id: request.messageId,
 				});
 			} catch (error) {
-				if (targetMessageIndex >= 0) {
-					chatMastraServiceTrpcUtils.session.listMessages.setData(
-						queryInput,
-						previousMessages,
-					);
-				}
+				setPendingRestartUserMessage(null);
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
@@ -871,7 +897,6 @@ export function ChatMastraInterface({
 			activeModel?.id,
 			captureChatEvent,
 			chatMastraServiceTrpcUtils.client.session.restartFromMessage,
-			chatMastraServiceTrpcUtils.session.listMessages,
 			clearRuntimeError,
 			cwd,
 			messages,
