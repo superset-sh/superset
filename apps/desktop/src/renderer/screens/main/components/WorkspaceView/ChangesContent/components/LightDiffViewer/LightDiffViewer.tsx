@@ -2,8 +2,11 @@ import { MultiFileDiff } from "@pierre/diffs/react";
 import { cn } from "@superset/ui/utils";
 import type { CSSProperties } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getDiffsTheme,
+	getDiffViewerStyle,
+} from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-import { getDiffsTheme, getDiffViewerStyle } from "../../../utils/code-theme";
 
 interface LightDiffViewerProps {
 	contents: FileContents;

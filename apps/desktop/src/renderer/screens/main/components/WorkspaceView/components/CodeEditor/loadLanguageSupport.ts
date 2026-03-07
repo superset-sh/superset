@@ -1,4 +1,17 @@
+import { StreamLanguage, type StreamParser } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
+import {
+	graphqlStreamLanguage,
+	makefileStreamLanguage,
+} from "./streamLanguages";
+
+async function loadLegacyLanguage(
+	loader: () => Promise<Record<string, unknown>>,
+	key: string,
+): Promise<Extension> {
+	const languageModule = await loader();
+	return StreamLanguage.define(languageModule[key] as StreamParser<unknown>);
+}
 
 export async function loadLanguageSupport(
 	language: string,
@@ -30,6 +43,10 @@ export async function loadLanguageSupport(
 			const { markdown } = await import("@codemirror/lang-markdown");
 			return markdown();
 		}
+		case "graphql":
+			return StreamLanguage.define(graphqlStreamLanguage);
+		case "plaintext":
+			return null;
 		case "yaml": {
 			const { yaml } = await import("@codemirror/lang-yaml");
 			return yaml();
@@ -67,6 +84,43 @@ export async function loadLanguageSupport(
 			const { go } = await import("@codemirror/lang-go");
 			return go();
 		}
+		case "shell":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/shell"),
+				"shell",
+			);
+		case "dockerfile":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/dockerfile"),
+				"dockerFile",
+			);
+		case "makefile":
+			return StreamLanguage.define(makefileStreamLanguage);
+		case "toml":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/toml"),
+				"toml",
+			);
+		case "ruby":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/ruby"),
+				"ruby",
+			);
+		case "swift":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/swift"),
+				"swift",
+			);
+		case "csharp":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/clike"),
+				"csharp",
+			);
+		case "kotlin":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/clike"),
+				"kotlin",
+			);
 		default:
 			return null;
 	}

@@ -82,38 +82,70 @@ function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 		},
 		cut() {
 			if (view.state.readOnly) return;
+			const clipboard = navigator.clipboard;
+			if (!clipboard) return;
+
 			const selection = view.state.selection.main;
 			if (selection.empty) return;
 
 			const text = view.state.sliceDoc(selection.from, selection.to);
-			void navigator.clipboard.writeText(text).then(() => {
-				view.dispatch({
-					changes: { from: selection.from, to: selection.to, insert: "" },
+			void clipboard
+				.writeText(text)
+				.then(() => {
+					const currentSelection = view.state.selection.main;
+					if (
+						currentSelection.from !== selection.from ||
+						currentSelection.to !== selection.to
+					) {
+						return;
+					}
+
+					if (view.state.sliceDoc(selection.from, selection.to) !== text) {
+						return;
+					}
+
+					view.dispatch({
+						changes: { from: selection.from, to: selection.to, insert: "" },
+					});
+				})
+				.catch((error) => {
+					console.error("[CodeEditor] Failed to cut selection:", error);
 				});
-			});
 		},
 		copy() {
+			const clipboard = navigator.clipboard;
+			if (!clipboard) return;
+
 			const selection = view.state.selection.main;
 			if (selection.empty) return;
 
-			void navigator.clipboard.writeText(
-				view.state.sliceDoc(selection.from, selection.to),
-			);
+			void clipboard
+				.writeText(view.state.sliceDoc(selection.from, selection.to))
+				.catch((error) => {
+					console.error("[CodeEditor] Failed to copy selection:", error);
+				});
 		},
 		paste() {
 			if (view.state.readOnly) return;
+			const clipboard = navigator.clipboard;
+			if (!clipboard) return;
 
-			void navigator.clipboard.readText().then((text) => {
-				const selection = view.state.selection.main;
-				view.dispatch({
-					changes: {
-						from: selection.from,
-						to: selection.to,
-						insert: text,
-					},
-					selection: EditorSelection.cursor(selection.from + text.length),
+			void clipboard
+				.readText()
+				.then((text) => {
+					const selection = view.state.selection.main;
+					view.dispatch({
+						changes: {
+							from: selection.from,
+							to: selection.to,
+							insert: text,
+						},
+						selection: EditorSelection.cursor(selection.from + text.length),
+					});
+				})
+				.catch((error) => {
+					console.error("[CodeEditor] Failed to paste from clipboard:", error);
 				});
-			});
 		},
 		openFind() {
 			openSearchPanel(view);
@@ -285,15 +317,29 @@ export function CodeEditor({
 	useEffect(() => {
 		let cancelled = false;
 
-		void loadLanguageSupport(language).then((extension) => {
-			if (cancelled) return;
-			const view = viewRef.current;
-			if (!view) return;
+		void loadLanguageSupport(language)
+			.then((extension) => {
+				if (cancelled) return;
+				const view = viewRef.current;
+				if (!view) return;
 
-			view.dispatch({
-				effects: languageCompartment.reconfigure(extension ?? []),
+				view.dispatch({
+					effects: languageCompartment.reconfigure(extension ?? []),
+				});
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				const view = viewRef.current;
+				if (!view) return;
+
+				console.error("[CodeEditor] Failed to load language support:", {
+					error,
+					language,
+				});
+				view.dispatch({
+					effects: languageCompartment.reconfigure([]),
+				});
 			});
-		});
 
 		return () => {
 			cancelled = true;

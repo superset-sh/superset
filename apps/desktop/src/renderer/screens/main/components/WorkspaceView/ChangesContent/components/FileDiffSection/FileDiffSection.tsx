@@ -229,11 +229,17 @@ export function FileDiffSection({
 			},
 		);
 	const hasRenderedDiff = canShowDiffBody && !!diffData;
+	const modifiedDiffContent = diffData?.modified;
 
 	useEffect(() => {
-		if (!diffData || !isEditing) return;
-		setEditedContent(diffData.modified);
-	}, [diffData, isEditing]);
+		if (!isEditing) {
+			setEditedContent(null);
+			return;
+		}
+
+		if (modifiedDiffContent == null) return;
+		setEditedContent((current) => current ?? modifiedDiffContent);
+	}, [isEditing, modifiedDiffContent]);
 
 	const inactivePlaceholder = (
 		<div

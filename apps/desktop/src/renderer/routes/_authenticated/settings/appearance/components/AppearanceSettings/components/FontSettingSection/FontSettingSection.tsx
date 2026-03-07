@@ -9,7 +9,7 @@ import {
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
-} from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/createCodeMirrorTheme";
+} from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
 import { FontPreview } from "../FontPreview";
 
 const DEFAULT_EDITOR_FONT_FAMILY = DEFAULT_CODE_EDITOR_FONT_FAMILY;

@@ -6,14 +6,14 @@ import {
 } from "react";
 import { LuLoader } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
+import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
+import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
-import { LightDiffViewer } from "../../../../../../ChangesContent/components/LightDiffViewer";
-import { CodeEditor } from "../../../../../../components/CodeEditor";
-import type { CodeEditorAdapter } from "../../../../../components";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
 
@@ -149,7 +149,7 @@ export function FileViewerContent({
 		if (viewMode !== "raw") return;
 		if (isLoadingRaw) return;
 		if (!rawFileData?.ok) return;
-		if (draftContentRef.current) return;
+		if (draftContentRef.current !== null) return;
 
 		originalContentRef.current = rawFileData.content;
 		setIsDirty(false);

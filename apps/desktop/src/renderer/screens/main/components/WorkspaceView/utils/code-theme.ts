@@ -1,11 +1,13 @@
+import { syntaxHighlighting } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { oneDarkHighlightStyle } from "@codemirror/theme-one-dark";
 import type { DiffsThemeNames } from "@pierre/diffs/react";
 import type { CSSProperties } from "react";
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
-} from "../components/CodeEditor/createCodeMirrorTheme";
+	MIDNIGHT_CODE_COLORS,
+} from "../components/CodeEditor/constants";
 
 interface CodeThemeFontSettings {
 	fontFamily?: string;
@@ -18,15 +20,15 @@ const MIDNIGHT_DIFF_THEME = {
 };
 
 const MIDNIGHT_DIFF_COLORS = {
-	background: "#282c34",
-	buffer: "#21252b",
+	background: MIDNIGHT_CODE_COLORS.background,
+	buffer: MIDNIGHT_CODE_COLORS.border,
 	hover: "#2f343f",
-	separator: "#21252b",
-	lineNumber: "#636d83",
-	addition: "#98c379",
-	deletion: "#e06c75",
-	modified: "#61afef",
-	selection: "#3e4451",
+	separator: MIDNIGHT_CODE_COLORS.border,
+	lineNumber: MIDNIGHT_CODE_COLORS.muted,
+	addition: MIDNIGHT_CODE_COLORS.addition,
+	deletion: MIDNIGHT_CODE_COLORS.deletion,
+	modified: MIDNIGHT_CODE_COLORS.modified,
+	selection: MIDNIGHT_CODE_COLORS.selection,
 };
 
 export function getDiffsTheme() {
@@ -34,7 +36,7 @@ export function getDiffsTheme() {
 }
 
 export function getCodeSyntaxHighlighting(): Extension {
-	return oneDark;
+	return syntaxHighlighting(oneDarkHighlightStyle);
 }
 
 export function getDiffViewerStyle(
@@ -58,6 +60,6 @@ export function getDiffViewerStyle(
 		"--diffs-modified-color-override": MIDNIGHT_DIFF_COLORS.modified,
 		"--diffs-selection-color-override": MIDNIGHT_DIFF_COLORS.selection,
 		backgroundColor: MIDNIGHT_DIFF_COLORS.background,
-		color: "#abb2bf",
+		color: MIDNIGHT_CODE_COLORS.foreground,
 	} as CSSProperties;
 }
