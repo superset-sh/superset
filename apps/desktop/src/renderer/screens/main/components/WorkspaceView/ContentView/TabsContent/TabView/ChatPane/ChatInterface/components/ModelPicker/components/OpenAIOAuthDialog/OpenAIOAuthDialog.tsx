@@ -22,10 +22,12 @@ interface OpenAIOAuthDialogProps {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -35,10 +37,12 @@ export function OpenAIOAuthDialog({
 	code,
 	errorMessage,
 	isPending,
+	canDisconnect,
 	onOpenChange,
 	onCodeChange,
 	onOpenAuthUrl,
 	onCopyAuthUrl,
+	onDisconnect,
 	onSubmit,
 }: OpenAIOAuthDialogProps) {
 	return (
@@ -115,6 +119,16 @@ export function OpenAIOAuthDialog({
 					>
 						Back
 					</Button>
+					{canDisconnect ? (
+						<Button
+							type="button"
+							variant="outline"
+							onClick={onDisconnect}
+							disabled={isPending}
+						>
+							Disconnect
+						</Button>
+					) : null}
 					<Button type="button" onClick={onSubmit} disabled={isPending}>
 						{isPending ? "Connecting..." : "Connect"}
 					</Button>

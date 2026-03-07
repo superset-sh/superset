@@ -22,6 +22,7 @@ import {
 import type { AuthStatus } from "./auth-storage-types";
 import {
 	clearApiKeyForProvider,
+	clearCredentialForProvider,
 	resolveAuthMethodForProvider,
 	setApiKeyForProvider,
 } from "./auth-storage-utils";
@@ -132,6 +133,16 @@ export class ChatService {
 		return this.oauthFlowController.cancel(this.getOpenAIOAuthFlowOptions());
 	}
 
+	async disconnectOpenAIOAuth(): Promise<{ success: true }> {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		if (credential?.type === "oauth") {
+			clearCredentialForProvider(authStorage, OPENAI_AUTH_PROVIDER_ID);
+		}
+		return { success: true };
+	}
+
 	async completeOpenAIOAuth(input: {
 		code?: string;
 	}): Promise<{ success: true }> {
@@ -210,6 +221,20 @@ export class ChatService {
 
 	cancelAnthropicOAuth(): { success: true } {
 		return this.oauthFlowController.cancel(this.getAnthropicOAuthFlowOptions());
+	}
+
+	async disconnectAnthropicOAuth(): Promise<{ success: true }> {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (credential?.type === "oauth") {
+			clearCredentialForProvider(authStorage, ANTHROPIC_AUTH_PROVIDER_ID);
+			const config = getAnthropicEnvConfigFromDisk({
+				configPath: this.anthropicEnvConfigPath,
+			});
+			this.applyAnthropicRuntimeEnv(config.variables);
+		}
+		return { success: true };
 	}
 
 	async completeAnthropicOAuth(input: {
