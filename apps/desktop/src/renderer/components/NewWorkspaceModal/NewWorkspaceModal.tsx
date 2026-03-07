@@ -1,11 +1,6 @@
 import {
-	AGENT_PRESET_COMMANDS,
-	buildAgentPromptCommand,
-} from "@superset/shared/agent-command";
-import {
 	type AgentLaunchRequest,
 	STARTABLE_AGENT_TYPES,
-	type StartableAgentType,
 } from "@superset/shared/agent-launch";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
@@ -14,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
+import { useAgentLaunchAgents } from "renderer/react-query/agent-presets";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
@@ -21,6 +17,11 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
+import {
+	buildPromptCommandFromAgentPreset,
+	getCommandFromAgentPreset,
+	getDefaultAgentPreset,
+} from "shared/utils/agent-preset-settings";
 import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
@@ -92,6 +93,13 @@ export function NewWorkspaceModal() {
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const {
+		agentPresetById,
+		agentLabels,
+		selectableAgents,
+		selectableAgentSet,
+		isLoading: isAgentPresetsLoading,
+	} = useAgentLaunchAgents();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
@@ -100,8 +108,6 @@ export function NewWorkspaceModal() {
 			runSetupScriptRef.current ? commands : null,
 	});
 	const { openNew } = useOpenProject();
-	const selectableAgents =
-		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -137,12 +143,12 @@ export function NewWorkspaceModal() {
 
 	useEffect(() => {
 		if (selectedAgent === "none") return;
-		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
+		if (selectableAgentSet.has(selectedAgent)) {
 			return;
 		}
 		setSelectedAgent("none");
 		window.localStorage.setItem(WORKSPACE_AGENT_STORAGE_KEY, "none");
-	}, [selectedAgent]);
+	}, [selectedAgent, selectableAgentSet]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -205,7 +211,7 @@ export function NewWorkspaceModal() {
 			!e.shiftKey &&
 			mode === "new" &&
 			selectedProjectId &&
-			!createWorkspace.isPending
+			!isCreateDisabled
 		) {
 			e.preventDefault();
 			handleCreateWorkspace();
@@ -260,7 +266,12 @@ export function NewWorkspaceModal() {
 			onImportRepo={handleImportRepo}
 		/>
 	);
-	const isCreateDisabled = createWorkspace.isPending || isBranchesError;
+	const isAgentPresetSelection =
+		selectedAgent !== "none" && selectedAgent !== "superset-chat";
+	const isCreateDisabled =
+		createWorkspace.isPending ||
+		isBranchesError ||
+		(isAgentPresetSelection && isAgentPresetsLoading);
 	const buildLaunchRequestForWorkspace = (
 		workspaceId: string,
 		prompt: string,
@@ -282,13 +293,20 @@ export function NewWorkspaceModal() {
 			};
 		}
 
+		const selectedPreset = agentPresetById.get(selectedAgent);
+		const resolvedPreset =
+			selectedPreset ??
+			(!isAgentPresetsLoading ? getDefaultAgentPreset(selectedAgent) : null);
+		if (!resolvedPreset) {
+			return null;
+		}
 		const command = prompt
-			? buildAgentPromptCommand({
+			? buildPromptCommandFromAgentPreset({
 					prompt,
 					randomId: window.crypto.randomUUID(),
-					agent: selectedAgent,
+					preset: resolvedPreset,
 				})
-			: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+			: getCommandFromAgentPreset(resolvedPreset);
 
 		if (!command) {
 			return null;
@@ -308,6 +326,7 @@ export function NewWorkspaceModal() {
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
+		if (isAgentPresetSelection && isAgentPresetsLoading) return;
 		// Keep the agent prompt uncapped; only trim surrounding whitespace.
 		const prompt = title.trim();
 
@@ -432,7 +451,12 @@ export function NewWorkspaceModal() {
 								projectSelector={projectSelector}
 								selectedAgent={selectedAgent}
 								agentOptions={selectableAgents}
+								agentLabels={agentLabels}
 								onSelectedAgentChange={handleAgentChange}
+								onOpenAgentSettings={() => {
+									handleClose();
+									navigate({ to: "/settings/agent" });
+								}}
 								title={title}
 								onTitleChange={setTitle}
 								titleInputRef={titleInputRef}

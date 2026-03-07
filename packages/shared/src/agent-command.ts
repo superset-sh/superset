@@ -38,6 +38,38 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
 };
 
+export interface AgentPromptCommandDefaults {
+	command: string;
+	suffix?: string;
+}
+
+export const AGENT_PROMPT_COMMANDS: Record<
+	AgentType,
+	AgentPromptCommandDefaults
+> = {
+	claude: {
+		command: AGENT_PRESET_COMMANDS.claude[0] ?? "claude",
+	},
+	codex: {
+		command: `${AGENT_PRESET_COMMANDS.codex[0] ?? "codex"} --`,
+	},
+	gemini: {
+		command: "gemini",
+		suffix: "--yolo",
+	},
+	opencode: {
+		command: "opencode --prompt",
+	},
+	copilot: {
+		command: "copilot -i --allow-all",
+		suffix: "--yolo",
+	},
+	"cursor-agent": {
+		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
+		suffix: "--yolo",
+	},
+};
+
 export interface TaskInput {
 	id: string;
 	slug: string;
@@ -95,28 +127,6 @@ function buildHeredoc(
 	].join("\n");
 }
 
-const AGENT_COMMANDS: Record<
-	AgentType,
-	(prompt: string, delimiter: string) => string
-> = {
-	claude: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
-	codex: (prompt, delimiter) =>
-		buildHeredoc(
-			prompt,
-			delimiter,
-			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
-		),
-	gemini: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "gemini --yolo"),
-	opencode: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "opencode --prompt"),
-	copilot: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
-	"cursor-agent": (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
-};
-
 export function buildAgentPromptCommand({
 	prompt,
 	randomId,
@@ -130,8 +140,8 @@ export function buildAgentPromptCommand({
 	while (prompt.includes(delimiter)) {
 		delimiter = `${delimiter}_X`;
 	}
-	const builder = AGENT_COMMANDS[agent];
-	return builder(prompt, delimiter);
+	const command = AGENT_PROMPT_COMMANDS[agent];
+	return buildHeredoc(prompt, delimiter, command.command, command.suffix);
 }
 
 export function buildAgentCommand({

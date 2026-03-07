@@ -28,6 +28,7 @@ type SettingsRoute =
 	| "/settings/ringtones"
 	| "/settings/keyboard"
 	| "/settings/behavior"
+	| "/settings/agent"
 	| "/settings/git"
 	| "/settings/terminal"
 	| "/settings/integrations"
@@ -86,6 +87,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/behavior",
 				section: "behavior",
 				label: "General",
+				icon: <HiOutlineSparkles className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/agent",
+				section: "agent",
+				label: "Agent",
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
 			},
 			{

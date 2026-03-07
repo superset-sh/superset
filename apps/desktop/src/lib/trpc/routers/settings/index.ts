@@ -1,4 +1,6 @@
 import {
+	AGENT_PRESET_IDS,
+	type AgentPreset,
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	EXTERNAL_APPS,
@@ -32,6 +34,10 @@ import {
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
 } from "shared/ringtones";
+import {
+	getDefaultAgentPresets,
+	normalizeAgentPresets,
+} from "shared/utils/agent-preset-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
@@ -89,6 +95,30 @@ function saveTerminalPresets(
 		.run();
 }
 
+function readRawAgentPresets(): AgentPreset[] {
+	const row = getSettings();
+	return (row.agentPresets ?? []) as AgentPreset[];
+}
+
+function getNormalizedAgentPresets() {
+	return normalizeAgentPresets(readRawAgentPresets());
+}
+
+function saveAgentPresets(
+	presets: AgentPreset[],
+	options?: { agentPresetsInitialized?: boolean },
+) {
+	const values = { id: 1, agentPresets: presets, ...options };
+	localDb
+		.insert(settings)
+		.values(values)
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { agentPresets: presets, ...options },
+		})
+		.run();
+}
+
 const DEFAULT_PRESET_AGENTS = [
 	"claude",
 	"codex",
@@ -124,6 +154,21 @@ function initializeDefaultPresets() {
 	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
 
 	return mergedPresets;
+}
+
+function initializeDefaultAgentPresets() {
+	const row = getSettings();
+	if (row.agentPresetsInitialized) return getNormalizedAgentPresets();
+
+	const mergedPresets = normalizeAgentPresets(
+		(row.agentPresets ?? []) as AgentPreset[],
+	);
+	const initializedPresets =
+		mergedPresets.length > 0 ? mergedPresets : getDefaultAgentPresets();
+
+	saveAgentPresets(initializedPresets, { agentPresetsInitialized: true });
+
+	return initializedPresets;
 }
 
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
@@ -324,6 +369,60 @@ export const createSettingsRouter = () => {
 		getNewTabPresets: publicProcedure.query(() =>
 			getPresetsForTrigger("applyOnNewTab"),
 		),
+
+		getAgentPresets: publicProcedure.query(() => {
+			const row = getSettings();
+			if (!row.agentPresetsInitialized) {
+				return initializeDefaultAgentPresets();
+			}
+			return getNormalizedAgentPresets();
+		}),
+
+		updateAgentPreset: publicProcedure
+			.input(
+				z.object({
+					id: z.enum(AGENT_PRESET_IDS),
+					patch: z.object({
+						label: z.string().min(1).optional(),
+						description: z.string().nullable().optional(),
+						command: z.string().min(1).optional(),
+						promptCommand: z.string().min(1).optional(),
+						promptCommandSuffix: z.string().nullable().optional(),
+						taskPromptTemplate: z.string().min(1).optional(),
+						enabled: z.boolean().optional(),
+					}),
+				}),
+			)
+			.mutation(({ input }) => {
+				const presets = getNormalizedAgentPresets();
+				const preset = presets.find((p) => p.id === input.id);
+
+				if (!preset) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Agent preset ${input.id} not found`,
+					});
+				}
+
+				if (input.patch.label !== undefined) preset.label = input.patch.label;
+				if (input.patch.description !== undefined)
+					preset.description = input.patch.description ?? undefined;
+				if (input.patch.command !== undefined)
+					preset.command = input.patch.command;
+				if (input.patch.promptCommand !== undefined)
+					preset.promptCommand = input.patch.promptCommand;
+				if (input.patch.promptCommandSuffix !== undefined)
+					preset.promptCommandSuffix =
+						input.patch.promptCommandSuffix ?? undefined;
+				if (input.patch.taskPromptTemplate !== undefined)
+					preset.taskPromptTemplate = input.patch.taskPromptTemplate;
+				if (input.patch.enabled !== undefined)
+					preset.enabled = input.patch.enabled;
+
+				saveAgentPresets(presets, { agentPresetsInitialized: true });
+
+				return { success: true };
+			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();

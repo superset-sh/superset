@@ -9,8 +9,10 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
+		expect(command).toContain("--dangerously-bypass-approvals-and-sandbox");
+		expect(command).toContain('model_reasoning_summary="detailed"');
 		expect(command).toContain(
-			"--dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"model_supports_reasoning_summaries=true -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -25,5 +27,16 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith(
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
+	});
+
+	it("applies gemini yolo mode as suffix after prompt payload", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "gem-123",
+			agent: "gemini",
+		});
+
+		expect(command).toStartWith("gemini \"$(cat <<'SUPERSET_PROMPT_gem123'");
+		expect(command).toContain(')" --yolo');
 	});
 });

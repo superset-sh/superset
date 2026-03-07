@@ -8,6 +8,7 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
@@ -19,6 +20,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { useHotkeysStore } from "renderer/stores/hotkeys";
+import { OPEN_AGENT_SETTINGS_OPTION } from "shared/utils/agent-preset-settings";
 
 export type WorkspaceCreateAgent = StartableAgentType | "none";
 
@@ -26,7 +28,9 @@ interface NewWorkspaceCreateFlowProps {
 	projectSelector: ReactNode;
 	selectedAgent: WorkspaceCreateAgent;
 	agentOptions: readonly StartableAgentType[];
+	agentLabels?: Partial<Record<StartableAgentType, string>>;
 	onSelectedAgentChange: (agent: WorkspaceCreateAgent) => void;
+	onOpenAgentSettings?: () => void;
 	title: string;
 	onTitleChange: (value: string) => void;
 	titleInputRef: RefObject<HTMLTextAreaElement | null>;
@@ -42,7 +46,9 @@ export function NewWorkspaceCreateFlow({
 	projectSelector,
 	selectedAgent,
 	agentOptions,
+	agentLabels,
 	onSelectedAgentChange,
+	onOpenAgentSettings,
 	title,
 	onTitleChange,
 	titleInputRef,
@@ -64,9 +70,13 @@ export function NewWorkspaceCreateFlow({
 				<div className="shrink-0 max-w-[45%]">
 					<Select
 						value={selectedAgent}
-						onValueChange={(value: WorkspaceCreateAgent) =>
-							onSelectedAgentChange(value)
-						}
+						onValueChange={(value) => {
+							if (value === OPEN_AGENT_SETTINGS_OPTION) {
+								onOpenAgentSettings?.();
+								return;
+							}
+							onSelectedAgentChange(value as WorkspaceCreateAgent);
+						}}
 					>
 						<SelectTrigger className="h-8 text-xs w-auto max-w-full">
 							<SelectValue placeholder="No agent" className="truncate" />
@@ -75,6 +85,8 @@ export function NewWorkspaceCreateFlow({
 							<SelectItem value="none">No agent</SelectItem>
 							{agentOptions.map((agent) => {
 								const icon = getPresetIcon(agent, isDark);
+								const label =
+									agentLabels?.[agent] ?? STARTABLE_AGENT_LABELS[agent];
 								return (
 									<SelectItem key={agent} value={agent}>
 										<span className="flex items-center gap-2">
@@ -85,11 +97,15 @@ export function NewWorkspaceCreateFlow({
 													className="size-3.5 object-contain"
 												/>
 											)}
-											{STARTABLE_AGENT_LABELS[agent]}
+											{label}
 										</span>
 									</SelectItem>
 								);
 							})}
+							<SelectSeparator />
+							<SelectItem value={OPEN_AGENT_SETTINGS_OPTION}>
+								Agent settings...
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>

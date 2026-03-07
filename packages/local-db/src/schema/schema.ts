@@ -2,6 +2,7 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
+	AgentPreset,
 	BranchPrefixMode,
 	ExternalApp,
 	FileOpenMode,
@@ -144,7 +145,11 @@ export const settings = sqliteTable("settings", {
 	terminalPresets: text("terminal_presets", { mode: "json" }).$type<
 		TerminalPreset[]
 	>(),
+	agentPresets: text("agent_presets", { mode: "json" }).$type<AgentPreset[]>(),
 	terminalPresetsInitialized: integer("terminal_presets_initialized", {
+		mode: "boolean",
+	}),
+	agentPresetsInitialized: integer("agent_presets_initialized", {
 		mode: "boolean",
 	}),
 	selectedRingtoneId: text("selected_ringtone_id"),
