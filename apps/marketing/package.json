@@ -22,7 +22,7 @@
 		"framer-motion": "^12.23.26",
 		"geist": "^1.7.0",
 		"gray-matter": "^4.0.3",
-		"import-in-the-middle": "2.0.1",
+		"import-in-the-middle": "3.0.0",
 		"lucide-react": "^0.563.0",
 		"next": "^16.0.10",
 		"next-mdx-remote": "^5.0.0",
