@@ -163,6 +163,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		registerFocusCallbackRef,
+		unregisterFocusCallbackRef,
 	} = useTerminalRefs({
 		paneId,
 		tabId,
@@ -355,6 +357,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		registerFocusCallbackRef,
+		unregisterFocusCallbackRef,
 	});
 
 	useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import {
@@ -68,6 +68,15 @@ export function TabPane({
 		(s) => s.getGetSelectionCallback,
 	);
 	const getPasteCallback = useTerminalCallbacksStore((s) => s.getPasteCallback);
+	const getFocusCallback = useTerminalCallbacksStore((s) => s.getFocusCallback);
+
+	const handleSetFocusedPane = useCallback(
+		(tid: string, pid: string) => {
+			setFocusedPane(tid, pid);
+			getFocusCallback(pid)?.();
+		},
+		[setFocusedPane, getFocusCallback],
+	);
 
 	useEffect(() => {
 		const container = terminalContainerRef.current;
@@ -94,7 +103,7 @@ export function TabPane({
 			tabId={tabId}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
-			setFocusedPane={setFocusedPane}
+			setFocusedPane={handleSetFocusedPane}
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">

@@ -5,6 +5,7 @@ interface TerminalCallbacksState {
 	scrollToBottomCallbacks: Map<string, () => void>;
 	getSelectionCallbacks: Map<string, () => string>;
 	pasteCallbacks: Map<string, (text: string) => void>;
+	focusCallbacks: Map<string, () => void>;
 	registerClearCallback: (paneId: string, callback: () => void) => void;
 	unregisterClearCallback: (paneId: string) => void;
 	getClearCallback: (paneId: string) => (() => void) | undefined;
@@ -26,6 +27,9 @@ interface TerminalCallbacksState {
 	) => void;
 	unregisterPasteCallback: (paneId: string) => void;
 	getPasteCallback: (paneId: string) => ((text: string) => void) | undefined;
+	registerFocusCallback: (paneId: string, callback: () => void) => void;
+	unregisterFocusCallback: (paneId: string) => void;
+	getFocusCallback: (paneId: string) => (() => void) | undefined;
 }
 
 export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
@@ -34,6 +38,7 @@ export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
 		scrollToBottomCallbacks: new Map(),
 		getSelectionCallbacks: new Map(),
 		pasteCallbacks: new Map(),
+		focusCallbacks: new Map(),
 
 		registerClearCallback: (paneId, callback) => {
 			set((state) => {
@@ -113,6 +118,26 @@ export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
 
 		getPasteCallback: (paneId) => {
 			return get().pasteCallbacks.get(paneId);
+		},
+
+		registerFocusCallback: (paneId, callback) => {
+			set((state) => {
+				const newCallbacks = new Map(state.focusCallbacks);
+				newCallbacks.set(paneId, callback);
+				return { focusCallbacks: newCallbacks };
+			});
+		},
+
+		unregisterFocusCallback: (paneId) => {
+			set((state) => {
+				const newCallbacks = new Map(state.focusCallbacks);
+				newCallbacks.delete(paneId);
+				return { focusCallbacks: newCallbacks };
+			});
+		},
+
+		getFocusCallback: (paneId) => {
+			return get().focusCallbacks.get(paneId);
 		},
 	}),
 );

@@ -132,6 +132,8 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
+	registerFocusCallbackRef: MutableRefObject<RegisterCallback>;
+	unregisterFocusCallbackRef: MutableRefObject<UnregisterCallback>;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -188,6 +190,8 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
+	registerFocusCallbackRef,
+	unregisterFocusCallbackRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
@@ -518,6 +522,7 @@ export function useTerminalLifecycle({
 
 		registerGetSelectionCallbackRef.current(paneId, handleGetSelection);
 		registerPasteCallbackRef.current(paneId, handlePaste);
+		registerFocusCallbackRef.current(paneId, () => xterm.focus());
 
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
@@ -664,6 +669,7 @@ export function useTerminalLifecycle({
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
+			unregisterFocusCallbackRef.current(paneId);
 
 			if (isPaneDestroyedInStore()) {
 				// Pane was explicitly destroyed, so kill the session.
