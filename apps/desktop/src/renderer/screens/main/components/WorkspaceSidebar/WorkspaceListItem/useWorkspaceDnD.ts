@@ -5,13 +5,15 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useMoveWorkspacesToSection,
 	useMoveWorkspaceToSection,
-	useReorderWorkspaces,
+	useReorderProjectChildren,
 	useReorderWorkspacesInSection,
 } from "renderer/react-query/workspaces";
 import { invalidateWorkspaceQueries } from "renderer/react-query/workspaces/invalidateWorkspaceQueries";
 import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
-import type { DragItem } from "../types";
+import { SECTION_DND_TYPE } from "../constants";
+import type { DragItem, SectionDragItem } from "../types";
+import { reorderProjectChildrenInCache } from "../utils/reorderProjectChildrenInCache";
 import { WORKSPACE_DND_TYPE } from "./constants";
 
 interface UseWorkspaceDnDOptions {
@@ -28,7 +30,7 @@ export function useWorkspaceDnD({
 	index,
 }: UseWorkspaceDnDOptions) {
 	const utils = electronTrpc.useUtils();
-	const reorderWorkspaces = useReorderWorkspaces();
+	const reorderProjectChildren = useReorderProjectChildren();
 	const reorderWorkspacesInSection = useReorderWorkspacesInSection();
 	const moveToSection = useMoveWorkspaceToSection();
 	const bulkMoveToSection = useMoveWorkspacesToSection();
@@ -54,7 +56,7 @@ export function useWorkspaceDnD({
 					callbacks,
 				);
 			} else {
-				reorderWorkspaces.mutate(
+				reorderProjectChildren.mutate(
 					{
 						projectId: item.projectId,
 						fromIndex: item.originalIndex,
@@ -64,7 +66,7 @@ export function useWorkspaceDnD({
 				);
 			}
 		},
-		[reorderWorkspaces, reorderWorkspacesInSection, utils],
+		[reorderProjectChildren, reorderWorkspacesInSection, utils],
 	);
 
 	const [{ isDragging }, drag] = useDrag(
@@ -81,6 +83,7 @@ export function useWorkspaceDnD({
 						? [...selection.selectedIds]
 						: undefined;
 				const dragItem: DragItem = {
+					kind: "workspace",
 					id,
 					projectId,
 					sectionId,
@@ -104,8 +107,25 @@ export function useWorkspaceDnD({
 	);
 
 	const [, drop] = useDrop({
-		accept: WORKSPACE_DND_TYPE,
-		hover: (item: DragItem) => {
+		accept:
+			sectionId === null
+				? [WORKSPACE_DND_TYPE, SECTION_DND_TYPE]
+				: WORKSPACE_DND_TYPE,
+		hover: (item: DragItem | SectionDragItem) => {
+			if (item.kind === "section") {
+				if (
+					sectionId !== null ||
+					item.projectId !== projectId ||
+					item.index === index
+				) {
+					return;
+				}
+				utils.workspaces.getAllGrouped.setData(undefined, (oldData) =>
+					reorderProjectChildrenInCache(oldData, projectId, item.index, index),
+				);
+				item.index = index;
+				return;
+			}
 			if (item.selectedIds && item.selectedIds.length > 1) return;
 			if (
 				item.projectId !== projectId ||
@@ -113,29 +133,47 @@ export function useWorkspaceDnD({
 				item.index === index
 			)
 				return;
-			utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
-				if (!oldData) return oldData;
-				return oldData.map((group) => {
-					if (group.project.id !== projectId) return group;
-					if (sectionId === null) {
-						const workspaces = [...group.workspaces];
-						const [moved] = workspaces.splice(item.index, 1);
-						workspaces.splice(index, 0, moved);
-						return { ...group, workspaces };
-					}
-					const sections = group.sections.map((section) => {
-						if (section.id !== sectionId) return section;
-						const workspaces = [...section.workspaces];
-						const [moved] = workspaces.splice(item.index, 1);
-						workspaces.splice(index, 0, moved);
-						return { ...section, workspaces };
+			if (sectionId === null) {
+				utils.workspaces.getAllGrouped.setData(undefined, (oldData) =>
+					reorderProjectChildrenInCache(oldData, projectId, item.index, index),
+				);
+			} else {
+				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
+					if (!oldData) return oldData;
+					return oldData.map((group) => {
+						if (group.project.id !== projectId) return group;
+						const sections = group.sections.map((section) => {
+							if (section.id !== sectionId) return section;
+							const workspaces = [...section.workspaces];
+							const [moved] = workspaces.splice(item.index, 1);
+							workspaces.splice(index, 0, moved);
+							return { ...section, workspaces };
+						});
+						return { ...group, sections };
 					});
-					return { ...group, sections };
 				});
-			});
+			}
 			item.index = index;
 		},
-		drop: (item: DragItem) => {
+		drop: (item: DragItem | SectionDragItem) => {
+			if (item.kind === "section") {
+				if (sectionId !== null || item.projectId !== projectId) return;
+				reorderProjectChildren.mutate(
+					{
+						projectId,
+						fromIndex: item.originalIndex,
+						toIndex: item.index,
+					},
+					{
+						onError: (error: { message: string }) => {
+							void invalidateWorkspaceQueries(utils);
+							toast.error(`Failed to reorder project items: ${error.message}`);
+						},
+					},
+				);
+				if (item.originalIndex !== item.index) return { reordered: true };
+				return;
+			}
 			if (item.projectId !== projectId) return;
 			if (item.sectionId === sectionId) {
 				handleReorder(item);

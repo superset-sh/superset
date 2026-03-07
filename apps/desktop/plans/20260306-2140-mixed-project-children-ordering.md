@@ -46,10 +46,10 @@ The important difference is that these items can now be interleaved arbitrarily 
 - [x] (2026-03-07 05:45Z) Add backend tests for mixed workspace/section ordering
 - [x] (2026-03-07 05:45Z) Route new top-level workspace/section creation through shared top-level child ordering
 - [x] (2026-03-07 05:47Z) Move `computeVisualOrder` onto the shared mixed top-level ordering helper
-- [ ] Refactor `getAllGrouped` consumers to use top-level mixed ordering
-- [ ] Replace sidebar rendering with one ordered top-level list per project
-- [ ] Replace section-only reorder mutation/UI flow with mixed top-level reorder flow
-- [ ] Update keyboard shortcut and next/previous workspace ordering
+- [x] (2026-03-07 06:19Z) Add `topLevelItems` to `getAllGrouped` and update keyboard shortcuts to use mixed top-level ordering
+- [x] (2026-03-07 06:19Z) Replace sidebar rendering with one ordered top-level list per project
+- [x] (2026-03-07 06:19Z) Replace section-only reorder mutation/UI flow with mixed top-level reorder flow
+- [x] (2026-03-07 06:19Z) Update keyboard shortcut and next/previous workspace ordering
 - [ ] Audit create/move paths so new items get correct top-level `tabOrder`
 - [ ] Run `bun run typecheck`, targeted desktop tests, and manual sidebar DnD QA
 
@@ -60,6 +60,7 @@ The important difference is that these items can now be interleaved arbitrarily 
 - `getWorkspacesInVisualOrder` in `apps/desktop/src/lib/trpc/routers/workspaces/procedures/query.ts` also hardcodes that same two-lane ordering, so keyboard navigation and sidebar DnD semantics are coupled to the query shape.
 - The existing creation paths were already inconsistent with the desired model: new sections appended relative only to sections, while new top-level workspaces appended relative only to workspaces. That had to be unified before mixed reordering could behave predictably.
 - Desktop typecheck surfaced an unrelated-but-live issue in the collapsed section drag-handle refs. That wiring needed a callback-ref fix before the package would typecheck cleanly.
+- Once the sidebar started rendering from `topLevelItems`, several optimistic cache writers (`close`, `delete`) needed to remove entries from both `sections[*].workspaces` and `topLevelItems`. Those optimistic paths were previously incomplete for section-contained workspaces too.
 
 
 ## Decision Log

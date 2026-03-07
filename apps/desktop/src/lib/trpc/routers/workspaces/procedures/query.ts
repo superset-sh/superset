@@ -10,6 +10,7 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
+import { getProjectChildItems } from "../utils/project-children-order";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -112,11 +113,18 @@ export const createQueryProcedures = () => {
 
 			type SectionItem = {
 				id: string;
+				projectId: string;
 				name: string;
 				tabOrder: number;
 				isCollapsed: boolean;
 				color: string | null;
 				workspaces: WorkspaceItem[];
+			};
+
+			type TopLevelItem = {
+				id: string;
+				kind: "workspace" | "section";
+				tabOrder: number;
 			};
 
 			const activeProjects = localDb
@@ -147,6 +155,7 @@ export const createQueryProcedures = () => {
 					};
 					workspaces: WorkspaceItem[];
 					sections: SectionItem[];
+					topLevelItems: TopLevelItem[];
 				}
 			>();
 
@@ -156,6 +165,7 @@ export const createQueryProcedures = () => {
 					.sort((a, b) => a.tabOrder - b.tabOrder)
 					.map((s) => ({
 						id: s.id,
+						projectId: s.projectId,
 						name: s.name,
 						tabOrder: s.tabOrder,
 						isCollapsed: s.isCollapsed ?? false,
@@ -177,6 +187,7 @@ export const createQueryProcedures = () => {
 					},
 					workspaces: [],
 					sections: projectSections,
+					topLevelItems: [],
 				});
 			}
 
@@ -222,9 +233,27 @@ export const createQueryProcedures = () => {
 				}
 			}
 
-			return Array.from(groupsMap.values()).sort(
-				(a, b) => a.project.tabOrder - b.project.tabOrder,
-			);
+			return Array.from(groupsMap.values())
+				.map((group) => {
+					const projectWorkspaces = [
+						...group.workspaces,
+						...group.sections.flatMap((section) => section.workspaces),
+					];
+
+					return {
+						...group,
+						topLevelItems: getProjectChildItems(
+							group.project.id,
+							projectWorkspaces,
+							group.sections,
+						).map((item) => ({
+							id: item.id,
+							kind: item.kind,
+							tabOrder: item.tabOrder,
+						})),
+					};
+				})
+				.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
 		}),
 
 		getPreviousWorkspace: publicProcedure

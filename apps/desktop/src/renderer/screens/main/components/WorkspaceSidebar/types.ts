@@ -10,6 +10,7 @@ export interface SidebarWorkspace {
 }
 
 export interface DragItem {
+	kind: "workspace";
 	id: string;
 	projectId: string;
 	sectionId: string | null;
@@ -22,6 +23,7 @@ export interface DragItem {
 }
 
 export interface SectionDragItem {
+	kind: "section";
 	sectionId: string;
 	projectId: string;
 	index: number;
@@ -30,6 +32,7 @@ export interface SectionDragItem {
 
 export interface SidebarSection {
 	id: string;
+	projectId?: string;
 	name: string;
 	tabOrder: number;
 	isCollapsed: boolean;
