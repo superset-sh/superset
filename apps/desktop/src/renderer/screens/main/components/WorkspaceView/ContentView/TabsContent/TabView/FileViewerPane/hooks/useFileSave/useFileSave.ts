@@ -38,23 +38,41 @@ export function useFileSave({
 				contentTail: variables.content.slice(-80),
 			});
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			const savedContent = variables.content;
+			const currentEditorValue = editorRef.current?.getValue() ?? savedContent;
+			const hasUnsavedChanges = currentEditorValue !== savedContent;
+
 			console.debug("[useFileSave] success", {
 				filePath,
-				editorValueLength: editorRef.current?.getValue().length ?? null,
-				editorValueTail: editorRef.current?.getValue().slice(-80) ?? null,
+				savedContentLength: savedContent.length,
+				savedContentTail: savedContent.slice(-80),
+				editorValueLength: currentEditorValue.length,
+				editorValueTail: currentEditorValue.slice(-80),
+				hasUnsavedChanges,
 			});
-			setIsDirty(false);
-			if (editorRef.current) {
-				originalContentRef.current = editorRef.current.getValue();
-			}
-			if (savingFromRawRef.current) {
+
+			utils.changes.readWorkingFile.setData(
+				{ worktreePath: variables.worktreePath, filePath: variables.filePath },
+				{
+					ok: true,
+					content: savedContent,
+					truncated: false,
+					byteLength: new TextEncoder().encode(savedContent).length,
+				},
+			);
+
+			originalContentRef.current = savedContent;
+			setIsDirty(hasUnsavedChanges);
+			if (savingFromRawRef.current && !hasUnsavedChanges) {
 				draftContentRef.current = null;
+			} else if (hasUnsavedChanges) {
+				draftContentRef.current = currentEditorValue;
 			}
 			savingFromRawRef.current = false;
 			originalDiffContentRef.current = "";
 
-			utils.changes.readWorkingFile.invalidate();
+			void utils.changes.readWorkingFile.invalidate();
 			utils.changes.getFileContents.invalidate();
 			utils.changes.getStatus.invalidate();
 
