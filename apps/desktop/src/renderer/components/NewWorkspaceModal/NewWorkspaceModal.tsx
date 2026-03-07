@@ -9,13 +9,23 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects";
 import {
+	type NewWorkspaceModalTab,
 	useCloseNewWorkspaceModal,
+	useNewWorkspaceModalActiveTab,
+	useNewWorkspaceModalBranchesQuery,
+	useNewWorkspaceModalIssuesQuery,
 	useNewWorkspaceModalOpen,
-	usePreSelectedProjectId,
+	useNewWorkspaceModalPullRequestsQuery,
+	useSelectedNewWorkspaceModalProjectId,
+	useSetNewWorkspaceModalActiveTab,
+	useSetNewWorkspaceModalBranchesQuery,
+	useSetNewWorkspaceModalIssuesQuery,
+	useSetNewWorkspaceModalPullRequestsQuery,
+	useSetSelectedNewWorkspaceModalProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { BranchesGroup } from "./components/BranchesGroup";
 import { IssuesGroup } from "./components/IssuesGroup";
@@ -23,37 +33,61 @@ import { ProjectSelector } from "./components/ProjectSelector";
 import { PromptGroup } from "./components/PromptGroup";
 import { PullRequestsGroup } from "./components/PullRequestsGroup";
 
-type Tab = "prompt" | "issues" | "pull-requests" | "branches";
+const COMMAND_CLASS_NAME =
+	"[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 flex h-full w-full flex-1 flex-col overflow-hidden rounded-none";
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
-	const preSelectedProjectId = usePreSelectedProjectId();
-	const [activeTab, setActiveTab] = useState<Tab>("prompt");
-	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-		null,
-	);
+	const activeTab = useNewWorkspaceModalActiveTab();
+	const setActiveTab = useSetNewWorkspaceModalActiveTab();
+	const selectedProjectId = useSelectedNewWorkspaceModalProjectId();
+	const setSelectedProjectId = useSetSelectedNewWorkspaceModalProjectId();
+	const issuesQuery = useNewWorkspaceModalIssuesQuery();
+	const setIssuesQuery = useSetNewWorkspaceModalIssuesQuery();
+	const pullRequestsQuery = useNewWorkspaceModalPullRequestsQuery();
+	const setPullRequestsQuery = useSetNewWorkspaceModalPullRequestsQuery();
+	const branchesQuery = useNewWorkspaceModalBranchesQuery();
+	const setBranchesQuery = useSetNewWorkspaceModalBranchesQuery();
 	const navigate = useNavigate();
 	const { openNew } = useOpenProject();
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 
-	// Sync pre-selected project when modal opens
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on modal open
 	useEffect(() => {
 		if (!isOpen) return;
-		if (preSelectedProjectId) {
-			setSelectedProjectId(preSelectedProjectId);
-		} else if (recentProjects.length > 0 && !selectedProjectId) {
+		if (recentProjects.length > 0 && !selectedProjectId) {
 			setSelectedProjectId(recentProjects[0].id);
 		}
-	}, [isOpen]);
+	}, [isOpen, recentProjects, selectedProjectId, setSelectedProjectId]);
 
 	const selectedProject = recentProjects.find(
-		(p) => p.id === selectedProjectId,
+		(project) => project.id === selectedProjectId,
 	);
 	const isListTab = activeTab !== "prompt";
+	const listQuery =
+		activeTab === "issues"
+			? issuesQuery
+			: activeTab === "branches"
+				? branchesQuery
+				: pullRequestsQuery;
+
+	const handleListQueryChange = (value: string) => {
+		switch (activeTab) {
+			case "issues":
+				setIssuesQuery(value);
+				return;
+			case "branches":
+				setBranchesQuery(value);
+				return;
+			case "pull-requests":
+				setPullRequestsQuery(value);
+				return;
+			default:
+				return;
+		}
+	};
 
 	const handleImportRepo = async () => {
 		closeModal();
@@ -87,7 +121,9 @@ export function NewWorkspaceModal() {
 				<div className="flex items-center justify-between border-b px-3 py-2">
 					<Tabs
 						value={activeTab}
-						onValueChange={(value) => setActiveTab(value as Tab)}
+						onValueChange={(value) =>
+							setActiveTab(value as NewWorkspaceModalTab)
+						}
 					>
 						<TabsList>
 							<TabsTrigger value="prompt">Prompt</TabsTrigger>
@@ -99,7 +135,9 @@ export function NewWorkspaceModal() {
 					<ProjectSelector
 						selectedProjectId={selectedProjectId}
 						selectedProjectName={selectedProject?.name ?? null}
-						recentProjects={recentProjects.filter((p) => Boolean(p.id))}
+						recentProjects={recentProjects.filter((project) =>
+							Boolean(project.id),
+						)}
 						onSelectProject={setSelectedProjectId}
 						onImportRepo={handleImportRepo}
 						onNewProject={handleNewProject}
@@ -107,8 +145,10 @@ export function NewWorkspaceModal() {
 				</div>
 
 				{isListTab ? (
-					<Command className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 flex h-full w-full flex-1 flex-col overflow-hidden rounded-none">
+					<Command className={COMMAND_CLASS_NAME}>
 						<CommandInput
+							value={listQuery}
+							onValueChange={handleListQueryChange}
 							placeholder={
 								activeTab === "issues"
 									? "Search by slug, title, or description"

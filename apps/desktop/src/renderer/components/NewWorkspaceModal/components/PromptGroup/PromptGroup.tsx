@@ -31,6 +31,23 @@ import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseB
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
+	useClearNewWorkspaceModalInputs,
+	useNewWorkspaceModalBaseBranch,
+	useNewWorkspaceModalBranchName,
+	useNewWorkspaceModalBranchNameEdited,
+	useNewWorkspaceModalBranchSearch,
+	useNewWorkspaceModalPrompt,
+	useNewWorkspaceModalRunSetupScript,
+	useNewWorkspaceModalShowAdvanced,
+	useSetNewWorkspaceModalBaseBranch,
+	useSetNewWorkspaceModalBranchName,
+	useSetNewWorkspaceModalBranchNameEdited,
+	useSetNewWorkspaceModalBranchSearch,
+	useSetNewWorkspaceModalPrompt,
+	useSetNewWorkspaceModalRunSetupScript,
+	useSetNewWorkspaceModalShowAdvanced,
+} from "renderer/stores/new-workspace-modal";
+import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
@@ -51,14 +68,22 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isDark = useIsDarkTheme();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const [prompt, setPrompt] = useState("");
-	const [branchName, setBranchName] = useState("");
-	const [branchNameEdited, setBranchNameEdited] = useState(false);
-	const [baseBranch, setBaseBranch] = useState<string | null>(null);
+	const prompt = useNewWorkspaceModalPrompt();
+	const setPrompt = useSetNewWorkspaceModalPrompt();
+	const branchName = useNewWorkspaceModalBranchName();
+	const setBranchName = useSetNewWorkspaceModalBranchName();
+	const branchNameEdited = useNewWorkspaceModalBranchNameEdited();
+	const setBranchNameEdited = useSetNewWorkspaceModalBranchNameEdited();
+	const baseBranch = useNewWorkspaceModalBaseBranch();
+	const setBaseBranch = useSetNewWorkspaceModalBaseBranch();
+	const showAdvanced = useNewWorkspaceModalShowAdvanced();
+	const setShowAdvanced = useSetNewWorkspaceModalShowAdvanced();
+	const runSetupScript = useNewWorkspaceModalRunSetupScript();
+	const setRunSetupScript = useSetNewWorkspaceModalRunSetupScript();
+	const branchSearch = useNewWorkspaceModalBranchSearch();
+	const setBranchSearch = useSetNewWorkspaceModalBranchSearch();
+	const clearInputs = useClearNewWorkspaceModalInputs();
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
-	const [branchSearch, setBranchSearch] = useState("");
-	const [showAdvanced, setShowAdvanced] = useState(false);
-	const [runSetupScript, setRunSetupScript] = useState(true);
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
 	const createWorkspace = useCreateWorkspace({
@@ -141,7 +166,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset advanced branch state when project changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset base branch controls when project changes
 	useEffect(() => {
 		setBaseBranch(null);
 		setBaseBranchOpen(false);
@@ -154,7 +179,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	};
 
 	const buildLaunchRequest = (
-		trimmedPrompt: string,
+		promptValue: string,
 	): AgentLaunchRequest | null => {
 		if (selectedAgent === "none") return null;
 
@@ -165,14 +190,14 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				agentType: "superset-chat",
 				source: "new-workspace",
 				chat: {
-					initialPrompt: trimmedPrompt || undefined,
+					initialPrompt: promptValue || undefined,
 				},
 			};
 		}
 
-		const command = trimmedPrompt
+		const command = promptValue
 			? buildAgentPromptCommand({
-					prompt: trimmedPrompt,
+					prompt: promptValue,
 					randomId: window.crypto.randomUUID(),
 					agent: selectedAgent,
 				})
@@ -198,26 +223,29 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			return;
 		}
 		const launchRequest = buildLaunchRequest(trimmedPrompt);
+		const createWorkspacePromise = createWorkspace.mutateAsyncWithPendingSetup(
+			{
+				projectId,
+				prompt: trimmedPrompt || undefined,
+				branchName: branchSlug || undefined,
+				baseBranch: baseBranch || undefined,
+				applyPrefix,
+			},
+			launchRequest ? { agentLaunchRequest: launchRequest } : undefined,
+		);
 
 		onClose();
-		toast.promise(
-			createWorkspace.mutateAsyncWithPendingSetup(
-				{
-					projectId,
-					prompt: trimmedPrompt || undefined,
-					branchName: branchSlug || undefined,
-					baseBranch: baseBranch || undefined,
-					applyPrefix,
-				},
-				launchRequest ? { agentLaunchRequest: launchRequest } : undefined,
-			),
-			{
-				loading: "Creating workspace...",
-				success: "Workspace created",
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to create workspace",
-			},
-		);
+		toast.promise(createWorkspacePromise, {
+			loading: "Creating workspace...",
+			success: "Workspace created",
+			error: (err) =>
+				err instanceof Error ? err.message : "Failed to create workspace",
+		});
+		void createWorkspacePromise
+			.then(() => {
+				clearInputs();
+			})
+			.catch(() => undefined);
 	};
 
 	const handleBranchNameChange = (value: string) => {
