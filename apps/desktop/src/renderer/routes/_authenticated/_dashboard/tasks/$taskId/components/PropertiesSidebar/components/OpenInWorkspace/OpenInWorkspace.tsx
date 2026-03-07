@@ -1,3 +1,4 @@
+import type { TaskInput } from "@superset/shared/agent-command";
 import { buildAgentTaskPrompt } from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
@@ -29,6 +30,7 @@ import {
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
@@ -36,9 +38,16 @@ import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
 	task: TaskWithStatus;
+	draftTitle?: string;
+	draftDescription?: string;
 }
 
-export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+export function OpenInWorkspace({
+	task,
+	draftTitle,
+	draftDescription,
+}: OpenInWorkspaceProps) {
+	const collections = useCollections();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
@@ -84,7 +93,28 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		await handleSelectProject(effectiveProjectId);
 	};
 
-	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest => {
+	const getLaunchTaskInput = (): TaskInput => {
+		const latestTask = collections.tasks.get(task.id) ?? task;
+		const latestStatus = latestTask.statusId
+			? collections.taskStatuses.get(latestTask.statusId)
+			: null;
+		const normalizedDraftTitle = draftTitle?.trim();
+
+		return {
+			id: latestTask.id,
+			slug: latestTask.slug,
+			title: normalizedDraftTitle || latestTask.title,
+			description: draftDescription ?? latestTask.description,
+			priority: latestTask.priority,
+			statusName: latestStatus?.name ?? task.status.name,
+			labels: latestTask.labels,
+		};
+	};
+
+	const buildLaunchRequest = (
+		workspaceId: string,
+		launchTask: TaskInput,
+	): AgentLaunchRequest => {
 		if (selectedAgent === "superset-chat") {
 			return {
 				kind: "chat",
@@ -92,15 +122,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				agentType: "superset-chat",
 				source: "open-in-workspace",
 				chat: {
-					initialPrompt: buildAgentTaskPrompt({
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					}),
+					initialPrompt: buildAgentTaskPrompt(launchTask),
 					retryCount: 1,
 				},
 			};
@@ -113,35 +135,31 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			source: "open-in-workspace",
 			terminal: {
 				command: buildAgentCommand({
-					task: {
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					},
+					task: launchTask,
 					randomId: window.crypto.randomUUID(),
 					agent: selectedAgent,
 				}),
-				name: task.slug,
+				name: launchTask.slug,
 			},
 		};
 	};
 
 	const handleSelectProject = async (projectId: string) => {
+		const launchTask = getLaunchTaskInput();
 		const branchName = deriveBranchName({
-			slug: task.slug,
-			title: task.title,
+			slug: launchTask.slug,
+			title: launchTask.title,
 		});
-		const launchRequestTemplate = buildLaunchRequest("pending-workspace");
+		const launchRequestTemplate = buildLaunchRequest(
+			"pending-workspace",
+			launchTask,
+		);
 
 		try {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
-					name: task.slug,
+					name: launchTask.slug,
 					branchName,
 				},
 				{ agentLaunchRequest: launchRequestTemplate },
