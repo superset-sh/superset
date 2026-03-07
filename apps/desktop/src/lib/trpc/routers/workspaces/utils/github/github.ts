@@ -79,7 +79,7 @@ export async function getRepoContext(
 	try {
 		const { stdout } = await execWithShellEnv(
 			"gh",
-			["repo", "view", "--json", "url,isFork,parent,nameWithOwner"],
+			["repo", "view", "--json", "url,isFork,parent"],
 			{ cwd: worktreePath },
 		);
 		const raw = JSON.parse(stdout);
@@ -98,26 +98,22 @@ export async function getRepoContext(
 				repoUrl: data.url,
 				upstreamUrl: data.parent.url,
 				isFork: true,
-				forkNwo: data.nameWithOwner ?? null,
 			};
 		} else {
 			const originUrl = await getOriginUrl(worktreePath);
 			const ghUrl = normalizeGitHubUrl(data.url);
 
 			if (originUrl && ghUrl && originUrl !== ghUrl) {
-				const nwo = extractNwoFromUrl(originUrl);
 				context = {
 					repoUrl: originUrl,
 					upstreamUrl: ghUrl,
 					isFork: true,
-					forkNwo: nwo,
 				};
 			} else {
 				context = {
 					repoUrl: data.url,
 					upstreamUrl: data.url,
 					isFork: false,
-					forkNwo: null,
 				};
 			}
 		}
@@ -132,7 +128,6 @@ export async function getRepoContext(
 	}
 }
 
-
 async function getOriginUrl(worktreePath: string): Promise<string | null> {
 	try {
 		const { stdout } = await execFileAsync(
@@ -145,7 +140,6 @@ async function getOriginUrl(worktreePath: string): Promise<string | null> {
 		return null;
 	}
 }
-
 
 function normalizeGitHubUrl(remoteUrl: string): string | null {
 	const trimmed = remoteUrl.trim();
@@ -172,9 +166,24 @@ function extractNwoFromUrl(normalizedUrl: string): string | null {
 	}
 }
 
+export function getPullRequestRepoArgs(
+	repoContext?: Pick<RepoContext, "isFork" | "upstreamUrl"> | null,
+): string[] {
+	if (!repoContext?.isFork) {
+		return [];
+	}
+
+	const normalizedUpstreamUrl = normalizeGitHubUrl(repoContext.upstreamUrl);
+	if (!normalizedUpstreamUrl) {
+		return [];
+	}
+
+	const repoNameWithOwner = extractNwoFromUrl(normalizedUpstreamUrl);
+	return repoNameWithOwner ? ["--repo", repoNameWithOwner] : [];
+}
 
 const PR_JSON_FIELDS =
-	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup";
+	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup,reviewRequests";
 
 async function getPRForBranch(
 	worktreePath: string,
@@ -242,25 +251,12 @@ async function findPRByHeadCommit(
 			return null;
 		}
 
-		// For forks, cross-repo PRs live on the upstream repo, not the fork.
-		const repoArgs: string[] = [];
-		if (repoContext?.isFork) {
-			try {
-				const nwo = new URL(repoContext.upstreamUrl).pathname.slice(1);
-				if (nwo) {
-					repoArgs.push("--repo", nwo);
-				}
-			} catch {
-				// Ignore malformed upstream URL; gh will search the default repo.
-			}
-		}
-
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"list",
-				...repoArgs,
+				...getPullRequestRepoArgs(repoContext),
 				"--state",
 				"all",
 				"--search",
@@ -403,7 +399,15 @@ function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
 		reviewDecision: mapReviewDecision(data.reviewDecision),
 		checksStatus: computeChecksStatus(data.statusCheckRollup),
 		checks: parseChecks(data.statusCheckRollup),
+		requestedReviewers: parseReviewRequests(data.reviewRequests),
 	};
+}
+
+function parseReviewRequests(
+	requests: GHPRResponse["reviewRequests"],
+): string[] {
+	if (!requests || requests.length === 0) return [];
+	return requests.map((r) => r.login || r.slug || r.name || "").filter(Boolean);
 }
 
 function mapPRState(

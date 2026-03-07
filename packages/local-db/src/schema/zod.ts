@@ -40,6 +40,7 @@ export const gitHubStatusSchema = z.object({
 			reviewDecision: z.enum(["approved", "changes_requested", "pending"]),
 			checksStatus: z.enum(["success", "failure", "pending", "none"]),
 			checks: z.array(checkItemSchema),
+			requestedReviewers: z.array(z.string()).optional(),
 		})
 		.nullable(),
 	repoUrl: z.string(),

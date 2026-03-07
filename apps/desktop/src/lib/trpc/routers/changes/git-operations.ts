@@ -3,10 +3,13 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	getPullRequestRepoArgs,
+	getRepoContext,
+} from "../workspaces/utils/github/github";
+import {
 	execWithShellEnv,
 	getProcessEnvWithShellPath,
 } from "../workspaces/utils/shell-env";
-import { getRepoContext } from "../workspaces/utils/github/github";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
 import {
@@ -210,15 +213,7 @@ async function findOpenPRByHeadCommit(
 			return null;
 		}
 
-		// For forks, cross-repo PRs live on the upstream repo, not the fork.
-		const repoArgs: string[] = [];
-		const repoContext = await getRepoContext(worktreePath);
-		if (repoContext?.isFork) {
-			const normalized = normalizeGitHubRepoUrl(repoContext.upstreamUrl);
-			if (normalized) {
-				repoArgs.push("--repo", normalized.replace("https://github.com/", ""));
-			}
-		}
+		const repoArgs = getPullRequestRepoArgs(await getRepoContext(worktreePath));
 
 		const { stdout } = await execWithShellEnv(
 			"gh",
