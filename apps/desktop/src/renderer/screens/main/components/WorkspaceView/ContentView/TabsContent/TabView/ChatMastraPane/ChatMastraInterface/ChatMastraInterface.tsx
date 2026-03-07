@@ -491,10 +491,9 @@ export function ChatMastraInterface({
 					candidate: pendingRestartUserMessage.message,
 				})
 			) {
-				return [
-					...messages.slice(0, targetMessageIndex),
-					pendingRestartUserMessage.message,
-				];
+				const nextMessages = messages.slice(0, targetMessageIndex + 1);
+				nextMessages[targetMessageIndex] = pendingRestartUserMessage.message;
+				return nextMessages;
 			}
 		}
 		if (!pendingImmediateUserMessage) return messages;
