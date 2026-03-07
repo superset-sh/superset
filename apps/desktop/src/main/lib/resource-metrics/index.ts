@@ -4,6 +4,7 @@ import { app } from "electron";
 import { localDb } from "main/lib/local-db";
 import { getProcessTree } from "main/lib/terminal/port-scanner";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
+import os from "node:os";
 import pidusage from "pidusage";
 
 interface ProcessMetrics {
@@ -25,6 +26,18 @@ interface WorkspaceMetrics {
 	cpu: number;
 	memory: number;
 	sessions: SessionMetrics[];
+}
+
+const LOGICAL_CPU_COUNT = Math.max(1, os.cpus().length);
+
+// pidusage / Electron process metrics report CPU as "per-core %" and can exceed
+// 100 on multi-core systems. Convert to machine-level percent for UI display.
+function normalizeCpuPercent(perCorePercent: number): number {
+	if (!Number.isFinite(perCorePercent) || perCorePercent <= 0) {
+		return 0;
+	}
+
+	return perCorePercent / LOGICAL_CPU_COUNT;
 }
 
 interface AppMetrics extends ProcessMetrics {
@@ -95,7 +108,7 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 	};
 
 	for (const proc of electronMetrics) {
-		const cpu = proc.cpu.percentCPUUsage;
+		const cpu = normalizeCpuPercent(proc.cpu.percentCPUUsage);
 		// workingSetSize is in KB
 		const memory = proc.memory.workingSetSize * 1024;
 		let target = other;
@@ -122,7 +135,7 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		for (const pid of treePids) {
 			const stats = pidStats[pid];
 			if (stats) {
-				cpu += stats.cpu;
+				cpu += normalizeCpuPercent(stats.cpu);
 				memory += stats.memory;
 			}
 		}
