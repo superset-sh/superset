@@ -96,16 +96,17 @@ export function WorkspaceContextMenu({
 
 	const handleCreateSectionFromSelection = () => {
 		const captured = contextMenuSelectionRef.current;
+		const workspaceIds = captured.length > 1 ? captured : [id];
+
+		createSectionFromWorkspaces.mutate({
+			projectId,
+			workspaceIds,
+		});
+
 		if (captured.length > 1) {
-			createSectionFromWorkspaces.mutate({
-				projectId,
-				workspaceIds: captured,
-			});
 			selectionStore.getState().clearSelection();
 		}
 	};
-
-	const isMultiSelectContext = contextMenuSelectionRef.current.length > 1;
 
 	const unreadMenuItem = (
 		<ContextMenuItem onSelect={() => onSetUnread(!isUnread)}>
@@ -133,43 +134,35 @@ export function WorkspaceContextMenu({
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Copy Path
 			</ContextMenuItem>
-			{sections.length > 0 && (
-				<>
-					<ContextMenuSeparator />
-					<ContextMenuSub>
-						<ContextMenuSubTrigger>
-							<LuArrowRightLeft
-								className="size-4 mr-2"
-								strokeWidth={STROKE_WIDTH}
-							/>
-							Move to Section
-						</ContextMenuSubTrigger>
-						<ContextMenuSubContent>
-							<ContextMenuItem onSelect={() => handleMoveToSection(null)}>
-								No Section
-							</ContextMenuItem>
-							<ContextMenuSeparator />
-							{sections.map((section) => (
-								<ContextMenuItem
-									key={section.id}
-									onSelect={() => handleMoveToSection(section.id)}
-								>
-									{section.name}
-								</ContextMenuItem>
-							))}
-						</ContextMenuSubContent>
-					</ContextMenuSub>
-				</>
-			)}
-			{isMultiSelectContext && (
-				<>
-					{sections.length === 0 && <ContextMenuSeparator />}
+			<ContextMenuSeparator />
+			<ContextMenuSub>
+				<ContextMenuSubTrigger>
+					<LuArrowRightLeft
+						className="size-4 mr-2"
+						strokeWidth={STROKE_WIDTH}
+					/>
+					Move to Section
+				</ContextMenuSubTrigger>
+				<ContextMenuSubContent>
 					<ContextMenuItem onSelect={handleCreateSectionFromSelection}>
 						<LuFolderPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-						Create Section from Selection
+						New Section
 					</ContextMenuItem>
-				</>
-			)}
+					<ContextMenuSeparator />
+					<ContextMenuItem onSelect={() => handleMoveToSection(null)}>
+						No Section
+					</ContextMenuItem>
+					{sections.length > 0 && <ContextMenuSeparator />}
+					{sections.map((section) => (
+						<ContextMenuItem
+							key={section.id}
+							onSelect={() => handleMoveToSection(section.id)}
+						>
+							{section.name}
+						</ContextMenuItem>
+					))}
+				</ContextMenuSubContent>
+			</ContextMenuSub>
 			<ContextMenuSeparator />
 			{unreadMenuItem}
 			{workspaceStatus && (
