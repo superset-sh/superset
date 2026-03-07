@@ -6,6 +6,10 @@ import { setSkipQuitConfirmation } from "main/index";
 import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
+import {
+	getErrorMessage,
+	isTransientNetworkError,
+} from "shared/network-errors";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -38,26 +42,6 @@ export interface AutoUpdateStatusEvent {
 }
 
 export const autoUpdateEmitter = new EventEmitter();
-
-// Network errors that don't need to be shown to the user
-// These are transient/expected and will resolve on retry
-const SILENT_ERROR_PATTERNS = [
-	"net::ERR_INTERNET_DISCONNECTED",
-	"net::ERR_NETWORK_CHANGED",
-	"net::ERR_CONNECTION_REFUSED",
-	"net::ERR_NAME_NOT_RESOLVED",
-	"net::ERR_CONNECTION_TIMED_OUT",
-	"net::ERR_CONNECTION_RESET",
-	"ENOTFOUND",
-	"ETIMEDOUT",
-	"ECONNREFUSED",
-	"ECONNRESET",
-];
-
-function isNetworkError(error: Error | string): boolean {
-	const message = typeof error === "string" ? error : error.message;
-	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
-}
 
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
@@ -108,13 +92,13 @@ export function checkForUpdates(): void {
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
-		if (isNetworkError(error)) {
+		if (isTransientNetworkError(error)) {
 			console.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}
 		console.error("[auto-updater] Failed to check for updates:", error);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, getErrorMessage(error));
 	});
 }
 
@@ -156,7 +140,7 @@ export function checkForUpdatesInteractive(): void {
 			}
 		})
 		.catch((error) => {
-			if (isNetworkError(error)) {
+			if (isTransientNetworkError(error)) {
 				console.info("[auto-updater] Network unavailable");
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
@@ -168,7 +152,7 @@ export function checkForUpdatesInteractive(): void {
 				return;
 			}
 			console.error("[auto-updater] Failed to check for updates:", error);
-			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, getErrorMessage(error));
 			dialog.showMessageBox({
 				type: "error",
 				title: "Update Error",
@@ -223,7 +207,7 @@ export function setupAutoUpdater(): void {
 	);
 
 	autoUpdater.on("error", (error) => {
-		if (isNetworkError(error)) {
+		if (isTransientNetworkError(error)) {
 			console.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
@@ -232,7 +216,7 @@ export function setupAutoUpdater(): void {
 			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
 			error?.message || error,
 		);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, getErrorMessage(error));
 	});
 
 	autoUpdater.on("checking-for-update", () => {
