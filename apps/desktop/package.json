@@ -177,7 +177,7 @@
 		"os-locale": "^6.0.2",
 		"pidtree": "^0.6.0",
 		"pidusage": "^4.0.1",
-		"posthog-js": "1.310.1",
+		"posthog-js": "1.352.0",
 		"posthog-node": "^5.24.7",
 		"prebuild-install": "^7.1.1",
 		"react": "19.2.0",

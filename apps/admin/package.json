@@ -29,7 +29,7 @@
 		"import-in-the-middle": "2.0.1",
 		"next": "^16.0.10",
 		"next-themes": "^0.4.6",
-		"posthog-js": "1.310.1",
+		"posthog-js": "1.352.0",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
 		"react-icons": "^5.5.0",
