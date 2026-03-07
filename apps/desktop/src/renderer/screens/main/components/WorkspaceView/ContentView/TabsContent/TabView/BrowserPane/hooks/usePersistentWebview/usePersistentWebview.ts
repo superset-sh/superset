@@ -9,24 +9,111 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 const webviewRegistry = new Map<string, Electron.WebviewTag>();
 /** Tracks paneId → last-registered webContentsId so we can re-register if it changes. */
 const registeredWebContentsIds = new Map<string, number>();
-let hiddenContainer: HTMLDivElement | null = null;
+let persistentContainer: HTMLDivElement | null = null;
 
-function getHiddenContainer(): HTMLDivElement {
-	if (!hiddenContainer) {
-		hiddenContainer = document.createElement("div");
-		hiddenContainer.style.position = "fixed";
-		hiddenContainer.style.left = "-9999px";
-		hiddenContainer.style.top = "-9999px";
-		hiddenContainer.style.width = "100vw";
-		hiddenContainer.style.height = "100vh";
-		hiddenContainer.style.overflow = "hidden";
-		hiddenContainer.style.pointerEvents = "none";
-		document.body.appendChild(hiddenContainer);
+/** Lazily creates a 0×0 fixed container on `<body>` that holds all webviews. */
+function getPersistentContainer(): HTMLDivElement {
+	if (!persistentContainer) {
+		persistentContainer = document.createElement("div");
+		// Deliberately 0×0 with overflow:visible — avoids pointer-events:none which
+		// causes Electron's compositor to skip the entire subtree for input routing.
+		persistentContainer.style.position = "fixed";
+		persistentContainer.style.top = "0";
+		persistentContainer.style.left = "0";
+		persistentContainer.style.width = "0";
+		persistentContainer.style.height = "0";
+		persistentContainer.style.overflow = "visible";
+		document.body.appendChild(persistentContainer);
 	}
-	return hiddenContainer;
+	return persistentContainer;
 }
 
-/** Call from useBrowserLifecycle when a pane is removed. */
+/**
+ * The webview lives outside the <app> React tree, so every ancestor of the
+ * React placeholder div intercepts pointer events before they reach it.
+ * This walks from `container` up to <app>, setting pointer-events:none on
+ * each ancestor and pointer-events:auto on their siblings.
+ *
+ * Uses ref-counting so multiple browser panes in a mosaic split can share
+ * ancestors safely — the original value is only restored when the last
+ * pane releases its hold on the element.
+ */
+const pointerEventsRefCounts = new WeakMap<
+	HTMLElement,
+	{ noneCount: number; autoCount: number; original: string }
+>();
+
+/** Ref-count a pointer-events override on `el`; `"none"` always wins over `"auto"`. */
+function acquirePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
+	let entry = pointerEventsRefCounts.get(el);
+	if (!entry) {
+		entry = { noneCount: 0, autoCount: 0, original: el.style.pointerEvents };
+		pointerEventsRefCounts.set(el, entry);
+	}
+	if (value === "none") entry.noneCount++;
+	else entry.autoCount++;
+	// "none" wins — if any pane needs the element transparent, it must be
+	el.style.pointerEvents = entry.noneCount > 0 ? "none" : "auto";
+}
+
+/** Release a previously acquired pointer-events override; restores original when all refs drop. */
+function releasePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
+	const entry = pointerEventsRefCounts.get(el);
+	if (!entry) return;
+	if (value === "none") entry.noneCount--;
+	else entry.autoCount--;
+	if (entry.noneCount <= 0 && entry.autoCount <= 0) {
+		el.style.pointerEvents = entry.original;
+		pointerEventsRefCounts.delete(el);
+	} else {
+		el.style.pointerEvents = entry.noneCount > 0 ? "none" : "auto";
+	}
+}
+
+function createPointerEventsHole(container: HTMLElement): () => void {
+	const appElement = document.querySelector("app");
+	if (!appElement) return () => {};
+
+	const touched: Array<{ el: HTMLElement; value: "none" | "auto" }> = [];
+
+	let current: HTMLElement | null = container;
+	while (current) {
+		acquirePointerEvents(current, "none");
+		touched.push({ el: current, value: "none" });
+
+		if (current.parentElement) {
+			for (const sibling of Array.from(current.parentElement.children)) {
+				if (sibling !== current && sibling instanceof HTMLElement) {
+					acquirePointerEvents(sibling, "auto");
+					touched.push({ el: sibling, value: "auto" });
+				}
+			}
+		}
+
+		if (current === appElement) break;
+		current = current.parentElement as HTMLElement | null;
+	}
+
+	return () => {
+		for (const { el, value } of touched) {
+			releasePointerEvents(el, value);
+		}
+	};
+}
+
+/** Copies the container's bounding rect onto the fixed-position webview. */
+function syncBounds(
+	webview: Electron.WebviewTag,
+	container: HTMLElement,
+): void {
+	const rect = container.getBoundingClientRect();
+	webview.style.top = `${rect.top}px`;
+	webview.style.left = `${rect.left}px`;
+	webview.style.width = `${rect.width}px`;
+	webview.style.height = `${rect.height}px`;
+}
+
+/** Removes the webview element and cleans up registry entries for a closed pane. */
 export function destroyPersistentWebview(paneId: string): void {
 	const webview = webviewRegistry.get(paneId);
 	if (webview) {
@@ -40,6 +127,7 @@ export function destroyPersistentWebview(paneId: string): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Normalises user input into a loadable URL (adds protocol or falls back to Google search). */
 function sanitizeUrl(url: string): string {
 	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
 		return url;
@@ -62,6 +150,11 @@ interface UsePersistentWebviewOptions {
 	initialUrl: string;
 }
 
+/**
+ * Manages a persistent `<webview>` that lives outside the React tree to avoid
+ * reload-on-reparent. Syncs position via `ResizeObserver` and punches a
+ * pointer-events hole through ancestors so the webview receives input.
+ */
 export function usePersistentWebview({
 	paneId,
 	initialUrl,
@@ -132,26 +225,36 @@ export function usePersistentWebview({
 		let webview = webviewRegistry.get(paneId);
 
 		if (webview) {
-			// Reclaim from hidden container
-			container.appendChild(webview);
 			syncStoreFromWebview(webview);
 		} else {
-			// Create new webview
 			webview = document.createElement("webview") as Electron.WebviewTag;
 			webview.setAttribute("partition", "persist:superset");
 			webview.setAttribute("allowpopups", "");
-			webview.style.display = "flex";
-			webview.style.flex = "1";
-			webview.style.width = "100%";
-			webview.style.height = "100%";
+			webview.style.position = "fixed";
+			webview.style.zIndex = "1000";
+			webview.style.visibility = "hidden";
+			webview.style.pointerEvents = "none";
 			webview.style.border = "none";
 
 			webviewRegistry.set(paneId, webview);
-			container.appendChild(webview);
+			getPersistentContainer().appendChild(webview);
 
-			const finalUrl = sanitizeUrl(initialUrlRef.current);
-			webview.src = finalUrl;
+			webview.src = sanitizeUrl(initialUrlRef.current);
 		}
+
+		webview.style.visibility = "visible";
+		webview.style.pointerEvents = "auto";
+		syncBounds(webview, container);
+
+		const restorePointerEvents = createPointerEventsHole(container);
+
+		const resizeObserver = new ResizeObserver(() => {
+			const wvRef = webviewRegistry.get(paneId);
+			if (wvRef && containerRef.current) {
+				syncBounds(wvRef, containerRef.current);
+			}
+		});
+		resizeObserver.observe(container);
 
 		const wv = webview;
 
@@ -293,7 +396,7 @@ export function usePersistentWebview({
 		);
 		wv.addEventListener("did-fail-load", handleDidFailLoad as EventListener);
 
-		// -- Cleanup: park in hidden container -----------------------------
+		// -- Cleanup: hide webview, disconnect observer --------------------
 
 		return () => {
 			wv.removeEventListener("dom-ready", handleDomReady);
@@ -320,7 +423,10 @@ export function usePersistentWebview({
 				handleDidFailLoad as EventListener,
 			);
 
-			getHiddenContainer().appendChild(wv);
+			wv.style.visibility = "hidden";
+			wv.style.pointerEvents = "none";
+			resizeObserver.disconnect();
+			restorePointerEvents();
 		};
 		// paneId is stable for the lifetime of a pane; initialUrlRef only used on first create.
 	}, [paneId, registerBrowser, syncStoreFromWebview, upsertHistory]);
