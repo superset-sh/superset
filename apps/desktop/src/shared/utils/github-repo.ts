@@ -1,9 +1,51 @@
 const GITHUB_PR_HOSTS = new Set(["github.com", "www.github.com"]);
 
+export interface GitHubRepoRef {
+	owner: string;
+	repoName: string;
+	fullName: string;
+	repoUrl: string;
+}
+
 export interface ParsedGitHubPrUrl {
 	owner: string;
 	repo: string;
 	number: number;
+}
+
+export function getRepoNameFromPath(
+	mainRepoPath: string | null,
+): string | null {
+	if (!mainRepoPath) {
+		return null;
+	}
+
+	const normalizedPath = mainRepoPath.replace(/[\\/]+$/, "");
+	if (!normalizedPath) {
+		return null;
+	}
+
+	const segments = normalizedPath.split(/[\\/]/).filter(Boolean);
+	return segments.at(-1) ?? null;
+}
+
+export function getGitHubRepoRef(input: {
+	githubOwner: string | null;
+	githubRepoName?: string | null;
+	mainRepoPath: string | null;
+}): GitHubRepoRef | null {
+	const repoName =
+		input.githubRepoName ?? getRepoNameFromPath(input.mainRepoPath);
+	if (!input.githubOwner || !repoName) {
+		return null;
+	}
+
+	return {
+		owner: input.githubOwner,
+		repoName,
+		fullName: `${input.githubOwner}/${repoName}`,
+		repoUrl: `https://github.com/${input.githubOwner}/${repoName}`,
+	};
 }
 
 export function parseGitHubPrUrl(url: string): ParsedGitHubPrUrl | null {
@@ -48,20 +90,4 @@ export function toCanonicalGitHubPrUrl(
 	}
 
 	return `https://github.com/${parsed.owner}/${parsed.repo}/pull/${parsed.number}`;
-}
-
-export function getRepoNameFromPath(
-	mainRepoPath: string | null,
-): string | null {
-	if (!mainRepoPath) {
-		return null;
-	}
-
-	const normalizedPath = mainRepoPath.replace(/[\\/]+$/, "");
-	if (!normalizedPath) {
-		return null;
-	}
-
-	const segments = normalizedPath.split(/[\\/]/).filter(Boolean);
-	return segments.at(-1) ?? null;
 }

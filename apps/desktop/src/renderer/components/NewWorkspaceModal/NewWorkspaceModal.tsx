@@ -125,6 +125,7 @@ export function NewWorkspaceModal() {
 					<PullRequestsGroup
 						projectId={selectedProjectId}
 						githubOwner={selectedProject?.githubOwner ?? null}
+						githubRepoName={selectedProject?.githubRepoName ?? null}
 						mainRepoPath={selectedProject?.mainRepoPath ?? null}
 						searchQuery={searchQuery}
 						onClose={closeModal}

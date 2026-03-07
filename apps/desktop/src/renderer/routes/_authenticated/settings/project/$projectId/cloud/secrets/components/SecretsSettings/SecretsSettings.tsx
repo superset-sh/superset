@@ -6,6 +6,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { getGitHubRepoRef } from "shared/utils/github-repo";
 import { SettingsSection } from "../../../../components/ProjectSettings";
 import { AddSecretSheet } from "./components/AddSecretSheet";
 import { EditSecretDialog } from "./components/EditSecretDialog";
@@ -48,11 +49,12 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 
 	const suggestedMatch = useMemo(() => {
 		if (!project || project.neonProjectId || !cloudProjects) return null;
-		const repoName = project.mainRepoPath.split("/").pop();
-		if (!repoName || !project.githubOwner) return null;
+		const repoRef = getGitHubRepoRef(project);
+		if (!repoRef) return null;
 		return cloudProjects.find(
 			(cloud) =>
-				cloud.repoOwner === project.githubOwner && cloud.repoName === repoName,
+				cloud.repoOwner === repoRef.owner &&
+				cloud.repoName === repoRef.repoName,
 		);
 	}, [project, cloudProjects]);
 
@@ -80,19 +82,19 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const handleCreateCloudProject = useCallback(async () => {
-		if (!project || !organizationId || !project.githubOwner) return;
-		const repoName = project.mainRepoPath.split("/").pop();
-		if (!repoName) return;
+		if (!project || !organizationId) return;
+		const repoRef = getGitHubRepoRef(project);
+		if (!repoRef) return;
 
 		setIsCreatingCloud(true);
 		try {
 			const cloudProject = await apiTrpcClient.project.create.mutate({
 				organizationId,
 				name: project.name,
-				slug: repoName.toLowerCase(),
-				repoOwner: project.githubOwner,
-				repoName,
-				repoUrl: `https://github.com/${project.githubOwner}/${repoName}`,
+				slug: repoRef.repoName.toLowerCase(),
+				repoOwner: repoRef.owner,
+				repoName: repoRef.repoName,
+				repoUrl: repoRef.repoUrl,
 			});
 			linkToNeon.mutate({
 				id: projectId,

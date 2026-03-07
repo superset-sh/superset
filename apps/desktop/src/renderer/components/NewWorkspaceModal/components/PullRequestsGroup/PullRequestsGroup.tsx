@@ -17,14 +17,15 @@ import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
-	getRepoNameFromPath,
+	getGitHubRepoRef,
 	parseGitHubPrUrl,
 	toCanonicalGitHubPrUrl,
-} from "./pullRequestUtils";
+} from "shared/utils/github-repo";
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
 	githubOwner: string | null;
+	githubRepoName: string | null;
 	mainRepoPath: string | null;
 	searchQuery: string;
 	onClose: () => void;
@@ -33,6 +34,7 @@ interface PullRequestsGroupProps {
 export function PullRequestsGroup({
 	projectId,
 	githubOwner,
+	githubRepoName,
 	mainRepoPath,
 	searchQuery,
 	onClose,
@@ -41,9 +43,9 @@ export function PullRequestsGroup({
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
-	const repoName = useMemo(
-		() => getRepoNameFromPath(mainRepoPath),
-		[mainRepoPath],
+	const repoRef = useMemo(
+		() => getGitHubRepoRef({ githubOwner, githubRepoName, mainRepoPath }),
+		[githubOwner, githubRepoName, mainRepoPath],
 	);
 
 	// Match GitHub repository by owner + name from the local project
@@ -53,14 +55,14 @@ export function PullRequestsGroup({
 				.from({ repos: collections.githubRepositories })
 				.where(({ repos }) =>
 					and(
-						eq(repos.owner, githubOwner ?? ""),
-						eq(repos.name, repoName ?? ""),
+						eq(repos.owner, repoRef?.owner ?? ""),
+						eq(repos.name, repoRef?.repoName ?? ""),
 					),
 				)
 				.select(({ repos }) => ({
 					id: repos.id,
 				})),
-		[collections, githubOwner, repoName],
+		[collections, repoRef],
 	);
 
 	const githubRepositoryId = repoData?.[0]?.id ?? null;

@@ -42,7 +42,7 @@ import {
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
-import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
+import { fetchGitHubRepoIdentity, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
 
@@ -1089,7 +1089,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return null;
 				}
 
-				if (project.githubOwner) {
+				if (project.githubOwner && project.githubRepoName) {
 					console.log(
 						"[getGitHubAvatar] Using cached owner:",
 						project.githubOwner,
@@ -1101,21 +1101,34 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				console.log(
-					"[getGitHubAvatar] Fetching owner for:",
+					"[getGitHubAvatar] Fetching repo identity for:",
 					project.mainRepoPath,
 				);
-				const owner = await fetchGitHubOwner(project.mainRepoPath);
+				const repoIdentity = await fetchGitHubRepoIdentity(
+					project.mainRepoPath,
+				);
+
+				const owner = repoIdentity?.owner ?? project.githubOwner;
+				const repoName = repoIdentity?.repoName ?? project.githubRepoName;
 
 				if (!owner) {
-					console.log("[getGitHubAvatar] Failed to fetch owner");
-					return null;
+					console.log("[getGitHubAvatar] Failed to fetch repo identity");
+					return project.githubOwner
+						? {
+								owner: project.githubOwner,
+								avatarUrl: getGitHubAvatarUrl(project.githubOwner),
+							}
+						: null;
 				}
 
-				console.log("[getGitHubAvatar] Fetched owner:", owner);
+				console.log("[getGitHubAvatar] Fetched repo identity:", {
+					owner,
+					repoName,
+				});
 
 				localDb
 					.update(projects)
-					.set({ githubOwner: owner })
+					.set({ githubOwner: owner, githubRepoName: repoName ?? null })
 					.where(eq(projects.id, input.id))
 					.run();
 
