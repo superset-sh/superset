@@ -8,10 +8,6 @@ import {
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
-import {
-	AGENT_PRESET_COMMANDS,
-	AGENT_PRESET_DESCRIPTIONS,
-} from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
@@ -40,9 +36,10 @@ import {
 	transformFontSettings,
 } from "./font-settings.utils";
 import {
-	normalizeTerminalPresets,
-	type PresetWithUnknownMode,
-} from "./preset-execution-mode";
+	getNormalizedTerminalPresets,
+	getTerminalPresetsEnsuringInitialized,
+	saveTerminalPresets,
+} from "./preset-store";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -64,67 +61,18 @@ function getSettings() {
 	return row;
 }
 
-function readRawTerminalPresets(): PresetWithUnknownMode[] {
-	const row = getSettings();
-	return (row.terminalPresets ?? []) as PresetWithUnknownMode[];
-}
-
-function getNormalizedTerminalPresets() {
-	const rawPresets = readRawTerminalPresets();
-	return normalizeTerminalPresets(rawPresets);
-}
-
-function saveTerminalPresets(
-	presets: TerminalPreset[],
-	options?: { terminalPresetsInitialized?: boolean },
-) {
-	const values = { id: 1, terminalPresets: presets, ...options };
-	localDb
-		.insert(settings)
-		.values(values)
-		.onConflictDoUpdate({
-			target: settings.id,
-			set: { terminalPresets: presets, ...options },
-		})
-		.run();
-}
-
-const DEFAULT_PRESET_AGENTS = [
-	"claude",
-	"codex",
-	"copilot",
-	"opencode",
-	"gemini",
-] as const;
-
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
-	(name) => ({
-		name,
-		description: AGENT_PRESET_DESCRIPTIONS[name],
-		cwd: "",
-		commands: AGENT_PRESET_COMMANDS[name],
-	}),
-);
-
-function initializeDefaultPresets() {
-	const row = getSettings();
-	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
-
-	const existingPresets = getNormalizedTerminalPresets();
-
-	const mergedPresets =
-		existingPresets.length > 0
-			? existingPresets
-			: DEFAULT_PRESETS.map((p) => ({
-					id: crypto.randomUUID(),
-					...p,
-					executionMode: p.executionMode ?? "split-pane",
-				}));
-
-	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
-
-	return mergedPresets;
-}
+const terminalPresetSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	description: z.string().optional(),
+	cwd: z.string(),
+	commands: z.array(z.string()),
+	pinnedToBar: z.boolean().optional(),
+	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: z.enum(EXECUTION_MODES).optional(),
+});
 
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
 export function getPresetsForTrigger(
@@ -139,13 +87,21 @@ export function getPresetsForTrigger(
 
 export const createSettingsRouter = () => {
 	return router({
-		getTerminalPresets: publicProcedure.query(() => {
-			const row = getSettings();
-			if (!row.terminalPresetsInitialized) {
-				return initializeDefaultPresets();
-			}
-			return getNormalizedTerminalPresets();
-		}),
+		getTerminalPresets: publicProcedure.query(() =>
+			getTerminalPresetsEnsuringInitialized(),
+		),
+		replaceTerminalPresets: publicProcedure
+			.input(
+				z.object({
+					presets: z.array(terminalPresetSchema),
+				}),
+			)
+			.mutation(({ input }) => {
+				saveTerminalPresets(input.presets, {
+					terminalPresetsInitialized: true,
+				});
+				return { success: true };
+			}),
 		createTerminalPreset: publicProcedure
 			.input(
 				z.object({

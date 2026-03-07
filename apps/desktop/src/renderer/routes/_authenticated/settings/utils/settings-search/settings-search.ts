@@ -484,7 +484,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
 		title: "Terminal Presets",
-		description: "Manage your terminal presets",
+		description:
+			"Manage terminal presets and import/export ~/.superset/presets.json",
 		keywords: [
 			"terminal",
 			"preset",
@@ -497,6 +498,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"config",
 			"shell",
 			"run",
+			"import",
+			"export",
+			"share",
+			"sharing",
+			".superset",
+			"presets.json",
 		],
 	},
 	{
