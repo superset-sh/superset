@@ -7,6 +7,7 @@ import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -67,7 +68,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					referenceId: activeOrgId,
 					annual,
 					seats: memberCount,
-					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					successUrl: `${PROTOCOL_SCHEME}://settings/billing?success=true`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
 				},
