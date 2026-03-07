@@ -98,6 +98,10 @@ describe("normalizeUrl", () => {
 		expect(normalizeUrl("[::1]:4000")).toBe("http://[::1]:4000");
 	});
 
+	test("prepends https:// to non-loopback IPv6", () => {
+		expect(normalizeUrl("[2001:db8::1]:8080")).toBe("https://[2001:db8::1]:8080");
+	});
+
 	test("trims whitespace before normalizing", () => {
 		expect(normalizeUrl("  github.com  ")).toBe("https://github.com");
 	});

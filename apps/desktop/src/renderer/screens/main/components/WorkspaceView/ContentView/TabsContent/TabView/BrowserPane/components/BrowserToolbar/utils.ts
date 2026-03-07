@@ -12,7 +12,11 @@ const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /** Extract the bare hostname from a schemeless input like `localhost:3000/path`. */
 function extractHost(input: string): string {
-	if (input.startsWith("[")) return "[::1]"; // IPv6
+	if (input.startsWith("[")) {
+		// IPv6 bracketed address — extract up to the closing bracket
+		const end = input.indexOf("]");
+		return end !== -1 ? input.slice(0, end + 1) : input;
+	}
 	return input.split("/")[0].split(":")[0];
 }
 
