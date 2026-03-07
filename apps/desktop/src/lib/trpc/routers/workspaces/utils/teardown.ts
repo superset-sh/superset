@@ -58,7 +58,8 @@ export async function runTeardown({
 		const output = await new Promise<string>((resolve, reject) => {
 			const child = spawn(shell, args, {
 				cwd: worktreePath,
-				detached: true,
+				detached: process.platform !== "win32",
+			...(process.platform === "win32" ? { windowsHide: true } : {}),
 				stdio: ["ignore", "pipe", "pipe"],
 				env: {
 					...baseEnv,
@@ -112,7 +113,15 @@ export async function runTeardown({
 						`[teardown] Timed out after ${TEARDOWN_TIMEOUT_MS}ms, killing process group`,
 					);
 					try {
-						if (child.pid) process.kill(-child.pid, "SIGKILL");
+						if (child.pid) {
+						if (process.platform === "win32") {
+							// Windows: can't use negative PID for process group kill
+							const { default: treeKill } = await import("tree-kill");
+							treeKill(child.pid, "SIGKILL");
+						} else {
+							process.kill(-child.pid, "SIGKILL");
+						}
+					}
 					} catch {}
 					reject(
 						new Error(`Teardown timed out after ${TEARDOWN_TIMEOUT_MS}ms`),
