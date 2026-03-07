@@ -61,13 +61,33 @@ export class ChatService {
 	}
 
 	getAnthropicAuthStatus(): AuthStatus {
-		const externalCredential = this.getExternalAnthropicCredential();
+		const configCredential = getAnthropicCredentialsFromConfig();
+		const keychainCredential = getAnthropicCredentialsFromKeychain();
+		const runtimeCredential = this.getExternalAnthropicRuntimeCredential();
+		const externalCredential =
+			configCredential ?? keychainCredential ?? runtimeCredential;
 		if (externalCredential) {
-			return {
+			const status: AuthStatus = {
 				authenticated: true,
 				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
 				source: "external",
 			};
+			this.logAuthResolution("anthropic", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalConfigFound: Boolean(configCredential),
+				externalConfigKind: configCredential?.kind ?? null,
+				externalKeychainFound: Boolean(keychainCredential),
+				externalKeychainKind: keychainCredential?.kind ?? null,
+				externalRuntimeFound: Boolean(runtimeCredential),
+				externalRuntimeKind: runtimeCredential?.kind ?? null,
+				storageMethod: null,
+				hasEnvConfig: false,
+				managedRuntimeEnvKeys: Object.keys(
+					this.currentAnthropicRuntimeEnv,
+				).sort(),
+			});
+			return status;
 		}
 
 		const storageMethod = resolveAuthMethodForProvider(
@@ -78,36 +98,123 @@ export class ChatService {
 		const hasEnvConfig =
 			Object.keys(this.getAnthropicEnvConfig().variables).length > 0;
 		if (hasEnvConfig) {
-			return { authenticated: true, method: "env", source: "managed" };
+			const status: AuthStatus = {
+				authenticated: true,
+				method: "env",
+				source: "managed",
+			};
+			this.logAuthResolution("anthropic", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalConfigFound: false,
+				externalKeychainFound: false,
+				externalRuntimeFound: false,
+				storageMethod,
+				hasEnvConfig,
+				managedRuntimeEnvKeys: Object.keys(
+					this.currentAnthropicRuntimeEnv,
+				).sort(),
+			});
+			return status;
 		}
 		if (storageMethod === "oauth") {
-			return { authenticated: true, method: "oauth", source: "managed" };
+			const status: AuthStatus = {
+				authenticated: true,
+				method: "oauth",
+				source: "managed",
+			};
+			this.logAuthResolution("anthropic", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalConfigFound: false,
+				externalKeychainFound: false,
+				externalRuntimeFound: false,
+				storageMethod,
+				hasEnvConfig,
+				managedRuntimeEnvKeys: Object.keys(
+					this.currentAnthropicRuntimeEnv,
+				).sort(),
+			});
+			return status;
 		}
 		if (storageMethod === "api_key") {
-			return { authenticated: true, method: "api_key", source: "managed" };
+			const status: AuthStatus = {
+				authenticated: true,
+				method: "api_key",
+				source: "managed",
+			};
+			this.logAuthResolution("anthropic", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalConfigFound: false,
+				externalKeychainFound: false,
+				externalRuntimeFound: false,
+				storageMethod,
+				hasEnvConfig,
+				managedRuntimeEnvKeys: Object.keys(
+					this.currentAnthropicRuntimeEnv,
+				).sort(),
+			});
+			return status;
 		}
-		return { authenticated: false, method: null, source: null };
+		const status: AuthStatus = {
+			authenticated: false,
+			method: null,
+			source: null,
+		};
+		this.logAuthResolution("anthropic", {
+			resolvedMethod: status.method,
+			resolvedSource: status.source,
+			externalConfigFound: false,
+			externalKeychainFound: false,
+			externalRuntimeFound: false,
+			storageMethod,
+			hasEnvConfig,
+			managedRuntimeEnvKeys: Object.keys(
+				this.currentAnthropicRuntimeEnv,
+			).sort(),
+		});
+		return status;
 	}
 
 	async getOpenAIAuthStatus(): Promise<AuthStatus> {
 		const externalCredential = getOpenAICredentialsFromRuntimeEnv();
 		if (externalCredential) {
-			return {
+			const status: AuthStatus = {
 				authenticated: true,
 				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
 				source: "external",
 			};
+			this.logAuthResolution("openai", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalRuntimeFound: true,
+				externalRuntimeKind: externalCredential.kind,
+				storageMethod: null,
+				hasOpenAIApiKeyEnv: Boolean(process.env.OPENAI_API_KEY?.trim()),
+				hasOpenAIAuthTokenEnv: Boolean(process.env.OPENAI_AUTH_TOKEN?.trim()),
+			});
+			return status;
 		}
 
 		const method = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			OPENAI_AUTH_PROVIDER_ID,
 		);
-		return {
+		const status: AuthStatus = {
 			authenticated: method !== null,
 			method,
 			source: method !== null ? "managed" : null,
 		};
+		this.logAuthResolution("openai", {
+			resolvedMethod: status.method,
+			resolvedSource: status.source,
+			externalRuntimeFound: false,
+			storageMethod: method,
+			hasOpenAIApiKeyEnv: Boolean(process.env.OPENAI_API_KEY?.trim()),
+			hasOpenAIAuthTokenEnv: Boolean(process.env.OPENAI_AUTH_TOKEN?.trim()),
+		});
+		return status;
 	}
 
 	async setOpenAIApiKey(input: { apiKey: string }): Promise<{ success: true }> {
@@ -140,6 +247,11 @@ export class ChatService {
 		if (credential?.type === "oauth") {
 			clearCredentialForProvider(authStorage, OPENAI_AUTH_PROVIDER_ID);
 		}
+		this.logAuthResolution("openai", {
+			event: "disconnect-oauth",
+			storedCredentialType: credential?.type ?? null,
+			removed: credential?.type === "oauth",
+		});
 		return { success: true };
 	}
 
@@ -234,6 +346,11 @@ export class ChatService {
 			});
 			this.applyAnthropicRuntimeEnv(config.variables);
 		}
+		this.logAuthResolution("anthropic", {
+			event: "disconnect-oauth",
+			storedCredentialType: credential?.type ?? null,
+			removed: credential?.type === "oauth",
+		});
 		return { success: true };
 	}
 
@@ -398,15 +515,14 @@ export class ChatService {
 		});
 	}
 
-	private getExternalAnthropicCredential():
-		| ReturnType<typeof getAnthropicCredentialsFromConfig>
-		| ReturnType<typeof getAnthropicCredentialsFromKeychain>
-		| ReturnType<typeof getAnthropicCredentialsFromRuntimeEnv> {
-		return (
-			getAnthropicCredentialsFromConfig() ??
-			getAnthropicCredentialsFromKeychain() ??
-			this.getExternalAnthropicRuntimeCredential()
-		);
+	private logAuthResolution(
+		provider: "anthropic" | "openai",
+		details: Record<string, unknown>,
+	): void {
+		console.info("[chat-service][auth-resolution]", {
+			provider,
+			...details,
+		});
 	}
 
 	private getExternalAnthropicRuntimeCredential() {
