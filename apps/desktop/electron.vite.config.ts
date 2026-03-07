@@ -229,6 +229,7 @@ export default defineConfig({
 			tailwindcss(),
 			codeInspectorPlugin({
 				bundler: "vite",
+				editor: process.env.CODE_EDITOR || "code",
 				hotKeys: ["altKey"],
 				hideConsole: true,
 				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,

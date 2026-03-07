@@ -327,6 +327,15 @@ export function FileViewerContent({
 					value={draftContentRef.current ?? rawFileData.content}
 					onChange={onEditorChange}
 					onSave={() => {
+						console.debug("[FileViewerContent] onSave", {
+							filePath,
+							editorValueLength: editorRef.current?.getValue().length ?? null,
+							editorValueTail: editorRef.current?.getValue().slice(-80) ?? null,
+							draftContentLength: draftContentRef.current?.length ?? null,
+							draftContentTail: draftContentRef.current?.slice(-80) ?? null,
+							rawContentLength: rawFileData.content.length,
+							rawContentTail: rawFileData.content.slice(-80),
+						});
 						void onSaveRaw();
 					}}
 					editorRef={editorRef}

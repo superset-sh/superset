@@ -19,15 +19,38 @@ export function useFileDiffEdit({
 
 	const utils = electronTrpc.useUtils();
 	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
+		onMutate: (variables) => {
+			console.debug("[useFileDiffEdit] mutate", {
+				filePath: variables.filePath,
+				contentLength: variables.content.length,
+				contentTail: variables.content.slice(-80),
+			});
+		},
 		onSuccess: () => {
+			console.debug("[useFileDiffEdit] success", {
+				filePath,
+			});
 			utils.changes.getFileContents.invalidate();
 			utils.changes.getStatus.invalidate();
+		},
+		onError: (error, variables) => {
+			console.error("[useFileDiffEdit] error", {
+				filePath: variables.filePath,
+				contentLength: variables.content.length,
+				contentTail: variables.content.slice(-80),
+				error,
+			});
 		},
 	});
 
 	const handleSave = useCallback(
 		(content: string) => {
 			if (!worktreePath || !filePath) return;
+			console.debug("[useFileDiffEdit] handleSave", {
+				filePath,
+				contentLength: content.length,
+				contentTail: content.slice(-80),
+			});
 			saveFileMutation.mutate({ worktreePath, filePath, content });
 		},
 		[worktreePath, filePath, saveFileMutation],

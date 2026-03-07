@@ -62,6 +62,11 @@ function isGeneratedFile(filePath: string): boolean {
 	);
 }
 
+function getDebugTail(value: string | null | undefined): string | null {
+	if (value == null) return null;
+	return value.slice(-80);
+}
+
 export function FileDiffSection({
 	file,
 	category,
@@ -313,17 +318,35 @@ export function FileDiffSection({
 									value={editedContent ?? diffData.modified}
 									language={detectLanguage(file.path)}
 									onChange={(value) => {
+										console.debug("[FileDiffSection] onChange", {
+											filePath: file.path,
+											nextLength: value.length,
+											nextTail: getDebugTail(value),
+										});
 										setEditedContent(value);
 									}}
-									onSave={() =>
-										handleSave(
-											getFileDiffSaveContent({
-												editorValue: editorRef.current?.getValue(),
-												editedContent,
-												modifiedContent: diffData.modified,
-											}),
-										)
-									}
+									onSave={() => {
+										const editorValue = editorRef.current?.getValue();
+										const saveContent = getFileDiffSaveContent({
+											editorValue,
+											editedContent,
+											modifiedContent: diffData.modified,
+										});
+
+										console.debug("[FileDiffSection] onSave", {
+											filePath: file.path,
+											editorValueLength: editorValue?.length ?? null,
+											editorValueTail: getDebugTail(editorValue),
+											editedContentLength: editedContent?.length ?? null,
+											editedContentTail: getDebugTail(editedContent),
+											modifiedContentLength: diffData.modified.length,
+											modifiedContentTail: getDebugTail(diffData.modified),
+											saveContentLength: saveContent.length,
+											saveContentTail: getDebugTail(saveContent),
+										});
+
+										handleSave(saveContent);
+									}}
 									editorRef={editorRef}
 									fillHeight={false}
 								/>
