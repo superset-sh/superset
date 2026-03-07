@@ -482,16 +482,23 @@ export function ChatMastraInterface({
 
 	const visibleMessages = useMemo(() => {
 		if (pendingRestartUserMessage) {
+			const restartBaseMessages =
+				sessionId === null
+					? messages
+					: (chatMastraServiceTrpcUtils.session.listMessages.getData({
+							sessionId,
+							...(cwd ? { cwd } : {}),
+						}) ?? messages);
 			if (
 				!hasMatchingUserMessage({
-					messages,
+					messages: restartBaseMessages,
 					candidate: pendingRestartUserMessage.message,
 				})
 			) {
 				const anchorMessageIndex =
 					pendingRestartUserMessage.anchorMessageId === null
 						? -1
-						: messages.findIndex(
+						: restartBaseMessages.findIndex(
 								(message) =>
 									message.id === pendingRestartUserMessage.anchorMessageId,
 							);
@@ -500,7 +507,7 @@ export function ChatMastraInterface({
 					anchorMessageIndex >= 0
 				) {
 					return [
-						...messages.slice(0, anchorMessageIndex + 1),
+						...restartBaseMessages.slice(0, anchorMessageIndex + 1),
 						pendingRestartUserMessage.message,
 					];
 				}
@@ -516,7 +523,14 @@ export function ChatMastraInterface({
 			return messages;
 		}
 		return [...messages, pendingImmediateUserMessage];
-	}, [messages, pendingImmediateUserMessage, pendingRestartUserMessage]);
+	}, [
+		chatMastraServiceTrpcUtils.session.listMessages,
+		cwd,
+		messages,
+		pendingImmediateUserMessage,
+		pendingRestartUserMessage,
+		sessionId,
+	]);
 	const isAwaitingAssistant =
 		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
