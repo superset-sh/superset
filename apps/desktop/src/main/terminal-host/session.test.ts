@@ -42,7 +42,7 @@ describe("Terminal Host Session shell args", () => {
 		spawnCalls = [];
 	});
 
-	it("sends bash --rcfile args in spawn payload", () => {
+	it.skipIf(process.platform === "win32")("sends bash --rcfile args in spawn payload", () => {
 		const session = new Session({
 			sessionId: "session-bash-args",
 			workspaceId: "workspace-1",
