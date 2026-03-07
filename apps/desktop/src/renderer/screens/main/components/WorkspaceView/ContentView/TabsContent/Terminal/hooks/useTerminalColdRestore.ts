@@ -19,6 +19,7 @@ export interface UseTerminalColdRestoreOptions {
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
+	hasReceivedStreamDataSinceAttachRef: React.MutableRefObject<boolean>;
 	isFocusedRef: React.MutableRefObject<boolean>;
 	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
@@ -57,6 +58,7 @@ export function useTerminalColdRestore({
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
+	hasReceivedStreamDataSinceAttachRef,
 	isFocusedRef,
 	didFirstRenderRef,
 	pendingInitialStateRef,
@@ -82,6 +84,7 @@ export function useTerminalColdRestore({
 
 		isStreamReadyRef.current = false;
 		pendingInitialStateRef.current = null;
+		hasReceivedStreamDataSinceAttachRef.current = false;
 
 		createOrAttachRef.current(
 			{
@@ -154,6 +157,7 @@ export function useTerminalColdRestore({
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
+		hasReceivedStreamDataSinceAttachRef,
 		isFocusedRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
@@ -187,6 +191,7 @@ export function useTerminalColdRestore({
 		isStreamReadyRef.current = false;
 		isExitedRef.current = false;
 		wasKilledByUserRef.current = false;
+		hasReceivedStreamDataSinceAttachRef.current = false;
 		setExitStatus(null);
 		pendingInitialStateRef.current = null;
 		resetModes();
@@ -237,6 +242,7 @@ export function useTerminalColdRestore({
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
+		hasReceivedStreamDataSinceAttachRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
 		createOrAttachRef,

@@ -88,6 +88,7 @@ export interface UseTerminalLifecycleOptions {
 	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
+	hasReceivedStreamDataSinceAttachRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
 	isFocusedRef: MutableRefObject<boolean>;
 	isRestoredModeRef: MutableRefObject<boolean>;
@@ -150,6 +151,7 @@ export function useTerminalLifecycle({
 	rendererRef,
 	isExitedRef,
 	wasKilledByUserRef,
+	hasReceivedStreamDataSinceAttachRef,
 	commandBufferRef,
 	isFocusedRef,
 	isRestoredModeRef,
@@ -243,6 +245,7 @@ export function useTerminalLifecycle({
 		isStreamReadyRef.current = false;
 		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
+		hasReceivedStreamDataSinceAttachRef.current = false;
 
 		if (isFocusedRef.current) {
 			xterm.focus();
@@ -279,6 +282,7 @@ export function useTerminalLifecycle({
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
 			wasKilledByUserRef.current = false;
+			hasReceivedStreamDataSinceAttachRef.current = false;
 			setExitStatus(null);
 			resetModes();
 			xterm.clear();
@@ -394,6 +398,7 @@ export function useTerminalLifecycle({
 					if (DEBUG_TERMINAL) {
 						console.log(`[Terminal] createOrAttach start: ${paneId}`);
 					}
+					hasReceivedStreamDataSinceAttachRef.current = false;
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -701,6 +706,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		hasReceivedStreamDataSinceAttachRef,
 	]);
 
 	return { xtermInstance, restartTerminal };

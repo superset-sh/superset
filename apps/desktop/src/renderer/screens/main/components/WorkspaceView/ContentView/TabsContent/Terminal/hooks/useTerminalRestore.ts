@@ -13,6 +13,7 @@ export interface UseTerminalRestoreOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
 	fitAddonRef: React.MutableRefObject<FitAddon | null>;
+	hasReceivedStreamDataSinceAttachRef: React.MutableRefObject<boolean>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	isAlternateScreenRef: React.MutableRefObject<boolean>;
 	isBracketedPasteRef: React.MutableRefObject<boolean>;
@@ -53,6 +54,7 @@ export function useTerminalRestore({
 	paneId,
 	xtermRef,
 	fitAddonRef,
+	hasReceivedStreamDataSinceAttachRef,
 	pendingEventsRef,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
@@ -93,6 +95,7 @@ export function useTerminalRestore({
 		);
 		for (const event of events) {
 			if (event.type === "data") {
+				hasReceivedStreamDataSinceAttachRef.current = true;
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
@@ -104,7 +107,7 @@ export function useTerminalRestore({
 				onDisconnectEventRef.current(event.reason);
 			}
 		}
-	}, [xtermRef, pendingEventsRef]);
+	}, [xtermRef, hasReceivedStreamDataSinceAttachRef, pendingEventsRef]);
 
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;

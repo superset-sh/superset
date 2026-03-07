@@ -72,6 +72,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
 	const isExitedRef = useRef(false);
+	const hasReceivedStreamDataSinceAttachRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
 	);
@@ -187,6 +188,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		paneId,
 		xtermRef,
 		fitAddonRef,
+		hasReceivedStreamDataSinceAttachRef,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -216,6 +218,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
+		hasReceivedStreamDataSinceAttachRef,
 		isFocusedRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
@@ -246,6 +249,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			isStreamReadyRef,
 			isExitedRef,
 			wasKilledByUserRef,
+			hasReceivedStreamDataSinceAttachRef,
 			pendingEventsRef,
 			setExitStatus,
 			setConnectionError,
@@ -317,6 +321,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		rendererRef,
 		isExitedRef,
 		wasKilledByUserRef,
+		hasReceivedStreamDataSinceAttachRef,
 		commandBufferRef,
 		isFocusedRef,
 		isRestoredModeRef,
