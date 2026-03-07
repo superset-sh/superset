@@ -18,8 +18,8 @@ import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderSections } from "renderer/react-query/workspaces";
 import {
-	PROJECT_COLORS,
 	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLORS,
 } from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
 import { useSectionDropZone } from "../hooks";
@@ -90,15 +90,14 @@ export function WorkspaceSection({
 		},
 	});
 
-	const setSectionColor =
-		electronTrpc.workspaces.setSectionColor.useMutation({
-			onSuccess: () => {
-				utils.workspaces.getAllGrouped.invalidate();
-			},
-			onError: (error) => {
-				toast.error(`Failed to set color: ${error.message}`);
-			},
-		});
+	const setSectionColor = electronTrpc.workspaces.setSectionColor.useMutation({
+		onSuccess: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+		},
+		onError: (error) => {
+			toast.error(`Failed to set color: ${error.message}`);
+		},
+	});
 
 	const handleColorChange = (newColor: string) => {
 		setSectionColor.mutate({

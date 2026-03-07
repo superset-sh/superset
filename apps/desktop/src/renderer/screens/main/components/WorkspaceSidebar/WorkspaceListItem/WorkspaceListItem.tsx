@@ -679,10 +679,7 @@ export function WorkspaceListItem({
 				<>
 					{sections.length === 0 && <ContextMenuSeparator />}
 					<ContextMenuItem onSelect={handleCreateSectionFromSelection}>
-						<LuFolderPlus
-							className="size-4 mr-2"
-							strokeWidth={STROKE_WIDTH}
-						/>
+						<LuFolderPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Create Section from Selection
 					</ContextMenuItem>
 				</>

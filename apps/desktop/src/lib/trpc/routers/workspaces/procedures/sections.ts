@@ -1,9 +1,22 @@
 import { workspaceSections, workspaces } from "@superset/local-db";
 import { eq, inArray } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import {
+	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLORS,
+} from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { computeNextTabOrder, reorderItems } from "../utils/reorder";
+
+const SECTION_COLORS = PROJECT_COLORS.filter(
+	(c) => c.value !== PROJECT_COLOR_DEFAULT,
+);
+
+function randomSectionColor(): string {
+	return SECTION_COLORS[Math.floor(Math.random() * SECTION_COLORS.length)]
+		.value;
+}
 
 export const createSectionsProcedures = () => {
 	return router({
@@ -31,6 +44,7 @@ export const createSectionsProcedures = () => {
 						projectId: input.projectId,
 						name: input.name,
 						tabOrder: nextTabOrder,
+						color: randomSectionColor(),
 					})
 					.returning()
 					.get();
