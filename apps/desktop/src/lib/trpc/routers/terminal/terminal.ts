@@ -419,8 +419,12 @@ export const createTerminalRouter = () => {
 					try {
 						const tree = await getProcessTree(session.pid);
 						if (tree.length > 1) return true;
-					} catch {
-						continue;
+					} catch (error) {
+						logger.warn(
+							`[hasActiveProcesses] getProcessTree failed for pid=${session.pid}, paneId=${paneId}`,
+							error,
+						);
+						return true;
 					}
 				}
 				return false;
