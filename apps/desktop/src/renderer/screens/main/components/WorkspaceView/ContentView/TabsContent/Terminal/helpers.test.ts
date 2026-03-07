@@ -34,6 +34,7 @@ mock.module("renderer/lib/trpc-client", () => ({
 const {
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
+	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupKeyboardHandler,
 	setupPasteHandler,
@@ -308,6 +309,67 @@ describe("setupCopyHandler", () => {
 		const copyListener = listeners.get("copy");
 		expect(copyListener).toBeDefined();
 		expect(() => copyListener?.(copyEvent)).not.toThrow();
+	});
+});
+
+describe("setupClickToMoveCursor", () => {
+	function createXtermStub() {
+		const listeners = new Map<string, EventListener>();
+		const element = {
+			addEventListener: mock((eventName: string, listener: EventListener) => {
+				listeners.set(eventName, listener);
+			}),
+			removeEventListener: mock((eventName: string) => {
+				listeners.delete(eventName);
+			}),
+		} as unknown as HTMLElement;
+		const focus = mock(() => {});
+		const xterm = {
+			element,
+			focus,
+			buffer: {
+				normal: {},
+				active: {},
+			},
+			hasSelection: mock(() => false),
+			cols: 80,
+			rows: 24,
+		} as unknown as XTerm;
+		return { xterm, listeners, focus };
+	}
+
+	it("focuses terminal on plain left mouse down", () => {
+		const { xterm, listeners, focus } = createXtermStub();
+
+		setupClickToMoveCursor(xterm, { onWrite: mock(() => {}) });
+
+		const mouseDownListener = listeners.get("mousedown");
+		expect(mouseDownListener).toBeDefined();
+		mouseDownListener?.({
+			button: 0,
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+		} as MouseEvent);
+
+		expect(focus).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not force focus on modifier-assisted click", () => {
+		const { xterm, listeners, focus } = createXtermStub();
+
+		setupClickToMoveCursor(xterm, { onWrite: mock(() => {}) });
+
+		const mouseDownListener = listeners.get("mousedown");
+		expect(mouseDownListener).toBeDefined();
+		mouseDownListener?.({
+			button: 0,
+			metaKey: true,
+			ctrlKey: false,
+			altKey: false,
+		} as MouseEvent);
+
+		expect(focus).not.toHaveBeenCalled();
 	});
 });
 
