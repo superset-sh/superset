@@ -6,17 +6,12 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import { HiCheck, HiChevronDown } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
-import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 
 interface ProjectOption {
 	id: string;
 	name: string;
-	color: string;
-	githubOwner: string | null;
-	iconUrl: string | null;
-	hideImage: boolean | null;
 }
 
 interface ProjectSelectorProps {
@@ -25,6 +20,7 @@ interface ProjectSelectorProps {
 	recentProjects: ProjectOption[];
 	onSelectProject: (projectId: string) => void;
 	onImportRepo: () => void;
+	className?: string;
 }
 
 export function ProjectSelector({
@@ -33,45 +29,34 @@ export function ProjectSelector({
 	recentProjects,
 	onSelectProject,
 	onImportRepo,
+	className,
 }: ProjectSelectorProps) {
-	const selectedProject = recentProjects.find(
-		(p) => p.id === selectedProjectId,
-	);
-
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm">
-					{selectedProject && (
-						<ProjectThumbnail
-							projectId={selectedProject.id}
-							projectName={selectedProject.name}
-							projectColor={selectedProject.color}
-							githubOwner={selectedProject.githubOwner}
-							iconUrl={selectedProject.iconUrl}
-							hideImage={selectedProject.hideImage ?? false}
-						/>
-					)}
-					<span className="truncate max-w-[140px]">
+				<Button
+					variant="outline"
+					className={`w-full h-8 text-sm justify-between font-normal min-w-0 ${className ?? ""}`}
+				>
+					<span
+						className={`truncate ${
+							selectedProjectName ? "" : "text-muted-foreground"
+						}`}
+					>
 						{selectedProjectName ?? "Select project"}
 					</span>
-					<HiChevronUpDown className="size-3.5" />
+					<HiChevronDown className="size-4 text-muted-foreground shrink-0" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end">
+			<DropdownMenuContent
+				align="start"
+				className="w-[--radix-dropdown-menu-trigger-width]"
+			>
 				{recentProjects.map((project) => (
 					<DropdownMenuItem
 						key={project.id}
 						onClick={() => onSelectProject(project.id)}
 					>
-						<ProjectThumbnail
-							projectId={project.id}
-							projectName={project.name}
-							projectColor={project.color}
-							githubOwner={project.githubOwner}
-							iconUrl={project.iconUrl}
-							hideImage={project.hideImage ?? false}
-						/>
 						{project.name}
 						{project.id === selectedProjectId && (
 							<HiCheck className="ml-auto size-4" />
