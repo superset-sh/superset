@@ -8,6 +8,11 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import {
+	useClearNewWorkspaceModalInputs,
+	useClearNewWorkspaceModalInputsIfDraftVersion,
+	useNewWorkspaceModalDraftVersion,
+} from "renderer/stores/new-workspace-modal";
 
 interface BranchesGroupProps {
 	projectId: string | null;
@@ -19,6 +24,10 @@ export function BranchesGroup({ projectId, onClose }: BranchesGroupProps) {
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const clearInputs = useClearNewWorkspaceModalInputs();
+	const clearInputsIfDraftVersion =
+		useClearNewWorkspaceModalInputsIfDraftVersion();
+	const draftVersion = useNewWorkspaceModalDraftVersion();
 
 	const { data, isLoading } = electronTrpc.projects.getBranches.useQuery(
 		{ projectId: projectId ?? "" },
@@ -52,29 +61,40 @@ export function BranchesGroup({ projectId, onClose }: BranchesGroupProps) {
 	const handleCreate = useCallback(
 		(branchName: string) => {
 			if (!projectId) return;
+			const submitDraftVersion = draftVersion;
+			const createWorkspacePromise = createBranchWorkspace.mutateAsync({
+				projectId,
+				branch: branchName,
+			});
 			onClose();
-			toast.promise(
-				createBranchWorkspace.mutateAsync({
-					projectId,
-					branch: branchName,
-				}),
-				{
-					loading: "Creating workspace from branch...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-			);
+			toast.promise(createWorkspacePromise, {
+				loading: "Creating workspace from branch...",
+				success: "Workspace created",
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to create workspace",
+			});
+			void createWorkspacePromise
+				.then(() => {
+					clearInputsIfDraftVersion(submitDraftVersion);
+				})
+				.catch(() => undefined);
 		},
-		[projectId, onClose, createBranchWorkspace],
+		[
+			clearInputsIfDraftVersion,
+			createBranchWorkspace,
+			draftVersion,
+			onClose,
+			projectId,
+		],
 	);
 
 	const handleOpen = useCallback(
 		(workspaceId: string) => {
+			clearInputs();
 			onClose();
 			navigateToWorkspace(workspaceId, navigate);
 		},
-		[onClose, navigate],
+		[clearInputs, onClose, navigate],
 	);
 
 	if (!projectId) {

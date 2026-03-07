@@ -17,6 +17,11 @@ import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	useClearNewWorkspaceModalInputs,
+	useClearNewWorkspaceModalInputsIfDraftVersion,
+	useNewWorkspaceModalDraftVersion,
+} from "renderer/stores/new-workspace-modal";
+import {
 	getGitHubRepoRef,
 	parseGitHubPrUrl,
 	toCanonicalGitHubPrUrl,
@@ -47,6 +52,10 @@ export function PullRequestsGroup({
 		() => getGitHubRepoRef({ githubOwner, githubRepoName, mainRepoPath }),
 		[githubOwner, githubRepoName, mainRepoPath],
 	);
+	const clearInputs = useClearNewWorkspaceModalInputs();
+	const clearInputsIfDraftVersion =
+		useClearNewWorkspaceModalInputsIfDraftVersion();
+	const draftVersion = useNewWorkspaceModalDraftVersion();
 
 	// Match GitHub repository by owner + name from the local project
 	const { data: repoData } = useLiveQuery(
@@ -150,21 +159,23 @@ export function PullRequestsGroup({
 						toast.error("Select a project first");
 						return;
 					}
+					const submitDraftVersion = draftVersion;
+					const createWorkspacePromise = createFromPr.mutateAsync({
+						projectId,
+						prUrl: manualPrUrl,
+					});
 					onClose();
-					toast.promise(
-						createFromPr.mutateAsync({
-							projectId,
-							prUrl: manualPrUrl,
-						}),
-						{
-							loading: "Creating workspace from PR...",
-							success: "Workspace created",
-							error: (err) =>
-								err instanceof Error
-									? err.message
-									: "Failed to create workspace",
-						},
-					);
+					toast.promise(createWorkspacePromise, {
+						loading: "Creating workspace from PR...",
+						success: "Workspace created",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to create workspace",
+					});
+					void createWorkspacePromise
+						.then(() => {
+							clearInputsIfDraftVersion(submitDraftVersion);
+						})
+						.catch(() => undefined);
 				}}
 			>
 				<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
@@ -247,25 +258,30 @@ export function PullRequestsGroup({
 							}
 							const existingId = workspaceByBranch.get(pr.headBranch);
 							if (existingId) {
+								clearInputs();
 								onClose();
 								navigateToWorkspace(existingId, navigate);
 								return;
 							}
+							const submitDraftVersion = draftVersion;
+							const createWorkspacePromise = createFromPr.mutateAsync({
+								projectId,
+								prUrl: pr.url,
+							});
 							onClose();
-							toast.promise(
-								createFromPr.mutateAsync({
-									projectId,
-									prUrl: pr.url,
-								}),
-								{
-									loading: "Creating workspace from PR...",
-									success: "Workspace created",
-									error: (err) =>
-										err instanceof Error
-											? err.message
-											: "Failed to create workspace",
-								},
-							);
+							toast.promise(createWorkspacePromise, {
+								loading: "Creating workspace from PR...",
+								success: "Workspace created",
+								error: (err) =>
+									err instanceof Error
+										? err.message
+										: "Failed to create workspace",
+							});
+							void createWorkspacePromise
+								.then(() => {
+									clearInputsIfDraftVersion(submitDraftVersion);
+								})
+								.catch(() => undefined);
 						}}
 						className="group h-12"
 					>
