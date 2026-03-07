@@ -5,17 +5,20 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 import { shouldAutoCloseTerminalPane } from "./shouldAutoCloseTerminalPane";
+import type { TerminalSessionController } from "./useTerminalSessionController";
 
 export interface UseTerminalStreamOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
-	isStreamReadyRef: React.MutableRefObject<boolean>;
-	isExitedRef: React.MutableRefObject<boolean>;
-	wasKilledByUserRef: React.MutableRefObject<boolean>;
-	hasReceivedStreamDataSinceAttachRef: React.MutableRefObject<boolean>;
+	session: Pick<
+		TerminalSessionController,
+		| "hasReceivedStreamDataSinceAttachRef"
+		| "isStreamReadyRef"
+		| "recordExit"
+		| "recordStreamDataReceived"
+		| "setConnectionError"
+	>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
-	setExitStatus: (status: "killed" | "exited" | null) => void;
-	setConnectionError: (error: string | null) => void;
 	updateModesFromData: (data: string) => void;
 	updateCwdFromData: (data: string) => void;
 	onShellExit?: () => void;
@@ -37,19 +40,21 @@ export interface UseTerminalStreamReturn {
 export function useTerminalStream({
 	paneId,
 	xtermRef,
-	isStreamReadyRef,
-	isExitedRef,
-	wasKilledByUserRef,
-	hasReceivedStreamDataSinceAttachRef,
+	session,
 	pendingEventsRef,
-	setExitStatus,
-	setConnectionError,
 	updateModesFromData,
 	updateCwdFromData,
 	onShellExit,
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
+	const {
+		hasReceivedStreamDataSinceAttachRef,
+		isStreamReadyRef,
+		recordExit,
+		recordStreamDataReceived,
+		setConnectionError,
+	} = session;
 
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
@@ -59,12 +64,8 @@ export function useTerminalStream({
 
 	const handleTerminalExit = useCallback(
 		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => {
-			isExitedRef.current = true;
-			isStreamReadyRef.current = false;
-
+			recordExit(reason);
 			const wasKilledByUser = reason === "killed";
-			wasKilledByUserRef.current = wasKilledByUser;
-			setExitStatus(wasKilledByUser ? "killed" : "exited");
 
 			const shouldAutoClosePane = shouldAutoCloseTerminalPane({
 				exitCode,
@@ -96,11 +97,8 @@ export function useTerminalStream({
 		},
 		[
 			paneId,
-			isExitedRef,
-			isStreamReadyRef,
-			wasKilledByUserRef,
+			recordExit,
 			hasReceivedStreamDataSinceAttachRef,
-			setExitStatus,
 			setPaneStatus,
 			onShellExit,
 		],
@@ -165,7 +163,7 @@ export function useTerminalStream({
 					);
 				}
 
-				hasReceivedStreamDataSinceAttachRef.current = true;
+				recordStreamDataReceived();
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
@@ -183,10 +181,10 @@ export function useTerminalStream({
 			paneId,
 			xtermRef,
 			isStreamReadyRef,
-			hasReceivedStreamDataSinceAttachRef,
 			pendingEventsRef,
 			handleTerminalExit,
 			handleStreamError,
+			recordStreamDataReceived,
 			setConnectionError,
 		],
 	);

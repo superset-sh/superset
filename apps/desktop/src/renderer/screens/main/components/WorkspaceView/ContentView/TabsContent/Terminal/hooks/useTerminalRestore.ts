@@ -8,12 +8,16 @@ import type {
 	TerminalStreamEvent,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import type { TerminalSessionController } from "./useTerminalSessionController";
 
 export interface UseTerminalRestoreOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
 	fitAddonRef: React.MutableRefObject<FitAddon | null>;
-	hasReceivedStreamDataSinceAttachRef: React.MutableRefObject<boolean>;
+	session: Pick<
+		TerminalSessionController,
+		"recordStreamDataReceived" | "setStreamReady"
+	>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	isAlternateScreenRef: React.MutableRefObject<boolean>;
 	isBracketedPasteRef: React.MutableRefObject<boolean>;
@@ -33,7 +37,6 @@ export interface UseTerminalRestoreOptions {
 }
 
 export interface UseTerminalRestoreReturn {
-	isStreamReadyRef: React.MutableRefObject<boolean>;
 	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	restoreSequenceRef: React.MutableRefObject<number>;
@@ -54,7 +57,7 @@ export function useTerminalRestore({
 	paneId,
 	xtermRef,
 	fitAddonRef,
-	hasReceivedStreamDataSinceAttachRef,
+	session,
 	pendingEventsRef,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
@@ -65,8 +68,6 @@ export function useTerminalRestore({
 	onErrorEvent,
 	onDisconnectEvent,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
-	// Gate streaming until initial state restoration is applied
-	const isStreamReadyRef = useRef(false);
 	// Gate restoration until xterm has rendered at least once
 	const didFirstRenderRef = useRef(false);
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
@@ -83,6 +84,7 @@ export function useTerminalRestore({
 	onErrorEventRef.current = onErrorEvent;
 	const onDisconnectEventRef = useRef(onDisconnectEvent);
 	onDisconnectEventRef.current = onDisconnectEvent;
+	const { recordStreamDataReceived, setStreamReady } = session;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -95,7 +97,7 @@ export function useTerminalRestore({
 		);
 		for (const event of events) {
 			if (event.type === "data") {
-				hasReceivedStreamDataSinceAttachRef.current = true;
+				recordStreamDataReceived();
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
@@ -107,7 +109,7 @@ export function useTerminalRestore({
 				onDisconnectEventRef.current(event.reason);
 			}
 		}
-	}, [xtermRef, hasReceivedStreamDataSinceAttachRef, pendingEventsRef]);
+	}, [pendingEventsRef, recordStreamDataReceived, xtermRef]);
 
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;
@@ -180,7 +182,7 @@ export function useTerminalRestore({
 						}
 					}
 
-					isStreamReadyRef.current = true;
+					setStreamReady(true);
 					if (DEBUG_TERMINAL) {
 						console.log(
 							`[Terminal] isStreamReady=true (altScreen): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
@@ -202,7 +204,7 @@ export function useTerminalRestore({
 			const rehydrateSequences = result.snapshot?.rehydrateSequences ?? "";
 
 			const finalizeRestore = () => {
-				isStreamReadyRef.current = true;
+				setStreamReady(true);
 				scheduleFitAndScroll();
 				if (DEBUG_TERMINAL) {
 					console.log(
@@ -233,13 +235,14 @@ export function useTerminalRestore({
 			}
 		} catch (error) {
 			console.error("[Terminal] Restoration failed:", error);
-			isStreamReadyRef.current = true;
+			setStreamReady(true);
 			flushPendingEvents();
 		}
 	}, [
 		paneId,
 		xtermRef,
 		fitAddonRef,
+		setStreamReady,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -248,7 +251,6 @@ export function useTerminalRestore({
 	]);
 
 	return {
-		isStreamReadyRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
 		restoreSequenceRef,

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -20,7 +20,6 @@ export interface UseTerminalConnectionOptions {
  * - createOrAttach mutation (for lifecycle callbacks)
  * - imperative tRPC calls for write/resize/detach/clearScrollback hot paths
  * - Stable refs to mutation functions (to avoid re-renders)
- * - Connection error state
  * - Workspace CWD query
  *
  * NOTE: Stream subscription is intentionally NOT included here because it needs
@@ -29,8 +28,6 @@ export interface UseTerminalConnectionOptions {
 export function useTerminalConnection({
 	workspaceId,
 }: UseTerminalConnectionOptions) {
-	const [connectionError, setConnectionError] = useState<string | null>(null);
-
 	// tRPC mutations
 	const createOrAttachMutation = useCreateOrAttachWithTheme();
 
@@ -77,10 +74,6 @@ export function useTerminalConnection({
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 
 	return {
-		// Connection error state
-		connectionError,
-		setConnectionError,
-
 		// Workspace CWD from query
 		workspaceCwd,
 
