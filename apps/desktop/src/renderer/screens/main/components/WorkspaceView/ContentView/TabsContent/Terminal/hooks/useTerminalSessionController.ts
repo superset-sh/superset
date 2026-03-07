@@ -51,16 +51,17 @@ function syncRefsFromState(
 }
 
 export function useTerminalSessionController(): TerminalSessionController {
+	const initialStateRef = useRef(createInitialTerminalSessionState());
 	const connectionErrorRef = useRef<string | null>(null);
 	const hasReceivedStreamDataSinceAttachRef = useRef(false);
 	const isExitedRef = useRef(false);
 	const isRestoredModeRef = useRef(false);
 	const isStreamReadyRef = useRef(false);
 	const wasKilledByUserRef = useRef(false);
+	const stateRef = useRef(initialStateRef.current);
 
 	const [state, setState] = useState(() => {
-		const initialState = createInitialTerminalSessionState();
-		syncRefsFromState(initialState, {
+		syncRefsFromState(initialStateRef.current, {
 			connectionErrorRef,
 			hasReceivedStreamDataSinceAttachRef,
 			isExitedRef,
@@ -68,23 +69,22 @@ export function useTerminalSessionController(): TerminalSessionController {
 			isStreamReadyRef,
 			wasKilledByUserRef,
 		});
-		return initialState;
+		return initialStateRef.current;
 	});
 
 	const applyEvent = useCallback(
 		(event: Parameters<typeof reduceTerminalSessionState>[1]) => {
-			setState((currentState) => {
-				const nextState = reduceTerminalSessionState(currentState, event);
-				syncRefsFromState(nextState, {
-					connectionErrorRef,
-					hasReceivedStreamDataSinceAttachRef,
-					isExitedRef,
-					isRestoredModeRef,
-					isStreamReadyRef,
-					wasKilledByUserRef,
-				});
-				return nextState;
+			const nextState = reduceTerminalSessionState(stateRef.current, event);
+			stateRef.current = nextState;
+			syncRefsFromState(nextState, {
+				connectionErrorRef,
+				hasReceivedStreamDataSinceAttachRef,
+				isExitedRef,
+				isRestoredModeRef,
+				isStreamReadyRef,
+				wasKilledByUserRef,
 			});
+			setState(nextState);
 		},
 		[],
 	);
