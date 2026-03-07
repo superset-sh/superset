@@ -9,6 +9,10 @@ import {
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
+import {
+	getWorkspaceStreamBus,
+	type WorkspaceStreamEvent,
+} from "main/lib/terminal/workspace-stream-bus";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -54,6 +58,9 @@ export const createTerminalRouter = () => {
 			terminal.capabilities,
 		);
 	}
+
+	const bus = getWorkspaceStreamBus();
+	bus.attach(terminal);
 
 	return router({
 		createOrAttach: publicProcedure
@@ -122,6 +129,10 @@ export const createTerminalRouter = () => {
 					persistedThemeState: appState.data.themeState,
 				});
 
+				const wasRegistered = bus.isPaneRegistered(paneId);
+				// Register before attach to avoid dropping earliest output events.
+				bus.registerPane(paneId, workspaceId);
+
 				try {
 					const result = await terminal.createOrAttach({
 						paneId,
@@ -174,10 +185,17 @@ export const createTerminalRouter = () => {
 								},
 							);
 						}
+						if (!wasRegistered) {
+							bus.unregisterPane(paneId);
+						}
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: TERMINAL_SESSION_KILLED_MESSAGE,
 						});
+					}
+					// createOrAttach failed; remove stale pane registration.
+					if (!wasRegistered) {
+						bus.unregisterPane(paneId);
 					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
@@ -271,6 +289,7 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				await terminal.kill(input);
+				bus.unregisterPane(input.paneId);
 			}),
 
 		detach: publicProcedure
@@ -314,8 +333,12 @@ export const createTerminalRouter = () => {
 					beforeIds.map((paneId) => terminal.kill({ paneId })),
 				);
 				for (const [index, result] of results.entries()) {
+					const paneId = beforeIds[index];
+					if (result.status === "fulfilled") {
+						bus.unregisterPane(paneId);
+						continue;
+					}
 					if (result.status === "rejected") {
-						const paneId = beforeIds[index];
 						logger.error(
 							`[killAllDaemonSessions] terminal.kill failed for paneId=${paneId}`,
 							{
@@ -376,8 +399,12 @@ export const createTerminalRouter = () => {
 						paneIds.map((paneId) => terminal.kill({ paneId })),
 					);
 					for (const [index, result] of results.entries()) {
+						const paneId = paneIds[index];
+						if (result.status === "fulfilled") {
+							bus.unregisterPane(paneId);
+							continue;
+						}
 						if (result.status === "rejected") {
-							const paneId = paneIds[index];
 							logger.error(
 								`[killDaemonSessionsForWorkspace] terminal.kill failed for paneId=${paneId}`,
 								{
@@ -433,70 +460,34 @@ export const createTerminalRouter = () => {
 				return worktree?.path ?? null;
 			}),
 
-		stream: publicProcedure
-			.input(z.string())
-			.subscription(({ input: paneId }) => {
-				return observable<
-					| { type: "data"; data: string }
-					| {
-							type: "exit";
-							exitCode: number;
-							signal?: number;
-							reason?: "killed" | "exited" | "error";
-					  }
-					| { type: "disconnect"; reason: string }
-					| { type: "error"; error: string; code?: string }
-				>((emit) => {
+		streamWorkspace: publicProcedure
+			.input(
+				z.object({
+					workspaceId: SAFE_ID,
+					sinceEventId: z.number().optional(),
+				}),
+			)
+			.subscription(({ input }) => {
+				return observable<WorkspaceStreamEvent>((emit) => {
 					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal Stream] Subscribe: ${paneId}`);
+						console.log(
+							`[Terminal Stream] Workspace subscribe: ${input.workspaceId}`,
+						);
 					}
 
-					let firstDataReceived = false;
-
-					const onData = (data: string) => {
-						if (DEBUG_TERMINAL && !firstDataReceived) {
-							firstDataReceived = true;
-							console.log(
-								`[Terminal Stream] First data for ${paneId}: ${data.length} bytes`,
-							);
-						}
-						emit.next({ type: "data", data });
-					};
-
-					const onExit = (
-						exitCode: number,
-						signal?: number,
-						reason?: "killed" | "exited" | "error",
-					) => {
-						// Don't emit.complete() - paneId is reused across restarts, completion would strand listeners
-						emit.next({ type: "exit", exitCode, signal, reason });
-					};
-
-					const onDisconnect = (reason: string) => {
-						emit.next({ type: "disconnect", reason });
-					};
-
-					const onError = (payload: { error: string; code?: string }) => {
-						emit.next({
-							type: "error",
-							error: payload.error,
-							code: payload.code,
-						});
-					};
-
-					terminal.on(`data:${paneId}`, onData);
-					terminal.on(`exit:${paneId}`, onExit);
-					terminal.on(`disconnect:${paneId}`, onDisconnect);
-					terminal.on(`error:${paneId}`, onError);
+					const unsubscribe = bus.subscribe(
+						input.workspaceId,
+						(event) => emit.next(event),
+						input.sinceEventId,
+					);
 
 					return () => {
 						if (DEBUG_TERMINAL) {
-							console.log(`[Terminal Stream] Unsubscribe: ${paneId}`);
+							console.log(
+								`[Terminal Stream] Workspace unsubscribe: ${input.workspaceId}`,
+							);
 						}
-						terminal.off(`data:${paneId}`, onData);
-						terminal.off(`exit:${paneId}`, onExit);
-						terminal.off(`disconnect:${paneId}`, onDisconnect);
-						terminal.off(`error:${paneId}`, onError);
+						unsubscribe();
 					};
 				});
 			}),

@@ -5,6 +5,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
+import { WorkspaceTerminalStreamProvider } from "./Terminal/providers/WorkspaceTerminalStream";
 
 interface TabsContentProps {
 	defaultExternalApp?: ExternalApp | null;
@@ -45,7 +46,19 @@ export function TabsContent({
 
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? (
+			{activeWorkspaceId ? (
+				<WorkspaceTerminalStreamProvider workspaceId={activeWorkspaceId}>
+					{tabToRender ? (
+						<TabView tab={tabToRender} />
+					) : (
+						<EmptyTabView
+							defaultExternalApp={defaultExternalApp}
+							onOpenInApp={onOpenInApp}
+							onOpenQuickOpen={onOpenQuickOpen}
+						/>
+					)}
+				</WorkspaceTerminalStreamProvider>
+			) : tabToRender ? (
 				<TabView tab={tabToRender} />
 			) : (
 				<EmptyTabView
