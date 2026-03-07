@@ -40,6 +40,9 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 
 		collections.tasks.update(task.id, (draft) => {
 			draft.assigneeId = userId;
+			draft.assigneeExternalId = null;
+			draft.assigneeDisplayName = null;
+			draft.assigneeAvatarUrl = null;
 		});
 	};
 
@@ -56,6 +59,12 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							size="xs"
 							fullName={task.assignee.name}
 							image={task.assignee.image}
+						/>
+					) : task.assigneeExternalId ? (
+						<Avatar
+							size="xs"
+							fullName={task.assigneeDisplayName || "External"}
+							image={task.assigneeAvatarUrl}
 						/>
 					) : (
 						<HiOutlineUserCircle className="size-5 text-muted-foreground" />

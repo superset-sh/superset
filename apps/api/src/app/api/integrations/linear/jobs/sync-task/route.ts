@@ -5,6 +5,7 @@ import {
 	integrationConnections,
 	taskStatuses,
 	tasks,
+	users,
 } from "@superset/db/schema";
 import {
 	getLinearClient,
@@ -84,6 +85,26 @@ async function syncTaskToLinear(
 		const stateId = await findLinearState(client, teamId, taskStatus.name);
 
 		if (task.externalProvider === "linear" && task.externalId) {
+			// Resolve assignee for Linear
+			let linearAssigneeId: string | null | undefined; // undefined = don't change
+			if (task.assigneeId === null) {
+				// Explicitly unassign
+				linearAssigneeId = null;
+			} else if (task.assigneeId) {
+				const assigneeUser = await db.query.users.findFirst({
+					where: eq(users.id, task.assigneeId),
+				});
+				if (assigneeUser?.email) {
+					const linearUsers = await client.users({
+						filter: { email: { eq: assigneeUser.email } },
+					});
+					const linearUser = linearUsers.nodes[0];
+					if (linearUsers.nodes.length === 1 && linearUser) {
+						linearAssigneeId = linearUser.id;
+					}
+				}
+			}
+
 			const result = await client.updateIssue(task.externalId, {
 				title: task.title,
 				description: task.description ?? undefined,
@@ -91,6 +112,7 @@ async function syncTaskToLinear(
 				stateId,
 				estimate: task.estimate ?? undefined,
 				dueDate: task.dueDate?.toISOString().split("T")[0],
+				...(linearAssigneeId !== undefined && { assigneeId: linearAssigneeId }),
 			});
 
 			if (!result.success) {
@@ -118,6 +140,23 @@ async function syncTaskToLinear(
 			};
 		}
 
+		// Resolve assignee for Linear (create)
+		let createAssigneeId: string | undefined;
+		if (task.assigneeId) {
+			const assigneeUser = await db.query.users.findFirst({
+				where: eq(users.id, task.assigneeId),
+			});
+			if (assigneeUser?.email) {
+				const linearUsers = await client.users({
+					filter: { email: { eq: assigneeUser.email } },
+				});
+				const linearUser = linearUsers.nodes[0];
+				if (linearUsers.nodes.length === 1 && linearUser) {
+					createAssigneeId = linearUser.id;
+				}
+			}
+		}
+
 		const result = await client.createIssue({
 			teamId,
 			title: task.title,
@@ -126,6 +165,7 @@ async function syncTaskToLinear(
 			stateId,
 			estimate: task.estimate ?? undefined,
 			dueDate: task.dueDate?.toISOString().split("T")[0],
+			...(createAssigneeId && { assigneeId: createAssigneeId }),
 		});
 
 		if (!result.success) {

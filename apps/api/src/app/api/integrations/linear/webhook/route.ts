@@ -149,6 +149,16 @@ async function processIssueEvent(
 			assigneeId = matchedUser?.id ?? null;
 		}
 
+		let assigneeExternalId: string | null = null;
+		let assigneeDisplayName: string | null = null;
+		let assigneeAvatarUrl: string | null = null;
+
+		if (issue.assignee && !assigneeId) {
+			assigneeExternalId = issue.assignee.id;
+			assigneeDisplayName = issue.assignee.name ?? null;
+			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
+		}
+
 		const taskData = {
 			slug: issue.identifier,
 			title: issue.title,
@@ -156,6 +166,9 @@ async function processIssueEvent(
 			statusId: taskStatus.id,
 			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
+			assigneeExternalId,
+			assigneeDisplayName,
+			assigneeAvatarUrl,
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 			labels: issue.labels.map((l) => l.name),

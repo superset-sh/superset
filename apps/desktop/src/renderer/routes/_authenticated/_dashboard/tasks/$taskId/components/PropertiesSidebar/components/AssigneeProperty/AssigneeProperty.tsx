@@ -36,6 +36,9 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 
 		collections.tasks.update(task.id, (draft) => {
 			draft.assigneeId = userId;
+			draft.assigneeExternalId = null;
+			draft.assigneeDisplayName = null;
+			draft.assigneeAvatarUrl = null;
 		});
 	};
 
@@ -60,6 +63,26 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 								</div>
 							)}
 							<span className="text-sm">{task.assignee.name}</span>
+						</>
+					) : task.assigneeExternalId ? (
+						<>
+							{task.assigneeAvatarUrl ? (
+								<img
+									src={task.assigneeAvatarUrl}
+									alt=""
+									className="w-5 h-5 rounded-full"
+								/>
+							) : (
+								<div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">
+									{task.assigneeDisplayName?.charAt(0).toUpperCase() ?? "?"}
+								</div>
+							)}
+							<span className="text-sm text-muted-foreground">
+								{task.assigneeDisplayName || "External"}
+							</span>
+							<span className="text-xs text-muted-foreground/60 ml-auto">
+								External
+							</span>
 						</>
 					) : (
 						<>

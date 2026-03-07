@@ -330,6 +330,9 @@ export const tasks = sqliteTable(
 		external_url: text("external_url"),
 		last_synced_at: text("last_synced_at"),
 		sync_error: text("sync_error"),
+		assignee_external_id: text("assignee_external_id"),
+		assignee_display_name: text("assignee_display_name"),
+		assignee_avatar_url: text("assignee_avatar_url"),
 		started_at: text("started_at"),
 		completed_at: text("completed_at"),
 		deleted_at: text("deleted_at"),
@@ -342,6 +345,7 @@ export const tasks = sqliteTable(
 		index("tasks_assignee_id_idx").on(table.assignee_id),
 		index("tasks_status_idx").on(table.status),
 		index("tasks_created_at_idx").on(table.created_at),
+		index("tasks_assignee_external_id_idx").on(table.assignee_external_id),
 	],
 );
 

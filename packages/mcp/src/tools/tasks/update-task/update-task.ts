@@ -94,8 +94,12 @@ export function register(server: McpServer) {
 					updateData.description = update.description;
 				if (update.priority !== undefined)
 					updateData.priority = update.priority;
-				if (update.assigneeId !== undefined)
+				if (update.assigneeId !== undefined) {
 					updateData.assigneeId = update.assigneeId;
+					updateData.assigneeExternalId = null;
+					updateData.assigneeDisplayName = null;
+					updateData.assigneeAvatarUrl = null;
+				}
 				if (update.statusId !== undefined)
 					updateData.statusId = update.statusId;
 				if (update.labels !== undefined) updateData.labels = update.labels;
