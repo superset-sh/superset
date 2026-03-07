@@ -13,7 +13,6 @@ import {
 	LuFile,
 	LuLink,
 	LuMousePointerClick,
-	LuReplace,
 	LuScissors,
 	LuSearch,
 } from "react-icons/lu";
@@ -31,7 +30,6 @@ export interface EditorActions {
 	onCopyPath?: () => void;
 	onCopyPathWithLine?: () => void;
 	onFind?: () => void;
-	onChangeAllOccurrences?: () => void;
 }
 
 export type PaneActions = PaneContextMenuActions;
@@ -59,7 +57,6 @@ export function EditorContextMenu({
 		onCopyPath,
 		onCopyPathWithLine,
 		onFind,
-		onChangeAllOccurrences,
 	} = editorActions;
 	const showCutPaste = !!onCut && !!onPaste;
 
@@ -102,15 +99,6 @@ export function EditorContextMenu({
 				)}
 
 				<ContextMenuSeparator />
-
-				{/* Editor Actions */}
-				{onChangeAllOccurrences && (
-					<ContextMenuItem onSelect={onChangeAllOccurrences}>
-						<LuReplace className="size-4" />
-						Change All Occurrences
-						<ContextMenuShortcut>{cmdKey}+Shift+L</ContextMenuShortcut>
-					</ContextMenuItem>
-				)}
 
 				<ContextMenuItem onSelect={onSelectAll}>
 					<LuMousePointerClick className="size-4" />

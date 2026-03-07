@@ -14,5 +14,5 @@ export interface CodeEditorAdapter {
 	copy(): void;
 	paste(): void;
 	openFind(): void;
-	selectHighlights(): void;
+	dispose(): void;
 }

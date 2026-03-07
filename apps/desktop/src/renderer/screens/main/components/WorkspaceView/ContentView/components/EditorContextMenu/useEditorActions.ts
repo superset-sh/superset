@@ -12,11 +12,7 @@ interface UseEditorActionsProps {
 
 /**
  * Hook that creates all editor action handlers for the context menu.
- * Shared between FileEditorContextMenu and DiffViewer.
- *
- * Note: Standalone Monaco editor doesn't include language service features
- * like Go to Definition, References, Rename, etc. Those require language
- * providers to be registered. We only expose actions that are actually available.
+ * Shared by editor surfaces that operate through the adapter contract.
  */
 export function useEditorActions({
 	getEditor,
@@ -125,12 +121,6 @@ export function useEditorActions({
 		editor.openFind();
 	}, [getEditor]);
 
-	const handleChangeAllOccurrences = useCallback(() => {
-		const editor = getEditor();
-		if (!editor) return;
-		editor.selectHighlights();
-	}, [getEditor]);
-
 	return {
 		onCut: editable ? handleCut : undefined,
 		onCopy: handleCopy,
@@ -139,6 +129,5 @@ export function useEditorActions({
 		onCopyPath: handleCopyPath,
 		onCopyPathWithLine: handleCopyPathWithLine,
 		onFind: handleFind,
-		onChangeAllOccurrences: handleChangeAllOccurrences,
 	};
 }

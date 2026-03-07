@@ -10,7 +10,6 @@ import {
 	highlightSelectionMatches,
 	openSearchPanel,
 	searchKeymap,
-	selectSelectionMatches,
 } from "@codemirror/search";
 import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
 import {
@@ -43,6 +42,8 @@ interface CodeEditorProps {
 }
 
 function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
+	let disposed = false;
+
 	return {
 		focus() {
 			view.focus();
@@ -150,8 +151,10 @@ function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 		openFind() {
 			openSearchPanel(view);
 		},
-		selectHighlights() {
-			selectSelectionMatches(view);
+		dispose() {
+			if (disposed) return;
+			disposed = true;
+			view.destroy();
 		},
 	};
 }
@@ -253,17 +256,18 @@ export function CodeEditor({
 			state,
 			parent: containerRef.current,
 		});
+		const adapter = createCodeMirrorAdapter(view);
 
 		viewRef.current = view;
 		if (editorRef) {
-			editorRef.current = createCodeMirrorAdapter(view);
+			editorRef.current = adapter;
 		}
 
 		return () => {
-			if (editorRef?.current) {
+			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
-			view.destroy();
+			adapter.dispose();
 			viewRef.current = null;
 		};
 	}, []);

@@ -161,6 +161,14 @@ const MAKEFILE_DIRECTIVES = new Set([
 	"vpath",
 ]);
 
+function escapeRegex(value: string) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const MAKEFILE_DIRECTIVE_PATTERN = new RegExp(
+	`^\\s*(?:${[...MAKEFILE_DIRECTIVES].map(escapeRegex).join("|")})\\b`,
+);
+
 export const makefileStreamLanguage: StreamParser<null> = {
 	name: "makefile",
 	token(stream) {
@@ -170,11 +178,7 @@ export const makefileStreamLanguage: StreamParser<null> = {
 				return "meta";
 			}
 
-			if (
-				stream.match(
-					/^\s*(?:-include|define|else|endef|endif|export|ifdef|ifndef|ifeq|ifneq|include|override|private|sinclude|undefine|unexport|vpath)\b/,
-				)
-			) {
+			if (stream.match(MAKEFILE_DIRECTIVE_PATTERN)) {
 				return "keyword";
 			}
 

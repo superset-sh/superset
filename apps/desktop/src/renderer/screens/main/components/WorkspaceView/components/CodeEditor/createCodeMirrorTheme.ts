@@ -49,7 +49,7 @@ export function createCodeMirrorTheme(
 			".cm-activeLineGutter": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.surface,
 			},
-			".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection":
+			"&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
 				{
 					backgroundColor: MIDNIGHT_CODE_COLORS.selection,
 				},

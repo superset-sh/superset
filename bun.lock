@@ -221,7 +221,6 @@
         "bindings": "^1.5.0",
         "bufferutil": "^4.1.0",
         "clsx": "^2.1.1",
-        "codemirror": "^6.0.2",
         "culori": "^4.0.2",
         "date-fns": "^4.1.0",
         "default-shell": "^2.2.0",
@@ -3090,8 +3089,6 @@
     "code-excerpt": ["code-excerpt@4.0.0", "", { "dependencies": { "convert-to-spaces": "^2.0.1" } }, "sha512-xxodCmBen3iy2i0WtAK8FlFNrRzjUqjRsMfho58xT/wvZU1YTM3fCnRjcy1gJPMepaRlgm/0e6w8SpWHpn3/cA=="],
 
     "code-inspector-plugin": ["code-inspector-plugin@1.4.0", "", { "dependencies": { "@code-inspector/core": "1.4.0", "@code-inspector/esbuild": "1.4.0", "@code-inspector/mako": "1.4.0", "@code-inspector/turbopack": "1.4.0", "@code-inspector/vite": "1.4.0", "@code-inspector/webpack": "1.4.0", "chalk": "4.1.1" } }, "sha512-SWiQn8fp/4fNB2uu4E+cN4W8E8VBMWNPU5PfI6oQRulNY79AwcOhsbRhz13pameFyesqffktF1DHkPj5vHv8wQ=="],
-
-    "codemirror": ["codemirror@6.0.2", "", { "dependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0" } }, "sha512-VhydHotNW5w1UGK0Qj96BwSk/Zqbp9WbnyK2W/eVMv4QyF41INRGpjUhFJY7/uDNuudSc33a/PKr4iDqRduvHw=="],
 
     "collapse-white-space": ["collapse-white-space@2.1.0", "", {}, "sha512-loKTxY1zCOuG4j9f6EPnuyyYkf58RnhhWTvRoZEokgB+WbdXehfjFviyOVYkqzEWz1Q5kRiZdBYS5SwxbQYwzw=="],
 

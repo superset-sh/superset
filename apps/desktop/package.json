@@ -144,7 +144,6 @@
 		"bindings": "^1.5.0",
 		"bufferutil": "^4.1.0",
 		"clsx": "^2.1.1",
-		"codemirror": "^6.0.2",
 		"culori": "^4.0.2",
 		"date-fns": "^4.1.0",
 		"default-shell": "^2.2.0",

@@ -84,17 +84,14 @@ interface CodeEditorAdapter {
   focus(): void;
   getValue(): string;
   setValue(value: string): void;
-  setReadOnly(readOnly: boolean): void;
-  setCursor(line: number, column?: number): void;
-  revealLine(line: number): void;
+  revealPosition(line: number, column?: number): void;
   getSelectionLines(): { startLine: number; endLine: number } | null;
   selectAll(): void;
   cut(): void;
   copy(): void;
   paste(): void;
   openFind(): void;
-  onChange(listener: (value: string) => void): () => void;
-  onSaveShortcut(listener: () => void): () => void;
+  dispose(): void;
 }
 ```
 
@@ -112,7 +109,23 @@ Establish a baseline for:
 - memory after opening a large file
 - typing latency in the raw editor
 
+Capture each metric with a fixed harness so the rollout gate is objective:
+
+- run the same production desktop build on the same machine against the same representative repo snapshot
+- take 5 cold runs for startup and first-file-open timings, and record both p50 and p95
+- measure memory as renderer RSS 30 seconds after launch and again 30 seconds after opening a representative large text file
+- measure typing latency as input-to-paint p50/p95 while editing that same large text file
+- record the results in the PR description or linked rollout issue before deleting Monaco
+
 Also run a quick experiment that lazy-loads Monaco instead of mounting it globally. This tells us how much of the pain is caused by Monaco itself versus eager initialization.
+
+Suggested rollout thresholds:
+
+- startup p95 must not regress against the lazy-loaded Monaco control
+- first-file-open p95 must not regress against the current Monaco path
+- memory after launch must improve by at least 20%
+- memory after opening a large file must improve by at least 20%
+- typing-latency p95 must not regress
 
 ### Phase 1: Decouple File Pane Logic from Monaco
 
@@ -210,6 +223,8 @@ Compare:
 - typing responsiveness
 - crash rate or renderer instability
 
+Use the same capture method and thresholds from Phase 0 for the rollout decision. "Measurably faster or lighter" means those thresholds are met in the same test environment.
+
 If the CodeMirror + `diffs.com` path is stable and better, remove:
 
 - `@monaco-editor/react`
@@ -226,7 +241,7 @@ The migration is complete when:
 3. Dirty-state tracking and save flows still behave correctly.
 4. Copy path, copy path with line, select all, cut, copy, paste, and find still work in the file pane.
 5. Diff rendering is handled by `diffs.com`.
-6. The new path is measurably faster or lighter than the Monaco path.
+6. The new path meets the rollout thresholds defined in Phase 0.
 7. Monaco can be removed without losing required user-facing capabilities.
 
 ## Risks
@@ -302,6 +317,7 @@ Mitigation:
 - [ ] Add editor adapter interface
 - [ ] Refactor `useFileSave.ts` to consume adapter methods
 - [ ] Refactor `useEditorActions.ts` to consume adapter methods
+- [ ] Ensure adapter owners call `dispose()` when tearing down editor instances
 - [ ] Replace Monaco copy-path action registration
 - [ ] Implement CodeMirror 6 raw editor wrapper
 - [ ] Migrate raw editor path in `FileViewerContent.tsx`
