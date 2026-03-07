@@ -40,7 +40,6 @@ export function useCommandPalette({
 		searchTerm: query,
 		includePattern,
 		excludePattern,
-		includeHidden: false,
 		limit: SEARCH_LIMIT,
 	});
 

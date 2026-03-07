@@ -23,10 +23,7 @@ export function useFileTree({
 		Record<string, FileTreeNode[]>
 	>({});
 
-	const { showHiddenFiles, expandedFolders } = useFileExplorerStore();
-	const includeHidden = worktreePath
-		? (showHiddenFiles[worktreePath] ?? false)
-		: false;
+	const { expandedFolders } = useFileExplorerStore();
 	const currentExpandedFolders = worktreePath
 		? expandedFolders[worktreePath] || []
 		: [];
@@ -42,7 +39,6 @@ export function useFileTree({
 		{
 			dirPath: worktreePath || "",
 			rootPath: worktreePath || "",
-			includeHidden,
 		},
 		{
 			enabled: !!worktreePath,
@@ -102,7 +98,6 @@ export function useFileTree({
 				const entries = await trpcUtils.filesystem.readDirectory.fetch({
 					dirPath: nodePath,
 					rootPath: worktreePath,
-					includeHidden,
 				});
 
 				const childNodes: FileTreeNode[] = entries.map((entry) => ({
@@ -125,7 +120,7 @@ export function useFileTree({
 				return [];
 			}
 		},
-		[worktreePath, includeHidden, childrenCache, trpcUtils],
+		[worktreePath, childrenCache, trpcUtils],
 	);
 
 	return {

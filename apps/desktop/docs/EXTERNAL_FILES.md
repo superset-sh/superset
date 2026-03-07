@@ -19,6 +19,7 @@ This separation prevents multiple instances from interfering with each other.
 |------|---------|
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
+| `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
 | `opencode` | Wrapper for OpenCode CLI that sets `OPENCODE_CONFIG_DIR` |
 
 These wrappers are added to `PATH` via shell integration, allowing them to intercept
@@ -31,6 +32,15 @@ agent commands and inject Superset-specific configuration.
 | `notify.sh` | Shell script called by agents when they complete or need input |
 | `claude-settings.json` | Claude Code settings file with hook configuration |
 | `opencode/plugin/superset-notify.js` | OpenCode plugin for lifecycle events |
+
+## Global Tool Settings Files
+
+Some CLIs only support global user settings for hook registration. Superset merges
+its hook entries into these files while preserving user-defined entries:
+
+| File | Purpose |
+|------|---------|
+| `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
 
 ### `zsh/` and `bash/` - Shell Integration
 

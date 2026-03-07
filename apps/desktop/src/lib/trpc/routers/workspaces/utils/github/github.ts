@@ -80,7 +80,7 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 }
 
 const PR_JSON_FIELDS =
-	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup";
+	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup,reviewRequests";
 
 async function getPRForBranch(
 	worktreePath: string,
@@ -293,7 +293,15 @@ function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
 		reviewDecision: mapReviewDecision(data.reviewDecision),
 		checksStatus: computeChecksStatus(data.statusCheckRollup),
 		checks: parseChecks(data.statusCheckRollup),
+		requestedReviewers: parseReviewRequests(data.reviewRequests),
 	};
+}
+
+function parseReviewRequests(
+	requests: GHPRResponse["reviewRequests"],
+): string[] {
+	if (!requests || requests.length === 0) return [];
+	return requests.map((r) => r.login || r.slug || r.name || "").filter(Boolean);
 }
 
 function mapPRState(

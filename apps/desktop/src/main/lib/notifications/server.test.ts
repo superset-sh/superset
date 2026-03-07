@@ -43,6 +43,10 @@ describe("notifications/server", () => {
 			expect(mapEventType("PermissionRequest")).toBe("PermissionRequest");
 		});
 
+		it("should map Factory Droid 'Notification' to 'PermissionRequest'", () => {
+			expect(mapEventType("Notification")).toBe("PermissionRequest");
+		});
+
 		it("should return null for unknown event types (forward compatibility)", () => {
 			expect(mapEventType("UnknownEvent")).toBeNull();
 			expect(mapEventType("FutureEvent")).toBeNull();

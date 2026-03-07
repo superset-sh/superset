@@ -7,7 +7,6 @@ interface UseFileSearchParams {
 	searchTerm: string;
 	includePattern?: string;
 	excludePattern?: string;
-	includeHidden: boolean;
 	limit?: number;
 }
 
@@ -16,7 +15,6 @@ export function useFileSearch({
 	searchTerm,
 	includePattern = "",
 	excludePattern = "",
-	includeHidden,
 	limit = SEARCH_RESULT_LIMIT,
 }: UseFileSearchParams) {
 	const trimmedQuery = searchTerm.trim();
@@ -31,7 +29,6 @@ export function useFileSearch({
 				query: debouncedQuery,
 				includePattern,
 				excludePattern,
-				includeHidden,
 				limit,
 			},
 			{
