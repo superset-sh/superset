@@ -201,11 +201,6 @@ export function CodeEditor({
 			{
 				key: "Mod-s",
 				run: () => {
-					const doc = view.state.doc.toString();
-					console.debug("[CodeEditor] Mod-s", {
-						docLength: doc.length,
-						docTail: doc.slice(-80),
-					});
 					onSaveRef.current?.();
 					return true;
 				},

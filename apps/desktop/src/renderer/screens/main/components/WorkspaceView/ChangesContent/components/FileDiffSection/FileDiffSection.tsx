@@ -3,7 +3,6 @@ import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -17,7 +16,6 @@ import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
-import { getFileDiffSaveContent } from "./utils/getFileDiffSaveContent";
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -62,11 +60,6 @@ function isGeneratedFile(filePath: string): boolean {
 	);
 }
 
-function getDebugTail(value: string | null | undefined): string | null {
-	if (value == null) return null;
-	return value.slice(-80);
-}
-
 export function FileDiffSection({
 	file,
 	category,
@@ -82,7 +75,6 @@ export function FileDiffSection({
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const editorRef = useRef<CodeEditorAdapter | null>(null);
 	const {
 		registerFileRef,
 		viewedFiles,
@@ -318,36 +310,9 @@ export function FileDiffSection({
 									value={editedContent ?? diffData.modified}
 									language={detectLanguage(file.path)}
 									onChange={(value) => {
-										console.debug("[FileDiffSection] onChange", {
-											filePath: file.path,
-											nextLength: value.length,
-											nextTail: getDebugTail(value),
-										});
 										setEditedContent(value);
 									}}
-									onSave={() => {
-										const editorValue = editorRef.current?.getValue();
-										const saveContent = getFileDiffSaveContent({
-											editorValue,
-											editedContent,
-											modifiedContent: diffData.modified,
-										});
-
-										console.debug("[FileDiffSection] onSave", {
-											filePath: file.path,
-											editorValueLength: editorValue?.length ?? null,
-											editorValueTail: getDebugTail(editorValue),
-											editedContentLength: editedContent?.length ?? null,
-											editedContentTail: getDebugTail(editedContent),
-											modifiedContentLength: diffData.modified.length,
-											modifiedContentTail: getDebugTail(diffData.modified),
-											saveContentLength: saveContent.length,
-											saveContentTail: getDebugTail(saveContent),
-										});
-
-										handleSave(saveContent);
-									}}
-									editorRef={editorRef}
+									onSave={() => handleSave(editedContent ?? diffData.modified)}
 									fillHeight={false}
 								/>
 							</div>

@@ -126,40 +126,15 @@ export function FileViewerPane({
 		originalDiffContentRef,
 	});
 
-	const handleEditorChange = useCallback(
-		(value: string | undefined) => {
-			if (value === undefined) return;
-
-			console.debug("[FileViewerPane] onChange", {
-				filePath,
-				valueLength: value.length,
-				valueTail: value.slice(-80),
-				originalContentLength: originalContentRef.current.length,
-				originalContentTail: originalContentRef.current.slice(-80),
-				draftContentLength: draftContentRef.current?.length ?? null,
-				isDirtyBefore:
-					originalContentRef.current === ""
-						? null
-						: value !== originalContentRef.current,
-			});
-
-			draftContentRef.current = value;
-			if (originalContentRef.current === "") {
-				console.debug(
-					"[FileViewerPane] establishing original content baseline",
-					{
-						filePath,
-						baselineLength: value.length,
-						baselineTail: value.slice(-80),
-					},
-				);
-				originalContentRef.current = value;
-				return;
-			}
-			setIsDirty(value !== originalContentRef.current);
-		},
-		[filePath],
-	);
+	const handleEditorChange = useCallback((value: string | undefined) => {
+		if (value === undefined) return;
+		draftContentRef.current = value;
+		if (originalContentRef.current === "") {
+			originalContentRef.current = value;
+			return;
+		}
+		setIsDirty(value !== originalContentRef.current);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
