@@ -42,7 +42,7 @@ export function BrowserToolbar({
 
 	const autocomplete = useUrlAutocomplete({
 		onSelect: (selectedUrl) => {
-			onNavigate(selectedUrl);
+			onNavigate(normalizeUrl(selectedUrl));
 			setIsEditing(false);
 		},
 	});
