@@ -24,18 +24,23 @@ export function DevToolsPane({
 	path,
 	tabId,
 	targetPaneId,
-	isActive: _isActive,
+	isActive = true,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
 }: DevToolsPaneProps) {
 	// Query the CDP debug server for the DevTools frontend URL.
 	// Poll every 1s until a URL is obtained (the browser webview may still be loading).
+	// Pause polling when pane is inactive to reduce background work.
 	const { data } = electronTrpc.browser.getDevToolsUrl.useQuery(
 		{ browserPaneId: targetPaneId },
 		{
 			refetchOnWindowFocus: false,
-			refetchInterval: (query) => (query.state.data?.url ? false : 1000),
+			refetchInterval: (query) => {
+				// Don't poll when inactive or when URL is already obtained
+				if (!isActive || query.state.data?.url) return false;
+				return 1000;
+			},
 		},
 	);
 	const devToolsUrl = data?.url;
