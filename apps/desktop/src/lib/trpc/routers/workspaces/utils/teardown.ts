@@ -5,7 +5,7 @@ import {
 	getCommandShellArgs,
 	getShellEnv,
 } from "main/lib/agent-setup/shell-wrappers";
-import { buildSafeEnv, sanitizeEnv } from "main/lib/terminal/env";
+import { buildSafeEnv, getDefaultShell, sanitizeEnv } from "main/lib/terminal/env";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { removeWorktree } from "./git";
 import { loadSetupConfig } from "./setup";
@@ -42,9 +42,7 @@ export async function runTeardown({
 	console.log(`[teardown] Running for "${workspaceName}": ${command}`);
 
 	try {
-		const shell =
-			process.env.SHELL ||
-			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+		const shell = process.env.SHELL || getDefaultShell();
 		const supersetHomeDir =
 			process.env.SUPERSET_HOME_DIR || join(homedir(), SUPERSET_DIR_NAME);
 		const shellWrapperPaths = {
