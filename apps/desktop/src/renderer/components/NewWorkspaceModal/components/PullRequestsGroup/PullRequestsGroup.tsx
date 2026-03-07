@@ -16,24 +16,35 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	getRepoNameFromPath,
+	parseGitHubPrUrl,
+	toCanonicalGitHubPrUrl,
+} from "./pullRequestUtils";
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
 	githubOwner: string | null;
-	repoName: string | null;
+	mainRepoPath: string | null;
+	searchQuery: string;
 	onClose: () => void;
 }
 
 export function PullRequestsGroup({
 	projectId,
 	githubOwner,
-	repoName,
+	mainRepoPath,
+	searchQuery,
 	onClose,
 }: PullRequestsGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
+	const repoName = useMemo(
+		() => getRepoNameFromPath(mainRepoPath),
+		[mainRepoPath],
+	);
 
 	// Match GitHub repository by owner + name from the local project
 	const { data: repoData } = useLiveQuery(
@@ -81,6 +92,23 @@ export function PullRequestsGroup({
 		() => (pullRequests ?? []).filter((pr) => pr.state === "open").slice(0, 30),
 		[pullRequests],
 	);
+	const manualPr = useMemo(() => parseGitHubPrUrl(searchQuery), [searchQuery]);
+	const manualPrUrl = useMemo(
+		() => toCanonicalGitHubPrUrl(manualPr),
+		[manualPr],
+	);
+	const hasSyncedManualMatch = useMemo(() => {
+		if (!manualPrUrl) {
+			return false;
+		}
+
+		return openPrs.some((pr) => {
+			const parsedUrl = parseGitHubPrUrl(pr.url);
+			return toCanonicalGitHubPrUrl(parsedUrl) === manualPrUrl;
+		});
+	}, [manualPrUrl, openPrs]);
+	const showManualPrOption =
+		Boolean(projectId) && Boolean(manualPrUrl) && !hasSyncedManualMatch;
 
 	if (!projectId) {
 		return (
@@ -90,98 +118,157 @@ export function PullRequestsGroup({
 		);
 	}
 
+	const manualPrItem = showManualPrOption ? (
+		<CommandGroup heading="From URL">
+			<CommandItem
+				value={`${manualPrUrl} create from url`}
+				onSelect={() => {
+					if (!projectId || !manualPrUrl) {
+						toast.error("Select a project first");
+						return;
+					}
+					onClose();
+					toast.promise(
+						createFromPr.mutateAsync({
+							projectId,
+							prUrl: manualPrUrl,
+						}),
+						{
+							loading: "Creating workspace from PR...",
+							success: "Workspace created",
+							error: (err) =>
+								err instanceof Error
+									? err.message
+									: "Failed to create workspace",
+						},
+					);
+				}}
+			>
+				<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+				<span className="truncate flex-1">
+					{manualPr
+						? `${manualPr.owner}/${manualPr.repo} #${manualPr.number}`
+						: manualPrUrl}
+				</span>
+				<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
+					Create from URL
+				</span>
+				<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+					Create ↵
+				</span>
+			</CommandItem>
+		</CommandGroup>
+	) : null;
+
 	if (!githubOwner) {
 		return (
-			<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
-				<SiGithub className="size-6 text-muted-foreground" />
-				<div className="space-y-1">
-					<p className="text-sm font-medium">Connect GitHub</p>
-					<p className="text-xs text-muted-foreground">
-						Sync pull requests from GitHub to create workspaces
-					</p>
+			<>
+				{manualPrItem}
+				<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
+					<SiGithub className="size-6 text-muted-foreground" />
+					<div className="space-y-1">
+						<p className="text-sm font-medium">Connect GitHub</p>
+						<p className="text-xs text-muted-foreground">
+							Sync pull requests from GitHub or paste a PR URL to create a
+							workspace
+						</p>
+					</div>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => {
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
+								onClose();
+								navigate({ to: "/settings/integrations" });
+							});
+						}}
+					>
+						Connect
+					</Button>
 				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => {
-						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							onClose();
-							navigate({ to: "/settings/integrations" });
-						});
-					}}
-				>
-					Connect
-				</Button>
-			</div>
+			</>
 		);
 	}
 
 	if (!githubRepositoryId) {
 		return (
-			<CommandGroup>
-				<CommandEmpty>No GitHub repository found.</CommandEmpty>
-			</CommandGroup>
+			<>
+				{manualPrItem}
+				<CommandGroup>
+					<CommandEmpty>
+						No synced GitHub repository found. Paste a PR URL to create a
+						workspace anyway.
+					</CommandEmpty>
+				</CommandGroup>
+			</>
 		);
 	}
 
 	return (
-		<CommandGroup>
-			<CommandEmpty>No pull requests found.</CommandEmpty>
-			{openPrs.map((pr) => (
-				<CommandItem
-					key={pr.id}
-					value={`#${pr.prNumber} ${pr.title} ${pr.authorLogin} ${pr.url}`}
-					onSelect={() => {
-						if (!projectId) {
-							toast.error("Select a project first");
-							return;
-						}
-						const existingId = workspaceByBranch.get(pr.headBranch);
-						if (existingId) {
+		<>
+			{manualPrItem}
+			<CommandGroup>
+				<CommandEmpty>
+					{searchQuery.trim()
+						? "No matching pull requests found."
+						: "No pull requests found."}
+				</CommandEmpty>
+				{openPrs.map((pr) => (
+					<CommandItem
+						key={pr.id}
+						value={`#${pr.prNumber} ${pr.title} ${pr.authorLogin} ${pr.url}`}
+						onSelect={() => {
+							if (!projectId) {
+								toast.error("Select a project first");
+								return;
+							}
+							const existingId = workspaceByBranch.get(pr.headBranch);
+							if (existingId) {
+								onClose();
+								navigateToWorkspace(existingId, navigate);
+								return;
+							}
 							onClose();
-							navigateToWorkspace(existingId, navigate);
-							return;
-						}
-						onClose();
-						toast.promise(
-							createFromPr.mutateAsync({
-								projectId,
-								prUrl: pr.url,
-							}),
-							{
-								loading: "Creating workspace from PR...",
-								success: "Workspace created",
-								error: (err) =>
-									err instanceof Error
-										? err.message
-										: "Failed to create workspace",
-							},
-						);
-					}}
-					className="group h-12"
-				>
-					{workspaceByBranch.has(pr.headBranch) ? (
-						<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
-					) : pr.isDraft ? (
-						<GoGitPullRequestDraft className="size-4 shrink-0 text-muted-foreground" />
-					) : (
-						<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
-					)}
-					<span
-						className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
-						style={{ width: "2.8rem" }}
+							toast.promise(
+								createFromPr.mutateAsync({
+									projectId,
+									prUrl: pr.url,
+								}),
+								{
+									loading: "Creating workspace from PR...",
+									success: "Workspace created",
+									error: (err) =>
+										err instanceof Error
+											? err.message
+											: "Failed to create workspace",
+								},
+							);
+						}}
+						className="group h-12"
 					>
-						#{pr.prNumber}
-					</span>
-					<span className="truncate flex-1">{pr.title}</span>
-					<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
-						{pr.authorLogin}
-					</span>
-					<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
-						{workspaceByBranch.has(pr.headBranch) ? "Open" : "Create"} ↵
-					</span>
-				</CommandItem>
-			))}
-		</CommandGroup>
+						{workspaceByBranch.has(pr.headBranch) ? (
+							<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+						) : pr.isDraft ? (
+							<GoGitPullRequestDraft className="size-4 shrink-0 text-muted-foreground" />
+						) : (
+							<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+						)}
+						<span
+							className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
+							style={{ width: "2.8rem" }}
+						>
+							#{pr.prNumber}
+						</span>
+						<span className="truncate flex-1">{pr.title}</span>
+						<span className="text-xs text-muted-foreground shrink-0 group-data-[selected=true]:hidden">
+							{pr.authorLogin}
+						</span>
+						<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+							{workspaceByBranch.has(pr.headBranch) ? "Open" : "Create"} ↵
+						</span>
+					</CommandItem>
+				))}
+			</CommandGroup>
+		</>
 	);
 }

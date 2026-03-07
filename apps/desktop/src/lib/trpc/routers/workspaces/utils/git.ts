@@ -1541,6 +1541,8 @@ export function parsePrUrl(url: string): {
 	repo: string;
 	number: number;
 } | null {
+	const githubHosts = new Set(["github.com", "www.github.com"]);
+
 	// Normalize URL - add https:// if missing
 	let normalizedUrl = url.trim();
 	if (!normalizedUrl.startsWith("http")) {
@@ -1549,7 +1551,7 @@ export function parsePrUrl(url: string): {
 
 	try {
 		const urlObj = new URL(normalizedUrl);
-		if (!urlObj.hostname.includes("github.com")) {
+		if (!githubHosts.has(urlObj.hostname.toLowerCase())) {
 			return null;
 		}
 

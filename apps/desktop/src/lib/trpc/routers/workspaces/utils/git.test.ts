@@ -517,9 +517,25 @@ describe("parsePrUrl", () => {
 		});
 	});
 
+	test("parses GitHub URL with www host", () => {
+		expect(
+			parsePrUrl("https://www.github.com/superset-sh/superset/pull/1781"),
+		).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
+	});
+
 	test("returns null for non-PR URLs", () => {
 		expect(
 			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
+		).toBe(null);
+	});
+
+	test("returns null for lookalike non-GitHub hosts", () => {
+		expect(
+			parsePrUrl("https://notgithub.com/superset-sh/superset/pull/1781"),
 		).toBe(null);
 	});
 });

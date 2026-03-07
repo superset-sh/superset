@@ -26,6 +26,7 @@ export function NewWorkspaceModal() {
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
+	const [searchQuery, setSearchQuery] = useState("");
 	const navigate = useNavigate();
 	const { openNew } = useOpenProject();
 
@@ -40,6 +41,12 @@ export function NewWorkspaceModal() {
 			setSelectedProjectId(preSelectedProjectId);
 		} else if (recentProjects.length > 0 && !selectedProjectId) {
 			setSelectedProjectId(recentProjects[0].id);
+		}
+	}, [isOpen]);
+
+	useEffect(() => {
+		if (!isOpen) {
+			setSearchQuery("");
 		}
 	}, [isOpen]);
 
@@ -77,7 +84,10 @@ export function NewWorkspaceModal() {
 			<div className="flex items-center justify-between border-b px-3 py-2">
 				<Tabs
 					value={activeTab}
-					onValueChange={(value) => setActiveTab(value as Tab)}
+					onValueChange={(value) => {
+						setActiveTab(value as Tab);
+						setSearchQuery("");
+					}}
 				>
 					<TabsList>
 						<TabsTrigger value="prompt">Prompt</TabsTrigger>
@@ -98,12 +108,14 @@ export function NewWorkspaceModal() {
 
 			{isListTab && (
 				<CommandInput
+					value={searchQuery}
+					onValueChange={setSearchQuery}
 					placeholder={
 						activeTab === "issues"
 							? "Search by slug, title, or description"
 							: activeTab === "branches"
 								? "Search by name"
-								: "Search by title, number, or author"
+								: "Search by title, number, author, or PR URL"
 					}
 				/>
 			)}
@@ -113,7 +125,8 @@ export function NewWorkspaceModal() {
 					<PullRequestsGroup
 						projectId={selectedProjectId}
 						githubOwner={selectedProject?.githubOwner ?? null}
-						repoName={selectedProject?.name ?? null}
+						mainRepoPath={selectedProject?.mainRepoPath ?? null}
+						searchQuery={searchQuery}
 						onClose={closeModal}
 					/>
 				)}
