@@ -239,7 +239,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	};
 
 	return (
-		<div className="p-3 space-y-3" cmdk-group="">
+		<div className="p-3 space-y-3">
 			<Select
 				value={selectedAgent}
 				onValueChange={(value: WorkspaceCreateAgent) =>

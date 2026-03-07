@@ -1,4 +1,11 @@
-import { CommandDialog, CommandInput, CommandList } from "@superset/ui/command";
+import { Command, CommandInput, CommandList } from "@superset/ui/command";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useNavigate } from "@tanstack/react-router";
@@ -66,67 +73,80 @@ export function NewWorkspaceModal() {
 	};
 
 	return (
-		<CommandDialog
-			open={isOpen}
-			onOpenChange={(open) => !open && closeModal()}
-			title="New Workspace"
-			description="Create a new workspace from a PR, branch, issue, or prompt."
-			showCloseButton={false}
-			className="sm:max-w-[560px] max-h-[min(70vh,600px)] !top-[calc(50%-min(35vh,300px))] !-translate-y-0 flex flex-col"
-		>
-			<div className="flex items-center justify-between border-b px-3 py-2">
-				<Tabs
-					value={activeTab}
-					onValueChange={(value) => setActiveTab(value as Tab)}
-				>
-					<TabsList>
-						<TabsTrigger value="prompt">Prompt</TabsTrigger>
-						<TabsTrigger value="issues">Issues</TabsTrigger>
-						<TabsTrigger value="pull-requests">Pull requests</TabsTrigger>
-						<TabsTrigger value="branches">Branches</TabsTrigger>
-					</TabsList>
-				</Tabs>
-				<ProjectSelector
-					selectedProjectId={selectedProjectId}
-					selectedProjectName={selectedProject?.name ?? null}
-					recentProjects={recentProjects.filter((p) => Boolean(p.id))}
-					onSelectProject={setSelectedProjectId}
-					onImportRepo={handleImportRepo}
-					onNewProject={handleNewProject}
-				/>
-			</div>
-
-			{isListTab && (
-				<CommandInput
-					placeholder={
-						activeTab === "issues"
-							? "Search by slug, title, or description"
-							: activeTab === "branches"
-								? "Search by name"
-								: "Search by title, number, or author"
-					}
-				/>
-			)}
-
-			<CommandList className="!max-h-none flex-1 overflow-y-auto">
-				{activeTab === "pull-requests" && (
-					<PullRequestsGroup
-						projectId={selectedProjectId}
-						githubOwner={selectedProject?.githubOwner ?? null}
-						repoName={selectedProject?.name ?? null}
-						onClose={closeModal}
+		<Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+			<DialogHeader className="sr-only">
+				<DialogTitle>New Workspace</DialogTitle>
+				<DialogDescription>
+					Create a new workspace from a PR, branch, issue, or prompt.
+				</DialogDescription>
+			</DialogHeader>
+			<DialogContent
+				showCloseButton={false}
+				className="sm:max-w-[560px] max-h-[min(70vh,600px)] !top-[calc(50%-min(35vh,300px))] !-translate-y-0 flex flex-col overflow-hidden p-0"
+			>
+				<div className="flex items-center justify-between border-b px-3 py-2">
+					<Tabs
+						value={activeTab}
+						onValueChange={(value) => setActiveTab(value as Tab)}
+					>
+						<TabsList>
+							<TabsTrigger value="prompt">Prompt</TabsTrigger>
+							<TabsTrigger value="issues">Issues</TabsTrigger>
+							<TabsTrigger value="pull-requests">Pull requests</TabsTrigger>
+							<TabsTrigger value="branches">Branches</TabsTrigger>
+						</TabsList>
+					</Tabs>
+					<ProjectSelector
+						selectedProjectId={selectedProjectId}
+						selectedProjectName={selectedProject?.name ?? null}
+						recentProjects={recentProjects.filter((p) => Boolean(p.id))}
+						onSelectProject={setSelectedProjectId}
+						onImportRepo={handleImportRepo}
+						onNewProject={handleNewProject}
 					/>
+				</div>
+
+				{isListTab ? (
+					<Command className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 flex h-full w-full flex-1 flex-col overflow-hidden rounded-none">
+						<CommandInput
+							placeholder={
+								activeTab === "issues"
+									? "Search by slug, title, or description"
+									: activeTab === "branches"
+										? "Search by name"
+										: "Search by title, number, or author"
+							}
+						/>
+
+						<CommandList className="!max-h-none flex-1 overflow-y-auto">
+							{activeTab === "pull-requests" && (
+								<PullRequestsGroup
+									projectId={selectedProjectId}
+									githubOwner={selectedProject?.githubOwner ?? null}
+									repoName={selectedProject?.name ?? null}
+									onClose={closeModal}
+								/>
+							)}
+							{activeTab === "branches" && (
+								<BranchesGroup
+									projectId={selectedProjectId}
+									onClose={closeModal}
+								/>
+							)}
+							{activeTab === "issues" && (
+								<IssuesGroup
+									projectId={selectedProjectId}
+									onClose={closeModal}
+								/>
+							)}
+						</CommandList>
+					</Command>
+				) : (
+					<div className="flex-1 overflow-y-auto">
+						<PromptGroup projectId={selectedProjectId} onClose={closeModal} />
+					</div>
 				)}
-				{activeTab === "branches" && (
-					<BranchesGroup projectId={selectedProjectId} onClose={closeModal} />
-				)}
-				{activeTab === "issues" && (
-					<IssuesGroup projectId={selectedProjectId} onClose={closeModal} />
-				)}
-				{activeTab === "prompt" && (
-					<PromptGroup projectId={selectedProjectId} onClose={closeModal} />
-				)}
-			</CommandList>
-		</CommandDialog>
+			</DialogContent>
+		</Dialog>
 	);
 }
