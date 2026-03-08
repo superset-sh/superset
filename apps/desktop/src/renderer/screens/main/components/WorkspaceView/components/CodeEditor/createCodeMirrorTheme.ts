@@ -44,10 +44,10 @@ export function createCodeMirrorTheme(
 				borderRight: `1px solid ${MIDNIGHT_CODE_COLORS.border}`,
 			},
 			".cm-activeLine": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.surface,
+				backgroundColor: MIDNIGHT_CODE_COLORS.activeLine,
 			},
 			".cm-activeLineGutter": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.surface,
+				backgroundColor: MIDNIGHT_CODE_COLORS.activeLine,
 			},
 			"&.cm-single-line-jump-target .cm-activeLine": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
@@ -60,6 +60,9 @@ export function createCodeMirrorTheme(
 				{
 					backgroundColor: MIDNIGHT_CODE_COLORS.selection,
 				},
+			".cm-activeLine ::selection": {
+				backgroundColor: MIDNIGHT_CODE_COLORS.selectionOnActiveLine,
+			},
 			".cm-line.cm-jump-target-section": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
 				boxShadow: `inset 2px 0 0 ${MIDNIGHT_CODE_COLORS.jumpTargetSectionEdge}`,
