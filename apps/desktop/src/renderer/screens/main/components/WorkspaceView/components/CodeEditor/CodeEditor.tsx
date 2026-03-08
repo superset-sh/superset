@@ -53,6 +53,7 @@ const setHighlightRangeEffect = StateEffect.define<{
 	from: number;
 	to: number;
 } | null>();
+const emptyEditorAttrs: Record<string, string> = {};
 
 function createJumpTargetDecorations(
 	state: EditorState,
@@ -74,6 +75,34 @@ function createJumpTargetDecorations(
 
 	return Decoration.set(decorations);
 }
+
+const singleLineJumpHighlightField = StateField.define<boolean>({
+	create: () => false,
+	update(value, transaction) {
+		for (const effect of transaction.effects) {
+			if (!effect.is(setHighlightRangeEffect)) {
+				continue;
+			}
+
+			if (!effect.value) {
+				return false;
+			}
+
+			return (
+				transaction.state.doc.lineAt(effect.value.from).number ===
+				transaction.state.doc.lineAt(effect.value.to).number
+			);
+		}
+
+		return value;
+	},
+	provide: (field) =>
+		EditorView.editorAttributes.from(field, (isSingleLineJumpTarget) =>
+			isSingleLineJumpTarget
+				? { class: "cm-single-line-jump-target" }
+				: emptyEditorAttrs,
+		),
+});
 
 const highlightRangeField = StateField.define<DecorationSet>({
 	create: () => Decoration.none,
@@ -295,6 +324,7 @@ export function CodeEditor({
 		const state = EditorState.create({
 			doc: value,
 			extensions: [
+				singleLineJumpHighlightField,
 				highlightRangeField,
 				lineNumbers(),
 				highlightActiveLineGutter(),
