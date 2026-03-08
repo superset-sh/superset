@@ -54,7 +54,7 @@ function clampColumn(
 	return Math.max(1, Math.min(requestedColumn, lineContent.length + 1));
 }
 
-function mapDeletedLineToRawLine(
+function mapOldSideLineToRawLine(
 	contents: FileContents,
 	lineNumber: number,
 ): number {
@@ -70,8 +70,14 @@ function mapDeletedLineToRawLine(
 
 		for (const chunk of hunk.hunkContent) {
 			if (chunk.type === "context") {
-				currentOldLine += chunk.lines.length;
-				currentNewLine += chunk.lines.length;
+				for (let index = 0; index < chunk.lines.length; index += 1) {
+					if (currentOldLine === lineNumber) {
+						return clampLineNumber(currentNewLine, modifiedLines);
+					}
+
+					currentOldLine += 1;
+					currentNewLine += 1;
+				}
 				continue;
 			}
 
@@ -95,17 +101,14 @@ export function mapDiffLocationToRawPosition({
 	contents,
 	lineNumber,
 	side,
-	lineType,
 	column,
 }: MapDiffLocationToRawPositionOptions): RawEditorPosition {
 	const modifiedLines = contents.modified.split("\n");
 
 	const rawLineNumber =
-		lineType === "context" ||
-		lineType === "context-expanded" ||
 		side === "additions"
 			? clampLineNumber(lineNumber, modifiedLines)
-			: mapDeletedLineToRawLine(contents, lineNumber);
+			: mapOldSideLineToRawLine(contents, lineNumber);
 
 	return {
 		lineNumber: rawLineNumber,

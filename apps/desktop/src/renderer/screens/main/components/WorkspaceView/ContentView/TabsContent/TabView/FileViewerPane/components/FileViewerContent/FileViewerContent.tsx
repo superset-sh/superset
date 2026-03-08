@@ -190,10 +190,22 @@ export function FileViewerContent({
 		hasAppliedInitialLocationRef.current = false;
 	}, [initialLine, initialColumn]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset cached diff interaction when the file changes
+	useEffect(() => {
+		if (viewMode !== "raw") {
+			hasAppliedInitialLocationRef.current = false;
+		}
+	}, [viewMode]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset cached diff interaction when the rendered diff changes
 	useEffect(() => {
 		lastDiffLocationRef.current = null;
-	}, [filePath]);
+	}, [
+		filePath,
+		diffData?.original,
+		diffData?.modified,
+		diffViewMode,
+		hideUnchangedRegions,
+	]);
 
 	const getDiffSelectionLines = () => {
 		if (!diffData || !lastDiffLocationRef.current) {

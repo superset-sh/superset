@@ -64,6 +64,26 @@ describe("mapDiffLocationToRawPosition", () => {
 		});
 	});
 
+	it("maps deletion-side context lines using old-to-new line translation", () => {
+		const contents: FileContents = {
+			original: "one\ntwo\nthree\nfour",
+			modified: "zero\none\ntwo\nthree\nfour",
+			language: "text",
+		};
+
+		expect(
+			mapDiffLocationToRawPosition({
+				contents,
+				lineNumber: 4,
+				side: "deletions",
+				lineType: "context",
+			}),
+		).toEqual({
+			lineNumber: 5,
+			column: 1,
+		});
+	});
+
 	it("clamps columns to the target line length", () => {
 		const contents: FileContents = {
 			original: "alpha",
