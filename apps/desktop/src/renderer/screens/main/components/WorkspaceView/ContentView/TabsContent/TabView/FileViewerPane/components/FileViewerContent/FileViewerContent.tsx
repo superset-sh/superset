@@ -63,6 +63,28 @@ interface DiffData {
 	language: string;
 }
 
+function hasActiveSelectionWithinElement(
+	element: HTMLDivElement | null,
+): boolean {
+	if (!element) {
+		return false;
+	}
+
+	const selection = window.getSelection();
+	if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+		return false;
+	}
+
+	for (let index = 0; index < selection.rangeCount; index += 1) {
+		const range = selection.getRangeAt(index);
+		if (element.contains(range.commonAncestorContainer)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
@@ -320,9 +342,15 @@ export function FileViewerContent({
 				onMoveToTab={onMoveToTab}
 				onMoveToNewTab={onMoveToNewTab}
 			>
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Diff wrapper intercepts mouse clicks to preserve text selection */}
 				<div
 					ref={diffContainerRef}
 					className="h-full min-h-0 overflow-auto bg-background select-text"
+					onClick={(event) => {
+						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+							event.stopPropagation();
+						}
+					}}
 				>
 					<LightDiffViewer
 						key={filePath}
