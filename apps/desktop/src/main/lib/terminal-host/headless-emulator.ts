@@ -223,9 +223,15 @@ export class HeadlessEmulator {
 	 * Generate a complete snapshot for session restore.
 	 * Note: Call flush() first if you have pending async writes.
 	 */
-	getSnapshot(): TerminalSnapshot {
+	getSnapshot({
+		scrollbackLines,
+	}: {
+		scrollbackLines?: number;
+	} = {}): TerminalSnapshot {
+		const effectiveScrollbackLines =
+			scrollbackLines ?? this.terminal.options.scrollback ?? 2000;
 		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback: this.terminal.options.scrollback ?? 2000,
+			scrollback: effectiveScrollbackLines,
 		});
 
 		const rehydrateSequences = this.generateRehydrateSequences();
@@ -296,9 +302,13 @@ export class HeadlessEmulator {
 	 * Generate a complete snapshot after flushing pending writes.
 	 * This is the preferred method for getting consistent snapshots.
 	 */
-	async getSnapshotAsync(): Promise<TerminalSnapshot> {
+	async getSnapshotAsync({
+		scrollbackLines,
+	}: {
+		scrollbackLines?: number;
+	} = {}): Promise<TerminalSnapshot> {
 		await this.flush();
-		return this.getSnapshot();
+		return this.getSnapshot({ scrollbackLines });
 	}
 
 	/**

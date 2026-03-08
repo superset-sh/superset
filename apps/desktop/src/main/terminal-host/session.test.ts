@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import type { Socket } from "node:net";
 import path from "node:path";
+import { DEFAULT_MODES } from "../lib/terminal-host/types";
 import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
@@ -89,5 +91,55 @@ describe("Terminal Host Session shell args", () => {
 		expect(spawnPayload?.args?.[1]?.endsWith(path.join("bash", "rcfile"))).toBe(
 			true,
 		);
+	});
+
+	it("uses stream-first live attach without snapshot serialization", async () => {
+		const session = new Session({
+			sessionId: "session-live-attach",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			spawnProcess: (command: string, args: readonly string[], _options) => {
+				spawnCalls.push({ command, args: [...args] });
+				return fakeChildProcess as unknown as ChildProcess;
+			},
+		});
+
+		let getSnapshotAsyncCalls = 0;
+		const sessionAny = session as unknown as {
+			emulator: {
+				getDimensions: () => { cols: number; rows: number };
+				getCwd: () => string | null;
+				getModes: () => typeof DEFAULT_MODES;
+				getScrollbackLines: () => number;
+				getSnapshotAsync: () => Promise<unknown>;
+			};
+		};
+		sessionAny.emulator = {
+			getDimensions: () => ({ cols: 120, rows: 40 }),
+			getCwd: () => "/tmp",
+			getModes: () => ({ ...DEFAULT_MODES }),
+			getScrollbackLines: () => 42,
+			getSnapshotAsync: () => {
+				getSnapshotAsyncCalls += 1;
+				return Promise.resolve({});
+			},
+		};
+
+		const snapshot = await session.attach({} as Socket, {
+			includeSnapshot: false,
+		});
+
+		expect(getSnapshotAsyncCalls).toBe(0);
+		expect(snapshot.snapshotAnsi).toBe("");
+		expect(snapshot.rehydrateSequences).toBe("");
+		expect(snapshot.cols).toBe(120);
+		expect(snapshot.rows).toBe(40);
+		expect(snapshot.scrollbackLines).toBe(42);
+		expect(snapshot.modes.alternateScreen).toBe(false);
 	});
 });
