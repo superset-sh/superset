@@ -1,4 +1,4 @@
-import { workspaces, worktrees } from "@superset/local-db";
+import { workspaceSections, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -8,6 +8,10 @@ import {
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../utils/db-helpers";
+import {
+	getProjectChildItems,
+	reorderProjectChildItems,
+} from "../utils/project-children-order";
 
 export const createStatusProcedures = () => {
 	return router({
@@ -51,6 +55,61 @@ export const createStatusProcedures = () => {
 						.update(workspaces)
 						.set({ tabOrder: i })
 						.where(eq(workspaces.id, projectWorkspaces[i].id))
+						.run();
+				}
+
+				return { success: true };
+			}),
+
+		reorderProjectChildren: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					fromIndex: z.number(),
+					toIndex: z.number(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const { projectId, fromIndex, toIndex } = input;
+
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+				const projectSections = localDb
+					.select()
+					.from(workspaceSections)
+					.where(eq(workspaceSections.projectId, projectId))
+					.all();
+
+				const items = getProjectChildItems(
+					projectId,
+					projectWorkspaces,
+					projectSections,
+				);
+
+				reorderProjectChildItems(items, fromIndex, toIndex);
+
+				for (const item of items) {
+					if (item.kind === "workspace") {
+						localDb
+							.update(workspaces)
+							.set({ tabOrder: item.tabOrder })
+							.where(eq(workspaces.id, item.id))
+							.run();
+						continue;
+					}
+
+					localDb
+						.update(workspaceSections)
+						.set({ tabOrder: item.tabOrder })
+						.where(eq(workspaceSections.id, item.id))
 						.run();
 				}
 

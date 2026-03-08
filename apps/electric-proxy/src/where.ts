@@ -2,6 +2,8 @@ import {
 	agentCommands,
 	chatSessions,
 	devicePresence,
+	githubPullRequests,
+	githubRepositories,
 	integrationConnections,
 	invitations,
 	members,
@@ -107,6 +109,20 @@ export function buildWhereClause(
 
 		case "session_hosts":
 			return build(sessionHosts, sessionHosts.organizationId, organizationId);
+
+		case "github_repositories":
+			return build(
+				githubRepositories,
+				githubRepositories.organizationId,
+				organizationId,
+			);
+
+		case "github_pull_requests":
+			return build(
+				githubPullRequests,
+				githubPullRequests.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

@@ -3,6 +3,10 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	getPullRequestRepoArgs,
+	getRepoContext,
+} from "../workspaces/utils/github/github";
+import {
 	execWithShellEnv,
 	getProcessEnvWithShellPath,
 } from "../workspaces/utils/shell-env";
@@ -209,11 +213,14 @@ async function findOpenPRByHeadCommit(
 			return null;
 		}
 
+		const repoArgs = getPullRequestRepoArgs(await getRepoContext(worktreePath));
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"list",
+				...repoArgs,
 				"--state",
 				"open",
 				"--search",

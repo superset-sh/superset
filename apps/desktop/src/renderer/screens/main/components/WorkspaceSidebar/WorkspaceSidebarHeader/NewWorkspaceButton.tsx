@@ -38,8 +38,6 @@ export function NewWorkspaceButton({
 	);
 
 	const handleClick = () => {
-		// projectId may be undefined if no workspace is active in route
-		// openModal handles undefined by opening without a pre-selected project
 		const projectId = currentWorkspace?.projectId;
 		openModal(projectId);
 	};

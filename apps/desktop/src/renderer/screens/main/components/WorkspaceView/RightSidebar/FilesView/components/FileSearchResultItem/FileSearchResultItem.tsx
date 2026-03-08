@@ -19,7 +19,7 @@ import {
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
 import { SEARCH_RESULT_ROW_HEIGHT } from "../../constants";
-import { getFileIcon } from "../../utils";
+import { FileIcon } from "../../utils";
 
 interface FileSearchResultItemProps {
 	entry: DirectoryEntry;
@@ -63,11 +63,6 @@ export function FileSearchResultItem({
 	onRename,
 	onDelete,
 }: FileSearchResultItemProps) {
-	const { icon: Icon, color } = getFileIcon(
-		entry.name,
-		entry.isDirectory,
-		false,
-	);
 	const folderLabel = getFolderLabel(entry.relativePath);
 	const folderLabelDisplay = truncatePathStart(
 		folderLabel,
@@ -130,7 +125,11 @@ export function FileSearchResultItem({
 					{folderLabelDisplay}
 				</span>
 				<div className="flex items-center gap-1 min-w-0">
-					<Icon className={cn("size-4 shrink-0", color)} />
+					<FileIcon
+						fileName={entry.name}
+						isDirectory={entry.isDirectory}
+						className="size-4 shrink-0"
+					/>
 					<span className="flex-1 min-w-0 text-xs truncate">{entry.name}</span>
 				</div>
 			</div>

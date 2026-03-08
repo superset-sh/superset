@@ -8,7 +8,6 @@ export {
 	getBuiltInTheme,
 	lightTheme,
 	monokaiTheme,
-	oneDarkTheme,
 } from "./built-in";
 export { parseThemeConfigFile, type ThemeConfigParseResult } from "./import";
 export type { TerminalColors, Theme, ThemeMetadata, UIColors } from "./types";

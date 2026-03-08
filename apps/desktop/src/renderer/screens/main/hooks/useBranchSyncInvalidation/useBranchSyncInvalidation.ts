@@ -32,6 +32,12 @@ export function useBranchSyncInvalidation({
 								workspaces: group.workspaces.map((ws) =>
 									ws.id === workspaceId ? { ...ws, branch } : ws,
 								),
+								sections: group.sections.map((section) => ({
+									...section,
+									workspaces: section.workspaces.map((ws) =>
+										ws.id === workspaceId ? { ...ws, branch } : ws,
+									),
+								})),
 							}));
 						});
 

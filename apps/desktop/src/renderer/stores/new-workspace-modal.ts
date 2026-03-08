@@ -26,7 +26,6 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 	),
 );
 
-// Convenience hooks
 export const useNewWorkspaceModalOpen = () =>
 	useNewWorkspaceModalStore((state) => state.isOpen);
 export const useOpenNewWorkspaceModal = () =>

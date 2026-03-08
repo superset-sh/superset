@@ -2,7 +2,9 @@ import {
 	SearchDialog,
 	type SearchDialogItem,
 } from "renderer/screens/main/components/SearchDialog";
-import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils/file-icons";
+import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import type { SearchScope } from "renderer/stores/search-dialog-state";
+import { ScopeToggle } from "./components/ScopeToggle";
 
 interface CommandPaletteResult extends SearchDialogItem {
 	name: string;
@@ -10,6 +12,8 @@ interface CommandPaletteResult extends SearchDialogItem {
 	path: string;
 	isDirectory: boolean;
 	score: number;
+	workspaceId?: string;
+	workspaceName?: string;
 }
 
 interface CommandPaletteProps {
@@ -25,7 +29,10 @@ interface CommandPaletteProps {
 	onExcludePatternChange: (value: string) => void;
 	isLoading: boolean;
 	searchResults: CommandPaletteResult[];
-	onSelectFile: (filePath: string) => void;
+	onSelectFile: (filePath: string, workspaceId?: string) => void;
+	scope: SearchScope;
+	onScopeChange: (scope: SearchScope) => void;
+	workspaceName?: string;
 }
 
 export function CommandPalette({
@@ -42,16 +49,25 @@ export function CommandPalette({
 	isLoading,
 	searchResults,
 	onSelectFile,
+	scope,
+	onScopeChange,
+	workspaceName,
 }: CommandPaletteProps) {
 	return (
 		<SearchDialog
 			open={open}
 			onOpenChange={onOpenChange}
 			title="Quick Open"
-			description="Search for files in your workspace"
+			description={
+				scope === "global"
+					? "Search for files across all workspaces"
+					: "Search for files in your workspace"
+			}
 			query={query}
 			onQueryChange={onQueryChange}
-			queryPlaceholder="Search files..."
+			queryPlaceholder={
+				scope === "global" ? "Search all workspaces..." : "Search files..."
+			}
 			filtersOpen={filtersOpen}
 			onFiltersOpenChange={onFiltersOpenChange}
 			includePattern={includePattern}
@@ -62,13 +78,24 @@ export function CommandPalette({
 			isLoading={isLoading}
 			results={searchResults}
 			getItemValue={(file) => `${file.path} ${query}`}
-			onSelectItem={(file) => onSelectFile(file.relativePath)}
+			onSelectItem={(file) => onSelectFile(file.relativePath, file.workspaceId)}
+			headerExtra={
+				<ScopeToggle
+					scope={scope}
+					onScopeChange={onScopeChange}
+					workspaceName={workspaceName}
+				/>
+			}
 			renderItem={(file) => {
-				const { icon: Icon, color } = getFileIcon(file.name, false);
 				return (
 					<>
-						<Icon className={`size-3.5 shrink-0 ${color}`} />
+						<FileIcon fileName={file.name} className="size-3.5 shrink-0" />
 						<span className="truncate font-medium">{file.name}</span>
+						{scope === "global" && file.workspaceName && (
+							<span className="shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+								{file.workspaceName}
+							</span>
+						)}
 						<span className="truncate text-muted-foreground text-xs ml-auto">
 							{file.relativePath}
 						</span>

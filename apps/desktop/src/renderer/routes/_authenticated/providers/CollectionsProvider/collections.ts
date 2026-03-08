@@ -3,6 +3,8 @@ import type {
 	SelectAgentCommand,
 	SelectChatSession,
 	SelectDevicePresence,
+	SelectGithubPullRequest,
+	SelectGithubRepository,
 	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
@@ -63,6 +65,8 @@ interface OrgCollections {
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
 	sessionHosts: Collection<SelectSessionHost>;
+	githubRepositories: Collection<SelectGithubRepository>;
+	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
 
 // Per-org collections cache
@@ -360,6 +364,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const githubRepositories = createCollection(
+		electricCollectionOptions<SelectGithubRepository>({
+			id: `github_repositories-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_repositories",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const githubPullRequests = createCollection(
+		electricCollectionOptions<SelectGithubPullRequest>({
+			id: `github_pull_requests-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_pull_requests",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -375,6 +411,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		apiKeys,
 		chatSessions,
 		sessionHosts,
+		githubRepositories,
+		githubPullRequests,
 	};
 }
 

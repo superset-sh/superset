@@ -16,19 +16,18 @@ import { useDrag, useDrop } from "react-dnd";
 import { HiChevronRight } from "react-icons/hi2";
 import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useReorderSections } from "renderer/react-query/workspaces";
+import { useReorderProjectChildren } from "renderer/react-query/workspaces";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
-import { STROKE_WIDTH } from "../constants";
+import { SECTION_DND_TYPE, STROKE_WIDTH } from "../constants";
 import { useSectionDropZone } from "../hooks";
 import { RenameInput } from "../RenameInput";
 import type { SectionDragItem, SidebarWorkspace } from "../types";
+import { reorderProjectChildrenInCache } from "../utils/reorderProjectChildrenInCache";
 import { WorkspaceList } from "../WorkspaceList";
 import { useSectionMutations } from "./useSectionMutations";
-
-export const SECTION_DND_TYPE = "SECTION";
 
 interface WorkspaceSectionProps {
 	sectionId: string;
@@ -63,6 +62,11 @@ export function WorkspaceSection({
 	const mutations = useSectionMutations(sectionId);
 
 	const hasColor = color && color !== PROJECT_COLOR_DEFAULT;
+	const sectionBorderStyle = {
+		borderLeft: hasColor
+			? `2px solid ${color}`
+			: "2px solid var(--color-border)",
+	};
 
 	const dropZone = useSectionDropZone({
 		canAccept: (item) =>
@@ -71,11 +75,11 @@ export function WorkspaceSection({
 		onAutoExpand: isCollapsed ? () => mutations.toggle() : undefined,
 	});
 
-	const reorderSections = useReorderSections();
+	const reorderProjectChildren = useReorderProjectChildren();
 
 	const commitSectionReorder = (item: SectionDragItem) => {
 		if (item.originalIndex === item.index) return;
-		reorderSections.mutate(
+		reorderProjectChildren.mutate(
 			{
 				projectId: item.projectId,
 				fromIndex: item.originalIndex,
@@ -84,7 +88,7 @@ export function WorkspaceSection({
 			{
 				onError: (error) => {
 					void utils.workspaces.getAllGrouped.invalidate();
-					toast.error(`Failed to reorder sections: ${error.message}`);
+					toast.error(`Failed to reorder project items: ${error.message}`);
 				},
 			},
 		);
@@ -94,6 +98,7 @@ export function WorkspaceSection({
 		() => ({
 			type: SECTION_DND_TYPE,
 			item: (): SectionDragItem => ({
+				kind: "section",
 				sectionId,
 				projectId,
 				index,
@@ -106,23 +111,16 @@ export function WorkspaceSection({
 			},
 			collect: (monitor) => ({ isSectionDragging: monitor.isDragging() }),
 		}),
-		[sectionId, projectId, index, reorderSections],
+		[sectionId, projectId, index, reorderProjectChildren],
 	);
 
 	const [, sectionDrop] = useDrop({
 		accept: SECTION_DND_TYPE,
 		hover: (item: SectionDragItem) => {
 			if (item.projectId !== projectId || item.index === index) return;
-			utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
-				if (!oldData) return oldData;
-				return oldData.map((group) => {
-					if (group.project.id !== projectId) return group;
-					const sections = [...group.sections];
-					const [moved] = sections.splice(item.index, 1);
-					sections.splice(index, 0, moved);
-					return { ...group, sections };
-				});
-			});
+			utils.workspaces.getAllGrouped.setData(undefined, (oldData) =>
+				reorderProjectChildrenInCache(oldData, projectId, item.index, index),
+			);
 			item.index = index;
 		},
 		drop: (item: SectionDragItem) => {
@@ -170,26 +168,40 @@ export function WorkspaceSection({
 
 	if (isSidebarCollapsed) {
 		return (
-			<WorkspaceList
-				workspaces={workspaces}
-				shortcutBaseIndex={shortcutBaseIndex}
-				sectionId={sectionId}
-				sections={allSections}
-				isCollapsed={isSidebarCollapsed}
-				orderedWorkspaceIds={orderedWorkspaceIds}
-			/>
+			<div
+				ref={(node) => {
+					sectionDrop(node);
+				}}
+				{...dropZone.handlers}
+				className={cn(
+					"relative flex flex-col -ml-0.5",
+					isSectionDragging && "opacity-30",
+				)}
+				style={sectionBorderStyle}
+			>
+				<div
+					ref={(node) => {
+						sectionDrag(node);
+					}}
+					className="absolute inset-y-0 -left-1 w-2 cursor-grab"
+				/>
+				<WorkspaceList
+					workspaces={workspaces}
+					shortcutBaseIndex={shortcutBaseIndex}
+					sectionId={sectionId}
+					sections={allSections}
+					isCollapsed={isSidebarCollapsed}
+					orderedWorkspaceIds={orderedWorkspaceIds}
+				/>
+			</div>
 		);
 	}
 
 	return (
 		<div
 			{...dropZone.handlers}
-			className={cn("ml-3", isSectionDragging && "opacity-30")}
-			style={{
-				borderLeft: hasColor
-					? `2px solid ${color}`
-					: "2px solid var(--color-border)",
-			}}
+			className={cn(isSectionDragging && "opacity-30")}
+			style={sectionBorderStyle}
 		>
 			<ContextMenu>
 				<ContextMenuTrigger asChild>

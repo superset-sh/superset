@@ -13,7 +13,7 @@ import {
 	findOrphanedWorktreeByBranch,
 	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
-	getMaxWorkspaceTabOrder,
+	getMaxProjectChildTabOrder,
 	getProject,
 	getWorktree,
 	setLastActiveWorkspace,
@@ -58,7 +58,7 @@ function createWorkspaceFromWorktree({
 	branch,
 	name,
 }: CreateWorkspaceFromWorktreeParams) {
-	const maxTabOrder = getMaxWorkspaceTabOrder(projectId);
+	const maxTabOrder = getMaxProjectChildTabOrder(projectId);
 
 	const workspace = localDb
 		.insert(workspaces)
@@ -485,7 +485,7 @@ export const createCreateProcedures = () => {
 					.returning()
 					.get();
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -701,7 +701,7 @@ export const createCreateProcedures = () => {
 					throw new Error("Worktree no longer exists on disk");
 				}
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(worktree.projectId);
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -808,7 +808,7 @@ export const createCreateProcedures = () => {
 						};
 					}
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					const workspace = localDb
 						.insert(workspaces)
 						.values({
@@ -876,7 +876,7 @@ export const createCreateProcedures = () => {
 					.returning()
 					.get();
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 				const workspace = localDb
 					.insert(workspaces)
 					.values({
@@ -1021,7 +1021,7 @@ export const createCreateProcedures = () => {
 					const exists = await worktreeExists(project.mainRepoPath, wt.path);
 					if (!exists) continue;
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
 						.insert(workspaces)
 						.values({
@@ -1079,7 +1079,7 @@ export const createCreateProcedures = () => {
 						.returning()
 						.get();
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
 						.insert(workspaces)
 						.values({

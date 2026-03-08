@@ -21,7 +21,7 @@ import {
 } from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
-import { getFileIcon } from "../../utils";
+import { FileIcon } from "../../utils";
 
 interface FileTreeItemProps {
 	item: ItemInstance<DirectoryEntry>;
@@ -55,7 +55,6 @@ export function FileTreeItem({
 	const isFolder = entry.isDirectory;
 	const isExpanded = item.isExpanded();
 	const level = item.getItemMeta().level;
-	const { icon: Icon, color } = getFileIcon(entry.name, isFolder, isExpanded);
 
 	const parentPath = isFolder
 		? entry.path
@@ -135,7 +134,12 @@ export function FileTreeItem({
 				) : null}
 			</span>
 
-			<Icon className={cn("size-4 shrink-0", color)} />
+			<FileIcon
+				fileName={entry.name}
+				isDirectory={isFolder}
+				isOpen={isExpanded}
+				className="size-4 shrink-0"
+			/>
 
 			<span className="flex-1 min-w-0 text-xs truncate">{entry.name}</span>
 		</div>

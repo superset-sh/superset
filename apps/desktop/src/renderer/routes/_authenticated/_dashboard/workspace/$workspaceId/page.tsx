@@ -2,6 +2,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -383,6 +384,7 @@ function WorkspacePage() {
 	const commandPalette = useCommandPalette({
 		workspaceId,
 		worktreePath: workspace?.worktreePath,
+		navigate,
 	});
 	const keywordSearch = useKeywordSearch({
 		workspaceId,
@@ -619,6 +621,17 @@ function WorkspacePage() {
 				isLoading={commandPalette.isFetching}
 				searchResults={commandPalette.searchResults}
 				onSelectFile={commandPalette.selectFile}
+				scope={commandPalette.scope}
+				onScopeChange={commandPalette.setScope}
+				workspaceName={
+					workspace
+						? getWorkspaceDisplayName(
+								workspace.name,
+								workspace.type,
+								workspace.project?.name,
+							)
+						: undefined
+				}
 			/>
 			<KeywordSearch
 				open={keywordSearch.open}

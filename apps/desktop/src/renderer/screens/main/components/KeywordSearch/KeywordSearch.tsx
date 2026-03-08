@@ -3,7 +3,7 @@ import {
 	SearchDialog,
 	type SearchDialogItem,
 } from "renderer/screens/main/components/SearchDialog";
-import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils/file-icons";
+import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 interface KeywordSearchResult extends SearchDialogItem {
 	name: string;
@@ -116,10 +116,9 @@ export function KeywordSearch({
 			getItemValue={(match) => `${match.id} ${query}`}
 			onSelectItem={onSelectMatch}
 			renderItem={(match) => {
-				const { icon: Icon, color } = getFileIcon(match.name, false);
 				return (
 					<>
-						<Icon className={`size-3.5 shrink-0 ${color}`} />
+						<FileIcon fileName={match.name} className="size-3.5 shrink-0" />
 						<div className="min-w-0 flex-1">
 							<div className="flex items-center gap-2 min-w-0">
 								<span className="truncate font-medium">

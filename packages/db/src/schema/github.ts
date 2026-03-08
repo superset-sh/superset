@@ -73,6 +73,11 @@ export const githubRepositories = pgTable(
 			.notNull()
 			.references(() => githubInstallations.id, { onDelete: "cascade" }),
 
+		// Link to organization (denormalized from installation for Electric SQL filtering)
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
 		// GitHub repo info
 		repoId: text("repo_id").notNull().unique(), // GitHub's numeric ID as string
 		owner: text().notNull(),
@@ -91,6 +96,7 @@ export const githubRepositories = pgTable(
 	(table) => [
 		index("github_repositories_installation_id_idx").on(table.installationId),
 		index("github_repositories_full_name_idx").on(table.fullName),
+		index("github_repositories_org_id_idx").on(table.organizationId),
 	],
 );
 
@@ -109,6 +115,11 @@ export const githubPullRequests = pgTable(
 		repositoryId: uuid("repository_id")
 			.notNull()
 			.references(() => githubRepositories.id, { onDelete: "cascade" }),
+
+		// Link to organization (denormalized from repository for Electric SQL filtering)
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
 
 		// PR identification
 		prNumber: integer("pr_number").notNull(),
@@ -170,6 +181,7 @@ export const githubPullRequests = pgTable(
 		index("github_pull_requests_repository_id_idx").on(table.repositoryId),
 		index("github_pull_requests_state_idx").on(table.state),
 		index("github_pull_requests_head_branch_idx").on(table.headBranch),
+		index("github_pull_requests_org_id_idx").on(table.organizationId),
 	],
 );
 
