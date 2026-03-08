@@ -69,16 +69,17 @@ function getSelectionDebugState(element: HTMLDivElement | null) {
 	const text = selection?.toString() ?? "";
 	const range =
 		selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+	const insideDiffContainer =
+		!!element && !!range && element.contains(range.commonAncestorContainer);
+	const hasTextSelection = text.length > 0;
 
 	return {
-		hasSelection:
-			!!selection && !selection.isCollapsed && selection.rangeCount > 0,
+		hasSelection: hasTextSelection && insideDiffContainer,
 		isCollapsed: selection?.isCollapsed ?? true,
 		rangeCount: selection?.rangeCount ?? 0,
 		textLength: text.length,
 		textPreview: text.slice(0, 80),
-		insideDiffContainer:
-			!!element && !!range && element.contains(range.commonAncestorContainer),
+		insideDiffContainer,
 		commonAncestor:
 			range?.commonAncestorContainer instanceof HTMLElement
 				? {
@@ -110,7 +111,12 @@ function hasActiveSelectionWithinElement(
 	}
 
 	const selection = window.getSelection();
-	if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+	if (!selection || selection.rangeCount === 0) {
+		return false;
+	}
+
+	const text = selection.toString();
+	if (text.length === 0) {
 		return false;
 	}
 
@@ -393,6 +399,12 @@ export function FileViewerContent({
 										}
 									: undefined,
 						});
+						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+							console.log("[DiffSelectionDebug]", {
+								label: "stop-click-capture-propagation",
+							});
+							event.stopPropagation();
+						}
 					}}
 					onContextMenuCapture={(event) => {
 						logDiffSelectionDebug(diffContainerRef.current, "contextmenu", {
@@ -459,12 +471,6 @@ export function FileViewerContent({
 						logDiffSelectionDebug(diffContainerRef.current, "click-bubble", {
 							detail: event.detail,
 						});
-						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
-							console.log("[DiffSelectionDebug]", {
-								label: "stop-click-propagation",
-							});
-							event.stopPropagation();
-						}
 					}}
 				>
 					<LightDiffViewer
