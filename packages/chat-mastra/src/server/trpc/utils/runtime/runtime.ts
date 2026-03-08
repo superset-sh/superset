@@ -34,6 +34,10 @@ export interface RuntimeSession {
 	cwd: string;
 }
 
+export function syncRuntimeHookSessionId(runtime: RuntimeSession): void {
+	runtime.hookManager?.setSessionId(runtime.sessionId);
+}
+
 type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>;
 
 interface TextContentPart {
@@ -173,6 +177,13 @@ export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
  */
 export function subscribeToSessionEvents(runtime: RuntimeSession): void {
 	runtime.harness.subscribe((event: unknown) => {
+		if (
+			isHarnessThreadChangedEvent(event) ||
+			isHarnessThreadCreatedEvent(event)
+		) {
+			syncRuntimeHookSessionId(runtime);
+			return;
+		}
 		if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
 			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
 			return;
@@ -245,6 +256,27 @@ function isHarnessSandboxAccessRequestEvent(event: unknown): event is {
 		typeof event.questionId === "string" &&
 		typeof event.path === "string" &&
 		typeof event.reason === "string"
+	);
+}
+
+function isHarnessThreadChangedEvent(
+	event: unknown,
+): event is { type: "thread_changed"; threadId: string } {
+	return (
+		isObjectRecord(event) &&
+		event.type === "thread_changed" &&
+		typeof event.threadId === "string"
+	);
+}
+
+function isHarnessThreadCreatedEvent(
+	event: unknown,
+): event is { type: "thread_created"; thread: { id: string } } {
+	return (
+		isObjectRecord(event) &&
+		event.type === "thread_created" &&
+		isObjectRecord(event.thread) &&
+		typeof event.thread.id === "string"
 	);
 }
 
