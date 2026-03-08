@@ -18,6 +18,10 @@ const TEST_DIR = join(
 	realpathSync(tmpdir()),
 	`superset-test-repair-${process.pid}`,
 );
+const EXTERNAL_TEST_DIR = join(
+	realpathSync(tmpdir()),
+	`superset-external-repair-${process.pid}`,
+);
 
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
@@ -132,7 +136,7 @@ const {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("tryRepairWorktreePath", () => {
+describe("repair-worktree-path", () => {
 	beforeEach(() => {
 		mkdirSync(TEST_DIR, { recursive: true });
 		mockWorktrees = new Map();
@@ -143,12 +147,8 @@ describe("tryRepairWorktreePath", () => {
 		if (existsSync(TEST_DIR)) {
 			rmSync(TEST_DIR, { recursive: true, force: true });
 		}
-		const externalDir = join(
-			tmpdir(),
-			`superset-external-repair-${process.pid}`,
-		);
-		if (existsSync(externalDir)) {
-			rmSync(externalDir, { recursive: true, force: true });
+		if (existsSync(EXTERNAL_TEST_DIR)) {
+			rmSync(EXTERNAL_TEST_DIR, { recursive: true, force: true });
 		}
 	});
 
@@ -443,12 +443,7 @@ describe("tryRepairWorktreePath", () => {
 		seedCommit(mainRepo);
 
 		const oldPath = join(TEST_DIR, "wt-manual-throw-old");
-		const externalDir = join(
-			tmpdir(),
-			`superset-external-repair-${process.pid}`,
-			"level-1",
-			"level-2",
-		);
+		const externalDir = join(EXTERNAL_TEST_DIR, "level-1", "level-2");
 		mkdirSync(externalDir, { recursive: true });
 		const newPath = join(externalDir, "wt-manual-throw-new");
 		execSync(
