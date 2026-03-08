@@ -41,52 +41,61 @@ export function useFileContent({
 
 	const isImage = isImageFile(filePath);
 
-	const { data: rawFileData, isLoading: isLoadingRaw } =
-		electronTrpc.changes.readWorkingFile.useQuery(
-			{ worktreePath, filePath },
-			{
-				enabled:
-					!isRemote &&
-					viewMode !== "diff" &&
-					!isImage &&
-					!!filePath &&
-					!!worktreePath,
-			},
-		);
+	const {
+		data: rawFileData,
+		isLoading: isLoadingRaw,
+		refetch: refetchRaw,
+	} = electronTrpc.changes.readWorkingFile.useQuery(
+		{ worktreePath, filePath },
+		{
+			enabled:
+				!isRemote &&
+				viewMode !== "diff" &&
+				!isImage &&
+				!!filePath &&
+				!!worktreePath,
+		},
+	);
 
-	const { data: imageData, isLoading: isLoadingImage } =
-		electronTrpc.changes.readWorkingFileImage.useQuery(
-			{ worktreePath, filePath },
-			{
-				enabled:
-					!isRemote &&
-					viewMode === "rendered" &&
-					isImage &&
-					!!filePath &&
-					!!worktreePath,
-			},
-		);
+	const {
+		data: imageData,
+		isLoading: isLoadingImage,
+		refetch: refetchImage,
+	} = electronTrpc.changes.readWorkingFileImage.useQuery(
+		{ worktreePath, filePath },
+		{
+			enabled:
+				!isRemote &&
+				viewMode === "rendered" &&
+				isImage &&
+				!!filePath &&
+				!!worktreePath,
+		},
+	);
 
-	const { data: diffData, isLoading: isLoadingDiff } =
-		electronTrpc.changes.getFileContents.useQuery(
-			{
-				worktreePath,
-				filePath,
-				oldPath,
-				category: diffCategory ?? "unstaged",
-				commitHash,
-				defaultBranch:
-					diffCategory === "against-base" ? effectiveBaseBranch : undefined,
-			},
-			{
-				enabled:
-					!isRemote &&
-					viewMode === "diff" &&
-					!!diffCategory &&
-					!!filePath &&
-					!!worktreePath,
-			},
-		);
+	const {
+		data: diffData,
+		isLoading: isLoadingDiff,
+		refetch: refetchDiff,
+	} = electronTrpc.changes.getFileContents.useQuery(
+		{
+			worktreePath,
+			filePath,
+			oldPath,
+			category: diffCategory ?? "unstaged",
+			commitHash,
+			defaultBranch:
+				diffCategory === "against-base" ? effectiveBaseBranch : undefined,
+		},
+		{
+			enabled:
+				!isRemote &&
+				viewMode === "diff" &&
+				!!diffCategory &&
+				!!filePath &&
+				!!worktreePath,
+		},
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
 	useEffect(() => {
@@ -111,6 +120,13 @@ export function useFileContent({
 		[isRemote, filePath],
 	);
 
+	const refetch = () => {
+		if (isRemote) return;
+		if (viewMode !== "diff" && !isImage) refetchRaw();
+		if (viewMode === "rendered" && isImage) refetchImage();
+		if (viewMode === "diff" && diffCategory) refetchDiff();
+	};
+
 	return {
 		rawFileData,
 		isLoadingRaw: isLoadingRaw || (isImage && isLoadingImage),
@@ -118,5 +134,6 @@ export function useFileContent({
 		isLoadingImage: isRemote ? false : isLoadingImage,
 		diffData,
 		isLoadingDiff,
+		refetch,
 	};
 }

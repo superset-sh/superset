@@ -7,6 +7,7 @@ import {
 	TbLayoutSidebarRightFilled,
 	TbListDetails,
 	TbPinFilled,
+	TbRefresh,
 } from "react-icons/tb";
 import type { DiffViewMode } from "shared/changes-types";
 import type { FileViewerMode } from "shared/tabs-types";
@@ -34,6 +35,7 @@ interface FileViewerToolbarProps {
 	/** Pin this pane (convert from preview to permanent) */
 	onPin: () => void;
 	onClosePane: (e: React.MouseEvent) => void;
+	onReload: () => void;
 }
 
 export function FileViewerToolbar({
@@ -53,6 +55,7 @@ export function FileViewerToolbar({
 	onSplitPane,
 	onPin,
 	onClosePane,
+	onReload,
 }: FileViewerToolbarProps) {
 	const [copied, setCopied] = useState(false);
 
@@ -114,6 +117,20 @@ export function FileViewerToolbar({
 						</ToggleGroupItem>
 					)}
 				</ToggleGroup>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onReload}
+							className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+						>
+							<TbRefresh className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						Reload file
+					</TooltipContent>
+				</Tooltip>
 				{viewMode === "diff" && (
 					<>
 						<Tooltip>
