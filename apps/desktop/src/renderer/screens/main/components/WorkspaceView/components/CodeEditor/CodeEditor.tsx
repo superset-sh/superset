@@ -70,6 +70,11 @@ function createJumpTargetDecorations(
 				class: "cm-jump-target-section",
 			}).range(line.from),
 		);
+		decorations.push(
+			Decoration.mark({
+				class: "cm-jump-target-section-text",
+			}).range(line.from, line.to),
+		);
 	}
 
 	return Decoration.set(decorations);
@@ -328,6 +333,19 @@ export function CodeEditor({
 				EditorView.contentAttributes.of({
 					"data-testid": "code-editor",
 					spellcheck: "false",
+				}),
+				EditorView.theme({
+					".cm-jump-target-section": {
+						backgroundColor:
+							"color-mix(in srgb, var(--accent) 24%, transparent)",
+						boxShadow:
+							"inset 3px 0 0 color-mix(in srgb, var(--accent) 75%, white)",
+					},
+					".cm-jump-target-section-text": {
+						backgroundColor:
+							"color-mix(in srgb, var(--accent) 14%, transparent)",
+						borderRadius: "2px",
+					},
 				}),
 				keymap.of([
 					indentWithTab,

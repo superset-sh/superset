@@ -69,6 +69,69 @@ function getDiffCodeElement(lineElement: HTMLElement): HTMLElement {
 	return codeElement instanceof HTMLElement ? codeElement : lineElement;
 }
 
+let measurementCanvas: HTMLCanvasElement | null = null;
+
+function getMeasurementContext(): CanvasRenderingContext2D | null {
+	if (!measurementCanvas) {
+		measurementCanvas = document.createElement("canvas");
+	}
+
+	return measurementCanvas.getContext("2d");
+}
+
+function measureColumnFromRenderedText(
+	codeElement: HTMLElement,
+	clientX: number,
+): number {
+	const lineText = codeElement.textContent ?? "";
+	if (lineText.length === 0) {
+		return 1;
+	}
+
+	const rect = codeElement.getBoundingClientRect();
+	if (clientX <= rect.left) {
+		return 1;
+	}
+
+	const style = window.getComputedStyle(codeElement);
+	const context = getMeasurementContext();
+	if (!context) {
+		return 1;
+	}
+
+	context.font = [
+		style.fontStyle,
+		style.fontVariant,
+		style.fontWeight,
+		style.fontSize,
+		style.fontFamily,
+	]
+		.filter(Boolean)
+		.join(" ");
+
+	const tabSize = Number.parseInt(style.tabSize || "4", 10);
+	const safeTabSize = Number.isFinite(tabSize) && tabSize > 0 ? tabSize : 4;
+	const targetX = clientX - rect.left;
+	let previousWidth = 0;
+	let renderedText = "";
+	const characters = Array.from(lineText);
+
+	for (let index = 0; index < characters.length; index += 1) {
+		renderedText +=
+			characters[index] === "\t" ? " ".repeat(safeTabSize) : characters[index];
+		const nextWidth = context.measureText(renderedText).width;
+		const midpoint = previousWidth + (nextWidth - previousWidth) / 2;
+
+		if (targetX <= midpoint) {
+			return index + 1;
+		}
+
+		previousWidth = nextWidth;
+	}
+
+	return characters.length + 1;
+}
+
 function mapOldSideLineToRawLine(
 	contents: FileContents,
 	lineNumber: number,
@@ -265,7 +328,7 @@ export function getColumnFromDiffPoint({
 		return Math.max(1, measureRange.toString().length + 1);
 	}
 
-	return 1;
+	return measureColumnFromRenderedText(codeElement, clientX);
 }
 
 export function getDiffLocationFromTarget(
