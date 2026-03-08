@@ -6,6 +6,7 @@ export const MIDNIGHT_CODE_COLORS = {
 	background: "#282c34",
 	border: "#21252b",
 	muted: "#636d83",
+	activeLine: "#ffffff0a",
 	selection: "#4b5668",
 	search: "#e5c07b33",
 	searchActive: "#e5c07b55",

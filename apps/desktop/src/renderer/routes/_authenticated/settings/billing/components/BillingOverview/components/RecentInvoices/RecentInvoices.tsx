@@ -41,15 +41,15 @@ export function RecentInvoices() {
 	}
 
 	return (
-		<div className="rounded-lg border bg-card p-4">
+		<div>
 			<h3 className="text-sm font-medium mb-3">Recent invoices</h3>
-			<div className="space-y-0.5">
+			<div className="space-y-2">
 				{invoices.map((invoice) => (
 					<div
 						key={invoice.id}
-						className="group flex items-center justify-between rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors"
+						className="group flex items-center justify-between rounded-lg border bg-card px-4 py-5"
 					>
-						<div className="flex items-center gap-3 text-sm">
+						<div className="flex items-center gap-6 text-sm">
 							<span className="text-muted-foreground">
 								{formatDate(invoice.date)}
 							</span>

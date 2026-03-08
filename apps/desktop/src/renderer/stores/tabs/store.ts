@@ -710,10 +710,14 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							if (
-								options.viewMode &&
-								existingFileViewer.viewMode !== options.viewMode
-							) {
+							const nextViewMode =
+								options.viewMode ?? existingFileViewer.viewMode;
+							const shouldUpdateViewerState =
+								nextViewMode !== existingFileViewer.viewMode ||
+								options.line !== undefined ||
+								options.column !== undefined;
+
+							if (shouldUpdateViewerState) {
 								set({
 									panes: {
 										...state.panes,
@@ -721,7 +725,11 @@ export const useTabsStore = create<TabsStore>()(
 											...paneToReuse,
 											fileViewer: {
 												...existingFileViewer,
-												viewMode: options.viewMode,
+												viewMode: nextViewMode,
+												initialLine:
+													options.line ?? existingFileViewer.initialLine,
+												initialColumn:
+													options.column ?? existingFileViewer.initialColumn,
 											},
 										},
 									},

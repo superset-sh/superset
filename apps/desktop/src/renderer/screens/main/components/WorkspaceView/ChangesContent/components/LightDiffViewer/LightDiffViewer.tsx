@@ -61,6 +61,12 @@ export function LightDiffViewer({
 				themeType: "dark",
 				overflow: "wrap",
 				disableFileHeader: true,
+				unsafeCSS: `
+					* {
+						user-select: text;
+						-webkit-user-select: text;
+					}
+				`,
 			}}
 		/>
 	);
