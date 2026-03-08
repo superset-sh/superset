@@ -43,6 +43,7 @@ import {
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
+import { parseRemoteBranchLines } from "./utils/parse-remote-branches";
 
 type Project = SelectProject;
 
@@ -535,24 +536,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								"refs/remotes/origin/",
 							]);
 
-							for (const line of remoteBranchInfo.trim().split("\n")) {
-								if (!line) continue;
-								const lastSpaceIdx = line.lastIndexOf(" ");
-								let branch = line.substring(0, lastSpaceIdx);
-								const timestamp = Number.parseInt(
-									line.substring(lastSpaceIdx + 1),
-									10,
-								);
-
-								// Normalize remote branch names
-								if (branch.startsWith("origin/")) {
-									branch = branch.replace("origin/", "");
-								}
-
-								if (branch === "HEAD") continue;
-
+							for (const { branch, lastCommitDate } of parseRemoteBranchLines(
+								remoteBranchInfo,
+							)) {
 								branchMap.set(branch, {
-									lastCommitDate: timestamp * 1000,
+									lastCommitDate,
 									isLocal: localBranchSet.has(branch),
 									isRemote: true,
 								});
