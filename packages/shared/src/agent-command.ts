@@ -42,6 +42,15 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	qodercli: "Danger mode: All permissions auto-approved",
 };
 
+export const defaultPresetAgents = [
+	"claude",
+	"codex",
+	"copilot",
+	"opencode",
+	"gemini",
+	"qodercli",
+] as const satisfies readonly AgentType[];
+
 export interface TaskInput {
 	id: string;
 	slug: string;

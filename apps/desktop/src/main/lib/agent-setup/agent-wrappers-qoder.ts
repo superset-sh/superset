@@ -21,7 +21,7 @@ interface QoderHookDefinition {
 }
 
 interface QoderSettingsJson {
-	hooks?: Record<string, QoderHookDefinition[]>;
+	hooks?: Record<string, unknown>;
 	[key: string]: unknown;
 }
 
@@ -72,11 +72,14 @@ function removeManagedHooksFromDefinition(
 		return definition;
 	}
 
-	const filteredHooks = definition.hooks.filter(
+	const currentHooks = definition.hooks.filter(
+		(hook): hook is QoderHookConfig => isPlainObject(hook),
+	);
+	const filteredHooks = currentHooks.filter(
 		(hook) => !isManagedHookCommand(hook.command, notifyScriptPath),
 	);
 
-	if (filteredHooks.length === definition.hooks.length) {
+	if (filteredHooks.length === currentHooks.length) {
 		return definition;
 	}
 
@@ -114,7 +117,7 @@ export function getQoderSettingsJsonContent(
 	const existing = readExistingQoderSettings(globalPath);
 	if (!existing) return null;
 
-	if (!existing.hooks || typeof existing.hooks !== "object") {
+	if (!isPlainObject(existing.hooks)) {
 		existing.hooks = {};
 	}
 
@@ -123,16 +126,19 @@ export function getQoderSettingsJsonContent(
 		hooks: [{ type: "command", command: notifyScriptPath }],
 	};
 
-	if (Array.isArray(current)) {
-		const filtered = current.flatMap((entry: QoderHookDefinition) => {
-			const cleaned = removeManagedHooksFromDefinition(entry, notifyScriptPath);
-			return cleaned ? [cleaned] : [];
-		});
-		filtered.push(definition);
-		existing.hooks.Notification = filtered;
-	} else {
-		existing.hooks.Notification = [definition];
-	}
+	const filtered = Array.isArray(current)
+		? current
+				.filter((entry): entry is QoderHookDefinition => isPlainObject(entry))
+				.flatMap((entry) => {
+					const cleaned = removeManagedHooksFromDefinition(
+						entry,
+						notifyScriptPath,
+					);
+					return cleaned ? [cleaned] : [];
+				})
+		: [];
+
+	existing.hooks.Notification = [...filtered, definition];
 
 	return JSON.stringify(existing, null, 2);
 }
@@ -143,10 +149,17 @@ export function createQoderSettingsJson(): void {
 	const content = getQoderSettingsJsonContent(notifyScriptPath);
 	if (content === null) return;
 
-	const dir = path.dirname(globalPath);
-	fs.mkdirSync(dir, { recursive: true });
-	const changed = writeFileIfChanged(globalPath, content, 0o644);
-	console.log(
-		`[agent-setup] ${changed ? "Updated" : "Verified"} Qoder settings.json`,
-	);
+	try {
+		const dir = path.dirname(globalPath);
+		fs.mkdirSync(dir, { recursive: true });
+		const changed = writeFileIfChanged(globalPath, content, 0o644);
+		console.log(
+			`[agent-setup] ${changed ? "Updated" : "Verified"} Qoder settings.json`,
+		);
+	} catch (error) {
+		console.warn(
+			"[agent-setup] Failed to write Qoder settings.json; continuing setup:",
+			error,
+		);
+	}
 }

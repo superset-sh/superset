@@ -18,8 +18,11 @@ This separation prevents multiple instances from interfering with each other.
 | File | Purpose |
 |------|---------|
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
+| `copilot` | Wrapper for GitHub Copilot CLI that preserves Superset hook integration with repo-local hook config |
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
 | `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
+| `gemini` | Wrapper for Gemini CLI that injects notification hooks through Gemini settings |
+| `mastracode` | Wrapper for Mastra CLI that preserves Superset hook integration via global `~/.mastracode/hooks.json` |
 | `opencode` | Wrapper for OpenCode CLI that sets `OPENCODE_CONFIG_DIR` |
 | `qodercli` | Wrapper for Qoder CLI that preserves Superset hook integration |
 
