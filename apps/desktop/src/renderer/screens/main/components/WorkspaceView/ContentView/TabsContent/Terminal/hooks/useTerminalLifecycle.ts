@@ -29,6 +29,7 @@ import type {
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import type { TerminalSessionController } from "./useTerminalSessionController";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
@@ -86,12 +87,8 @@ export interface UseTerminalLifecycleOptions {
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<SearchAddon | null>;
 	rendererRef: MutableRefObject<TerminalRendererRef | null>;
-	isExitedRef: MutableRefObject<boolean>;
-	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
 	isFocusedRef: MutableRefObject<boolean>;
-	isRestoredModeRef: MutableRefObject<boolean>;
-	connectionErrorRef: MutableRefObject<string | null>;
 	initialThemeRef: MutableRefObject<ITheme | null>;
 	workspaceCwdRef: MutableRefObject<string | null>;
 	handleFileLinkClickRef: MutableRefObject<
@@ -100,16 +97,23 @@ export interface UseTerminalLifecycleOptions {
 	handleUrlClickRef: MutableRefObject<((url: string) => void) | undefined>;
 	paneInitialCwdRef: MutableRefObject<string | undefined>;
 	clearPaneInitialDataRef: MutableRefObject<(paneId: string) => void>;
-	setConnectionError: (error: string | null) => void;
-	setExitStatus: (status: "killed" | "exited" | null) => void;
-	setIsRestoredMode: (value: boolean) => void;
-	setRestoredCwd: (cwd: string | null) => void;
+	session: Pick<
+		TerminalSessionController,
+		| "beginAttach"
+		| "connectionErrorRef"
+		| "enterRestoredMode"
+		| "isExitedRef"
+		| "isRestoredModeRef"
+		| "recordExit"
+		| "setConnectionError"
+		| "setStreamReady"
+		| "wasKilledByUserRef"
+	>;
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
 	detachRef: MutableRefObject<TerminalDetachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
-	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
 	maybeApplyInitialState: () => void;
@@ -148,28 +152,20 @@ export function useTerminalLifecycle({
 	fitAddonRef,
 	searchAddonRef,
 	rendererRef,
-	isExitedRef,
-	wasKilledByUserRef,
 	commandBufferRef,
 	isFocusedRef,
-	isRestoredModeRef,
-	connectionErrorRef,
 	initialThemeRef,
 	workspaceCwdRef,
 	handleFileLinkClickRef,
 	handleUrlClickRef,
 	paneInitialCwdRef,
 	clearPaneInitialDataRef,
-	setConnectionError,
-	setExitStatus,
-	setIsRestoredMode,
-	setRestoredCwd,
+	session,
 	createOrAttachRef,
 	writeRef,
 	resizeRef,
 	detachRef,
 	clearScrollbackRef,
-	isStreamReadyRef,
 	didFirstRenderRef,
 	pendingInitialStateRef,
 	maybeApplyInitialState,
@@ -192,6 +188,17 @@ export function useTerminalLifecycle({
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
 	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
+	const {
+		beginAttach,
+		connectionErrorRef,
+		enterRestoredMode,
+		isExitedRef,
+		isRestoredModeRef,
+		recordExit,
+		setConnectionError,
+		setStreamReady,
+		wasKilledByUserRef,
+	} = session;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
@@ -238,9 +245,8 @@ export function useTerminalLifecycle({
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		rendererRef.current = renderer;
-		isExitedRef.current = false;
+		beginAttach();
 		setXtermInstance(xterm);
-		isStreamReadyRef.current = false;
 		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
 
@@ -276,10 +282,7 @@ export function useTerminalLifecycle({
 		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
 		const restartTerminalSession = () => {
-			isExitedRef.current = false;
-			isStreamReadyRef.current = false;
-			wasKilledByUserRef.current = false;
-			setExitStatus(null);
+			beginAttach();
 			resetModes();
 			xterm.clear();
 			createOrAttachRef.current(
@@ -299,7 +302,7 @@ export function useTerminalLifecycle({
 					onError: (error) => {
 						console.error("[Terminal] Failed to restart:", error);
 						setConnectionError(error.message || "Failed to restart terminal");
-						isStreamReadyRef.current = true;
+						setStreamReady(true);
 						flushPendingEvents();
 					},
 				},
@@ -394,6 +397,7 @@ export function useTerminalLifecycle({
 					if (DEBUG_TERMINAL) {
 						console.log(`[Terminal] createOrAttach start: ${paneId}`);
 					}
+					beginAttach();
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -411,8 +415,7 @@ export function useTerminalLifecycle({
 
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
-									setIsRestoredMode(true);
-									setRestoredCwd(storedColdRestore.cwd);
+									enterRestoredMode(storedColdRestore.cwd);
 									if (storedColdRestore.scrollback && xterm) {
 										xterm.write(
 											storedColdRestore.scrollback,
@@ -431,8 +434,7 @@ export function useTerminalLifecycle({
 										cwd: result.previousCwd || null,
 										scrollback,
 									});
-									setIsRestoredMode(true);
-									setRestoredCwd(result.previousCwd || null);
+									enterRestoredMode(result.previousCwd || null);
 									if (scrollback && xterm) {
 										xterm.write(scrollback, scheduleScrollToBottom);
 									}
@@ -446,10 +448,7 @@ export function useTerminalLifecycle({
 							onError: (error) => {
 								if (!isAttachActive()) return;
 								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
-									wasKilledByUserRef.current = true;
-									isExitedRef.current = true;
-									isStreamReadyRef.current = false;
-									setExitStatus("killed");
+									recordExit("killed");
 									setConnectionError(null);
 									return;
 								}
@@ -457,7 +456,7 @@ export function useTerminalLifecycle({
 								setConnectionError(
 									error.message || "Failed to connect to terminal",
 								);
-								isStreamReadyRef.current = true;
+								setStreamReady(true);
 								flushPendingEvents();
 							},
 							onSettled: () => finishAttach(),
@@ -679,7 +678,7 @@ export function useTerminalLifecycle({
 				pendingDetaches.set(paneId, detachTimeout);
 			}
 
-			isStreamReadyRef.current = false;
+			setStreamReady(false);
 			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			resetModes();
@@ -697,10 +696,11 @@ export function useTerminalLifecycle({
 		workspaceId,
 		maybeApplyInitialState,
 		flushPendingEvents,
-		setConnectionError,
+		beginAttach,
+		enterRestoredMode,
 		resetModes,
-		setIsRestoredMode,
-		setRestoredCwd,
+		setConnectionError,
+		setStreamReady,
 	]);
 
 	return { xtermInstance, restartTerminal };

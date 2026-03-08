@@ -1,4 +1,10 @@
 export type {
+	TerminalExitStatus,
+	TerminalSessionEvent,
+	TerminalSessionPhase,
+	TerminalSessionState,
+} from "./terminalSessionState";
+export type {
 	UseFileLinkClickOptions,
 	UseFileLinkClickReturn,
 } from "./useFileLinkClick";
@@ -37,6 +43,8 @@ export type {
 	UseTerminalRestoreReturn,
 } from "./useTerminalRestore";
 export { useTerminalRestore } from "./useTerminalRestore";
+export type { TerminalSessionController } from "./useTerminalSessionController";
+export { useTerminalSessionController } from "./useTerminalSessionController";
 export type {
 	UseTerminalStreamOptions,
 	UseTerminalStreamReturn,
