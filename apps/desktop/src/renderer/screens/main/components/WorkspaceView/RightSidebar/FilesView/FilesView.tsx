@@ -97,8 +97,8 @@ export function FilesView() {
 
 				try {
 					const entries = await trpcUtils.filesystem.readDirectory.fetch({
-						dirPath,
-						rootPath: currentPath,
+						workspaceId: workspaceId ?? "",
+						absolutePath: dirPath,
 					});
 					for (const entry of entries) {
 						entryCacheRef.current.set(entry.path, entry);
@@ -159,10 +159,7 @@ export function FilesView() {
 	}, []);
 
 	electronTrpc.filesystem.subscribe.useSubscription(
-		{
-			workspaceId: workspaceId ?? "",
-			rootPath: worktreePath ?? "",
-		},
+		{ workspaceId: workspaceId ?? "" },
 		{
 			enabled: Boolean(workspaceId && worktreePath),
 			onData: (event) => {
@@ -173,6 +170,7 @@ export function FilesView() {
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
+			workspaceId,
 			worktreePath,
 			onRefresh: async (parentPath: string) => {
 				const isRoot = parentPath === worktreePath;

@@ -1,8 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+	copyPaths,
+	createDirectoryAtPath,
+	createFileAtPath,
+	deletePaths,
+	listDirectory,
+	movePaths,
+	pathExists,
+	renamePath,
 	searchFiles as searchWorkspaceFiles,
 	searchKeyword as searchWorkspaceKeyword,
+	statPath,
 	toFileSystemChangeEvent,
 	type WorkspaceFsWatchEvent,
 	WorkspaceFsWatcherManager,
@@ -17,7 +26,9 @@ import type {
 } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getWorkspace } from "../workspaces/utils/db-helpers";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
+import { getWorkspacePath } from "../workspaces/utils/worktree";
 
 const SEARCH_INDEX_TTL_MS = 30_000;
 const MAX_SEARCH_RESULTS = 500;
@@ -47,6 +58,20 @@ const FILE_SEARCH_FUSE_OPTIONS = {
 };
 
 const filesystemWatcherManager = new WorkspaceFsWatcherManager();
+
+function resolveWorkspaceRootPath(workspaceId: string): string {
+	const workspace = getWorkspace(workspaceId);
+	if (!workspace) {
+		throw new Error(`Workspace not found: ${workspaceId}`);
+	}
+
+	const rootPath = getWorkspacePath(workspace);
+	if (!rootPath) {
+		throw new Error(`Workspace path not found: ${workspaceId}`);
+	}
+
+	return rootPath;
+}
 
 interface FileSearchItem {
 	id: string;
@@ -575,37 +600,30 @@ export const createFilesystemRouter = () => {
 		readDirectory: publicProcedure
 			.input(
 				z.object({
-					dirPath: z.string(),
-					rootPath: z.string(),
+					workspaceId: z.string(),
+					absolutePath: z.string(),
 				}),
 			)
 			.query(async ({ input }): Promise<DirectoryEntry[]> => {
-				const { dirPath, rootPath } = input;
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
 
 				try {
-					const entries = await fs.readdir(dirPath, { withFileTypes: true });
+					const entries = await listDirectory({
+						rootPath,
+						absolutePath: input.absolutePath,
+					});
 
-					return entries
-						.map((entry) => {
-							const fullPath = path.join(dirPath, entry.name);
-							const relativePath = path.relative(rootPath, fullPath);
-							return {
-								id: fullPath,
-								name: entry.name,
-								path: fullPath,
-								relativePath,
-								isDirectory: entry.isDirectory(),
-							};
-						})
-						.sort((a, b) => {
-							if (a.isDirectory !== b.isDirectory) {
-								return a.isDirectory ? -1 : 1;
-							}
-							return a.name.localeCompare(b.name);
-						});
+					return entries.map((entry) => ({
+						id: entry.id,
+						name: entry.name,
+						path: entry.absolutePath,
+						relativePath: entry.relativePath,
+						isDirectory: entry.isDirectory,
+					}));
 				} catch (error) {
 					console.error("[filesystem/readDirectory] Failed:", {
-						dirPath,
+						workspaceId: input.workspaceId,
+						absolutePath: input.absolutePath,
 						error,
 					});
 					return [];
@@ -613,26 +631,22 @@ export const createFilesystemRouter = () => {
 			}),
 
 		subscribe: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					rootPath: z.string(),
-				}),
-			)
+			.input(z.object({ workspaceId: z.string() }))
 			.subscription(({ input }) => {
 				return observable<FileSystemChangeEvent>((emit) => {
+					const rootPath = resolveWorkspaceRootPath(input.workspaceId);
 					let unsubscribe: (() => Promise<void>) | null = null;
 					let isDisposed = false;
 
 					const handleEvent = (event: WorkspaceFsWatchEvent) => {
-						emit.next(toFileSystemChangeEvent(event, input.rootPath));
+						emit.next(toFileSystemChangeEvent(event, rootPath));
 					};
 
 					void filesystemWatcherManager
 						.subscribe(
 							{
 								workspaceId: input.workspaceId,
-								rootPath: input.rootPath,
+								rootPath,
 							},
 							handleEvent,
 						)
@@ -646,7 +660,7 @@ export const createFilesystemRouter = () => {
 						.catch((error) => {
 							console.error("[filesystem/subscribe] Failed:", {
 								workspaceId: input.workspaceId,
-								rootPath: input.rootPath,
+								rootPath,
 								error,
 							});
 							emit.next({
@@ -771,235 +785,167 @@ export const createFilesystemRouter = () => {
 		createFile: publicProcedure
 			.input(
 				z.object({
-					dirPath: z.string(),
-					fileName: z.string(),
+					workspaceId: z.string(),
+					parentAbsolutePath: z.string(),
+					name: z.string(),
 					content: z.string().default(""),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const filePath = path.join(input.dirPath, input.fileName);
-
-				try {
-					await fs.access(filePath);
-					throw new Error(`File already exists: ${input.fileName}`);
-				} catch (error) {
-					if (
-						error instanceof Error &&
-						error.message.includes("already exists")
-					) {
-						throw error;
-					}
-				}
-
-				await fs.writeFile(filePath, input.content, "utf-8");
-				return { path: filePath };
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await createFileAtPath({
+					rootPath,
+					absolutePath: path.join(input.parentAbsolutePath, input.name),
+					content: input.content,
+				});
+				return { path: result.absolutePath };
 			}),
 
 		createDirectory: publicProcedure
 			.input(
 				z.object({
-					parentPath: z.string(),
-					dirName: z.string(),
+					workspaceId: z.string(),
+					parentAbsolutePath: z.string(),
+					name: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const dirPath = path.join(input.parentPath, input.dirName);
-
-				try {
-					await fs.access(dirPath);
-					throw new Error(`Directory already exists: ${input.dirName}`);
-				} catch (error) {
-					if (
-						error instanceof Error &&
-						error.message.includes("already exists")
-					) {
-						throw error;
-					}
-				}
-
-				await fs.mkdir(dirPath, { recursive: true });
-				return { path: dirPath };
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await createDirectoryAtPath({
+					rootPath,
+					absolutePath: path.join(input.parentAbsolutePath, input.name),
+				});
+				return { path: result.absolutePath };
 			}),
 
 		rename: publicProcedure
 			.input(
 				z.object({
-					oldPath: z.string(),
+					workspaceId: z.string(),
+					absolutePath: z.string(),
 					newName: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const newPath = path.join(path.dirname(input.oldPath), input.newName);
-
-				try {
-					await fs.access(newPath);
-					throw new Error(`Target already exists: ${input.newName}`);
-				} catch (error) {
-					if (
-						error instanceof Error &&
-						error.message.includes("already exists")
-					) {
-						throw error;
-					}
-				}
-
-				await fs.rename(input.oldPath, newPath);
-				return { oldPath: input.oldPath, newPath };
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await renamePath({
+					rootPath,
+					absolutePath: input.absolutePath,
+					newName: input.newName,
+				});
+				return {
+					oldPath: result.oldAbsolutePath,
+					newPath: result.newAbsolutePath,
+				};
 			}),
 
 		delete: publicProcedure
 			.input(
 				z.object({
-					paths: z.array(z.string()),
+					workspaceId: z.string(),
+					absolutePaths: z.array(z.string()),
 					permanent: z.boolean().default(false),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const deleted: string[] = [];
-				const errors: { path: string; error: string }[] = [];
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await deletePaths({
+					rootPath,
+					absolutePaths: input.absolutePaths,
+					permanent: input.permanent,
+					trashItem: async (absolutePath) => {
+						await shell.trashItem(absolutePath);
+					},
+				});
 
-				for (const filePath of input.paths) {
-					try {
-						if (input.permanent) {
-							await fs.rm(filePath, { recursive: true, force: true });
-						} else {
-							await shell.trashItem(filePath);
-						}
-						deleted.push(filePath);
-					} catch (error) {
-						errors.push({
-							path: filePath,
-							error: error instanceof Error ? error.message : String(error),
-						});
-					}
-				}
-
-				return { deleted, errors };
+				return {
+					deleted: result.deleted,
+					errors: result.errors.map((error) => ({
+						path: error.absolutePath,
+						error: error.error,
+					})),
+				};
 			}),
 
 		move: publicProcedure
 			.input(
 				z.object({
-					sourcePaths: z.array(z.string()),
-					destinationDir: z.string(),
+					workspaceId: z.string(),
+					sourceAbsolutePaths: z.array(z.string()),
+					destinationAbsolutePath: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const moved: { from: string; to: string }[] = [];
-				const errors: { path: string; error: string }[] = [];
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await movePaths({
+					rootPath,
+					absolutePaths: input.sourceAbsolutePaths,
+					destinationAbsolutePath: input.destinationAbsolutePath,
+				});
 
-				for (const sourcePath of input.sourcePaths) {
-					try {
-						const fileName = path.basename(sourcePath);
-						const destPath = path.join(input.destinationDir, fileName);
-
-						try {
-							await fs.access(destPath);
-							throw new Error(`Target already exists: ${fileName}`);
-						} catch (accessError) {
-							if (
-								accessError instanceof Error &&
-								accessError.message.includes("already exists")
-							) {
-								throw accessError;
-							}
-						}
-
-						await fs.rename(sourcePath, destPath);
-						moved.push({ from: sourcePath, to: destPath });
-					} catch (error) {
-						errors.push({
-							path: sourcePath,
-							error: error instanceof Error ? error.message : String(error),
-						});
-					}
-				}
-
-				return { moved, errors };
+				return {
+					moved: result.entries,
+					errors: result.errors.map((error) => ({
+						path: error.absolutePath,
+						error: error.error,
+					})),
+				};
 			}),
 
 		copy: publicProcedure
 			.input(
 				z.object({
-					sourcePaths: z.array(z.string()),
-					destinationDir: z.string(),
+					workspaceId: z.string(),
+					sourceAbsolutePaths: z.array(z.string()),
+					destinationAbsolutePath: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const copied: { from: string; to: string }[] = [];
-				const errors: { path: string; error: string }[] = [];
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await copyPaths({
+					rootPath,
+					absolutePaths: input.sourceAbsolutePaths,
+					destinationAbsolutePath: input.destinationAbsolutePath,
+				});
 
-				for (const sourcePath of input.sourcePaths) {
-					try {
-						const fileName = path.basename(sourcePath);
-						let destPath = path.join(input.destinationDir, fileName);
-
-						let counter = 1;
-						while (true) {
-							try {
-								await fs.access(destPath);
-								const ext = path.extname(fileName);
-								const base = path.basename(fileName, ext);
-								destPath = path.join(
-									input.destinationDir,
-									`${base} (${counter})${ext}`,
-								);
-								counter++;
-							} catch {
-								break;
-							}
-						}
-
-						await fs.cp(sourcePath, destPath, { recursive: true });
-						copied.push({ from: sourcePath, to: destPath });
-					} catch (error) {
-						errors.push({
-							path: sourcePath,
-							error: error instanceof Error ? error.message : String(error),
-						});
-					}
-				}
-
-				return { copied, errors };
+				return {
+					copied: result.entries,
+					errors: result.errors.map((error) => ({
+						path: error.absolutePath,
+						error: error.error,
+					})),
+				};
 			}),
 
 		exists: publicProcedure
-			.input(z.object({ path: z.string() }))
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+				}),
+			)
 			.query(async ({ input }) => {
-				try {
-					await fs.access(input.path);
-					const stats = await fs.stat(input.path);
-					return {
-						exists: true,
-						isDirectory: stats.isDirectory(),
-						isFile: stats.isFile(),
-					};
-				} catch {
-					return { exists: false, isDirectory: false, isFile: false };
-				}
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				return await pathExists({
+					rootPath,
+					absolutePath: input.absolutePath,
+				});
 			}),
 
 		stat: publicProcedure
-			.input(z.object({ path: z.string() }))
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+				}),
+			)
 			.query(async ({ input }) => {
-				try {
-					const stats = await fs.stat(input.path);
-					return {
-						size: stats.size,
-						isDirectory: stats.isDirectory(),
-						isFile: stats.isFile(),
-						isSymbolicLink: stats.isSymbolicLink(),
-						createdAt: stats.birthtime.toISOString(),
-						modifiedAt: stats.mtime.toISOString(),
-						accessedAt: stats.atime.toISOString(),
-					};
-				} catch (error) {
-					console.error("[filesystem/stat] Failed:", {
-						path: input.path,
-						error,
-					});
-					return null;
-				}
+				const rootPath = resolveWorkspaceRootPath(input.workspaceId);
+				const result = await statPath({
+					rootPath,
+					absolutePath: input.absolutePath,
+				});
+				return result;
 			}),
 	});
 };
