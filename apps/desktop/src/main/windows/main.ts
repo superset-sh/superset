@@ -16,6 +16,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
+import { forceRepaint } from "../lib/force-repaint";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
@@ -64,19 +65,6 @@ let currentWindow: BrowserWindow | null = null;
 
 // Routers receive this getter so they always see the current window, not a stale reference
 const getWindow = () => currentWindow;
-
-// invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
-// forces Chromium to reconstruct the compositor layer tree.
-const forceRepaint = (win: BrowserWindow) => {
-	if (win.isDestroyed()) return;
-	win.webContents.invalidate();
-	if (win.isMaximized() || win.isFullScreen()) return;
-	const [width, height] = win.getSize();
-	win.setSize(width + 1, height);
-	setTimeout(() => {
-		if (!win.isDestroyed()) win.setSize(width, height);
-	}, 32);
-};
 
 // GPU process restarts don't repaint existing compositor layers automatically.
 app.on("child-process-gone", (_event, details) => {
@@ -210,13 +198,15 @@ export async function MainWindow() {
 			},
 		);
 
-	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
+	// macOS: occluded/minimized windows can lose compositor layers.
+	// Use forceRepaint (invalidate + 1-px resize) instead of invalidate() alone
+	// so that Chromium fully reconstructs the compositor layer tree on show/restore.
 	if (PLATFORM.IS_MAC) {
 		window.on("restore", () => {
-			window.webContents.invalidate();
+			forceRepaint(window);
 		});
 		window.on("show", () => {
-			window.webContents.invalidate();
+			forceRepaint(window);
 		});
 	}
 
@@ -250,13 +240,18 @@ export async function MainWindow() {
 
 	window.webContents.once("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
-		if (initialBounds.isMaximized) {
-			window.maximize();
-		}
 		if (savedWindowState?.zoomLevel !== undefined) {
 			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
 		}
+		// Show before maximizing so the GPU compositor initialises at the window's
+		// natural size first.  On macOS 26+ calling maximize() on a hidden window
+		// can leave the compositor in an inconsistent state, producing a blank
+		// screen.  Showing first lets the `show` event trigger forceRepaint(),
+		// after which the maximize is a normal, compositor-safe resize.
 		window.show();
+		if (initialBounds.isMaximized) {
+			window.maximize();
+		}
 		initialized = true;
 	});
 
