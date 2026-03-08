@@ -97,7 +97,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Deploy Electric to Fly.io
-        uses: superfly/fly-pr-review-apps@1.3.0
+        uses: superfly/fly-pr-review-apps@1.6.0
         with:
           name: superset-electric-pr-${{ github.event.pull_request.number }}
           region: iad
