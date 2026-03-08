@@ -2,6 +2,7 @@ interface TerminalCreateOrAttachInput {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
+	cwd?: string;
 }
 
 interface TerminalWriteInput {
@@ -15,6 +16,7 @@ interface LaunchCommandInPaneOptions {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd?: string;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 }
@@ -69,6 +71,7 @@ export async function launchCommandInPane({
 	tabId,
 	workspaceId,
 	command,
+	cwd,
 	createOrAttach,
 	write,
 }: LaunchCommandInPaneOptions): Promise<void> {
@@ -76,6 +79,7 @@ export async function launchCommandInPane({
 		paneId,
 		tabId,
 		workspaceId,
+		...(cwd !== undefined && { cwd }),
 	});
 
 	await writeCommandInPane({ paneId, command, write });

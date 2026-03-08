@@ -31,6 +31,48 @@ describe("launchCommandInPane", () => {
 		});
 	});
 
+	it("forwards cwd to createOrAttach when provided (preset relative directory)", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			cwd: "./apps",
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			cwd: "./apps",
+		});
+	});
+
+	it("does not include cwd in createOrAttach when not provided", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+	});
+
 	it("does not append a second newline when command already has one", async () => {
 		const createOrAttach = mock(async () => ({}));
 		const write = mock(async () => ({}));
