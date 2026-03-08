@@ -20,7 +20,7 @@ import { MarkdownSearch } from "../MarkdownSearch";
 import {
 	type DiffDomLocation,
 	getColumnFromDiffPoint,
-	getDiffLocationFromTarget,
+	getDiffLocationFromEvent,
 	getRawSectionForDiffLocation,
 	mapDiffLocationToRawPosition,
 } from "./utils/diff-location";
@@ -369,7 +369,7 @@ export function FileViewerContent({
 						}
 					}}
 					onContextMenuCapture={(event) => {
-						const location = getDiffLocationFromTarget(event.target);
+						const location = getDiffLocationFromEvent(event.nativeEvent);
 						if (!location) {
 							return;
 						}
@@ -385,7 +385,7 @@ export function FileViewerContent({
 						};
 					}}
 					onDoubleClick={(event) => {
-						const location = getDiffLocationFromTarget(event.target);
+						const location = getDiffLocationFromEvent(event.nativeEvent);
 						if (!location) {
 							return;
 						}

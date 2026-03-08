@@ -311,3 +311,18 @@ export function getDiffLocationFromTarget(
 		numberColumn,
 	};
 }
+
+export function getDiffLocationFromEvent(
+	event: Pick<Event, "target" | "composedPath">,
+): DiffDomLocation | null {
+	const composedPath = event.composedPath();
+
+	for (const pathEntry of composedPath) {
+		const location = getDiffLocationFromTarget(pathEntry ?? null);
+		if (location) {
+			return location;
+		}
+	}
+
+	return getDiffLocationFromTarget(event.target);
+}
