@@ -1,5 +1,15 @@
 import type { TerminalPreset } from "@superset/local-db";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -25,7 +35,11 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
-import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import {
+	type ActivePaneStatus,
+	pickHigherStatus,
+	tabNeedsCloseConfirmation,
+} from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
 
@@ -57,6 +71,9 @@ export function GroupStrip() {
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+	const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(
+		null,
+	);
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
@@ -249,7 +266,19 @@ export function GroupStrip() {
 	};
 
 	const handleCloseGroup = (tabId: string) => {
+		const status = tabStatusMap.get(tabId) ?? null;
+		if (tabNeedsCloseConfirmation(status)) {
+			setPendingCloseTabId(tabId);
+			return;
+		}
 		removeTab(tabId);
+	};
+
+	const handleConfirmClose = () => {
+		if (pendingCloseTabId) {
+			removeTab(pendingCloseTabId);
+		}
+		setPendingCloseTabId(null);
 	};
 
 	const handleRenameGroup = (tabId: string, newName: string) => {
@@ -327,56 +356,82 @@ export function GroupStrip() {
 	);
 
 	return (
-		<div className="flex h-10 min-w-0 flex-1 items-stretch">
-			<div
-				ref={scrollContainerRef}
-				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
-				style={{ scrollbarWidth: "none" }}
+		<>
+			<AlertDialog
+				open={pendingCloseTabId !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingCloseTabId(null);
+				}}
 			>
-				<div ref={tabsTrackRef} className="flex items-stretch">
-					{tabs.length > 0 && (
-						<div className="flex items-stretch h-full shrink-0">
-							{tabs.map((tab, index) => {
-								return (
-									<div
-										key={tab.id}
-										className="h-full shrink-0"
-										style={{ width: "160px" }}
-									>
-										<GroupItem
-											tab={tab}
-											index={index}
-											isActive={tab.id === activeTabId}
-											status={tabStatusMap.get(tab.id) ?? null}
-											onSelect={() => handleSelectGroup(tab.id)}
-											onClose={() => handleCloseGroup(tab.id)}
-											onRename={(newName) => handleRenameGroup(tab.id, newName)}
-											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
-											onReorder={handleReorderTabs}
-										/>
-									</div>
-								);
-							})}
-						</div>
-					)}
-					{hasHorizontalOverflow ? (
-						<div
-							className={`h-full shrink-0 ${
-								!useCompactAddButton
-									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
-									: "w-10"
-							}`}
-						/>
-					) : (
-						<div className="shrink-0">{plusControl}</div>
-					)}
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Close tab with active agent?</AlertDialogTitle>
+						<AlertDialogDescription>
+							An agent is actively running in this tab. Closing it will
+							interrupt the current task.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={handleConfirmClose}>
+							Close tab
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+			<div className="flex h-10 min-w-0 flex-1 items-stretch">
+				<div
+					ref={scrollContainerRef}
+					className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
+					style={{ scrollbarWidth: "none" }}
+				>
+					<div ref={tabsTrackRef} className="flex items-stretch">
+						{tabs.length > 0 && (
+							<div className="flex items-stretch h-full shrink-0">
+								{tabs.map((tab, index) => {
+									return (
+										<div
+											key={tab.id}
+											className="h-full shrink-0"
+											style={{ width: "160px" }}
+										>
+											<GroupItem
+												tab={tab}
+												index={index}
+												isActive={tab.id === activeTabId}
+												status={tabStatusMap.get(tab.id) ?? null}
+												onSelect={() => handleSelectGroup(tab.id)}
+												onClose={() => handleCloseGroup(tab.id)}
+												onRename={(newName) =>
+													handleRenameGroup(tab.id, newName)
+												}
+												onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
+												onReorder={handleReorderTabs}
+											/>
+										</div>
+									);
+								})}
+							</div>
+						)}
+						{hasHorizontalOverflow ? (
+							<div
+								className={`h-full shrink-0 ${
+									!useCompactAddButton
+										? hasAiChat
+											? "w-[220px]"
+											: "w-[170px]"
+										: "w-10"
+								}`}
+							/>
+						) : (
+							<div className="shrink-0">{plusControl}</div>
+						)}
+					</div>
 				</div>
+				{hasHorizontalOverflow && (
+					<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
+				)}
 			</div>
-			{hasHorizontalOverflow && (
-				<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
-			)}
-		</div>
+		</>
 	);
 }

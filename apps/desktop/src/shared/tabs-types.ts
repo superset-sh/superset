@@ -88,6 +88,18 @@ export function acknowledgedStatus(status: PaneStatus | undefined): PaneStatus {
 }
 
 /**
+ * Returns true if closing a tab with this aggregate status should show a
+ * confirmation dialog. We warn when an agent is actively running ("working")
+ * or waiting for permission ("permission") so the user doesn't accidentally
+ * interrupt an in-progress task.
+ */
+export function tabNeedsCloseConfirmation(
+	status: PaneStatus | null | undefined,
+): boolean {
+	return status === "working" || status === "permission";
+}
+
+/**
  * File viewer display modes
  */
 export type FileViewerMode = "rendered" | "raw" | "diff";
