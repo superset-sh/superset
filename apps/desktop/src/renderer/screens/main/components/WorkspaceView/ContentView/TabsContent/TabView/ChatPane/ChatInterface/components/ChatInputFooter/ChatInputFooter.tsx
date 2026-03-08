@@ -137,7 +137,7 @@ export function ChatInputFooter({
 											slashCommands={slashCommands}
 										/>
 										<PromptInputTextarea
-											placeholder="Ask anything..."
+											placeholder="Ask to make changes, @mention files, run /commands"
 											className="min-h-10"
 										/>
 										<ChatComposerControls
@@ -161,11 +161,7 @@ export function ChatInputFooter({
 							</MentionAnchor>
 						</MentionProvider>
 					</SlashCommandInput>
-					<div className="flex items-center px-2 pt-1.5">
-						<span className="text-xs text-muted-foreground/50">
-							Use '@' to mention files, run /commands
-						</span>
-					</div>
+					<div className="py-1.5" />
 				</div>
 			)}
 		</ChatInputDropZone>

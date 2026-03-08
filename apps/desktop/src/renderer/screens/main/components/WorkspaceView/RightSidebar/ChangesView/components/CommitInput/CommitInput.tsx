@@ -12,14 +12,14 @@ import { Textarea } from "@superset/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import {
-	HiArrowDown,
-	HiArrowPath,
-	HiArrowsUpDown,
-	HiArrowTopRightOnSquare,
-	HiArrowUp,
-	HiCheck,
-	HiChevronDown,
-} from "react-icons/hi2";
+	VscArrowDown,
+	VscArrowUp,
+	VscCheck,
+	VscChevronDown,
+	VscLinkExternal,
+	VscRefresh,
+	VscSync,
+} from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
 import { getPrimaryAction } from "./utils/getPrimaryAction";
@@ -183,13 +183,13 @@ export function CommitInput({
 		...primaryAction,
 		icon:
 			primaryAction.action === "commit" ? (
-				<HiCheck className="size-4" />
+				<VscCheck className="size-4" />
 			) : primaryAction.action === "sync" ? (
-				<HiArrowsUpDown className="size-4" />
+				<VscSync className="size-4" />
 			) : primaryAction.action === "pull" ? (
-				<HiArrowDown className="size-4" />
+				<VscArrowDown className="size-4" />
 			) : (
-				<HiArrowUp className="size-4" />
+				<VscArrowUp className="size-4" />
 			),
 		handler:
 			primaryAction.action === "commit"
@@ -207,7 +207,7 @@ export function CommitInput({
 			: null;
 
 	return (
-		<div className="flex flex-col gap-1.5 px-2 py-2 border-b border-border">
+		<div className="flex flex-col gap-1.5 px-2 py-2">
 			<Textarea
 				placeholder="Commit message"
 				value={commitMessage}
@@ -251,7 +251,7 @@ export function CommitInput({
 							disabled={isPending}
 							className="h-7 px-1.5"
 						>
-							<HiChevronDown className="size-3.5" />
+							<VscChevronDown className="size-3.5" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-48 text-xs">
@@ -260,7 +260,7 @@ export function CommitInput({
 							disabled={!canCommit}
 							className="text-xs"
 						>
-							<HiCheck className="size-3.5" />
+							<VscCheck className="size-3.5" />
 							Commit
 						</DropdownMenuItem>
 						<DropdownMenuItem
@@ -268,7 +268,7 @@ export function CommitInput({
 							disabled={!canCommit}
 							className="text-xs"
 						>
-							<HiArrowUp className="size-3.5" />
+							<VscArrowUp className="size-3.5" />
 							Commit & Push
 						</DropdownMenuItem>
 						{!hasExistingPR && canCreatePR && (
@@ -277,7 +277,7 @@ export function CommitInput({
 								disabled={!canCommit}
 								className="text-xs"
 							>
-								<HiArrowTopRightOnSquare className="size-3.5" />
+								<VscLinkExternal className="size-3.5" />
 								Commit, Push & Create PR
 							</DropdownMenuItem>
 						)}
@@ -289,7 +289,7 @@ export function CommitInput({
 							disabled={pushCount === 0 && hasUpstream}
 							className="text-xs"
 						>
-							<HiArrowUp className="size-3.5" />
+							<VscArrowUp className="size-3.5" />
 							<span className="flex-1">
 								{hasUpstream || hasExistingPR ? "Push" : "Publish Branch"}
 							</span>
@@ -304,7 +304,7 @@ export function CommitInput({
 							disabled={pullCount === 0}
 							className="text-xs"
 						>
-							<HiArrowDown className="size-3.5" />
+							<VscArrowDown className="size-3.5" />
 							<span className="flex-1">Pull</span>
 							{pullCount > 0 && (
 								<span className="text-[10px] text-muted-foreground">
@@ -317,15 +317,15 @@ export function CommitInput({
 							disabled={pushCount === 0 && pullCount === 0}
 							className="text-xs"
 						>
-							<HiArrowsUpDown className="size-3.5" />
+							<VscSync className="size-3.5" />
 							Sync
 						</DropdownMenuItem>
 						<DropdownMenuItem onClick={handleFetch} className="text-xs">
-							<HiArrowPath className="size-3.5" />
+							<VscRefresh className="size-3.5" />
 							Fetch
 						</DropdownMenuItem>
 						<DropdownMenuItem onClick={handleFetchAndPull} className="text-xs">
-							<HiArrowPath className="size-3.5" />
+							<VscRefresh className="size-3.5" />
 							Fetch & Pull
 						</DropdownMenuItem>
 
@@ -333,12 +333,12 @@ export function CommitInput({
 
 						{hasExistingPR ? (
 							<DropdownMenuItem onClick={handleOpenPR} className="text-xs">
-								<HiArrowTopRightOnSquare className="size-3.5" />
+								<VscLinkExternal className="size-3.5" />
 								Open Pull Request
 							</DropdownMenuItem>
 						) : canCreatePR ? (
 							<DropdownMenuItem onClick={handleCreatePR} className="text-xs">
-								<HiArrowTopRightOnSquare className="size-3.5" />
+								<VscLinkExternal className="size-3.5" />
 								Create Pull Request
 							</DropdownMenuItem>
 						) : null}

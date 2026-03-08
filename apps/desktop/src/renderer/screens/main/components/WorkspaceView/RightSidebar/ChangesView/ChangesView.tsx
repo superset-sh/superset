@@ -18,6 +18,7 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
+import { PRChecksStatus } from "./components/PRChecksStatus";
 import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
@@ -479,18 +480,21 @@ export function ChangesView({
 				}
 			/>
 
-			<CommitInput
-				worktreePath={worktreePath}
-				hasStagedChanges={hasStagedChanges}
-				pushCount={status.pushCount}
-				pullCount={status.pullCount}
-				hasUpstream={status.hasUpstream}
-				hasExistingPR={hasExistingPR}
-				canCreatePR={prActionState.canCreatePR}
-				shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
-				prUrl={prUrl}
-				onRefresh={handleRefresh}
-			/>
+			<div className="border-b border-border">
+				{githubStatus?.pr && <PRChecksStatus pr={githubStatus.pr} />}
+				<CommitInput
+					worktreePath={worktreePath}
+					hasStagedChanges={hasStagedChanges}
+					pushCount={status.pushCount}
+					pullCount={status.pullCount}
+					hasUpstream={status.hasUpstream}
+					hasExistingPR={hasExistingPR}
+					canCreatePR={prActionState.canCreatePR}
+					shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
+					prUrl={prUrl}
+					onRefresh={handleRefresh}
+				/>
+			</div>
 
 			{!hasChanges ? (
 				<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4 text-center">

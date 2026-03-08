@@ -99,6 +99,23 @@ export function usePersistentWebview({
 		},
 	);
 
+	// Subscribe to context menu actions (e.g. "Open Link as New Split")
+	electronTrpc.browser.onContextMenuAction.useSubscription(
+		{ paneId },
+		{
+			onData: ({ action, url }: { action: string; url: string }) => {
+				if (action === "open-in-split") {
+					const state = useTabsStore.getState();
+					const pane = state.panes[paneId];
+					if (!pane) return;
+					const tab = state.tabs.find((t) => t.id === pane.tabId);
+					if (!tab) return;
+					state.openInBrowserPane(tab.workspaceId, url);
+				}
+			},
+		},
+	);
+
 	// Sync store from webview state (handles agent-triggered navigation while hidden)
 	const syncStoreFromWebview = useCallback(
 		(webview: Electron.WebviewTag) => {

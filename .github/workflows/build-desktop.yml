@@ -81,6 +81,10 @@ jobs:
         working-directory: apps/desktop
         run: bun run clean:dev
 
+      - name: Generate file icons
+        working-directory: apps/desktop
+        run: bun run generate:icons
+
       - name: Compile app with electron-vite
         working-directory: apps/desktop
         env:
@@ -187,6 +191,10 @@ jobs:
       - name: Clean dev folder
         working-directory: apps/desktop
         run: bun run clean:dev
+
+      - name: Generate file icons
+        working-directory: apps/desktop
+        run: bun run generate:icons
 
       - name: Compile app with electron-vite
         working-directory: apps/desktop

@@ -1,4 +1,5 @@
 import rawManifest from "resources/public/file-icons/manifest.json";
+import { resolveFileIconAssetUrl } from "./resolveFileIconAssetUrl";
 
 interface FileIconManifest {
 	fileNames: Record<string, string>;
@@ -25,7 +26,7 @@ export function getFileIcon(
 		const baseName = fileName.toLowerCase();
 		if (isOpen && manifest.folderNamesExpanded[baseName]) {
 			return {
-				src: `/file-icons/${manifest.folderNamesExpanded[baseName]}.svg`,
+				src: resolveFileIconAssetUrl(manifest.folderNamesExpanded[baseName]),
 			};
 		}
 		if (manifest.folderNames[baseName]) {
@@ -33,20 +34,22 @@ export function getFileIcon(
 				? (manifest.folderNamesExpanded[baseName] ??
 					manifest.folderNames[baseName])
 				: manifest.folderNames[baseName];
-			return { src: `/file-icons/${iconName}.svg` };
+			return { src: resolveFileIconAssetUrl(iconName) };
 		}
 		return {
-			src: `/file-icons/${isOpen ? manifest.defaultFolderOpenIcon : manifest.defaultFolderIcon}.svg`,
+			src: resolveFileIconAssetUrl(
+				isOpen ? manifest.defaultFolderOpenIcon : manifest.defaultFolderIcon,
+			),
 		};
 	}
 
 	// Check exact filename match (case-sensitive first, then lowercase)
 	const fileNameLower = fileName.toLowerCase();
 	if (manifest.fileNames[fileName]) {
-		return { src: `/file-icons/${manifest.fileNames[fileName]}.svg` };
+		return { src: resolveFileIconAssetUrl(manifest.fileNames[fileName]) };
 	}
 	if (manifest.fileNames[fileNameLower]) {
-		return { src: `/file-icons/${manifest.fileNames[fileNameLower]}.svg` };
+		return { src: resolveFileIconAssetUrl(manifest.fileNames[fileNameLower]) };
 	}
 
 	// Check file extensions (try compound extensions first, e.g. "d.ts" before "ts")
@@ -57,10 +60,10 @@ export function getFileIcon(
 		for (let i = 0; i < segments.length; i++) {
 			const ext = segments.slice(i).join(".");
 			if (manifest.fileExtensions[ext]) {
-				return { src: `/file-icons/${manifest.fileExtensions[ext]}.svg` };
+				return { src: resolveFileIconAssetUrl(manifest.fileExtensions[ext]) };
 			}
 		}
 	}
 
-	return { src: `/file-icons/${manifest.defaultIcon}.svg` };
+	return { src: resolveFileIconAssetUrl(manifest.defaultIcon) };
 }

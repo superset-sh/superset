@@ -7,7 +7,8 @@ import {
 } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { computeNextTabOrder, reorderItems } from "../utils/reorder";
+import { getMaxProjectChildTabOrder } from "../utils/db-helpers";
+import { reorderItems } from "../utils/reorder";
 
 const SECTION_COLORS = PROJECT_COLORS.filter(
 	(c) => c.value !== PROJECT_COLOR_DEFAULT,
@@ -28,15 +29,7 @@ export const createSectionsProcedures = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const existing = localDb
-					.select()
-					.from(workspaceSections)
-					.where(eq(workspaceSections.projectId, input.projectId))
-					.all();
-
-				const nextTabOrder = computeNextTabOrder(
-					existing.map((s) => s.tabOrder),
-				);
+				const nextTabOrder = getMaxProjectChildTabOrder(input.projectId) + 1;
 
 				const section = localDb
 					.insert(workspaceSections)

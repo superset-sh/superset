@@ -45,6 +45,11 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
 	screenReaderMode: false,
+	// xterm's fit addon permanently reserves scrollbar width from usable columns.
+	// Hide the built-in scrollbar so terminal content can use the full pane width.
+	scrollbar: {
+		showScrollbar: false,
+	},
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;
