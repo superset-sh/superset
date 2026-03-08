@@ -49,6 +49,7 @@ const paneSchema = z.object({
 		"file-viewer",
 		"chat-mastra",
 		"devtools",
+		"notes",
 	]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
@@ -90,6 +91,12 @@ const paneSchema = z.object({
 	devtools: z
 		.object({
 			targetPaneId: z.string(),
+		})
+		.optional(),
+	notes: z
+		.object({
+			content: z.string(),
+			filePath: z.string(),
 		})
 		.optional(),
 });

@@ -554,6 +554,11 @@ export const HOTKEYS = {
 		label: "New Browser",
 		category: "Terminal",
 	}),
+	NEW_NOTES: defineHotkey({
+		keys: "meta+alt+n",
+		label: "New Notes",
+		category: "Terminal",
+	}),
 	CLOSE_TERMINAL: defineHotkey({
 		keys: "meta+w",
 		label: "Close Terminal",

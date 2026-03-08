@@ -41,6 +41,7 @@ export function GroupStrip() {
 	const { addTab, openPreset } = useTabsWithPresets();
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
+	const addNotesTab = useTabsStore((s) => s.addNotesTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -230,6 +231,11 @@ export function GroupStrip() {
 		addBrowserTab(activeWorkspaceId);
 	};
 
+	const handleAddNotes = () => {
+		if (!activeWorkspaceId) return;
+		addNotesTab(activeWorkspaceId);
+	};
+
 	const handleOpenPreset = useCallback(
 		(preset: TerminalPreset) => {
 			if (!activeWorkspaceId) return;
@@ -315,6 +321,7 @@ export function GroupStrip() {
 			onAddTerminal={handleAddGroup}
 			onAddChat={handleAddChat}
 			onAddBrowser={handleAddBrowser}
+			onAddNotes={handleAddNotes}
 			onOpenPreset={handleOpenPreset}
 			onConfigurePresets={handleOpenPresetsSettings}
 			onToggleShowPresetsBar={(enabled) =>
@@ -364,8 +371,8 @@ export function GroupStrip() {
 							className={`h-full shrink-0 ${
 								!useCompactAddButton
 									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
+										? "w-[280px]"
+										: "w-[230px]"
 									: "w-10"
 							}`}
 						/>

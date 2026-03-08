@@ -1,0 +1,1 @@
+export { NotesPane } from "./NotesPane";

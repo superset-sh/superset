@@ -11,7 +11,7 @@ import {
 import { BsTerminalPlus } from "react-icons/bs";
 import { HiMiniChevronDown } from "react-icons/hi2";
 import { LuPlus } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbFileText, TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { NewTabDropZone } from "../../NewTabDropZone";
 import { PresetsSubmenu } from "./components/PresetsSubmenu";
@@ -26,6 +26,7 @@ interface AddTabButtonProps {
 	onAddTerminal: () => void;
 	onAddChat: () => void;
 	onAddBrowser: () => void;
+	onAddNotes: () => void;
 	onOpenPreset: (preset: TerminalPreset) => void;
 	onConfigurePresets: () => void;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
@@ -42,6 +43,7 @@ export function AddTabButton({
 	onAddTerminal,
 	onAddChat,
 	onAddBrowser,
+	onAddNotes,
 	onOpenPreset,
 	onConfigurePresets,
 	onToggleShowPresetsBar,
@@ -81,6 +83,14 @@ export function AddTabButton({
 							>
 								<TbWorld className="size-3.5" />
 								Browser
+							</Button>
+							<Button
+								variant="outline"
+								className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
+								onClick={onAddNotes}
+							>
+								<TbFileText className="size-3.5" />
+								Notes
 							</Button>
 							<DropdownMenuTrigger asChild>
 								<Button
@@ -123,6 +133,11 @@ export function AddTabButton({
 								<TbWorld className="size-4" />
 								<span>Browser</span>
 								<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={onAddNotes} className="gap-2">
+								<TbFileText className="size-4" />
+								<span>Notes</span>
+								<HotkeyMenuShortcut hotkeyId="NEW_NOTES" />
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>

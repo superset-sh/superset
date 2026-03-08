@@ -24,6 +24,7 @@ import { ChatMastraPane } from "./ChatMastraPane";
 import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
+import { NotesPane } from "./NotesPane";
 import { TabPane } from "./TabPane";
 
 interface TabViewProps {
@@ -202,6 +203,21 @@ export function TabView({ tab }: TabViewProps) {
 						paneId={paneId}
 						path={path}
 						tabId={tab.id}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route notes panes
+			if (paneInfo.type === "notes") {
+				return (
+					<NotesPane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
+						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
