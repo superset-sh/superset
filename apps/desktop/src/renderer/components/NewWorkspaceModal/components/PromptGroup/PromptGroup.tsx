@@ -1,7 +1,4 @@
-import {
-	AGENT_PRESET_COMMANDS,
-	buildAgentPromptCommand,
-} from "@superset/shared/agent-command";
+import { AGENT_PRESET_COMMANDS } from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
 	STARTABLE_AGENT_LABELS,
@@ -168,9 +165,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 		window.localStorage.setItem(AGENT_STORAGE_KEY, value);
 	};
 
-	const buildLaunchRequest = (
-		trimmedPrompt: string,
-	): AgentLaunchRequest | null => {
+	const buildLaunchRequest = (): AgentLaunchRequest | null => {
 		if (selectedAgent === "none") return null;
 
 		if (selectedAgent === "superset-chat") {
@@ -179,19 +174,11 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 				workspaceId: "pending-workspace",
 				agentType: "superset-chat",
 				source: "new-workspace",
-				chat: {
-					initialPrompt: trimmedPrompt || undefined,
-				},
+				chat: {},
 			};
 		}
 
-		const command = trimmedPrompt
-			? buildAgentPromptCommand({
-					prompt: trimmedPrompt,
-					randomId: window.crypto.randomUUID(),
-					agent: selectedAgent,
-				})
-			: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+		const command = AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null;
 
 		if (!command) return null;
 
@@ -212,7 +199,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			toast.error("Select a project first");
 			return;
 		}
-		const launchRequest = buildLaunchRequest(trimmedPrompt);
+		const launchRequest = buildLaunchRequest();
 		void runAsyncAction(
 			createWorkspace.mutateAsyncWithPendingSetup(
 				{
