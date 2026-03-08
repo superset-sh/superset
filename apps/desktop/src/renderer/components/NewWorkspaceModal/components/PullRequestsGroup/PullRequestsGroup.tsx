@@ -16,24 +16,24 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
 	githubOwner: string | null;
 	repoName: string | null;
-	onClose: () => void;
 }
 
 export function PullRequestsGroup({
 	projectId,
 	githubOwner,
 	repoName,
-	onClose,
 }: PullRequestsGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
+	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
 
 	// Match GitHub repository by owner + name from the local project
 	const { data: repoData } = useLiveQuery(
@@ -105,7 +105,7 @@ export function PullRequestsGroup({
 					variant="outline"
 					onClick={() => {
 						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							onClose();
+							closeAndResetDraft();
 							navigate({ to: "/settings/integrations" });
 						});
 					}}
@@ -138,12 +138,11 @@ export function PullRequestsGroup({
 						}
 						const existingId = workspaceByBranch.get(pr.headBranch);
 						if (existingId) {
-							onClose();
+							closeAndResetDraft();
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						onClose();
-						toast.promise(
+						void runAsyncAction(
 							createFromPr.mutateAsync({
 								projectId,
 								prUrl: pr.url,

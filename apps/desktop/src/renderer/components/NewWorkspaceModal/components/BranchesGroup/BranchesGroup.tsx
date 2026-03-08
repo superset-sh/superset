@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
-import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
@@ -8,17 +7,18 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
 interface BranchesGroupProps {
 	projectId: string | null;
-	onClose: () => void;
 }
 
-export function BranchesGroup({ projectId, onClose }: BranchesGroupProps) {
+export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
 
 	// Fast query: local branches + cached remote refs (no network)
 	const { data: localData, isLoading: isLocalLoading } =
@@ -63,8 +63,7 @@ export function BranchesGroup({ projectId, onClose }: BranchesGroupProps) {
 	const handleCreate = useCallback(
 		(branchName: string) => {
 			if (!projectId) return;
-			onClose();
-			toast.promise(
+			void runAsyncAction(
 				createBranchWorkspace.mutateAsync({
 					projectId,
 					branch: branchName,
@@ -77,15 +76,15 @@ export function BranchesGroup({ projectId, onClose }: BranchesGroupProps) {
 				},
 			);
 		},
-		[projectId, onClose, createBranchWorkspace],
+		[createBranchWorkspace, projectId, runAsyncAction],
 	);
 
 	const handleOpen = useCallback(
 		(workspaceId: string) => {
-			onClose();
+			closeAndResetDraft();
 			navigateToWorkspace(workspaceId, navigate);
 		},
-		[onClose, navigate],
+		[closeAndResetDraft, navigate],
 	);
 
 	if (!projectId) {

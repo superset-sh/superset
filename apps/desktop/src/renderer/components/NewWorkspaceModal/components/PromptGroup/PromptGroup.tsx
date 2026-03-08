@@ -33,6 +33,7 @@ import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
+import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOptions";
 
 type WorkspaceCreateAgent = StartableAgentType | "none";
@@ -41,23 +42,26 @@ const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 interface PromptGroupProps {
 	projectId: string | null;
-	onClose: () => void;
 }
 
-export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
+export function PromptGroup({ projectId }: PromptGroupProps) {
 	const navigate = useNavigate();
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isDark = useIsDarkTheme();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const [prompt, setPrompt] = useState("");
-	const [branchName, setBranchName] = useState("");
-	const [branchNameEdited, setBranchNameEdited] = useState(false);
-	const [baseBranch, setBaseBranch] = useState<string | null>(null);
+	const { closeModal, draft, runAsyncAction, updateDraft } =
+		useNewWorkspaceModalDraft();
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
-	const [branchSearch, setBranchSearch] = useState("");
-	const [showAdvanced, setShowAdvanced] = useState(false);
-	const [runSetupScript, setRunSetupScript] = useState(true);
+	const {
+		baseBranch,
+		branchName,
+		branchNameEdited,
+		branchSearch,
+		prompt,
+		runSetupScript,
+		showAdvanced,
+	} = draft;
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
 	const createWorkspace = useCreateWorkspace({
@@ -145,12 +149,19 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset advanced branch state when project changes
+	const previousProjectIdRef = useRef(projectId);
+
 	useEffect(() => {
-		setBaseBranch(null);
+		if (previousProjectIdRef.current === projectId) {
+			return;
+		}
+		previousProjectIdRef.current = projectId;
+		updateDraft({
+			baseBranch: null,
+			branchSearch: "",
+		});
 		setBaseBranchOpen(false);
-		setBranchSearch("");
-	}, [projectId]);
+	}, [projectId, updateDraft]);
 
 	const handleAgentChange = (value: WorkspaceCreateAgent) => {
 		setSelectedAgent(value);
@@ -202,9 +213,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 			return;
 		}
 		const launchRequest = buildLaunchRequest(trimmedPrompt);
-
-		onClose();
-		toast.promise(
+		void runAsyncAction(
 			createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
@@ -225,25 +234,31 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		setBranchName(value);
-		setBranchNameEdited(true);
+		updateDraft({
+			branchName: value,
+			branchNameEdited: true,
+		});
 	};
 
 	const handleBranchNameBlur = () => {
 		if (!branchName.trim()) {
-			setBranchName("");
-			setBranchNameEdited(false);
+			updateDraft({
+				branchName: "",
+				branchNameEdited: false,
+			});
 		}
 	};
 
 	const handleBaseBranchSelect = (selectedBaseBranch: string) => {
-		setBaseBranch(selectedBaseBranch);
+		updateDraft({
+			baseBranch: selectedBaseBranch,
+			branchSearch: "",
+		});
 		setBaseBranchOpen(false);
-		setBranchSearch("");
 	};
 
 	return (
-		<div className="p-3 space-y-3" cmdk-group="">
+		<div className="p-3 space-y-3">
 			<Select
 				value={selectedAgent}
 				onValueChange={(value: WorkspaceCreateAgent) =>
@@ -284,7 +299,7 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				className="min-h-24 max-h-48 text-sm resize-y field-sizing-fixed"
 				placeholder="What do you want to do?"
 				value={prompt}
-				onChange={(e) => setPrompt(e.target.value)}
+				onChange={(e) => updateDraft({ prompt: e.target.value })}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 						e.preventDefault();
@@ -295,12 +310,12 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 
 			<PromptGroupAdvancedOptions
 				showAdvanced={showAdvanced}
-				onShowAdvancedChange={setShowAdvanced}
+				onShowAdvancedChange={(showAdvanced) => updateDraft({ showAdvanced })}
 				branchInputValue={branchNameEdited ? branchName : branchPreview}
 				onBranchInputChange={handleBranchNameChange}
 				onBranchInputBlur={handleBranchNameBlur}
 				onEditPrefix={() => {
-					onClose();
+					closeModal();
 					navigate({ to: "/settings/behavior" });
 				}}
 				isBranchesError={isBranchesError}
@@ -310,11 +325,13 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				effectiveBaseBranch={effectiveBaseBranch}
 				defaultBranch={branchData?.defaultBranch}
 				branchSearch={branchSearch}
-				onBranchSearchChange={setBranchSearch}
+				onBranchSearchChange={(branchSearch) => updateDraft({ branchSearch })}
 				filteredBranches={filteredBranches}
 				onSelectBaseBranch={handleBaseBranchSelect}
 				runSetupScript={runSetupScript}
-				onRunSetupScriptChange={setRunSetupScript}
+				onRunSetupScriptChange={(runSetupScript) =>
+					updateDraft({ runSetupScript })
+				}
 			/>
 
 			<Button

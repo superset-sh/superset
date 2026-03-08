@@ -19,17 +19,18 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
 interface IssuesGroupProps {
 	projectId: string | null;
-	onClose: () => void;
 }
 
-export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
+export function IssuesGroup({ projectId }: IssuesGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createWorkspace = useCreateWorkspace();
+	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -100,7 +101,7 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 					variant="outline"
 					onClick={() => {
 						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							onClose();
+							closeAndResetDraft();
 							navigate({ to: "/settings/integrations" });
 						});
 					}}
@@ -125,12 +126,11 @@ export function IssuesGroup({ projectId, onClose }: IssuesGroupProps) {
 						}
 						const existingId = workspaceByBranch.get(task.slug.toLowerCase());
 						if (existingId) {
-							onClose();
+							closeAndResetDraft();
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						onClose();
-						toast.promise(
+						void runAsyncAction(
 							createWorkspace.mutateAsync({
 								projectId,
 								name: task.title,
