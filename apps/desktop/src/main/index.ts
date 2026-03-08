@@ -15,6 +15,7 @@ import {
 	handleAuthCallback,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -266,6 +267,16 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+
+		// Enrich process.env with the user's full interactive shell environment
+		// (sourced from ~/.zshrc / ~/.zprofile). This ensures tokens like GITHUB_TOKEN
+		// or GH_TOKEN are available to child processes (e.g. `gh` CLI) even when
+		// Electron is launched from macOS Finder/Dock, which provides only a minimal env.
+		// Fire-and-forget: startup is not blocked if shell env resolution is slow.
+		applyShellEnvToProcess().catch((err) => {
+			console.warn("[main] Failed to apply shell env to process:", err);
+		});
+
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 

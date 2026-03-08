@@ -136,6 +136,30 @@ export async function getProcessEnvWithShellPath(
 }
 
 /**
+ * Applies the user's interactive shell environment to the target environment object.
+ * Only adds keys that are NOT already present, preserving Electron-managed vars
+ * (NODE_ENV, DATABASE_URL, API keys loaded from .env, etc.).
+ *
+ * Call this once at app startup so that tokens like GITHUB_TOKEN / GH_TOKEN set in
+ * ~/.zshrc are available to `gh` CLI and other child processes even when Electron is
+ * launched from macOS Finder/Dock (which provides only a minimal process.env).
+ *
+ * @param targetEnv - The env object to merge into (defaults to process.env)
+ * @param shellEnvResult - Pre-resolved shell env (defaults to calling getShellEnvironment())
+ */
+export async function applyShellEnvToProcess(
+	targetEnv: NodeJS.ProcessEnv = process.env,
+	shellEnvResult?: Record<string, string>,
+): Promise<void> {
+	const env = shellEnvResult ?? (await getShellEnvironment());
+	for (const [key, value] of Object.entries(env)) {
+		if (!(key in targetEnv)) {
+			targetEnv[key] = value;
+		}
+	}
+}
+
+/**
  * Execute a command, retrying once with shell environment if it fails with ENOENT.
  * On macOS, GUI apps launched from Finder/Dock get minimal PATH that excludes
  * homebrew and other user-installed tools. This lazily derives the user's
