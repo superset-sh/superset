@@ -11,8 +11,16 @@ import {
 	openSearchPanel,
 	searchKeymap,
 } from "@codemirror/search";
-import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
 import {
+	Compartment,
+	EditorSelection,
+	EditorState,
+	StateEffect,
+	StateField,
+} from "@codemirror/state";
+import {
+	Decoration,
+	type DecorationSet,
 	drawSelection,
 	dropCursor,
 	EditorView,
@@ -41,6 +49,38 @@ interface CodeEditorProps {
 	onSave?: () => void;
 }
 
+const setHighlightRangeEffect = StateEffect.define<{
+	from: number;
+	to: number;
+} | null>();
+
+const highlightRangeField = StateField.define<DecorationSet>({
+	create: () => Decoration.none,
+	update(decorations, transaction) {
+		decorations = decorations.map(transaction.changes);
+
+		for (const effect of transaction.effects) {
+			if (!effect.is(setHighlightRangeEffect)) {
+				continue;
+			}
+
+			if (!effect.value) {
+				decorations = Decoration.none;
+				continue;
+			}
+
+			decorations = Decoration.set([
+				Decoration.mark({
+					class: "cm-jump-target-section",
+				}).range(effect.value.from, effect.value.to),
+			]);
+		}
+
+		return decorations;
+	},
+	provide: (field) => EditorView.decorations.from(field),
+});
+
 function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 	let disposed = false;
 
@@ -60,14 +100,38 @@ function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 				},
 			});
 		},
-		revealPosition(line, column = 1) {
+		revealPosition(line, column = 1, highlightRange) {
 			const safeLine = Math.max(1, Math.min(line, view.state.doc.lines));
 			const lineInfo = view.state.doc.line(safeLine);
 			const offset = Math.min(column - 1, lineInfo.length);
 			const anchor = lineInfo.from + Math.max(0, offset);
+			const effects = [];
+
+			if (highlightRange) {
+				const startLine = Math.max(
+					1,
+					Math.min(highlightRange.startLine, view.state.doc.lines),
+				);
+				const endLine = Math.max(
+					startLine,
+					Math.min(highlightRange.endLine, view.state.doc.lines),
+				);
+				const startLineInfo = view.state.doc.line(startLine);
+				const endLineInfo = view.state.doc.line(endLine);
+
+				effects.push(
+					setHighlightRangeEffect.of({
+						from: startLineInfo.from,
+						to: endLineInfo.to,
+					}),
+				);
+			} else {
+				effects.push(setHighlightRangeEffect.of(null));
+			}
 
 			view.dispatch({
 				selection: EditorSelection.cursor(anchor),
+				effects,
 				scrollIntoView: true,
 			});
 			view.focus();
@@ -210,6 +274,7 @@ export function CodeEditor({
 		const state = EditorState.create({
 			doc: value,
 			extensions: [
+				highlightRangeField,
 				lineNumbers(),
 				highlightActiveLineGutter(),
 				highlightSpecialChars(),
@@ -229,6 +294,12 @@ export function CodeEditor({
 				EditorView.contentAttributes.of({
 					"data-testid": "code-editor",
 					spellcheck: "false",
+				}),
+				EditorView.theme({
+					".cm-jump-target-section": {
+						backgroundColor:
+							"color-mix(in srgb, var(--accent) 18%, transparent)",
+					},
 				}),
 				keymap.of([
 					indentWithTab,

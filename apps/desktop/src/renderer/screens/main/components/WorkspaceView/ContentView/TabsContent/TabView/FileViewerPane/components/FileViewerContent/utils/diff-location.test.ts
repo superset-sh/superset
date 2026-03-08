@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { FileContents } from "shared/changes-types";
-import { mapDiffLocationToRawPosition } from "./diff-location";
+import {
+	getRawSectionForDiffLocation,
+	mapDiffLocationToRawPosition,
+} from "./diff-location";
 
 describe("mapDiffLocationToRawPosition", () => {
 	it("keeps addition-side clicks on the same modified line", () => {
@@ -122,6 +125,44 @@ describe("mapDiffLocationToRawPosition", () => {
 		).toEqual({
 			lineNumber: 1,
 			column: 5,
+		});
+	});
+
+	it("returns the modified hunk range for addition-side clicks", () => {
+		const contents: FileContents = {
+			original: "one\ntwo\nthree\nfour",
+			modified: "one\ntwo changed\nthree\nfour\nfive",
+			language: "text",
+		};
+
+		expect(
+			getRawSectionForDiffLocation({
+				contents,
+				lineNumber: 2,
+				side: "additions",
+			}),
+		).toEqual({
+			startLine: 1,
+			endLine: 5,
+		});
+	});
+
+	it("returns the modified hunk range for deletion-side clicks", () => {
+		const contents: FileContents = {
+			original: "one\ntwo\nthree\nfour",
+			modified: "zero\none\nthree\nfour",
+			language: "text",
+		};
+
+		expect(
+			getRawSectionForDiffLocation({
+				contents,
+				lineNumber: 2,
+				side: "deletions",
+			}),
+		).toEqual({
+			startLine: 1,
+			endLine: 4,
 		});
 	});
 });

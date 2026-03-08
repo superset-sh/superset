@@ -15,15 +15,6 @@ interface LightDiffViewerProps {
 	filePath: string;
 	className?: string;
 	style?: CSSProperties;
-	onDiffLineEnter?: (event: {
-		lineNumber: number;
-		annotationSide: "deletions" | "additions";
-		lineType:
-			| "change-deletion"
-			| "change-addition"
-			| "context"
-			| "context-expanded";
-	}) => void;
 }
 
 export function LightDiffViewer({
@@ -33,7 +24,6 @@ export function LightDiffViewer({
 	filePath,
 	className,
 	style,
-	onDiffLineEnter,
 }: LightDiffViewerProps) {
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
@@ -77,7 +67,6 @@ export function LightDiffViewer({
 						-webkit-user-select: text;
 					}
 				`,
-				onLineEnter: onDiffLineEnter,
 			}}
 		/>
 	);

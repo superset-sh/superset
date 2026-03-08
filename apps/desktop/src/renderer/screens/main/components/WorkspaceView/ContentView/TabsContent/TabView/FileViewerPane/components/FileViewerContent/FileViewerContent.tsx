@@ -20,8 +20,8 @@ import { MarkdownSearch } from "../MarkdownSearch";
 import {
 	type DiffDomLocation,
 	getColumnFromDiffPoint,
-	getColumnFromDiffSelection,
 	getDiffLocationFromTarget,
+	getRawSectionForDiffLocation,
 	mapDiffLocationToRawPosition,
 } from "./utils/diff-location";
 
@@ -107,12 +107,21 @@ interface FileViewerContentProps {
 	draftContentRef: MutableRefObject<string | null>;
 	initialLine?: number;
 	initialColumn?: number;
+	initialSelectionStartLine?: number;
+	initialSelectionEndLine?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
-	onSwitchToRawAtLocation: (line: number, column: number) => void;
+	onSwitchToRawAtLocation: (
+		line: number,
+		column: number,
+		selection?: {
+			startLine: number;
+			endLine: number;
+		},
+	) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
@@ -151,6 +160,8 @@ export function FileViewerContent({
 	draftContentRef,
 	initialLine,
 	initialColumn,
+	initialSelectionStartLine,
+	initialSelectionEndLine,
 	diffViewMode,
 	hideUnchangedRegions,
 	onSaveRaw,
@@ -187,7 +198,12 @@ export function FileViewerContent({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset when requested cursor target changes
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
-	}, [initialLine, initialColumn]);
+	}, [
+		initialLine,
+		initialColumn,
+		initialSelectionStartLine,
+		initialSelectionEndLine,
+	]);
 
 	useEffect(() => {
 		if (viewMode !== "raw") {
@@ -226,7 +242,7 @@ export function FileViewerContent({
 
 	const openRawFromDiffLocation = (
 		location: DiffDomLocation & {
-			column?: number;
+			column: number;
 		},
 	) => {
 		if (!diffData) {
@@ -240,37 +256,19 @@ export function FileViewerContent({
 			lineNumber: location.lineNumber,
 			side: location.side,
 			lineType: location.lineType,
-			column:
-				location.column ??
-				getColumnFromDiffSelection({
-					lineElement: location.lineElement,
-					numberColumn: location.numberColumn,
-				}),
+			column: location.column,
+		});
+		const rawSection = getRawSectionForDiffLocation({
+			contents: diffData,
+			lineNumber: location.lineNumber,
+			side: location.side,
 		});
 
-		onSwitchToRawAtLocation(position.lineNumber, position.column);
-	};
-
-	const handleDiffLineEnter = ({
-		lineNumber,
-		annotationSide,
-		lineType,
-	}: {
-		lineNumber: number;
-		annotationSide: "deletions" | "additions";
-		lineType:
-			| "change-deletion"
-			| "change-addition"
-			| "context"
-			| "context-expanded";
-	}) => {
-		lastDiffLocationRef.current = {
-			lineElement: diffContainerRef.current ?? document.createElement("div"),
-			lineNumber,
-			side: annotationSide,
-			lineType,
-			numberColumn: false,
-		};
+		onSwitchToRawAtLocation(
+			position.lineNumber,
+			position.column,
+			rawSection ?? undefined,
+		);
 	};
 
 	useEffect(() => {
@@ -302,13 +300,18 @@ export function FileViewerContent({
 			return;
 		}
 
-		editorRef.current.revealPosition(initialLine, initialColumn ?? 1);
+		editorRef.current.revealPosition(initialLine, initialColumn ?? 1, {
+			startLine: initialSelectionStartLine ?? initialLine,
+			endLine: initialSelectionEndLine ?? initialLine,
+		});
 		hasAppliedInitialLocationRef.current = true;
 	}, [
 		viewMode,
 		editorRef,
 		initialLine,
 		initialColumn,
+		initialSelectionStartLine,
+		initialSelectionEndLine,
 		isLoadingRaw,
 		rawFileData,
 	]);
@@ -346,11 +349,14 @@ export function FileViewerContent({
 				onMoveToNewTab={onMoveToNewTab}
 				onEditAtLocation={() => {
 					const location = lastDiffLocationRef.current;
-					if (!location) {
+					if (!location || location.column === undefined) {
 						return;
 					}
 
-					openRawFromDiffLocation(location);
+					openRawFromDiffLocation({
+						...location,
+						column: location.column,
+					});
 				}}
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: diff wrapper intercepts click capture to preserve browser text selection */}
@@ -402,7 +408,6 @@ export function FileViewerContent({
 						hideUnchangedRegions={hideUnchangedRegions}
 						filePath={filePath}
 						className="min-h-full"
-						onDiffLineEnter={handleDiffLineEnter}
 					/>
 				</div>
 			</DiffViewerContextMenu>

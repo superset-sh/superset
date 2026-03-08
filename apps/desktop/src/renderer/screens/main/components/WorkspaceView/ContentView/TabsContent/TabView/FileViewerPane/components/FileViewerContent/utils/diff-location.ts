@@ -33,6 +33,11 @@ export interface RawEditorPosition {
 	column: number;
 }
 
+export interface RawEditorRange {
+	startLine: number;
+	endLine: number;
+}
+
 function isSupportedLineType(lineType: string): lineType is LineTypes {
 	return (
 		lineType === "context" ||
@@ -114,6 +119,93 @@ function mapOldSideLineToRawLine(
 	return clampLineNumber(lineNumber + lineDelta, modifiedLines);
 }
 
+export function getRawSectionForDiffLocation({
+	contents,
+	lineNumber,
+	side,
+}: Pick<
+	MapDiffLocationToRawPositionOptions,
+	"contents" | "lineNumber" | "side"
+>): RawEditorRange | null {
+	const modifiedLines = contents.modified.split("\n");
+	const diff = parseDiffFromFile(
+		{ name: "before", contents: contents.original },
+		{ name: "after", contents: contents.modified },
+	);
+
+	for (const hunk of diff.hunks) {
+		let currentOldLine = hunk.deletionStart;
+		let currentNewLine = hunk.additionStart;
+		let containsLocation = false;
+
+		for (const chunk of hunk.hunkContent) {
+			if (chunk.type === "context") {
+				const contextLineCount = chunk.lines.length;
+
+				if (
+					side === "additions" &&
+					lineNumber >= currentNewLine &&
+					lineNumber < currentNewLine + contextLineCount
+				) {
+					containsLocation = true;
+					break;
+				}
+
+				if (
+					side === "deletions" &&
+					lineNumber >= currentOldLine &&
+					lineNumber < currentOldLine + contextLineCount
+				) {
+					containsLocation = true;
+					break;
+				}
+
+				currentOldLine += contextLineCount;
+				currentNewLine += contextLineCount;
+				continue;
+			}
+
+			if (
+				side === "deletions" &&
+				lineNumber >= currentOldLine &&
+				lineNumber < currentOldLine + chunk.deletions.length
+			) {
+				containsLocation = true;
+				break;
+			}
+
+			if (
+				side === "additions" &&
+				lineNumber >= currentNewLine &&
+				lineNumber < currentNewLine + chunk.additions.length
+			) {
+				containsLocation = true;
+				break;
+			}
+
+			currentOldLine += chunk.deletions.length;
+			currentNewLine += chunk.additions.length;
+		}
+
+		if (!containsLocation) {
+			continue;
+		}
+
+		const rawStartLine = clampLineNumber(hunk.additionStart, modifiedLines);
+		const rawEndLine = clampLineNumber(
+			Math.max(hunk.additionStart, hunk.additionStart + hunk.additionCount - 1),
+			modifiedLines,
+		);
+
+		return {
+			startLine: rawStartLine,
+			endLine: rawEndLine,
+		};
+	}
+
+	return null;
+}
+
 export function mapDiffLocationToRawPosition({
 	contents,
 	lineNumber,
@@ -131,33 +223,6 @@ export function mapDiffLocationToRawPosition({
 		lineNumber: rawLineNumber,
 		column: clampColumn(rawLineNumber, column, modifiedLines),
 	};
-}
-
-export function getColumnFromDiffSelection({
-	lineElement,
-	numberColumn = false,
-}: DiffClickColumnOptions): number {
-	if (numberColumn) {
-		return 1;
-	}
-
-	const selection = window.getSelection();
-	if (!selection || selection.rangeCount === 0) {
-		return 1;
-	}
-
-	const codeElement = getDiffCodeElement(lineElement);
-	const range = selection.getRangeAt(0);
-	const anchorNode = range.startContainer;
-	if (!codeElement.contains(anchorNode)) {
-		return 1;
-	}
-
-	const measureRange = document.createRange();
-	measureRange.selectNodeContents(codeElement);
-	measureRange.setEnd(anchorNode, range.startOffset);
-
-	return Math.max(1, measureRange.toString().length + 1);
 }
 
 export function getColumnFromDiffPoint({

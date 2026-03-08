@@ -3,11 +3,20 @@ export interface EditorSelectionLines {
 	endLine: number;
 }
 
+export interface EditorHighlightRange {
+	startLine: number;
+	endLine: number;
+}
+
 export interface CodeEditorAdapter {
 	focus(): void;
 	getValue(): string;
 	setValue(value: string): void;
-	revealPosition(line: number, column?: number): void;
+	revealPosition(
+		line: number,
+		column?: number,
+		highlightRange?: EditorHighlightRange,
+	): void;
 	getSelectionLines(): EditorSelectionLines | null;
 	selectAll(): void;
 	cut(): void;
