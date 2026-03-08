@@ -124,6 +124,7 @@ export const workspaces = sqliteTable(
 		sectionId: text("section_id").references(() => workspaceSections.id, {
 			onDelete: "set null",
 		}),
+		notes: text("notes"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

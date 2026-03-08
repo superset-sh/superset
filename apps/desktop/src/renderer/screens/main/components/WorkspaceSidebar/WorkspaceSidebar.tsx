@@ -6,6 +6,7 @@ import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { SetupScriptCard } from "./SetupScriptCard";
 import { SidebarDropZone } from "./SidebarDropZone";
+import { WorkspaceNotes } from "./WorkspaceNotes";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 
@@ -13,12 +14,14 @@ interface WorkspaceSidebarProps {
 	isCollapsed?: boolean;
 	activeProjectId: string | null;
 	activeProjectName: string | null;
+	activeWorkspaceId: string | null;
 }
 
 export function WorkspaceSidebar({
 	isCollapsed = false,
 	activeProjectId,
 	activeProjectName,
+	activeWorkspaceId,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
@@ -108,6 +111,13 @@ export function WorkspaceSidebar({
 			</div>
 
 			{!isCollapsed && <PortsList />}
+
+			{!isCollapsed && activeWorkspaceId && (
+				<WorkspaceNotes
+					key={activeWorkspaceId}
+					workspaceId={activeWorkspaceId}
+				/>
+			)}
 
 			<SetupScriptCard
 				isCollapsed={isCollapsed}

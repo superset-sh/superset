@@ -253,6 +253,13 @@
       "when": 1772841491441,
       "tag": "0035_add_workspace_sections",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1772885518136,
+      "tag": "0036_add_workspace_notes",
+      "breakpoints": true
     }
   ]
 }

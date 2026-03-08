@@ -174,6 +174,25 @@ export const createStatusProcedures = () => {
 				return { success: true, isUnread: input.isUnread };
 			}),
 
+		setNotes: publicProcedure
+			.input(z.object({ id: z.string(), notes: z.string() }))
+			.mutation(({ input }) => {
+				const workspace = getWorkspaceNotDeleting(input.id);
+				if (!workspace) {
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ notes: input.notes })
+					.where(eq(workspaces.id, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
 		setActive: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(({ input }) => {
