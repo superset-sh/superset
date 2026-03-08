@@ -64,6 +64,44 @@ interface DiffData {
 	language: string;
 }
 
+function getSelectionDebugState(element: HTMLDivElement | null) {
+	const selection = window.getSelection();
+	const text = selection?.toString() ?? "";
+	const range =
+		selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+	return {
+		hasSelection:
+			!!selection && !selection.isCollapsed && selection.rangeCount > 0,
+		isCollapsed: selection?.isCollapsed ?? true,
+		rangeCount: selection?.rangeCount ?? 0,
+		textLength: text.length,
+		textPreview: text.slice(0, 80),
+		insideDiffContainer:
+			!!element && !!range && element.contains(range.commonAncestorContainer),
+		commonAncestor:
+			range?.commonAncestorContainer instanceof HTMLElement
+				? {
+						tagName: range.commonAncestorContainer.tagName,
+						className: range.commonAncestorContainer.className,
+						dataset: { ...range.commonAncestorContainer.dataset },
+					}
+				: range?.commonAncestorContainer.nodeName,
+	};
+}
+
+function logDiffSelectionDebug(
+	element: HTMLDivElement | null,
+	label: string,
+	extra?: Record<string, unknown>,
+) {
+	console.log("[DiffSelectionDebug]", {
+		label,
+		...getSelectionDebugState(element),
+		...extra,
+	});
+}
+
 function hasActiveSelectionWithinElement(
 	element: HTMLDivElement | null,
 ): boolean {
@@ -190,6 +228,21 @@ export function FileViewerContent({
 		lastDiffLocationRef.current = null;
 	}, [filePath]);
 
+	useEffect(() => {
+		if (viewMode !== "diff") {
+			return;
+		}
+
+		const handleSelectionChange = () => {
+			logDiffSelectionDebug(diffContainerRef.current, "selectionchange");
+		};
+
+		document.addEventListener("selectionchange", handleSelectionChange);
+		return () => {
+			document.removeEventListener("selectionchange", handleSelectionChange);
+		};
+	}, [viewMode]);
+
 	const getDiffSelectionLines = () => {
 		if (!diffData || !lastDiffLocationRef.current) {
 			return null;
@@ -304,7 +357,54 @@ export function FileViewerContent({
 				<div
 					ref={diffContainerRef}
 					className="h-full min-h-0 overflow-auto bg-background select-text"
+					onMouseDownCapture={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "mousedown", {
+							target:
+								event.target instanceof HTMLElement
+									? {
+											tagName: event.target.tagName,
+											className: event.target.className,
+											dataset: { ...event.target.dataset },
+										}
+									: undefined,
+						});
+					}}
+					onMouseUpCapture={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "mouseup", {
+							target:
+								event.target instanceof HTMLElement
+									? {
+											tagName: event.target.tagName,
+											className: event.target.className,
+											dataset: { ...event.target.dataset },
+										}
+									: undefined,
+						});
+					}}
+					onClickCapture={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "click-capture", {
+							detail: event.detail,
+							target:
+								event.target instanceof HTMLElement
+									? {
+											tagName: event.target.tagName,
+											className: event.target.className,
+											dataset: { ...event.target.dataset },
+										}
+									: undefined,
+						});
+					}}
 					onContextMenuCapture={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "contextmenu", {
+							target:
+								event.target instanceof HTMLElement
+									? {
+											tagName: event.target.tagName,
+											className: event.target.className,
+											dataset: { ...event.target.dataset },
+										}
+									: undefined,
+						});
 						const location = getDiffLocationFromTarget(event.target);
 						if (!location) {
 							return;
@@ -317,6 +417,16 @@ export function FileViewerContent({
 						};
 					}}
 					onDoubleClick={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "double-click", {
+							target:
+								event.target instanceof HTMLElement
+									? {
+											tagName: event.target.tagName,
+											className: event.target.className,
+											dataset: { ...event.target.dataset },
+										}
+									: undefined,
+						});
 						if (!diffData) {
 							return;
 						}
@@ -346,7 +456,13 @@ export function FileViewerContent({
 						onSwitchToRawAtLocation(position.lineNumber, position.column);
 					}}
 					onClick={(event) => {
+						logDiffSelectionDebug(diffContainerRef.current, "click-bubble", {
+							detail: event.detail,
+						});
 						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+							console.log("[DiffSelectionDebug]", {
+								label: "stop-click-propagation",
+							});
 							event.stopPropagation();
 						}
 					}}
