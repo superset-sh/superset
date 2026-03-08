@@ -49,20 +49,10 @@ export function createCodeMirrorTheme(
 			".cm-activeLineGutter": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.activeLine,
 			},
-			"&.cm-single-line-jump-target .cm-activeLine": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
-				boxShadow: `inset 2px 0 0 ${MIDNIGHT_CODE_COLORS.jumpTargetSectionEdge}`,
-			},
-			"&.cm-single-line-jump-target .cm-activeLineGutter": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
-			},
 			"&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
 				{
 					backgroundColor: MIDNIGHT_CODE_COLORS.selection,
 				},
-			".cm-activeLine ::selection": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.selectionOnActiveLine,
-			},
 			".cm-line.cm-jump-target-section": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
 				boxShadow: `inset 2px 0 0 ${MIDNIGHT_CODE_COLORS.jumpTargetSectionEdge}`,
