@@ -631,6 +631,33 @@ describe("agent-wrappers copilot", () => {
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
+	it("initializes Qoder settings for first-time users", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const currentHookPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+
+		expect(getQoderSettingsJsonContent(currentHookPath)).not.toBeNull();
+		expect(() => createQoderSettingsJson()).not.toThrow();
+		expect(readFileSync(qoderSettingsPath, "utf-8")).toBe(
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							{
+								hooks: [{ type: "command", command: currentHookPath }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+	});
+
 	it("sanitizes malformed Qoder Notification hooks before merging", () => {
 		const qoderSettingsPath = path.join(
 			mockedHomeDir,
