@@ -22,13 +22,13 @@ import {
 	hasUnpushedCommits,
 	worktreeExists,
 } from "../utils/git";
-import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
+import { resolveWorktreePathOrThrow } from "../utils/repair-worktree-path";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
 
 async function getTrackedWorktreePath(
 	worktree: SelectWorktree,
 ): Promise<string> {
-	return (await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+	return (await resolveWorktreePathOrThrow(worktree.id)) ?? worktree.path;
 }
 
 export const createDeleteProcedures = () => {

@@ -120,7 +120,10 @@ mock.module("main/lib/local-db", () => ({
 // Import after mocks are registered
 const {
 	findProjectWorktreeByCurrentPath,
+	getTrackedWorktreeRepairCommand,
 	listProjectWorktreesWithCurrentPaths,
+	resolveTrackedWorktreePath,
+	resolveWorktreePathOrThrow,
 	resolveWorktreePathWithRepair,
 	tryRepairWorktreePath,
 } = await import("./repair-worktree-path");
@@ -139,6 +142,13 @@ describe("tryRepairWorktreePath", () => {
 	afterEach(() => {
 		if (existsSync(TEST_DIR)) {
 			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+		const externalDir = join(
+			tmpdir(),
+			`superset-external-repair-${process.pid}`,
+		);
+		if (existsSync(externalDir)) {
+			rmSync(externalDir, { recursive: true, force: true });
 		}
 	});
 
@@ -390,5 +400,76 @@ describe("tryRepairWorktreePath", () => {
 
 		const result = await resolveWorktreePathWithRepair("wt-resolve-3");
 		expect(result).toBeNull();
+	});
+
+	test("resolveTrackedWorktreePath auto-repairs a nearby manual rename", async () => {
+		const mainRepo = createTestRepo("main-manual-rename");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-manual-old");
+		const newPath = join(TEST_DIR, "wt-manual-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-manual-rename HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`mv "${oldPath}" "${newPath}"`, { stdio: "ignore" });
+
+		mockWorktrees.set("wt-manual-1", {
+			id: "wt-manual-1",
+			path: oldPath,
+			branch: "feat-manual-rename",
+			projectId: "proj-manual-1",
+		});
+		mockProjects.set("proj-manual-1", {
+			id: "proj-manual-1",
+			mainRepoPath: mainRepo,
+		});
+
+		const result = await resolveTrackedWorktreePath("wt-manual-1");
+		expect(result).toEqual({
+			status: "resolved",
+			path: newPath,
+		});
+		expect(mockWorktrees.get("wt-manual-1")?.path).toBe(newPath);
+		expect(
+			execSync(`git -C "${mainRepo}" worktree list --porcelain`, {
+				encoding: "utf-8",
+			}),
+		).toContain(newPath);
+	});
+
+	test("resolveWorktreePathOrThrow tells users to run git worktree repair when auto-repair cannot find the moved worktree", async () => {
+		const mainRepo = createTestRepo("main-manual-rename-throw");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-manual-throw-old");
+		const externalDir = join(
+			tmpdir(),
+			`superset-external-repair-${process.pid}`,
+			"level-1",
+			"level-2",
+		);
+		mkdirSync(externalDir, { recursive: true });
+		const newPath = join(externalDir, "wt-manual-throw-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-manual-throw HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`mv "${oldPath}" "${newPath}"`, { stdio: "ignore" });
+
+		mockWorktrees.set("wt-manual-2", {
+			id: "wt-manual-2",
+			path: oldPath,
+			branch: "feat-manual-throw",
+			projectId: "proj-manual-2",
+		});
+		mockProjects.set("proj-manual-2", {
+			id: "proj-manual-2",
+			mainRepoPath: mainRepo,
+		});
+
+		await expect(resolveWorktreePathOrThrow("wt-manual-2")).rejects.toThrow(
+			getTrackedWorktreeRepairCommand(mainRepo),
+		);
 	});
 });

@@ -21,6 +21,7 @@ import {
 import { fetchGitHubPRStatus } from "../utils/github";
 import {
 	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathOrThrow,
 	resolveWorktreePathWithRepair,
 } from "../utils/repair-worktree-path";
 
@@ -68,7 +69,7 @@ export const createGitStatusProcedures = () => {
 
 				// Repair stale worktree path if directory was moved/unnested
 				const worktreePath =
-					(await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+					(await resolveWorktreePathOrThrow(worktree.id)) ?? worktree.path;
 
 				if (!existsSync(worktreePath)) {
 					throw new TRPCError({

@@ -845,6 +845,22 @@ export async function getBranchWorktreePath({
 	}
 }
 
+export async function repairWorktreeRegistration({
+	mainRepoPath,
+	worktreePath,
+}: {
+	mainRepoPath: string;
+	worktreePath: string;
+}): Promise<void> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		await git.raw(["worktree", "repair", worktreePath]);
+	} catch (error) {
+		console.error(`Failed to repair worktree registration: ${error}`);
+		throw error;
+	}
+}
+
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	try {
 		const git = simpleGit(mainRepoPath);

@@ -13,7 +13,10 @@ import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { resolveWorktreePathWithRepair } from "../workspaces/utils/repair-worktree-path";
+import {
+	resolveWorktreePathOrThrow,
+	resolveWorktreePathWithRepair,
+} from "../workspaces/utils/repair-worktree-path";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveTerminalThemeType } from "./theme-type";
@@ -93,7 +96,7 @@ export const createTerminalRouter = () => {
 					.get();
 				const workspacePath = workspace
 					? workspace.type === "worktree" && workspace.worktreeId
-						? ((await resolveWorktreePathWithRepair(workspace.worktreeId)) ??
+						? ((await resolveWorktreePathOrThrow(workspace.worktreeId)) ??
 							undefined)
 						: (getWorkspacePath(workspace) ?? undefined)
 					: undefined;

@@ -39,7 +39,7 @@ import {
 import {
 	findProjectWorktreeByCurrentPath,
 	listProjectWorktreesWithCurrentPaths,
-	resolveWorktreePathWithRepair,
+	resolveWorktreePathOrThrow,
 } from "../utils/repair-worktree-path";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -85,7 +85,7 @@ function getPrWorkspaceName(prInfo: PullRequestInfo): string {
 async function getTrackedWorktreePath(
 	worktree: typeof worktrees.$inferSelect,
 ): Promise<string> {
-	return (await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+	return (await resolveWorktreePathOrThrow(worktree.id)) ?? worktree.path;
 }
 
 interface PrWorkspaceResult {
