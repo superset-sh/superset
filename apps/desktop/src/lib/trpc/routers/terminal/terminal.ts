@@ -10,6 +10,7 @@ import {
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
+import { getProcessTree } from "main/lib/terminal/port-scanner";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -407,6 +408,26 @@ export const createTerminalRouter = () => {
 			.input(z.string())
 			.query(async ({ input: paneId }) => {
 				return terminal.getSession(paneId);
+			}),
+
+		hasActiveProcesses: publicProcedure
+			.input(z.array(z.string()))
+			.query(async ({ input: paneIds }) => {
+				for (const paneId of paneIds) {
+					const session = terminal.getSession(paneId);
+					if (!session?.isAlive || !session.pid) continue;
+					try {
+						const tree = await getProcessTree(session.pid);
+						if (tree.length > 1) return true;
+					} catch (error) {
+						logger.warn(
+							`[hasActiveProcesses] getProcessTree failed for pid=${session.pid}, paneId=${paneId}`,
+							error,
+						);
+						return true;
+					}
+				}
+				return false;
 			}),
 
 		getWorkspaceCwd: publicProcedure

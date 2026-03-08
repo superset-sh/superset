@@ -137,8 +137,8 @@ function WorkspacePage() {
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const removeTab = useTabsStore((s) => s.removeTab);
-	const removePane = useTabsStore((s) => s.removePane);
+	const removeTab = useTabsStore((s) => s.requestRemoveTab);
+	const removePane = useTabsStore((s) => s.requestRemovePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);

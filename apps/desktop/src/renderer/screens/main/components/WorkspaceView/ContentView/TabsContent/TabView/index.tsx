@@ -34,6 +34,7 @@ export function TabView({ tab }: TabViewProps) {
 	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
+	const requestRemovePane = useTabsStore((s) => s.requestRemovePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
 		useTabsWithPresets();
@@ -166,7 +167,7 @@ export function TabView({ tab }: TabViewProps) {
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
-						removePane={removePane}
+						removePane={requestRemovePane}
 						setFocusedPane={setFocusedPane}
 						availableTabs={workspaceTabs}
 						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
@@ -186,7 +187,7 @@ export function TabView({ tab }: TabViewProps) {
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
-						removePane={removePane}
+						removePane={requestRemovePane}
 						setFocusedPane={setFocusedPane}
 						availableTabs={workspaceTabs}
 						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
@@ -203,7 +204,7 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						splitPaneAuto={splitPaneAuto}
-						removePane={removePane}
+						removePane={requestRemovePane}
 						setFocusedPane={setFocusedPane}
 					/>
 				);
@@ -218,7 +219,7 @@ export function TabView({ tab }: TabViewProps) {
 						tabId={tab.id}
 						targetPaneId={paneInfo.devtools.targetPaneId}
 						splitPaneAuto={splitPaneAuto}
-						removePane={removePane}
+						removePane={requestRemovePane}
 						setFocusedPane={setFocusedPane}
 					/>
 				);
@@ -234,7 +235,7 @@ export function TabView({ tab }: TabViewProps) {
 					splitPaneAuto={splitPaneAuto}
 					splitPaneHorizontal={splitPaneHorizontal}
 					splitPaneVertical={splitPaneVertical}
-					removePane={removePane}
+					removePane={requestRemovePane}
 					setFocusedPane={setFocusedPane}
 					availableTabs={workspaceTabs}
 					onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
@@ -250,7 +251,7 @@ export function TabView({ tab }: TabViewProps) {
 			splitPaneAuto,
 			splitPaneHorizontal,
 			splitPaneVertical,
-			removePane,
+			requestRemovePane,
 			setFocusedPane,
 			workspaceTabs,
 			movePaneToTab,

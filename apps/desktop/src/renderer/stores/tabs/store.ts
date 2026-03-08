@@ -2,6 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -108,6 +109,8 @@ export const useTabsStore = create<TabsStore>()(
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
 				closedTabsStack: [],
+				pendingCloseTabId: null,
+				pendingClosePaneId: null,
 
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
@@ -326,6 +329,91 @@ export const useTabsStore = create<TabsStore>()(
 							[workspaceId]: newHistoryStack,
 						},
 					});
+				},
+
+				requestRemoveTab: async (tabId) => {
+					const state = get();
+					if (state.pendingCloseTabId || state.pendingClosePaneId) return;
+					const paneIds = getPaneIdsForTab(state.panes, tabId);
+					const terminalPaneIds = paneIds.filter((id) => {
+						const type = state.panes[id]?.type;
+						return type === "terminal";
+					});
+
+					if (terminalPaneIds.length > 0) {
+						try {
+							const hasActive =
+								await electronTrpcClient.terminal.hasActiveProcesses.query(
+									terminalPaneIds,
+								);
+							if (hasActive) {
+								set({ pendingCloseTabId: tabId });
+								return;
+							}
+						} catch (error) {
+							console.warn(
+								"[requestRemoveTab] Failed to check active processes, showing warning",
+								error,
+							);
+							set({ pendingCloseTabId: tabId });
+							return;
+						}
+					}
+
+					get().removeTab(tabId);
+				},
+
+				confirmRemoveTab: () => {
+					const tabId = get().pendingCloseTabId;
+					if (tabId) {
+						set({ pendingCloseTabId: null });
+						get().removeTab(tabId);
+					}
+				},
+
+				cancelRemoveTab: () => {
+					set({ pendingCloseTabId: null });
+				},
+
+				requestRemovePane: async (paneId) => {
+					const state = get();
+					if (state.pendingCloseTabId || state.pendingClosePaneId) return;
+					const pane = state.panes[paneId];
+					if (!pane) return;
+
+					if (pane.type === "terminal") {
+						try {
+							const hasActive =
+								await electronTrpcClient.terminal.hasActiveProcesses.query([
+									paneId,
+								]);
+							if (hasActive) {
+								set({ pendingClosePaneId: paneId });
+								return;
+							}
+						} catch (error) {
+							console.warn(
+								"[requestRemovePane] Failed to check active processes, showing warning",
+								error,
+							);
+							set({ pendingClosePaneId: paneId });
+							return;
+						}
+					}
+
+					get().removePane(paneId);
+				},
+
+				confirmRemovePane: () => {
+					const paneId = get().pendingClosePaneId;
+					if (paneId) {
+						set({ pendingClosePaneId: null });
+						get().removePane(paneId);
+					}
+				},
+
+				cancelRemovePane: () => {
+					set({ pendingClosePaneId: null });
 				},
 
 				renameTab: (tabId, newName) => {
@@ -1927,6 +2015,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Clear stale transient statuses on startup:
 					// - "working": Agent can't be working if app just restarted
 					// - "permission": Permission dialog is gone after restart
+					// - pendingClose*: Dialog is gone after restart
 					// Note: "review" is intentionally preserved so users see missed completions
 					if (persisted.panes) {
 						for (const pane of Object.values(persisted.panes)) {
@@ -1935,6 +2024,8 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
+					persisted.pendingCloseTabId = null;
+					persisted.pendingClosePaneId = null;
 
 					const mergedState = { ...currentState, ...persisted };
 
