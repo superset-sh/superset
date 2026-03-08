@@ -184,10 +184,6 @@ export interface CreateFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
-	/** Start of a raw highlight range to reveal */
-	selectionStartLine?: number;
-	/** End of a raw highlight range to reveal */
-	selectionEndLine?: number;
 }
 
 /**
@@ -216,8 +212,6 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
-		initialSelectionStartLine: options.selectionStartLine,
-		initialSelectionEndLine: options.selectionEndLine,
 	};
 
 	// Use filename for display name

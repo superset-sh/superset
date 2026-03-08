@@ -119,9 +119,6 @@ export interface FileViewerState {
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
-	/** Initial raw highlight range to reveal (transient - applied once) */
-	initialSelectionStartLine?: number;
-	initialSelectionEndLine?: number;
 }
 
 /**

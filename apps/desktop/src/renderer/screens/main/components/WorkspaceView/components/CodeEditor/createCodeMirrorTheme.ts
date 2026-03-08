@@ -53,10 +53,6 @@ export function createCodeMirrorTheme(
 				{
 					backgroundColor: MIDNIGHT_CODE_COLORS.selection,
 				},
-			".cm-line.cm-jump-target-section": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.jumpTargetSection,
-				boxShadow: `inset 2px 0 0 ${MIDNIGHT_CODE_COLORS.jumpTargetSectionEdge}`,
-			},
 			".cm-selectionMatch": {
 				backgroundColor: MIDNIGHT_CODE_COLORS.search,
 			},

@@ -8,8 +8,6 @@ export const MIDNIGHT_CODE_COLORS = {
 	muted: "#636d83",
 	activeLine: "#ffffff0a",
 	selection: "#4b5668",
-	jumpTargetSection: "#61afef24",
-	jumpTargetSectionEdge: "#61afef66",
 	search: "#e5c07b33",
 	searchActive: "#e5c07b55",
 	panel: "#21252b",

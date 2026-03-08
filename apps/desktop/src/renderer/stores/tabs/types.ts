@@ -78,10 +78,6 @@ export interface AddFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
-	/** Start of a raw highlight range to reveal */
-	selectionStartLine?: number;
-	/** End of a raw highlight range to reveal */
-	selectionEndLine?: number;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */

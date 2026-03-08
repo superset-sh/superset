@@ -21,7 +21,6 @@ import {
 	type DiffDomLocation,
 	getColumnFromDiffPoint,
 	getDiffLocationFromEvent,
-	getRawSectionForDiffLocation,
 	mapDiffLocationToRawPosition,
 } from "./utils/diff-location";
 
@@ -107,21 +106,12 @@ interface FileViewerContentProps {
 	draftContentRef: MutableRefObject<string | null>;
 	initialLine?: number;
 	initialColumn?: number;
-	initialSelectionStartLine?: number;
-	initialSelectionEndLine?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
-	onSwitchToRawAtLocation: (
-		line: number,
-		column: number,
-		selection?: {
-			startLine: number;
-			endLine: number;
-		},
-	) => void;
+	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
@@ -160,8 +150,6 @@ export function FileViewerContent({
 	draftContentRef,
 	initialLine,
 	initialColumn,
-	initialSelectionStartLine,
-	initialSelectionEndLine,
 	diffViewMode,
 	hideUnchangedRegions,
 	onSaveRaw,
@@ -198,12 +186,7 @@ export function FileViewerContent({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset when requested cursor target changes
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
-	}, [
-		initialLine,
-		initialColumn,
-		initialSelectionStartLine,
-		initialSelectionEndLine,
-	]);
+	}, [initialLine, initialColumn]);
 
 	useEffect(() => {
 		if (viewMode !== "raw") {
@@ -258,17 +241,8 @@ export function FileViewerContent({
 			lineType: location.lineType,
 			column: location.column,
 		});
-		const rawSection = getRawSectionForDiffLocation({
-			contents: diffData,
-			lineNumber: location.lineNumber,
-			side: location.side,
-		});
 
-		onSwitchToRawAtLocation(
-			position.lineNumber,
-			position.column,
-			rawSection ?? undefined,
-		);
+		onSwitchToRawAtLocation(position.lineNumber, position.column);
 	};
 
 	useEffect(() => {
@@ -300,18 +274,13 @@ export function FileViewerContent({
 			return;
 		}
 
-		editorRef.current.revealPosition(initialLine, initialColumn ?? 1, {
-			startLine: initialSelectionStartLine ?? initialLine,
-			endLine: initialSelectionEndLine ?? initialLine,
-		});
+		editorRef.current.revealPosition(initialLine, initialColumn ?? 1);
 		hasAppliedInitialLocationRef.current = true;
 	}, [
 		viewMode,
 		editorRef,
 		initialLine,
 		initialColumn,
-		initialSelectionStartLine,
-		initialSelectionEndLine,
 		isLoadingRaw,
 		rawFileData,
 	]);

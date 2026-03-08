@@ -85,8 +85,6 @@ export function FileViewerPane({
 	const oldPath = fileViewer?.oldPath;
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
-	const initialSelectionStartLine = fileViewer?.initialSelectionStartLine;
-	const initialSelectionEndLine = fileViewer?.initialSelectionEndLine;
 
 	const pinPane = useTabsStore((s) => s.pinPane);
 
@@ -180,8 +178,6 @@ export function FileViewerPane({
 		location?: {
 			line?: number;
 			column?: number;
-			selectionStartLine?: number;
-			selectionEndLine?: number;
 		},
 	) => {
 		const panes = useTabsStore.getState().panes;
@@ -198,12 +194,6 @@ export function FileViewerPane({
 							initialLine: location?.line ?? currentPane.fileViewer.initialLine,
 							initialColumn:
 								location?.column ?? currentPane.fileViewer.initialColumn,
-							initialSelectionStartLine:
-								location?.selectionStartLine ??
-								currentPane.fileViewer.initialSelectionStartLine,
-							initialSelectionEndLine:
-								location?.selectionEndLine ??
-								currentPane.fileViewer.initialSelectionEndLine,
 						},
 					},
 				},
@@ -211,20 +201,8 @@ export function FileViewerPane({
 		}
 	};
 
-	const handleSwitchToRawAtLocation = (
-		line: number,
-		column: number,
-		selection?: {
-			startLine: number;
-			endLine: number;
-		},
-	) => {
-		switchToMode("raw", {
-			line,
-			column,
-			selectionStartLine: selection?.startLine,
-			selectionEndLine: selection?.endLine,
-		});
+	const handleSwitchToRawAtLocation = (line: number, column: number) => {
+		switchToMode("raw", { line, column });
 	};
 
 	const handleViewModeChange = (value: string) => {
@@ -330,8 +308,6 @@ export function FileViewerPane({
 					draftContentRef={draftContentRef}
 					initialLine={initialLine}
 					initialColumn={initialColumn}
-					initialSelectionStartLine={initialSelectionStartLine}
-					initialSelectionEndLine={initialSelectionEndLine}
 					diffViewMode={diffViewMode}
 					hideUnchangedRegions={hideUnchangedRegions}
 					onSaveRaw={handleSaveRaw}

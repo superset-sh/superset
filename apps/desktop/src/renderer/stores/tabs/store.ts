@@ -730,12 +730,6 @@ export const useTabsStore = create<TabsStore>()(
 													options.line ?? existingFileViewer.initialLine,
 												initialColumn:
 													options.column ?? existingFileViewer.initialColumn,
-												initialSelectionStartLine:
-													options.selectionStartLine ??
-													existingFileViewer.initialSelectionStartLine,
-												initialSelectionEndLine:
-													options.selectionEndLine ??
-													existingFileViewer.initialSelectionEndLine,
 											},
 										},
 									},
@@ -782,8 +776,6 @@ export const useTabsStore = create<TabsStore>()(
 										oldPath: options.oldPath,
 										initialLine: options.line,
 										initialColumn: options.column,
-										initialSelectionStartLine: options.selectionStartLine,
-										initialSelectionEndLine: options.selectionEndLine,
 									},
 								},
 							},
