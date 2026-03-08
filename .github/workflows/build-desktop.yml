@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
 
     steps:
       - name: Checkout code
@@ -112,12 +112,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --arch ${{ matrix.arch }}
 
       - name: Verify app-update.yml exists
         working-directory: apps/desktop
         run: |
-          APP_DIR=$(ls -d release/mac-arm64/*.app | head -1)
+          APP_DIR=$(ls -d release/mac-${{ matrix.arch }}/*.app | head -1)
           test -f "$APP_DIR/Contents/Resources/app-update.yml" || {
             echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
             exit 1
@@ -142,7 +142,7 @@ jobs:
       - name: Upload auto-update manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_prefix }}-mac-update-manifest
+          name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-update-manifest
           path: apps/desktop/release/*-mac.yml
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error
