@@ -94,6 +94,14 @@ jobs:
               break
             fi
           done
+          # Keep macOS updater manifest at a stable filename for electron-updater lookups.
+          for file in *-mac.yml; do
+            if [[ -f "$file" && "$file" != "latest-mac.yml" ]]; then
+              cp "$file" "latest-mac.yml"
+              echo "Created stable copy: latest-mac.yml"
+              break
+            fi
+          done
           echo "Release artifacts:"
           ls -la
 

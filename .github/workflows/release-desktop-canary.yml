@@ -115,6 +115,15 @@ jobs:
               break
             fi
           done
+          # Prerelease builds may request canary-mac.yml; keep latest-mac.yml as fallback.
+          for file in *-mac.yml; do
+            if [[ -f "$file" && "$file" != "canary-mac.yml" && "$file" != "latest-mac.yml" ]]; then
+              cp "$file" "canary-mac.yml"
+              cp "$file" "latest-mac.yml"
+              echo "Created canary manifests: canary-mac.yml, latest-mac.yml from $file"
+              break
+            fi
+          done
 
       - name: List artifacts
         run: |

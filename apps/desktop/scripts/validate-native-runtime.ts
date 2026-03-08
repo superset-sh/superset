@@ -88,23 +88,26 @@ function collectFiles(rootDir: string): string[] {
 }
 
 function getPlatformLibsqlCandidates(): string[] {
-	if (process.platform === "darwin") {
+	const targetArch = process.env.TARGET_ARCH || process.arch;
+	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+
+	if (targetPlatform === "darwin") {
 		return [
-			process.arch === "arm64" ? "@libsql/darwin-arm64" : "@libsql/darwin-x64",
+			targetArch === "arm64" ? "@libsql/darwin-arm64" : "@libsql/darwin-x64",
 		];
 	}
 
-	if (process.platform === "linux") {
-		if (process.arch === "arm64") {
+	if (targetPlatform === "linux") {
+		if (targetArch === "arm64") {
 			return ["@libsql/linux-arm64-gnu", "@libsql/linux-arm64-musl"];
 		}
-		if (process.arch === "arm") {
+		if (targetArch === "arm") {
 			return ["@libsql/linux-arm-gnueabihf", "@libsql/linux-arm-musleabihf"];
 		}
 		return ["@libsql/linux-x64-gnu", "@libsql/linux-x64-musl"];
 	}
 
-	if (process.platform === "win32") {
+	if (targetPlatform === "win32") {
 		return ["@libsql/win32-x64-msvc"];
 	}
 
