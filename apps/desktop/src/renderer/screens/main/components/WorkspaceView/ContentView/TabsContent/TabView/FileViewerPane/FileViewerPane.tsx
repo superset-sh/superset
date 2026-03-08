@@ -219,12 +219,6 @@ export function FileViewerPane({
 			endLine: number;
 		},
 	) => {
-		console.debug("[DiffEditHereDebug]", {
-			label: "switch-to-raw",
-			line,
-			column,
-			selection,
-		});
 		switchToMode("raw", {
 			line,
 			column,

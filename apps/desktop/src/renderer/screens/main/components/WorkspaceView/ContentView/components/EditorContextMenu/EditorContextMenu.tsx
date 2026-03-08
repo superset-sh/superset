@@ -38,14 +38,14 @@ interface EditorContextMenuProps {
 	children: ReactNode;
 	editorActions: EditorActions;
 	paneActions: PaneActions;
-	extraItems?: ReactNode;
+	leadingItems?: ReactNode;
 }
 
 export function EditorContextMenu({
 	children,
 	editorActions,
 	paneActions,
-	extraItems,
+	leadingItems,
 }: EditorContextMenuProps) {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
@@ -66,6 +66,13 @@ export function EditorContextMenu({
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
+				{leadingItems && (
+					<>
+						{leadingItems}
+						<ContextMenuSeparator />
+					</>
+				)}
+
 				{/* Clipboard Actions */}
 				{showCutPaste && (
 					<ContextMenuItem onSelect={onCut}>
@@ -114,13 +121,6 @@ export function EditorContextMenu({
 						Find
 						<ContextMenuShortcut>{cmdKey}+F</ContextMenuShortcut>
 					</ContextMenuItem>
-				)}
-
-				{extraItems && (
-					<>
-						<ContextMenuSeparator />
-						{extraItems}
-					</>
 				)}
 
 				<ContextMenuSeparator />

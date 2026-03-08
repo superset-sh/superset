@@ -125,7 +125,7 @@ export function DiffViewerContextMenu({
 				...editorActions,
 				onFind: undefined,
 			}}
-			extraItems={
+			leadingItems={
 				<ContextMenuItem onSelect={onEditAtLocation}>
 					<LuSquarePen className="size-4" />
 					Edit Here

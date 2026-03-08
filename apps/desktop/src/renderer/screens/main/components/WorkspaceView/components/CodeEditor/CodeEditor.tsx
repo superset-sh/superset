@@ -160,19 +160,6 @@ function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 				effects,
 				scrollIntoView: true,
 			});
-			console.debug("[DiffEditHereDebug]", {
-				label: "editor-reveal-position",
-				requestedLine: line,
-				requestedColumn: column,
-				safeLine,
-				highlightRange,
-				anchor,
-				lineLength: lineInfo.length,
-				selection: {
-					from: view.state.selection.main.from,
-					to: view.state.selection.main.to,
-				},
-			});
 			view.focus();
 		},
 		getSelectionLines() {
