@@ -15,6 +15,7 @@ import {
 	restartRuntimeFromUserMessage,
 	runSessionStartHook,
 	subscribeToSessionEvents,
+	syncRuntimeHookSessionId,
 } from "./utils/runtime";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
@@ -140,6 +141,7 @@ export class ChatMastraService {
 					pendingSandboxQuestion: null,
 					cwd: runtimeCwd,
 				};
+				syncRuntimeHookSessionId(runtime);
 				await runSessionStartHook(runtime).catch(() => {});
 				subscribeToSessionEvents(runtime);
 				this.runtimes.set(sessionId, runtime);

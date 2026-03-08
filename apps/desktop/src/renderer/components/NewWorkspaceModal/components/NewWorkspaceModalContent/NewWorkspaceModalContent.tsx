@@ -31,6 +31,14 @@ export function NewWorkspaceModalContent({
 	const { draft, updateDraft } = useNewWorkspaceModalDraft();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const utils = electronTrpc.useUtils();
+
+	// Refetch branches (and other data) when the modal opens to avoid stale data
+	useEffect(() => {
+		if (!isOpen) return;
+		void utils.projects.getBranches.invalidate();
+		void utils.projects.getBranchesLocal.invalidate();
+	}, [isOpen, utils]);
 
 	useEffect(() => {
 		if (!isOpen) return;
