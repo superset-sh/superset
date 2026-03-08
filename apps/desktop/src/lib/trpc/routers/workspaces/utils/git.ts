@@ -1463,6 +1463,39 @@ export async function refExistsLocally(
 }
 
 /**
+ * Returns true if a local branch with the given name exists in the repo.
+ * Uses `git branch --list` rather than `rev-parse --verify` to avoid
+ * simple-git's silent swallowing of git exit code 1.
+ */
+export async function localBranchExists(
+	repoPath: string,
+	branchName: string,
+): Promise<boolean> {
+	const git = simpleGit(repoPath);
+	try {
+		const result = await git.branchLocal();
+		return result.all.includes(branchName);
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Resolves the git start point for a new worktree when the base branch exists
+ * on the remote. Prefers the local branch if it exists (it may have unpushed
+ * commits ahead of the remote); falls back to origin/<baseBranch> otherwise.
+ */
+export async function resolveWorktreeStartPoint(
+	mainRepoPath: string,
+	baseBranch: string,
+): Promise<string> {
+	if (await localBranchExists(mainRepoPath, baseBranch)) {
+		return baseBranch;
+	}
+	return `origin/${baseBranch}`;
+}
+
+/**
  * Sanitizes git error messages for user display.
  * Strips "fatal:" prefixes, excessive newlines, and other git plumbing text.
  * @param message - Raw git error message

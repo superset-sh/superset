@@ -16,6 +16,7 @@ import {
 	refExistsLocally,
 	refreshDefaultBranch,
 	removeWorktree,
+	resolveWorktreeStartPoint,
 	sanitizeGitError,
 } from "./git";
 import { copySupersetConfigToWorktree } from "./setup";
@@ -309,7 +310,10 @@ export async function initializeWorkspaceWorktree({
 			);
 
 			if (branchCheck.status === "exists") {
-				startPoint = `origin/${effectiveBaseBranch}`;
+				startPoint = await resolveWorktreeStartPoint(
+					mainRepoPath,
+					effectiveBaseBranch,
+				);
 			} else {
 				const isNetworkError = branchCheck.status === "error";
 				const fallbackReason = isNetworkError
