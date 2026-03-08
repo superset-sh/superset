@@ -75,6 +75,21 @@ If it runs in a terminal, it runs on Superset
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
+### Running Superset on a remote machine (Clawdbot/OpenClaw)
+
+Superset is a desktop app, so it needs to run on a macOS machine with a GUI session.
+
+If you want to use it remotely, there are two supported setups:
+
+1. **Run Superset locally, connect to remote repos via SSH in terminals**
+   - Open your repo in Superset as normal
+   - Use SSH/Tailscale/VPN inside Superset terminals for remote development
+2. **Run Superset on a remote Mac and access that desktop remotely**
+   - Keep Superset running on the remote host
+   - Connect via your preferred remote desktop workflow
+
+If your setup has DNS/privacy blockers enabled, make sure required Superset API domains are reachable or login/session sync may fail.
+
 ### Build from Source
 
 <details>
