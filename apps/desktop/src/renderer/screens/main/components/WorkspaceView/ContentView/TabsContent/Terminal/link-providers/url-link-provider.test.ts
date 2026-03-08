@@ -126,6 +126,20 @@ describe("UrlLinkProvider", () => {
 			expect(links[0].range.start.x).toBe(14);
 		});
 
+		it("should keep common symbol prefixes single-width in link column math", async () => {
+			const terminal = createMockTerminal([
+				{ text: "©®™ https://example.com/path" },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			// "©®™ " => 4 cells when symbols are treated as single-width.
+			expect(links[0].range.start.x).toBe(5);
+		});
+
 		it("should detect URLs with port numbers", async () => {
 			const terminal = createMockTerminal([
 				{ text: "Server at http://localhost:3000/api" },

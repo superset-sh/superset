@@ -2,43 +2,13 @@ import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
 import { FilePathLinkProvider } from "./file-path-link-provider";
 
-function getCharCellWidth(char: string): number {
-	const codePoint = char.codePointAt(0);
-	if (codePoint === undefined) return 1;
-
-	return codePoint > 0xff ? 2 : 1;
-}
-
 function createMockLine(text: string, isWrapped = false): IBufferLine {
-	const cells = Array.from(text).flatMap((char) => {
-		const width = getCharCellWidth(char);
-		if (width === 2) {
-			return [
-				{
-					getChars: () => char,
-					getWidth: () => 2,
-				},
-				{
-					getChars: () => "",
-					getWidth: () => 0,
-				},
-			];
-		}
-
-		return [
-			{
-				getChars: () => char,
-				getWidth: () => 1,
-			},
-		];
-	});
-
 	return {
 		translateToString: () => text,
 		isWrapped,
-		length: cells.length,
-		getCell: mock((index: number) => cells[index] ?? null),
-		getCells: mock(() => cells),
+		length: text.length,
+		getCell: mock(() => null),
+		getCells: mock(() => []),
 	} as unknown as IBufferLine;
 }
 

@@ -1,5 +1,4 @@
 const COMBINING_MARK_REGEX = /\p{Mark}/u;
-const EXTENDED_PICTOGRAPHIC_REGEX = /\p{Extended_Pictographic}/u;
 
 /**
  * Mirrors xterm's cell width behavior for common cases:
@@ -16,7 +15,7 @@ function getCodePointCellWidth(char: string, codePoint: number): number {
 		return 0;
 	}
 
-	if (isFullWidthCodePoint(codePoint) || EXTENDED_PICTOGRAPHIC_REGEX.test(char)) {
+	if (isFullWidthCodePoint(codePoint)) {
 		return 2;
 	}
 
