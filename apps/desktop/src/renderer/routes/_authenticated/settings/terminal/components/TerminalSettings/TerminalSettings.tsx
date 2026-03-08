@@ -5,6 +5,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
+import { NewTerminalDirectorySetting } from "./components/NewTerminalDirectorySetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
 
@@ -52,6 +53,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR,
 		visibleItems,
 	);
+	const showNewTerminalDirectory = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_NEW_TERMINAL_DIRECTORY,
+		visibleItems,
+	);
 	const showSessions = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
@@ -75,6 +80,9 @@ export function TerminalSettings({
 						editingPresetId={editingPresetId}
 						onEditingPresetIdChange={onEditingPresetIdChange}
 					/>
+				)}
+				{showNewTerminalDirectory && (
+					<NewTerminalDirectorySetting key="new-terminal-directory" />
 				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}

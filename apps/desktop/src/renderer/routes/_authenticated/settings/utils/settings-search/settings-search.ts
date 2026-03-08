@@ -33,6 +33,7 @@ export const SETTING_ITEM_ID = {
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
+	TERMINAL_NEW_TERMINAL_DIRECTORY: "terminal-new-terminal-directory",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
@@ -516,6 +517,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"opencode",
 			"ai",
 			"assistant",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_NEW_TERMINAL_DIRECTORY,
+		section: "terminal",
+		title: "New terminal directory",
+		description:
+			"Open new terminals in the current tab's directory when possible",
+		keywords: [
+			"terminal",
+			"directory",
+			"cwd",
+			"current working directory",
+			"new terminal",
+			"follow tab",
+			"open here",
+			"folder",
+			"path",
 		],
 	},
 	{

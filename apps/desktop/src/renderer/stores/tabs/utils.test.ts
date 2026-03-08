@@ -8,6 +8,7 @@ import {
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
+	resolveNewTerminalInitialCwd,
 } from "./utils";
 
 describe("findPanePath", () => {
@@ -400,6 +401,92 @@ describe("buildMultiPaneLayout", () => {
 			second: "pane-3",
 			splitPercentage: 50,
 		});
+	});
+});
+
+describe("resolveNewTerminalInitialCwd", () => {
+	const createTab = ({
+		id,
+		workspaceId,
+	}: {
+		id: string;
+		workspaceId: string;
+	}): Tab => ({
+		id,
+		name: id,
+		workspaceId,
+		layout: `${id}-pane`,
+		createdAt: 0,
+	});
+
+	it("uses the focused terminal cwd when available", () => {
+		expect(
+			resolveNewTerminalInitialCwd({
+				workspaceId: "ws-1",
+				worktreePath: "/repo",
+				tabs: [createTab({ id: "tab-1", workspaceId: "ws-1" })],
+				panes: {
+					"pane-1": {
+						id: "pane-1",
+						tabId: "tab-1",
+						type: "terminal",
+						name: "Terminal",
+						cwd: "/repo/packages/ui",
+					},
+				},
+				activeTabIds: { "ws-1": "tab-1" },
+				tabHistoryStacks: {},
+				focusedPaneIds: { "tab-1": "pane-1" },
+			}),
+		).toBe("/repo/packages/ui");
+	});
+
+	it("falls back to the file viewer's directory", () => {
+		expect(
+			resolveNewTerminalInitialCwd({
+				workspaceId: "ws-1",
+				worktreePath: "/repo",
+				tabs: [createTab({ id: "tab-1", workspaceId: "ws-1" })],
+				panes: {
+					"pane-1": {
+						id: "pane-1",
+						tabId: "tab-1",
+						type: "file-viewer",
+						name: "Button.tsx",
+						fileViewer: {
+							filePath: "packages/ui/src/button.tsx",
+							viewMode: "raw",
+							isPinned: false,
+							diffLayout: "inline",
+						},
+					},
+				},
+				activeTabIds: { "ws-1": "tab-1" },
+				tabHistoryStacks: {},
+				focusedPaneIds: { "tab-1": "pane-1" },
+			}),
+		).toBe("/repo/packages/ui/src");
+	});
+
+	it("falls back to the workspace root when no directory can be resolved", () => {
+		expect(
+			resolveNewTerminalInitialCwd({
+				workspaceId: "ws-1",
+				worktreePath: "/repo",
+				tabs: [createTab({ id: "tab-1", workspaceId: "ws-1" })],
+				panes: {
+					"pane-1": {
+						id: "pane-1",
+						tabId: "tab-1",
+						type: "webview",
+						name: "Browser",
+					},
+				},
+				activeTabIds: { "ws-1": "tab-1" },
+				tabHistoryStacks: {},
+				focusedPaneIds: { "tab-1": "pane-1" },
+			}),
+		).toBe("/repo");
 	});
 });
 

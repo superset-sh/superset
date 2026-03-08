@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `new_terminal_in_current_tab_directory` integer;
