@@ -54,6 +54,27 @@ const setHighlightRangeEffect = StateEffect.define<{
 	to: number;
 } | null>();
 
+function createJumpTargetDecorations(
+	state: EditorState,
+	from: number,
+	to: number,
+): DecorationSet {
+	const startLine = state.doc.lineAt(from).number;
+	const endLine = state.doc.lineAt(to).number;
+	const decorations = [];
+
+	for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+		const line = state.doc.line(lineNumber);
+		decorations.push(
+			Decoration.line({
+				class: "cm-jump-target-section",
+			}).range(line.from),
+		);
+	}
+
+	return Decoration.set(decorations);
+}
+
 const highlightRangeField = StateField.define<DecorationSet>({
 	create: () => Decoration.none,
 	update(decorations, transaction) {
@@ -69,11 +90,11 @@ const highlightRangeField = StateField.define<DecorationSet>({
 				continue;
 			}
 
-			decorations = Decoration.set([
-				Decoration.mark({
-					class: "cm-jump-target-section",
-				}).range(effect.value.from, effect.value.to),
-			]);
+			decorations = createJumpTargetDecorations(
+				transaction.state,
+				effect.value.from,
+				effect.value.to,
+			);
 		}
 
 		return decorations;
