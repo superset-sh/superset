@@ -37,6 +37,7 @@ interface PresetPaneLaunch {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd?: string;
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -70,6 +71,7 @@ export function useTabsWithPresets() {
 		() => (firstPreset ? buildTerminalCommand(firstPreset.commands) : null),
 		[firstPreset],
 	);
+	const firstPresetInitialCwd = firstPreset?.cwd || undefined;
 
 	const firstPresetOptions: AddTabOptions | undefined = useMemo(() => {
 		if (!firstPreset) return undefined;
@@ -98,11 +100,12 @@ export function useTabsWithPresets() {
 	}, []);
 
 	const launchPresetCommand = useCallback(
-		({ paneId, tabId, workspaceId, command }: PresetPaneLaunch) => {
+		({ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch) => {
 			void launchCommandInPane({
 				paneId,
 				tabId,
 				workspaceId,
+				cwd,
 				command,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
 				write: (input) => writeToTerminal.mutateAsync(input),
@@ -111,6 +114,7 @@ export function useTabsWithPresets() {
 					paneId,
 					tabId,
 					workspaceId,
+					cwd,
 					error: error instanceof Error ? error.message : String(error),
 				});
 			});
@@ -144,9 +148,15 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPresetInitialCwd,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand, resolveWorkspaceIdForTab],
+		[
+			firstPresetCommand,
+			firstPresetInitialCwd,
+			launchPresetCommand,
+			resolveWorkspaceIdForTab,
+		],
 	);
 
 	const launchFirstPresetInFocusedPane = useCallback(
@@ -162,9 +172,10 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId: tab.workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPresetInitialCwd,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand],
+		[firstPresetCommand, firstPresetInitialCwd, launchPresetCommand],
 	);
 
 	const executePresetInNewTab = useCallback(
@@ -187,6 +198,7 @@ export function useTabsWithPresets() {
 						tabId: result.tabId,
 						workspaceId,
 						command,
+						cwd: preset.initialCwd,
 					});
 					applyTabName(result.tabId, preset.name);
 				}
@@ -212,7 +224,15 @@ export function useTabsWithPresets() {
 					(paneId, index) => {
 						const command = preset.commands[index];
 						if (command === undefined) return [];
-						return [{ paneId, tabId: multiPane.tabId, workspaceId, command }];
+						return [
+							{
+								paneId,
+								tabId: multiPane.tabId,
+								workspaceId,
+								command,
+								cwd: preset.initialCwd,
+							},
+						];
 					},
 				);
 				launchPresetCommands(launches);
@@ -230,6 +250,7 @@ export function useTabsWithPresets() {
 					tabId: result.tabId,
 					workspaceId,
 					command,
+					cwd: preset.initialCwd,
 				});
 			}
 			applyTabName(result.tabId, preset.name);
@@ -268,7 +289,15 @@ export function useTabsWithPresets() {
 						(paneId, index) => {
 							const command = preset.commands[index];
 							if (command === undefined) return [];
-							return [{ paneId, tabId: activeTabId, workspaceId, command }];
+							return [
+								{
+									paneId,
+									tabId: activeTabId,
+									workspaceId,
+									command,
+									cwd: preset.initialCwd,
+								},
+							];
 						},
 					);
 					launchPresetCommands(launches);
@@ -289,6 +318,7 @@ export function useTabsWithPresets() {
 							tabId: activeTabId,
 							workspaceId,
 							command,
+							cwd: preset.initialCwd,
 						});
 					}
 					return { tabId: activeTabId, paneId };
