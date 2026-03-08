@@ -63,3 +63,9 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createQoderSettingsJson,
+	createQoderWrapper,
+	getQoderSettingsJsonContent,
+	getQoderSettingsJsonPath,
+} from "./agent-wrappers-qoder";

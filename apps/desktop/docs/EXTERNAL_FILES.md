@@ -21,6 +21,7 @@ This separation prevents multiple instances from interfering with each other.
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
 | `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
 | `opencode` | Wrapper for OpenCode CLI that sets `OPENCODE_CONFIG_DIR` |
+| `qodercli` | Wrapper for Qoder CLI that preserves Superset hook integration |
 
 These wrappers are added to `PATH` via shell integration, allowing them to intercept
 agent commands and inject Superset-specific configuration.
@@ -41,6 +42,7 @@ its hook entries into these files while preserving user-defined entries:
 | File | Purpose |
 |------|---------|
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
+| `~/.qoder/settings.json` | Qoder CLI hook registration (`Notification`) |
 
 ### `zsh/` and `bash/` - Shell Integration
 

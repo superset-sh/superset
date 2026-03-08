@@ -65,7 +65,7 @@ const inputSchemaShape = {
 		.enum(STARTABLE_AGENT_TYPES)
 		.optional()
 		.describe(
-			'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", "cursor-agent", or "superset-chat". Defaults to "claude".',
+			'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", "cursor-agent", "qodercli", or "superset-chat". Defaults to "claude".',
 		),
 };
 

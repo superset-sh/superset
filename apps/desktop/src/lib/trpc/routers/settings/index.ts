@@ -95,6 +95,7 @@ const DEFAULT_PRESET_AGENTS = [
 	"copilot",
 	"opencode",
 	"gemini",
+	"qodercli",
 ] as const;
 
 const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(

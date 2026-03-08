@@ -514,6 +514,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"gemini",
 			"cursor",
 			"opencode",
+			"qoder",
+			"qodercli",
 			"ai",
 			"assistant",
 		],

@@ -26,4 +26,17 @@ describe("buildAgentPromptCommand", () => {
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
 	});
+
+	it("uses non-interactive print mode for qodercli prompts", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "fix the failing tests",
+			randomId: "qoder-1234",
+			agent: "qodercli",
+		});
+
+		expect(command).toStartWith(
+			"qodercli --yolo -p \"$(cat <<'SUPERSET_PROMPT_qoder1234'",
+		);
+		expect(command).toContain("fix the failing tests");
+	});
 });

@@ -11,6 +11,7 @@ export const SUPERSET_MANAGED_BINARIES = [
 	"gemini",
 	"copilot",
 	"mastracode",
+	"qodercli",
 ] as const;
 
 const SUPERSET_MANAGED_HOOK_PATH_PATTERN = /\/\.superset(?:-[^/'"\s\\]+)?\//;

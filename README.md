@@ -55,6 +55,7 @@ Superset works with any CLI-based coding agent, including:
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
 | [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| [Qoder CLI](https://qoder.com/cli) | Fully supported |
 | Any CLI agent | Will work |
 
 If it runs in a terminal, it runs on Superset
