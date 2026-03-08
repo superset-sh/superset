@@ -19,7 +19,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 };
 
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
-	claude: ["claude --dangerously-skip-permissions"],
+	claude: ["claude --dangerously-skip-permissions --trust-workspace"],
 	codex: [
 		'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 	],
@@ -100,7 +100,11 @@ const AGENT_COMMANDS: Record<
 	(prompt: string, delimiter: string) => string
 > = {
 	claude: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
+		buildHeredoc(
+			prompt,
+			delimiter,
+			"claude --dangerously-skip-permissions --trust-workspace",
+		),
 	codex: (prompt, delimiter) =>
 		buildHeredoc(
 			prompt,
