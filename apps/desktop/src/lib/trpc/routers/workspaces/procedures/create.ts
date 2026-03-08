@@ -21,7 +21,6 @@ import {
 } from "../utils/db-helpers";
 import {
 	createWorktreeFromPr,
-	generateBranchName,
 	getBranchPrefix,
 	getBranchWorktreePath,
 	getCurrentBranch,
@@ -33,9 +32,9 @@ import {
 	parsePrUrl,
 	safeCheckoutBranch,
 	sanitizeAuthorPrefix,
-	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import { resolveNewWorkspaceBranch } from "../utils/resolve-new-branch";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
@@ -358,29 +357,22 @@ export const createCreateProcedures = () => {
 					branchPrefix = prefixWouldCollide ? undefined : sanitizedPrefix;
 				}
 
-				const withPrefix = (name: string): string =>
-					branchPrefix ? `${branchPrefix}/${name}` : name;
-
-				let branch: string;
-				if (existingBranchName) {
-					if (!existingBranches.includes(existingBranchName)) {
-						throw new Error(
-							`Branch "${existingBranchName}" does not exist. Please select an existing branch.`,
-						);
-					}
-					branch = existingBranchName;
-				} else if (input.branchName?.trim()) {
-					branch = sanitizeBranchNameWithMaxLength(
-						withPrefix(input.branchName),
-						undefined,
-						{ preserveFirstSegmentCase: true },
+				if (
+					existingBranchName &&
+					!existingBranches.includes(existingBranchName)
+				) {
+					throw new Error(
+						`Branch "${existingBranchName}" does not exist. Please select an existing branch.`,
 					);
-				} else {
-					branch = generateBranchName({
-						existingBranches,
-						authorPrefix: branchPrefix,
-					});
 				}
+
+				const branch = resolveNewWorkspaceBranch({
+					existingBranchName,
+					branchName: input.branchName,
+					name: input.name,
+					existingBranches,
+					branchPrefix,
+				});
 
 				if (input.branchName?.trim()) {
 					const existing = findWorktreeWorkspaceByBranch({
