@@ -63,3 +63,8 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createProjectConfigCli,
+	getProjectConfigCliScriptContent,
+	getProjectConfigCliWrapperContent,
+} from "./project-config-cli";

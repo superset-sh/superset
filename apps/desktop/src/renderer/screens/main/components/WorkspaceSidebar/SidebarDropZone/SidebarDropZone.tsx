@@ -1,9 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { LuFolderPlus, LuLoader, LuX } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface SidebarDropZoneProps {
 	children: ReactNode;
@@ -11,7 +11,7 @@ interface SidebarDropZoneProps {
 }
 
 export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
-	const navigate = useNavigate();
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -97,16 +97,13 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 			try {
 				const project = await openFromPath(filePath);
 				if (project) {
-					navigate({
-						to: "/project/$projectId",
-						params: { projectId: project.id },
-					});
+					openNewWorkspaceModal(project.id);
 				}
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Failed to open project");
 			}
 		},
-		[openFromPath, isPending, navigate],
+		[isPending, openFromPath, openNewWorkspaceModal],
 	);
 
 	return (

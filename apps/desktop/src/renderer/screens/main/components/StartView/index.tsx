@@ -5,10 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { LuFolderOpen, LuPlus, LuX } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 export function StartView() {
 	const navigate = useNavigate();
 	const { openNew, openFromPath, isPending } = useOpenProject();
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const [error, setError] = useState<string | null>(null);
 	const [isDragOver, setIsDragOver] = useState(false);
 
@@ -38,11 +40,7 @@ export function StartView() {
 			const projects = await openNew();
 			const firstProjectId = projects[0]?.id;
 			if (firstProjectId) {
-				navigate({
-					to: "/project/$projectId",
-					params: { projectId: firstProjectId },
-					replace: true,
-				});
+				openNewWorkspaceModal(firstProjectId);
 			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to open project");
@@ -106,17 +104,13 @@ export function StartView() {
 			try {
 				const project = await openFromPath(filePath);
 				if (project) {
-					navigate({
-						to: "/project/$projectId",
-						params: { projectId: project.id },
-						replace: true,
-					});
+					openNewWorkspaceModal(project.id);
 				}
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Failed to open project");
 			}
 		},
-		[isPending, openFromPath, navigate],
+		[isPending, openFromPath, openNewWorkspaceModal],
 	);
 
 	return (

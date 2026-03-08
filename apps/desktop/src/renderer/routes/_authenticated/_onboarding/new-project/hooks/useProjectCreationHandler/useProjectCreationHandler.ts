@@ -1,9 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 export function useProjectCreationHandler(onError: (error: string) => void) {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 
 	const handleResult = (
 		result: {
@@ -18,11 +20,8 @@ export function useProjectCreationHandler(onError: (error: string) => void) {
 		if (result.success && result.project) {
 			utils.projects.getRecents.invalidate();
 			resetState?.();
-			navigate({
-				to: "/project/$projectId",
-				params: { projectId: result.project.id },
-				replace: true,
-			});
+			navigate({ to: "/", replace: true });
+			openNewWorkspaceModal(result.project.id);
 		} else if (!result.success && result.error) {
 			onError(result.error);
 		}

@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `project_configuration_launch_prompt` text;

@@ -26,6 +26,7 @@ import {
 	OPENCODE_PLUGIN_DIR,
 	ZSH_DIR,
 } from "./paths";
+import { createProjectConfigCli } from "./project-config-cli";
 import {
 	createBashWrapper,
 	createZshWrapper,
@@ -62,6 +63,7 @@ export function setupAgentHooks(): void {
 	createMastraHooksJson();
 	createCopilotHookScript();
 	createCopilotWrapper();
+	createProjectConfigCli();
 
 	createZshWrapper();
 	createBashWrapper();

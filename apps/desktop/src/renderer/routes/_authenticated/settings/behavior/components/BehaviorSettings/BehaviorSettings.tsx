@@ -1,4 +1,5 @@
 import type { FileOpenMode } from "@superset/local-db";
+import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -8,7 +9,10 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { Textarea } from "@superset/ui/textarea";
+import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE } from "shared/project-configuration";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -38,6 +42,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
+	const showProjectConfigurationLaunchPrompt = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_PROJECT_CONFIGURATION_LAUNCH_PROMPT,
 		visibleItems,
 	);
 
@@ -159,6 +167,31 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
+	const {
+		data: projectConfigurationLaunchPrompt,
+		isLoading: isProjectConfigurationLaunchPromptLoading,
+	} = electronTrpc.settings.getProjectConfigurationLaunchPrompt.useQuery();
+	const setProjectConfigurationLaunchPrompt =
+		electronTrpc.settings.setProjectConfigurationLaunchPrompt.useMutation({
+			onSettled: () => {
+				utils.settings.getProjectConfigurationLaunchPrompt.invalidate();
+			},
+		});
+	const [
+		projectConfigurationLaunchPromptDraft,
+		setProjectConfigurationLaunchPromptDraft,
+	] = useState(DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE);
+
+	useEffect(() => {
+		if (projectConfigurationLaunchPrompt === undefined) return;
+		setProjectConfigurationLaunchPromptDraft(projectConfigurationLaunchPrompt);
+	}, [projectConfigurationLaunchPrompt]);
+
+	const hasProjectConfigurationPromptChanges =
+		projectConfigurationLaunchPromptDraft !==
+		(projectConfigurationLaunchPrompt ??
+			DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE);
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -278,6 +311,70 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							onCheckedChange={handleTelemetryToggle}
 							disabled={isTelemetryLoading || setTelemetryEnabled.isPending}
 						/>
+					</div>
+				)}
+
+				{showProjectConfigurationLaunchPrompt && (
+					<div className="space-y-3">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="project-configuration-launch-prompt"
+								className="text-sm font-medium"
+							>
+								New project agent launch prompt
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Used when a newly opened project launches an agent before it has
+								been configured for Superset. Supports{" "}
+								<code>{"{{show_command}}"}</code>,{" "}
+								<code>{"{{write_command}}"}</code>,{" "}
+								<code>{"{{project_root}}"}</code>, and{" "}
+								<code>{"{{user_request}}"}</code>.
+							</p>
+						</div>
+						<Textarea
+							id="project-configuration-launch-prompt"
+							className="min-h-52 font-mono text-xs"
+							value={projectConfigurationLaunchPromptDraft}
+							onChange={(event) =>
+								setProjectConfigurationLaunchPromptDraft(event.target.value)
+							}
+							disabled={
+								isProjectConfigurationLaunchPromptLoading ||
+								setProjectConfigurationLaunchPrompt.isPending
+							}
+						/>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								onClick={() => {
+									setProjectConfigurationLaunchPromptDraft(
+										DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE,
+									);
+									setProjectConfigurationLaunchPrompt.mutate({ prompt: null });
+								}}
+								disabled={
+									isProjectConfigurationLaunchPromptLoading ||
+									setProjectConfigurationLaunchPrompt.isPending
+								}
+							>
+								Reset
+							</Button>
+							<Button
+								onClick={() =>
+									setProjectConfigurationLaunchPrompt.mutate({
+										prompt: projectConfigurationLaunchPromptDraft,
+									})
+								}
+								disabled={
+									!hasProjectConfigurationPromptChanges ||
+									isProjectConfigurationLaunchPromptLoading ||
+									setProjectConfigurationLaunchPrompt.isPending
+								}
+							>
+								Save prompt
+							</Button>
+						</div>
 					</div>
 				)}
 			</div>

@@ -27,6 +27,7 @@ import {
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
+import { DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE } from "shared/project-configuration";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -672,6 +673,44 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { openLinksInApp: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getProjectConfigurationLaunchPrompt: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.projectConfigurationLaunchPrompt ??
+				DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE
+			);
+		}),
+
+		setProjectConfigurationLaunchPrompt: publicProcedure
+			.input(z.object({ prompt: z.string().nullable() }))
+			.mutation(({ input }) => {
+				const prompt =
+					input.prompt?.trim() ||
+					DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE;
+
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						projectConfigurationLaunchPrompt:
+							prompt === DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE
+								? null
+								: prompt,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							projectConfigurationLaunchPrompt:
+								prompt === DEFAULT_PROJECT_CONFIGURATION_LAUNCH_PROMPT_TEMPLATE
+									? null
+									: prompt,
+						},
 					})
 					.run();
 
