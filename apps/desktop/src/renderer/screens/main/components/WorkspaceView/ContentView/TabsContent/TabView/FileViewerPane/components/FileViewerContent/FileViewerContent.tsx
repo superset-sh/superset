@@ -14,8 +14,13 @@ import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
+import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
+import {
+	getColumnFromDiffSelection,
+	mapDiffLocationToRawPosition,
+} from "./utils/diff-location";
 
 interface RawFileData {
 	ok: true;
@@ -77,6 +82,7 @@ interface FileViewerContentProps {
 	onSaveRaw: () => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
+	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
@@ -120,6 +126,7 @@ export function FileViewerContent({
 	onSaveRaw,
 	onEditorChange,
 	setIsDirty,
+	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
 	onSplitWithNewChat,
@@ -134,6 +141,16 @@ export function FileViewerContent({
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
 	const hasAppliedInitialLocationRef = useRef(false);
+	const diffContainerRef = useRef<HTMLDivElement | null>(null);
+	const lastDiffLocationRef = useRef<{
+		lineNumber: number;
+		side: "deletions" | "additions";
+		lineType:
+			| "change-deletion"
+			| "change-addition"
+			| "context"
+			| "context-expanded";
+	} | null>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
@@ -144,6 +161,92 @@ export function FileViewerContent({
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
 	}, [initialLine, initialColumn]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset cached diff interaction when the file changes
+	useEffect(() => {
+		lastDiffLocationRef.current = null;
+	}, [filePath]);
+
+	const getDiffSelectionLines = () => {
+		if (!diffData || !lastDiffLocationRef.current) {
+			return null;
+		}
+
+		const position = mapDiffLocationToRawPosition({
+			contents: diffData,
+			lineNumber: lastDiffLocationRef.current.lineNumber,
+			side: lastDiffLocationRef.current.side,
+			lineType: lastDiffLocationRef.current.lineType,
+		});
+
+		return {
+			startLine: position.lineNumber,
+			endLine: position.lineNumber,
+		};
+	};
+
+	const handleDiffLineClick = ({
+		lineNumber,
+		annotationSide,
+		lineType,
+		lineElement,
+		numberColumn,
+		event,
+	}: {
+		lineNumber: number;
+		annotationSide: "deletions" | "additions";
+		lineType:
+			| "change-deletion"
+			| "change-addition"
+			| "context"
+			| "context-expanded";
+		lineElement: HTMLElement;
+		numberColumn: boolean;
+		event: PointerEvent;
+	}) => {
+		lastDiffLocationRef.current = {
+			lineNumber,
+			side: annotationSide,
+			lineType,
+		};
+
+		if (event.detail !== 2 || !diffData) {
+			return;
+		}
+
+		const position = mapDiffLocationToRawPosition({
+			contents: diffData,
+			lineNumber,
+			side: annotationSide,
+			lineType,
+			column: getColumnFromDiffSelection({
+				lineElement,
+				numberColumn,
+			}),
+		});
+
+		onSwitchToRawAtLocation(position.lineNumber, position.column);
+	};
+
+	const handleDiffLineEnter = ({
+		lineNumber,
+		annotationSide,
+		lineType,
+	}: {
+		lineNumber: number;
+		annotationSide: "deletions" | "additions";
+		lineType:
+			| "change-deletion"
+			| "change-addition"
+			| "context"
+			| "context-expanded";
+	}) => {
+		lastDiffLocationRef.current = {
+			lineNumber,
+			side: annotationSide,
+			lineType,
+		};
+	};
 
 	useEffect(() => {
 		if (viewMode !== "raw") return;
@@ -203,16 +306,36 @@ export function FileViewerContent({
 		}
 
 		return (
-			<div className="h-full min-h-0 overflow-auto bg-background">
-				<LightDiffViewer
-					key={filePath}
-					contents={diffData}
-					viewMode={diffViewMode}
-					hideUnchangedRegions={hideUnchangedRegions}
-					filePath={filePath}
-					className="min-h-full"
-				/>
-			</div>
+			<DiffViewerContextMenu
+				containerRef={diffContainerRef}
+				filePath={filePath}
+				getSelectionLines={getDiffSelectionLines}
+				onSplitHorizontal={onSplitHorizontal}
+				onSplitVertical={onSplitVertical}
+				onSplitWithNewChat={onSplitWithNewChat}
+				onSplitWithNewBrowser={onSplitWithNewBrowser}
+				onClosePane={onClosePane}
+				currentTabId={currentTabId}
+				availableTabs={availableTabs}
+				onMoveToTab={onMoveToTab}
+				onMoveToNewTab={onMoveToNewTab}
+			>
+				<div
+					ref={diffContainerRef}
+					className="h-full min-h-0 overflow-auto bg-background select-text"
+				>
+					<LightDiffViewer
+						key={filePath}
+						contents={diffData}
+						viewMode={diffViewMode}
+						hideUnchangedRegions={hideUnchangedRegions}
+						filePath={filePath}
+						className="min-h-full"
+						onDiffLineClick={handleDiffLineClick}
+						onDiffLineEnter={handleDiffLineEnter}
+					/>
+				</div>
+			</DiffViewerContextMenu>
 		);
 	}
 

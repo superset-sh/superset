@@ -8,6 +8,20 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
+interface DiffLinePointerEvent {
+	lineNumber: number;
+	annotationSide: "deletions" | "additions";
+	lineType:
+		| "change-deletion"
+		| "change-addition"
+		| "context"
+		| "context-expanded";
+	lineElement: HTMLElement;
+	numberElement: HTMLElement | undefined;
+	numberColumn: boolean;
+	event: PointerEvent;
+}
+
 interface LightDiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
@@ -15,6 +29,8 @@ interface LightDiffViewerProps {
 	filePath: string;
 	className?: string;
 	style?: CSSProperties;
+	onDiffLineClick?: (event: DiffLinePointerEvent) => void;
+	onDiffLineEnter?: (event: DiffLinePointerEvent) => void;
 }
 
 export function LightDiffViewer({
@@ -24,6 +40,8 @@ export function LightDiffViewer({
 	filePath,
 	className,
 	style,
+	onDiffLineClick,
+	onDiffLineEnter,
 }: LightDiffViewerProps) {
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
@@ -61,6 +79,14 @@ export function LightDiffViewer({
 				themeType: "dark",
 				overflow: "wrap",
 				disableFileHeader: true,
+				unsafeCSS: `
+					* {
+						user-select: text;
+						-webkit-user-select: text;
+					}
+				`,
+				onLineClick: onDiffLineClick,
+				onLineEnter: onDiffLineEnter,
 			}}
 		/>
 	);
