@@ -2,20 +2,33 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { executeOnDevice, getMcpContext } from "../../utils";
 
-const workspaceInputSchema = z.object({
-	name: z
-		.string()
-		.optional()
-		.describe("Workspace name (auto-generated if not provided)"),
-	branchName: z
-		.string()
-		.optional()
-		.describe("Branch name (auto-generated if not provided)"),
-	baseBranch: z
-		.string()
-		.optional()
-		.describe("Branch to create from (defaults to main)"),
-});
+const workspaceInputSchema = z
+	.object({
+		name: z
+			.string()
+			.optional()
+			.describe("Workspace name (auto-generated if not provided)"),
+		branchName: z
+			.string()
+			.optional()
+			.describe("Branch name (auto-generated if not provided)"),
+		baseBranch: z
+			.string()
+			.optional()
+			.describe(
+				"Branch to create from (defaults to main). Cannot be used with sourceWorkspaceId.",
+			),
+		sourceWorkspaceId: z
+			.string()
+			.optional()
+			.describe(
+				"ID of an existing workspace to branch from. The new workspace will be based on that workspace's current branch. Cannot be used with baseBranch.",
+			),
+	})
+	.refine((data) => !(data.baseBranch && data.sourceWorkspaceId), {
+		message:
+			"Cannot specify both baseBranch and sourceWorkspaceId. Use one or the other.",
+	});
 
 export function register(server: McpServer) {
 	server.registerTool(
