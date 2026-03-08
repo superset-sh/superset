@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { settings } from "@superset/local-db";
+import { DEFAULT_NOTIFICATION_SOUND_VOLUME } from "../../shared/constants";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -19,6 +20,20 @@ function areNotificationSoundsMuted(): boolean {
 		return settingsRow?.notificationSoundsMuted ?? false;
 	} catch {
 		return false;
+	}
+}
+
+/**
+ * Gets the notification sound volume (0–100) from settings.
+ */
+function getNotificationSoundVolume(): number {
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		return (
+			settingsRow?.notificationSoundVolume ?? DEFAULT_NOTIFICATION_SOUND_VOLUME
+		);
+	} catch {
+		return DEFAULT_NOTIFICATION_SOUND_VOLUME;
 	}
 }
 
@@ -52,16 +67,38 @@ function getSelectedRingtonePath(): string | null {
 }
 
 /**
- * Plays a sound file using platform-specific commands
+ * Builds the afplay volume argument for macOS.
+ * Maps 0–100 percent to 0.0–1.0 (afplay's native range).
  */
-function playSoundFile(soundPath: string): void {
+export function toAfplayVolume(percent: number): number {
+	const clamped = Math.max(0, Math.min(100, percent));
+	return clamped / 100;
+}
+
+/**
+ * Builds the paplay volume argument for Linux.
+ * Maps 0–100 percent to 0–65536 (PulseAudio's PA_VOLUME_NORM).
+ */
+export function toPaplayVolume(percent: number): number {
+	const clamped = Math.max(0, Math.min(100, percent));
+	return Math.round((clamped / 100) * 65536);
+}
+
+/**
+ * Plays a sound file using platform-specific commands, with volume support.
+ */
+export function playSoundFile(
+	soundPath: string,
+	volume = DEFAULT_NOTIFICATION_SOUND_VOLUME,
+): void {
 	if (!existsSync(soundPath)) {
 		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
 		return;
 	}
 
 	if (process.platform === "darwin") {
-		execFile("afplay", [soundPath]);
+		const afplayVolume = toAfplayVolume(volume);
+		execFile("afplay", [soundPath, "-v", String(afplayVolume)]);
 	} else if (process.platform === "win32") {
 		execFile("powershell", [
 			"-c",
@@ -69,7 +106,8 @@ function playSoundFile(soundPath: string): void {
 		]);
 	} else {
 		// Linux - try common audio players
-		execFile("paplay", [soundPath], (error) => {
+		const paplayVolume = toPaplayVolume(volume);
+		execFile("paplay", [`--volume=${paplayVolume}`, soundPath], (error) => {
 			if (error) {
 				execFile("aplay", [soundPath]);
 			}
@@ -94,5 +132,6 @@ export function playNotificationSound(): void {
 		return;
 	}
 
-	playSoundFile(soundPath);
+	const volume = getNotificationSoundVolume();
+	playSoundFile(soundPath, volume);
 }

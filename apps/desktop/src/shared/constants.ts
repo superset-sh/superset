@@ -46,6 +46,7 @@ export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;
 export const DEFAULT_SHOW_RESOURCE_MONITOR = true;
 export const DEFAULT_OPEN_LINKS_IN_APP = false;
+export const DEFAULT_NOTIFICATION_SOUND_VOLUME = 100;
 
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {

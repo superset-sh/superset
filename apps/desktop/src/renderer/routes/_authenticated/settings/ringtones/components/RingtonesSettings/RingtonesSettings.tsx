@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { Slider } from "@superset/ui/slider";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -136,6 +137,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	const { data: isMutedData, isLoading: isMutedLoading } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
 	const isMuted = isMutedData ?? false;
+
+	const { data: volumeData } =
+		electronTrpc.settings.getNotificationSoundVolume.useQuery();
+	const volume = volumeData ?? 100;
 	const customRingtone: Ringtone | null = customRingtoneData
 		? {
 				...customRingtoneData,
@@ -165,6 +170,24 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			},
 		},
 	);
+	const setVolume =
+		electronTrpc.settings.setNotificationSoundVolume.useMutation({
+			onMutate: async ({ volume: newVolume }) => {
+				await utils.settings.getNotificationSoundVolume.cancel();
+				const previous = utils.settings.getNotificationSoundVolume.getData();
+				utils.settings.getNotificationSoundVolume.setData(undefined, newVolume);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getNotificationSoundVolume.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+		});
+
 	const importCustomRingtone = electronTrpc.ringtone.importCustom.useMutation({
 		onError: (error) => {
 			console.error("Failed to import custom ringtone:", error);
@@ -181,6 +204,14 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	const handleMutedToggle = (enabled: boolean) => {
 		setMuted.mutate({ muted: !enabled });
 	};
+
+	const handleVolumeChange = useCallback(
+		(value: number[]) => {
+			const newVolume = value[0] ?? 100;
+			setVolume.mutate({ volume: newVolume });
+		},
+		[setVolume],
+	);
 
 	const handleImportCustomRingtone = useCallback(() => {
 		importCustomRingtone.mutate();
@@ -283,6 +314,30 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							checked={!isMuted}
 							onCheckedChange={handleMutedToggle}
 							disabled={isMutedLoading || setMuted.isPending}
+						/>
+					</div>
+				)}
+
+				{/* Volume Slider */}
+				{showNotification && !isMuted && (
+					<div className="flex flex-col gap-2">
+						<div className="flex items-center justify-between">
+							<Label
+								htmlFor="notification-volume"
+								className="text-sm font-medium"
+							>
+								Volume
+							</Label>
+							<span className="text-xs text-muted-foreground">{volume}%</span>
+						</div>
+						<Slider
+							id="notification-volume"
+							min={0}
+							max={100}
+							step={5}
+							value={[volume]}
+							onValueChange={handleVolumeChange}
+							className="w-full"
 						/>
 					</div>
 				)}

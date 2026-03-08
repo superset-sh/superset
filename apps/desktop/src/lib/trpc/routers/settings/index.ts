@@ -21,6 +21,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_NOTIFICATION_SOUND_VOLUME,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
@@ -581,6 +582,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNotificationSoundVolume: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationSoundVolume ?? DEFAULT_NOTIFICATION_SOUND_VOLUME;
+		}),
+
+		setNotificationSoundVolume: publicProcedure
+			.input(z.object({ volume: z.number().int().min(0).max(100) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationSoundVolume: input.volume })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationSoundVolume: input.volume },
 					})
 					.run();
 

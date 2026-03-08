@@ -1,6 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import type { BrowserWindow, OpenDialogOptions } from "electron";
 import { dialog } from "electron";
@@ -9,7 +10,9 @@ import {
 	getCustomRingtonePath,
 	importCustomRingtoneFromPath,
 } from "main/lib/custom-ringtones";
+import { localDb } from "main/lib/local-db";
 import { getSoundPath } from "main/lib/sound-paths";
+import { DEFAULT_NOTIFICATION_SOUND_VOLUME } from "shared/constants";
 import {
 	CUSTOM_RINGTONE_ID,
 	getRingtoneFilename,
@@ -43,10 +46,27 @@ function stopCurrentSound(): void {
 }
 
 /**
+ * Gets the notification sound volume (0–100) from settings.
+ */
+function getNotificationSoundVolume(): number {
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		return (
+			settingsRow?.notificationSoundVolume ?? DEFAULT_NOTIFICATION_SOUND_VOLUME
+		);
+	} catch {
+		return DEFAULT_NOTIFICATION_SOUND_VOLUME;
+	}
+}
+
+/**
  * Plays a sound file using platform-specific commands.
  * Uses session tracking to prevent race conditions with fallback audio players.
  */
-function playSoundFile(soundPath: string): void {
+function playSoundFile(
+	soundPath: string,
+	volume = DEFAULT_NOTIFICATION_SOUND_VOLUME,
+): void {
 	if (!existsSync(soundPath)) {
 		console.warn(`[ringtone] Sound file not found: ${soundPath}`);
 		return;
@@ -60,12 +80,17 @@ function playSoundFile(soundPath: string): void {
 	currentSession = { id: sessionId, process: null };
 
 	if (process.platform === "darwin") {
-		currentSession.process = execFile("afplay", [soundPath], () => {
-			// Only clear if this session is still active
-			if (currentSession?.id === sessionId) {
-				currentSession = null;
-			}
-		});
+		const afplayVolume = Math.max(0, Math.min(100, volume)) / 100;
+		currentSession.process = execFile(
+			"afplay",
+			[soundPath, "-v", String(afplayVolume)],
+			() => {
+				// Only clear if this session is still active
+				if (currentSession?.id === sessionId) {
+					currentSession = null;
+				}
+			},
+		);
 	} else if (process.platform === "win32") {
 		currentSession.process = execFile(
 			"powershell",
@@ -78,23 +103,30 @@ function playSoundFile(soundPath: string): void {
 		);
 	} else {
 		// Linux - try common audio players with race-safe fallback
-		currentSession.process = execFile("paplay", [soundPath], (error) => {
-			// Check if this session is still active before proceeding
-			if (currentSession?.id !== sessionId) {
-				return; // Session was stopped, don't start fallback
-			}
+		const paplayVolume = Math.round(
+			(Math.max(0, Math.min(100, volume)) / 100) * 65536,
+		);
+		currentSession.process = execFile(
+			"paplay",
+			[`--volume=${paplayVolume}`, soundPath],
+			(error) => {
+				// Check if this session is still active before proceeding
+				if (currentSession?.id !== sessionId) {
+					return; // Session was stopped, don't start fallback
+				}
 
-			if (error) {
-				// paplay failed, try aplay as fallback
-				currentSession.process = execFile("aplay", [soundPath], () => {
-					if (currentSession?.id === sessionId) {
-						currentSession = null;
-					}
-				});
-			} else {
-				currentSession = null;
-			}
-		});
+				if (error) {
+					// paplay failed, try aplay as fallback
+					currentSession.process = execFile("aplay", [soundPath], () => {
+						if (currentSession?.id === sessionId) {
+							currentSession = null;
+						}
+					});
+				} else {
+					currentSession = null;
+				}
+			},
+		);
 	}
 }
 
@@ -135,7 +167,8 @@ export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
 					return { success: true as const };
 				}
 
-				playSoundFile(soundPath);
+				const volume = getNotificationSoundVolume();
+				playSoundFile(soundPath, volume);
 				return { success: true as const };
 			}),
 
@@ -205,5 +238,6 @@ export function playNotificationRingtone(ringtoneId: string): void {
 		return;
 	}
 
-	playSoundFile(soundPath);
+	const volume = getNotificationSoundVolume();
+	playSoundFile(soundPath, volume);
 }
