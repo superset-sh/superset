@@ -295,12 +295,6 @@ export function CodeEditor({
 					"data-testid": "code-editor",
 					spellcheck: "false",
 				}),
-				EditorView.theme({
-					".cm-jump-target-section": {
-						backgroundColor:
-							"color-mix(in srgb, var(--accent) 18%, transparent)",
-					},
-				}),
 				keymap.of([
 					indentWithTab,
 					...defaultKeymap,
