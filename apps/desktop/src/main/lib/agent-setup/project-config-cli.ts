@@ -163,9 +163,23 @@ function main() {
   }
 
   if (command === "write") {
-    const setup = [...(options.setupJson ?? []), ...options.setup];
-    const teardown = [...(options.teardownJson ?? []), ...options.teardown];
     const existing = readExistingConfig(configPath);
+    const setup =
+      options.setupJson !== null
+        ? options.setupJson
+        : options.setup.length > 0
+          ? options.setup
+          : Array.isArray(existing.setup)
+            ? existing.setup
+            : [];
+    const teardown =
+      options.teardownJson !== null
+        ? options.teardownJson
+        : options.teardown.length > 0
+          ? options.teardown
+          : Array.isArray(existing.teardown)
+            ? existing.teardown
+            : [];
 
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
 

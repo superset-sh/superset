@@ -361,11 +361,14 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								Reset
 							</Button>
 							<Button
-								onClick={() =>
+								onClick={() => {
+									const normalizedPrompt =
+										projectConfigurationLaunchPromptDraft.trim();
 									setProjectConfigurationLaunchPrompt.mutate({
-										prompt: projectConfigurationLaunchPromptDraft,
-									})
-								}
+										prompt:
+											normalizedPrompt.length > 0 ? normalizedPrompt : null,
+									});
+								}}
 								disabled={
 									!hasProjectConfigurationPromptChanges ||
 									isProjectConfigurationLaunchPromptLoading ||

@@ -177,8 +177,9 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 	const shouldUseProjectConfigurationPrompt = useMemo(
 		() =>
 			selectedAgent !== "none" &&
+			projectConfig !== undefined &&
 			!hasConfiguredProjectScripts(projectConfig?.content ?? null),
-		[selectedAgent, projectConfig?.content],
+		[selectedAgent, projectConfig],
 	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset advanced branch state when project changes
