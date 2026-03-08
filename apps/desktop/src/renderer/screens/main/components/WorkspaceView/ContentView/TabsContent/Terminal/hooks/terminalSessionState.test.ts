@@ -51,6 +51,18 @@ describe("reduceTerminalSessionState", () => {
 		expect(live.hasReceivedStreamDataSinceAttach).toBe(true);
 	});
 
+	it("does not allocate new state for repeated stream data after the first chunk", () => {
+		const firstChunk = reduceTerminalSessionState(
+			createInitialTerminalSessionState(),
+			{ type: "STREAM_DATA_RECEIVED" },
+		);
+		const secondChunk = reduceTerminalSessionState(firstChunk, {
+			type: "STREAM_DATA_RECEIVED",
+		});
+
+		expect(secondChunk).toBe(firstChunk);
+	});
+
 	it("records killed exits distinctly from normal exits", () => {
 		const attached = reduceTerminalSessionState(
 			createInitialTerminalSessionState(),

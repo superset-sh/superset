@@ -85,11 +85,17 @@ export function reduceTerminalSessionState(
 				hasReceivedStreamDataSinceAttach: false,
 			});
 		case "STREAM_READY_CHANGED":
+			if (state.isStreamReady === event.ready) {
+				return state;
+			}
 			return withDerivedPhase({
 				...state,
 				isStreamReady: event.ready,
 			});
 		case "STREAM_DATA_RECEIVED":
+			if (state.hasReceivedStreamDataSinceAttach) {
+				return state;
+			}
 			return withDerivedPhase({
 				...state,
 				hasReceivedStreamDataSinceAttach: true,
@@ -105,6 +111,9 @@ export function reduceTerminalSessionState(
 			});
 		}
 		case "CONNECTION_ERROR_CHANGED":
+			if (state.connectionError === event.error) {
+				return state;
+			}
 			return withDerivedPhase({
 				...state,
 				connectionError: event.error,
@@ -126,6 +135,9 @@ export function reduceTerminalSessionState(
 				restoredCwd: null,
 			});
 		case "RESTORED_CWD_CHANGED":
+			if (state.restoredCwd === event.cwd) {
+				return state;
+			}
 			return withDerivedPhase({
 				...state,
 				restoredCwd: event.cwd,

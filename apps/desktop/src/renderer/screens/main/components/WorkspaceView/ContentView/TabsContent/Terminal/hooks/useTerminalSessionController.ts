@@ -74,7 +74,11 @@ export function useTerminalSessionController(): TerminalSessionController {
 
 	const applyEvent = useCallback(
 		(event: Parameters<typeof reduceTerminalSessionState>[1]) => {
-			const nextState = reduceTerminalSessionState(stateRef.current, event);
+			const currentState = stateRef.current;
+			const nextState = reduceTerminalSessionState(currentState, event);
+			if (nextState === currentState) {
+				return;
+			}
 			stateRef.current = nextState;
 			syncRefsFromState(nextState, {
 				connectionErrorRef,
