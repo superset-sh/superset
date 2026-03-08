@@ -161,6 +161,15 @@ export function GroupItem({
 		}
 	};
 
+	const statusBgVar =
+		status === "review"
+			? "var(--tab-review-bg)"
+			: status === "working"
+				? "var(--tab-working-bg)"
+				: status === "permission"
+					? "var(--tab-permission-bg)"
+					: undefined;
+
 	const tabStyles = cn(
 		"flex items-center gap-2 transition-all w-full shrink-0 pl-3 pr-8 h-full",
 		isActive
@@ -180,7 +189,10 @@ export function GroupItem({
 						isOver && canDrop && "bg-primary/5",
 						isDragging && "opacity-50 text-muted-foreground/50",
 					)}
-					style={{ cursor: isDragging ? "grabbing" : undefined }}
+					style={{
+						cursor: isDragging ? "grabbing" : undefined,
+						backgroundColor: statusBgVar,
+					}}
 				>
 					{isEditing ? (
 						<div className="flex items-center w-full shrink-0 px-2 h-full">

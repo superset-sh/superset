@@ -36,6 +36,7 @@ const mockHead = {
 		style: {
 			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
 			getPropertyValue: (key: string) => mockStyleMap.get(key) || "",
+			removeProperty: (key: string) => mockStyleMap.delete(key),
 		},
 		classList: {
 			add: (className: string) => mockClassList.add(className),

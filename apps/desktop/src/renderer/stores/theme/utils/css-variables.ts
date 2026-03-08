@@ -40,6 +40,9 @@ const UI_COLOR_TO_CSS_VAR: Record<keyof UIColors, string> = {
 	chart5: "--chart-5",
 	highlightMatch: "--highlight-match",
 	highlightActive: "--highlight-active",
+	tabReviewBackground: "--tab-review-bg",
+	tabWorkingBackground: "--tab-working-bg",
+	tabPermissionBackground: "--tab-permission-bg",
 };
 
 /**
