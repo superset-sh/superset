@@ -145,7 +145,7 @@ const config: Configuration = {
 		target: [
 			{
 				target: "default",
-				arch: ["arm64"],
+				arch: ["arm64", "x64"],
 			},
 		],
 		hardenedRuntime: true,
