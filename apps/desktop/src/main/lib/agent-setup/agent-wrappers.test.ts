@@ -712,6 +712,38 @@ describe("agent-wrappers copilot", () => {
 		]);
 	});
 
+	it("ignores truthy non-string Qoder hook commands without throwing", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(qoderSettingsPath), { recursive: true });
+		writeFileSync(
+			qoderSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							{
+								hooks: [
+									{ type: "command", command: 42 },
+									{ type: "command", command: "/opt/custom-notify.sh" },
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		expect(() => getQoderSettingsJsonContent(currentHookPath)).not.toThrow();
+	});
+
 	it("continues setup when Qoder settings.json cannot be written", () => {
 		mkdirSync(mockedHomeDir, { recursive: true });
 		writeFileSync(path.join(mockedHomeDir, ".qoder"), "blocked");

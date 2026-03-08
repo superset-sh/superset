@@ -30,11 +30,15 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 function isManagedHookCommand(
-	command: string | undefined,
+	command: unknown,
 	notifyScriptPath: string,
 ): boolean {
+	if (typeof command !== "string") {
+		return false;
+	}
+
 	return (
-		command?.includes(notifyScriptPath) ||
+		command.includes(notifyScriptPath) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }

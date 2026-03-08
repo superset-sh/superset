@@ -38,10 +38,10 @@ export function writeFileIfChanged(
 }
 
 export function isSupersetManagedHookCommand(
-	command: string | undefined,
+	command: unknown,
 	scriptName: string,
 ): boolean {
-	if (!command) return false;
+	if (typeof command !== "string") return false;
 	const normalized = command.replaceAll("\\", "/");
 	if (!normalized.includes(`/hooks/${scriptName}`)) return false;
 	return SUPERSET_MANAGED_HOOK_PATH_PATTERN.test(normalized);
