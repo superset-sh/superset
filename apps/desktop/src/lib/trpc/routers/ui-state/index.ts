@@ -29,6 +29,7 @@ const fileViewerStateSchema = z.object({
 
 const chatMastraLaunchConfigSchema = z.object({
 	initialPrompt: z.string().optional(),
+	autoSend: z.boolean().optional(),
 	metadata: z
 		.object({
 			model: z.string().optional(),

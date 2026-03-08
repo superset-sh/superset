@@ -49,6 +49,7 @@ export const chatLaunchConfigSchema = z.object({
 	paneId: z.string().min(1).optional(),
 	sessionId: z.string().uuid().optional(),
 	initialPrompt: z.string().min(1).optional(),
+	autoSend: z.boolean().optional(),
 	model: z.string().min(1).optional(),
 	retryCount: z.number().int().min(0).max(10).optional(),
 });

@@ -144,6 +144,12 @@ export interface Pane {
 
 export interface ChatMastraLaunchConfig {
 	initialPrompt?: string;
+	/**
+	 * When true, initialPrompt is sent automatically to the agent on session start.
+	 * When false or unset, initialPrompt is pre-filled in the chat input instead.
+	 * Use true only for autonomous/MCP-driven sessions.
+	 */
+	autoSend?: boolean;
 	metadata?: {
 		model?: string;
 	};

@@ -30,6 +30,10 @@ import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import type { ChatMastraInterfaceProps } from "./types";
+import {
+	getPrefillInput,
+	shouldAutoSend,
+} from "./utils/launchConfig/launchConfig";
 import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
@@ -662,7 +666,8 @@ export function ChatMastraInterface({
 			if (autoLaunchInFlightRef.current === launchConfigKey) return;
 
 			const prompt = initialLaunchConfig.initialPrompt?.trim();
-			if (!prompt) {
+			if (!prompt || !shouldAutoSend(initialLaunchConfig)) {
+				// No prompt, or prompt is pre-filled in the input instead of auto-sent.
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
@@ -943,7 +948,7 @@ export function ChatMastraInterface({
 	const errorMessage = runtimeError ?? toErrorMessage(error);
 
 	return (
-		<PromptInputProvider>
+		<PromptInputProvider initialInput={getPrefillInput(initialLaunchConfig)}>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
 					messages={visibleMessages}

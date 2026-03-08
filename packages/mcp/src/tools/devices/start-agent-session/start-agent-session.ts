@@ -100,6 +100,7 @@ function buildLaunchRequest({
 			chat: {
 				...(paneId ? { paneId } : {}),
 				initialPrompt: buildAgentTaskPrompt(task),
+				autoSend: true,
 				retryCount: 1,
 			},
 		};
