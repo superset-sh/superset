@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import {
 	type ChangeCategory,
@@ -144,6 +145,59 @@ export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
  */
 export interface CreatePaneOptions {
 	initialCwd?: string;
+}
+
+export function resolveNewTerminalInitialCwd({
+	workspaceId,
+	worktreePath,
+	tabs,
+	panes,
+	activeTabIds,
+	tabHistoryStacks,
+	focusedPaneIds,
+}: {
+	workspaceId: string;
+	worktreePath?: string | null;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	activeTabIds: Record<string, string | null | undefined>;
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	focusedPaneIds: Record<string, string | undefined>;
+}): string | undefined {
+	const fallbackCwd = worktreePath || undefined;
+	const activeTabId = resolveActiveTabIdForWorkspace({
+		workspaceId,
+		tabs,
+		activeTabIds,
+		tabHistoryStacks,
+	});
+	if (!activeTabId) {
+		return fallbackCwd;
+	}
+
+	const focusedPaneId = focusedPaneIds[activeTabId];
+	if (!focusedPaneId) {
+		return fallbackCwd;
+	}
+
+	const pane = panes[focusedPaneId];
+	if (!pane) {
+		return fallbackCwd;
+	}
+
+	if (pane.type === "terminal") {
+		return pane.cwd || pane.initialCwd || fallbackCwd;
+	}
+
+	if (
+		pane.type === "file-viewer" &&
+		worktreePath &&
+		pane.fileViewer?.filePath
+	) {
+		return dirname(join(worktreePath, pane.fileViewer.filePath));
+	}
+
+	return fallbackCwd;
 }
 
 /**

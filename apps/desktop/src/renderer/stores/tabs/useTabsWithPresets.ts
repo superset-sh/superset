@@ -18,11 +18,15 @@ import {
 } from "./preset-launch";
 import { useTabsStore } from "./store";
 import type { AddTabOptions, SplitPaneOptions } from "./types";
-import { resolveActiveTabIdForWorkspace } from "./utils";
+import {
+	resolveActiveTabIdForWorkspace,
+	resolveNewTerminalInitialCwd,
+} from "./utils";
 
 interface OpenPresetOptions {
 	target?: PresetOpenTarget;
 	modeOverride?: PresetMode;
+	fallbackInitialCwd?: string;
 }
 
 interface PreparedPreset {
@@ -51,6 +55,9 @@ function preparePreset(preset: TerminalPreset): PreparedPreset {
 export function useTabsWithPresets() {
 	const { data: newTabPresets = [] } =
 		electronTrpc.settings.getNewTabPresets.useQuery();
+	const { data: openInCurrentTabDirectory = true } =
+		electronTrpc.settings.getNewTerminalInCurrentTabDirectory.useQuery();
+	const utils = electronTrpc.useUtils();
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
@@ -350,7 +357,13 @@ export function useTabsWithPresets() {
 			const prepared = preparePreset(preset);
 			const target = options?.target ?? "new-tab";
 			const mode = options?.modeOverride ?? prepared.mode;
-			return executePreset(workspaceId, { ...prepared, mode }, target);
+			const initialCwd =
+				prepared.initialCwd ?? options?.fallbackInitialCwd ?? undefined;
+			return executePreset(
+				workspaceId,
+				{ ...prepared, mode, initialCwd },
+				target,
+			);
 		},
 		[executePreset],
 	);
@@ -361,20 +374,39 @@ export function useTabsWithPresets() {
 				return storeAddTab(workspaceId, options);
 			}
 
+			const sourceInitialCwd = openInCurrentTabDirectory
+				? resolveNewTerminalInitialCwd({
+						workspaceId,
+						worktreePath: utils.workspaces.get.getData({ id: workspaceId })
+							?.worktreePath,
+						tabs: useTabsStore.getState().tabs,
+						panes: useTabsStore.getState().panes,
+						activeTabIds: useTabsStore.getState().activeTabIds,
+						tabHistoryStacks: useTabsStore.getState().tabHistoryStacks,
+						focusedPaneIds: useTabsStore.getState().focusedPaneIds,
+					})
+				: undefined;
+
 			if (newTabPresets.length === 0) {
-				return storeAddTab(workspaceId);
+				return storeAddTab(workspaceId, {
+					initialCwd: sourceInitialCwd,
+				});
 			}
 
 			const firstResult = openPreset(workspaceId, newTabPresets[0], {
 				target: "new-tab",
+				fallbackInitialCwd: sourceInitialCwd,
 			});
 			for (let i = 1; i < newTabPresets.length; i++) {
-				openPreset(workspaceId, newTabPresets[i], { target: "new-tab" });
+				openPreset(workspaceId, newTabPresets[i], {
+					target: "new-tab",
+					fallbackInitialCwd: sourceInitialCwd,
+				});
 			}
 
 			return { tabId: firstResult.tabId, paneId: firstResult.paneId };
 		},
-		[storeAddTab, newTabPresets, openPreset],
+		[storeAddTab, newTabPresets, openInCurrentTabDirectory, openPreset, utils],
 	);
 
 	const addPane = useCallback(
