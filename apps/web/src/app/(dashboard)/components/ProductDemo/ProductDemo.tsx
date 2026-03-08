@@ -1,7 +1,7 @@
 "use client";
 
 import { MeshGradient } from "@superset/ui/mesh-gradient";
-import { motion } from "framer-motion";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 const DEMO_OPTIONS = [
@@ -64,7 +64,7 @@ function SelectorPill({
 	onClick: () => void;
 }) {
 	return (
-		<motion.button
+		<m.button
 			type="button"
 			onClick={onClick}
 			className={`inline-flex cursor-pointer items-center justify-center whitespace-nowrap border py-2 text-sm ${
@@ -79,7 +79,7 @@ function SelectorPill({
 			transition={{ duration: 0.2, ease: "easeOut" }}
 		>
 			{label}
-		</motion.button>
+		</m.button>
 	);
 }
 
@@ -89,9 +89,10 @@ export function ProductDemo() {
 	);
 
 	return (
+		<LazyMotion features={domAnimation}>
 		<div className="relative w-full overflow-hidden rounded-lg">
 			{DEMO_OPTIONS.map((option) => (
-				<motion.div
+				<m.div
 					key={`gradient-${option.label}`}
 					className="absolute inset-0"
 					initial={false}
@@ -102,7 +103,7 @@ export function ProductDemo() {
 						colors={option.colors}
 						className="absolute inset-0 h-full w-full"
 					/>
-				</motion.div>
+				</m.div>
 			))}
 
 			<div className="relative flex flex-col gap-4 p-4">
@@ -111,7 +112,7 @@ export function ProductDemo() {
 					style={{ aspectRatio: "1728/1080" }}
 				>
 					{DEMO_OPTIONS.map((option) => (
-						<motion.div
+						<m.div
 							key={option.label}
 							className="absolute -inset-px"
 							initial={false}
@@ -122,7 +123,7 @@ export function ProductDemo() {
 								src={option.videoPath}
 								isActive={activeOption === option.label}
 							/>
-						</motion.div>
+						</m.div>
 					))}
 				</div>
 
@@ -138,5 +139,6 @@ export function ProductDemo() {
 				</div>
 			</div>
 		</div>
+		</LazyMotion>
 	);
 }

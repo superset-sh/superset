@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { headers } from "next/headers";
@@ -7,6 +8,11 @@ import { redirect } from "next/navigation";
 import { env } from "@/env";
 import { api } from "@/trpc/server";
 import { ConsentForm } from "./components/ConsentForm";
+
+export const metadata: Metadata = {
+	title: "Authorize Application - Superset",
+	description: "Grant an application access to your Superset account.",
+};
 
 interface ConsentPageProps {
 	searchParams: Promise<Record<string, string>>;

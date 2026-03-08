@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { FaGithub } from "react-icons/fa";
 import { api } from "@/trpc/server";
 import { ConnectionControls } from "./components/ConnectionControls";
@@ -35,7 +36,9 @@ export default async function GitHubIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<Suspense>
+				<ErrorHandler />
+			</Suspense>
 
 			<Link
 				href="/integrations"
