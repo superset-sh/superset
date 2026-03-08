@@ -31,7 +31,7 @@ import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSi
 
 const MAX_RESULTS = 20;
 
-function findAtTriggerIndex(value: string, prevValue: string): number {
+export function findAtTriggerIndex(value: string, prevValue: string): number {
 	if (value.length !== prevValue.length + 1) return -1;
 	for (let i = 0; i < value.length; i++) {
 		if (value[i] !== prevValue[i]) {
@@ -138,6 +138,14 @@ export function MentionProvider({
 					align="start"
 					sideOffset={0}
 					className="w-80 p-0 text-xs"
+					onCloseAutoFocus={(e) => {
+						e.preventDefault();
+						document
+							.querySelector<HTMLTextAreaElement>(
+								"[data-slot=input-group-control]",
+							)
+							?.focus();
+					}}
 				>
 					<Command shouldFilter={false}>
 						<CommandInput
