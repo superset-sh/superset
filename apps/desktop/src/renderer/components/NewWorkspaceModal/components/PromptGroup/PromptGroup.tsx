@@ -29,6 +29,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import { renderProjectConfigurationLaunchPrompt } from "shared/project-configuration";
 import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
@@ -42,6 +43,34 @@ const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 interface PromptGroupProps {
 	projectId: string | null;
 	onClose: () => void;
+}
+
+function hasConfiguredProjectScripts(
+	content: string | null | undefined,
+): boolean {
+	if (!content) {
+		return false;
+	}
+
+	try {
+		const parsed = JSON.parse(content) as {
+			setup?: unknown;
+			teardown?: unknown;
+		};
+		const setup = Array.isArray(parsed.setup)
+			? parsed.setup.filter(
+					(value): value is string => typeof value === "string",
+				)
+			: [];
+		const teardown = Array.isArray(parsed.teardown)
+			? parsed.teardown.filter(
+					(value): value is string => typeof value === "string",
+				)
+			: [];
+		return setup.length > 0 || teardown.length > 0;
+	} catch {
+		return false;
+	}
 }
 
 export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
@@ -93,9 +122,15 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
+	const { data: projectConfig } = electronTrpc.config.getConfigContent.useQuery(
+		{ projectId: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const { data: projectConfigurationLaunchPrompt } =
+		electronTrpc.settings.getProjectConfigurationLaunchPrompt.useQuery();
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -139,6 +174,12 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 		branchSlug && applyPrefix && resolvedPrefix
 			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
+	const shouldUseProjectConfigurationPrompt = useMemo(
+		() =>
+			selectedAgent !== "none" &&
+			!hasConfiguredProjectScripts(projectConfig?.content ?? null),
+		[selectedAgent, projectConfig?.content],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset advanced branch state when project changes
 	useEffect(() => {
@@ -156,6 +197,12 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 		trimmedPrompt: string,
 	): AgentLaunchRequest | null => {
 		if (selectedAgent === "none") return null;
+		const launchPrompt = shouldUseProjectConfigurationPrompt
+			? renderProjectConfigurationLaunchPrompt({
+					template: projectConfigurationLaunchPrompt,
+					userRequest: trimmedPrompt,
+				})
+			: trimmedPrompt;
 
 		if (selectedAgent === "superset-chat") {
 			return {
@@ -164,14 +211,14 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 				agentType: "superset-chat",
 				source: "new-workspace",
 				chat: {
-					initialPrompt: trimmedPrompt || undefined,
+					initialPrompt: launchPrompt || undefined,
 				},
 			};
 		}
 
-		const command = trimmedPrompt
+		const command = launchPrompt
 			? buildAgentPromptCommand({
-					prompt: trimmedPrompt,
+					prompt: launchPrompt,
 					randomId: window.crypto.randomUUID(),
 					agent: selectedAgent,
 				})
@@ -287,6 +334,12 @@ export function PromptGroup({ projectId, onClose }: PromptGroupProps) {
 					}
 				}}
 			/>
+			{shouldUseProjectConfigurationPrompt && (
+				<p className="text-xs text-muted-foreground">
+					The first agent turn will configure this project for Superset, then
+					continue with your request.
+				</p>
+			)}
 
 			<PromptGroupAdvancedOptions
 				showAdvanced={showAdvanced}

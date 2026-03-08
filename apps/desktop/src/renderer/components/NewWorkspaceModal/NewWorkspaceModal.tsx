@@ -8,6 +8,7 @@ import { useOpenProject } from "renderer/react-query/projects";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
+	useOpenNewWorkspaceModal,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { BranchesGroup } from "./components/BranchesGroup";
@@ -21,6 +22,7 @@ type Tab = "prompt" | "issues" | "pull-requests" | "branches";
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
+	const openModal = useOpenNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
 	const [activeTab, setActiveTab] = useState<Tab>("prompt");
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -51,7 +53,11 @@ export function NewWorkspaceModal() {
 	const handleImportRepo = async () => {
 		closeModal();
 		try {
-			await openNew();
+			const projects = await openNew();
+			const firstProjectId = projects[0]?.id;
+			if (firstProjectId) {
+				openModal(firstProjectId);
+			}
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:

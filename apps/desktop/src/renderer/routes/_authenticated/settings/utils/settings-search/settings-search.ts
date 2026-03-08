@@ -26,6 +26,8 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_PROJECT_CONFIGURATION_LAUNCH_PROMPT:
+		"behavior-project-configuration-launch-prompt",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -478,6 +480,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_PROJECT_CONFIGURATION_LAUNCH_PROMPT,
+		section: "behavior",
+		title: "New project agent launch prompt",
+		description:
+			"Customize the prompt used when an agent configures a newly opened project for Superset",
+		keywords: [
+			"behavior",
+			"project",
+			"launch prompt",
+			"agent",
+			"configuration",
+			"setup scripts",
+			"superset config",
+			"new project",
+			"onboarding",
+			"workspace setup",
 		],
 	},
 	{

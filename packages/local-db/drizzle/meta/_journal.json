@@ -253,6 +253,13 @@
       "when": 1772841491441,
       "tag": "0035_add_workspace_sections",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1772928908836,
+      "tag": "0036_add_project_configuration_launch_prompt_setting",
+      "breakpoints": true
     }
   ]
 }
