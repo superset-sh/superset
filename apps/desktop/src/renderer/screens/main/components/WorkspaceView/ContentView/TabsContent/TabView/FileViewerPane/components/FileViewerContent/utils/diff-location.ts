@@ -15,6 +15,11 @@ interface DiffClickColumnOptions {
 	numberColumn?: boolean;
 }
 
+interface DiffPointColumnOptions extends DiffClickColumnOptions {
+	clientX: number;
+	clientY: number;
+}
+
 export interface DiffDomLocation {
 	lineElement: HTMLElement;
 	lineNumber: number;
@@ -52,6 +57,11 @@ function clampColumn(
 	const requestedColumn = column ?? 1;
 
 	return Math.max(1, Math.min(requestedColumn, lineContent.length + 1));
+}
+
+function getDiffCodeElement(lineElement: HTMLElement): HTMLElement {
+	const codeElement = lineElement.querySelector("[data-code]");
+	return codeElement instanceof HTMLElement ? codeElement : lineElement;
 }
 
 function mapOldSideLineToRawLine(
@@ -136,17 +146,61 @@ export function getColumnFromDiffSelection({
 		return 1;
 	}
 
+	const codeElement = getDiffCodeElement(lineElement);
 	const range = selection.getRangeAt(0);
 	const anchorNode = range.startContainer;
-	if (!lineElement.contains(anchorNode)) {
+	if (!codeElement.contains(anchorNode)) {
 		return 1;
 	}
 
 	const measureRange = document.createRange();
-	measureRange.selectNodeContents(lineElement);
+	measureRange.selectNodeContents(codeElement);
 	measureRange.setEnd(anchorNode, range.startOffset);
 
 	return Math.max(1, measureRange.toString().length + 1);
+}
+
+export function getColumnFromDiffPoint({
+	lineElement,
+	clientX,
+	clientY,
+	numberColumn = false,
+}: DiffPointColumnOptions): number {
+	if (numberColumn) {
+		return 1;
+	}
+
+	const codeElement = getDiffCodeElement(lineElement);
+	const documentWithCaretApi = document as Document & {
+		caretPositionFromPoint?: (
+			x: number,
+			y: number,
+		) => { offsetNode: Node; offset: number } | null;
+		caretRangeFromPoint?: (x: number, y: number) => Range | null;
+	};
+	const caretPosition = documentWithCaretApi.caretPositionFromPoint?.(
+		clientX,
+		clientY,
+	);
+	if (caretPosition && codeElement.contains(caretPosition.offsetNode)) {
+		const measureRange = document.createRange();
+		measureRange.selectNodeContents(codeElement);
+		measureRange.setEnd(caretPosition.offsetNode, caretPosition.offset);
+		return Math.max(1, measureRange.toString().length + 1);
+	}
+
+	const caretRange = documentWithCaretApi.caretRangeFromPoint?.(
+		clientX,
+		clientY,
+	);
+	if (caretRange && codeElement.contains(caretRange.startContainer)) {
+		const measureRange = document.createRange();
+		measureRange.selectNodeContents(codeElement);
+		measureRange.setEnd(caretRange.startContainer, caretRange.startOffset);
+		return Math.max(1, measureRange.toString().length + 1);
+	}
+
+	return 1;
 }
 
 export function getDiffLocationFromTarget(

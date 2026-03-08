@@ -1,5 +1,7 @@
+import { ContextMenuItem } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
 import { type MutableRefObject, type ReactNode, useCallback } from "react";
+import { LuSquarePen } from "react-icons/lu";
 import type { Tab } from "renderer/stores/tabs/types";
 import {
 	type CodeEditorAdapter,
@@ -22,6 +24,7 @@ interface DiffViewerContextMenuProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	onEditAtLocation: () => void;
 }
 
 function isSelectionInsideContainer(
@@ -56,6 +59,7 @@ export function DiffViewerContextMenu({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	onEditAtLocation,
 }: DiffViewerContextMenuProps) {
 	const getEditor = useCallback((): CodeEditorAdapter | null => {
 		const container = containerRef.current;
@@ -121,6 +125,12 @@ export function DiffViewerContextMenu({
 				...editorActions,
 				onFind: undefined,
 			}}
+			extraItems={
+				<ContextMenuItem onSelect={onEditAtLocation}>
+					<LuSquarePen className="size-4" />
+					Edit Here
+				</ContextMenuItem>
+			}
 			paneActions={{
 				onSplitHorizontal,
 				onSplitVertical,

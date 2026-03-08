@@ -18,6 +18,8 @@ import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
 import {
+	type DiffDomLocation,
+	getColumnFromDiffPoint,
 	getColumnFromDiffSelection,
 	getDiffLocationFromTarget,
 	mapDiffLocationToRawPosition,
@@ -170,15 +172,12 @@ export function FileViewerContent({
 	const isImage = isImageFile(filePath);
 	const hasAppliedInitialLocationRef = useRef(false);
 	const diffContainerRef = useRef<HTMLDivElement | null>(null);
-	const lastDiffLocationRef = useRef<{
-		lineNumber: number;
-		side: "deletions" | "additions";
-		lineType:
-			| "change-deletion"
-			| "change-addition"
-			| "context"
-			| "context-expanded";
-	} | null>(null);
+	const lastDiffLocationRef = useRef<
+		| (DiffDomLocation & {
+				column?: number;
+		  })
+		| null
+	>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
@@ -225,6 +224,33 @@ export function FileViewerContent({
 		};
 	};
 
+	const openRawFromDiffLocation = (
+		location: DiffDomLocation & {
+			column?: number;
+		},
+	) => {
+		if (!diffData) {
+			return;
+		}
+
+		lastDiffLocationRef.current = location;
+
+		const position = mapDiffLocationToRawPosition({
+			contents: diffData,
+			lineNumber: location.lineNumber,
+			side: location.side,
+			lineType: location.lineType,
+			column:
+				location.column ??
+				getColumnFromDiffSelection({
+					lineElement: location.lineElement,
+					numberColumn: location.numberColumn,
+				}),
+		});
+
+		onSwitchToRawAtLocation(position.lineNumber, position.column);
+	};
+
 	const handleDiffLineEnter = ({
 		lineNumber,
 		annotationSide,
@@ -239,9 +265,11 @@ export function FileViewerContent({
 			| "context-expanded";
 	}) => {
 		lastDiffLocationRef.current = {
+			lineElement: diffContainerRef.current ?? document.createElement("div"),
 			lineNumber,
 			side: annotationSide,
 			lineType,
+			numberColumn: false,
 		};
 	};
 
@@ -316,6 +344,14 @@ export function FileViewerContent({
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}
 				onMoveToNewTab={onMoveToNewTab}
+				onEditAtLocation={() => {
+					const location = lastDiffLocationRef.current;
+					if (!location) {
+						return;
+					}
+
+					openRawFromDiffLocation(location);
+				}}
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: diff wrapper intercepts click capture to preserve browser text selection */}
 				<div
@@ -333,39 +369,30 @@ export function FileViewerContent({
 						}
 
 						lastDiffLocationRef.current = {
-							lineNumber: location.lineNumber,
-							side: location.side,
-							lineType: location.lineType,
+							...location,
+							column: getColumnFromDiffPoint({
+								lineElement: location.lineElement,
+								numberColumn: location.numberColumn,
+								clientX: event.clientX,
+								clientY: event.clientY,
+							}),
 						};
 					}}
 					onDoubleClick={(event) => {
-						if (!diffData) {
-							return;
-						}
-
 						const location = getDiffLocationFromTarget(event.target);
 						if (!location) {
 							return;
 						}
 
-						lastDiffLocationRef.current = {
-							lineNumber: location.lineNumber,
-							side: location.side,
-							lineType: location.lineType,
-						};
-
-						const position = mapDiffLocationToRawPosition({
-							contents: diffData,
-							lineNumber: location.lineNumber,
-							side: location.side,
-							lineType: location.lineType,
-							column: getColumnFromDiffSelection({
+						openRawFromDiffLocation({
+							...location,
+							column: getColumnFromDiffPoint({
 								lineElement: location.lineElement,
 								numberColumn: location.numberColumn,
+								clientX: event.clientX,
+								clientY: event.clientY,
 							}),
 						});
-
-						onSwitchToRawAtLocation(position.lineNumber, position.column);
 					}}
 				>
 					<LightDiffViewer

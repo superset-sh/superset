@@ -38,12 +38,14 @@ interface EditorContextMenuProps {
 	children: ReactNode;
 	editorActions: EditorActions;
 	paneActions: PaneActions;
+	extraItems?: ReactNode;
 }
 
 export function EditorContextMenu({
 	children,
 	editorActions,
 	paneActions,
+	extraItems,
 }: EditorContextMenuProps) {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
@@ -112,6 +114,13 @@ export function EditorContextMenu({
 						Find
 						<ContextMenuShortcut>{cmdKey}+F</ContextMenuShortcut>
 					</ContextMenuItem>
+				)}
+
+				{extraItems && (
+					<>
+						<ContextMenuSeparator />
+						{extraItems}
+					</>
 				)}
 
 				<ContextMenuSeparator />
