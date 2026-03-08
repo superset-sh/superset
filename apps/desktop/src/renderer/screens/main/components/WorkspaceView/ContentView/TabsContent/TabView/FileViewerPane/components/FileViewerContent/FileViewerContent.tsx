@@ -263,6 +263,18 @@ export function FileViewerContent({
 			lineNumber: location.lineNumber,
 			side: location.side,
 		});
+		console.debug("[DiffEditHereDebug]", {
+			label: "map-diff-location",
+			diffLocation: {
+				lineNumber: location.lineNumber,
+				side: location.side,
+				lineType: location.lineType,
+				column: location.column,
+				numberColumn: location.numberColumn,
+			},
+			rawPosition: position,
+			rawSection,
+		});
 
 		onSwitchToRawAtLocation(
 			position.lineNumber,
@@ -299,6 +311,14 @@ export function FileViewerContent({
 		) {
 			return;
 		}
+
+		console.debug("[DiffEditHereDebug]", {
+			label: "apply-raw-location",
+			initialLine,
+			initialColumn: initialColumn ?? 1,
+			initialSelectionStartLine: initialSelectionStartLine ?? initialLine,
+			initialSelectionEndLine: initialSelectionEndLine ?? initialLine,
+		});
 
 		editorRef.current.revealPosition(initialLine, initialColumn ?? 1, {
 			startLine: initialSelectionStartLine ?? initialLine,
@@ -349,6 +369,10 @@ export function FileViewerContent({
 				onMoveToNewTab={onMoveToNewTab}
 				onEditAtLocation={() => {
 					const location = lastDiffLocationRef.current;
+					console.debug("[DiffEditHereDebug]", {
+						label: "edit-here-select",
+						location,
+					});
 					if (!location || location.column === undefined) {
 						return;
 					}
@@ -371,18 +395,40 @@ export function FileViewerContent({
 					onContextMenuCapture={(event) => {
 						const location = getDiffLocationFromEvent(event.nativeEvent);
 						if (!location) {
+							console.debug("[DiffEditHereDebug]", {
+								label: "context-menu-capture-miss",
+								target:
+									event.target instanceof HTMLElement
+										? {
+												tagName: event.target.tagName,
+												className: event.target.className,
+											}
+										: String(event.target),
+							});
 							return;
 						}
 
+						const column = getColumnFromDiffPoint({
+							lineElement: location.lineElement,
+							numberColumn: location.numberColumn,
+							clientX: event.clientX,
+							clientY: event.clientY,
+						});
+
 						lastDiffLocationRef.current = {
 							...location,
-							column: getColumnFromDiffPoint({
-								lineElement: location.lineElement,
-								numberColumn: location.numberColumn,
-								clientX: event.clientX,
-								clientY: event.clientY,
-							}),
+							column,
 						};
+						console.debug("[DiffEditHereDebug]", {
+							label: "context-menu-capture",
+							location: {
+								lineNumber: location.lineNumber,
+								side: location.side,
+								lineType: location.lineType,
+								numberColumn: location.numberColumn,
+								column,
+							},
+						});
 					}}
 					onDoubleClick={(event) => {
 						const location = getDiffLocationFromEvent(event.nativeEvent);
