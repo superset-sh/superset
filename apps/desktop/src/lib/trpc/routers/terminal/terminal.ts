@@ -295,7 +295,25 @@ export const createTerminalRouter = () => {
 
 		listDaemonSessions: publicProcedure.query(async () => {
 			const { sessions } = await terminal.management.listSessions();
-			return { sessions };
+			const workspacesById = new Map(
+				localDb
+					.select()
+					.from(workspaces)
+					.all()
+					.map((workspace) => [workspace.id, workspace] as const),
+			);
+
+			return {
+				sessions: sessions.map((session) => {
+					const workspace = workspacesById.get(session.workspaceId);
+					const workspacePath = workspace ? getWorkspacePath(workspace) : null;
+					return {
+						...session,
+						workspaceName: workspace?.name ?? null,
+						workspacePath,
+					};
+				}),
+			};
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
