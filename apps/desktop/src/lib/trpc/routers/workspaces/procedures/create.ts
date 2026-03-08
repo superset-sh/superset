@@ -556,25 +556,23 @@ export const createCreateProcedures = () => {
 				}
 
 				if (input.branch) {
-					const existingBranchWorkspace = getBranchWorkspace(input.projectId);
-					if (
-						existingBranchWorkspace &&
-						existingBranchWorkspace.branch !== branch
-					) {
-						throw new Error(
-							`A main workspace already exists on branch "${existingBranchWorkspace.branch}".`,
-						);
-					}
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
 				}
 
 				const existing = getBranchWorkspace(input.projectId);
 
 				if (existing) {
+					if (existing.branch !== branch) {
+						localDb
+							.update(workspaces)
+							.set({ branch })
+							.where(eq(workspaces.id, existing.id))
+							.run();
+					}
 					touchWorkspace(existing.id);
 					setLastActiveWorkspace(existing.id);
 					return {
-						workspace: { ...existing, lastOpenedAt: Date.now() },
+						workspace: { ...existing, branch, lastOpenedAt: Date.now() },
 						worktreePath: project.mainRepoPath,
 						projectId: project.id,
 						wasExisting: true,
