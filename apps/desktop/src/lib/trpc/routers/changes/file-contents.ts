@@ -50,6 +50,10 @@ type ReadWorkingFileImageResult =
 				| "symlink-escape";
 	  };
 
+type SaveFileResult =
+	| { status: "saved" }
+	| { status: "conflict"; currentContent: string | null };
+
 /**
  * Detects if a buffer contains binary content by checking for NUL bytes
  */
@@ -106,16 +110,53 @@ export const createFileContentsRouter = () => {
 					worktreePath: z.string(),
 					filePath: z.string(),
 					content: z.string(),
+					expectedContent: z.string().optional(),
 				}),
 			)
-			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+			.mutation(async ({ input }): Promise<SaveFileResult> => {
+				if (input.expectedContent !== undefined) {
+					try {
+						const currentContent = await secureFs.readFile(
+							input.worktreePath,
+							input.filePath,
+						);
+
+						if (currentContent !== input.expectedContent) {
+							return {
+								status: "conflict",
+								currentContent,
+							};
+						}
+					} catch (error) {
+						if (
+							error instanceof Error &&
+							"code" in error &&
+							error.code === "ENOENT"
+						) {
+							return {
+								status: "conflict",
+								currentContent: null,
+							};
+						}
+
+						if (error instanceof PathValidationError) {
+							throw error;
+						}
+
+						return {
+							status: "conflict",
+							currentContent: null,
+						};
+					}
+				}
+
 				await secureFs.writeFile(
 					input.worktreePath,
 					input.filePath,
 					input.content,
 				);
 				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
+				return { status: "saved" };
 			}),
 
 		/**

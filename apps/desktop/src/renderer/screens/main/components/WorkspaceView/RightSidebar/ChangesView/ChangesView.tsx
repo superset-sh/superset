@@ -9,7 +9,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
@@ -39,6 +39,7 @@ export function ChangesView({
 	isActive = true,
 }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
+	const trpcUtils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -216,6 +217,7 @@ export function ChangesView({
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
+	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -255,6 +257,41 @@ export function ChangesView({
 	useEffect(() => {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);
+
+	useEffect(() => {
+		return () => {
+			if (refreshTimerRef.current) {
+				clearTimeout(refreshTimerRef.current);
+				refreshTimerRef.current = null;
+			}
+		};
+	}, []);
+
+	electronTrpc.filesystem.subscribe.useSubscription(
+		{ workspaceId: workspaceId ?? "" },
+		{
+			enabled: Boolean(workspaceId && worktreePath),
+			onData: () => {
+				if (refreshTimerRef.current) {
+					clearTimeout(refreshTimerRef.current);
+				}
+
+				refreshTimerRef.current = setTimeout(() => {
+					refreshTimerRef.current = null;
+					Promise.all([
+						trpcUtils.changes.getBranches.invalidate({ worktreePath }),
+						trpcUtils.changes.getStatus.invalidate(),
+						trpcUtils.changes.getFileContents.invalidate({ worktreePath }),
+					]).catch((error) => {
+						console.error("[ChangesView] Failed to refresh changes state:", {
+							worktreePath,
+							error,
+						});
+					});
+				}, 75);
+			},
+		},
+	);
 
 	const expandedCommitHashes = useMemo(
 		() =>
@@ -333,6 +370,33 @@ export function ChangesView({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || commit.files,
 	}));
+
+	useEffect(() => {
+		if (!worktreePath || !selectedFileState) {
+			return;
+		}
+
+		const selectedPath = selectedFileState.file.path;
+		const existsInSelection =
+			selectedFileState.category === "against-base"
+				? againstBaseFiles.some((file) => file.path === selectedPath)
+				: selectedFileState.category === "staged"
+					? stagedFiles.some((file) => file.path === selectedPath)
+					: selectedFileState.category === "unstaged"
+						? combinedUnstaged.some((file) => file.path === selectedPath)
+						: selectedFileState.category === "committed";
+
+		if (!existsInSelection) {
+			selectFile(worktreePath, null);
+		}
+	}, [
+		againstBaseFiles,
+		combinedUnstaged,
+		selectFile,
+		selectedFileState,
+		stagedFiles,
+		worktreePath,
+	]);
 
 	const hasStagedChanges = stagedFiles.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;

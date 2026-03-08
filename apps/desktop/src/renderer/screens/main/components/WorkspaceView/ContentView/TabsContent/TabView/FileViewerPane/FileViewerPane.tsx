@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
+import { Button } from "@superset/ui/button";
+import { useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
+import { pathsMatch, toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import type { CodeEditorAdapter } from "../../../components";
@@ -58,6 +64,7 @@ export function FileViewerPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
+	const { workspaceId } = useParams({ strict: false });
 	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
@@ -76,6 +83,10 @@ export function FileViewerPane({
 	const originalDiffContentRef = useRef<string>("");
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
+	const [saveConflict, setSaveConflict] = useState<{
+		localContent: string;
+		diskContent: string | null;
+	} | null>(null);
 	const pendingModeRef = useRef<FileViewerMode | null>(null);
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
@@ -87,6 +98,7 @@ export function FileViewerPane({
 	const initialColumn = fileViewer?.initialColumn;
 
 	const pinPane = useTabsStore((s) => s.pinPane);
+	const trpcUtils = electronTrpc.useUtils();
 
 	const markdownSearch = useMarkdownSearch({
 		containerRef: markdownContainerRef,
@@ -95,7 +107,7 @@ export function FileViewerPane({
 		filePath,
 	});
 
-	const { handleSaveRaw } = useFileSave({
+	const { handleSaveRaw, isSaving } = useFileSave({
 		worktreePath,
 		filePath,
 		paneId,
@@ -125,6 +137,38 @@ export function FileViewerPane({
 		originalContentRef,
 		originalDiffContentRef,
 	});
+	const absoluteFilePath = useMemo(
+		() => toAbsoluteWorkspacePath(worktreePath, filePath),
+		[worktreePath, filePath],
+	);
+	const hasExternalDiskChange =
+		isDirty &&
+		viewMode === "raw" &&
+		((rawFileData?.ok === true &&
+			rawFileData.content !== originalContentRef.current) ||
+			(rawFileData?.ok === false && rawFileData.reason === "not-found"));
+
+	const invalidateCurrentFile = useCallback(() => {
+		if (!worktreePath || !filePath) {
+			return;
+		}
+
+		Promise.all([
+			trpcUtils.changes.readWorkingFile.invalidate({ worktreePath, filePath }),
+			trpcUtils.changes.readWorkingFileImage.invalidate({
+				worktreePath,
+				filePath,
+			}),
+			trpcUtils.changes.getFileContents.invalidate({ worktreePath, filePath }),
+			trpcUtils.changes.getStatus.invalidate(),
+		]).catch((error) => {
+			console.error("[FileViewerPane] Failed to invalidate file queries:", {
+				worktreePath,
+				filePath,
+				error,
+			});
+		});
+	}, [filePath, trpcUtils, worktreePath]);
 
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
@@ -142,6 +186,7 @@ export function FileViewerPane({
 		originalContentRef.current = "";
 		originalDiffContentRef.current = "";
 		draftContentRef.current = null;
+		setSaveConflict(null);
 	}, [filePath]);
 
 	// Auto-pin when user makes edits (converts preview to pinned)
@@ -150,6 +195,164 @@ export function FileViewerPane({
 			pinPane(paneId);
 		}
 	}, [isDirty, isPinned, paneId, pinPane]);
+
+	useEffect(() => {
+		if (!isDirty) {
+			setSaveConflict(null);
+		}
+	}, [isDirty]);
+
+	electronTrpc.filesystem.subscribe.useSubscription(
+		{ workspaceId: workspaceId ?? "" },
+		{
+			enabled: Boolean(workspaceId && worktreePath && absoluteFilePath),
+			onData: (event) => {
+				if (event.type === "overflow") {
+					invalidateCurrentFile();
+					return;
+				}
+
+				if (
+					!event.absolutePath ||
+					!pathsMatch(event.absolutePath, absoluteFilePath)
+				) {
+					return;
+				}
+
+				invalidateCurrentFile();
+			},
+		},
+	);
+
+	const handlePin = () => {
+		pinPane(paneId);
+	};
+
+	const switchToMode = useCallback(
+		(newMode: FileViewerMode) => {
+			const panes = useTabsStore.getState().panes;
+			const currentPane = panes[paneId];
+			if (currentPane?.fileViewer) {
+				useTabsStore.setState({
+					panes: {
+						...panes,
+						[paneId]: {
+							...currentPane,
+							fileViewer: {
+								...currentPane.fileViewer,
+								viewMode: newMode,
+							},
+						},
+					},
+				});
+			}
+		},
+		[paneId],
+	);
+
+	const handleViewModeChange = (value: string) => {
+		if (!value) return;
+		const newMode = value as FileViewerMode;
+
+		if (isDirty && newMode !== viewMode) {
+			pendingModeRef.current = newMode;
+			setShowUnsavedDialog(true);
+			return;
+		}
+
+		switchToMode(newMode);
+	};
+
+	const completePendingModeSwitch = useCallback(() => {
+		if (!pendingModeRef.current) {
+			return;
+		}
+
+		switchToMode(pendingModeRef.current);
+		pendingModeRef.current = null;
+		setShowUnsavedDialog(false);
+	}, [switchToMode]);
+
+	const handleSaveAndSwitch = async () => {
+		if (!pendingModeRef.current) return;
+
+		setIsSavingAndSwitching(true);
+		try {
+			if (viewMode === "raw" && editorRef.current) {
+				const result = await handleSaveRaw();
+				if (result?.status === "conflict") {
+					setSaveConflict({
+						localContent: editorRef.current.getValue(),
+						diskContent: result.currentContent,
+					});
+					setShowUnsavedDialog(false);
+					return;
+				}
+			}
+
+			completePendingModeSwitch();
+		} catch (error) {
+			console.error("[FileViewerPane] Save failed:", error);
+		} finally {
+			setIsSavingAndSwitching(false);
+		}
+	};
+
+	const handleDiscardAndSwitch = () => {
+		if (!pendingModeRef.current) return;
+
+		if (viewMode === "raw" && editorRef.current) {
+			editorRef.current.setValue(originalContentRef.current);
+		}
+
+		setIsDirty(false);
+		draftContentRef.current = null;
+		setSaveConflict(null);
+
+		completePendingModeSwitch();
+	};
+
+	const handleReloadFromDisk = useCallback(() => {
+		const nextDiskContent =
+			saveConflict?.diskContent ??
+			(rawFileData?.ok === true ? rawFileData.content : null);
+
+		if (editorRef.current) {
+			editorRef.current.setValue(nextDiskContent ?? "");
+		}
+
+		originalContentRef.current = nextDiskContent ?? "";
+		originalDiffContentRef.current = "";
+		draftContentRef.current = null;
+		setIsDirty(false);
+		setSaveConflict(null);
+		invalidateCurrentFile();
+
+		if (pendingModeRef.current) {
+			completePendingModeSwitch();
+		}
+	}, [
+		completePendingModeSwitch,
+		invalidateCurrentFile,
+		rawFileData,
+		saveConflict,
+	]);
+
+	const handleOverwriteSave = useCallback(async () => {
+		const result = await handleSaveRaw({ force: true });
+		if (result?.status !== "saved") {
+			return;
+		}
+
+		setSaveConflict(null);
+		if (pendingModeRef.current) {
+			completePendingModeSwitch();
+		}
+	}, [completePendingModeSwitch, handleSaveRaw]);
+
+	const fileName = filePath.split("/").pop() || filePath;
+	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
+	const hasDiff = !!diffCategory;
 
 	if (!fileViewer) {
 		return (
@@ -168,85 +371,6 @@ export function FileViewerPane({
 			</BasePaneWindow>
 		);
 	}
-
-	const handlePin = () => {
-		pinPane(paneId);
-	};
-
-	const switchToMode = (newMode: FileViewerMode) => {
-		const panes = useTabsStore.getState().panes;
-		const currentPane = panes[paneId];
-		if (currentPane?.fileViewer) {
-			useTabsStore.setState({
-				panes: {
-					...panes,
-					[paneId]: {
-						...currentPane,
-						fileViewer: {
-							...currentPane.fileViewer,
-							viewMode: newMode,
-						},
-					},
-				},
-			});
-		}
-	};
-
-	const handleViewModeChange = (value: string) => {
-		if (!value) return;
-		const newMode = value as FileViewerMode;
-
-		if (isDirty && newMode !== viewMode) {
-			pendingModeRef.current = newMode;
-			setShowUnsavedDialog(true);
-			return;
-		}
-
-		switchToMode(newMode);
-	};
-
-	const handleSaveAndSwitch = async () => {
-		if (!pendingModeRef.current) return;
-
-		setIsSavingAndSwitching(true);
-		try {
-			if (viewMode === "raw" && editorRef.current) {
-				const savedContent = editorRef.current.getValue();
-				await handleSaveRaw();
-				originalContentRef.current = savedContent;
-				originalDiffContentRef.current = "";
-			}
-
-			setIsDirty(false);
-			draftContentRef.current = null;
-
-			switchToMode(pendingModeRef.current);
-			pendingModeRef.current = null;
-			setShowUnsavedDialog(false);
-		} catch (error) {
-			console.error("[FileViewerPane] Save failed:", error);
-		} finally {
-			setIsSavingAndSwitching(false);
-		}
-	};
-
-	const handleDiscardAndSwitch = () => {
-		if (!pendingModeRef.current) return;
-
-		if (viewMode === "raw" && editorRef.current) {
-			editorRef.current.setValue(originalContentRef.current);
-		}
-
-		setIsDirty(false);
-		draftContentRef.current = null;
-
-		switchToMode(pendingModeRef.current);
-		pendingModeRef.current = null;
-	};
-
-	const fileName = filePath.split("/").pop() || filePath;
-	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
-	const hasDiff = !!diffCategory;
 
 	return (
 		<>
@@ -281,43 +405,86 @@ export function FileViewerPane({
 					</div>
 				)}
 			>
-				<FileViewerContent
-					viewMode={viewMode}
-					filePath={filePath}
-					isLoadingRaw={isLoadingRaw}
-					isLoadingImage={isLoadingImage}
-					isLoadingDiff={isLoadingDiff}
-					rawFileData={rawFileData}
-					imageData={imageData}
-					diffData={diffData}
-					editorRef={editorRef}
-					originalContentRef={originalContentRef}
-					draftContentRef={draftContentRef}
-					initialLine={initialLine}
-					initialColumn={initialColumn}
-					diffViewMode={diffViewMode}
-					hideUnchangedRegions={hideUnchangedRegions}
-					onSaveRaw={handleSaveRaw}
-					onEditorChange={handleEditorChange}
-					setIsDirty={setIsDirty}
-					// Context menu props
-					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
-					onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
-					onSplitWithNewChat={() =>
-						splitPaneVertical(tabId, paneId, path, { paneType: "chat-mastra" })
-					}
-					onSplitWithNewBrowser={() =>
-						splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
-					}
-					onClosePane={() => removePane(paneId)}
-					currentTabId={tabId}
-					availableTabs={availableTabs}
-					onMoveToTab={onMoveToTab}
-					onMoveToNewTab={onMoveToNewTab}
-					// Markdown search props
-					markdownContainerRef={markdownContainerRef}
-					markdownSearch={markdownSearch}
-				/>
+				<div className="flex h-full min-h-0 flex-col">
+					{hasExternalDiskChange && (
+						<div className="border-b px-3 py-2">
+							<Alert variant="destructive">
+								<AlertTitle>File changed on disk</AlertTitle>
+								<AlertDescription>
+									This editor has unsaved changes. Saving now will require
+									confirming the diff before overwriting the file.
+									<div className="mt-2 flex gap-2">
+										<Button
+											size="sm"
+											variant="outline"
+											onClick={handleReloadFromDisk}
+										>
+											Reload From Disk
+										</Button>
+										<Button
+											size="sm"
+											onClick={() => {
+												setSaveConflict({
+													localContent:
+														editorRef.current?.getValue() ??
+														draftContentRef.current ??
+														"",
+													diskContent:
+														rawFileData?.ok === true
+															? rawFileData.content
+															: null,
+												});
+											}}
+										>
+											Review Diff
+										</Button>
+									</div>
+								</AlertDescription>
+							</Alert>
+						</div>
+					)}
+					<div className="min-h-0 flex-1">
+						<FileViewerContent
+							viewMode={viewMode}
+							filePath={filePath}
+							isLoadingRaw={isLoadingRaw}
+							isLoadingImage={isLoadingImage}
+							isLoadingDiff={isLoadingDiff}
+							rawFileData={rawFileData}
+							imageData={imageData}
+							diffData={diffData}
+							editorRef={editorRef}
+							originalContentRef={originalContentRef}
+							draftContentRef={draftContentRef}
+							initialLine={initialLine}
+							initialColumn={initialColumn}
+							diffViewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
+							onSaveRaw={handleSaveRaw}
+							onEditorChange={handleEditorChange}
+							setIsDirty={setIsDirty}
+							// Context menu props
+							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
+							onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+							onSplitWithNewChat={() =>
+								splitPaneVertical(tabId, paneId, path, {
+									paneType: "chat-mastra",
+								})
+							}
+							onSplitWithNewBrowser={() =>
+								splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+							}
+							onClosePane={() => removePane(paneId)}
+							currentTabId={tabId}
+							availableTabs={availableTabs}
+							onMoveToTab={onMoveToTab}
+							onMoveToNewTab={onMoveToNewTab}
+							// Markdown search props
+							markdownContainerRef={markdownContainerRef}
+							markdownSearch={markdownSearch}
+						/>
+					</div>
+				</div>
 			</BasePaneWindow>
 			<UnsavedChangesDialog
 				open={showUnsavedDialog}
@@ -325,6 +492,28 @@ export function FileViewerPane({
 				onSaveAndSwitch={handleSaveAndSwitch}
 				onDiscardAndSwitch={handleDiscardAndSwitch}
 				isSaving={isSavingAndSwitching}
+			/>
+			<FileSaveConflictDialog
+				open={saveConflict !== null}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSaveConflict(null);
+					}
+				}}
+				filePath={filePath}
+				localContent={
+					saveConflict?.localContent ??
+					editorRef.current?.getValue() ??
+					draftContentRef.current ??
+					""
+				}
+				diskContent={saveConflict?.diskContent ?? null}
+				isSaving={isSaving}
+				onKeepEditing={() => setSaveConflict(null)}
+				onReloadFromDisk={handleReloadFromDisk}
+				onOverwrite={() => {
+					void handleOverwriteSave();
+				}}
 			/>
 		</>
 	);
