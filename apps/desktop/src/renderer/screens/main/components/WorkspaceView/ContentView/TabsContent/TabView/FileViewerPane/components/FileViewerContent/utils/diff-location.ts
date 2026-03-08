@@ -15,9 +15,26 @@ interface DiffClickColumnOptions {
 	numberColumn?: boolean;
 }
 
+export interface DiffDomLocation {
+	lineElement: HTMLElement;
+	lineNumber: number;
+	side: AnnotationSide;
+	lineType: LineTypes;
+	numberColumn: boolean;
+}
+
 export interface RawEditorPosition {
 	lineNumber: number;
 	column: number;
+}
+
+function isSupportedLineType(lineType: string): lineType is LineTypes {
+	return (
+		lineType === "context" ||
+		lineType === "context-expanded" ||
+		lineType === "change-deletion" ||
+		lineType === "change-addition"
+	);
 }
 
 function clampLineNumber(lineNumber: number, modifiedLines: string[]): number {
@@ -120,4 +137,48 @@ export function getColumnFromDiffSelection({
 	measureRange.setEnd(anchorNode, range.startOffset);
 
 	return Math.max(1, measureRange.toString().length + 1);
+}
+
+export function getDiffLocationFromTarget(
+	target: EventTarget | null,
+): DiffDomLocation | null {
+	if (!(target instanceof Node)) {
+		return null;
+	}
+
+	const targetElement =
+		target instanceof HTMLElement ? target : target.parentElement;
+	const lineElement = targetElement?.closest("[data-line]");
+	if (!(lineElement instanceof HTMLElement)) {
+		return null;
+	}
+
+	const rawLineNumber = Number.parseInt(lineElement.dataset.line ?? "", 10);
+	const lineType = lineElement.dataset.lineType;
+	if (
+		!Number.isFinite(rawLineNumber) ||
+		!lineType ||
+		!isSupportedLineType(lineType)
+	) {
+		return null;
+	}
+
+	const numberColumn = !!targetElement?.closest("[data-column-number]");
+	const parentCode = lineElement.closest("[data-code]");
+	const side: AnnotationSide =
+		lineType === "change-deletion"
+			? "deletions"
+			: lineType === "change-addition"
+				? "additions"
+				: parentCode instanceof HTMLElement && "deletions" in parentCode.dataset
+					? "deletions"
+					: "additions";
+
+	return {
+		lineElement,
+		lineNumber: rawLineNumber,
+		side,
+		lineType,
+		numberColumn,
+	};
 }

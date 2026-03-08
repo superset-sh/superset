@@ -19,6 +19,7 @@ import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
 import {
 	getColumnFromDiffSelection,
+	getDiffLocationFromTarget,
 	mapDiffLocationToRawPosition,
 } from "./utils/diff-location";
 
@@ -207,49 +208,6 @@ export function FileViewerContent({
 		};
 	};
 
-	const handleDiffLineClick = ({
-		lineNumber,
-		annotationSide,
-		lineType,
-		lineElement,
-		numberColumn,
-		event,
-	}: {
-		lineNumber: number;
-		annotationSide: "deletions" | "additions";
-		lineType:
-			| "change-deletion"
-			| "change-addition"
-			| "context"
-			| "context-expanded";
-		lineElement: HTMLElement;
-		numberColumn: boolean;
-		event: PointerEvent;
-	}) => {
-		lastDiffLocationRef.current = {
-			lineNumber,
-			side: annotationSide,
-			lineType,
-		};
-
-		if (event.detail !== 2 || !diffData) {
-			return;
-		}
-
-		const position = mapDiffLocationToRawPosition({
-			contents: diffData,
-			lineNumber,
-			side: annotationSide,
-			lineType,
-			column: getColumnFromDiffSelection({
-				lineElement,
-				numberColumn,
-			}),
-		});
-
-		onSwitchToRawAtLocation(position.lineNumber, position.column);
-	};
-
 	const handleDiffLineEnter = ({
 		lineNumber,
 		annotationSide,
@@ -346,6 +304,47 @@ export function FileViewerContent({
 				<div
 					ref={diffContainerRef}
 					className="h-full min-h-0 overflow-auto bg-background select-text"
+					onContextMenuCapture={(event) => {
+						const location = getDiffLocationFromTarget(event.target);
+						if (!location) {
+							return;
+						}
+
+						lastDiffLocationRef.current = {
+							lineNumber: location.lineNumber,
+							side: location.side,
+							lineType: location.lineType,
+						};
+					}}
+					onDoubleClick={(event) => {
+						if (!diffData) {
+							return;
+						}
+
+						const location = getDiffLocationFromTarget(event.target);
+						if (!location) {
+							return;
+						}
+
+						lastDiffLocationRef.current = {
+							lineNumber: location.lineNumber,
+							side: location.side,
+							lineType: location.lineType,
+						};
+
+						const position = mapDiffLocationToRawPosition({
+							contents: diffData,
+							lineNumber: location.lineNumber,
+							side: location.side,
+							lineType: location.lineType,
+							column: getColumnFromDiffSelection({
+								lineElement: location.lineElement,
+								numberColumn: location.numberColumn,
+							}),
+						});
+
+						onSwitchToRawAtLocation(position.lineNumber, position.column);
+					}}
 					onClick={(event) => {
 						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
 							event.stopPropagation();
@@ -359,7 +358,6 @@ export function FileViewerContent({
 						hideUnchangedRegions={hideUnchangedRegions}
 						filePath={filePath}
 						className="min-h-full"
-						onDiffLineClick={handleDiffLineClick}
 						onDiffLineEnter={handleDiffLineEnter}
 					/>
 				</div>
