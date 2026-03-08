@@ -136,6 +136,18 @@ export async function executeOnDevice({
 			};
 		}
 
+		if (updated?.status === "timeout") {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error: Command timed out after ${timeout}ms`,
+					},
+				],
+				isError: true,
+			};
+		}
+
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 	}
 
