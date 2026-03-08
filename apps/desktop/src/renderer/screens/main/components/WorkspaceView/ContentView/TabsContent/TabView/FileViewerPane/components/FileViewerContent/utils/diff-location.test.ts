@@ -84,6 +84,26 @@ describe("mapDiffLocationToRawPosition", () => {
 		});
 	});
 
+	it("maps old-side lines below the final hunk using the cumulative delta", () => {
+		const contents: FileContents = {
+			original: "one\ntwo\nthree\nfour\nfive",
+			modified: "zero\none\ntwo\nthree\nfour\nfive",
+			language: "text",
+		};
+
+		expect(
+			mapDiffLocationToRawPosition({
+				contents,
+				lineNumber: 5,
+				side: "deletions",
+				lineType: "context",
+			}),
+		).toEqual({
+			lineNumber: 6,
+			column: 1,
+		});
+	});
+
 	it("clamps columns to the target line length", () => {
 		const contents: FileContents = {
 			original: "alpha",

@@ -63,8 +63,13 @@ function mapOldSideLineToRawLine(
 		{ name: "before", contents: contents.original },
 		{ name: "after", contents: contents.modified },
 	);
+	let lineDelta = 0;
 
 	for (const hunk of diff.hunks) {
+		if (lineNumber < hunk.deletionStart) {
+			return clampLineNumber(lineNumber + lineDelta, modifiedLines);
+		}
+
 		let currentOldLine = hunk.deletionStart;
 		let currentNewLine = hunk.additionStart;
 
@@ -92,9 +97,11 @@ function mapOldSideLineToRawLine(
 
 			currentNewLine += chunk.additions.length;
 		}
+
+		lineDelta = currentNewLine - currentOldLine;
 	}
 
-	return clampLineNumber(lineNumber, modifiedLines);
+	return clampLineNumber(lineNumber + lineDelta, modifiedLines);
 }
 
 export function mapDiffLocationToRawPosition({
