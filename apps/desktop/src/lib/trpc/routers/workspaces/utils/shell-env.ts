@@ -89,6 +89,35 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 }
 
 /**
+ * Applies the user's full interactive shell environment to the target env,
+ * adding any variables not already present.
+ *
+ * On macOS, GUI apps launched from Finder/Dock start with a minimal process.env
+ * that has not sourced ~/.zshrc or ~/.bashrc. This means user-configured
+ * credentials like GITHUB_TOKEN are missing from child processes (including the
+ * Superset Chat agent harness), even though they work fine in terminal tabs.
+ *
+ * This function closes that gap by merging the shell-captured environment into
+ * the target env without overwriting any variables the Electron process already
+ * has set (e.g. NODE_ENV, DATABASE_URL).
+ *
+ * @param targetEnv - Target environment to apply to. Defaults to process.env.
+ * @param shellEnvResult - Shell env override (for testing). When omitted,
+ *   getShellEnvironment() is called to spawn an interactive login shell.
+ */
+export async function applyShellEnvToProcess(
+	targetEnv: NodeJS.ProcessEnv = process.env,
+	shellEnvResult?: Record<string, string>,
+): Promise<void> {
+	const env = shellEnvResult ?? (await getShellEnvironment());
+	for (const [key, value] of Object.entries(env)) {
+		if (targetEnv[key] === undefined) {
+			targetEnv[key] = value;
+		}
+	}
+}
+
+/**
  * Clears the cached shell environment.
  * Useful for testing or when environment changes are expected.
  */

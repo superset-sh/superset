@@ -15,6 +15,7 @@ import {
 	handleAuthCallback,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -294,6 +295,13 @@ if (!gotTheLock) {
 		// Must happen before renderer restore runs
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
+
+		// Merge user's interactive shell environment (e.g. GITHUB_TOKEN from ~/.zshrc)
+		// into process.env so the agent harness and child processes inherit it.
+		// Runs in the background — does not block startup.
+		applyShellEnvToProcess().catch((err) => {
+			console.warn("[main] Failed to apply shell env to process:", err);
+		});
 
 		try {
 			setupAgentHooks();
