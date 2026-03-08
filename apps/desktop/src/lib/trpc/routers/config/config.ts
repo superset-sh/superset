@@ -4,10 +4,21 @@ import { join } from "node:path";
 import { projects, type SelectProject } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import type { SetupAction, SetupDetectionResult } from "shared/types/config";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	getTerminalPresetsEnsuringInitialized,
+	saveTerminalPresets,
+} from "../settings/preset-store";
 import { loadSetupConfig } from "../workspaces/utils/setup";
+import {
+	exportPresetsToFile,
+	getPresetsFilePath,
+	importPresetsFromFile,
+	previewImportPresetsFromFile,
+} from "./presets-io";
 
 function hasConfiguredScripts(
 	project: Pick<SelectProject, "id" | "mainRepoPath">,
@@ -333,18 +344,30 @@ async function detectSetupDefaults(
 }
 
 function getConfigPath(mainRepoPath: string): string {
-	return join(mainRepoPath, ".superset", "config.json");
+	return join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
+}
+
+function ensureProjectSupersetDir(mainRepoPath: string): string {
+	const supersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
+	if (!existsSync(supersetDir)) {
+		mkdirSync(supersetDir, { recursive: true });
+	}
+	return supersetDir;
+}
+
+function getProjectById(projectId: string) {
+	return localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.id, projectId))
+		.get();
 }
 
 function ensureConfigExists(mainRepoPath: string): string {
 	const configPath = getConfigPath(mainRepoPath);
-	const supersetDir = join(mainRepoPath, ".superset");
 
 	if (!existsSync(configPath)) {
-		// Create .superset directory if it doesn't exist
-		if (!existsSync(supersetDir)) {
-			mkdirSync(supersetDir, { recursive: true });
-		}
+		ensureProjectSupersetDir(mainRepoPath);
 		// Create config.json with template
 		writeFileSync(configPath, CONFIG_TEMPLATE, "utf-8");
 	}
@@ -358,11 +381,7 @@ export const createConfigRouter = () => {
 		shouldShowSetupCard: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(async ({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return false;
 				}
@@ -391,26 +410,78 @@ export const createConfigRouter = () => {
 		getConfigFilePath: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return null;
 				}
 				return ensureConfigExists(project.mainRepoPath);
 			}),
 
+		getPresetsFilePath: publicProcedure.query(() => getPresetsFilePath()),
+
+		getPresetsFileStatus: publicProcedure.query(() => {
+			const path = getPresetsFilePath();
+			return {
+				path,
+				exists: existsSync(path),
+			};
+		}),
+
+		exportPresets: publicProcedure.mutation(() => {
+			const presets = getTerminalPresetsEnsuringInitialized();
+			return exportPresetsToFile({
+				presets,
+			});
+		}),
+
+		previewImportPresets: publicProcedure
+			.input(
+				z
+					.object({
+						filePath: z.string().min(1).optional(),
+					})
+					.optional(),
+			)
+			.query(({ input }) => {
+				const existingPresets = getTerminalPresetsEnsuringInitialized();
+				return previewImportPresetsFromFile({
+					existingPresets,
+					importFilePath: input?.filePath,
+				});
+			}),
+
+		importPresets: publicProcedure
+			.input(
+				z.object({
+					selectedIndices: z.array(z.number().int().min(0)).optional(),
+					filePath: z.string().min(1).optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const existingPresets = getTerminalPresetsEnsuringInitialized();
+
+				const result = importPresetsFromFile({
+					existingPresets,
+					selectedIndices: input.selectedIndices,
+					importFilePath: input.filePath,
+				});
+
+				saveTerminalPresets(result.presets);
+
+				return {
+					path: result.path,
+					created: result.created,
+					updated: result.updated,
+					unchanged: result.unchanged,
+					skipped: result.skipped,
+				};
+			}),
+
 		// Get the config file content
 		getConfigContent: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return { content: null, exists: false };
 				}
@@ -453,11 +524,7 @@ export const createConfigRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					throw new Error("Project not found");
 				}

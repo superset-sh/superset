@@ -105,6 +105,43 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 			return { canceled: false, dataUrl };
 		}),
+
+		selectFile: publicProcedure
+			.input(
+				z
+					.object({
+						title: z.string().optional(),
+						defaultPath: z.string().optional(),
+						filters: z
+							.array(
+								z.object({
+									name: z.string(),
+									extensions: z.array(z.string()),
+								}),
+							)
+							.optional(),
+					})
+					.optional(),
+			)
+			.mutation(async ({ input }) => {
+				const window = getWindow();
+				if (!window) {
+					return { canceled: true, path: null };
+				}
+
+				const result = await dialog.showOpenDialog(window, {
+					properties: ["openFile"],
+					title: input?.title ?? "Select File",
+					defaultPath: input?.defaultPath ?? undefined,
+					filters: input?.filters ?? undefined,
+				});
+
+				if (result.canceled || result.filePaths.length === 0) {
+					return { canceled: true, path: null };
+				}
+
+				return { canceled: false, path: result.filePaths[0] };
+			}),
 	});
 };
 
