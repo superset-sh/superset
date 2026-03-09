@@ -47,7 +47,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	};
 
 	const handleOpenInBrowser = () => {
-		const url = `http://localhost:${port.port}`;
+		const url = port.url ?? `http://localhost:${port.port}`;
 
 		if (openLinksInApp) {
 			navigateToWorkspace(port.workspaceId, navigate);
@@ -98,7 +98,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					<div
 						className={`font-mono ${port.label ? "text-muted-foreground" : "font-medium"}`}
 					>
-						localhost:{port.port}
+						{port.url ?? `localhost:${port.port}`}
 					</div>
 					{(port.processName || port.pid != null) && (
 						<div className="text-muted-foreground">
