@@ -108,4 +108,32 @@ describe("createWorkspaceFsHostService", () => {
 		await iterator.return?.();
 		expect(unsubscribed).toEqual(true);
 	});
+
+	it("exposes service info with capabilities derived from host options", async () => {
+		const service = createWorkspaceFsHostService({
+			resolveRootPath: () => "/tmp/workspace",
+			watcherManager: {
+				async subscribe() {
+					return async () => {};
+				},
+				async close() {},
+			},
+		});
+
+		const serviceInfo = await service.getServiceInfo();
+		expect(serviceInfo).toEqual({
+			hostKind: "local",
+			resourceScheme: "workspace-fs",
+			pathIdentity: "absolute-path",
+			capabilities: {
+				read: true,
+				write: true,
+				watch: true,
+				searchFiles: true,
+				searchKeyword: true,
+				trash: false,
+				resourceUris: true,
+			},
+		});
+	});
 });

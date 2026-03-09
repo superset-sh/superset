@@ -578,6 +578,10 @@ Deliverable:
 - keep Electron IPC as one host adapter, not the service itself
 - make watcher/search state belong to the host layer
 - prepare for a future remote workspace host that runs beside the workspace
+- add a host/service descriptor with explicit capabilities and host kind
+- add a transport-neutral client factory so remote transports can satisfy the same `workspace-fs` contract
+- add derived resource URI helpers for future non-local hosts while keeping `absolutePath` canonical for local operations
+- expose desktop host service info through a thin router endpoint instead of treating Electron as the contract
 
 Deliverable:
 
@@ -643,6 +647,8 @@ filesystem.searchFiles({
 filesystem.subscribeWorkspace({
   workspaceId,
 })
+
+filesystem.getServiceInfo()
 ```
 
 Notes:
@@ -650,6 +656,7 @@ Notes:
 - directory/file targets are always absolute
 - `workspaceId` is always required
 - `relativePath` should never be required input
+- local hosts expose `absolutePath` as the canonical identity, while resource URIs are derived metadata for future remote transports
 - desktop router procedures should be thin adapters over the `workspace-fs` host service, not independent filesystem logic
 
 ## Rollout Strategy

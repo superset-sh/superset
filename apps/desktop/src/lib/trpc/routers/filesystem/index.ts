@@ -7,6 +7,8 @@ import {
 	createWorkspaceDirectory,
 	createWorkspaceFile,
 	deleteWorkspacePaths,
+	getWorkspaceFsServiceInfo,
+	moveWorkspacePaths,
 	readWorkspaceDirectory,
 	renameWorkspacePath,
 	searchWorkspaceFiles,
@@ -14,7 +16,6 @@ import {
 	searchWorkspaceKeyword,
 	statWorkspacePath,
 	watchWorkspaceFileSystemEvents,
-	moveWorkspacePaths,
 	workspacePathExists,
 } from "../workspace-fs-service";
 
@@ -28,6 +29,10 @@ function isClosedStreamError(error: unknown): boolean {
 
 export const createFilesystemRouter = () => {
 	return router({
+		getServiceInfo: publicProcedure.query(async () => {
+			return await getWorkspaceFsServiceInfo();
+		}),
+
 		readDirectory: publicProcedure
 			.input(
 				z.object({

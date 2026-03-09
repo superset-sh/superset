@@ -8,6 +8,26 @@ import type {
 	WorkspaceFsStat,
 	WorkspaceFsWatchEvent,
 } from "../types";
+import { WORKSPACE_FS_RESOURCE_SCHEME } from "./resource-uri";
+
+export type WorkspaceFsHostKind = "local" | "remote";
+
+export interface WorkspaceFsCapabilities {
+	read: boolean;
+	write: boolean;
+	watch: boolean;
+	searchFiles: boolean;
+	searchKeyword: boolean;
+	trash: boolean;
+	resourceUris: boolean;
+}
+
+export interface WorkspaceFsServiceInfo {
+	hostKind: WorkspaceFsHostKind;
+	resourceScheme: string;
+	pathIdentity: "absolute-path";
+	capabilities: WorkspaceFsCapabilities;
+}
 
 export interface WorkspaceFsLocation {
 	workspaceId: string;
@@ -56,6 +76,10 @@ export interface WorkspaceFsWatchInput {
 	workspaceId: string;
 }
 
+export interface WorkspaceFsServiceMetadata {
+	getServiceInfo(): Promise<WorkspaceFsServiceInfo>;
+}
+
 export interface WorkspaceFsQueryService {
 	listDirectory(input: WorkspaceFsDirectoryQuery): Promise<WorkspaceFsEntry[]>;
 	readTextFile(input: WorkspaceFsLocation): Promise<string>;
@@ -96,7 +120,93 @@ export interface WorkspaceFsWatchService {
 }
 
 export interface WorkspaceFsService
-	extends WorkspaceFsQueryService,
+	extends WorkspaceFsServiceMetadata,
+		WorkspaceFsQueryService,
 		WorkspaceFsMutationService,
 		WorkspaceFsSearchService,
 		WorkspaceFsWatchService {}
+
+export interface WorkspaceFsRequestMap {
+	getServiceInfo: {
+		input: undefined;
+		output: WorkspaceFsServiceInfo;
+	};
+	listDirectory: {
+		input: WorkspaceFsDirectoryQuery;
+		output: WorkspaceFsEntry[];
+	};
+	readTextFile: {
+		input: WorkspaceFsLocation;
+		output: string;
+	};
+	readFileBuffer: {
+		input: WorkspaceFsLocation;
+		output: Uint8Array;
+	};
+	stat: {
+		input: WorkspaceFsLocation;
+		output: WorkspaceFsStat;
+	};
+	exists: {
+		input: WorkspaceFsLocation;
+		output: WorkspaceFsExistsResult;
+	};
+	writeTextFile: {
+		input: WorkspaceFsWriteFileInput;
+		output: undefined;
+	};
+	createFile: {
+		input: WorkspaceFsCreateFileInput;
+		output: { absolutePath: string };
+	};
+	createDirectory: {
+		input: WorkspaceFsCreateDirectoryInput;
+		output: { absolutePath: string };
+	};
+	rename: {
+		input: WorkspaceFsRenameInput;
+		output: { oldAbsolutePath: string; newAbsolutePath: string };
+	};
+	deletePaths: {
+		input: WorkspaceFsDeletePathsInput;
+		output: DeletePathsResult;
+	};
+	movePaths: {
+		input: WorkspaceFsMoveCopyInput;
+		output: MoveCopyResult;
+	};
+	copyPaths: {
+		input: WorkspaceFsMoveCopyInput;
+		output: MoveCopyResult;
+	};
+	searchFiles: {
+		input: WorkspaceFsSearchFilesInput;
+		output: WorkspaceFsSearchResult[];
+	};
+	searchKeyword: {
+		input: WorkspaceFsSearchFilesInput;
+		output: WorkspaceFsKeywordMatch[];
+	};
+}
+
+export interface WorkspaceFsSubscriptionMap {
+	watchWorkspace: {
+		input: WorkspaceFsWatchInput;
+		event: WorkspaceFsWatchEvent;
+	};
+}
+
+export const DEFAULT_WORKSPACE_FS_SERVICE_INFO: WorkspaceFsServiceInfo = {
+	hostKind: "local",
+	resourceScheme: WORKSPACE_FS_RESOURCE_SCHEME,
+	pathIdentity: "absolute-path",
+	capabilities: {
+		read: true,
+		write: true,
+		watch: true,
+		searchFiles: true,
+		searchKeyword: true,
+		trash: true,
+		resourceUris: true,
+	},
+};

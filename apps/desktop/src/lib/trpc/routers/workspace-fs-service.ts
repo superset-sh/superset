@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { WorkspaceFsServiceInfo } from "@superset/workspace-fs/core";
 import {
 	createWorkspaceFsHostService,
 	toFileSystemChangeEvent,
@@ -195,6 +196,10 @@ export async function readWorkspaceDirectory(input: {
 		relativePath: entry.relativePath,
 		isDirectory: entry.isDirectory,
 	}));
+}
+
+export async function getWorkspaceFsServiceInfo(): Promise<WorkspaceFsServiceInfo> {
+	return await workspaceFsService.getServiceInfo();
 }
 
 export async function createWorkspaceFile(input: {

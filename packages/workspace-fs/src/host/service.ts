@@ -1,7 +1,10 @@
-import type {
-	WorkspaceFsMoveCopyInput,
-	WorkspaceFsService,
-	WorkspaceFsWatchInput,
+import {
+	DEFAULT_WORKSPACE_FS_SERVICE_INFO,
+	type WorkspaceFsCapabilities,
+	type WorkspaceFsMoveCopyInput,
+	type WorkspaceFsService,
+	type WorkspaceFsServiceInfo,
+	type WorkspaceFsWatchInput,
 } from "../core/service";
 import {
 	copyPaths,
@@ -26,7 +29,13 @@ import type {
 } from "../watch";
 
 export interface WorkspaceFsHostService extends WorkspaceFsService {
+	getServiceInfo(): Promise<WorkspaceFsServiceInfo>;
 	close(): Promise<void>;
+}
+
+export interface WorkspaceFsServiceInfoOverrides
+	extends Omit<Partial<WorkspaceFsServiceInfo>, "capabilities"> {
+	capabilities?: Partial<WorkspaceFsCapabilities>;
 }
 
 export interface WorkspaceFsHostServiceOptions {
@@ -34,6 +43,7 @@ export interface WorkspaceFsHostServiceOptions {
 	watcherManager?: Pick<WorkspaceFsWatcherManager, "subscribe" | "close">;
 	trashItem?: (absolutePath: string) => Promise<void>;
 	runRipgrep?: SearchKeywordOptions["runRipgrep"];
+	serviceInfo?: WorkspaceFsServiceInfoOverrides;
 }
 
 interface AsyncQueueState<T> {
@@ -155,6 +165,19 @@ export function createWorkspaceFsHostService(
 ): WorkspaceFsHostService {
 	const resolveRootPath = (workspaceId: string) =>
 		options.resolveRootPath(workspaceId);
+	const serviceInfo: WorkspaceFsServiceInfo = {
+		...DEFAULT_WORKSPACE_FS_SERVICE_INFO,
+		...options.serviceInfo,
+		capabilities: {
+			...DEFAULT_WORKSPACE_FS_SERVICE_INFO.capabilities,
+			...options.serviceInfo?.capabilities,
+			watch:
+				options.serviceInfo?.capabilities?.watch ??
+				Boolean(options.watcherManager),
+			trash:
+				options.serviceInfo?.capabilities?.trash ?? Boolean(options.trashItem),
+		},
+	};
 
 	const withRootPath = <T extends { workspaceId: string }>(input: T) => ({
 		rootPath: resolveRootPath(input.workspaceId),
@@ -167,6 +190,10 @@ export function createWorkspaceFsHostService(
 	});
 
 	return {
+		async getServiceInfo() {
+			return serviceInfo;
+		},
+
 		async listDirectory(input) {
 			return await listDirectory({
 				...withRootPath(input),
@@ -276,23 +303,23 @@ export function createWorkspaceFsHostService(
 			return await searchKeyword(optionsForSearch);
 		},
 
-			watchWorkspace(
-				input: WorkspaceFsWatchInput,
-			): AsyncIterable<WorkspaceFsWatchEvent> {
-				const watcherManager = options.watcherManager;
-				if (!watcherManager) {
-					throw new Error("watchWorkspace requires a watcher manager");
-				}
+		watchWorkspace(
+			input: WorkspaceFsWatchInput,
+		): AsyncIterable<WorkspaceFsWatchEvent> {
+			const watcherManager = options.watcherManager;
+			if (!watcherManager) {
+				throw new Error("watchWorkspace requires a watcher manager");
+			}
 
-				const rootPath = resolveRootPath(input.workspaceId);
-				return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
-					const watchOptions: WorkspaceWatchSubscriptionOptions = {
-						workspaceId: input.workspaceId,
-						rootPath,
-					};
-					return await watcherManager.subscribe(watchOptions, push);
-				});
-			},
+			const rootPath = resolveRootPath(input.workspaceId);
+			return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
+				const watchOptions: WorkspaceWatchSubscriptionOptions = {
+					workspaceId: input.workspaceId,
+					rootPath,
+				};
+				return await watcherManager.subscribe(watchOptions, push);
+			});
+		},
 
 		async close() {
 			await options.watcherManager?.close();
