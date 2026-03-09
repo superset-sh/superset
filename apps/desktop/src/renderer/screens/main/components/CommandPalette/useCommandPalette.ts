@@ -13,6 +13,28 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 
 const SEARCH_LIMIT = 50;
 
+interface FileResult {
+	id: string;
+	resultType: "file";
+	name: string;
+	relativePath: string;
+	path: string;
+	isDirectory: boolean;
+	score: number;
+	workspaceId?: string;
+	workspaceName?: string;
+}
+
+interface WorkspaceResult {
+	id: string;
+	resultType: "workspace";
+	name: string;
+	projectName: string;
+	type: "worktree" | "branch";
+}
+
+export type CommandPaletteResult = FileResult | WorkspaceResult;
+
 interface UseCommandPaletteParams {
 	workspaceId: string;
 	worktreePath: string | undefined;
@@ -49,13 +71,55 @@ export function useCommandPalette({
 	);
 	const setScopeByMode = useSearchDialogStore((state) => state.setScope);
 
-	// Fetch all grouped workspaces (only when global scope is active and dialog is open)
+	// Fetch all grouped workspaces (when dialog is open - used for workspace search and global file search)
 	const { data: allGrouped } = electronTrpc.workspaces.getAllGrouped.useQuery(
 		undefined,
 		{
-			enabled: open && scope === "global",
+			enabled: open,
 		},
 	);
+
+	// Filter workspaces matching the query
+	const workspaceMatches = useMemo((): WorkspaceResult[] => {
+		if (!allGrouped || !query.trim()) return [];
+		const q = query.trim().toLowerCase();
+		const matches: WorkspaceResult[] = [];
+		for (const group of allGrouped) {
+			const addIfMatches = (ws: {
+				id: string;
+				name: string;
+				type: "worktree" | "branch";
+			}) => {
+				const displayName = getWorkspaceDisplayName(
+					ws.name,
+					ws.type,
+					group.project.name,
+				);
+				if (
+					displayName.toLowerCase().includes(q) ||
+					ws.name.toLowerCase().includes(q) ||
+					group.project.name.toLowerCase().includes(q)
+				) {
+					matches.push({
+						id: ws.id,
+						resultType: "workspace",
+						name: ws.name,
+						projectName: group.project.name,
+						type: ws.type,
+					});
+				}
+			};
+			for (const ws of group.workspaces) {
+				addIfMatches(ws);
+			}
+			for (const section of group.sections) {
+				for (const ws of section.workspaces) {
+					addIfMatches(ws);
+				}
+			}
+		}
+		return matches;
+	}, [allGrouped, query]);
 
 	// Build roots array for multi-workspace search
 	const roots = useMemo(() => {
@@ -126,10 +190,20 @@ export function useCommandPalette({
 		},
 	);
 
-	const searchResults =
-		scope === "workspace"
-			? singleSearch.searchResults
-			: (multiSearch.data ?? []);
+	const fileResults: FileResult[] = useMemo(() => {
+		const raw =
+			scope === "workspace"
+				? singleSearch.searchResults
+				: (multiSearch.data ?? []);
+		return raw.map((r) => ({ ...r, resultType: "file" as const }));
+	}, [scope, singleSearch.searchResults, multiSearch.data]);
+
+	// Combine workspace matches (first) with file results
+	const searchResults: CommandPaletteResult[] = useMemo(
+		() => [...workspaceMatches, ...fileResults],
+		[workspaceMatches, fileResults],
+	);
+
 	const isFetching =
 		scope === "workspace"
 			? singleSearch.isFetching
@@ -152,13 +226,20 @@ export function useCommandPalette({
 		});
 	}, []);
 
-	const selectFile = useCallback(
-		(filePath: string, resultWorkspaceId?: string) => {
-			const targetWs = resultWorkspaceId ?? workspaceId;
-			useTabsStore.getState().addFileViewerPane(targetWs, { filePath });
-			handleOpenChange(false);
-			if (targetWs !== workspaceId) {
-				navigateToWorkspace(targetWs, navigate);
+	const selectResult = useCallback(
+		(result: CommandPaletteResult) => {
+			if (result.resultType === "workspace") {
+				handleOpenChange(false);
+				navigateToWorkspace(result.id, navigate);
+			} else {
+				const targetWs = result.workspaceId ?? workspaceId;
+				useTabsStore
+					.getState()
+					.addFileViewerPane(targetWs, { filePath: result.relativePath });
+				handleOpenChange(false);
+				if (targetWs !== workspaceId) {
+					navigateToWorkspace(targetWs, navigate);
+				}
 			}
 		},
 		[workspaceId, handleOpenChange, navigate],
@@ -204,7 +285,7 @@ export function useCommandPalette({
 		setExcludePattern,
 		handleOpenChange,
 		toggle,
-		selectFile,
+		selectResult,
 		searchResults,
 		isFetching,
 		scope,

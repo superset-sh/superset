@@ -29,13 +29,20 @@ interface SearchDialogProps<TItem extends SearchDialogItem> {
 	onIncludePatternChange: (value: string) => void;
 	excludePattern: string;
 	onExcludePatternChange: (value: string) => void;
-	emptyMessage: string;
 	isLoading: boolean;
-	results: TItem[];
-	getItemValue: (item: TItem) => string;
-	onSelectItem: (item: TItem) => void;
-	renderItem: (item: TItem) => ReactNode;
 	headerExtra?: ReactNode;
+	/** When provided, renders custom content inside the CommandList instead of the default results. */
+	children?: ReactNode;
+	/** Used when children is not provided */
+	emptyMessage?: string;
+	/** Used when children is not provided */
+	results?: TItem[];
+	/** Used when children is not provided */
+	getItemValue?: (item: TItem) => string;
+	/** Used when children is not provided */
+	onSelectItem?: (item: TItem) => void;
+	/** Used when children is not provided */
+	renderItem?: (item: TItem) => ReactNode;
 }
 
 export function SearchDialog<TItem extends SearchDialogItem>({
@@ -52,13 +59,14 @@ export function SearchDialog<TItem extends SearchDialogItem>({
 	onIncludePatternChange,
 	excludePattern,
 	onExcludePatternChange,
-	emptyMessage,
 	isLoading,
+	headerExtra,
+	children,
+	emptyMessage,
 	results,
 	getItemValue,
 	onSelectItem,
 	renderItem,
-	headerExtra,
 }: SearchDialogProps<TItem>) {
 	return (
 		<CommandDialog
@@ -116,18 +124,25 @@ export function SearchDialog<TItem extends SearchDialogItem>({
 			) : null}
 			{headerExtra}
 			<CommandList>
-				{query.trim().length > 0 && !isLoading && results.length === 0 && (
-					<CommandEmpty>{emptyMessage}</CommandEmpty>
-				)}
-				{results.map((item) => (
-					<CommandItem
-						key={item.id}
-						value={getItemValue(item)}
-						onSelect={() => onSelectItem(item)}
-					>
-						{renderItem(item)}
-					</CommandItem>
-				))}
+				{children ??
+					(results && getItemValue && onSelectItem && renderItem ? (
+						<>
+							{query.trim().length > 0 &&
+								!isLoading &&
+								results.length === 0 && (
+									<CommandEmpty>{emptyMessage}</CommandEmpty>
+								)}
+							{results.map((item) => (
+								<CommandItem
+									key={item.id}
+									value={getItemValue(item)}
+									onSelect={() => onSelectItem(item)}
+								>
+									{renderItem(item)}
+								</CommandItem>
+							))}
+						</>
+					) : null)}
 			</CommandList>
 		</CommandDialog>
 	);

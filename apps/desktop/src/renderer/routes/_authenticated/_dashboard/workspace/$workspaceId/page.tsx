@@ -620,7 +620,7 @@ function WorkspacePage() {
 				onExcludePatternChange={commandPalette.setExcludePattern}
 				isLoading={commandPalette.isFetching}
 				searchResults={commandPalette.searchResults}
-				onSelectFile={commandPalette.selectFile}
+				onSelectResult={commandPalette.selectResult}
 				scope={commandPalette.scope}
 				onScopeChange={commandPalette.setScope}
 				workspaceName={
