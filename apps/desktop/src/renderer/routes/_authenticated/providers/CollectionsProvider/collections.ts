@@ -3,6 +3,8 @@ import type {
 	SelectAgentCommand,
 	SelectChatSession,
 	SelectDevicePresence,
+	SelectGithubPullRequest,
+	SelectGithubRepository,
 	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
@@ -27,11 +29,7 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 
-let electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_PROXY_URL}/v1/shape`;
-
-export function setElectricUrl(url: string) {
-	electricUrl = `${url}/v1/shape`;
-}
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -63,6 +61,8 @@ interface OrgCollections {
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
 	sessionHosts: Collection<SelectSessionHost>;
+	githubRepositories: Collection<SelectGithubRepository>;
+	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
 
 // Per-org collections cache
@@ -89,25 +89,18 @@ const electricHeaders = {
 	},
 };
 
-let organizationsCollection: Collection<SelectOrganization> | null = null;
-
-function getOrganizationsCollection(): Collection<SelectOrganization> {
-	if (!organizationsCollection) {
-		organizationsCollection = createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: electricHeaders,
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-	}
-	return organizationsCollection;
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
 function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createCollection(
@@ -360,6 +353,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const githubRepositories = createCollection(
+		electricCollectionOptions<SelectGithubRepository>({
+			id: `github_repositories-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_repositories",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const githubPullRequests = createCollection(
+		electricCollectionOptions<SelectGithubPullRequest>({
+			id: `github_pull_requests-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_pull_requests",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -375,6 +400,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		apiKeys,
 		chatSessions,
 		sessionHosts,
+		githubRepositories,
+		githubPullRequests,
 	};
 }
 
@@ -419,6 +446,6 @@ export function getCollections(organizationId: string) {
 
 	return {
 		...orgCollections,
-		organizations: getOrganizationsCollection(),
+		organizations: organizationsCollection,
 	};
 }

@@ -3,6 +3,8 @@ import {
 	agentCommands,
 	chatSessions,
 	devicePresence,
+	githubPullRequests,
+	githubRepositories,
 	integrationConnections,
 	invitations,
 	members,
@@ -33,7 +35,9 @@ export type AllowedTable =
 	| "subscriptions"
 	| "workspaces"
 	| "chat_sessions"
-	| "session_hosts";
+	| "session_hosts"
+	| "github_repositories"
+	| "github_pull_requests";
 
 interface WhereClause {
 	fragment: string;
@@ -137,6 +141,20 @@ export async function buildWhereClause(
 
 		case "session_hosts":
 			return build(sessionHosts, sessionHosts.organizationId, organizationId);
+
+		case "github_repositories":
+			return build(
+				githubRepositories,
+				githubRepositories.organizationId,
+				organizationId,
+			);
+
+		case "github_pull_requests":
+			return build(
+				githubPullRequests,
+				githubPullRequests.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

@@ -50,6 +50,8 @@ export interface AgentSessionLaunchContext {
 		paneId: string;
 		tabId: string;
 		workspaceId: string;
+		taskPromptContent?: string;
+		taskPromptFileName?: string;
 	}) => Promise<unknown>;
 	write: (input: {
 		paneId: string;

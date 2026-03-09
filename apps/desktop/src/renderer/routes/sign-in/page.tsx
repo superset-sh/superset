@@ -6,17 +6,17 @@ import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
-import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SupersetLogo } from "./components/SupersetLogo";
+import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
 export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
 });
 
 function SignInPage() {
-	const { data: session, isPending } = authClient.useSession();
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
+	const { hasLocalToken, isPending, session } = useSessionRecovery();
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
@@ -57,7 +57,9 @@ function SignInPage() {
 							Welcome to Superset
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							Sign in to get started
+							{hasLocalToken
+								? "Restoring your session"
+								: "Sign in to get started"}
 						</p>
 					</div>
 
@@ -67,6 +69,7 @@ function SignInPage() {
 							size="lg"
 							onClick={() => signIn("github")}
 							className="w-full gap-3"
+							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
 							Continue with GitHub
@@ -77,6 +80,7 @@ function SignInPage() {
 							size="lg"
 							onClick={() => signIn("google")}
 							className="w-full gap-3"
+							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
 							Continue with Google

@@ -29,11 +29,41 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
+	const { data: allTasks } = useLiveQuery(
+		(q) => q.from({ tasks: collections.tasks }),
+		[collections],
+	);
+
+	const externalAssignees = useMemo(() => {
+		if (!allTasks) return [];
+		const seen = new Map<
+			string,
+			{ id: string; name: string | null; avatar: string | null }
+		>();
+		for (const t of allTasks) {
+			if (t.assigneeExternalId && !seen.has(t.assigneeExternalId)) {
+				seen.set(t.assigneeExternalId, {
+					id: t.assigneeExternalId,
+					name: t.assigneeDisplayName,
+					avatar: t.assigneeAvatarUrl,
+				});
+			}
+		}
+		return [...seen.values()];
+	}, [allTasks]);
+
 	const selectedUser = useMemo(() => {
 		if (value === null) return null;
 		if (value === "unassigned") return { id: "unassigned", name: "Unassigned" };
+		if (value.startsWith("ext:")) {
+			const extId = value.slice(4);
+			const ext = externalAssignees.find((e) => e.id === extId);
+			return ext
+				? { id: value, name: ext.name || "External", image: ext.avatar }
+				: null;
+		}
 		return users.find((u) => u.id === value) || null;
-	}, [value, users]);
+	}, [value, users, externalAssignees]);
 
 	const handleSelect = (userId: string | null) => {
 		onChange(userId);
@@ -111,6 +141,35 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 							)}
 						</DropdownMenuItem>
 					))}
+					{externalAssignees.length > 0 && (
+						<>
+							<DropdownMenuSeparator />
+							<div className="px-2 py-1 text-xs text-muted-foreground font-medium">
+								External
+							</div>
+							{externalAssignees.map((ext) => (
+								<DropdownMenuItem
+									key={ext.id}
+									onSelect={() => handleSelect(`ext:${ext.id}`)}
+									className="flex items-center gap-2"
+								>
+									<Avatar
+										size="xs"
+										fullName={ext.name || "External"}
+										image={ext.avatar}
+									/>
+									<span className="text-sm text-muted-foreground">
+										{ext.name || "External"}
+									</span>
+									{value === `ext:${ext.id}` && (
+										<span className="ml-auto text-xs text-muted-foreground">
+											✓
+										</span>
+									)}
+								</DropdownMenuItem>
+							))}
+						</>
+					)}
 				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -101,6 +101,40 @@ export function clearShellEnvCache(): void {
 	pathFixSucceeded = false;
 }
 
+function copyStringEnv(
+	baseEnv: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
+	const env: Record<string, string> = {};
+
+	for (const [key, value] of Object.entries(baseEnv)) {
+		if (typeof value === "string") {
+			env[key] = value;
+		}
+	}
+
+	return env;
+}
+
+/**
+ * Returns process env merged with missing variables from the user's shell.
+ * Existing values always win so Electron/app-managed vars remain intact.
+ */
+export async function getProcessEnvWithShellEnv(
+	baseEnv: NodeJS.ProcessEnv = process.env,
+	shellEnvResult?: Record<string, string>,
+): Promise<Record<string, string>> {
+	const env = copyStringEnv(baseEnv);
+	const resolvedShellEnv = shellEnvResult ?? (await getShellEnvironment());
+
+	for (const [key, value] of Object.entries(resolvedShellEnv)) {
+		if (!(key in env)) {
+			env[key] = value;
+		}
+	}
+
+	return env;
+}
+
 /**
  * Returns process env merged with login-shell PATH.
  * Use this for child processes that should resolve binaries exactly
@@ -110,13 +144,7 @@ export async function getProcessEnvWithShellPath(
 	baseEnv: NodeJS.ProcessEnv = process.env,
 ): Promise<Record<string, string>> {
 	const shellEnvResult = await getShellEnvironment();
-	const env: Record<string, string> = {};
-
-	for (const [key, value] of Object.entries(baseEnv)) {
-		if (typeof value === "string") {
-			env[key] = value;
-		}
-	}
+	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
 	if (!shellPath) {
@@ -146,8 +174,16 @@ export async function execWithShellEnv(
 	args: string[],
 	options?: Omit<ExecFileOptionsWithStringEncoding, "encoding">,
 ): Promise<{ stdout: string; stderr: string }> {
+	const baseEnv = options?.env
+		? { ...process.env, ...options.env }
+		: process.env;
+
 	try {
-		return await execFileAsync(cmd, args, { ...options, encoding: "utf8" });
+		return await execFileAsync(cmd, args, {
+			...options,
+			encoding: "utf8",
+			env: await getProcessEnvWithShellEnv(baseEnv),
+		});
 	} catch (error) {
 		// Only retry on ENOENT (command not found), only on macOS
 		// Skip if we've already successfully fixed PATH, or if a fix attempt is in progress
@@ -167,11 +203,15 @@ export async function execWithShellEnv(
 
 		try {
 			const shellEnvResult = await getShellEnvironment();
+			const mergedShellEnv = await getProcessEnvWithShellEnv(
+				baseEnv,
+				shellEnvResult,
+			);
 
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
 			const retryEnv = shellEnvResult.PATH
-				? { ...shellEnvResult, ...options?.env, PATH: shellEnvResult.PATH }
-				: { ...shellEnvResult, ...options?.env };
+				? { ...mergedShellEnv, PATH: shellEnvResult.PATH }
+				: mergedShellEnv;
 
 			const result = await execFileAsync(cmd, args, {
 				...options,
@@ -193,6 +233,23 @@ export async function execWithShellEnv(
 			pathFixSucceeded = false;
 			console.error("[shell-env] Retry failed:", retryError);
 			throw retryError;
+		}
+	}
+}
+
+/**
+ * Enriches the running process environment with missing values from the user's
+ * interactive shell so later child processes inherit tokens and similar vars.
+ */
+export async function applyShellEnvToProcess(
+	targetEnv: NodeJS.ProcessEnv = process.env,
+	shellEnvResult?: Record<string, string>,
+): Promise<void> {
+	const mergedEnv = await getProcessEnvWithShellEnv(targetEnv, shellEnvResult);
+
+	for (const [key, value] of Object.entries(mergedEnv)) {
+		if (typeof targetEnv[key] !== "string") {
+			targetEnv[key] = value;
 		}
 	}
 }

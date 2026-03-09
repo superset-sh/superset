@@ -59,7 +59,6 @@ export const FEATURE_FLAGS = {
 	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
-	ELECTRIC_CLOUD: "electric-cloud",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
 } as const;

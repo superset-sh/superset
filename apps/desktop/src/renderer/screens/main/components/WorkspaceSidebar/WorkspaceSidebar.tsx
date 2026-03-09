@@ -90,6 +90,7 @@ export function WorkspaceSidebar({
 						iconUrl={group.project.iconUrl}
 						workspaces={group.workspaces}
 						sections={group.sections ?? []}
+						topLevelItems={group.topLevelItems}
 						shortcutBaseIndex={projectShortcutIndices[index]}
 						index={index}
 						isCollapsed={isCollapsed}

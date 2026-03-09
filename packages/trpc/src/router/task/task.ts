@@ -93,10 +93,18 @@ export const taskRouter = {
 		.mutation(async ({ input }) => {
 			const { id, ...data } = input;
 
+			// Enforce assignee invariant: setting internal assignee clears external snapshot
+			const updateData: Record<string, unknown> = { ...data };
+			if ("assigneeId" in data) {
+				updateData.assigneeExternalId = null;
+				updateData.assigneeDisplayName = null;
+				updateData.assigneeAvatarUrl = null;
+			}
+
 			const result = await dbWs.transaction(async (tx) => {
 				const [task] = await tx
 					.update(tasks)
-					.set(data)
+					.set(updateData)
 					.where(eq(tasks.id, id))
 					.returning();
 

@@ -100,6 +100,26 @@ function createRuntimeForTitleTest(options?: {
 }
 
 describe("runtime error propagation", () => {
+	it("restores Superset session id after Mastra thread events", () => {
+		const { runtime, emit } = createRuntimeForTest();
+		const setSessionId = {
+			calls: [] as string[],
+		};
+		runtime.hookManager = {
+			setSessionId: (sessionId: string) => {
+				setSessionId.calls.push(sessionId);
+			},
+		} as RuntimeSession["hookManager"];
+
+		emit({ type: "thread_created", thread: { id: "thread-1" } });
+		emit({ type: "thread_changed", threadId: "thread-2" });
+
+		expect(setSessionId.calls).toEqual([
+			"11111111-1111-1111-1111-111111111111",
+			"11111111-1111-1111-1111-111111111111",
+		]);
+	});
+
 	it("extracts nested provider message from error.data.error.message", () => {
 		const { runtime, emit } = createRuntimeForTest();
 		emit({

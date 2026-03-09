@@ -4,9 +4,9 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "@superset/db/schema";
+import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-
 import { env } from "@/env";
 import { githubApp } from "../octokit";
 
@@ -14,12 +14,7 @@ const bodySchema = z.object({
 	organizationId: z.string().uuid(),
 });
 
-/**
- * Manual sync endpoint for development.
- * In production, use the QStash-triggered initial-sync job.
- */
 export async function POST(request: Request) {
-	// Only allow in development
 	if (env.NODE_ENV !== "development") {
 		return Response.json(
 			{ error: "This endpoint is only available in development" },
@@ -56,7 +51,6 @@ export async function POST(request: Request) {
 			Number(installation.installationId),
 		);
 
-		// Fetch all repositories
 		const repos = await octokit.paginate(
 			octokit.rest.apps.listReposAccessibleToInstallation,
 			{ per_page: 100 },
@@ -64,12 +58,12 @@ export async function POST(request: Request) {
 
 		console.log(`[github/sync] Found ${repos.length} repositories`);
 
-		// Upsert repositories
 		for (const repo of repos) {
 			await db
 				.insert(githubRepositories)
 				.values({
 					installationId: installation.id,
+					organizationId,
 					repoId: String(repo.id),
 					owner: repo.owner.login,
 					name: repo.name,
@@ -80,6 +74,7 @@ export async function POST(request: Request) {
 				.onConflictDoUpdate({
 					target: [githubRepositories.repoId],
 					set: {
+						organizationId,
 						owner: repo.owner.login,
 						name: repo.name,
 						fullName: repo.full_name,
@@ -90,7 +85,8 @@ export async function POST(request: Request) {
 				});
 		}
 
-		// Fetch PRs for each repository
+		const thirtyDaysAgo = subDays(new Date(), 30);
+
 		for (const repo of repos) {
 			const [dbRepo] = await db
 				.select()
@@ -100,19 +96,36 @@ export async function POST(request: Request) {
 
 			if (!dbRepo) continue;
 
-			const prs = await octokit.paginate(octokit.rest.pulls.list, {
-				owner: repo.owner.login,
-				repo: repo.name,
-				state: "open",
-				per_page: 100,
-			});
+			const prs: Awaited<ReturnType<typeof octokit.rest.pulls.list>>["data"] =
+				[];
+
+			for await (const response of octokit.paginate.iterator(
+				octokit.rest.pulls.list,
+				{
+					owner: repo.owner.login,
+					repo: repo.name,
+					state: "all",
+					sort: "updated",
+					direction: "desc",
+					per_page: 100,
+				},
+			)) {
+				let reachedCutoff = false;
+				for (const pr of response.data) {
+					if (new Date(pr.updated_at) < thirtyDaysAgo) {
+						reachedCutoff = true;
+						break;
+					}
+					prs.push(pr);
+				}
+				if (reachedCutoff) break;
+			}
 
 			console.log(
-				`[github/sync] Found ${prs.length} PRs for ${repo.full_name}`,
+				`[github/sync] Found ${prs.length} PRs (last 30 days) for ${repo.full_name}`,
 			);
 
 			for (const pr of prs) {
-				// Get CI checks
 				const { data: checksData } = await octokit.rest.checks.listForRef({
 					owner: repo.owner.login,
 					repo: repo.name,
@@ -128,7 +141,6 @@ export async function POST(request: Request) {
 					}),
 				);
 
-				// Compute checks status
 				let checksStatus = "none";
 				if (checks.length > 0) {
 					const hasFailure = checks.some(
@@ -159,6 +171,7 @@ export async function POST(request: Request) {
 					.insert(githubPullRequests)
 					.values({
 						repositoryId: dbRepo.id,
+						organizationId,
 						prNumber: pr.number,
 						nodeId: pr.node_id,
 						headBranch: pr.head.ref,
@@ -185,6 +198,7 @@ export async function POST(request: Request) {
 							githubPullRequests.prNumber,
 						],
 						set: {
+							organizationId: dbRepo.organizationId,
 							headSha: pr.head.sha,
 							title: pr.title,
 							state: pr.state,
@@ -200,7 +214,6 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Update installation lastSyncedAt
 		await db
 			.update(githubInstallations)
 			.set({ lastSyncedAt: new Date() })

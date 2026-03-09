@@ -1,3 +1,5 @@
+import { getProjectChildItems } from "./project-children-order";
+
 interface ProjectLike {
 	id: string;
 	tabOrder: number | null;
@@ -19,8 +21,8 @@ interface SectionLike {
 /**
  * Computes the visual sidebar order of workspace IDs:
  * projects sorted by tabOrder, then within each project:
- *   1. ungrouped workspaces (sectionId === null) sorted by tabOrder
- *   2. sections sorted by tabOrder, each containing its workspaces sorted by tabOrder
+ *   1. top-level project children (ungrouped workspaces + sections) sorted by shared tabOrder
+ *   2. section workspaces sorted by tabOrder within each section
  */
 export function computeVisualOrder(
 	projects: ProjectLike[],
@@ -37,25 +39,21 @@ export function computeVisualOrder(
 		const projectWorkspaces = workspaces
 			.filter((w) => w.projectId === project.id)
 			.sort((a, b) => a.tabOrder - b.tabOrder);
+		const topLevelItems = getProjectChildItems(
+			project.id,
+			projectWorkspaces,
+			sections,
+		);
 
-		const projectSections = sections
-			.filter((s) => s.projectId === project.id)
-			.sort((a, b) => a.tabOrder - b.tabOrder);
-
-		const sectionIds = new Set(projectSections.map((s) => s.id));
-
-		// Ungrouped workspaces: null sectionId OR orphaned (sectionId not in project)
-		for (const ws of projectWorkspaces.filter(
-			(w) => w.sectionId === null || !sectionIds.has(w.sectionId),
-		)) {
-			orderedIds.push(ws.id);
-		}
-
-		for (const section of projectSections) {
-			for (const ws of projectWorkspaces.filter(
-				(w) => w.sectionId === section.id,
+		for (const item of topLevelItems) {
+			if (item.kind === "workspace") {
+				orderedIds.push(item.id);
+				continue;
+			}
+			for (const workspace of projectWorkspaces.filter(
+				(w) => w.sectionId === item.id,
 			)) {
-				orderedIds.push(ws.id);
+				orderedIds.push(workspace.id);
 			}
 		}
 	}

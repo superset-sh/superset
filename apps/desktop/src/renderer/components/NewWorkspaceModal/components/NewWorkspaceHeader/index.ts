@@ -1,1 +1,0 @@
-export { NewWorkspaceHeader } from "./NewWorkspaceHeader";

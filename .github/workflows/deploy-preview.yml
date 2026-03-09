@@ -283,7 +283,9 @@ jobs:
   deploy-web:
     name: Deploy Web
     runs-on: ubuntu-latest
-    environment: preview
+    environment:
+      name: preview
+      url: https://${{ env.WEB_ALIAS }}
     needs: deploy-database
 
     steps:

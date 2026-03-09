@@ -1,6 +1,14 @@
-import { useCallback, useState } from "react";
+import type { UseNavigateResult } from "@tanstack/react-router";
+import { useCallback, useMemo, useState } from "react";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch/useFileSearch";
-import { useSearchDialogStore } from "renderer/stores/search-dialog-state";
+import {
+	type SearchScope,
+	useSearchDialogStore,
+} from "renderer/stores/search-dialog-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 const SEARCH_LIMIT = 50;
@@ -8,11 +16,13 @@ const SEARCH_LIMIT = 50;
 interface UseCommandPaletteParams {
 	workspaceId: string;
 	worktreePath: string | undefined;
+	navigate: UseNavigateResult<string>;
 }
 
 export function useCommandPalette({
 	workspaceId,
 	worktreePath,
+	navigate,
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
@@ -25,6 +35,9 @@ export function useCommandPalette({
 	const filtersOpen = useSearchDialogStore(
 		(state) => state.byMode.quickOpen.filtersOpen,
 	);
+	const scope =
+		useSearchDialogStore((state) => state.byMode.quickOpen.scope) ??
+		"workspace";
 	const setIncludePatternByMode = useSearchDialogStore(
 		(state) => state.setIncludePattern,
 	);
@@ -34,14 +47,94 @@ export function useCommandPalette({
 	const setFiltersOpenByMode = useSearchDialogStore(
 		(state) => state.setFiltersOpen,
 	);
+	const setScopeByMode = useSearchDialogStore((state) => state.setScope);
 
-	const { searchResults, isFetching } = useFileSearch({
-		worktreePath: open ? worktreePath : undefined,
+	// Fetch all grouped workspaces (only when global scope is active and dialog is open)
+	const { data: allGrouped } = electronTrpc.workspaces.getAllGrouped.useQuery(
+		undefined,
+		{
+			enabled: open && scope === "global",
+		},
+	);
+
+	// Build roots array for multi-workspace search
+	const roots = useMemo(() => {
+		if (scope !== "global" || !allGrouped) return [];
+		const result: {
+			rootPath: string;
+			workspaceId: string;
+			workspaceName: string;
+		}[] = [];
+		for (const group of allGrouped) {
+			const addWorkspace = (ws: {
+				id: string;
+				worktreePath: string;
+				name: string;
+				type: "worktree" | "branch";
+			}) => {
+				if (ws.worktreePath) {
+					result.push({
+						rootPath: ws.worktreePath,
+						workspaceId: ws.id,
+						workspaceName: getWorkspaceDisplayName(
+							ws.name,
+							ws.type,
+							group.project.name,
+						),
+					});
+				}
+			};
+			for (const ws of group.workspaces) {
+				addWorkspace(ws);
+			}
+			for (const section of group.sections) {
+				for (const ws of section.workspaces) {
+					addWorkspace(ws);
+				}
+			}
+		}
+		return result;
+	}, [scope, allGrouped]);
+
+	// Single-workspace search (existing behavior)
+	const singleSearch = useFileSearch({
+		worktreePath: open && scope === "workspace" ? worktreePath : undefined,
 		searchTerm: query,
 		includePattern,
 		excludePattern,
 		limit: SEARCH_LIMIT,
 	});
+
+	// Multi-workspace search
+	const debouncedQuery = useDebouncedValue(query.trim(), 150);
+	const multiSearch = electronTrpc.filesystem.searchFilesMulti.useQuery(
+		{
+			roots,
+			query: debouncedQuery,
+			includePattern,
+			excludePattern,
+			limit: SEARCH_LIMIT,
+		},
+		{
+			enabled:
+				open &&
+				scope === "global" &&
+				roots.length > 0 &&
+				debouncedQuery.length > 0,
+			staleTime: 1000,
+			placeholderData: (prev) => prev ?? [],
+		},
+	);
+
+	const searchResults =
+		scope === "workspace"
+			? singleSearch.searchResults
+			: (multiSearch.data ?? []);
+	const isFetching =
+		scope === "workspace"
+			? singleSearch.isFetching
+			: multiSearch.isFetching ||
+				(query.trim().length > 0 && query.trim() !== debouncedQuery);
 
 	const handleOpenChange = useCallback((nextOpen: boolean) => {
 		setOpen(nextOpen);
@@ -60,11 +153,15 @@ export function useCommandPalette({
 	}, []);
 
 	const selectFile = useCallback(
-		(filePath: string) => {
-			useTabsStore.getState().addFileViewerPane(workspaceId, { filePath });
+		(filePath: string, resultWorkspaceId?: string) => {
+			const targetWs = resultWorkspaceId ?? workspaceId;
+			useTabsStore.getState().addFileViewerPane(targetWs, { filePath });
 			handleOpenChange(false);
+			if (targetWs !== workspaceId) {
+				navigateToWorkspace(targetWs, navigate);
+			}
 		},
-		[workspaceId, handleOpenChange],
+		[workspaceId, handleOpenChange, navigate],
 	);
 
 	const setIncludePattern = useCallback(
@@ -88,6 +185,13 @@ export function useCommandPalette({
 		[setFiltersOpenByMode],
 	);
 
+	const setScope = useCallback(
+		(newScope: SearchScope) => {
+			setScopeByMode("quickOpen", newScope);
+		},
+		[setScopeByMode],
+	);
+
 	return {
 		open,
 		query,
@@ -103,5 +207,7 @@ export function useCommandPalette({
 		selectFile,
 		searchResults,
 		isFetching,
+		scope,
+		setScope,
 	};
 }

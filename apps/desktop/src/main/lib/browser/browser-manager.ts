@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { app, clipboard, webContents } from "electron";
+import { app, clipboard, Menu, shell, webContents } from "electron";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
@@ -26,15 +26,18 @@ class BrowserManager extends EventEmitter {
 	private paneWebContentsIds = new Map<string, number>();
 	private consoleLogs = new Map<string, ConsoleEntry[]>();
 	private consoleListeners = new Map<string, () => void>();
+	private contextMenuListeners = new Map<string, () => void>();
 
 	register(paneId: string, webContentsId: number): void {
-		// Clean up previous console listener if re-registering with a new webContentsId
+		// Clean up previous listeners if re-registering with a new webContentsId
 		const prevId = this.paneWebContentsIds.get(paneId);
 		if (prevId != null && prevId !== webContentsId) {
-			const cleanup = this.consoleListeners.get(paneId);
-			if (cleanup) {
-				cleanup();
-				this.consoleListeners.delete(paneId);
+			for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+				const cleanup = map.get(paneId);
+				if (cleanup) {
+					cleanup();
+					map.delete(paneId);
+				}
 			}
 		}
 		this.paneWebContentsIds.set(paneId, webContentsId);
@@ -50,14 +53,17 @@ class BrowserManager extends EventEmitter {
 				return { action: "deny" as const };
 			});
 			this.setupConsoleCapture(paneId, wc);
+			this.setupContextMenu(paneId, wc);
 		}
 	}
 
 	unregister(paneId: string): void {
-		const cleanup = this.consoleListeners.get(paneId);
-		if (cleanup) {
-			cleanup();
-			this.consoleListeners.delete(paneId);
+		for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+			const cleanup = map.get(paneId);
+			if (cleanup) {
+				cleanup();
+				map.delete(paneId);
+			}
 		}
 		this.paneWebContentsIds.delete(paneId);
 		this.consoleLogs.delete(paneId);
@@ -155,6 +161,116 @@ class BrowserManager extends EventEmitter {
 		} catch {
 			return null;
 		}
+	}
+
+	private setupContextMenu(paneId: string, wc: Electron.WebContents): void {
+		const handler = (
+			_event: Electron.Event,
+			params: Electron.ContextMenuParams,
+		) => {
+			const { linkURL, pageURL, selectionText, editFlags } = params;
+
+			const menuItems: Electron.MenuItemConstructorOptions[] = [];
+
+			if (linkURL) {
+				menuItems.push(
+					{
+						label: "Open Link in Default Browser",
+						click: () => shell.openExternal(linkURL),
+					},
+					{
+						label: "Open Link as New Split",
+						click: () =>
+							this.emit(`context-menu-action:${paneId}`, {
+								action: "open-in-split" as const,
+								url: linkURL,
+							}),
+					},
+					{
+						label: "Copy Link Address",
+						click: () => clipboard.writeText(linkURL),
+					},
+					{ type: "separator" },
+				);
+			}
+
+			if (selectionText) {
+				menuItems.push({
+					label: "Copy",
+					enabled: editFlags.canCopy,
+					click: () => wc.copy(),
+				});
+			}
+
+			if (editFlags.canPaste) {
+				menuItems.push({
+					label: "Paste",
+					click: () => wc.paste(),
+				});
+			}
+
+			if (editFlags.canSelectAll) {
+				menuItems.push({
+					label: "Select All",
+					click: () => wc.selectAll(),
+				});
+			}
+
+			if (selectionText || editFlags.canPaste || editFlags.canSelectAll) {
+				menuItems.push({ type: "separator" });
+			}
+
+			menuItems.push(
+				{
+					label: "Back",
+					enabled: wc.canGoBack(),
+					click: () => wc.goBack(),
+				},
+				{
+					label: "Forward",
+					enabled: wc.canGoForward(),
+					click: () => wc.goForward(),
+				},
+				{
+					label: "Reload",
+					click: () => wc.reload(),
+				},
+			);
+
+			if (!linkURL) {
+				menuItems.push(
+					{ type: "separator" },
+					{
+						label: "Open Page in Default Browser",
+						click: () => {
+							if (pageURL && pageURL !== "about:blank") {
+								shell.openExternal(pageURL);
+							}
+						},
+						enabled: !!pageURL && pageURL !== "about:blank",
+					},
+					{
+						label: "Copy Page URL",
+						click: () => {
+							if (pageURL) clipboard.writeText(pageURL);
+						},
+						enabled: !!pageURL && pageURL !== "about:blank",
+					},
+				);
+			}
+
+			const menu = Menu.buildFromTemplate(menuItems);
+			menu.popup();
+		};
+
+		wc.on("context-menu", handler);
+		this.contextMenuListeners.set(paneId, () => {
+			try {
+				wc.off("context-menu", handler);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {

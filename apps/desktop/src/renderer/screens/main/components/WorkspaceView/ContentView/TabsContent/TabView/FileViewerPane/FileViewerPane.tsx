@@ -173,7 +173,13 @@ export function FileViewerPane({
 		pinPane(paneId);
 	};
 
-	const switchToMode = (newMode: FileViewerMode) => {
+	const switchToMode = (
+		newMode: FileViewerMode,
+		location?: {
+			line?: number;
+			column?: number;
+		},
+	) => {
 		const panes = useTabsStore.getState().panes;
 		const currentPane = panes[paneId];
 		if (currentPane?.fileViewer) {
@@ -185,11 +191,18 @@ export function FileViewerPane({
 						fileViewer: {
 							...currentPane.fileViewer,
 							viewMode: newMode,
+							initialLine: location?.line ?? currentPane.fileViewer.initialLine,
+							initialColumn:
+								location?.column ?? currentPane.fileViewer.initialColumn,
 						},
 					},
 				},
 			});
 		}
+	};
+
+	const handleSwitchToRawAtLocation = (line: number, column: number) => {
+		switchToMode("raw", { line, column });
 	};
 
 	const handleViewModeChange = (value: string) => {
@@ -300,6 +313,7 @@ export function FileViewerPane({
 					onSaveRaw={handleSaveRaw}
 					onEditorChange={handleEditorChange}
 					setIsDirty={setIsDirty}
+					onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 					// Context menu props
 					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 					onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}

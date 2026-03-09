@@ -1,4 +1,16 @@
 import type { BranchPrefixMode } from "@superset/local-db";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -8,6 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
@@ -19,6 +32,10 @@ import {
 } from "react-icons/hi2";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	useImportAllWorktrees,
+	useOpenExternalWorktree,
+} from "renderer/react-query/workspaces";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
@@ -85,6 +102,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const [customPrefixInput, setCustomPrefixInput] = useState(
 		project?.branchPrefixCustom ?? "",
 	);
+	const [selectedWorktreePath, setSelectedWorktreePath] = useState<
+		string | null
+	>(null);
 
 	useEffect(() => {
 		setCustomPrefixInput(project?.branchPrefixCustom ?? "");
@@ -183,6 +203,43 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		electronTrpc.settings.getWorktreeBaseDir.useQuery();
 	const defaultWorktreePath = useDefaultWorktreePath();
 	const globalPath = globalWorktreeBaseDir ?? defaultWorktreePath;
+
+	const { data: externalWorktrees = [], isLoading: isExternalLoading } =
+		electronTrpc.workspaces.getExternalWorktrees.useQuery(
+			{ projectId },
+			{ enabled: !!projectId },
+		);
+	const importAllWorktrees = useImportAllWorktrees();
+	const openExternalWorktree = useOpenExternalWorktree();
+
+	const handleImportAll = async () => {
+		try {
+			const result = await importAllWorktrees.mutateAsync({ projectId });
+			toast.success(
+				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
+			);
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to import worktrees",
+			);
+		}
+	};
+
+	const handleImportWorktree = async (path: string, branch: string) => {
+		toast.promise(
+			openExternalWorktree.mutateAsync({
+				projectId,
+				worktreePath: path,
+				branch,
+			}),
+			{
+				loading: "Importing worktree...",
+				success: `Imported ${branch}`,
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to import worktree",
+			},
+		);
+	};
 
 	const getPreviewPrefix = (
 		mode: BranchPrefixMode | "default",
@@ -336,8 +393,8 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 
 				<SettingsSection
 					icon={<HiOutlineFolderOpen className="h-4 w-4" />}
-					title="Worktree Location"
-					description="Override the global worktree directory for this project."
+					title="Worktrees"
+					description="Manage worktree location and import existing worktrees."
 				>
 					<WorktreeLocationPicker
 						currentPath={project.worktreeBaseDir}
@@ -358,6 +415,93 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							})
 						}
 					/>
+
+					{!isExternalLoading && externalWorktrees.length > 0 && (
+						<div className="flex items-center justify-between">
+							<div className="space-y-0.5">
+								<Label className="text-sm font-medium">Import Worktrees</Label>
+								<p className="text-xs text-muted-foreground">
+									{externalWorktrees.length} external worktree
+									{externalWorktrees.length === 1 ? "" : "s"} found on disk.
+								</p>
+							</div>
+							<div className="flex items-center gap-2">
+								<Select
+									value={selectedWorktreePath ?? "__all__"}
+									onValueChange={(value) =>
+										setSelectedWorktreePath(value === "__all__" ? null : value)
+									}
+								>
+									<SelectTrigger className="w-[220px]">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="__all__">
+											All worktrees ({externalWorktrees.length})
+										</SelectItem>
+										{externalWorktrees.map((wt) => (
+											<SelectItem key={wt.path} value={wt.path}>
+												{wt.branch}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								{selectedWorktreePath ? (
+									<Button
+										size="sm"
+										className="w-22"
+										disabled={openExternalWorktree.isPending}
+										onClick={() => {
+											const wt = externalWorktrees.find(
+												(w) => w.path === selectedWorktreePath,
+											);
+											if (wt) {
+												handleImportWorktree(wt.path, wt.branch);
+												setSelectedWorktreePath(null);
+											}
+										}}
+									>
+										{openExternalWorktree.isPending ? "Importing..." : "Import"}
+									</Button>
+								) : (
+									<AlertDialog>
+										<AlertDialogTrigger asChild>
+											<Button
+												size="sm"
+												className="w-22"
+												disabled={importAllWorktrees.isPending}
+											>
+												{importAllWorktrees.isPending
+													? "Importing..."
+													: "Import all"}
+											</Button>
+										</AlertDialogTrigger>
+										<AlertDialogContent>
+											<AlertDialogHeader>
+												<AlertDialogTitle>
+													Import all worktrees
+												</AlertDialogTitle>
+												<AlertDialogDescription>
+													This will import {externalWorktrees.length} external
+													worktree
+													{externalWorktrees.length === 1 ? "" : "s"} into
+													Superset as workspaces. Each worktree on disk will be
+													tracked and appear in your sidebar. No files will be
+													modified.
+												</AlertDialogDescription>
+											</AlertDialogHeader>
+											<AlertDialogFooter>
+												<AlertDialogCancel>Cancel</AlertDialogCancel>
+												<AlertDialogAction onClick={handleImportAll}>
+													Import all
+												</AlertDialogAction>
+											</AlertDialogFooter>
+										</AlertDialogContent>
+									</AlertDialog>
+								)}
+							</div>
+						</div>
+					)}
 				</SettingsSection>
 
 				<div className="pt-3 border-t">

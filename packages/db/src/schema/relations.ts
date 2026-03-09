@@ -69,6 +69,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
+	githubRepositories: many(githubRepositories),
+	githubPullRequests: many(githubPullRequests),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
@@ -172,6 +174,10 @@ export const githubRepositoriesRelations = relations(
 			fields: [githubRepositories.installationId],
 			references: [githubInstallations.id],
 		}),
+		organization: one(organizations, {
+			fields: [githubRepositories.organizationId],
+			references: [organizations.id],
+		}),
 		pullRequests: many(githubPullRequests),
 		projects: many(projects),
 	}),
@@ -183,6 +189,10 @@ export const githubPullRequestsRelations = relations(
 		repository: one(githubRepositories, {
 			fields: [githubPullRequests.repositoryId],
 			references: [githubRepositories.id],
+		}),
+		organization: one(organizations, {
+			fields: [githubPullRequests.organizationId],
+			references: [organizations.id],
 		}),
 	}),
 );
