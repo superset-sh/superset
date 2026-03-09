@@ -6,6 +6,7 @@ import type { SearchScope } from "renderer/stores/search-dialog-state";
 import { ScopeToggle } from "./components/ScopeToggle";
 import type { CommandPaletteResult } from "./useCommandPalette";
 
+/** A file match result in the command palette. */
 interface FileResult {
 	id: string;
 	resultType: "file";
@@ -18,6 +19,7 @@ interface FileResult {
 	workspaceName?: string;
 }
 
+/** A workspace match result in the command palette. */
 interface WorkspaceResult {
 	id: string;
 	resultType: "workspace";
@@ -26,6 +28,7 @@ interface WorkspaceResult {
 	type: "worktree" | "branch";
 }
 
+/** Props for the CommandPalette component. */
 interface CommandPaletteProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -45,6 +48,7 @@ interface CommandPaletteProps {
 	workspaceName?: string;
 }
 
+/** Quick Open dialog that shows workspace and file search results in separate groups. */
 export function CommandPalette({
 	open,
 	onOpenChange,

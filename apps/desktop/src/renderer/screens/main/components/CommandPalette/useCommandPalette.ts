@@ -13,6 +13,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 
 const SEARCH_LIMIT = 50;
 
+/** A file match returned by the file search. */
 interface FileResult {
 	id: string;
 	resultType: "file";
@@ -25,6 +26,7 @@ interface FileResult {
 	workspaceName?: string;
 }
 
+/** A workspace match returned by fuzzy-filtering workspace/project names. */
 interface WorkspaceResult {
 	id: string;
 	resultType: "workspace";
@@ -33,6 +35,7 @@ interface WorkspaceResult {
 	type: "worktree" | "branch";
 }
 
+/** Discriminated union of all result types shown in the command palette. */
 export type CommandPaletteResult = FileResult | WorkspaceResult;
 
 interface UseCommandPaletteParams {
@@ -41,6 +44,7 @@ interface UseCommandPaletteParams {
 	navigate: UseNavigateResult<string>;
 }
 
+/** Manages command palette state: search query, file results, workspace results, and selection. */
 export function useCommandPalette({
 	workspaceId,
 	worktreePath,

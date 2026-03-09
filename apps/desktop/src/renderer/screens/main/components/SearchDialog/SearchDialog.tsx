@@ -45,6 +45,7 @@ interface SearchDialogProps<TItem extends SearchDialogItem> {
 	renderItem?: (item: TItem) => ReactNode;
 }
 
+/** Reusable search dialog built on cmdk. Supports either a flat results list or custom children for grouped layouts. */
 export function SearchDialog<TItem extends SearchDialogItem>({
 	open,
 	onOpenChange,
