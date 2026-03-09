@@ -28,6 +28,7 @@ This should behave more like VS Code:
 - Scope and permissions boundary: `workspaceId`
 - Renderer event transport: desktop tRPC subscriptions
 - Only active workspaces should have live filesystem listeners
+- The filesystem service must be transport-agnostic so it can run either in desktop main or on a remote workspace host
 
 ## Why This Shape
 
@@ -46,6 +47,13 @@ The goal is to make the system simpler to reason about during implementation:
 - one identity model
 - one watcher system
 - one security model
+
+It also needs to be deployable in more than one place:
+
+- local desktop main process for today
+- remote workspace host/server for future remote development
+
+That means the core filesystem service cannot be tightly coupled to Electron, renderer state, or desktop-only runtime assumptions.
 
 ## Current Problems
 
@@ -134,6 +142,18 @@ packages/workspace-fs/
     watch/
 ```
 
+The package should be split so the core logic is reusable in a remote host:
+
+```text
+packages/workspace-fs/
+  src/
+    core/        # path rules, security rules, event model, search logic, watchers
+    server/      # local node host adapter, future remote host adapter
+    client/      # desktop/renderer client adapter
+```
+
+`core/` should not import Electron APIs or desktop app state.
+
 ## Responsibilities
 
 ### `paths/`
@@ -183,6 +203,166 @@ packages/workspace-fs/
 - reference-counted sharing across consumers in the same workspace
 
 `search/` and `watch/` should be implemented as one coordinated subsystem inside `packages/workspace-fs`, not as separate feature-specific utilities. Watching is what keeps file search and keyword/content search coherent after external edits, git operations, and file moves.
+
+## Remote-Capable Architecture Direction
+
+The filesystem layer should follow a thin-client plus workspace-host shape, similar to VS Code Remote and JetBrains Gateway:
+
+- the UI/client stays local
+- workspace/file operations run where the workspace actually lives
+- the client talks to a small workspace service over a stable protocol
+- local and remote workspaces share the same logical filesystem contract
+
+For this repo, that means `packages/workspace-fs` should become a standalone workspace service, not just a desktop helper package.
+
+### Pattern decision
+
+There are three relevant patterns:
+
+1. Thin client + workspace host
+   - local UI
+   - file IO, watchers, search, and indexing run next to the workspace
+   - one stable service contract used locally or remotely
+
+2. Control plane + workspace agent
+   - adds lifecycle management, scheduling, reconnect, and multi-workspace orchestration
+   - useful once remote workspaces are a product/platform concern
+
+3. Containerized remote workspace
+   - standardizes the runtime environment around the workspace host
+   - useful for reproducibility and isolation, but it is a deployment choice rather than the filesystem contract itself
+
+Recommended path:
+
+- build `workspace-fs` now around pattern 1
+- leave room for pattern 2 as the scale-out path
+- treat pattern 3 as an optional future runtime around the host, not as a reason to change the filesystem API
+
+Why this is the right shape for this repo:
+
+- it matches the current desktop need without introducing control-plane complexity early
+- it keeps watchers, search indexes, and disk access on the machine that owns the workspace
+- it allows desktop main today and a remote server later to use the same host implementation
+- it avoids another filesystem rewrite if remote workspaces become a first-class feature later
+
+### Design requirements
+
+- define one transport-neutral service contract for queries, mutations, search, and watch streams
+- keep the contract identical whether the backing workspace is local or remote
+- isolate transport from logic: local in-process adapter today, remote RPC/streaming adapter later
+- avoid Electron-specific types or assumptions in the core service surface
+- treat watcher events as service output, not desktop-main-only internals
+- make search and watch state live with the workspace service, not with the renderer
+- keep file identity URI-friendly so local absolute paths can evolve into remote workspace URIs without redesigning the whole API
+
+### Recommended shape
+
+Split the system into three layers:
+
+1. `workspace-fs core`
+   - path policy
+   - security policy
+   - query/mutation/search/watch logic
+   - normalized event model
+
+2. `workspace-fs host`
+   - local desktop host adapter for Node/Electron main
+   - future remote host adapter running next to the workspace on a server/agent
+   - owns watcher lifecycle and local disk/tool access
+
+3. `workspace-fs client`
+   - desktop renderer client today
+   - future web/remote client
+   - consumes the same service contract over local IPC or remote transport
+
+If remote workspace lifecycle management is added later, it should wrap these layers rather than replacing them:
+
+- `control plane`
+  - workspace discovery
+  - auth/session routing
+  - agent registration
+  - health/capability reporting
+
+- `workspace agent`
+  - launches or attaches to a `workspace-fs host`
+  - owns workspace-local process access
+  - reports status to the control plane
+
+### API direction for remote readiness
+
+The public contract should move away from “desktop router methods” and toward a workspace service interface such as:
+
+```ts
+interface WorkspaceFsService {
+  listDirectory(input: {
+    workspaceId: string;
+    absolutePath: string;
+  }): Promise<WorkspaceFsEntry[]>;
+
+  readTextFile(input: {
+    workspaceId: string;
+    absolutePath: string;
+  }): Promise<ReadTextResult>;
+
+  writeTextFile(input: {
+    workspaceId: string;
+    absolutePath: string;
+    content: string;
+    expectedContent?: string;
+  }): Promise<SaveResult>;
+
+  searchFiles(input: {
+    workspaceId: string;
+    query: string;
+    includePattern?: string;
+    excludePattern?: string;
+    limit?: number;
+  }): Promise<WorkspaceFsSearchResult[]>;
+
+  watchWorkspace(input: {
+    workspaceId: string;
+  }): AsyncIterable<WorkspaceFileEvent>;
+}
+```
+
+Desktop should then use an adapter:
+
+- local adapter: renderer → desktop main → local `workspace-fs host`
+- remote adapter: renderer → remote session transport → remote `workspace-fs host`
+
+### Identity recommendation for remote support
+
+Keep `absolutePath` as the canonical identity for local workspaces, but structure the model so it can evolve into a location URI cleanly.
+
+Short term:
+
+- continue using canonical local `absolutePath`
+- keep `workspaceId` mandatory on all service calls
+- never make renderer logic depend on `path.join`/`fsPath` semantics directly
+
+Medium term:
+
+- introduce a `resourceUri` or equivalent transport-safe identifier alongside `absolutePath`
+- local workspaces can derive it from file paths
+- remote workspaces can use a workspace-scoped URI scheme without changing higher-level UI logic
+
+This is an architectural inference from VS Code’s remote workspace and virtual filesystem model, where the UI does not assume all resources are local disk `file:` paths.
+
+### Operational requirements for a remote host
+
+- host watchers/search/indexes must run on the same machine as the workspace
+- shell/ripgrep/native file access must stay in the host layer
+- reconnect logic must support snapshot/revision catch-up after transport interruption
+- the client must tolerate degraded or partial capability sets from the host
+- capability negotiation should be explicit so desktop can know whether the host supports watch, keyword search, binary preview, etc.
+
+### Non-goals for the first remote-ready cut
+
+- do not build full remote execution/tunneling now
+- do not build a control plane or workspace scheduler now
+- do not make containerization a dependency of the filesystem contract
+- do not redesign the whole app around non-file URI schemes yet
+- do make sure today’s interfaces can be wrapped by a remote host without another filesystem rewrite
 
 ## Event Model
 
@@ -360,7 +540,19 @@ Deliverable:
 
 - one consolidated search-and-watch implementation for desktop and chat host code
 
-### Phase 7: Migrate Changes and File Viewer consumers
+### Phase 7: Make `workspace-fs` hostable as a standalone service
+
+- split core logic from desktop-specific adapters
+- define a transport-neutral service interface for query/mutation/search/watch
+- keep Electron IPC as one host adapter, not the service itself
+- make watcher/search state belong to the host layer
+- prepare for a future remote workspace host that runs beside the workspace
+
+Deliverable:
+
+- `workspace-fs` can be embedded locally or exposed by a remote host without changing higher-level consumers
+
+### Phase 8: Migrate Changes and File Viewer consumers
 
 - route file reads and writes through `packages/workspace-fs`
 - keep existing symlink protections
@@ -370,7 +562,7 @@ Deliverable:
 
 - changes, diff, and file viewer use the same filesystem contract as the explorer
 
-### Phase 8: Replace special-case watchers
+### Phase 9: Replace special-case watchers
 
 - move the static ports watcher logic onto the shared watcher infrastructure
 - stop adding one-off watcher implementations for feature-specific files
@@ -379,7 +571,7 @@ Deliverable:
 
 - watcher logic is centralized in one system
 
-### Phase 9: Remove legacy code
+### Phase 10: Remove legacy code
 
 - delete old duplicated search implementations
 - delete obsolete absolute-path router internals
@@ -482,6 +674,9 @@ Mitigation:
 - file search and content search update coherently after external changes
 - explorer, changes, file viewer, and chat host code use one filesystem package
 - no new feature adds a one-off watcher outside the shared watcher manager
+- the filesystem contract is not Electron-specific and can be hosted remotely behind a transport adapter
+- watcher/search/index state lives with the workspace host layer, not the renderer
+- local desktop is just one client/host deployment mode of the same filesystem service
 
 ## Recommended First Implementation Slice
 
