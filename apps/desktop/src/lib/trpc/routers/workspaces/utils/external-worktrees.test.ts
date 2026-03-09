@@ -123,7 +123,7 @@ describe("external-worktrees", () => {
 		expect(listExternalWorktreesMock).not.toHaveBeenCalled();
 	});
 
-	test("uses Git's current path when importing an external worktree from a stale request", async () => {
+	test("uses Git's current branch when importing by path from a stale request", async () => {
 		listExternalWorktreesMock.mockResolvedValue([
 			{
 				path: "/repo/wt-new",
@@ -136,8 +136,8 @@ describe("external-worktrees", () => {
 		const result = await resolveExternalWorktreeOpenTarget({
 			projectId: "proj-1",
 			mainRepoPath: "/repo/main",
-			worktreePath: "/repo/wt-old",
-			branch: "feat-move",
+			worktreePath: "/repo/wt-new",
+			branch: "feat-stale",
 		});
 
 		expect(result).toEqual({

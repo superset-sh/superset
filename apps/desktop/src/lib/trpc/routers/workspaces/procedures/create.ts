@@ -15,6 +15,8 @@ import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
 	activateProject,
+	findOrphanedWorktreeByBranch,
+	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
 	getMaxProjectChildTabOrder,
 	getProject,
@@ -910,14 +912,14 @@ export const createCreateProcedures = () => {
 				track("workspace_created", {
 					workspace_id: workspace.id,
 					project_id: project.id,
-					branch: input.branch,
+					branch: worktreeTarget.branch,
 					base_branch: baseBranch,
 					source: "external_import",
 				});
 
 				await setBranchBaseConfig({
 					repoPath: project.mainRepoPath,
-					branch: input.branch,
+					branch: worktreeTarget.branch,
 					baseBranch,
 					isExplicit: false,
 				});

@@ -36,15 +36,27 @@ export type ExternalWorktreeOpenTarget =
 			branch: string;
 	  };
 
+type ImportableExternalWorktree = ExternalWorktree & { branch: string };
+
 function isImportableExternalWorktree(
 	worktree: ExternalWorktree,
 	mainRepoPath: string,
-): worktree is ExternalWorktree & { branch: string } {
+): worktree is ImportableExternalWorktree {
 	return (
 		worktree.path !== mainRepoPath &&
 		!worktree.isBare &&
 		!worktree.isDetached &&
 		Boolean(worktree.branch)
+	);
+}
+
+function getImportableExternalWorktrees(
+	externalWorktrees: ExternalWorktree[],
+	mainRepoPath: string,
+): ImportableExternalWorktree[] {
+	return externalWorktrees.filter(
+		(worktree): worktree is ImportableExternalWorktree =>
+			isImportableExternalWorktree(worktree, mainRepoPath),
 	);
 }
 
@@ -79,11 +91,12 @@ export async function resolveExternalWorktreeOpenTarget(input: {
 		await __testOnlyExternalWorktreeDeps.listExternalWorktrees(
 			input.mainRepoPath,
 		);
-	const matchingExternalWorktree = externalWorktrees.find(
+	const matchingExternalWorktree = getImportableExternalWorktrees(
+		externalWorktrees,
+		input.mainRepoPath,
+	).find(
 		(worktree) =>
-			isImportableExternalWorktree(worktree, input.mainRepoPath) &&
-			(worktree.path === input.worktreePath ||
-				worktree.branch === input.branch),
+			worktree.path === input.worktreePath || worktree.branch === input.branch,
 	);
 
 	if (!matchingExternalWorktree) {
@@ -121,12 +134,8 @@ export async function listImportableExternalWorktrees(input: {
 			input.mainRepoPath,
 		);
 
-	return externalWorktrees
-		.filter(
-			(worktree) =>
-				isImportableExternalWorktree(worktree, input.mainRepoPath) &&
-				!trackedPaths.has(worktree.path),
-		)
+	return getImportableExternalWorktrees(externalWorktrees, input.mainRepoPath)
+		.filter((worktree) => !trackedPaths.has(worktree.path))
 		.map((worktree) => ({
 			path: worktree.path,
 			branch: worktree.branch,
