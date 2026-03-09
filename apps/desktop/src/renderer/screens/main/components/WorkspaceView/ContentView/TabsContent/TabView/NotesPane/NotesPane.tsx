@@ -16,12 +16,28 @@ import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Strike } from "@tiptap/extension-strike";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { common, createLowlight } from "lowlight";
 import { useCallback, useEffect, useRef } from "react";
+import {
+	LuBold,
+	LuCode,
+	LuHeading1,
+	LuHeading2,
+	LuHeading3,
+	LuItalic,
+	LuList,
+	LuListOrdered,
+	LuQuote,
+	LuStrikethrough,
+} from "react-icons/lu";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -46,17 +62,102 @@ const KeyboardHandler = Extension.create({
 		return {
 			Tab: ({ editor }) => {
 				if (editor.commands.sinkListItem("listItem")) return true;
-				if (editor.commands.sinkListItem("taskItem")) return true;
 				return true;
 			},
 			"Shift-Tab": ({ editor }) => {
 				if (editor.commands.liftListItem("listItem")) return true;
-				if (editor.commands.liftListItem("taskItem")) return true;
 				return true;
 			},
 		};
 	},
 });
+
+const toolbarBtnClass =
+	"rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground data-[active=true]:text-foreground";
+
+function NotesToolbar({ editor }: { editor: TiptapEditor | null }) {
+	if (!editor) return null;
+
+	const toggle = (fn: () => boolean) => (e: React.MouseEvent) => {
+		e.preventDefault();
+		fn();
+	};
+
+	return (
+		<div className="flex items-center gap-0.5">
+			{/* Aa — text format dropdown */}
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button type="button" className={toolbarBtnClass}>
+						<span className="text-xs font-semibold leading-none">Aa</span>
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start" className="min-w-36">
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+					>
+						<LuHeading1 className="mr-2 size-4" /> Heading 1
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+					>
+						<LuHeading2 className="mr-2 size-4" /> Heading 2
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+					>
+						<LuHeading3 className="mr-2 size-4" /> Heading 3
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleBold().run()}
+					>
+						<LuBold className="mr-2 size-4" /> Bold
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleItalic().run()}
+					>
+						<LuItalic className="mr-2 size-4" /> Italic
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleStrike().run()}
+					>
+						<LuStrikethrough className="mr-2 size-4" /> Strikethrough
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleCode().run()}
+					>
+						<LuCode className="mr-2 size-4" /> Inline Code
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onSelect={() => editor.chain().focus().toggleBlockquote().run()}
+					>
+						<LuQuote className="mr-2 size-4" /> Blockquote
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			{/* Bullet list toggle */}
+			<button
+				type="button"
+				className={toolbarBtnClass}
+				data-active={editor.isActive("bulletList")}
+				onClick={toggle(() => editor.chain().focus().toggleBulletList().run())}
+			>
+				<LuList className="size-3.5" />
+			</button>
+
+			{/* Ordered list toggle */}
+			<button
+				type="button"
+				className={toolbarBtnClass}
+				data-active={editor.isActive("orderedList")}
+				onClick={toggle(() => editor.chain().focus().toggleOrderedList().run())}
+			>
+				<LuListOrdered className="size-3.5" />
+			</button>
+		</div>
+	);
+}
 
 interface NotesPaneProps {
 	paneId: string;
@@ -163,13 +264,6 @@ export function NotesPane({
 				HTMLAttributes: { class: "mt-0 mb-2 pl-6 list-decimal" },
 			}),
 			ListItem,
-			TaskList.configure({
-				HTMLAttributes: { class: "mt-0 mb-2 pl-0 list-none" },
-			}),
-			TaskItem.configure({
-				HTMLAttributes: { class: "flex items-start gap-2 mb-1" },
-				nested: true,
-			}),
 			Blockquote.configure({
 				HTMLAttributes: {
 					class: "my-3 pl-4 border-l-2 border-border text-muted-foreground",
@@ -248,8 +342,9 @@ export function NotesPane({
 			setFocusedPane={setFocusedPane}
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between">
-					<div className="flex h-full items-center px-2">
+					<div className="flex h-full items-center gap-2 px-2">
 						<span className="text-xs text-muted-foreground">Notes</span>
+						<NotesToolbar editor={editor} />
 					</div>
 					<PaneToolbarActions
 						splitOrientation={handlers.splitOrientation}
