@@ -184,6 +184,15 @@ function normalizeGitHubUrl(remoteUrl: string): string | null {
 	return null;
 }
 
+function isSafeHttpUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "http:" || parsed.protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
 function extractNwoFromUrl(normalizedUrl: string): string | null {
 	try {
 		const path = new URL(normalizedUrl).pathname.slice(1);
@@ -536,7 +545,8 @@ async function queryDeploymentUrl(
 				if (!statusResult.success) return undefined;
 				if (
 					statusResult.data.state === "success" &&
-					statusResult.data.environment_url
+					statusResult.data.environment_url &&
+					isSafeHttpUrl(statusResult.data.environment_url)
 				) {
 					return statusResult.data.environment_url;
 				}
