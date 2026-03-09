@@ -17,6 +17,7 @@ import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesSt
 import { useChangesStore } from "renderer/stores/changes";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -35,6 +36,26 @@ interface ChangesViewProps {
 }
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
+
+interface PendingChangesRefresh {
+	invalidateBranches: boolean;
+	invalidateSelectedFile: boolean;
+}
+
+function eventTargetsSelectedFile(
+	event: FileSystemChangeEvent,
+	selectedAbsolutePath: string | null,
+): boolean {
+	if (!selectedAbsolutePath) {
+		return false;
+	}
+
+	if (event.type === "overflow") {
+		return true;
+	}
+
+	return event.absolutePath === selectedAbsolutePath;
+}
 
 export function ChangesView({
 	onFileOpen,
@@ -221,6 +242,10 @@ export function ChangesView({
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const pendingRefreshRef = useRef<PendingChangesRefresh>({
+		invalidateBranches: false,
+		invalidateSelectedFile: false,
+	});
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -272,18 +297,55 @@ export function ChangesView({
 
 	useWorkspaceFileEvents(
 		workspaceId ?? "",
-		() => {
+		(event) => {
+			if (!worktreePath) {
+				return;
+			}
+
+			const selectedAbsolutePath = selectedFileState?.absolutePath ?? null;
+			pendingRefreshRef.current.invalidateBranches ||=
+				event.type === "overflow";
+			pendingRefreshRef.current.invalidateSelectedFile ||=
+				eventTargetsSelectedFile(event, selectedAbsolutePath);
+
 			if (refreshTimerRef.current) {
 				clearTimeout(refreshTimerRef.current);
 			}
 
 			refreshTimerRef.current = setTimeout(() => {
 				refreshTimerRef.current = null;
-				Promise.all([
-					trpcUtils.changes.getBranches.invalidate({ worktreePath }),
-					trpcUtils.changes.getStatus.invalidate(),
-					trpcUtils.changes.getFileContents.invalidate({ worktreePath }),
-				]).catch((error) => {
+				const pending = pendingRefreshRef.current;
+				pendingRefreshRef.current = {
+					invalidateBranches: false,
+					invalidateSelectedFile: false,
+				};
+
+				const invalidations: Promise<unknown>[] = [
+					trpcUtils.changes.getStatus.invalidate({
+						worktreePath,
+						defaultBranch: effectiveBaseBranch,
+					}),
+				];
+
+				if (pending.invalidateBranches) {
+					invalidations.push(
+						trpcUtils.changes.getBranches.invalidate({ worktreePath }),
+					);
+				}
+
+				if (pending.invalidateSelectedFile && selectedFileState) {
+					invalidations.push(
+						trpcUtils.changes.getFileContents.invalidate({
+							worktreePath,
+							filePath: selectedFileState.file.path,
+							category: selectedFileState.category,
+							commitHash: selectedFileState.commitHash ?? undefined,
+							defaultBranch: effectiveBaseBranch,
+						}),
+					);
+				}
+
+				Promise.all(invalidations).catch((error) => {
 					console.error("[ChangesView] Failed to refresh changes state:", {
 						worktreePath,
 						error,
