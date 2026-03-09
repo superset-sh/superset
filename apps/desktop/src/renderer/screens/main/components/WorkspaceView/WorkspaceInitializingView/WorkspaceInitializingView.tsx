@@ -8,12 +8,14 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import { WorkspaceAutoRenameWarningNotice } from "renderer/screens/main/components/WorkspaceView/components/WorkspaceAutoRenameWarningNotice";
 import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
@@ -59,6 +61,7 @@ export function WorkspaceInitializingView({
 	workspaceName,
 	isInterrupted = false,
 }: WorkspaceInitializingViewProps) {
+	const navigate = useNavigate();
 	const progress = useWorkspaceInitProgress(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -320,6 +323,14 @@ export function WorkspaceInitializingView({
 					</h2>
 					<p className="text-sm text-muted-foreground">{workspaceName}</p>
 				</div>
+
+				{progress?.warning ? (
+					<WorkspaceAutoRenameWarningNotice
+						reason={progress.warning.reason}
+						onOpenApiKeys={() => navigate({ to: "/settings/api-keys" })}
+						className="w-full text-left"
+					/>
+				) : null}
 
 				{/* Step list */}
 				<div className="w-full space-y-2">

@@ -4,6 +4,10 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
+import {
+	createWorkspaceAutoRenameWarning,
+	type WorkspaceAutoRenameWarning,
+} from "shared/workspace-auto-rename-warning";
 import { attemptWorkspaceAutoRenameFromPrompt } from "./ai-name";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
@@ -53,7 +57,7 @@ export async function initializeWorkspaceWorktree({
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
 	const completeReadyState = async (): Promise<void> => {
-		let warning: string | undefined;
+		let warning: WorkspaceAutoRenameWarning | undefined;
 		try {
 			const autoRenameResult = await attemptWorkspaceAutoRenameFromPrompt({
 				workspaceId,
@@ -68,7 +72,7 @@ export async function initializeWorkspaceWorktree({
 				workspaceId,
 				error: error instanceof Error ? error.message : String(error),
 			});
-			warning = "Couldn't auto-name this workspace.";
+			warning = createWorkspaceAutoRenameWarning("generation-failed");
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {

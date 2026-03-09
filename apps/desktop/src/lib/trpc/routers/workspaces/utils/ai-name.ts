@@ -1,14 +1,13 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import {
-	generateTitleFromMessage,
-	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
-	getAnthropicProviderOptions,
-	getOpenAICredentialsFromAnySource,
-} from "@superset/chat/host";
+import { generateTitleFromMessage } from "@superset/chat/host";
 import { workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
+import { callSmallModel } from "lib/ai/call-small-model";
 import { localDb } from "main/lib/local-db";
+import { deriveWorkspaceTitleFromPrompt } from "shared/utils/workspace-naming";
+import {
+	createWorkspaceAutoRenameWarning,
+	type WorkspaceAutoRenameWarning,
+} from "shared/workspace-auto-rename-warning";
 import { getWorkspaceAutoRenameDecision } from "./workspace-auto-rename";
 
 export type WorkspaceAutoRenameResult =
@@ -24,74 +23,55 @@ export type WorkspaceAutoRenameResult =
 				| "workspace-deleting"
 				| "workspace-named"
 				| "workspace-name-changed";
-			warning?: string;
+			warning?: WorkspaceAutoRenameWarning;
 	  };
-
-type AgentModel = Extract<
-	Parameters<typeof generateTitleFromMessage>[0],
-	{ agentModel: unknown }
->["agentModel"];
-type AnthropicCredentials = NonNullable<
-	ReturnType<typeof getAnthropicCredentialsFromAnySource>
->;
-type OpenAICredentials = NonNullable<
-	ReturnType<typeof getOpenAICredentialsFromAnySource>
->;
-
-interface TitleProvider {
-	name: "Anthropic" | "OpenAI";
-	agentId: string;
-	resolveCredentials: () => AnthropicCredentials | OpenAICredentials | null;
-	createModel: (
-		credentials: AnthropicCredentials | OpenAICredentials,
-	) => AgentModel;
-}
-
-const TITLE_PROVIDERS: TitleProvider[] = [
-	{
-		name: "Anthropic",
-		agentId: "workspace-namer-anthropic",
-		resolveCredentials: () => getAnthropicCredentialsFromAnySource(),
-		createModel: (credentials) =>
-			createAnthropic(getAnthropicProviderOptions(credentials))(
-				"claude-haiku-4-5-20251001",
-			),
-	},
-	{
-		name: "OpenAI",
-		agentId: "workspace-namer-openai",
-		resolveCredentials: () => getOpenAICredentialsFromAnySource(),
-		createModel: (credentials) =>
-			createOpenAI({ apiKey: credentials.apiKey })("gpt-4o-mini"),
-	},
-];
 
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
-	for (const provider of TITLE_PROVIDERS) {
-		const credentials = provider.resolveCredentials();
-		if (!credentials) {
-			continue;
-		}
-
-		try {
-			const title = await generateTitleFromMessage({
+	const { result, attempts } = await callSmallModel<string>({
+		invoke: async ({ providerId, providerName, model }) => {
+			return generateTitleFromMessage({
 				message: prompt,
-				agentModel: provider.createModel(credentials),
-				agentId: provider.agentId,
+				agentModel: model,
+				agentId: `workspace-namer-${providerId}`,
 				agentName: "Workspace Namer",
 				instructions: "You generate concise workspace titles.",
+				tracingContext: {
+					surface: "workspace-auto-name",
+					provider: providerName,
+				},
 			});
-			if (title) {
-				return title;
-			}
-		} catch (error) {
+		},
+	});
+	if (result) {
+		return result;
+	}
+
+	for (const attempt of attempts) {
+		if (attempt.outcome === "failed") {
 			console.error(
-				`[workspace-ai-name] ${provider.name} title generation failed`,
-				error,
+				`[workspace-ai-name] ${attempt.providerName} title generation failed`,
+				attempt.reason,
+			);
+			continue;
+		}
+		if (attempt.outcome === "unsupported-credentials") {
+			console.info(
+				`[workspace-ai-name] Skipping ${attempt.providerName} for title generation`,
+				{
+					reason: attempt.reason,
+					credentialKind: attempt.credentialKind,
+					credentialSource: attempt.credentialSource,
+				},
 			);
 		}
+	}
+
+	const fallbackTitle = deriveWorkspaceTitleFromPrompt(prompt);
+	if (fallbackTitle) {
+		console.info("[workspace-ai-name] Falling back to prompt-derived title");
+		return fallbackTitle;
 	}
 
 	return null;
@@ -111,15 +91,10 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 
 	const generatedName = await generateWorkspaceNameFromPrompt(cleanedPrompt);
 	if (!generatedName) {
-		const hasCredentials =
-			getAnthropicCredentialsFromAnySource() !== null ||
-			getOpenAICredentialsFromAnySource() !== null;
 		return {
 			status: "skipped",
-			reason: hasCredentials ? "generation-failed" : "missing-credentials",
-			warning: hasCredentials
-				? "Couldn't auto-name this workspace."
-				: "Couldn't auto-name this workspace because chat credentials aren't configured.",
+			reason: "generation-failed",
+			warning: createWorkspaceAutoRenameWarning("generation-failed"),
 		};
 	}
 

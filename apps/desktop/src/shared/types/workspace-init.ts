@@ -1,3 +1,5 @@
+import type { WorkspaceAutoRenameWarning } from "shared/workspace-auto-rename-warning";
+
 /**
  * Workspace initialization progress types.
  * Used for streaming progress updates during workspace creation.
@@ -20,7 +22,7 @@ export interface WorkspaceInitProgress {
 	step: WorkspaceInitStep;
 	message: string;
 	error?: string;
-	warning?: string;
+	warning?: WorkspaceAutoRenameWarning;
 }
 
 export const INIT_STEP_MESSAGES: Record<WorkspaceInitStep, string> = {

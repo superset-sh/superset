@@ -1,7 +1,7 @@
-import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { showWorkspaceAutoRenameWarningToast } from "renderer/lib/show-workspace-auto-rename-warning-toast";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { PendingTerminalSetup } from "renderer/stores/workspace-init";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
@@ -66,8 +66,9 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			}
 
 			if (!data.isInitializing && data.autoRenameWarning) {
-				toast.warning("Workspace created without auto-name", {
-					description: data.autoRenameWarning,
+				showWorkspaceAutoRenameWarningToast({
+					warning: data.autoRenameWarning,
+					onOpenApiKeys: () => navigate({ to: "/settings/api-keys" }),
 				});
 			}
 
