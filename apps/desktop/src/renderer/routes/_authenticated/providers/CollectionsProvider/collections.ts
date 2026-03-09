@@ -29,11 +29,7 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 
-let electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_PROXY_URL}/v1/shape`;
-
-export function setElectricUrl(url: string) {
-	electricUrl = `${url}/v1/shape`;
-}
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -93,25 +89,18 @@ const electricHeaders = {
 	},
 };
 
-let organizationsCollection: Collection<SelectOrganization> | null = null;
-
-function getOrganizationsCollection(): Collection<SelectOrganization> {
-	if (!organizationsCollection) {
-		organizationsCollection = createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: electricHeaders,
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-	}
-	return organizationsCollection;
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
 function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createCollection(
@@ -457,6 +446,6 @@ export function getCollections(organizationId: string) {
 
 	return {
 		...orgCollections,
-		organizations: getOrganizationsCollection(),
+		organizations: organizationsCollection,
 	};
 }

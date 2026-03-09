@@ -3,8 +3,10 @@ import { db } from "@superset/db/client";
 import type { LinearConfig, SelectTask } from "@superset/db/schema";
 import {
 	integrationConnections,
+	members,
 	taskStatuses,
 	tasks,
+	users,
 } from "@superset/db/schema";
 import {
 	getLinearClient,
@@ -56,6 +58,32 @@ async function findLinearState(
 	return match?.id;
 }
 
+async function resolveLinearAssigneeId(
+	client: LinearClient,
+	organizationId: string,
+	userId: string,
+): Promise<string | undefined> {
+	const matchedUser = await db
+		.select({ email: users.email })
+		.from(users)
+		.innerJoin(members, eq(members.userId, users.id))
+		.where(
+			and(eq(users.id, userId), eq(members.organizationId, organizationId)),
+		)
+		.limit(1)
+		.then((rows) => rows[0]);
+	if (!matchedUser?.email) return undefined;
+
+	const linearUsers = await client.users({
+		filter: { email: { eq: matchedUser.email } },
+	});
+	const linearUser = linearUsers.nodes[0];
+	if (linearUsers.nodes.length === 1 && linearUser) {
+		return linearUser.id;
+	}
+	return undefined;
+}
+
 async function syncTaskToLinear(
 	task: SelectTask,
 	teamId: string,
@@ -84,6 +112,20 @@ async function syncTaskToLinear(
 		const stateId = await findLinearState(client, teamId, taskStatus.name);
 
 		if (task.externalProvider === "linear" && task.externalId) {
+			// Resolve assignee for Linear
+			let linearAssigneeId: string | null | undefined; // undefined = don't change
+			if (task.assigneeId === null && !task.assigneeExternalId) {
+				// Explicitly unassign (only when no external assignee exists)
+				linearAssigneeId = null;
+			} else if (task.assigneeId) {
+				linearAssigneeId =
+					(await resolveLinearAssigneeId(
+						client,
+						task.organizationId,
+						task.assigneeId,
+					)) ?? undefined;
+			}
+
 			const result = await client.updateIssue(task.externalId, {
 				title: task.title,
 				description: task.description ?? undefined,
@@ -91,6 +133,7 @@ async function syncTaskToLinear(
 				stateId,
 				estimate: task.estimate ?? undefined,
 				dueDate: task.dueDate?.toISOString().split("T")[0],
+				...(linearAssigneeId !== undefined && { assigneeId: linearAssigneeId }),
 			});
 
 			if (!result.success) {
@@ -118,6 +161,15 @@ async function syncTaskToLinear(
 			};
 		}
 
+		// Resolve assignee for Linear (create)
+		const createAssigneeId = task.assigneeId
+			? await resolveLinearAssigneeId(
+					client,
+					task.organizationId,
+					task.assigneeId,
+				)
+			: undefined;
+
 		const result = await client.createIssue({
 			teamId,
 			title: task.title,
@@ -126,6 +178,7 @@ async function syncTaskToLinear(
 			stateId,
 			estimate: task.estimate ?? undefined,
 			dueDate: task.dueDate?.toISOString().split("T")[0],
+			...(createAssigneeId && { assigneeId: createAssigneeId }),
 		});
 
 		if (!result.success) {
