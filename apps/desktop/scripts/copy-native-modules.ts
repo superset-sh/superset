@@ -181,14 +181,18 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 
 	// Bun isolated installs keep package payloads in workspaceRoot/node_modules/.bun
 	const bunStoreDir = getBunStoreDir(nodeModulesDir);
-	let resolvedPlatformPackage = false;
+	let resolvedTargetPackage = false;
 
 	for (const platformPkg of platformPackages) {
+		const isTargetPkg = targetPkg && platformPkg.name === targetPkg.name;
 		const destPath = join(nodeModulesDir, platformPkg.name);
 		if (existsSync(destPath)) {
-			resolvedPlatformPackage =
-				copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false) ||
-				resolvedPlatformPackage;
+			const copied = copyModuleIfSymlink(
+				nodeModulesDir,
+				platformPkg.name,
+				false,
+			);
+			if (isTargetPkg && copied) resolvedTargetPackage = true;
 			continue;
 		}
 
@@ -208,16 +212,16 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 				console.log(`  ${platformPkg.name}: copying from Bun store`);
 				mkdirSync(dirname(destPath), { recursive: true });
 				cpSync(sourcePath, destPath, { recursive: true });
-				resolvedPlatformPackage = true;
+				if (isTargetPkg) resolvedTargetPackage = true;
 				continue;
 			}
 		}
 
 		// If this is the target platform package and it's not in the Bun store,
 		// fetch it from npm (cross-compilation scenario)
-		if (targetPkg && platformPkg.name === targetPkg.name) {
+		if (isTargetPkg) {
 			if (fetchNpmPackage(platformPkg.name, platformPkg.version, destPath)) {
-				resolvedPlatformPackage = true;
+				resolvedTargetPackage = true;
 				continue;
 			}
 		}
@@ -227,9 +231,9 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 		);
 	}
 
-	if (!resolvedPlatformPackage) {
+	if (!resolvedTargetPackage) {
 		console.error(
-			"  [ERROR] No `@ast-grep/napi-` runtime package was materialized",
+			`  [ERROR] Target platform package ${targetPkg?.name ?? `@ast-grep/napi-${targetPlatformSuffix}`} was not materialized`,
 		);
 		process.exit(1);
 	}
