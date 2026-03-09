@@ -38,6 +38,24 @@ interface TrackedWorktreeContext {
 	worktree: SelectWorktree;
 }
 
+interface RepairWorktreePathDeps {
+	eq: typeof eq;
+	getBranchWorktreePath: typeof getBranchWorktreePath;
+	localDb: typeof localDb;
+	projects: typeof projects;
+	repairWorktreeRegistration: typeof repairWorktreeRegistration;
+	worktrees: typeof worktrees;
+}
+
+export const __testOnlyRepairWorktreePathDeps: RepairWorktreePathDeps = {
+	eq,
+	getBranchWorktreePath,
+	localDb,
+	projects,
+	repairWorktreeRegistration,
+	worktrees,
+};
+
 function buildResolvedResult(path: string): ResolveTrackedWorktreePathResult {
 	return {
 		status: "resolved",
@@ -299,7 +317,7 @@ async function tryAutoRepairTrackedWorktree(input: {
 		`[repair-worktree-path] Found manually moved worktree for branch ${input.context.worktree.branch} at "${candidatePath}", repairing Git registration`,
 	);
 	try {
-		await repairWorktreeRegistration({
+		await __testOnlyRepairWorktreePathDeps.repairWorktreeRegistration({
 			mainRepoPath: input.context.mainRepoPath,
 			worktreePath: candidatePath,
 		});
@@ -313,10 +331,12 @@ async function tryAutoRepairTrackedWorktree(input: {
 
 	let repairedPath: string | null = null;
 	try {
-		repairedPath = await getBranchWorktreePath({
-			mainRepoPath: input.context.mainRepoPath,
-			branch: input.context.worktree.branch,
-		});
+		repairedPath = await __testOnlyRepairWorktreePathDeps.getBranchWorktreePath(
+			{
+				mainRepoPath: input.context.mainRepoPath,
+				branch: input.context.worktree.branch,
+			},
+		);
 	} catch (error) {
 		console.warn(
 			`[repair-worktree-path] Failed to refresh repaired path for worktree ${input.context.worktree.id}:`,
@@ -345,20 +365,30 @@ export function getTrackedWorktreeRepairMessage(input: {
 function getTrackedWorktreeContext(
 	worktreeId: string,
 ): TrackedWorktreeContext | null {
-	const worktree = localDb
+	const worktree = __testOnlyRepairWorktreePathDeps.localDb
 		.select()
-		.from(worktrees)
-		.where(eq(worktrees.id, worktreeId))
+		.from(__testOnlyRepairWorktreePathDeps.worktrees)
+		.where(
+			__testOnlyRepairWorktreePathDeps.eq(
+				__testOnlyRepairWorktreePathDeps.worktrees.id,
+				worktreeId,
+			),
+		)
 		.get();
 
 	if (!worktree) {
 		return null;
 	}
 
-	const project = localDb
+	const project = __testOnlyRepairWorktreePathDeps.localDb
 		.select()
-		.from(projects)
-		.where(eq(projects.id, worktree.projectId))
+		.from(__testOnlyRepairWorktreePathDeps.projects)
+		.where(
+			__testOnlyRepairWorktreePathDeps.eq(
+				__testOnlyRepairWorktreePathDeps.projects.id,
+				worktree.projectId,
+			),
+		)
 		.get();
 
 	if (!project) {
@@ -390,10 +420,15 @@ function persistResolvedTrackedWorktreePath(input: {
 		console.log(
 			`[repair-worktree-path] Worktree path changed: "${input.context.worktree.path}" → "${input.resolvedPath}" (branch: ${input.context.worktree.branch})`,
 		);
-		localDb
-			.update(worktrees)
+		__testOnlyRepairWorktreePathDeps.localDb
+			.update(__testOnlyRepairWorktreePathDeps.worktrees)
 			.set({ path: input.resolvedPath })
-			.where(eq(worktrees.id, input.context.worktree.id))
+			.where(
+				__testOnlyRepairWorktreePathDeps.eq(
+					__testOnlyRepairWorktreePathDeps.worktrees.id,
+					input.context.worktree.id,
+				),
+			)
 			.run();
 	}
 
@@ -404,7 +439,7 @@ async function getRegisteredTrackedWorktreePath(
 	context: TrackedWorktreeContext,
 ): Promise<string | null> {
 	try {
-		return await getBranchWorktreePath({
+		return await __testOnlyRepairWorktreePathDeps.getBranchWorktreePath({
 			mainRepoPath: context.mainRepoPath,
 			branch: context.worktree.branch,
 		});
@@ -566,10 +601,15 @@ export async function listProjectWorktreesWithCurrentPaths(
 		existsOnDisk: boolean;
 	}>
 > {
-	const projectWorktrees = localDb
+	const projectWorktrees = __testOnlyRepairWorktreePathDeps.localDb
 		.select()
-		.from(worktrees)
-		.where(eq(worktrees.projectId, projectId))
+		.from(__testOnlyRepairWorktreePathDeps.worktrees)
+		.where(
+			__testOnlyRepairWorktreePathDeps.eq(
+				__testOnlyRepairWorktreePathDeps.worktrees.projectId,
+				projectId,
+			),
+		)
 		.all();
 
 	return Promise.all(projectWorktrees.map(resolveTrackedWorktree));

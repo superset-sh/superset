@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -9,6 +16,16 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+	__testOnlyRepairWorktreePathDeps,
+	findProjectWorktreeByCurrentPath,
+	getTrackedWorktreeRepairCommand,
+	listProjectWorktreesWithCurrentPaths,
+	resolveTrackedWorktreePath,
+	resolveWorktreePathOrThrow,
+	resolveWorktreePathWithRepair,
+	tryRepairWorktreePath,
+} from "./repair-worktree-path";
 
 // ---------------------------------------------------------------------------
 // Test helpers – real git repos on disk
@@ -60,77 +77,63 @@ interface MockProject {
 let mockWorktrees: Map<string, MockWorktree>;
 let mockProjects: Map<string, MockProject>;
 
-// Sentinel objects so the mock `from()` can distinguish tables
-const WORKTREES_TABLE = Symbol("worktrees");
-const PROJECTS_TABLE = Symbol("projects");
+const originalDeps = {
+	...__testOnlyRepairWorktreePathDeps,
+};
 
-mock.module("@superset/local-db/schema", () => ({
-	worktrees: WORKTREES_TABLE,
-	projects: PROJECTS_TABLE,
-}));
+const WORKTREES_TABLE = {
+	id: Symbol("worktrees.id"),
+	projectId: Symbol("worktrees.projectId"),
+};
+const PROJECTS_TABLE = {
+	id: Symbol("projects.id"),
+};
 
-mock.module("drizzle-orm", () => ({
-	eq: (_field: unknown, value: string) => value,
-}));
-
-mock.module("main/lib/local-db", () => ({
-	localDb: {
-		select: () => ({
-			from: (table: symbol) => ({
-				where: (value: string) => ({
-					get: () => {
-						if (table === WORKTREES_TABLE) return mockWorktrees.get(value);
-						if (table === PROJECTS_TABLE) return mockProjects.get(value);
-						return undefined;
-					},
-					all: () => {
-						if (table === WORKTREES_TABLE) {
-							return Array.from(mockWorktrees.values()).filter(
-								(worktree) => worktree.projectId === value,
-							);
-						}
-						if (table === PROJECTS_TABLE) {
-							return Array.from(mockProjects.values()).filter(
-								(project) => project.id === value,
-							);
-						}
-						return [];
-					},
-				}),
+const mockLocalDb = {
+	select: () => ({
+		from: (table: typeof WORKTREES_TABLE | typeof PROJECTS_TABLE) => ({
+			where: (value: string) => ({
+				get: () => {
+					if (table === WORKTREES_TABLE) return mockWorktrees.get(value);
+					if (table === PROJECTS_TABLE) return mockProjects.get(value);
+					return undefined;
+				},
 				all: () => {
 					if (table === WORKTREES_TABLE) {
-						return Array.from(mockWorktrees.values());
+						return Array.from(mockWorktrees.values()).filter(
+							(worktree) => worktree.projectId === value,
+						);
 					}
 					if (table === PROJECTS_TABLE) {
-						return Array.from(mockProjects.values());
+						return Array.from(mockProjects.values()).filter(
+							(project) => project.id === value,
+						);
 					}
 					return [];
 				},
 			}),
+			all: () => {
+				if (table === WORKTREES_TABLE) {
+					return Array.from(mockWorktrees.values());
+				}
+				if (table === PROJECTS_TABLE) {
+					return Array.from(mockProjects.values());
+				}
+				return [];
+			},
 		}),
-		update: (_table: symbol) => ({
-			set: (values: { path?: string }) => ({
-				where: (id: string) => ({
-					run: () => {
-						const wt = mockWorktrees.get(id);
-						if (wt && values.path) wt.path = values.path;
-					},
-				}),
+	}),
+	update: (_table: typeof WORKTREES_TABLE) => ({
+		set: (values: { path?: string }) => ({
+			where: (id: string) => ({
+				run: () => {
+					const wt = mockWorktrees.get(id);
+					if (wt && values.path) wt.path = values.path;
+				},
 			}),
 		}),
-	},
-}));
-
-// Import after mocks are registered
-const {
-	findProjectWorktreeByCurrentPath,
-	getTrackedWorktreeRepairCommand,
-	listProjectWorktreesWithCurrentPaths,
-	resolveTrackedWorktreePath,
-	resolveWorktreePathOrThrow,
-	resolveWorktreePathWithRepair,
-	tryRepairWorktreePath,
-} = await import("./repair-worktree-path");
+	}),
+};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -141,6 +144,13 @@ describe("repair-worktree-path", () => {
 		mkdirSync(TEST_DIR, { recursive: true });
 		mockWorktrees = new Map();
 		mockProjects = new Map();
+		__testOnlyRepairWorktreePathDeps.eq = (_field, value) => value;
+		__testOnlyRepairWorktreePathDeps.localDb =
+			mockLocalDb as typeof __testOnlyRepairWorktreePathDeps.localDb;
+		__testOnlyRepairWorktreePathDeps.projects =
+			PROJECTS_TABLE as typeof __testOnlyRepairWorktreePathDeps.projects;
+		__testOnlyRepairWorktreePathDeps.worktrees =
+			WORKTREES_TABLE as typeof __testOnlyRepairWorktreePathDeps.worktrees;
 	});
 
 	afterEach(() => {
@@ -150,6 +160,10 @@ describe("repair-worktree-path", () => {
 		if (existsSync(EXTERNAL_TEST_DIR)) {
 			rmSync(EXTERNAL_TEST_DIR, { recursive: true, force: true });
 		}
+	});
+
+	afterAll(() => {
+		Object.assign(__testOnlyRepairWorktreePathDeps, originalDeps);
 	});
 
 	test("returns null when worktree record is missing", async () => {
