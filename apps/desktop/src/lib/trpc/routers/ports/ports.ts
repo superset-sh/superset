@@ -1,12 +1,12 @@
 import { workspaces } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { loadStaticPorts, runPortCheckScript } from "main/lib/static-ports";
 import { portManager } from "main/lib/terminal/port-manager";
 import type { DetectedPort, EnrichedPort, ScriptPort } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getWorkspace } from "../workspaces/utils/db-helpers";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 
 type PortEvent =
@@ -68,7 +68,7 @@ function scriptPortToEnrichedPort(
 	return {
 		port: sp.port,
 		pid: sp.pid ?? 0,
-		processName: sp.name ?? "unknown",
+		processName: sp.name ?? "",
 		paneId: "",
 		workspaceId,
 		detectedAt: Date.now(),
@@ -81,18 +81,34 @@ function scriptPortToEnrichedPort(
 interface WorkspaceContext {
 	metadata: StaticPortMetadata | null;
 	wsPath: string | null;
-	scriptPorts: ScriptPort[];
 }
 
 function getWorkspaceContext(workspaceId: string): WorkspaceContext {
-	const ws = localDb
-		.select()
-		.from(workspaces)
-		.where(eq(workspaces.id, workspaceId))
-		.get();
+	const ws = getWorkspace(workspaceId);
 	const wsPath = ws ? getWorkspacePath(ws) : null;
 	const metadata = wsPath ? getStaticMetadataForPath(wsPath) : null;
-	return { metadata, wsPath, scriptPorts: [] };
+	return { metadata, wsPath };
+}
+
+/** Simple TTL cache for script results per workspace */
+const SCRIPT_CACHE_TTL_MS = 5_000;
+const scriptCache = new Map<
+	string,
+	{ ports: ScriptPort[]; cachedAt: number }
+>();
+
+async function getCachedScriptPorts(
+	command: string,
+	wsPath: string,
+	workspaceId: string,
+): Promise<ScriptPort[]> {
+	const cached = scriptCache.get(workspaceId);
+	if (cached && Date.now() - cached.cachedAt < SCRIPT_CACHE_TTL_MS) {
+		return cached.ports;
+	}
+	const ports = await runPortCheckScript(command, wsPath);
+	scriptCache.set(workspaceId, { ports, cachedAt: Date.now() });
+	return ports;
 }
 
 export const createPortsRouter = () => {
@@ -121,25 +137,22 @@ export const createPortsRouter = () => {
 				if (!wsPath) continue;
 				const metadata = getStaticMetadataForPath(wsPath);
 				if (metadata?.check) {
-					contextCache.set(ws.id, {
-						metadata,
-						wsPath,
-						scriptPorts: [],
-					});
+					contextCache.set(ws.id, { metadata, wsPath });
 				}
 			}
 
-			// Run check scripts in parallel
+			// Run check scripts in parallel, collect results
+			const scriptResults = new Map<string, ScriptPort[]>();
 			const scriptTasks: Promise<void>[] = [];
-			for (const [, ctx] of contextCache) {
+			for (const [workspaceId, ctx] of contextCache) {
 				if (ctx.metadata?.check && ctx.wsPath) {
 					const { check } = ctx.metadata;
 					const { wsPath } = ctx;
 					scriptTasks.push(
-						runPortCheckScript(check, wsPath).then((scriptPorts) => {
-							ctx.scriptPorts = scriptPorts;
+						getCachedScriptPorts(check, wsPath, workspaceId).then((ports) => {
+							scriptResults.set(workspaceId, ports);
 							if (ctx.metadata) {
-								applyScriptPortsToMetadata(scriptPorts, ctx.metadata);
+								applyScriptPortsToMetadata(ports, ctx.metadata);
 							}
 						}),
 					);
@@ -161,8 +174,9 @@ export const createPortsRouter = () => {
 			});
 
 			// Add script-only ports (not already detected by PID-tree scanner)
-			for (const [workspaceId, ctx] of contextCache) {
-				for (const sp of ctx.scriptPorts) {
+			for (const [workspaceId, ports] of scriptResults) {
+				const ctx = contextCache.get(workspaceId);
+				for (const sp of ports) {
 					const key = `${workspaceId}:${sp.port}`;
 					if (detectedPortKeys.has(key)) continue;
 					detectedPortKeys.add(key);
@@ -170,7 +184,11 @@ export const createPortsRouter = () => {
 						scriptPortToEnrichedPort(
 							sp,
 							workspaceId,
-							ctx.metadata ?? { labels: new Map(), urls: new Map(), check: null },
+							ctx?.metadata ?? {
+								labels: new Map(),
+								urls: new Map(),
+								check: null,
+							},
 						),
 					);
 				}

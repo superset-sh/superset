@@ -6,7 +6,7 @@ const execAsync = promisify(exec);
 
 const EXEC_TIMEOUT_MS = 5000;
 
-function validateScriptPort(entry: unknown, _index: number): ScriptPort | null {
+function validateScriptPort(entry: unknown): ScriptPort | null {
 	if (typeof entry !== "object" || entry === null) return null;
 
 	const obj = entry as Record<string, unknown>;
@@ -46,7 +46,7 @@ export async function runPortCheckScript(
 		const { stdout } = await execAsync(command, {
 			cwd: workspacePath,
 			timeout: EXEC_TIMEOUT_MS,
-			maxBuffer: 1024 * 1024,
+			maxBuffer: 128 * 1024,
 		});
 
 		const trimmed = stdout.trim();
@@ -60,7 +60,7 @@ export async function runPortCheckScript(
 
 		const ports: ScriptPort[] = [];
 		for (let i = 0; i < parsed.length; i++) {
-			const validated = validateScriptPort(parsed[i], i);
+			const validated = validateScriptPort(parsed[i]);
 			if (validated) {
 				ports.push(validated);
 			}

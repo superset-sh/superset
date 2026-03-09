@@ -34,6 +34,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	);
 
 	const canJumpToTerminal = !!port.paneId;
+	const canKill = !!port.paneId;
 
 	const handleClick = () => {
 		if (!port.paneId) return;
@@ -82,14 +83,16 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					>
 						<LuExternalLink className="size-3.5" strokeWidth={STROKE_WIDTH} />
 					</button>
-					<button
-						type="button"
-						onClick={handleClose}
-						aria-label={`Close ${port.label || `port ${port.port}`}`}
-						className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
-					>
-						<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
-					</button>
+					{canKill && (
+						<button
+							type="button"
+							onClick={handleClose}
+							aria-label={`Close ${port.label || `port ${port.port}`}`}
+							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
+						>
+							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+						</button>
+					)}
 				</div>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={6} showArrow={false}>
@@ -100,10 +103,10 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					>
 						{port.url ?? `localhost:${port.port}`}
 					</div>
-					{(port.processName || port.pid != null) && (
+					{(port.processName || port.pid > 0) && (
 						<div className="text-muted-foreground">
 							{port.processName}
-							{port.pid != null && ` (pid ${port.pid})`}
+							{port.pid > 0 && ` (pid ${port.pid})`}
 						</div>
 					)}
 					{canJumpToTerminal && (
