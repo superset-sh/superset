@@ -96,6 +96,57 @@ jobs:
           pattern: desktop-canary-*
           merge-multiple: true
 
+      - name: Download arm64 macOS update manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-canary-mac-arm64-update-manifest
+          path: manifests/arm64
+
+      - name: Download x64 macOS update manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-canary-mac-x64-update-manifest
+          path: manifests/x64
+
+      - name: Merge macOS auto-update manifests
+        run: |
+          # Find the mac manifest filename (could be latest-mac.yml or canary-mac.yml)
+          ARM64_DIR="manifests/arm64"
+          X64_DIR="manifests/x64"
+          ARM64=$(find "$ARM64_DIR" -name '*-mac.yml' | head -1)
+          X64=$(find "$X64_DIR" -name '*-mac.yml' | head -1)
+
+          if [[ -n "$ARM64" && -n "$X64" ]]; then
+            # Merge both arch manifests — arm64 is canonical (base path/sha512)
+            MERGED=$(yq eval-all '
+              select(fileIndex == 0) *
+              {"files": [select(fileIndex == 0).files[], select(fileIndex == 1).files[]]}
+            ' "$ARM64" "$X64")
+
+            # Write merged manifest to all mac manifest filenames in release-artifacts
+            for dest in release-artifacts/*-mac.yml; do
+              if [[ -f "$dest" ]]; then
+                echo "$MERGED" > "$dest"
+                echo "Wrote merged manifest to $(basename "$dest")"
+              fi
+            done
+            # Also ensure canary-mac.yml and latest-mac.yml exist
+            echo "$MERGED" > "release-artifacts/canary-mac.yml"
+            echo "$MERGED" > "release-artifacts/latest-mac.yml"
+            echo "Merged arm64 + x64 manifests"
+          elif [[ -n "$ARM64" ]]; then
+            cp "$ARM64" "release-artifacts/canary-mac.yml"
+            cp "$ARM64" "release-artifacts/latest-mac.yml"
+            echo "Using arm64-only manifest"
+          elif [[ -n "$X64" ]]; then
+            cp "$X64" "release-artifacts/canary-mac.yml"
+            cp "$X64" "release-artifacts/latest-mac.yml"
+            echo "Using x64-only manifest"
+          fi
+
+          echo "Final canary-mac.yml:"
+          cat "release-artifacts/canary-mac.yml"
+
       - name: Create canary-named copies for updater URLs
         run: |
           cd release-artifacts
@@ -112,15 +163,6 @@ jobs:
               cp "$file" "canary-linux.yml"
               cp "$file" "latest-linux.yml"
               echo "Created canary manifests: canary-linux.yml, latest-linux.yml from $file"
-              break
-            fi
-          done
-          # Prerelease builds may request canary-mac.yml; keep latest-mac.yml as fallback.
-          for file in *-mac.yml; do
-            if [[ -f "$file" && "$file" != "canary-mac.yml" && "$file" != "latest-mac.yml" ]]; then
-              cp "$file" "canary-mac.yml"
-              cp "$file" "latest-mac.yml"
-              echo "Created canary manifests: canary-mac.yml, latest-mac.yml from $file"
               break
             fi
           done
