@@ -4,7 +4,6 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	assertRegisteredWorktree,
 	gitCheckoutFile,
 	gitDiscardAllStaged,
 	gitDiscardAllUnstaged,
@@ -17,7 +16,8 @@ import {
 	gitUnstageAll,
 	gitUnstageFile,
 	gitUnstageFiles,
-} from "./security";
+} from "./security/git-commands";
+import { assertRegisteredWorktree } from "./security/path-validation";
 import { parseGitStatus } from "./utils/parse-status";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 

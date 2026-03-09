@@ -493,6 +493,7 @@ Deliverable:
 - stop exposing raw arbitrary absolute-path operations directly from desktop router internals
 - require `workspaceId` on all public filesystem operations
 - require canonical absolute paths on all file operations
+- remove dead Changes security layers like `secure-fs` and the barrel exports once callers use `workspace-fs` directly
 
 Important detail:
 

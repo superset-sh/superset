@@ -11,7 +11,7 @@ import {
 	getProcessEnvWithShellPath,
 } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
-import { assertRegisteredWorktree } from "./security";
+import { assertRegisteredWorktree } from "./security/path-validation";
 import {
 	buildPullRequestCompareUrl,
 	normalizeGitHubRepoUrl,

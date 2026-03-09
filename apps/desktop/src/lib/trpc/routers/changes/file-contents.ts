@@ -12,7 +12,7 @@ import { getImageMimeType } from "shared/file-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertRegisteredWorktree } from "./security";
+import { assertRegisteredWorktree } from "./security/path-validation";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
