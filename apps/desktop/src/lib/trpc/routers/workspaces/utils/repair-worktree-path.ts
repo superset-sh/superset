@@ -1,4 +1,5 @@
 import {
+	type Dirent,
 	existsSync,
 	readdirSync,
 	readFileSync,
@@ -6,7 +7,11 @@ import {
 	statSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { projects, type SelectWorktree, worktrees } from "@superset/local-db";
+import {
+	projects,
+	type SelectWorktree,
+	worktrees,
+} from "@superset/local-db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -68,6 +73,10 @@ const SKIPPED_SCAN_DIRS = new Set([
 	"coverage",
 	"target",
 ]);
+
+function readDirectoryEntries(path: string): Dirent[] {
+	return readdirSync(path, { withFileTypes: true });
+}
 
 function safeResolvePath(path: string): string {
 	return resolve(path);
@@ -160,7 +169,7 @@ function findTrackedWorktreeMetadata(input: {
 
 	const expectedStoredPath = safeResolvePath(input.context.worktree.path);
 
-	for (const entry of readdirSync(metadataRoot, { withFileTypes: true })) {
+	for (const entry of readDirectoryEntries(metadataRoot)) {
 		if (!entry.isDirectory()) {
 			continue;
 		}
@@ -236,9 +245,9 @@ function findMovedTrackedWorktreeCandidate(input: {
 			continue;
 		}
 
-		let entries: ReturnType<typeof readdirSync>;
+		let entries: Dirent[];
 		try {
-			entries = readdirSync(current.path, { withFileTypes: true });
+			entries = readDirectoryEntries(current.path);
 		} catch {
 			continue;
 		}

@@ -64,7 +64,7 @@ let mockProjects: Map<string, MockProject>;
 const WORKTREES_TABLE = Symbol("worktrees");
 const PROJECTS_TABLE = Symbol("projects");
 
-mock.module("@superset/local-db", () => ({
+mock.module("@superset/local-db/schema", () => ({
 	worktrees: WORKTREES_TABLE,
 	projects: PROJECTS_TABLE,
 }));
