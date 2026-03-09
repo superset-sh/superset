@@ -11,9 +11,10 @@ import {
 
 describe("env", () => {
 	describe("constants", () => {
-		it("should have FALLBACK_SHELL set to /bin/sh on non-Windows", () => {
-			// On macOS/Linux, fallback should be /bin/sh
-			if (process.platform !== "win32") {
+		it("should have correct FALLBACK_SHELL for the platform", () => {
+			if (process.platform === "win32") {
+				expect(FALLBACK_SHELL).toBe("cmd.exe");
+			} else {
 				expect(FALLBACK_SHELL).toBe("/bin/sh");
 			}
 		});
@@ -529,6 +530,32 @@ describe("env", () => {
 				expect(result.systemroot).toBe("C:\\Windows");
 				expect(result.HOME).toBe("/home/user");
 			});
+		});
+	});
+
+	describe("Windows environment handling", () => {
+		it("buildSafeEnv handles case-insensitive Windows env vars", () => {
+			const env = {
+				Path: "C:\\Windows\\System32",
+				USERPROFILE: "C:\\Users\\test",
+				ComSpec: "C:\\Windows\\System32\\cmd.exe",
+			};
+			const safe = buildSafeEnv(env, { platform: "win32" });
+			expect(safe.Path).toBe("C:\\Windows\\System32");
+			expect(safe.USERPROFILE).toBe("C:\\Users\\test");
+			expect(safe.ComSpec).toBe("C:\\Windows\\System32\\cmd.exe");
+		});
+
+		it("buildSafeEnv excludes secrets on Windows", () => {
+			const env = {
+				Path: "C:\\Windows",
+				DATABASE_URL: "postgres://secret",
+				NEON_API_KEY: "secret-key",
+			};
+			const safe = buildSafeEnv(env, { platform: "win32" });
+			expect(safe.Path).toBe("C:\\Windows");
+			expect(safe.DATABASE_URL).toBeUndefined();
+			expect(safe.NEON_API_KEY).toBeUndefined();
 		});
 	});
 

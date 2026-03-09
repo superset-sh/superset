@@ -54,6 +54,20 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
 export async function getShellEnvironment(): Promise<Record<string, string>> {
+	// Windows: process.env already contains the full user environment.
+	// Unlike macOS GUI apps launched from Finder/Dock, Windows apps inherit
+	// the complete user environment including PATH modifications.
+	if (process.platform === "win32") {
+		const env: Record<string, string> = {};
+		for (const [key, value] of Object.entries(process.env)) {
+			if (typeof value === "string") {
+				env[key] = value;
+			}
+		}
+		return env;
+	}
+
+	// Existing macOS/Linux code follows...
 	const now = Date.now();
 	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
 	if (cachedEnv && now - cacheTime < ttl) {

@@ -63,11 +63,20 @@ If it runs in a terminal, it runs on Superset
 
 | Requirement | Details |
 |:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
+| **OS** | macOS, Windows 10+ (Linux untested) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ |
 | **GitHub CLI** | [gh](https://cli.github.com/) |
 | **Caddy** | [caddy](https://caddyserver.com/docs/install) (for dev server) |
+
+### Windows Support
+
+| Requirement | Details |
+|---|---|
+| OS | Windows 10 1809+ (ConPTY support required) |
+| Developer Mode | Enable in Settings > Privacy & Security > For developers |
+| Git long paths | `git config --global core.longpaths true` |
+| Build Tools | Visual Studio Build Tools with "Desktop development with C++" (for native modules) |
 
 ## Getting Started
 

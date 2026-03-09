@@ -127,14 +127,17 @@ export function setupTerminalHostSignalHandlers({
 			timeoutMessage: "Forced exit after SIGTERM shutdown timeout",
 		});
 	});
-	process.on("SIGHUP", () => {
-		shutdownOnce({
-			exitCode: 0,
-			message: "Received SIGHUP, shutting down...",
-			stopServerErrorMessage: "Error during stopServer in SIGHUP shutdown",
-			timeoutMessage: "Forced exit after SIGHUP shutdown timeout",
+	// SIGHUP is not emitted on Windows
+	if (process.platform !== "win32") {
+		process.on("SIGHUP", () => {
+			shutdownOnce({
+				exitCode: 0,
+				message: "Received SIGHUP, shutting down...",
+				stopServerErrorMessage: "Error during stopServer in SIGHUP shutdown",
+				timeoutMessage: "Forced exit after SIGHUP shutdown timeout",
+			});
 		});
-	});
+	}
 
 	process.on("uncaughtException", (error) => {
 		if (isShuttingDown) return;

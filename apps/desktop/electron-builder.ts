@@ -193,6 +193,8 @@ const config: Configuration = {
 			},
 		],
 		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
+		signAndEditExecutable: false,
+		forceCodeSigning: false,
 	},
 
 	// NSIS installer (Windows)

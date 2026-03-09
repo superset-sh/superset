@@ -200,6 +200,36 @@ export ZDOTDIR="$_superset_home"
 	);
 }
 
+function writePowerShellProfile(paths: { BIN_DIR: string }): boolean {
+	const profileDir = path.join(path.dirname(paths.BIN_DIR), "powershell");
+	fs.mkdirSync(profileDir, { recursive: true });
+
+	const profilePath = path.join(profileDir, "profile.ps1");
+	const binDir = paths.BIN_DIR.replace(/\\/g, "\\\\");
+	const script = `# Superset PowerShell profile wrapper
+# Prepend Superset bin to PATH for agent binary resolution
+$supersetBin = "${binDir}"
+if (Test-Path $supersetBin) {
+    $env:PATH = "$supersetBin;$env:PATH"
+}
+
+# Source user's real PowerShell profile if it exists
+if (($PROFILE) -and (Test-Path $PROFILE)) {
+    . $PROFILE
+}
+`;
+	return writeFileIfChanged(profilePath, script, 0o644);
+}
+
+function writeCmdInit(paths: { BIN_DIR: string }): boolean {
+	const cmdDir = path.join(path.dirname(paths.BIN_DIR), "cmd");
+	fs.mkdirSync(cmdDir, { recursive: true });
+
+	const initPath = path.join(cmdDir, "init.cmd");
+	const script = `@echo off\r\nset "PATH=${paths.BIN_DIR};%PATH%"\r\n`;
+	return writeFileIfChanged(initPath, script, 0o644);
+}
+
 export function createBashWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
@@ -233,10 +263,26 @@ export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} bash wrapper`);
 }
 
+export function writeShellWrappers(
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): boolean {
+	if (process.platform === "win32") {
+		const ps = writePowerShellProfile(paths);
+		const cmd = writeCmdInit(paths);
+		return ps || cmd;
+	}
+	createZshWrapper(paths);
+	createBashWrapper(paths);
+	return true;
+}
+
 export function getShellEnv(
 	shell: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): Record<string, string> {
+	if (process.platform === "win32") {
+		return {};
+	}
 	const shellName = getShellName(shell);
 	if (shellName === "zsh") {
 		return {
@@ -247,10 +293,43 @@ export function getShellEnv(
 	return {};
 }
 
+function getWindowsShellArgs(
+	shell: string,
+	paths?: { BIN_DIR: string },
+): string[] {
+	const shellLower = shell.toLowerCase();
+
+	if (shellLower.includes("powershell") || shellLower.includes("pwsh")) {
+		if (paths) {
+			const profilePath = path.join(
+				path.dirname(paths.BIN_DIR),
+				"powershell",
+				"profile.ps1",
+			);
+			if (fs.existsSync(profilePath)) {
+				return ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `. '${profilePath}'`];
+			}
+		}
+		return ["-NoLogo"];
+	}
+
+	// cmd.exe
+	if (paths) {
+		const initPath = path.join(path.dirname(paths.BIN_DIR), "cmd", "init.cmd");
+		if (fs.existsSync(initPath)) {
+			return ["/k", initPath];
+		}
+	}
+	return [];
+}
+
 export function getShellArgs(
 	shell: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
+	if (process.platform === "win32") {
+		return getWindowsShellArgs(shell, paths);
+	}
 	const shellName = getShellName(shell);
 	logModeDiagnostics(shellName);
 	if (shellName === "bash") {
@@ -287,6 +366,13 @@ export function getCommandShellArgs(
 	command: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
+	if (process.platform === "win32") {
+		const shellLower = shell.toLowerCase();
+		if (shellLower.includes("powershell") || shellLower.includes("pwsh")) {
+			return ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command];
+		}
+		return ["/c", command];
+	}
 	const shellName = getShellName(shell);
 	logModeDiagnostics(shellName);
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");

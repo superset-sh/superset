@@ -10,6 +10,7 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
+import { homedir } from "node:os";
 import * as path from "node:path";
 import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
 import { buildSafeEnv } from "../lib/terminal/env";
@@ -954,7 +955,7 @@ export function createSession(request: CreateOrAttachRequest): Session {
 		tabId: request.tabId,
 		cols: request.cols,
 		rows: request.rows,
-		cwd: request.cwd || process.env.HOME || "/",
+		cwd: request.cwd || homedir() || process.cwd(),
 		env: request.env,
 		shell: request.shell,
 		workspaceName: request.workspaceName,

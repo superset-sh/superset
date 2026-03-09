@@ -86,6 +86,14 @@ jobs:
               echo "Created stable copy: Superset-${arch}.AppImage"
             fi
           done
+          # Windows exe
+          for file in *.exe; do
+            if [[ -f "$file" ]]; then
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.exe$/\1/')
+              cp "$file" "Superset-${arch}.exe"
+              echo "Created stable copy: Superset-${arch}.exe"
+            fi
+          done
           # Keep Linux updater manifest at a stable filename for generic provider lookups.
           for file in *-linux.yml; do
             if [[ -f "$file" && "$file" != "latest-linux.yml" ]]; then

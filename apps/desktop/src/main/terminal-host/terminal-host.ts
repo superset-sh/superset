@@ -9,6 +9,7 @@
  */
 
 import type { Socket } from "node:net";
+import { homedir } from "node:os";
 import type {
 	ClearScrollbackRequest,
 	CreateOrAttachRequest,
@@ -113,7 +114,7 @@ export class TerminalHost {
 				});
 
 				session.spawn({
-					cwd: request.cwd || process.env.HOME || "/",
+					cwd: request.cwd || homedir() || process.cwd(),
 					cols: request.cols,
 					rows: request.rows,
 					env: request.env,
