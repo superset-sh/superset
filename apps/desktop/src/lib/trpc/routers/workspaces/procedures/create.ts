@@ -1,4 +1,9 @@
-import { projects, settings, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	settings,
+	workspaces,
+	worktrees,
+} from "@superset/local-db/schema";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -10,8 +15,6 @@ import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
 	activateProject,
-	findOrphanedWorktreeByBranch,
-	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
 	getMaxProjectChildTabOrder,
 	getProject,
@@ -19,6 +22,10 @@ import {
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../utils/db-helpers";
+import {
+	listImportableExternalWorktrees,
+	resolveExternalWorktreeOpenTarget,
+} from "../utils/external-worktrees";
 import {
 	createWorktreeFromPr,
 	generateBranchName,
@@ -28,7 +35,6 @@ import {
 	getPrInfo,
 	getPrLocalBranchName,
 	listBranches,
-	listExternalWorktrees,
 	type PullRequestInfo,
 	parsePrUrl,
 	safeCheckoutBranch,
@@ -37,7 +43,6 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import {
-	findProjectWorktreeByCurrentPath,
 	listProjectWorktreesWithCurrentPaths,
 	resolveWorktreePathOrThrow,
 } from "../utils/repair-worktree-path";
@@ -754,20 +759,19 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				const exists = await worktreeExists(
-					project.mainRepoPath,
-					input.worktreePath,
-				);
-				if (!exists) {
+				const worktreeTarget = await resolveExternalWorktreeOpenTarget({
+					projectId: input.projectId,
+					mainRepoPath: project.mainRepoPath,
+					worktreePath: input.worktreePath,
+					branch: input.branch,
+				});
+
+				if (!worktreeTarget) {
 					throw new Error("Worktree no longer exists on disk");
 				}
 
-				const existingWorktree = await findProjectWorktreeByCurrentPath(
-					input.projectId,
-					input.worktreePath,
-				);
-
-				if (existingWorktree) {
+				if (worktreeTarget.kind === "tracked") {
+					const existingWorktree = worktreeTarget.worktree;
 					// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
 					if (!existingWorktree.gitStatus) {
 						localDb
@@ -862,11 +866,11 @@ export const createCreateProcedures = () => {
 					.insert(worktrees)
 					.values({
 						projectId: input.projectId,
-						path: input.worktreePath,
-						branch: input.branch,
+						path: worktreeTarget.worktreePath,
+						branch: worktreeTarget.branch,
 						baseBranch,
 						gitStatus: {
-							branch: input.branch,
+							branch: worktreeTarget.branch,
 							needsRebase: false,
 							ahead: 0,
 							behind: 0,
@@ -883,8 +887,8 @@ export const createCreateProcedures = () => {
 						projectId: input.projectId,
 						worktreeId: worktree.id,
 						type: "worktree",
-						branch: input.branch,
-						name: input.branch,
+						branch: worktreeTarget.branch,
+						name: worktreeTarget.branch,
 						tabOrder: maxTabOrder + 1,
 					})
 					.returning()
@@ -893,10 +897,13 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
 
-				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
+				copySupersetConfigToWorktree(
+					project.mainRepoPath,
+					worktreeTarget.worktreePath,
+				);
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
-					worktreePath: input.worktreePath,
+					worktreePath: worktreeTarget.worktreePath,
 					projectId: project.id,
 				});
 
@@ -918,7 +925,7 @@ export const createCreateProcedures = () => {
 				return {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
-					worktreePath: input.worktreePath,
+					worktreePath: worktreeTarget.worktreePath,
 					projectId: project.id,
 					wasExisting: false,
 				};
@@ -1039,37 +1046,21 @@ export const createCreateProcedures = () => {
 				}
 
 				// 2. Import external worktrees (on disk, not tracked in DB)
-				const allExternalWorktrees = await listExternalWorktrees(
-					project.mainRepoPath,
-				);
-				const trackedPaths = new Set(
-					projectWorktrees
-						.filter((trackedWorktree) => trackedWorktree.existsOnDisk)
-						.map((trackedWorktree) => trackedWorktree.worktree.path),
-				);
-
-				const externalWorktrees = allExternalWorktrees.filter((wt) => {
-					if (wt.path === project.mainRepoPath) return false;
-					if (wt.isBare) return false;
-					if (wt.isDetached) return false;
-					if (!wt.branch) return false;
-					if (trackedPaths.has(wt.path)) return false;
-					return true;
+				const externalWorktrees = await listImportableExternalWorktrees({
+					projectId: input.projectId,
+					mainRepoPath: project.mainRepoPath,
 				});
 
 				for (const ext of externalWorktrees) {
-					// biome-ignore lint/style/noNonNullAssertion: filtered above
-					const branch = ext.branch!;
-
 					const worktree = localDb
 						.insert(worktrees)
 						.values({
 							projectId: input.projectId,
 							path: ext.path,
-							branch,
+							branch: ext.branch,
 							baseBranch,
 							gitStatus: {
-								branch,
+								branch: ext.branch,
 								needsRebase: false,
 								ahead: 0,
 								behind: 0,
@@ -1086,15 +1077,15 @@ export const createCreateProcedures = () => {
 							projectId: input.projectId,
 							worktreeId: worktree.id,
 							type: "worktree",
-							branch,
-							name: branch,
+							branch: ext.branch,
+							name: ext.branch,
 							tabOrder: maxTabOrder + 1,
 						})
 						.run();
 
 					await setBranchBaseConfig({
 						repoPath: project.mainRepoPath,
-						branch,
+						branch: ext.branch,
 						baseBranch,
 						isExplicit: false,
 					});

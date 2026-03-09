@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { workspaces, worktrees } from "@superset/local-db";
+import { workspaces, worktrees } from "@superset/local-db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -11,11 +11,11 @@ import {
 	getWorktree,
 	updateProjectDefaultBranch,
 } from "../utils/db-helpers";
+import { listImportableExternalWorktrees } from "../utils/external-worktrees";
 import {
 	fetchDefaultBranch,
 	getAheadBehindCount,
 	getDefaultBranch,
-	listExternalWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
@@ -217,31 +217,10 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
-				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
-
-				const trackedWorktrees = await listProjectWorktreesWithCurrentPaths(
-					input.projectId,
-				);
-				const trackedPaths = new Set(
-					trackedWorktrees
-						.filter((trackedWorktree) => trackedWorktree.existsOnDisk)
-						.map((trackedWorktree) => trackedWorktree.worktree.path),
-				);
-
-				return allWorktrees
-					.filter((wt) => {
-						if (wt.path === project.mainRepoPath) return false;
-						if (wt.isBare) return false;
-						if (wt.isDetached) return false;
-						if (!wt.branch) return false;
-						if (trackedPaths.has(wt.path)) return false;
-						return true;
-					})
-					.map((wt) => ({
-						path: wt.path,
-						// biome-ignore lint/style/noNonNullAssertion: filtered above
-						branch: wt.branch!,
-					}));
+				return listImportableExternalWorktrees({
+					projectId: input.projectId,
+					mainRepoPath: project.mainRepoPath,
+				});
 			}),
 	});
 };
