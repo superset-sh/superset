@@ -41,18 +41,14 @@ runs:
 
         if [[ -n "$ARM64" && -n "$X64" ]]; then
           # Keep arm64 as the canonical manifest and append x64 assets into files[].
-          ruby - "$ARM64" "$X64" "$OUTPUT" <<'RUBY'
-            require "yaml"
-
-            arm64_path, x64_path, output_path = ARGV
-            arm64 = YAML.load(File.read(arm64_path))
-            x64 = YAML.load(File.read(x64_path))
-
-            merged = arm64.dup
-            merged["files"] = Array(arm64["files"]) + Array(x64["files"])
-
-            File.write(output_path, YAML.dump(merged))
-          RUBY
+          ruby -e 'require "yaml";
+            arm64_path, x64_path, output_path = ARGV;
+            arm64 = YAML.load(File.read(arm64_path));
+            x64 = YAML.load(File.read(x64_path));
+            merged = arm64.dup;
+            merged["files"] = Array(arm64["files"]) + Array(x64["files"]);
+            File.write(output_path, YAML.dump(merged))' \
+            "$ARM64" "$X64" "$OUTPUT"
           echo "Merged arm64 + x64 manifests into latest-mac.yml"
         elif [[ -n "$ARM64" ]]; then
           cp "$ARM64" "$OUTPUT"
