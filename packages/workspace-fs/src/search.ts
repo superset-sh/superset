@@ -650,39 +650,27 @@ function shouldIndexRelativePath(
 	return !defaultIgnoreMatchers.some((matcher) => matcher.test(normalizedPath));
 }
 
-function patchSearchIndexForEvent({
-	index,
+function applySearchEventToItems({
+	itemsByPath,
 	rootPath,
 	includeHidden,
 	event,
 }: {
-	index: FileSearchIndex;
+	itemsByPath: Map<string, WorkspaceFsEntry>;
 	rootPath: string;
 	includeHidden: boolean;
 	event: Exclude<WorkspaceFsWatchEvent, { type: "overflow" }>;
-}): FileSearchIndex {
+}): void {
 	const absolutePath = normalizeAbsolutePath(event.absolutePath);
 	const relativePath = toRelativePath(rootPath, absolutePath);
-	const existingIndex = index.items.findIndex(
-		(item) => item.absolutePath === absolutePath,
-	);
 	const shouldRemove =
 		event.type === "delete" ||
 		event.isDirectory ||
 		!shouldIndexRelativePath(relativePath, includeHidden);
 
 	if (shouldRemove) {
-		if (existingIndex === -1) {
-			return index;
-		}
-
-		const nextItems = index.items.filter(
-			(item) => item.absolutePath !== absolutePath,
-		);
-		return {
-			items: nextItems,
-			fuse: createFileSearchFuse(nextItems),
-		};
+		itemsByPath.delete(absolutePath);
+		return;
 	}
 
 	const nextEntry: WorkspaceFsEntry = {
@@ -693,29 +681,7 @@ function patchSearchIndexForEvent({
 		isDirectory: false,
 	};
 
-	if (existingIndex === -1) {
-		const nextItems = [...index.items, nextEntry];
-		return {
-			items: nextItems,
-			fuse: createFileSearchFuse(nextItems),
-		};
-	}
-
-	const existingEntry = index.items[existingIndex];
-	if (
-		existingEntry &&
-		existingEntry.name === nextEntry.name &&
-		existingEntry.relativePath === nextEntry.relativePath
-	) {
-		return index;
-	}
-
-	const nextItems = index.items.slice();
-	nextItems[existingIndex] = nextEntry;
-	return {
-		items: nextItems,
-		fuse: createFileSearchFuse(nextItems),
-	};
+	itemsByPath.set(absolutePath, nextEntry);
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
@@ -779,18 +745,24 @@ export function patchSearchIndexesForRoot(
 			continue;
 		}
 
-		let nextIndex = cached.index;
+		const nextItemsByPath = new Map(
+			cached.index.items.map((item) => [item.absolutePath, item]),
+		);
 		for (const event of patchableEvents) {
-			nextIndex = patchSearchIndexForEvent({
-				index: nextIndex,
+			applySearchEventToItems({
+				itemsByPath: nextItemsByPath,
 				rootPath: normalizedRootPath,
 				includeHidden,
 				event,
 			});
 		}
+		const nextItems = Array.from(nextItemsByPath.values());
 
 		searchIndexCache.set(cacheKey, {
-			index: nextIndex,
+			index: {
+				items: nextItems,
+				fuse: createFileSearchFuse(nextItems),
+			},
 			builtAt: Date.now(),
 		});
 	}

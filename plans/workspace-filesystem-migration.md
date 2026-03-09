@@ -462,6 +462,7 @@ This is the main UI responsiveness improvement after watcher count is under cont
 - keep file search, keyword/content search, and watching in one subsystem
 - move from invalidate-all toward incremental index patching
 - patch cached filename search indexes directly from normal create/update/delete events
+- batch filename-index patch application per watcher flush so fuzzy index rebuild happens once per burst, not once per event
 - reserve full index rebuilds for overflow, startup, or unrecoverable churn
 
 This matters most on large repositories and after bulk filesystem operations.
