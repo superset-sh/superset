@@ -50,6 +50,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
 	PROJECT_ENV_VARS: "project-env-vars",
+	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
@@ -749,6 +750,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"env",
 			"cloud",
 			"sandbox",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+		section: "project",
+		title: "Import Worktrees",
+		description: "Import existing worktrees on disk as workspaces",
+		keywords: [
+			"import",
+			"worktree",
+			"worktrees",
+			"workspace",
+			"external",
+			"existing",
+			"disk",
+			"add",
 		],
 	},
 	// API Keys

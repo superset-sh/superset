@@ -9,6 +9,28 @@ function getIds(items: SettingsItem[]): string[] {
 	return items.map((item) => item.id);
 }
 
+describe("settings search - import worktrees (#2272)", () => {
+	it('searching "import" returns PROJECT_IMPORT_WORKTREES', () => {
+		const results = searchSettings("import");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES);
+	});
+
+	it('searching "import worktree" returns PROJECT_IMPORT_WORKTREES', () => {
+		const results = searchSettings("import worktree");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES);
+	});
+
+	it("PROJECT_IMPORT_WORKTREES has project section", () => {
+		const results = searchSettings("import worktrees");
+		const item = results.find(
+			(r) => r.id === SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+		);
+		expect(item?.section).toBe("project");
+	});
+});
+
 describe("settings search - font settings", () => {
 	it('searching "font" returns both APPEARANCE_EDITOR_FONT and APPEARANCE_TERMINAL_FONT', () => {
 		const results = searchSettings("font");
