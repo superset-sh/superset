@@ -1,15 +1,21 @@
-import path from "node:path";
 import { observable } from "@trpc/server/observable";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	copyWorkspacePaths,
+	createWorkspaceDirectory,
+	createWorkspaceFile,
+	deleteWorkspacePaths,
 	readWorkspaceDirectory,
+	renameWorkspacePath,
 	searchWorkspaceFiles,
 	searchWorkspaceFilesMulti,
 	searchWorkspaceKeyword,
+	statWorkspacePath,
 	watchWorkspaceFileSystemEvents,
-	workspaceFsService,
+	moveWorkspacePaths,
+	workspacePathExists,
 } from "../workspace-fs-service";
 
 function isClosedStreamError(error: unknown): boolean {
@@ -229,12 +235,7 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.createFile({
-					workspaceId: input.workspaceId,
-					absolutePath: path.join(input.parentAbsolutePath, input.name),
-					content: input.content,
-				});
-				return { path: result.absolutePath };
+				return await createWorkspaceFile(input);
 			}),
 
 		createDirectory: publicProcedure
@@ -246,11 +247,7 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.createDirectory({
-					workspaceId: input.workspaceId,
-					absolutePath: path.join(input.parentAbsolutePath, input.name),
-				});
-				return { path: result.absolutePath };
+				return await createWorkspaceDirectory(input);
 			}),
 
 		rename: publicProcedure
@@ -262,15 +259,7 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.rename({
-					workspaceId: input.workspaceId,
-					absolutePath: input.absolutePath,
-					newName: input.newName,
-				});
-				return {
-					oldPath: result.oldAbsolutePath,
-					newPath: result.newAbsolutePath,
-				};
+				return await renameWorkspacePath(input);
 			}),
 
 		delete: publicProcedure
@@ -281,21 +270,7 @@ export const createFilesystemRouter = () => {
 					permanent: z.boolean().default(false),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.deletePaths({
-					workspaceId: input.workspaceId,
-					absolutePaths: input.absolutePaths,
-					permanent: input.permanent,
-				});
-
-				return {
-					deleted: result.deleted,
-					errors: result.errors.map((error) => ({
-						path: error.absolutePath,
-						error: error.error,
-					})),
-				};
-			}),
+			.mutation(async ({ input }) => await deleteWorkspacePaths(input)),
 
 		move: publicProcedure
 			.input(
@@ -305,21 +280,7 @@ export const createFilesystemRouter = () => {
 					destinationAbsolutePath: z.string(),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.movePaths({
-					workspaceId: input.workspaceId,
-					absolutePaths: input.sourceAbsolutePaths,
-					destinationAbsolutePath: input.destinationAbsolutePath,
-				});
-
-				return {
-					moved: result.entries,
-					errors: result.errors.map((error) => ({
-						path: error.absolutePath,
-						error: error.error,
-					})),
-				};
-			}),
+			.mutation(async ({ input }) => await moveWorkspacePaths(input)),
 
 		copy: publicProcedure
 			.input(
@@ -329,21 +290,7 @@ export const createFilesystemRouter = () => {
 					destinationAbsolutePath: z.string(),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				const result = await workspaceFsService.copyPaths({
-					workspaceId: input.workspaceId,
-					absolutePaths: input.sourceAbsolutePaths,
-					destinationAbsolutePath: input.destinationAbsolutePath,
-				});
-
-				return {
-					copied: result.entries,
-					errors: result.errors.map((error) => ({
-						path: error.absolutePath,
-						error: error.error,
-					})),
-				};
-			}),
+			.mutation(async ({ input }) => await copyWorkspacePaths(input)),
 
 		exists: publicProcedure
 			.input(
@@ -352,12 +299,7 @@ export const createFilesystemRouter = () => {
 					absolutePath: z.string(),
 				}),
 			)
-			.query(async ({ input }) => {
-				return await workspaceFsService.exists({
-					workspaceId: input.workspaceId,
-					absolutePath: input.absolutePath,
-				});
-			}),
+			.query(async ({ input }) => await workspacePathExists(input)),
 
 		stat: publicProcedure
 			.input(
@@ -366,15 +308,6 @@ export const createFilesystemRouter = () => {
 					absolutePath: z.string(),
 				}),
 			)
-			.query(async ({ input }) => {
-				try {
-					return await workspaceFsService.stat({
-						workspaceId: input.workspaceId,
-						absolutePath: input.absolutePath,
-					});
-				} catch {
-					return null;
-				}
-			}),
+			.query(async ({ input }) => await statWorkspacePath(input)),
 	});
 };

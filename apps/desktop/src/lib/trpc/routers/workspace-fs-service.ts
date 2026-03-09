@@ -1,11 +1,11 @@
+import path from "node:path";
 import {
 	createWorkspaceFsHostService,
 	toFileSystemChangeEvent,
-	WorkspaceFsWatcherManager,
 	type WorkspaceFsPathError,
+	WorkspaceFsWatcherManager,
 } from "@superset/workspace-fs/host";
 import { shell } from "electron";
-import path from "node:path";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
@@ -69,7 +69,10 @@ function resolveRegisteredWorktreeRootPath(worktreePath: string): string {
 }
 
 const sharedHostServiceOptions = {
-	runRipgrep: async (args: string[], options: { cwd: string; maxBuffer: number }) => {
+	runRipgrep: async (
+		args: string[],
+		options: { cwd: string; maxBuffer: number },
+	) => {
 		const result = await execWithShellEnv("rg", args, {
 			cwd: options.cwd,
 			maxBuffer: options.maxBuffer,
@@ -194,11 +197,131 @@ export async function readWorkspaceDirectory(input: {
 	}));
 }
 
+export async function createWorkspaceFile(input: {
+	workspaceId: string;
+	parentAbsolutePath: string;
+	name: string;
+	content?: string;
+}): Promise<{ path: string }> {
+	const result = await workspaceFsService.createFile({
+		workspaceId: input.workspaceId,
+		absolutePath: path.join(input.parentAbsolutePath, input.name),
+		content: input.content,
+	});
+	return { path: result.absolutePath };
+}
+
+export async function createWorkspaceDirectory(input: {
+	workspaceId: string;
+	parentAbsolutePath: string;
+	name: string;
+}): Promise<{ path: string }> {
+	const result = await workspaceFsService.createDirectory({
+		workspaceId: input.workspaceId,
+		absolutePath: path.join(input.parentAbsolutePath, input.name),
+	});
+	return { path: result.absolutePath };
+}
+
+export async function renameWorkspacePath(input: {
+	workspaceId: string;
+	absolutePath: string;
+	newName: string;
+}): Promise<{ oldPath: string; newPath: string }> {
+	const result = await workspaceFsService.rename(input);
+	return {
+		oldPath: result.oldAbsolutePath,
+		newPath: result.newAbsolutePath,
+	};
+}
+
+export async function deleteWorkspacePaths(input: {
+	workspaceId: string;
+	absolutePaths: string[];
+	permanent?: boolean;
+}): Promise<{
+	deleted: string[];
+	errors: Array<{ path: string; error: string }>;
+}> {
+	const result = await workspaceFsService.deletePaths(input);
+	return {
+		deleted: result.deleted,
+		errors: result.errors.map((error) => ({
+			path: error.absolutePath,
+			error: error.error,
+		})),
+	};
+}
+
+export async function moveWorkspacePaths(input: {
+	workspaceId: string;
+	sourceAbsolutePaths: string[];
+	destinationAbsolutePath: string;
+}): Promise<{
+	moved: Array<{ from: string; to: string }>;
+	errors: Array<{ path: string; error: string }>;
+}> {
+	const result = await workspaceFsService.movePaths({
+		workspaceId: input.workspaceId,
+		absolutePaths: input.sourceAbsolutePaths,
+		destinationAbsolutePath: input.destinationAbsolutePath,
+	});
+	return {
+		moved: result.entries,
+		errors: result.errors.map((error) => ({
+			path: error.absolutePath,
+			error: error.error,
+		})),
+	};
+}
+
+export async function copyWorkspacePaths(input: {
+	workspaceId: string;
+	sourceAbsolutePaths: string[];
+	destinationAbsolutePath: string;
+}): Promise<{
+	copied: Array<{ from: string; to: string }>;
+	errors: Array<{ path: string; error: string }>;
+}> {
+	const result = await workspaceFsService.copyPaths({
+		workspaceId: input.workspaceId,
+		absolutePaths: input.sourceAbsolutePaths,
+		destinationAbsolutePath: input.destinationAbsolutePath,
+	});
+	return {
+		copied: result.entries,
+		errors: result.errors.map((error) => ({
+			path: error.absolutePath,
+			error: error.error,
+		})),
+	};
+}
+
+export async function workspacePathExists(input: {
+	workspaceId: string;
+	absolutePath: string;
+}) {
+	return await workspaceFsService.exists(input);
+}
+
+export async function statWorkspacePath(input: {
+	workspaceId: string;
+	absolutePath: string;
+}) {
+	try {
+		return await workspaceFsService.stat(input);
+	} catch {
+		return null;
+	}
+}
+
 export async function* watchWorkspaceFileSystemEvents(
 	workspaceId: string,
 ): AsyncIterable<FileSystemChangeEvent> {
 	const rootPath = resolveWorkspaceRootPath(workspaceId);
-	for await (const event of workspaceFsService.watchWorkspace({ workspaceId })) {
+	for await (const event of workspaceFsService.watchWorkspace({
+		workspaceId,
+	})) {
 		yield toFileSystemChangeEvent(event, rootPath);
 	}
 }

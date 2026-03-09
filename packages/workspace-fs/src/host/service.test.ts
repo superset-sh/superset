@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
 import type { WorkspaceFsWatchEvent } from "../types";
 import { createWorkspaceFsHostService } from "./service";
 
@@ -74,9 +74,11 @@ describe("createWorkspaceFsHostService", () => {
 			},
 		});
 
-		const iterator = service.watchWorkspace({
-			workspaceId: "workspace-1",
-		})[Symbol.asyncIterator]();
+		const iterator = service
+			.watchWorkspace({
+				workspaceId: "workspace-1",
+			})
+			[Symbol.asyncIterator]();
 
 		const nextListener = listeners[0];
 		if (!nextListener) {

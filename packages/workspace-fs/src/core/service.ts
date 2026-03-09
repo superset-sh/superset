@@ -1,8 +1,8 @@
 import type {
 	DeletePathsResult,
 	MoveCopyResult,
-	WorkspaceFsExistsResult,
 	WorkspaceFsEntry,
+	WorkspaceFsExistsResult,
 	WorkspaceFsKeywordMatch,
 	WorkspaceFsSearchResult,
 	WorkspaceFsStat,

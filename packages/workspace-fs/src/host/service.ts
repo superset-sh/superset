@@ -1,3 +1,8 @@
+import type {
+	WorkspaceFsMoveCopyInput,
+	WorkspaceFsService,
+	WorkspaceFsWatchInput,
+} from "../core/service";
 import {
 	copyPaths,
 	createDirectoryAtPath,
@@ -12,17 +17,12 @@ import {
 	statFile,
 	writeTextFile,
 } from "../fs";
-import type {
-	WorkspaceFsMoveCopyInput,
-	WorkspaceFsService,
-	WorkspaceFsWatchInput,
-} from "../core/service";
-import type { SearchKeywordOptions, SearchFilesOptions } from "../search";
+import type { SearchFilesOptions, SearchKeywordOptions } from "../search";
 import { searchFiles, searchKeyword } from "../search";
 import type { WorkspaceFsStat, WorkspaceFsWatchEvent } from "../types";
-import {
-	type WorkspaceFsWatcherManager,
-	type WorkspaceWatchSubscriptionOptions,
+import type {
+	WorkspaceFsWatcherManager,
+	WorkspaceWatchSubscriptionOptions,
 } from "../watch";
 
 export interface WorkspaceFsHostService extends WorkspaceFsService {
@@ -136,7 +136,9 @@ function createAsyncQueue<T>(
 	};
 }
 
-function toWorkspaceFsStat(stats: Awaited<ReturnType<typeof statFile>>): WorkspaceFsStat {
+function toWorkspaceFsStat(
+	stats: Awaited<ReturnType<typeof statFile>>,
+): WorkspaceFsStat {
 	return {
 		size: stats.size,
 		isDirectory: stats.isDirectory(),
@@ -274,20 +276,23 @@ export function createWorkspaceFsHostService(
 			return await searchKeyword(optionsForSearch);
 		},
 
-		watchWorkspace(input: WorkspaceFsWatchInput): AsyncIterable<WorkspaceFsWatchEvent> {
-			if (!options.watcherManager) {
-				throw new Error("watchWorkspace requires a watcher manager");
-			}
+			watchWorkspace(
+				input: WorkspaceFsWatchInput,
+			): AsyncIterable<WorkspaceFsWatchEvent> {
+				const watcherManager = options.watcherManager;
+				if (!watcherManager) {
+					throw new Error("watchWorkspace requires a watcher manager");
+				}
 
-			const rootPath = resolveRootPath(input.workspaceId);
-			return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
-				const watchOptions: WorkspaceWatchSubscriptionOptions = {
-					workspaceId: input.workspaceId,
-					rootPath,
-				};
-				return await options.watcherManager!.subscribe(watchOptions, push);
-			});
-		},
+				const rootPath = resolveRootPath(input.workspaceId);
+				return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
+					const watchOptions: WorkspaceWatchSubscriptionOptions = {
+						workspaceId: input.workspaceId,
+						rootPath,
+					};
+					return await watcherManager.subscribe(watchOptions, push);
+				});
+			},
 
 		async close() {
 			await options.watcherManager?.close();
