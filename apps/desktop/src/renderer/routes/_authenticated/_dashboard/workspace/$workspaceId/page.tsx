@@ -17,6 +17,7 @@ import {
 	KeywordSearch,
 	useKeywordSearch,
 } from "renderer/screens/main/components/KeywordSearch";
+import { WorkspaceAutoRenameWarningNotice } from "renderer/screens/main/components/WorkspaceView/components/WorkspaceAutoRenameWarningNotice";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
@@ -36,6 +37,7 @@ import {
 import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
+	useWorkspaceInitProgress,
 } from "renderer/stores/workspace-init";
 
 const EMPTY_HISTORY_STACK: string[] = [];
@@ -106,6 +108,7 @@ function WorkspacePage() {
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
+	const initProgress = useWorkspaceInitProgress(workspaceId);
 
 	// Check for incomplete init after app restart
 	const gitStatus = workspace?.worktree?.gitStatus;
@@ -600,11 +603,21 @@ function WorkspacePage() {
 						isInterrupted={hasIncompleteInit && !isInitializing}
 					/>
 				) : (
-					<WorkspaceLayout
-						defaultExternalApp={defaultApp}
-						onOpenInApp={handleOpenInApp}
-						onOpenQuickOpen={handleQuickOpen}
-					/>
+					<>
+						{initProgress?.warning ? (
+							<div className="border-b border-border bg-background px-4 py-3">
+								<WorkspaceAutoRenameWarningNotice
+									reason={initProgress.warning.reason}
+									onOpenApiKeys={() => navigate({ to: "/settings/api-keys" })}
+								/>
+							</div>
+						) : null}
+						<WorkspaceLayout
+							defaultExternalApp={defaultApp}
+							onOpenInApp={handleOpenInApp}
+							onOpenQuickOpen={handleQuickOpen}
+						/>
+					</>
 				)}
 			</div>
 			<CommandPalette

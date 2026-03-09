@@ -3,6 +3,10 @@ import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import {
+	createWorkspaceAutoRenameWarning,
+	type WorkspaceAutoRenameWarning,
+} from "shared/workspace-auto-rename-warning";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
@@ -412,7 +416,7 @@ export const createCreateProcedures = () => {
 							branch,
 							name: input.name ?? branch,
 						});
-						let autoRenameWarning: string | undefined;
+						let autoRenameWarning: WorkspaceAutoRenameWarning | undefined;
 						try {
 							const autoRenameResult =
 								await attemptWorkspaceAutoRenameFromPrompt({
@@ -428,7 +432,8 @@ export const createCreateProcedures = () => {
 								workspaceId: workspace.id,
 								error: error instanceof Error ? error.message : String(error),
 							});
-							autoRenameWarning = "Couldn't auto-name this workspace.";
+							autoRenameWarning =
+								createWorkspaceAutoRenameWarning("generation-failed");
 						}
 						activateProject(project);
 						const setupConfig = loadSetupConfig({

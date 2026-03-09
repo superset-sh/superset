@@ -1,0 +1,1 @@
+export { WorkspaceAutoRenameWarningNotice } from "./WorkspaceAutoRenameWarningNotice";

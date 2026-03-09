@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
@@ -18,6 +17,7 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { showWorkspaceAutoRenameWarningToast } from "renderer/lib/show-workspace-auto-rename-warning-toast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
@@ -64,8 +64,9 @@ function AuthenticatedLayout() {
 				!shownWorkspaceInitWarningsRef.current.has(progress.workspaceId)
 			) {
 				shownWorkspaceInitWarningsRef.current.add(progress.workspaceId);
-				toast.warning("Workspace created without auto-name", {
-					description: progress.warning,
+				showWorkspaceAutoRenameWarningToast({
+					warning: progress.warning,
+					onOpenApiKeys: () => navigate({ to: "/settings/api-keys" }),
 				});
 			}
 			if (progress.step === "ready" || progress.step === "failed") {

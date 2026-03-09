@@ -3,6 +3,7 @@ import type {
 	WorkspaceInitProgress,
 	WorkspaceInitStep,
 } from "shared/types/workspace-init";
+import type { WorkspaceAutoRenameWarning } from "shared/workspace-auto-rename-warning";
 
 interface InitJob {
 	workspaceId: string;
@@ -115,7 +116,7 @@ class WorkspaceInitManager extends EventEmitter {
 		step: WorkspaceInitStep,
 		message: string,
 		error?: string,
-		warning?: string,
+		warning?: WorkspaceAutoRenameWarning,
 	): void {
 		const job = this.jobs.get(workspaceId);
 		if (!job) {
