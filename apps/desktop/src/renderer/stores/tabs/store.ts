@@ -946,10 +946,17 @@ export const useTabsStore = create<TabsStore>()(
 					const pane = state.panes[paneId];
 					if (!pane || pane.tabId !== tabId) return;
 
+					const alreadyFocused = state.focusedPaneIds[tabId] === paneId;
+
 					set({
 						panes: {
 							...state.panes,
-							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
+							[paneId]: {
+								...pane,
+								status: alreadyFocused
+									? pane.status
+									: acknowledgedStatus(pane.status),
+							},
 						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
