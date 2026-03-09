@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { PLATFORM } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -163,10 +164,11 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
-	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
-	const isMac = platform === "darwin";
+	const isMac = PLATFORM.IS_MAC;
 	const { data: optionAsMeta, isLoading: isOptionAsMetaLoading } =
-		electronTrpc.settings.getOptionAsMeta.useQuery();
+		electronTrpc.settings.getOptionAsMeta.useQuery(undefined, {
+			enabled: isMac,
+		});
 	const setOptionAsMeta = electronTrpc.settings.setOptionAsMeta.useMutation({
 		onMutate: async ({ enabled }) => {
 			await utils.settings.getOptionAsMeta.cancel();

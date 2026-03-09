@@ -645,7 +645,9 @@ export function setupKeyboardHandler(
 		) {
 			const code = event.code;
 			if (code.startsWith("Key") && code.length === 4) {
-				const letter = code.charAt(3).toLowerCase();
+				const letter = event.shiftKey
+					? code.charAt(3)
+					: code.charAt(3).toLowerCase();
 				if (event.type === "keydown" && options.onWrite) {
 					options.onWrite(`\x1b${letter}`);
 				}

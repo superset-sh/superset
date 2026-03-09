@@ -464,6 +464,24 @@ describe("setupKeyboardHandler - optionAsMeta", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bo");
 	});
+
+	it("preserves Shift modifier: Option+Shift+P sends ESC+P (uppercase)", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: true };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		captured.handler?.({
+			type: "keydown",
+			key: "P",
+			code: "KeyP",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: true,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bP");
+	});
 });
 
 describe("setupPasteHandler", () => {
