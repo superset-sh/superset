@@ -2,29 +2,50 @@
 	background: transparent;
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-root {
+/*
+ * All overrides use `.mosaic:is(...)` prefix to beat the built-in
+ * `.mosaic.mosaic-blueprint-theme` rules (specificity 0,4,0).
+ */
+
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-root {
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-tile {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-tile {
 	margin: 0;
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window {
 	border: 0.5px solid var(--color-border);
 	border-radius: 0;
 	overflow: hidden;
 	box-shadow: none;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window-focused {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-preview {
+	border: 0.5px solid var(--color-border);
+	border-radius: 0;
+	overflow: hidden;
+	box-shadow: none;
+	background: var(--color-background);
+}
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	.mosaic-window
+	.mosaic-preview,
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	.mosaic-preview
+	.mosaic-preview {
+	border: 0.5px solid var(--color-border);
+	max-height: none;
+}
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window-focused {
 	border-color: var(--color-border);
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-toolbar {
 	background: var(--color-tertiary);
 	height: 28px;
@@ -33,9 +54,10 @@
 	align-items: center;
 	transition: background-color 0.15s ease;
 	border-radius: 0;
+	box-shadow: none;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-toolbar
 	.mosaic-window-controls {
 	opacity: 0;
@@ -44,27 +66,27 @@
 	align-items: center;
 	height: 100%;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-toolbar:hover
 	.mosaic-window-controls,
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window-focused
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window-focused, .mosaic-preview)
 	.mosaic-window-toolbar
 	.mosaic-window-controls,
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-toolbar:focus-within
 	.mosaic-window-controls {
 	opacity: 1;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window-focused
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window-focused, .mosaic-preview)
 	.mosaic-window-toolbar {
 	background: var(--color-secondary);
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-title {
 	color: var(--color-muted-foreground);
 	font-size: 11px;
@@ -72,13 +94,13 @@
 	letter-spacing: 0.01em;
 	transition: color 0.15s ease;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window-focused
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window-focused, .mosaic-preview)
 	.mosaic-window-title {
 	color: var(--color-foreground);
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light)
-	.mosaic-window
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	:is(.mosaic-window, .mosaic-preview)
 	.mosaic-window-body {
 	background: transparent;
 	border: none;
@@ -94,22 +116,32 @@
 	outline: 2px solid var(--color-ring);
 	outline-offset: -2px;
 }
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split {
 	background: transparent;
 	opacity: 1;
 	transition: background-color 0.15s ease;
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split.-column {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split.-column {
 	cursor: row-resize;
 }
 
-:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split.-row {
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split.-row {
 	cursor: col-resize;
 }
 
-/* Drop target when hovering - shows the split preview */
-.mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
+/* Drop target preview while dragging panes */
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-drop-target
+	.drop-target-container
+	.drop-target {
+	background: transparent;
+	border: 1px solid transparent;
+}
+
+.mosaic:is(.mosaic-theme-dark, .mosaic-theme-light)
+	.mosaic-drop-target
+	.drop-target-container
+	.drop-target.drop-target-hover {
 	background: rgba(59, 130, 246, 0.1);
 	border: 1px solid rgba(59, 130, 246, 0.3);
 	opacity: 1;

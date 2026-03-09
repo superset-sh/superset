@@ -22,6 +22,7 @@ import {
 	createChatMastraTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
+	createNotesTabWithPane,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
@@ -190,6 +191,46 @@ export const useTabsStore = create<TabsStore>()(
 
 					posthog.capture("panel_opened", {
 						panel_type: "chat",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addNotesTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createNotesTabWithPane(workspaceId);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "notes",
 						workspace_id: workspaceId,
 						pane_id: pane.id,
 					});

@@ -11,6 +11,7 @@ import type {
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
+	NotesPaneState,
 } from "shared/tabs-types";
 import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
 
@@ -296,6 +297,41 @@ export const createDevToolsPane = (
 		name: "DevTools",
 		devtools,
 	};
+};
+
+/**
+ * Creates a new notes pane
+ */
+export const createNotesPane = (tabId: string): Pane => {
+	const id = generateId("pane");
+	const notes: NotesPaneState = { content: "", filePath: `note-${id}.md` };
+	return {
+		id,
+		tabId,
+		type: "notes",
+		name: "Notes",
+		notes,
+	};
+};
+
+/**
+ * Creates a new tab with a notes pane atomically
+ */
+export const createNotesTabWithPane = (
+	workspaceId: string,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createNotesPane(tabId);
+
+	const tab: Tab = {
+		id: tabId,
+		name: "Notes",
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
 };
 
 /**

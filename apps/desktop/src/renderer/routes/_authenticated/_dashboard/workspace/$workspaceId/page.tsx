@@ -136,6 +136,7 @@ function WorkspacePage() {
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
+	const addNotesTab = useTabsStore((s) => s.addNotesTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const removePane = useTabsStore((s) => s.removePane);
@@ -204,6 +205,10 @@ function WorkspacePage() {
 	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
 		workspaceId,
 		addBrowserTab,
+	]);
+	useAppHotkey("NEW_NOTES", () => addNotesTab(workspaceId), undefined, [
+		workspaceId,
+		addNotesTab,
 	]);
 	usePresetHotkeys(openTabWithPreset);
 
