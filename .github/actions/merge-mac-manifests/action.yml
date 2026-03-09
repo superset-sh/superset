@@ -35,43 +35,8 @@ runs:
     - name: Merge macOS auto-update manifests
       shell: bash
       run: |
-        ARM64=$(find manifests/arm64 -name '*-mac.yml' -print -quit 2>/dev/null || true)
-        X64=$(find manifests/x64 -name '*-mac.yml' -print -quit 2>/dev/null || true)
-        OUTPUT="${{ inputs.artifacts-path }}/latest-mac.yml"
-
-        if [[ -n "$ARM64" && -n "$X64" ]]; then
-          # Keep arm64 as the canonical manifest and append x64 assets into files[].
-          ruby -e 'require "yaml";
-            arm64_path, x64_path, output_path = ARGV;
-            arm64 = YAML.load(File.read(arm64_path));
-            x64 = YAML.load(File.read(x64_path));
-            merged = arm64.dup;
-            merged["files"] = Array(arm64["files"]) + Array(x64["files"]);
-            File.write(output_path, YAML.dump(merged))' \
-            "$ARM64" "$X64" "$OUTPUT"
-          echo "Merged arm64 + x64 manifests into latest-mac.yml"
-        elif [[ -n "$ARM64" ]]; then
-          cp "$ARM64" "$OUTPUT"
-          echo "Using arm64-only manifest"
-        elif [[ -n "$X64" ]]; then
-          cp "$X64" "$OUTPUT"
-          echo "Using x64-only manifest"
-        else
-          echo "::error::No macOS update manifests were found to merge"
-          exit 1
-        fi
-
-        ruby -e 'require "yaml"; YAML.load(File.read(ARGV[0]))' "$OUTPUT" > /dev/null
-
-        # Write additional manifest copies (e.g., canary-mac.yml)
-        IFS=',' read -ra EXTRA <<< "${{ inputs.extra-manifest-names }}"
-        for name in "${EXTRA[@]}"; do
-          name=$(echo "$name" | xargs)  # trim whitespace
-          if [[ -n "$name" ]]; then
-            cp "$OUTPUT" "${{ inputs.artifacts-path }}/$name"
-            echo "Created copy: $name"
-          fi
-        done
-
-        echo "Final latest-mac.yml:"
-        cat "$OUTPUT"
+        node .github/actions/merge-mac-manifests/merge-mac-manifests.mjs \
+          --arm64-dir manifests/arm64 \
+          --x64-dir manifests/x64 \
+          --output "${{ inputs.artifacts-path }}/latest-mac.yml" \
+          --extra-manifest-names "${{ inputs.extra-manifest-names }}"
