@@ -595,6 +595,7 @@ Deliverable:
 ### Phase 10: Remove legacy code
 
 - delete old duplicated search implementations
+- delete the desktop filesystem router’s private search/index/cache code once all search procedures delegate to `workspace-fs`
 - delete obsolete absolute-path router internals
 - remove unused file-tree hooks and stale refresh paths
 
