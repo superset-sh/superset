@@ -58,41 +58,10 @@ jobs:
           pattern: desktop-*
           merge-multiple: true
 
-      - name: Download arm64 macOS update manifest
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-mac-arm64-update-manifest
-          path: manifests/arm64
-
-      - name: Download x64 macOS update manifest
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-mac-x64-update-manifest
-          path: manifests/x64
-
       - name: Merge macOS auto-update manifests
-        run: |
-          ARM64="manifests/arm64/latest-mac.yml"
-          X64="manifests/x64/latest-mac.yml"
-          OUTPUT="release-artifacts/latest-mac.yml"
-
-          if [[ -f "$ARM64" && -f "$X64" ]]; then
-            # Merge both arch manifests — arm64 is canonical (base path/sha512)
-            yq eval-all '
-              select(fileIndex == 0) *
-              {"files": [select(fileIndex == 0).files[], select(fileIndex == 1).files[]]}
-            ' "$ARM64" "$X64" > "$OUTPUT"
-            echo "Merged arm64 + x64 manifests into latest-mac.yml"
-          elif [[ -f "$ARM64" ]]; then
-            cp "$ARM64" "$OUTPUT"
-            echo "Using arm64-only manifest"
-          elif [[ -f "$X64" ]]; then
-            cp "$X64" "$OUTPUT"
-            echo "Using x64-only manifest"
-          fi
-
-          echo "Final latest-mac.yml:"
-          cat "$OUTPUT"
+        uses: ./.github/actions/merge-mac-manifests
+        with:
+          artifact-prefix: desktop
 
       - name: Create stable-named copies for latest download URLs
         run: |
