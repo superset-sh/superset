@@ -83,16 +83,15 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					>
 						<LuExternalLink className="size-3.5" strokeWidth={STROKE_WIDTH} />
 					</button>
-					{canKill && (
-						<button
-							type="button"
-							onClick={handleClose}
-							aria-label={`Close ${port.label || `port ${port.port}`}`}
-							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
-						>
-							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
-						</button>
-					)}
+					<button
+						type="button"
+						onClick={handleClose}
+						disabled={!canKill}
+						aria-label={`Close ${port.label || `port ${port.port}`}`}
+						className={`opacity-0 group-hover:opacity-100 pr-1 transition-opacity focus-visible:opacity-100 focus-visible:outline-none ${canKill ? "text-muted-foreground hover:text-primary" : "text-muted-foreground/40 cursor-default"}`}
+					>
+						<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+					</button>
 				</div>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={6} showArrow={false}>
@@ -109,9 +108,13 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 							{port.pid > 0 && ` (pid ${port.pid})`}
 						</div>
 					)}
-					{canJumpToTerminal && (
+					{canJumpToTerminal ? (
 						<div className="text-muted-foreground/70 text-[10px]">
 							Click to open workspace
+						</div>
+					) : (
+						<div className="text-muted-foreground/70 text-[10px]">
+							Detected via check script
 						</div>
 					)}
 				</div>

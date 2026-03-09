@@ -19,8 +19,10 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 		navigateToWorkspace(group.workspaceId, navigate);
 	};
 
+	const killablePorts = group.ports.filter((p) => !!p.paneId);
+
 	const handleCloseAll = () => {
-		killPorts(group.ports);
+		killPorts(killablePorts);
 	};
 
 	return (
@@ -38,13 +40,18 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 						<button
 							type="button"
 							onClick={handleCloseAll}
-							className="ml-auto p-0.5 rounded hover:bg-muted/50 text-muted-foreground hover:text-primary"
+							disabled={killablePorts.length === 0}
+							className={`ml-auto p-0.5 rounded text-muted-foreground ${killablePorts.length > 0 ? "hover:bg-muted/50 hover:text-primary" : "opacity-40 cursor-default"}`}
 						>
 							<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top" sideOffset={4}>
-						<p className="text-xs">Close all ports</p>
+						<p className="text-xs">
+							{killablePorts.length > 0
+								? "Close all ports"
+								: "Cannot close ports from check scripts"}
+						</p>
 					</TooltipContent>
 				</Tooltip>
 			</div>
