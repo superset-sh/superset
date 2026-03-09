@@ -45,8 +45,8 @@ runs:
             require "yaml"
 
             arm64_path, x64_path, output_path = ARGV
-            arm64 = YAML.safe_load(File.read(arm64_path))
-            x64 = YAML.safe_load(File.read(x64_path))
+            arm64 = YAML.load(File.read(arm64_path))
+            x64 = YAML.load(File.read(x64_path))
 
             merged = arm64.dup
             merged["files"] = Array(arm64["files"]) + Array(x64["files"])
@@ -65,7 +65,7 @@ runs:
           exit 1
         fi
 
-        ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]))' "$OUTPUT" > /dev/null
+        ruby -e 'require "yaml"; YAML.load(File.read(ARGV[0]))' "$OUTPUT" > /dev/null
 
         # Write additional manifest copies (e.g., canary-mac.yml)
         IFS=',' read -ra EXTRA <<< "${{ inputs.extra-manifest-names }}"
