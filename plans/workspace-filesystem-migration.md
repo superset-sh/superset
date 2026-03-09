@@ -571,6 +571,7 @@ Deliverable:
 - add a host service that resolves `workspaceId` to a workspace root and exposes one service object for the desktop router
 - move desktop filesystem search endpoints off raw `rootPath` inputs and onto `workspaceId`-scoped service calls
 - add service-level tests around host root resolution and watch-stream behavior
+- collapse desktop router imports behind one local adapter module so desktop code no longer imports scattered `workspace-fs/host` helpers directly
 - keep Electron IPC as one host adapter, not the service itself
 - make watcher/search state belong to the host layer
 - prepare for a future remote workspace host that runs beside the workspace

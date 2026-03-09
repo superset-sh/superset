@@ -1,24 +1,18 @@
 import path from "node:path";
-import {
-	createWorkspaceFsHostService,
-	toFileSystemChangeEvent,
-	WorkspaceFsWatcherManager,
-} from "@superset/workspace-fs/host";
 import { observable } from "@trpc/server/observable";
-import { shell } from "electron";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
 } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getWorkspace } from "../workspaces/utils/db-helpers";
-import { execWithShellEnv } from "../workspaces/utils/shell-env";
-import { getWorkspacePath } from "../workspaces/utils/worktree";
+import {
+	resolveWorkspaceRootPath,
+	toFileSystemChangeEvent,
+	workspaceFsService,
+} from "../workspace-fs-service";
 
 const MAX_SEARCH_RESULTS = 500;
-
-const filesystemWatcherManager = new WorkspaceFsWatcherManager();
 
 function isClosedStreamError(error: unknown): boolean {
 	return (
@@ -27,37 +21,6 @@ function isClosedStreamError(error: unknown): boolean {
 		error.code === "ERR_INVALID_STATE"
 	);
 }
-
-function resolveWorkspaceRootPath(workspaceId: string): string {
-	const workspace = getWorkspace(workspaceId);
-	if (!workspace) {
-		throw new Error(`Workspace not found: ${workspaceId}`);
-	}
-
-	const rootPath = getWorkspacePath(workspace);
-	if (!rootPath) {
-		throw new Error(`Workspace path not found: ${workspaceId}`);
-	}
-
-	return rootPath;
-}
-
-const workspaceFsService = createWorkspaceFsHostService({
-	resolveRootPath: resolveWorkspaceRootPath,
-	watcherManager: filesystemWatcherManager,
-	trashItem: async (absolutePath) => {
-		await shell.trashItem(absolutePath);
-	},
-	runRipgrep: async (args, options) => {
-		const result = await execWithShellEnv("rg", args, {
-			cwd: options.cwd,
-			maxBuffer: options.maxBuffer,
-			windowsHide: true,
-		});
-
-		return { stdout: result.stdout };
-	},
-});
 
 interface KeywordSearchMatch {
 	id: string;
@@ -147,7 +110,9 @@ export const createFilesystemRouter = () => {
 								if (isDisposed) {
 									return;
 								}
-								safeNext(toFileSystemChangeEvent(event, rootPath));
+								safeNext(
+									toFileSystemChangeEvent(event, rootPath),
+								);
 							}
 						} catch (error) {
 							console.error("[filesystem/subscribe] Failed:", {
@@ -495,11 +460,14 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				const result = await workspaceFsService.stat({
-					workspaceId: input.workspaceId,
-					absolutePath: input.absolutePath,
-				});
-				return result;
+				try {
+					return await workspaceFsService.stat({
+						workspaceId: input.workspaceId,
+						absolutePath: input.absolutePath,
+					});
+				} catch {
+					return null;
+				}
 			}),
 	});
 };

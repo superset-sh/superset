@@ -9,7 +9,7 @@ import {
 	readFileBuffer,
 	readTextFile,
 	renamePath,
-	statPath,
+	statFile,
 	writeTextFile,
 } from "../fs";
 import type {
@@ -19,7 +19,7 @@ import type {
 } from "../core/service";
 import type { SearchKeywordOptions, SearchFilesOptions } from "../search";
 import { searchFiles, searchKeyword } from "../search";
-import type { WorkspaceFsWatchEvent } from "../types";
+import type { WorkspaceFsStat, WorkspaceFsWatchEvent } from "../types";
 import {
 	type WorkspaceFsWatcherManager,
 	type WorkspaceWatchSubscriptionOptions,
@@ -136,6 +136,18 @@ function createAsyncQueue<T>(
 	};
 }
 
+function toWorkspaceFsStat(stats: Awaited<ReturnType<typeof statFile>>): WorkspaceFsStat {
+	return {
+		size: stats.size,
+		isDirectory: stats.isDirectory(),
+		isFile: stats.isFile(),
+		isSymbolicLink: stats.isSymbolicLink(),
+		createdAt: stats.birthtime.toISOString(),
+		modifiedAt: stats.mtime.toISOString(),
+		accessedAt: stats.atime.toISOString(),
+	};
+}
+
 export function createWorkspaceFsHostService(
 	options: WorkspaceFsHostServiceOptions,
 ): WorkspaceFsHostService {
@@ -175,10 +187,11 @@ export function createWorkspaceFsHostService(
 		},
 
 		async stat(input) {
-			return await statPath({
+			const stats = await statFile({
 				...withRootPath(input),
 				absolutePath: input.absolutePath,
 			});
+			return toWorkspaceFsStat(stats);
 		},
 
 		async exists(input) {

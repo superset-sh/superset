@@ -60,7 +60,7 @@ export interface WorkspaceFsQueryService {
 	listDirectory(input: WorkspaceFsDirectoryQuery): Promise<WorkspaceFsEntry[]>;
 	readTextFile(input: WorkspaceFsLocation): Promise<string>;
 	readFileBuffer(input: WorkspaceFsLocation): Promise<Uint8Array>;
-	stat(input: WorkspaceFsLocation): Promise<WorkspaceFsStat | null>;
+	stat(input: WorkspaceFsLocation): Promise<WorkspaceFsStat>;
 	exists(input: WorkspaceFsLocation): Promise<WorkspaceFsExistsResult>;
 }
 
