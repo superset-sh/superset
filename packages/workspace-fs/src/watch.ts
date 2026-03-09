@@ -30,6 +30,64 @@ interface WorkspaceWatcherState {
 	flushTimer: ReturnType<typeof setTimeout> | null;
 }
 
+function coalesceWatchEvent(
+	current: ParcelWatcherEvent | undefined,
+	next: ParcelWatcherEvent,
+): ParcelWatcherEvent | null {
+	if (!current) {
+		return next;
+	}
+
+	if (current.type === "create") {
+		if (next.type === "delete") {
+			return null;
+		}
+		return current;
+	}
+
+	if (current.type === "update") {
+		if (next.type === "delete") {
+			return next;
+		}
+		if (next.type === "create") {
+			return {
+				type: "update",
+				path: next.path,
+			};
+		}
+		return current;
+	}
+
+	if (next.type === "create") {
+		return {
+			type: "update",
+			path: next.path,
+		};
+	}
+
+	return next;
+}
+
+export function coalesceWatchEvents(
+	events: ParcelWatcherEvent[],
+): ParcelWatcherEvent[] {
+	const coalescedByPath = new Map<string, ParcelWatcherEvent>();
+
+	for (const event of events) {
+		const nextEvent = coalesceWatchEvent(
+			coalescedByPath.get(event.path),
+			event,
+		);
+		if (nextEvent) {
+			coalescedByPath.set(event.path, nextEvent);
+			continue;
+		}
+		coalescedByPath.delete(event.path);
+	}
+
+	return Array.from(coalescedByPath.values());
+}
+
 export interface WorkspaceFsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
@@ -169,8 +227,13 @@ export class WorkspaceFsWatcherManager {
 			return;
 		}
 
+		const coalescedEvents = coalesceWatchEvents(events);
+		if (coalescedEvents.length === 0) {
+			return;
+		}
+
 		const normalizedEvents = await Promise.all(
-			events.map((event) => this.normalizeEvent(state, event)),
+			coalescedEvents.map((event) => this.normalizeEvent(state, event)),
 		);
 		patchSearchIndexesForRoot(state.rootPath, normalizedEvents);
 

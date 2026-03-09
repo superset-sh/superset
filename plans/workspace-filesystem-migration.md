@@ -441,6 +441,7 @@ This is the highest-value control. The app should never watch every registered w
 
 - filter ignored paths before they leave the watcher layer
 - debounce/coalesce bursts from `git checkout`, installs, and branch switches
+- coalesce duplicate same-path watcher events within each debounce flush before normalization and renderer fanout
 - emit `overflow` and force snapshot reconciliation when event streams become unreliable
 
 This keeps bursty workspace churn from overwhelming renderer state and query invalidation.
@@ -507,6 +508,7 @@ Deliverable:
 - share watchers across subscribers with reference counting
 - normalize backend events into the shared event model
 - debounce noisy event bursts
+- coalesce duplicate same-path bursts before stat/normalization work
 - emit `overflow` when the stream cannot be trusted and require a full snapshot refresh
 - tear watchers down when a workspace is no longer active or has no subscribers
 
