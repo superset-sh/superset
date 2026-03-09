@@ -63,3 +63,23 @@ export interface RepoContext {
 }
 
 export type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+
+export const GHDeploymentSchema = z.object({
+	id: z.number(),
+	ref: z.string(),
+	environment: z.string(),
+	created_at: z.string(),
+});
+
+export const GHDeploymentStatusSchema = z.object({
+	state: z.enum([
+		"error",
+		"failure",
+		"inactive",
+		"in_progress",
+		"queued",
+		"pending",
+		"success",
+	]),
+	environment_url: z.string().optional(),
+});

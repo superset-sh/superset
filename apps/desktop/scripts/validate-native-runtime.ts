@@ -114,6 +114,32 @@ function getPlatformLibsqlCandidates(): string[] {
 	return [];
 }
 
+function getPlatformAstGrepCandidates(): string[] {
+	const targetArch = process.env.TARGET_ARCH || process.arch;
+	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+
+	if (targetPlatform === "darwin") {
+		return [
+			targetArch === "arm64"
+				? "@ast-grep/napi-darwin-arm64"
+				: "@ast-grep/napi-darwin-x64",
+		];
+	}
+
+	if (targetPlatform === "linux") {
+		if (targetArch === "arm64") {
+			return ["@ast-grep/napi-linux-arm64-gnu"];
+		}
+		return ["@ast-grep/napi-linux-x64-gnu", "@ast-grep/napi-linux-x64-musl"];
+	}
+
+	if (targetPlatform === "win32") {
+		return ["@ast-grep/napi-win32-x64-msvc"];
+	}
+
+	return [];
+}
+
 function validateNativeModulesPrepared(): void {
 	const nodeModulesDir = join(projectRoot, "node_modules");
 	assertExists(
@@ -157,6 +183,26 @@ function validateNativeModulesPrepared(): void {
 	console.log(
 		`[validate:native-runtime] OK: platform libsql package present (${platformCandidates.join(" | ")})`,
 	);
+
+	// Validate @ast-grep/napi platform package
+	const astGrepCandidates = getPlatformAstGrepCandidates();
+	if (astGrepCandidates.length > 0) {
+		const hasAstGrepPlatformPackage = astGrepCandidates.some((pkg) =>
+			existsSync(join(nodeModulesDir, pkg, "package.json")),
+		);
+		if (!hasAstGrepPlatformPackage) {
+			fail(
+				[
+					"Missing platform-specific @ast-grep/napi package.",
+					`Expected one of: ${astGrepCandidates.join(", ")}`,
+					"Run `bun run copy:native-modules` and ensure optional dependencies are materialized.",
+				].join("\n"),
+			);
+		}
+		console.log(
+			`[validate:native-runtime] OK: platform ast-grep package present (${astGrepCandidates.join(" | ")})`,
+		);
+	}
 }
 
 function main(): void {
