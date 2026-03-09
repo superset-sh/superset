@@ -41,10 +41,18 @@ runs:
 
         if [[ -n "$ARM64" && -n "$X64" ]]; then
           # Keep arm64 as the canonical manifest and append x64 assets into files[].
-          cp "$ARM64" "$OUTPUT"
-          yq eval-all --inplace '
-            select(fileIndex == 0).files += select(fileIndex == 1).files
-          ' "$OUTPUT" "$X64"
+          ruby - "$ARM64" "$X64" "$OUTPUT" <<'RUBY'
+            require "yaml"
+
+            arm64_path, x64_path, output_path = ARGV
+            arm64 = YAML.safe_load(File.read(arm64_path))
+            x64 = YAML.safe_load(File.read(x64_path))
+
+            merged = arm64.dup
+            merged["files"] = Array(arm64["files"]) + Array(x64["files"])
+
+            File.write(output_path, YAML.dump(merged))
+          RUBY
           echo "Merged arm64 + x64 manifests into latest-mac.yml"
         elif [[ -n "$ARM64" ]]; then
           cp "$ARM64" "$OUTPUT"
@@ -57,7 +65,7 @@ runs:
           exit 1
         fi
 
-        yq eval '.' "$OUTPUT" > /dev/null
+        ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]))' "$OUTPUT" > /dev/null
 
         # Write additional manifest copies (e.g., canary-mac.yml)
         IFS=',' read -ra EXTRA <<< "${{ inputs.extra-manifest-names }}"
