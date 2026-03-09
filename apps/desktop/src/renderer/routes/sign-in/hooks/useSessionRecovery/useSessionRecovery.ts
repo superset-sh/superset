@@ -1,19 +1,13 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 
 const SESSION_RECOVERY_INTERVAL_MS = 15_000;
 
 export function useSessionRecovery() {
-	const {
-		data: session,
-		isPending,
-		isRefetching,
-		refetch,
-	} = authClient.useSession();
+	const { data: session, isPending, refetch } = authClient.useSession();
 	const isOnline = useOnlineStatus();
 	const hasLocalToken = !!getAuthToken();
-	const [hasRecoveryAttempted, setHasRecoveryAttempted] = useState(false);
 	const recoveryInFlightRef = useRef(false);
 
 	const retrySessionRecovery = useEffectEvent(async () => {
@@ -27,7 +21,6 @@ export function useSessionRecovery() {
 		}
 
 		recoveryInFlightRef.current = true;
-		setHasRecoveryAttempted(true);
 
 		try {
 			await refetch();
@@ -71,12 +64,7 @@ export function useSessionRecovery() {
 
 	return {
 		hasLocalToken,
-		isOnline,
 		isPending,
-		isRecoveringSession:
-			hasLocalToken && (isRefetching || !hasRecoveryAttempted),
-		isRetryPending: isRefetching,
-		retrySessionRecovery,
 		session,
 	};
 }

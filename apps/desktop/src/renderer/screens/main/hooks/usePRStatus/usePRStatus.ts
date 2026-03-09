@@ -11,6 +11,7 @@ interface UsePRStatusResult {
 	pr: GitHubStatus["pr"] | null;
 	repoUrl: string | null;
 	branchExistsOnRemote: boolean;
+	previewUrl: string | undefined;
 	isLoading: boolean;
 	refetch: () => void;
 }
@@ -40,6 +41,7 @@ export function usePRStatus({
 		pr: githubStatus?.pr ?? null,
 		repoUrl: githubStatus?.repoUrl ?? null,
 		branchExistsOnRemote: githubStatus?.branchExistsOnRemote ?? false,
+		previewUrl: githubStatus?.previewUrl,
 		isLoading,
 		refetch,
 	};

@@ -146,6 +146,7 @@ export interface Pane {
 
 export interface ChatMastraLaunchConfig {
 	initialPrompt?: string;
+	draftInput?: string;
 	metadata?: {
 		model?: string;
 	};

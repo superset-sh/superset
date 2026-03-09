@@ -183,6 +183,13 @@
       "when": 1772851349454,
       "tag": "0025_add_org_id_to_github_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1772932229222,
+      "tag": "0026_add_assignee_external_snapshot",
+      "breakpoints": true
     }
   ]
 }

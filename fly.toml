@@ -2,7 +2,7 @@ app = "superset-electric"
 primary_region = "iad"
 
 [build]
-image = "electricsql/electric:1.4.3"
+image = "electricsql/electric:1.4.13"
 
 [[vm]]
 memory = "8192mb"

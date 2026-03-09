@@ -7,18 +7,23 @@ type ChatLaunchRequest = Extract<AgentLaunchRequest, { kind: "chat" }>;
 function toLaunchConfig(
 	request: ChatLaunchRequest,
 ): ChatMastraLaunchConfig | null {
-	const initialPrompt = request.chat.initialPrompt?.trim();
+	const prompt = request.chat.initialPrompt?.trim();
 	const model = request.chat.model?.trim();
 	const retryCount = request.chat.retryCount;
+	const autoExecute = request.chat.autoExecute;
+	const taskSlug = request.chat.taskSlug?.trim();
 
-	if (!initialPrompt && !model && retryCount === undefined) {
+	if (!prompt && !model && retryCount === undefined && !taskSlug) {
 		return null;
 	}
 
+	const isDraft = autoExecute === false;
+
 	return {
-		initialPrompt: initialPrompt || undefined,
+		initialPrompt: !isDraft ? prompt || undefined : undefined,
+		draftInput: isDraft && taskSlug ? `@task:${taskSlug} ` : undefined,
 		metadata: model ? { model } : undefined,
-		retryCount,
+		retryCount: !isDraft ? retryCount : undefined,
 	};
 }
 

@@ -285,7 +285,13 @@ export function useTasksTable({
 				header: "Assignee",
 				filterFn: (row, _columnId, filterValue: string) => {
 					if (filterValue === "unassigned") {
-						return row.original.assigneeId === null;
+						return (
+							row.original.assigneeId === null &&
+							row.original.assigneeExternalId === null
+						);
+					}
+					if (filterValue.startsWith("ext:")) {
+						return row.original.assigneeExternalId === filterValue.slice(4);
 					}
 					return row.original.assigneeId === filterValue;
 				},

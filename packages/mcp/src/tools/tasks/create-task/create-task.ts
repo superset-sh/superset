@@ -138,6 +138,9 @@ export function register(server: McpServer) {
 				organizationId: string;
 				creatorId: string;
 				assigneeId: string | null;
+				assigneeExternalId: string | null;
+				assigneeDisplayName: string | null;
+				assigneeAvatarUrl: string | null;
 				labels: string[];
 				dueDate: Date | null;
 				estimate: number | null;
@@ -163,6 +166,9 @@ export function register(server: McpServer) {
 					organizationId: ctx.organizationId,
 					creatorId: ctx.userId,
 					assigneeId: input.assigneeId ?? null,
+					assigneeExternalId: null,
+					assigneeDisplayName: null,
+					assigneeAvatarUrl: null,
 					labels: input.labels ?? [],
 					dueDate: input.dueDate ? new Date(input.dueDate) : null,
 					estimate: input.estimate ?? null,

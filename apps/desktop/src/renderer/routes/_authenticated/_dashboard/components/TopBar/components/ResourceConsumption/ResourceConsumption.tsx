@@ -1,4 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
@@ -118,20 +119,34 @@ export function ResourceConsumption() {
 		: 0;
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
-					aria-label="Resource consumption"
-				>
-					<HiOutlineCpuChip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-					{normalizedSnapshot && (
-						<span className="text-xs font-medium tabular-nums text-muted-foreground">
-							{formatMemory(normalizedSnapshot.totalMemory)}
-						</span>
-					)}
-				</button>
-			</PopoverTrigger>
+			<Tooltip delayDuration={150}>
+				<TooltipTrigger asChild>
+					<PopoverTrigger asChild>
+						<button
+							type="button"
+							className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+							aria-label="Resource consumption"
+						>
+							<HiOutlineCpuChip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+							{normalizedSnapshot && (
+								<span className="text-xs font-medium tabular-nums text-muted-foreground hidden md:inline">
+									{formatMemory(normalizedSnapshot.totalMemory)}
+								</span>
+							)}
+						</button>
+					</PopoverTrigger>
+				</TooltipTrigger>
+				{normalizedSnapshot && (
+					<TooltipContent
+						side="bottom"
+						sideOffset={6}
+						showArrow={false}
+						className="md:hidden"
+					>
+						{formatMemory(normalizedSnapshot.totalMemory)}
+					</TooltipContent>
+				)}
+			</Tooltip>
 
 			<PopoverContent align="start" className="w-[26rem] p-0">
 				<div className="p-3 border-b border-border">

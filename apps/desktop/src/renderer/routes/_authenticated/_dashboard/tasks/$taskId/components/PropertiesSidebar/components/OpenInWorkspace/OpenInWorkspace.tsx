@@ -1,4 +1,7 @@
-import { buildAgentTaskPrompt } from "@superset/shared/agent-command";
+import {
+	buildAgentFileCommand,
+	buildAgentTaskPrompt,
+} from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
 	STARTABLE_AGENT_LABELS,
@@ -12,6 +15,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { Label } from "@superset/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -20,6 +24,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import {
@@ -31,7 +36,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
@@ -58,6 +62,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			? (stored as StartableAgentType)
 			: "claude";
 	});
+	const [autoRun, setAutoRun] = useState(
+		() => localStorage.getItem("agentAutoRun") !== "false",
+	);
 
 	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(
@@ -85,6 +92,16 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	};
 
 	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest => {
+		const taskInput = {
+			id: task.id,
+			slug: task.slug,
+			title: task.title,
+			description: task.description,
+			priority: task.priority,
+			statusName: task.status.name,
+			labels: task.labels,
+		};
+
 		if (selectedAgent === "superset-chat") {
 			return {
 				kind: "chat",
@@ -92,40 +109,29 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				agentType: "superset-chat",
 				source: "open-in-workspace",
 				chat: {
-					initialPrompt: buildAgentTaskPrompt({
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					}),
+					initialPrompt: buildAgentTaskPrompt(taskInput),
 					retryCount: 1,
+					autoExecute: autoRun,
+					taskSlug: task.slug,
 				},
 			};
 		}
 
+		const taskPromptFileName = `task-${task.slug}.md`;
 		return {
 			kind: "terminal",
 			workspaceId,
 			agentType: selectedAgent,
 			source: "open-in-workspace",
 			terminal: {
-				command: buildAgentCommand({
-					task: {
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					},
-					randomId: window.crypto.randomUUID(),
+				command: buildAgentFileCommand({
+					filePath: `.superset/${taskPromptFileName}`,
 					agent: selectedAgent,
 				}),
 				name: task.slug,
+				taskPromptContent: buildAgentTaskPrompt(taskInput),
+				taskPromptFileName,
+				autoExecute: autoRun,
 			},
 		};
 	};
@@ -279,6 +285,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					})}
 				</SelectContent>
 			</Select>
+			<div className="flex items-center justify-between">
+				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
+					Auto-run command
+				</Label>
+				<Switch
+					id="auto-run-toggle"
+					checked={autoRun}
+					onCheckedChange={(value) => {
+						setAutoRun(value);
+						localStorage.setItem("agentAutoRun", String(value));
+					}}
+				/>
+			</div>
 		</div>
 	);
 }

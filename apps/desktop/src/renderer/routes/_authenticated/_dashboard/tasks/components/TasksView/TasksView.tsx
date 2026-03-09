@@ -162,7 +162,7 @@ export function TasksView({
 					onSearchChange={handleSearchChange}
 					assigneeFilter={assigneeFilter}
 					onAssigneeFilterChange={handleAssigneeFilterChange}
-					selectedCount={selectedTasks.length}
+					selectedTasks={selectedTasks}
 					onClearSelection={handleClearSelection}
 				/>
 			)}
