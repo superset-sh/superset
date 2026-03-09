@@ -49,6 +49,12 @@ function createFakeAuthStorage(): FakeAuthStorage {
 
 const fakeAuthStorage = createFakeAuthStorage();
 const createAuthStorageMock = mock(() => fakeAuthStorage);
+let anthropicConfigCredential:
+	| { apiKey: string; source: "config"; kind: "apiKey" | "oauth" }
+	| null = null;
+let anthropicKeychainCredential:
+	| { apiKey: string; source: "keychain"; kind: "apiKey" | "oauth" }
+	| null = null;
 const MANAGED_ANTHROPIC_ENV_KEYS = [
 	"ANTHROPIC_BASE_URL",
 	"ANTHROPIC_API_KEY",
@@ -80,6 +86,11 @@ mock.module("mastracode", () => ({
 	createAuthStorage: createAuthStorageMock,
 }));
 
+mock.module("../auth/anthropic", () => ({
+	getCredentialsFromConfig: () => anthropicConfigCredential,
+	getCredentialsFromKeychain: () => anthropicKeychainCredential,
+}));
+
 const { ChatService } = await import("./chat-service");
 
 describe("ChatService OpenAI auth storage", () => {
@@ -91,6 +102,8 @@ describe("ChatService OpenAI auth storage", () => {
 		fakeAuthStorage.set.mockClear();
 		fakeAuthStorage.remove.mockClear();
 		fakeAuthStorage.login.mockClear();
+		anthropicConfigCredential = null;
+		anthropicKeychainCredential = null;
 		testSupersetHomeDir = mkdtempSync(join(tmpdir(), "chat-service-test-"));
 		process.env.SUPERSET_HOME_DIR = testSupersetHomeDir;
 		for (const key of MANAGED_ANTHROPIC_ENV_KEYS) {
@@ -228,7 +241,19 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
 	});
 
-	it("prefers external Anthropic runtime credentials over managed auth storage", () => {
+	it("ignores Anthropic runtime env credentials without managed auth", () => {
+		const chatService = new ChatService();
+
+		process.env.ANTHROPIC_AUTH_TOKEN = "external-oauth-token";
+
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: false,
+			method: null,
+			source: null,
+		});
+	});
+
+	it("prefers managed Anthropic auth over runtime env credentials", () => {
 		const chatService = new ChatService();
 
 		process.env.ANTHROPIC_AUTH_TOKEN = "external-oauth-token";
@@ -239,8 +264,8 @@ describe("ChatService OpenAI auth storage", () => {
 
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
-			method: "oauth",
-			source: "external",
+			method: "api_key",
+			source: "managed",
 		});
 	});
 
@@ -460,20 +485,20 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(status.method).toBe("oauth");
 	});
 
-	it("uses OPENAI_API_KEY env value automatically", async () => {
+	it("ignores OPENAI_API_KEY env value without managed auth", async () => {
 		const chatService = new ChatService();
 
 		process.env.OPENAI_API_KEY = "externally-provided-key";
 		const status = await chatService.getOpenAIAuthStatus();
 		expect(status).toEqual({
-			authenticated: true,
-			method: "api_key",
-			source: "external",
+			authenticated: false,
+			method: null,
+			source: null,
 		});
 		delete process.env.OPENAI_API_KEY;
 	});
 
-	it("prefers external OpenAI runtime credentials over managed auth storage", async () => {
+	it("prefers managed OpenAI auth over runtime env credentials", async () => {
 		const chatService = new ChatService();
 
 		process.env.OPENAI_API_KEY = "external-openai-key";
@@ -486,8 +511,8 @@ describe("ChatService OpenAI auth storage", () => {
 		const status = await chatService.getOpenAIAuthStatus();
 		expect(status).toEqual({
 			authenticated: true,
-			method: "api_key",
-			source: "external",
+			method: "oauth",
+			source: "managed",
 		});
 	});
 

@@ -15,7 +15,7 @@ import { ANTHROPIC_AUTH_PROVIDER_ID } from "../provider-ids";
 
 export interface ClaudeCredentials {
 	apiKey: string;
-	source: "config" | "keychain" | "auth-storage" | "runtime-env";
+	source: "config" | "keychain" | "auth-storage";
 	kind: "apiKey" | "oauth";
 }
 
@@ -193,33 +193,10 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 	return null;
 }
 
-export function getCredentialsFromRuntimeEnv(): ClaudeCredentials | null {
-	const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-	if (apiKey) {
-		return {
-			apiKey,
-			source: "runtime-env",
-			kind: "apiKey",
-		};
-	}
-
-	const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
-	if (authToken) {
-		return {
-			apiKey: authToken,
-			source: "runtime-env",
-			kind: "oauth",
-		};
-	}
-
-	return null;
-}
-
 export function getCredentialsFromAnySource(): ClaudeCredentials | null {
 	return (
 		getCredentialsFromConfig() ??
 		getCredentialsFromKeychain() ??
-		getCredentialsFromAuthStorage() ??
-		getCredentialsFromRuntimeEnv()
+		getCredentialsFromAuthStorage()
 	);
 }

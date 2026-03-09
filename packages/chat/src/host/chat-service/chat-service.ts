@@ -2,9 +2,7 @@ import { createAuthStorage } from "mastracode";
 import {
 	getCredentialsFromConfig as getAnthropicCredentialsFromConfig,
 	getCredentialsFromKeychain as getAnthropicCredentialsFromKeychain,
-	getCredentialsFromRuntimeEnv as getAnthropicCredentialsFromRuntimeEnv,
 } from "../auth/anthropic";
-import { getOpenAICredentialsFromRuntimeEnv } from "../auth/openai";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_ID,
@@ -63,9 +61,7 @@ export class ChatService {
 	getAnthropicAuthStatus(): AuthStatus {
 		const configCredential = getAnthropicCredentialsFromConfig();
 		const keychainCredential = getAnthropicCredentialsFromKeychain();
-		const runtimeCredential = this.getExternalAnthropicRuntimeCredential();
-		const externalCredential =
-			configCredential ?? keychainCredential ?? runtimeCredential;
+		const externalCredential = configCredential ?? keychainCredential;
 		if (externalCredential) {
 			const status: AuthStatus = {
 				authenticated: true,
@@ -79,8 +75,11 @@ export class ChatService {
 				externalConfigKind: configCredential?.kind ?? null,
 				externalKeychainFound: Boolean(keychainCredential),
 				externalKeychainKind: keychainCredential?.kind ?? null,
-				externalRuntimeFound: Boolean(runtimeCredential),
-				externalRuntimeKind: runtimeCredential?.kind ?? null,
+				externalRuntimeAllowed: false,
+				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+				hasAnthropicAuthTokenEnv: Boolean(
+					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+				),
 				storageMethod: null,
 				hasEnvConfig: false,
 				managedRuntimeEnvKeys: Object.keys(
@@ -108,7 +107,11 @@ export class ChatService {
 				resolvedSource: status.source,
 				externalConfigFound: false,
 				externalKeychainFound: false,
-				externalRuntimeFound: false,
+				externalRuntimeAllowed: false,
+				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+				hasAnthropicAuthTokenEnv: Boolean(
+					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+				),
 				storageMethod,
 				hasEnvConfig,
 				managedRuntimeEnvKeys: Object.keys(
@@ -128,7 +131,11 @@ export class ChatService {
 				resolvedSource: status.source,
 				externalConfigFound: false,
 				externalKeychainFound: false,
-				externalRuntimeFound: false,
+				externalRuntimeAllowed: false,
+				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+				hasAnthropicAuthTokenEnv: Boolean(
+					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+				),
 				storageMethod,
 				hasEnvConfig,
 				managedRuntimeEnvKeys: Object.keys(
@@ -148,7 +155,11 @@ export class ChatService {
 				resolvedSource: status.source,
 				externalConfigFound: false,
 				externalKeychainFound: false,
-				externalRuntimeFound: false,
+				externalRuntimeAllowed: false,
+				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+				hasAnthropicAuthTokenEnv: Boolean(
+					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+				),
 				storageMethod,
 				hasEnvConfig,
 				managedRuntimeEnvKeys: Object.keys(
@@ -167,7 +178,11 @@ export class ChatService {
 			resolvedSource: status.source,
 			externalConfigFound: false,
 			externalKeychainFound: false,
-			externalRuntimeFound: false,
+			externalRuntimeAllowed: false,
+			hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+			hasAnthropicAuthTokenEnv: Boolean(
+				process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+			),
 			storageMethod,
 			hasEnvConfig,
 			managedRuntimeEnvKeys: Object.keys(
@@ -178,25 +193,6 @@ export class ChatService {
 	}
 
 	async getOpenAIAuthStatus(): Promise<AuthStatus> {
-		const externalCredential = getOpenAICredentialsFromRuntimeEnv();
-		if (externalCredential) {
-			const status: AuthStatus = {
-				authenticated: true,
-				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
-				source: "external",
-			};
-			this.logAuthResolution("openai", {
-				resolvedMethod: status.method,
-				resolvedSource: status.source,
-				externalRuntimeFound: true,
-				externalRuntimeKind: externalCredential.kind,
-				storageMethod: null,
-				hasOpenAIApiKeyEnv: Boolean(process.env.OPENAI_API_KEY?.trim()),
-				hasOpenAIAuthTokenEnv: Boolean(process.env.OPENAI_AUTH_TOKEN?.trim()),
-			});
-			return status;
-		}
-
 		const method = resolveAuthMethodForProvider(
 			this.getAuthStorage(),
 			OPENAI_AUTH_PROVIDER_ID,
@@ -209,7 +205,7 @@ export class ChatService {
 		this.logAuthResolution("openai", {
 			resolvedMethod: status.method,
 			resolvedSource: status.source,
-			externalRuntimeFound: false,
+			externalRuntimeAllowed: false,
 			storageMethod: method,
 			hasOpenAIApiKeyEnv: Boolean(process.env.OPENAI_API_KEY?.trim()),
 			hasOpenAIAuthTokenEnv: Boolean(process.env.OPENAI_AUTH_TOKEN?.trim()),
@@ -523,29 +519,5 @@ export class ChatService {
 			provider,
 			...details,
 		});
-	}
-
-	private getExternalAnthropicRuntimeCredential() {
-		const runtimeCredential = getAnthropicCredentialsFromRuntimeEnv();
-		if (!runtimeCredential) {
-			return null;
-		}
-
-		const managedApiKey =
-			this.currentAnthropicRuntimeEnv.ANTHROPIC_API_KEY?.trim();
-		const managedAuthToken =
-			this.currentAnthropicRuntimeEnv.ANTHROPIC_AUTH_TOKEN?.trim();
-		if (
-			(runtimeCredential.kind === "apiKey" &&
-				managedApiKey &&
-				runtimeCredential.apiKey === managedApiKey) ||
-			(runtimeCredential.kind === "oauth" &&
-				managedAuthToken &&
-				runtimeCredential.apiKey === managedAuthToken)
-		) {
-			return null;
-		}
-
-		return runtimeCredential;
 	}
 }
