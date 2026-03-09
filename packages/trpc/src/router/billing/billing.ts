@@ -2,9 +2,26 @@ import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { subMonths } from "date-fns";
 import { eq } from "drizzle-orm";
 import { protectedProcedure } from "../../trpc";
+
+function subtractMonthsClamped(date: Date, months: number) {
+	const result = new Date(date);
+	const originalDay = result.getDate();
+
+	result.setDate(1);
+	result.setMonth(result.getMonth() - months);
+
+	const lastDayOfTargetMonth = new Date(
+		result.getFullYear(),
+		result.getMonth() + 1,
+		0,
+	).getDate();
+
+	result.setDate(Math.min(originalDay, lastDayOfTargetMonth));
+
+	return result;
+}
 
 export const billingRouter = {
 	invoices: protectedProcedure.query(async ({ ctx }) => {
@@ -24,7 +41,7 @@ export const billingRouter = {
 			return [];
 		}
 
-		const twelveMonthsAgo = subMonths(new Date(), 12);
+		const twelveMonthsAgo = subtractMonthsClamped(new Date(), 12);
 
 		const stripeInvoices = await stripeClient.invoices.list({
 			customer: subscription.stripeCustomerId,

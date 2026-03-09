@@ -199,11 +199,13 @@ export function FilesView() {
 				return;
 			}
 
-			const directoryItem = tree.getItems().find(
-				(item: ItemInstance<DirectoryEntry>) =>
-					item.getItemData()?.isDirectory &&
-					item.getItemData()?.path === directoryPath,
-			);
+			const directoryItem = tree
+				.getItems()
+				.find(
+					(item: ItemInstance<DirectoryEntry>) =>
+						item.getItemData()?.isDirectory &&
+						item.getItemData()?.path === directoryPath,
+				);
 			directoryItem?.invalidateChildrenIds();
 		},
 		[tree],

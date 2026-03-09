@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
@@ -29,7 +29,10 @@ async function createTempRoot(): Promise<string> {
 }
 
 function createFileEvent(
-	event: Omit<Exclude<WorkspaceFsWatchEvent, { type: "overflow" }>, "workspaceId">,
+	event: Omit<
+		Exclude<WorkspaceFsWatchEvent, { type: "overflow" }>,
+		"workspaceId"
+	>,
 ): Exclude<WorkspaceFsWatchEvent, { type: "overflow" }> {
 	return {
 		workspaceId: "workspace-test",
@@ -40,7 +43,10 @@ function createFileEvent(
 describe("patchSearchIndexesForRoot", () => {
 	it("adds created files to an existing visible search index", async () => {
 		const rootPath = await createTempRoot();
-		await fs.writeFile(path.join(rootPath, "alpha.ts"), "export const alpha = 1;\n");
+		await fs.writeFile(
+			path.join(rootPath, "alpha.ts"),
+			"export const alpha = 1;\n",
+		);
 
 		await searchFiles({
 			rootPath,

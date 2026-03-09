@@ -1,5 +1,5 @@
-import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
 import { describe, expect, it } from "bun:test";
+import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
 import { coalesceWatchEvents } from "./watch";
 
 function createEvent(

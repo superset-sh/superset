@@ -276,15 +276,15 @@ export const createFilesystemRouter = () => {
 									limit: perRootLimit,
 								});
 								return results.map((result) => ({
-										id: `${root.workspaceId}:${result.id}`,
-										name: result.name,
-										relativePath: result.relativePath,
-										path: result.absolutePath,
-										isDirectory: false,
-										score: result.score,
-										workspaceId: root.workspaceId,
-										workspaceName: root.workspaceName,
-									}));
+									id: `${root.workspaceId}:${result.id}`,
+									name: result.name,
+									relativePath: result.relativePath,
+									path: result.absolutePath,
+									isDirectory: false,
+									score: result.score,
+									workspaceId: root.workspaceId,
+									workspaceName: root.workspaceName,
+								}));
 							} catch (error) {
 								console.error(
 									"[filesystem/searchFilesMulti] Failed for root:",
