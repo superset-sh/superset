@@ -3,6 +3,7 @@ import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import { getPathBaseName, pathsMatch } from "shared/absolute-paths";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -668,7 +669,7 @@ export const useTabsStore = create<TabsStore>()(
 							(p) =>
 								p?.type === "file-viewer" &&
 								p.fileViewer?.isPinned &&
-								p.fileViewer.filePath === options.filePath &&
+								pathsMatch(p.fileViewer.filePath, options.filePath) &&
 								p.fileViewer.diffCategory === options.diffCategory &&
 								p.fileViewer.commitHash === options.commitHash,
 						);
@@ -705,7 +706,7 @@ export const useTabsStore = create<TabsStore>()(
 
 						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
-							existingFileViewer.filePath === options.filePath &&
+							pathsMatch(existingFileViewer.filePath, options.filePath) &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
@@ -751,7 +752,7 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName || getPathBaseName(options.filePath);
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,
@@ -776,6 +777,7 @@ export const useTabsStore = create<TabsStore>()(
 										oldPath: options.oldPath,
 										initialLine: options.line,
 										initialColumn: options.column,
+										displayName: options.displayName,
 									},
 								},
 							},

@@ -122,7 +122,6 @@ export function useCommandPalette({
 				roots.length > 0 &&
 				debouncedQuery.length > 0,
 			staleTime: 1000,
-			placeholderData: (prev) => prev ?? [],
 		},
 	);
 

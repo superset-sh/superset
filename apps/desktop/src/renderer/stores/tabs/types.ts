@@ -67,6 +67,7 @@ export interface AddTabWithMultiplePanesOptions {
  */
 export interface AddFileViewerPaneOptions {
 	filePath: string;
+	displayName?: string;
 	/** Override default view mode (raw/diff/rendered) */
 	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;

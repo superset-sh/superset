@@ -1,14 +1,18 @@
+import { resolve } from "node:path";
+import {
+	readFileBuffer,
+	readTextFile,
+	statFile,
+	type WorkspaceFsPathError,
+	writeTextFile,
+} from "@superset/workspace-fs";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType } from "shared/file-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import {
-	assertRegisteredWorktree,
-	PathValidationError,
-	secureFs,
-} from "./security";
+import { assertRegisteredWorktree } from "./security";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
@@ -53,6 +57,14 @@ type ReadWorkingFileImageResult =
 type SaveFileResult =
 	| { status: "saved" }
 	| { status: "conflict"; currentContent: string | null };
+
+function isWorkspaceFsPathError(error: unknown): error is WorkspaceFsPathError {
+	return (
+		error instanceof Error &&
+		"name" in error &&
+		error.name === "WorkspaceFsPathError"
+	);
+}
 
 /**
  * Detects if a buffer contains binary content by checking for NUL bytes
@@ -116,10 +128,10 @@ export const createFileContentsRouter = () => {
 			.mutation(async ({ input }): Promise<SaveFileResult> => {
 				if (input.expectedContent !== undefined) {
 					try {
-						const currentContent = await secureFs.readFile(
-							input.worktreePath,
-							input.filePath,
-						);
+						const currentContent = await readTextFile({
+							rootPath: input.worktreePath,
+							absolutePath: resolve(input.worktreePath, input.filePath),
+						});
 
 						if (currentContent !== input.expectedContent) {
 							return {
@@ -139,7 +151,7 @@ export const createFileContentsRouter = () => {
 							};
 						}
 
-						if (error instanceof PathValidationError) {
+						if (isWorkspaceFsPathError(error)) {
 							throw error;
 						}
 
@@ -150,11 +162,11 @@ export const createFileContentsRouter = () => {
 					}
 				}
 
-				await secureFs.writeFile(
-					input.worktreePath,
-					input.filePath,
-					input.content,
-				);
+				await writeTextFile({
+					rootPath: input.worktreePath,
+					absolutePath: resolve(input.worktreePath, input.filePath),
+					content: input.content,
+				});
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { status: "saved" };
 			}),
@@ -172,15 +184,19 @@ export const createFileContentsRouter = () => {
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
+					const absolutePath = resolve(input.worktreePath, input.filePath);
+					const stats = await statFile({
+						rootPath: input.worktreePath,
+						absolutePath,
+					});
 					if (stats.size > MAX_FILE_SIZE) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
-						input.filePath,
-					);
+					const buffer = await readFileBuffer({
+						rootPath: input.worktreePath,
+						absolutePath,
+					});
 
 					if (isBinaryContent(buffer)) {
 						return { ok: false, reason: "binary" };
@@ -193,7 +209,7 @@ export const createFileContentsRouter = () => {
 						byteLength: buffer.length,
 					};
 				} catch (error) {
-					if (error instanceof PathValidationError) {
+					if (isWorkspaceFsPathError(error)) {
 						if (error.code === "SYMLINK_ESCAPE") {
 							return { ok: false, reason: "symlink-escape" };
 						}
@@ -221,15 +237,19 @@ export const createFileContentsRouter = () => {
 				}
 
 				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
+					const absolutePath = resolve(input.worktreePath, input.filePath);
+					const stats = await statFile({
+						rootPath: input.worktreePath,
+						absolutePath,
+					});
 					if (stats.size > MAX_IMAGE_SIZE) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
-						input.filePath,
-					);
+					const buffer = await readFileBuffer({
+						rootPath: input.worktreePath,
+						absolutePath,
+					});
 
 					const base64 = buffer.toString("base64");
 					const dataUrl = `data:${mimeType};base64,${base64}`;
@@ -240,7 +260,7 @@ export const createFileContentsRouter = () => {
 						byteLength: buffer.length,
 					};
 				} catch (error) {
-					if (error instanceof PathValidationError) {
+					if (isWorkspaceFsPathError(error)) {
 						if (error.code === "SYMLINK_ESCAPE") {
 							return { ok: false, reason: "symlink-escape" };
 						}
@@ -366,9 +386,16 @@ async function getUnstagedVersions(
 
 	let modified = "";
 	try {
-		const stats = await secureFs.stat(worktreePath, filePath);
+		const absolutePath = resolve(worktreePath, filePath);
+		const stats = await statFile({
+			rootPath: worktreePath,
+			absolutePath,
+		});
 		if (stats.size <= MAX_FILE_SIZE) {
-			modified = await secureFs.readFile(worktreePath, filePath);
+			modified = await readTextFile({
+				rootPath: worktreePath,
+				absolutePath,
+			});
 		} else {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 		}

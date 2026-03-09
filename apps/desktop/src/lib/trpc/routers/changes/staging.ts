@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { deletePath } from "@superset/workspace-fs";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -15,7 +17,6 @@ import {
 	gitUnstageAll,
 	gitUnstageFile,
 	gitUnstageFiles,
-	secureFs,
 } from "./security";
 import { parseGitStatus } from "./utils/parse-status";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
@@ -41,7 +42,12 @@ async function deleteFiles(
 	filePaths: string[],
 ): Promise<void> {
 	await Promise.all(
-		filePaths.map((filePath) => secureFs.delete(worktreePath, filePath)),
+		filePaths.map((filePath) =>
+			deletePath({
+				rootPath: worktreePath,
+				absolutePath: resolve(worktreePath, filePath),
+			}),
+		),
 	);
 }
 
@@ -136,7 +142,10 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await secureFs.delete(input.worktreePath, input.filePath);
+				await deletePath({
+					rootPath: input.worktreePath,
+					absolutePath: resolve(input.worktreePath, input.filePath),
+				});
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),

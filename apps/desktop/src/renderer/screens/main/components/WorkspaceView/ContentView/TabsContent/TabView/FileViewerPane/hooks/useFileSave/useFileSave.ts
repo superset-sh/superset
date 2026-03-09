@@ -1,6 +1,7 @@
 import { type MutableRefObject, useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory } from "shared/changes-types";
 import type { CodeEditorAdapter } from "../../../../../components";
 
@@ -29,6 +30,7 @@ export function useFileSave({
 }: UseFileSaveParams) {
 	const savingFromRawRef = useRef(false);
 	const utils = electronTrpc.useUtils();
+	const relativeFilePath = toRelativeWorkspacePath(worktreePath, filePath);
 
 	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
 		onSuccess: (result, variables) => {
@@ -92,14 +94,21 @@ export function useFileSave({
 			savingFromRawRef.current = true;
 			return saveFileMutation.mutateAsync({
 				worktreePath,
-				filePath,
+				filePath: relativeFilePath,
 				content: editorRef.current.getValue(),
 				expectedContent: options?.force
 					? undefined
 					: originalContentRef.current,
 			});
 		},
-		[worktreePath, filePath, saveFileMutation, editorRef, originalContentRef],
+		[
+			filePath,
+			worktreePath,
+			relativeFilePath,
+			saveFileMutation,
+			editorRef,
+			originalContentRef,
+		],
 	);
 
 	return {

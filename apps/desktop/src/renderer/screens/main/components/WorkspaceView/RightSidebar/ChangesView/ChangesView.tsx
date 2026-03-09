@@ -14,6 +14,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
@@ -246,7 +247,7 @@ export function ChangesView({
 		setFileListViewMode,
 	} = useChangesStore();
 
-	const selectedFileState = getSelectedFile(worktreePath || "");
+	const selectedFileState = getSelectedFile(workspaceId || "");
 	const selectedFile = selectedFileState?.file ?? null;
 	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
@@ -331,14 +332,26 @@ export function ChangesView({
 	);
 
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			category,
+			null,
+		);
 		onFileOpen?.(file, category);
 	};
 
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			"committed",
+			commitHash,
+		);
 		onFileOpen?.(file, "committed", commitHash);
 	};
 
@@ -373,7 +386,7 @@ export function ChangesView({
 	}));
 
 	useEffect(() => {
-		if (!worktreePath || !selectedFileState) {
+		if (!workspaceId || !worktreePath || !selectedFileState) {
 			return;
 		}
 
@@ -388,7 +401,7 @@ export function ChangesView({
 						: selectedFileState.category === "committed";
 
 		if (!existsInSelection) {
-			selectFile(worktreePath, null);
+			selectFile(workspaceId, null, null);
 		}
 	}, [
 		againstBaseFiles,
@@ -396,6 +409,7 @@ export function ChangesView({
 		selectFile,
 		selectedFileState,
 		stagedFiles,
+		workspaceId,
 		worktreePath,
 	]);
 

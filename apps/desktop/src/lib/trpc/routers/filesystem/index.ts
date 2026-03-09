@@ -235,7 +235,7 @@ interface PathFilterMatcher {
 	hasFilters: boolean;
 }
 
-function _createPathFilterMatcher({
+function createPathFilterMatcher({
 	includePattern,
 	excludePattern,
 }: {
@@ -303,7 +303,7 @@ async function buildSearchIndex(rootPath: string): Promise<FileSearchIndex> {
 	return { items, fuse };
 }
 
-async function _getSearchIndex(rootPath: string): Promise<FileSearchIndex> {
+async function getSearchIndex(rootPath: string): Promise<FileSearchIndex> {
 	const cacheKey = getSearchCacheKey(rootPath);
 	const cached = searchIndexCache.get(cacheKey);
 	const now = Date.now();

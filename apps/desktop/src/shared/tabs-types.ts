@@ -101,7 +101,7 @@ export type DiffLayout = "inline" | "side-by-side";
  * File viewer pane-specific properties
  */
 export interface FileViewerState {
-	/** Worktree-relative file path */
+	/** Canonical absolute file path (or remote URL for attachments) */
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
 	viewMode: FileViewerMode;
@@ -119,6 +119,8 @@ export interface FileViewerState {
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
+	/** Optional user-facing name override for remote URLs/attachments */
+	displayName?: string;
 }
 
 /**

@@ -29,6 +29,42 @@ export function toAbsoluteWorkspacePath(
 	return `${normalizedRoot}/${normalizedFile}`;
 }
 
+export function toRelativeWorkspacePath(
+	worktreePath: string,
+	filePath: string,
+): string {
+	if (
+		!filePath ||
+		isRemotePath(filePath) ||
+		!isAbsoluteFilesystemPath(filePath)
+	) {
+		return filePath.replace(/^[\\/]+/, "");
+	}
+
+	const normalizedRoot = normalizeComparablePath(worktreePath);
+	const normalizedFile = normalizeComparablePath(filePath);
+
+	if (normalizedFile === normalizedRoot) {
+		return ".";
+	}
+
+	if (normalizedFile.startsWith(`${normalizedRoot}/`)) {
+		return normalizedFile.slice(normalizedRoot.length + 1);
+	}
+
+	return filePath;
+}
+
+export function getPathBaseName(path: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/, "");
+	if (!normalizedPath) {
+		return path;
+	}
+
+	const segments = normalizedPath.split(/[\\/]/);
+	return segments[segments.length - 1] || path;
+}
+
 export function normalizeComparablePath(path: string): string {
 	return path
 		.replace(/[\\/]+/g, "/")

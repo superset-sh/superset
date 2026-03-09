@@ -18,6 +18,7 @@ import {
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
@@ -129,7 +130,7 @@ export function RightSidebar() {
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			if (!workspaceId || !worktreePath) return;
 			addFileViewerPane(workspaceId, {
-				filePath: file.path,
+				filePath: toAbsoluteWorkspacePath(worktreePath, file.path),
 				diffCategory: category,
 				fileStatus: file.status,
 				commitHash,

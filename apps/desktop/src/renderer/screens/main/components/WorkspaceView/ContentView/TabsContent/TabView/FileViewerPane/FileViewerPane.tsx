@@ -8,7 +8,11 @@ import { FileSaveConflictDialog } from "renderer/screens/main/components/Workspa
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
-import { pathsMatch, toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import {
+	pathsMatch,
+	toAbsoluteWorkspacePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import type { CodeEditorAdapter } from "../../../components";
@@ -141,6 +145,10 @@ export function FileViewerPane({
 		() => toAbsoluteWorkspacePath(worktreePath, filePath),
 		[worktreePath, filePath],
 	);
+	const relativeFilePath = useMemo(
+		() => toRelativeWorkspacePath(worktreePath, filePath),
+		[filePath, worktreePath],
+	);
 	const hasExternalDiskChange =
 		isDirty &&
 		viewMode === "raw" &&
@@ -154,21 +162,27 @@ export function FileViewerPane({
 		}
 
 		Promise.all([
-			trpcUtils.changes.readWorkingFile.invalidate({ worktreePath, filePath }),
+			trpcUtils.changes.readWorkingFile.invalidate({
+				worktreePath,
+				filePath: relativeFilePath,
+			}),
 			trpcUtils.changes.readWorkingFileImage.invalidate({
 				worktreePath,
-				filePath,
+				filePath: relativeFilePath,
 			}),
-			trpcUtils.changes.getFileContents.invalidate({ worktreePath, filePath }),
+			trpcUtils.changes.getFileContents.invalidate({
+				worktreePath,
+				filePath: relativeFilePath,
+			}),
 			trpcUtils.changes.getStatus.invalidate(),
 		]).catch((error) => {
 			console.error("[FileViewerPane] Failed to invalidate file queries:", {
 				worktreePath,
-				filePath,
+				filePath: relativeFilePath,
 				error,
 			});
 		});
-	}, [filePath, trpcUtils, worktreePath]);
+	}, [filePath, relativeFilePath, trpcUtils, worktreePath]);
 
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;

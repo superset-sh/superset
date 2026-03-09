@@ -13,6 +13,7 @@ import {
 type FileListViewMode = "grouped" | "tree";
 
 interface SelectedFileState {
+	absolutePath: string;
 	file: ChangedFile;
 	category: ChangeCategory;
 	commitHash: string | null;
@@ -29,12 +30,13 @@ interface ChangesState {
 	focusMode: boolean;
 
 	selectFile: (
-		worktreePath: string,
+		workspaceId: string,
+		absolutePath: string | null,
 		file: ChangedFile | null,
 		category?: ChangeCategory,
 		commitHash?: string | null,
 	) => void;
-	getSelectedFile: (worktreePath: string) => SelectedFileState | null;
+	getSelectedFile: (workspaceId: string) => SelectedFileState | null;
 	setViewMode: (mode: DiffViewMode) => void;
 	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
@@ -44,7 +46,7 @@ interface ChangesState {
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
 	toggleFocusMode: () => void;
-	reset: (worktreePath: string) => void;
+	reset: (workspaceId: string) => void;
 }
 
 const initialState = {
@@ -69,24 +71,26 @@ export const useChangesStore = create<ChangesState>()(
 			(set, get) => ({
 				...initialState,
 
-				selectFile: (worktreePath, file, category, commitHash) => {
+				selectFile: (workspaceId, absolutePath, file, category, commitHash) => {
 					const { selectedFiles } = get();
 					set({
 						selectedFiles: {
 							...selectedFiles,
-							[worktreePath]: file
-								? {
-										file,
-										category: category ?? "against-base",
-										commitHash: commitHash ?? null,
-									}
-								: null,
+							[workspaceId]:
+								file && absolutePath
+									? {
+											absolutePath,
+											file,
+											category: category ?? "against-base",
+											commitHash: commitHash ?? null,
+										}
+									: null,
 						},
 					});
 				},
 
-				getSelectedFile: (worktreePath) => {
-					return get().selectedFiles[worktreePath] ?? null;
+				getSelectedFile: (workspaceId) => {
+					return get().selectedFiles[workspaceId] ?? null;
 				},
 
 				setViewMode: (mode) => {
@@ -158,19 +162,19 @@ export const useChangesStore = create<ChangesState>()(
 					set({ focusMode: !get().focusMode });
 				},
 
-				reset: (worktreePath) => {
+				reset: (workspaceId) => {
 					const { selectedFiles } = get();
 					set({
 						selectedFiles: {
 							...selectedFiles,
-							[worktreePath]: null,
+							[workspaceId]: null,
 						},
 					});
 				},
 			}),
 			{
 				name: "changes-store",
-				version: 3,
+				version: 4,
 				migrate: (persisted, version) => {
 					const state = persisted as Record<string, unknown>;
 					if (version < 2) {
@@ -178,6 +182,9 @@ export const useChangesStore = create<ChangesState>()(
 					}
 					if (version < 3) {
 						state.sectionOrder = [...DEFAULT_CHANGE_SECTION_ORDER];
+					}
+					if (version < 4) {
+						state.selectedFiles = {};
 					}
 					state.sectionOrder = normalizeChangeSectionOrder(
 						state.sectionOrder as ChangeCategory[] | undefined,
