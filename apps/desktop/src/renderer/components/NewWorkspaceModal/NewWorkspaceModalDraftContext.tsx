@@ -8,11 +8,15 @@ import {
 	useState,
 } from "react";
 
-export type NewWorkspaceModalTab =
-	| "prompt"
-	| "issues"
-	| "pull-requests"
-	| "branches";
+export const WORKSPACE_MODAL_TABS = [
+	"prompt",
+	"issues",
+	"pull-requests",
+	"branches",
+	"worktrees",
+] as const;
+
+export type NewWorkspaceModalTab = (typeof WORKSPACE_MODAL_TABS)[number];
 
 export interface NewWorkspaceModalDraft {
 	activeTab: NewWorkspaceModalTab;
@@ -27,6 +31,7 @@ export interface NewWorkspaceModalDraft {
 	issuesQuery: string;
 	pullRequestsQuery: string;
 	branchesQuery: string;
+	worktreesQuery: string;
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
@@ -46,6 +51,7 @@ const initialDraft: NewWorkspaceModalDraft = {
 	issuesQuery: "",
 	pullRequestsQuery: "",
 	branchesQuery: "",
+	worktreesQuery: "",
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
@@ -149,6 +155,7 @@ export function NewWorkspaceModalDraftProvider({
 				issuesQuery: state.issuesQuery,
 				pullRequestsQuery: state.pullRequestsQuery,
 				branchesQuery: state.branchesQuery,
+				worktreesQuery: state.worktreesQuery,
 			},
 			draftVersion: state.draftVersion,
 			closeModal: onClose,

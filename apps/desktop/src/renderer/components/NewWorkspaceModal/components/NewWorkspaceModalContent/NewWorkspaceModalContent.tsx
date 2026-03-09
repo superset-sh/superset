@@ -11,6 +11,7 @@ import { IssuesGroup } from "../IssuesGroup";
 import { ProjectSelector } from "../ProjectSelector";
 import { PromptGroup } from "../PromptGroup";
 import { PullRequestsGroup } from "../PullRequestsGroup";
+import { WorktreesGroup } from "../WorktreesGroup";
 
 const COMMAND_CLASS_NAME =
 	"[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 flex h-full w-full flex-1 flex-col overflow-hidden rounded-none";
@@ -74,7 +75,9 @@ export function NewWorkspaceModalContent({
 			? draft.issuesQuery
 			: draft.activeTab === "branches"
 				? draft.branchesQuery
-				: draft.pullRequestsQuery;
+				: draft.activeTab === "worktrees"
+					? draft.worktreesQuery
+					: draft.pullRequestsQuery;
 
 	const handleListQueryChange = (value: string) => {
 		switch (draft.activeTab) {
@@ -86,6 +89,9 @@ export function NewWorkspaceModalContent({
 				return;
 			case "pull-requests":
 				updateDraft({ pullRequestsQuery: value });
+				return;
+			case "worktrees":
+				updateDraft({ worktreesQuery: value });
 				return;
 			default:
 				return;
@@ -106,6 +112,7 @@ export function NewWorkspaceModalContent({
 						<TabsTrigger value="issues">Issues</TabsTrigger>
 						<TabsTrigger value="pull-requests">Pull requests</TabsTrigger>
 						<TabsTrigger value="branches">Branches</TabsTrigger>
+						<TabsTrigger value="worktrees">Worktrees</TabsTrigger>
 					</TabsList>
 				</Tabs>
 				<ProjectSelector
@@ -130,8 +137,9 @@ export function NewWorkspaceModalContent({
 						placeholder={
 							draft.activeTab === "issues"
 								? "Search by slug, title, or description"
-								: draft.activeTab === "branches"
-									? "Search by name"
+								: draft.activeTab === "branches" ||
+										draft.activeTab === "worktrees"
+									? "Search by branch or path"
 									: "Search by title, number, or author"
 						}
 					/>
@@ -149,6 +157,9 @@ export function NewWorkspaceModalContent({
 						)}
 						{draft.activeTab === "issues" && (
 							<IssuesGroup projectId={draft.selectedProjectId} />
+						)}
+						{draft.activeTab === "worktrees" && (
+							<WorktreesGroup projectId={draft.selectedProjectId} />
 						)}
 					</CommandList>
 				</Command>
