@@ -13,6 +13,7 @@
  * This is safe because bun install will recreate the symlinks on next install.
  */
 
+import { execSync } from "node:child_process";
 import {
 	cpSync,
 	existsSync,
@@ -24,6 +25,12 @@ import {
 	rmSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+
+// Target architecture for cross-compilation. When set, platform-specific
+// packages for this arch are fetched from npm if not already present.
+// Set via TARGET_ARCH env var (e.g., TARGET_ARCH=x64).
+const TARGET_ARCH = process.env.TARGET_ARCH || process.arch;
+const TARGET_PLATFORM = process.env.TARGET_PLATFORM || process.platform;
 
 // Native modules that must exist for the app to work
 const NATIVE_MODULES = [
@@ -113,6 +120,39 @@ function copyModuleIfSymlink(
 	return true;
 }
 
+/**
+ * Fetch an npm package tarball and extract it to destPath.
+ * Used when cross-compiling and the target platform package isn't in the Bun store.
+ */
+function fetchNpmPackage(
+	packageName: string,
+	version: string,
+	destPath: string,
+): boolean {
+	// npm tarball URL: @scope/pkg/-/pkg-version.tgz (filename uses pkg name without scope)
+	const barePackageName = packageName.includes("/")
+		? packageName.split("/")[1]
+		: packageName;
+	const url = `https://registry.npmjs.org/${packageName}/-/${barePackageName}-${version}.tgz`;
+	console.log(`  ${packageName}: fetching from npm (${version})`);
+	try {
+		mkdirSync(destPath, { recursive: true });
+		execSync(
+			`curl -sL "${url}" | tar xz -C "${destPath}" --strip-components=1`,
+			{
+				stdio: "pipe",
+			},
+		);
+		console.log(`    Extracted to: ${destPath}`);
+		return true;
+	} catch (err) {
+		console.error(
+			`  [ERROR] Failed to fetch ${packageName}@${version}: ${err}`,
+		);
+		return false;
+	}
+}
+
 function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 	const astGrepNapiPath = join(nodeModulesDir, "@ast-grep", "napi");
 	if (!existsSync(astGrepNapiPath)) return;
@@ -133,16 +173,26 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 
 	if (platformPackages.length === 0) return;
 
+	// Determine which platform package we need for the target arch
+	const targetPlatformSuffix = `${TARGET_PLATFORM === "darwin" ? "darwin" : TARGET_PLATFORM === "win32" ? "win32" : "linux"}-${TARGET_ARCH}`;
+	const targetPkg = platformPackages.find((pkg) =>
+		pkg.name.includes(targetPlatformSuffix),
+	);
+
 	// Bun isolated installs keep package payloads in workspaceRoot/node_modules/.bun
 	const bunStoreDir = getBunStoreDir(nodeModulesDir);
-	let resolvedPlatformPackage = false;
+	let resolvedTargetPackage = false;
 
 	for (const platformPkg of platformPackages) {
+		const isTargetPkg = targetPkg && platformPkg.name === targetPkg.name;
 		const destPath = join(nodeModulesDir, platformPkg.name);
 		if (existsSync(destPath)) {
-			resolvedPlatformPackage =
-				copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false) ||
-				resolvedPlatformPackage;
+			const copied = copyModuleIfSymlink(
+				nodeModulesDir,
+				platformPkg.name,
+				false,
+			);
+			if (isTargetPkg && copied) resolvedTargetPackage = true;
 			continue;
 		}
 
@@ -151,35 +201,39 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 			platformPkg.name,
 			platformPkg.version,
 		);
-		if (!bunStoreFolderName) {
-			console.warn(
-				`  ${platformPkg.name}: no Bun store entry matched version ${platformPkg.version}`,
+		if (bunStoreFolderName) {
+			const sourcePath = join(
+				bunStoreDir,
+				bunStoreFolderName,
+				"node_modules",
+				platformPkg.name,
 			);
-			continue;
+			if (existsSync(sourcePath)) {
+				console.log(`  ${platformPkg.name}: copying from Bun store`);
+				mkdirSync(dirname(destPath), { recursive: true });
+				cpSync(sourcePath, destPath, { recursive: true });
+				if (isTargetPkg) resolvedTargetPackage = true;
+				continue;
+			}
 		}
 
-		const sourcePath = join(
-			bunStoreDir,
-			bunStoreFolderName,
-			"node_modules",
-			platformPkg.name,
+		// If this is the target platform package and it's not in the Bun store,
+		// fetch it from npm (cross-compilation scenario)
+		if (isTargetPkg) {
+			if (fetchNpmPackage(platformPkg.name, platformPkg.version, destPath)) {
+				resolvedTargetPackage = true;
+				continue;
+			}
+		}
+
+		console.warn(
+			`  ${platformPkg.name}: not found in Bun store or node_modules`,
 		);
-		if (!existsSync(sourcePath)) {
-			console.warn(
-				`  ${platformPkg.name}: Bun store path missing after resolve (${sourcePath})`,
-			);
-			continue;
-		}
-
-		console.log(`  ${platformPkg.name}: copying from Bun store`);
-		mkdirSync(dirname(destPath), { recursive: true });
-		cpSync(sourcePath, destPath, { recursive: true });
-		resolvedPlatformPackage = true;
 	}
 
-	if (!resolvedPlatformPackage) {
+	if (!resolvedTargetPackage) {
 		console.error(
-			"  [ERROR] No `@ast-grep/napi-` runtime package was materialized",
+			`  [ERROR] Target platform package ${targetPkg?.name ?? `@ast-grep/napi-${targetPlatformSuffix}`} was not materialized`,
 		);
 		process.exit(1);
 	}
@@ -198,7 +252,7 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 		readFileSync(libsqlPkgJsonPath, "utf8"),
 	) as LibsqlPackageJson;
 	const deps = Object.keys(libsqlPkg.dependencies ?? {});
-	const optionalDeps = Object.keys(libsqlPkg.optionalDependencies ?? {});
+	const optionalDeps = libsqlPkg.optionalDependencies ?? {};
 
 	console.log("\nPreparing libsql runtime dependencies...");
 	for (const dep of deps) {
@@ -206,7 +260,7 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 	}
 
 	// Copy whichever optional native platform packages Bun installed for this platform.
-	for (const dep of optionalDeps) {
+	for (const dep of Object.keys(optionalDeps)) {
 		copyModuleIfSymlink(nodeModulesDir, dep, false);
 	}
 
@@ -228,10 +282,25 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 			copyModuleIfSymlink(nodeModulesDir, `@libsql/${entry}`, false);
 		}
 	}
+
+	// Cross-compilation: ensure the target platform's @libsql package is present
+	const targetSuffix = `${TARGET_PLATFORM}-${TARGET_ARCH}`;
+	const targetLibsqlPkgs = Object.entries(optionalDeps).filter(([name]) =>
+		name.includes(targetSuffix),
+	);
+	for (const [name, version] of targetLibsqlPkgs) {
+		const destPath = join(nodeModulesDir, name);
+		if (!existsSync(destPath)) {
+			fetchNpmPackage(name, version, destPath);
+		}
+	}
 }
 
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
+	console.log(
+		`  Target: ${TARGET_PLATFORM}/${TARGET_ARCH} (host: ${process.platform}/${process.arch})`,
+	);
 
 	// bun creates symlinks for direct dependencies in the workspace's node_modules
 	const nodeModulesDir = join(dirname(import.meta.dirname), "node_modules");

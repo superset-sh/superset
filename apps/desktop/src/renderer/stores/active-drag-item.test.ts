@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { getActiveDragItem, useActiveDragItemStore } from "./active-drag-item";
 
 const testItem = {
+	kind: "workspace" as const,
 	id: "ws-1",
 	projectId: "p-1",
 	sectionId: null,

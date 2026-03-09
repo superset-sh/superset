@@ -38,12 +38,14 @@ interface EditorContextMenuProps {
 	children: ReactNode;
 	editorActions: EditorActions;
 	paneActions: PaneActions;
+	leadingItems?: ReactNode;
 }
 
 export function EditorContextMenu({
 	children,
 	editorActions,
 	paneActions,
+	leadingItems,
 }: EditorContextMenuProps) {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
@@ -64,6 +66,13 @@ export function EditorContextMenu({
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
+				{leadingItems && (
+					<>
+						{leadingItems}
+						<ContextMenuSeparator />
+					</>
+				)}
+
 				{/* Clipboard Actions */}
 				{showCutPaste && (
 					<ContextMenuItem onSelect={onCut}>

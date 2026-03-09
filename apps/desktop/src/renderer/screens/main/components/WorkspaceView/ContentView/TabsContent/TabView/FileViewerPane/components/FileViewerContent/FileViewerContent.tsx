@@ -14,8 +14,15 @@ import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
+import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
+import {
+	type DiffDomLocation,
+	getColumnFromDiffPoint,
+	getDiffLocationFromEvent,
+	mapDiffLocationToRawPosition,
+} from "./utils/diff-location";
 
 interface RawFileData {
 	ok: true;
@@ -58,6 +65,33 @@ interface DiffData {
 	language: string;
 }
 
+function hasActiveSelectionWithinElement(
+	element: HTMLDivElement | null,
+): boolean {
+	if (!element) {
+		return false;
+	}
+
+	const selection = window.getSelection();
+	if (!selection || selection.rangeCount === 0) {
+		return false;
+	}
+
+	const text = selection.toString();
+	if (text.length === 0) {
+		return false;
+	}
+
+	for (let index = 0; index < selection.rangeCount; index += 1) {
+		const range = selection.getRangeAt(index);
+		if (element.contains(range.commonAncestorContainer)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
@@ -77,6 +111,7 @@ interface FileViewerContentProps {
 	onSaveRaw: () => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
+	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
@@ -120,6 +155,7 @@ export function FileViewerContent({
 	onSaveRaw,
 	onEditorChange,
 	setIsDirty,
+	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
 	onSplitWithNewChat,
@@ -134,6 +170,13 @@ export function FileViewerContent({
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
 	const hasAppliedInitialLocationRef = useRef(false);
+	const diffContainerRef = useRef<HTMLDivElement | null>(null);
+	const lastDiffLocationRef = useRef<
+		| (DiffDomLocation & {
+				column?: number;
+		  })
+		| null
+	>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
@@ -144,6 +187,63 @@ export function FileViewerContent({
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
 	}, [initialLine, initialColumn]);
+
+	useEffect(() => {
+		if (viewMode !== "raw") {
+			hasAppliedInitialLocationRef.current = false;
+		}
+	}, [viewMode]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset cached diff interaction when the rendered diff changes
+	useEffect(() => {
+		lastDiffLocationRef.current = null;
+	}, [
+		filePath,
+		diffData?.original,
+		diffData?.modified,
+		diffViewMode,
+		hideUnchangedRegions,
+	]);
+
+	const getDiffSelectionLines = () => {
+		if (!diffData || !lastDiffLocationRef.current) {
+			return null;
+		}
+
+		const position = mapDiffLocationToRawPosition({
+			contents: diffData,
+			lineNumber: lastDiffLocationRef.current.lineNumber,
+			side: lastDiffLocationRef.current.side,
+			lineType: lastDiffLocationRef.current.lineType,
+		});
+
+		return {
+			startLine: position.lineNumber,
+			endLine: position.lineNumber,
+		};
+	};
+
+	const openRawFromDiffLocation = (
+		location: DiffDomLocation & {
+			column: number;
+		},
+	) => {
+		if (!diffData) {
+			return;
+		}
+
+		lastDiffLocationRef.current = location;
+
+		const position = mapDiffLocationToRawPosition({
+			contents: diffData,
+			lineNumber: location.lineNumber,
+			side: location.side,
+			lineType: location.lineType,
+			column: location.column,
+		});
+
+		onSwitchToRawAtLocation(position.lineNumber, position.column);
+	};
 
 	useEffect(() => {
 		if (viewMode !== "raw") return;
@@ -203,16 +303,68 @@ export function FileViewerContent({
 		}
 
 		return (
-			<div className="h-full min-h-0 overflow-auto bg-background">
-				<LightDiffViewer
-					key={filePath}
-					contents={diffData}
-					viewMode={diffViewMode}
-					hideUnchangedRegions={hideUnchangedRegions}
-					filePath={filePath}
-					className="min-h-full"
-				/>
-			</div>
+			<DiffViewerContextMenu
+				containerRef={diffContainerRef}
+				filePath={filePath}
+				getSelectionLines={getDiffSelectionLines}
+				onSplitHorizontal={onSplitHorizontal}
+				onSplitVertical={onSplitVertical}
+				onSplitWithNewChat={onSplitWithNewChat}
+				onSplitWithNewBrowser={onSplitWithNewBrowser}
+				onClosePane={onClosePane}
+				currentTabId={currentTabId}
+				availableTabs={availableTabs}
+				onMoveToTab={onMoveToTab}
+				onMoveToNewTab={onMoveToNewTab}
+				onEditAtLocation={() => {
+					const location = lastDiffLocationRef.current;
+					if (!location || location.column === undefined) {
+						return;
+					}
+
+					openRawFromDiffLocation({
+						...location,
+						column: location.column,
+					});
+				}}
+			>
+				<div
+					ref={diffContainerRef}
+					className="h-full min-h-0 overflow-auto bg-background select-text"
+					onClickCapture={(event) => {
+						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+							event.stopPropagation();
+						}
+					}}
+					onContextMenuCapture={(event) => {
+						const location = getDiffLocationFromEvent(event.nativeEvent);
+						if (!location) {
+							return;
+						}
+
+						const column = getColumnFromDiffPoint({
+							lineElement: location.lineElement,
+							numberColumn: location.numberColumn,
+							clientX: event.clientX,
+							clientY: event.clientY,
+						});
+
+						lastDiffLocationRef.current = {
+							...location,
+							column,
+						};
+					}}
+				>
+					<LightDiffViewer
+						key={filePath}
+						contents={diffData}
+						viewMode={diffViewMode}
+						hideUnchangedRegions={hideUnchangedRegions}
+						filePath={filePath}
+						className="min-h-full"
+					/>
+				</div>
+			</DiffViewerContextMenu>
 		);
 	}
 

@@ -20,6 +20,7 @@ import {
 	restartRuntimeFromUserMessage,
 	runSessionStartHook,
 	subscribeToSessionEvents,
+	syncRuntimeHookSessionId,
 } from "./utils/runtime";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
@@ -37,6 +38,28 @@ import {
 } from "./zod";
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
+
+function resolveOmModelFromAuth(): string | undefined {
+	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+		return "google/gemini-2.5-flash";
+	const authStorage = createAuthStorage();
+	authStorage.reload();
+	const anthropic = authStorage.get("anthropic");
+	if (
+		anthropic?.type === "oauth" ||
+		(anthropic?.type === "api_key" && anthropic.key.trim())
+	) {
+		return "anthropic/claude-haiku-4-5";
+	}
+	const openai = authStorage.get("openai-codex");
+	if (
+		openai?.type === "oauth" ||
+		(openai?.type === "api_key" && openai.key.trim())
+	) {
+		return "openai/gpt-4.1-nano";
+	}
+	return undefined;
+}
 
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
@@ -98,10 +121,19 @@ export class ChatMastraService {
 					() => Promise.resolve(this.opts.headers()),
 					this.opts.apiUrl,
 				);
+
+				const omModel = resolveOmModelFromAuth();
+
 				const runtimeMastra = await createMastraCode({
 					cwd: runtimeCwd,
 					extraTools,
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
+					...(omModel && {
+						initialState: {
+							observerModelId: omModel,
+							reflectorModelId: omModel,
+						},
+					}),
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
 				await runtimeMastra.harness.init();
@@ -118,6 +150,7 @@ export class ChatMastraService {
 					pendingSandboxQuestion: null,
 					cwd: runtimeCwd,
 				};
+				syncRuntimeHookSessionId(runtime);
 				await runSessionStartHook(runtime).catch(() => {});
 				subscribeToSessionEvents(runtime);
 				this.runtimes.set(sessionId, runtime);

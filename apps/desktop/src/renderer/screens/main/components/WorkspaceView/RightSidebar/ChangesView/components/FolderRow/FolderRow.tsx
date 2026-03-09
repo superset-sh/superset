@@ -13,15 +13,15 @@ import {
 } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useState } from "react";
-import { HiChevronRight, HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
-	LuClipboard,
-	LuExternalLink,
-	LuFolderOpen,
-	LuMinus,
-	LuPlus,
-	LuUndo2,
-} from "react-icons/lu";
+	VscAdd,
+	VscChevronRight,
+	VscClippy,
+	VscDiscard,
+	VscFolderOpened,
+	VscLinkExternal,
+	VscRemove,
+} from "react-icons/vsc";
 import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
 import type { RowHoverAction } from "../RowHoverActions";
@@ -74,7 +74,7 @@ function FolderRowHeader({
 	return (
 		<>
 			{!isGrouped && (
-				<HiChevronRight
+				<VscChevronRight
 					className={cn(
 						"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
 						isExpanded && "rotate-90",
@@ -144,7 +144,7 @@ export function FolderRow({
 					{
 						key: "discard-all",
 						label: "Discard All",
-						icon: <LuUndo2 className="size-3" />,
+						icon: <VscDiscard className="size-3" />,
 						onClick: openDiscardDialog,
 						isDestructive: true,
 						disabled: isActioning,
@@ -156,7 +156,7 @@ export function FolderRow({
 					{
 						key: "stage-all",
 						label: "Stage All",
-						icon: <HiMiniPlus className="size-3" />,
+						icon: <VscAdd className="size-3" />,
 						onClick: onStageAll,
 						disabled: isActioning,
 					},
@@ -167,7 +167,7 @@ export function FolderRow({
 					{
 						key: "unstage-all",
 						label: "Unstage All",
-						icon: <HiMiniMinus className="size-3" />,
+						icon: <VscRemove className="size-3" />,
 						onClick: onUnstageAll,
 						disabled: isActioning,
 					},
@@ -196,22 +196,22 @@ export function FolderRow({
 	const contextMenuContent = (
 		<ContextMenuContent className="w-48">
 			<ContextMenuItem onClick={copyPath}>
-				<LuClipboard className="mr-2 size-4" />
+				<VscClippy className="mr-2 size-4" />
 				Copy Path
 			</ContextMenuItem>
 			{!isRoot && (
 				<ContextMenuItem onClick={copyRelativePath}>
-					<LuClipboard className="mr-2 size-4" />
+					<VscClippy className="mr-2 size-4" />
 					Copy Relative Path
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />
 			<ContextMenuItem onClick={revealInFinder}>
-				<LuFolderOpen className="mr-2 size-4" />
+				<VscFolderOpened className="mr-2 size-4" />
 				Reveal in Finder
 			</ContextMenuItem>
 			<ContextMenuItem onClick={openInEditor}>
-				<LuExternalLink className="mr-2 size-4" />
+				<VscLinkExternal className="mr-2 size-4" />
 				Open in Editor
 			</ContextMenuItem>
 
@@ -219,14 +219,14 @@ export function FolderRow({
 
 			{onStageAll && (
 				<ContextMenuItem onClick={onStageAll} disabled={isActioning}>
-					<LuPlus className="mr-2 size-4" />
+					<VscAdd className="mr-2 size-4" />
 					Stage All
 				</ContextMenuItem>
 			)}
 
 			{onUnstageAll && (
 				<ContextMenuItem onClick={onUnstageAll} disabled={isActioning}>
-					<LuMinus className="mr-2 size-4" />
+					<VscRemove className="mr-2 size-4" />
 					Unstage All
 				</ContextMenuItem>
 			)}
@@ -237,7 +237,7 @@ export function FolderRow({
 					disabled={isActioning}
 					className="text-destructive focus:text-destructive"
 				>
-					<LuUndo2 className="mr-2 size-4" />
+					<VscDiscard className="mr-2 size-4" />
 					Discard All
 				</ContextMenuItem>
 			)}

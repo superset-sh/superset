@@ -19,9 +19,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_ELECTRIC_URL: z
 			.url()
 			.default("https://electric-proxy.avi-6ac.workers.dev"),
-		NEXT_PUBLIC_ELECTRIC_PROXY_URL: z
-			.url()
-			.default("https://api.superset.sh/api/electric"),
 		NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
@@ -38,7 +35,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_STREAMS_URL: process.env.NEXT_PUBLIC_STREAMS_URL,
 		NEXT_PUBLIC_ELECTRIC_URL: process.env.NEXT_PUBLIC_ELECTRIC_URL,
-		NEXT_PUBLIC_ELECTRIC_PROXY_URL: process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,

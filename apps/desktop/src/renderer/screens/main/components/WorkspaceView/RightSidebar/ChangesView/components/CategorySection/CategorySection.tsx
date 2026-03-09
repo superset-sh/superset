@@ -5,7 +5,7 @@ import {
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { HiChevronRight } from "react-icons/hi2";
+import { VscChevronRight } from "react-icons/vsc";
 import { useChangesSectionDnd } from "renderer/screens/main/components/WorkspaceView/hooks/useChangesSectionDnd";
 import type { ChangeCategory } from "shared/changes-types";
 
@@ -59,7 +59,7 @@ export function CategorySection({
 						"hover:bg-accent/30 cursor-pointer transition-colors",
 					)}
 				>
-					<HiChevronRight
+					<VscChevronRight
 						className={cn(
 							"size-3 text-muted-foreground shrink-0 transition-transform duration-150",
 							isExpanded && "rotate-90",

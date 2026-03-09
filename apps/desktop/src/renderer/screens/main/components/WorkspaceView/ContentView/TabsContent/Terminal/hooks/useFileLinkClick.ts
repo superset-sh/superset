@@ -32,7 +32,7 @@ export function useFileLinkClick({
 
 	const handleFileLinkClick = useCallback(
 		(path: string, line?: number, column?: number) => {
-			const behavior = terminalLinkBehavior ?? "external-editor";
+			const behavior = terminalLinkBehavior ?? "file-viewer";
 
 			// Helper to open in external editor
 			const openInExternalEditor = () => {

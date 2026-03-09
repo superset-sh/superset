@@ -44,10 +44,10 @@ export function createCodeMirrorTheme(
 				borderRight: `1px solid ${MIDNIGHT_CODE_COLORS.border}`,
 			},
 			".cm-activeLine": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.surface,
+				backgroundColor: MIDNIGHT_CODE_COLORS.activeLine,
 			},
 			".cm-activeLineGutter": {
-				backgroundColor: MIDNIGHT_CODE_COLORS.surface,
+				backgroundColor: MIDNIGHT_CODE_COLORS.activeLine,
 			},
 			"&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
 				{

@@ -77,7 +77,9 @@ describe("useOrderedSections", () => {
 			],
 		});
 
-		const committedSection = sections.find((section) => section.id === "committed");
+		const committedSection = sections.find(
+			(section) => section.id === "committed",
+		);
 
 		expect(committedSection).toBeDefined();
 		expect(committedSection?.count).toBe(1);
@@ -91,8 +93,12 @@ describe("useOrderedSections", () => {
 			unstagedFiles: [emptyFile(), emptyFile(), emptyFile()],
 		});
 
-		expect(sections.find((section) => section.id === "against-base")?.count).toBe(1);
+		expect(
+			sections.find((section) => section.id === "against-base")?.count,
+		).toBe(1);
 		expect(sections.find((section) => section.id === "staged")?.count).toBe(2);
-		expect(sections.find((section) => section.id === "unstaged")?.count).toBe(3);
+		expect(sections.find((section) => section.id === "unstaged")?.count).toBe(
+			3,
+		);
 	});
 });

@@ -4,12 +4,14 @@ import {
 	type SelectWorkspace,
 	type SelectWorktree,
 	settings,
+	workspaceSections,
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { localDb } from "main/lib/local-db";
+import { computeNextProjectChildTabOrder } from "./project-children-order";
 
 /**
  * Set the last active workspace in settings.
@@ -27,10 +29,11 @@ export function setLastActiveWorkspace(workspaceId: string | null): void {
 }
 
 /**
- * Get the maximum tab order for workspaces in a project (excluding those being deleted).
- * Returns -1 if no workspaces exist.
+ * Get the maximum tab order for top-level project children in a project.
+ * Top-level children are ungrouped workspaces plus sections.
+ * Returns -1 if no top-level children exist.
  */
-export function getMaxWorkspaceTabOrder(projectId: string): number {
+export function getMaxProjectChildTabOrder(projectId: string): number {
 	const projectWorkspaces = localDb
 		.select()
 		.from(workspaces)
@@ -38,9 +41,18 @@ export function getMaxWorkspaceTabOrder(projectId: string): number {
 			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
 		)
 		.all();
-	return projectWorkspaces.length > 0
-		? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
-		: -1;
+	const projectSections = localDb
+		.select()
+		.from(workspaceSections)
+		.where(eq(workspaceSections.projectId, projectId))
+		.all();
+	return (
+		computeNextProjectChildTabOrder(
+			projectId,
+			projectWorkspaces,
+			projectSections,
+		) - 1
+	);
 }
 
 /**

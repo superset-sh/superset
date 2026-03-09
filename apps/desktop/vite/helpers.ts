@@ -82,13 +82,6 @@ export function htmlEnvTransformPlugin(): Plugin {
 					).origin,
 				)
 				.replace(
-					/%NEXT_PUBLIC_ELECTRIC_PROXY_URL%/g,
-					new URL(
-						process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL ||
-							"https://api.superset.sh",
-					).origin,
-				)
-				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
 					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
 				);

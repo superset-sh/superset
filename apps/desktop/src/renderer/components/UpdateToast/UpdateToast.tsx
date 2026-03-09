@@ -77,6 +77,9 @@ export function UpdateToast({
 								? `Version ${version} is ready to install`
 								: "Ready to install"}
 						</span>
+						<span className="text-xs text-muted-foreground/70">
+							Your terminal sessions won't be interrupted.
+						</span>
 					</>
 				)}
 			</div>

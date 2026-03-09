@@ -15,32 +15,34 @@ describe("computeVisualOrder", () => {
 		expect(computeVisualOrder(projects, workspaces, [])).toEqual(["w2", "w1"]);
 	});
 
-	test("single project with one section — ungrouped first, then section", () => {
+	test("single project with one section uses mixed top-level tabOrder", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 0 },
+			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 1 },
 			{ id: "w2", projectId: "p1", sectionId: "s1", tabOrder: 0 },
 		];
 		const sections = [{ id: "s1", projectId: "p1", tabOrder: 0 }];
 		expect(computeVisualOrder(projects, workspaces, sections)).toEqual([
-			"w1",
 			"w2",
+			"w1",
 		]);
 	});
 
-	test("multiple sections ordered by tabOrder", () => {
+	test("multiple sections ordered by shared top-level tabOrder", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
 			{ id: "w1", projectId: "p1", sectionId: "s2", tabOrder: 0 },
 			{ id: "w2", projectId: "p1", sectionId: "s1", tabOrder: 0 },
+			{ id: "w3", projectId: "p1", sectionId: null, tabOrder: 1 },
 		];
 		const sections = [
-			{ id: "s1", projectId: "p1", tabOrder: 0 },
-			{ id: "s2", projectId: "p1", tabOrder: 1 },
+			{ id: "s1", projectId: "p1", tabOrder: 2 },
+			{ id: "s2", projectId: "p1", tabOrder: 0 },
 		];
 		expect(computeVisualOrder(projects, workspaces, sections)).toEqual([
-			"w2",
 			"w1",
+			"w3",
+			"w2",
 		]);
 	});
 

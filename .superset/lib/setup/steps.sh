@@ -262,7 +262,7 @@ step_start_electric() {
       $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
-      electricsql/electric:latest &> /dev/null; then
+      electricsql/electric:1.4.13 &> /dev/null; then
     error "Failed to start Electric container"
     return 1
   fi
