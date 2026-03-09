@@ -16,6 +16,8 @@ export async function launchTerminalAdapter(
 	const { workspaceId } = request;
 	const targetPaneId = request.terminal.paneId;
 
+	const noExecute = request.terminal.autoExecute === false;
+
 	if (targetPaneId) {
 		const targetPane = tabs.getPane(targetPaneId);
 		if (!targetPane) {
@@ -40,6 +42,9 @@ export async function launchTerminalAdapter(
 				command: request.terminal.command,
 				createOrAttach: context.createOrAttach,
 				write: context.write,
+				noExecute,
+				taskPromptContent: request.terminal.taskPromptContent,
+				taskPromptFileName: request.terminal.taskPromptFileName,
 			});
 		} catch (error) {
 			tabs.removePane(newPaneId);
@@ -64,6 +69,9 @@ export async function launchTerminalAdapter(
 			command: request.terminal.command,
 			createOrAttach: context.createOrAttach,
 			write: context.write,
+			noExecute,
+			taskPromptContent: request.terminal.taskPromptContent,
+			taskPromptFileName: request.terminal.taskPromptFileName,
 		});
 	} catch (error) {
 		tabs.removePane(paneId);

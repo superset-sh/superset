@@ -943,7 +943,7 @@ export function ChatMastraInterface({
 	const errorMessage = runtimeError ?? toErrorMessage(error);
 
 	return (
-		<PromptInputProvider>
+		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
 					messages={visibleMessages}

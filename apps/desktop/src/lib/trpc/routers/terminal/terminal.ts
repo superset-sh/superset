@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { projects, workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -21,6 +23,21 @@ import { resolveCwd } from "./utils";
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 const logger = console;
 let createOrAttachCallCounter = 0;
+
+async function writeTaskFile(
+	workspacePath: string,
+	fileName: string,
+	content: string,
+): Promise<void> {
+	const baseName = path.basename(fileName);
+	if (!baseName || baseName !== fileName || fileName.includes("..")) {
+		throw new Error(`Invalid task file name: ${fileName}`);
+	}
+
+	const dir = path.join(workspacePath, ".superset");
+	await mkdir(dir, { recursive: true });
+	await writeFile(path.join(dir, baseName), content, { encoding: "utf-8" });
+}
 
 const SAFE_ID = z
 	.string()
@@ -68,6 +85,8 @@ export const createTerminalRouter = () => {
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
 					themeType: z.enum(["dark", "light"]).optional(),
+					taskPromptContent: z.string().optional(),
+					taskPromptFileName: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -97,6 +116,18 @@ export const createTerminalRouter = () => {
 					assertWorkspaceUsable(workspaceId, workspacePath);
 				}
 				const cwd = resolveCwd(cwdOverride, workspacePath);
+
+				if (
+					workspacePath &&
+					input.taskPromptContent &&
+					input.taskPromptFileName
+				) {
+					await writeTaskFile(
+						workspacePath,
+						input.taskPromptFileName,
+						input.taskPromptContent,
+					);
+				}
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {

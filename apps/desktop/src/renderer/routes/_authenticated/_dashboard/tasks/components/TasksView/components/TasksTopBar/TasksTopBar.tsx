@@ -4,10 +4,12 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useRef } from "react";
 import { HiOutlineMagnifyingGlass, HiXMark } from "react-icons/hi2";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import type { TaskWithStatus } from "../../hooks/useTasksTable";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
 import { BacklogIcon } from "../shared/icons/BacklogIcon";
 import { AssigneeFilter } from "./components/AssigneeFilter";
+import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
 
 export type TabValue = "all" | "active" | "backlog";
 
@@ -18,7 +20,7 @@ interface TasksTopBarProps {
 	onSearchChange: (query: string) => void;
 	assigneeFilter: string | null;
 	onAssigneeFilterChange: (value: string | null) => void;
-	selectedCount?: number;
+	selectedTasks?: TaskWithStatus[];
 	onClearSelection?: () => void;
 }
 
@@ -47,9 +49,10 @@ export function TasksTopBar({
 	onSearchChange,
 	assigneeFilter,
 	onAssigneeFilterChange,
-	selectedCount = 0,
+	selectedTasks = [],
 	onClearSelection,
 }: TasksTopBarProps) {
+	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
 	useAppHotkey(
@@ -80,6 +83,11 @@ export function TasksTopBar({
 						<span className="text-sm font-medium">
 							{selectedCount} selected
 						</span>
+						<div className="h-4 w-px bg-border" />
+						<RunInWorkspacePopover
+							tasks={selectedTasks}
+							onComplete={onClearSelection ?? (() => {})}
+						/>
 					</>
 				) : (
 					<>
