@@ -35,16 +35,16 @@ runs:
     - name: Merge macOS auto-update manifests
       shell: bash
       run: |
-        ARM64=$(find manifests/arm64 -name '*-mac.yml' | head -1)
-        X64=$(find manifests/x64 -name '*-mac.yml' | head -1)
+        ARM64=$(find manifests/arm64 -name '*-mac.yml' -print -quit 2>/dev/null || true)
+        X64=$(find manifests/x64 -name '*-mac.yml' -print -quit 2>/dev/null || true)
         OUTPUT="${{ inputs.artifacts-path }}/latest-mac.yml"
 
         if [[ -n "$ARM64" && -n "$X64" ]]; then
-          # Merge both arch manifests — arm64 is canonical (base path/sha512)
-          yq eval-all '
-            select(fileIndex == 0) *
-            {"files": [select(fileIndex == 0).files[], select(fileIndex == 1).files[]]}
-          ' "$ARM64" "$X64" > "$OUTPUT"
+          # Keep arm64 as the canonical manifest and append x64 assets into files[].
+          cp "$ARM64" "$OUTPUT"
+          yq eval-all --inplace '
+            select(fileIndex == 0).files += select(fileIndex == 1).files
+          ' "$OUTPUT" "$X64"
           echo "Merged arm64 + x64 manifests into latest-mac.yml"
         elif [[ -n "$ARM64" ]]; then
           cp "$ARM64" "$OUTPUT"
@@ -52,7 +52,12 @@ runs:
         elif [[ -n "$X64" ]]; then
           cp "$X64" "$OUTPUT"
           echo "Using x64-only manifest"
+        else
+          echo "::error::No macOS update manifests were found to merge"
+          exit 1
         fi
+
+        yq eval '.' "$OUTPUT" > /dev/null
 
         # Write additional manifest copies (e.g., canary-mac.yml)
         IFS=',' read -ra EXTRA <<< "${{ inputs.extra-manifest-names }}"
