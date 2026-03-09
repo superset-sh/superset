@@ -132,6 +132,7 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
+	optionAsMetaRef: MutableRefObject<boolean>;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -188,6 +189,7 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
+	optionAsMetaRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
@@ -495,6 +497,7 @@ export function useTerminalLifecycle({
 			onShiftEnter: () => handleWrite("\x1b\r"),
 			onClear: handleClear,
 			onWrite: handleWrite,
+			optionAsMetaRef,
 		});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,

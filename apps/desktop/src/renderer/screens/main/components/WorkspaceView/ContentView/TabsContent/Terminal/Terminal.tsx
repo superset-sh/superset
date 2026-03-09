@@ -122,6 +122,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		workspaceCwd,
 	});
 
+	// Option as Meta key setting
+	const { data: optionAsMeta } =
+		electronTrpc.settings.getOptionAsMeta.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+	const optionAsMetaRef = useRef(false);
+	optionAsMetaRef.current = optionAsMeta ?? false;
+
 	// URL click handler - opens in app browser or system browser based on setting
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
@@ -355,6 +363,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		optionAsMetaRef,
 	});
 
 	useEffect(() => {

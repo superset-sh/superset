@@ -13,6 +13,18 @@ const mockLocalStorage = {
 // @ts-expect-error - mocking global localStorage
 globalThis.localStorage = mockLocalStorage;
 
+// Mock hotkeys store and shared hotkeys to avoid null state errors in keyboard handler tests
+mock.module("renderer/stores/hotkeys", () => ({
+	getHotkeyKeys: mock(() => null),
+	isAppHotkeyEvent: mock(() => false),
+}));
+mock.module("shared/hotkeys", () => ({
+	getCurrentPlatform: mock(() => "mac"),
+	hotkeyFromKeyboardEvent: mock(() => null),
+	isTerminalReservedEvent: mock(() => false),
+	matchesHotkeyEvent: mock(() => false),
+}));
+
 // Mock trpc-client to avoid electronTRPC dependency
 mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
@@ -308,6 +320,149 @@ describe("setupCopyHandler", () => {
 		const copyListener = listeners.get("copy");
 		expect(copyListener).toBeDefined();
 		expect(() => copyListener?.(copyEvent)).not.toThrow();
+	});
+});
+
+describe("setupKeyboardHandler - optionAsMeta", () => {
+	const originalNavigator = globalThis.navigator;
+
+	afterEach(() => {
+		globalThis.navigator = originalNavigator;
+	});
+
+	function createHandler(options: Parameters<typeof setupKeyboardHandler>[1]) {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm, options);
+		return captured;
+	}
+
+	it("sends ESC+letter when optionAsMeta is enabled on macOS", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: true };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "p",
+			code: "KeyP",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(result).toBe(false);
+		expect(onWrite).toHaveBeenCalledWith("\x1bp");
+	});
+
+	it("does NOT intercept Option+letter when optionAsMeta is disabled", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: false };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "p",
+			code: "KeyP",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(result).toBe(true);
+		expect(onWrite).not.toHaveBeenCalled();
+	});
+
+	it("Option+Left/Right send Alt-modified CSI sequences when optionAsMeta is on", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: true };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowLeft",
+			code: "ArrowLeft",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowRight",
+			code: "ArrowRight",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		// Alt-modified CSI sequences for TUI compat (Zellij, tmux)
+		expect(onWrite).toHaveBeenCalledWith("\x1b[1;3D");
+		expect(onWrite).toHaveBeenCalledWith("\x1b[1;3C");
+	});
+
+	it("Option+Left/Right send ESC+b/ESC+f when optionAsMeta is off", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: false };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowLeft",
+			code: "ArrowLeft",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowRight",
+			code: "ArrowRight",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		// Readline shortcuts for basic shell compat
+		expect(onWrite).toHaveBeenCalledWith("\x1bb");
+		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+
+	it("uses event.code for layout independence (e.g., KeyO → \\x1bo)", () => {
+		const onWrite = mock(() => {});
+		const optionAsMetaRef = { current: true };
+		const captured = createHandler({ onWrite, optionAsMetaRef });
+
+		// On non-US keyboard layouts, event.key may be a unicode char (e.g., "ø")
+		// but event.code should still be "KeyO"
+		captured.handler?.({
+			type: "keydown",
+			key: "ø",
+			code: "KeyO",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bo");
 	});
 });
 
