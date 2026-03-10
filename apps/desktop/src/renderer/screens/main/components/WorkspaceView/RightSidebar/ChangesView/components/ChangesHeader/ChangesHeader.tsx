@@ -239,9 +239,12 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 }
 
 const reviewTagStyles = {
-	approved: "bg-emerald-500/15 text-emerald-500",
-	changes_requested: "bg-destructive/15 text-destructive-foreground",
-	pending: "bg-amber-500/15 text-amber-500",
+	approved:
+		"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+	changes_requested:
+		"border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+	pending:
+		"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
 } as const;
 
 const reviewTagLabels = {
