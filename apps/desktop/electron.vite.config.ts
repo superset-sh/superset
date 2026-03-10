@@ -121,6 +121,8 @@ export default defineConfig({
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 					// Worker-thread entrypoint for heavy git/status computations
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
+					// Workspace service - local HTTP/tRPC server per org
+					"workspace-service": resolve("src/main/workspace-service/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

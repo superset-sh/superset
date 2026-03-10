@@ -416,12 +416,15 @@ export async function preloadCollections(
 		includeChatCollections?: boolean;
 	},
 ): Promise<void> {
-	const { organizations, chatSessions, sessionHosts, ...orgCollections } =
+	const { chatSessions, sessionHosts, ...collections } =
 		getCollections(organizationId);
 	const includeChatCollections = options?.includeChatCollections ?? true;
+	const orgCollections = Object.entries(collections)
+		.filter(([name]) => name !== "organizations")
+		.map(([, collection]) => collection as Collection<object>);
 	const collectionsToPreload = includeChatCollections
-		? [...Object.values(orgCollections), chatSessions, sessionHosts]
-		: Object.values(orgCollections);
+		? [...orgCollections, chatSessions, sessionHosts]
+		: orgCollections;
 
 	await Promise.allSettled(
 		collectionsToPreload.map((c) => (c as Collection<object>).preload()),

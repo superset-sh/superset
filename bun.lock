@@ -109,7 +109,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -144,6 +144,7 @@
         "@electric-sql/client": "1.5.12",
         "@headless-tree/core": "^1.6.3",
         "@headless-tree/react": "^1.6.3",
+        "@hono/node-server": "^1.14.1",
         "@hookform/resolvers": "^5.2.2",
         "@lezer/highlight": "^1.2.3",
         "@mastra/core": "^1.3.0",
@@ -165,6 +166,7 @@
         "@superset/trpc": "workspace:*",
         "@superset/ui": "workspace:*",
         "@superset/workspace-fs": "workspace:*",
+        "@superset/workspace-service": "workspace:*",
         "@t3-oss/env-core": "^0.13.8",
         "@tanstack/db": "0.5.31",
         "@tanstack/electric-db-collection": "0.2.39",
@@ -785,7 +787,6 @@
         "@upstash/qstash": "^2.8.4",
         "@vercel/blob": "^2.0.0",
         "@vercel/kv": "^3.0.0",
-        "date-fns": "^4.1.0",
         "drizzle-orm": "0.45.1",
         "superjson": "^2.2.5",
         "zod": "^4.3.5",
@@ -876,6 +877,23 @@
         "@parcel/watcher": "^2.5.6",
         "fast-glob": "^3.3.3",
         "fuse.js": "^7.1.0",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/node": "^24.9.1",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/workspace-service": {
+      "name": "@superset/workspace-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hono/node-server": "^1.14.1",
+        "@hono/trpc-server": "^0.3.4",
+        "@trpc/server": "^11.7.1",
+        "hono": "^4.8.5",
+        "superjson": "^2.2.5",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1443,6 +1461,8 @@
     "@headless-tree/react": ["@headless-tree/react@1.6.3", "", { "peerDependencies": { "@headless-tree/core": "*", "react": "*", "react-dom": "*" } }, "sha512-aiRwG6e2EPBSec9uLLy9GlTvAuCtSTouU30Nwcr5ZTsYjG/i7B/ouC8f8Zu4unzo/v1h5ztbemp+EH2TPTKh+g=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.9", "", { "peerDependencies": { "hono": "^4" } }, "sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw=="],
+
+    "@hono/trpc-server": ["@hono/trpc-server@0.3.4", "", { "peerDependencies": { "@trpc/server": "^10.10.0 || >11.0.0-rc", "hono": ">=4.*" } }, "sha512-xFOPjUPnII70FgicDzOJy1ufIoBTu8eF578zGiDOrYOrYN8CJe140s9buzuPkX+SwJRYK8LjEBHywqZtxdm8aA=="],
 
     "@hookform/resolvers": ["@hookform/resolvers@5.2.2", "", { "dependencies": { "@standard-schema/utils": "^0.3.0" }, "peerDependencies": { "react-hook-form": "^7.55.0" } }, "sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA=="],
 
@@ -2311,6 +2331,8 @@
     "@superset/web": ["@superset/web@workspace:apps/web"],
 
     "@superset/workspace-fs": ["@superset/workspace-fs@workspace:packages/workspace-fs"],
+
+    "@superset/workspace-service": ["@superset/workspace-service@workspace:packages/workspace-service"],
 
     "@swc/helpers": ["@swc/helpers@0.5.15", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g=="],
 
