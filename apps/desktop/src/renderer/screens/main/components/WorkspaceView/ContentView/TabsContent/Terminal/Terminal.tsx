@@ -2,7 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -22,6 +22,7 @@ import {
 	useTerminalModes,
 	useTerminalRefs,
 	useTerminalRestore,
+	useTerminalSessionController,
 	useTerminalStream,
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
@@ -71,11 +72,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
-	const isExitedRef = useRef(false);
-	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
-		null,
-	);
-	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
 	const tabIdRef = useRef(tabId);
@@ -85,11 +81,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
+	const session = useTerminalSessionController();
+	const {
+		connectionError,
+		connectionErrorRef,
+		exitStatus,
+		isExitedRef,
+		isRestoredMode,
+	} = session;
 
 	// Terminal connection state and mutations
 	const {
-		connectionError,
-		setConnectionError,
 		workspaceCwd,
 		refs: {
 			createOrAttach: createOrAttachRef,
@@ -178,7 +180,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	// Terminal restore logic
 	const {
-		isStreamReadyRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
 		maybeApplyInitialState,
@@ -187,6 +188,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		paneId,
 		xtermRef,
 		fitAddonRef,
+		session,
 		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -197,42 +199,28 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			handleTerminalExitRef.current(exitCode, xterm, reason),
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 		onDisconnectEvent: (reason) =>
-			setConnectionError(reason || "Connection to terminal daemon lost"),
+			session.setConnectionError(
+				reason || "Connection to terminal daemon lost",
+			),
 	});
 
 	// Cold restore handling
-	const {
-		isRestoredMode,
-		setIsRestoredMode,
-		setRestoredCwd,
-		handleRetryConnection,
-		handleStartShell,
-	} = useTerminalColdRestore({
+	const { handleRetryConnection, handleStartShell } = useTerminalColdRestore({
 		paneId,
 		tabId,
 		workspaceId,
 		xtermRef,
 		fitAddonRef,
-		isStreamReadyRef,
-		isExitedRef,
-		wasKilledByUserRef,
 		isFocusedRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
+		session,
 		createOrAttachRef,
-		setConnectionError,
-		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
 	});
-
-	// Avoid effect re-runs: track overlay states via refs for input gating
-	const isRestoredModeRef = useRef(isRestoredMode);
-	isRestoredModeRef.current = isRestoredMode;
-	const connectionErrorRef = useRef(connectionError);
-	connectionErrorRef.current = connectionError;
 
 	// Auto-retry connection with exponential backoff
 	const retryCountRef = useRef(0);
@@ -243,12 +231,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		useTerminalStream({
 			paneId,
 			xtermRef,
-			isStreamReadyRef,
-			isExitedRef,
-			wasKilledByUserRef,
+			session,
 			pendingEventsRef,
-			setExitStatus,
-			setConnectionError,
 			updateModesFromData,
 			updateCwdFromData,
 			onShellExit: () => removePane(paneId),
@@ -262,7 +246,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	electronTrpc.terminal.stream.useSubscription(paneId, {
 		onData: (event) => {
 			if (connectionErrorRef.current && event.type === "data") {
-				setConnectionError(null);
+				session.setConnectionError(null);
 				retryCountRef.current = 0;
 			}
 			handleStreamData(event);
@@ -272,7 +256,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 				paneId,
 				error: error instanceof Error ? error.message : String(error),
 			});
-			setConnectionError(
+			session.setConnectionError(
 				error instanceof Error ? error.message : "Connection to terminal lost",
 			);
 		},
@@ -282,7 +266,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Auto-retry when connection error is set
 	useEffect(() => {
 		if (!connectionError) return;
-		if (isExitedRef.current) return;
+		if (exitStatus) return;
 		if (retryCountRef.current >= MAX_RETRIES) return;
 
 		if (retryCountRef.current === 0) {
@@ -296,7 +280,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 		const timeout = setTimeout(handleRetryConnection, delay);
 		return () => clearTimeout(timeout);
-	}, [connectionError, handleRetryConnection]);
+	}, [connectionError, exitStatus, handleRetryConnection]);
 
 	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
 		isFocused,
@@ -315,28 +299,20 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef,
 		searchAddonRef,
 		rendererRef,
-		isExitedRef,
-		wasKilledByUserRef,
 		commandBufferRef,
 		isFocusedRef,
-		isRestoredModeRef,
-		connectionErrorRef,
 		initialThemeRef,
 		workspaceCwdRef,
 		handleFileLinkClickRef,
 		handleUrlClickRef,
 		paneInitialCwdRef,
 		clearPaneInitialDataRef,
-		setConnectionError,
-		setExitStatus,
-		setIsRestoredMode,
-		setRestoredCwd,
+		session,
 		createOrAttachRef,
 		writeRef,
 		resizeRef,
 		detachRef,
 		clearScrollbackRef,
-		isStreamReadyRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
 		maybeApplyInitialState,
