@@ -48,4 +48,3 @@ export function getWorkspaceAutoRenameDecision({
 
 	return { kind: "rename", name: cleanedGeneratedName };
 }
-
