@@ -291,6 +291,17 @@ if (!gotTheLock) {
 			.fromPartition("persist:superset")
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
+		// Serve local files for terminal background images
+		const localFileHandler = (request: Request) => {
+			const url = new URL(request.url);
+			const filePath = decodeURIComponent(url.pathname);
+			return net.fetch(pathToFileURL(filePath).toString());
+		};
+		protocol.handle("superset-file", localFileHandler);
+		session
+			.fromPartition("persist:superset")
+			.protocol.handle("superset-file", localFileHandler);
+
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
 		initSentry();

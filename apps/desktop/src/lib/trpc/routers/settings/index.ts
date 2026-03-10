@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
@@ -731,8 +732,28 @@ export const createSettingsRouter = () => {
 
 		getTerminalBackground: publicProcedure.query(() => {
 			const row = getSettings();
+			const imagePath = row.terminalBackgroundImage ?? null;
+			let imageDataUri: string | null = null;
+			if (imagePath) {
+				try {
+					const buf = fs.readFileSync(imagePath);
+					const ext = imagePath.split(".").pop()?.toLowerCase() ?? "png";
+					const mime =
+						ext === "jpg" || ext === "jpeg"
+							? "image/jpeg"
+							: ext === "webp"
+								? "image/webp"
+								: ext === "gif"
+									? "image/gif"
+									: "image/png";
+					imageDataUri = `data:${mime};base64,${buf.toString("base64")}`;
+				} catch {
+					// File not found or unreadable
+				}
+			}
 			return {
-				image: row.terminalBackgroundImage ?? null,
+				image: imagePath,
+				imageDataUri,
 				opacity: row.terminalBackgroundOpacity ?? 85,
 				blur: row.terminalBackgroundBlur ?? 8,
 			};

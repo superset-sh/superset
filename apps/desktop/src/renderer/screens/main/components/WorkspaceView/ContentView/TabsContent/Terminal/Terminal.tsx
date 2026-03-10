@@ -389,18 +389,15 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			staleTime: 30_000,
 		});
 	const bgImage = bgSettings?.image ?? null;
-	const bgOpacity = (bgSettings?.opacity ?? 85) / 100;
+	const bgImageDataUri = bgSettings?.imageDataUri ?? null;
+	// Invert: user sets image visibility %, overlay opacity = 1 - that
+	const bgOpacity = 1 - (bgSettings?.opacity ?? 85) / 100;
 	const bgBlur = bgSettings?.blur ?? 8;
 
 	// When a background image is set, make xterm background semi-transparent
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		if (!xterm) return;
-
-		// Toggle allowTransparency only when needed (performance optimization)
-		xterm.options.allowTransparency = !!bgImage;
-
-		if (!bgImage) return;
+		if (!xterm || !bgImageDataUri) return;
 
 		const currentTheme = xterm.options.theme ?? {};
 		const bg = currentTheme.background ?? terminalBg;
@@ -422,7 +419,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			...currentTheme,
 			background: `rgba(${r}, ${g}, ${b}, ${bgOpacity})`,
 		};
-	}, [bgImage, bgOpacity, terminalBg]);
+	}, [bgImageDataUri, bgOpacity, terminalBg]);
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
@@ -452,16 +449,16 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		<div
 			role="application"
 			className="relative h-full w-full overflow-hidden"
-			style={{ backgroundColor: bgImage ? "transparent" : terminalBg }}
+			style={{ backgroundColor: bgImageDataUri ? "transparent" : terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
 			{/* Background image layer with blur */}
-			{bgImage && (
+			{bgImageDataUri && (
 				<div
 					className="absolute inset-0 z-0"
 					style={{
-						backgroundImage: `url("file://${bgImage}")`,
+						backgroundImage: `url("${bgImageDataUri}")`,
 						backgroundSize: "cover",
 						backgroundPosition: "center",
 						filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
@@ -472,7 +469,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 				/>
 			)}
 			{/* Semi-transparent overlay for readability */}
-			{bgImage && (
+			{bgImageDataUri && (
 				<div
 					className="absolute inset-0 z-[1]"
 					style={{ backgroundColor: terminalBg, opacity: bgOpacity }}
