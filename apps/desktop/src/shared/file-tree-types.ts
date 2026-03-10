@@ -9,9 +9,13 @@ export interface FileTreeNode {
 }
 
 export interface FileSystemChangeEvent {
-	type: "add" | "addDir" | "unlink" | "unlinkDir" | "change";
-	path: string;
-	relativePath: string;
+	type: "create" | "update" | "delete" | "rename" | "overflow";
+	absolutePath?: string;
+	oldAbsolutePath?: string;
+	relativePath?: string;
+	oldRelativePath?: string;
+	isDirectory?: boolean;
+	revision: number;
 }
 
 export interface DirectoryEntry {

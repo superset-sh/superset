@@ -37,11 +37,20 @@ const NATIVE_MODULES = [
 	"better-sqlite3",
 	"node-pty",
 	"@ast-grep/napi",
+	"@parcel/watcher",
 	"libsql",
 ] as const;
 
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
-const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
+const NATIVE_MODULE_DEPS = [
+	"bindings",
+	"file-uri-to-path",
+	"detect-libc",
+	"is-glob",
+	"is-extglob",
+	"picomatch",
+	"node-addon-api",
+] as const;
 
 function getWorkspaceRootNodeModulesDir(nodeModulesDir: string): string {
 	return join(nodeModulesDir, "..", "..", "..", "node_modules");
@@ -296,6 +305,76 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 	}
 }
 
+function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
+	const watcherPath = join(nodeModulesDir, "@parcel", "watcher");
+	const watcherPkgJsonPath = join(watcherPath, "package.json");
+	if (!existsSync(watcherPkgJsonPath)) return;
+
+	type ParcelWatcherPackageJson = {
+		optionalDependencies?: Record<string, string>;
+	};
+	const watcherPkg = JSON.parse(
+		readFileSync(watcherPkgJsonPath, "utf8"),
+	) as ParcelWatcherPackageJson;
+	const optionalDeps = watcherPkg.optionalDependencies ?? {};
+	const platformPackages = Object.entries(optionalDeps)
+		.filter(([name]) => name.startsWith("@parcel/watcher-"))
+		.map(([name, version]) => ({ name, version }));
+
+	if (platformPackages.length === 0) return;
+
+	console.log("\nPreparing parcel watcher platform package...");
+	const bunStoreDir = getBunStoreDir(nodeModulesDir);
+	let resolvedPlatformPackage = false;
+
+	for (const platformPkg of platformPackages) {
+		const destPath = join(nodeModulesDir, platformPkg.name);
+		if (existsSync(destPath)) {
+			resolvedPlatformPackage =
+				copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false) ||
+				resolvedPlatformPackage;
+			continue;
+		}
+
+		const bunStoreFolderName = findBunStoreFolderName(
+			bunStoreDir,
+			platformPkg.name,
+			platformPkg.version,
+		);
+		if (!bunStoreFolderName) {
+			console.warn(
+				`  ${platformPkg.name}: no Bun store entry matched version ${platformPkg.version}`,
+			);
+			continue;
+		}
+
+		const sourcePath = join(
+			bunStoreDir,
+			bunStoreFolderName,
+			"node_modules",
+			platformPkg.name,
+		);
+		if (!existsSync(sourcePath)) {
+			console.warn(
+				`  ${platformPkg.name}: Bun store path missing after resolve (${sourcePath})`,
+			);
+			continue;
+		}
+
+		console.log(`  ${platformPkg.name}: copying from Bun store`);
+		mkdirSync(dirname(destPath), { recursive: true });
+		cpSync(sourcePath, destPath, { recursive: true });
+		resolvedPlatformPackage = true;
+	}
+
+	if (!resolvedPlatformPackage) {
+		console.error(
+			"  [ERROR] No `@parcel/watcher-<platform>` runtime package was materialized",
+		);
+		process.exit(1);
+	}
+}
+
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
 	console.log(
@@ -318,6 +397,7 @@ function prepareNativeModules() {
 
 	console.log("\nPreparing ast-grep platform package...");
 	copyAstGrepPlatformPackages(nodeModulesDir);
+	copyParcelWatcherPlatformPackages(nodeModulesDir);
 	copyLibsqlDependencies(nodeModulesDir);
 
 	console.log("\nDone!");

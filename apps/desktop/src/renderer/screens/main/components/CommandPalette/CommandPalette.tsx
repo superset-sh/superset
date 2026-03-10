@@ -97,6 +97,9 @@ export function CommandPalette({
 			excludePattern={excludePattern}
 			onExcludePatternChange={onExcludePatternChange}
 			isLoading={isLoading}
+			results={searchResults}
+			getItemValue={(file) => `${file.path} ${query}`}
+			onSelectItem={(file) => onSelectFile(file.path, file.workspaceId)}
 			headerExtra={
 				<ScopeToggle
 					scope={scope}

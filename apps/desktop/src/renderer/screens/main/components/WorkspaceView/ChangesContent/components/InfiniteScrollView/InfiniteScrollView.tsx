@@ -1,5 +1,7 @@
+import { Button } from "@superset/ui/button";
 import { useCallback, useMemo, useState } from "react";
 import { useChangesStore } from "renderer/stores/changes";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import type { GitChangesStatus } from "shared/changes-types";
 import { useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
@@ -33,6 +35,10 @@ export function InfiniteScrollView({
 		moveSection,
 		toggleSection: toggleCategory,
 	} = useChangesStore();
+	const isExpandedView = useSidebarStore(
+		(state) => state.currentMode === SidebarMode.Changes,
+	);
+	const setSidebarMode = useSidebarStore((state) => state.setMode);
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
 	const { stageFileMutation, unstageFileMutation, handleDiscard, isActioning } =
@@ -157,8 +163,17 @@ export function InfiniteScrollView({
 
 	if (!hasChanges) {
 		return (
-			<div className="flex items-center justify-center h-full text-muted-foreground">
-				No changes detected
+			<div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+				<div>No changes detected</div>
+				{isExpandedView ? (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setSidebarMode(SidebarMode.Tabs)}
+					>
+						Close expanded view
+					</Button>
+				) : null}
 			</div>
 		);
 	}

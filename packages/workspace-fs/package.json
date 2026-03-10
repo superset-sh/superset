@@ -1,0 +1,38 @@
+{
+	"name": "@superset/workspace-fs",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./client": {
+			"types": "./src/client/index.ts",
+			"default": "./src/client/index.ts"
+		},
+		"./core": {
+			"types": "./src/core/index.ts",
+			"default": "./src/core/index.ts"
+		},
+		"./host": {
+			"types": "./src/host/index.ts",
+			"default": "./src/host/index.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test --pass-with-no-tests"
+	},
+	"dependencies": {
+		"@parcel/watcher": "^2.5.6",
+		"fast-glob": "^3.3.3",
+		"fuse.js": "^7.1.0"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"typescript": "^5.9.3"
+	}
+}

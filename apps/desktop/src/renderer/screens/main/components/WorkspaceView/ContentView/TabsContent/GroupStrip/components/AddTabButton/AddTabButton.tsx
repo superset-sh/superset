@@ -17,7 +17,6 @@ import { NewTabDropZone } from "../../NewTabDropZone";
 import { PresetsSubmenu } from "./components/PresetsSubmenu";
 
 interface AddTabButtonProps {
-	hasAiChat: boolean;
 	useCompactAddButton: boolean;
 	showPresetsBar: boolean;
 	presets: TerminalPreset[];
@@ -33,7 +32,6 @@ interface AddTabButtonProps {
 }
 
 export function AddTabButton({
-	hasAiChat,
 	useCompactAddButton,
 	showPresetsBar,
 	presets,
@@ -64,16 +62,14 @@ export function AddTabButton({
 								<BsTerminalPlus className="size-3.5" />
 								Terminal
 							</Button>
-							{hasAiChat && (
-								<Button
-									variant="ghost"
-									className="h-7 rounded-none border border-l-0 border-border/60 bg-muted/30 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-									onClick={onAddChat}
-								>
-									<TbMessageCirclePlus className="size-3.5" />
-									Chat
-								</Button>
-							)}
+							<Button
+								variant="ghost"
+								className="h-7 rounded-none border border-l-0 border-border/60 bg-muted/30 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+								onClick={onAddChat}
+							>
+								<TbMessageCirclePlus className="size-3.5" />
+								Chat
+							</Button>
 							<Button
 								variant="ghost"
 								className="h-7 rounded-none border border-l-0 border-border/60 bg-muted/30 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground"
@@ -112,13 +108,11 @@ export function AddTabButton({
 								<span>Terminal</span>
 								<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 							</DropdownMenuItem>
-							{hasAiChat && (
-								<DropdownMenuItem onClick={onAddChat} className="gap-2">
-									<TbMessageCirclePlus className="size-4" />
-									<span>Chat</span>
-									<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
-								</DropdownMenuItem>
-							)}
+							<DropdownMenuItem onClick={onAddChat} className="gap-2">
+								<TbMessageCirclePlus className="size-4" />
+								<span>Chat</span>
+								<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
+							</DropdownMenuItem>
 							<DropdownMenuItem onClick={onAddBrowser} className="gap-2">
 								<TbWorld className="size-4" />
 								<span>Browser</span>

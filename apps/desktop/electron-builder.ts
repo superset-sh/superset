@@ -48,6 +48,8 @@ const config: Configuration = {
 		"**/node_modules/node-pty/**/*",
 		// ast-grep native bindings (package + platform binary package)
 		"**/node_modules/@ast-grep/napi*/**/*",
+		// parcel watcher native bindings (package + platform binary package)
+		"**/node_modules/@parcel/watcher*/**/*",
 		// libsql native bindings are loaded from @libsql/<platform>
 		"**/node_modules/@libsql/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
@@ -107,6 +109,36 @@ const config: Configuration = {
 			filter: ["**/*"],
 		},
 		{
+			from: "node_modules/@parcel",
+			to: "node_modules/@parcel",
+			filter: ["watcher/**/*", "watcher-*/**/*"],
+		},
+		{
+			from: "node_modules/detect-libc",
+			to: "node_modules/detect-libc",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/is-glob",
+			to: "node_modules/is-glob",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/is-extglob",
+			to: "node_modules/is-extglob",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/picomatch",
+			to: "node_modules/picomatch",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/node-addon-api",
+			to: "node_modules/node-addon-api",
+			filter: ["**/*"],
+		},
+		{
 			from: "node_modules/libsql",
 			to: "node_modules/libsql",
 			filter: ["**/*"],
@@ -119,11 +151,6 @@ const config: Configuration = {
 		{
 			from: "node_modules/@neon-rs",
 			to: "node_modules/@neon-rs",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/detect-libc",
-			to: "node_modules/detect-libc",
 			filter: ["**/*"],
 		},
 		// friendly-words is a CommonJS module that Vite doesn't bundle

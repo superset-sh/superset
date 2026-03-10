@@ -40,14 +40,12 @@ export type CommandPaletteResult = FileResult | WorkspaceResult;
 
 interface UseCommandPaletteParams {
 	workspaceId: string;
-	worktreePath: string | undefined;
 	navigate: UseNavigateResult<string>;
 }
 
 /** Manages command palette state: search query, file results, workspace results, and selection. */
 export function useCommandPalette({
 	workspaceId,
-	worktreePath,
 	navigate,
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);
@@ -166,7 +164,7 @@ export function useCommandPalette({
 
 	// Single-workspace search (existing behavior)
 	const singleSearch = useFileSearch({
-		worktreePath: open && scope === "workspace" ? worktreePath : undefined,
+		workspaceId: open && scope === "workspace" ? workspaceId : undefined,
 		searchTerm: query,
 		includePattern,
 		excludePattern,
@@ -190,7 +188,6 @@ export function useCommandPalette({
 				roots.length > 0 &&
 				debouncedQuery.length > 0,
 			staleTime: 1000,
-			placeholderData: (prev) => prev ?? [],
 		},
 	);
 

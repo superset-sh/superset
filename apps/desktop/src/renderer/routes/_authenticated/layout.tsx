@@ -27,6 +27,7 @@ import { MOCK_ORG_ID } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
+import { WorkspaceServiceProvider } from "./providers/WorkspaceServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -133,13 +134,15 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<AgentHooks />
-				<Outlet />
-				<WorkspaceInitEffects />
-				<NewWorkspaceModal />
-				<InitGitDialog />
-				<TeardownLogsDialog />
-				<Paywall />
+				<WorkspaceServiceProvider>
+					<AgentHooks />
+					<Outlet />
+					<WorkspaceInitEffects />
+					<NewWorkspaceModal />
+					<InitGitDialog />
+					<TeardownLogsDialog />
+					<Paywall />
+				</WorkspaceServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>
 	);

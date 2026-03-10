@@ -21,9 +21,10 @@ import { localDb } from "main/lib/local-db";
  * - Rejects absolute paths and ".." traversal segments
  * - Defense in depth against path manipulation
  *
- * SYMLINK PROTECTION (secure-fs.ts):
- * - Writes: Block if realpath escapes worktree (prevents accidental overwrites)
- * - Reads: Caller can check isSymlinkEscaping() to warn users
+ * SYMLINK PROTECTION:
+ * - Filesystem operations should delegate to `workspace-fs`, which enforces
+ *   workspace-boundary and symlink-escape checks for reads and writes.
+ * - This module remains focused on registered-worktree and relative-path validation.
  */
 
 /**

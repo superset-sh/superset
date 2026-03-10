@@ -3,18 +3,20 @@ import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface UseFileTreeActionsProps {
+	workspaceId: string | undefined;
 	worktreePath: string | undefined;
 	onRefresh: (parentPath: string) => void | Promise<void>;
 }
 
 export function useFileTreeActions({
+	workspaceId,
 	worktreePath,
 	onRefresh,
 }: UseFileTreeActionsProps) {
 	const createFileMutation = electronTrpc.filesystem.createFile.useMutation({
 		onSuccess: (data, variables) => {
 			toast.success(`Created ${data.path.split("/").pop()}`);
-			onRefresh(variables.dirPath);
+			onRefresh(variables.parentAbsolutePath);
 		},
 		onError: (error) => {
 			toast.error(`Failed to create file: ${error.message}`);
@@ -25,7 +27,7 @@ export function useFileTreeActions({
 		electronTrpc.filesystem.createDirectory.useMutation({
 			onSuccess: (data, variables) => {
 				toast.success(`Created ${data.path.split("/").pop()}`);
-				onRefresh(variables.parentPath);
+				onRefresh(variables.parentAbsolutePath);
 			},
 			onError: (error) => {
 				toast.error(`Failed to create folder: ${error.message}`);
@@ -35,7 +37,10 @@ export function useFileTreeActions({
 	const renameMutation = electronTrpc.filesystem.rename.useMutation({
 		onSuccess: (data, variables) => {
 			toast.success(`Renamed to ${data.newPath.split("/").pop()}`);
-			const parentPath = variables.oldPath.split("/").slice(0, -1).join("/");
+			const parentPath = variables.absolutePath
+				.split("/")
+				.slice(0, -1)
+				.join("/");
 			onRefresh(parentPath || worktreePath || "");
 		},
 		onError: (error) => {
@@ -54,7 +59,7 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to delete ${data.errors.length} items`);
 			}
-			const firstPath = variables.paths[0];
+			const firstPath = variables.absolutePaths[0];
 			const parentPath = firstPath?.split("/").slice(0, -1).join("/");
 			onRefresh(parentPath || worktreePath || "");
 		},
@@ -74,7 +79,7 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to move ${data.errors.length} items`);
 			}
-			onRefresh(variables.destinationDir);
+			onRefresh(variables.destinationAbsolutePath);
 		},
 		onError: (error) => {
 			toast.error(`Failed to move: ${error.message}`);
@@ -92,7 +97,7 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to copy ${data.errors.length} items`);
 			}
-			onRefresh(variables.destinationDir);
+			onRefresh(variables.destinationAbsolutePath);
 		},
 		onError: (error) => {
 			toast.error(`Failed to copy: ${error.message}`);
@@ -100,45 +105,68 @@ export function useFileTreeActions({
 	});
 
 	const createFile = useCallback(
-		(dirPath: string, fileName: string, content = "") => {
-			createFileMutation.mutate({ dirPath, fileName, content });
+		(parentAbsolutePath: string, name: string, content = "") => {
+			if (!workspaceId) return;
+			createFileMutation.mutate({
+				workspaceId,
+				parentAbsolutePath,
+				name,
+				content,
+			});
 		},
-		[createFileMutation],
+		[createFileMutation, workspaceId],
 	);
 
 	const createDirectory = useCallback(
-		(parentPath: string, dirName: string) => {
-			createDirectoryMutation.mutate({ parentPath, dirName });
+		(parentAbsolutePath: string, name: string) => {
+			if (!workspaceId) return;
+			createDirectoryMutation.mutate({
+				workspaceId,
+				parentAbsolutePath,
+				name,
+			});
 		},
-		[createDirectoryMutation],
+		[createDirectoryMutation, workspaceId],
 	);
 
 	const rename = useCallback(
-		(oldPath: string, newName: string) => {
-			renameMutation.mutate({ oldPath, newName });
+		(absolutePath: string, newName: string) => {
+			if (!workspaceId) return;
+			renameMutation.mutate({ workspaceId, absolutePath, newName });
 		},
-		[renameMutation],
+		[renameMutation, workspaceId],
 	);
 
 	const deleteItems = useCallback(
-		(paths: string[], permanent = false) => {
-			deleteMutation.mutate({ paths, permanent });
+		(absolutePaths: string[], permanent = false) => {
+			if (!workspaceId) return;
+			deleteMutation.mutate({ workspaceId, absolutePaths, permanent });
 		},
-		[deleteMutation],
+		[deleteMutation, workspaceId],
 	);
 
 	const moveItems = useCallback(
-		(sourcePaths: string[], destinationDir: string) => {
-			moveMutation.mutate({ sourcePaths, destinationDir });
+		(sourceAbsolutePaths: string[], destinationAbsolutePath: string) => {
+			if (!workspaceId) return;
+			moveMutation.mutate({
+				workspaceId,
+				sourceAbsolutePaths,
+				destinationAbsolutePath,
+			});
 		},
-		[moveMutation],
+		[moveMutation, workspaceId],
 	);
 
 	const copyItems = useCallback(
-		(sourcePaths: string[], destinationDir: string) => {
-			copyMutation.mutate({ sourcePaths, destinationDir });
+		(sourceAbsolutePaths: string[], destinationAbsolutePath: string) => {
+			if (!workspaceId) return;
+			copyMutation.mutate({
+				workspaceId,
+				sourceAbsolutePaths,
+				destinationAbsolutePath,
+			});
 		},
-		[copyMutation],
+		[copyMutation, workspaceId],
 	);
 
 	return {

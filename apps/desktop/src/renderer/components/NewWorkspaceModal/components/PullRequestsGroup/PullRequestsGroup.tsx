@@ -33,7 +33,23 @@ export function PullRequestsGroup({
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createFromPr = useCreateFromPr();
-	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
+	const { draft, closeAndResetDraft, runAsyncAction } =
+		useNewWorkspaceModalDraft();
+
+	const parsedPrUrl = useMemo(() => {
+		const query = draft.pullRequestsQuery.trim();
+		if (!query) return null;
+		const match = query.match(
+			/^(?:https?:\/\/)?github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/,
+		);
+		if (!match) return null;
+		return {
+			owner: match[1],
+			repo: match[2],
+			number: Number.parseInt(match[3], 10),
+			url: `https://github.com/${match[1]}/${match[2]}/pull/${match[3]}`,
+		};
+	}, [draft.pullRequestsQuery]);
 
 	// Match GitHub repository by owner + name from the local project
 	const { data: repoData } = useLiveQuery(
@@ -82,6 +98,45 @@ export function PullRequestsGroup({
 		[pullRequests],
 	);
 
+	const urlItem =
+		parsedPrUrl && projectId ? (
+			<CommandItem
+				value={draft.pullRequestsQuery}
+				forceMount
+				onSelect={() => {
+					void runAsyncAction(
+						createFromPr.mutateAsync({
+							projectId,
+							prUrl: parsedPrUrl.url,
+						}),
+						{
+							loading: `Creating workspace from PR #${parsedPrUrl.number}...`,
+							success: "Workspace created",
+							error: (err) =>
+								err instanceof Error
+									? err.message
+									: "Failed to create workspace",
+						},
+					);
+				}}
+				className="group h-12"
+			>
+				<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+				<span
+					className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
+					style={{ width: "2.8rem" }}
+				>
+					#{parsedPrUrl.number}
+				</span>
+				<span className="truncate flex-1">
+					{parsedPrUrl.owner}/{parsedPrUrl.repo}
+				</span>
+				<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+					Create ↵
+				</span>
+			</CommandItem>
+		) : null;
+
 	if (!projectId) {
 		return (
 			<CommandGroup>
@@ -92,33 +147,37 @@ export function PullRequestsGroup({
 
 	if (!githubOwner) {
 		return (
-			<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
-				<SiGithub className="size-6 text-muted-foreground" />
-				<div className="space-y-1">
-					<p className="text-sm font-medium">Connect GitHub</p>
-					<p className="text-xs text-muted-foreground">
-						Sync pull requests from GitHub to create workspaces
-					</p>
+			<>
+				{urlItem && <CommandGroup>{urlItem}</CommandGroup>}
+				<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
+					<SiGithub className="size-6 text-muted-foreground" />
+					<div className="space-y-1">
+						<p className="text-sm font-medium">Connect GitHub</p>
+						<p className="text-xs text-muted-foreground">
+							Sync pull requests from GitHub to create workspaces
+						</p>
+					</div>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => {
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
+								closeAndResetDraft();
+								navigate({ to: "/settings/integrations" });
+							});
+						}}
+					>
+						Connect
+					</Button>
 				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => {
-						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							closeAndResetDraft();
-							navigate({ to: "/settings/integrations" });
-						});
-					}}
-				>
-					Connect
-				</Button>
-			</div>
+			</>
 		);
 	}
 
 	if (!githubRepositoryId) {
 		return (
 			<CommandGroup>
+				{urlItem}
 				<CommandEmpty>No GitHub repository found.</CommandEmpty>
 			</CommandGroup>
 		);
@@ -126,6 +185,7 @@ export function PullRequestsGroup({
 
 	return (
 		<CommandGroup>
+			{urlItem}
 			<CommandEmpty>No pull requests found.</CommandEmpty>
 			{openPrs.map((pr) => (
 				<CommandItem
