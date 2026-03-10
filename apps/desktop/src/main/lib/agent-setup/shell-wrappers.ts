@@ -269,6 +269,9 @@ export function getShellArgs(
 	if (["zsh", "sh", "ksh"].includes(shellName)) {
 		return ["-l"];
 	}
+	if (["powershell", "pwsh", "powershell.exe", "pwsh.exe"].includes(shellName)) {
+		return ["-NoLogo"];
+	}
 	return [];
 }
 
@@ -303,6 +306,12 @@ export function getCommandShellArgs(
 			"-c",
 			`source ${quoteShellLiteral(bashRcfile)} &&\n${commandWithManagedPrelude}`,
 		];
+	}
+	if (["powershell", "pwsh", "powershell.exe", "pwsh.exe"].includes(shellName)) {
+		return ["-NoLogo", "-Command", command];
+	}
+	if (["cmd", "cmd.exe"].includes(shellName)) {
+		return ["/C", command];
 	}
 	return ["-lc", commandWithManagedPrelude];
 }

@@ -54,6 +54,10 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
 export async function getShellEnvironment(): Promise<Record<string, string>> {
+	if (process.platform === "win32") {
+		return copyStringEnv();
+	}
+
 	const now = Date.now();
 	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
 	if (cachedEnv && now - cacheTime < ttl) {

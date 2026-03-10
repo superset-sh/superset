@@ -1,7 +1,4 @@
-import {
-	buildAgentFileCommand,
-	buildAgentTaskPrompt,
-} from "@superset/shared/agent-command";
+import { buildAgentTaskPrompt } from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
 	STARTABLE_AGENT_LABELS,
@@ -124,10 +121,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			agentType: selectedAgent,
 			source: "open-in-workspace",
 			terminal: {
-				command: buildAgentFileCommand({
-					filePath: `.superset/${taskPromptFileName}`,
-					agent: selectedAgent,
-				}),
 				name: task.slug,
 				taskPromptContent: buildAgentTaskPrompt(taskInput),
 				taskPromptFileName,

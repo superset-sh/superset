@@ -1,7 +1,4 @@
-import {
-	AGENT_PRESET_COMMANDS,
-	buildAgentPromptCommand,
-} from "@superset/shared/agent-command";
+import { AGENT_PRESET_COMMANDS } from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
 	STARTABLE_AGENT_LABELS,
@@ -185,14 +182,22 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			};
 		}
 
-		const command = trimmedPrompt
-			? buildAgentPromptCommand({
-					prompt: trimmedPrompt,
-					randomId: window.crypto.randomUUID(),
-					agent: selectedAgent,
-				})
-			: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+		if (trimmedPrompt) {
+			const promptFileName = `prompt-${window.crypto.randomUUID()}.md`;
+			return {
+				kind: "terminal",
+				workspaceId: "pending-workspace",
+				agentType: selectedAgent,
+				source: "new-workspace",
+				terminal: {
+					name: "Agent",
+					taskPromptContent: trimmedPrompt,
+					taskPromptFileName: promptFileName,
+				},
+			};
+		}
 
+		const command = AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null;
 		if (!command) return null;
 
 		return {

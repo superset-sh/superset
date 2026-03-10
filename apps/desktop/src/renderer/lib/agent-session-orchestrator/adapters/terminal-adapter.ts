@@ -1,8 +1,33 @@
+import {
+	buildAgentFileCommand,
+	type ShellPlatform,
+} from "@superset/shared/agent-command";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+
+import { IS_WINDOWS } from "renderer/lib/platform";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
+
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
 type TerminalLaunchRequest = Extract<AgentLaunchRequest, { kind: "terminal" }>;
+
+const SHELL_PLATFORM: ShellPlatform = IS_WINDOWS ? "win32" : "unix";
+
+function resolveCommand(request: TerminalLaunchRequest): string {
+	if (request.terminal.command) return request.terminal.command;
+
+	if (!request.terminal.taskPromptFileName) {
+		throw new Error(
+			"Terminal launch requires either a command or taskPromptFileName",
+		);
+	}
+
+	return buildAgentFileCommand({
+		filePath: `.superset/${request.terminal.taskPromptFileName}`,
+		agent: request.agentType ?? "claude",
+		platform: SHELL_PLATFORM,
+	});
+}
 
 export async function launchTerminalAdapter(
 	request: TerminalLaunchRequest,
@@ -15,6 +40,7 @@ export async function launchTerminalAdapter(
 
 	const { workspaceId } = request;
 	const targetPaneId = request.terminal.paneId;
+	const command = resolveCommand(request);
 
 	const noExecute = request.terminal.autoExecute === false;
 
@@ -39,7 +65,7 @@ export async function launchTerminalAdapter(
 				paneId: newPaneId,
 				tabId: tab.id,
 				workspaceId,
-				command: request.terminal.command,
+				command,
 				createOrAttach: context.createOrAttach,
 				write: context.write,
 				noExecute,
@@ -66,7 +92,7 @@ export async function launchTerminalAdapter(
 			paneId,
 			tabId,
 			workspaceId,
-			command: request.terminal.command,
+			command,
 			createOrAttach: context.createOrAttach,
 			write: context.write,
 			noExecute,

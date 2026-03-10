@@ -80,6 +80,51 @@ You are running fully autonomously. Do not ask questions or wait for user feedba
 5. When done, use the Superset MCP \`update_task\` tool to update task "${task.id}" with a summary of what was done`;
 }
 
+export type ShellPlatform = "win32" | "unix";
+
+function readFileExpression(
+	filePath: string,
+	platform: ShellPlatform,
+): string {
+	if (platform === "win32") {
+		const escaped = filePath.replaceAll("'", "''");
+		return `(Get-Content '${escaped}' -Raw)`;
+	}
+	const escaped = filePath.replaceAll("'", "'\\''");
+	return `"$(cat '${escaped}')"`;
+}
+
+const AGENT_BASE_COMMANDS: Record<
+	AgentType,
+	{ prefix: string; suffix?: string }
+> = {
+	claude: { prefix: "claude --dangerously-skip-permissions" },
+	codex: {
+		prefix:
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+	},
+	gemini: { prefix: "gemini --yolo" },
+	opencode: { prefix: "opencode --prompt" },
+	copilot: { prefix: "copilot -i", suffix: "--yolo" },
+	"cursor-agent": { prefix: "cursor-agent --yolo" },
+};
+
+export function buildAgentFileCommand({
+	filePath,
+	agent = "claude",
+	platform = "unix",
+}: {
+	filePath: string;
+	agent?: AgentType;
+	platform?: ShellPlatform;
+}): string {
+	const { prefix, suffix } = AGENT_BASE_COMMANDS[agent];
+	const fileExpr = readFileExpression(filePath, platform);
+	return suffix
+		? `${prefix} ${fileExpr} ${suffix}`
+		: `${prefix} ${fileExpr}`;
+}
+
 function buildHeredoc(
 	prompt: string,
 	delimiter: string,
@@ -95,50 +140,14 @@ function buildHeredoc(
 	].join("\n");
 }
 
-const AGENT_FILE_COMMANDS: Record<AgentType, (filePath: string) => string> = {
-	claude: (filePath) =>
-		`claude --dangerously-skip-permissions "$(cat '${filePath}')"`,
-	codex: (filePath) =>
-		`codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true -- "$(cat '${filePath}')"`,
-	gemini: (filePath) => `gemini --yolo "$(cat '${filePath}')"`,
-	opencode: (filePath) => `opencode --prompt "$(cat '${filePath}')"`,
-	copilot: (filePath) => `copilot -i "$(cat '${filePath}')" --yolo`,
-	"cursor-agent": (filePath) => `cursor-agent --yolo "$(cat '${filePath}')"`,
-};
-
-export function buildAgentFileCommand({
-	filePath,
-	agent = "claude",
-}: {
-	filePath: string;
-	agent?: AgentType;
-}): string {
-	const builder = AGENT_FILE_COMMANDS[agent];
-	const escaped = filePath.replaceAll("'", "'\\''");
-	return builder(escaped);
+function buildAgentHeredoc(
+	agent: AgentType,
+	prompt: string,
+	delimiter: string,
+): string {
+	const { prefix, suffix } = AGENT_BASE_COMMANDS[agent];
+	return buildHeredoc(prompt, delimiter, prefix, suffix);
 }
-
-const AGENT_COMMANDS: Record<
-	AgentType,
-	(prompt: string, delimiter: string) => string
-> = {
-	claude: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
-	codex: (prompt, delimiter) =>
-		buildHeredoc(
-			prompt,
-			delimiter,
-			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
-		),
-	gemini: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "gemini --yolo"),
-	opencode: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "opencode --prompt"),
-	copilot: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
-	"cursor-agent": (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
-};
 
 export function buildAgentPromptCommand({
 	prompt,
@@ -153,8 +162,7 @@ export function buildAgentPromptCommand({
 	while (prompt.includes(delimiter)) {
 		delimiter = `${delimiter}_X`;
 	}
-	const builder = AGENT_COMMANDS[agent];
-	return builder(prompt, delimiter);
+	return buildAgentHeredoc(agent, prompt, delimiter);
 }
 
 export function buildAgentCommand({

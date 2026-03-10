@@ -11,6 +11,11 @@ let localeProbeInFlight = false;
 
 function startLocaleProbe(): void {
 	if (cachedUtf8Locale || localeProbeInFlight) return;
+	// The `locale` command does not exist on Windows
+	if (os.platform() === "win32") {
+		cachedUtf8Locale = "en_US.UTF-8";
+		return;
+	}
 	localeProbeInFlight = true;
 
 	exec(
@@ -34,18 +39,22 @@ function startLocaleProbe(): void {
  */
 export const HOOK_PROTOCOL_VERSION = "2";
 
-export const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
+export const FALLBACK_SHELL =
+	os.platform() === "win32" ? "powershell.exe" : "/bin/sh";
 export const SHELL_CRASH_THRESHOLD_MS = 1000;
 
 export function getDefaultShell(): string {
-	if (defaultShell) {
-		return defaultShell;
-	}
-
 	const platform = os.platform();
 
+	// On Windows, always use PowerShell. The `default-shell` package returns
+	// COMSPEC (cmd.exe), which can't handle the subexpressions and file-read
+	// syntax used by agent launch commands.
 	if (platform === "win32") {
-		return process.env.COMSPEC || "powershell.exe";
+		return "powershell.exe";
+	}
+
+	if (defaultShell) {
+		return defaultShell;
 	}
 
 	if (process.env.SHELL) {
