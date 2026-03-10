@@ -90,6 +90,12 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_OUTLIT_KEY,
 			),
+			// Atlas integration tokens
+			"process.env.ATLAS_PATH": defineEnv(process.env.ATLAS_PATH),
+			"process.env.SUPABASE_ACCESS_TOKEN": defineEnv(
+				process.env.SUPABASE_ACCESS_TOKEN,
+			),
+			"process.env.VERCEL_TOKEN": defineEnv(process.env.VERCEL_TOKEN),
 		},
 
 		build: {

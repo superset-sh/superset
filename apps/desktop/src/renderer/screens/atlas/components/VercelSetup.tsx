@@ -13,7 +13,7 @@ export function VercelSetup({ onComplete, onSkip }: VercelSetupProps) {
   const [token, setToken] = useState("");
   const [step, setStep] = useState<"token" | "team">("token");
 
-  const { data: status, refetch: refetchStatus } =
+  const { data: status, isLoading: statusLoading, refetch: refetchStatus } =
     electronTrpc.atlas.vercel.getConnectionStatus.useQuery();
 
   const { data: teams } = electronTrpc.atlas.vercel.listTeams.useQuery(
@@ -34,6 +34,11 @@ export function VercelSetup({ onComplete, onSkip }: VercelSetupProps) {
       setStep("team");
     }
   }, [status?.connected, step]);
+
+  // 상태 로딩 중에는 아무것도 표시하지 않음
+  if (statusLoading) {
+    return null;
+  }
 
   if (step === "token" && !status?.connected) {
     return (

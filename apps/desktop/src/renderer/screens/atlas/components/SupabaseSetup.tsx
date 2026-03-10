@@ -13,7 +13,7 @@ export function SupabaseSetup({ onComplete, onSkip }: SupabaseSetupProps) {
   const [token, setToken] = useState("");
   const [step, setStep] = useState<"token" | "org">("token");
 
-  const { data: status, refetch: refetchStatus } =
+  const { data: status, isLoading: statusLoading, refetch: refetchStatus } =
     electronTrpc.atlas.supabase.getConnectionStatus.useQuery();
 
   const { data: orgs } =
@@ -35,6 +35,11 @@ export function SupabaseSetup({ onComplete, onSkip }: SupabaseSetupProps) {
       setStep("org");
     }
   }, [status?.connected, step]);
+
+  // 상태 로딩 중에는 아무것도 표시하지 않음
+  if (statusLoading) {
+    return null;
+  }
 
   if (step === "token" && !status?.connected) {
     return (

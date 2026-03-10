@@ -10,6 +10,10 @@ import { encrypt, decrypt } from "../auth/utils/crypto-storage";
 const SUPABASE_API = "https://api.supabase.com/v1";
 
 async function getSupabaseToken(): Promise<string> {
+	// env 우선, DB fallback
+	const envToken = process.env.SUPABASE_ACCESS_TOKEN;
+	if (envToken) return envToken;
+
 	const [integration] = await localDb
 		.select()
 		.from(atlasIntegrations)
@@ -75,6 +79,7 @@ export const createAtlasSupabaseRouter = () =>
 		}),
 
 		getConnectionStatus: publicProcedure.query(async () => {
+			if (process.env.SUPABASE_ACCESS_TOKEN) return { connected: true };
 			const [integration] = await localDb
 				.select()
 				.from(atlasIntegrations)
@@ -129,21 +134,18 @@ export const createAtlasSupabaseRouter = () =>
 		waitForHealthy: publicProcedure
 			.input(z.object({ projectRef: z.string() }))
 			.mutation(async ({ input }) => {
-				const maxAttempts = 30;
-				const interval = 5000; // 5 seconds
+				const maxAttempts = 90;
+				const interval = 5000; // 5 seconds (총 7.5분)
 
 				for (let i = 0; i < maxAttempts; i++) {
 					try {
-						const health = await supabaseFetch(
-							`/projects/${input.projectRef}/health`,
+						// /projects/{ref} 엔드포인트로 status 직접 확인
+						const project = await supabaseFetch(
+							`/projects/${input.projectRef}`,
 						);
-						const allHealthy = Array.isArray(health)
-							? health.every(
-									(s: { status: string }) =>
-										s.status === "ACTIVE_HEALTHY",
-								)
-							: true;
-						if (allHealthy) return { healthy: true, attempts: i + 1 };
+						if (project.status === "ACTIVE_HEALTHY") {
+							return { healthy: true, attempts: i + 1 };
+						}
 					} catch {
 						// Project might not be ready yet
 					}

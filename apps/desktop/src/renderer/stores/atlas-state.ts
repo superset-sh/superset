@@ -1,5 +1,15 @@
 import { create } from "zustand";
 
+const TARGET_PATH_KEY = "atlas-composer-target-path";
+
+function getSavedTargetPath(): string {
+  try {
+    return localStorage.getItem(TARGET_PATH_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 interface AtlasComposerState {
   step: number;
   setStep: (step: number) => void;
@@ -31,14 +41,21 @@ export const useAtlasComposerStore = create<AtlasComposerState>((set) => ({
 
   projectName: "",
   setProjectName: (projectName) => set({ projectName }),
-  targetPath: "",
-  setTargetPath: (targetPath) => set({ targetPath }),
+  targetPath: getSavedTargetPath(),
+  setTargetPath: (targetPath) => {
+    try {
+      localStorage.setItem(TARGET_PATH_KEY, targetPath);
+    } catch {
+      // ignore
+    }
+    return set({ targetPath });
+  },
 
   reset: () =>
     set({
       step: 0,
       selectedFeatures: [],
       projectName: "",
-      targetPath: "",
+      targetPath: getSavedTargetPath(),
     }),
 }));

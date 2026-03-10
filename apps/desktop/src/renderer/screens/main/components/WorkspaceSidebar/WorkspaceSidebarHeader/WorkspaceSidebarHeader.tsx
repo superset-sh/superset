@@ -109,7 +109,7 @@ export function WorkspaceSidebarHeader({
 							<LuBoxes className="size-4" strokeWidth={STROKE_WIDTH} />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Feature Atlas</TooltipContent>
+					<TooltipContent side="right">Features</TooltipContent>
 				</Tooltip>
 
 				<NewWorkspaceButton isCollapsed />
@@ -167,7 +167,7 @@ export function WorkspaceSidebarHeader({
 				<div className="flex items-center justify-center size-5">
 					<LuBoxes className="size-4" strokeWidth={STROKE_WIDTH} />
 				</div>
-				<span className="text-sm font-medium flex-1 text-left">Feature Atlas</span>
+				<span className="text-sm font-medium flex-1 text-left">Features</span>
 			</button>
 
 			<NewWorkspaceButton />

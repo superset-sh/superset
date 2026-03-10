@@ -20,6 +20,7 @@ export const atlasProjects = sqliteTable(
 		localPath: text("local_path").notNull(),
 		features: text("features", { mode: "json" }).$type<string[]>().notNull(),
 		gitInitialized: integer("git_initialized", { mode: "boolean" }).default(false),
+		gitRemoteUrl: text("git_remote_url"),
 		supabaseProjectId: text("supabase_project_id"),
 		supabaseProjectUrl: text("supabase_project_url"),
 		vercelProjectId: text("vercel_project_id"),

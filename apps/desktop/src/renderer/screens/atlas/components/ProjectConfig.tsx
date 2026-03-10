@@ -39,11 +39,16 @@ export function ProjectConfig({
         <Input
           id="projectName"
           value={projectName}
-          onChange={(e) => onProjectNameChange(e.target.value)}
+          onChange={(e) => {
+            // 영문, 숫자, 하이픈, 언더스코어만 허용
+            const filtered = e.target.value.replace(/[^a-zA-Z0-9\-_]/g, "");
+            onProjectNameChange(filtered);
+          }}
           placeholder="my-saas-project"
+          pattern="[a-zA-Z0-9\-_]+"
         />
         <p className="text-xs text-muted-foreground">
-          GitHub 레포 이름으로도 사용됩니다
+          영문, 숫자, 하이픈(-), 언더스코어(_)만 사용 가능합니다
         </p>
       </div>
 

@@ -8,6 +8,10 @@ import { encrypt, decrypt } from "../auth/utils/crypto-storage";
 const VERCEL_API = "https://api.vercel.com";
 
 async function getVercelToken(): Promise<string> {
+	// env 우선, DB fallback
+	const envToken = process.env.VERCEL_TOKEN;
+	if (envToken) return envToken;
+
 	const [integration] = await localDb
 		.select()
 		.from(atlasIntegrations)
@@ -73,6 +77,7 @@ export const createAtlasVercelRouter = () =>
 		}),
 
 		getConnectionStatus: publicProcedure.query(async () => {
+			if (process.env.VERCEL_TOKEN) return { connected: true };
 			const [integration] = await localDb
 				.select()
 				.from(atlasIntegrations)
@@ -113,12 +118,18 @@ export const createAtlasVercelRouter = () =>
 					},
 				);
 
+				// 실제 alias 기반 URL 사용 (Vercel이 이름 충돌 시 suffix 추가)
+				const aliases: string[] = project.alias ?? [];
+				const actualUrl = aliases.length > 0
+					? `https://${aliases[0]}`
+					: `https://${project.name}.vercel.app`;
+
 				// Update atlas_projects with Vercel info
 				await localDb
 					.update(atlasProjects)
 					.set({
 						vercelProjectId: project.id,
-						vercelUrl: `https://${project.name}.vercel.app`,
+						vercelUrl: actualUrl,
 						updatedAt: Date.now(),
 					})
 					.where(eq(atlasProjects.id, input.atlasProjectId));
@@ -126,8 +137,63 @@ export const createAtlasVercelRouter = () =>
 				return {
 					id: project.id,
 					name: project.name,
-					url: `https://${project.name}.vercel.app`,
+					url: actualUrl,
 				};
+			}),
+
+		connectGitRepo: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string().min(1),
+					owner: z.string().min(1),
+					repo: z.string().min(1),
+					teamId: z.string().optional(),
+					atlasProjectId: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const queryParams = input.teamId
+					? `?teamId=${input.teamId}`
+					: "";
+
+				// PATCH project to link GitHub repo
+				await vercelFetch(
+					`/v9/projects/${input.projectId}${queryParams}`,
+					{
+						method: "PATCH",
+						body: JSON.stringify({
+							link: {
+								type: "github",
+								repo: `${input.owner}/${input.repo}`,
+								productionBranch: "main",
+							},
+						}),
+					},
+				);
+
+				// Git 연결 후 프로젝트 정보 다시 조회해서 실제 도메인 확인
+				const project = await vercelFetch(
+					`/v9/projects/${input.projectId}${queryParams}`,
+				);
+
+				// 실제 production alias 또는 프로젝트 도메인 추출
+				const aliases: string[] = project.alias ?? [];
+				const actualUrl = aliases.length > 0
+					? `https://${aliases[0]}`
+					: `https://${project.name}.vercel.app`;
+
+				// DB 업데이트 (실제 URL로)
+				if (input.atlasProjectId) {
+					await localDb
+						.update(atlasProjects)
+						.set({
+							vercelUrl: actualUrl,
+							updatedAt: Date.now(),
+						})
+						.where(eq(atlasProjects.id, input.atlasProjectId));
+				}
+
+				return { linked: true, repo: `${input.owner}/${input.repo}`, url: actualUrl };
 			}),
 
 		generateDomain: publicProcedure
@@ -200,13 +266,12 @@ export const createAtlasVercelRouter = () =>
 					},
 				);
 
-				// Update atlas_projects with deployment info
+				// Update atlas_projects with deployment info (keep status as-is until waitForReady confirms)
 				await localDb
 					.update(atlasProjects)
 					.set({
 						vercelDeploymentId: deployment.id,
 						vercelUrl: `https://${deployment.url}`,
-						status: "deployed",
 						updatedAt: Date.now(),
 					})
 					.where(eq(atlasProjects.id, input.atlasProjectId));
@@ -219,7 +284,12 @@ export const createAtlasVercelRouter = () =>
 			}),
 
 		waitForReady: publicProcedure
-			.input(z.object({ deploymentId: z.string().min(1) }))
+			.input(
+				z.object({
+					deploymentId: z.string().min(1),
+					atlasProjectId: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const maxAttempts = 60;
 				const interval = 3000;
@@ -230,6 +300,12 @@ export const createAtlasVercelRouter = () =>
 							`/v13/deployments/${input.deploymentId}`,
 						);
 						if (deployment.readyState === "READY") {
+							if (input.atlasProjectId) {
+								await localDb
+									.update(atlasProjects)
+									.set({ status: "deployed", updatedAt: Date.now() })
+									.where(eq(atlasProjects.id, input.atlasProjectId));
+							}
 							return {
 								ready: true,
 								url: `https://${deployment.url}`,
@@ -240,6 +316,12 @@ export const createAtlasVercelRouter = () =>
 							deployment.readyState === "ERROR" ||
 							deployment.readyState === "CANCELED"
 						) {
+							if (input.atlasProjectId) {
+								await localDb
+									.update(atlasProjects)
+									.set({ status: "error", updatedAt: Date.now() })
+									.where(eq(atlasProjects.id, input.atlasProjectId));
+							}
 							return {
 								ready: false,
 								url: null,

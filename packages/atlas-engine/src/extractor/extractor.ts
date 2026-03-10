@@ -1,4 +1,4 @@
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { cpSync, existsSync, lstatSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { FeatureRegistry } from "../registry/types";
 import type {
@@ -25,6 +25,12 @@ const EXCLUDE_DIRS = new Set([
   "dist",
   ".turbo",
   ".cache",
+  ".claude",
+  ".agents",
+  ".auto-claude",
+  ".superset",
+  ".playwright-cli",
+  ".agent",
 ]);
 
 /**
@@ -88,7 +94,23 @@ function copyProject(sourcePath: string, targetPath: string): void {
     recursive: true,
     filter: (src) => {
       const basename = src.split("/").pop() ?? "";
-      return !EXCLUDE_DIRS.has(basename);
+      if (EXCLUDE_DIRS.has(basename)) return false;
+
+      // 깨진 심볼릭 링크 건너뛰기
+      try {
+        const stat = lstatSync(src);
+        if (stat.isSymbolicLink()) {
+          try {
+            realpathSync(src);
+          } catch {
+            return false; // 대상이 없는 심볼릭 링크
+          }
+        }
+      } catch {
+        return false;
+      }
+
+      return true;
     },
   });
 }

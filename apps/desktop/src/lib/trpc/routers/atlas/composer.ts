@@ -1,10 +1,15 @@
 import { z } from "zod";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { publicProcedure, router } from "../..";
 import { extract, loadRegistry, resolveFeatures } from "@superbuilder/atlas-engine";
 import { localDb } from "main/lib/local-db";
 import { atlasProjects } from "@superset/local-db";
+import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
+
+const execFileAsync = promisify(execFile);
 
 function getAtlasPath(): string {
 	const envPath = process.env.ATLAS_PATH;
@@ -27,6 +32,32 @@ async function initGitForAtlas(projectPath: string): Promise<boolean> {
 		console.warn("[atlas-composer] Git init failed:", error);
 		return false;
 	}
+}
+
+async function createGitHubRepo(
+	name: string,
+	projectPath: string,
+	isPrivate: boolean,
+): Promise<{ repoUrl: string; owner: string; repo: string }> {
+	const visibility = isPrivate ? "--private" : "--public";
+
+	// Organization repo로 생성 (BBrightcode-atlas)
+	const orgName = "BBrightcode-atlas";
+	const fullName = `${orgName}/${name}`;
+	await execFileAsync("gh", ["repo", "create", fullName, visibility, "--source", projectPath, "--push"], {
+		cwd: projectPath,
+	});
+
+	// Get repo info
+	const { stdout } = await execFileAsync("gh", ["repo", "view", "--json", "url,owner,name"], {
+		cwd: projectPath,
+	});
+	const info = JSON.parse(stdout);
+	return {
+		repoUrl: info.url,
+		owner: info.owner.login,
+		repo: info.name,
+	};
 }
 
 export const createAtlasComposerRouter = () =>
@@ -64,7 +95,7 @@ export const createAtlasComposerRouter = () =>
 					.values({
 						name: input.projectName,
 						localPath: projectPath,
-						features: resolved.all,
+						features: resolved.resolved,
 						gitInitialized,
 						status: "created",
 					})
@@ -76,5 +107,33 @@ export const createAtlasComposerRouter = () =>
 					projectId: project.id,
 					gitInitialized,
 				};
+			}),
+
+		pushToGitHub: publicProcedure
+			.input(
+				z.object({
+					projectPath: z.string().min(1),
+					repoName: z.string().min(1),
+					isPrivate: z.boolean().default(true),
+					atlasProjectId: z.string().min(1),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const { repoUrl, owner, repo } = await createGitHubRepo(
+					input.repoName,
+					input.projectPath,
+					input.isPrivate,
+				);
+
+				// Update local DB with GitHub info
+				await localDb
+					.update(atlasProjects)
+					.set({
+						gitRemoteUrl: repoUrl,
+						updatedAt: Date.now(),
+					})
+					.where(eq(atlasProjects.id, input.atlasProjectId));
+
+				return { repoUrl, owner, repo };
 			}),
 	});

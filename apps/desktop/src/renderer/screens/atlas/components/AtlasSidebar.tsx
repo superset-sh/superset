@@ -26,7 +26,7 @@ export function AtlasSidebar() {
   return (
     <div className="w-52 border-r border-border bg-muted/30 flex flex-col">
       <div className="p-4 border-b border-border">
-        <h2 className="text-sm font-semibold text-foreground">Feature Atlas</h2>
+        <h2 className="text-sm font-semibold text-foreground">Features</h2>
       </div>
       <nav className="flex-1 p-2 space-y-0.5">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => {

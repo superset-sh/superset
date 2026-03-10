@@ -267,6 +267,13 @@
       "when": 1773123461688,
       "tag": "0037_add_atlas_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1773200000000,
+      "tag": "0038_add_git_remote_url",
+      "breakpoints": true
     }
   ]
 }

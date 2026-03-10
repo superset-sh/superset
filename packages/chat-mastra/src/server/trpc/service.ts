@@ -59,6 +59,7 @@ function resolveOmModelFromAuth(): string | undefined {
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
+	getExtraTools?: () => Promise<Record<string, unknown>>;
 }
 
 export class ChatMastraService {
@@ -108,10 +109,14 @@ export class ChatMastraService {
 
 		const creationPromise = (async () => {
 			try {
-				const extraTools = await getSupersetMcpTools(
+				const supersetTools = await getSupersetMcpTools(
 					() => Promise.resolve(this.opts.headers()),
 					this.opts.apiUrl,
 				);
+				const injectedTools = this.opts.getExtraTools
+					? await this.opts.getExtraTools()
+					: {};
+				const extraTools = { ...supersetTools, ...injectedTools };
 
 				const omModel = resolveOmModelFromAuth();
 

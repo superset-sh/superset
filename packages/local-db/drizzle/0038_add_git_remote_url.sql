@@ -1,0 +1,1 @@
+ALTER TABLE `atlas_projects` ADD `git_remote_url` text;
