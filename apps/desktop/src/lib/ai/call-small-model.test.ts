@@ -112,6 +112,36 @@ describe("callSmallModel", () => {
 		]);
 	});
 
+	it("treats empty-string results as successful model output", async () => {
+		const { result, attempts } = await callSmallModel({
+			providers: [
+				{
+					id: "openai",
+					name: "OpenAI",
+					resolveCredentials: () => ({
+						apiKey: "oauth-token",
+						kind: "oauth",
+						source: "auth-storage",
+					}),
+					isSupported: () => ({ supported: true }),
+					createModel: () => "openai-model",
+				},
+			],
+			invoke: async () => "",
+		});
+
+		expect(result).toBe("");
+		expect(attempts).toEqual([
+			{
+				providerId: "openai",
+				providerName: "OpenAI",
+				credentialKind: "oauth",
+				credentialSource: "auth-storage",
+				outcome: "succeeded",
+			},
+		]);
+	});
+
 	it("classifies missing OpenAI scopes as a canonical provider issue", async () => {
 		const { result, attempts } = await callSmallModel({
 			providers: [

@@ -124,9 +124,7 @@ export function AnthropicOAuthDialog({
 							type="button"
 							onClick={hasAuthUrl ? onSubmit : onRetry}
 							disabled={
-								isPreparing ||
-								isPending ||
-								(hasAuthUrl ? !code.trim() : !authUrl)
+								isPreparing || isPending || (hasAuthUrl && !code.trim())
 							}
 						>
 							{primaryLabel}

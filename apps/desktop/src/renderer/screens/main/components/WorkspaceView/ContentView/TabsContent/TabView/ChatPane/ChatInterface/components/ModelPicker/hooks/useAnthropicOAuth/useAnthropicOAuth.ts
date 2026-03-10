@@ -111,11 +111,14 @@ export function useAnthropicOAuth({
 		}
 	}, [oauthUrl, openExternalUrl]);
 
+	const clearAutoSubmitTimeout = useCallback(() => {
+		if (!autoSubmitTimeoutRef.current) return;
+		clearTimeout(autoSubmitTimeoutRef.current);
+		autoSubmitTimeoutRef.current = null;
+	}, []);
+
 	const startAnthropicOAuth = useCallback(async () => {
-		if (autoSubmitTimeoutRef.current) {
-			clearTimeout(autoSubmitTimeoutRef.current);
-			autoSubmitTimeoutRef.current = null;
-		}
+		clearAutoSubmitTimeout();
 
 		setOauthDialogOpen(true);
 		setOauthUrl(null);
@@ -140,7 +143,7 @@ export function useAnthropicOAuth({
 		} finally {
 			setIsPreparingOAuth(false);
 		}
-	}, [openExternalUrl, startAnthropicOAuthMutation]);
+	}, [clearAutoSubmitTimeout, openExternalUrl, startAnthropicOAuthMutation]);
 
 	const copyOAuthUrl = useCallback(async () => {
 		if (!oauthUrl) return;
@@ -156,29 +159,41 @@ export function useAnthropicOAuth({
 		async (rawCode: string) => {
 			const code = rawCode.trim();
 			if (!code) return;
+			clearAutoSubmitTimeout();
 
 			setOauthError(null);
 			try {
 				await completeAnthropicOAuthMutation.mutateAsync({ code });
-				await electronTrpcClient.modelProviders.clearIssue.mutate({
-					providerId: "anthropic",
-				});
-				await electronUtils.modelProviders.getStatuses.invalidate();
-				setHasPendingOAuthSession(false);
-				setIsPreparingOAuth(false);
-				setOauthDialogOpen(false);
-				setOauthUrl(null);
-				setOauthCode("");
-				onModelSelectorOpenChange(true);
-				await refetchAnthropicStatus();
-				await onAuthStateChange?.();
 			} catch (error) {
 				setOauthError(
 					getErrorMessage(error, "Failed to complete Anthropic OAuth"),
 				);
+				return;
+			}
+
+			setHasPendingOAuthSession(false);
+			setIsPreparingOAuth(false);
+			setOauthDialogOpen(false);
+			setOauthUrl(null);
+			setOauthCode("");
+			onModelSelectorOpenChange(true);
+
+			try {
+				await electronTrpcClient.modelProviders.clearIssue.mutate({
+					providerId: "anthropic",
+				});
+				await electronUtils.modelProviders.getStatuses.invalidate();
+				await refetchAnthropicStatus();
+				await onAuthStateChange?.();
+			} catch (error) {
+				console.error(
+					"[model-picker] Anthropic OAuth follow-up refresh failed:",
+					error,
+				);
 			}
 		},
 		[
+			clearAutoSubmitTimeout,
 			completeAnthropicOAuthMutation,
 			electronUtils.modelProviders.getStatuses.invalidate,
 			onAuthStateChange,
@@ -195,26 +210,36 @@ export function useAnthropicOAuth({
 		setOauthError(null);
 		try {
 			await disconnectAnthropicOAuthMutation.mutateAsync();
-			await electronTrpcClient.modelProviders.clearIssue.mutate({
-				providerId: "anthropic",
-			});
-			await electronUtils.modelProviders.getStatuses.invalidate();
-			setHasPendingOAuthSession(false);
-			setIsPreparingOAuth(false);
-			setOauthDialogOpen(false);
-			setOauthUrl(null);
-			setOauthCode("");
-			onModelSelectorOpenChange(true);
-			await refetchAnthropicStatus();
-			await onAuthStateChange?.();
 		} catch (error) {
 			setOauthError(
 				getErrorMessage(error, "Failed to disconnect Anthropic OAuth"),
 			);
+			return;
+		}
+
+		setHasPendingOAuthSession(false);
+		setIsPreparingOAuth(false);
+		setOauthDialogOpen(false);
+		setOauthUrl(null);
+		setOauthCode("");
+		onModelSelectorOpenChange(true);
+
+		try {
+			await electronTrpcClient.modelProviders.clearIssue.mutate({
+				providerId: "anthropic",
+			});
+			await electronUtils.modelProviders.getStatuses.invalidate();
+			await refetchAnthropicStatus();
+			await onAuthStateChange?.();
+		} catch (error) {
+			console.error(
+				"[model-picker] Anthropic OAuth disconnect follow-up refresh failed:",
+				error,
+			);
 		}
 	}, [
 		disconnectAnthropicOAuthMutation,
-		electronUtils.modelProviders.getStatuses,
+		electronUtils.modelProviders.getStatuses.invalidate,
 		onAuthStateChange,
 		onModelSelectorOpenChange,
 		refetchAnthropicStatus,
@@ -225,11 +250,7 @@ export function useAnthropicOAuth({
 			setOauthDialogOpen(nextOpen);
 			if (nextOpen) return;
 			onModelSelectorOpenChange(true);
-
-			if (autoSubmitTimeoutRef.current) {
-				clearTimeout(autoSubmitTimeoutRef.current);
-				autoSubmitTimeoutRef.current = null;
-			}
+			clearAutoSubmitTimeout();
 
 			setOauthCode("");
 			setOauthError(null);
@@ -258,6 +279,7 @@ export function useAnthropicOAuth({
 		},
 		[
 			cancelAnthropicOAuthMutation,
+			clearAutoSubmitTimeout,
 			hasPendingOAuthSession,
 			onModelSelectorOpenChange,
 		],
@@ -265,11 +287,9 @@ export function useAnthropicOAuth({
 
 	useEffect(() => {
 		return () => {
-			if (autoSubmitTimeoutRef.current) {
-				clearTimeout(autoSubmitTimeoutRef.current);
-			}
+			clearAutoSubmitTimeout();
 		};
-	}, []);
+	}, [clearAutoSubmitTimeout]);
 
 	const oauthDialog = useMemo(
 		() => ({
@@ -288,10 +308,7 @@ export function useAnthropicOAuth({
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
-				if (autoSubmitTimeoutRef.current) {
-					clearTimeout(autoSubmitTimeoutRef.current);
-					autoSubmitTimeoutRef.current = null;
-				}
+				clearAutoSubmitTimeout();
 				if (
 					!hasPendingOAuthSession ||
 					completeAnthropicOAuthMutation.isPending ||
@@ -327,6 +344,7 @@ export function useAnthropicOAuth({
 			completeAnthropicOAuth,
 			completeAnthropicOAuthMutation.isPending,
 			copyOAuthUrl,
+			clearAutoSubmitTimeout,
 			disconnectAnthropicOAuth,
 			disconnectAnthropicOAuthMutation.isPending,
 			hasPendingOAuthSession,

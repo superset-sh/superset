@@ -182,7 +182,7 @@ export async function callSmallModel<TResult>({
 				model,
 				credentials,
 			});
-			if (result) {
+			if (result != null) {
 				attempts.push({
 					providerId: provider.id,
 					providerName: provider.name,
