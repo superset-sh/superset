@@ -1,7 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
@@ -40,7 +38,6 @@ export function EmptyTabView({
 	const { addTab } = useTabsWithPresets();
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const activeTheme = useTheme();
 
 	const newGroupDisplay = useHotkeyDisplay("NEW_GROUP");
@@ -77,17 +74,14 @@ export function EmptyTabView({
 				icon: BsTerminalPlus,
 				onClick: handleShowTerminal,
 			},
-		];
-
-		if (hasAiChat) {
-			baseActions.push({
+			{
 				id: "new-agent",
 				label: "Open Chat",
 				display: newChatDisplay,
 				icon: TbMessageCirclePlus,
 				onClick: handleNewAgent,
-			});
-		}
+			},
+		];
 
 		baseActions.push({
 			id: "open-browser",
@@ -120,7 +114,6 @@ export function EmptyTabView({
 		handleNewAgent,
 		handleOpenBrowser,
 		handleShowTerminal,
-		hasAiChat,
 		newBrowserDisplay,
 		newChatDisplay,
 		newGroupDisplay,
