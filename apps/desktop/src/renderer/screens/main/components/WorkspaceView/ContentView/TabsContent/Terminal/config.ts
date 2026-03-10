@@ -39,6 +39,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
+	allowTransparency: true,
 	scrollback: 2000,
 	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
 	macOptionIsMeta: false,

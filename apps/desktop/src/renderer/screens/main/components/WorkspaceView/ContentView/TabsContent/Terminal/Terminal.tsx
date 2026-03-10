@@ -383,6 +383,32 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
+	// Terminal background image settings
+	const { data: bgSettings } =
+		electronTrpc.settings.getTerminalBackground.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+	const bgImage = bgSettings?.image ?? null;
+	const bgOpacity = (bgSettings?.opacity ?? 85) / 100;
+	const bgBlur = bgSettings?.blur ?? 8;
+
+	// When a background image is set, make xterm background semi-transparent
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || !bgImage) return;
+
+		const currentTheme = xterm.options.theme ?? {};
+		const bg = currentTheme.background ?? terminalBg;
+		// Convert hex to rgba with opacity
+		const r = Number.parseInt(bg.slice(1, 3), 16);
+		const g = Number.parseInt(bg.slice(3, 5), 16);
+		const b = Number.parseInt(bg.slice(5, 7), 16);
+		xterm.options.theme = {
+			...currentTheme,
+			background: `rgba(${r}, ${g}, ${b}, ${bgOpacity})`,
+		};
+	}, [bgImage, bgOpacity, terminalBg]);
+
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
 		event.dataTransfer.dropEffect = "copy";
@@ -411,21 +437,45 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		<div
 			role="application"
 			className="relative h-full w-full overflow-hidden"
-			style={{ backgroundColor: terminalBg }}
+			style={{ backgroundColor: bgImage ? "transparent" : terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			<TerminalSearch
-				searchAddon={searchAddonRef.current}
-				isOpen={isSearchOpen}
-				onClose={() => setIsSearchOpen(false)}
-			/>
-			<ScrollToBottomButton terminal={xtermInstance} />
-			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
-				<SessionKilledOverlay onRestart={restartTerminal} />
+			{/* Background image layer with blur */}
+			{bgImage && (
+				<div
+					className="absolute inset-0 z-0"
+					style={{
+						backgroundImage: `url("file://${bgImage}")`,
+						backgroundSize: "cover",
+						backgroundPosition: "center",
+						filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+						// Expand slightly to prevent blur edge artifacts
+						margin: bgBlur > 0 ? `-${bgBlur * 2}px` : undefined,
+						padding: bgBlur > 0 ? `${bgBlur * 2}px` : undefined,
+					}}
+				/>
 			)}
-			<div className="h-full w-full p-2">
-				<div ref={terminalRef} className="h-full w-full" />
+			{/* Semi-transparent overlay for readability */}
+			{bgImage && (
+				<div
+					className="absolute inset-0 z-[1]"
+					style={{ backgroundColor: terminalBg, opacity: bgOpacity }}
+				/>
+			)}
+			<div className="relative z-[2]">
+				<TerminalSearch
+					searchAddon={searchAddonRef.current}
+					isOpen={isSearchOpen}
+					onClose={() => setIsSearchOpen(false)}
+				/>
+				<ScrollToBottomButton terminal={xtermInstance} />
+				{exitStatus === "killed" && !connectionError && !isRestoredMode && (
+					<SessionKilledOverlay onRestart={restartTerminal} />
+				)}
+				<div className="h-full w-full p-2">
+					<div ref={terminalRef} className="h-full w-full" />
+				</div>
 			</div>
 		</div>
 	);

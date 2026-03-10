@@ -717,5 +717,47 @@ export const createSettingsRouter = () => {
 			.mutation(() => {
 				return { success: true };
 			}),
+
+		getTerminalBackground: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				image: row.terminalBackgroundImage ?? null,
+				opacity: row.terminalBackgroundOpacity ?? 85,
+				blur: row.terminalBackgroundBlur ?? 8,
+			};
+		}),
+
+		setTerminalBackground: publicProcedure
+			.input(
+				z.object({
+					image: z.string().nullable().optional(),
+					opacity: z.number().int().min(0).max(100).optional(),
+					blur: z.number().int().min(0).max(50).optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const set: Record<string, unknown> = {};
+				if (input.image !== undefined)
+					set.terminalBackgroundImage = input.image;
+				if (input.opacity !== undefined)
+					set.terminalBackgroundOpacity = input.opacity;
+				if (input.blur !== undefined)
+					set.terminalBackgroundBlur = input.blur;
+
+				if (Object.keys(set).length === 0) {
+					return { success: true };
+				}
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, ...set })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };

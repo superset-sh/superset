@@ -35,6 +35,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_IMAGE: "terminal-background-image",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -554,6 +555,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_BACKGROUND_IMAGE,
+		section: "terminal",
+		title: "Background Image",
+		description: "Set a background image for the terminal with blur and opacity",
+		keywords: [
+			"terminal",
+			"background",
+			"image",
+			"wallpaper",
+			"blur",
+			"opacity",
+			"transparency",
+			"transparent",
+			"theme",
+			"aesthetic",
 		],
 	},
 	{
