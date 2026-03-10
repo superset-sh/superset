@@ -1,0 +1,7 @@
+export {
+  createMobileRegistrationRoutes,
+  REGISTRATION_PATH,
+  REGISTRATION_TERMS_PATH,
+  REGISTRATION_CONFIRM_PATH,
+  REGISTRATION_COMPLETE_PATH,
+} from "./routes";

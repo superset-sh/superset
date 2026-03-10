@@ -122,7 +122,7 @@ function copyProject(sourcePath: string, targetPath: string): void {
  * - packages/features/{name}/
  * - packages/drizzle/src/schema/features/{schemaDir}/
  * - apps/app/src/features/{name}/
- * - apps/system-admin/src/features/{name}/
+ * - apps/feature-admin/src/features/{name}/
  * - packages/widgets/src/{name}/ (widget인 경우)
  */
 function removeUnselectedFeatures(
@@ -204,10 +204,10 @@ function regenerateConnectionFiles(
     },
     { fn: generateAppModule, label: "apps/atlas-server/src/app.module.ts" },
     { fn: generateClientRouter, label: "apps/app/src/router.tsx" },
-    { fn: generateAdminRouter, label: "apps/system-admin/src/router.tsx" },
+    { fn: generateAdminRouter, label: "apps/feature-admin/src/router.tsx" },
     {
       fn: generateFeatureConfig,
-      label: "apps/system-admin/src/feature-config.ts",
+      label: "apps/feature-admin/src/feature-config.ts",
     },
   ];
 

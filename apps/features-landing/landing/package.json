@@ -1,0 +1,30 @@
+{
+  "name": "@superbuilder/features-landing",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3010 --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@superbuilder/feature-ui": "workspace:^",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.15.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.2"
+  }
+}

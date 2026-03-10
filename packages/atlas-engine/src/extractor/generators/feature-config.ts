@@ -3,7 +3,7 @@ import { join } from "path";
 import type { FeatureRegistry } from "../../registry/types";
 
 /**
- * apps/system-admin/src/feature-config.ts 재생성
+ * apps/feature-admin/src/feature-config.ts 재생성
  *
  * 선택된 feature만의 import + menu entry를 유지
  */
@@ -14,7 +14,7 @@ export function generateFeatureConfig(
 ): string {
   const filePath = join(
     targetPath,
-    "apps/system-admin/src/feature-config.ts",
+    "apps/feature-admin/src/feature-config.ts",
   );
   const original = readFileSync(filePath, "utf-8");
 

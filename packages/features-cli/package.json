@@ -1,0 +1,34 @@
+{
+  "name": "@superbuilder/features-cli",
+  "version": "0.0.1",
+  "description": "Atlas CLI - Feature installation and project management",
+  "type": "module",
+  "bin": {
+    "atlas": "./bin/atlas.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^11.0.0",
+    "inquirer": "^9.3.0",
+    "ora": "^8.1.0"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.9.0"
+  }
+}

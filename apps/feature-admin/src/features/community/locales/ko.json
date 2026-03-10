@@ -1,0 +1,46 @@
+{
+  "community": {
+    "title": "커뮤니티",
+    "list": "커뮤니티 목록",
+    "create": "커뮤니티 만들기",
+    "join": "가입",
+    "leave": "탈퇴",
+    "members": "멤버",
+    "posts": "게시물",
+    "rules": "규칙",
+    "about": "정보",
+    "home": "홈",
+    "all": "전체",
+    "popular": "인기",
+    "subscriptions": "구독"
+  },
+  "post": {
+    "title": "게시물",
+    "create": "게시물 작성",
+    "upvote": "추천",
+    "downvote": "비추천",
+    "comment": "댓글",
+    "comments": "댓글",
+    "share": "공유",
+    "save": "저장",
+    "pin": "고정",
+    "lock": "잠금",
+    "remove": "제거",
+    "crosspost": "교차 게시"
+  },
+  "sort": {
+    "hot": "인기",
+    "new": "최신",
+    "top": "최고",
+    "rising": "급상승",
+    "controversial": "논란"
+  },
+  "time": {
+    "hour": "1시간",
+    "day": "오늘",
+    "week": "이번 주",
+    "month": "이번 달",
+    "year": "올해",
+    "all": "전체"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-vega",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@superbuilder/feature-ui/shadcn",
+    "shadcn": "src/_shadcn",
+    "utils": "src/lib/utils",
+    "ui": "src/_shadcn",
+    "lib": "src/lib",
+    "hooks": "src/hooks"
+  },
+  "registries": {
+    "@react-bits": "https://reactbits.dev/r/{name}.json",
+    "@ss-components": {
+      "url": "https://shadcnstudio.com/r/components/{name}.json",
+      "params": {
+        "email": "${EMAIL}",
+        "license_key": "${LICENSE_KEY}"
+      }
+    },
+    "@ss-themes": {
+      "url": "https://shadcnstudio.com/r/themes/{name}.json",
+      "params": {
+        "email": "${EMAIL}",
+        "license_key": "${LICENSE_KEY}"
+      }
+    },
+    "@ss-blocks": {
+      "url": "https://shadcnstudio.com/r/blocks/{name}.json",
+      "params": {
+        "email": "${EMAIL}",
+        "license_key": "${LICENSE_KEY}"
+      }
+    }
+  }
+}

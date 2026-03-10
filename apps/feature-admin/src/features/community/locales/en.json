@@ -1,0 +1,46 @@
+{
+  "community": {
+    "title": "Community",
+    "list": "Communities",
+    "create": "Create Community",
+    "join": "Join",
+    "leave": "Leave",
+    "members": "Members",
+    "posts": "Posts",
+    "rules": "Rules",
+    "about": "About",
+    "home": "Home",
+    "all": "All",
+    "popular": "Popular",
+    "subscriptions": "Subscriptions"
+  },
+  "post": {
+    "title": "Post",
+    "create": "Create Post",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "comment": "Comment",
+    "comments": "Comments",
+    "share": "Share",
+    "save": "Save",
+    "pin": "Pin",
+    "lock": "Lock",
+    "remove": "Remove",
+    "crosspost": "Crosspost"
+  },
+  "sort": {
+    "hot": "Hot",
+    "new": "New",
+    "top": "Top",
+    "rising": "Rising",
+    "controversial": "Controversial"
+  },
+  "time": {
+    "hour": "Hour",
+    "day": "Today",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "all": "All Time"
+  }
+}

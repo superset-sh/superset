@@ -1,0 +1,37 @@
+{
+  "extends": "@superset/typescript/react-internal-package.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "paths": {
+      "~/*": ["./src/*"],
+      "~/components/ui/*": ["./src/_shadcn/*"],
+      "~/packages/ai/*": ["./src/packages/ai/*"],
+      "@superbuilder/feature-ui/shadcn/*": [
+        "./src/shadcn/*"
+      ],
+      "@superbuilder/feature-ui/components/*": [
+        "./src/components/*"
+      ],
+      "@superbuilder/feature-ui/lib/*": [
+        "./src/lib/*"
+      ],
+      "@superbuilder/feature-ui/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@superbuilder/feature-ui/editor/*": [
+        "./src/components/editor/*"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/components/ai",
+    "src/packages/ai",
+    "src/components/shadcn-studio"
+  ]
+}

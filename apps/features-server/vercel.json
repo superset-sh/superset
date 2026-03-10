@@ -1,0 +1,13 @@
+{
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "",
+  "framework": null,
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ]
+}

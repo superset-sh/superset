@@ -3,7 +3,7 @@ import { join } from "path";
 import type { FeatureRegistry } from "../../registry/types";
 
 /**
- * apps/system-admin/src/router.tsx 재생성
+ * apps/feature-admin/src/router.tsx 재생성
  *
  * 선택된 feature만의 admin route import + spread를 유지
  */
@@ -12,7 +12,7 @@ export function generateAdminRouter(
   selectedFeatures: string[],
   registry: FeatureRegistry,
 ): string {
-  const filePath = join(targetPath, "apps/system-admin/src/router.tsx");
+  const filePath = join(targetPath, "apps/feature-admin/src/router.tsx");
   const original = readFileSync(filePath, "utf-8");
 
   const selectedSet = new Set(selectedFeatures);

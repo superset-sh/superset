@@ -1,0 +1,53 @@
+{
+  "name": "@superbuilder/features-client",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./core/auth": "./core/auth/index.ts",
+    "./core/i18n": "./core/i18n/index.ts",
+    "./core/theme": "./core/theme/index.ts",
+    "./core/analytics/client": "./core/analytics/index.ts",
+    "./core/error/client": "./core/error/index.ts",
+    "./core/logger": "./core/logger/index.ts",
+    "./core/logger/client": "./core/logger/index.ts",
+    "./shared/components": "./shared/components/index.ts",
+    "./shared/components/*": "./shared/components/*.tsx",
+    "./shared/hooks": "./shared/hooks/index.ts",
+    "./shared/store/*": "./shared/store/*.ts",
+    "./shared/utils/*": "./shared/utils/*.ts",
+    "./trpc-client": "./trpc-client.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*",
+    "@types/react": "19.2.2",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "@superbuilder/drizzle": "workspace:*",
+    "@superbuilder/features-server": "workspace:*",
+    "@supabase/supabase-js": "2.93.3",
+    "@tanstack/react-query": "^5.62.8",
+    "@tanstack/react-router": "^1.122.1",
+    "@trpc/client": "^11.8.1",
+    "@trpc/server": "^11.0.0",
+    "@trpc/tanstack-react-query": "^11.8.1",
+    "clsx": "^2.1.1",
+    "es-toolkit": "^1.35.0",
+    "html2canvas": "^1.4.1",
+    "i18next": "^25.2.0",
+    "jotai": "^2.12.5",
+    "jspdf": "^4.1.0",
+    "lucide-react": "^0.511.0",
+    "posthog-js": "^1.351.3",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.0",
+    "react-i18next": "^15.5.2",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.5"
+  }
+}

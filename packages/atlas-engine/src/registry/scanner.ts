@@ -147,7 +147,7 @@ export function buildRegistryFromScan(atlasPath: string): FeatureRegistry {
       join(atlasPath, "apps/app/src/features", name)
     );
     const hasClientAdmin = existsSync(
-      join(atlasPath, "apps/system-admin/src/features", name)
+      join(atlasPath, "apps/feature-admin/src/features", name)
     );
     const hasWidget = existsSync(
       join(atlasPath, "packages/widgets/src", name)
@@ -171,7 +171,7 @@ export function buildRegistryFromScan(atlasPath: string): FeatureRegistry {
       },
       client: {
         ...(hasClientApp ? { app: `apps/app/src/features/${name}/` } : {}),
-        ...(hasClientAdmin ? { admin: `apps/system-admin/src/features/${name}/` } : {}),
+        ...(hasClientAdmin ? { admin: `apps/feature-admin/src/features/${name}/` } : {}),
       },
       schema: {
         tables: hasSchema ? scanSchemaTables(atlasPath, name) : [],

@@ -1,0 +1,41 @@
+{
+  "name": "@superbuilder/widgets",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./reaction": "./src/reaction/index.ts",
+    "./comment": "./src/comment/index.ts",
+    "./review": "./src/review/index.ts",
+    "./notification": "./src/notification/index.ts",
+    "./onboarding": "./src/onboarding/index.ts",
+    "./file-manager": "./src/file-manager/index.ts",
+    "./bookmark": "./src/bookmark/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@superbuilder/feature-ui": "workspace:*",
+    "@superbuilder/features-client": "workspace:*",
+    "@superbuilder/features-server": "workspace:*",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.511.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@trpc/client": "^11.0.0",
+    "@trpc/tanstack-react-query": "^11.0.0",
+    "jotai": "^2.0.0",
+    "react": "^19.0.0",
+    "socket.io-client": "^4.0.0",
+    "sonner": "^2.0.0"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*",
+    "@types/react": "19.2.2",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2"
+  }
+}

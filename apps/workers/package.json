@@ -1,0 +1,20 @@
+{
+  "name": "@superbuilder/workers",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Antigravity Remote Control — CDP 기반 원격 IDE 제어 서버",
+  "scripts": {
+    "start": "node src/launcher.mjs --webhook",
+    "start:tunnel": "node src/launcher.mjs --webhook --tunnel",
+    "start:cdp": "node src/cdp-server.mjs",
+    "start:webhook": "node src/linear-webhook.mjs",
+    "client": "node src/client.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "extends": "@superset/typescript/react-internal-package.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/core/*": ["./core/*"],
+      "@/shared/*": ["./shared/*"],
+      "@/features/*": ["./features/*"]
+    },
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "isolatedModules": false
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "@superset/typescript/react-internal-package.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "isolatedModules": false,
+    "paths": {
+      "@superbuilder/feature-ui/shadcn/*": ["../feature-ui/src/shadcn/*"],
+      "@superbuilder/feature-ui/components/*": ["../feature-ui/src/components/*"],
+      "@superbuilder/feature-ui/lib/*": ["../feature-ui/src/lib/*"],
+      "@superbuilder/feature-ui/hooks/*": ["../feature-ui/src/hooks/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

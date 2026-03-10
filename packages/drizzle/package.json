@@ -1,0 +1,36 @@
+{
+  "name": "@superbuilder/drizzle",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./types": "./src/utils/types.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:reset": "npx tsx src/scripts/db-reset.ts && drizzle-kit push --force && npx tsx src/scripts/db-seed-profiles.ts && npx tsx src/seed/plans.ts",
+    "db:seed:profiles": "npx tsx src/scripts/db-seed-profiles.ts",
+    "db:seed:plans": "npx tsx src/seed/plans.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.38.4",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "@superset/typescript": "workspace:*",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9.25.0",
+    "typescript": "^5.9.2"
+  }
+}

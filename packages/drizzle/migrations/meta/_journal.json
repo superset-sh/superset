@@ -1,0 +1,132 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1771519531941,
+      "tag": "0000_famous_runaways",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771570457340,
+      "tag": "0001_hard_speed_demon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771918869794,
+      "tag": "0002_demonic_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772055345392,
+      "tag": "0003_vengeful_charles_xavier",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772216303552,
+      "tag": "0004_groovy_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772251916521,
+      "tag": "0005_chief_wolfsbane",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772260007970,
+      "tag": "0006_cool_thunderbolts",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772290380412,
+      "tag": "0007_nosy_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772383660984,
+      "tag": "0008_old_doctor_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772434823072,
+      "tag": "0009_clammy_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772463600434,
+      "tag": "0010_bouncy_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772487982003,
+      "tag": "0011_shocking_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772598045706,
+      "tag": "0012_secret_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1772596380232,
+      "tag": "0013_flowery_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1772814851348,
+      "tag": "0014_lovely_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1772841369127,
+      "tag": "0015_lumpy_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1772862749883,
+      "tag": "0016_lush_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1773075487326,
+      "tag": "0017_perpetual_jack_power",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "@superset/typescript/react-internal-package.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/core/*": ["./core/*"],
+      "@/shared/*": ["./shared/*"],
+      "@superbuilder/feature-ui/shadcn/*": ["../feature-ui/src/shadcn/*"],
+      "@superbuilder/feature-ui/lib/*": ["../feature-ui/src/lib/*"],
+      "@superbuilder/feature-ui/hooks/*": ["../feature-ui/src/hooks/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

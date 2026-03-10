@@ -1,0 +1,10 @@
+{
+  "instances": [
+    { "name": "design-1", "group": "design",    "cdpPort": 9221, "apiPort": 9401 },
+    { "name": "design-2", "group": "design",    "cdpPort": 9222, "apiPort": 9402 },
+    { "name": "design-3", "group": "design",    "cdpPort": 9223, "apiPort": 9403 },
+    { "name": "qa-1",     "group": "design-qa", "cdpPort": 9331, "apiPort": 9411 },
+    { "name": "qa-2",     "group": "design-qa", "cdpPort": 9332, "apiPort": 9412 },
+    { "name": "qa-3",     "group": "design-qa", "cdpPort": 9334, "apiPort": 9413 }
+  ]
+}
