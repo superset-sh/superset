@@ -9,6 +9,10 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 
+import {
+	bundledMainDependencies,
+	mainExternalizedDependencies,
+} from "./runtime-dependencies";
 import { dependencies, resources, version } from "./package.json";
 import {
 	copyResourcesPlugin,
@@ -49,15 +53,8 @@ export default defineConfig({
 			tsconfigPaths,
 			copyResourcesPlugin(),
 			externalizeDepsPlugin({
-				include: [
-					"better-sqlite3",
-					"node-pty",
-					"pg-native",
-					"@ast-grep/napi",
-					"@parcel/watcher",
-					"libsql",
-				],
-				exclude: workspaceDependencies,
+				include: mainExternalizedDependencies,
+				exclude: [...workspaceDependencies, ...bundledMainDependencies],
 			}),
 		],
 
