@@ -102,13 +102,7 @@ export function useFileSave({
 					: originalContentRef.current,
 			});
 		},
-		[
-			filePath,
-			worktreePath,
-			saveFileMutation,
-			editorRef,
-			originalContentRef,
-		],
+		[filePath, worktreePath, saveFileMutation, editorRef, originalContentRef],
 	);
 
 	return {

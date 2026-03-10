@@ -20,9 +20,7 @@ interface KeywordSearchResult {
 	preview: string;
 }
 
-export function useKeywordSearch({
-	workspaceId,
-}: UseKeywordSearchParams) {
+export function useKeywordSearch({ workspaceId }: UseKeywordSearchParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const includePattern = useSearchDialogStore(

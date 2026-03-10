@@ -64,7 +64,12 @@ export function VirtualizedFileList({
 			>
 				{items.map((virtualRow) => {
 					const file = files[virtualRow.index];
-					const fileKey = createFileKey(file, category, commitHash, worktreePath);
+					const fileKey = createFileKey(
+						file,
+						category,
+						commitHash,
+						worktreePath,
+					);
 
 					return (
 						<div
