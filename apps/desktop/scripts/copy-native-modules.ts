@@ -106,8 +106,8 @@ function copyModuleIfSymlink(
 		console.log(`  ${moduleName}: symlink -> replacing with real files`);
 		console.log(`    Real path: ${realPath}`);
 
-		// Remove the symlink
-		rmSync(modulePath);
+		// Remove the symlink (recursive needed on Windows for junction/symlink dirs)
+		rmSync(modulePath, { recursive: true, force: true });
 
 		// Copy the actual files
 		cpSync(realPath, modulePath, { recursive: true });
