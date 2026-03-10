@@ -24,12 +24,16 @@ export function track(
 	const posthog = getClient();
 	if (!posthog) return;
 
-	posthog.capture({
-		distinctId,
-		event,
-		properties: {
-			...properties,
-			app_name: "api",
-		},
-	});
+	try {
+		posthog.capture({
+			distinctId,
+			event,
+			properties: {
+				...properties,
+				app_name: "api",
+			},
+		});
+	} catch (err) {
+		console.warn("[analytics] PostHog capture failed", err);
+	}
 }

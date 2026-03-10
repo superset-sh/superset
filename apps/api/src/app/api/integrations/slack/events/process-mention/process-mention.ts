@@ -235,13 +235,6 @@ export async function processSlackMention({
 				: undefined,
 		});
 
-		track(slackUserLink.userId, "slack_message_sent", {
-			type: "mention",
-			model: slackUserLink.modelPreference ?? undefined,
-			tools_used: result.actions.map((a) => a.type),
-			actions: result.actions.map((a) => a.type),
-		});
-
 		// Update the message with Claude's final summary
 		if (messageTs) {
 			await slack.chat.update({
@@ -256,6 +249,13 @@ export async function processSlackMention({
 				text: result.text,
 			});
 		}
+
+		track(slackUserLink.userId, "slack_message_sent", {
+			type: "mention",
+			model: slackUserLink.modelPreference ?? undefined,
+			tools_used: result.actions.map((a) => a.type),
+			actions: result.actions.map((a) => a.type),
+		});
 
 		// Post side effects as a separate message
 		if (result.actions.length > 0) {
