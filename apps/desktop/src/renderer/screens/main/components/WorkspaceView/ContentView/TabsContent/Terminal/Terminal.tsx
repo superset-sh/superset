@@ -395,14 +395,29 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// When a background image is set, make xterm background semi-transparent
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		if (!xterm || !bgImage) return;
+		if (!xterm) return;
+
+		// Toggle allowTransparency only when needed (performance optimization)
+		xterm.options.allowTransparency = !!bgImage;
+
+		if (!bgImage) return;
 
 		const currentTheme = xterm.options.theme ?? {};
 		const bg = currentTheme.background ?? terminalBg;
-		// Convert hex to rgba with opacity
-		const r = Number.parseInt(bg.slice(1, 3), 16);
-		const g = Number.parseInt(bg.slice(3, 5), 16);
-		const b = Number.parseInt(bg.slice(5, 7), 16);
+		// Parse hex color to rgba — supports #rgb, #rrggbb, #rrggbbaa
+		const hexMatch = bg.match(/^#([0-9a-f]{3,8})$/i);
+		if (!hexMatch) return;
+		const hex = hexMatch[1];
+		let r: number, g: number, b: number;
+		if (hex.length === 3) {
+			r = Number.parseInt(hex[0] + hex[0], 16);
+			g = Number.parseInt(hex[1] + hex[1], 16);
+			b = Number.parseInt(hex[2] + hex[2], 16);
+		} else {
+			r = Number.parseInt(hex.slice(0, 2), 16);
+			g = Number.parseInt(hex.slice(2, 4), 16);
+			b = Number.parseInt(hex.slice(4, 6), 16);
+		}
 		xterm.options.theme = {
 			...currentTheme,
 			background: `rgba(${r}, ${g}, ${b}, ${bgOpacity})`,
@@ -463,7 +478,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 					style={{ backgroundColor: terminalBg, opacity: bgOpacity }}
 				/>
 			)}
-			<div className="relative z-[2]">
+			<div className="relative z-[2] h-full w-full">
 				<TerminalSearch
 					searchAddon={searchAddonRef.current}
 					isOpen={isSearchOpen}

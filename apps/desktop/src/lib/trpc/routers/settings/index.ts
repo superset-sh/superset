@@ -13,7 +13,7 @@ import {
 	AGENT_PRESET_DESCRIPTIONS,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
-import { app } from "electron";
+import { app, dialog } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
@@ -717,6 +717,17 @@ export const createSettingsRouter = () => {
 			.mutation(() => {
 				return { success: true };
 			}),
+
+		pickImageFile: publicProcedure.mutation(async () => {
+			const result = await dialog.showOpenDialog({
+				properties: ["openFile"],
+				filters: [
+					{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif"] },
+				],
+			});
+			if (result.canceled || !result.filePaths[0]) return null;
+			return result.filePaths[0];
+		}),
 
 		getTerminalBackground: publicProcedure.query(() => {
 			const row = getSettings();

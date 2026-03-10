@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Slider } from "@superset/ui/slider";
+import { useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export function BackgroundImageSetting() {
@@ -35,27 +36,38 @@ export function BackgroundImageSetting() {
 			},
 		});
 
+	const pickImageFile = electronTrpc.settings.pickImageFile.useMutation();
+
 	const image = bgSettings?.image ?? null;
 	const opacity = bgSettings?.opacity ?? 85;
 	const blur = bgSettings?.blur ?? 8;
 
+	// Local state for input to avoid mutating on every keystroke
+	const [localPath, setLocalPath] = useState<string | null>(null);
+	const isEditingPath = localPath !== null;
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
 	const handleSelectImage = async () => {
-		try {
-			const result = await (window as unknown as { electronAPI?: { showOpenDialog?: (options: unknown) => Promise<{ canceled: boolean; filePaths: string[] }> } }).electronAPI?.showOpenDialog?.({
-				properties: ["openFile"],
-				filters: [
-					{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif"] },
-				],
-			});
-			if (result && !result.canceled && result.filePaths[0]) {
-				setTerminalBackground.mutate({ image: result.filePaths[0] });
-			}
-		} catch {
-			// Fallback: prompt for path manually
-			const path = prompt("Enter image file path:");
-			if (path) {
-				setTerminalBackground.mutate({ image: path });
-			}
+		const filePath = await pickImageFile.mutateAsync();
+		if (filePath) {
+			setTerminalBackground.mutate({ image: filePath });
+		}
+	};
+
+	const handlePathChange = (value: string) => {
+		setLocalPath(value);
+		clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			setTerminalBackground.mutate({ image: value || null });
+			setLocalPath(null);
+		}, 500);
+	};
+
+	const handlePathBlur = () => {
+		clearTimeout(debounceRef.current);
+		if (localPath !== null) {
+			setTerminalBackground.mutate({ image: localPath || null });
+			setLocalPath(null);
 		}
 	};
 
@@ -70,10 +82,9 @@ export function BackgroundImageSetting() {
 
 			<div className="flex items-center gap-2">
 				<Input
-					value={image ?? ""}
-					onChange={(e) =>
-						setTerminalBackground.mutate({ image: e.target.value || null })
-					}
+					value={isEditingPath ? localPath : (image ?? "")}
+					onChange={(e) => handlePathChange(e.target.value)}
+					onBlur={handlePathBlur}
 					placeholder="Path to image file..."
 					className="flex-1 text-xs"
 					disabled={isLoading}
@@ -82,7 +93,7 @@ export function BackgroundImageSetting() {
 					variant="outline"
 					size="sm"
 					onClick={handleSelectImage}
-					disabled={isLoading}
+					disabled={isLoading || pickImageFile.isPending}
 				>
 					Browse
 				</Button>
