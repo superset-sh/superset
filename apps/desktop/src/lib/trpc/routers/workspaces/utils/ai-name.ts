@@ -187,25 +187,17 @@ function buildWorkspaceAutoNameFallbackWarning(
 		return "No model account was connected, so a prompt-based title was used.";
 	}
 
-	const expiredAttempt = attempts.find(
-		(attempt) => attempt.outcome === "expired-credentials",
-	);
-	if (expiredAttempt) {
-		return `${expiredAttempt.issue?.message ?? `${expiredAttempt.providerName} needs to be reconnected`}, so a prompt-based title was used.`;
-	}
-
-	const failedAttempt = attempts.find(
-		(attempt) => attempt.outcome === "failed",
-	);
-	if (failedAttempt) {
-		return `${failedAttempt.issue?.message ?? `${failedAttempt.providerName} couldn't generate a title`}, so a prompt-based title was used.`;
-	}
-
-	const unsupportedAttempt = attempts.find(
-		(attempt) => attempt.outcome === "unsupported-credentials",
-	);
-	if (unsupportedAttempt) {
-		return `${unsupportedAttempt.issue?.message ?? "No compatible model account was available"}, so a prompt-based title was used.`;
+	for (let index = attempts.length - 1; index >= 0; index -= 1) {
+		const attempt = attempts[index];
+		if (attempt.outcome === "expired-credentials") {
+			return `${attempt.issue?.message ?? `${attempt.providerName} needs to be reconnected`}, so a prompt-based title was used.`;
+		}
+		if (attempt.outcome === "failed") {
+			return `${attempt.issue?.message ?? `${attempt.providerName} couldn't generate a title`}, so a prompt-based title was used.`;
+		}
+		if (attempt.outcome === "unsupported-credentials") {
+			return `${attempt.issue?.message ?? "No compatible model account was available"}, so a prompt-based title was used.`;
+		}
 	}
 
 	const missingCredentials = attempts.every(

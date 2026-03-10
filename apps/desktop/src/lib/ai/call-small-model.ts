@@ -11,6 +11,7 @@ import {
 	type ProviderId,
 	type ProviderIssue,
 } from "shared/ai/provider-status";
+import { createAuthStorage } from "mastracode";
 import {
 	clearProviderIssue,
 	reportProviderIssue,
@@ -21,6 +22,7 @@ type SmallModelCredential = {
 	kind: "apiKey" | "oauth";
 	source: string;
 	expiresAt?: number;
+	accountId?: string;
 };
 
 export type SmallModelProviderId = ProviderId;
@@ -61,6 +63,84 @@ export interface SmallModelProvider<
 	createModel: (credentials: TCredentials) => unknown | Promise<unknown>;
 }
 
+const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
+const OPENAI_CODEX_API_ENDPOINT =
+	"https://chatgpt.com/backend-api/codex/responses";
+const OPENAI_CODEX_SMALL_MODEL_ID = "gpt-5.1-codex-mini";
+const OPENAI_API_SMALL_MODEL_ID = "gpt-4o-mini";
+
+function createOpenAICodexOAuthModel(credentials: SmallModelCredential) {
+	const authStorage = createAuthStorage();
+	const oauthFetchImpl = async (
+		url: Parameters<typeof fetch>[0],
+		init?: Parameters<typeof fetch>[1],
+	): Promise<Response> => {
+		authStorage.reload();
+		const storedCredential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		if (!storedCredential || storedCredential.type !== "oauth") {
+			throw new Error("Not logged in to OpenAI Codex. Reconnect OpenAI.");
+		}
+
+		let accessToken = storedCredential.access;
+		if (
+			typeof storedCredential.expires === "number" &&
+			Date.now() >= storedCredential.expires
+		) {
+			const refreshedToken = await authStorage.getApiKey(
+				OPENAI_AUTH_PROVIDER_ID,
+			);
+			if (!refreshedToken) {
+				throw new Error(
+					"Failed to refresh OpenAI Codex token. Please reconnect OpenAI.",
+				);
+			}
+			accessToken = refreshedToken;
+			authStorage.reload();
+		}
+
+		const refreshedCredential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		const accountId =
+			refreshedCredential &&
+			typeof refreshedCredential === "object" &&
+			"accountId" in refreshedCredential &&
+			typeof refreshedCredential.accountId === "string" &&
+			refreshedCredential.accountId.trim().length > 0
+				? refreshedCredential.accountId.trim()
+				: credentials.accountId?.trim() || undefined;
+
+		const headers = new Headers(init?.headers);
+		headers.delete("authorization");
+		headers.set("Authorization", `Bearer ${accessToken}`);
+		if (accountId) {
+			headers.set("ChatGPT-Account-Id", accountId);
+		}
+
+		const parsedUrl =
+			url instanceof URL
+				? url
+				: new URL(typeof url === "string" ? url : url.url);
+		const shouldRewrite =
+			parsedUrl.pathname.includes("/v1/responses") ||
+			parsedUrl.pathname.includes("/chat/completions");
+		const finalUrl = shouldRewrite
+			? new URL(OPENAI_CODEX_API_ENDPOINT)
+			: parsedUrl;
+
+		return fetch(finalUrl, {
+			...init,
+			headers,
+		});
+	};
+	const oauthFetch = Object.assign(oauthFetchImpl, {
+		preconnect: globalThis.fetch.preconnect.bind(globalThis.fetch),
+	}) satisfies typeof fetch;
+
+	return createOpenAI({
+		apiKey: "oauth-dummy-key",
+		fetch: oauthFetch,
+	}).responses(OPENAI_CODEX_SMALL_MODEL_ID);
+}
+
 const DEFAULT_SMALL_MODEL_PROVIDERS: SmallModelProvider[] = [
 	{
 		id: "anthropic",
@@ -78,7 +158,11 @@ const DEFAULT_SMALL_MODEL_PROVIDERS: SmallModelProvider[] = [
 		resolveCredentials: () => getOpenAICredentialsFromAnySource(),
 		isSupported: () => ({ supported: true }),
 		createModel: (credentials) =>
-			createOpenAI({ apiKey: credentials.apiKey })("gpt-4o-mini"),
+			credentials.kind === "oauth"
+				? createOpenAICodexOAuthModel(credentials)
+				: createOpenAI({ apiKey: credentials.apiKey }).chat(
+						OPENAI_API_SMALL_MODEL_ID,
+					),
 	},
 ];
 

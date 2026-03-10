@@ -6,6 +6,7 @@ interface OpenAICredentials {
 	source: "auth-storage";
 	kind: "apiKey" | "oauth";
 	expiresAt?: number;
+	accountId?: string;
 }
 
 export function isOpenAICredentialExpired(
@@ -46,6 +47,11 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 				typeof credential.access === "string" &&
 				credential.access.trim().length > 0
 			) {
+				const accountId =
+					typeof credential.accountId === "string" &&
+					credential.accountId.trim().length > 0
+						? credential.accountId.trim()
+						: undefined;
 				return {
 					apiKey: credential.access.trim(),
 					source: "auth-storage",
@@ -54,6 +60,7 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 						typeof credential.expires === "number"
 							? credential.expires
 							: undefined,
+					accountId,
 				};
 			}
 		}
