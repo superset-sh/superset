@@ -48,7 +48,7 @@ export function AnthropicApiKeyDialog({
 						value={envText}
 						onChange={(event) => onEnvTextChange(event.target.value)}
 						placeholder={
-							"ANTHROPIC_API_KEY=sk-ant-...\nCLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1\nAWS_PROFILE=default"
+							'export ANTHROPIC_API_KEY="sk-ant-api03-local-placeholder"\nexport ANTHROPIC_BASE_URL="http://localhost:29576/vertex/claude"'
 						}
 						disabled={isPending}
 						aria-invalid={Boolean(errorMessage)}
@@ -56,7 +56,8 @@ export function AnthropicApiKeyDialog({
 						className="min-h-24 min-w-0 w-full max-w-full max-h-44 field-sizing-fixed resize-y font-mono text-xs"
 					/>
 					<p className="text-muted-foreground text-xs">
-						One per line, format: VAR_NAME=value or export VAR_NAME=value.
+						One per line. Supports `VAR_NAME=value`, `export VAR_NAME=value`,
+						and quoted values.
 					</p>
 				</div>
 
