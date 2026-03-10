@@ -123,7 +123,7 @@ export function NewWorkspaceModalContent({
 			</div>
 
 			{isListTab ? (
-				<Command className={COMMAND_CLASS_NAME}>
+				<Command shouldFilter={false} className={COMMAND_CLASS_NAME}>
 					<CommandInput
 						value={listQuery}
 						onValueChange={handleListQueryChange}

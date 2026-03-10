@@ -3,8 +3,10 @@ import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
+import Fuse from "fuse.js";
 import { useCallback, useMemo, useState } from "react";
 import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateBranchWorkspace,
@@ -31,7 +33,8 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const handleOpenedWorktree = useHandleOpenedWorktree();
 	const importAllWorktrees = useImportAllWorktrees();
 	const openExternalWorktree = useOpenExternalWorktree();
-	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
+	const { draft, closeAndResetDraft, runAsyncAction } =
+		useNewWorkspaceModalDraft();
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 
 	// Fast query: local branches + cached remote refs (no network)
@@ -100,15 +103,12 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 
 	const defaultBranch = data?.defaultBranch ?? "main";
 
-	const branches = (data?.branches ?? [])
-		.sort((a, b) => {
-			if (a.name === defaultBranch) return -1;
-			if (b.name === defaultBranch) return 1;
-			if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
-			return a.name.localeCompare(b.name);
-		})
-		.slice(0, 40);
-
+	const branches = (data?.branches ?? []).sort((a, b) => {
+		if (a.name === defaultBranch) return -1;
+		if (b.name === defaultBranch) return 1;
+		if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
+		return a.name.localeCompare(b.name);
+	});
 	const branchByName = useMemo(() => {
 		return new Map(branches.map((branch) => [branch.name, branch]));
 	}, [branches]);
@@ -174,12 +174,36 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		workspaceByBranch,
 	]);
 
-	const visibleBranchRows = useMemo(() => {
+	const baseBranchRows = useMemo(() => {
 		if (filterMode === "worktrees") {
 			return worktreeBranchRows;
 		}
 		return branchRows;
 	}, [branchRows, filterMode, worktreeBranchRows]);
+
+	const debouncedQuery = useDebouncedValue(draft.branchesQuery, 150);
+
+	const branchFuse = useMemo(
+		() =>
+			new Fuse(baseBranchRows, {
+				keys: ["branch.name"],
+				threshold: 0.3,
+				includeScore: true,
+				ignoreLocation: true,
+			}),
+		[baseBranchRows],
+	);
+
+	const visibleBranchRows = useMemo(() => {
+		const query = debouncedQuery.trim();
+		if (!query) {
+			return baseBranchRows.slice(0, 100);
+		}
+		return branchFuse
+			.search(query)
+			.slice(0, 100)
+			.map((result) => result.item);
+	}, [debouncedQuery, baseBranchRows, branchFuse]);
 
 	const handleCreate = useCallback(
 		(branchName: string) => {
@@ -375,7 +399,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 					return (
 						<CommandItem
 							key={branch.name}
-							value={branch.name}
 							onSelect={() => handleBranchAction(branch.name)}
 							className="group h-12"
 						>
