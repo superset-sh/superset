@@ -114,12 +114,15 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		const hasCredentials =
 			getAnthropicCredentialsFromAnySource() !== null ||
 			getOpenAICredentialsFromAnySource() !== null;
+		if (!hasCredentials) {
+			// No credentials configured — silently skip. This is expected for users
+			// who haven't set up API keys; showing a toast would be confusing noise.
+			return { status: "skipped", reason: "missing-credentials" };
+		}
 		return {
 			status: "skipped",
-			reason: hasCredentials ? "generation-failed" : "missing-credentials",
-			warning: hasCredentials
-				? "Couldn't auto-name this workspace."
-				: "Couldn't auto-name this workspace because chat credentials aren't configured.",
+			reason: "generation-failed",
+			warning: "Couldn't auto-name this workspace.",
 		};
 	}
 
