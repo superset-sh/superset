@@ -6,6 +6,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Configuration } from "electron-builder";
+import {
+	packagedAsarUnpackGlobs,
+	packagedNodeModuleCopies,
+} from "./runtime-dependencies";
 import pkg from "./package.json";
 
 const currentYear = new Date().getFullYear();
@@ -41,17 +45,7 @@ const config: Configuration = {
 	// ASAR configuration for native modules and external resources
 	asar: true,
 	asarUnpack: [
-		"**/node_modules/better-sqlite3/**/*",
-		// better-sqlite3 uses `bindings` to locate native modules - must be unpacked together
-		"**/node_modules/bindings/**/*",
-		"**/node_modules/file-uri-to-path/**/*",
-		"**/node_modules/node-pty/**/*",
-		// ast-grep native bindings (package + platform binary package)
-		"**/node_modules/@ast-grep/napi*/**/*",
-		// parcel watcher native bindings (package + platform binary package)
-		"**/node_modules/@parcel/watcher*/**/*",
-		// libsql native bindings are loaded from @libsql/<platform>
-		"**/node_modules/@libsql/**/*",
+		...packagedAsarUnpackGlobs,
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
@@ -76,89 +70,11 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
-		// Native modules that can't be bundled by Vite.
+		// Runtime modules that stay external to the main bundle.
 		// bun creates symlinks for direct deps in workspace node_modules.
 		// The copy:native-modules script replaces symlinks with real files
 		// before building (required for Bun 1.3+ isolated installs).
-		{
-			from: "node_modules/better-sqlite3",
-			to: "node_modules/better-sqlite3",
-			filter: ["**/*"],
-		},
-		// better-sqlite3 uses `bindings` package to locate its native .node file
-		{
-			from: "node_modules/bindings",
-			to: "node_modules/bindings",
-			filter: ["**/*"],
-		},
-		// `bindings` requires `file-uri-to-path` for file:// URL handling
-		{
-			from: "node_modules/file-uri-to-path",
-			to: "node_modules/file-uri-to-path",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/node-pty",
-			to: "node_modules/node-pty",
-			filter: ["**/*"],
-		},
-		// ast-grep native bindings (package + platform binary package)
-		{
-			from: "node_modules/@ast-grep",
-			to: "node_modules/@ast-grep",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/@parcel",
-			to: "node_modules/@parcel",
-			filter: ["watcher/**/*", "watcher-*/**/*"],
-		},
-		{
-			from: "node_modules/detect-libc",
-			to: "node_modules/detect-libc",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/is-glob",
-			to: "node_modules/is-glob",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/is-extglob",
-			to: "node_modules/is-extglob",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/picomatch",
-			to: "node_modules/picomatch",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/node-addon-api",
-			to: "node_modules/node-addon-api",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/libsql",
-			to: "node_modules/libsql",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/@libsql",
-			to: "node_modules/@libsql",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/@neon-rs",
-			to: "node_modules/@neon-rs",
-			filter: ["**/*"],
-		},
-		// friendly-words is a CommonJS module that Vite doesn't bundle
-		{
-			from: "node_modules/friendly-words",
-			to: "node_modules/friendly-words",
-			filter: ["**/*"],
-		},
+		...packagedNodeModuleCopies,
 		"!**/.DS_Store",
 	],
 

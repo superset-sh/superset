@@ -4,7 +4,7 @@ import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
-import friendlyWords = require("friendly-words");
+import friendlyWords from "friendly-words";
 
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
