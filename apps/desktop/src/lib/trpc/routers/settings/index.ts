@@ -4,6 +4,7 @@ import {
 	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
+	PR_LINK_PROVIDERS,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -22,6 +23,7 @@ import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
+	DEFAULT_PR_LINK_PROVIDER,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -501,6 +503,41 @@ export const createSettingsRouter = () => {
 			quitWithoutConfirmation();
 			return { success: true };
 		}),
+
+		getPrLinkProvider: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				provider: row.prLinkProvider ?? DEFAULT_PR_LINK_PROVIDER,
+				customDomain: row.prLinkCustomDomain ?? null,
+			};
+		}),
+
+		setPrLinkProvider: publicProcedure
+			.input(
+				z.object({
+					provider: z.enum(PR_LINK_PROVIDERS),
+					customDomain: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						prLinkProvider: input.provider,
+						prLinkCustomDomain: input.customDomain ?? null,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							prLinkProvider: input.provider,
+							prLinkCustomDomain: input.customDomain ?? null,
+						},
+					})
+					.run();
+
+				return { success: true };
+			}),
 
 		getBranchPrefix: publicProcedure.query(() => {
 			const row = getSettings();

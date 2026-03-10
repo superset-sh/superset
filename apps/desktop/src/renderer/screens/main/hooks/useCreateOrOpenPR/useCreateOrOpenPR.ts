@@ -1,6 +1,8 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { transformPrUrl } from "renderer/utils/pr-url";
+import { DEFAULT_PR_LINK_PROVIDER } from "shared/constants";
 
 interface UseCreateOrOpenPROptions {
 	worktreePath?: string;
@@ -18,6 +20,10 @@ export function useCreateOrOpenPR({
 }: UseCreateOrOpenPROptions): UseCreateOrOpenPRResult {
 	const { mutateAsync, isPending } =
 		electronTrpc.changes.createPR.useMutation();
+	const { data: prLinkSettings } =
+		electronTrpc.settings.getPrLinkProvider.useQuery();
+	const provider = prLinkSettings?.provider ?? DEFAULT_PR_LINK_PROVIDER;
+	const customDomain = prLinkSettings?.customDomain;
 
 	const createOrOpenPR = useCallback(() => {
 		if (!worktreePath || isPending) return;
@@ -25,8 +31,9 @@ export function useCreateOrOpenPR({
 		void (async () => {
 			try {
 				const result = await mutateAsync({ worktreePath });
-				window.open(result.url, "_blank", "noopener,noreferrer");
-				toast.success("Opening GitHub...");
+				const url = transformPrUrl(result.url, provider, customDomain);
+				window.open(url, "_blank", "noopener,noreferrer");
+				toast.success("Opening pull request...");
 				onSuccess?.();
 				return;
 			} catch (error) {
@@ -50,8 +57,9 @@ export function useCreateOrOpenPR({
 					worktreePath,
 					allowOutOfDate: true,
 				});
-				window.open(result.url, "_blank", "noopener,noreferrer");
-				toast.success("Opening GitHub...");
+				const url = transformPrUrl(result.url, provider, customDomain);
+				window.open(url, "_blank", "noopener,noreferrer");
+				toast.success("Opening pull request...");
 				onSuccess?.();
 			} catch (retryError) {
 				const retryMessage =
@@ -59,7 +67,7 @@ export function useCreateOrOpenPR({
 				toast.error(`Failed: ${retryMessage}`);
 			}
 		})();
-	}, [isPending, mutateAsync, onSuccess, worktreePath]);
+	}, [isPending, mutateAsync, onSuccess, worktreePath, provider, customDomain]);
 
 	return {
 		createOrOpenPR,
