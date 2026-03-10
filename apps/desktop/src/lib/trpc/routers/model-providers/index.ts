@@ -14,7 +14,7 @@ const providerIdSchema = z.enum(["anthropic", "openai"]);
 
 async function getProviderStatuses() {
 	const [anthropicAuthStatus, openAIAuthStatus] = await Promise.all([
-		Promise.resolve(chatService.getAnthropicAuthStatus()),
+		chatService.getAnthropicAuthStatus(),
 		chatService.getOpenAIAuthStatus(),
 	]);
 

@@ -54,11 +54,9 @@ export const SETTING_ITEM_ID = {
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
 	PROJECT_ENV_VARS: "project-env-vars",
 
-	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
 
-	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
 	PERMISSIONS_MICROPHONE: "permissions-microphone",
@@ -786,7 +784,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"sandbox",
 		],
 	},
-	// API Keys
 	{
 		id: SETTING_ITEM_ID.API_KEYS_LIST,
 		section: "apikeys",

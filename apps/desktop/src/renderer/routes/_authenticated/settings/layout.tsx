@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,
 });
 
-// Order of sections for auto-navigation
 const SECTION_ORDER: SettingsSection[] = [
 	"account",
 	"appearance",
@@ -35,7 +34,6 @@ const SECTION_ORDER: SettingsSection[] = [
 	"permissions",
 ];
 
-// Map route paths to section names
 function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/account")) return "account";
 	if (pathname.includes("/settings/organization")) return "organization";
@@ -52,7 +50,6 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	return null;
 }
 
-// Map section names to route paths
 function getPathFromSection(section: SettingsSection): string {
 	switch (section) {
 		case "account":
@@ -89,21 +86,18 @@ function SettingsLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	// Auto-navigate to first matching section when search filters out current section
 	useEffect(() => {
 		if (!searchQuery) return;
 
 		const currentSection = getSectionFromPath(location.pathname);
 		if (!currentSection) return;
 
-		// Don't auto-navigate from project pages
 		if (currentSection === "project") return;
 
 		const matchCounts = getMatchCountBySection(searchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
 
 		if (!currentHasMatches) {
-			// Find first section with matches
 			const firstMatch = SECTION_ORDER.find(
 				(section) => (matchCounts[section] ?? 0) > 0,
 			);
@@ -115,7 +109,6 @@ function SettingsLayout() {
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
-			{/* Top bar with Mac spacing - invisible but reserves space */}
 			<div
 				className="drag h-8 w-full bg-tertiary"
 				style={{
@@ -123,7 +116,6 @@ function SettingsLayout() {
 				}}
 			/>
 
-			{/* Main content */}
 			<div className="flex flex-1 overflow-hidden">
 				<SettingsSidebar />
 				<div className="flex-1 m-3 bg-background rounded overflow-auto">
