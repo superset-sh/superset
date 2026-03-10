@@ -31,7 +31,7 @@ describe("getOpenAICredentialsFromAuthStorage", () => {
 			return undefined;
 		});
 
-		expect(getOpenAICredentialsFromAuthStorage()).toEqual({
+		expect(getOpenAICredentialsFromAuthStorage(fakeAuthStorage)).toEqual({
 			apiKey: "legacy-openai-oauth",
 			providerId: "openai",
 			source: "auth-storage",
@@ -59,7 +59,7 @@ describe("getOpenAICredentialsFromAuthStorage", () => {
 			return undefined;
 		});
 
-		expect(getOpenAICredentialsFromAuthStorage()).toEqual({
+		expect(getOpenAICredentialsFromAuthStorage(fakeAuthStorage)).toEqual({
 			apiKey: "legacy-openai-key",
 			providerId: "openai",
 			source: "auth-storage",
