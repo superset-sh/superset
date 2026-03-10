@@ -47,6 +47,7 @@ export function GroupStrip() {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
@@ -256,6 +257,14 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const handleMarkTabAsUnread = (tabId: string) => {
+		for (const pane of Object.values(panes)) {
+			if (pane.tabId === tabId) {
+				setPaneStatus(pane.id, "review");
+			}
+		}
+	};
+
 	const handleReorderTabs = useCallback(
 		(fromIndex: number, toIndex: number) => {
 			if (activeWorkspaceId) {
@@ -351,6 +360,7 @@ export function GroupStrip() {
 											onSelect={() => handleSelectGroup(tab.id)}
 											onClose={() => handleCloseGroup(tab.id)}
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
+											onMarkAsUnread={() => handleMarkTabAsUnread(tab.id)}
 											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
 											onReorder={handleReorderTabs}
 										/>

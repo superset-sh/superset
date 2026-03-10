@@ -108,7 +108,7 @@ interface FileViewerContentProps {
 	initialColumn?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
-	onSaveRaw: () => Promise<void>;
+	onSaveRaw: () => Promise<unknown> | undefined;
 	onEditorChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;

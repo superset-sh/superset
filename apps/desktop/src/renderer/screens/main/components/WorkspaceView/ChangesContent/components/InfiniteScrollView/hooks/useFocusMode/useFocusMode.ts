@@ -61,7 +61,7 @@ export function useFocusMode({
 						entries.push({
 							file,
 							category: "against-base",
-							key: createFileKey(file, "against-base"),
+							key: createFileKey(file, "against-base", undefined, worktreePath),
 						});
 					}
 					break;
@@ -72,7 +72,12 @@ export function useFocusMode({
 								file,
 								category: "committed",
 								commitHash: commit.hash,
-								key: createFileKey(file, "committed", commit.hash),
+								key: createFileKey(
+									file,
+									"committed",
+									commit.hash,
+									worktreePath,
+								),
 							});
 						}
 					}
@@ -82,7 +87,7 @@ export function useFocusMode({
 						entries.push({
 							file,
 							category: "staged",
-							key: createFileKey(file, "staged"),
+							key: createFileKey(file, "staged", undefined, worktreePath),
 						});
 					}
 					break;
@@ -91,7 +96,7 @@ export function useFocusMode({
 						entries.push({
 							file,
 							category: "unstaged",
-							key: createFileKey(file, "unstaged"),
+							key: createFileKey(file, "unstaged", undefined, worktreePath),
 						});
 					}
 					break;
@@ -105,6 +110,7 @@ export function useFocusMode({
 		sortedStaged,
 		sortedUnstaged,
 		orderedSections,
+		worktreePath,
 	]);
 
 	const sections = useMemo<SectionInfo[]>(() => {

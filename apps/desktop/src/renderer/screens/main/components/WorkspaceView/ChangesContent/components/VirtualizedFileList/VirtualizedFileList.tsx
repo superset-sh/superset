@@ -43,7 +43,7 @@ export function VirtualizedFileList({
 		getScrollElement: () => scrollElementRef.current,
 		estimateSize: (index) => {
 			const file = files[index];
-			const fileKey = createFileKey(file, category, commitHash);
+			const fileKey = createFileKey(file, category, commitHash, worktreePath);
 			return getEstimatedFileDiffSectionHeight({
 				file,
 				isCollapsed: collapsedFiles.has(fileKey),
@@ -64,7 +64,12 @@ export function VirtualizedFileList({
 			>
 				{items.map((virtualRow) => {
 					const file = files[virtualRow.index];
-					const fileKey = createFileKey(file, category, commitHash);
+					const fileKey = createFileKey(
+						file,
+						category,
+						commitHash,
+						worktreePath,
+					);
 
 					return (
 						<div

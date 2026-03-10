@@ -68,16 +68,11 @@ export function useFileLinkClick({
 					return;
 				}
 
-				// Normalize absolute paths to worktree-relative paths for file viewer
-				// File viewer expects relative paths, but terminal links can be absolute
-				let filePath = path;
-				// Use path boundary check to avoid incorrect prefix stripping
-				// e.g., /repo vs /repo-other should not match
+				const filePath = path;
 				if (path === workspaceCwd) {
-					filePath = ".";
-				} else if (path.startsWith(`${workspaceCwd}/`)) {
-					filePath = path.slice(workspaceCwd.length + 1);
-				} else if (path.startsWith("/")) {
+					return;
+				}
+				if (path.startsWith("/") && !path.startsWith(`${workspaceCwd}/`)) {
 					// Absolute path outside workspace - show warning and don't attempt to open
 					toast.warning("File is outside the workspace", {
 						description:

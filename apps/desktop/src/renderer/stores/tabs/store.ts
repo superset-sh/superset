@@ -3,6 +3,11 @@ import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import {
+	getPathBaseName,
+	pathsMatch,
+	retargetAbsolutePath,
+} from "shared/absolute-paths";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -668,7 +673,7 @@ export const useTabsStore = create<TabsStore>()(
 							(p) =>
 								p?.type === "file-viewer" &&
 								p.fileViewer?.isPinned &&
-								p.fileViewer.filePath === options.filePath &&
+								pathsMatch(p.fileViewer.filePath, options.filePath) &&
 								p.fileViewer.diffCategory === options.diffCategory &&
 								p.fileViewer.commitHash === options.commitHash,
 						);
@@ -705,7 +710,7 @@ export const useTabsStore = create<TabsStore>()(
 
 						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
-							existingFileViewer.filePath === options.filePath &&
+							pathsMatch(existingFileViewer.filePath, options.filePath) &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
@@ -751,7 +756,7 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName || getPathBaseName(options.filePath);
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,
@@ -776,6 +781,7 @@ export const useTabsStore = create<TabsStore>()(
 										oldPath: options.oldPath,
 										initialLine: options.line,
 										initialColumn: options.column,
+										displayName: options.displayName,
 									},
 								},
 							},
@@ -946,10 +952,17 @@ export const useTabsStore = create<TabsStore>()(
 					const pane = state.panes[paneId];
 					if (!pane || pane.tabId !== tabId) return;
 
+					const alreadyFocused = state.focusedPaneIds[tabId] === paneId;
+
 					set({
 						panes: {
 							...state.panes,
-							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
+							[paneId]: {
+								...pane,
+								status: alreadyFocused
+									? pane.status
+									: acknowledgedStatus(pane.status),
+							},
 						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
@@ -1091,6 +1104,80 @@ export const useTabsStore = create<TabsStore>()(
 									cwdConfirmed: confirmed,
 								},
 							},
+						};
+					});
+				},
+
+				retargetFileViewerPaths: (
+					workspaceId,
+					oldAbsolutePath,
+					newAbsolutePath,
+					isDirectory,
+				) => {
+					set((state) => {
+						const workspaceTabIds = new Set(
+							state.tabs
+								.filter((tab) => tab.workspaceId === workspaceId)
+								.map((tab) => tab.id),
+						);
+						if (workspaceTabIds.size === 0) {
+							return state;
+						}
+
+						let hasChanges = false;
+						const nextPanes = { ...state.panes };
+						const touchedTabIds = new Set<string>();
+
+						for (const [paneId, pane] of Object.entries(state.panes)) {
+							if (
+								pane.type !== "file-viewer" ||
+								!pane.fileViewer ||
+								!workspaceTabIds.has(pane.tabId)
+							) {
+								continue;
+							}
+
+							const nextFilePath = retargetAbsolutePath(
+								pane.fileViewer.filePath,
+								oldAbsolutePath,
+								newAbsolutePath,
+								isDirectory,
+							);
+							if (!nextFilePath) {
+								continue;
+							}
+
+							hasChanges = true;
+							touchedTabIds.add(pane.tabId);
+							nextPanes[paneId] = {
+								...pane,
+								name:
+									pane.fileViewer.displayName ?? getPathBaseName(nextFilePath),
+								fileViewer: {
+									...pane.fileViewer,
+									filePath: nextFilePath,
+								},
+							};
+						}
+
+						if (!hasChanges) {
+							return state;
+						}
+
+						const nextTabs = state.tabs.map((tab) => {
+							if (tab.userTitle?.trim() || !touchedTabIds.has(tab.id)) {
+								return tab;
+							}
+
+							return {
+								...tab,
+								name: deriveTabName(nextPanes, tab.id),
+							};
+						});
+
+						return {
+							panes: nextPanes,
+							tabs: nextTabs,
 						};
 					});
 				},

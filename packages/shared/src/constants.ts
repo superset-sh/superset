@@ -61,4 +61,6 @@ export const FEATURE_FLAGS = {
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
+	/** Gates access to V2 Cloud features (workspace-service, cloud sprites). */
+	V2_CLOUD: "v2-cloud",
 } as const;

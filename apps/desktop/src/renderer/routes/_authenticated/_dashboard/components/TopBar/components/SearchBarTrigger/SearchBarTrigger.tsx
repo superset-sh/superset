@@ -46,7 +46,7 @@ export function SearchBarTrigger({ workspaceName }: SearchBarTriggerProps) {
 		}
 	}, []);
 
-	const placeholder = workspaceName
+	const fullPlaceholder = workspaceName
 		? `Search ${workspaceName}...`
 		: "Search files...";
 
@@ -54,12 +54,15 @@ export function SearchBarTrigger({ workspaceName }: SearchBarTriggerProps) {
 		<button
 			type="button"
 			onClick={handleClick}
-			className="no-drag flex items-center gap-2 h-7 px-3 rounded-md border border-border bg-muted/50 hover:bg-muted text-muted-foreground text-sm transition-colors cursor-pointer min-w-[200px] max-w-[280px]"
+			className="no-drag flex items-center gap-2 h-7 px-3 rounded-md border border-border bg-muted/50 hover:bg-muted text-muted-foreground text-sm transition-colors cursor-pointer min-w-[100px] md:min-w-[200px] max-w-[280px]"
 		>
 			<LuSearch className="size-3.5 shrink-0" />
-			<span className="truncate text-xs">{placeholder}</span>
+			<span className="truncate text-xs hidden md:inline">
+				{fullPlaceholder}
+			</span>
+			<span className="truncate text-xs md:hidden">Search…</span>
 			{!isUnassigned && (
-				<KbdGroup className="ml-auto shrink-0">
+				<KbdGroup className="ml-auto shrink-0 hidden md:flex">
 					{display.map((key) => (
 						<Kbd key={key} className="text-[10px] h-4 min-w-4">
 							{key}

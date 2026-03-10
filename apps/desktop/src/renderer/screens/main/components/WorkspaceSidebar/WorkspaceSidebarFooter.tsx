@@ -12,6 +12,7 @@ import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { STROKE_WIDTH } from "./constants";
+import { WorkspaceServiceStatus } from "./WorkspaceServiceStatus";
 
 interface WorkspaceSidebarFooterProps {
 	isCollapsed?: boolean;
@@ -52,7 +53,8 @@ export function WorkspaceSidebarFooter({
 
 	if (isCollapsed) {
 		return (
-			<div className="border-t border-border p-2 flex justify-center">
+			<div className="border-t border-border p-2 flex flex-col items-center gap-1">
+				<WorkspaceServiceStatus />
 				<DropdownMenu>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
@@ -85,7 +87,8 @@ export function WorkspaceSidebarFooter({
 	}
 
 	return (
-		<div className="border-t border-border p-2">
+		<div className="border-t border-border p-2 flex items-center gap-2">
+			<WorkspaceServiceStatus />
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button

@@ -66,13 +66,16 @@ export interface AddTabWithMultiplePanesOptions {
  * Options for opening a file in a file-viewer pane
  */
 export interface AddFileViewerPaneOptions {
+	/** Canonical absolute filesystem path, or remote URL for non-local content */
 	filePath: string;
+	displayName?: string;
 	/** Override default view mode (raw/diff/rendered) */
 	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;
 	/** File status from git — used to determine default view mode for new files */
 	fileStatus?: FileStatus;
 	commitHash?: string;
+	/** Canonical absolute original path for renamed files */
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
 	line?: number;
@@ -139,6 +142,12 @@ export interface TabsStore extends TabsState {
 		paneId: string,
 		cwd: string | null,
 		confirmed: boolean,
+	) => void;
+	retargetFileViewerPaths: (
+		workspaceId: string,
+		oldAbsolutePath: string,
+		newAbsolutePath: string,
+		isDirectory: boolean,
 	) => void;
 	clearPaneInitialData: (paneId: string) => void;
 	/** Pin a file-viewer pane so it won't be replaced by new file clicks */
