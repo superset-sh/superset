@@ -6,11 +6,11 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Configuration } from "electron-builder";
+import pkg from "./package.json";
 import {
 	packagedAsarUnpackGlobs,
 	packagedNodeModuleCopies,
 } from "./runtime-dependencies";
-import pkg from "./package.json";
 
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
