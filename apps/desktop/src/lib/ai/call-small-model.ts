@@ -13,7 +13,7 @@ import {
 	reportProviderIssue,
 } from "./provider-diagnostics";
 
-export type SmallModelProviderId = ProviderId;
+type SmallModelProviderId = ProviderId;
 
 export interface SmallModelAttempt {
 	providerId: SmallModelProviderId;

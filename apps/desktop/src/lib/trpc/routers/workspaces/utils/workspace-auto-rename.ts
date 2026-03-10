@@ -49,10 +49,3 @@ export function getWorkspaceAutoRenameDecision({
 	return { kind: "rename", name: cleanedGeneratedName };
 }
 
-export function resolveWorkspaceAutoRename({
-	workspace,
-	generatedName,
-}: ResolveWorkspaceAutoRenameParams): string | null {
-	const decision = getWorkspaceAutoRenameDecision({ workspace, generatedName });
-	return decision.kind === "rename" ? decision.name : null;
-}
