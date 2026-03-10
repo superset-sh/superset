@@ -109,7 +109,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -582,6 +582,13 @@
         "@superset/typescript": "workspace:*",
         "bun-types": "^1.3.1",
         "typescript": "^5.9.3",
+      },
+    },
+    "packages/atlas-engine": {
+      "name": "@superbuilder/atlas-engine",
+      "version": "0.0.1",
+      "devDependencies": {
+        "typescript": "^5.8.0",
       },
     },
     "packages/auth": {
@@ -2246,6 +2253,8 @@
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
 
     "@streamdown/mermaid": ["@streamdown/mermaid@1.0.2", "", { "dependencies": { "mermaid": "^11.12.2" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-Fr/4sBWnAeSnxM3PcrV/+DiZe5oPMq9gOkUIAH7ZauJeuwrZ/DVzD4g0zlav6AH0axh2m/sOfrfLtY5aLT7niw=="],
+
+    "@superbuilder/atlas-engine": ["@superbuilder/atlas-engine@workspace:packages/atlas-engine"],
 
     "@superset/admin": ["@superset/admin@workspace:apps/admin"],
 
