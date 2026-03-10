@@ -152,8 +152,9 @@ export function useAnthropicApiKey({
 	return {
 		isAnthropicAuthenticated: anthropicStatus?.authenticated ?? false,
 		isAnthropicApiKeyConfigured:
-			anthropicStatus?.method === "api_key" ||
-			anthropicStatus?.method === "env",
+			anthropicStatus?.source === "managed" &&
+			(anthropicStatus.method === "api_key" ||
+				anthropicStatus.method === "env"),
 		isSavingAnthropicApiKey: isPending,
 		openAnthropicApiKeyDialog,
 		apiKeyDialog,

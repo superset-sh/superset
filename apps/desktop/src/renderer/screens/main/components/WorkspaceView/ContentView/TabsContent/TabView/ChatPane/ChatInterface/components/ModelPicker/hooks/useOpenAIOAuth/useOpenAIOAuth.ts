@@ -20,10 +20,12 @@ interface OpenAIOAuthDialogState {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -52,6 +54,8 @@ export function useOpenAIOAuth({
 		chatServiceTrpc.auth.completeOpenAIOAuth.useMutation();
 	const cancelOpenAIOAuthMutation =
 		chatServiceTrpc.auth.cancelOpenAIOAuth.useMutation();
+	const disconnectOpenAIOAuthMutation =
+		chatServiceTrpc.auth.disconnectOpenAIOAuth.useMutation();
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
@@ -126,6 +130,27 @@ export function useOpenAIOAuth({
 		refetchOpenAIStatus,
 	]);
 
+	const disconnectOpenAIOAuth = useCallback(async () => {
+		setOauthError(null);
+		try {
+			await disconnectOpenAIOAuthMutation.mutateAsync();
+			setHasPendingOAuthSession(false);
+			setOauthDialogOpen(false);
+			setOauthUrl(null);
+			setOauthCode("");
+			onModelSelectorOpenChange(true);
+			await refetchOpenAIStatus();
+		} catch (error) {
+			setOauthError(
+				getErrorMessage(error, "Failed to disconnect OpenAI OAuth"),
+			);
+		}
+	}, [
+		disconnectOpenAIOAuthMutation,
+		onModelSelectorOpenChange,
+		refetchOpenAIStatus,
+	]);
+
 	const onOAuthDialogOpenChange = useCallback(
 		(nextOpen: boolean) => {
 			setOauthDialogOpen(nextOpen);
@@ -166,7 +191,13 @@ export function useOpenAIOAuth({
 			authUrl: oauthUrl,
 			code: oauthCode,
 			errorMessage: oauthError,
-			isPending: completeOpenAIOAuthMutation.isPending,
+			isPending:
+				completeOpenAIOAuthMutation.isPending ||
+				disconnectOpenAIOAuthMutation.isPending,
+			canDisconnect:
+				openAIStatus?.source === "managed" &&
+				openAIStatus.method === "oauth" &&
+				!hasPendingOAuthSession,
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
@@ -177,6 +208,9 @@ export function useOpenAIOAuth({
 			onCopyAuthUrl: () => {
 				void copyOAuthUrl();
 			},
+			onDisconnect: () => {
+				void disconnectOpenAIOAuth();
+			},
 			onSubmit: () => {
 				void completeOpenAIOAuth();
 			},
@@ -185,7 +219,12 @@ export function useOpenAIOAuth({
 			completeOpenAIOAuth,
 			completeOpenAIOAuthMutation.isPending,
 			copyOAuthUrl,
+			disconnectOpenAIOAuth,
+			disconnectOpenAIOAuthMutation.isPending,
+			hasPendingOAuthSession,
 			onOAuthDialogOpenChange,
+			openAIStatus?.method,
+			openAIStatus?.source,
 			openOAuthUrl,
 			oauthCode,
 			oauthDialogOpen,

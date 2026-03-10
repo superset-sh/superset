@@ -22,10 +22,12 @@ interface AnthropicOAuthDialogProps {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -35,10 +37,12 @@ export function AnthropicOAuthDialog({
 	code,
 	errorMessage,
 	isPending,
+	canDisconnect,
 	onOpenChange,
 	onCodeChange,
 	onOpenAuthUrl,
 	onCopyAuthUrl,
+	onDisconnect,
 	onSubmit,
 }: AnthropicOAuthDialogProps) {
 	return (
@@ -114,6 +118,16 @@ export function AnthropicOAuthDialog({
 					>
 						Back
 					</Button>
+					{canDisconnect ? (
+						<Button
+							type="button"
+							variant="outline"
+							onClick={onDisconnect}
+							disabled={isPending}
+						>
+							Disconnect
+						</Button>
+					) : null}
 					<Button
 						type="button"
 						onClick={onSubmit}
