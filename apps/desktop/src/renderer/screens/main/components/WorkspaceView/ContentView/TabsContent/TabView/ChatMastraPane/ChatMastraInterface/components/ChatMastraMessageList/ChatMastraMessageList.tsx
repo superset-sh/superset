@@ -172,7 +172,7 @@ export function ChatMastraMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl py-6 pl-6 pr-16">
+			<ConversationContent className="mx-auto w-full max-w-[680px] py-6">
 				<div ref={messageListRef} className="flex flex-col gap-6">
 					{shouldShowConversationLoading ? (
 						<ConversationLoadingState />

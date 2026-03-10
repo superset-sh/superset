@@ -10,6 +10,7 @@ import { GoArrowUpRight } from "react-icons/go";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -17,6 +18,8 @@ import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
+import { useHybridSearch } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useHybridSearch";
+import { compareTasks } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/utils/sorting";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
@@ -30,7 +33,8 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const createWorkspace = useCreateWorkspace();
-	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
+	const { draft, closeAndResetDraft, runAsyncAction } =
+		useNewWorkspaceModalDraft();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -80,10 +84,24 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 	}, [allWorkspaces, projectId]);
 
 	const tasks = useMemo(() => data ?? [], [data]);
+	const sortedTasks = useMemo(() => [...tasks].sort(compareTasks), [tasks]);
+
+	const debouncedQuery = useDebouncedValue(draft.issuesQuery, 150);
+	const { search } = useHybridSearch(sortedTasks);
+
+	const visibleTasks = useMemo(() => {
+		const query = debouncedQuery.trim();
+		if (!query) {
+			return sortedTasks.slice(0, 100);
+		}
+		return search(query)
+			.slice(0, 100)
+			.map((result) => result.item);
+	}, [debouncedQuery, sortedTasks, search]);
 
 	const slugWidth = useMemo(
-		() => getSlugColumnWidth(tasks.map((t) => t.slug)),
-		[tasks],
+		() => getSlugColumnWidth(visibleTasks.map((t) => t.slug)),
+		[visibleTasks],
 	);
 
 	if (!isLinearConnected) {
@@ -115,10 +133,9 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 	return (
 		<CommandGroup>
 			<CommandEmpty>No issues found.</CommandEmpty>
-			{tasks.slice(0, 30).map((task) => (
+			{visibleTasks.map((task) => (
 				<CommandItem
 					key={task.id}
-					value={`${task.slug} ${task.title}`}
 					onSelect={() => {
 						if (!projectId) {
 							toast.error("Select a project first");

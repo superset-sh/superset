@@ -73,7 +73,7 @@ export function NewWorkspaceButton({
 				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
 			</div>
 			<span className="flex-1 text-left">New Workspace</span>
-			<span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
+			<span className="text-[10px] text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors font-mono tabular-nums shrink-0">
 				{shortcutText}
 			</span>
 		</button>

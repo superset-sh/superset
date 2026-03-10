@@ -28,6 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
+import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
 import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -198,6 +199,7 @@ app.on("before-quit", async (event) => {
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	await outlit.shutdown();
+	getHostServiceManager().stopAll();
 	disposeTray();
 	app.exit(0);
 });

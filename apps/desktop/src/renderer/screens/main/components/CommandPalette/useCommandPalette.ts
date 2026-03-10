@@ -15,13 +15,11 @@ const SEARCH_LIMIT = 50;
 
 interface UseCommandPaletteParams {
 	workspaceId: string;
-	worktreePath: string | undefined;
 	navigate: UseNavigateResult<string>;
 }
 
 export function useCommandPalette({
 	workspaceId,
-	worktreePath,
 	navigate,
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);
@@ -98,7 +96,7 @@ export function useCommandPalette({
 
 	// Single-workspace search (existing behavior)
 	const singleSearch = useFileSearch({
-		worktreePath: open && scope === "workspace" ? worktreePath : undefined,
+		workspaceId: open && scope === "workspace" ? workspaceId : undefined,
 		searchTerm: query,
 		includePattern,
 		excludePattern,
@@ -122,7 +120,6 @@ export function useCommandPalette({
 				roots.length > 0 &&
 				debouncedQuery.length > 0,
 			staleTime: 1000,
-			placeholderData: (prev) => prev ?? [],
 		},
 	);
 

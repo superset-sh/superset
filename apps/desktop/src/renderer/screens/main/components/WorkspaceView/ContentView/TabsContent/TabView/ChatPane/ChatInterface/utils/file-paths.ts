@@ -45,9 +45,8 @@ export function normalizeWorkspaceFilePath({
 		: "";
 
 	if (normalizedRoot) {
-		if (normalizedPath === normalizedRoot) return null;
-		if (normalizedPath.startsWith(`${normalizedRoot}/`)) {
-			normalizedPath = normalizedPath.slice(normalizedRoot.length + 1);
+		if (!normalizedPath.startsWith("/")) {
+			normalizedPath = `${normalizedRoot}/${normalizedPath.replace(/^\/+/, "")}`;
 		}
 	}
 
@@ -55,8 +54,25 @@ export function normalizeWorkspaceFilePath({
 		normalizedPath = normalizedPath.slice(2);
 	}
 
-	if (!normalizedPath || normalizedPath === ".") return null;
-	if (normalizedPath.startsWith("/")) return null;
+	while (normalizedPath.includes("/./")) {
+		normalizedPath = normalizedPath.replace("/./", "/");
+	}
+
+	if (normalizedPath.endsWith("/.")) {
+		normalizedPath = normalizedPath.slice(0, -2);
+	}
+
+	if (
+		!normalizedPath ||
+		normalizedPath === "." ||
+		normalizedPath === normalizedRoot
+	) {
+		return null;
+	}
+
+	if (normalizedRoot && !normalizedPath.startsWith(`${normalizedRoot}/`)) {
+		return null;
+	}
 
 	return normalizedPath;
 }
