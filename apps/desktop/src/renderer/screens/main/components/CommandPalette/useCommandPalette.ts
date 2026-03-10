@@ -15,13 +15,11 @@ const SEARCH_LIMIT = 50;
 
 interface UseCommandPaletteParams {
 	workspaceId: string;
-	worktreePath: string | undefined;
 	navigate: UseNavigateResult<string>;
 }
 
 export function useCommandPalette({
 	workspaceId,
-	worktreePath,
 	navigate,
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);

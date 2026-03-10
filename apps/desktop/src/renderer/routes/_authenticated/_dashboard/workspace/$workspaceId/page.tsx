@@ -391,7 +391,6 @@ function WorkspacePage() {
 
 	const commandPalette = useCommandPalette({
 		workspaceId,
-		worktreePath: workspace?.worktreePath,
 		navigate,
 	});
 	const keywordSearch = useKeywordSearch({
