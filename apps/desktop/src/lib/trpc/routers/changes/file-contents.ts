@@ -6,12 +6,10 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	readRegisteredWorktreeFileBuffer,
-	readRegisteredWorktreeTextFile,
-	statRegisteredWorktreeFile,
+	guardedWriteRegisteredWorktreeTextFile,
+	readRegisteredWorktreeFileBufferUpTo,
 	toRegisteredWorktreeRelativePath,
 	type WorkspaceFsPathError,
-	writeRegisteredWorktreeTextFile,
 } from "../workspace-fs-service";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
@@ -133,47 +131,17 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<SaveFileResult> => {
-				if (input.expectedContent !== undefined) {
-					try {
-						const currentContent = await readRegisteredWorktreeTextFile({
-							worktreePath: input.worktreePath,
-							absolutePath: input.absolutePath,
-						});
-
-						if (currentContent !== input.expectedContent) {
-							return {
-								status: "conflict",
-								currentContent,
-							};
-						}
-					} catch (error) {
-						if (
-							error instanceof Error &&
-							"code" in error &&
-							error.code === "ENOENT"
-						) {
-							return {
-								status: "conflict",
-								currentContent: null,
-							};
-						}
-
-						if (isWorkspaceFsPathError(error)) {
-							throw error;
-						}
-
-						return {
-							status: "conflict",
-							currentContent: null,
-						};
-					}
-				}
-
-				await writeRegisteredWorktreeTextFile({
+				const result = await guardedWriteRegisteredWorktreeTextFile({
 					worktreePath: input.worktreePath,
 					absolutePath: input.absolutePath,
 					content: input.content,
+					expectedContent: input.expectedContent,
 				});
+
+				if (result.status === "conflict") {
+					return result;
+				}
+
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { status: "saved" };
 			}),
@@ -191,18 +159,17 @@ export const createFileContentsRouter = () => {
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const stats = await statRegisteredWorktreeFile({
+					const result = await readRegisteredWorktreeFileBufferUpTo({
 						worktreePath: input.worktreePath,
 						absolutePath: input.absolutePath,
+						maxBytes: MAX_FILE_SIZE,
 					});
-					if (stats.size > MAX_FILE_SIZE) {
+
+					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await readRegisteredWorktreeFileBuffer({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-					});
+					const buffer = result.buffer;
 
 					if (isBinaryContent(buffer)) {
 						return { ok: false, reason: "binary" };
@@ -243,18 +210,17 @@ export const createFileContentsRouter = () => {
 				}
 
 				try {
-					const stats = await statRegisteredWorktreeFile({
+					const result = await readRegisteredWorktreeFileBufferUpTo({
 						worktreePath: input.worktreePath,
 						absolutePath: input.absolutePath,
+						maxBytes: MAX_IMAGE_SIZE,
 					});
-					if (stats.size > MAX_IMAGE_SIZE) {
+
+					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await readRegisteredWorktreeFileBuffer({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-					});
+					const buffer = result.buffer;
 
 					const base64 = buffer.toString("base64");
 					const dataUrl = `data:${mimeType};base64,${base64}`;
@@ -392,17 +358,16 @@ async function getUnstagedVersions(
 	let modified = "";
 	try {
 		const absolutePath = path.resolve(worktreePath, filePath);
-		const stats = await statRegisteredWorktreeFile({
+		const result = await readRegisteredWorktreeFileBufferUpTo({
 			worktreePath,
 			absolutePath,
+			maxBytes: MAX_FILE_SIZE,
 		});
-		if (stats.size <= MAX_FILE_SIZE) {
-			modified = await readRegisteredWorktreeTextFile({
-				worktreePath,
-				absolutePath,
-			});
-		} else {
+
+		if (result.exceededLimit) {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+		} else {
+			modified = result.buffer.toString("utf-8");
 		}
 	} catch {
 		// File doesn't exist or validation failed - that's ok for diff display

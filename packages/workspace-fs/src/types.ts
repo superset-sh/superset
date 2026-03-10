@@ -26,6 +26,15 @@ export interface WorkspaceFsStat {
 	accessedAt: string;
 }
 
+export interface WorkspaceFsLimitedReadResult {
+	buffer: Uint8Array;
+	exceededLimit: boolean;
+}
+
+export type WorkspaceFsGuardedWriteResult =
+	| { status: "saved" }
+	| { status: "conflict"; currentContent: string | null };
+
 export interface WorkspaceFsPathOperationError {
 	absolutePath: string;
 	error: string;

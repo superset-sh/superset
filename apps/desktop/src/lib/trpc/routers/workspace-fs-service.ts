@@ -3,6 +3,7 @@ import type { WorkspaceFsServiceInfo } from "@superset/workspace-fs/core";
 import {
 	createWorkspaceFsHostService,
 	toFileSystemChangeEvent,
+	type WorkspaceFsGuardedWriteResult,
 	type WorkspaceFsPathError,
 	WorkspaceFsWatcherManager,
 } from "@superset/workspace-fs/host";
@@ -144,6 +145,20 @@ export async function writeRegisteredWorktreeTextFile(input: {
 	});
 }
 
+export async function guardedWriteRegisteredWorktreeTextFile(input: {
+	worktreePath: string;
+	absolutePath: string;
+	content: string;
+	expectedContent?: string;
+}): Promise<WorkspaceFsGuardedWriteResult> {
+	return await registeredWorktreeFsService.guardedWriteTextFile({
+		workspaceId: input.worktreePath,
+		absolutePath: input.absolutePath,
+		content: input.content,
+		expectedContent: input.expectedContent,
+	});
+}
+
 export async function readRegisteredWorktreeFileBuffer(input: {
 	worktreePath: string;
 	absolutePath: string;
@@ -154,6 +169,23 @@ export async function readRegisteredWorktreeFileBuffer(input: {
 			absolutePath: input.absolutePath,
 		}),
 	);
+}
+
+export async function readRegisteredWorktreeFileBufferUpTo(input: {
+	worktreePath: string;
+	absolutePath: string;
+	maxBytes: number;
+}): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
+	const result = await registeredWorktreeFsService.readFileBufferUpTo({
+		workspaceId: input.worktreePath,
+		absolutePath: input.absolutePath,
+		maxBytes: input.maxBytes,
+	});
+
+	return {
+		buffer: Buffer.from(result.buffer),
+		exceededLimit: result.exceededLimit,
+	};
 }
 
 export async function statRegisteredWorktreeFile(input: {

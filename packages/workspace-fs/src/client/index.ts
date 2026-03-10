@@ -5,6 +5,7 @@ export type {
 	WorkspaceFsDeletePathsInput,
 	WorkspaceFsDirectoryQuery,
 	WorkspaceFsHostKind,
+	WorkspaceFsLimitedReadInput,
 	WorkspaceFsLocation,
 	WorkspaceFsMoveCopyInput,
 	WorkspaceFsMutationService,
@@ -54,6 +55,9 @@ export function createWorkspaceFsClient(
 		async readFileBuffer(input) {
 			return await transport.request("readFileBuffer", input);
 		},
+		async readFileBufferUpTo(input) {
+			return await transport.request("readFileBufferUpTo", input);
+		},
 		async stat(input) {
 			return await transport.request("stat", input);
 		},
@@ -62,6 +66,9 @@ export function createWorkspaceFsClient(
 		},
 		async writeTextFile(input) {
 			await transport.request("writeTextFile", input);
+		},
+		async guardedWriteTextFile(input) {
+			return await transport.request("guardedWriteTextFile", input);
 		},
 		async createFile(input) {
 			return await transport.request("createFile", input);

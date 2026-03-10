@@ -3,7 +3,9 @@ import type {
 	MoveCopyResult,
 	WorkspaceFsEntry,
 	WorkspaceFsExistsResult,
+	WorkspaceFsGuardedWriteResult,
 	WorkspaceFsKeywordMatch,
+	WorkspaceFsLimitedReadResult,
 	WorkspaceFsSearchResult,
 	WorkspaceFsStat,
 	WorkspaceFsWatchEvent,
@@ -39,6 +41,10 @@ export interface WorkspaceFsDirectoryQuery extends WorkspaceFsLocation {}
 export interface WorkspaceFsWriteFileInput extends WorkspaceFsLocation {
 	content: string;
 	expectedContent?: string;
+}
+
+export interface WorkspaceFsLimitedReadInput extends WorkspaceFsLocation {
+	maxBytes: number;
 }
 
 export interface WorkspaceFsCreateFileInput extends WorkspaceFsLocation {
@@ -84,12 +90,18 @@ export interface WorkspaceFsQueryService {
 	listDirectory(input: WorkspaceFsDirectoryQuery): Promise<WorkspaceFsEntry[]>;
 	readTextFile(input: WorkspaceFsLocation): Promise<string>;
 	readFileBuffer(input: WorkspaceFsLocation): Promise<Uint8Array>;
+	readFileBufferUpTo(
+		input: WorkspaceFsLimitedReadInput,
+	): Promise<WorkspaceFsLimitedReadResult>;
 	stat(input: WorkspaceFsLocation): Promise<WorkspaceFsStat>;
 	exists(input: WorkspaceFsLocation): Promise<WorkspaceFsExistsResult>;
 }
 
 export interface WorkspaceFsMutationService {
 	writeTextFile(input: WorkspaceFsWriteFileInput): Promise<void>;
+	guardedWriteTextFile(
+		input: WorkspaceFsWriteFileInput,
+	): Promise<WorkspaceFsGuardedWriteResult>;
 	createFile(
 		input: WorkspaceFsCreateFileInput,
 	): Promise<{ absolutePath: string }>;
@@ -143,6 +155,10 @@ export interface WorkspaceFsRequestMap {
 		input: WorkspaceFsLocation;
 		output: Uint8Array;
 	};
+	readFileBufferUpTo: {
+		input: WorkspaceFsLimitedReadInput;
+		output: WorkspaceFsLimitedReadResult;
+	};
 	stat: {
 		input: WorkspaceFsLocation;
 		output: WorkspaceFsStat;
@@ -154,6 +170,10 @@ export interface WorkspaceFsRequestMap {
 	writeTextFile: {
 		input: WorkspaceFsWriteFileInput;
 		output: undefined;
+	};
+	guardedWriteTextFile: {
+		input: WorkspaceFsWriteFileInput;
+		output: WorkspaceFsGuardedWriteResult;
 	};
 	createFile: {
 		input: WorkspaceFsCreateFileInput;

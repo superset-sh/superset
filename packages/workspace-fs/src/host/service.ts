@@ -11,10 +11,12 @@ import {
 	createDirectoryAtPath,
 	createFileAtPath,
 	deletePaths,
+	guardedWriteTextFile,
 	listDirectory,
 	movePaths,
 	pathExists,
 	readFileBuffer,
+	readFileBufferUpTo,
 	readTextFile,
 	renamePath,
 	statFile,
@@ -220,6 +222,14 @@ export function createWorkspaceFsHostService(
 			});
 		},
 
+		async readFileBufferUpTo(input) {
+			return await readFileBufferUpTo({
+				...withRootPath(input),
+				absolutePath: input.absolutePath,
+				maxBytes: input.maxBytes,
+			});
+		},
+
 		async stat(input) {
 			const stats = await statFile({
 				...withRootPath(input),
@@ -240,6 +250,15 @@ export function createWorkspaceFsHostService(
 				...withRootPath(input),
 				absolutePath: input.absolutePath,
 				content: input.content,
+			});
+		},
+
+		async guardedWriteTextFile(input) {
+			return await guardedWriteTextFile({
+				...withRootPath(input),
+				absolutePath: input.absolutePath,
+				content: input.content,
+				expectedContent: input.expectedContent,
 			});
 		},
 

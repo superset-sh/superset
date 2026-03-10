@@ -1,5 +1,7 @@
+import { createHash, randomUUID } from "node:crypto";
 import type { Stats } from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import {
 	isPathWithinRoot,
@@ -10,6 +12,8 @@ import type {
 	DeletePathsResult,
 	MoveCopyResult,
 	WorkspaceFsEntry,
+	WorkspaceFsGuardedWriteResult,
+	WorkspaceFsLimitedReadResult,
 	WorkspaceFsPathOperationError,
 	WorkspaceFsStat,
 } from "./types";
@@ -30,6 +34,9 @@ export class WorkspaceFsPathError extends Error {
 }
 
 const MAX_COPY_NAME_ATTEMPTS = 1000;
+const PATH_LOCK_STALE_MS = 30_000;
+const PATH_LOCK_RETRY_MS = 50;
+const PATH_LOCK_TIMEOUT_MS = 5_000;
 
 interface EnsureWithinRootOptions {
 	rootPath: string;
@@ -50,6 +57,75 @@ function ensureWithinRoot({
 	}
 
 	return normalizedAbsolutePath;
+}
+
+function getPathLockDirectory(absolutePath: string): string {
+	return path.join(
+		os.tmpdir(),
+		"superset-workspace-fs-locks",
+		createHash("sha256")
+			.update(normalizeAbsolutePath(absolutePath))
+			.digest("hex"),
+	);
+}
+
+async function sleep(delayMs: number): Promise<void> {
+	await new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+async function withPathLock<T>(
+	absolutePath: string,
+	callback: () => Promise<T>,
+): Promise<T> {
+	const lockDirectory = getPathLockDirectory(absolutePath);
+	await fs.mkdir(path.dirname(lockDirectory), { recursive: true });
+
+	const deadline = Date.now() + PATH_LOCK_TIMEOUT_MS;
+	while (true) {
+		try {
+			await fs.mkdir(lockDirectory);
+			break;
+		} catch (error) {
+			if (
+				!(error instanceof Error) ||
+				!("code" in error) ||
+				error.code !== "EEXIST"
+			) {
+				throw error;
+			}
+
+			try {
+				const stats = await fs.stat(lockDirectory);
+				if (Date.now() - stats.mtimeMs > PATH_LOCK_STALE_MS) {
+					await fs.rm(lockDirectory, { recursive: true, force: true });
+					continue;
+				}
+			} catch (statError) {
+				if (
+					statError instanceof Error &&
+					"code" in statError &&
+					statError.code === "ENOENT"
+				) {
+					continue;
+				}
+				throw statError;
+			}
+
+			if (Date.now() >= deadline) {
+				throw new Error(
+					`Timed out waiting for filesystem path lock: ${absolutePath}`,
+				);
+			}
+
+			await sleep(PATH_LOCK_RETRY_MS);
+		}
+	}
+
+	try {
+		return await callback();
+	} finally {
+		await fs.rm(lockDirectory, { recursive: true, force: true });
+	}
 }
 
 async function assertParentWithinRoot(
@@ -290,6 +366,31 @@ export async function readFileBuffer({
 	return fs.readFile(targetPath);
 }
 
+export async function readFileBufferUpTo({
+	rootPath,
+	absolutePath,
+	maxBytes,
+}: {
+	rootPath: string;
+	absolutePath: string;
+	maxBytes: number;
+}): Promise<WorkspaceFsLimitedReadResult> {
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	await assertRealpathWithinRoot(rootPath, targetPath);
+
+	const fileHandle = await fs.open(targetPath, "r");
+	try {
+		const buffer = Buffer.allocUnsafe(maxBytes + 1);
+		const { bytesRead } = await fileHandle.read(buffer, 0, maxBytes + 1, 0);
+		return {
+			buffer: buffer.subarray(0, Math.min(bytesRead, maxBytes)),
+			exceededLimit: bytesRead > maxBytes,
+		};
+	} finally {
+		await fileHandle.close();
+	}
+}
+
 export async function writeTextFile({
 	rootPath,
 	absolutePath,
@@ -302,6 +403,95 @@ export async function writeTextFile({
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	await assertRealpathWithinRoot(rootPath, targetPath);
 	await fs.writeFile(targetPath, content, "utf-8");
+}
+
+async function writeTextFileAtomically({
+	rootPath,
+	absolutePath,
+	content,
+}: {
+	rootPath: string;
+	absolutePath: string;
+	content: string;
+}): Promise<void> {
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	const tempPath = `${targetPath}.superset-tmp-${randomUUID()}`;
+	await assertParentWithinRoot(rootPath, tempPath);
+
+	let sourceMode: number | undefined;
+	try {
+		const currentStats = await fs.stat(targetPath);
+		sourceMode = currentStats.mode;
+	} catch (error) {
+		if (
+			!(error instanceof Error) ||
+			!("code" in error) ||
+			error.code !== "ENOENT"
+		) {
+			throw error;
+		}
+	}
+
+	try {
+		await fs.writeFile(tempPath, content, "utf-8");
+		if (sourceMode !== undefined) {
+			await fs.chmod(tempPath, sourceMode);
+		}
+		await fs.rename(tempPath, targetPath);
+	} finally {
+		await fs.rm(tempPath, { force: true });
+	}
+}
+
+export async function guardedWriteTextFile({
+	rootPath,
+	absolutePath,
+	content,
+	expectedContent,
+}: {
+	rootPath: string;
+	absolutePath: string;
+	content: string;
+	expectedContent?: string;
+}): Promise<WorkspaceFsGuardedWriteResult> {
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+
+	return await withPathLock(targetPath, async () => {
+		if (expectedContent !== undefined) {
+			try {
+				const currentContent = await readTextFile({
+					rootPath,
+					absolutePath: targetPath,
+				});
+				if (currentContent !== expectedContent) {
+					return {
+						status: "conflict",
+						currentContent,
+					};
+				}
+			} catch (error) {
+				if (
+					error instanceof Error &&
+					"code" in error &&
+					error.code === "ENOENT"
+				) {
+					return {
+						status: "conflict",
+						currentContent: null,
+					};
+				}
+				throw error;
+			}
+		}
+
+		await writeTextFileAtomically({
+			rootPath,
+			absolutePath: targetPath,
+			content,
+		});
+
+		return { status: "saved" };
+	});
 }
 
 export async function deletePath({
