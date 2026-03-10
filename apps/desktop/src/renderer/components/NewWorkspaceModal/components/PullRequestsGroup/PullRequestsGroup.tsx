@@ -4,6 +4,7 @@ import { toast } from "@superset/ui/sonner";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
+import Fuse from "fuse.js";
 import { useMemo } from "react";
 import {
 	GoArrowUpRight,
@@ -12,6 +13,7 @@ import {
 } from "react-icons/go";
 import { SiGithub } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -93,10 +95,38 @@ export function PullRequestsGroup({
 		return map;
 	}, [allWorkspaces, projectId]);
 
-	const openPrs = useMemo(
-		() => (pullRequests ?? []).filter((pr) => pr.state === "open").slice(0, 30),
+	const allOpenPrs = useMemo(
+		() => (pullRequests ?? []).filter((pr) => pr.state === "open"),
 		[pullRequests],
 	);
+
+	const debouncedQuery = useDebouncedValue(draft.pullRequestsQuery, 150);
+
+	const prFuse = useMemo(
+		() =>
+			new Fuse(allOpenPrs, {
+				keys: [
+					{ name: "title", weight: 2 },
+					{ name: "authorLogin", weight: 1 },
+					{ name: "prNumber", weight: 1 },
+				],
+				threshold: 0.3,
+				includeScore: true,
+				ignoreLocation: true,
+			}),
+		[allOpenPrs],
+	);
+
+	const openPrs = useMemo(() => {
+		const query = debouncedQuery.trim();
+		if (!query) {
+			return allOpenPrs.slice(0, 100);
+		}
+		return prFuse
+			.search(query)
+			.slice(0, 100)
+			.map((result) => result.item);
+	}, [debouncedQuery, allOpenPrs, prFuse]);
 
 	const urlItem =
 		parsedPrUrl && projectId ? (
@@ -190,7 +220,6 @@ export function PullRequestsGroup({
 			{openPrs.map((pr) => (
 				<CommandItem
 					key={pr.id}
-					value={`#${pr.prNumber} ${pr.title} ${pr.authorLogin} ${pr.url}`}
 					onSelect={() => {
 						if (!projectId) {
 							toast.error("Select a project first");
