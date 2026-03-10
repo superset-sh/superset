@@ -2,11 +2,14 @@ export interface SidebarWorkspace {
 	id: string;
 	projectId: string;
 	worktreePath: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	branch: string;
 	name: string;
 	tabOrder: number;
 	isUnread: boolean;
+	sshHostId?: string | null;
+	remotePath?: string | null;
+	sshHostLabel?: string | null;
 }
 
 export interface DragItem {

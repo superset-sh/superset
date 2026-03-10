@@ -55,6 +55,9 @@ export const SETTING_ITEM_ID = {
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
 
+	// SSH Hosts
+	SSH_HOSTS_LIST: "ssh-hosts-list",
+
 	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
@@ -750,6 +753,14 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cloud",
 			"sandbox",
 		],
+	},
+	// SSH Hosts
+	{
+		id: SETTING_ITEM_ID.SSH_HOSTS_LIST,
+		section: "ssh-hosts",
+		title: "SSH Hosts",
+		description: "Manage SSH remote hosts for remote workspaces",
+		keywords: ["ssh", "remote", "host", "server", "connection"],
 	},
 	// API Keys
 	{

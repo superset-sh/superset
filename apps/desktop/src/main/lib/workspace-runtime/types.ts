@@ -224,4 +224,17 @@ export interface WorkspaceRuntimeRegistry {
 	 * Used by settings screens and endpoints that don't have workspace context.
 	 */
 	getDefault(): WorkspaceRuntime;
+
+	/**
+	 * Register a workspace as remote, associating it with an SSH host.
+	 * Call this when a remote workspace is created so that
+	 * getForWorkspaceId() returns the correct SSH runtime.
+	 */
+	registerRemoteWorkspace(workspaceId: string, hostId: string): void;
+
+	/**
+	 * Unregister a remote workspace mapping.
+	 * Call this when a remote workspace is deleted.
+	 */
+	unregisterRemoteWorkspace(workspaceId: string): void;
 }

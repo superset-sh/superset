@@ -1,5 +1,8 @@
 import path from "node:path";
-import type { WorkspaceFsServiceInfo } from "@superset/workspace-fs/core";
+import type {
+	WorkspaceFsService,
+	WorkspaceFsServiceInfo,
+} from "@superset/workspace-fs/core";
 import {
 	createWorkspaceFsHostService,
 	toFileSystemChangeEvent,
@@ -7,7 +10,9 @@ import {
 	type WorkspaceFsPathError,
 	WorkspaceFsWatcherManager,
 } from "@superset/workspace-fs/host";
+import { createSshWorkspaceFsService } from "@superset/workspace-fs/ssh";
 import { shell } from "electron";
+import { getSshConnectionManager } from "main/lib/ssh";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
@@ -98,6 +103,52 @@ export const registeredWorktreeFsService = createWorkspaceFsHostService({
 	resolveRootPath: resolveRegisteredWorktreeRootPath,
 	...sharedHostServiceOptions,
 });
+
+/**
+ * Returns the appropriate WorkspaceFsService for the given workspaceId.
+ * Remote workspaces (type === "remote" with sshHostId) use the SSH service;
+ * all others use the local host service.
+ */
+function getWorkspaceFsService(workspaceId: string): WorkspaceFsService {
+	const workspace = getWorkspace(workspaceId);
+	if (workspace?.type === "remote" && workspace.sshHostId) {
+		const sshHostId = workspace.sshHostId;
+		const remotePath = workspace.remotePath ?? "";
+		const sshManager = getSshConnectionManager();
+		return createSshWorkspaceFsService({
+			// Cast: ssh2 SFTPWrapper satisfies SftpWrapper structurally; minor err type difference (undefined vs null)
+			getSftp: () => sshManager.getSftpClient(sshHostId) as never,
+			execCommand: async (command) => {
+				const client = sshManager.getConnection(sshHostId);
+				if (!client) {
+					throw new Error(`SSH host ${sshHostId} is not connected`);
+				}
+				return new Promise((resolve, reject) => {
+					// ssh2 client.exec() opens a non-interactive exec channel (not a shell)
+					client.exec(command, (err, channel) => {
+						if (err) {
+							reject(err);
+							return;
+						}
+						let stdout = "";
+						let stderr = "";
+						channel.on("data", (data: Buffer) => {
+							stdout += data.toString();
+						});
+						channel.stderr.on("data", (data: Buffer) => {
+							stderr += data.toString();
+						});
+						channel.on("close", (exitCode: number | null) => {
+							resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
+						});
+					});
+				});
+			},
+			resolveRootPath: () => remotePath,
+		});
+	}
+	return workspaceFsService;
+}
 
 export function toRegisteredWorktreeRelativePath(
 	worktreePath: string,
@@ -222,7 +273,9 @@ export async function readWorkspaceDirectory(input: {
 	workspaceId: string;
 	absolutePath: string;
 }): Promise<DirectoryEntry[]> {
-	const entries = await workspaceFsService.listDirectory(input);
+	const entries = await getWorkspaceFsService(input.workspaceId).listDirectory(
+		input,
+	);
 	return entries.map((entry) => ({
 		id: entry.id,
 		name: entry.name,
@@ -242,7 +295,7 @@ export async function createWorkspaceFile(input: {
 	name: string;
 	content?: string;
 }): Promise<{ path: string }> {
-	const result = await workspaceFsService.createFile({
+	const result = await getWorkspaceFsService(input.workspaceId).createFile({
 		workspaceId: input.workspaceId,
 		absolutePath: path.join(input.parentAbsolutePath, input.name),
 		content: input.content,
@@ -255,10 +308,12 @@ export async function createWorkspaceDirectory(input: {
 	parentAbsolutePath: string;
 	name: string;
 }): Promise<{ path: string }> {
-	const result = await workspaceFsService.createDirectory({
-		workspaceId: input.workspaceId,
-		absolutePath: path.join(input.parentAbsolutePath, input.name),
-	});
+	const result = await getWorkspaceFsService(input.workspaceId).createDirectory(
+		{
+			workspaceId: input.workspaceId,
+			absolutePath: path.join(input.parentAbsolutePath, input.name),
+		},
+	);
 	return { path: result.absolutePath };
 }
 
@@ -267,7 +322,7 @@ export async function renameWorkspacePath(input: {
 	absolutePath: string;
 	newName: string;
 }): Promise<{ oldPath: string; newPath: string }> {
-	const result = await workspaceFsService.rename(input);
+	const result = await getWorkspaceFsService(input.workspaceId).rename(input);
 	return {
 		oldPath: result.oldAbsolutePath,
 		newPath: result.newAbsolutePath,
@@ -282,7 +337,9 @@ export async function deleteWorkspacePaths(input: {
 	deleted: string[];
 	errors: Array<{ path: string; error: string }>;
 }> {
-	const result = await workspaceFsService.deletePaths(input);
+	const result = await getWorkspaceFsService(input.workspaceId).deletePaths(
+		input,
+	);
 	return {
 		deleted: result.deleted,
 		errors: result.errors.map((error) => ({
@@ -300,7 +357,7 @@ export async function moveWorkspacePaths(input: {
 	moved: Array<{ from: string; to: string }>;
 	errors: Array<{ path: string; error: string }>;
 }> {
-	const result = await workspaceFsService.movePaths({
+	const result = await getWorkspaceFsService(input.workspaceId).movePaths({
 		workspaceId: input.workspaceId,
 		absolutePaths: input.sourceAbsolutePaths,
 		destinationAbsolutePath: input.destinationAbsolutePath,
@@ -322,7 +379,7 @@ export async function copyWorkspacePaths(input: {
 	copied: Array<{ from: string; to: string }>;
 	errors: Array<{ path: string; error: string }>;
 }> {
-	const result = await workspaceFsService.copyPaths({
+	const result = await getWorkspaceFsService(input.workspaceId).copyPaths({
 		workspaceId: input.workspaceId,
 		absolutePaths: input.sourceAbsolutePaths,
 		destinationAbsolutePath: input.destinationAbsolutePath,
@@ -340,7 +397,7 @@ export async function workspacePathExists(input: {
 	workspaceId: string;
 	absolutePath: string;
 }) {
-	return await workspaceFsService.exists(input);
+	return await getWorkspaceFsService(input.workspaceId).exists(input);
 }
 
 export async function statWorkspacePath(input: {
@@ -348,7 +405,7 @@ export async function statWorkspacePath(input: {
 	absolutePath: string;
 }) {
 	try {
-		return await workspaceFsService.stat(input);
+		return await getWorkspaceFsService(input.workspaceId).stat(input);
 	} catch (error) {
 		console.warn("[workspace-fs/statWorkspacePath] Failed:", {
 			workspaceId: input.workspaceId,
@@ -363,7 +420,7 @@ export async function* watchWorkspaceFileSystemEvents(
 	workspaceId: string,
 ): AsyncIterable<FileSystemChangeEvent> {
 	const rootPath = resolveWorkspaceRootPath(workspaceId);
-	for await (const event of workspaceFsService.watchWorkspace({
+	for await (const event of getWorkspaceFsService(workspaceId).watchWorkspace({
 		workspaceId,
 	})) {
 		yield toFileSystemChangeEvent(event, rootPath);
@@ -377,7 +434,7 @@ export async function searchWorkspaceFiles(input: {
 	excludePattern?: string;
 	limit?: number;
 }): Promise<WorkspaceFileSearchResult[]> {
-	const results = await workspaceFsService.searchFiles({
+	const results = await getWorkspaceFsService(input.workspaceId).searchFiles({
 		workspaceId: input.workspaceId,
 		query: input.query,
 		includeHidden: true,
@@ -453,7 +510,7 @@ export async function searchWorkspaceKeyword(input: {
 	excludePattern?: string;
 	limit?: number;
 }): Promise<WorkspaceKeywordSearchMatch[]> {
-	const results = await workspaceFsService.searchKeyword({
+	const results = await getWorkspaceFsService(input.workspaceId).searchKeyword({
 		workspaceId: input.workspaceId,
 		query: input.query,
 		includeHidden: true,

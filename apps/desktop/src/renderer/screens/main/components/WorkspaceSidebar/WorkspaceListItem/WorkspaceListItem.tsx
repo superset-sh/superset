@@ -24,6 +24,7 @@ import {
 } from "./constants";
 import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
+import { WorkspaceConnectionBadge } from "./WorkspaceConnectionBadge";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
@@ -35,7 +36,7 @@ interface WorkspaceListItemProps {
 	worktreePath: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
@@ -43,6 +44,9 @@ interface WorkspaceListItemProps {
 	sectionId?: string | null;
 	sections?: { id: string; name: string }[];
 	orderedWorkspaceIds?: string[];
+	sshHostId?: string;
+	remotePath?: string;
+	sshHostLabel?: string;
 }
 
 export function WorkspaceListItem({
@@ -59,8 +63,12 @@ export function WorkspaceListItem({
 	sectionId = null,
 	sections = [],
 	orderedWorkspaceIds = [],
+	sshHostId,
+	remotePath,
+	sshHostLabel,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const isRemoteWorkspace = type === "remote";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const [hasHovered, setHasHovered] = useState(false);
@@ -224,7 +232,8 @@ export function WorkspaceListItem({
 			? { additions: pr.additions, deletions: pr.deletions }
 			: null);
 
-	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
+	const showBranchSubtitle =
+		isRemoteWorkspace || isBranchWorkspace || (!!name && name !== branch);
 
 	if (isCollapsed) {
 		return (
@@ -296,6 +305,7 @@ export function WorkspaceListItem({
 					>
 						<WorkspaceIcon
 							isBranchWorkspace={isBranchWorkspace}
+							isRemoteWorkspace={isRemoteWorkspace}
 							isActive={isActive}
 							isUnread={isUnread}
 							workspaceStatus={workspaceStatus}
@@ -304,7 +314,14 @@ export function WorkspaceListItem({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
+					{isRemoteWorkspace ? (
+						<>
+							<p className="text-xs font-medium">Remote workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Connected via SSH to a remote host
+							</p>
+						</>
+					) : isBranchWorkspace ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
 							<p className="text-xs text-muted-foreground">
@@ -402,10 +419,18 @@ export function WorkspaceListItem({
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
-										{branch}
+										{isRemoteWorkspace
+											? (sshHostLabel ?? remotePath ?? branch)
+											: branch}
 									</span>
 								)}
-								{pr && (
+								{isRemoteWorkspace && sshHostId && (
+									<WorkspaceConnectionBadge
+										sshHostId={sshHostId}
+										className="ml-auto"
+									/>
+								)}
+								{pr && !isRemoteWorkspace && (
 									<WorkspaceStatusBadge
 										state={pr.state}
 										prNumber={pr.number}

@@ -32,6 +32,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"devices",
 	"apikeys",
 	"permissions",
+	"ssh-hosts",
 ];
 
 // Map route paths to section names
@@ -46,6 +47,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/integrations")) return "integrations";
 	if (pathname.includes("/settings/permissions")) return "permissions";
+	if (pathname.includes("/settings/ssh-hosts")) return "ssh-hosts";
 	if (pathname.includes("/settings/project")) return "project";
 	return null;
 }
@@ -73,6 +75,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/integrations";
 		case "permissions":
 			return "/settings/permissions";
+		case "ssh-hosts":
+			return "/settings/ssh-hosts";
 		default:
 			return "/settings/account";
 	}

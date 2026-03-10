@@ -13,7 +13,7 @@ import {
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
-import { LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuGitBranch, LuKeyboard, LuServer } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
@@ -34,7 +34,8 @@ type SettingsRoute =
 	| "/settings/billing"
 	| "/settings/devices"
 	| "/settings/api-keys"
-	| "/settings/permissions";
+	| "/settings/permissions"
+	| "/settings/ssh-hosts";
 
 interface SectionItem {
 	id: SettingsRoute;
@@ -134,6 +135,17 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "apikeys",
 				label: "API Keys",
 				icon: <HiOutlineKey className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		label: "Remote",
+		items: [
+			{
+				id: "/settings/ssh-hosts",
+				section: "ssh-hosts",
+				label: "SSH Hosts",
+				icon: <LuServer className="h-4 w-4" />,
 			},
 		],
 	},

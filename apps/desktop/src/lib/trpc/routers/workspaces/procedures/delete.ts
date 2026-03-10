@@ -281,6 +281,10 @@ export const createDeleteProcedures = () => {
 
 				deleteWorkspace(input.id);
 
+				if (workspace.type === "remote") {
+					getWorkspaceRuntimeRegistry().unregisterRemoteWorkspace(input.id);
+				}
+
 				if (worktree) {
 					deleteWorktreeRecord(worktree.id);
 				}
@@ -317,6 +321,10 @@ export const createDeleteProcedures = () => {
 				deleteWorkspace(input.id);
 				hideProjectIfNoWorkspaces(workspace.projectId);
 				updateActiveWorkspaceIfRemoved(input.id);
+
+				if (workspace.type === "remote") {
+					getWorkspaceRuntimeRegistry().unregisterRemoteWorkspace(input.id);
+				}
 
 				const terminalWarning =
 					terminalResult.failed > 0

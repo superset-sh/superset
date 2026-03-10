@@ -68,7 +68,7 @@ export function useCommandPalette({
 				id: string;
 				worktreePath: string;
 				name: string;
-				type: "worktree" | "branch";
+				type: "worktree" | "branch" | "remote";
 			}) => {
 				if (ws.worktreePath) {
 					result.push({

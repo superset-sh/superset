@@ -18,6 +18,7 @@ export function getWorktreePath(worktreeId: string): string | undefined {
  * Gets the working directory path for a workspace.
  * For worktree workspaces: returns the worktree path
  * For branch workspaces: returns the main repo path
+ * For remote workspaces: returns the remotePath field
  */
 export function getWorkspacePath(workspace: SelectWorkspace): string | null {
 	if (workspace.type === "branch") {
@@ -27,6 +28,11 @@ export function getWorkspacePath(workspace: SelectWorkspace): string | null {
 			.where(eq(projects.id, workspace.projectId))
 			.get();
 		return project?.mainRepoPath ?? null;
+	}
+
+	// For remote type, use remotePath
+	if (workspace.type === "remote") {
+		return workspace.remotePath ?? null;
 	}
 
 	// For worktree type, use worktree path

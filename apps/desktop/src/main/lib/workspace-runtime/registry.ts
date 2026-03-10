@@ -13,7 +13,11 @@
  * - Local + cloud workspaces can coexist
  */
 
+import { workspaces } from "@superset/local-db";
+import { isNull } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import { LocalWorkspaceRuntime } from "./local";
+import { SshWorkspaceRuntime } from "./ssh";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
 
 // =============================================================================
@@ -26,18 +30,54 @@ import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
  * Currently returns the same LocalWorkspaceRuntime for all workspaces.
  * The interface supports per-workspace selection for future cloud work.
  */
-class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
+export class DefaultWorkspaceRuntimeRegistry
+	implements WorkspaceRuntimeRegistry
+{
 	private localRuntime: LocalWorkspaceRuntime | null = null;
+
+	/** workspaceId → hostId for remote workspaces */
+	private readonly remoteWorkspaceMap = new Map<string, string>();
+
+	/** hostId → SshWorkspaceRuntime (cached per host) */
+	private readonly sshRuntimes = new Map<string, SshWorkspaceRuntime>();
+
+	/** Whether hydrateRemoteWorkspaces() has been called */
+	private hydrated = false;
+
+	/**
+	 * Populate remoteWorkspaceMap from the local-db on first access.
+	 * This ensures remote workspaces are restored correctly after app restart.
+	 */
+	private hydrateRemoteWorkspaces(): void {
+		if (this.hydrated) return;
+		this.hydrated = true;
+
+		const remoteWorkspaces = localDb
+			.select()
+			.from(workspaces)
+			.where(isNull(workspaces.deletingAt))
+			.all()
+			.filter((w) => w.type === "remote" && w.sshHostId);
+
+		for (const workspace of remoteWorkspaces) {
+			if (workspace.sshHostId) {
+				this.remoteWorkspaceMap.set(workspace.id, workspace.sshHostId);
+			}
+		}
+	}
 
 	/**
 	 * Get the runtime for a specific workspace.
 	 *
-	 * Currently always returns the local runtime.
-	 * Future: will check workspace metadata to select local vs cloud.
+	 * Returns an SshWorkspaceRuntime when the workspace has been registered as
+	 * remote via registerRemoteWorkspace(). Otherwise returns the local runtime.
 	 */
-	getForWorkspaceId(_workspaceId: string): WorkspaceRuntime {
-		// Currently all workspaces use the local runtime
-		// Future: check workspace metadata for cloudWorkspaceId to select cloud runtime
+	getForWorkspaceId(workspaceId: string): WorkspaceRuntime {
+		this.hydrateRemoteWorkspaces();
+		const hostId = this.remoteWorkspaceMap.get(workspaceId);
+		if (hostId) {
+			return this._getOrCreateSshRuntime(hostId);
+		}
 		return this.getDefault();
 	}
 
@@ -52,6 +92,34 @@ class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
 			this.localRuntime = new LocalWorkspaceRuntime();
 		}
 		return this.localRuntime;
+	}
+
+	/**
+	 * Register a workspace as remote, associating it with an SSH host.
+	 * Call this when a remote workspace is created or opened so that
+	 * getForWorkspaceId() can return the correct SSH runtime.
+	 */
+	registerRemoteWorkspace(workspaceId: string, hostId: string): void {
+		this.remoteWorkspaceMap.set(workspaceId, hostId);
+	}
+
+	/**
+	 * Unregister a remote workspace mapping.
+	 * Call this when a remote workspace is deleted or closed.
+	 * Does not destroy the SshWorkspaceRuntime (the host may still have other workspaces).
+	 */
+	unregisterRemoteWorkspace(workspaceId: string): void {
+		this.remoteWorkspaceMap.delete(workspaceId);
+	}
+
+	/** Get or create a cached SshWorkspaceRuntime for the given hostId. */
+	private _getOrCreateSshRuntime(hostId: string): SshWorkspaceRuntime {
+		let runtime = this.sshRuntimes.get(hostId);
+		if (!runtime) {
+			runtime = new SshWorkspaceRuntime(hostId);
+			this.sshRuntimes.set(hostId, runtime);
+		}
+		return runtime;
 	}
 }
 

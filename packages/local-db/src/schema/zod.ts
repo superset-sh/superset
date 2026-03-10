@@ -94,9 +94,15 @@ export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 /**
  * Workspace type
  */
-export const workspaceTypeSchema = z.enum(["worktree", "branch"]);
+export const workspaceTypeSchema = z.enum(["worktree", "branch", "remote"]);
 
 export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
+
+/**
+ * SSH authentication methods
+ */
+export const SSH_AUTH_METHODS = ["password", "privateKey", "agent"] as const;
+export type SshAuthMethod = (typeof SSH_AUTH_METHODS)[number];
 
 /**
  * External apps that can be opened

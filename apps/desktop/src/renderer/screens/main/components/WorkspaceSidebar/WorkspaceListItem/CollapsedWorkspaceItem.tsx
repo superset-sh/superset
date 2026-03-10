@@ -25,7 +25,7 @@ interface CollapsedWorkspaceItemProps {
 	id: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
@@ -55,6 +55,7 @@ export function CollapsedWorkspaceItem({
 	onCopyPath,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const isRemoteWorkspace = type === "remote";
 	const deleteDialogCoordinator = useMemo(
 		() => createContextMenuDeleteDialogCoordinator(onDeleteClick),
 		[onDeleteClick],
@@ -83,6 +84,7 @@ export function CollapsedWorkspaceItem({
 		>
 			<WorkspaceIcon
 				isBranchWorkspace={isBranchWorkspace}
+				isRemoteWorkspace={isRemoteWorkspace}
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}

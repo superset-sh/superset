@@ -19,6 +19,10 @@
 		"./host": {
 			"types": "./src/host/index.ts",
 			"default": "./src/host/index.ts"
+		},
+		"./ssh": {
+			"types": "./src/ssh/index.ts",
+			"default": "./src/ssh/index.ts"
 		}
 	},
 	"scripts": {

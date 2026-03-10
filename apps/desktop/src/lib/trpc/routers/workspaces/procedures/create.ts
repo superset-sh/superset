@@ -1,8 +1,16 @@
-import { projects, settings, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	settings,
+	sshHosts,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
+import { getSshConnectionManager } from "main/lib/ssh";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
@@ -971,6 +979,117 @@ export const createCreateProcedures = () => {
 					workspaceName,
 				});
 			}),
+		createRemote: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					sshHostId: z.string(),
+					remotePath: z.string().min(1),
+					name: z.string().optional(),
+					prompt: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				// Verify SSH host exists
+				const host = localDb
+					.select()
+					.from(sshHosts)
+					.where(eq(sshHosts.id, input.sshHostId))
+					.get();
+				if (!host) {
+					throw new Error(`SSH host ${input.sshHostId} not found`);
+				}
+
+				// Verify connection is active
+				const sshManager = getSshConnectionManager();
+				if (!sshManager.isConnected(input.sshHostId)) {
+					throw new Error(
+						`Not connected to SSH host "${host.label}". Please connect first.`,
+					);
+				}
+
+				// Verify remote path exists via SFTP
+				try {
+					const sftp = await sshManager.getSftpClient(input.sshHostId);
+					await new Promise<void>((resolve, reject) => {
+						sftp.stat(input.remotePath, (err) => {
+							if (err) {
+								reject(
+									new Error(
+										`Remote path "${input.remotePath}" does not exist or is not accessible`,
+									),
+								);
+							} else {
+								resolve();
+							}
+						});
+					});
+				} catch (error) {
+					throw error instanceof Error
+						? error
+						: new Error("Failed to verify remote path");
+				}
+
+				const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
+				const workspaceName =
+					input.name ||
+					`${host.label}: ${input.remotePath.split("/").pop() || input.remotePath}`;
+
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						type: "remote",
+						branch: "remote",
+						name: workspaceName,
+						tabOrder: maxTabOrder + 1,
+						sshHostId: input.sshHostId,
+						remotePath: input.remotePath,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				// Register in runtime registry for correct routing
+				const registry = getWorkspaceRuntimeRegistry();
+				registry.registerRemoteWorkspace(workspace.id, input.sshHostId);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "remote",
+					source: "ssh",
+				});
+
+				// Attempt auto-rename from prompt if provided
+				if (input.prompt) {
+					void attemptWorkspaceAutoRenameFromPrompt({
+						workspaceId: workspace.id,
+						prompt: input.prompt,
+					}).catch(() => {});
+				}
+
+				return {
+					workspace,
+					remotePath: input.remotePath,
+					projectId: project.id,
+					sshHostId: input.sshHostId,
+					isInitializing: false,
+					wasExisting: false,
+				};
+			}),
+
 		importAllWorktrees: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.mutation(async ({ input }) => {

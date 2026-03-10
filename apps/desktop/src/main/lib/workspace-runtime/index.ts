@@ -15,9 +15,12 @@
 
 export { LocalWorkspaceRuntime } from "./local";
 export {
+	DefaultWorkspaceRuntimeRegistry,
 	getWorkspaceRuntimeRegistry,
 	resetWorkspaceRuntimeRegistry,
 } from "./registry";
+export { SshWorkspaceRuntime } from "./ssh";
+export { SshTerminalRuntime } from "./ssh-terminal-runtime";
 export type {
 	TerminalCapabilities,
 	TerminalEventSource,

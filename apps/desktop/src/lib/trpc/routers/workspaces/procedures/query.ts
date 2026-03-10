@@ -1,5 +1,6 @@
 import {
 	projects,
+	sshHosts,
 	workspaceSections,
 	workspaces,
 	worktrees,
@@ -63,7 +64,7 @@ export const createQueryProcedures = () => {
 
 				return {
 					...workspace,
-					type: workspace.type as "worktree" | "branch",
+					type: workspace.type as "worktree" | "branch" | "remote",
 					worktreePath: getWorkspacePath(workspace) ?? "",
 					project: project
 						? {
@@ -100,7 +101,7 @@ export const createQueryProcedures = () => {
 				sectionId: string | null;
 				worktreeId: string | null;
 				worktreePath: string;
-				type: "worktree" | "branch";
+				type: "worktree" | "branch" | "remote";
 				branch: string;
 				name: string;
 				tabOrder: number;
@@ -109,6 +110,9 @@ export const createQueryProcedures = () => {
 				lastOpenedAt: number;
 				isUnread: boolean;
 				isUnnamed: boolean;
+				sshHostId: string | null;
+				remotePath: string | null;
+				sshHostLabel: string | null;
 			};
 
 			type SectionItem = {
@@ -137,6 +141,9 @@ export const createQueryProcedures = () => {
 			const worktreePathMap: WorktreePathMap = new Map(
 				allWorktrees.map((wt) => [wt.id, wt.path]),
 			);
+
+			const allSshHosts = localDb.select().from(sshHosts).all();
+			const sshHostLabelMap = new Map(allSshHosts.map((h) => [h.id, h.label]));
 
 			const allSections = localDb.select().from(workspaceSections).all();
 
@@ -206,15 +213,22 @@ export const createQueryProcedures = () => {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
 					} else if (workspace.type === "branch") {
 						worktreePath = group.project.mainRepoPath;
+					} else if (workspace.type === "remote") {
+						worktreePath = workspace.remotePath ?? "";
 					}
 
 					const item: WorkspaceItem = {
 						...workspace,
 						sectionId: workspace.sectionId ?? null,
-						type: workspace.type as "worktree" | "branch",
+						type: workspace.type as "worktree" | "branch" | "remote",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
+						sshHostId: workspace.sshHostId ?? null,
+						remotePath: workspace.remotePath ?? null,
+						sshHostLabel: workspace.sshHostId
+							? (sshHostLabelMap.get(workspace.sshHostId) ?? null)
+							: null,
 					};
 
 					if (workspace.sectionId) {

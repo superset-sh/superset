@@ -12,7 +12,8 @@ export type NewWorkspaceModalTab =
 	| "prompt"
 	| "issues"
 	| "pull-requests"
-	| "branches";
+	| "branches"
+	| "ssh-remote";
 
 export interface NewWorkspaceModalDraft {
 	activeTab: NewWorkspaceModalTab;
@@ -27,6 +28,8 @@ export interface NewWorkspaceModalDraft {
 	issuesQuery: string;
 	pullRequestsQuery: string;
 	branchesQuery: string;
+	sshHostId: string | null;
+	remotePath: string;
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
@@ -46,6 +49,8 @@ const initialDraft: NewWorkspaceModalDraft = {
 	issuesQuery: "",
 	pullRequestsQuery: "",
 	branchesQuery: "",
+	sshHostId: null,
+	remotePath: "",
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
@@ -149,6 +154,8 @@ export function NewWorkspaceModalDraftProvider({
 				issuesQuery: state.issuesQuery,
 				pullRequestsQuery: state.pullRequestsQuery,
 				branchesQuery: state.branchesQuery,
+				sshHostId: state.sshHostId,
+				remotePath: state.remotePath,
 			},
 			draftVersion: state.draftVersion,
 			closeModal: onClose,

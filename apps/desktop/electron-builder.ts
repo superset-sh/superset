@@ -159,6 +159,12 @@ const config: Configuration = {
 			to: "node_modules/friendly-words",
 			filter: ["**/*"],
 		},
+		// ssh2 for remote SSH workspace connections
+		{
+			from: "node_modules/ssh2",
+			to: "node_modules/ssh2",
+			filter: ["**/*"],
+		},
 		"!**/.DS_Store",
 	],
 

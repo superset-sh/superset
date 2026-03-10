@@ -19,6 +19,7 @@ export type SettingsSection =
 	| "devices"
 	| "apikeys"
 	| "permissions"
+	| "ssh-hosts"
 	| "project";
 
 interface SettingsState {

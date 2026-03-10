@@ -11,6 +11,7 @@ import { IssuesGroup } from "../IssuesGroup";
 import { ProjectSelector } from "../ProjectSelector";
 import { PromptGroup } from "../PromptGroup";
 import { PullRequestsGroup } from "../PullRequestsGroup";
+import { SshRemoteGroup } from "../SshRemoteGroup";
 
 const COMMAND_CLASS_NAME =
 	"[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 flex h-full w-full flex-1 flex-col overflow-hidden rounded-none";
@@ -68,7 +69,8 @@ export function NewWorkspaceModalContent({
 	const selectedProject = recentProjects.find(
 		(project) => project.id === draft.selectedProjectId,
 	);
-	const isListTab = draft.activeTab !== "prompt";
+	const isListTab =
+		draft.activeTab !== "prompt" && draft.activeTab !== "ssh-remote";
 	const listQuery =
 		draft.activeTab === "issues"
 			? draft.issuesQuery
@@ -106,6 +108,7 @@ export function NewWorkspaceModalContent({
 						<TabsTrigger value="issues">Issues</TabsTrigger>
 						<TabsTrigger value="pull-requests">Pull requests</TabsTrigger>
 						<TabsTrigger value="branches">Branches</TabsTrigger>
+						<TabsTrigger value="ssh-remote">SSH Remote</TabsTrigger>
 					</TabsList>
 				</Tabs>
 				<ProjectSelector
@@ -122,7 +125,11 @@ export function NewWorkspaceModalContent({
 				/>
 			</div>
 
-			{isListTab ? (
+			{draft.activeTab === "ssh-remote" ? (
+				<div className="flex-1 overflow-y-auto">
+					<SshRemoteGroup projectId={draft.selectedProjectId} />
+				</div>
+			) : isListTab ? (
 				<Command className={COMMAND_CLASS_NAME}>
 					<CommandInput
 						value={listQuery}

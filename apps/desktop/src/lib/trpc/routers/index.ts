@@ -21,6 +21,7 @@ import { createProjectsRouter } from "./projects";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createSshHostsRouter } from "./ssh-hosts";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
@@ -55,6 +56,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(getWindow),
 		workspaceServiceManager: createWorkspaceServiceManagerRouter(),
+		sshHosts: createSshHostsRouter(),
 	});
 };
 
