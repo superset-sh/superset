@@ -78,6 +78,17 @@ function summarizeAnthropicManualInput(input: string): Record<string, unknown> {
 	};
 }
 
+function hasAnthropicEnvCredential(
+	variables: AnthropicEnvVariables,
+	fallbackApiKey?: string,
+): boolean {
+	return Boolean(
+		buildAnthropicRuntimeEnv(variables, {
+			fallbackApiKey,
+		}).ANTHROPIC_API_KEY?.trim(),
+	);
+}
+
 interface ChatServiceOptions {
 	anthropicEnvConfigPath?: string;
 }
@@ -102,6 +113,10 @@ export class ChatService {
 	}
 
 	getAnthropicAuthStatus(): AuthStatus {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const storedCredential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		const hasManagedOAuth = storedCredential?.type === "oauth";
 		const configCredential = getAnthropicCredentialsFromConfig();
 		const keychainCredential = getAnthropicCredentialsFromKeychain();
 		const externalCandidates = [configCredential, keychainCredential].filter(
@@ -120,6 +135,7 @@ export class ChatService {
 				method: externalCredential.kind === "oauth" ? "oauth" : "api_key",
 				source: "external",
 				issue: null,
+				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -143,28 +159,32 @@ export class ChatService {
 		}
 
 		const storageMethod = resolveAuthMethodForProvider(
-			this.getAuthStorage(),
+			authStorage,
 			ANTHROPIC_AUTH_PROVIDER_ID,
 			(credential) =>
 				credential.access.trim().length > 0 &&
 				(typeof credential.expires !== "number" ||
 					credential.expires > Date.now()),
 		);
-		const storedCredential = this.getAuthStorage().get(
-			ANTHROPIC_AUTH_PROVIDER_ID,
-		);
 		const hasExpiredManagedOAuth =
 			storedCredential?.type === "oauth" &&
 			typeof storedCredential.expires === "number" &&
 			storedCredential.expires <= Date.now();
-		const hasEnvConfig =
-			Object.keys(this.getAnthropicEnvConfig().variables).length > 0;
-		if (hasEnvConfig) {
+		const anthropicEnvConfig = this.getAnthropicEnvConfig();
+		const hasEnvConfig = Object.keys(anthropicEnvConfig.variables).length > 0;
+		const hasManagedEnvCredential =
+			hasEnvConfig &&
+			hasAnthropicEnvCredential(
+				anthropicEnvConfig.variables,
+				this.getStoredAnthropicApiKey(),
+			);
+		if (hasManagedEnvCredential) {
 			const status: AuthStatus = {
 				authenticated: true,
 				method: "env",
 				source: "managed",
 				issue: null,
+				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -190,6 +210,7 @@ export class ChatService {
 				method: "oauth",
 				source: "managed",
 				issue: null,
+				hasManagedOAuth: true,
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -215,6 +236,7 @@ export class ChatService {
 				method: "api_key",
 				source: "managed",
 				issue: null,
+				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -240,6 +262,7 @@ export class ChatService {
 				method: "oauth",
 				source: "external",
 				issue: "expired",
+				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -268,6 +291,7 @@ export class ChatService {
 				method: "oauth",
 				source: "managed",
 				issue: "expired",
+				hasManagedOAuth: true,
 			};
 			this.logAuthResolution("anthropic", {
 				resolvedMethod: status.method,
@@ -293,6 +317,7 @@ export class ChatService {
 			method: null,
 			source: null,
 			issue: null,
+			...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
 		};
 		this.logAuthResolution("anthropic", {
 			resolvedMethod: status.method,
@@ -477,6 +502,7 @@ export class ChatService {
 			const config = getAnthropicEnvConfigFromDisk({
 				configPath: this.anthropicEnvConfigPath,
 			});
+			this.setStoredAnthropicApiKeyFromEnvVariables(config.variables);
 			this.applyAnthropicRuntimeEnv(config.variables);
 		}
 		this.logAuthResolution("anthropic", {

@@ -61,9 +61,9 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	const openAIDiagnosticStatus = providerStatuses?.find(
 		(status) => status.providerId === "openai",
 	);
-	const { data: anthropicAuthStatus } =
+	const { data: anthropicAuthStatus, refetch: refetchAnthropicAuthStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
-	const { data: openAIAuthStatus } =
+	const { data: openAIAuthStatus, refetch: refetchOpenAIAuthStatus } =
 		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
 	const { data: anthropicEnvConfig, refetch: refetchAnthropicEnvConfig } =
 		chatServiceTrpc.auth.getAnthropicEnvConfig.useQuery();
@@ -85,7 +85,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	} = useAnthropicOAuth({
 		...DIALOG_CONTEXT,
 		onAuthStateChange: async () => {
-			await refetchProviderStatuses();
+			await Promise.all([
+				refetchAnthropicAuthStatus(),
+				refetchProviderStatuses(),
+			]);
 		},
 	});
 	const {
@@ -152,6 +155,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			}
 			await Promise.all([
 				refetchAnthropicEnvConfig(),
+				refetchAnthropicAuthStatus(),
 				clearProviderIssueMutation.mutateAsync({ providerId: "anthropic" }),
 				refetchProviderStatuses(),
 			]);
@@ -168,6 +172,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await setOpenAIApiKeyMutation.mutateAsync({ apiKey });
 			setOpenAIApiKeyInput("");
 			await Promise.all([
+				refetchOpenAIAuthStatus(),
 				clearProviderIssueMutation.mutateAsync({ providerId: "openai" }),
 				refetchProviderStatuses(),
 			]);
@@ -360,25 +365,26 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											void saveOpenAIApiKey();
 										}}
 										onClear={() => {
-											void clearOpenAIApiKeyMutation
-												.mutateAsync()
-												.then(async () => {
+											void (async () => {
+												try {
+													await clearOpenAIApiKeyMutation.mutateAsync();
 													setOpenAIApiKeyInput("");
 													await Promise.all([
+														refetchOpenAIAuthStatus(),
 														clearProviderIssueMutation.mutateAsync({
 															providerId: "openai",
 														}),
 														refetchProviderStatuses(),
 													]);
 													toast.success("OpenAI API key cleared");
-												})
-												.catch((error) => {
+												} catch (error) {
 													toast.error(
 														error instanceof Error
 															? error.message
 															: "Failed to clear",
 													);
-												});
+												}
+											})();
 										}}
 										disableSave={
 											isSavingOpenAIConfig ||

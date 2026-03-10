@@ -302,9 +302,7 @@ export function useAnthropicOAuth({
 				completeAnthropicOAuthMutation.isPending ||
 				disconnectAnthropicOAuthMutation.isPending,
 			canDisconnect:
-				anthropicStatus?.source === "managed" &&
-				anthropicStatus.method === "oauth" &&
-				!hasPendingOAuthSession,
+				anthropicStatus?.hasManagedOAuth === true && !hasPendingOAuthSession,
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
@@ -339,8 +337,7 @@ export function useAnthropicOAuth({
 			},
 		}),
 		[
-			anthropicStatus?.method,
-			anthropicStatus?.source,
+			anthropicStatus?.hasManagedOAuth,
 			completeAnthropicOAuth,
 			completeAnthropicOAuthMutation.isPending,
 			copyOAuthUrl,

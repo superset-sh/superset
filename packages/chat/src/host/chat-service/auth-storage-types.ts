@@ -9,6 +9,7 @@ export interface AuthStatus {
 	method: AuthMethod;
 	source: AuthSource;
 	issue: AuthIssue;
+	hasManagedOAuth?: boolean;
 }
 
 export type AuthStorageLike = ReturnType<typeof createAuthStorage>;

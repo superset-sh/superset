@@ -288,6 +288,29 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
+	it("surfaces hidden managed Anthropic OAuth when external Claude auth wins", () => {
+		const chatService = new ChatService();
+
+		anthropicConfigCredential = {
+			apiKey: "external-oauth-token",
+			source: "config",
+			kind: "oauth",
+		};
+		fakeAuthStorage.set("anthropic", {
+			type: "oauth",
+			access: "managed-anthropic-oauth",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "oauth",
+			source: "external",
+			issue: null,
+			hasManagedOAuth: true,
+		});
+	});
+
 	it("prefers managed Anthropic auth over runtime env credentials", () => {
 		const chatService = new ChatService();
 
@@ -359,6 +382,7 @@ describe("ChatService OpenAI auth storage", () => {
 			method: "oauth",
 			source: "managed",
 			issue: null,
+			hasManagedOAuth: true,
 		});
 
 		await chatService.disconnectAnthropicOAuth();
@@ -435,6 +459,34 @@ describe("ChatService OpenAI auth storage", () => {
 			variables: {
 				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
 			},
+		});
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: false,
+			method: null,
+			source: null,
+			issue: null,
+		});
+	});
+
+	it("rehydrates managed Anthropic API key from saved env config on oauth disconnect", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+		});
+		fakeAuthStorage.set("anthropic", {
+			type: "oauth",
+			access: "managed-anthropic-oauth",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+
+		await chatService.disconnectAnthropicOAuth();
+
+		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
+		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
+			type: "api_key",
+			key: "gateway-token",
 		});
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,

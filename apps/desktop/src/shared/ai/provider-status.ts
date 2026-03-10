@@ -46,6 +46,7 @@ export interface AuthStatusLike {
 	method: "api_key" | "oauth" | "env" | null;
 	source: "external" | "managed" | null;
 	issue: "expired" | null;
+	hasManagedOAuth?: boolean;
 }
 
 export interface ProviderCapabilities {
