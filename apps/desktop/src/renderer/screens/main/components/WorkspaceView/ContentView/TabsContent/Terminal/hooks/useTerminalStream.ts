@@ -16,7 +16,6 @@ export interface UseTerminalStreamOptions {
 	setConnectionError: (error: string | null) => void;
 	updateModesFromData: (data: string) => void;
 	updateCwdFromData: (data: string) => void;
-	onShellExit?: () => void;
 }
 
 export interface UseTerminalStreamReturn {
@@ -43,7 +42,6 @@ export function useTerminalStream({
 	setConnectionError,
 	updateModesFromData,
 	updateCwdFromData,
-	onShellExit,
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
@@ -62,12 +60,6 @@ export function useTerminalStream({
 			const wasKilledByUser = reason === "killed";
 			wasKilledByUserRef.current = wasKilledByUser;
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
-
-			const shouldAutoClosePane = !wasKilledByUser && exitCode === 0;
-			if (shouldAutoClosePane) {
-				onShellExit?.();
-				return;
-			}
 
 			if (wasKilledByUser) {
 				xterm.writeln("\r\n\r\n[Session killed]");
@@ -93,7 +85,6 @@ export function useTerminalStream({
 			wasKilledByUserRef,
 			setExitStatus,
 			setPaneStatus,
-			onShellExit,
 		],
 	);
 

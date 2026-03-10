@@ -3,10 +3,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-
-import friendlyWords = require("friendly-words");
-
 import type { BranchPrefixMode } from "@superset/local-db";
+import friendlyWords from "friendly-words";
 import {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
@@ -48,17 +46,15 @@ function isExecFileException(error: unknown): error is ExecFileException {
 async function isWorktreeRegistered({
 	mainRepoPath,
 	worktreePath,
-	env,
 }: {
 	mainRepoPath: string;
 	worktreePath: string;
-	env: Record<string, string>;
 }): Promise<boolean> {
 	try {
-		const { stdout } = await execFileAsync(
+		const { stdout } = await execWithShellEnv(
 			"git",
 			["-C", mainRepoPath, "worktree", "list", "--porcelain"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		const expectedPath = resolve(worktreePath);
@@ -87,23 +83,21 @@ async function isWorktreeRegistered({
 async function execWorktreeAdd({
 	mainRepoPath,
 	args,
-	env,
 	worktreePath,
 	timeout = 120_000,
 }: {
 	mainRepoPath: string;
 	args: string[];
-	env: Record<string, string>;
 	worktreePath: string;
 	timeout?: number;
 }): Promise<void> {
 	await runWithPostCheckoutHookTolerance({
 		context: `Worktree created at ${worktreePath}`,
 		run: async () => {
-			await execFileAsync("git", args, { env, timeout });
+			await execWithShellEnv("git", args, { timeout });
 		},
 		didSucceed: async () =>
-			isWorktreeRegistered({ mainRepoPath, worktreePath, env }),
+			isWorktreeRegistered({ mainRepoPath, worktreePath }),
 	});
 }
 
@@ -470,8 +464,6 @@ export async function createWorktree(
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const env = await getGitEnv();
-
 		await execWorktreeAdd({
 			mainRepoPath,
 			args: [
@@ -487,16 +479,15 @@ export async function createWorktree(
 				// creating a new branch from a remote branch like origin/main.
 				`${startPoint}^{commit}`,
 			],
-			env,
 			worktreePath,
 		});
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execFileAsync(
+		await execWithShellEnv(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(
@@ -545,8 +536,6 @@ export async function createWorktreeFromExistingBranch({
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const env = await getGitEnv();
-
 		const git = simpleGit(mainRepoPath);
 		const localBranches = await git.branchLocal();
 		const branchExistsLocally = localBranches.all.includes(branch);
@@ -555,7 +544,6 @@ export async function createWorktreeFromExistingBranch({
 			await execWorktreeAdd({
 				mainRepoPath,
 				args: ["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
-				env,
 				worktreePath,
 			});
 		} else {
@@ -575,7 +563,6 @@ export async function createWorktreeFromExistingBranch({
 						worktreePath,
 						remoteBranchName,
 					],
-					env,
 					worktreePath,
 				});
 			} else {
@@ -587,10 +574,10 @@ export async function createWorktreeFromExistingBranch({
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execFileAsync(
+		await execWithShellEnv(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(
@@ -640,13 +627,12 @@ export async function deleteLocalBranch({
 	mainRepoPath: string;
 	branch: string;
 }): Promise<void> {
-	const env = await getGitEnv();
-
 	try {
-		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
-			env,
-			timeout: 10_000,
-		});
+		await execWithShellEnv(
+			"git",
+			["-C", mainRepoPath, "branch", "-D", branch],
+			{ timeout: 10_000 },
+		);
 		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -664,8 +650,6 @@ export async function removeWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	try {
-		const env = await getGitEnv();
-
 		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
 		// then `git worktree prune` to clean metadata, then delete in background.
 		const tempPath = join(
@@ -674,8 +658,7 @@ export async function removeWorktree(
 		);
 		await rename(worktreePath, tempPath);
 
-		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
-			env,
+		await execWithShellEnv("git", ["-C", mainRepoPath, "worktree", "prune"], {
 			timeout: 10_000,
 		});
 
@@ -705,11 +688,11 @@ export async function removeWorktree(
 		// If the worktree directory is already gone, just prune metadata
 		if (code === "ENOENT") {
 			try {
-				const env = await getGitEnv();
-				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
-					env,
-					timeout: 10_000,
-				});
+				await execWithShellEnv(
+					"git",
+					["-C", mainRepoPath, "worktree", "prune"],
+					{ timeout: 10_000 },
+				);
 			} catch {}
 			return;
 		}
@@ -1658,8 +1641,6 @@ export async function createWorktreeFromPr({
 	prInfo: PullRequestInfo;
 	localBranchName: string;
 }): Promise<void> {
-	const env = await getGitEnv();
-
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
@@ -1679,14 +1660,12 @@ export async function createWorktreeFromPr({
 					worktreePath,
 					localBranchName,
 				],
-				env,
 				worktreePath,
 			});
 		} else {
 			await execWorktreeAdd({
 				mainRepoPath,
 				args: ["-C", mainRepoPath, "worktree", "add", "--detach", worktreePath],
-				env,
 				worktreePath,
 			});
 		}
@@ -1705,10 +1684,10 @@ export async function createWorktreeFromPr({
 		);
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
-		await execFileAsync(
+		await execWithShellEnv(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(

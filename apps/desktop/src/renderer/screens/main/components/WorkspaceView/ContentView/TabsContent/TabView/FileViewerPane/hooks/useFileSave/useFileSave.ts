@@ -31,13 +31,21 @@ export function useFileSave({
 	const utils = electronTrpc.useUtils();
 
 	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
-		onSuccess: (_data, variables) => {
+		onSuccess: (result, variables) => {
+			if (result.status !== "saved") {
+				savingFromRawRef.current = false;
+				return;
+			}
+
 			const savedContent = variables.content;
 			const currentEditorValue = editorRef.current?.getValue() ?? savedContent;
 			const hasUnsavedChanges = currentEditorValue !== savedContent;
 
 			utils.changes.readWorkingFile.setData(
-				{ worktreePath: variables.worktreePath, filePath: variables.filePath },
+				{
+					worktreePath: variables.worktreePath,
+					absolutePath: variables.absolutePath,
+				},
 				{
 					ok: true,
 					content: savedContent,
@@ -81,16 +89,21 @@ export function useFileSave({
 		},
 	});
 
-	const handleSaveRaw = useCallback(async () => {
-		if (!editorRef.current || !filePath || !worktreePath) return;
-		const content = editorRef.current.getValue();
-		savingFromRawRef.current = true;
-		await saveFileMutation.mutateAsync({
-			worktreePath,
-			filePath,
-			content,
-		});
-	}, [worktreePath, filePath, saveFileMutation, editorRef]);
+	const handleSaveRaw = useCallback(
+		async (options?: { force?: boolean }) => {
+			if (!editorRef.current || !filePath || !worktreePath) return;
+			savingFromRawRef.current = true;
+			return saveFileMutation.mutateAsync({
+				worktreePath,
+				absolutePath: filePath,
+				content: editorRef.current.getValue(),
+				expectedContent: options?.force
+					? undefined
+					: originalContentRef.current,
+			});
+		},
+		[filePath, worktreePath, saveFileMutation, editorRef, originalContentRef],
+	);
 
 	return {
 		handleSaveRaw,

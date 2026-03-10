@@ -11,6 +11,7 @@ export {
 	restartRuntimeFromUserMessage,
 	runSessionStartHook,
 	subscribeToSessionEvents,
+	syncRuntimeHookSessionId,
 } from "./runtime";
 export {
 	authenticateRuntimeMcpServer,

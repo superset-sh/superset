@@ -4,6 +4,7 @@ import {
 	buildTerminalEnv,
 	FALLBACK_SHELL,
 	getLocale,
+	normalizeDefaultShell,
 	removeAppEnvVars,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
@@ -20,6 +21,26 @@ describe("env", () => {
 
 		it("should have SHELL_CRASH_THRESHOLD_MS set to 1000", () => {
 			expect(SHELL_CRASH_THRESHOLD_MS).toBe(1000);
+		});
+	});
+
+	describe("normalizeDefaultShell", () => {
+		it("returns a plain string shell path unchanged", () => {
+			expect(normalizeDefaultShell("/bin/zsh")).toBe("/bin/zsh");
+		});
+
+		it("extracts the default export when bundling returns a module object", () => {
+			expect(
+				normalizeDefaultShell({
+					default: "/bin/zsh",
+				}),
+			).toBe("/bin/zsh");
+		});
+
+		it("returns null for unsupported values", () => {
+			expect(normalizeDefaultShell(undefined)).toBeNull();
+			expect(normalizeDefaultShell(null)).toBeNull();
+			expect(normalizeDefaultShell({})).toBeNull();
 		});
 	});
 

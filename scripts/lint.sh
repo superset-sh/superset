@@ -1,7 +1,7 @@
 #!/bin/bash
 # Wrapper for biome check that fails on ANY diagnostic (info, warn, or error)
 
-output=$(bunx biome check "$@" 2>&1)
+output=$(bunx @biomejs/biome@2.4.2 check "$@" 2>&1)
 exit_code=$?
 
 echo "$output"

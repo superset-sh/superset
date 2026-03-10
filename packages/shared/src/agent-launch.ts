@@ -43,6 +43,9 @@ export const terminalLaunchConfigSchema = z.object({
 	command: z.string().min(1),
 	name: z.string().min(1).optional(),
 	paneId: z.string().min(1).optional(),
+	taskPromptContent: z.string().min(1).optional(),
+	taskPromptFileName: z.string().min(1).optional(),
+	autoExecute: z.boolean().optional(),
 });
 
 export const chatLaunchConfigSchema = z.object({
@@ -51,6 +54,8 @@ export const chatLaunchConfigSchema = z.object({
 	initialPrompt: z.string().min(1).optional(),
 	model: z.string().min(1).optional(),
 	retryCount: z.number().int().min(0).max(10).optional(),
+	autoExecute: z.boolean().optional(),
+	taskSlug: z.string().min(1).optional(),
 });
 
 export const terminalAgentLaunchRequestSchema = baseAgentLaunchSchema.extend({

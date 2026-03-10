@@ -31,7 +31,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
 	const handleSelectUser = (userId: string | null) => {
-		if (userId === assigneeId) {
+		if (userId === assigneeId && !task.assigneeExternalId) {
 			setOpen(false);
 			return;
 		}
@@ -40,6 +40,9 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 
 		collections.tasks.update(task.id, (draft) => {
 			draft.assigneeId = userId;
+			draft.assigneeExternalId = null;
+			draft.assigneeDisplayName = null;
+			draft.assigneeAvatarUrl = null;
 		});
 	};
 
@@ -56,6 +59,12 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							size="xs"
 							fullName={task.assignee.name}
 							image={task.assignee.image}
+						/>
+					) : task.assigneeExternalId ? (
+						<Avatar
+							size="xs"
+							fullName={task.assigneeDisplayName || "External"}
+							image={task.assigneeAvatarUrl}
 						/>
 					) : (
 						<HiOutlineUserCircle className="size-5 text-muted-foreground" />
@@ -74,7 +83,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					>
 						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">No assignee</span>
-						{!assigneeId && (
+						{!assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}
 					</DropdownMenuItem>

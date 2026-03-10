@@ -31,6 +31,14 @@ export function NewWorkspaceModalContent({
 	const { draft, updateDraft } = useNewWorkspaceModalDraft();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const utils = electronTrpc.useUtils();
+
+	// Refetch branches (and other data) when the modal opens to avoid stale data
+	useEffect(() => {
+		if (!isOpen) return;
+		void utils.projects.getBranches.invalidate();
+		void utils.projects.getBranchesLocal.invalidate();
+	}, [isOpen, utils]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -115,7 +123,7 @@ export function NewWorkspaceModalContent({
 			</div>
 
 			{isListTab ? (
-				<Command className={COMMAND_CLASS_NAME}>
+				<Command shouldFilter={false} className={COMMAND_CLASS_NAME}>
 					<CommandInput
 						value={listQuery}
 						onValueChange={handleListQueryChange}
@@ -124,7 +132,7 @@ export function NewWorkspaceModalContent({
 								? "Search by slug, title, or description"
 								: draft.activeTab === "branches"
 									? "Search by name"
-									: "Search by title, number, or author"
+									: "Search by title, number, author, or paste a url"
 						}
 					/>
 

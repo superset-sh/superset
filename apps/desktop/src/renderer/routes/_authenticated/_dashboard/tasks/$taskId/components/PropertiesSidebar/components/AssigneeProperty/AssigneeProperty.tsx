@@ -27,7 +27,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
 	const handleSelectUser = (userId: string | null) => {
-		if (userId === task.assigneeId) {
+		if (userId === task.assigneeId && !task.assigneeExternalId) {
 			setOpen(false);
 			return;
 		}
@@ -36,6 +36,9 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 
 		collections.tasks.update(task.id, (draft) => {
 			draft.assigneeId = userId;
+			draft.assigneeExternalId = null;
+			draft.assigneeDisplayName = null;
+			draft.assigneeAvatarUrl = null;
 		});
 	};
 
@@ -61,6 +64,24 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 							)}
 							<span className="text-sm">{task.assignee.name}</span>
 						</>
+					) : task.assigneeExternalId ? (
+						<>
+							{task.assigneeAvatarUrl ? (
+								<img
+									src={task.assigneeAvatarUrl}
+									alt=""
+									className="w-5 h-5 rounded-full"
+								/>
+							) : (
+								<div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">
+									{task.assigneeDisplayName?.charAt(0).toUpperCase() ?? "?"}
+								</div>
+							)}
+							<span className="text-sm">
+								{task.assigneeDisplayName || "External"}{" "}
+								<span className="text-muted-foreground">(external)</span>
+							</span>
+						</>
 					) : (
 						<>
 							<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground" />
@@ -77,7 +98,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 					>
 						<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">No assignee</span>
-						{!task.assigneeId && (
+						{!task.assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}
 					</DropdownMenuItem>

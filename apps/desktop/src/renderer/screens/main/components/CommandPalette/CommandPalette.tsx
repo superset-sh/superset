@@ -78,7 +78,7 @@ export function CommandPalette({
 			isLoading={isLoading}
 			results={searchResults}
 			getItemValue={(file) => `${file.path} ${query}`}
-			onSelectItem={(file) => onSelectFile(file.relativePath, file.workspaceId)}
+			onSelectItem={(file) => onSelectFile(file.path, file.workspaceId)}
 			headerExtra={
 				<ScopeToggle
 					scope={scope}

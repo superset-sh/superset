@@ -70,6 +70,9 @@ export function TaskContextMenu({
 		try {
 			collections.tasks.update(task.id, (draft) => {
 				draft.assigneeId = userId;
+				draft.assigneeExternalId = null;
+				draft.assigneeDisplayName = null;
+				draft.assigneeAvatarUrl = null;
 			});
 		} catch (error) {
 			console.error("[TaskContextMenu] Failed to update assignee:", error);
@@ -127,6 +130,7 @@ export function TaskContextMenu({
 							<AssigneeMenuItems
 								users={users}
 								currentAssigneeId={task.assigneeId}
+								hasExternalAssignee={!!task.assigneeExternalId}
 								onSelect={handleAssigneeChange}
 								MenuItem={ContextMenuItem}
 							/>

@@ -29,11 +29,7 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 
-let electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_PROXY_URL}/v1/shape`;
-
-export function setElectricUrl(url: string) {
-	electricUrl = `${url}/v1/shape`;
-}
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -93,25 +89,18 @@ const electricHeaders = {
 	},
 };
 
-let organizationsCollection: Collection<SelectOrganization> | null = null;
-
-function getOrganizationsCollection(): Collection<SelectOrganization> {
-	if (!organizationsCollection) {
-		organizationsCollection = createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: electricHeaders,
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-	}
-	return organizationsCollection;
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
 function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createCollection(
@@ -427,12 +416,15 @@ export async function preloadCollections(
 		includeChatCollections?: boolean;
 	},
 ): Promise<void> {
-	const { organizations, chatSessions, sessionHosts, ...orgCollections } =
+	const { chatSessions, sessionHosts, ...collections } =
 		getCollections(organizationId);
 	const includeChatCollections = options?.includeChatCollections ?? true;
+	const orgCollections = Object.entries(collections)
+		.filter(([name]) => name !== "organizations")
+		.map(([, collection]) => collection as Collection<object>);
 	const collectionsToPreload = includeChatCollections
-		? [...Object.values(orgCollections), chatSessions, sessionHosts]
-		: Object.values(orgCollections);
+		? [...orgCollections, chatSessions, sessionHosts]
+		: orgCollections;
 
 	await Promise.allSettled(
 		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
@@ -457,6 +449,6 @@ export function getCollections(organizationId: string) {
 
 	return {
 		...orgCollections,
-		organizations: getOrganizationsCollection(),
+		organizations: organizationsCollection,
 	};
 }

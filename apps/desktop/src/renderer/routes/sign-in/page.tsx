@@ -7,7 +7,6 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { SessionRecoveryNotice } from "./components/SessionRecoveryNotice";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
@@ -17,15 +16,7 @@ export const Route = createFileRoute("/sign-in/")({
 
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
-	const {
-		hasLocalToken,
-		isOnline,
-		isPending,
-		isRecoveringSession,
-		isRetryPending,
-		retrySessionRecovery,
-		session,
-	} = useSessionRecovery();
+	const { hasLocalToken, isPending, session } = useSessionRecovery();
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
@@ -71,15 +62,6 @@ function SignInPage() {
 								: "Sign in to get started"}
 						</p>
 					</div>
-
-					{hasLocalToken ? (
-						<SessionRecoveryNotice
-							isOnline={isOnline}
-							isRecoveringSession={isRecoveringSession}
-							isRetryPending={isRetryPending}
-							onRetry={() => void retrySessionRecovery()}
-						/>
-					) : null}
 
 					<div className="flex flex-col gap-3 w-full max-w-xs">
 						<Button
