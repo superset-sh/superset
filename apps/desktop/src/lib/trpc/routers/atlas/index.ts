@@ -4,6 +4,7 @@ import { createAtlasDeploymentsRouter } from "./deployments";
 import { createAtlasRegistryRouter } from "./registry";
 import { createAtlasResolverRouter } from "./resolver";
 import { createAtlasSupabaseRouter } from "./supabase";
+import { createAtlasVercelRouter } from "./vercel";
 
 export const createAtlasRouter = () =>
 	router({
@@ -12,4 +13,5 @@ export const createAtlasRouter = () =>
 		composer: createAtlasComposerRouter(),
 		deployments: createAtlasDeploymentsRouter(),
 		supabase: createAtlasSupabaseRouter(),
+		vercel: createAtlasVercelRouter(),
 	});

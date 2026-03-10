@@ -7,6 +7,7 @@ import { FeatureSelector } from "renderer/screens/atlas/components/FeatureSelect
 import { ResolutionPreview } from "renderer/screens/atlas/components/ResolutionPreview";
 import { ProjectConfig } from "renderer/screens/atlas/components/ProjectConfig";
 import { SupabaseSetup } from "renderer/screens/atlas/components/SupabaseSetup";
+import { VercelSetup } from "renderer/screens/atlas/components/VercelSetup";
 import {
   PipelineProgress,
   type PipelineStepStatus,
@@ -64,6 +65,9 @@ function ComposerPage() {
   const [supabasePhase, setSupabasePhase] = useState<
     "idle" | "setup" | "creating" | "done" | "skipped"
   >("idle");
+  const [vercelPhase, setVercelPhase] = useState<
+    "idle" | "setup" | "creating" | "done" | "skipped"
+  >("idle");
 
   const { data: registryData, isLoading: registryLoading } =
     electronTrpc.atlas.registry.getRegistry.useQuery();
@@ -80,6 +84,12 @@ function ComposerPage() {
     electronTrpc.atlas.supabase.waitForHealthy.useMutation();
   const supabaseWriteEnvMutation =
     electronTrpc.atlas.supabase.writeEnvFile.useMutation();
+  const vercelCreateMutation =
+    electronTrpc.atlas.vercel.createProject.useMutation();
+  const vercelDeployMutation =
+    electronTrpc.atlas.vercel.deploy.useMutation();
+  const vercelWaitMutation =
+    electronTrpc.atlas.vercel.waitForReady.useMutation();
   const trpcUtils = electronTrpc.useUtils();
 
   if (registryLoading || !registryData) {
@@ -109,6 +119,7 @@ function ComposerPage() {
 
     setPipeline({ ...INITIAL_PIPELINE, active: true });
     setSupabasePhase("idle");
+    setVercelPhase("idle");
     setStep(3);
 
     // Step 0: Extract + Git (both handled by compose mutation)
@@ -199,8 +210,9 @@ function ComposerPage() {
       updateStep(2, "done", `${sbProject.url} 생성 완료`);
       setSupabasePhase("done");
 
-      // Vercel: not yet implemented
-      updateStep(3, "skipped", "추후 배포 가능");
+      // Proceed to Vercel setup
+      setVercelPhase("setup");
+      updateStep(3, "pending", "Vercel 연결을 설정하세요");
     } catch (error) {
       updateStep(
         2,
@@ -208,14 +220,69 @@ function ComposerPage() {
         error instanceof Error ? error.message : "Supabase 프로젝트 생성 실패",
       );
       setSupabasePhase("done");
-      updateStep(3, "skipped", "추후 배포 가능");
+      // Still allow Vercel setup
+      setVercelPhase("setup");
+      updateStep(3, "pending", "Vercel 연결을 설정하세요");
     }
   };
 
   const handleSupabaseSkip = () => {
     setSupabasePhase("skipped");
     updateStep(2, "skipped", "나중에 연결");
-    updateStep(3, "skipped", "추후 배포 가능");
+    // Proceed to Vercel setup
+    setVercelPhase("setup");
+    updateStep(3, "pending", "Vercel 연결을 설정하세요");
+  };
+
+  const handleVercelComplete = async (
+    teamId: string | undefined,
+    _teamName: string,
+  ) => {
+    if (!pipeline.result) return;
+
+    setVercelPhase("creating");
+    updateStep(3, "running", "Vercel 프로젝트 생성 중...");
+
+    try {
+      const vcProject = await vercelCreateMutation.mutateAsync({
+        name: projectName.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+        teamId,
+        framework: "vite",
+        atlasProjectId: pipeline.result.projectId,
+      });
+
+      updateStep(3, "running", "배포 중...");
+      const deployment = await vercelDeployMutation.mutateAsync({
+        projectId: vcProject.id,
+        projectName: vcProject.name,
+        teamId,
+        atlasProjectId: pipeline.result.projectId,
+      });
+
+      updateStep(3, "running", "배포 완료 대기 중...");
+      const result = await vercelWaitMutation.mutateAsync({
+        deploymentId: deployment.id,
+      });
+
+      if (result.ready) {
+        updateStep(3, "done", `${result.url} 배포 완료`);
+      } else {
+        updateStep(3, "failed", result.error ?? "배포 시간 초과");
+      }
+      setVercelPhase("done");
+    } catch (error) {
+      updateStep(
+        3,
+        "failed",
+        error instanceof Error ? error.message : "Vercel 배포 실패",
+      );
+      setVercelPhase("done");
+    }
+  };
+
+  const handleVercelSkip = () => {
+    setVercelPhase("skipped");
+    updateStep(3, "skipped", "나중에 배포");
   };
 
   // Pipeline active: show progress
@@ -253,7 +320,16 @@ function ComposerPage() {
           />
         ) : null}
 
-        {pipeline.result && (supabasePhase === "done" || supabasePhase === "skipped") ? (
+        {vercelPhase === "setup" ? (
+          <VercelSetup
+            onComplete={handleVercelComplete}
+            onSkip={handleVercelSkip}
+          />
+        ) : null}
+
+        {pipeline.result &&
+        (supabasePhase === "done" || supabasePhase === "skipped") &&
+        (vercelPhase === "done" || vercelPhase === "skipped") ? (
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-green-500">
