@@ -254,7 +254,7 @@ describe("callSmallModel", () => {
 				credentialSource: "config",
 				issue: {
 					code: "expired",
-					capability: "chat",
+					capability: "small_model_tasks",
 					remediation: "reconnect",
 					message: "Anthropic session expired",
 				},

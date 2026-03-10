@@ -5,8 +5,8 @@ import {
 	isClaudeCredentialExpired,
 } from "../auth/anthropic";
 import {
+	getOpenAICredentialsFromAuthStorage,
 	isOpenAICredentialExpired,
-	type OpenAICredentials,
 } from "../auth/openai";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
@@ -34,53 +34,8 @@ import {
 	OAuthFlowController,
 	type OAuthFlowOptions,
 } from "./oauth-flow-controller";
-import {
-	parseOpenAIOAuthUrl,
-	summarizeOpenAIManualInput,
-} from "./openai-oauth-debug";
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
-
-function summarizeAnthropicAuthUrl(url: string): Record<string, unknown> {
-	try {
-		const parsed = new URL(url);
-		return {
-			authOrigin: parsed.origin,
-			authPathname: parsed.pathname,
-			hasStateParam: parsed.searchParams.has("state"),
-			hasCodeChallengeParam: parsed.searchParams.has("code_challenge"),
-		};
-	} catch {
-		return {
-			authOrigin: null,
-			authPathname: null,
-			hasStateParam: null,
-			hasCodeChallengeParam: null,
-		};
-	}
-}
-
-function summarizeAnthropicManualInput(input: string): Record<string, unknown> {
-	const trimmed = input.trim();
-	const looksLikeCallbackUrl = (() => {
-		try {
-			const url = new URL(trimmed);
-			return Boolean(
-				url.searchParams.get("code") && url.searchParams.get("state"),
-			);
-		} catch {
-			return false;
-		}
-	})();
-
-	return {
-		manualInputKind: looksLikeCallbackUrl
-			? "callback_url"
-			: "code_or_code_state",
-		manualInputHasStateDelimiter: trimmed.includes("#"),
-		manualInputLength: trimmed.length,
-	};
-}
 
 function hasAnthropicEnvCredential(variables: AnthropicEnvVariables): boolean {
 	return Boolean(
@@ -96,63 +51,6 @@ function stripAnthropicCredentialEnvVariables(
 	delete nextVariables.ANTHROPIC_API_KEY;
 	delete nextVariables.ANTHROPIC_AUTH_TOKEN;
 	return nextVariables;
-}
-
-function resolveOpenAICredentials(
-	authStorage: OpenAIAuthStorage,
-): OpenAICredentials | null {
-	authStorage.reload();
-	const credentials: OpenAICredentials[] = [];
-
-	for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
-		const credential = authStorage.get(providerId);
-		if (!credential) {
-			continue;
-		}
-
-		if (
-			credential.type === "api_key" &&
-			typeof credential.key === "string" &&
-			credential.key.trim().length > 0
-		) {
-			credentials.push({
-				apiKey: credential.key.trim(),
-				providerId,
-				source: "auth-storage",
-				kind: "apiKey",
-			});
-			continue;
-		}
-
-		if (
-			credential.type === "oauth" &&
-			typeof credential.access === "string" &&
-			credential.access.trim().length > 0
-		) {
-			const accountId =
-				typeof credential.accountId === "string" &&
-				credential.accountId.trim().length > 0
-					? credential.accountId.trim()
-					: undefined;
-			credentials.push({
-				apiKey: credential.access.trim(),
-				providerId,
-				source: "auth-storage",
-				kind: "oauth",
-				expiresAt:
-					typeof credential.expires === "number"
-						? credential.expires
-						: undefined,
-				accountId,
-			});
-		}
-	}
-
-	return (
-		credentials.find((credential) => !isOpenAICredentialExpired(credential)) ??
-		credentials[0] ??
-		null
-	);
 }
 
 interface ChatServiceOptions {
@@ -403,7 +301,9 @@ export class ChatService {
 	}
 
 	async getOpenAIAuthStatus(): Promise<AuthStatus> {
-		const credential = resolveOpenAICredentials(this.getAuthStorage());
+		const credential = getOpenAICredentialsFromAuthStorage(
+			this.getAuthStorage(),
+		);
 		const hasExpiredOAuth =
 			credential !== null && isOpenAICredentialExpired(credential);
 		const method = credential
@@ -606,63 +506,6 @@ export class ChatService {
 			defaultInstructions:
 				"Authorize OpenAI in your browser. If callback doesn't complete automatically, paste the code or callback URL here.",
 			supportsManualCodeInput: true,
-			onStartRequested: () => {
-				this.logOpenAIOAuth("start-requested");
-			},
-			onAuthInfo: (info) => {
-				const authDetails = parseOpenAIOAuthUrl(info.url);
-				this.logOpenAIOAuth("auth-url-received", authDetails);
-				if (authDetails.redirectUriMatchesExpected === false) {
-					this.logOpenAIOAuth("unexpected-callback-target", authDetails);
-				}
-			},
-			onPromptRequested: () => {
-				this.logOpenAIOAuth("manual-code-prompt-requested");
-			},
-			onManualCodeInputRequested: () => {
-				this.logOpenAIOAuth("manual-code-input-requested");
-			},
-			onLoginFailed: (message) => {
-				this.logOpenAIOAuth("login-failed", { message });
-			},
-			onAuthUrlTimeoutOrError: (message) => {
-				this.logOpenAIOAuth("auth-url-timeout-or-error", { message });
-			},
-			onAuthUrlReturned: () => {
-				this.logOpenAIOAuth("auth-url-returned-to-ui");
-			},
-			onCancelWithActiveSession: () => {
-				this.logOpenAIOAuth("cancel-requested-with-active-session");
-			},
-			onCancelWithoutSession: () => {
-				this.logOpenAIOAuth("cancel-requested-without-session");
-			},
-			onSessionCleared: () => {
-				this.logOpenAIOAuth("session-cleared");
-			},
-			onCompleteWithManualInput: (manualInput) => {
-				this.logOpenAIOAuth(
-					"complete-called-with-manual-input",
-					summarizeOpenAIManualInput(manualInput),
-				);
-			},
-			onCompleteWithoutManualInput: () => {
-				this.logOpenAIOAuth("complete-called-without-manual-input");
-			},
-			onLoginSettled: (hasError) => {
-				this.logOpenAIOAuth("login-promise-settled", { hasError });
-			},
-			onMissingOAuthCredential: (credentialType) => {
-				this.logOpenAIOAuth("complete-missing-oauth-credential", {
-					credentialType,
-				});
-			},
-			onCompleteSuccess: (credential) => {
-				this.logOpenAIOAuth("complete-success", {
-					credentialType: credential.type,
-					expiresAt: credential.expires,
-				});
-			},
 		};
 	}
 
@@ -678,62 +521,6 @@ export class ChatService {
 			defaultInstructions:
 				"Authorize Anthropic in your browser, then paste the code shown there (format: code#state).",
 			supportsManualCodeInput: true,
-			onStartRequested: () => {
-				this.logAnthropicOAuth("start-requested");
-			},
-			onAuthInfo: (info) => {
-				this.logAnthropicOAuth(
-					"auth-url-received",
-					summarizeAnthropicAuthUrl(info.url),
-				);
-			},
-			onPromptRequested: () => {
-				this.logAnthropicOAuth("manual-code-prompt-requested");
-			},
-			onManualCodeInputRequested: () => {
-				this.logAnthropicOAuth("manual-code-input-requested");
-			},
-			onLoginFailed: (message) => {
-				this.logAnthropicOAuth("login-failed", { message });
-			},
-			onAuthUrlTimeoutOrError: (message) => {
-				this.logAnthropicOAuth("auth-url-timeout-or-error", { message });
-			},
-			onAuthUrlReturned: () => {
-				this.logAnthropicOAuth("auth-url-returned-to-ui");
-			},
-			onCancelWithActiveSession: () => {
-				this.logAnthropicOAuth("cancel-requested-with-active-session");
-			},
-			onCancelWithoutSession: () => {
-				this.logAnthropicOAuth("cancel-requested-without-session");
-			},
-			onSessionCleared: () => {
-				this.logAnthropicOAuth("session-cleared");
-			},
-			onCompleteWithManualInput: (manualInput) => {
-				this.logAnthropicOAuth(
-					"complete-called-with-manual-input",
-					summarizeAnthropicManualInput(manualInput),
-				);
-			},
-			onCompleteWithoutManualInput: () => {
-				this.logAnthropicOAuth("complete-called-without-manual-input");
-			},
-			onLoginSettled: (hasError) => {
-				this.logAnthropicOAuth("login-promise-settled", { hasError });
-			},
-			onMissingOAuthCredential: (credentialType) => {
-				this.logAnthropicOAuth("complete-missing-oauth-credential", {
-					credentialType,
-				});
-			},
-			onCompleteSuccess: (credential) => {
-				this.logAnthropicOAuth("complete-success", {
-					credentialType: credential.type,
-					expiresAt: credential.expires,
-				});
-			},
 		};
 	}
 
@@ -778,30 +565,14 @@ export class ChatService {
 		this.currentAnthropicRuntimeEnv = runtimeEnv;
 	}
 
-	private logOpenAIOAuth(
-		event: string,
-		details: Record<string, unknown> = {},
-	): void {
-		console.info("[chat-service][openai-oauth]", {
-			event,
-			...details,
-		});
-	}
-
-	private logAnthropicOAuth(
-		event: string,
-		details: Record<string, unknown> = {},
-	): void {
-		console.info("[chat-service][anthropic-oauth]", {
-			event,
-			...details,
-		});
-	}
-
 	private logAuthResolution(
 		provider: "anthropic" | "openai",
 		details: Record<string, unknown>,
 	): void {
+		if (process.env.SUPERSET_DEBUG_AUTH !== "1") {
+			return;
+		}
+
 		console.info("[chat-service][auth-resolution]", {
 			provider,
 			...details,

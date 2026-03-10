@@ -5,7 +5,7 @@ import {
 } from "./provider-status";
 
 describe("deriveModelProviderStatus", () => {
-	it("marks a connected provider with missing small-model scope as needs attention", () => {
+	it("keeps a connected provider connected when only capability diagnostics fail", () => {
 		const diagnostic: ProviderDiagnostic = {
 			providerId: "openai",
 			issue: {
@@ -29,7 +29,8 @@ describe("deriveModelProviderStatus", () => {
 			diagnostic,
 		});
 
-		expect(status.connectionState).toBe("needs_attention");
+		expect(status.connectionState).toBe("connected");
+		expect(status.issue?.code).toBe("missing_scope");
 		expect(status.capabilities.canUseChat).toBe(true);
 		expect(status.capabilities.canGenerateWorkspaceTitle).toBe(false);
 		expect(status.capabilities.canUseSmallModelTasks).toBe(false);

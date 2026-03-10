@@ -80,7 +80,7 @@ export async function callSmallModel<TResult>({
 				providerName: provider.name,
 				outcome: "missing-credentials",
 			});
-			clearProviderIssue(provider.id);
+			clearProviderIssue(provider.id, "small_model_tasks");
 			continue;
 		}
 		if (
@@ -90,7 +90,7 @@ export async function callSmallModel<TResult>({
 		) {
 			const issue: ProviderIssue = {
 				code: "expired",
-				capability: "chat",
+				capability: "small_model_tasks",
 				remediation: "reconnect",
 				message: `${provider.name} session expired`,
 			};
@@ -146,7 +146,7 @@ export async function callSmallModel<TResult>({
 					credentialSource: credentials.source,
 					outcome: "succeeded",
 				});
-				clearProviderIssue(provider.id);
+				clearProviderIssue(provider.id, "small_model_tasks");
 				return { result, attempts };
 			}
 
@@ -157,7 +157,7 @@ export async function callSmallModel<TResult>({
 				credentialSource: credentials.source,
 				outcome: "empty-result",
 			});
-			clearProviderIssue(provider.id);
+			clearProviderIssue(provider.id, "small_model_tasks");
 		} catch (error) {
 			const reason = error instanceof Error ? error.message : String(error);
 			const issue = classifyProviderIssue({

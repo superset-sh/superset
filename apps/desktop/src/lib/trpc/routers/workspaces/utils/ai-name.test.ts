@@ -15,6 +15,22 @@ const generateTitleFromMessageWithStreamingModelMock = mock(
 	(async () => null) as (...args: unknown[]) => Promise<string | null>,
 );
 
+type SelectedWorkspace =
+	| {
+			id: string;
+			branch: string;
+			name: string;
+			isUnnamed: boolean;
+			deletingAt: number | null;
+	  }
+	| {
+			branch: string;
+			name: string;
+			isUnnamed: boolean;
+			deletingAt: number | null;
+	  }
+	| null;
+
 mock.module("lib/ai/call-small-model", () => ({
 	callSmallModel: callSmallModelMock,
 }));
@@ -32,22 +48,58 @@ mock.module("drizzle-orm", () => ({
 	isNull: mock(() => null),
 }));
 
+const selectGetMock = mock((): SelectedWorkspace => null);
+const updateRunMock = mock(() => ({ changes: 1 }));
+const localDbMock = {
+	select: mock(() => ({
+		from: () => ({
+			where: () => ({
+				get: selectGetMock,
+			}),
+		}),
+	})),
+	update: mock(() => ({
+		set: () => ({
+			where: () => ({
+				run: updateRunMock,
+			}),
+		}),
+	})),
+};
+
 mock.module("main/lib/local-db", () => ({
-	localDb: {},
+	localDb: localDbMock,
 }));
 
 mock.module("@superset/local-db", () => ({
-	workspaces: {},
+	workspaces: {
+		id: "id",
+		branch: "branch",
+		name: "name",
+		isUnnamed: "isUnnamed",
+		deletingAt: "deletingAt",
+		updatedAt: "updatedAt",
+	},
 }));
 
-const { generateWorkspaceNameFromPrompt } = await import("./ai-name");
+const {
+	attemptWorkspaceAutoRenameFromPrompt,
+	generateWorkspaceNameFromPrompt,
+} = await import("./ai-name");
 
 describe("generateWorkspaceNameFromPrompt", () => {
 	beforeEach(() => {
+		callSmallModelMock.mockClear();
 		callSmallModelMock.mockImplementation(async () => ({
 			result: null,
 			attempts: [],
 		}));
+		selectGetMock.mockReset();
+		selectGetMock.mockReturnValue(null);
+		updateRunMock.mockReset();
+		updateRunMock.mockReturnValue({ changes: 1 });
+		localDbMock.select.mockClear();
+		localDbMock.update.mockClear();
 		generateTitleFromMessageMock.mockClear();
 		generateTitleFromMessageWithStreamingModelMock.mockClear();
 	});
@@ -146,5 +198,82 @@ describe("generateWorkspaceNameFromPrompt", () => {
 			},
 		);
 		expect(generateTitleFromMessageMock).not.toHaveBeenCalled();
+	});
+
+	it("preserves empty-string model results instead of forcing fallback", async () => {
+		callSmallModelMock.mockImplementationOnce(async () => ({
+			result: "",
+			attempts: [],
+		}));
+
+		await expect(
+			generateWorkspaceNameFromPrompt("name this workspace"),
+		).resolves.toEqual({
+			name: "",
+			usedPromptFallback: false,
+		});
+	});
+});
+
+describe("attemptWorkspaceAutoRenameFromPrompt", () => {
+	beforeEach(() => {
+		callSmallModelMock.mockClear();
+		callSmallModelMock.mockImplementation(async () => ({
+			result: null,
+			attempts: [],
+		}));
+		selectGetMock.mockReset();
+		selectGetMock.mockReturnValue(null);
+		updateRunMock.mockReset();
+		updateRunMock.mockReturnValue({ changes: 1 });
+		localDbMock.select.mockClear();
+		localDbMock.update.mockClear();
+	});
+
+	it("skips already named workspaces before invoking provider naming", async () => {
+		selectGetMock.mockReturnValue({
+			id: "workspace-1",
+			branch: "main",
+			name: "Already named",
+			isUnnamed: false,
+			deletingAt: null,
+		});
+
+		await expect(
+			attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId: "workspace-1",
+				prompt: "rename me",
+			}),
+		).resolves.toEqual({
+			status: "skipped",
+			reason: "workspace-named",
+		});
+		expect(callSmallModelMock).not.toHaveBeenCalled();
+		expect(localDbMock.update).not.toHaveBeenCalled();
+	});
+
+	it("treats empty generated names as an empty-name skip, not a generation failure", async () => {
+		selectGetMock.mockReturnValue({
+			id: "workspace-1",
+			branch: "main",
+			name: "main",
+			isUnnamed: true,
+			deletingAt: null,
+		});
+		callSmallModelMock.mockImplementationOnce(async () => ({
+			result: "",
+			attempts: [],
+		}));
+
+		await expect(
+			attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId: "workspace-1",
+				prompt: "rename me",
+			}),
+		).resolves.toEqual({
+			status: "skipped",
+			reason: "empty-generated-name",
+		});
+		expect(localDbMock.update).not.toHaveBeenCalled();
 	});
 });

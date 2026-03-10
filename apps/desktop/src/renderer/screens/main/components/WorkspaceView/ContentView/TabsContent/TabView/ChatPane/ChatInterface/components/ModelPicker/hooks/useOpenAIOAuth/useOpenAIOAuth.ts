@@ -109,6 +109,24 @@ export function useOpenAIOAuth({
 		}
 	}, [oauthUrl]);
 
+	const syncOpenAIAuthUi = useCallback(
+		async (action: "complete" | "disconnect") => {
+			try {
+				await electronTrpcClient.modelProviders.clearIssue.mutate({
+					providerId: "openai",
+				});
+				await electronUtils.modelProviders.getStatuses.invalidate();
+				await refetchOpenAIStatus();
+			} catch (error) {
+				console.error(
+					`[model-picker] OpenAI OAuth ${action} follow-up refresh failed:`,
+					error,
+				);
+			}
+		},
+		[electronUtils.modelProviders.getStatuses.invalidate, refetchOpenAIStatus],
+	);
+
 	const completeOpenAIOAuth = useCallback(async () => {
 		setOauthError(null);
 		try {
@@ -116,51 +134,43 @@ export function useOpenAIOAuth({
 			await completeOpenAIOAuthMutation.mutateAsync({
 				code: code.length > 0 ? code : undefined,
 			});
-			await electronTrpcClient.modelProviders.clearIssue.mutate({
-				providerId: "openai",
-			});
-			await electronUtils.modelProviders.getStatuses.invalidate();
 			setHasPendingOAuthSession(false);
 			setOauthDialogOpen(false);
 			setOauthUrl(null);
 			setOauthCode("");
 			onModelSelectorOpenChange(true);
-			await refetchOpenAIStatus();
 		} catch (error) {
 			setOauthError(getErrorMessage(error, "Failed to complete OpenAI OAuth"));
+			return;
 		}
+		await syncOpenAIAuthUi("complete");
 	}, [
 		completeOpenAIOAuthMutation,
-		electronUtils.modelProviders.getStatuses.invalidate,
 		oauthCode,
 		onModelSelectorOpenChange,
-		refetchOpenAIStatus,
+		syncOpenAIAuthUi,
 	]);
 
 	const disconnectOpenAIOAuth = useCallback(async () => {
 		setOauthError(null);
 		try {
 			await disconnectOpenAIOAuthMutation.mutateAsync();
-			await electronTrpcClient.modelProviders.clearIssue.mutate({
-				providerId: "openai",
-			});
-			await electronUtils.modelProviders.getStatuses.invalidate();
 			setHasPendingOAuthSession(false);
 			setOauthDialogOpen(false);
 			setOauthUrl(null);
 			setOauthCode("");
 			onModelSelectorOpenChange(true);
-			await refetchOpenAIStatus();
 		} catch (error) {
 			setOauthError(
 				getErrorMessage(error, "Failed to disconnect OpenAI OAuth"),
 			);
+			return;
 		}
+		await syncOpenAIAuthUi("disconnect");
 	}, [
 		disconnectOpenAIOAuthMutation,
-		electronUtils.modelProviders.getStatuses,
 		onModelSelectorOpenChange,
-		refetchOpenAIStatus,
+		syncOpenAIAuthUi,
 	]);
 
 	const onOAuthDialogOpenChange = useCallback(

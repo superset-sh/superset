@@ -60,7 +60,7 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 			});
 		},
 	});
-	if (result) {
+	if (result !== null && result !== undefined) {
 		return { name: result, usedPromptFallback: false };
 	}
 
@@ -110,19 +110,6 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		return { status: "skipped", reason: "empty-prompt" };
 	}
 
-	const {
-		name: generatedName,
-		usedPromptFallback,
-		warning,
-	} = await generateWorkspaceNameFromPrompt(cleanedPrompt);
-	if (!generatedName) {
-		return {
-			status: "skipped",
-			reason: "generation-failed",
-			warning: warning ?? "Couldn't auto-name this workspace.",
-		};
-	}
-
 	const workspace = localDb
 		.select({
 			id: workspaces.id,
@@ -134,16 +121,39 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		.from(workspaces)
 		.where(eq(workspaces.id, workspaceId))
 		.get();
+	if (!workspace) {
+		return { status: "skipped", reason: "missing-workspace" };
+	}
+	if (workspace.deletingAt != null) {
+		return { status: "skipped", reason: "workspace-deleting" };
+	}
+	if (!workspace.isUnnamed) {
+		return { status: "skipped", reason: "workspace-named" };
+	}
+
+	const {
+		name: generatedName,
+		usedPromptFallback,
+		warning,
+	} = await generateWorkspaceNameFromPrompt(cleanedPrompt);
+	if (generatedName === null) {
+		return {
+			status: "skipped",
+			reason: "generation-failed",
+			warning: warning ?? "Couldn't auto-name this workspace.",
+		};
+	}
 
 	const decision = getWorkspaceAutoRenameDecision({
-		workspace: workspace ?? null,
+		workspace,
 		generatedName,
 	});
 	if (decision.kind === "skip") {
-		return { status: "skipped", reason: decision.reason };
-	}
-	if (!workspace) {
-		return { status: "skipped", reason: "missing-workspace" };
+		return {
+			status: "skipped",
+			reason: decision.reason,
+			...(warning ? { warning } : {}),
+		};
 	}
 
 	const renameResult = localDb

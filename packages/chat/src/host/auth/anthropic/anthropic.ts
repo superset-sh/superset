@@ -210,17 +210,23 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 }
 
 export function getCredentialsFromAnySource(): ClaudeCredentials | null {
-	const credentials = [
-		getCredentialsFromConfig(),
-		getCredentialsFromKeychain(),
-		getCredentialsFromAuthStorage(),
-	].filter(
-		(credential): credential is ClaudeCredentials => credential !== null,
-	);
+	const resolvers = [
+		getCredentialsFromConfig,
+		getCredentialsFromKeychain,
+		getCredentialsFromAuthStorage,
+	];
+	let firstExpired: ClaudeCredentials | null = null;
 
-	return (
-		credentials.find((credential) => !isClaudeCredentialExpired(credential)) ??
-		credentials[0] ??
-		null
-	);
+	for (const resolve of resolvers) {
+		const credential = resolve();
+		if (!credential) {
+			continue;
+		}
+		if (!isClaudeCredentialExpired(credential)) {
+			return credential;
+		}
+		firstExpired ??= credential;
+	}
+
+	return firstExpired;
 }

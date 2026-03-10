@@ -95,6 +95,9 @@ mock.module("mastracode", () => ({
 mock.module("../auth/anthropic", () => ({
 	getCredentialsFromConfig: () => anthropicConfigCredential,
 	getCredentialsFromKeychain: () => anthropicKeychainCredential,
+	getCredentialsFromAnySource: () => null,
+	getCredentialsFromAuthStorage: () => null,
+	getAnthropicProviderOptions: () => ({}),
 	isClaudeCredentialExpired: (credential: {
 		kind: "apiKey" | "oauth";
 		expiresAt?: number;
@@ -102,6 +105,8 @@ mock.module("../auth/anthropic", () => ({
 		credential.kind === "oauth" &&
 		typeof credential.expiresAt === "number" &&
 		Date.now() >= credential.expiresAt,
+	createAnthropicOAuthSession: () => {},
+	exchangeAnthropicAuthorizationCode: () => {},
 }));
 
 const { ChatService } = await import("./chat-service");
@@ -510,7 +515,7 @@ describe("ChatService OpenAI auth storage", () => {
 		await chatService.disconnectAnthropicOAuth();
 
 		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
-		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
+		expect(fakeAuthStorage.set).toHaveBeenLastCalledWith("anthropic", {
 			type: "api_key",
 			key: "gateway-token",
 		});

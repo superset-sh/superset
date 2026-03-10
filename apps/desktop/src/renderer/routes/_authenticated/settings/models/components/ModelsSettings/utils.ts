@@ -80,7 +80,7 @@ export function getProviderSubtitle(
 	providerId: ProviderId,
 	status: ModelProviderStatus | undefined,
 ): string {
-	if (status?.connectionState === "needs_attention" && status.issue) {
+	if (status?.issue) {
 		return status.issue.message;
 	}
 	if (!status || status.connectionState === "disconnected") {
@@ -107,7 +107,7 @@ export function getStatusBadge(
 	if (status.issue?.code === "expired") {
 		return { label: "Expired", variant: "destructive" };
 	}
-	if (status.connectionState === "needs_attention") {
+	if (status.issue) {
 		return { label: "Needs attention", variant: "outline" };
 	}
 	if (status.connectionState === "connected") {
@@ -131,7 +131,9 @@ export function resolveProviderStatus(params: {
 		authStatus,
 		diagnostic: {
 			providerId,
-			issue: diagnosticStatus?.issue ?? null,
+			issue: authStatus.authenticated
+				? (diagnosticStatus?.issue ?? null)
+				: null,
 			updatedAt: null,
 		},
 	});

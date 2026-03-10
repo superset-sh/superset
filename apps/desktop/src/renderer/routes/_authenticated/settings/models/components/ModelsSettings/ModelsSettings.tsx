@@ -240,7 +240,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			);
 		}
 
-		if (status.issue) {
+		if (status.issue?.remediation === "reconnect") {
 			return (
 				<Button
 					variant="outline"

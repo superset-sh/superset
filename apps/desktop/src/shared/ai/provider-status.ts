@@ -162,8 +162,8 @@ export function deriveModelProviderStatus(params: {
 
 	let connectionState: ProviderConnectionState = "disconnected";
 	if (authStatus.authenticated) {
-		connectionState = issue ? "needs_attention" : "connected";
-	} else if (issue) {
+		connectionState = authIssue ? "needs_attention" : "connected";
+	} else if (authIssue || authStatus.source !== null) {
 		connectionState = "needs_attention";
 	}
 

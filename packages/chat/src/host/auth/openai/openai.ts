@@ -1,6 +1,15 @@
 import { createAuthStorage } from "mastracode";
 import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 
+interface OpenAIAuthStorageLike {
+	reload: () => void;
+	get: (providerId: string) => unknown;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
 export interface OpenAICredentials {
 	apiKey: string;
 	providerId: (typeof OPENAI_AUTH_PROVIDER_IDS)[number];
@@ -20,15 +29,16 @@ export function isOpenAICredentialExpired(
 	);
 }
 
-export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null {
+export function getOpenAICredentialsFromAuthStorage(
+	authStorage: OpenAIAuthStorageLike = createAuthStorage(),
+): OpenAICredentials | null {
 	try {
-		const authStorage = createAuthStorage();
 		authStorage.reload();
 		const credentials: OpenAICredentials[] = [];
 
 		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
 			const credential = authStorage.get(providerId);
-			if (!credential) {
+			if (!isObjectRecord(credential)) {
 				continue;
 			}
 

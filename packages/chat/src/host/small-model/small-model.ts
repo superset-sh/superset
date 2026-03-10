@@ -80,28 +80,27 @@ function createOpenAICodexOAuthModel(credentials: OpenAICredentials) {
 				? refreshedCredential.accountId.trim()
 				: credentials.accountId?.trim() || undefined;
 
-		const headers = new Headers(init?.headers);
+		const baseRequest = new Request(url, init);
+		const parsedUrl = new URL(baseRequest.url);
+		const shouldRewrite =
+			parsedUrl.pathname.includes("/v1/responses") ||
+			parsedUrl.pathname.includes("/chat/completions");
+		const outgoingRequest = new Request(
+			shouldRewrite ? OPENAI_CODEX_API_ENDPOINT : baseRequest.url,
+			baseRequest,
+		);
+		const headers = new Headers(outgoingRequest.headers);
 		headers.delete("authorization");
 		headers.set("Authorization", `Bearer ${accessToken}`);
 		if (accountId) {
 			headers.set("ChatGPT-Account-Id", accountId);
 		}
 
-		const parsedUrl =
-			url instanceof URL
-				? url
-				: new URL(typeof url === "string" ? url : url.url);
-		const shouldRewrite =
-			parsedUrl.pathname.includes("/v1/responses") ||
-			parsedUrl.pathname.includes("/chat/completions");
-		const finalUrl = shouldRewrite
-			? new URL(OPENAI_CODEX_API_ENDPOINT)
-			: parsedUrl;
-
-		return fetch(finalUrl, {
-			...init,
-			headers,
-		});
+		return fetch(
+			new Request(outgoingRequest, {
+				headers,
+			}),
+		);
 	};
 	const bunFetch = globalThis.fetch as typeof fetch & {
 		preconnect?: typeof globalThis.fetch;
