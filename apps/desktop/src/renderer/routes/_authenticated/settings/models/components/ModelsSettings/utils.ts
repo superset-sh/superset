@@ -1,4 +1,9 @@
-import type { ModelProviderStatus } from "shared/ai/provider-status";
+import {
+	type AuthStatusLike,
+	deriveModelProviderStatus,
+	type ModelProviderStatus,
+	type ProviderId,
+} from "shared/ai/provider-status";
 
 export interface AnthropicFormValues {
 	apiKey: string;
@@ -124,4 +129,25 @@ export function getStatusBadge(
 		return { label: "Active", variant: "secondary" };
 	}
 	return null;
+}
+
+export function resolveProviderStatus(params: {
+	providerId: ProviderId;
+	authStatus?: AuthStatusLike;
+	diagnosticStatus?: ModelProviderStatus;
+}): ModelProviderStatus | undefined {
+	const { providerId, authStatus, diagnosticStatus } = params;
+	if (!authStatus) {
+		return diagnosticStatus;
+	}
+
+	return deriveModelProviderStatus({
+		providerId,
+		authStatus,
+		diagnostic: {
+			providerId,
+			issue: diagnosticStatus?.issue ?? null,
+			updatedAt: null,
+		},
+	});
 }

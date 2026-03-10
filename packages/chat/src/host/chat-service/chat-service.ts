@@ -37,6 +37,47 @@ import {
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
+function summarizeAnthropicAuthUrl(url: string): Record<string, unknown> {
+	try {
+		const parsed = new URL(url);
+		return {
+			authOrigin: parsed.origin,
+			authPathname: parsed.pathname,
+			hasStateParam: parsed.searchParams.has("state"),
+			hasCodeChallengeParam: parsed.searchParams.has("code_challenge"),
+		};
+	} catch {
+		return {
+			authOrigin: null,
+			authPathname: null,
+			hasStateParam: null,
+			hasCodeChallengeParam: null,
+		};
+	}
+}
+
+function summarizeAnthropicManualInput(input: string): Record<string, unknown> {
+	const trimmed = input.trim();
+	const looksLikeCallbackUrl = (() => {
+		try {
+			const url = new URL(trimmed);
+			return Boolean(
+				url.searchParams.get("code") && url.searchParams.get("state"),
+			);
+		} catch {
+			return false;
+		}
+	})();
+
+	return {
+		manualInputKind: looksLikeCallbackUrl
+			? "callback_url"
+			: "code_or_code_state",
+		manualInputHasStateDelimiter: trimmed.includes("#"),
+		manualInputLength: trimmed.length,
+	};
+}
+
 interface ChatServiceOptions {
 	anthropicEnvConfigPath?: string;
 }
@@ -539,6 +580,63 @@ export class ChatService {
 				"Anthropic auth session expired. Start auth again and paste a fresh code.",
 			defaultInstructions:
 				"Authorize Anthropic in your browser, then paste the code shown there (format: code#state).",
+			supportsManualCodeInput: true,
+			onStartRequested: () => {
+				this.logAnthropicOAuth("start-requested");
+			},
+			onAuthInfo: (info) => {
+				this.logAnthropicOAuth(
+					"auth-url-received",
+					summarizeAnthropicAuthUrl(info.url),
+				);
+			},
+			onPromptRequested: () => {
+				this.logAnthropicOAuth("manual-code-prompt-requested");
+			},
+			onManualCodeInputRequested: () => {
+				this.logAnthropicOAuth("manual-code-input-requested");
+			},
+			onLoginFailed: (message) => {
+				this.logAnthropicOAuth("login-failed", { message });
+			},
+			onAuthUrlTimeoutOrError: (message) => {
+				this.logAnthropicOAuth("auth-url-timeout-or-error", { message });
+			},
+			onAuthUrlReturned: () => {
+				this.logAnthropicOAuth("auth-url-returned-to-ui");
+			},
+			onCancelWithActiveSession: () => {
+				this.logAnthropicOAuth("cancel-requested-with-active-session");
+			},
+			onCancelWithoutSession: () => {
+				this.logAnthropicOAuth("cancel-requested-without-session");
+			},
+			onSessionCleared: () => {
+				this.logAnthropicOAuth("session-cleared");
+			},
+			onCompleteWithManualInput: (manualInput) => {
+				this.logAnthropicOAuth(
+					"complete-called-with-manual-input",
+					summarizeAnthropicManualInput(manualInput),
+				);
+			},
+			onCompleteWithoutManualInput: () => {
+				this.logAnthropicOAuth("complete-called-without-manual-input");
+			},
+			onLoginSettled: (hasError) => {
+				this.logAnthropicOAuth("login-promise-settled", { hasError });
+			},
+			onMissingOAuthCredential: (credentialType) => {
+				this.logAnthropicOAuth("complete-missing-oauth-credential", {
+					credentialType,
+				});
+			},
+			onCompleteSuccess: (credential) => {
+				this.logAnthropicOAuth("complete-success", {
+					credentialType: credential.type,
+					expiresAt: credential.expires,
+				});
+			},
 		};
 	}
 
@@ -602,6 +700,16 @@ export class ChatService {
 		details: Record<string, unknown> = {},
 	): void {
 		console.info("[chat-service][openai-oauth]", {
+			event,
+			...details,
+		});
+	}
+
+	private logAnthropicOAuth(
+		event: string,
+		details: Record<string, unknown> = {},
+	): void {
+		console.info("[chat-service][anthropic-oauth]", {
 			event,
 			...details,
 		});

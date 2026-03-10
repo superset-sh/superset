@@ -30,6 +30,7 @@ import {
 	getOpenAISubtitle,
 	getStatusBadge,
 	parseAnthropicForm,
+	resolveProviderStatus,
 } from "./utils";
 
 interface ModelsSettingsProps {
@@ -54,12 +55,16 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 	const { data: providerStatuses, refetch: refetchProviderStatuses } =
 		electronTrpc.modelProviders.getStatuses.useQuery();
-	const anthropicStatus = providerStatuses?.find(
+	const anthropicDiagnosticStatus = providerStatuses?.find(
 		(status) => status.providerId === "anthropic",
 	);
-	const openAIStatus = providerStatuses?.find(
+	const openAIDiagnosticStatus = providerStatuses?.find(
 		(status) => status.providerId === "openai",
 	);
+	const { data: anthropicAuthStatus } =
+		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
+	const { data: openAIAuthStatus } =
+		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
 	const { data: anthropicEnvConfig, refetch: refetchAnthropicEnvConfig } =
 		chatServiceTrpc.auth.getAnthropicEnvConfig.useQuery();
 	const setAnthropicEnvConfigMutation =
@@ -99,6 +104,26 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	useEffect(() => {
 		setAnthropicForm(parseAnthropicForm(anthropicEnvConfig?.envText ?? ""));
 	}, [anthropicEnvConfig?.envText]);
+
+	const anthropicStatus = useMemo(
+		() =>
+			resolveProviderStatus({
+				providerId: "anthropic",
+				authStatus: anthropicAuthStatus,
+				diagnosticStatus: anthropicDiagnosticStatus,
+			}),
+		[anthropicAuthStatus, anthropicDiagnosticStatus],
+	);
+
+	const openAIStatus = useMemo(
+		() =>
+			resolveProviderStatus({
+				providerId: "openai",
+				authStatus: openAIAuthStatus,
+				diagnosticStatus: openAIDiagnosticStatus,
+			}),
+		[openAIAuthStatus, openAIDiagnosticStatus],
+	);
 
 	const anthropicSubtitle = useMemo(
 		() => getAnthropicSubtitle(anthropicStatus),
