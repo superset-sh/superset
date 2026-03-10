@@ -8,9 +8,22 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { join } from "node:path";
+import ts from "typescript";
+import { mainExternalizedDependencies } from "../runtime-dependencies";
 
 const projectRoot = join(import.meta.dirname, "..");
+const allowedBareRequirePackages = new Set([
+	"electron",
+	...mainExternalizedDependencies,
+]);
+const builtinModuleSpecifiers = new Set([
+	...builtinModules,
+	...builtinModules
+		.filter((specifier) => !specifier.startsWith("node:"))
+		.map((specifier) => `node:${specifier}`),
+]);
 
 function fail(message: string): never {
 	console.error(`[validate:native-runtime] ${message}`);
@@ -152,6 +165,102 @@ function validateWorkspacePackagesBundled(): void {
 
 	console.log(
 		"[validate:native-runtime] OK: workspace packages are bundled into the main output",
+	);
+}
+
+function getPackageName(specifier: string): string {
+	if (specifier.startsWith("@")) {
+		const [scope, name] = specifier.split("/");
+		return `${scope}/${name}`;
+	}
+
+	return specifier.split("/")[0] ?? specifier;
+}
+
+function isAllowedBareRequire(specifier: string): boolean {
+	if (builtinModuleSpecifiers.has(specifier)) {
+		return true;
+	}
+
+	return allowedBareRequirePackages.has(getPackageName(specifier));
+}
+
+function collectBareRequireSpecifiers(filePath: string): string[] {
+	const content = readFileSync(filePath, "utf8");
+	const sourceFile = ts.createSourceFile(
+		filePath,
+		content,
+		ts.ScriptTarget.Latest,
+		false,
+		ts.ScriptKind.JS,
+	);
+	const specifiers: string[] = [];
+
+	function visit(node: ts.Node): void {
+		if (
+			ts.isCallExpression(node) &&
+			ts.isIdentifier(node.expression) &&
+			node.expression.text === "require" &&
+			node.arguments.length === 1
+		) {
+			const [argument] = node.arguments;
+			if (argument && ts.isStringLiteralLike(argument)) {
+				specifiers.push(argument.text);
+			}
+		}
+
+		ts.forEachChild(node, visit);
+	}
+
+	visit(sourceFile);
+
+	return specifiers.filter(
+		(specifier) => !specifier.startsWith(".") && !specifier.startsWith("/"),
+	);
+}
+
+function validateOnlyExpectedExternalRequires(): void {
+	const distMainDir = join(projectRoot, "dist", "main");
+	assertExists(
+		distMainDir,
+		"Main bundle output not found. Run `bun run compile:app` first.",
+	);
+
+	const jsFiles = collectFiles(distMainDir).filter((filePath) =>
+		filePath.endsWith(".js"),
+	);
+	const unexpectedRequires = new Map<string, Set<string>>();
+
+	for (const filePath of jsFiles) {
+		for (const specifier of collectBareRequireSpecifiers(filePath)) {
+			if (isAllowedBareRequire(specifier)) {
+				continue;
+			}
+
+			const existingFiles = unexpectedRequires.get(specifier) ?? new Set();
+			existingFiles.add(filePath);
+			unexpectedRequires.set(specifier, existingFiles);
+		}
+	}
+
+	if (unexpectedRequires.size > 0) {
+		const unexpectedList = [...unexpectedRequires.entries()]
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(
+				([specifier, files]) =>
+					`${specifier} (${[...files].sort().join(", ")})`,
+			);
+		fail(
+			[
+				"Detected unexpected external package requires in dist/main output.",
+				"Only Node builtins, `electron`, and the explicit runtime/native allowlist may remain external.",
+				...unexpectedList,
+			].join("\n"),
+		);
+	}
+
+	console.log(
+		"[validate:native-runtime] OK: main output only contains expected external requires",
 	);
 }
 
@@ -371,6 +480,7 @@ function validateParcelWatcherPrepared(): void {
 
 function main(): void {
 	validateWorkspacePackagesBundled();
+	validateOnlyExpectedExternalRequires();
 	validateLibsqlNotBundled();
 	validateParcelWatcherNotBundled();
 	validateNativeModulesPrepared();

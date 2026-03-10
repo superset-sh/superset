@@ -77,20 +77,6 @@ const packagedSupportModules = [
 	copyWholeModule("is-extglob"),
 	copyWholeModule("picomatch"),
 	copyWholeModule("node-addon-api"),
-	copyWholeModule("friendly-words"),
-];
-
-// @superset/local-db is bundled into the main process bundle, so its pure-JS
-// runtime deps must be bundled too. If they are externalized, packaged apps
-// try to resolve them from app.asar/node_modules at startup.
-export const bundledMainDependencies = [
-	"drizzle-orm",
-	"drizzle-orm/better-sqlite3",
-	"drizzle-orm/better-sqlite3/migrator",
-	"drizzle-orm/sqlite-core",
-	"uuid",
-	"zod",
-	"zod/v4",
 ];
 
 export const mainExternalizedDependencies = [
@@ -118,5 +104,4 @@ export const requiredMaterializedNodeModules = [
 	"is-extglob",
 	"picomatch",
 	"node-addon-api",
-	"friendly-words",
 ];
