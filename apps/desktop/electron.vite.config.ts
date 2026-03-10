@@ -122,7 +122,7 @@ export default defineConfig({
 					// Worker-thread entrypoint for heavy git/status computations
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
-					"workspace-service": resolve("src/main/workspace-service/index.ts"),
+					"host-service": resolve("src/main/host-service/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

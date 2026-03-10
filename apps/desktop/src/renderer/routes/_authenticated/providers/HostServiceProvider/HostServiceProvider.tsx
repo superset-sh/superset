@@ -10,31 +10,26 @@ import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
-	getWorkspaceServiceClient,
-	type WorkspaceServiceClient,
-} from "renderer/lib/workspace-service-client";
+	getHostServiceClient,
+	type HostServiceClient,
+} from "renderer/lib/host-service-client";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useCollections } from "../CollectionsProvider";
 
 export interface OrgService {
 	port: number;
 	url: string;
-	client: WorkspaceServiceClient;
+	client: HostServiceClient;
 }
 
-interface WorkspaceServiceContextValue {
+interface HostServiceContextValue {
 	/** Map of organizationId → { port, url, client } for all running services */
 	services: Map<string, OrgService>;
 }
 
-const WorkspaceServiceContext =
-	createContext<WorkspaceServiceContextValue | null>(null);
+const HostServiceContext = createContext<HostServiceContextValue | null>(null);
 
-export function WorkspaceServiceProvider({
-	children,
-}: {
-	children: ReactNode;
-}) {
+export function HostServiceProvider({ children }: { children: ReactNode }) {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const utils = electronTrpc.useUtils();
@@ -53,14 +48,14 @@ export function WorkspaceServiceProvider({
 		[organizations],
 	);
 
-	// Start a workspace service for every org
+	// Start a host service for every org
 	useEffect(() => {
 		for (const orgId of orgIds) {
-			utils.workspaceServiceManager.getLocalPort
+			utils.hostServiceManager.getLocalPort
 				.ensureData({ organizationId: orgId })
 				.catch((err) => {
 					console.error(
-						`[workspace-service] Failed to start for org ${orgId}:`,
+						`[host-service] Failed to start for org ${orgId}:`,
 						err,
 					);
 				});
@@ -69,7 +64,7 @@ export function WorkspaceServiceProvider({
 
 	// Query the active org's port reactively
 	const { data: activePortData } =
-		electronTrpc.workspaceServiceManager.getLocalPort.useQuery(
+		electronTrpc.hostServiceManager.getLocalPort.useQuery(
 			{ organizationId: activeOrganizationId as string },
 			{ enabled: !!activeOrganizationId },
 		);
@@ -82,12 +77,12 @@ export function WorkspaceServiceProvider({
 			map.set(orgId, {
 				port,
 				url: `http://127.0.0.1:${port}`,
-				client: getWorkspaceServiceClient(port),
+				client: getHostServiceClient(port),
 			});
 		};
 
 		for (const orgId of orgIds) {
-			const cached = utils.workspaceServiceManager.getLocalPort.getData({
+			const cached = utils.hostServiceManager.getLocalPort.getData({
 				organizationId: orgId,
 			});
 			if (cached?.port) {
@@ -110,18 +105,16 @@ export function WorkspaceServiceProvider({
 	const value = useMemo(() => ({ services }), [services]);
 
 	return (
-		<WorkspaceServiceContext.Provider value={value}>
+		<HostServiceContext.Provider value={value}>
 			{children}
-		</WorkspaceServiceContext.Provider>
+		</HostServiceContext.Provider>
 	);
 }
 
-export function useWorkspaceService(): WorkspaceServiceContextValue {
-	const context = useContext(WorkspaceServiceContext);
+export function useHostService(): HostServiceContextValue {
+	const context = useContext(HostServiceContext);
 	if (!context) {
-		throw new Error(
-			"useWorkspaceService must be used within WorkspaceServiceProvider",
-		);
+		throw new Error("useHostService must be used within HostServiceProvider");
 	}
 	return context;
 }

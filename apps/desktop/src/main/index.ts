@@ -28,6 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
+import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
 import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -37,7 +38,6 @@ import {
 	reconcileDaemonSessions,
 } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
-import { getWorkspaceServiceManager } from "./lib/workspace-service-manager";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -199,7 +199,7 @@ app.on("before-quit", async (event) => {
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	await outlit.shutdown();
-	getWorkspaceServiceManager().stopAll();
+	getHostServiceManager().stopAll();
 	disposeTray();
 	app.exit(0);
 });

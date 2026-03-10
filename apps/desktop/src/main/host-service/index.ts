@@ -1,14 +1,14 @@
 /**
  * Workspace Service — Desktop Entry Point
  *
- * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/workspace-service.js
+ * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/host-service.js
  *
- * Starts the workspace-service HTTP server on a random local port.
+ * Starts the host-service HTTP server on a random local port.
  * The parent Electron process reads the port from stdout.
  */
 
 import { serve } from "@hono/node-server";
-import app from "@superset/workspace-service";
+import app from "@superset/host-service";
 
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
@@ -32,7 +32,7 @@ const parentCheck = setInterval(() => {
 		process.kill(parentPid, 0);
 	} catch {
 		clearInterval(parentCheck);
-		console.log("[workspace-service] Parent process exited, shutting down");
+		console.log("[host-service] Parent process exited, shutting down");
 		shutdown();
 	}
 }, 2000);

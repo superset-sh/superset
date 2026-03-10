@@ -1,4 +1,4 @@
-import type { AppRouter } from "@superset/workspace-service";
+import type { AppRouter } from "@superset/host-service";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 
@@ -7,13 +7,9 @@ const clientCache = new Map<
 	ReturnType<typeof createTRPCClient<AppRouter>>
 >();
 
-export type WorkspaceServiceClient = ReturnType<
-	typeof createTRPCClient<AppRouter>
->;
+export type HostServiceClient = ReturnType<typeof createTRPCClient<AppRouter>>;
 
-export function getWorkspaceServiceClient(
-	port: number,
-): WorkspaceServiceClient {
+export function getHostServiceClient(port: number): HostServiceClient {
 	const cached = clientCache.get(port);
 	if (cached) return cached;
 

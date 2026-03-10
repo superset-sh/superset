@@ -5,7 +5,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import { useWorkspaceService } from "renderer/routes/_authenticated/providers/WorkspaceServiceProvider";
+import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
 type HealthStatus = "unknown" | "ok" | "error";
@@ -17,9 +17,9 @@ interface ServiceInfo {
 	uptime: number;
 }
 
-export function WorkspaceServiceStatus() {
+export function HostServiceStatus() {
 	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD);
-	const { services } = useWorkspaceService();
+	const { services } = useHostService();
 	const { data: session } = authClient.useSession();
 
 	const activeOrgId = env.SKIP_ENV_VALIDATION

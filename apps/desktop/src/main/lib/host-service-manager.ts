@@ -1,12 +1,12 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import path from "node:path";
 
-type WorkspaceServiceStatus = "starting" | "running" | "crashed";
+type HostServiceStatus = "starting" | "running" | "crashed";
 
-interface WorkspaceServiceProcess {
+interface HostServiceProcess {
 	process: ChildProcess;
 	port: number | null;
-	status: WorkspaceServiceStatus;
+	status: HostServiceStatus;
 	restartCount: number;
 	lastCrash?: number;
 	organizationId: string;
@@ -15,9 +15,9 @@ interface WorkspaceServiceProcess {
 const MAX_RESTART_DELAY = 30_000;
 const BASE_RESTART_DELAY = 1_000;
 
-class WorkspaceServiceManager {
-	private instances = new Map<string, WorkspaceServiceProcess>();
-	private scriptPath = path.join(__dirname, "workspace-service.js");
+class HostServiceManager {
+	private instances = new Map<string, HostServiceProcess>();
+	private scriptPath = path.join(__dirname, "host-service.js");
 
 	async start(organizationId: string): Promise<number> {
 		const existing = this.instances.get(organizationId);
@@ -50,7 +50,7 @@ class WorkspaceServiceManager {
 		return this.instances.get(organizationId)?.port ?? null;
 	}
 
-	getStatus(organizationId: string): WorkspaceServiceStatus | null {
+	getStatus(organizationId: string): HostServiceStatus | null {
 		return this.instances.get(organizationId)?.status ?? null;
 	}
 
@@ -60,7 +60,7 @@ class WorkspaceServiceManager {
 			env: { ELECTRON_RUN_AS_NODE: "1" },
 		});
 
-		const instance: WorkspaceServiceProcess = {
+		const instance: HostServiceProcess = {
 			process: child,
 			port: null,
 			status: "starting",
@@ -72,14 +72,12 @@ class WorkspaceServiceManager {
 
 		child.stderr?.on("data", (data: Buffer) => {
 			console.error(
-				`[workspace-service:${organizationId}] ${data.toString().trim()}`,
+				`[host-service:${organizationId}] ${data.toString().trim()}`,
 			);
 		});
 
 		child.on("exit", (code) => {
-			console.log(
-				`[workspace-service:${organizationId}] exited with code ${code}`,
-			);
+			console.log(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
 			if (
 				current &&
@@ -122,13 +120,11 @@ class WorkspaceServiceManager {
 					instance.port = parsed.port;
 					instance.status = "running";
 					console.log(
-						`[workspace-service:${organizationId}] listening on port ${parsed.port}`,
+						`[host-service:${organizationId}] listening on port ${parsed.port}`,
 					);
 					resolve(parsed.port);
 				} catch {
-					reject(
-						new Error(`Failed to parse port from workspace-service: ${line}`),
-					);
+					reject(new Error(`Failed to parse port from host-service: ${line}`));
 				}
 			};
 
@@ -137,7 +133,7 @@ class WorkspaceServiceManager {
 			// Timeout after 10s
 			setTimeout(() => {
 				instance.process.stdout?.off("data", onData);
-				reject(new Error("Timeout waiting for workspace-service port"));
+				reject(new Error("Timeout waiting for host-service port"));
 			}, 10_000);
 		});
 	}
@@ -153,7 +149,7 @@ class WorkspaceServiceManager {
 		instance.restartCount++;
 
 		console.log(
-			`[workspace-service:${organizationId}] restarting in ${delay}ms (attempt ${instance.restartCount})`,
+			`[host-service:${organizationId}] restarting in ${delay}ms (attempt ${instance.restartCount})`,
 		);
 
 		setTimeout(() => {
@@ -162,7 +158,7 @@ class WorkspaceServiceManager {
 				this.instances.delete(organizationId);
 				this.spawn(organizationId).catch((err) => {
 					console.error(
-						`[workspace-service:${organizationId}] restart failed:`,
+						`[host-service:${organizationId}] restart failed:`,
 						err,
 					);
 				});
@@ -171,11 +167,11 @@ class WorkspaceServiceManager {
 	}
 }
 
-let manager: WorkspaceServiceManager | null = null;
+let manager: HostServiceManager | null = null;
 
-export function getWorkspaceServiceManager(): WorkspaceServiceManager {
+export function getHostServiceManager(): HostServiceManager {
 	if (!manager) {
-		manager = new WorkspaceServiceManager();
+		manager = new HostServiceManager();
 	}
 	return manager;
 }
