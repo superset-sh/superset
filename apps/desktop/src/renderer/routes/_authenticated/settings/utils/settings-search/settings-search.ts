@@ -49,6 +49,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
 
 	// API Keys
@@ -735,6 +736,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"folder",
 			"storage",
 			"override",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+		section: "project",
+		title: "Import Worktrees",
+		description: "Import existing worktrees from disk into Superset",
+		keywords: [
+			"project",
+			"import",
+			"worktree",
+			"worktrees",
+			"workspace",
+			"workspaces",
+			"external",
+			"existing",
+			"disk",
+			"add",
 		],
 	},
 	{

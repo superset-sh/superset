@@ -47,6 +47,11 @@ import {
 	WorktreeLocationPicker,
 } from "../../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
+import type { SettingItemId } from "../../../../utils/settings-search";
+import {
+	isItemVisible,
+	SETTING_ITEM_ID,
+} from "../../../../utils/settings-search";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
@@ -80,9 +85,13 @@ export function SettingsSection({
 
 interface ProjectSettingsProps {
 	projectId: string;
+	visibleItems?: SettingItemId[] | null;
 }
 
-export function ProjectSettings({ projectId }: ProjectSettingsProps) {
+export function ProjectSettings({
+	projectId,
+	visibleItems,
+}: ProjectSettingsProps) {
 	const utils = electronTrpc.useUtils();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
@@ -416,92 +425,103 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 						}
 					/>
 
-					{!isExternalLoading && externalWorktrees.length > 0 && (
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label className="text-sm font-medium">Import Worktrees</Label>
-								<p className="text-xs text-muted-foreground">
-									{externalWorktrees.length} external worktree
-									{externalWorktrees.length === 1 ? "" : "s"} found on disk.
-								</p>
-							</div>
-							<div className="flex items-center gap-2">
-								<Select
-									value={selectedWorktreePath ?? "__all__"}
-									onValueChange={(value) =>
-										setSelectedWorktreePath(value === "__all__" ? null : value)
-									}
-								>
-									<SelectTrigger className="w-[220px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="__all__">
-											All worktrees ({externalWorktrees.length})
-										</SelectItem>
-										{externalWorktrees.map((wt) => (
-											<SelectItem key={wt.path} value={wt.path}>
-												{wt.branch}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								{selectedWorktreePath ? (
-									<Button
-										size="sm"
-										className="w-22"
-										disabled={openExternalWorktree.isPending}
-										onClick={() => {
-											const wt = externalWorktrees.find(
-												(w) => w.path === selectedWorktreePath,
-											);
-											if (wt) {
-												handleImportWorktree(wt.path, wt.branch);
-												setSelectedWorktreePath(null);
-											}
-										}}
+					{!isExternalLoading &&
+						externalWorktrees.length > 0 &&
+						isItemVisible(
+							SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+							visibleItems,
+						) && (
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label className="text-sm font-medium">
+										Import Worktrees
+									</Label>
+									<p className="text-xs text-muted-foreground">
+										{externalWorktrees.length} external worktree
+										{externalWorktrees.length === 1 ? "" : "s"} found on disk.
+									</p>
+								</div>
+								<div className="flex items-center gap-2">
+									<Select
+										value={selectedWorktreePath ?? "__all__"}
+										onValueChange={(value) =>
+											setSelectedWorktreePath(
+												value === "__all__" ? null : value,
+											)
+										}
 									>
-										{openExternalWorktree.isPending ? "Importing..." : "Import"}
-									</Button>
-								) : (
-									<AlertDialog>
-										<AlertDialogTrigger asChild>
-											<Button
-												size="sm"
-												className="w-22"
-												disabled={importAllWorktrees.isPending}
-											>
-												{importAllWorktrees.isPending
-													? "Importing..."
-													: "Import all"}
-											</Button>
-										</AlertDialogTrigger>
-										<AlertDialogContent>
-											<AlertDialogHeader>
-												<AlertDialogTitle>
-													Import all worktrees
-												</AlertDialogTitle>
-												<AlertDialogDescription>
-													This will import {externalWorktrees.length} external
-													worktree
-													{externalWorktrees.length === 1 ? "" : "s"} into
-													Superset as workspaces. Each worktree on disk will be
-													tracked and appear in your sidebar. No files will be
-													modified.
-												</AlertDialogDescription>
-											</AlertDialogHeader>
-											<AlertDialogFooter>
-												<AlertDialogCancel>Cancel</AlertDialogCancel>
-												<AlertDialogAction onClick={handleImportAll}>
-													Import all
-												</AlertDialogAction>
-											</AlertDialogFooter>
-										</AlertDialogContent>
-									</AlertDialog>
-								)}
+										<SelectTrigger className="w-[220px]">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="__all__">
+												All worktrees ({externalWorktrees.length})
+											</SelectItem>
+											{externalWorktrees.map((wt) => (
+												<SelectItem key={wt.path} value={wt.path}>
+													{wt.branch}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									{selectedWorktreePath ? (
+										<Button
+											size="sm"
+											className="w-22"
+											disabled={openExternalWorktree.isPending}
+											onClick={() => {
+												const wt = externalWorktrees.find(
+													(w) => w.path === selectedWorktreePath,
+												);
+												if (wt) {
+													handleImportWorktree(wt.path, wt.branch);
+													setSelectedWorktreePath(null);
+												}
+											}}
+										>
+											{openExternalWorktree.isPending
+												? "Importing..."
+												: "Import"}
+										</Button>
+									) : (
+										<AlertDialog>
+											<AlertDialogTrigger asChild>
+												<Button
+													size="sm"
+													className="w-22"
+													disabled={importAllWorktrees.isPending}
+												>
+													{importAllWorktrees.isPending
+														? "Importing..."
+														: "Import all"}
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent>
+												<AlertDialogHeader>
+													<AlertDialogTitle>
+														Import all worktrees
+													</AlertDialogTitle>
+													<AlertDialogDescription>
+														This will import {externalWorktrees.length} external
+														worktree
+														{externalWorktrees.length === 1 ? "" : "s"} into
+														Superset as workspaces. Each worktree on disk will
+														be tracked and appear in your sidebar. No files will
+														be modified.
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel>Cancel</AlertDialogCancel>
+													<AlertDialogAction onClick={handleImportAll}>
+														Import all
+													</AlertDialogAction>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									)}
+								</div>
 							</div>
-						</div>
-					)}
+						)}
 				</SettingsSection>
 
 				<div className="pt-3 border-t">
