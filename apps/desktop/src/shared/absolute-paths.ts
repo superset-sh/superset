@@ -87,7 +87,6 @@ export function retargetAbsolutePath(
 ): string | null {
 	const normalizedCurrentPath = normalizeComparablePath(currentPath);
 	const normalizedOldPath = normalizeComparablePath(oldAbsolutePath);
-	const normalizedNewPath = normalizeComparablePath(newAbsolutePath);
 
 	if (normalizedCurrentPath === normalizedOldPath) {
 		return newAbsolutePath;
@@ -103,5 +102,6 @@ export function retargetAbsolutePath(
 
 	const suffix = normalizedCurrentPath.slice(normalizedOldPath.length);
 	const separator = newAbsolutePath.includes("\\") ? "\\" : "/";
-	return `${normalizedNewPath}${suffix}`.replace(/\//g, separator);
+	const normalizedNewAbsolutePath = newAbsolutePath.replace(/[\\/]+/g, "/");
+	return `${normalizedNewAbsolutePath}${suffix}`.replace(/\//g, separator);
 }

@@ -29,6 +29,8 @@ export class WorkspaceFsPathError extends Error {
 	}
 }
 
+const MAX_COPY_NAME_ATTEMPTS = 1000;
+
 interface EnsureWithinRootOptions {
 	rootPath: string;
 	absolutePath: string;
@@ -421,12 +423,11 @@ export async function deletePaths({
 
 	for (const absolutePath of absolutePaths) {
 		try {
-			if (permanent) {
-				await deletePath({ rootPath, absolutePath });
-			} else if (trashItem) {
+			if (!permanent && trashItem) {
 				const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 				await trashItem(targetPath);
 			} else {
+				// Permanent delete, or no trash implementation is available.
 				await deletePath({ rootPath, absolutePath });
 			}
 			deleted.push(ensureWithinRoot({ rootPath, absolutePath }));
@@ -512,6 +513,12 @@ export async function copyPaths({
 
 			let counter = 1;
 			while (true) {
+				if (counter > MAX_COPY_NAME_ATTEMPTS) {
+					throw new Error(
+						`Failed to find unique copy target for ${fileName} after ${MAX_COPY_NAME_ATTEMPTS} attempts`,
+					);
+				}
+
 				try {
 					await fs.access(targetPath);
 					const extension = path.extname(fileName);

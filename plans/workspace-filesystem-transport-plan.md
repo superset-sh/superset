@@ -22,11 +22,11 @@ The transport plan should preserve the current local-first assumptions:
 
 Current foundation already in place:
 
-- transport-neutral core service contract in [packages/workspace-fs/src/core/service.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/packages/workspace-fs/src/core/service.ts)
-- local host implementation in [packages/workspace-fs/src/host/service.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/packages/workspace-fs/src/host/service.ts)
-- transport-neutral client factory in [packages/workspace-fs/src/client/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/packages/workspace-fs/src/client/index.ts)
-- local desktop adapter in [apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts)
-- local desktop router in [apps/desktop/src/lib/trpc/routers/filesystem/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/filesystem/index.ts)
+- transport-neutral core service contract in `packages/workspace-fs/src/core/service.ts`
+- local host implementation in `packages/workspace-fs/src/host/service.ts`
+- transport-neutral client factory in `packages/workspace-fs/src/client/index.ts`
+- local desktop adapter in `apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts`
+- local desktop router in `apps/desktop/src/lib/trpc/routers/filesystem/index.ts`
 
 That means the next work is transport implementation, not service redesign.
 
@@ -284,9 +284,9 @@ Keep local desktop on the current router, but shape it as a transport adapter.
 
 Implementation steps:
 
-1. Treat [apps/desktop/src/lib/trpc/routers/filesystem/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/filesystem/index.ts) as the local unary/stream transport surface.
+1. Treat `apps/desktop/src/lib/trpc/routers/filesystem/index.ts` as the local unary/stream transport surface.
 2. Ensure each router procedure maps 1:1 to `WorkspaceFsRequestMap` / `WorkspaceFsSubscriptionMap`.
-3. Keep response shaping in [apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts), not in renderer code.
+3. Keep response shaping in `apps/desktop/src/lib/trpc/routers/workspace-fs-service.ts`, not in renderer code.
 4. Add a thin local transport object that could back `createWorkspaceFsClient(...)` even if local renderer keeps using tRPC for now.
 
 Deliverable:

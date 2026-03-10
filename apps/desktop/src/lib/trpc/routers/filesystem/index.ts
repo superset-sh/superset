@@ -63,7 +63,12 @@ export const createFilesystemRouter = () => {
 
 					const runCleanup = () => {
 						isDisposed = true;
-						void iterator.return?.();
+						void iterator.return?.().catch((error) => {
+							console.error("[filesystem/subscribe] Cleanup failed:", {
+								workspaceId: input.workspaceId,
+								error,
+							});
+						});
 					};
 
 					const safeNext = (event: FileSystemChangeEvent) => {

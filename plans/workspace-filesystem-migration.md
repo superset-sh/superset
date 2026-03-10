@@ -71,12 +71,12 @@ That means the core filesystem service cannot be tightly coupled to Electron, re
 
 The current desktop router exposes broad absolute-path CRUD and search operations:
 
-- [apps/desktop/src/lib/trpc/routers/filesystem/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/filesystem/index.ts)
+- `apps/desktop/src/lib/trpc/routers/filesystem/index.ts`
 
 Changes/File Viewer use a separate secure worktree-bound implementation:
 
-- [apps/desktop/src/lib/trpc/routers/changes/security/path-validation.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/changes/security/path-validation.ts)
-- [apps/desktop/src/lib/trpc/routers/changes/file-contents.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/changes/file-contents.ts)
+- `apps/desktop/src/lib/trpc/routers/changes/security/path-validation.ts`
+- `apps/desktop/src/lib/trpc/routers/changes/file-contents.ts`
 
 This creates inconsistent behavior and duplicated path logic.
 
@@ -84,7 +84,7 @@ This creates inconsistent behavior and duplicated path logic.
 
 There is a `FileSystemChangeEvent` type:
 
-- [apps/desktop/src/shared/file-tree-types.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/shared/file-tree-types.ts)
+- `apps/desktop/src/shared/file-tree-types.ts`
 
 But there is no general filesystem subscription. The file explorer still depends on manual invalidation and refresh.
 
@@ -92,7 +92,7 @@ But there is no general filesystem subscription. The file explorer still depends
 
 The file explorer encodes item ids as a serialized string combining path, name, relative path, and type:
 
-- [apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx)
+- `apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx`
 
 That makes rename, move, and reconciliation harder than they need to be.
 
@@ -100,15 +100,15 @@ That makes rename, move, and reconciliation harder than they need to be.
 
 Search/indexing logic exists in multiple places:
 
-- [apps/desktop/src/lib/trpc/routers/filesystem/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/lib/trpc/routers/filesystem/index.ts)
-- [packages/chat/src/host/router/file-search/file-search.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/packages/chat/src/host/router/file-search/file-search.ts)
-- [packages/chat-mastra/src/server/trpc/utils/file-search/file-search.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/packages/chat-mastra/src/server/trpc/utils/file-search/file-search.ts)
+- `apps/desktop/src/lib/trpc/routers/filesystem/index.ts`
+- `packages/chat/src/host/router/file-search/file-search.ts`
+- `packages/chat-mastra/src/server/trpc/utils/file-search/file-search.ts`
 
 ### Existing watcher logic is special-case only
 
 There is an ad hoc `fs.watch` implementation for static ports:
 
-- [apps/desktop/src/main/lib/static-ports/watcher.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/main/lib/static-ports/watcher.ts)
+- `apps/desktop/src/main/lib/static-ports/watcher.ts`
 
 This should be absorbed into a general workspace watcher system instead of repeated for other file features.
 
@@ -541,9 +541,9 @@ Deliverable:
 
 Files likely involved:
 
-- [apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx)
-- [apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileTreeActions.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileTreeActions.ts)
-- [apps/desktop/src/renderer/stores/file-explorer.ts](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/apps/desktop/src/renderer/stores/file-explorer.ts)
+- `apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/FilesView.tsx`
+- `apps/desktop/src/renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileTreeActions.ts`
+- `apps/desktop/src/renderer/stores/file-explorer.ts`
 
 Deliverable:
 
@@ -601,7 +601,7 @@ Status:
 Deliverable:
 
 - `workspace-fs` can be embedded locally or exposed by a remote host without changing higher-level consumers, and current desktop imports already map cleanly onto `host`
-- concrete transport implementation work is tracked separately in [plans/workspace-filesystem-transport-plan.md](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/plans/workspace-filesystem-transport-plan.md)
+- concrete transport implementation work is tracked separately in `plans/workspace-filesystem-transport-plan.md`
 
 ### Phase 8: Migrate Changes and File Viewer consumers
 

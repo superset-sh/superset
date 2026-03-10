@@ -10,7 +10,9 @@ export interface WorkspaceFsResourceUriParts {
 export function toWorkspaceFsResourceUri(
 	parts: WorkspaceFsResourceUriParts,
 ): string {
-	const normalizedAbsolutePath = normalizeAbsolutePath(parts.absolutePath);
+	const normalizedAbsolutePath = normalizeAbsolutePath(
+		parts.absolutePath,
+	).replace(/\\/g, "/");
 	const normalizedWorkspaceId = encodeURIComponent(parts.workspaceId);
 	const encodedAbsolutePath = normalizedAbsolutePath
 		.split("/")

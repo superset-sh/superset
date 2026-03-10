@@ -177,9 +177,11 @@ export async function deleteRegisteredWorktreePaths(input: {
 		permanent: input.permanent ?? true,
 	});
 	if (result.errors.length > 0) {
+		const firstError = result.errors[0];
 		throw new Error(
-			result.errors[0]?.error ??
-				`Failed to delete ${input.absolutePaths[0] ?? "path"}`,
+			firstError
+				? `Failed to delete ${firstError.absolutePath}: ${firstError.error}`
+				: `Failed to delete ${input.absolutePaths[0] ?? "path"}`,
 		);
 	}
 }
@@ -315,7 +317,12 @@ export async function statWorkspacePath(input: {
 }) {
 	try {
 		return await workspaceFsService.stat(input);
-	} catch {
+	} catch (error) {
+		console.warn("[workspace-fs/statWorkspacePath] Failed:", {
+			workspaceId: input.workspaceId,
+			absolutePath: input.absolutePath,
+			error,
+		});
 		return null;
 	}
 }

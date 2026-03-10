@@ -99,7 +99,12 @@ function createAsyncQueue<T>(
 	})
 		.then((cleanup) => {
 			if (state.closed) {
-				void cleanup();
+				void cleanup().catch((error) => {
+					console.error(
+						"[workspace-fs/createAsyncQueue] Cleanup after closed subscription failed:",
+						error,
+					);
+				});
 				return;
 			}
 			state.cleanup = cleanup;
