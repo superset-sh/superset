@@ -1,41 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type { SmallModelProvider } from "@superset/chat/host";
 
-type MockOpenAICredentials = {
-	apiKey: string;
-	kind: "apiKey" | "oauth";
-	source: string;
-	expiresAt?: number;
-	accountId?: string;
-};
-
-const createAnthropicModelMock = mock(() => "anthropic-default-model");
-const createOpenAIResponsesModelMock = mock(
-	() => "openai-default-responses-model",
-);
-const createOpenAIChatModelMock = mock(() => "openai-default-chat-model");
-const getAnthropicCredentialsFromAnySourceMock = mock(() => null);
-const getAnthropicProviderOptionsMock = mock(() => ({ apiKey: "unused" }));
-const getOpenAICredentialsFromAnySourceMock = mock(
-	(() => null) as () => MockOpenAICredentials | null,
-);
-
-mock.module("@ai-sdk/anthropic", () => ({
-	createAnthropic: mock(() => createAnthropicModelMock),
-}));
-
-mock.module("@ai-sdk/openai", () => ({
-	createOpenAI: mock(() =>
-		Object.assign(createOpenAIResponsesModelMock, {
-			chat: createOpenAIChatModelMock,
-			responses: createOpenAIResponsesModelMock,
-		}),
-	),
-}));
+const getDefaultSmallModelProvidersMock = mock((): SmallModelProvider[] => []);
 
 mock.module("@superset/chat/host", () => ({
-	getCredentialsFromAnySource: getAnthropicCredentialsFromAnySourceMock,
-	getAnthropicProviderOptions: getAnthropicProviderOptionsMock,
-	getOpenAICredentialsFromAnySource: getOpenAICredentialsFromAnySourceMock,
+	getDefaultSmallModelProviders: getDefaultSmallModelProvidersMock,
 	generateTitleFromMessage: mock(async () => null),
 }));
 
@@ -43,11 +12,8 @@ const { callSmallModel } = await import("./call-small-model");
 
 describe("callSmallModel", () => {
 	beforeEach(() => {
-		getAnthropicCredentialsFromAnySourceMock.mockReturnValue(null);
-		getOpenAICredentialsFromAnySourceMock.mockReturnValue(null);
-		createAnthropicModelMock.mockClear();
-		createOpenAIResponsesModelMock.mockClear();
-		createOpenAIChatModelMock.mockClear();
+		getDefaultSmallModelProvidersMock.mockReset();
+		getDefaultSmallModelProvidersMock.mockReturnValue([]);
 	});
 
 	it("skips unsupported credentials and falls through to the next working provider", async () => {
@@ -105,67 +71,6 @@ describe("callSmallModel", () => {
 				providerId: "anthropic",
 				providerName: "Anthropic",
 				credentialKind: "oauth",
-				credentialSource: "auth-storage",
-				outcome: "succeeded",
-			},
-		]);
-	});
-
-	it("uses the OpenAI Codex OAuth model path for default OpenAI OAuth requests", async () => {
-		getOpenAICredentialsFromAnySourceMock.mockReturnValue({
-			apiKey: "openai-key",
-			kind: "oauth",
-			source: "auth-storage",
-			accountId: "chatgpt-account",
-		});
-
-		const { result, attempts } = await callSmallModel({
-			providerOrder: ["openai"],
-			invoke: async ({ providerId, model }) =>
-				providerId === "openai" && model === "openai-default-responses-model"
-					? "generated title"
-					: null,
-		});
-
-		expect(result).toBe("generated title");
-		expect(createOpenAIResponsesModelMock).toHaveBeenCalledWith(
-			"gpt-5.1-codex-mini",
-		);
-		expect(createOpenAIChatModelMock).not.toHaveBeenCalled();
-		expect(attempts).toEqual([
-			{
-				providerId: "openai",
-				providerName: "OpenAI",
-				credentialKind: "oauth",
-				credentialSource: "auth-storage",
-				outcome: "succeeded",
-			},
-		]);
-	});
-
-	it("uses the OpenAI chat model path for default API key requests", async () => {
-		getOpenAICredentialsFromAnySourceMock.mockReturnValue({
-			apiKey: "openai-key",
-			kind: "apiKey",
-			source: "auth-storage",
-		});
-
-		const { result, attempts } = await callSmallModel({
-			providerOrder: ["openai"],
-			invoke: async ({ providerId, model }) =>
-				providerId === "openai" && model === "openai-default-chat-model"
-					? "generated title"
-					: null,
-		});
-
-		expect(result).toBe("generated title");
-		expect(createOpenAIChatModelMock).toHaveBeenCalledWith("gpt-4o-mini");
-		expect(createOpenAIResponsesModelMock).not.toHaveBeenCalled();
-		expect(attempts).toEqual([
-			{
-				providerId: "openai",
-				providerName: "OpenAI",
-				credentialKind: "apiKey",
 				credentialSource: "auth-storage",
 				outcome: "succeeded",
 			},
@@ -454,5 +359,40 @@ describe("callSmallModel", () => {
 		});
 
 		expect(visited).toEqual(["openai"]);
+	});
+
+	it("uses shared default providers when none are supplied", async () => {
+		getDefaultSmallModelProvidersMock.mockReturnValue([
+			{
+				id: "openai",
+				name: "OpenAI",
+				resolveCredentials: () => ({
+					apiKey: "api-key",
+					kind: "apiKey",
+					source: "auth-storage",
+				}),
+				isSupported: () => ({ supported: true }),
+				createModel: () => "shared-openai-model",
+			},
+		]);
+
+		const { result, attempts } = await callSmallModel({
+			invoke: async ({ providerId, model }) =>
+				providerId === "openai" && model === "shared-openai-model"
+					? "title"
+					: null,
+		});
+
+		expect(result).toBe("title");
+		expect(getDefaultSmallModelProvidersMock).toHaveBeenCalledTimes(1);
+		expect(attempts).toEqual([
+			{
+				providerId: "openai",
+				providerName: "OpenAI",
+				credentialKind: "apiKey",
+				credentialSource: "auth-storage",
+				outcome: "succeeded",
+			},
+		]);
 	});
 });

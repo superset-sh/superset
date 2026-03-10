@@ -13,7 +13,7 @@ import {
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
-import { LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
@@ -105,7 +105,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/models",
 				section: "models",
 				label: "Models",
-				icon: <HiOutlineSparkles className="h-4 w-4" />,
+				icon: <LuBrain className="h-4 w-4" />,
 			},
 		],
 	},

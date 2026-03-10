@@ -1,7 +1,7 @@
 import { createAuthStorage } from "mastracode";
 import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 
-interface OpenAICredentials {
+export interface OpenAICredentials {
 	apiKey: string;
 	source: "auth-storage";
 	kind: "apiKey" | "oauth";
