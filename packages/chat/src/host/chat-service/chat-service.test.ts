@@ -649,6 +649,44 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
+	it("recognizes legacy OpenAI auth storage entries", async () => {
+		const chatService = new ChatService();
+
+		fakeAuthStorage.set("openai", {
+			type: "oauth",
+			access: "legacy-openai-oauth",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+
+		expect(await chatService.getOpenAIAuthStatus()).toEqual({
+			authenticated: true,
+			method: "oauth",
+			source: "managed",
+			issue: null,
+		});
+	});
+
+	it("falls back to a legacy OpenAI API key when the codex OAuth token is expired", async () => {
+		const chatService = new ChatService();
+
+		fakeAuthStorage.set("openai-codex", {
+			type: "oauth",
+			access: "expired-openai-oauth",
+			expires: Date.now() - 1_000,
+		});
+		fakeAuthStorage.set("openai", {
+			type: "api_key",
+			key: "legacy-openai-key",
+		});
+
+		expect(await chatService.getOpenAIAuthStatus()).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "managed",
+			issue: null,
+		});
+	});
+
 	it("disconnects managed OpenAI OAuth", async () => {
 		const chatService = new ChatService();
 
@@ -668,6 +706,26 @@ describe("ChatService OpenAI auth storage", () => {
 		await chatService.disconnectOpenAIOAuth();
 
 		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("openai-codex");
+		expect(await chatService.getOpenAIAuthStatus()).toEqual({
+			authenticated: false,
+			method: null,
+			source: null,
+			issue: null,
+		});
+	});
+
+	it("disconnects legacy OpenAI OAuth", async () => {
+		const chatService = new ChatService();
+
+		fakeAuthStorage.set("openai", {
+			type: "oauth",
+			access: "legacy-openai-oauth",
+			expires: Date.now() + 60 * 60 * 1000,
+		});
+
+		await chatService.disconnectOpenAIOAuth();
+
+		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("openai");
 		expect(await chatService.getOpenAIAuthStatus()).toEqual({
 			authenticated: false,
 			method: null,

@@ -4,10 +4,14 @@ import {
 	getCredentialsFromKeychain as getAnthropicCredentialsFromKeychain,
 	isClaudeCredentialExpired,
 } from "../auth/anthropic";
-import { isOpenAICredentialExpired } from "../auth/openai";
+import {
+	type OpenAICredentials,
+	isOpenAICredentialExpired,
+} from "../auth/openai";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_ID,
+	OPENAI_AUTH_PROVIDER_IDS,
 } from "../auth/provider-ids";
 import {
 	type AnthropicEnvVariables,
@@ -86,6 +90,63 @@ function hasAnthropicEnvCredential(
 		buildAnthropicRuntimeEnv(variables, {
 			fallbackApiKey,
 		}).ANTHROPIC_API_KEY?.trim(),
+	);
+}
+
+function resolveOpenAICredentials(
+	authStorage: OpenAIAuthStorage,
+): OpenAICredentials | null {
+	authStorage.reload();
+	const credentials: OpenAICredentials[] = [];
+
+	for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+		const credential = authStorage.get(providerId);
+		if (!credential) {
+			continue;
+		}
+
+		if (
+			credential.type === "api_key" &&
+			typeof credential.key === "string" &&
+			credential.key.trim().length > 0
+		) {
+			credentials.push({
+				apiKey: credential.key.trim(),
+				providerId,
+				source: "auth-storage",
+				kind: "apiKey",
+			});
+			continue;
+		}
+
+		if (
+			credential.type === "oauth" &&
+			typeof credential.access === "string" &&
+			credential.access.trim().length > 0
+		) {
+			const accountId =
+				typeof credential.accountId === "string" &&
+				credential.accountId.trim().length > 0
+					? credential.accountId.trim()
+					: undefined;
+			credentials.push({
+				apiKey: credential.access.trim(),
+				providerId,
+				source: "auth-storage",
+				kind: "oauth",
+				expiresAt:
+					typeof credential.expires === "number"
+						? credential.expires
+						: undefined,
+				accountId,
+			});
+		}
+	}
+
+	return (
+		credentials.find((credential) => !isOpenAICredentialExpired(credential)) ??
+		credentials[0] ??
+		null
 	);
 }
 
@@ -339,35 +400,25 @@ export class ChatService {
 	}
 
 	async getOpenAIAuthStatus(): Promise<AuthStatus> {
-		const authStorage = this.getAuthStorage();
-		authStorage.reload();
-		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		const credential = resolveOpenAICredentials(this.getAuthStorage());
 		const hasExpiredOAuth =
-			credential?.type === "oauth" &&
-			isOpenAICredentialExpired({
-				kind: "oauth",
-				expiresAt:
-					typeof credential.expires === "number"
-						? credential.expires
-						: undefined,
-			});
-		const method = resolveAuthMethodForProvider(
-			authStorage,
-			OPENAI_AUTH_PROVIDER_ID,
-			(storedCredential) =>
-				typeof storedCredential.expires !== "number" ||
-				storedCredential.expires > Date.now(),
-		);
+			credential !== null && isOpenAICredentialExpired(credential);
+		const method = credential
+			? credential.kind === "oauth"
+				? "oauth"
+				: "api_key"
+			: null;
 		const status: AuthStatus = {
-			authenticated: method !== null,
+			authenticated: method !== null && !hasExpiredOAuth,
 			method: hasExpiredOAuth ? "oauth" : method,
-			source: method !== null || hasExpiredOAuth ? "managed" : null,
+			source: method !== null ? "managed" : null,
 			issue: hasExpiredOAuth ? "expired" : null,
 		};
 		this.logAuthResolution("openai", {
 			resolvedMethod: status.method,
 			resolvedSource: status.source,
 			externalRuntimeAllowed: false,
+			storageProviderId: credential?.providerId ?? null,
 			storageMethod: method,
 			hasOpenAIApiKeyEnv: Boolean(process.env.OPENAI_API_KEY?.trim()),
 			hasOpenAIAuthTokenEnv: Boolean(process.env.OPENAI_AUTH_TOKEN?.trim()),
@@ -386,7 +437,10 @@ export class ChatService {
 	}
 
 	async clearOpenAIApiKey(): Promise<{ success: true }> {
-		clearApiKeyForProvider(this.getAuthStorage(), OPENAI_AUTH_PROVIDER_ID);
+		const authStorage = this.getAuthStorage();
+		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+			clearApiKeyForProvider(authStorage, providerId);
+		}
 		return { success: true };
 	}
 
@@ -401,14 +455,20 @@ export class ChatService {
 	async disconnectOpenAIOAuth(): Promise<{ success: true }> {
 		const authStorage = this.getAuthStorage();
 		authStorage.reload();
-		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
-		if (credential?.type === "oauth") {
-			clearCredentialForProvider(authStorage, OPENAI_AUTH_PROVIDER_ID);
+		const removedProviderIds: string[] = [];
+		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+			const credential = authStorage.get(providerId);
+			if (credential?.type !== "oauth") {
+				continue;
+			}
+
+			clearCredentialForProvider(authStorage, providerId);
+			removedProviderIds.push(providerId);
 		}
 		this.logAuthResolution("openai", {
 			event: "disconnect-oauth",
-			storedCredentialType: credential?.type ?? null,
-			removed: credential?.type === "oauth",
+			removed: removedProviderIds.length > 0,
+			removedProviderIds,
 		});
 		return { success: true };
 	}

@@ -1,4 +1,7 @@
-import { generateTitleFromMessage } from "@superset/chat/host";
+import {
+	generateTitleFromMessage,
+	generateTitleFromMessageWithStreamingModel,
+} from "@superset/chat/host";
 import { workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import {
@@ -35,7 +38,15 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 	warning?: string;
 }> {
 	const { result, attempts } = await callSmallModel<string>({
-		invoke: async ({ providerId, providerName, model }) => {
+		invoke: async ({ credentials, providerId, providerName, model }) => {
+			if (providerId === "openai" && credentials.kind === "oauth") {
+				return generateTitleFromMessageWithStreamingModel({
+					message: prompt,
+					model: model as never,
+					instructions: "You generate concise workspace titles.",
+				});
+			}
+
 			return generateTitleFromMessage({
 				message: prompt,
 				agentModel: model,
@@ -57,7 +68,10 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 		if (attempt.outcome === "failed") {
 			console.error(
 				`[workspace-ai-name] ${attempt.providerName} title generation failed`,
-				attempt.issue ?? attempt.reason,
+				{
+					issue: attempt.issue ?? null,
+					reason: attempt.reason ?? null,
+				},
 			);
 			continue;
 		}

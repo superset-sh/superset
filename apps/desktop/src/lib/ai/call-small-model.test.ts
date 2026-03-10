@@ -6,6 +6,7 @@ const getDefaultSmallModelProvidersMock = mock((): SmallModelProvider[] => []);
 mock.module("@superset/chat/host", () => ({
 	getDefaultSmallModelProviders: getDefaultSmallModelProvidersMock,
 	generateTitleFromMessage: mock(async () => null),
+	generateTitleFromMessageWithStreamingModel: mock(async () => null),
 }));
 
 const { callSmallModel } = await import("./call-small-model");

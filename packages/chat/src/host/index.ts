@@ -22,4 +22,7 @@ export type {
 	SmallModelProviderId,
 } from "./small-model";
 export { getDefaultSmallModelProviders } from "./small-model";
-export { generateTitleFromMessage } from "./title-generation";
+export {
+	generateTitleFromMessage,
+	generateTitleFromMessageWithStreamingModel,
+} from "./title-generation";

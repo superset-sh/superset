@@ -20,6 +20,7 @@ export interface SmallModelCredential {
 	source: string;
 	expiresAt?: number;
 	accountId?: string;
+	providerId?: string;
 }
 
 export interface SmallModelProvider {
@@ -42,12 +43,14 @@ const OPENAI_API_SMALL_MODEL_ID = "gpt-4o-mini";
 
 function createOpenAICodexOAuthModel(credentials: OpenAICredentials) {
 	const authStorage = createAuthStorage();
+	const openAIAuthProviderId =
+		credentials.providerId ?? OPENAI_AUTH_PROVIDER_ID;
 	const oauthFetchImpl = async (
 		url: Parameters<typeof fetch>[0],
 		init?: Parameters<typeof fetch>[1],
 	): Promise<Response> => {
 		authStorage.reload();
-		const storedCredential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		const storedCredential = authStorage.get(openAIAuthProviderId);
 		if (!storedCredential || storedCredential.type !== "oauth") {
 			throw new Error("Not logged in to OpenAI Codex. Reconnect OpenAI.");
 		}
@@ -57,9 +60,7 @@ function createOpenAICodexOAuthModel(credentials: OpenAICredentials) {
 			typeof storedCredential.expires === "number" &&
 			Date.now() >= storedCredential.expires
 		) {
-			const refreshedToken = await authStorage.getApiKey(
-				OPENAI_AUTH_PROVIDER_ID,
-			);
+			const refreshedToken = await authStorage.getApiKey(openAIAuthProviderId);
 			if (!refreshedToken) {
 				throw new Error(
 					"Failed to refresh OpenAI Codex token. Please reconnect OpenAI.",
@@ -69,7 +70,7 @@ function createOpenAICodexOAuthModel(credentials: OpenAICredentials) {
 			authStorage.reload();
 		}
 
-		const refreshedCredential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		const refreshedCredential = authStorage.get(openAIAuthProviderId);
 		const accountId =
 			refreshedCredential &&
 			typeof refreshedCredential === "object" &&

@@ -3,6 +3,7 @@ import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 
 export interface OpenAICredentials {
 	apiKey: string;
+	providerId: (typeof OPENAI_AUTH_PROVIDER_IDS)[number];
 	source: "auth-storage";
 	kind: "apiKey" | "oauth";
 	expiresAt?: number;
@@ -23,6 +24,7 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 	try {
 		const authStorage = createAuthStorage();
 		authStorage.reload();
+		const credentials: OpenAICredentials[] = [];
 
 		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
 			const credential = authStorage.get(providerId);
@@ -35,11 +37,13 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 				typeof credential.key === "string" &&
 				credential.key.trim().length > 0
 			) {
-				return {
+				credentials.push({
 					apiKey: credential.key.trim(),
+					providerId,
 					source: "auth-storage",
 					kind: "apiKey",
-				};
+				});
+				continue;
 			}
 
 			if (
@@ -52,8 +56,9 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 					credential.accountId.trim().length > 0
 						? credential.accountId.trim()
 						: undefined;
-				return {
+				credentials.push({
 					apiKey: credential.access.trim(),
+					providerId,
 					source: "auth-storage",
 					kind: "oauth",
 					expiresAt:
@@ -61,9 +66,15 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 							? credential.expires
 							: undefined,
 					accountId,
-				};
+				});
 			}
 		}
+
+		return (
+			credentials.find((credential) => !isOpenAICredentialExpired(credential)) ??
+			credentials[0] ??
+			null
+		);
 	} catch (error) {
 		console.warn("[openai/auth] Failed to read auth storage:", error);
 	}
