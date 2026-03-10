@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -30,9 +30,11 @@ export function SupabaseSetup({ onComplete, onSkip }: SupabaseSetupProps) {
     });
 
   // If already connected, go straight to org selection
-  if (status?.connected && step === "token") {
-    setStep("org");
-  }
+  useEffect(() => {
+    if (status?.connected && step === "token") {
+      setStep("org");
+    }
+  }, [status?.connected, step]);
 
   if (step === "token" && !status?.connected) {
     return (
@@ -108,15 +110,17 @@ export function SupabaseSetup({ onComplete, onSkip }: SupabaseSetupProps) {
       {orgs && orgs.length > 0 ? (
         <div className="space-y-2">
           {orgs.map((org) => (
-            <button
+            <Button
               key={org.id}
-              type="button"
+              variant="outline"
               onClick={() => onComplete(org.id, org.name)}
-              className="w-full text-left p-3 rounded-md border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+              className="w-full justify-start h-auto p-3 text-left"
             >
-              <p className="text-sm font-medium">{org.name}</p>
-              <p className="text-xs text-muted-foreground">{org.slug}</p>
-            </button>
+              <div>
+                <p className="text-sm font-medium">{org.name}</p>
+                <p className="text-xs text-muted-foreground">{org.slug}</p>
+              </div>
+            </Button>
           ))}
         </div>
       ) : (

@@ -6,6 +6,7 @@ import { ComposerStepper } from "renderer/screens/atlas/components/ComposerStepp
 import { FeatureSelector } from "renderer/screens/atlas/components/FeatureSelector";
 import { ResolutionPreview } from "renderer/screens/atlas/components/ResolutionPreview";
 import { ProjectConfig } from "renderer/screens/atlas/components/ProjectConfig";
+import { SupabaseSetup } from "renderer/screens/atlas/components/SupabaseSetup";
 import {
   PipelineProgress,
   type PipelineStepStatus,
@@ -60,6 +61,9 @@ function ComposerPage() {
 
   const navigate = useNavigate();
   const [pipeline, setPipeline] = useState<PipelineState>(INITIAL_PIPELINE);
+  const [supabasePhase, setSupabasePhase] = useState<
+    "idle" | "setup" | "creating" | "done" | "skipped"
+  >("idle");
 
   const { data: registryData, isLoading: registryLoading } =
     electronTrpc.atlas.registry.getRegistry.useQuery();
@@ -70,6 +74,13 @@ function ComposerPage() {
   );
 
   const composeMutation = electronTrpc.atlas.composer.compose.useMutation();
+  const supabaseCreateMutation =
+    electronTrpc.atlas.supabase.createProject.useMutation();
+  const supabaseHealthMutation =
+    electronTrpc.atlas.supabase.waitForHealthy.useMutation();
+  const supabaseWriteEnvMutation =
+    electronTrpc.atlas.supabase.writeEnvFile.useMutation();
+  const trpcUtils = electronTrpc.useUtils();
 
   if (registryLoading || !registryData) {
     return (
@@ -97,6 +108,7 @@ function ComposerPage() {
     if (!canCompose) return;
 
     setPipeline({ ...INITIAL_PIPELINE, active: true });
+    setSupabasePhase("idle");
     setStep(3);
 
     // Step 0: Extract + Git (both handled by compose mutation)
@@ -116,10 +128,6 @@ function ComposerPage() {
         result.gitInitialized ? "Git 저장소 초기화 완료" : "Git 초기화 실패",
       );
 
-      // Supabase & Vercel: not yet implemented
-      updateStep(2, "skipped", "추후 연결 가능");
-      updateStep(3, "skipped", "추후 배포 가능");
-
       setPipeline((prev) => ({
         ...prev,
         result: {
@@ -129,6 +137,11 @@ function ComposerPage() {
           gitInitialized: result.gitInitialized,
         },
       }));
+
+      // Pause for Supabase setup
+      setSupabasePhase("setup");
+      updateStep(2, "pending", "Supabase 연결을 설정하세요");
+      updateStep(3, "pending", "Supabase 완료 후 진행");
     } catch (error) {
       updateStep(
         0,
@@ -136,6 +149,73 @@ function ComposerPage() {
         error instanceof Error ? error.message : "알 수 없는 오류",
       );
     }
+  };
+
+  const handleSupabaseComplete = async (orgId: string, _orgName: string) => {
+    if (!pipeline.result) return;
+
+    setSupabasePhase("creating");
+    updateStep(2, "running", "Supabase 프로젝트 생성 중...");
+
+    try {
+      // Generate random DB password
+      const dbPassword =
+        crypto.randomUUID().replace(/-/g, "").slice(0, 16) + "Aa1!";
+
+      const sbProject = await supabaseCreateMutation.mutateAsync({
+        name: projectName.trim(),
+        organizationId: orgId,
+        dbPassword,
+        atlasProjectId: pipeline.result.projectId,
+      });
+
+      updateStep(2, "running", "프로젝트 초기화 대기 중...");
+      const health = await supabaseHealthMutation.mutateAsync({
+        projectRef: sbProject.id,
+      });
+
+      if (!health.healthy) {
+        updateStep(2, "failed", "프로젝트 초기화 시간 초과");
+        setSupabasePhase("done");
+        updateStep(3, "skipped", "추후 배포 가능");
+        return;
+      }
+
+      updateStep(2, "running", "API 키 가져오는 중...");
+      const keys = await trpcUtils.atlas.supabase.getApiKeys.fetch({
+        projectRef: sbProject.id,
+      });
+
+      if (keys.anonKey && keys.serviceRoleKey) {
+        updateStep(2, "running", ".env 파일 작성 중...");
+        await supabaseWriteEnvMutation.mutateAsync({
+          projectPath: pipeline.result.targetPath,
+          projectRef: sbProject.id,
+          anonKey: keys.anonKey,
+          serviceRoleKey: keys.serviceRoleKey,
+        });
+      }
+
+      updateStep(2, "done", `${sbProject.url} 생성 완료`);
+      setSupabasePhase("done");
+
+      // Vercel: not yet implemented
+      updateStep(3, "skipped", "추후 배포 가능");
+    } catch (error) {
+      updateStep(
+        2,
+        "failed",
+        error instanceof Error ? error.message : "Supabase 프로젝트 생성 실패",
+      );
+      setSupabasePhase("done");
+      updateStep(3, "skipped", "추후 배포 가능");
+    }
+  };
+
+  const handleSupabaseSkip = () => {
+    setSupabasePhase("skipped");
+    updateStep(2, "skipped", "나중에 연결");
+    updateStep(3, "skipped", "추후 배포 가능");
   };
 
   // Pipeline active: show progress
@@ -166,7 +246,14 @@ function ComposerPage() {
 
         <PipelineProgress steps={pipeline.steps} />
 
-        {pipeline.result ? (
+        {supabasePhase === "setup" ? (
+          <SupabaseSetup
+            onComplete={handleSupabaseComplete}
+            onSkip={handleSupabaseSkip}
+          />
+        ) : null}
+
+        {pipeline.result && (supabasePhase === "done" || supabasePhase === "skipped") ? (
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-green-500">
