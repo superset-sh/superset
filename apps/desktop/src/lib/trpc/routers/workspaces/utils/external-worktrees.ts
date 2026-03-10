@@ -7,6 +7,7 @@ import { type ExternalWorktree, listExternalWorktrees } from "./git";
 import {
 	findProjectWorktreeByCurrentPath,
 	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathWithRepair,
 } from "./repair-worktree-path";
 
 interface ExternalWorktreeDeps {
@@ -15,6 +16,7 @@ interface ExternalWorktreeDeps {
 	findWorktreeWorkspaceByBranch: typeof findWorktreeWorkspaceByBranch;
 	listExternalWorktrees: typeof listExternalWorktrees;
 	listProjectWorktreesWithCurrentPaths: typeof listProjectWorktreesWithCurrentPaths;
+	resolveWorktreePathWithRepair: typeof resolveWorktreePathWithRepair;
 }
 
 export const __testOnlyExternalWorktreeDeps: ExternalWorktreeDeps = {
@@ -23,6 +25,7 @@ export const __testOnlyExternalWorktreeDeps: ExternalWorktreeDeps = {
 	findWorktreeWorkspaceByBranch,
 	listExternalWorktrees,
 	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathWithRepair,
 };
 
 export type ExternalWorktreeOpenTarget =
@@ -60,6 +63,24 @@ function getImportableExternalWorktrees(
 	);
 }
 
+async function resolveTrackedExternalWorktree(
+	worktree: SelectWorktree,
+): Promise<SelectWorktree> {
+	const resolvedPath =
+		await __testOnlyExternalWorktreeDeps.resolveWorktreePathWithRepair(
+			worktree.id,
+		);
+
+	if (!resolvedPath || resolvedPath === worktree.path) {
+		return worktree;
+	}
+
+	return {
+		...worktree,
+		path: resolvedPath,
+	};
+}
+
 export async function resolveExternalWorktreeOpenTarget(input: {
 	projectId: string;
 	mainRepoPath: string;
@@ -83,7 +104,7 @@ export async function resolveExternalWorktreeOpenTarget(input: {
 	if (trackedWorktree) {
 		return {
 			kind: "tracked",
-			worktree: trackedWorktree,
+			worktree: await resolveTrackedExternalWorktree(trackedWorktree),
 		};
 	}
 
@@ -124,9 +145,10 @@ export async function listImportableExternalWorktrees(input: {
 			input.projectId,
 		);
 	const trackedPaths = new Set(
-		trackedWorktrees
-			.filter((trackedWorktree) => trackedWorktree.existsOnDisk)
-			.map((trackedWorktree) => trackedWorktree.worktree.path),
+		trackedWorktrees.map((trackedWorktree) => trackedWorktree.worktree.path),
+	);
+	const trackedBranches = new Set(
+		trackedWorktrees.map((trackedWorktree) => trackedWorktree.worktree.branch),
 	);
 
 	const externalWorktrees =
@@ -135,7 +157,11 @@ export async function listImportableExternalWorktrees(input: {
 		);
 
 	return getImportableExternalWorktrees(externalWorktrees, input.mainRepoPath)
-		.filter((worktree) => !trackedPaths.has(worktree.path))
+		.filter(
+			(worktree) =>
+				!trackedPaths.has(worktree.path) &&
+				!trackedBranches.has(worktree.branch),
+		)
 		.map((worktree) => ({
 			path: worktree.path,
 			branch: worktree.branch,

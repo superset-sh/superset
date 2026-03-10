@@ -774,6 +774,8 @@ export const createCreateProcedures = () => {
 
 				if (worktreeTarget.kind === "tracked") {
 					const existingWorktree = worktreeTarget.worktree;
+					const trackedWorktreePath =
+						await getTrackedWorktreePath(existingWorktree);
 					// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
 					if (!existingWorktree.gitStatus) {
 						localDb
@@ -808,7 +810,7 @@ export const createCreateProcedures = () => {
 						return {
 							workspace: existingWorkspace,
 							initialCommands: null,
-							worktreePath: existingWorktree.path,
+							worktreePath: trackedWorktreePath,
 							projectId: project.id,
 							wasExisting: true,
 						};
@@ -833,11 +835,11 @@ export const createCreateProcedures = () => {
 
 					copySupersetConfigToWorktree(
 						project.mainRepoPath,
-						existingWorktree.path,
+						trackedWorktreePath,
 					);
 					const setupConfig = loadSetupConfig({
 						mainRepoPath: project.mainRepoPath,
-						worktreePath: existingWorktree.path,
+						worktreePath: trackedWorktreePath,
 						projectId: project.id,
 					});
 
@@ -851,7 +853,7 @@ export const createCreateProcedures = () => {
 					return {
 						workspace,
 						initialCommands: setupConfig?.setup || null,
-						worktreePath: existingWorktree.path,
+						worktreePath: trackedWorktreePath,
 						projectId: project.id,
 						wasExisting: false,
 					};

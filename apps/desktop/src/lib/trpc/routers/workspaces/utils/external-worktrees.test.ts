@@ -66,6 +66,9 @@ const listExternalWorktreesMock = mock<
 const listProjectWorktreesWithCurrentPathsMock = mock<
 	typeof __testOnlyExternalWorktreeDeps.listProjectWorktreesWithCurrentPaths
 >(async () => []);
+const resolveWorktreePathWithRepairMock = mock<
+	typeof __testOnlyExternalWorktreeDeps.resolveWorktreePathWithRepair
+>(async () => null);
 
 describe("external-worktrees", () => {
 	beforeEach(() => {
@@ -74,12 +77,14 @@ describe("external-worktrees", () => {
 		findOrphanedWorktreeByBranchMock.mockReset();
 		listExternalWorktreesMock.mockReset();
 		listProjectWorktreesWithCurrentPathsMock.mockReset();
+		resolveWorktreePathWithRepairMock.mockReset();
 
 		findProjectWorktreeByCurrentPathMock.mockResolvedValue(null);
 		findWorktreeWorkspaceByBranchMock.mockReturnValue(null);
 		findOrphanedWorktreeByBranchMock.mockReturnValue(null);
 		listExternalWorktreesMock.mockResolvedValue([]);
 		listProjectWorktreesWithCurrentPathsMock.mockResolvedValue([]);
+		resolveWorktreePathWithRepairMock.mockResolvedValue(null);
 
 		__testOnlyExternalWorktreeDeps.findProjectWorktreeByCurrentPath = (
 			...args
@@ -93,6 +98,8 @@ describe("external-worktrees", () => {
 		__testOnlyExternalWorktreeDeps.listProjectWorktreesWithCurrentPaths = (
 			...args
 		) => listProjectWorktreesWithCurrentPathsMock(...args);
+		__testOnlyExternalWorktreeDeps.resolveWorktreePathWithRepair = (...args) =>
+			resolveWorktreePathWithRepairMock(...args);
 	});
 
 	afterAll(() => {
@@ -101,8 +108,9 @@ describe("external-worktrees", () => {
 
 	test("reuses a tracked worktree by branch when path repair changes the current path", async () => {
 		const trackedWorktree = makeWorktree({
-			path: "/repo/wt-new",
+			path: "/repo/wt-old",
 		});
+		resolveWorktreePathWithRepairMock.mockResolvedValue("/repo/wt-new");
 
 		findWorktreeWorkspaceByBranchMock.mockReturnValue({
 			workspace: makeWorkspace({ worktreeId: trackedWorktree.id }),
@@ -118,7 +126,10 @@ describe("external-worktrees", () => {
 
 		expect(result).toEqual({
 			kind: "tracked",
-			worktree: trackedWorktree,
+			worktree: {
+				...trackedWorktree,
+				path: "/repo/wt-new",
+			},
 		});
 		expect(listExternalWorktreesMock).not.toHaveBeenCalled();
 	});
@@ -183,5 +194,33 @@ describe("external-worktrees", () => {
 
 		expect(result).toEqual([]);
 		expect(callOrder).toEqual(["tracked", "external"]);
+	});
+
+	test("keeps already-tracked branches out of the external import list even when the tracked entry is currently missing on disk", async () => {
+		listProjectWorktreesWithCurrentPathsMock.mockResolvedValue([
+			{
+				worktree: makeWorktree({
+					path: "/repo/wt-stale",
+					branch: "feat-move",
+				}),
+				existsOnDisk: false,
+			},
+		]);
+
+		listExternalWorktreesMock.mockResolvedValue([
+			{
+				path: "/repo/wt-current",
+				branch: "feat-move",
+				isDetached: false,
+				isBare: false,
+			},
+		] satisfies ExternalWorktree[]);
+
+		const result = await listImportableExternalWorktrees({
+			projectId: "proj-1",
+			mainRepoPath: "/repo/main",
+		});
+
+		expect(result).toEqual([]);
 	});
 });
