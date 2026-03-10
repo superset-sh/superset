@@ -1,13 +1,15 @@
 import type { ExternalApp } from "@superset/local-db";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { toast } from "@superset/ui/sonner";
 import { useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
-import { LuExternalLink, LuSearch } from "react-icons/lu";
+import { LuExternalLink, LuEyeOff, LuSearch } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { getAppOption } from "renderer/components/OpenInExternalDropdown";
+import { useCloseWorkspace } from "renderer/react-query/workspaces";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -40,6 +42,7 @@ export function EmptyTabView({
 	const { addTab } = useTabsWithPresets();
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
+	const closeWorkspace = useCloseWorkspace();
 	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const activeTheme = useTheme();
 
@@ -60,6 +63,24 @@ export function EmptyTabView({
 	const handleOpenBrowser = useCallback(() => {
 		addBrowserTab(workspaceId);
 	}, [addBrowserTab, workspaceId]);
+
+	const handleHideWorkspace = useCallback(() => {
+		toast.promise(closeWorkspace.mutateAsync({ id: workspaceId }), {
+			loading: "Hiding workspace...",
+			success: (result) => {
+				if (result.terminalWarning) {
+					setTimeout(() => {
+						toast.warning("Terminal warning", {
+							description: result.terminalWarning,
+						});
+					}, 100);
+				}
+				return "Workspace hidden";
+			},
+			error: (error) =>
+				error instanceof Error ? error.message : "Failed to hide workspace",
+		});
+	}, [closeWorkspace, workspaceId]);
 
 	const openInActionLabel = useMemo(() => {
 		if (!defaultExternalApp) return null;
@@ -156,6 +177,13 @@ export function EmptyTabView({
 							onClick={action.onClick}
 						/>
 					))}
+					<div className="my-1 border-t border-border/40" />
+					<EmptyTabActionButton
+						display={[]}
+						icon={LuEyeOff}
+						label="Hide Workspace"
+						onClick={handleHideWorkspace}
+					/>
 				</div>
 			</div>
 		</div>
