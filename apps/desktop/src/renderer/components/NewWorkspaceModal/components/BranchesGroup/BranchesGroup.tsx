@@ -106,8 +106,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 			if (b.name === defaultBranch) return 1;
 			if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
 			return a.name.localeCompare(b.name);
-		})
-		.slice(0, 40);
+		});
 
 	const branchByName = useMemo(() => {
 		return new Map(branches.map((branch) => [branch.name, branch]));
