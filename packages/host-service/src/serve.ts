@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
-import app from "./index";
+import { createApp } from "./app";
 
+const app = createApp();
 const port = Number(process.env.PORT) || 4879;
 
 serve({ fetch: app.fetch, port }, (info) => {

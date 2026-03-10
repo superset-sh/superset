@@ -57,7 +57,7 @@ class HostServiceManager {
 	private async spawn(organizationId: string): Promise<number> {
 		const child = spawn(process.execPath, [this.scriptPath], {
 			stdio: ["ignore", "pipe", "pipe"],
-			env: { ELECTRON_RUN_AS_NODE: "1" },
+			env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
 		});
 
 		const instance: HostServiceProcess = {

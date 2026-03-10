@@ -8,9 +8,8 @@ import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-
-import { mainExternalizedDependencies } from "./runtime-dependencies";
 import { dependencies, resources, version } from "./package.json";
+import { mainExternalizedDependencies } from "./runtime-dependencies";
 import {
 	copyResourcesPlugin,
 	defineEnv,

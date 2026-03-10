@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./git": {
+			"types": "./src/git/index.ts",
+			"default": "./src/git/index.ts"
+		},
 		"./trpc": {
 			"types": "./src/trpc/index.ts",
 			"default": "./src/trpc/index.ts"
@@ -23,6 +27,7 @@
 		"@hono/trpc-server": "^0.3.4",
 		"@trpc/server": "^11.7.1",
 		"hono": "^4.8.5",
+		"simple-git": "^3.30.0",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},

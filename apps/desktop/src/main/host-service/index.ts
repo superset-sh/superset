@@ -8,7 +8,9 @@
  */
 
 import { serve } from "@hono/node-server";
-import app from "@superset/host-service";
+import { createApp, LocalCredentialProvider } from "@superset/host-service";
+
+const app = createApp({ credentials: new LocalCredentialProvider() });
 
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
