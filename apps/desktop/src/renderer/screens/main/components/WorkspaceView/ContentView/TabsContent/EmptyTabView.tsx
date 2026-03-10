@@ -3,9 +3,12 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
-import { LuExternalLink, LuSearch } from "react-icons/lu";
+import { LuExternalLink, LuSearch, LuTrash2 } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { getAppOption } from "renderer/components/OpenInExternalDropdown";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
+import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -39,6 +42,12 @@ export function EmptyTabView({
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const activeTheme = useTheme();
+
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
+		id: workspaceId,
+	});
+	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
+		useWorkspaceDeleteHandler();
 
 	const newGroupDisplay = useHotkeyDisplay("NEW_GROUP");
 	const newChatDisplay = useHotkeyDisplay("NEW_CHAT");
@@ -150,7 +159,26 @@ export function EmptyTabView({
 						/>
 					))}
 				</div>
+				{workspace && (
+					<button
+						type="button"
+						className="mx-auto mt-6 flex items-center gap-1 text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+						onClick={handleDeleteClick}
+					>
+						<LuTrash2 className="size-3" />
+						Delete workspace
+					</button>
+				)}
 			</div>
+			{workspace && (
+				<DeleteWorkspaceDialog
+					workspaceId={workspaceId}
+					workspaceName={workspace.name}
+					workspaceType={workspace.type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			)}
 		</div>
 	);
 }
