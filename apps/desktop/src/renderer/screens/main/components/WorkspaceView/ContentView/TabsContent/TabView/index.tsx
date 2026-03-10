@@ -14,11 +14,12 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
+import { getDefaultTerminalBg } from "../Terminal/helpers";
 import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
-import { useTheme } from "renderer/stores/theme";
+import { useTerminalTheme, useTheme } from "renderer/stores/theme";
 import { BrowserPane } from "./BrowserPane";
 import { ChatMastraPane } from "./ChatMastraPane";
 import { MosaicSplitOverlay } from "./components";
@@ -32,6 +33,17 @@ interface TabViewProps {
 
 export function TabView({ tab }: TabViewProps) {
 	const activeTheme = useTheme();
+	const terminalTheme = useTerminalTheme();
+
+	// Shared terminal background image (rendered once, spans all panes)
+	const { data: bgSettings } =
+		electronTrpc.settings.getTerminalBackground.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+	const bgImageDataUri = bgSettings?.imageDataUri ?? null;
+	const bgOpacity = 1 - (bgSettings?.opacity ?? 85) / 100;
+	const bgBlur = bgSettings?.blur ?? 8;
+	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -272,23 +284,46 @@ export function TabView({ tab }: TabViewProps) {
 	}
 
 	return (
-		<div className="relative w-full h-full mosaic-container">
-			<Mosaic<string>
-				renderTile={renderPane}
-				value={cleanedLayout}
-				onChange={handleLayoutChange}
-				resize="DISABLED"
-				className={
-					activeTheme?.type === "light"
-						? "mosaic-theme-light"
-						: "mosaic-theme-dark"
-				}
-				dragAndDropManager={dragDropManager}
-			/>
-			<MosaicSplitOverlay
-				layout={cleanedLayout}
-				onLayoutChange={handleSplitLayoutChange}
-			/>
+		<div className="relative w-full h-full mosaic-container overflow-hidden">
+			{/* Shared background image layer (spans all panes) */}
+			{bgImageDataUri && (
+				<div
+					className="absolute inset-0 z-0"
+					style={{
+						backgroundImage: `url("${bgImageDataUri}")`,
+						backgroundSize: "cover",
+						backgroundPosition: "center",
+						filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+						margin: bgBlur > 0 ? `-${bgBlur * 2}px` : undefined,
+						padding: bgBlur > 0 ? `${bgBlur * 2}px` : undefined,
+					}}
+				/>
+			)}
+			{/* Semi-transparent overlay for readability */}
+			{bgImageDataUri && (
+				<div
+					className="absolute inset-0 z-[1]"
+					style={{ backgroundColor: terminalBg, opacity: bgOpacity }}
+				/>
+			)}
+			<div className="relative z-[2] w-full h-full">
+				<Mosaic<string>
+					renderTile={renderPane}
+					value={cleanedLayout}
+					onChange={handleLayoutChange}
+					resize="DISABLED"
+					className={
+						activeTheme?.type === "light"
+							? "mosaic-theme-light"
+							: "mosaic-theme-dark"
+					}
+					dragAndDropManager={dragDropManager}
+				/>
+				<MosaicSplitOverlay
+					layout={cleanedLayout}
+					onLayoutChange={handleSplitLayoutChange}
+				/>
+			</div>
 		</div>
 	);
 }

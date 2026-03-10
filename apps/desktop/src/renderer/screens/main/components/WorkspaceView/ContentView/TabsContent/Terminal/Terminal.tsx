@@ -384,15 +384,15 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	// Terminal background image settings
+	// Background image is rendered at TabView level (shared across all panes).
+	// We only need the data URI here to know whether to make xterm transparent.
 	const { data: bgSettings } =
 		electronTrpc.settings.getTerminalBackground.useQuery(undefined, {
 			staleTime: 30_000,
 		});
-	const bgImage = bgSettings?.image ?? null;
 	const bgImageDataUri = bgSettings?.imageDataUri ?? null;
 	// Invert: user sets image visibility %, overlay opacity = 1 - that
 	const bgOpacity = 1 - (bgSettings?.opacity ?? 85) / 100;
-	const bgBlur = bgSettings?.blur ?? 8;
 
 	// When a background image is set, make xterm background semi-transparent
 	useEffect(() => {
@@ -453,29 +453,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			{/* Background image layer with blur */}
-			{bgImageDataUri && (
-				<div
-					className="absolute inset-0 z-0"
-					style={{
-						backgroundImage: `url("${bgImageDataUri}")`,
-						backgroundSize: "cover",
-						backgroundPosition: "center",
-						filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
-						// Expand slightly to prevent blur edge artifacts
-						margin: bgBlur > 0 ? `-${bgBlur * 2}px` : undefined,
-						padding: bgBlur > 0 ? `${bgBlur * 2}px` : undefined,
-					}}
-				/>
-			)}
-			{/* Semi-transparent overlay for readability */}
-			{bgImageDataUri && (
-				<div
-					className="absolute inset-0 z-[1]"
-					style={{ backgroundColor: terminalBg, opacity: bgOpacity }}
-				/>
-			)}
-			<div className="relative z-[2] h-full w-full">
+			{/* Background image is rendered at TabView level (shared across panes) */}
+			<div className="relative h-full w-full">
 				<TerminalSearch
 					searchAddon={searchAddonRef.current}
 					isOpen={isSearchOpen}
