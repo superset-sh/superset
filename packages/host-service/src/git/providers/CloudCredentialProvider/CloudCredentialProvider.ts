@@ -1,8 +1,8 @@
+import { unlink } from "node:fs/promises";
 import type { CredentialProvider } from "../../types";
 import { writeTempAskpass } from "./askpass";
 
 interface CachedToken {
-	token: string;
 	expiresAt: number;
 	askpassPath: string;
 }
@@ -38,10 +38,15 @@ export class CloudCredentialProvider implements CredentialProvider {
 			};
 		}
 
+		// Clean up old askpass file before writing a new one
+		if (cached?.askpassPath) {
+			unlink(cached.askpassPath).catch(() => {});
+		}
+
 		const { token, expiresAt } = await this.tokenFetcher(remoteUrl);
 		const askpassPath = await writeTempAskpass(token);
 
-		this.cache.set(remoteUrl, { token, expiresAt, askpassPath });
+		this.cache.set(remoteUrl, { expiresAt, askpassPath });
 
 		return {
 			env: {
