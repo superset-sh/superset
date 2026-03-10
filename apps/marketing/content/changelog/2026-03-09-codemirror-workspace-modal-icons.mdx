@@ -1,20 +1,18 @@
 ---
-title: CodeMirror editor, new workspace modal, file icons, and cross-workspace search
+title: Blazing-fast editor, new workspace modal, file icons, and cross-workspace search
 date: 2026-03-09
-image: /changelog/IMAGE_PLACEHOLDER.png
+image: /changelog/codemirror.png
 ---
 
-{/* TODO: Replace header image with a screenshot of the new editor or workspace modal */}
+## Blazing-Fast Editor <PRBadge url="https://github.com/superset-sh/superset/pull/2140" />
 
-## CodeMirror Editor <PRBadge url="https://github.com/superset-sh/superset/pull/2140" />
-
-The built-in diff and file editor has been replaced with CodeMirror. The new editor is lighter, more performant, and a better fit for the workspace environment.
+We replaced Monaco with CodeMirror for the built-in diff and file editor. CodeMirror is ~97% smaller (150KB vs 5MB), loads significantly faster, and uses far less memory. You'll feel the difference.
 
 ## New Workspace Modal Revamp <PRBadge url="https://github.com/superset-sh/superset/pull/2153" />
 
 The workspace creation modal has been redesigned with improved clarity and new worktree import settings. Branches now load instantly, and the modal preserves your settings between opens.
 
-{/* TODO: Screenshot of the revamped workspace modal */}
+![New workspace modal](/changelog/workspace-modal.png)
 
 - Worktree import settings for cloning directly into a workspace
 - Branches appear immediately without a loading delay
@@ -24,13 +22,19 @@ The workspace creation modal has been redesigned with improved clarity and new w
 
 File icons in the sidebar and file tree now use the Material Icon Theme, bringing rich per-filetype icons familiar from VS Code. Hidden files are also always visible in the file sidebar.
 
+![Material Icon Theme](/changelog/material-icons.png)
+
 ## Cross-Workspace Search <PRBadge url="https://github.com/superset-sh/superset/pull/2193" />
 
 The search bar now supports searching across all open workspaces, not just the active one. Trigger it from the new search bar shortcut to find files and symbols across your entire project.
 
+![Cross-workspace search](/changelog/search-bar.png)
+
 ## PR Check Status in Changes Sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/2207" />
 
 CI check results now appear inline in the Changes sidebar alongside your PR. See pass/fail status at a glance without switching to a browser tab.
+
+![PR check status in sidebar](/changelog/review-checks.png)
 
 ## Improvements
 
