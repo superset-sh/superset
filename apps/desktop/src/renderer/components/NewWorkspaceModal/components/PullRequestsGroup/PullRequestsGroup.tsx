@@ -18,16 +18,23 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
+/** Returns true if `input` looks like a GitHub pull-request URL. */
+function isGitHubPrUrl(input: string): boolean {
+	return /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(input.trim());
+}
+
 interface PullRequestsGroupProps {
 	projectId: string | null;
 	githubOwner: string | null;
 	repoName: string | null;
+	searchQuery?: string;
 }
 
 export function PullRequestsGroup({
 	projectId,
 	githubOwner,
 	repoName,
+	searchQuery = "",
 }: PullRequestsGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
@@ -82,6 +89,22 @@ export function PullRequestsGroup({
 		[pullRequests],
 	);
 
+	const isPrUrlQuery = isGitHubPrUrl(searchQuery);
+
+	/** Shared handler for creating a workspace from a pasted PR URL. */
+	const handleCreateFromUrl = (prUrl: string) => {
+		if (!projectId) {
+			toast.error("Select a project first");
+			return;
+		}
+		void runAsyncAction(createFromPr.mutateAsync({ projectId, prUrl }), {
+			loading: "Creating workspace from PR…",
+			success: "Workspace created",
+			error: (err) =>
+				err instanceof Error ? err.message : "Failed to create workspace",
+		});
+	};
+
 	if (!projectId) {
 		return (
 			<CommandGroup>
@@ -92,40 +115,88 @@ export function PullRequestsGroup({
 
 	if (!githubOwner) {
 		return (
-			<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
-				<SiGithub className="size-6 text-muted-foreground" />
-				<div className="space-y-1">
-					<p className="text-sm font-medium">Connect GitHub</p>
-					<p className="text-xs text-muted-foreground">
-						Sync pull requests from GitHub to create workspaces
-					</p>
-				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => {
-						gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
-							closeAndResetDraft();
-							navigate({ to: "/settings/integrations" });
-						});
-					}}
-				>
-					Connect
-				</Button>
-			</div>
+			<CommandGroup>
+				{isPrUrlQuery && (
+					<CommandItem
+						key="__url__"
+						value={searchQuery}
+						onSelect={() => handleCreateFromUrl(searchQuery)}
+						className="group h-12"
+					>
+						<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+						<span className="truncate flex-1">Import PR from URL</span>
+						<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+							Create ↵
+						</span>
+					</CommandItem>
+				)}
+				{!isPrUrlQuery && (
+					<div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
+						<SiGithub className="size-6 text-muted-foreground" />
+						<div className="space-y-1">
+							<p className="text-sm font-medium">Connect GitHub</p>
+							<p className="text-xs text-muted-foreground">
+								Sync pull requests from GitHub, or paste a PR URL above to
+								import directly
+							</p>
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => {
+								gateFeature(GATED_FEATURES.INTEGRATIONS, () => {
+									closeAndResetDraft();
+									navigate({ to: "/settings/integrations" });
+								});
+							}}
+						>
+							Connect
+						</Button>
+					</div>
+				)}
+			</CommandGroup>
 		);
 	}
 
 	if (!githubRepositoryId) {
 		return (
 			<CommandGroup>
-				<CommandEmpty>No GitHub repository found.</CommandEmpty>
+				{isPrUrlQuery ? (
+					<CommandItem
+						key="__url__"
+						value={searchQuery}
+						onSelect={() => handleCreateFromUrl(searchQuery)}
+						className="group h-12"
+					>
+						<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+						<span className="truncate flex-1">Import PR from URL</span>
+						<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+							Create ↵
+						</span>
+					</CommandItem>
+				) : (
+					<CommandEmpty>No GitHub repository found.</CommandEmpty>
+				)}
 			</CommandGroup>
 		);
 	}
 
 	return (
 		<CommandGroup>
+			{isPrUrlQuery && (
+				<CommandItem
+					key="__url__"
+					value={searchQuery}
+					onSelect={() => handleCreateFromUrl(searchQuery)}
+					className="group h-12"
+				>
+					<GoGitPullRequest className="size-4 shrink-0 text-emerald-500" />
+					<span className="truncate flex-1">Import PR from URL</span>
+					<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
+						Create ↵
+					</span>
+				</CommandItem>
+			)}
 			<CommandEmpty>No pull requests found.</CommandEmpty>
 			{openPrs.map((pr) => (
 				<CommandItem

@@ -522,4 +522,48 @@ describe("parsePrUrl", () => {
 			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
 		).toBe(null);
 	});
+
+	// Regression tests for paste-PR-URL import flow (issue #2285)
+	// Users copy PR URLs from their browser which may include query params or hash fragments.
+	// These must parse correctly so the "create workspace from URL" feature works.
+
+	test("parses PR URL with query parameters (e.g. ?diff=split)", () => {
+		expect(
+			parsePrUrl("https://github.com/myorg/myrepo/pull/42?diff=split"),
+		).toEqual({ owner: "myorg", repo: "myrepo", number: 42 });
+	});
+
+	test("parses PR URL with hash fragment (e.g. #discussion_r…)", () => {
+		expect(
+			parsePrUrl(
+				"https://github.com/myorg/myrepo/pull/42#discussion_r12345678",
+			),
+		).toEqual({ owner: "myorg", repo: "myrepo", number: 42 });
+	});
+
+	test("parses PR URL with trailing path segment (e.g. /files)", () => {
+		expect(parsePrUrl("https://github.com/myorg/myrepo/pull/42/files")).toEqual(
+			{ owner: "myorg", repo: "myrepo", number: 42 },
+		);
+	});
+
+	test("parses org-repo PR URL", () => {
+		expect(parsePrUrl("https://github.com/my-org/their-repo/pull/100")).toEqual(
+			{ owner: "my-org", repo: "their-repo", number: 100 },
+		);
+	});
+
+	test("returns null for non-GitHub URL", () => {
+		expect(parsePrUrl("https://gitlab.com/owner/repo/merge_requests/42")).toBe(
+			null,
+		);
+	});
+
+	test("returns null for empty string", () => {
+		expect(parsePrUrl("")).toBe(null);
+	});
+
+	test("returns null for plain text (not a URL)", () => {
+		expect(parsePrUrl("fix login bug")).toBe(null);
+	});
 });

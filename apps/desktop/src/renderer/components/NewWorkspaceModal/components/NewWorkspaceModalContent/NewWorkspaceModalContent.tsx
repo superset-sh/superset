@@ -132,7 +132,7 @@ export function NewWorkspaceModalContent({
 								? "Search by slug, title, or description"
 								: draft.activeTab === "branches"
 									? "Search by name"
-									: "Search by title, number, or author"
+									: "Search by title, number, author, or paste a PR URL"
 						}
 					/>
 
@@ -142,6 +142,7 @@ export function NewWorkspaceModalContent({
 								projectId={draft.selectedProjectId}
 								githubOwner={selectedProject?.githubOwner ?? null}
 								repoName={selectedProject?.name ?? null}
+								searchQuery={draft.pullRequestsQuery}
 							/>
 						)}
 						{draft.activeTab === "branches" && (
