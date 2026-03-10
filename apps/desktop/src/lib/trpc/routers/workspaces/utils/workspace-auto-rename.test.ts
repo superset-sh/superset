@@ -33,7 +33,7 @@ describe("resolveWorkspaceAutoRename", () => {
 		).toBeNull();
 	});
 
-	test("does not overwrite placeholder once another name has been applied", () => {
+	test("allows auto-name to replace a transient unnamed placeholder", () => {
 		expect(
 			resolveWorkspaceAutoRename({
 				workspace: {
@@ -44,7 +44,7 @@ describe("resolveWorkspaceAutoRename", () => {
 				},
 				generatedName: "Fix auth flow",
 			}),
-		).toBeNull();
+		).toBe("Fix auth flow");
 	});
 
 	test("ignores empty generated names", () => {

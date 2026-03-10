@@ -419,10 +419,7 @@ export const createCreateProcedures = () => {
 									workspaceId: workspace.id,
 									prompt: input.prompt,
 								});
-							autoRenameWarning =
-								autoRenameResult.status === "skipped"
-									? autoRenameResult.warning
-									: undefined;
+							autoRenameWarning = autoRenameResult.warning;
 						} catch (error) {
 							console.warn("[workspaces/create] Auto naming failed", {
 								workspaceId: workspace.id,

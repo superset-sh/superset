@@ -110,6 +110,9 @@ export function createChatServiceRouter(service: ChatService) {
 			cancelOpenAIOAuth: t.procedure.mutation(() => {
 				return service.cancelOpenAIOAuth();
 			}),
+			disconnectOpenAIOAuth: t.procedure.mutation(() => {
+				return service.disconnectOpenAIOAuth();
+			}),
 			startAnthropicOAuth: t.procedure.mutation(() => {
 				return service.startAnthropicOAuth();
 			}),
@@ -120,6 +123,9 @@ export function createChatServiceRouter(service: ChatService) {
 				}),
 			cancelAnthropicOAuth: t.procedure.mutation(() => {
 				return service.cancelAnthropicOAuth();
+			}),
+			disconnectAnthropicOAuth: t.procedure.mutation(() => {
+				return service.disconnectAnthropicOAuth();
 			}),
 			setAnthropicApiKey: t.procedure
 				.input(anthropicApiKeyInput)

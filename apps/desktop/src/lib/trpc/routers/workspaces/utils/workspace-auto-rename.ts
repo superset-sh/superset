@@ -46,12 +46,6 @@ export function getWorkspaceAutoRenameDecision({
 		return { kind: "skip", reason: "workspace-named" };
 	}
 
-	// Only replace the original branch placeholder. If the name has already
-	// changed, avoid overwriting it with a late async rename.
-	if (workspace.name !== workspace.branch) {
-		return { kind: "skip", reason: "workspace-name-changed" };
-	}
-
 	return { kind: "rename", name: cleanedGeneratedName };
 }
 

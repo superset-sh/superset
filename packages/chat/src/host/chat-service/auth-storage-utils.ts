@@ -35,6 +35,18 @@ export function clearApiKeyForProvider(
 	authStorage.remove(providerId);
 }
 
+export function clearCredentialForProvider(
+	authStorage: AuthStorageLike,
+	providerId: string,
+): void {
+	authStorage.reload();
+	if (!authStorage.get(providerId)) {
+		return;
+	}
+
+	authStorage.remove(providerId);
+}
+
 export function resolveAuthMethodForProvider(
 	authStorage: AuthStorageLike,
 	providerId: string,

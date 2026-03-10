@@ -1,5 +1,5 @@
 export {
 	getOpenAICredentialsFromAnySource,
 	getOpenAICredentialsFromAuthStorage,
-	getOpenAICredentialsFromRuntimeEnv,
+	isOpenAICredentialExpired,
 } from "./openai";

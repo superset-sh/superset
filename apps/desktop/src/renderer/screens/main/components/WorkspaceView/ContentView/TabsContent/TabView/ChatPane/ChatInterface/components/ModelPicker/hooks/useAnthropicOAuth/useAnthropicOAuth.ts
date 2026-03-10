@@ -1,5 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -12,6 +13,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 interface UseAnthropicOAuthParams {
 	isModelSelectorOpen: boolean;
 	onModelSelectorOpenChange: (open: boolean) => void;
+	onAuthStateChange?: () => Promise<void> | void;
 }
 
 interface AnthropicOAuthDialogState {
@@ -19,11 +21,15 @@ interface AnthropicOAuthDialogState {
 	authUrl: string | null;
 	code: string;
 	errorMessage: string | null;
+	isPreparing: boolean;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
+	onRetry: () => void;
 	onSubmit: () => void;
 }
 
@@ -34,15 +40,41 @@ interface UseAnthropicOAuthResult {
 	oauthDialog: AnthropicOAuthDialogState;
 }
 
+function looksLikeAnthropicOAuthInput(value: string): boolean {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		return false;
+	}
+
+	if (trimmed.length > 50 && trimmed.includes("#")) {
+		return true;
+	}
+
+	try {
+		const url = new URL(trimmed);
+		return Boolean(
+			url.searchParams.get("code") && url.searchParams.get("state"),
+		);
+	} catch {
+		return false;
+	}
+}
+
 export function useAnthropicOAuth({
 	isModelSelectorOpen,
 	onModelSelectorOpenChange,
+	onAuthStateChange,
 }: UseAnthropicOAuthParams): UseAnthropicOAuthResult {
 	const [oauthDialogOpen, setOauthDialogOpen] = useState(false);
 	const [oauthUrl, setOauthUrl] = useState<string | null>(null);
 	const [oauthCode, setOauthCode] = useState("");
 	const [oauthError, setOauthError] = useState<string | null>(null);
 	const [hasPendingOAuthSession, setHasPendingOAuthSession] = useState(false);
+	const [isPreparingOAuth, setIsPreparingOAuth] = useState(false);
+	const autoSubmitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const electronUtils = electronTrpc.useUtils();
 
 	const { data: anthropicStatus, refetch: refetchAnthropicStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
@@ -52,6 +84,8 @@ export function useAnthropicOAuth({
 		chatServiceTrpc.auth.completeAnthropicOAuth.useMutation();
 	const cancelAnthropicOAuthMutation =
 		chatServiceTrpc.auth.cancelAnthropicOAuth.useMutation();
+	const disconnectAnthropicOAuthMutation =
+		chatServiceTrpc.auth.disconnectAnthropicOAuth.useMutation();
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
@@ -78,21 +112,35 @@ export function useAnthropicOAuth({
 	}, [oauthUrl, openExternalUrl]);
 
 	const startAnthropicOAuth = useCallback(async () => {
+		if (autoSubmitTimeoutRef.current) {
+			clearTimeout(autoSubmitTimeoutRef.current);
+			autoSubmitTimeoutRef.current = null;
+		}
+
+		setOauthDialogOpen(true);
+		setOauthUrl(null);
+		setOauthCode("");
 		setOauthError(null);
+		setHasPendingOAuthSession(false);
+		setIsPreparingOAuth(true);
 
 		try {
 			const result = await startAnthropicOAuthMutation.mutateAsync();
 			setOauthUrl(result.url);
-			setOauthCode("");
 			setHasPendingOAuthSession(true);
-			setOauthDialogOpen(true);
+			try {
+				await openExternalUrl(result.url);
+			} catch (error) {
+				setOauthError(getErrorMessage(error, "Failed to open browser"));
+			}
 		} catch (error) {
-			setOauthDialogOpen(true);
 			setOauthError(
 				getErrorMessage(error, "Failed to start Anthropic OAuth flow"),
 			);
+		} finally {
+			setIsPreparingOAuth(false);
 		}
-	}, [startAnthropicOAuthMutation]);
+	}, [openExternalUrl, startAnthropicOAuthMutation]);
 
 	const copyOAuthUrl = useCallback(async () => {
 		if (!oauthUrl) return;
@@ -104,27 +152,70 @@ export function useAnthropicOAuth({
 		}
 	}, [oauthUrl]);
 
-	const completeAnthropicOAuth = useCallback(async () => {
-		const code = oauthCode.trim();
-		if (!code) return;
+	const submitAnthropicOAuthCode = useCallback(
+		async (rawCode: string) => {
+			const code = rawCode.trim();
+			if (!code) return;
 
+			setOauthError(null);
+			try {
+				await completeAnthropicOAuthMutation.mutateAsync({ code });
+				await electronTrpcClient.modelProviders.clearIssue.mutate({
+					providerId: "anthropic",
+				});
+				await electronUtils.modelProviders.getStatuses.invalidate();
+				setHasPendingOAuthSession(false);
+				setIsPreparingOAuth(false);
+				setOauthDialogOpen(false);
+				setOauthUrl(null);
+				setOauthCode("");
+				onModelSelectorOpenChange(true);
+				await refetchAnthropicStatus();
+				await onAuthStateChange?.();
+			} catch (error) {
+				setOauthError(
+					getErrorMessage(error, "Failed to complete Anthropic OAuth"),
+				);
+			}
+		},
+		[
+			completeAnthropicOAuthMutation,
+			electronUtils.modelProviders.getStatuses.invalidate,
+			onAuthStateChange,
+			onModelSelectorOpenChange,
+			refetchAnthropicStatus,
+		],
+	);
+
+	const completeAnthropicOAuth = useCallback(async () => {
+		await submitAnthropicOAuthCode(oauthCode);
+	}, [oauthCode, submitAnthropicOAuthCode]);
+
+	const disconnectAnthropicOAuth = useCallback(async () => {
 		setOauthError(null);
 		try {
-			await completeAnthropicOAuthMutation.mutateAsync({ code });
+			await disconnectAnthropicOAuthMutation.mutateAsync();
+			await electronTrpcClient.modelProviders.clearIssue.mutate({
+				providerId: "anthropic",
+			});
+			await electronUtils.modelProviders.getStatuses.invalidate();
 			setHasPendingOAuthSession(false);
+			setIsPreparingOAuth(false);
 			setOauthDialogOpen(false);
 			setOauthUrl(null);
 			setOauthCode("");
 			onModelSelectorOpenChange(true);
 			await refetchAnthropicStatus();
+			await onAuthStateChange?.();
 		} catch (error) {
 			setOauthError(
-				getErrorMessage(error, "Failed to complete Anthropic OAuth"),
+				getErrorMessage(error, "Failed to disconnect Anthropic OAuth"),
 			);
 		}
 	}, [
-		completeAnthropicOAuthMutation,
-		oauthCode,
+		disconnectAnthropicOAuthMutation,
+		electronUtils.modelProviders.getStatuses,
+		onAuthStateChange,
 		onModelSelectorOpenChange,
 		refetchAnthropicStatus,
 	]);
@@ -135,9 +226,15 @@ export function useAnthropicOAuth({
 			if (nextOpen) return;
 			onModelSelectorOpenChange(true);
 
+			if (autoSubmitTimeoutRef.current) {
+				clearTimeout(autoSubmitTimeoutRef.current);
+				autoSubmitTimeoutRef.current = null;
+			}
+
 			setOauthCode("");
 			setOauthError(null);
 			setOauthUrl(null);
+			setIsPreparingOAuth(false);
 
 			if (hasPendingOAuthSession) {
 				void cancelAnthropicOAuthMutation
@@ -166,16 +263,47 @@ export function useAnthropicOAuth({
 		],
 	);
 
+	useEffect(() => {
+		return () => {
+			if (autoSubmitTimeoutRef.current) {
+				clearTimeout(autoSubmitTimeoutRef.current);
+			}
+		};
+	}, []);
+
 	const oauthDialog = useMemo(
 		() => ({
 			open: oauthDialogOpen,
 			authUrl: oauthUrl,
 			code: oauthCode,
 			errorMessage: oauthError,
-			isPending: completeAnthropicOAuthMutation.isPending,
+			isPreparing: isPreparingOAuth,
+			isPending:
+				completeAnthropicOAuthMutation.isPending ||
+				disconnectAnthropicOAuthMutation.isPending,
+			canDisconnect:
+				anthropicStatus?.source === "managed" &&
+				anthropicStatus.method === "oauth" &&
+				!hasPendingOAuthSession,
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
+				if (autoSubmitTimeoutRef.current) {
+					clearTimeout(autoSubmitTimeoutRef.current);
+					autoSubmitTimeoutRef.current = null;
+				}
+				if (
+					!hasPendingOAuthSession ||
+					completeAnthropicOAuthMutation.isPending ||
+					!looksLikeAnthropicOAuthInput(value)
+				) {
+					return;
+				}
+				autoSubmitTimeoutRef.current = setTimeout(() => {
+					void submitAnthropicOAuthCode(value).finally(() => {
+						autoSubmitTimeoutRef.current = null;
+					});
+				}, 100);
 			},
 			onOpenAuthUrl: () => {
 				void openOAuthUrl();
@@ -183,20 +311,34 @@ export function useAnthropicOAuth({
 			onCopyAuthUrl: () => {
 				void copyOAuthUrl();
 			},
+			onDisconnect: () => {
+				void disconnectAnthropicOAuth();
+			},
+			onRetry: () => {
+				void startAnthropicOAuth();
+			},
 			onSubmit: () => {
 				void completeAnthropicOAuth();
 			},
 		}),
 		[
+			anthropicStatus?.method,
+			anthropicStatus?.source,
 			completeAnthropicOAuth,
 			completeAnthropicOAuthMutation.isPending,
 			copyOAuthUrl,
+			disconnectAnthropicOAuth,
+			disconnectAnthropicOAuthMutation.isPending,
+			hasPendingOAuthSession,
+			isPreparingOAuth,
 			onOAuthDialogOpenChange,
 			openOAuthUrl,
 			oauthCode,
 			oauthDialogOpen,
 			oauthError,
 			oauthUrl,
+			startAnthropicOAuth,
+			submitAnthropicOAuthCode,
 		],
 	);
 

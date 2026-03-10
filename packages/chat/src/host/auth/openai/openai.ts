@@ -3,8 +3,19 @@ import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 
 interface OpenAICredentials {
 	apiKey: string;
-	source: "auth-storage" | "runtime-env";
+	source: "auth-storage";
 	kind: "apiKey" | "oauth";
+	expiresAt?: number;
+}
+
+export function isOpenAICredentialExpired(
+	credential: Pick<OpenAICredentials, "kind" | "expiresAt">,
+): boolean {
+	return (
+		credential.kind === "oauth" &&
+		typeof credential.expiresAt === "number" &&
+		Date.now() >= credential.expiresAt
+	);
 }
 
 export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null {
@@ -39,6 +50,10 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 					apiKey: credential.access.trim(),
 					source: "auth-storage",
 					kind: "oauth",
+					expiresAt:
+						typeof credential.expires === "number"
+							? credential.expires
+							: undefined,
 				};
 			}
 		}
@@ -49,31 +64,6 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 	return null;
 }
 
-export function getOpenAICredentialsFromRuntimeEnv(): OpenAICredentials | null {
-	const apiKey = process.env.OPENAI_API_KEY?.trim();
-	if (apiKey) {
-		return {
-			apiKey,
-			source: "runtime-env",
-			kind: "apiKey",
-		};
-	}
-
-	const authToken = process.env.OPENAI_AUTH_TOKEN?.trim();
-	if (authToken) {
-		return {
-			apiKey: authToken,
-			source: "runtime-env",
-			kind: "oauth",
-		};
-	}
-
-	return null;
-}
-
 export function getOpenAICredentialsFromAnySource(): OpenAICredentials | null {
-	return (
-		getOpenAICredentialsFromAuthStorage() ??
-		getOpenAICredentialsFromRuntimeEnv()
-	);
+	return getOpenAICredentialsFromAuthStorage();
 }

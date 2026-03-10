@@ -14,6 +14,7 @@ export type SettingsSection =
 	| "behavior"
 	| "git"
 	| "terminal"
+	| "models"
 	| "integrations"
 	| "billing"
 	| "devices"

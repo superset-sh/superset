@@ -1,5 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -20,10 +21,12 @@ interface OpenAIOAuthDialogState {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -43,6 +46,7 @@ export function useOpenAIOAuth({
 	const [oauthCode, setOauthCode] = useState("");
 	const [oauthError, setOauthError] = useState<string | null>(null);
 	const [hasPendingOAuthSession, setHasPendingOAuthSession] = useState(false);
+	const electronUtils = electronTrpc.useUtils();
 
 	const { data: openAIStatus, refetch: refetchOpenAIStatus } =
 		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
@@ -52,6 +56,8 @@ export function useOpenAIOAuth({
 		chatServiceTrpc.auth.completeOpenAIOAuth.useMutation();
 	const cancelOpenAIOAuthMutation =
 		chatServiceTrpc.auth.cancelOpenAIOAuth.useMutation();
+	const disconnectOpenAIOAuthMutation =
+		chatServiceTrpc.auth.disconnectOpenAIOAuth.useMutation();
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
@@ -110,6 +116,10 @@ export function useOpenAIOAuth({
 			await completeOpenAIOAuthMutation.mutateAsync({
 				code: code.length > 0 ? code : undefined,
 			});
+			await electronTrpcClient.modelProviders.clearIssue.mutate({
+				providerId: "openai",
+			});
+			await electronUtils.modelProviders.getStatuses.invalidate();
 			setHasPendingOAuthSession(false);
 			setOauthDialogOpen(false);
 			setOauthUrl(null);
@@ -121,7 +131,34 @@ export function useOpenAIOAuth({
 		}
 	}, [
 		completeOpenAIOAuthMutation,
+		electronUtils.modelProviders.getStatuses.invalidate,
 		oauthCode,
+		onModelSelectorOpenChange,
+		refetchOpenAIStatus,
+	]);
+
+	const disconnectOpenAIOAuth = useCallback(async () => {
+		setOauthError(null);
+		try {
+			await disconnectOpenAIOAuthMutation.mutateAsync();
+			await electronTrpcClient.modelProviders.clearIssue.mutate({
+				providerId: "openai",
+			});
+			await electronUtils.modelProviders.getStatuses.invalidate();
+			setHasPendingOAuthSession(false);
+			setOauthDialogOpen(false);
+			setOauthUrl(null);
+			setOauthCode("");
+			onModelSelectorOpenChange(true);
+			await refetchOpenAIStatus();
+		} catch (error) {
+			setOauthError(
+				getErrorMessage(error, "Failed to disconnect OpenAI OAuth"),
+			);
+		}
+	}, [
+		disconnectOpenAIOAuthMutation,
+		electronUtils.modelProviders.getStatuses,
 		onModelSelectorOpenChange,
 		refetchOpenAIStatus,
 	]);
@@ -166,7 +203,13 @@ export function useOpenAIOAuth({
 			authUrl: oauthUrl,
 			code: oauthCode,
 			errorMessage: oauthError,
-			isPending: completeOpenAIOAuthMutation.isPending,
+			isPending:
+				completeOpenAIOAuthMutation.isPending ||
+				disconnectOpenAIOAuthMutation.isPending,
+			canDisconnect:
+				openAIStatus?.source === "managed" &&
+				openAIStatus.method === "oauth" &&
+				!hasPendingOAuthSession,
 			onOpenChange: onOAuthDialogOpenChange,
 			onCodeChange: (value: string) => {
 				setOauthCode(value);
@@ -177,6 +220,9 @@ export function useOpenAIOAuth({
 			onCopyAuthUrl: () => {
 				void copyOAuthUrl();
 			},
+			onDisconnect: () => {
+				void disconnectOpenAIOAuth();
+			},
 			onSubmit: () => {
 				void completeOpenAIOAuth();
 			},
@@ -185,7 +231,12 @@ export function useOpenAIOAuth({
 			completeOpenAIOAuth,
 			completeOpenAIOAuthMutation.isPending,
 			copyOAuthUrl,
+			disconnectOpenAIOAuth,
+			disconnectOpenAIOAuthMutation.isPending,
+			hasPendingOAuthSession,
 			onOAuthDialogOpenChange,
+			openAIStatus?.method,
+			openAIStatus?.source,
 			openOAuthUrl,
 			oauthCode,
 			oauthDialogOpen,

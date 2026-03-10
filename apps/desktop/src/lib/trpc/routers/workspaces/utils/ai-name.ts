@@ -1,18 +1,20 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import {
-	generateTitleFromMessage,
-	getCredentialsFromAnySource as getAnthropicCredentialsFromAnySource,
-	getAnthropicProviderOptions,
-	getOpenAICredentialsFromAnySource,
-} from "@superset/chat/host";
+import { generateTitleFromMessage } from "@superset/chat/host";
 import { workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
+import {
+	callSmallModel,
+	type SmallModelAttempt,
+} from "lib/ai/call-small-model";
 import { localDb } from "main/lib/local-db";
+import { deriveWorkspaceTitleFromPrompt } from "shared/utils/workspace-naming";
 import { getWorkspaceAutoRenameDecision } from "./workspace-auto-rename";
 
 export type WorkspaceAutoRenameResult =
-	| { status: "renamed"; name: string }
+	| {
+			status: "renamed";
+			name: string;
+			warning?: string;
+	  }
 	| {
 			status: "skipped";
 			reason:
@@ -27,74 +29,59 @@ export type WorkspaceAutoRenameResult =
 			warning?: string;
 	  };
 
-type AgentModel = Extract<
-	Parameters<typeof generateTitleFromMessage>[0],
-	{ agentModel: unknown }
->["agentModel"];
-type AnthropicCredentials = NonNullable<
-	ReturnType<typeof getAnthropicCredentialsFromAnySource>
->;
-type OpenAICredentials = NonNullable<
-	ReturnType<typeof getOpenAICredentialsFromAnySource>
->;
-
-interface TitleProvider {
-	name: "Anthropic" | "OpenAI";
-	agentId: string;
-	resolveCredentials: () => AnthropicCredentials | OpenAICredentials | null;
-	createModel: (
-		credentials: AnthropicCredentials | OpenAICredentials,
-	) => AgentModel;
-}
-
-const TITLE_PROVIDERS: TitleProvider[] = [
-	{
-		name: "Anthropic",
-		agentId: "workspace-namer-anthropic",
-		resolveCredentials: () => getAnthropicCredentialsFromAnySource(),
-		createModel: (credentials) =>
-			createAnthropic(getAnthropicProviderOptions(credentials))(
-				"claude-haiku-4-5-20251001",
-			),
-	},
-	{
-		name: "OpenAI",
-		agentId: "workspace-namer-openai",
-		resolveCredentials: () => getOpenAICredentialsFromAnySource(),
-		createModel: (credentials) =>
-			createOpenAI({ apiKey: credentials.apiKey })("gpt-4o-mini"),
-	},
-];
-
-export async function generateWorkspaceNameFromPrompt(
-	prompt: string,
-): Promise<string | null> {
-	for (const provider of TITLE_PROVIDERS) {
-		const credentials = provider.resolveCredentials();
-		if (!credentials) {
-			continue;
-		}
-
-		try {
-			const title = await generateTitleFromMessage({
+export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
+	name: string | null;
+	usedPromptFallback: boolean;
+	warning?: string;
+}> {
+	const { result, attempts } = await callSmallModel<string>({
+		invoke: async ({ providerId, providerName, model }) => {
+			return generateTitleFromMessage({
 				message: prompt,
-				agentModel: provider.createModel(credentials),
-				agentId: provider.agentId,
+				agentModel: model,
+				agentId: `workspace-namer-${providerId}`,
 				agentName: "Workspace Namer",
 				instructions: "You generate concise workspace titles.",
+				tracingContext: {
+					surface: "workspace-auto-name",
+					provider: providerName,
+				},
 			});
-			if (title) {
-				return title;
-			}
-		} catch (error) {
+		},
+	});
+	if (result) {
+		return { name: result, usedPromptFallback: false };
+	}
+
+	for (const attempt of attempts) {
+		if (attempt.outcome === "failed") {
 			console.error(
-				`[workspace-ai-name] ${provider.name} title generation failed`,
-				error,
+				`[workspace-ai-name] ${attempt.providerName} title generation failed`,
+				attempt.issue ?? attempt.reason,
+			);
+			continue;
+		}
+		if (attempt.outcome === "unsupported-credentials") {
+			console.info(
+				`[workspace-ai-name] Skipping ${attempt.providerName} for title generation`,
+				{
+					issue: attempt.issue ?? attempt.reason,
+				},
 			);
 		}
 	}
 
-	return null;
+	const fallbackTitle = deriveWorkspaceTitleFromPrompt(prompt);
+	if (fallbackTitle) {
+		console.info("[workspace-ai-name] Falling back to prompt-derived title");
+		return {
+			name: fallbackTitle,
+			usedPromptFallback: true,
+			warning: buildWorkspaceAutoNameFallbackWarning(attempts),
+		};
+	}
+
+	return { name: null, usedPromptFallback: false };
 }
 
 export async function attemptWorkspaceAutoRenameFromPrompt({
@@ -109,17 +96,16 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		return { status: "skipped", reason: "empty-prompt" };
 	}
 
-	const generatedName = await generateWorkspaceNameFromPrompt(cleanedPrompt);
+	const {
+		name: generatedName,
+		usedPromptFallback,
+		warning,
+	} = await generateWorkspaceNameFromPrompt(cleanedPrompt);
 	if (!generatedName) {
-		const hasCredentials =
-			getAnthropicCredentialsFromAnySource() !== null ||
-			getOpenAICredentialsFromAnySource() !== null;
 		return {
 			status: "skipped",
-			reason: hasCredentials ? "generation-failed" : "missing-credentials",
-			warning: hasCredentials
-				? "Couldn't auto-name this workspace."
-				: "Couldn't auto-name this workspace because chat credentials aren't configured.",
+			reason: "generation-failed",
+			warning: warning ?? "Couldn't auto-name this workspace.",
 		};
 	}
 
@@ -157,14 +143,17 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 			and(
 				eq(workspaces.id, workspace.id),
 				eq(workspaces.branch, workspace.branch),
-				eq(workspaces.name, workspace.branch),
 				eq(workspaces.isUnnamed, true),
 				isNull(workspaces.deletingAt),
 			),
 		)
 		.run();
 	if (renameResult.changes > 0) {
-		return { status: "renamed", name: decision.name };
+		return {
+			status: "renamed",
+			name: decision.name,
+			warning: usedPromptFallback ? warning : undefined,
+		};
 	}
 
 	const latestWorkspace = localDb
@@ -189,4 +178,42 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 				? latestDecision.reason
 				: "workspace-name-changed",
 	};
+}
+
+function buildWorkspaceAutoNameFallbackWarning(
+	attempts: SmallModelAttempt[],
+): string {
+	if (attempts.length === 0) {
+		return "No model account was connected, so a prompt-based title was used.";
+	}
+
+	const expiredAttempt = attempts.find(
+		(attempt) => attempt.outcome === "expired-credentials",
+	);
+	if (expiredAttempt) {
+		return `${expiredAttempt.issue?.message ?? `${expiredAttempt.providerName} needs to be reconnected`}, so a prompt-based title was used.`;
+	}
+
+	const failedAttempt = attempts.find(
+		(attempt) => attempt.outcome === "failed",
+	);
+	if (failedAttempt) {
+		return `${failedAttempt.issue?.message ?? `${failedAttempt.providerName} couldn't generate a title`}, so a prompt-based title was used.`;
+	}
+
+	const unsupportedAttempt = attempts.find(
+		(attempt) => attempt.outcome === "unsupported-credentials",
+	);
+	if (unsupportedAttempt) {
+		return `${unsupportedAttempt.issue?.message ?? "No compatible model account was available"}, so a prompt-based title was used.`;
+	}
+
+	const missingCredentials = attempts.every(
+		(attempt) => attempt.outcome === "missing-credentials",
+	);
+	if (missingCredentials) {
+		return "No model account was connected, so a prompt-based title was used.";
+	}
+
+	return "A prompt-based title was used because model naming was unavailable.";
 }
