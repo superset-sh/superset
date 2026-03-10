@@ -8,6 +8,7 @@ import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateBranchWorkspace,
+	useHandleOpenedWorktree,
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
 } from "renderer/react-query/workspaces";
@@ -27,9 +28,9 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const handleOpenedWorktree = useHandleOpenedWorktree();
 	const importAllWorktrees = useImportAllWorktrees();
 	const openExternalWorktree = useOpenExternalWorktree();
-	const trpcUtils = electronTrpc.useUtils();
 	const { closeAndResetDraft, runAsyncAction } = useNewWorkspaceModalDraft();
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 
@@ -51,7 +52,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 
 	const { data: allWorkspaces = [] } =
 		electronTrpc.workspaces.getAll.useQuery();
-	const { data: trackedWorktrees = [], isLoading: isTrackedWorktreesLoading } =
+	const { data: trackedWorktrees = [] } =
 		electronTrpc.workspaces.getWorktreesByProject.useQuery(
 			{ projectId: projectId ?? "" },
 			{ enabled: !!projectId },
@@ -209,9 +210,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 
 	const openTrackedWorktree = electronTrpc.workspaces.openWorktree.useMutation({
 		onSuccess: async (data) => {
-			await trpcUtils.workspaces.invalidate();
-			closeAndResetDraft();
-			navigateToWorkspace(data.workspace.id, navigate);
+			await handleOpenedWorktree(data);
 		},
 	});
 
@@ -256,17 +255,17 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 				externalWorktreeByBranch,
 			});
 
-			if (action.kind === "open-workspace" && action.workspaceId) {
+			if (action.kind === "open-workspace") {
 				handleOpen(action.workspaceId);
 				return;
 			}
 
-			if (action.kind === "open-worktree" && action.worktreeId) {
+			if (action.kind === "open-worktree") {
 				handleOpenTrackedWorktree(action.worktreeId, branchName);
 				return;
 			}
 
-			if (action.kind === "import-worktree" && action.worktreePath) {
+			if (action.kind === "import-worktree") {
 				handleImportExternalWorktree(branchName, action.worktreePath);
 				return;
 			}
@@ -307,11 +306,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		);
 	}
 
-	if (
-		isLocalLoading ||
-		isTrackedWorktreesLoading ||
-		isExternalWorktreesLoading
-	) {
+	if (isLocalLoading) {
 		return (
 			<CommandGroup>
 				<CommandEmpty>Loading branches...</CommandEmpty>
@@ -359,9 +354,11 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 			</div>
 			<CommandGroup>
 				<CommandEmpty>
-					{filterMode === "worktrees"
-						? "No worktree branches found."
-						: "No branches found."}
+					{filterMode === "worktrees" && isExternalWorktreesLoading
+						? "Loading worktree branches..."
+						: filterMode === "worktrees"
+							? "No worktree branches found."
+							: "No branches found."}
 				</CommandEmpty>
 				{visibleBranchRows.map(({ branch, action }) => {
 					const existingWorkspaceId =

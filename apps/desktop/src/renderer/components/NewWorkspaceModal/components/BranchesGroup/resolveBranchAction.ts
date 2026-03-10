@@ -1,13 +1,19 @@
-export interface ResolvedBranchAction {
-	kind:
-		| "open-workspace"
-		| "open-worktree"
-		| "import-worktree"
-		| "create-workspace";
-	workspaceId?: string;
-	worktreeId?: string;
-	worktreePath?: string;
-}
+export type ResolvedBranchAction =
+	| {
+			kind: "open-workspace";
+			workspaceId: string;
+	  }
+	| {
+			kind: "open-worktree";
+			worktreeId: string;
+	  }
+	| {
+			kind: "import-worktree";
+			worktreePath: string;
+	  }
+	| {
+			kind: "create-workspace";
+	  };
 
 interface ResolveBranchActionInput {
 	branchName: string;
