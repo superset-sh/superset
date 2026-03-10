@@ -71,7 +71,13 @@ export function buildAnthropicEnvText(values: AnthropicFormValues): string {
 	return lines.join("\n");
 }
 
-export function getAnthropicSubtitle(
+const EXTERNAL_OAUTH_LABELS: Record<ProviderId, string> = {
+	anthropic: "Connected via Claude",
+	openai: "Connected via ChatGPT",
+};
+
+export function getProviderSubtitle(
+	providerId: ProviderId,
 	status: ModelProviderStatus | undefined,
 ): string {
 	if (status?.connectionState === "needs_attention" && status.issue) {
@@ -81,33 +87,12 @@ export function getAnthropicSubtitle(
 		return "No account connected";
 	}
 	if (status.source === "external" && status.authMethod === "oauth") {
-		return "Connected via Claude";
+		return EXTERNAL_OAUTH_LABELS[providerId];
 	}
 	if (status.authMethod === "oauth") {
 		return "Connected in Superset";
 	}
 	if (status.authMethod === "api_key" || status.authMethod === "env") {
-		return "Connected with API key";
-	}
-	return "Connected";
-}
-
-export function getOpenAISubtitle(
-	status: ModelProviderStatus | undefined,
-): string {
-	if (status?.connectionState === "needs_attention" && status.issue) {
-		return status.issue.message;
-	}
-	if (!status || status.connectionState === "disconnected") {
-		return "No account connected";
-	}
-	if (status.source === "external" && status.authMethod === "oauth") {
-		return "Connected via ChatGPT";
-	}
-	if (status.authMethod === "oauth") {
-		return "Connected in Superset";
-	}
-	if (status.authMethod === "api_key") {
 		return "Connected with API key";
 	}
 	return "Connected";

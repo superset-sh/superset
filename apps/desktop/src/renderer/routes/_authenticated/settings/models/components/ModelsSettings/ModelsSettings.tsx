@@ -26,8 +26,7 @@ import { SettingsSection } from "./components/SettingsSection";
 import {
 	buildAnthropicEnvText,
 	EMPTY_ANTHROPIC_FORM,
-	getAnthropicSubtitle,
-	getOpenAISubtitle,
+	getProviderSubtitle,
 	getStatusBadge,
 	parseAnthropicForm,
 	resolveProviderStatus,
@@ -51,6 +50,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	const [apiKeysOpen, setApiKeysOpen] = useState(true);
 	const [overrideOpen, setOverrideOpen] = useState(true);
 	const [openAIApiKeyInput, setOpenAIApiKeyInput] = useState("");
+	const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState("");
 	const [anthropicForm, setAnthropicForm] = useState(EMPTY_ANTHROPIC_FORM);
 
 	const { data: providerStatuses, refetch: refetchProviderStatuses } =
@@ -67,6 +67,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
 	const { data: anthropicEnvConfig, refetch: refetchAnthropicEnvConfig } =
 		chatServiceTrpc.auth.getAnthropicEnvConfig.useQuery();
+	const setAnthropicApiKeyMutation =
+		chatServiceTrpc.auth.setAnthropicApiKey.useMutation();
+	const clearAnthropicApiKeyMutation =
+		chatServiceTrpc.auth.clearAnthropicApiKey.useMutation();
 	const setAnthropicEnvConfigMutation =
 		chatServiceTrpc.auth.setAnthropicEnvConfig.useMutation();
 	const clearAnthropicEnvConfigMutation =
@@ -98,6 +102,9 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	} = useOpenAIOAuth(DIALOG_CONTEXT);
 
 	const hasAnthropicConfig = !!anthropicEnvConfig?.envText.trim().length;
+	const isSavingAnthropicApiKey =
+		setAnthropicApiKeyMutation.isPending ||
+		clearAnthropicApiKeyMutation.isPending;
 	const isSavingAnthropicConfig =
 		setAnthropicEnvConfigMutation.isPending ||
 		clearAnthropicEnvConfigMutation.isPending;
@@ -106,6 +113,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 	useEffect(() => {
 		setAnthropicForm(parseAnthropicForm(anthropicEnvConfig?.envText ?? ""));
+		setAnthropicApiKeyInput("");
 	}, [anthropicEnvConfig?.envText]);
 
 	const anthropicStatus = useMemo(
@@ -129,11 +137,11 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	);
 
 	const anthropicSubtitle = useMemo(
-		() => getAnthropicSubtitle(anthropicStatus),
+		() => getProviderSubtitle("anthropic", anthropicStatus),
 		[anthropicStatus],
 	);
 	const openAISubtitle = useMemo(
-		() => getOpenAISubtitle(openAIStatus),
+		() => getProviderSubtitle("openai", openAIStatus),
 		[openAIStatus],
 	);
 	const anthropicBadge = useMemo(
@@ -144,6 +152,9 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		() => getStatusBadge(openAIStatus),
 		[openAIStatus],
 	);
+
+	const clearProviderIssue = (providerId: "anthropic" | "openai") =>
+		clearProviderIssueMutation.mutateAsync({ providerId });
 
 	const saveAnthropicForm = async (nextForm = anthropicForm) => {
 		const envText = buildAnthropicEnvText(nextForm);
@@ -156,10 +167,29 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await Promise.all([
 				refetchAnthropicEnvConfig(),
 				refetchAnthropicAuthStatus(),
-				clearProviderIssueMutation.mutateAsync({ providerId: "anthropic" }),
+				clearProviderIssue("anthropic"),
 				refetchProviderStatuses(),
 			]);
 			toast.success("Anthropic settings updated");
+			return true;
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to save");
+			return false;
+		}
+	};
+
+	const saveAnthropicApiKey = async () => {
+		const apiKey = anthropicApiKeyInput.trim();
+		if (!apiKey) return;
+		try {
+			await setAnthropicApiKeyMutation.mutateAsync({ apiKey });
+			setAnthropicApiKeyInput("");
+			await Promise.all([
+				refetchAnthropicAuthStatus(),
+				clearProviderIssue("anthropic"),
+				refetchProviderStatuses(),
+			]);
+			toast.success("Anthropic API key updated");
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
 		}
@@ -173,7 +203,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			setOpenAIApiKeyInput("");
 			await Promise.all([
 				refetchOpenAIAuthStatus(),
-				clearProviderIssueMutation.mutateAsync({ providerId: "openai" }),
+				clearProviderIssue("openai"),
 				refetchProviderStatuses(),
 			]);
 			toast.success("OpenAI API key updated");
@@ -316,29 +346,51 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										field={
 											<Input
 												type="password"
-												value={anthropicForm.apiKey}
+												value={anthropicApiKeyInput}
 												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														apiKey: event.target.value,
-													}));
+													setAnthropicApiKeyInput(event.target.value);
 												}}
-												placeholder="sk-ant-..."
+												placeholder={
+													anthropicStatus?.authMethod === "api_key"
+														? "Saved Anthropic API key"
+														: "sk-ant-..."
+												}
 												className="font-mono"
-												disabled={isSavingAnthropicConfig}
+												disabled={isSavingAnthropicApiKey}
 											/>
 										}
 										onSave={() => {
-											void saveAnthropicForm();
+											void saveAnthropicApiKey();
 										}}
 										onClear={() => {
 											const nextForm = { ...anthropicForm, apiKey: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
+											void (async () => {
+												try {
+													await clearAnthropicApiKeyMutation.mutateAsync();
+													setAnthropicApiKeyInput("");
+													setAnthropicForm(nextForm);
+													await Promise.all([
+														refetchAnthropicAuthStatus(),
+														clearProviderIssue("anthropic"),
+														refetchProviderStatuses(),
+													]);
+													toast.success("Anthropic API key cleared");
+												} catch (error) {
+													toast.error(
+														error instanceof Error
+															? error.message
+															: "Failed to clear",
+													);
+												}
+											})();
 										}}
-										disableSave={isSavingAnthropicConfig}
+										disableSave={
+											isSavingAnthropicApiKey ||
+											anthropicApiKeyInput.trim().length === 0
+										}
 										disableClear={
-											isSavingAnthropicConfig || !anthropicForm.apiKey
+											isSavingAnthropicApiKey ||
+											anthropicStatus?.authMethod !== "api_key"
 										}
 									/>
 								) : null}
@@ -371,9 +423,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 													setOpenAIApiKeyInput("");
 													await Promise.all([
 														refetchOpenAIAuthStatus(),
-														clearProviderIssueMutation.mutateAsync({
-															providerId: "openai",
-														}),
+														clearProviderIssue("openai"),
 														refetchProviderStatuses(),
 													]);
 													toast.success("OpenAI API key cleared");

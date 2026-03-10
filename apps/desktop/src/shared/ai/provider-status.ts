@@ -135,7 +135,7 @@ export function classifyProviderIssue(params: {
 	};
 }
 
-export function getIssueFromAuthStatus(
+function getIssueFromAuthStatus(
 	providerId: ProviderId,
 	authStatus: AuthStatusLike,
 ): ProviderIssue | null {
@@ -167,18 +167,11 @@ export function deriveModelProviderStatus(params: {
 		connectionState = "needs_attention";
 	}
 
-	const hasCredential = authStatus.authenticated || authStatus.source !== null;
 	const capabilities: ProviderCapabilities = {
 		canUseChat: authStatus.authenticated,
 		canGenerateWorkspaceTitle: authStatus.authenticated,
 		canUseSmallModelTasks: authStatus.authenticated,
 	};
-
-	if (!hasCredential) {
-		capabilities.canUseChat = false;
-		capabilities.canGenerateWorkspaceTitle = false;
-		capabilities.canUseSmallModelTasks = false;
-	}
 
 	if (issue) {
 		switch (issue.code) {

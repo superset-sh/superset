@@ -5,8 +5,8 @@ import {
 	isClaudeCredentialExpired,
 } from "../auth/anthropic";
 import {
-	type OpenAICredentials,
 	isOpenAICredentialExpired,
+	type OpenAICredentials,
 } from "../auth/openai";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
@@ -82,15 +82,20 @@ function summarizeAnthropicManualInput(input: string): Record<string, unknown> {
 	};
 }
 
-function hasAnthropicEnvCredential(
-	variables: AnthropicEnvVariables,
-	fallbackApiKey?: string,
-): boolean {
+function hasAnthropicEnvCredential(variables: AnthropicEnvVariables): boolean {
 	return Boolean(
-		buildAnthropicRuntimeEnv(variables, {
-			fallbackApiKey,
-		}).ANTHROPIC_API_KEY?.trim(),
+		variables.ANTHROPIC_API_KEY?.trim() ||
+			variables.ANTHROPIC_AUTH_TOKEN?.trim(),
 	);
+}
+
+function stripAnthropicCredentialEnvVariables(
+	variables: AnthropicEnvVariables,
+): AnthropicEnvVariables {
+	const nextVariables = { ...variables };
+	delete nextVariables.ANTHROPIC_API_KEY;
+	delete nextVariables.ANTHROPIC_AUTH_TOKEN;
+	return nextVariables;
 }
 
 function resolveOpenAICredentials(
@@ -170,7 +175,9 @@ export class ChatService {
 		const persistedConfig = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
-		this.applyAnthropicRuntimeEnv(persistedConfig.variables);
+		this.applyAnthropicRuntimeEnv(
+			stripAnthropicCredentialEnvVariables(persistedConfig.variables),
+		);
 	}
 
 	getAnthropicAuthStatus(): AuthStatus {
@@ -234,37 +241,7 @@ export class ChatService {
 		const anthropicEnvConfig = this.getAnthropicEnvConfig();
 		const hasEnvConfig = Object.keys(anthropicEnvConfig.variables).length > 0;
 		const hasManagedEnvCredential =
-			hasEnvConfig &&
-			hasAnthropicEnvCredential(
-				anthropicEnvConfig.variables,
-				this.getStoredAnthropicApiKey(),
-			);
-		if (hasManagedEnvCredential) {
-			const status: AuthStatus = {
-				authenticated: true,
-				method: "env",
-				source: "managed",
-				issue: null,
-				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
-			};
-			this.logAuthResolution("anthropic", {
-				resolvedMethod: status.method,
-				resolvedSource: status.source,
-				externalConfigFound: false,
-				externalKeychainFound: false,
-				externalRuntimeAllowed: false,
-				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
-				hasAnthropicAuthTokenEnv: Boolean(
-					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
-				),
-				storageMethod,
-				hasEnvConfig,
-				managedRuntimeEnvKeys: Object.keys(
-					this.currentAnthropicRuntimeEnv,
-				).sort(),
-			});
-			return status;
-		}
+			hasEnvConfig && hasAnthropicEnvCredential(anthropicEnvConfig.variables);
 		if (storageMethod === "oauth") {
 			const status: AuthStatus = {
 				authenticated: true,
@@ -295,6 +272,32 @@ export class ChatService {
 			const status: AuthStatus = {
 				authenticated: true,
 				method: "api_key",
+				source: "managed",
+				issue: null,
+				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
+			};
+			this.logAuthResolution("anthropic", {
+				resolvedMethod: status.method,
+				resolvedSource: status.source,
+				externalConfigFound: false,
+				externalKeychainFound: false,
+				externalRuntimeAllowed: false,
+				hasAnthropicApiKeyEnv: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+				hasAnthropicAuthTokenEnv: Boolean(
+					process.env.ANTHROPIC_AUTH_TOKEN?.trim(),
+				),
+				storageMethod,
+				hasEnvConfig,
+				managedRuntimeEnvKeys: Object.keys(
+					this.currentAnthropicRuntimeEnv,
+				).sort(),
+			});
+			return status;
+		}
+		if (hasManagedEnvCredential) {
+			const status: AuthStatus = {
+				authenticated: true,
+				method: "env",
 				source: "managed",
 				issue: null,
 				...(hasManagedOAuth ? { hasManagedOAuth: true } : {}),
@@ -495,7 +498,9 @@ export class ChatService {
 		const config = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
-		this.applyAnthropicRuntimeEnv(config.variables, input.apiKey);
+		this.applyAnthropicRuntimeEnv(
+			stripAnthropicCredentialEnvVariables(config.variables),
+		);
 		return { success: true };
 	}
 
@@ -504,7 +509,9 @@ export class ChatService {
 		const config = getAnthropicEnvConfigFromDisk({
 			configPath: this.anthropicEnvConfigPath,
 		});
-		this.applyAnthropicRuntimeEnv(config.variables);
+		this.applyAnthropicRuntimeEnv(
+			stripAnthropicCredentialEnvVariables(config.variables),
+		);
 		return { success: true };
 	}
 
@@ -532,7 +539,9 @@ export class ChatService {
 		);
 		this.clearStoredAnthropicOAuthCredential();
 		this.setStoredAnthropicApiKeyFromEnvVariables(configVariables);
-		this.applyAnthropicRuntimeEnv(configVariables);
+		this.applyAnthropicRuntimeEnv(
+			stripAnthropicCredentialEnvVariables(configVariables),
+		);
 		return { success: true };
 	}
 
@@ -563,7 +572,9 @@ export class ChatService {
 				configPath: this.anthropicEnvConfigPath,
 			});
 			this.setStoredAnthropicApiKeyFromEnvVariables(config.variables);
-			this.applyAnthropicRuntimeEnv(config.variables);
+			this.applyAnthropicRuntimeEnv(
+				stripAnthropicCredentialEnvVariables(config.variables),
+			);
 		}
 		this.logAuthResolution("anthropic", {
 			event: "disconnect-oauth",
@@ -735,15 +746,6 @@ export class ChatService {
 		return this.authStorage;
 	}
 
-	private getStoredAnthropicApiKey(): string | undefined {
-		const authStorage = this.getAuthStorage();
-		authStorage.reload();
-		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
-		if (credential?.type !== "api_key") return undefined;
-		const key = credential.key.trim();
-		return key.length > 0 ? key : undefined;
-	}
-
 	private clearStoredAnthropicOAuthCredential(): void {
 		const authStorage = this.getAuthStorage();
 		authStorage.reload();
@@ -768,13 +770,8 @@ export class ChatService {
 		});
 	}
 
-	private applyAnthropicRuntimeEnv(
-		variables: AnthropicEnvVariables,
-		fallbackApiKey?: string,
-	): void {
-		const runtimeEnv = buildAnthropicRuntimeEnv(variables, {
-			fallbackApiKey: fallbackApiKey ?? this.getStoredAnthropicApiKey(),
-		});
+	private applyAnthropicRuntimeEnv(variables: AnthropicEnvVariables): void {
+		const runtimeEnv = buildAnthropicRuntimeEnv(variables);
 		applyAnthropicRuntimeEnvToProcess(runtimeEnv, {
 			previousRuntimeEnv: this.currentAnthropicRuntimeEnv,
 		});

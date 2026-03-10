@@ -9,9 +9,7 @@ mock.module("mastracode", () => ({
 	createAuthStorage: mock(() => fakeAuthStorage),
 }));
 
-const {
-	getOpenAICredentialsFromAuthStorage,
-} = await import("./openai");
+const { getOpenAICredentialsFromAuthStorage } = await import("./openai");
 
 describe("getOpenAICredentialsFromAuthStorage", () => {
 	beforeEach(() => {

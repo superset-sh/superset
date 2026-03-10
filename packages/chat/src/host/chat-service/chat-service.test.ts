@@ -174,6 +174,10 @@ describe("ChatService OpenAI auth storage", () => {
 		const chatService = new ChatService();
 
 		await chatService.setAnthropicApiKey({ apiKey: " test-anthropic-key " });
+
+		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+
 		await chatService.clearAnthropicApiKey();
 
 		expect(createAuthStorageMock).toHaveBeenCalledTimes(1);
@@ -252,6 +256,28 @@ describe("ChatService OpenAI auth storage", () => {
 
 		await chatService.setAnthropicApiKey({ apiKey: " api-key " });
 		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
+	});
+
+	it("prefers a managed Anthropic API key over env-config credentials", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh\nANTHROPIC_AUTH_TOKEN=gateway-token",
+		});
+		await chatService.setAnthropicApiKey({ apiKey: " managed-api-key " });
+
+		expect(process.env.ANTHROPIC_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/v1",
+		);
+		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "managed",
+			issue: null,
+		});
 	});
 
 	it("ignores Anthropic runtime env credentials without managed auth", () => {
@@ -396,7 +422,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("saves Anthropic gateway env config and uses env auth method", async () => {
+	it("saves Anthropic gateway env config and resolves it through managed auth storage", async () => {
 		const chatService = new ChatService();
 
 		await chatService.setAnthropicEnvConfig({
@@ -407,8 +433,8 @@ describe("ChatService OpenAI auth storage", () => {
 		expect(process.env.ANTHROPIC_BASE_URL).toBe(
 			"https://ai-gateway.vercel.sh/v1",
 		);
-		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBe("gateway-token");
-		expect(process.env.ANTHROPIC_API_KEY).toBe("gateway-token");
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
 		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
 			type: "api_key",
 			key: "gateway-token",
@@ -423,7 +449,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
-			method: "env",
+			method: "api_key",
 			source: "managed",
 			issue: null,
 		});
@@ -444,7 +470,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 
 		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
-		expect(chatService.getAnthropicAuthStatus().method).toBe("env");
+		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
 	});
 
 	it("persists Anthropic env config without API key/token", async () => {
@@ -490,7 +516,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 		expect(chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
-			method: "env",
+			method: "api_key",
 			source: "managed",
 			issue: null,
 		});
@@ -503,7 +529,8 @@ describe("ChatService OpenAI auth storage", () => {
 				"ANTHROPIC_API_KEY=env-key\nCLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1",
 		});
 
-		expect(process.env.ANTHROPIC_API_KEY).toBe("env-key");
+		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
 		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
 		expect(process.env.AWS_REGION).toBe("us-east-1");
 		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {

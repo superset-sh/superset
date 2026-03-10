@@ -71,7 +71,9 @@ export function getOpenAICredentialsFromAuthStorage(): OpenAICredentials | null 
 		}
 
 		return (
-			credentials.find((credential) => !isOpenAICredentialExpired(credential)) ??
+			credentials.find(
+				(credential) => !isOpenAICredentialExpired(credential),
+			) ??
 			credentials[0] ??
 			null
 		);
