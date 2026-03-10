@@ -565,6 +565,21 @@ Deliverable:
 
 ### Phase 7: Make `workspace-fs` hostable as a standalone service
 
+Status:
+
+- completed:
+  - explicit `core`, `host`, and `client` module split
+  - transport-neutral service contract for query/mutation/search/watch
+  - local host service with `workspaceId -> rootPath` resolution
+  - desktop router and Changes/File Viewer access routed through one local adapter module
+  - host-side service metadata via `getServiceInfo()`
+  - transport-neutral client factory
+  - derived resource URI helpers
+- remaining:
+  - concrete local transport adapter object over desktop tRPC
+  - mock remote transport adapter tests
+  - real remote HTTP/WebSocket host adapter when remote workspace work starts
+
 - formalize the existing boundary into explicit `core`, `host`, and `client` modules
 - split core contracts from host-side implementations without rewriting stable logic unnecessarily
 - define a transport-neutral service interface for query/mutation/search/watch
@@ -586,6 +601,7 @@ Deliverable:
 Deliverable:
 
 - `workspace-fs` can be embedded locally or exposed by a remote host without changing higher-level consumers, and current desktop imports already map cleanly onto `host`
+- concrete transport implementation work is tracked separately in [plans/workspace-filesystem-transport-plan.md](/Users/kietho/.superset/worktrees/superset/kitenite/luxurious-paint/plans/workspace-filesystem-transport-plan.md)
 
 ### Phase 8: Migrate Changes and File Viewer consumers
 
