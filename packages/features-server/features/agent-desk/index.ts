@@ -1,5 +1,8 @@
 /**
  * Agent Desk Feature - Server
+ *
+ * Deprecated: keep this export surface available during the Feature Studio rollout.
+ * New feature authoring work should be built on `feature-studio`.
  */
 
 // Module
