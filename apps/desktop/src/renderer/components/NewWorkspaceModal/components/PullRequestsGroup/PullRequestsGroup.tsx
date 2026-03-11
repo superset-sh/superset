@@ -38,6 +38,21 @@ export function PullRequestsGroup({
 	const { draft, closeAndResetDraft, runAsyncAction } =
 		useNewWorkspaceModalDraft();
 
+	const { data: integrations } = useLiveQuery(
+		(q) =>
+			q
+				.from({
+					integrationConnections: collections.integrationConnections,
+				})
+				.select(({ integrationConnections }) => ({
+					...integrationConnections,
+				})),
+		[collections],
+	);
+
+	const isGitHubConnected =
+		integrations?.some((i) => i.provider === "github") ?? false;
+
 	const parsedPrUrl = useMemo(() => {
 		const query = draft.pullRequestsQuery.trim();
 		if (!query) return null;
@@ -175,7 +190,7 @@ export function PullRequestsGroup({
 		);
 	}
 
-	if (!githubOwner) {
+	if (!isGitHubConnected) {
 		return (
 			<>
 				{urlItem && <CommandGroup>{urlItem}</CommandGroup>}
