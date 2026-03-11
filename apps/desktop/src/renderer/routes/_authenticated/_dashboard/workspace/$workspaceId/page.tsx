@@ -561,6 +561,18 @@ function WorkspacePage() {
 		],
 	);
 
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
+	useAppHotkey(
+		"EQUALIZE_PANE_SPLITS",
+		() => {
+			if (activeTabId) {
+				equalizePaneSplits(activeTabId);
+			}
+		},
+		undefined,
+		[activeTabId, equalizePaneSplits],
+	);
+
 	// Navigate to previous workspace (⌘↑)
 	const getPreviousWorkspace =
 		electronTrpc.workspaces.getPreviousWorkspace.useQuery(

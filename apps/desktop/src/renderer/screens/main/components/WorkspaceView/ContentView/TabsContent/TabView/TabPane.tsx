@@ -59,6 +59,7 @@ export function TabPane({
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -124,6 +125,7 @@ export function TabPane({
 				onSplitWithNewBrowser={() =>
 					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 				}
+				onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
 				onScrollToBottom={handleScrollToBottom}

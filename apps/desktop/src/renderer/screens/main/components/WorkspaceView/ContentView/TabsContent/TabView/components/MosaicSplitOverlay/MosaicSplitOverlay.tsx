@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { useCallback, useRef } from "react";
 import type { MosaicNode, MosaicPath } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
+import { equalizeSplitPercentages } from "renderer/stores/tabs/utils";
 
 interface BoundingBox {
 	top: number;
@@ -99,18 +100,6 @@ function updateSplitPercentage(
 	return {
 		...node,
 		[head]: updateSplitPercentage(node[head], rest, newPercentage),
-	};
-}
-
-function equalizeSplitPercentages(
-	node: MosaicNode<string>,
-): MosaicNode<string> {
-	if (typeof node === "string") return node;
-	return {
-		...node,
-		splitPercentage: 50,
-		first: equalizeSplitPercentages(node.first),
-		second: equalizeSplitPercentages(node.second),
 	};
 }
 
