@@ -5,6 +5,7 @@ import { projects, workspaces } from "../../../db/schema";
 import { publicProcedure, router } from "../../index";
 
 export const projectRouter = router({
+	// TODO: remove
 	removeFromDevice: publicProcedure
 		.input(z.object({ projectId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
