@@ -28,6 +28,7 @@ import {
 	usersSlackUsers,
 	workspaces,
 } from "./schema";
+import { v2Devices, v2Projects, v2Workspaces } from "./v2";
 
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
@@ -74,6 +75,9 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
+	v2Projects: many(v2Projects),
+	v2Devices: many(v2Devices),
+	v2Workspaces: many(v2Workspaces),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -322,5 +326,44 @@ export const sessionHostsRelations = relations(sessionHosts, ({ one }) => ({
 	organization: one(organizations, {
 		fields: [sessionHosts.organizationId],
 		references: [organizations.id],
+	}),
+}));
+
+// V2 relations
+export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [v2Projects.organizationId],
+		references: [organizations.id],
+	}),
+	githubRepository: one(githubRepositories, {
+		fields: [v2Projects.githubRepositoryId],
+		references: [githubRepositories.id],
+	}),
+	v2Workspaces: many(v2Workspaces),
+}));
+
+export const v2DevicesRelations = relations(v2Devices, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [v2Devices.organizationId],
+		references: [organizations.id],
+	}),
+}));
+
+export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [v2Workspaces.organizationId],
+		references: [organizations.id],
+	}),
+	project: one(v2Projects, {
+		fields: [v2Workspaces.projectId],
+		references: [v2Projects.id],
+	}),
+	device: one(v2Devices, {
+		fields: [v2Workspaces.deviceId],
+		references: [v2Devices.id],
+	}),
+	createdBy: one(users, {
+		fields: [v2Workspaces.createdByUserId],
+		references: [users.id],
 	}),
 }));

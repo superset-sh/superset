@@ -5,4 +5,5 @@ export * from "./ingest";
 export * from "./relations";
 export * from "./schema";
 export * from "./types";
+export * from "./v2";
 export * from "./zod";

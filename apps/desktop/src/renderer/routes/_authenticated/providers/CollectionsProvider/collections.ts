@@ -15,6 +15,9 @@ import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
+	SelectV2Device,
+	SelectV2Project,
+	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
@@ -63,6 +66,9 @@ interface OrgCollections {
 	sessionHosts: Collection<SelectSessionHost>;
 	githubRepositories: Collection<SelectGithubRepository>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
+	v2Projects: Collection<SelectV2Project>;
+	v2Workspaces: Collection<SelectV2Workspace>;
+	v2Devices: Collection<SelectV2Device>;
 }
 
 // Per-org collections cache
@@ -385,6 +391,54 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const v2Projects = createCollection(
+		electricCollectionOptions<SelectV2Project>({
+			id: `v2_projects-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "v2_projects",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const v2Workspaces = createCollection(
+		electricCollectionOptions<SelectV2Workspace>({
+			id: `v2_workspaces-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "v2_workspaces",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const v2Devices = createCollection(
+		electricCollectionOptions<SelectV2Device>({
+			id: `v2_devices-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "v2_devices",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -402,6 +456,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		sessionHosts,
 		githubRepositories,
 		githubPullRequests,
+		v2Projects,
+		v2Workspaces,
+		v2Devices,
 	};
 }
 
