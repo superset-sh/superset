@@ -69,10 +69,11 @@ function FeatureStudioRequestDetailPage() {
 						featureRequestId: requestId,
 					})
 				}
-				onApprovalAction={(approvalId, action) =>
+				onApprovalAction={(approvalId, action, feedback) =>
 					respondToApprovalMutation.mutate({
 						approvalId,
 						action,
+						feedback,
 					})
 				}
 			/>

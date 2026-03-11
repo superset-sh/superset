@@ -60,6 +60,24 @@ const featureRequestApprovalSchema = z.object({
 	decisionNotes: z.string().nullable().optional(),
 });
 
+const featureRequestArtifactSchema = z.object({
+	id: z.string(),
+	kind: z.enum([
+		"spec",
+		"plan",
+		"implementation_summary",
+		"verification_report",
+		"agent_qa_report",
+		"human_qa_notes",
+		"registration_manifest",
+		"preview_metadata",
+	]),
+	version: z.number(),
+	content: z.string(),
+	metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+	createdAt: z.union([z.string(), z.date()]).optional(),
+});
+
 const featureRequestMessageSchema = z.object({
 	id: z.string(),
 	role: z.string(),
@@ -72,13 +90,16 @@ const featureRequestWorktreeSchema = z.object({
 	branchName: z.string(),
 	previewUrl: z.string().nullable(),
 	previewStatus: z.string().nullable(),
+	headCommitSha: z.string().nullable().optional(),
+	lastVerifiedCommitSha: z.string().nullable().optional(),
+	previewCommitSha: z.string().nullable().optional(),
 });
 
 const featureRequestDetailSchema = featureRequestSchema.extend({
 	approvals: z.array(featureRequestApprovalSchema).optional(),
 	messages: z.array(featureRequestMessageSchema).optional(),
 	worktrees: z.array(featureRequestWorktreeSchema).optional(),
-	artifacts: z.array(z.unknown()).optional(),
+	artifacts: z.array(featureRequestArtifactSchema).optional(),
 });
 
 const featureRequestQueueSchema = z.object({

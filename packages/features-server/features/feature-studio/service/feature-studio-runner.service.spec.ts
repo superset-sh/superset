@@ -168,6 +168,23 @@ describe("FeatureStudioRunnerService", () => {
 		expect(mockDb.update).toHaveBeenCalled();
 	});
 
+	it("moves an approved human qa approval to customization on resume", async () => {
+		mockDb.query.featureRequestApprovals.findFirst.mockResolvedValue({
+			id: "approval_2",
+			featureRequestId: requestId,
+			approvalType: "human_qa",
+			status: "approved",
+		});
+		mockDb._queueResolve("returning", [
+			{ id: requestId, status: "customization" },
+		]);
+
+		const result = await service.resumeAfterApproval("approval_2");
+
+		expect(result.status).toBe("customization");
+		expect(mockDb.update).toHaveBeenCalled();
+	});
+
 	it("prepares a worktree when the approved plan is advanced", async () => {
 		mockDb.query.featureRequests.findFirst.mockResolvedValue({
 			id: requestId,

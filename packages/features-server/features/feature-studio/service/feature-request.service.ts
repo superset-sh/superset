@@ -137,7 +137,54 @@ export class FeatureRequestService {
       throw new Error("Failed to update approval");
     }
 
+    if (approval.approvalType === "human_qa" && input.feedback?.trim()) {
+      await this.db.insert(featureRequestArtifacts).values({
+        featureRequestId: approval.featureRequestId,
+        kind: "human_qa_notes",
+        version: 1,
+        content: input.feedback.trim(),
+        metadata: {
+          approvalId: approval.id,
+          action: input.action,
+        },
+        createdById: input.decidedById,
+      });
+    }
+
+    const nextStatus = this.resolveApprovalStatus({
+      approvalType: approval.approvalType,
+      action: input.action,
+    });
+
+    if (nextStatus) {
+      await this.db
+        .update(featureRequests)
+        .set({
+          status: nextStatus,
+        })
+        .where(eq(featureRequests.id, approval.featureRequestId));
+    }
+
     return updated;
+  }
+
+  private resolveApprovalStatus(input: {
+    approvalType: (typeof featureRequestApprovals.$inferSelect)["approvalType"];
+    action: "approved" | "rejected" | "discarded";
+  }): (typeof featureRequests.$inferSelect)["status"] | null {
+    if (input.action === "discarded") {
+      return "discarded";
+    }
+
+    if (
+      input.action === "rejected" &&
+      (input.approvalType === "human_qa" ||
+        input.approvalType === "registration")
+    ) {
+      return "customization";
+    }
+
+    return null;
   }
 
   private async ensureRequestExists(featureRequestId: string) {

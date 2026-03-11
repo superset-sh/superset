@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import {
 	InjectDrizzle,
 	type DrizzleDB,
+	featureRequestApprovals,
 	featureRequestArtifacts,
 	featureRequests,
 } from "@superbuilder/drizzle";
@@ -33,6 +34,14 @@ export class BrowserQaService {
 	constructor(@InjectDrizzle() private readonly db: DrizzleDB) {}
 
 	async runPreviewChecks(input: RunBrowserQaInput): Promise<AgentQaReport> {
+		const request = await this.db.query.featureRequests.findFirst({
+			where: eq(featureRequests.id, input.featureRequestId),
+		});
+
+		if (!request) {
+			throw new Error(`Feature request not found: ${input.featureRequestId}`);
+		}
+
 		const declaredChecks = input.checks?.length
 			? input.checks
 			: [{ label: "Preview responds", path: "/" }];
@@ -68,6 +77,13 @@ export class BrowserQaService {
 			metadata: {
 				checkCount: checks.length,
 			},
+		});
+
+		await this.db.insert(featureRequestApprovals).values({
+			featureRequestId: input.featureRequestId,
+			approvalType: "human_qa",
+			status: "pending",
+			requestedFromId: request.createdById,
 		});
 
 		await this.db

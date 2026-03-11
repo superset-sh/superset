@@ -20,6 +20,11 @@ jest.mock("@superbuilder/drizzle", () => ({
   featureRequestApprovals: {
     id: { name: "id" },
     createdAt: { name: "created_at" },
+    approvalType: { name: "approval_type" },
+  },
+  featureRequestArtifacts: {
+    id: { name: "id" },
+    createdAt: { name: "created_at" },
   },
 }));
 
@@ -157,6 +162,33 @@ describe("FeatureRequestService", () => {
 
     expect(result.status).toBe("approved");
     expect(mockDb.update).toHaveBeenCalled();
+  });
+
+  it("moves rejected human qa approvals back to customization", async () => {
+    mockDb.query.featureRequestApprovals.findFirst.mockResolvedValue({
+      id: "appr_2",
+      featureRequestId: requestId,
+      approvalType: "human_qa",
+      status: "pending",
+    });
+    mockDb._queueResolve("returning", [
+      {
+        id: "appr_2",
+        status: "rejected",
+        decisionNotes: "Update the empty state copy",
+      },
+    ]);
+
+    const result = await service.respondToApproval({
+      approvalId: "appr_2",
+      action: "rejected",
+      feedback: "Update the empty state copy",
+      decidedById: userId,
+    });
+
+    expect(result.status).toBe("rejected");
+    expect(mockDb.update).toHaveBeenCalledTimes(2);
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
   });
 
   it("throws when appending a message to an unknown request", async () => {

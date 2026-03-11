@@ -128,17 +128,19 @@ export class FeatureStudioRunnerService {
 			throw new NotFoundException(`Approval not found: ${approvalId}`);
 		}
 
-		if (
-			approval.approvalType !== "spec_plan" ||
-			approval.status !== "approved"
-		) {
+		if (approval.status !== "approved") {
+			return approval;
+		}
+
+		const nextStatus = this.resolveApprovedStatus(approval.approvalType);
+		if (!nextStatus) {
 			return approval;
 		}
 
 		const [updated] = await this.db
 			.update(featureRequests)
 			.set({
-				status: "plan_approved",
+				status: nextStatus,
 			})
 			.where(eq(featureRequests.id, approval.featureRequestId))
 			.returning();
@@ -148,5 +150,18 @@ export class FeatureStudioRunnerService {
 		}
 
 		return updated;
+	}
+
+	private resolveApprovedStatus(
+		approvalType: (typeof featureRequestApprovals.$inferSelect)["approvalType"],
+	): (typeof featureRequests.$inferSelect)["status"] | null {
+		switch (approvalType) {
+			case "spec_plan":
+				return "plan_approved";
+			case "human_qa":
+				return "customization";
+			default:
+				return null;
+		}
 	}
 }
