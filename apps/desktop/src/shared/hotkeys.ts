@@ -730,6 +730,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Open existing PR or create a new one on GitHub",
 	}),
+	DELETE_WORKSPACE: defineHotkey({
+		keys: "meta+backspace",
+		label: "Delete Workspace",
+		category: "Workspace",
+		description: "Delete the current workspace and run teardown",
+	}),
 
 	// Window
 	NEW_WINDOW: defineHotkey({
