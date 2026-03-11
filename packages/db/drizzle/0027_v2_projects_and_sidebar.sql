@@ -1,4 +1,5 @@
 CREATE TYPE "public"."v2_device_type" AS ENUM('host', 'cloud', 'viewer');--> statement-breakpoint
+CREATE TYPE "public"."v2_users_device_role" AS ENUM('owner', 'member', 'viewer');--> statement-breakpoint
 CREATE TABLE "v2_device_presence" (
 	"device_id" uuid PRIMARY KEY NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -25,8 +26,8 @@ CREATE TABLE "v2_projects" (
 	"name" text NOT NULL,
 	"slug" text NOT NULL,
 	"github_repository_id" uuid,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "v2_projects_org_slug_unique" UNIQUE("organization_id","slug")
 );
 --> statement-breakpoint
@@ -35,7 +36,7 @@ CREATE TABLE "v2_users_devices" (
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"device_id" uuid NOT NULL,
-	"role" text DEFAULT 'member' NOT NULL,
+	"role" "v2_users_device_role" DEFAULT 'member' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "v2_users_devices_user_device_unique" UNIQUE("user_id","device_id")

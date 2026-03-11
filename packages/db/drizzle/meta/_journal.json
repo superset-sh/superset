@@ -194,22 +194,8 @@
     {
       "idx": 27,
       "version": "7",
-      "when": 1773181221507,
+      "when": 1773253217707,
       "tag": "0027_v2_projects_and_sidebar",
-      "breakpoints": true
-    },
-    {
-      "idx": 28,
-      "version": "7",
-      "when": 1773186858822,
-      "tag": "0028_v2_projects_timezone_fix",
-      "breakpoints": true
-    },
-    {
-      "idx": 29,
-      "version": "7",
-      "when": 1773189987607,
-      "tag": "0029_v2_users_device_role_enum",
       "breakpoints": true
     }
   ]

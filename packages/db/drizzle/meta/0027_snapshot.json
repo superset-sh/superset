@@ -1,5 +1,5 @@
 {
-  "id": "fef49364-86d4-48fa-a1b0-de289e3df258",
+  "id": "e1618e5b-cfa6-4219-bb55-2d7fc7ecda9d",
   "prevId": "e3493f37-54f5-4be5-83d3-47bb6e82acb6",
   "version": "7",
   "dialect": "postgresql",
@@ -4475,14 +4475,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -4580,7 +4580,8 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "v2_users_device_role",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'member'"
@@ -5096,6 +5097,15 @@
       "values": [
         "host",
         "cloud",
+        "viewer"
+      ]
+    },
+    "public.v2_users_device_role": {
+      "name": "v2_users_device_role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "member",
         "viewer"
       ]
     },
