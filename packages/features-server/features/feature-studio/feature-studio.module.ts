@@ -1,19 +1,21 @@
 import { Module, OnModuleInit } from "@nestjs/common";
-import { FeatureRequestService } from "./service";
+import { FeatureRequestService, FeatureStudioRunnerService } from "./service";
 import { injectFeatureStudioServices } from "./trpc";
 
 @Module({
-  providers: [FeatureRequestService],
-  exports: [FeatureRequestService],
+	providers: [FeatureRequestService, FeatureStudioRunnerService],
+	exports: [FeatureRequestService, FeatureStudioRunnerService],
 })
 export class FeatureStudioModule implements OnModuleInit {
-  constructor(
-    private readonly featureRequestService: FeatureRequestService,
-  ) {}
+	constructor(
+		private readonly featureRequestService: FeatureRequestService,
+		private readonly featureStudioRunnerService: FeatureStudioRunnerService,
+	) {}
 
-  onModuleInit() {
-    injectFeatureStudioServices({
-      featureRequestService: this.featureRequestService,
-    });
-  }
+	onModuleInit() {
+		injectFeatureStudioServices({
+			featureRequestService: this.featureRequestService,
+			featureStudioRunnerService: this.featureStudioRunnerService,
+		});
+	}
 }

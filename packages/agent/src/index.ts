@@ -7,3 +7,4 @@ export {
 	setAnthropicOAuthCredentials,
 	superagent,
 } from "./superagent";
+export * from "./feature-studio";
