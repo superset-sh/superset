@@ -33,6 +33,21 @@ export type ResolveTrackedWorktreePathResult =
 			status: "missing";
 	  };
 
+export type TrackedWorktreeRepairState =
+	| "ok"
+	| "missing"
+	| "repair_required"
+	| "repairing";
+
+export interface TrackedWorktreeDisplayState {
+	existsOnDisk: boolean;
+	repairCommand: string | null;
+	repairMessage: string | null;
+	repairState: TrackedWorktreeRepairState;
+	storedPath: string;
+	worktreePath: string | null;
+}
+
 interface TrackedWorktreeContext {
 	mainRepoPath: string;
 	worktree: SelectWorktree;
@@ -45,6 +60,16 @@ interface RepairWorktreePathDeps {
 	projects: typeof projects;
 	repairWorktreeRegistration: typeof repairWorktreeRegistration;
 	worktrees: typeof worktrees;
+}
+
+interface ResolveTrackedWorktreePathWithMetadataResult {
+	pathChanged: boolean;
+	resolution: ResolveTrackedWorktreePathResult;
+}
+
+interface CachedRepairFailure {
+	recordedAt: number;
+	resolution: Exclude<ResolveTrackedWorktreePathResult, { status: "resolved" }>;
 }
 
 export const __testOnlyRepairWorktreePathDeps: RepairWorktreePathDeps = {
@@ -63,14 +88,20 @@ function buildResolvedResult(path: string): ResolveTrackedWorktreePathResult {
 	};
 }
 
-function buildMissingResolutionResult(): ResolveTrackedWorktreePathResult {
+function buildMissingResolutionResult(): Extract<
+	ResolveTrackedWorktreePathResult,
+	{ status: "missing" }
+> {
 	return { status: "missing" };
 }
 
 function buildGitRepairRequiredResolution(
 	context: TrackedWorktreeContext,
 	registeredPath: string,
-): ResolveTrackedWorktreePathResult {
+): Extract<
+	ResolveTrackedWorktreePathResult,
+	{ status: "git_repair_required" }
+> {
 	return {
 		status: "git_repair_required",
 		branch: context.worktree.branch,
@@ -80,8 +111,9 @@ function buildGitRepairRequiredResolution(
 	};
 }
 
-const MAX_SEARCH_DEPTH = 2;
-const MAX_SCAN_DIRS = 1500;
+const MAX_SEARCH_DEPTH = 1;
+const MAX_SCAN_DIRS = 250;
+const AUTO_REPAIR_BACKOFF_MS = 30_000;
 const SKIPPED_SCAN_DIRS = new Set([
 	".git",
 	"node_modules",
@@ -91,6 +123,11 @@ const SKIPPED_SCAN_DIRS = new Set([
 	"coverage",
 	"target",
 ]);
+const cachedRepairFailures = new Map<string, CachedRepairFailure>();
+const activeRepairAttempts = new Map<
+	string,
+	Promise<ResolveTrackedWorktreePathWithMetadataResult>
+>();
 
 function readDirectoryEntries(path: string): Dirent[] {
 	return readdirSync(path, { withFileTypes: true });
@@ -150,7 +187,7 @@ function getTrackedWorktreeSearchRoots(
 ): string[] {
 	const roots = [
 		dirname(context.worktree.path),
-		dirname(dirname(context.worktree.path)),
+		context.mainRepoPath,
 		dirname(context.mainRepoPath),
 	];
 
@@ -351,6 +388,36 @@ async function tryAutoRepairTrackedWorktree(input: {
 	return existsSync(candidatePath) ? candidatePath : null;
 }
 
+function getCachedRepairFailure(
+	worktreeId: string,
+): CachedRepairFailure | null {
+	const cached = cachedRepairFailures.get(worktreeId);
+	if (!cached) {
+		return null;
+	}
+
+	if (Date.now() - cached.recordedAt > AUTO_REPAIR_BACKOFF_MS) {
+		cachedRepairFailures.delete(worktreeId);
+		return null;
+	}
+
+	return cached;
+}
+
+function rememberRepairFailure(
+	worktreeId: string,
+	resolution: Exclude<ResolveTrackedWorktreePathResult, { status: "resolved" }>,
+): void {
+	cachedRepairFailures.set(worktreeId, {
+		recordedAt: Date.now(),
+		resolution,
+	});
+}
+
+function clearRepairFailure(worktreeId: string): void {
+	cachedRepairFailures.delete(worktreeId);
+}
+
 export function getTrackedWorktreeRepairCommand(mainRepoPath: string): string {
 	return `git -C "${mainRepoPath}" worktree repair <new-path>`;
 }
@@ -360,6 +427,59 @@ export function getTrackedWorktreeRepairMessage(input: {
 	mainRepoPath: string;
 }): string {
 	return `Worktree branch "${input.branch}" was moved outside Git worktree management. Run ${getTrackedWorktreeRepairCommand(input.mainRepoPath)} with the current path, or use git worktree move next time.`;
+}
+
+function buildTrackedWorktreeDisplayState(
+	context: TrackedWorktreeContext,
+): TrackedWorktreeDisplayState {
+	if (existsSync(context.worktree.path)) {
+		clearRepairFailure(context.worktree.id);
+		return {
+			existsOnDisk: true,
+			repairCommand: null,
+			repairMessage: null,
+			repairState: "ok",
+			storedPath: context.worktree.path,
+			worktreePath: context.worktree.path,
+		};
+	}
+
+	if (activeRepairAttempts.has(context.worktree.id)) {
+		return {
+			existsOnDisk: false,
+			repairCommand: null,
+			repairMessage: "Repairing the moved worktree path in the background.",
+			repairState: "repairing",
+			storedPath: context.worktree.path,
+			worktreePath: null,
+		};
+	}
+
+	const cachedFailure = getCachedRepairFailure(context.worktree.id);
+	if (cachedFailure?.resolution.status === "git_repair_required") {
+		return {
+			existsOnDisk: false,
+			repairCommand: getTrackedWorktreeRepairCommand(
+				cachedFailure.resolution.mainRepoPath,
+			),
+			repairMessage: getTrackedWorktreeRepairMessage({
+				branch: cachedFailure.resolution.branch,
+				mainRepoPath: cachedFailure.resolution.mainRepoPath,
+			}),
+			repairState: "repair_required",
+			storedPath: context.worktree.path,
+			worktreePath: null,
+		};
+	}
+
+	return {
+		existsOnDisk: false,
+		repairCommand: null,
+		repairMessage: "Tracked worktree path is missing on disk.",
+		repairState: "missing",
+		storedPath: context.worktree.path,
+		worktreePath: null,
+	};
 }
 
 function getTrackedWorktreeContext(
@@ -401,6 +521,34 @@ function getTrackedWorktreeContext(
 	};
 }
 
+export function getTrackedWorktreeDisplayStateFromTrackedWorktree(input: {
+	mainRepoPath: string;
+	worktree: SelectWorktree;
+}): TrackedWorktreeDisplayState {
+	return buildTrackedWorktreeDisplayState({
+		mainRepoPath: input.mainRepoPath,
+		worktree: input.worktree,
+	});
+}
+
+export function getTrackedWorktreeDisplayState(
+	worktreeId: string,
+): TrackedWorktreeDisplayState {
+	const context = getTrackedWorktreeContext(worktreeId);
+	if (!context) {
+		return {
+			existsOnDisk: false,
+			repairCommand: null,
+			repairMessage: "Tracked worktree could not be found.",
+			repairState: "missing",
+			storedPath: "",
+			worktreePath: null,
+		};
+	}
+
+	return buildTrackedWorktreeDisplayState(context);
+}
+
 function isMainRepoPath(
 	context: TrackedWorktreeContext,
 	candidatePath: string,
@@ -411,12 +559,16 @@ function isMainRepoPath(
 function persistResolvedTrackedWorktreePath(input: {
 	context: TrackedWorktreeContext;
 	resolvedPath: string;
-}): ResolveTrackedWorktreePathResult {
+}): ResolveTrackedWorktreePathWithMetadataResult {
 	if (isMainRepoPath(input.context, input.resolvedPath)) {
-		return buildMissingResolutionResult();
+		const resolution = buildMissingResolutionResult();
+		rememberRepairFailure(input.context.worktree.id, resolution);
+		return { pathChanged: false, resolution };
 	}
 
-	if (input.resolvedPath !== input.context.worktree.path) {
+	const pathChanged = input.resolvedPath !== input.context.worktree.path;
+
+	if (pathChanged) {
 		console.log(
 			`[repair-worktree-path] Worktree path changed: "${input.context.worktree.path}" → "${input.resolvedPath}" (branch: ${input.context.worktree.branch})`,
 		);
@@ -432,7 +584,12 @@ function persistResolvedTrackedWorktreePath(input: {
 			.run();
 	}
 
-	return buildResolvedResult(input.resolvedPath);
+	clearRepairFailure(input.context.worktree.id);
+
+	return {
+		pathChanged,
+		resolution: buildResolvedResult(input.resolvedPath),
+	};
 }
 
 async function getRegisteredTrackedWorktreePath(
@@ -454,11 +611,13 @@ async function getRegisteredTrackedWorktreePath(
 
 async function resolveTrackedWorktreePathFromGitState(
 	context: TrackedWorktreeContext,
-): Promise<ResolveTrackedWorktreePathResult> {
+): Promise<ResolveTrackedWorktreePathWithMetadataResult> {
 	const registeredPath = await getRegisteredTrackedWorktreePath(context);
 
 	if (!registeredPath) {
-		return buildMissingResolutionResult();
+		const resolution = buildMissingResolutionResult();
+		rememberRepairFailure(context.worktree.id, resolution);
+		return { pathChanged: false, resolution };
 	}
 
 	if (existsSync(registeredPath)) {
@@ -468,18 +627,65 @@ async function resolveTrackedWorktreePathFromGitState(
 		});
 	}
 
+	const cachedFailure = getCachedRepairFailure(context.worktree.id);
+	if (cachedFailure) {
+		return {
+			pathChanged: false,
+			resolution: cachedFailure.resolution,
+		};
+	}
+
 	const repairedPath = await tryAutoRepairTrackedWorktree({
 		context,
 	});
 
 	if (!repairedPath) {
-		return buildGitRepairRequiredResolution(context, registeredPath);
+		const resolution = buildGitRepairRequiredResolution(
+			context,
+			registeredPath,
+		);
+		rememberRepairFailure(context.worktree.id, resolution);
+		return { pathChanged: false, resolution };
 	}
 
 	return persistResolvedTrackedWorktreePath({
 		context,
 		resolvedPath: repairedPath,
 	});
+}
+
+async function resolveTrackedWorktreePathWithMetadata(
+	worktreeId: string,
+): Promise<ResolveTrackedWorktreePathWithMetadataResult> {
+	const context = getTrackedWorktreeContext(worktreeId);
+	if (!context) {
+		return {
+			pathChanged: false,
+			resolution: buildMissingResolutionResult(),
+		};
+	}
+
+	if (existsSync(context.worktree.path)) {
+		clearRepairFailure(context.worktree.id);
+		return {
+			pathChanged: false,
+			resolution: buildResolvedResult(context.worktree.path),
+		};
+	}
+
+	const existingAttempt = activeRepairAttempts.get(worktreeId);
+	if (existingAttempt) {
+		return existingAttempt;
+	}
+
+	const attempt = resolveTrackedWorktreePathFromGitState(context).finally(
+		() => {
+			activeRepairAttempts.delete(worktreeId);
+		},
+	);
+	activeRepairAttempts.set(worktreeId, attempt);
+
+	return attempt;
 }
 
 function getResolvedTrackedWorktreePath(
@@ -491,46 +697,78 @@ function getResolvedTrackedWorktreePath(
 export async function resolveTrackedWorktreePath(
 	worktreeId: string,
 ): Promise<ResolveTrackedWorktreePathResult> {
-	const context = getTrackedWorktreeContext(worktreeId);
-	if (!context) {
-		return buildMissingResolutionResult();
-	}
-
-	if (existsSync(context.worktree.path)) {
-		return buildResolvedResult(context.worktree.path);
-	}
-
-	return resolveTrackedWorktreePathFromGitState(context);
+	const resolution = await resolveTrackedWorktreePathWithMetadata(worktreeId);
+	return resolution.resolution;
 }
 
 export async function resolveWorktreePathOrThrow(
 	worktreeId: string,
 ): Promise<string | null> {
-	const resolution = await resolveTrackedWorktreePath(worktreeId);
+	const resolution = await resolveTrackedWorktreePathWithMetadata(worktreeId);
 
-	if (resolution.status === "resolved") {
-		return resolution.path;
+	if (resolution.resolution.status === "resolved") {
+		return resolution.resolution.path;
 	}
 
-	if (resolution.status === "git_repair_required") {
+	if (resolution.resolution.status === "git_repair_required") {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: getTrackedWorktreeRepairMessage({
-				branch: resolution.branch,
-				mainRepoPath: resolution.mainRepoPath,
+				branch: resolution.resolution.branch,
+				mainRepoPath: resolution.resolution.mainRepoPath,
 			}),
 			cause: {
 				reason: "git_repair_required",
-				branch: resolution.branch,
-				mainRepoPath: resolution.mainRepoPath,
-				registeredPath: resolution.registeredPath,
-				storedPath: resolution.storedPath,
-				command: getTrackedWorktreeRepairCommand(resolution.mainRepoPath),
+				branch: resolution.resolution.branch,
+				mainRepoPath: resolution.resolution.mainRepoPath,
+				registeredPath: resolution.resolution.registeredPath,
+				storedPath: resolution.resolution.storedPath,
+				command: getTrackedWorktreeRepairCommand(
+					resolution.resolution.mainRepoPath,
+				),
 			},
 		});
 	}
 
 	return null;
+}
+
+export async function resolveWorktreePathOrThrowWithMetadata(
+	worktreeId: string,
+): Promise<{
+	path: string | null;
+	pathChanged: boolean;
+}> {
+	const resolution = await resolveTrackedWorktreePathWithMetadata(worktreeId);
+
+	if (resolution.resolution.status === "resolved") {
+		return {
+			path: resolution.resolution.path,
+			pathChanged: resolution.pathChanged,
+		};
+	}
+
+	if (resolution.resolution.status === "git_repair_required") {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: getTrackedWorktreeRepairMessage({
+				branch: resolution.resolution.branch,
+				mainRepoPath: resolution.resolution.mainRepoPath,
+			}),
+			cause: {
+				reason: "git_repair_required",
+				branch: resolution.resolution.branch,
+				mainRepoPath: resolution.resolution.mainRepoPath,
+				registeredPath: resolution.resolution.registeredPath,
+				storedPath: resolution.resolution.storedPath,
+				command: getTrackedWorktreeRepairCommand(
+					resolution.resolution.mainRepoPath,
+				),
+			},
+		});
+	}
+
+	return { path: null, pathChanged: false };
 }
 
 /**
@@ -558,8 +796,38 @@ export async function tryRepairWorktreePath(
 export async function resolveWorktreePathWithRepair(
 	worktreeId: string,
 ): Promise<string | null> {
-	const resolution = await resolveTrackedWorktreePath(worktreeId);
-	return getResolvedTrackedWorktreePath(resolution);
+	const resolution = await resolveTrackedWorktreePathWithMetadata(worktreeId);
+	return getResolvedTrackedWorktreePath(resolution.resolution);
+}
+
+export async function resolveWorktreePathWithRepairMetadata(
+	worktreeId: string,
+): Promise<{
+	path: string | null;
+	pathChanged: boolean;
+	repairState: TrackedWorktreeRepairState;
+	repairMessage: string | null;
+	repairCommand: string | null;
+}> {
+	const resolution = await resolveTrackedWorktreePathWithMetadata(worktreeId);
+	if (resolution.resolution.status === "resolved") {
+		return {
+			path: resolution.resolution.path,
+			pathChanged: resolution.pathChanged,
+			repairCommand: null,
+			repairMessage: null,
+			repairState: "ok",
+		};
+	}
+
+	const displayState = getTrackedWorktreeDisplayState(worktreeId);
+	return {
+		path: null,
+		pathChanged: false,
+		repairCommand: displayState.repairCommand,
+		repairMessage: displayState.repairMessage,
+		repairState: displayState.repairState,
+	};
 }
 
 export async function resolveTrackedWorktree(

@@ -237,8 +237,12 @@ export function ProjectSection({
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
 											key={item.workspace.id}
+											existsOnDisk={item.workspace.existsOnDisk}
 											id={item.workspace.id}
 											projectId={item.workspace.projectId}
+											repairCommand={item.workspace.repairCommand}
+											repairMessage={item.workspace.repairMessage}
+											repairState={item.workspace.repairState}
 											worktreePath={item.workspace.worktreePath}
 											name={item.workspace.name}
 											branch={item.workspace.branch}
@@ -329,8 +333,12 @@ export function ProjectSection({
 								item.kind === "workspace" ? (
 									<WorkspaceListItem
 										key={item.workspace.id}
+										existsOnDisk={item.workspace.existsOnDisk}
 										id={item.workspace.id}
 										projectId={item.workspace.projectId}
+										repairCommand={item.workspace.repairCommand}
+										repairMessage={item.workspace.repairMessage}
+										repairState={item.workspace.repairState}
 										worktreePath={item.workspace.worktreePath}
 										name={item.workspace.name}
 										branch={item.workspace.branch}

@@ -12,22 +12,73 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
-import { resolveWorktreePathWithRepair } from "../utils/repair-worktree-path";
+import {
+	getTrackedWorktreeDisplayStateFromTrackedWorktree,
+	resolveWorktreePathWithRepairMetadata,
+	type TrackedWorktreeRepairState,
+} from "../utils/repair-worktree-path";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
-async function getWorkspacePathForQuery(
-	workspace: SelectWorkspace,
-): Promise<string | null> {
+interface WorkspacePathQueryState {
+	existsOnDisk: boolean;
+	repairCommand: string | null;
+	repairMessage: string | null;
+	repairState: TrackedWorktreeRepairState;
+	worktreePath: string;
+}
+
+async function getWorkspacePathForQuery(input: {
+	mode: "display" | "repair";
+	projectMainRepoPath: string | null;
+	workspace: SelectWorkspace;
+	worktree: typeof worktrees.$inferSelect | null;
+}): Promise<WorkspacePathQueryState> {
+	const { workspace, worktree, projectMainRepoPath, mode } = input;
+
 	if (workspace.type === "branch") {
-		return getWorkspacePath(workspace);
+		return {
+			existsOnDisk: true,
+			repairCommand: null,
+			repairMessage: null,
+			repairState: "ok",
+			worktreePath: getWorkspacePath(workspace) ?? "",
+		};
 	}
 
-	if (!workspace.worktreeId) {
-		return null;
+	if (!workspace.worktreeId || !worktree || !projectMainRepoPath) {
+		return {
+			existsOnDisk: false,
+			repairCommand: null,
+			repairMessage: "Tracked worktree could not be found.",
+			repairState: "missing",
+			worktreePath: "",
+		};
 	}
 
-	return resolveWorktreePathWithRepair(workspace.worktreeId);
+	if (mode === "repair") {
+		const resolution = await resolveWorktreePathWithRepairMetadata(worktree.id);
+		return {
+			existsOnDisk: resolution.path !== null,
+			repairCommand: resolution.repairCommand,
+			repairMessage: resolution.repairMessage,
+			repairState: resolution.repairState,
+			worktreePath: resolution.path ?? "",
+		};
+	}
+
+	const displayState = getTrackedWorktreeDisplayStateFromTrackedWorktree({
+		mainRepoPath: projectMainRepoPath,
+		worktree,
+	});
+
+	return {
+		existsOnDisk: displayState.existsOnDisk,
+		repairCommand: displayState.repairCommand,
+		repairMessage: displayState.repairMessage,
+		repairState: displayState.repairState,
+		worktreePath: displayState.worktreePath ?? "",
+	};
 }
 
 /** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
@@ -68,17 +119,27 @@ export const createQueryProcedures = () => {
 					.where(eq(projects.id, workspace.projectId))
 					.get();
 				const worktree = workspace.worktreeId
-					? localDb
+					? (localDb
 							.select()
 							.from(worktrees)
 							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
+							.get() ?? null)
 					: null;
+				const queryState = await getWorkspacePathForQuery({
+					mode: "repair",
+					projectMainRepoPath: project?.mainRepoPath ?? null,
+					workspace,
+					worktree,
+				});
 
 				return {
 					...workspace,
+					existsOnDisk: queryState.existsOnDisk,
+					repairCommand: queryState.repairCommand,
+					repairMessage: queryState.repairMessage,
+					repairState: queryState.repairState,
 					type: workspace.type as "worktree" | "branch",
-					worktreePath: (await getWorkspacePathForQuery(workspace)) ?? "",
+					worktreePath: queryState.worktreePath,
 					project: project
 						? {
 								id: project.id,
@@ -113,6 +174,10 @@ export const createQueryProcedures = () => {
 				projectId: string;
 				sectionId: string | null;
 				worktreeId: string | null;
+				existsOnDisk: boolean;
+				repairCommand: string | null;
+				repairMessage: string | null;
+				repairState: TrackedWorktreeRepairState;
 				worktreePath: string;
 				type: "worktree" | "branch";
 				branch: string;
@@ -205,22 +270,31 @@ export const createQueryProcedures = () => {
 				.where(isNull(workspaces.deletingAt))
 				.all()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
-
-			const workspacesWithResolvedPaths = await Promise.all(
-				allWorkspaces.map(async (workspace) => ({
-					workspace,
-					worktreePath: (await getWorkspacePathForQuery(workspace)) ?? "",
-				})),
+			const allWorktrees = localDb.select().from(worktrees).all();
+			const worktreeMap = new Map(
+				allWorktrees.map((worktree) => [worktree.id, worktree]),
 			);
 
-			for (const { workspace, worktreePath } of workspacesWithResolvedPaths) {
+			for (const workspace of allWorkspaces) {
 				const group = groupsMap.get(workspace.projectId);
 				if (group) {
+					const queryState = await getWorkspacePathForQuery({
+						mode: "display",
+						projectMainRepoPath: group.project.mainRepoPath,
+						workspace,
+						worktree: workspace.worktreeId
+							? (worktreeMap.get(workspace.worktreeId) ?? null)
+							: null,
+					});
 					const item: WorkspaceItem = {
 						...workspace,
+						existsOnDisk: queryState.existsOnDisk,
+						repairCommand: queryState.repairCommand,
+						repairMessage: queryState.repairMessage,
+						repairState: queryState.repairState,
 						sectionId: workspace.sectionId ?? null,
 						type: workspace.type as "worktree" | "branch",
-						worktreePath,
+						worktreePath: queryState.worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
 					};

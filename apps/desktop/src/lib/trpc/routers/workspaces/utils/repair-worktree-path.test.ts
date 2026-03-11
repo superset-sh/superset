@@ -19,11 +19,13 @@ import { join } from "node:path";
 import {
 	__testOnlyRepairWorktreePathDeps,
 	findProjectWorktreeByCurrentPath,
+	getTrackedWorktreeDisplayState,
 	getTrackedWorktreeRepairCommand,
 	listProjectWorktreesWithCurrentPaths,
 	resolveTrackedWorktreePath,
 	resolveWorktreePathOrThrow,
 	resolveWorktreePathWithRepair,
+	resolveWorktreePathWithRepairMetadata,
 	tryRepairWorktreePath,
 } from "./repair-worktree-path";
 
@@ -276,6 +278,39 @@ describe("repair-worktree-path", () => {
 		expect(mockWorktrees.get("wt-resolve-2")?.path).toBe(newPath);
 	});
 
+	test("resolveWorktreePathWithRepairMetadata reports when a path changed", async () => {
+		const mainRepo = createTestRepo("main-resolve-meta");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-resolve-meta-old");
+		const newPath = join(TEST_DIR, "wt-resolve-meta-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-resolve-meta HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`git -C "${mainRepo}" worktree move "${oldPath}" "${newPath}"`, {
+			stdio: "ignore",
+		});
+
+		mockWorktrees.set("wt-resolve-meta-1", {
+			id: "wt-resolve-meta-1",
+			path: oldPath,
+			branch: "feat-resolve-meta",
+			projectId: "proj-resolve-meta-1",
+		});
+		mockProjects.set("proj-resolve-meta-1", {
+			id: "proj-resolve-meta-1",
+			mainRepoPath: mainRepo,
+		});
+
+		const result =
+			await resolveWorktreePathWithRepairMetadata("wt-resolve-meta-1");
+		expect(result.path).toBe(newPath);
+		expect(result.pathChanged).toBe(true);
+		expect(result.repairState).toBe("ok");
+		expect(mockWorktrees.get("wt-resolve-meta-1")?.path).toBe(newPath);
+	});
+
 	test("listProjectWorktreesWithCurrentPaths returns repaired paths for moved worktrees", async () => {
 		const mainRepo = createTestRepo("main-list-project");
 		seedCommit(mainRepo);
@@ -481,5 +516,56 @@ describe("repair-worktree-path", () => {
 		await expect(resolveWorktreePathOrThrow("wt-manual-2")).rejects.toThrow(
 			getTrackedWorktreeRepairCommand(mainRepo),
 		);
+
+		const displayState = getTrackedWorktreeDisplayState("wt-manual-2");
+		expect(displayState.repairState).toBe("repair_required");
+		expect(displayState.worktreePath).toBeNull();
+		expect(displayState.repairCommand).toBe(
+			getTrackedWorktreeRepairCommand(mainRepo),
+		);
+	});
+
+	test("skips repeated auto-repair attempts during backoff after a failed repair", async () => {
+		const mainRepo = createTestRepo("main-repair-backoff");
+		seedCommit(mainRepo);
+
+		const oldPath = join(TEST_DIR, "wt-backoff-old");
+		const newPath = join(TEST_DIR, "wt-backoff-new");
+		execSync(
+			`git -C "${mainRepo}" worktree add "${oldPath}" -b feat-backoff HEAD`,
+			{ stdio: "ignore" },
+		);
+		execSync(`mv "${oldPath}" "${newPath}"`, { stdio: "ignore" });
+
+		mockWorktrees.set("wt-backoff-1", {
+			id: "wt-backoff-1",
+			path: oldPath,
+			branch: "feat-backoff",
+			projectId: "proj-backoff-1",
+		});
+		mockProjects.set("proj-backoff-1", {
+			id: "proj-backoff-1",
+			mainRepoPath: mainRepo,
+		});
+
+		const originalRepair =
+			__testOnlyRepairWorktreePathDeps.repairWorktreeRegistration;
+		let repairAttempts = 0;
+		__testOnlyRepairWorktreePathDeps.repairWorktreeRegistration = async () => {
+			repairAttempts += 1;
+			throw new Error("repair failed");
+		};
+
+		try {
+			const first = await resolveTrackedWorktreePath("wt-backoff-1");
+			const second = await resolveTrackedWorktreePath("wt-backoff-1");
+
+			expect(first.status).toBe("git_repair_required");
+			expect(second.status).toBe("git_repair_required");
+			expect(repairAttempts).toBe(1);
+		} finally {
+			__testOnlyRepairWorktreePathDeps.repairWorktreeRegistration =
+				originalRepair;
+		}
 	});
 });

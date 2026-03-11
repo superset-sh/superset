@@ -16,7 +16,7 @@ import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	resolveWorktreePathOrThrow,
+	resolveWorktreePathOrThrowWithMetadata,
 	resolveWorktreePathWithRepair,
 } from "../workspaces/utils/repair-worktree-path";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
@@ -113,10 +113,13 @@ export const createTerminalRouter = () => {
 					.from(workspaces)
 					.where(eq(workspaces.id, workspaceId))
 					.get();
+				const worktreeResolution =
+					workspace?.type === "worktree" && workspace.worktreeId
+						? await resolveWorktreePathOrThrowWithMetadata(workspace.worktreeId)
+						: null;
 				const workspacePath = workspace
 					? workspace.type === "worktree" && workspace.worktreeId
-						? ((await resolveWorktreePathOrThrow(workspace.worktreeId)) ??
-							undefined)
+						? (worktreeResolution?.path ?? undefined)
 						: (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
 
@@ -190,6 +193,7 @@ export const createTerminalRouter = () => {
 					return {
 						paneId,
 						isNew: result.isNew,
+						pathChanged: worktreeResolution?.pathChanged ?? false,
 						scrollback: result.scrollback,
 						wasRecovered: result.wasRecovered,
 						// Cold restore fields (for reboot recovery)

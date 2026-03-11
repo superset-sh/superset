@@ -43,11 +43,13 @@ export function useTerminalConnection({
 	const runCreateOrAttach: CreateOrAttachMutate = (input, callbacks) => {
 		createOrAttachMutation.mutate(input, {
 			onSuccess: (data) => {
-				void Promise.all([
-					utils.workspaces.get.invalidate({ id: workspaceId }),
-					utils.workspaces.getAllGrouped.invalidate(),
-					utils.terminal.getWorkspaceCwd.invalidate(workspaceId),
-				]);
+				if (data.pathChanged) {
+					void Promise.all([
+						utils.workspaces.get.invalidate({ id: workspaceId }),
+						utils.workspaces.getAllGrouped.invalidate(),
+						utils.terminal.getWorkspaceCwd.invalidate(workspaceId),
+					]);
+				}
 				callbacks?.onSuccess?.(data);
 			},
 			onError: (error) => {

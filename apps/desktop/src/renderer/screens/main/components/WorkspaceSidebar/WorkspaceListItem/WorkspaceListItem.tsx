@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniExclamationTriangle, HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -30,8 +30,12 @@ import { WorkspaceIcon } from "./WorkspaceIcon";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
 
 interface WorkspaceListItemProps {
+	existsOnDisk: boolean;
 	id: string;
 	projectId: string;
+	repairCommand: string | null;
+	repairMessage: string | null;
+	repairState: "ok" | "missing" | "repair_required" | "repairing";
 	worktreePath: string;
 	name: string;
 	branch: string;
@@ -46,8 +50,12 @@ interface WorkspaceListItemProps {
 }
 
 export function WorkspaceListItem({
+	existsOnDisk: _existsOnDisk,
 	id,
 	projectId,
+	repairCommand,
+	repairMessage,
+	repairState,
 	worktreePath,
 	name,
 	branch,
@@ -218,6 +226,8 @@ export function WorkspaceListItem({
 	};
 
 	const pr = githubStatus?.pr;
+	const shouldShowRepairWarning =
+		!isBranchWorkspace && repairState !== "ok" && repairMessage;
 	const diffStats =
 		localDiffStats ||
 		(pr && (pr.additions > 0 || pr.deletions > 0)
@@ -351,6 +361,40 @@ export function WorkspaceListItem({
 							>
 								{isBranchWorkspace ? "local" : name || branch}
 							</span>
+
+							{shouldShowRepairWarning && (
+								<Tooltip delayDuration={200}>
+									<TooltipTrigger asChild>
+										<span
+											className={cn(
+												"flex shrink-0 items-center justify-center text-amber-500/90",
+												repairState === "repairing" && "animate-pulse",
+											)}
+										>
+											<HiMiniExclamationTriangle className="size-3.5" />
+										</span>
+									</TooltipTrigger>
+									<TooltipContent
+										side="top"
+										sideOffset={4}
+										className="max-w-72"
+									>
+										<p className="text-xs font-medium">
+											{repairState === "repairing"
+												? "Repairing worktree path"
+												: "Worktree needs attention"}
+										</p>
+										<p className="text-xs text-muted-foreground">
+											{repairMessage}
+										</p>
+										{repairCommand && (
+											<p className="mt-1 text-[11px] font-mono text-muted-foreground break-all">
+												{repairCommand}
+											</p>
+										)}
+									</TooltipContent>
+								</Tooltip>
+							)}
 
 							{isBranchWorkspace && aheadBehind && (
 								<WorkspaceAheadBehind
