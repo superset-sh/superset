@@ -30,6 +30,10 @@ type GitStatusResult = Awaited<
 	ReturnType<HostServiceClient["git"]["status"]["query"]>
 >;
 
+type CloudWhoamiResult = Awaited<
+	ReturnType<HostServiceClient["cloud"]["whoami"]["query"]>
+>;
+
 export function HostServiceStatus() {
 	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD);
 	const { services } = useHostService();
@@ -48,6 +52,9 @@ export function HostServiceStatus() {
 	const [gitStatus, setGitStatus] = useState<GitStatusResult | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [cloudUser, setCloudUser] = useState<CloudWhoamiResult | null>(null);
+	const [cloudLoading, setCloudLoading] = useState(false);
+	const [cloudError, setCloudError] = useState<string | null>(null);
 
 	const checkHealth = useCallback(async () => {
 		if (!service) {
@@ -97,6 +104,21 @@ export function HostServiceStatus() {
 			setLoading(false);
 		}
 	}, [service, repoPath]);
+
+	const fetchCloudWhoami = useCallback(async () => {
+		if (!service) return;
+		setCloudLoading(true);
+		setCloudError(null);
+		setCloudUser(null);
+		try {
+			const data = await service.client.cloud.whoami.query();
+			setCloudUser(data);
+		} catch (err) {
+			setCloudError(err instanceof Error ? err.message : "Query failed");
+		} finally {
+			setCloudLoading(false);
+		}
+	}, [service]);
 
 	if (!enabled) return null;
 
@@ -151,6 +173,48 @@ export function HostServiceStatus() {
 								<span>Node {info.nodeVersion}</span>
 								<span>Uptime: {Math.floor(info.uptime)}s</span>
 							</>
+						)}
+					</div>
+
+					{/* Cloud API */}
+					<div className="space-y-3">
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium">Cloud API</span>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={cloudLoading || !service}
+								onClick={fetchCloudWhoami}
+							>
+								Whoami
+							</Button>
+						</div>
+
+						{cloudError && (
+							<div className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+								{cloudError}
+							</div>
+						)}
+
+						{cloudLoading && (
+							<div className="text-sm text-muted-foreground">Loading...</div>
+						)}
+
+						{cloudUser && (
+							<div className="rounded-md border border-border p-3 text-sm space-y-1">
+								<div>
+									<span className="text-muted-foreground">Name: </span>
+									{cloudUser.name}
+								</div>
+								<div>
+									<span className="text-muted-foreground">Email: </span>
+									{cloudUser.email}
+								</div>
+								<div>
+									<span className="text-muted-foreground">ID: </span>
+									<span className="font-mono text-xs">{cloudUser.id}</span>
+								</div>
+							</div>
 						)}
 					</div>
 

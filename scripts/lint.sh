@@ -11,4 +11,6 @@ if echo "$output" | grep -qE "Found [0-9]+ (error|info|warning)"; then
   exit 1
 fi
 
+./scripts/check-desktop-git-env.sh
+
 exit $exit_code

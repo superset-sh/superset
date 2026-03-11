@@ -2,7 +2,7 @@ import path from "node:path";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType } from "shared/file-types";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -11,6 +11,7 @@ import {
 	toRegisteredWorktreeRelativePath,
 	type WorkspaceFsPathError,
 } from "../workspace-fs-service";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
@@ -91,7 +92,7 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
-				const git = simpleGit(input.worktreePath);
+				const git = await getSimpleGitWithShellPath(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 				const filePath = toRegisteredWorktreeRelativePath(
 					input.worktreePath,
@@ -251,7 +252,7 @@ interface FileVersions {
 }
 
 async function getFileVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,
@@ -278,10 +279,7 @@ async function getFileVersions(
 }
 
 /** Helper to safely get git show content with size limit and memory protection */
-async function safeGitShow(
-	git: ReturnType<typeof simpleGit>,
-	spec: string,
-): Promise<string> {
+async function safeGitShow(git: SimpleGit, spec: string): Promise<string> {
 	try {
 		// Preflight: check blob size before loading into memory
 		// This prevents memory spikes from large files in git history
@@ -303,7 +301,7 @@ async function safeGitShow(
 }
 
 async function getAgainstBaseVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 	defaultBranch: string,
@@ -317,7 +315,7 @@ async function getAgainstBaseVersions(
 }
 
 async function getCommittedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 	commitHash: string,
@@ -331,7 +329,7 @@ async function getCommittedVersions(
 }
 
 async function getStagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
@@ -344,7 +342,7 @@ async function getStagedVersions(
 }
 
 async function getUnstagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,

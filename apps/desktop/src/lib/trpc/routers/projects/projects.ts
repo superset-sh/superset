@@ -21,7 +21,6 @@ import {
 } from "main/lib/project-icons";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { resolveDefaultEditor } from "../external";
@@ -40,6 +39,7 @@ import {
 	refreshDefaultBranch,
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -65,7 +65,7 @@ type OpenNewMultiResult =
 	| OpenNewError;
 
 async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
-	const git = simpleGit(path);
+	const git = await getSimpleGitWithShellPath(path);
 
 	try {
 		await git.init(["--initial-branch=main"]);
@@ -338,7 +338,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						throw new Error(`Project ${input.projectId} not found`);
 					}
 
-					const git = simpleGit(project.mainRepoPath);
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 
 					// No fetch — use only locally available refs
 					const branchSummary = await git.branch(["-a"]);
@@ -492,7 +492,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						throw new Error(`Project ${input.projectId} not found`);
 					}
 
-					const git = simpleGit(project.mainRepoPath);
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 
 					try {
 						await git.fetch(["--prune"]);
@@ -889,7 +889,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					}
 
 					// Clone the repository
-					const git = simpleGit();
+					const git = await getSimpleGitWithShellPath();
 					await git.clone(input.url, clonePath);
 
 					// Create new project

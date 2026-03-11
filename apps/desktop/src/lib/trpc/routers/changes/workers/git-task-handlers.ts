@@ -1,9 +1,9 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
-import type { StatusResult } from "simple-git";
-import simpleGit from "simple-git";
+import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
+import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
 import { applyNumstatToFiles } from "../utils/apply-numstat";
 import {
 	parseGitLog,
@@ -110,7 +110,7 @@ async function applyUntrackedLineCount(
 }
 
 async function getBranchComparison(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	defaultBranch: string,
 ): Promise<BranchComparison> {
 	let commits: GitChangesStatus["commits"] = [];
@@ -161,7 +161,7 @@ async function getBranchComparison(
 }
 
 async function getTrackingBranchStatus(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 ): Promise<TrackingStatus> {
 	try {
 		const upstream = await git.raw([
@@ -195,7 +195,7 @@ async function computeStatus({
 	worktreePath,
 	defaultBranch,
 }: GitTaskPayloadMap["getStatus"]): Promise<GitChangesStatus> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 
 	const status: StatusResult = await getStatusNoLock(worktreePath);
 	const parsed = parseGitStatus(status);
@@ -228,7 +228,7 @@ async function computeCommitFiles({
 	worktreePath,
 	commitHash,
 }: GitTaskPayloadMap["getCommitFiles"]): Promise<ChangedFile[]> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 
 	const nameStatus = await git.raw([
 		"diff-tree",

@@ -18,6 +18,16 @@ const BASE_RESTART_DELAY = 1_000;
 class HostServiceManager {
 	private instances = new Map<string, HostServiceProcess>();
 	private scriptPath = path.join(__dirname, "host-service.js");
+	private authToken: string | null = null;
+	private cloudApiUrl: string | null = null;
+
+	setAuthToken(token: string | null): void {
+		this.authToken = token;
+	}
+
+	setCloudApiUrl(url: string | null): void {
+		this.cloudApiUrl = url;
+	}
 
 	async start(organizationId: string): Promise<number> {
 		const existing = this.instances.get(organizationId);
@@ -55,9 +65,21 @@ class HostServiceManager {
 	}
 
 	private async spawn(organizationId: string): Promise<number> {
+		const env: Record<string, string | undefined> = {
+			...process.env,
+			ELECTRON_RUN_AS_NODE: "1",
+			ORGANIZATION_ID: organizationId,
+		};
+		if (this.authToken) {
+			env.AUTH_TOKEN = this.authToken;
+		}
+		if (this.cloudApiUrl) {
+			env.CLOUD_API_URL = this.cloudApiUrl;
+		}
+
 		const child = spawn(process.execPath, [this.scriptPath], {
 			stdio: ["ignore", "pipe", "pipe"],
-			env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+			env,
 		});
 
 		const instance: HostServiceProcess = {

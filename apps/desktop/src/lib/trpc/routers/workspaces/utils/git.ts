@@ -10,8 +10,9 @@ import {
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
-import simpleGit, { type StatusResult } from "simple-git";
+import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
+import { getSimpleGitWithShellPath } from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -316,7 +317,7 @@ export async function getGitAuthorName(
 	repoPath?: string,
 ): Promise<string | null> {
 	try {
-		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const git = await getSimpleGitWithShellPath(repoPath);
 		const name = await git.getConfig("user.name");
 		return name.value?.trim() || null;
 	} catch (error) {
@@ -536,7 +537,7 @@ export async function createWorktreeFromExistingBranch({
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const localBranches = await git.branchLocal();
 		const branchExistsLocally = localBranches.all.includes(branch);
 
@@ -704,7 +705,7 @@ export async function removeWorktree(
 
 export async function getGitRoot(path: string): Promise<string> {
 	try {
-		const git = simpleGit(path);
+		const git = await getSimpleGitWithShellPath(path);
 		const root = await git.revparse(["--show-toplevel"]);
 		return root.trim();
 	} catch (error) {
@@ -721,7 +722,7 @@ export async function worktreeExists(
 	worktreePath: string,
 ): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const lines = worktrees.split("\n");
@@ -744,7 +745,7 @@ export async function listExternalWorktrees(
 	mainRepoPath: string,
 ): Promise<ExternalWorktree[]> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const output = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const result: ExternalWorktree[] = [];
@@ -800,7 +801,7 @@ export async function getBranchWorktreePath({
 	branch: string;
 }): Promise<string | null> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktreesOutput = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const lines = worktreesOutput.split("\n");
@@ -846,7 +847,7 @@ export async function repairWorktreeRegistration({
 
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const remotes = await git.getRemotes();
 		return remotes.some((r) => r.name === "origin");
 	} catch {
@@ -855,7 +856,7 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 }
 
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 
 	// First check if we have an origin remote
 	const hasRemote = await hasOriginRemote(mainRepoPath);
@@ -922,7 +923,7 @@ export async function fetchDefaultBranch(
 	mainRepoPath: string,
 	defaultBranch: string,
 ): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 	await git.fetch("origin", defaultBranch);
 	const commit = await git.revparse(`origin/${defaultBranch}`);
 	return commit.trim();
@@ -937,7 +938,7 @@ export async function fetchDefaultBranch(
 export async function refreshDefaultBranch(
 	mainRepoPath: string,
 ): Promise<string | null> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 
 	const hasRemote = await hasOriginRemote(mainRepoPath);
 	if (!hasRemote) {
@@ -975,7 +976,7 @@ export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const behindCount = await git.raw([
 		"rev-list",
 		"--count",
@@ -991,7 +992,7 @@ export async function getAheadBehindCount({
 	repoPath: string;
 	defaultBranch: string;
 }): Promise<{ ahead: number; behind: number }> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		const output = await git.raw([
 			"rev-list",
@@ -1019,7 +1020,7 @@ export async function hasUncommittedChanges(
 export async function hasUnpushedCommits(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	try {
 		const aheadCount = await git.raw([
 			"rev-list",
@@ -1207,7 +1208,7 @@ export async function detectBaseBranch(
 	currentBranch: string,
 	defaultBranch: string,
 ): Promise<string | null> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 
 	// Candidate base branches to check, in priority order
 	const candidates = [
@@ -1260,7 +1261,7 @@ export async function listBranches(
 	repoPath: string,
 	options?: { fetch?: boolean },
 ): Promise<{ local: string[]; remote: string[] }> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 
 	// Optionally fetch and prune to get up-to-date remote refs
 	if (options?.fetch) {
@@ -1290,7 +1291,7 @@ export async function listBranches(
 export async function getCurrentBranch(
 	repoPath: string,
 ): Promise<string | null> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 		const trimmed = branch.trim();
@@ -1367,7 +1368,7 @@ export async function checkBranchCheckoutSafety(
 
 		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
-			const git = simpleGit(repoPath);
+			const git = await getSimpleGitWithShellPath(repoPath);
 			await git.fetch(["--prune"]);
 		} catch {
 			// Ignore fetch errors
@@ -1396,7 +1397,7 @@ export async function checkoutBranch(
 	repoPath: string,
 	branch: string,
 ): Promise<void> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 
 	const localBranches = await git.branchLocal();
 	if (localBranches.all.includes(branch)) {
@@ -1450,7 +1451,7 @@ export async function refExistsLocally(
 	repoPath: string,
 	ref: string,
 ): Promise<boolean> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		// Use --verify --quiet to check if ref exists without output
 		// Append ^{commit} to ensure it resolves to a commit-ish
@@ -1645,7 +1646,7 @@ export async function createWorktreeFromPr({
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const localBranches = await git.branchLocal();
 		const branchExists = localBranches.all.includes(localBranchName);
 

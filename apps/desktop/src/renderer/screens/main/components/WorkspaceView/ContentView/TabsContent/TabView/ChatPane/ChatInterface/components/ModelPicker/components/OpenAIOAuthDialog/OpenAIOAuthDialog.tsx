@@ -3,18 +3,13 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-} from "@superset/ui/input-group";
+import { InputGroup, InputGroupInput } from "@superset/ui/input-group";
 import { Label } from "@superset/ui/label";
-import { LuCopy, LuExternalLink } from "react-icons/lu";
+
+const OPENAI_OAUTH_CALLBACK_URL = "http://localhost:1455/auth/callback";
 
 interface OpenAIOAuthDialogProps {
 	open: boolean;
@@ -22,10 +17,12 @@ interface OpenAIOAuthDialogProps {
 	code: string;
 	errorMessage: string | null;
 	isPending: boolean;
+	canDisconnect: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
+	onDisconnect: () => void;
 	onSubmit: () => void;
 }
 
@@ -35,90 +32,120 @@ export function OpenAIOAuthDialog({
 	code,
 	errorMessage,
 	isPending,
+	canDisconnect,
 	onOpenChange,
 	onCodeChange,
 	onOpenAuthUrl,
 	onCopyAuthUrl,
+	onDisconnect,
 	onSubmit,
 }: OpenAIOAuthDialogProps) {
+	const hasAuthUrl = Boolean(authUrl);
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-[calc(100vw-2rem)] overflow-hidden sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Connect OpenAI</DialogTitle>
 					<DialogDescription>
-						Open the OAuth URL and sign in. If Connect does not finish, paste
-						the redirected localhost callback URL below.
+						Approve access in your browser. If the callback does not finish,
+						paste the redirected callback URL below.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="min-w-0 space-y-4">
-					<InputGroup className="max-w-full overflow-hidden border-border/70 bg-muted/30">
-						<InputGroupInput
-							readOnly
-							value={authUrl ?? "OAuth URL not ready"}
-							className="text-muted-foreground h-9 text-xs"
-						/>
-						<InputGroupAddon align="inline-end" className="gap-1 pr-1">
-							<InputGroupButton
-								size="icon-xs"
-								variant="ghost"
-								aria-label="Copy OAuth URL"
-								title="Copy OAuth URL"
-								onClick={onCopyAuthUrl}
-								disabled={!authUrl}
-							>
-								<LuCopy className="size-3.5" />
-							</InputGroupButton>
-							<InputGroupButton
-								size="icon-xs"
-								variant="ghost"
-								aria-label="Open OAuth URL"
-								title="Open OAuth URL"
-								onClick={onOpenAuthUrl}
-								disabled={!authUrl}
-							>
-								<LuExternalLink className="size-3.5" />
-							</InputGroupButton>
-						</InputGroupAddon>
-					</InputGroup>
+					<div className="rounded-lg border border-border/70 bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
+						<span className="font-semibold text-foreground">Tip:</span> OpenAI
+						OAuth usually completes automatically after browser approval. If you
+						land on <code>{`${OPENAI_OAUTH_CALLBACK_URL}?...`}</code>, copy that
+						full URL and paste it below.
+					</div>
+
+					<div className="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={onOpenAuthUrl}
+							disabled={!authUrl || isPending}
+						>
+							Open browser again
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							onClick={onCopyAuthUrl}
+							disabled={!authUrl || isPending}
+						>
+							Copy URL
+						</Button>
+					</div>
+
+					{hasAuthUrl ? (
+						<div className="rounded-lg border border-border/70 bg-muted/10 px-4 py-3">
+							<p className="text-xs font-medium text-foreground">OAuth URL</p>
+							<p className="text-muted-foreground mt-2 break-all font-mono text-xs leading-relaxed">
+								{authUrl}
+							</p>
+						</div>
+					) : (
+						<div className="rounded-lg border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+							OAuth URL not ready yet.
+						</div>
+					)}
 
 					<div className="min-w-0 space-y-2">
 						<Label htmlFor="openai-oauth-code">Callback URL (optional)</Label>
-						<InputGroup>
+						<InputGroup className="border-border/70 bg-muted/10">
 							<InputGroupInput
 								id="openai-oauth-code"
-								placeholder="Paste full http://localhost:1455/auth/callback?... URL (preferred)"
+								placeholder={`Paste full ${OPENAI_OAUTH_CALLBACK_URL}?... URL`}
 								value={code}
 								onChange={(event) => onCodeChange(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+										onSubmit();
+									}
+								}}
 								disabled={isPending}
-								className="h-11 font-mono"
+								className="h-11 font-mono text-xs sm:text-sm"
+								autoFocus
 							/>
 						</InputGroup>
 						<p className="text-muted-foreground text-xs">
-							If browser redirects to `localhost`, copy the full URL from the
-							address bar and paste it here.
+							Leave this empty if browser login finishes on its own.
 						</p>
 					</div>
 
 					{errorMessage ? (
 						<p className="text-destructive text-sm">{errorMessage}</p>
 					) : null}
-				</div>
 
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={isPending}
-					>
-						Back
-					</Button>
-					<Button type="button" onClick={onSubmit} disabled={isPending}>
-						{isPending ? "Connecting..." : "Connect"}
-					</Button>
-				</DialogFooter>
+					<div className="flex flex-col gap-2 pt-2">
+						<Button type="button" onClick={onSubmit} disabled={isPending}>
+							{isPending ? "Working..." : "Continue"}
+						</Button>
+						<div className="flex items-center justify-between gap-2">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => onOpenChange(false)}
+								disabled={isPending}
+							>
+								Back
+							</Button>
+							{canDisconnect ? (
+								<Button
+									type="button"
+									variant="ghost"
+									onClick={onDisconnect}
+									disabled={isPending}
+								>
+									Disconnect
+								</Button>
+							) : null}
+						</div>
+					</div>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);

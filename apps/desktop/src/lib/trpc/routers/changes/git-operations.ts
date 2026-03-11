@@ -1,15 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
 	getPullRequestRepoArgs,
 	getRepoContext,
 } from "../workspaces/utils/github/github";
-import {
-	execWithShellEnv,
-	getProcessEnvWithShellPath,
-} from "../workspaces/utils/shell-env";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security/path-validation";
 import {
@@ -21,9 +19,7 @@ import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export { isUpstreamMissingError };
 
-async function hasUpstreamBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<boolean> {
+async function hasUpstreamBranch(git: SimpleGit): Promise<boolean> {
 	try {
 		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
 		return true;
@@ -32,9 +28,7 @@ async function hasUpstreamBranch(
 	}
 }
 
-async function fetchCurrentBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<void> {
+async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 	try {
 		await git.fetch(["origin", branch]);
@@ -66,7 +60,7 @@ async function pushWithSetUpstream({
 	git,
 	branch,
 }: {
-	git: ReturnType<typeof simpleGit>;
+	git: SimpleGit;
 	branch: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
@@ -119,7 +113,7 @@ interface TrackingStatus {
 }
 
 async function getTrackingBranchStatus(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 ): Promise<TrackingStatus> {
 	try {
 		const upstream = await git.raw([
@@ -263,7 +257,7 @@ const ghRepoMetadataSchema = z.object({
 });
 
 async function getMergeBaseBranch(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	branch: string,
 ): Promise<string | null> {
 	try {
@@ -280,7 +274,7 @@ async function getMergeBaseBranch(
 
 async function buildNewPullRequestUrl(
 	worktreePath: string,
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	branch: string,
 ): Promise<string> {
 	const { stdout } = await execWithShellEnv(
@@ -338,9 +332,7 @@ async function buildNewPullRequestUrl(
 }
 
 async function getGitWithShellPath(worktreePath: string) {
-	const git = simpleGit(worktreePath);
-	git.env(await getProcessEnvWithShellPath());
-	return git;
+	return getSimpleGitWithShellPath(worktreePath);
 }
 
 export const createGitOperationsRouter = () => {

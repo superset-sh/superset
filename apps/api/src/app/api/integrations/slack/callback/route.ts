@@ -5,6 +5,7 @@ import { integrationConnections, members } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import { posthog } from "@/lib/analytics";
 import { verifySignedState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
@@ -104,6 +105,12 @@ export async function GET(request: Request) {
 			organizationId,
 			teamId: tokenData.team.id,
 			teamName: tokenData.team.name,
+		});
+
+		posthog.capture({
+			distinctId: userId,
+			event: "slack_connected",
+			properties: { team_id: tokenData.team.id },
 		});
 
 		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);

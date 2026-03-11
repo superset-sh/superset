@@ -1,6 +1,6 @@
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
-import type { HostServiceContext } from "../git/types";
+import type { HostServiceContext } from "../types";
 
 const t = initTRPC
 	.context<HostServiceContext>()

@@ -8,14 +8,21 @@ export {
 	getCredentialsFromAuthStorage,
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
-	getCredentialsFromRuntimeEnv,
 } from "./auth/anthropic";
 export {
 	getOpenAICredentialsFromAnySource,
 	getOpenAICredentialsFromAuthStorage,
-	getOpenAICredentialsFromRuntimeEnv,
 } from "./auth/openai";
 export { ChatService } from "./chat-service";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
-export { generateTitleFromMessage } from "./title-generation";
+export type {
+	SmallModelCredential,
+	SmallModelProvider,
+	SmallModelProviderId,
+} from "./small-model";
+export { getDefaultSmallModelProviders } from "./small-model";
+export {
+	generateTitleFromMessage,
+	generateTitleFromMessageWithStreamingModel,
+} from "./title-generation";

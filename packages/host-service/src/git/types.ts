@@ -7,7 +7,3 @@ export interface CredentialProvider {
 }
 
 export type GitFactory = (path: string) => Promise<SimpleGit>;
-
-export interface HostServiceContext {
-	git: GitFactory;
-}

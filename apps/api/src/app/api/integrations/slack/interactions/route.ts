@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import { usersSlackUsers } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
+import { posthog } from "@/lib/analytics";
 import { DEFAULT_SLACK_MODEL } from "../constants";
 import { processAppHomeOpened } from "../events/process-app-home-opened";
 import { verifySlackSignature } from "../verify-signature";
@@ -83,6 +84,12 @@ async function handleModelSelect({
 		.update(usersSlackUsers)
 		.set({ modelPreference: selectedModel })
 		.where(eq(usersSlackUsers.id, existing.id));
+
+	posthog.capture({
+		distinctId: existing.userId,
+		event: "slack_model_changed",
+		properties: { model: selectedModel },
+	});
 }
 
 async function handleDisconnectAccount({
@@ -92,6 +99,14 @@ async function handleDisconnectAccount({
 	teamId: string;
 	slackUserId: string;
 }): Promise<void> {
+	const existing = await db.query.usersSlackUsers.findFirst({
+		where: and(
+			eq(usersSlackUsers.slackUserId, slackUserId),
+			eq(usersSlackUsers.teamId, teamId),
+		),
+		columns: { userId: true },
+	});
+
 	await db
 		.delete(usersSlackUsers)
 		.where(
@@ -100,6 +115,14 @@ async function handleDisconnectAccount({
 				eq(usersSlackUsers.teamId, teamId),
 			),
 		);
+
+	if (existing) {
+		posthog.capture({
+			distinctId: existing.userId,
+			event: "slack_disconnected",
+			properties: { team_id: teamId },
+		});
+	}
 
 	// Republish the home tab so the user sees the "Connect" state
 	processAppHomeOpened({

@@ -15,6 +15,7 @@ import { createFilesystemRouter } from "./filesystem";
 import { createHostServiceManagerRouter } from "./host-service-manager";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
+import { createModelProvidersRouter } from "./model-providers";
 import { createNotificationsRouter } from "./notifications";
 import { createPermissionsRouter } from "./permissions";
 import { createPortsRouter } from "./ports";
@@ -37,6 +38,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		cache: createCacheRouter(),
+		modelProviders: createModelProvidersRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),

@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { deleteRegisteredWorktreePaths } from "../workspace-fs-service";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
 	gitCheckoutFile,
 	gitDiscardAllStaged,
@@ -23,14 +23,14 @@ import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
 	assertRegisteredWorktree(worktreePath);
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const status = await git.status();
 	return parseGitStatus(status).untracked.map((f) => f.path);
 }
 
 async function getStagedNewFilePaths(worktreePath: string): Promise<string[]> {
 	assertRegisteredWorktree(worktreePath);
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const status = await git.status();
 	return parseGitStatus(status)
 		.staged.filter((f) => f.status === "added")
