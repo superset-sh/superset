@@ -8,20 +8,28 @@ export type PresetLaunchPlan =
 	| "new-tab-multi-pane"
 	| "new-tab-per-command"
 	| "active-tab-single"
-	| "active-tab-multi-pane";
+	| "active-tab-multi-pane"
+	| "active-tab-inject";
 
 export function getPresetLaunchPlan({
 	mode,
 	target,
 	commandCount,
 	hasActiveTab,
+	hasFocusedPane,
 }: {
 	mode: PresetMode;
 	target: PresetOpenTarget;
 	commandCount: number;
 	hasActiveTab: boolean;
+	hasFocusedPane?: boolean;
 }): PresetLaunchPlan {
 	const hasMultipleCommands = commandCount > 1;
+
+	if (mode === "inject" && hasActiveTab && hasFocusedPane) {
+		return "active-tab-inject";
+	}
+
 	const shouldUseActiveTab =
 		target === "active-tab" && mode === "split-pane" && hasActiveTab;
 

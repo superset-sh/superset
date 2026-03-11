@@ -58,7 +58,9 @@ export function PresetEditorSheet({
 	isNewTab,
 }: PresetEditorSheetProps) {
 	const singleCommandModeValue =
-		modeValue === "split-pane" ? modeValue : "new-tab";
+		modeValue === "split-pane" || modeValue === "inject"
+			? modeValue
+			: "new-tab";
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -203,6 +205,9 @@ export function PresetEditorSheet({
 												Open in current tab
 											</SelectItem>
 											<SelectItem value="new-tab">Open in new tab</SelectItem>
+											<SelectItem value="inject">
+												Inject in current terminal
+											</SelectItem>
 										</SelectContent>
 									</Select>
 								)}

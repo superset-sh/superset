@@ -13,6 +13,10 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
+	it("returns inject for inject mode", () => {
+		expect(normalizeExecutionMode("inject")).toBe("inject");
+	});
+
 	it("maps legacy and unknown modes to split-pane", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
@@ -75,5 +79,55 @@ describe("getPresetLaunchPlan", () => {
 				hasActiveTab: true,
 			}),
 		).toBe("new-tab-multi-pane");
+	});
+
+	describe("inject mode", () => {
+		it("returns active-tab-inject when mode is inject, active tab exists, and focused pane exists", () => {
+			expect(
+				getPresetLaunchPlan({
+					mode: "inject",
+					target: "active-tab",
+					commandCount: 1,
+					hasActiveTab: true,
+					hasFocusedPane: true,
+				}),
+			).toBe("active-tab-inject");
+		});
+
+		it("returns active-tab-inject for multiple commands with inject mode", () => {
+			expect(
+				getPresetLaunchPlan({
+					mode: "inject",
+					target: "active-tab",
+					commandCount: 3,
+					hasActiveTab: true,
+					hasFocusedPane: true,
+				}),
+			).toBe("active-tab-inject");
+		});
+
+		it("falls back to new-tab-single when no active tab is available in inject mode", () => {
+			expect(
+				getPresetLaunchPlan({
+					mode: "inject",
+					target: "active-tab",
+					commandCount: 1,
+					hasActiveTab: false,
+					hasFocusedPane: false,
+				}),
+			).toBe("new-tab-single");
+		});
+
+		it("falls back to new-tab-single when active tab exists but no focused pane in inject mode", () => {
+			expect(
+				getPresetLaunchPlan({
+					mode: "inject",
+					target: "active-tab",
+					commandCount: 1,
+					hasActiveTab: true,
+					hasFocusedPane: false,
+				}),
+			).toBe("new-tab-single");
+		});
 	});
 });
