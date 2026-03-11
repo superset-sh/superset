@@ -1,3 +1,5 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	createContext,
 	type ReactNode,
@@ -19,10 +21,12 @@ const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
 export function preloadActiveOrganizationCollections(
 	activeOrganizationId: string | null | undefined,
+	enableV2Cloud: boolean,
 ): void {
 	if (!activeOrganizationId) return;
 	void preloadCollections(activeOrganizationId, {
 		includeChatCollections: false,
+		enableV2Cloud,
 	}).catch((error) => {
 		console.error(
 			"[collections-provider] Failed to preload active org collections:",
@@ -33,6 +37,8 @@ export function preloadActiveOrganizationCollections(
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
+	const isV2CloudEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
 	const [isSwitching, setIsSwitching] = useState(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -44,21 +50,26 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
-				await preloadCollections(organizationId);
+				await preloadCollections(organizationId, {
+					enableV2Cloud: isV2CloudEnabled,
+				});
 				await refetchSession();
 			} finally {
 				setIsSwitching(false);
 			}
 		},
-		[activeOrganizationId, refetchSession],
+		[activeOrganizationId, isV2CloudEnabled, refetchSession],
 	);
 
 	useEffect(() => {
-		preloadActiveOrganizationCollections(activeOrganizationId);
-	}, [activeOrganizationId]);
+		preloadActiveOrganizationCollections(
+			activeOrganizationId,
+			isV2CloudEnabled,
+		);
+	}, [activeOrganizationId, isV2CloudEnabled]);
 
 	const collections = activeOrganizationId
-		? getCollections(activeOrganizationId)
+		? getCollections(activeOrganizationId, isV2CloudEnabled)
 		: null;
 
 	if (!collections || isSwitching) {

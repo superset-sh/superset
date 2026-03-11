@@ -35,6 +35,10 @@ export const v2DeviceTypeValues = ["host", "cloud", "viewer"] as const;
 export const v2DeviceTypeEnum = z.enum(v2DeviceTypeValues);
 export type V2DeviceType = z.infer<typeof v2DeviceTypeEnum>;
 
+export const v2UsersDeviceRoleValues = ["owner", "member", "viewer"] as const;
+export const v2UsersDeviceRoleEnum = z.enum(v2UsersDeviceRoleValues);
+export type V2UsersDeviceRole = z.infer<typeof v2UsersDeviceRoleEnum>;
+
 export const commandStatusValues = [
 	"pending",
 	"completed",

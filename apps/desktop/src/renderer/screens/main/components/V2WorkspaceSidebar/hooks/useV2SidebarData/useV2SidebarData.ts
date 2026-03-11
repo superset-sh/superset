@@ -58,6 +58,6 @@ export function useV2SidebarData() {
 	return {
 		groups,
 		totalWorkspaceCount,
-		isEmpty: groups.length === 0,
+		isEmpty: totalWorkspaceCount === 0,
 	};
 }

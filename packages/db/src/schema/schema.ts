@@ -21,6 +21,7 @@ import {
 	taskPriorityValues,
 	taskStatusEnumValues,
 	v2DeviceTypeValues,
+	v2UsersDeviceRoleValues,
 	workspaceTypeValues,
 } from "./enums";
 import { githubRepositories } from "./github";
@@ -35,6 +36,10 @@ export const integrationProvider = pgEnum(
 );
 export const deviceType = pgEnum("device_type", deviceTypeValues);
 export const v2DeviceType = pgEnum("v2_device_type", v2DeviceTypeValues);
+export const v2UsersDeviceRole = pgEnum(
+	"v2_users_device_role",
+	v2UsersDeviceRoleValues,
+);
 export const commandStatus = pgEnum("command_status", commandStatusValues);
 
 export const taskStatuses = pgTable(
@@ -448,7 +453,7 @@ export const v2UsersDevices = pgTable(
 		deviceId: uuid("device_id")
 			.notNull()
 			.references(() => v2Devices.id, { onDelete: "cascade" }),
-		role: text().notNull().default("member"),
+		role: v2UsersDeviceRole().notNull().default("member"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
