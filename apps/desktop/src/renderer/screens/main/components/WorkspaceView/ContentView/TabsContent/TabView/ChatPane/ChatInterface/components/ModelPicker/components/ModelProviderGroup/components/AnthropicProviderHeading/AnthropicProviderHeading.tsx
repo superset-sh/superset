@@ -16,8 +16,8 @@ export function AnthropicProviderHeading({
 	onOpenAuthModal,
 }: AnthropicProviderHeadingProps) {
 	const tooltipLabel = isConnected
-		? "Manage Anthropic auth"
-		: "Connect Anthropic";
+		? "Manage Anthropic in Settings"
+		: "Connect Anthropic in Settings";
 
 	return (
 		<div className="text-muted-foreground flex items-center justify-between px-2 py-1.5 text-xs font-medium">

@@ -46,11 +46,34 @@ export function useCloseWorkspace(
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
 					previousGrouped
-						.map((group) => ({
-							...group,
-							workspaces: group.workspaces.filter((w) => w.id !== id),
-						}))
-						.filter((group) => group.workspaces.length > 0),
+						.map((group) => {
+							const isTopLevelWorkspace = group.workspaces.some(
+								(w) => w.id === id,
+							);
+							const workspaces = group.workspaces.filter((w) => w.id !== id);
+							const sections = group.sections.map((section) => ({
+								...section,
+								workspaces: section.workspaces.filter((w) => w.id !== id),
+							}));
+
+							return {
+								...group,
+								workspaces,
+								sections,
+								topLevelItems: isTopLevelWorkspace
+									? group.topLevelItems.filter((item) => item.id !== id)
+									: group.topLevelItems,
+							};
+						})
+						.filter(
+							(group) =>
+								group.workspaces.length +
+									group.sections.reduce(
+										(sum, section) => sum + section.workspaces.length,
+										0,
+									) >
+								0,
+						),
 				);
 			}
 

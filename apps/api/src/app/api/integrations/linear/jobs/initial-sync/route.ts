@@ -2,6 +2,7 @@ import { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
 import {
 	integrationConnections,
+	members,
 	taskStatuses,
 	tasks,
 	users,
@@ -107,9 +108,16 @@ async function performInitialSync(
 
 	const matchedUsers =
 		assigneeEmails.length > 0
-			? await db.query.users.findMany({
-					where: inArray(users.email, assigneeEmails),
-				})
+			? await db
+					.select({ id: users.id, email: users.email })
+					.from(users)
+					.innerJoin(members, eq(members.userId, users.id))
+					.where(
+						and(
+							inArray(users.email, assigneeEmails),
+							eq(members.organizationId, organizationId),
+						),
+					)
 			: [];
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
@@ -144,6 +152,9 @@ async function performInitialSync(
 						"statusId",
 						"priority",
 						"assigneeId",
+						"assigneeExternalId",
+						"assigneeDisplayName",
+						"assigneeAvatarUrl",
 						"estimate",
 						"dueDate",
 						"labels",

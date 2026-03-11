@@ -44,7 +44,10 @@ export const gitHubStatusSchema = z.object({
 		})
 		.nullable(),
 	repoUrl: z.string(),
+	upstreamUrl: z.string().optional(),
+	isFork: z.boolean().optional(),
 	branchExistsOnRemote: z.boolean(),
+	previewUrl: z.string().optional(),
 	lastRefreshed: z.number(),
 });
 

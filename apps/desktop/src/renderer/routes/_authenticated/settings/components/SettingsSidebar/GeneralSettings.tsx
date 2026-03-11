@@ -13,7 +13,7 @@ import {
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
-import { LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
@@ -30,6 +30,7 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/git"
 	| "/settings/terminal"
+	| "/settings/models"
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/devices"
@@ -99,6 +100,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "terminal",
 				label: "Terminal",
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/models",
+				section: "models",
+				label: "Models",
+				icon: <LuBrain className="h-4 w-4" />,
 			},
 		],
 	},

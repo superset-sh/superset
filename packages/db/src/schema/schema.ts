@@ -115,6 +115,11 @@ export const tasks = pgTable(
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
 
+		// External assignee snapshot (for unmatched Linear users)
+		assigneeExternalId: text("assignee_external_id"),
+		assigneeDisplayName: text("assignee_display_name"),
+		assigneeAvatarUrl: text("assignee_avatar_url"),
+
 		startedAt: timestamp("started_at"),
 		completedAt: timestamp("completed_at"),
 		deletedAt: timestamp("deleted_at"),
@@ -134,6 +139,7 @@ export const tasks = pgTable(
 		index("tasks_status_id_idx").on(table.statusId),
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
+		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),
 		unique("tasks_external_unique").on(
 			table.organizationId,
 			table.externalProvider,

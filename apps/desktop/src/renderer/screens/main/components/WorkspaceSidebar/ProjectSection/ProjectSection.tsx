@@ -1,26 +1,33 @@
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useSectionDropZone } from "../hooks";
+import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
+import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
 const PROJECT_TYPE = "PROJECT";
 
-interface Workspace {
-	id: string;
-	projectId: string;
-	worktreePath: string;
-	type: "worktree" | "branch";
-	branch: string;
-	name: string;
-	tabOrder: number;
-	isUnread: boolean;
-}
+type TopLevelChild =
+	| {
+			kind: "workspace";
+			workspace: SidebarWorkspace;
+			topLevelIndex: number;
+			shortcutIndex: number;
+	  }
+	| {
+			kind: "section";
+			section: SidebarSection;
+			topLevelIndex: number;
+			shortcutBaseIndex: number;
+	  };
 
 interface ProjectSectionProps {
 	projectId: string;
@@ -30,7 +37,13 @@ interface ProjectSectionProps {
 	mainRepoPath: string;
 	hideImage: boolean;
 	iconUrl: string | null;
-	workspaces: Workspace[];
+	workspaces: SidebarWorkspace[];
+	sections: SidebarSection[];
+	topLevelItems: {
+		id: string;
+		kind: "workspace" | "section";
+		tabOrder: number;
+	}[];
 	/** Base index for keyboard shortcuts (0-based) */
 	shortcutBaseIndex: number;
 	/** Index for drag-and-drop reordering */
@@ -48,6 +61,8 @@ export function ProjectSection({
 	hideImage,
 	iconUrl,
 	workspaces,
+	sections,
+	topLevelItems,
 	shortcutBaseIndex,
 	index,
 	isCollapsed: isSidebarCollapsed = false,
@@ -59,6 +74,62 @@ export function ProjectSection({
 	const utils = electronTrpc.useUtils();
 
 	const isCollapsed = isProjectCollapsed(projectId);
+	const totalWorkspaceCount =
+		workspaces.length +
+		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
+
+	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
+		const topLevelWorkspacesById = new Map(
+			workspaces.map((workspace) => [workspace.id, workspace]),
+		);
+		const sectionsById = new Map(
+			sections.map((section) => [section.id, section]),
+		);
+		const ids: string[] = [];
+		let shortcutOffset = shortcutBaseIndex;
+		const renderables: TopLevelChild[] = [];
+
+		for (const [topLevelIndex, item] of topLevelItems.entries()) {
+			if (item.kind === "workspace") {
+				const workspace = topLevelWorkspacesById.get(item.id);
+				if (!workspace) continue;
+				ids.push(workspace.id);
+				const shortcutIndex = shortcutOffset;
+				shortcutOffset += 1;
+				renderables.push({
+					kind: "workspace",
+					workspace,
+					topLevelIndex,
+					shortcutIndex,
+				});
+				continue;
+			}
+
+			const section = sectionsById.get(item.id);
+			if (!section) continue;
+			for (const workspace of section.workspaces) {
+				ids.push(workspace.id);
+			}
+			renderables.push({
+				kind: "section",
+				section,
+				topLevelIndex,
+				shortcutBaseIndex: shortcutOffset,
+			});
+			shortcutOffset += section.workspaces.length;
+		}
+
+		return {
+			orderedWorkspaceIds: ids,
+			topLevelChildren: renderables,
+		};
+	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
+
+	const ungroupedDropZone = useSectionDropZone({
+		canAccept: (item) =>
+			item.sectionId !== null && item.projectId === projectId,
+		targetSectionId: null,
+	});
 
 	const handleNewWorkspace = () => {
 		openModal(projectId);
@@ -149,7 +220,7 @@ export function ProjectSection({
 					isCollapsed={isCollapsed}
 					isSidebarCollapsed={isSidebarCollapsed}
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
-					workspaceCount={workspaces.length}
+					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
 				/>
 				<AnimatePresence initial={false}>
@@ -162,21 +233,41 @@ export function ProjectSection({
 							className="overflow-hidden w-full"
 						>
 							<div className="flex flex-col items-center gap-1 pt-1">
-								{workspaces.map((workspace, wsIndex) => (
-									<WorkspaceListItem
-										key={workspace.id}
-										id={workspace.id}
-										projectId={workspace.projectId}
-										worktreePath={workspace.worktreePath}
-										name={workspace.name}
-										branch={workspace.branch}
-										type={workspace.type}
-										isUnread={workspace.isUnread}
-										index={wsIndex}
-										shortcutIndex={shortcutBaseIndex + wsIndex}
-										isCollapsed={isSidebarCollapsed}
-									/>
-								))}
+								{topLevelChildren.map((item) =>
+									item.kind === "workspace" ? (
+										<WorkspaceListItem
+											key={item.workspace.id}
+											id={item.workspace.id}
+											projectId={item.workspace.projectId}
+											worktreePath={item.workspace.worktreePath}
+											name={item.workspace.name}
+											branch={item.workspace.branch}
+											type={item.workspace.type}
+											isUnread={item.workspace.isUnread}
+											index={item.topLevelIndex}
+											shortcutIndex={item.shortcutIndex}
+											isCollapsed={isSidebarCollapsed}
+											sectionId={null}
+											sections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									) : (
+										<WorkspaceSection
+											key={item.section.id}
+											sectionId={item.section.id}
+											projectId={projectId}
+											index={item.topLevelIndex}
+											name={item.section.name}
+											isCollapsed={item.section.isCollapsed}
+											color={item.section.color}
+											workspaces={item.section.workspaces}
+											shortcutBaseIndex={item.shortcutBaseIndex}
+											isSidebarCollapsed
+											allSections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									),
+								)}
 							</div>
 						</motion.div>
 					)}
@@ -207,7 +298,7 @@ export function ProjectSection({
 				isCollapsed={isCollapsed}
 				isSidebarCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
-				workspaceCount={workspaces.length}
+				workspaceCount={totalWorkspaceCount}
 				onNewWorkspace={handleNewWorkspace}
 			/>
 
@@ -221,20 +312,52 @@ export function ProjectSection({
 						className="overflow-hidden"
 					>
 						<div className="pb-1">
-							{workspaces.map((workspace, wsIndex) => (
-								<WorkspaceListItem
-									key={workspace.id}
-									id={workspace.id}
-									projectId={workspace.projectId}
-									worktreePath={workspace.worktreePath}
-									name={workspace.name}
-									branch={workspace.branch}
-									type={workspace.type}
-									isUnread={workspace.isUnread}
-									index={wsIndex}
-									shortcutIndex={shortcutBaseIndex + wsIndex}
+							{topLevelChildren.length === 0 && (
+								<div
+									{...ungroupedDropZone.handlers}
+									className={cn(
+										"transition-colors rounded-sm min-h-8",
+										ungroupedDropZone.isDropTarget &&
+											!ungroupedDropZone.isDragOver &&
+											"border border-dashed border-primary/20",
+										ungroupedDropZone.isDragOver &&
+											"bg-primary/5 border-solid border-primary/30",
+									)}
 								/>
-							))}
+							)}
+							{topLevelChildren.map((item) =>
+								item.kind === "workspace" ? (
+									<WorkspaceListItem
+										key={item.workspace.id}
+										id={item.workspace.id}
+										projectId={item.workspace.projectId}
+										worktreePath={item.workspace.worktreePath}
+										name={item.workspace.name}
+										branch={item.workspace.branch}
+										type={item.workspace.type}
+										isUnread={item.workspace.isUnread}
+										index={item.topLevelIndex}
+										shortcutIndex={item.shortcutIndex}
+										sectionId={null}
+										sections={sections}
+										orderedWorkspaceIds={orderedWorkspaceIds}
+									/>
+								) : (
+									<WorkspaceSection
+										key={item.section.id}
+										sectionId={item.section.id}
+										projectId={projectId}
+										index={item.topLevelIndex}
+										name={item.section.name}
+										isCollapsed={item.section.isCollapsed}
+										color={item.section.color}
+										workspaces={item.section.workspaces}
+										shortcutBaseIndex={item.shortcutBaseIndex}
+										allSections={sections}
+										orderedWorkspaceIds={orderedWorkspaceIds}
+									/>
+								),
+							)}
 						</div>
 					</motion.div>
 				)}

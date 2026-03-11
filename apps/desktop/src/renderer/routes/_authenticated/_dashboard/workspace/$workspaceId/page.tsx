@@ -2,6 +2,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -16,6 +17,8 @@ import {
 	KeywordSearch,
 	useKeywordSearch,
 } from "renderer/screens/main/components/KeywordSearch";
+import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
+import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
@@ -75,6 +78,12 @@ function WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
+	});
+	useWorkspaceFileEventBridge(workspaceId, Boolean(workspace?.worktreePath));
+	useWorkspaceRenameReconciliation({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+		enabled: Boolean(workspace?.worktreePath),
 	});
 	const navigate = useNavigate();
 	const routeNavigate = Route.useNavigate();
@@ -382,11 +391,10 @@ function WorkspacePage() {
 
 	const commandPalette = useCommandPalette({
 		workspaceId,
-		worktreePath: workspace?.worktreePath,
+		navigate,
 	});
 	const keywordSearch = useKeywordSearch({
 		workspaceId,
-		worktreePath: workspace?.worktreePath,
 	});
 	const handleQuickOpen = useCallback(() => {
 		keywordSearch.handleOpenChange(false);
@@ -619,6 +627,17 @@ function WorkspacePage() {
 				isLoading={commandPalette.isFetching}
 				searchResults={commandPalette.searchResults}
 				onSelectFile={commandPalette.selectFile}
+				scope={commandPalette.scope}
+				onScopeChange={commandPalette.setScope}
+				workspaceName={
+					workspace
+						? getWorkspaceDisplayName(
+								workspace.name,
+								workspace.type,
+								workspace.project?.name,
+							)
+						: undefined
+				}
 			/>
 			<KeywordSearch
 				open={keywordSearch.open}

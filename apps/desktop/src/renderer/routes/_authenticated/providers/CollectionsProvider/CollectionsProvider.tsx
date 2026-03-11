@@ -1,5 +1,3 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	createContext,
 	type ReactNode,
@@ -11,11 +9,7 @@ import {
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import {
-	getCollections,
-	preloadCollections,
-	setElectricUrl,
-} from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	switchOrganization: (organizationId: string) => Promise<void>;
@@ -39,7 +33,6 @@ export function preloadActiveOrganizationCollections(
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const useElectricCloud = useFeatureFlagEnabled(FEATURE_FLAGS.ELECTRIC_CLOUD);
 	const [isSwitching, setIsSwitching] = useState(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -63,16 +56,6 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
-
-	if (useElectricCloud === undefined) {
-		return null;
-	}
-
-	setElectricUrl(
-		useElectricCloud
-			? env.NEXT_PUBLIC_ELECTRIC_URL
-			: env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
-	);
 
 	const collections = activeOrganizationId
 		? getCollections(activeOrganizationId)

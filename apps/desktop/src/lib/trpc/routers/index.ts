@@ -12,8 +12,10 @@ import { createChatServiceRouter } from "./chat-service";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createFilesystemRouter } from "./filesystem";
+import { createHostServiceManagerRouter } from "./host-service-manager";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
+import { createModelProvidersRouter } from "./model-providers";
 import { createNotificationsRouter } from "./notifications";
 import { createPermissionsRouter } from "./permissions";
 import { createPortsRouter } from "./ports";
@@ -36,6 +38,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		cache: createCacheRouter(),
+		modelProviders: createModelProvidersRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
@@ -53,6 +56,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(getWindow),
+		hostServiceManager: createHostServiceManagerRouter(),
 	});
 };
 

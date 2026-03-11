@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertRegisteredWorktree } from "./security";
+import { assertRegisteredWorktree } from "./security/path-validation";
 import {
 	clearInFlightStatus,
 	getCachedStatus,
@@ -47,6 +47,8 @@ export const createStatusRouter = () => {
 								defaultBranch,
 							},
 							{
+								dedupeKey: cacheKey,
+								strategy: "coalesce",
 								timeoutMs: 45_000,
 							},
 						);

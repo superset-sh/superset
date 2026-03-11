@@ -1,14 +1,17 @@
+import path from "node:path";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType } from "shared/file-types";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	assertRegisteredWorktree,
-	PathValidationError,
-	secureFs,
-} from "./security";
+	guardedWriteRegisteredWorktreeTextFile,
+	readRegisteredWorktreeFileBufferUpTo,
+	toRegisteredWorktreeRelativePath,
+	type WorkspaceFsPathError,
+} from "../workspace-fs-service";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
@@ -50,6 +53,18 @@ type ReadWorkingFileImageResult =
 				| "symlink-escape";
 	  };
 
+type SaveFileResult =
+	| { status: "saved" }
+	| { status: "conflict"; currentContent: string | null };
+
+function isWorkspaceFsPathError(error: unknown): error is WorkspaceFsPathError {
+	return (
+		error instanceof Error &&
+		"name" in error &&
+		error.name === "WorkspaceFsPathError"
+	);
+}
+
 /**
  * Detects if a buffer contains binary content by checking for NUL bytes
  */
@@ -69,24 +84,31 @@ export const createFileContentsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					filePath: z.string(),
-					oldPath: z.string().optional(),
+					absolutePath: z.string(),
+					oldAbsolutePath: z.string().optional(),
 					category: z.enum(["against-base", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
-				assertRegisteredWorktree(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
+				const git = await getSimpleGitWithShellPath(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
-				const originalPath = input.oldPath || input.filePath;
+				const filePath = toRegisteredWorktreeRelativePath(
+					input.worktreePath,
+					input.absolutePath,
+				);
+				const originalPath = input.oldAbsolutePath
+					? toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.oldAbsolutePath,
+						)
+					: filePath;
 
 				const { original, modified } = await getFileVersions(
 					git,
 					input.worktreePath,
-					input.filePath,
+					filePath,
 					originalPath,
 					input.category,
 					defaultBranch,
@@ -96,7 +118,7 @@ export const createFileContentsRouter = () => {
 				return {
 					original,
 					modified,
-					language: detectLanguage(input.filePath),
+					language: detectLanguage(input.absolutePath),
 				};
 			}),
 
@@ -104,18 +126,25 @@ export const createFileContentsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					filePath: z.string(),
+					absolutePath: z.string(),
 					content: z.string(),
+					expectedContent: z.string().optional(),
 				}),
 			)
-			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await secureFs.writeFile(
-					input.worktreePath,
-					input.filePath,
-					input.content,
-				);
+			.mutation(async ({ input }): Promise<SaveFileResult> => {
+				const result = await guardedWriteRegisteredWorktreeTextFile({
+					worktreePath: input.worktreePath,
+					absolutePath: input.absolutePath,
+					content: input.content,
+					expectedContent: input.expectedContent,
+				});
+
+				if (result.status === "conflict") {
+					return result;
+				}
+
 				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
+				return { status: "saved" };
 			}),
 
 		/**
@@ -126,20 +155,22 @@ export const createFileContentsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					filePath: z.string(),
+					absolutePath: z.string(),
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
-					if (stats.size > MAX_FILE_SIZE) {
+					const result = await readRegisteredWorktreeFileBufferUpTo({
+						worktreePath: input.worktreePath,
+						absolutePath: input.absolutePath,
+						maxBytes: MAX_FILE_SIZE,
+					});
+
+					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
-						input.filePath,
-					);
+					const buffer = result.buffer;
 
 					if (isBinaryContent(buffer)) {
 						return { ok: false, reason: "binary" };
@@ -152,7 +183,7 @@ export const createFileContentsRouter = () => {
 						byteLength: buffer.length,
 					};
 				} catch (error) {
-					if (error instanceof PathValidationError) {
+					if (isWorkspaceFsPathError(error)) {
 						if (error.code === "SYMLINK_ESCAPE") {
 							return { ok: false, reason: "symlink-escape" };
 						}
@@ -170,25 +201,27 @@ export const createFileContentsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					filePath: z.string(),
+					absolutePath: z.string(),
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileImageResult> => {
-				const mimeType = getImageMimeType(input.filePath);
+				const mimeType = getImageMimeType(input.absolutePath);
 				if (!mimeType) {
 					return { ok: false, reason: "not-image" };
 				}
 
 				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
-					if (stats.size > MAX_IMAGE_SIZE) {
+					const result = await readRegisteredWorktreeFileBufferUpTo({
+						worktreePath: input.worktreePath,
+						absolutePath: input.absolutePath,
+						maxBytes: MAX_IMAGE_SIZE,
+					});
+
+					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
-						input.filePath,
-					);
+					const buffer = result.buffer;
 
 					const base64 = buffer.toString("base64");
 					const dataUrl = `data:${mimeType};base64,${base64}`;
@@ -199,7 +232,7 @@ export const createFileContentsRouter = () => {
 						byteLength: buffer.length,
 					};
 				} catch (error) {
-					if (error instanceof PathValidationError) {
+					if (isWorkspaceFsPathError(error)) {
 						if (error.code === "SYMLINK_ESCAPE") {
 							return { ok: false, reason: "symlink-escape" };
 						}
@@ -219,7 +252,7 @@ interface FileVersions {
 }
 
 async function getFileVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,
@@ -246,10 +279,7 @@ async function getFileVersions(
 }
 
 /** Helper to safely get git show content with size limit and memory protection */
-async function safeGitShow(
-	git: ReturnType<typeof simpleGit>,
-	spec: string,
-): Promise<string> {
+async function safeGitShow(git: SimpleGit, spec: string): Promise<string> {
 	try {
 		// Preflight: check blob size before loading into memory
 		// This prevents memory spikes from large files in git history
@@ -271,7 +301,7 @@ async function safeGitShow(
 }
 
 async function getAgainstBaseVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 	defaultBranch: string,
@@ -285,7 +315,7 @@ async function getAgainstBaseVersions(
 }
 
 async function getCommittedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 	commitHash: string,
@@ -299,7 +329,7 @@ async function getCommittedVersions(
 }
 
 async function getStagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
@@ -312,7 +342,7 @@ async function getStagedVersions(
 }
 
 async function getUnstagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,
@@ -325,11 +355,17 @@ async function getUnstagedVersions(
 
 	let modified = "";
 	try {
-		const stats = await secureFs.stat(worktreePath, filePath);
-		if (stats.size <= MAX_FILE_SIZE) {
-			modified = await secureFs.readFile(worktreePath, filePath);
-		} else {
+		const absolutePath = path.resolve(worktreePath, filePath);
+		const result = await readRegisteredWorktreeFileBufferUpTo({
+			worktreePath,
+			absolutePath,
+			maxBytes: MAX_FILE_SIZE,
+		});
+
+		if (result.exceededLimit) {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+		} else {
+			modified = result.buffer.toString("utf-8");
 		}
 	} catch {
 		// File doesn't exist or validation failed - that's ok for diff display

@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { useCallback, useRef } from "react";
 import type { MosaicNode, MosaicPath } from "react-mosaic-component";
+import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 
 interface BoundingBox {
 	top: number;
@@ -151,6 +152,7 @@ interface SplitHandleProps {
 function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const isDragging = useRef(false);
+	const setResizing = useDragPaneStore((s) => s.setResizing);
 
 	const absolutePosition = getAbsoluteSplitPercentage(
 		split.boundingBox,
@@ -164,12 +166,14 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 		(e: React.MouseEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
-			isDragging.current = true;
 
 			const root = containerRef.current?.closest(
 				".mosaic-container",
 			) as HTMLElement | null;
 			if (!root) return;
+
+			isDragging.current = true;
+			setResizing(true);
 
 			document.body.style.userSelect = "none";
 			document.body.style.cursor = isRow ? "col-resize" : "row-resize";
@@ -198,19 +202,23 @@ function SplitHandle({ split, layout, onLayoutChange }: SplitHandleProps) {
 
 			const onMouseUp = () => {
 				isDragging.current = false;
+				setResizing(false);
 				document.body.style.userSelect = "";
 				document.body.style.cursor = "";
 				document.removeEventListener("mousemove", onMouseMove);
 				document.removeEventListener("mouseup", onMouseUp);
+				window.removeEventListener("blur", onMouseUp);
 			};
 
 			document.addEventListener("mousemove", onMouseMove);
 			document.addEventListener("mouseup", onMouseUp);
+			window.addEventListener("blur", onMouseUp);
 		},
 		[
 			isRow,
 			layout,
 			onLayoutChange,
+			setResizing,
 			split.boundingBox,
 			split.direction,
 			split.path,

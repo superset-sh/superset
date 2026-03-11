@@ -31,18 +31,40 @@ export function useFileSave({
 	const utils = electronTrpc.useUtils();
 
 	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
-		onSuccess: () => {
-			setIsDirty(false);
-			if (editorRef.current) {
-				originalContentRef.current = editorRef.current.getValue();
+		onSuccess: (result, variables) => {
+			if (result.status !== "saved") {
+				savingFromRawRef.current = false;
+				return;
 			}
-			if (savingFromRawRef.current) {
+
+			const savedContent = variables.content;
+			const currentEditorValue = editorRef.current?.getValue() ?? savedContent;
+			const hasUnsavedChanges = currentEditorValue !== savedContent;
+
+			utils.changes.readWorkingFile.setData(
+				{
+					worktreePath: variables.worktreePath,
+					absolutePath: variables.absolutePath,
+				},
+				{
+					ok: true,
+					content: savedContent,
+					truncated: false,
+					byteLength: new TextEncoder().encode(savedContent).length,
+				},
+			);
+
+			originalContentRef.current = savedContent;
+			setIsDirty(hasUnsavedChanges);
+			if (savingFromRawRef.current && !hasUnsavedChanges) {
 				draftContentRef.current = null;
+			} else if (hasUnsavedChanges) {
+				draftContentRef.current = currentEditorValue;
 			}
 			savingFromRawRef.current = false;
 			originalDiffContentRef.current = "";
 
-			utils.changes.readWorkingFile.invalidate();
+			void utils.changes.readWorkingFile.invalidate();
 			utils.changes.getFileContents.invalidate();
 			utils.changes.getStatus.invalidate();
 
@@ -67,15 +89,21 @@ export function useFileSave({
 		},
 	});
 
-	const handleSaveRaw = useCallback(async () => {
-		if (!editorRef.current || !filePath || !worktreePath) return;
-		savingFromRawRef.current = true;
-		await saveFileMutation.mutateAsync({
-			worktreePath,
-			filePath,
-			content: editorRef.current.getValue(),
-		});
-	}, [worktreePath, filePath, saveFileMutation, editorRef]);
+	const handleSaveRaw = useCallback(
+		async (options?: { force?: boolean }) => {
+			if (!editorRef.current || !filePath || !worktreePath) return;
+			savingFromRawRef.current = true;
+			return saveFileMutation.mutateAsync({
+				worktreePath,
+				absolutePath: filePath,
+				content: editorRef.current.getValue(),
+				expectedContent: options?.force
+					? undefined
+					: originalContentRef.current,
+			});
+		},
+		[filePath, worktreePath, saveFileMutation, editorRef, originalContentRef],
+	);
 
 	return {
 		handleSaveRaw,

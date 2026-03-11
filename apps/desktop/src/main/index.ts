@@ -15,6 +15,7 @@ import {
 	handleAuthCallback,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -27,6 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
+import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
 import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -40,6 +42,10 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+
+void applyShellEnvToProcess().catch((error) => {
+	console.error("[main] Failed to apply shell environment:", error);
+});
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
 if (IS_DEV) {
@@ -193,6 +199,7 @@ app.on("before-quit", async (event) => {
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	await outlit.shutdown();
+	getHostServiceManager().stopAll();
 	disposeTray();
 	app.exit(0);
 });

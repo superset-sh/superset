@@ -1,9 +1,7 @@
 import type { TerminalPreset } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
 	useEffect,
@@ -47,13 +45,13 @@ export function GroupStrip() {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const { presets } = usePresets();
 	const navigate = useNavigate();
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
@@ -256,6 +254,14 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const handleMarkTabAsUnread = (tabId: string) => {
+		for (const pane of Object.values(panes)) {
+			if (pane.tabId === tabId) {
+				setPaneStatus(pane.id, "review");
+			}
+		}
+	};
+
 	const handleReorderTabs = useCallback(
 		(fromIndex: number, toIndex: number) => {
 			if (activeWorkspaceId) {
@@ -306,7 +312,6 @@ export function GroupStrip() {
 
 	const plusControl = (
 		<AddTabButton
-			hasAiChat={hasAiChat === true}
 			useCompactAddButton={useCompactAddButton}
 			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
@@ -351,6 +356,7 @@ export function GroupStrip() {
 											onSelect={() => handleSelectGroup(tab.id)}
 											onClose={() => handleCloseGroup(tab.id)}
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
+											onMarkAsUnread={() => handleMarkTabAsUnread(tab.id)}
 											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
 											onReorder={handleReorderTabs}
 										/>
@@ -362,11 +368,7 @@ export function GroupStrip() {
 					{hasHorizontalOverflow ? (
 						<div
 							className={`h-full shrink-0 ${
-								!useCompactAddButton
-									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
-									: "w-10"
+								!useCompactAddButton ? "w-[220px]" : "w-10"
 							}`}
 						/>
 					) : (

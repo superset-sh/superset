@@ -12,7 +12,6 @@ import { env } from "@/env";
 
 export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 
-// Installation events
 webhooks.on(
 	"installation.deleted",
 	async ({ payload }: EmitterWebhookEvent<"installation.deleted">) => {
@@ -60,7 +59,6 @@ webhooks.on(
 	},
 );
 
-// Repository events
 webhooks.on(
 	"installation_repositories.added",
 	async ({
@@ -90,6 +88,7 @@ webhooks.on(
 				.insert(githubRepositories)
 				.values({
 					installationId: installation.id,
+					organizationId: installation.organizationId,
 					repoId: String(repo.id),
 					owner: owner ?? "",
 					name: name ?? repo.name,
@@ -97,7 +96,18 @@ webhooks.on(
 					defaultBranch: "main",
 					isPrivate: repo.private,
 				})
-				.onConflictDoNothing();
+				.onConflictDoUpdate({
+					target: [githubRepositories.repoId],
+					set: {
+						installationId: installation.id,
+						organizationId: installation.organizationId,
+						owner: owner ?? "",
+						name: name ?? repo.name,
+						fullName: repo.full_name,
+						isPrivate: repo.private,
+						updatedAt: new Date(),
+					},
+				});
 		}
 	},
 );
@@ -116,7 +126,69 @@ webhooks.on(
 	},
 );
 
-// Pull request events
+function upsertPullRequest(
+	repo: { id: string; organizationId: string },
+	pr: {
+		number: number;
+		node_id: string;
+		head: { ref: string; sha: string };
+		base: { ref: string };
+		title: string;
+		html_url: string;
+		user: { login?: string; avatar_url?: string } | null;
+		state: string;
+		draft?: boolean;
+		additions?: number;
+		deletions?: number;
+		changed_files?: number;
+		merged_at: string | null;
+		closed_at: string | null;
+	},
+) {
+	return db
+		.insert(githubPullRequests)
+		.values({
+			repositoryId: repo.id,
+			organizationId: repo.organizationId,
+			prNumber: pr.number,
+			nodeId: pr.node_id,
+			headBranch: pr.head.ref,
+			headSha: pr.head.sha,
+			baseBranch: pr.base.ref,
+			title: pr.title,
+			url: pr.html_url,
+			authorLogin: pr.user?.login ?? "unknown",
+			authorAvatarUrl: pr.user?.avatar_url ?? null,
+			state: pr.state,
+			isDraft: pr.draft ?? false,
+			additions: pr.additions ?? 0,
+			deletions: pr.deletions ?? 0,
+			changedFiles: pr.changed_files ?? 0,
+			checksStatus: "none",
+			mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
+			closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
+		})
+		.onConflictDoUpdate({
+			target: [githubPullRequests.repositoryId, githubPullRequests.prNumber],
+			set: {
+				organizationId: repo.organizationId,
+				headBranch: pr.head.ref,
+				headSha: pr.head.sha,
+				baseBranch: pr.base.ref,
+				title: pr.title,
+				state: pr.state,
+				isDraft: pr.draft ?? false,
+				additions: pr.additions ?? 0,
+				deletions: pr.deletions ?? 0,
+				changedFiles: pr.changed_files ?? 0,
+				mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
+				closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
+				lastSyncedAt: new Date(),
+				updatedAt: new Date(),
+			},
+		});
+}
+
 webhooks.on(
 	[
 		"pull_request.opened",
@@ -154,46 +226,7 @@ webhooks.on(
 			`${repository.full_name}#${pr.number}`,
 		);
 
-		await db
-			.insert(githubPullRequests)
-			.values({
-				repositoryId: repo.id,
-				prNumber: pr.number,
-				nodeId: pr.node_id,
-				headBranch: pr.head.ref,
-				headSha: pr.head.sha,
-				baseBranch: pr.base.ref,
-				title: pr.title,
-				url: pr.html_url,
-				authorLogin: pr.user?.login ?? "unknown",
-				authorAvatarUrl: pr.user?.avatar_url ?? null,
-				state: pr.state,
-				isDraft: pr.draft ?? false,
-				additions: pr.additions ?? 0,
-				deletions: pr.deletions ?? 0,
-				changedFiles: pr.changed_files ?? 0,
-				checksStatus: "none", // Will be updated by check events
-				mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
-				closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
-			})
-			.onConflictDoUpdate({
-				target: [githubPullRequests.repositoryId, githubPullRequests.prNumber],
-				set: {
-					headBranch: pr.head.ref,
-					headSha: pr.head.sha,
-					baseBranch: pr.base.ref,
-					title: pr.title,
-					state: pr.state,
-					isDraft: pr.draft ?? false,
-					additions: pr.additions ?? 0,
-					deletions: pr.deletions ?? 0,
-					changedFiles: pr.changed_files ?? 0,
-					mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
-					closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
-					lastSyncedAt: new Date(),
-					updatedAt: new Date(),
-				},
-			});
+		await upsertPullRequest(repo, pr);
 	},
 );
 
@@ -218,25 +251,10 @@ webhooks.on(
 			`${repository.full_name}#${pr.number}`,
 		);
 
-		await db
-			.update(githubPullRequests)
-			.set({
-				state: pr.state,
-				mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
-				closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
-				lastSyncedAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(
-				and(
-					eq(githubPullRequests.repositoryId, repo.id),
-					eq(githubPullRequests.prNumber, pr.number),
-				),
-			);
+		await upsertPullRequest(repo, pr);
 	},
 );
 
-// Review events
 webhooks.on(
 	"pull_request_review.submitted",
 	async ({ payload }: EmitterWebhookEvent<"pull_request_review.submitted">) => {
@@ -267,7 +285,7 @@ webhooks.on(
 			`${repository.full_name}#${pr.number}`,
 		);
 
-		await db
+		const result = await db
 			.update(githubPullRequests)
 			.set({
 				reviewDecision,
@@ -279,11 +297,28 @@ webhooks.on(
 					eq(githubPullRequests.repositoryId, repo.id),
 					eq(githubPullRequests.prNumber, pr.number),
 				),
+			)
+			.returning({ id: githubPullRequests.id });
+
+		if (result.length === 0) {
+			console.log(
+				`[github/webhook] PR not found for review, upserting:`,
+				`${repository.full_name}#${pr.number}`,
 			);
+			await upsertPullRequest(repo, pr);
+			await db
+				.update(githubPullRequests)
+				.set({ reviewDecision })
+				.where(
+					and(
+						eq(githubPullRequests.repositoryId, repo.id),
+						eq(githubPullRequests.prNumber, pr.number),
+					),
+				);
+		}
 	},
 );
 
-// Check run events
 webhooks.on(
 	["check_run.created", "check_run.completed", "check_run.rerequested"],
 	async ({
@@ -326,10 +361,6 @@ webhooks.on(
 					detailsUrl?: string;
 				}>) ?? [];
 
-			const checkIndex = currentChecks.findIndex(
-				(c) => c.name === checkRun.name,
-			);
-
 			const newCheck = {
 				name: checkRun.name,
 				status: checkRun.status,
@@ -337,13 +368,16 @@ webhooks.on(
 				detailsUrl: checkRun.details_url ?? undefined,
 			};
 
+			const checkIndex = currentChecks.findIndex(
+				(c) => c.name === checkRun.name,
+			);
+
 			if (checkIndex >= 0) {
 				currentChecks[checkIndex] = newCheck;
 			} else {
 				currentChecks.push(newCheck);
 			}
 
-			// Compute checks status
 			const hasFailure = currentChecks.some(
 				(c) =>
 					c.conclusion === "failure" ||

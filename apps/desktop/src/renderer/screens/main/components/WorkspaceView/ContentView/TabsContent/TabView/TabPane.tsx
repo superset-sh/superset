@@ -58,6 +58,7 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -128,6 +129,7 @@ export function TabPane({
 				onScrollToBottom={handleScrollToBottom}
 				getSelection={() => getGetSelectionCallback(paneId)?.() ?? ""}
 				onPaste={(text) => getPasteCallback(paneId)?.(text)}
+				onMarkAsUnread={() => setPaneStatus(paneId, "review")}
 				currentTabId={tabId}
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}

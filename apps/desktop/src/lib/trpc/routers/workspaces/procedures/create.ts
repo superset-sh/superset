@@ -13,7 +13,7 @@ import {
 	findOrphanedWorktreeByBranch,
 	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
-	getMaxWorkspaceTabOrder,
+	getMaxProjectChildTabOrder,
 	getProject,
 	getWorktree,
 	setLastActiveWorkspace,
@@ -53,7 +53,7 @@ function createWorkspaceFromWorktree({
 	branch,
 	name,
 }: CreateWorkspaceFromWorktreeParams) {
-	const maxTabOrder = getMaxWorkspaceTabOrder(projectId);
+	const maxTabOrder = getMaxProjectChildTabOrder(projectId);
 
 	const workspace = localDb
 		.insert(workspaces)
@@ -419,10 +419,7 @@ export const createCreateProcedures = () => {
 									workspaceId: workspace.id,
 									prompt: input.prompt,
 								});
-							autoRenameWarning =
-								autoRenameResult.status === "skipped"
-									? autoRenameResult.warning
-									: undefined;
+							autoRenameWarning = autoRenameResult.warning;
 						} catch (error) {
 							console.warn("[workspaces/create] Auto naming failed", {
 								workspaceId: workspace.id,
@@ -469,7 +466,7 @@ export const createCreateProcedures = () => {
 					.returning()
 					.get();
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -556,25 +553,23 @@ export const createCreateProcedures = () => {
 				}
 
 				if (input.branch) {
-					const existingBranchWorkspace = getBranchWorkspace(input.projectId);
-					if (
-						existingBranchWorkspace &&
-						existingBranchWorkspace.branch !== branch
-					) {
-						throw new Error(
-							`A main workspace already exists on branch "${existingBranchWorkspace.branch}".`,
-						);
-					}
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
 				}
 
 				const existing = getBranchWorkspace(input.projectId);
 
 				if (existing) {
+					if (existing.branch !== branch) {
+						localDb
+							.update(workspaces)
+							.set({ branch })
+							.where(eq(workspaces.id, existing.id))
+							.run();
+					}
 					touchWorkspace(existing.id);
 					setLastActiveWorkspace(existing.id);
 					return {
-						workspace: { ...existing, lastOpenedAt: Date.now() },
+						workspace: { ...existing, branch, lastOpenedAt: Date.now() },
 						worktreePath: project.mainRepoPath,
 						projectId: project.id,
 						wasExisting: true,
@@ -687,7 +682,7 @@ export const createCreateProcedures = () => {
 					throw new Error("Worktree no longer exists on disk");
 				}
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(worktree.projectId);
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -800,7 +795,7 @@ export const createCreateProcedures = () => {
 						};
 					}
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					const workspace = localDb
 						.insert(workspaces)
 						.values({
@@ -868,7 +863,7 @@ export const createCreateProcedures = () => {
 					.returning()
 					.get();
 
-				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 				const workspace = localDb
 					.insert(workspaces)
 					.values({
@@ -1013,7 +1008,7 @@ export const createCreateProcedures = () => {
 					const exists = await worktreeExists(project.mainRepoPath, wt.path);
 					if (!exists) continue;
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
 						.insert(workspaces)
 						.values({
@@ -1067,7 +1062,7 @@ export const createCreateProcedures = () => {
 						.returning()
 						.get();
 
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
 						.insert(workspaces)
 						.values({

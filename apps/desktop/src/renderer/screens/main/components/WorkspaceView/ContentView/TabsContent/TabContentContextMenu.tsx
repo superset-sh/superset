@@ -13,6 +13,7 @@ import {
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
+	LuEyeOff,
 } from "react-icons/lu";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import {
@@ -36,6 +37,7 @@ interface TabContentContextMenuProps {
 	onScrollToBottom?: () => void;
 	getSelection?: () => string;
 	onPaste?: (text: string) => void;
+	onMarkAsUnread?: () => void;
 	currentTabId: PaneContextMenuActions["currentTabId"];
 	availableTabs: PaneContextMenuActions["availableTabs"];
 	onMoveToTab: PaneContextMenuActions["onMoveToTab"];
@@ -54,6 +56,7 @@ export function TabContentContextMenu({
 	onScrollToBottom,
 	getSelection,
 	onPaste,
+	onMarkAsUnread,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -137,6 +140,15 @@ export function TabContentContextMenu({
 					</ContextMenuItem>
 				)}
 				{hasTerminalActions && <ContextMenuSeparator />}
+				{onMarkAsUnread && (
+					<>
+						<ContextMenuItem onSelect={onMarkAsUnread}>
+							<LuEyeOff className="size-4" />
+							Mark as Unread
+						</ContextMenuItem>
+						<ContextMenuSeparator />
+					</>
+				)}
 				<PaneContextMenuItems
 					actions={{
 						onSplitHorizontal,

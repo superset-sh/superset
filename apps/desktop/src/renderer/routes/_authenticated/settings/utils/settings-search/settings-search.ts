@@ -36,6 +36,9 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
+	MODELS_ANTHROPIC: "models-anthropic",
+	MODELS_OPENAI: "models-openai",
+
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
 	INTEGRATIONS_SLACK: "integrations-slack",
@@ -49,13 +52,12 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
 
-	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
 
-	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
 	PERMISSIONS_MICROPHONE: "permissions-microphone",
@@ -557,6 +559,38 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.MODELS_ANTHROPIC,
+		section: "models",
+		title: "Anthropic Model Auth",
+		description: "Connect Anthropic for workspace naming and small model tasks",
+		keywords: [
+			"models",
+			"anthropic",
+			"claude",
+			"oauth",
+			"api key",
+			"auth",
+			"workspace naming",
+			"auto name",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.MODELS_OPENAI,
+		section: "models",
+		title: "OpenAI Model Auth",
+		description: "Connect OpenAI for supported model tasks",
+		keywords: [
+			"models",
+			"openai",
+			"gpt",
+			"oauth",
+			"api key",
+			"auth",
+			"workspace naming",
+			"auto name",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		section: "integrations",
 		title: "Linear",
@@ -738,6 +772,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+		section: "project",
+		title: "Import Worktrees",
+		description: "Import existing worktrees from disk into Superset",
+		keywords: [
+			"project",
+			"import",
+			"worktree",
+			"worktrees",
+			"workspace",
+			"workspaces",
+			"external",
+			"existing",
+			"disk",
+			"add",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.PROJECT_ENV_VARS,
 		section: "project",
 		title: "Environment Variables",
@@ -751,7 +803,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"sandbox",
 		],
 	},
-	// API Keys
 	{
 		id: SETTING_ITEM_ID.API_KEYS_LIST,
 		section: "apikeys",

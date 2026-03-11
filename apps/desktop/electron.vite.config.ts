@@ -8,8 +8,8 @@ import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-
-import { resources, version } from "./package.json";
+import { dependencies, resources, version } from "./package.json";
+import { mainExternalizedDependencies } from "./runtime-dependencies";
 import {
 	copyResourcesPlugin,
 	defineEnv,
@@ -28,6 +28,10 @@ await import("./src/main/env.main");
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
+
+const workspaceDependencies = Object.keys(dependencies).filter((dependency) =>
+	dependency.startsWith("@superset/"),
+);
 
 // Sentry plugin for uploading sourcemaps (only in CI with auth token)
 const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
@@ -107,18 +111,13 @@ export default defineConfig({
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 					// Worker-thread entrypoint for heavy git/status computations
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
+					// Workspace service - local HTTP/tRPC server per org
+					"host-service": resolve("src/main/host-service/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: [
-					"electron",
-					"better-sqlite3",
-					"node-pty",
-					"pg-native",
-					"@ast-grep/napi",
-					"libsql",
-				],
+				external: ["electron", ...mainExternalizedDependencies],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},
@@ -135,7 +134,11 @@ export default defineConfig({
 		plugins: [
 			tsconfigPaths,
 			externalizeDepsPlugin({
-				exclude: ["trpc-electron", "@sentry/electron"],
+				exclude: [
+					"trpc-electron",
+					"@sentry/electron",
+					...workspaceDependencies,
+				],
 			}),
 		],
 
@@ -177,10 +180,6 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_ELECTRIC_URL": defineEnv(
 				process.env.NEXT_PUBLIC_ELECTRIC_URL,
 				"https://electric-proxy.avi-6ac.workers.dev",
-			),
-			"process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL": defineEnv(
-				process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
-				"https://api.superset.sh/api/electric",
 			),
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,

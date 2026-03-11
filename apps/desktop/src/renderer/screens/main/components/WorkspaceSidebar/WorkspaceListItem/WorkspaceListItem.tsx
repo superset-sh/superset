@@ -1,65 +1,33 @@
-import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuSeparator,
-	ContextMenuTrigger,
-} from "@superset/ui/context-menu";
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@superset/ui/hover-card";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import {
-	LuBellOff,
-	LuCopy,
-	LuEye,
-	LuEyeOff,
-	LuFolderOpen,
-	LuPencil,
-} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	useReorderWorkspaces,
-	useWorkspaceDeleteHandler,
-} from "renderer/react-query/workspaces";
+import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
+import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
-import { STROKE_WIDTH } from "../constants";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
-import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
+import { DeleteWorkspaceDialog } from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
-	HOVER_CARD_CLOSE_DELAY,
-	HOVER_CARD_OPEN_DELAY,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
 } from "./constants";
+import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
+import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
-
-const WORKSPACE_DND_TYPE = "WORKSPACE";
-
-interface DragItem {
-	id: string;
-	projectId: string;
-	index: number;
-	originalIndex: number;
-}
 
 interface WorkspaceListItemProps {
 	id: string;
@@ -72,6 +40,9 @@ interface WorkspaceListItemProps {
 	index: number;
 	shortcutIndex?: number;
 	isCollapsed?: boolean;
+	sectionId?: string | null;
+	sections?: { id: string; name: string }[];
+	orderedWorkspaceIds?: string[];
 }
 
 export function WorkspaceListItem({
@@ -85,13 +56,14 @@ export function WorkspaceListItem({
 	index,
 	shortcutIndex,
 	isCollapsed = false,
+	sectionId = null,
+	sections = [],
+	orderedWorkspaceIds = [],
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const reorderWorkspaces = useReorderWorkspaces();
 	const [hasHovered, setHasHovered] = useState(false);
-	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 	const rename = useWorkspaceRename(id, name, branch);
 	const workspaceStatus = useTabsStore((state) => {
 		function* paneStatuses() {
@@ -109,6 +81,12 @@ export function WorkspaceListItem({
 	);
 	const resetWorkspaceStatus = useTabsStore((s) => s.resetWorkspaceStatus);
 	const utils = electronTrpc.useUtils();
+	const isSelected = useWorkspaceSelectionStore((s) => s.selectedIds.has(id));
+	const selectionStore = useWorkspaceSelectionStore;
+	const isMultiDragging = useActiveDragItemStore(
+		(s) =>
+			s.activeDragItem?.selectedIds?.includes(id) && s.activeDragItem.id !== id,
+	);
 
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
@@ -122,6 +100,13 @@ export function WorkspaceListItem({
 			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		}
 	}, [isActive]);
+
+	const { isDragging, drag, drop } = useWorkspaceDnD({
+		id,
+		projectId,
+		sectionId,
+		index,
+	});
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -182,11 +167,35 @@ export function WorkspaceListItem({
 		return { additions, deletions };
 	}, [localChanges]);
 
-	const handleClick = () => {
-		if (!rename.isRenaming) {
-			clearWorkspaceAttentionStatus(id);
-			navigateToWorkspace(id, navigate);
+	const handleClick = (e?: React.MouseEvent) => {
+		if (rename.isRenaming) return;
+
+		if (e?.metaKey) {
+			selectionStore.getState().toggle(id, projectId);
+			return;
 		}
+
+		if (e?.shiftKey) {
+			const { lastClickedId } = selectionStore.getState();
+			if (lastClickedId) {
+				const lastIdx = orderedWorkspaceIds.indexOf(lastClickedId);
+				const currIdx = orderedWorkspaceIds.indexOf(id);
+				if (lastIdx !== -1 && currIdx !== -1) {
+					const [start, end] = [
+						Math.min(lastIdx, currIdx),
+						Math.max(lastIdx, currIdx),
+					];
+					const rangeIds = orderedWorkspaceIds.slice(start, end + 1);
+					selectionStore.getState().selectRange(rangeIds, projectId);
+					return;
+				}
+			}
+		}
+
+		selectionStore.getState().clearSelection();
+		selectionStore.setState({ lastClickedId: id });
+		clearWorkspaceAttentionStatus(id);
+		navigateToWorkspace(id, navigate);
 	};
 
 	const handleMouseEnter = () => {
@@ -207,58 +216,6 @@ export function WorkspaceListItem({
 			toast.error("Failed to copy path");
 		}
 	};
-
-	const handleReorder = (item: DragItem) => {
-		if (item.originalIndex === item.index) return;
-		reorderWorkspaces.mutate(
-			{
-				projectId: item.projectId,
-				fromIndex: item.originalIndex,
-				toIndex: item.index,
-			},
-			{
-				onError: (error) =>
-					toast.error(`Failed to reorder workspace: ${error.message}`),
-				onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
-			},
-		);
-	};
-
-	const [{ isDragging }, drag] = useDrag(
-		() => ({
-			type: WORKSPACE_DND_TYPE,
-			item: { id, projectId, index, originalIndex: index },
-			end: (item, monitor) => {
-				if (item && !monitor.didDrop()) handleReorder(item);
-			},
-			collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-		}),
-		[id, projectId, index, reorderWorkspaces],
-	);
-
-	const [, drop] = useDrop({
-		accept: WORKSPACE_DND_TYPE,
-		hover: (item: DragItem) => {
-			if (item.projectId !== projectId || item.index === index) return;
-			utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
-				if (!oldData) return oldData;
-				return oldData.map((group) => {
-					if (group.project.id !== projectId) return group;
-					const workspaces = [...group.workspaces];
-					const [moved] = workspaces.splice(item.index, 1);
-					workspaces.splice(index, 0, moved);
-					return { ...group, workspaces };
-				});
-			});
-			item.index = index;
-		},
-		drop: (item: DragItem) => {
-			if (item.projectId === projectId) {
-				handleReorder(item);
-				if (item.originalIndex !== item.index) return { reordered: true };
-			}
-		},
-	});
 
 	const pr = githubStatus?.pr;
 	const diffStats =
@@ -320,7 +277,8 @@ export function WorkspaceListItem({
 				"group relative",
 				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
 				isActive && "bg-muted",
-				isDragging && "opacity-30",
+				isSelected && "bg-primary/10 ring-1 ring-inset ring-primary/30",
+				(isDragging || isMultiDragging) && "opacity-30",
 			)}
 			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 		>
@@ -463,87 +421,24 @@ export function WorkspaceListItem({
 		</div>
 	);
 
-	const unreadMenuItem = (
-		<ContextMenuItem
-			onSelect={() => setUnread.mutate({ id, isUnread: !isUnread })}
-		>
-			{isUnread ? (
-				<>
-					<LuEye className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Mark as Read
-				</>
-			) : (
-				<>
-					<LuEyeOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Mark as Unread
-				</>
-			)}
-		</ContextMenuItem>
-	);
-
-	const commonContextMenuItems = (
-		<>
-			<ContextMenuItem onSelect={handleOpenInFinder}>
-				<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				Open in Finder
-			</ContextMenuItem>
-			<ContextMenuItem onSelect={handleCopyPath}>
-				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				Copy Path
-			</ContextMenuItem>
-			<ContextMenuSeparator />
-			{unreadMenuItem}
-			{workspaceStatus && (
-				<ContextMenuItem onSelect={() => resetWorkspaceStatus(id)}>
-					<LuBellOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Clear Status
-				</ContextMenuItem>
-			)}
-		</>
-	);
-
-	if (isBranchWorkspace) {
-		return (
-			<>
-				<ContextMenu>
-					<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
-					<ContextMenuContent>{commonContextMenuItems}</ContextMenuContent>
-				</ContextMenu>
-				<DeleteWorkspaceDialog
-					workspaceId={id}
-					workspaceName={name}
-					workspaceType={type}
-					open={showDeleteDialog}
-					onOpenChange={setShowDeleteDialog}
-				/>
-			</>
-		);
-	}
-
 	return (
 		<>
-			<HoverCard
-				open={isContextMenuOpen ? false : undefined}
-				openDelay={HOVER_CARD_OPEN_DELAY}
-				closeDelay={HOVER_CARD_CLOSE_DELAY}
+			<WorkspaceContextMenu
+				id={id}
+				projectId={projectId}
+				name={name}
+				isBranchWorkspace={isBranchWorkspace}
+				isUnread={isUnread}
+				workspaceStatus={workspaceStatus}
+				sections={sections}
+				onRename={rename.startRename}
+				onOpenInFinder={handleOpenInFinder}
+				onCopyPath={handleCopyPath}
+				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
+				onResetStatus={() => resetWorkspaceStatus(id)}
 			>
-				<ContextMenu onOpenChange={setIsContextMenuOpen}>
-					<HoverCardTrigger asChild>
-						<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
-					</HoverCardTrigger>
-					<ContextMenuContent>
-						<ContextMenuItem onSelect={rename.startRename}>
-							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-							Rename
-						</ContextMenuItem>
-						<ContextMenuSeparator />
-						{commonContextMenuItems}
-					</ContextMenuContent>
-				</ContextMenu>
-				<HoverCardContent side="right" align="start" className="w-72">
-					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
-				</HoverCardContent>
-			</HoverCard>
+				{content}
+			</WorkspaceContextMenu>
 			<DeleteWorkspaceDialog
 				workspaceId={id}
 				workspaceName={name}

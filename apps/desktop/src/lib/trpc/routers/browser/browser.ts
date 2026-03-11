@@ -115,6 +115,20 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		onContextMenuAction: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<{ action: string; url: string }>((emit) => {
+					const handler = (data: { action: string; url: string }) => {
+						emit.next(data);
+					};
+					browserManager.on(`context-menu-action:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`context-menu-action:${input.paneId}`, handler);
+					};
+				});
+			}),
+
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {

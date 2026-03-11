@@ -1,4 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
+import { getPathBaseName } from "shared/absolute-paths";
 import {
 	type ChangeCategory,
 	type FileStatus,
@@ -171,6 +172,7 @@ export const createPane = (
  */
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
+	displayName?: string;
 	viewMode?: FileViewerMode;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
@@ -212,10 +214,11 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
+		displayName: options.displayName,
 	};
 
 	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	const fileName = options.displayName || getPathBaseName(options.filePath);
 
 	return {
 		id,

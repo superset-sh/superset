@@ -1,7 +1,19 @@
-import { Agent } from "@mastra/core/agent";
+import { type LanguageModel, streamText } from "ai";
 
-type TitleAgent = Pick<Agent, "generateTitleFromUserMessage">;
-type TitleModel = ConstructorParameters<typeof Agent>[0]["model"];
+type TitleModel = unknown;
+type TitleAgent = {
+	generateTitleFromUserMessage: (args: {
+		message: string;
+		model?: string;
+		tracingContext?: Record<string, unknown>;
+	}) => Promise<string | null | undefined>;
+};
+type TitleAgentCtor = new (options: {
+	id: string;
+	name: string;
+	instructions: string;
+	model: TitleModel;
+}) => TitleAgent;
 
 type GenerateTitleFromMessageParams =
 	| {
@@ -37,6 +49,14 @@ export async function generateTitleFromMessage(
 		return title?.trim() || null;
 	}
 
+	const agentModuleId = "@mastra/core/agent";
+	const { Agent } = (await import(agentModuleId)) as {
+		Agent?: TitleAgentCtor;
+	};
+	if (!Agent) {
+		throw new Error("Mastra Agent constructor is unavailable");
+	}
+
 	const titleAgent = new Agent({
 		id: params.agentId ?? "title-generator",
 		name: params.agentName ?? "Title Generator",
@@ -50,4 +70,30 @@ export async function generateTitleFromMessage(
 	});
 
 	return title?.trim() || null;
+}
+
+export async function generateTitleFromMessageWithStreamingModel(params: {
+	message: string;
+	model: LanguageModel;
+	instructions?: string;
+}): Promise<string | null> {
+	const cleanedMessage = params.message.trim();
+	if (!cleanedMessage) {
+		return null;
+	}
+
+	const instructions = params.instructions ?? "You generate concise titles.";
+	const result = streamText({
+		model: params.model,
+		system: instructions,
+		prompt: `Return only a short title for this user message:\n${cleanedMessage}`,
+		providerOptions: {
+			openai: {
+				instructions,
+				store: false,
+			},
+		},
+	});
+
+	return (await result.text).trim() || null;
 }
