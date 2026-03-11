@@ -40,6 +40,7 @@ mise.toml
 
 # Temporary files
 .tmp/
+.worktrees/
 
 # Turbo
 .turbo
