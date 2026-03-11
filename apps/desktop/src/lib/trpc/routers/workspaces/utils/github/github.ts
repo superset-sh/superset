@@ -1,7 +1,6 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { branchExistsOnRemote } from "../git";
+import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
 import {
 	GHDeploymentSchema,
@@ -11,8 +10,6 @@ import {
 	GHRepoResponseSchema,
 	type RepoContext,
 } from "./types";
-
-const execFileAsync = promisify(execFile);
 
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
 const CACHE_TTL_MS = 10_000;
@@ -37,12 +34,10 @@ export async function fetchGitHubPRStatus(
 
 		const [{ stdout: branchOutput }, { stdout: shaOutput }] = await Promise.all(
 			[
-				execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+				execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
 					cwd: worktreePath,
 				}),
-				execFileAsync("git", ["rev-parse", "HEAD"], {
-					cwd: worktreePath,
-				}),
+				execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
 			],
 		);
 		const branchName = branchOutput.trim();
@@ -157,10 +152,9 @@ export async function getRepoContext(
 
 async function getOriginUrl(worktreePath: string): Promise<string | null> {
 	try {
-		const { stdout } = await execFileAsync(
-			"git",
-			["-C", worktreePath, "remote", "get-url", "origin"],
-			{ timeout: 10_000 },
+		const { stdout } = await execGitWithShellPath(
+			["remote", "get-url", "origin"],
+			{ cwd: worktreePath },
 		);
 		return normalizeGitHubUrl(stdout.trim());
 	} catch {
@@ -281,10 +275,9 @@ async function findPRByHeadCommit(
 	try {
 		let headSha = providedSha;
 		if (!headSha) {
-			const { stdout: headOutput } = await execFileAsync(
-				"git",
-				["-C", worktreePath, "rev-parse", "HEAD"],
-				{ timeout: 10_000 },
+			const { stdout: headOutput } = await execGitWithShellPath(
+				["rev-parse", "HEAD"],
+				{ cwd: worktreePath },
 			);
 			headSha = headOutput.trim();
 		}
@@ -388,10 +381,9 @@ async function sharesAncestry(
 	prHeadOid: string,
 ): Promise<boolean> {
 	try {
-		const { stdout: localHead } = await execFileAsync(
-			"git",
-			["-C", worktreePath, "rev-parse", "HEAD"],
-			{ timeout: 10_000 },
+		const { stdout: localHead } = await execGitWithShellPath(
+			["rev-parse", "HEAD"],
+			{ cwd: worktreePath },
 		);
 		const localOid = localHead.trim();
 
@@ -404,17 +396,9 @@ async function sharesAncestry(
 			[localOid, prHeadOid],
 		]) {
 			try {
-				await execFileAsync(
-					"git",
-					[
-						"-C",
-						worktreePath,
-						"merge-base",
-						"--is-ancestor",
-						ancestor,
-						descendant,
-					],
-					{ timeout: 10_000 },
+				await execGitWithShellPath(
+					["merge-base", "--is-ancestor", ancestor, descendant],
+					{ cwd: worktreePath },
 				);
 				return true;
 			} catch {

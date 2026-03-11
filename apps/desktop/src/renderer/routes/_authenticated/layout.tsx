@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
@@ -18,6 +17,7 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
@@ -27,7 +27,7 @@ import { MOCK_ORG_ID } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
-import { WorkspaceServiceProvider } from "./providers/WorkspaceServiceProvider";
+import { HostServiceProvider } from "./providers/HostServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -65,8 +65,11 @@ function AuthenticatedLayout() {
 				!shownWorkspaceInitWarningsRef.current.has(progress.workspaceId)
 			) {
 				shownWorkspaceInitWarningsRef.current.add(progress.workspaceId);
-				toast.warning("Workspace created without auto-name", {
+				showWorkspaceAutoNameWarningToast({
 					description: progress.warning,
+					onOpenModelAuthSettings: () => {
+						void navigate({ to: "/settings/models" });
+					},
 				});
 			}
 			if (progress.step === "ready" || progress.step === "failed") {
@@ -134,7 +137,7 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<WorkspaceServiceProvider>
+				<HostServiceProvider>
 					<AgentHooks />
 					<Outlet />
 					<WorkspaceInitEffects />
@@ -142,7 +145,7 @@ function AuthenticatedLayout() {
 					<InitGitDialog />
 					<TeardownLogsDialog />
 					<Paywall />
-				</WorkspaceServiceProvider>
+				</HostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>
 	);

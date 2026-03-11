@@ -1,0 +1,1 @@
+export { CloudCredentialProvider } from "./CloudCredentialProvider";

@@ -18,6 +18,7 @@ import {
 	VscRemove,
 	VscTrash,
 } from "react-icons/vsc";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
@@ -90,12 +91,14 @@ export function FileItem({
 		showStats && (file.additions > 0 || file.deletions > 0);
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage || onDiscard;
+	const absolutePath = worktreePath
+		? toAbsoluteWorkspacePath(worktreePath, file.path)
+		: null;
 
 	const isScrollSyncActive =
-		category && activeFileKey === createFileKey(file, category, commitHash);
+		category &&
+		activeFileKey === createFileKey(file, category, commitHash, worktreePath);
 	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;
-
-	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({

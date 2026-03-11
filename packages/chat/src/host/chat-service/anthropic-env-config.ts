@@ -24,10 +24,6 @@ interface AnthropicEnvConfigDiskOptions {
 	configPath?: string;
 }
 
-interface BuildRuntimeAnthropicEnvOptions {
-	fallbackApiKey?: string;
-}
-
 export type AnthropicRuntimeEnv = Record<string, string>;
 
 interface ApplyAnthropicRuntimeEnvOptions {
@@ -217,20 +213,11 @@ export function clearAnthropicEnvConfig(
 
 export function buildAnthropicRuntimeEnv(
 	variables: AnthropicEnvVariables,
-	options?: BuildRuntimeAnthropicEnvOptions,
 ): AnthropicRuntimeEnv {
 	const runtimeEnv = Object.fromEntries(toNormalizedEnvEntries(variables));
 	const baseUrl = normalizeAnthropicBaseUrl(runtimeEnv.ANTHROPIC_BASE_URL);
 	if (baseUrl) {
 		runtimeEnv.ANTHROPIC_BASE_URL = baseUrl;
-	}
-	const authToken = trimToUndefined(runtimeEnv.ANTHROPIC_AUTH_TOKEN);
-	const apiKey =
-		trimToUndefined(runtimeEnv.ANTHROPIC_API_KEY) ||
-		authToken ||
-		trimToUndefined(options?.fallbackApiKey);
-	if (apiKey) {
-		runtimeEnv.ANTHROPIC_API_KEY = apiKey;
 	}
 	return runtimeEnv;
 }

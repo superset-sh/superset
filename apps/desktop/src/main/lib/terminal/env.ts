@@ -37,9 +37,37 @@ export const HOOK_PROTOCOL_VERSION = "2";
 export const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
 export const SHELL_CRASH_THRESHOLD_MS = 1000;
 
+type DefaultShellModuleShape =
+	| string
+	| {
+			default?: string;
+	  }
+	| null
+	| undefined;
+
+export function normalizeDefaultShell(
+	shellValue: DefaultShellModuleShape,
+): string | null {
+	if (typeof shellValue === "string" && shellValue.length > 0) {
+		return shellValue;
+	}
+
+	if (
+		shellValue &&
+		typeof shellValue === "object" &&
+		typeof shellValue.default === "string" &&
+		shellValue.default.length > 0
+	) {
+		return shellValue.default;
+	}
+
+	return null;
+}
+
 export function getDefaultShell(): string {
-	if (defaultShell) {
-		return defaultShell;
+	const resolvedDefaultShell = normalizeDefaultShell(defaultShell);
+	if (resolvedDefaultShell) {
+		return resolvedDefaultShell;
 	}
 
 	const platform = os.platform();

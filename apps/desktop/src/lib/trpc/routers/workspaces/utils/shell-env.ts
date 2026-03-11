@@ -45,6 +45,10 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
 	}
 }
 
+interface GetShellEnvironmentOptions {
+	forceRefresh?: boolean;
+}
+
 /**
  * Gets the full shell environment using sindresorhus/shell-env.
  * Spawns an interactive login shell (-ilc) to capture PATH from ALL configs:
@@ -53,10 +57,12 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
  *
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
-export async function getShellEnvironment(): Promise<Record<string, string>> {
+export async function getShellEnvironment(
+	options?: GetShellEnvironmentOptions,
+): Promise<Record<string, string>> {
 	const now = Date.now();
 	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
-	if (cachedEnv && now - cacheTime < ttl) {
+	if (!options?.forceRefresh && cachedEnv && now - cacheTime < ttl) {
 		return { ...cachedEnv };
 	}
 
@@ -142,8 +148,9 @@ export async function getProcessEnvWithShellEnv(
  */
 export async function getProcessEnvWithShellPath(
 	baseEnv: NodeJS.ProcessEnv = process.env,
+	options?: GetShellEnvironmentOptions,
 ): Promise<Record<string, string>> {
-	const shellEnvResult = await getShellEnvironment();
+	const shellEnvResult = await getShellEnvironment(options);
 	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
@@ -202,7 +209,7 @@ export async function execWithShellEnv(
 		console.log("[shell-env] Command not found, deriving shell environment");
 
 		try {
-			const shellEnvResult = await getShellEnvironment();
+			const shellEnvResult = await getShellEnvironment({ forceRefresh: true });
 			const mergedShellEnv = await getProcessEnvWithShellEnv(
 				baseEnv,
 				shellEnvResult,

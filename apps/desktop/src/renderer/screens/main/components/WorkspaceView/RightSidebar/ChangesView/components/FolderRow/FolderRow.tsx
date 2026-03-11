@@ -22,6 +22,7 @@ import {
 	VscLinkExternal,
 	VscRemove,
 } from "react-icons/vsc";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
 import type { RowHoverAction } from "../RowHoverActions";
@@ -124,7 +125,9 @@ export function FolderRow({
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const isGrouped = variant === "grouped";
 	const isRoot = folderPath === "";
-	const absolutePath = isRoot ? worktreePath : `${worktreePath}/${folderPath}`;
+	const absolutePath = isRoot
+		? worktreePath
+		: toAbsoluteWorkspacePath(worktreePath, folderPath);
 	const hasAction = !!(onStageAll || onUnstageAll || onDiscardAll);
 	const discardFileCount = fileCount ?? "all";
 	const discardFileSuffix = fileCount === 1 ? "" : "s";

@@ -1,16 +1,20 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { McpContext } from "./auth";
-import { createMcpServer } from "./server";
+import { createMcpServer, type McpServerOptions } from "./server";
 
 export async function createInMemoryMcpClient({
 	organizationId,
 	userId,
+	source,
+	onToolCall,
 }: {
 	organizationId: string;
 	userId: string;
+	source?: McpContext["source"];
+	onToolCall?: McpServerOptions["onToolCall"];
 }): Promise<{ client: Client; cleanup: () => Promise<void> }> {
-	const server = createMcpServer();
+	const server = createMcpServer({ onToolCall });
 	const [serverTransport, clientTransport] =
 		InMemoryTransport.createLinkedPair();
 
@@ -24,7 +28,7 @@ export async function createInMemoryMcpClient({
 				clientId: "slack-agent",
 				scopes: ["mcp:full"],
 				extra: {
-					mcpContext: { userId, organizationId } satisfies McpContext,
+					mcpContext: { userId, organizationId, source } satisfies McpContext,
 				},
 			},
 		});
