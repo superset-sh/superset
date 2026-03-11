@@ -116,6 +116,7 @@ interface FileViewerContentProps {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -160,6 +161,7 @@ export function FileViewerContent({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onEqualizePaneSplits,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -311,6 +313,7 @@ export function FileViewerContent({
 				onSplitVertical={onSplitVertical}
 				onSplitWithNewChat={onSplitWithNewChat}
 				onSplitWithNewBrowser={onSplitWithNewBrowser}
+				onEqualizePaneSplits={onEqualizePaneSplits}
 				onClosePane={onClosePane}
 				currentTabId={currentTabId}
 				availableTabs={availableTabs}
@@ -466,6 +469,7 @@ export function FileViewerContent({
 			onSplitVertical={onSplitVertical}
 			onSplitWithNewChat={onSplitWithNewChat}
 			onSplitWithNewBrowser={onSplitWithNewBrowser}
+			onEqualizePaneSplits={onEqualizePaneSplits}
 			onClosePane={onClosePane}
 			currentTabId={currentTabId}
 			availableTabs={availableTabs}

@@ -19,6 +19,7 @@ interface DiffViewerContextMenuProps {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -54,6 +55,7 @@ export function DiffViewerContextMenu({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onEqualizePaneSplits,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -136,6 +138,7 @@ export function DiffViewerContextMenu({
 				onSplitVertical,
 				onSplitWithNewChat,
 				onSplitWithNewBrowser,
+				onEqualizePaneSplits,
 				onClosePane,
 				currentTabId,
 				availableTabs,

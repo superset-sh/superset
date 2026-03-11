@@ -60,6 +60,11 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		{
+			from: "dist/resources/host-migrations",
+			to: "resources/host-migrations",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [

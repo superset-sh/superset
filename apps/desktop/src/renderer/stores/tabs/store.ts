@@ -29,6 +29,7 @@ import {
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
+	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
 	generateId,
 	generateTabName,
@@ -498,6 +499,13 @@ export const useTabsStore = create<TabsStore>()(
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
 					});
+				},
+
+				equalizePaneSplits: (tabId) => {
+					const tab = get().tabs.find((t) => t.id === tabId);
+					if (!tab?.layout || typeof tab.layout === "string") return;
+					const equalizedLayout = equalizeSplitPercentages(tab.layout);
+					get().updateTabLayout(tabId, equalizedLayout);
 				},
 
 				// Pane operations

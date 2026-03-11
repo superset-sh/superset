@@ -56,6 +56,13 @@ export function HostServiceStatus() {
 	const [cloudLoading, setCloudLoading] = useState(false);
 	const [cloudError, setCloudError] = useState<string | null>(null);
 
+	const [v2ProjectId, setV2ProjectId] = useState("");
+	const [v2WorkspaceId, setV2WorkspaceId] = useState("");
+	const [v2Branch, setV2Branch] = useState("main");
+	const [v2Loading, setV2Loading] = useState(false);
+	const [v2Result, setV2Result] = useState<string | null>(null);
+	const [v2Error, setV2Error] = useState<string | null>(null);
+
 	const checkHealth = useCallback(async () => {
 		if (!service) {
 			setStatus("unknown");
@@ -215,6 +222,114 @@ export function HostServiceStatus() {
 									<span className="font-mono text-xs">{cloudUser.id}</span>
 								</div>
 							</div>
+						)}
+					</div>
+
+					<div className="space-y-3 border-b border-border pb-3">
+						<span className="text-sm font-medium">V2 Operations</span>
+						<div className="flex gap-2">
+							<input
+								type="text"
+								value={v2ProjectId}
+								onChange={(e) => setV2ProjectId(e.target.value)}
+								placeholder="Project ID"
+								className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+							/>
+							<input
+								type="text"
+								value={v2Branch}
+								onChange={(e) => setV2Branch(e.target.value)}
+								placeholder="Branch"
+								className="w-32 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+							/>
+						</div>
+						<div className="flex gap-2">
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={v2Loading || !service || !v2ProjectId}
+								onClick={async () => {
+									setV2Loading(true);
+									setV2Error(null);
+									setV2Result(null);
+									try {
+										const result =
+											await service?.client.workspace.create.mutate({
+												projectId: v2ProjectId,
+												name: `workspace-${v2Branch}`,
+												branch: v2Branch,
+											});
+										setV2WorkspaceId(result?.id ?? "");
+										setV2Result(JSON.stringify(result, null, 2));
+									} catch (err) {
+										setV2Error(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setV2Loading(false);
+									}
+								}}
+							>
+								Create Workspace
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={v2Loading || !service || !v2WorkspaceId}
+								onClick={async () => {
+									setV2Loading(true);
+									setV2Error(null);
+									setV2Result(null);
+									try {
+										const result =
+											await service?.client.workspace.delete.mutate({
+												id: v2WorkspaceId,
+											});
+										setV2Result(JSON.stringify(result, null, 2));
+										setV2WorkspaceId("");
+									} catch (err) {
+										setV2Error(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setV2Loading(false);
+									}
+								}}
+							>
+								Delete Workspace
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={v2Loading || !service || !v2ProjectId}
+								onClick={async () => {
+									setV2Loading(true);
+									setV2Error(null);
+									setV2Result(null);
+									try {
+										const result =
+											await service?.client.project.removeFromDevice.mutate({
+												projectId: v2ProjectId,
+											});
+										setV2Result(JSON.stringify(result, null, 2));
+									} catch (err) {
+										setV2Error(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setV2Loading(false);
+									}
+								}}
+							>
+								Remove Project from Device
+							</Button>
+						</div>
+						{v2Loading && (
+							<div className="text-sm text-muted-foreground">Loading...</div>
+						)}
+						{v2Error && (
+							<div className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+								{v2Error}
+							</div>
+						)}
+						{v2Result && (
+							<pre className="text-xs font-mono bg-muted rounded-md p-2 overflow-auto max-h-40">
+								{v2Result}
+							</pre>
 						)}
 					</div>
 

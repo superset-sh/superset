@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./db": {
+			"types": "./src/db/index.ts",
+			"default": "./src/db/index.ts"
+		},
 		"./git": {
 			"types": "./src/git/index.ts",
 			"default": "./src/git/index.ts"
@@ -20,6 +24,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"dev": "bun run src/serve.ts",
+		"generate": "drizzle-kit generate",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
@@ -28,6 +33,8 @@
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
+		"better-sqlite3": "12.6.2",
+		"drizzle-orm": "0.45.1",
 		"hono": "^4.8.5",
 		"simple-git": "^3.30.0",
 		"superjson": "^2.2.5",
@@ -35,7 +42,9 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^24.9.1",
+		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"
 	}
 }
