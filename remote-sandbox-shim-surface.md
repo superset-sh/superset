@@ -31,19 +31,19 @@ This covers:
 
 These are not strictly required for a first pass, but they materially improve product behavior:
 
-- `watchWorkspace`
+- `watchPath`
 - `stat`
 
 Notes:
 
-- `watchWorkspace` keeps the UI reactive without polling or manual refresh.
+- `watchPath` keeps the UI reactive without polling or manual refresh.
 - `stat` is useful metadata and helps future compatibility.
 
 ## Generalization Opportunities
 
 The current surface is mostly already in the right shape for a remote shim.
 
-The main method that is more specialized than necessary is:
+The main method that was more specialized than necessary was:
 
 - `watchWorkspace`
 
@@ -57,7 +57,7 @@ watchPath({
 })
 ```
 
-Then `watchWorkspace` can just be a convenience wrapper for watching the workspace root.
+`watchWorkspace` should just be treated as a convenience wrapper for watching the workspace root, not as the core shim primitive.
 
 This is a better fit because:
 
@@ -82,7 +82,7 @@ These are useful app-side wrappers, but they should **not** define the core remo
 - `statWorkspacePath`
 - `searchWorkspaceFiles`
 - `searchWorkspaceKeyword`
-- `watchWorkspaceFileSystemEvents`
+- `watchPathFileSystemEvents`
 
 Those are adapter functions over the lower-level `workspace-fs` contract, not the contract itself.
 
@@ -144,7 +144,7 @@ searchKeyword
 Then add:
 
 ```ts
-watchWorkspace // or preferably watchPath at the shim layer
+watchPath
 stat
 ```
 

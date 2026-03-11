@@ -359,14 +359,15 @@ export async function statWorkspacePath(input: {
 	}
 }
 
-export async function* watchWorkspaceFileSystemEvents(
-	workspaceId: string,
-): AsyncIterable<FileSystemChangeEvent> {
-	const rootPath = resolveWorkspaceRootPath(workspaceId);
-	for await (const event of workspaceFsService.watchWorkspace({
-		workspaceId,
+export async function* watchPathFileSystemEvents(input: {
+	workspaceId: string;
+	absolutePath: string;
+}): AsyncIterable<FileSystemChangeEvent> {
+	for await (const event of workspaceFsService.watchPath({
+		workspaceId: input.workspaceId,
+		absolutePath: input.absolutePath,
 	})) {
-		yield toFileSystemChangeEvent(event, rootPath);
+		yield toFileSystemChangeEvent(event, input.absolutePath);
 	}
 }
 

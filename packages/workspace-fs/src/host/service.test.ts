@@ -75,8 +75,9 @@ describe("createWorkspaceFsHostService", () => {
 		});
 
 		const iterator = service
-			.watchWorkspace({
+			.watchPath({
 				workspaceId: "workspace-1",
+				absolutePath: "/tmp/workspace",
 			})
 			[Symbol.asyncIterator]();
 

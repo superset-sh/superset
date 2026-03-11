@@ -50,7 +50,10 @@ describe("createWorkspaceFsClient", () => {
 		expect(entries).toEqual([]);
 
 		const iterator = client
-			.watchWorkspace({ workspaceId: "workspace-1" })
+			.watchPath({
+				workspaceId: "workspace-1",
+				absolutePath: "/tmp/workspace",
+			})
 			[Symbol.asyncIterator]();
 		const next = await iterator.next();
 		expect(next).toEqual({
@@ -72,9 +75,10 @@ describe("createWorkspaceFsClient", () => {
 				},
 			},
 			{
-				method: "watchWorkspace",
+				method: "watchPath",
 				input: {
 					workspaceId: "workspace-1",
+					absolutePath: "/tmp/workspace",
 				},
 			},
 		]);
