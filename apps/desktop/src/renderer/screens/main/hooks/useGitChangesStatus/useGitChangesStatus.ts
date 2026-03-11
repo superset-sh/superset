@@ -13,6 +13,8 @@ interface UseGitChangesStatusOptions {
 
 const LARGE_CHANGESET_THRESHOLD = 200;
 const LARGE_CHANGESET_REFETCH_INTERVAL_MS = 10_000;
+const STATUS_QUERY_STALE_TIME_MS = 2_000;
+const BRANCH_QUERY_STALE_TIME_MS = 10_000;
 
 export function useGitChangesStatus({
 	worktreePath,
@@ -29,6 +31,7 @@ export function useGitChangesStatus({
 			enabled: enabled && !!worktreePath,
 			refetchInterval: branchRefetchInterval,
 			refetchOnWindowFocus: branchRefetchOnWindowFocus,
+			staleTime: BRANCH_QUERY_STALE_TIME_MS,
 		},
 	);
 
@@ -64,7 +67,7 @@ export function useGitChangesStatus({
 				return refetchInterval;
 			},
 			refetchOnWindowFocus,
-			staleTime,
+			staleTime: staleTime ?? STATUS_QUERY_STALE_TIME_MS,
 		},
 	);
 

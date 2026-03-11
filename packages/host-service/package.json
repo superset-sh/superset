@@ -25,6 +25,8 @@
 	"dependencies": {
 		"@hono/node-server": "^1.14.1",
 		"@hono/trpc-server": "^0.3.4",
+		"@superset/trpc": "workspace:*",
+		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"hono": "^4.8.5",
 		"simple-git": "^3.30.0",

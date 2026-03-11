@@ -8,9 +8,23 @@
  */
 
 import { serve } from "@hono/node-server";
-import { createApp, LocalCredentialProvider } from "@superset/host-service";
+import {
+	createApp,
+	JwtAuthProvider,
+	LocalCredentialProvider,
+} from "@superset/host-service";
 
-const app = createApp({ credentials: new LocalCredentialProvider() });
+const authToken = process.env.AUTH_TOKEN;
+const cloudApiUrl = process.env.CLOUD_API_URL;
+
+const auth =
+	authToken && cloudApiUrl ? new JwtAuthProvider(authToken) : undefined;
+
+const app = createApp({
+	credentials: new LocalCredentialProvider(),
+	auth,
+	cloudApiUrl,
+});
 
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },

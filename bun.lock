@@ -90,6 +90,7 @@
         "jose": "^6.1.3",
         "lodash.chunk": "^4.2.0",
         "next": "^16.0.10",
+        "posthog-node": "^5.24.7",
         "react": "19.2.0",
         "react-dom": "19.2.0",
         "require-in-the-middle": "8.0.1",
@@ -109,7 +110,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.1.4",
+      "version": "1.1.5",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -618,9 +619,14 @@
       "name": "@superset/chat",
       "version": "0.0.1",
       "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.43",
+        "@ai-sdk/openai": "3.0.36",
         "@mastra/core": "^1.3.0",
         "@superset/workspace-fs": "workspace:*",
         "@trpc/server": "^11.7.1",
+        "ai": "^6.0.0",
+        "fast-glob": "^3.3.3",
+        "fuse.js": "^7.1.0",
         "mastracode": "^0.4.0",
         "superjson": "^2.2.5",
         "zod": "^4.3.5",
@@ -732,6 +738,8 @@
       "dependencies": {
         "@hono/node-server": "^1.14.1",
         "@hono/trpc-server": "^0.3.4",
+        "@superset/trpc": "workspace:*",
+        "@trpc/client": "^11.7.1",
         "@trpc/server": "^11.7.1",
         "hono": "^4.8.5",
         "simple-git": "^3.30.0",

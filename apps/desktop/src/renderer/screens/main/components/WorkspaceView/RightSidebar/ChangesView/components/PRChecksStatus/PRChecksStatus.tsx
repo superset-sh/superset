@@ -14,9 +14,15 @@ interface PRChecksStatusProps {
 }
 
 const checkIconConfig = {
-	success: { icon: LuCheck, className: "text-emerald-500" },
-	failure: { icon: LuX, className: "text-destructive-foreground" },
-	pending: { icon: LuLoaderCircle, className: "text-amber-500" },
+	success: {
+		icon: LuCheck,
+		className: "text-emerald-600 dark:text-emerald-400",
+	},
+	failure: { icon: LuX, className: "text-red-600 dark:text-red-400" },
+	pending: {
+		icon: LuLoaderCircle,
+		className: "text-amber-600 dark:text-amber-400",
+	},
 	skipped: { icon: LuMinus, className: "text-muted-foreground" },
 	cancelled: { icon: LuMinus, className: "text-muted-foreground" },
 } as const;
@@ -39,14 +45,14 @@ function CheckRow({ check }: { check: CheckItem }) {
 				href={check.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="block text-muted-foreground hover:text-foreground transition-colors"
+				className="block text-foreground/80 hover:text-foreground transition-colors"
 			>
 				{content}
 			</a>
 		);
 	}
 
-	return <div className="text-muted-foreground">{content}</div>;
+	return <div className="text-foreground/80">{content}</div>;
 }
 
 export function PRChecksStatus({ pr }: PRChecksStatusProps) {
@@ -70,7 +76,7 @@ export function PRChecksStatus({ pr }: PRChecksStatusProps) {
 			<button
 				type="button"
 				onClick={() => setChecksExpanded(!checksExpanded)}
-				className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+				className="flex items-center gap-1.5 text-[11px] text-foreground/75 hover:text-foreground transition-colors"
 			>
 				{checksExpanded ? (
 					<LuChevronDown className="size-3 shrink-0" />

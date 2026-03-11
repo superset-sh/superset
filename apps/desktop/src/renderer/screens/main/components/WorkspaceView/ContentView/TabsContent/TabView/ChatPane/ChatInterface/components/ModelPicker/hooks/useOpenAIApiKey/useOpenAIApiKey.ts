@@ -132,7 +132,8 @@ export function useOpenAIApiKey({
 
 	return {
 		isOpenAIAuthenticated: openAIStatus?.authenticated ?? false,
-		isOpenAIApiKeyConfigured: openAIStatus?.method === "api_key",
+		isOpenAIApiKeyConfigured:
+			openAIStatus?.source === "managed" && openAIStatus.method === "api_key",
 		isSavingOpenAIApiKey: isPending,
 		openOpenAIApiKeyDialog,
 		apiKeyDialog,

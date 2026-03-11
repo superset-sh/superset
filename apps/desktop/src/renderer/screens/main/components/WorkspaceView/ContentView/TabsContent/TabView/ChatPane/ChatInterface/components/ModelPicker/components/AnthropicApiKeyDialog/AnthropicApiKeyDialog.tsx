@@ -2,33 +2,33 @@ import { Button } from "@superset/ui/button";
 import {
 	Dialog,
 	DialogContent,
-	DialogFooter,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import { InputGroup, InputGroupInput } from "@superset/ui/input-group";
 import { Label } from "@superset/ui/label";
-import { Textarea } from "@superset/ui/textarea";
 
 interface AnthropicApiKeyDialogProps {
 	open: boolean;
-	envText: string;
+	apiKey: string;
 	errorMessage: string | null;
 	isPending: boolean;
 	canClearApiKey: boolean;
 	onOpenChange: (open: boolean) => void;
-	onEnvTextChange: (value: string) => void;
+	onApiKeyChange: (value: string) => void;
 	onSubmit: () => void;
 	onClear: () => void;
 }
 
 export function AnthropicApiKeyDialog({
 	open,
-	envText,
+	apiKey,
 	errorMessage,
 	isPending,
 	canClearApiKey,
 	onOpenChange,
-	onEnvTextChange,
+	onApiKeyChange,
 	onSubmit,
 	onClear,
 }: AnthropicApiKeyDialogProps) {
@@ -36,63 +36,82 @@ export function AnthropicApiKeyDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
+			<DialogContent className="max-w-[calc(100vw-2rem)] overflow-hidden sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Connect Anthropic</DialogTitle>
+					<DialogDescription>
+						Paste your Anthropic API key to enable Claude models in chat.
+					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-2">
-					<Label htmlFor="anthropic-env-block">Environment variables</Label>
-					<Textarea
-						id="anthropic-env-block"
-						value={envText}
-						onChange={(event) => onEnvTextChange(event.target.value)}
-						placeholder={
-							"ANTHROPIC_API_KEY=sk-ant-...\nCLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1\nAWS_PROFILE=default"
-						}
-						disabled={isPending}
-						aria-invalid={Boolean(errorMessage)}
-						aria-describedby={errorMessage ? errorId : undefined}
-						className="min-h-24 min-w-0 w-full max-w-full max-h-44 field-sizing-fixed resize-y font-mono text-xs"
-					/>
-					<p className="text-muted-foreground text-xs">
-						One per line, format: VAR_NAME=value or export VAR_NAME=value.
-					</p>
-				</div>
+				<div className="space-y-4">
+					<div className="rounded-lg border border-border/70 bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
+						API key mode is best if you already manage Anthropic access with a
+						standard `sk-ant-...` key.
+					</div>
 
-				{errorMessage ? (
-					<p id={errorId} role="alert" className="text-destructive text-sm">
-						{errorMessage}
-					</p>
-				) : null}
+					<div className="space-y-2">
+						<Label htmlFor="anthropic-api-key">API key</Label>
+						<InputGroup className="h-11 border-border/70 bg-muted/10">
+							<InputGroupInput
+								id="anthropic-api-key"
+								type="password"
+								placeholder="sk-ant-..."
+								value={apiKey}
+								onChange={(event) => onApiKeyChange(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" && apiKey.trim()) {
+										onSubmit();
+									}
+								}}
+								disabled={isPending}
+								aria-invalid={Boolean(errorMessage)}
+								aria-describedby={errorMessage ? errorId : undefined}
+								className="h-11 font-mono"
+								autoFocus
+							/>
+						</InputGroup>
+						<p className="text-muted-foreground text-xs">
+							Use the same key you would pass as `ANTHROPIC_API_KEY`.
+						</p>
+					</div>
 
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={isPending}
-					>
-						Back
-					</Button>
-					{canClearApiKey ? (
+					{errorMessage ? (
+						<p id={errorId} role="alert" className="text-destructive text-sm">
+							{errorMessage}
+						</p>
+					) : null}
+
+					<div className="flex flex-col gap-2 pt-2">
 						<Button
 							type="button"
-							variant="outline"
-							onClick={onClear}
-							disabled={isPending}
+							onClick={onSubmit}
+							disabled={isPending || apiKey.trim().length === 0}
 						>
-							Clear settings
+							{isPending ? "Saving..." : "Save key"}
 						</Button>
-					) : null}
-					<Button
-						type="button"
-						onClick={onSubmit}
-						disabled={isPending || envText.trim().length === 0}
-					>
-						{isPending ? "Saving..." : "Save settings"}
-					</Button>
-				</DialogFooter>
+						<div className="flex items-center justify-between gap-2">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => onOpenChange(false)}
+								disabled={isPending}
+							>
+								Back
+							</Button>
+							{canClearApiKey ? (
+								<Button
+									type="button"
+									variant="ghost"
+									onClick={onClear}
+									disabled={isPending}
+								>
+									Clear key
+								</Button>
+							) : null}
+						</div>
+					</div>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
