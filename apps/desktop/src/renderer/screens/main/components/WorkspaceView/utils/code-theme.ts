@@ -59,6 +59,10 @@ export function getDiffViewerStyle(
 		"--diffs-deletion-color-override": MIDNIGHT_DIFF_COLORS.deletion,
 		"--diffs-modified-color-override": MIDNIGHT_DIFF_COLORS.modified,
 		"--diffs-selection-color-override": MIDNIGHT_DIFF_COLORS.selection,
+		// Reduce emphasis overlay intensity to improve contrast with muted
+		// syntax tokens (e.g. markdown blockquote grey) on colored backgrounds.
+		"--diffs-bg-addition-emphasis-override": `rgb(from ${MIDNIGHT_DIFF_COLORS.addition} r g b / 0.1)`,
+		"--diffs-bg-deletion-emphasis-override": `rgb(from ${MIDNIGHT_DIFF_COLORS.deletion} r g b / 0.1)`,
 		backgroundColor: MIDNIGHT_DIFF_COLORS.background,
 		color: MIDNIGHT_CODE_COLORS.foreground,
 	} as CSSProperties;

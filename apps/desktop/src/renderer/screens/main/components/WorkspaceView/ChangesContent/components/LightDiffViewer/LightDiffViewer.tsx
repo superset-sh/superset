@@ -66,6 +66,14 @@ export function LightDiffViewer({
 						user-select: text;
 						-webkit-user-select: text;
 					}
+					/* Lighten syntax tokens on addition/deletion backgrounds so muted
+					   colors (e.g. markdown blockquote grey) maintain readable contrast. */
+					[data-line-type='change-addition'] [data-column-content] span {
+						color: color-mix(in srgb, var(--diffs-token-dark, var(--diffs-dark)) 65%, white) !important;
+					}
+					[data-line-type='change-deletion'] [data-column-content] span {
+						color: color-mix(in srgb, var(--diffs-token-dark, var(--diffs-dark)) 65%, white) !important;
+					}
 				`,
 			}}
 		/>
