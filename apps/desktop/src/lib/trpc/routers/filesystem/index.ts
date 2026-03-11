@@ -15,7 +15,7 @@ import {
 	searchWorkspaceFilesMulti,
 	searchWorkspaceKeyword,
 	statWorkspacePath,
-	watchPathFileSystemEvents,
+	watchWorkspaceFileSystemEvents,
 	workspacePathExists,
 } from "../workspace-fs-service";
 
@@ -54,16 +54,11 @@ export const createFilesystemRouter = () => {
 			}),
 
 		subscribe: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					absolutePath: z.string(),
-				}),
-			)
+			.input(z.object({ workspaceId: z.string() }))
 			.subscription(({ input }) => {
 				return observable<FileSystemChangeEvent>((emit) => {
 					let isDisposed = false;
-					const stream = watchPathFileSystemEvents(input);
+					const stream = watchWorkspaceFileSystemEvents(input.workspaceId);
 					const iterator = stream[Symbol.asyncIterator]();
 
 					const runCleanup = () => {

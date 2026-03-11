@@ -78,7 +78,9 @@ export interface WorkspaceFsSearchFilesInput {
 	limit?: number;
 }
 
-export interface WorkspaceFsWatchPathInput extends WorkspaceFsLocation {}
+export interface WorkspaceFsWatchInput {
+	workspaceId: string;
+}
 
 export interface WorkspaceFsServiceMetadata {
 	getServiceInfo(): Promise<WorkspaceFsServiceInfo>;
@@ -124,8 +126,8 @@ export interface WorkspaceFsSearchService {
 }
 
 export interface WorkspaceFsWatchService {
-	watchPath(
-		input: WorkspaceFsWatchPathInput,
+	watchWorkspace(
+		input: WorkspaceFsWatchInput,
 	): AsyncIterable<WorkspaceFsWatchEvent>;
 }
 
@@ -208,8 +210,8 @@ export interface WorkspaceFsRequestMap {
 }
 
 export interface WorkspaceFsSubscriptionMap {
-	watchPath: {
-		input: WorkspaceFsWatchPathInput;
+	watchWorkspace: {
+		input: WorkspaceFsWatchInput;
 		event: WorkspaceFsWatchEvent;
 	};
 }

@@ -17,7 +17,7 @@ export type {
 	WorkspaceFsService,
 	WorkspaceFsServiceInfo,
 	WorkspaceFsSubscriptionMap,
-	WorkspaceFsWatchPathInput,
+	WorkspaceFsWatchInput,
 	WorkspaceFsWatchService,
 	WorkspaceFsWriteFileInput,
 } from "../core/service";
@@ -94,8 +94,8 @@ export function createWorkspaceFsClient(
 		async searchKeyword(input) {
 			return await transport.request("searchKeyword", input);
 		},
-		watchPath(input) {
-			return transport.subscribe("watchPath", input);
+		watchWorkspace(input) {
+			return transport.subscribe("watchWorkspace", input);
 		},
 	};
 }

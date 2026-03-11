@@ -85,7 +85,6 @@ function subscribeToListenerCounts(onStoreChange: () => void): () => void {
 
 export function useWorkspaceFileEventBridge(
 	workspaceId: string,
-	absolutePath: string | undefined,
 	enabled = true,
 ): void {
 	const listenerCount = useSyncExternalStore(
@@ -95,13 +94,9 @@ export function useWorkspaceFileEventBridge(
 	);
 
 	electronTrpc.filesystem.subscribe.useSubscription(
-		{ workspaceId, absolutePath: absolutePath ?? "" },
+		{ workspaceId },
 		{
-			enabled:
-				enabled &&
-				Boolean(workspaceId) &&
-				Boolean(absolutePath) &&
-				listenerCount > 0,
+			enabled: enabled && Boolean(workspaceId) && listenerCount > 0,
 			onData: (event) => {
 				emitWorkspaceFileEvent(workspaceId, event);
 			},

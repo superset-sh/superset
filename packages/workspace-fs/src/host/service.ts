@@ -4,7 +4,7 @@ import {
 	type WorkspaceFsMoveCopyInput,
 	type WorkspaceFsService,
 	type WorkspaceFsServiceInfo,
-	type WorkspaceFsWatchPathInput,
+	type WorkspaceFsWatchInput,
 } from "../core/service";
 import {
 	copyPaths,
@@ -24,7 +24,6 @@ import {
 } from "../fs";
 import type { SearchFilesOptions, SearchKeywordOptions } from "../search";
 import { searchFiles, searchKeyword } from "../search";
-import { isPathWithinRoot, normalizeAbsolutePath } from "../paths";
 import type { WorkspaceFsStat, WorkspaceFsWatchEvent } from "../types";
 import type {
 	WorkspaceFsWatcherManager,
@@ -328,28 +327,19 @@ export function createWorkspaceFsHostService(
 			return await searchKeyword(optionsForSearch);
 		},
 
-		watchPath(
-			input: WorkspaceFsWatchPathInput,
+		watchWorkspace(
+			input: WorkspaceFsWatchInput,
 		): AsyncIterable<WorkspaceFsWatchEvent> {
 			const watcherManager = options.watcherManager;
 			if (!watcherManager) {
-				throw new Error("watchPath requires a watcher manager");
+				throw new Error("watchWorkspace requires a watcher manager");
 			}
 
-			const workspaceRootPath = resolveRootPath(input.workspaceId);
-			const watchRootPath = normalizeAbsolutePath(input.absolutePath);
-			if (
-				!isPathWithinRoot(
-					normalizeAbsolutePath(workspaceRootPath),
-					watchRootPath,
-				)
-			) {
-				throw new Error(`Watch path is outside workspace root: ${watchRootPath}`);
-			}
+			const rootPath = resolveRootPath(input.workspaceId);
 			return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
 				const watchOptions: WorkspaceWatchSubscriptionOptions = {
 					workspaceId: input.workspaceId,
-					rootPath: watchRootPath,
+					rootPath,
 				};
 				return await watcherManager.subscribe(watchOptions, push);
 			});
