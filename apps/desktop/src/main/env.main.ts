@@ -15,6 +15,7 @@ export const env = createEnv({
 			.enum(["development", "production", "test"])
 			.default("development"),
 		NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
+		FEATURES_SERVER_URL: z.url().default("http://localhost:3002"),
 		NEXT_PUBLIC_STREAMS_URL: z.url().default("https://streams.superset.sh"),
 		NEXT_PUBLIC_ELECTRIC_URL: z
 			.url()
@@ -33,6 +34,7 @@ export const env = createEnv({
 		// (spreading process.env only works at runtime, not for bundled apps)
 		NODE_ENV: process.env.NODE_ENV,
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+		FEATURES_SERVER_URL: process.env.FEATURES_SERVER_URL,
 		NEXT_PUBLIC_STREAMS_URL: process.env.NEXT_PUBLIC_STREAMS_URL,
 		NEXT_PUBLIC_ELECTRIC_URL: process.env.NEXT_PUBLIC_ELECTRIC_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,

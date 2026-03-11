@@ -35,6 +35,7 @@ import { storyStudioRouter } from '@superbuilder/features-server/story-studio';
 import { couponRouter } from '@superbuilder/features-server/coupon';
 import { bookmarkRouter } from '@superbuilder/features-server/bookmark';
 import { featureCatalogRouter } from '@superbuilder/features-server/feature-catalog';
+import { featureStudioRouter } from '@superbuilder/features-server/feature-studio';
 import type { AppRouter } from '@superbuilder/features-server/app-router';
 
 export const trpcRouter: AppRouter = router({
@@ -68,6 +69,7 @@ export const trpcRouter: AppRouter = router({
   coupon: couponRouter,
   bookmark: bookmarkRouter,
   featureCatalog: featureCatalogRouter,
+  featureStudio: featureStudioRouter,
 }) as AppRouter;
 
 export type TrpcRouter = AppRouter;

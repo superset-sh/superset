@@ -3,9 +3,11 @@ import { desc, eq } from "drizzle-orm";
 import {
   InjectDrizzle,
   type DrizzleDB,
+  featureRequestArtifacts,
   featureRequestApprovals,
   featureRequestMessages,
   featureRequests,
+  featureRequestWorktrees,
 } from "@superbuilder/drizzle";
 import type {
   AppendFeatureRequestMessageDto,
@@ -44,6 +46,12 @@ export class FeatureRequestService {
         },
         approvals: {
           orderBy: [desc(featureRequestApprovals.createdAt)],
+        },
+        artifacts: {
+          orderBy: [desc(featureRequestArtifacts.createdAt)],
+        },
+        worktrees: {
+          orderBy: [desc(featureRequestWorktrees.createdAt)],
         },
       },
     });

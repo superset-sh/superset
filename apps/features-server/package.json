@@ -39,6 +39,7 @@
     "@react-email/components": "^1.0.6",
     "@react-email/render": "^2.0.4",
     "@supabase/supabase-js": "^2.93.0",
+    "@superset/agent": "workspace:*",
     "@superbuilder/drizzle": "workspace:^",
     "@superbuilder/features-server": "workspace:^",
     "@trpc/server": "^11.8.1",
