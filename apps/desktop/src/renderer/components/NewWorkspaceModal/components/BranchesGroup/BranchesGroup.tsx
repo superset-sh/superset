@@ -9,7 +9,7 @@ import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
-	useCreateBranchWorkspace,
+	useCreateWorkspace,
 	useHandleOpenedWorktree,
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
@@ -17,6 +17,7 @@ import {
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
+import { buildCreateWorkspaceFromBranchInput } from "./buildCreateWorkspaceFromBranchInput";
 import { resolveBranchAction } from "./resolveBranchAction";
 
 interface BranchesGroupProps {
@@ -29,7 +30,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
-	const createBranchWorkspace = useCreateBranchWorkspace();
+	const createWorkspace = useCreateWorkspace();
 	const handleOpenedWorktree = useHandleOpenedWorktree();
 	const importAllWorktrees = useImportAllWorktrees();
 	const openExternalWorktree = useOpenExternalWorktree();
@@ -209,10 +210,9 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		(branchName: string) => {
 			if (!projectId) return;
 			void runAsyncAction(
-				createBranchWorkspace.mutateAsync({
-					projectId,
-					branch: branchName,
-				}),
+				createWorkspace.mutateAsync(
+					buildCreateWorkspaceFromBranchInput(projectId, branchName),
+				),
 				{
 					loading: "Creating workspace from branch...",
 					success: "Workspace created",
@@ -221,7 +221,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 				},
 			);
 		},
-		[createBranchWorkspace, projectId, runAsyncAction],
+		[createWorkspace, projectId, runAsyncAction],
 	);
 
 	const handleOpen = useCallback(

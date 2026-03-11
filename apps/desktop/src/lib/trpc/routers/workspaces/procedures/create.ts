@@ -528,7 +528,7 @@ export const createCreateProcedures = () => {
 				};
 			}),
 
-		createBranchWorkspace: publicProcedure
+		openMainRepoWorkspace: publicProcedure
 			.input(
 				z.object({
 					projectId: z.string(),
