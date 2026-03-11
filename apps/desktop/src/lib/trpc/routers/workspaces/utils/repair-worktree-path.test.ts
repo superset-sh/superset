@@ -144,13 +144,14 @@ describe("repair-worktree-path", () => {
 		mkdirSync(TEST_DIR, { recursive: true });
 		mockWorktrees = new Map();
 		mockProjects = new Map();
-		__testOnlyRepairWorktreePathDeps.eq = (_field, value) => value;
+		__testOnlyRepairWorktreePathDeps.eq = ((_: unknown, value: string) =>
+			value) as unknown as typeof __testOnlyRepairWorktreePathDeps.eq;
 		__testOnlyRepairWorktreePathDeps.localDb =
-			mockLocalDb as typeof __testOnlyRepairWorktreePathDeps.localDb;
+			mockLocalDb as unknown as typeof __testOnlyRepairWorktreePathDeps.localDb;
 		__testOnlyRepairWorktreePathDeps.projects =
-			PROJECTS_TABLE as typeof __testOnlyRepairWorktreePathDeps.projects;
+			PROJECTS_TABLE as unknown as typeof __testOnlyRepairWorktreePathDeps.projects;
 		__testOnlyRepairWorktreePathDeps.worktrees =
-			WORKTREES_TABLE as typeof __testOnlyRepairWorktreePathDeps.worktrees;
+			WORKTREES_TABLE as unknown as typeof __testOnlyRepairWorktreePathDeps.worktrees;
 	});
 
 	afterEach(() => {

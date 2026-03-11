@@ -6,27 +6,54 @@ import {
 	createDeleteProcedures,
 } from "./delete";
 
-interface MockWorkspace {
-	id: string;
-	projectId: string;
-	worktreeId: string | null;
-	type: "worktree" | "branch";
-	name: string;
-	branch: string;
-	deletingAt: number | null;
-}
-
-interface MockWorktree {
-	id: string;
-	projectId: string;
-	path: string;
-	branch: string;
-}
-
-interface MockProject {
-	id: string;
-	mainRepoPath: string;
-}
+type MockWorkspace = NonNullable<
+	ReturnType<typeof __testOnlyDeleteProcedureDeps.getWorkspace>
+>;
+type MockWorktree = NonNullable<
+	ReturnType<typeof __testOnlyDeleteProcedureDeps.getWorktree>
+>;
+type MockProject = NonNullable<
+	ReturnType<typeof __testOnlyDeleteProcedureDeps.getProject>
+>;
+type HideProjectIfNoWorkspacesFn =
+	typeof __testOnlyDeleteProcedureDeps.hideProjectIfNoWorkspaces;
+type UpdateActiveWorkspaceIfRemovedFn =
+	typeof __testOnlyDeleteProcedureDeps.updateActiveWorkspaceIfRemoved;
+type WorkspaceRuntimeRegistry = ReturnType<
+	typeof __testOnlyDeleteProcedureDeps.getWorkspaceRuntimeRegistry
+>;
+type WorkspaceRuntime = ReturnType<
+	WorkspaceRuntimeRegistry["getForWorkspaceId"]
+>;
+type TerminalRuntime = WorkspaceRuntime["terminal"];
+type KillByWorkspaceIdFn = TerminalRuntime["killByWorkspaceId"];
+type GetSessionCountByWorkspaceIdFn =
+	TerminalRuntime["getSessionCountByWorkspaceId"];
+type IsInitializingFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.isInitializing;
+type CancelInitFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.cancel;
+type WaitForInitFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.waitForInit;
+type AcquireProjectLockFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.acquireProjectLock;
+type ReleaseProjectLockFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.releaseProjectLock;
+type ClearJobFn =
+	typeof __testOnlyDeleteProcedureDeps.workspaceInitManager.clearJob;
+type TrackFn = typeof __testOnlyDeleteProcedureDeps.track;
+type HasUncommittedChangesFn =
+	typeof __testOnlyDeleteProcedureDeps.hasUncommittedChanges;
+type HasUnpushedCommitsFn =
+	typeof __testOnlyDeleteProcedureDeps.hasUnpushedCommits;
+type WorktreeExistsFn = typeof __testOnlyDeleteProcedureDeps.worktreeExists;
+type DeleteLocalBranchFn =
+	typeof __testOnlyDeleteProcedureDeps.deleteLocalBranch;
+type ResolveTrackedWorktreePathFn =
+	typeof __testOnlyDeleteProcedureDeps.resolveTrackedWorktreePath;
+type RunTeardownFn = typeof __testOnlyDeleteProcedureDeps.runTeardown;
+type RemoveWorktreeFromDiskFn =
+	typeof __testOnlyDeleteProcedureDeps.removeWorktreeFromDisk;
 
 type MockTrackedWorktreePathResult =
 	| {
@@ -63,52 +90,106 @@ const originalWorkspaceInitManagerMethods = {
 	waitForInit: __testOnlyDeleteProcedureDeps.workspaceInitManager.waitForInit,
 };
 
-const hideProjectIfNoWorkspacesMock = mock(() => {});
-const updateActiveWorkspaceIfRemovedMock = mock(() => {});
-const killByWorkspaceIdMock = mock(async () => ({ failed: 0 }));
-const getSessionCountByWorkspaceIdMock = mock(async () => 0);
-const isInitializingMock = mock(() => false);
-const cancelInitMock = mock(() => {});
-const waitForInitMock = mock(async () => {});
-const acquireProjectLockMock = mock(async () => {});
-const releaseProjectLockMock = mock(() => {});
-const clearJobMock = mock(() => {});
-const trackMock = mock(() => {});
-const hasUncommittedChangesMock = mock(async () => false);
-const hasUnpushedCommitsMock = mock(async () => false);
-const worktreeExistsMock = mock(async () => true);
-const deleteLocalBranchMock = mock(async () => {});
-const resolveTrackedWorktreePathMock =
-	mock<(worktreeId: string) => Promise<MockTrackedWorktreePathResult>>();
-const runTeardownMock = mock(async () => ({ success: true as const }));
-const removeWorktreeFromDiskMock = mock(async () => ({
+const hideProjectIfNoWorkspacesMock = mock<HideProjectIfNoWorkspacesFn>(
+	() => {},
+);
+const updateActiveWorkspaceIfRemovedMock =
+	mock<UpdateActiveWorkspaceIfRemovedFn>(() => {});
+const killByWorkspaceIdMock = mock<KillByWorkspaceIdFn>(async () => ({
+	killed: 0,
+	failed: 0,
+}));
+const getSessionCountByWorkspaceIdMock = mock<GetSessionCountByWorkspaceIdFn>(
+	async () => 0,
+);
+const isInitializingMock = mock<IsInitializingFn>(() => false);
+const cancelInitMock = mock<CancelInitFn>(() => {});
+const waitForInitMock = mock<WaitForInitFn>(async () => {});
+const acquireProjectLockMock = mock<AcquireProjectLockFn>(async () => {});
+const releaseProjectLockMock = mock<ReleaseProjectLockFn>(() => {});
+const clearJobMock = mock<ClearJobFn>(() => {});
+const trackMock = mock<TrackFn>(() => {});
+const hasUncommittedChangesMock = mock<HasUncommittedChangesFn>(
+	async () => false,
+);
+const hasUnpushedCommitsMock = mock<HasUnpushedCommitsFn>(async () => false);
+const worktreeExistsMock = mock<WorktreeExistsFn>(async () => true);
+const deleteLocalBranchMock = mock<DeleteLocalBranchFn>(async () => {});
+const resolveTrackedWorktreePathMock = mock<ResolveTrackedWorktreePathFn>();
+const runTeardownMock = mock<RunTeardownFn>(async () => ({ success: true }));
+const removeWorktreeFromDiskMock = mock<RemoveWorktreeFromDiskFn>(async () => ({
 	success: true as const,
 }));
 
-function createCaller() {
-	return createDeleteProcedures().createCaller({});
-}
-
-function seedTrackedWorkspace() {
-	projects.set("proj-1", {
+function createProject(overrides: Partial<MockProject> = {}): MockProject {
+	return {
 		id: "proj-1",
 		mainRepoPath: "/repo/main",
-	});
-	worktrees.set("wt-1", {
+		name: "Project 1",
+		color: "#000000",
+		tabOrder: 0,
+		lastOpenedAt: 0,
+		createdAt: 0,
+		configToastDismissed: null,
+		defaultBranch: null,
+		workspaceBaseBranch: null,
+		githubOwner: null,
+		branchPrefixMode: null,
+		branchPrefixCustom: null,
+		worktreeBaseDir: null,
+		hideImage: null,
+		iconUrl: null,
+		neonProjectId: null,
+		defaultApp: null,
+		...overrides,
+	};
+}
+
+function createWorktree(overrides: Partial<MockWorktree> = {}): MockWorktree {
+	return {
 		id: "wt-1",
 		projectId: "proj-1",
 		path: "/repo/wt-old",
 		branch: "feat-move",
-	});
-	workspaces.set("ws-1", {
+		baseBranch: null,
+		createdAt: 0,
+		gitStatus: null,
+		githubStatus: null,
+		...overrides,
+	};
+}
+
+function createWorkspace(
+	overrides: Partial<MockWorkspace> = {},
+): MockWorkspace {
+	return {
 		id: "ws-1",
 		projectId: "proj-1",
 		worktreeId: "wt-1",
 		type: "worktree",
 		name: "feat-move",
 		branch: "feat-move",
+		tabOrder: 0,
+		createdAt: 0,
+		updatedAt: 0,
+		lastOpenedAt: 0,
+		isUnread: false,
+		isUnnamed: false,
 		deletingAt: null,
-	});
+		portBase: null,
+		sectionId: null,
+		...overrides,
+	};
+}
+
+function createCaller() {
+	return createDeleteProcedures().createCaller({});
+}
+
+function seedTrackedWorkspace() {
+	projects.set("proj-1", createProject());
+	worktrees.set("wt-1", createWorktree());
+	workspaces.set("ws-1", createWorkspace());
 }
 
 function buildRepairRequiredResult(): MockTrackedWorktreePathResult {
@@ -147,7 +228,7 @@ describe("delete procedures", () => {
 		removeWorktreeFromDiskMock.mockClear();
 
 		isInitializingMock.mockReturnValue(false);
-		killByWorkspaceIdMock.mockResolvedValue({ failed: 0 });
+		killByWorkspaceIdMock.mockResolvedValue({ killed: 0, failed: 0 });
 		getSessionCountByWorkspaceIdMock.mockResolvedValue(0);
 		waitForInitMock.mockResolvedValue(undefined);
 		acquireProjectLockMock.mockResolvedValue(undefined);
@@ -186,15 +267,21 @@ describe("delete procedures", () => {
 			projects.get(projectId);
 		__testOnlyDeleteProcedureDeps.getWorkspace = (workspaceId: string) =>
 			workspaces.get(workspaceId);
-		__testOnlyDeleteProcedureDeps.getWorkspaceRuntimeRegistry = () => ({
-			getForWorkspaceId: () => ({
-				terminal: {
-					killByWorkspaceId: (...args) => killByWorkspaceIdMock(...args),
-					getSessionCountByWorkspaceId: (...args) =>
-						getSessionCountByWorkspaceIdMock(...args),
-				},
-			}),
-		});
+		const terminalRuntime = {
+			killByWorkspaceId: (...args: Parameters<KillByWorkspaceIdFn>) =>
+				killByWorkspaceIdMock(...args),
+			getSessionCountByWorkspaceId: (
+				...args: Parameters<GetSessionCountByWorkspaceIdFn>
+			) => getSessionCountByWorkspaceIdMock(...args),
+		} as unknown as TerminalRuntime;
+		const workspaceRuntime = {
+			terminal: terminalRuntime,
+		} as unknown as WorkspaceRuntime;
+		__testOnlyDeleteProcedureDeps.getWorkspaceRuntimeRegistry = () =>
+			({
+				getForWorkspaceId: () => workspaceRuntime,
+				getDefault: () => workspaceRuntime,
+			}) as unknown as WorkspaceRuntimeRegistry;
 		__testOnlyDeleteProcedureDeps.getWorktree = (worktreeId: string) =>
 			worktrees.get(worktreeId);
 		__testOnlyDeleteProcedureDeps.hasUncommittedChanges = (...args) =>

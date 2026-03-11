@@ -837,7 +837,7 @@ export async function repairWorktreeRegistration({
 	worktreePath: string;
 }): Promise<void> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		await git.raw(["worktree", "repair", worktreePath]);
 	} catch (error) {
 		console.error(`Failed to repair worktree registration: ${error}`);
