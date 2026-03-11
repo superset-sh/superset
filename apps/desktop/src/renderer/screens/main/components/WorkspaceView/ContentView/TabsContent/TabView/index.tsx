@@ -86,8 +86,17 @@ export function TabView({ tab }: TabViewProps) {
 		return result;
 	}, [layoutPaneIds, allPanes, tab.id]);
 
+	const zoomedPaneId = useTabsStore(
+		(s) => s.zoomedPaneIds[tab.id],
+	);
 	const validPaneIds = new Set(Object.keys(tabPanes));
 	const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
+
+	// When a pane is zoomed, show only that pane (if it's still valid)
+	const effectiveLayout =
+		zoomedPaneId && validPaneIds.has(zoomedPaneId)
+			? zoomedPaneId
+			: cleanedLayout;
 
 	// Auto-remove tab when all panes are gone
 	useEffect(() => {
@@ -267,7 +276,7 @@ export function TabView({ tab }: TabViewProps) {
 	);
 
 	// Tab will be removed by useEffect above
-	if (!cleanedLayout) {
+	if (!cleanedLayout || !effectiveLayout) {
 		return null;
 	}
 
@@ -275,7 +284,7 @@ export function TabView({ tab }: TabViewProps) {
 		<div className="relative w-full h-full mosaic-container">
 			<Mosaic<string>
 				renderTile={renderPane}
-				value={cleanedLayout}
+				value={effectiveLayout}
 				onChange={handleLayoutChange}
 				resize="DISABLED"
 				className={
@@ -285,10 +294,12 @@ export function TabView({ tab }: TabViewProps) {
 				}
 				dragAndDropManager={dragDropManager}
 			/>
-			<MosaicSplitOverlay
-				layout={cleanedLayout}
-				onLayoutChange={handleSplitLayoutChange}
-			/>
+			{!zoomedPaneId && (
+				<MosaicSplitOverlay
+					layout={cleanedLayout}
+					onLayoutChange={handleSplitLayoutChange}
+				/>
+			)}
 		</div>
 	);
 }

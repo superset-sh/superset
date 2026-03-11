@@ -31,6 +31,8 @@ interface TabContentContextMenuProps {
 	onSplitVertical: PaneContextMenuActions["onSplitVertical"];
 	onSplitWithNewChat?: PaneContextMenuActions["onSplitWithNewChat"];
 	onSplitWithNewBrowser?: PaneContextMenuActions["onSplitWithNewBrowser"];
+	onToggleZoom?: PaneContextMenuActions["onToggleZoom"];
+	isZoomed?: PaneContextMenuActions["isZoomed"];
 	onClosePane: PaneContextMenuActions["onClosePane"];
 	onClearTerminal?: () => void;
 	onScrollToBottom?: () => void;
@@ -49,6 +51,8 @@ export function TabContentContextMenu({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onToggleZoom,
+	isZoomed,
 	onClosePane,
 	onClearTerminal,
 	onScrollToBottom,
@@ -143,6 +147,8 @@ export function TabContentContextMenu({
 						onSplitVertical,
 						onSplitWithNewChat,
 						onSplitWithNewBrowser,
+						onToggleZoom,
+						isZoomed,
 						onClosePane,
 						currentTabId,
 						availableTabs,

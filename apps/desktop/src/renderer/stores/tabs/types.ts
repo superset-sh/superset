@@ -39,6 +39,8 @@ export interface Tab extends BaseTab {
 export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
 	closedTabsStack: ClosedTabEntry[];
+	/** Per-tab zoomed pane: when set, only this pane is shown in the tab */
+	zoomedPaneIds: Record<string, string | undefined>;
 }
 
 /**
@@ -205,6 +207,9 @@ export interface TabsStore extends TabsState {
 		paneId: string,
 		launchConfig: AddChatMastraTabOptions["launchConfig"],
 	) => void;
+
+	// Zoom operations
+	toggleZoomedPane: (tabId: string, paneId: string) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

@@ -14,6 +14,8 @@ interface FileEditorContextMenuProps {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onToggleZoom?: () => void;
+	isZoomed?: boolean;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -29,6 +31,8 @@ export function FileEditorContextMenu({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onToggleZoom,
+	isZoomed,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -51,6 +55,8 @@ export function FileEditorContextMenu({
 				onSplitVertical,
 				onSplitWithNewChat,
 				onSplitWithNewBrowser,
+				onToggleZoom,
+				isZoomed,
 				onClosePane,
 				currentTabId,
 				availableTabs,

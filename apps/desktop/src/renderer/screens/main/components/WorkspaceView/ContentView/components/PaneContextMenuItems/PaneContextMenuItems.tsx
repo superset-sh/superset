@@ -9,7 +9,9 @@ import {
 import {
 	LuColumns2,
 	LuGlobe,
+	LuMaximize2,
 	LuMessageSquare,
+	LuMinimize2,
 	LuMoveRight,
 	LuPlus,
 	LuRows2,
@@ -23,6 +25,8 @@ export interface PaneContextMenuActions {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onToggleZoom?: () => void;
+	isZoomed?: boolean;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -43,6 +47,7 @@ export function PaneContextMenuItems({
 	const splitRightShortcut = useHotkeyText("SPLIT_RIGHT");
 	const splitWithChatShortcut = useHotkeyText("SPLIT_WITH_CHAT");
 	const splitWithBrowserShortcut = useHotkeyText("SPLIT_WITH_BROWSER");
+	const zoomPaneShortcut = useHotkeyText("ZOOM_PANE");
 	const targetTabs = actions.availableTabs.filter(
 		(tab) => tab.id !== actions.currentTabId,
 	);
@@ -76,6 +81,20 @@ export function PaneContextMenuItems({
 					Split with New Browser
 					{renderShortcut(splitWithBrowserShortcut)}
 				</ContextMenuItem>
+			)}
+			{actions.onToggleZoom && (
+				<>
+					<ContextMenuSeparator />
+					<ContextMenuItem onSelect={actions.onToggleZoom}>
+						{actions.isZoomed ? (
+							<LuMinimize2 className="size-4" />
+						) : (
+							<LuMaximize2 className="size-4" />
+						)}
+						{actions.isZoomed ? "Unzoom Pane" : "Zoom Pane"}
+						{renderShortcut(zoomPaneShortcut)}
+					</ContextMenuItem>
+				</>
 			)}
 			<ContextMenuSeparator />
 			<ContextMenuSub>

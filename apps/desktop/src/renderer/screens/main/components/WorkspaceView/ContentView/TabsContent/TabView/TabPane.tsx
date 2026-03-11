@@ -58,6 +58,8 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const isZoomed = useTabsStore((s) => s.zoomedPaneIds[tabId] === paneId);
+	const toggleZoomedPane = useTabsStore((s) => s.toggleZoomedPane);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -123,6 +125,8 @@ export function TabPane({
 				onSplitWithNewBrowser={() =>
 					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 				}
+				onToggleZoom={() => toggleZoomedPane(tabId, paneId)}
+				isZoomed={isZoomed}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
 				onScrollToBottom={handleScrollToBottom}

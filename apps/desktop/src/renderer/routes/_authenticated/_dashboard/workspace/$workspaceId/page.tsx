@@ -139,6 +139,7 @@ function WorkspacePage() {
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const toggleZoomedPane = useTabsStore((s) => s.toggleZoomedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
 	const setSidebarOpen = useSidebarStore((s) => s.setSidebarOpen);
@@ -321,6 +322,17 @@ function WorkspacePage() {
 		},
 		undefined,
 		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
+
+	useAppHotkey(
+		"ZOOM_PANE",
+		() => {
+			if (activeTabId && focusedPaneId) {
+				toggleZoomedPane(activeTabId, focusedPaneId);
+			}
+		},
+		undefined,
+		[activeTabId, focusedPaneId, toggleZoomedPane],
 	);
 
 	// Open in last used app shortcut

@@ -108,6 +108,7 @@ export const useTabsStore = create<TabsStore>()(
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
 				closedTabsStack: [],
+				zoomedPaneIds: {},
 
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
@@ -924,12 +925,25 @@ export const useTabsStore = create<TabsStore>()(
 
 					const tabName = deriveTabName(newPanes, tab.id);
 
+					// Clear zoom if the zoomed pane was removed
+					let newZoomedPaneIds = state.zoomedPaneIds;
+					if (
+						state.zoomedPaneIds[tab.id] &&
+						paneIdsToRemove.includes(state.zoomedPaneIds[tab.id]!)
+					) {
+						newZoomedPaneIds = {
+							...state.zoomedPaneIds,
+							[tab.id]: undefined,
+						};
+					}
+
 					set({
 						tabs: state.tabs.map((t) =>
 							t.id === tab.id ? { ...t, layout: newLayout, name: tabName } : t,
 						),
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
+						zoomedPaneIds: newZoomedPaneIds,
 					});
 				},
 
@@ -1318,6 +1332,18 @@ export const useTabsStore = create<TabsStore>()(
 
 					set(moveResult.result);
 					return moveResult.newTabId;
+				},
+
+				// Zoom operations
+				toggleZoomedPane: (tabId, paneId) => {
+					const state = get();
+					const current = state.zoomedPaneIds[tabId];
+					set({
+						zoomedPaneIds: {
+							...state.zoomedPaneIds,
+							[tabId]: current === paneId ? undefined : paneId,
+						},
+					});
 				},
 
 				// Browser operations

@@ -67,6 +67,8 @@ export function ChatMastraPane({
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name ?? "New Chat");
+	const isZoomed = useTabsStore((s) => s.zoomedPaneIds[tabId] === paneId);
+	const toggleZoomedPane = useTabsStore((s) => s.toggleZoomedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const {
@@ -199,6 +201,8 @@ export function ChatMastraPane({
 						onSplitWithNewBrowser={() =>
 							splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 						}
+						onToggleZoom={() => toggleZoomedPane(tabId, paneId)}
+						isZoomed={isZoomed}
 						onClosePane={() => removePane(paneId)}
 						currentTabId={tabId}
 						availableTabs={availableTabs}

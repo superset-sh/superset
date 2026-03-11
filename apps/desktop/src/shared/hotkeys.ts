@@ -520,6 +520,12 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Close the current pane",
 	}),
+	ZOOM_PANE: defineHotkey({
+		keys: "meta+shift+enter",
+		label: "Zoom Pane",
+		category: "Layout",
+		description: "Toggle zoom on the focused pane to fill the tab",
+	}),
 
 	// Terminal
 	FIND_IN_TERMINAL: defineHotkey({

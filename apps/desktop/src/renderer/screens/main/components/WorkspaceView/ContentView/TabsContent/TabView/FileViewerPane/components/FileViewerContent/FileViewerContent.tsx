@@ -81,6 +81,8 @@ interface FileViewerContentProps {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onToggleZoom?: () => void;
+	isZoomed?: boolean;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -124,6 +126,8 @@ export function FileViewerContent({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onToggleZoom,
+	isZoomed,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -314,6 +318,8 @@ export function FileViewerContent({
 			onSplitVertical={onSplitVertical}
 			onSplitWithNewChat={onSplitWithNewChat}
 			onSplitWithNewBrowser={onSplitWithNewBrowser}
+			onToggleZoom={onToggleZoom}
+			isZoomed={isZoomed}
 			onClosePane={onClosePane}
 			currentTabId={currentTabId}
 			availableTabs={availableTabs}
