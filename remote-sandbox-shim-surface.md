@@ -39,6 +39,55 @@ Notes:
 - `watchWorkspace` keeps the UI reactive without polling or manual refresh.
 - `stat` is useful metadata and helps future compatibility.
 
+## Generalization Opportunities
+
+The current surface is mostly already in the right shape for a remote shim.
+
+The main method that is more specialized than necessary is:
+
+- `watchWorkspace`
+
+For a remote shim, the cleaner long-term shape is:
+
+```ts
+watchPath({
+  workspaceId,
+  absolutePath,
+  recursive,
+})
+```
+
+Then `watchWorkspace` can just be a convenience wrapper for watching the workspace root.
+
+This is a better fit because:
+
+- it matches the rest of the API, which is mostly `workspaceId + absolutePath`
+- it supports both whole-workspace and subdirectory watches
+- it avoids forcing remote backends to stream changes for an entire workspace when only part of the tree matters
+
+## Wrapper-Level Names To Avoid In The Core Shim
+
+There are also a number of desktop adapter helpers with `Workspace` in the name.
+
+These are useful app-side wrappers, but they should **not** define the core remote shim shape:
+
+- `readWorkspaceDirectory`
+- `createWorkspaceFile`
+- `createWorkspaceDirectory`
+- `renameWorkspacePath`
+- `deleteWorkspacePaths`
+- `moveWorkspacePaths`
+- `copyWorkspacePaths`
+- `workspacePathExists`
+- `statWorkspacePath`
+- `searchWorkspaceFiles`
+- `searchWorkspaceKeyword`
+- `watchWorkspaceFileSystemEvents`
+
+Those are adapter functions over the lower-level `workspace-fs` contract, not the contract itself.
+
+Similarly, `searchFilesMulti` should stay above the shim layer. It is a composition feature, not a primitive filesystem capability.
+
 ## V2 / Can Be Deferred
 
 These can be added later if needed:
@@ -95,7 +144,7 @@ searchKeyword
 Then add:
 
 ```ts
-watchWorkspace
+watchWorkspace // or preferably watchPath at the shim layer
 stat
 ```
 
