@@ -4,9 +4,9 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
-export function useCreateBranchWorkspace(
+export function useOpenMainRepoWorkspace(
 	options?: Parameters<
-		typeof electronTrpc.workspaces.createBranchWorkspace.useMutation
+		typeof electronTrpc.workspaces.openMainRepoWorkspace.useMutation
 	>[0],
 ) {
 	const navigate = useNavigate();
@@ -16,7 +16,7 @@ export function useCreateBranchWorkspace(
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
 
-	return electronTrpc.workspaces.createBranchWorkspace.useMutation({
+	return electronTrpc.workspaces.openMainRepoWorkspace.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			await utils.workspaces.invalidate();
@@ -29,7 +29,7 @@ export function useCreateBranchWorkspace(
 					});
 				} catch (error) {
 					console.error(
-						"[useCreateBranchWorkspace] Failed to fetch setup commands:",
+						"[useOpenMainRepoWorkspace] Failed to fetch setup commands:",
 						error,
 					);
 				}
