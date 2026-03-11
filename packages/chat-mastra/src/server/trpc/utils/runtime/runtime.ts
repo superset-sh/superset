@@ -1,7 +1,7 @@
+import { generateTitleFromMessage } from "@superset/chat/host";
 import type { AppRouter } from "@superset/trpc";
 import type { createTRPCClient } from "@trpc/client";
 import type { createMastraCode } from "mastracode";
-import { generateTitleFromMessage } from "./title-generation";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>

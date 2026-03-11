@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { STROKE_WIDTH } from "./constants";
 import { HostServiceStatus } from "./HostServiceStatus";
 
@@ -23,7 +23,7 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const navigate = useNavigate();
 	const { openNew, isPending: isOpenPending } = useOpenProject();
-	const createBranchWorkspace = useCreateBranchWorkspace();
+	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
 
 	const handleOpenProject = async () => {
 		try {
@@ -31,7 +31,7 @@ export function WorkspaceSidebarFooter({
 
 			for (const project of projects) {
 				try {
-					await createBranchWorkspace.mutateAsync({
+					await openMainRepoWorkspace.mutateAsync({
 						projectId: project.id,
 					});
 				} catch (err) {
@@ -49,7 +49,7 @@ export function WorkspaceSidebarFooter({
 		}
 	};
 
-	const isLoading = isOpenPending || createBranchWorkspace.isPending;
+	const isLoading = isOpenPending || openMainRepoWorkspace.isPending;
 
 	if (isCollapsed) {
 		return (

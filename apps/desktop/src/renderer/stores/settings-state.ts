@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-/**
- * Settings sections available in the settings view.
- * General sections are the main categories, project/workspace are dynamic.
- */
 export type SettingsSection =
 	| "account"
 	| "organization"
@@ -14,6 +10,7 @@ export type SettingsSection =
 	| "behavior"
 	| "git"
 	| "terminal"
+	| "models"
 	| "integrations"
 	| "billing"
 	| "devices"
@@ -68,7 +65,6 @@ export const useSettingsStore = create<SettingsState>()(
 	),
 );
 
-// Convenience hooks
 export const useSettingsSection = () =>
 	useSettingsStore((state) => state.activeSection);
 export const useSetSettingsSection = () =>

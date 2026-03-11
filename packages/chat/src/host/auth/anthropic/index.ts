@@ -5,7 +5,7 @@ export {
 	getCredentialsFromAuthStorage,
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
-	getCredentialsFromRuntimeEnv,
+	isClaudeCredentialExpired,
 } from "./anthropic";
 export {
 	createAnthropicOAuthSession,

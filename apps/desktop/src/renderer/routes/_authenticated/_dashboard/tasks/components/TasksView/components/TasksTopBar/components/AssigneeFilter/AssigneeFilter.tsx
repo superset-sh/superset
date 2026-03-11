@@ -2,16 +2,21 @@ import type { SelectUser } from "@superset/db/schema";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+	CommandSeparator,
+} from "@superset/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMemo, useState } from "react";
-import { HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+
+type Tab = "all" | "internal" | "external";
 
 interface AssigneeFilterProps {
 	value: string | null;
@@ -21,6 +26,8 @@ interface AssigneeFilterProps {
 export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
+	const [search, setSearch] = useState("");
+	const [tab, setTab] = useState<Tab>("all");
 
 	const { data: allUsers } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
@@ -65,14 +72,61 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 		return users.find((u) => u.id === value) || null;
 	}, [value, users, externalAssignees]);
 
+	const query = search.toLowerCase();
+
+	const filteredUsers = useMemo(
+		() =>
+			users.filter(
+				(u) =>
+					u.name?.toLowerCase().includes(query) ||
+					u.email?.toLowerCase().includes(query),
+			),
+		[users, query],
+	);
+
+	const filteredExternal = useMemo(
+		() =>
+			externalAssignees.filter(
+				(e) => !query || e.name?.toLowerCase().includes(query),
+			),
+		[externalAssignees, query],
+	);
+
+	const visibleUsers = tab === "external" ? [] : filteredUsers;
+	const visibleExternal = tab === "internal" ? [] : filteredExternal;
+	const hasResults = visibleUsers.length > 0 || visibleExternal.length > 0;
+
+	const [canScroll, setCanScroll] = useState(false);
+	const listRef = useRef<HTMLDivElement>(null);
+
+	const checkScroll = useCallback(() => {
+		const el = listRef.current;
+		if (!el) return;
+		const hasOverflow = el.scrollHeight > el.clientHeight;
+		const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+		setCanScroll(hasOverflow && !atBottom);
+	}, []);
+
+	useEffect(() => {
+		checkScroll();
+	}, [checkScroll]);
+
 	const handleSelect = (userId: string | null) => {
 		onChange(userId);
 		setOpen(false);
 	};
 
+	const handleOpenChange = (next: boolean) => {
+		setOpen(next);
+		if (!next) {
+			setSearch("");
+			setTab("all");
+		}
+	};
+
 	return (
-		<DropdownMenu open={open} onOpenChange={setOpen}>
-			<DropdownMenuTrigger asChild>
+		<Popover open={open} onOpenChange={handleOpenChange}>
+			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
 					size="sm"
@@ -99,79 +153,134 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 					)}
 					<HiChevronDown className="size-3" />
 				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-56">
-				<div className="max-h-64 overflow-y-auto">
-					<DropdownMenuItem
-						onSelect={() => handleSelect(null)}
-						className="flex items-center gap-2"
-					>
-						<span className="text-sm">All assignees</span>
-						{value === null && (
-							<span className="ml-auto text-xs text-muted-foreground">✓</span>
-						)}
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onSelect={() => handleSelect("unassigned")}
-						className="flex items-center gap-2"
-					>
-						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
-						<span className="text-sm">Unassigned</span>
-						{value === "unassigned" && (
-							<span className="ml-auto text-xs text-muted-foreground">✓</span>
-						)}
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					{users.map((user) => (
-						<DropdownMenuItem
-							key={user.id}
-							onSelect={() => handleSelect(user.id)}
-							className="flex items-center gap-2"
+			</PopoverTrigger>
+			<PopoverContent align="start" className="w-60 p-0">
+				<Command shouldFilter={false}>
+					<CommandInput
+						placeholder="Search people..."
+						value={search}
+						onValueChange={setSearch}
+					/>
+					<div className="flex items-center gap-0.5 border-b px-2 py-1.5">
+						{(["all", "internal", "external"] as const).map((t) => (
+							<button
+								key={t}
+								type="button"
+								onClick={() => setTab(t)}
+								className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+									tab === t
+										? "bg-accent text-accent-foreground"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+							>
+								{t === "all"
+									? "All"
+									: t === "internal"
+										? "Internal"
+										: "External"}
+							</button>
+						))}
+					</div>
+					<div className="relative">
+						<CommandList
+							ref={listRef}
+							className="max-h-80"
+							onScroll={checkScroll}
 						>
-							<Avatar size="xs" fullName={user.name} image={user.image} />
-							<div className="flex flex-col">
-								<span className="text-sm">{user.name}</span>
-								<span className="text-xs text-muted-foreground">
-									{user.email}
-								</span>
-							</div>
-							{user.id === value && (
-								<span className="ml-auto text-xs text-muted-foreground">✓</span>
-							)}
-						</DropdownMenuItem>
-					))}
-					{externalAssignees.length > 0 && (
-						<>
-							<DropdownMenuSeparator />
-							<div className="px-2 py-1 text-xs text-muted-foreground font-medium">
-								External
-							</div>
-							{externalAssignees.map((ext) => (
-								<DropdownMenuItem
-									key={ext.id}
-									onSelect={() => handleSelect(`ext:${ext.id}`)}
-									className="flex items-center gap-2"
-								>
-									<Avatar
-										size="xs"
-										fullName={ext.name || "External"}
-										image={ext.avatar}
-									/>
-									<span className="text-sm text-muted-foreground">
-										{ext.name || "External"}
-									</span>
-									{value === `ext:${ext.id}` && (
-										<span className="ml-auto text-xs text-muted-foreground">
-											✓
-										</span>
+							<CommandGroup>
+								<CommandItem onSelect={() => handleSelect(null)}>
+									<span className="text-sm">All assignees</span>
+									{value === null && <HiCheck className="ml-auto size-3.5" />}
+								</CommandItem>
+								<CommandItem onSelect={() => handleSelect("unassigned")}>
+									<HiOutlineUserCircle className="size-4" />
+									<span className="text-sm">Unassigned</span>
+									{value === "unassigned" && (
+										<HiCheck className="ml-auto size-3.5" />
 									)}
-								</DropdownMenuItem>
-							))}
-						</>
-					)}
-				</div>
-			</DropdownMenuContent>
-		</DropdownMenu>
+								</CommandItem>
+							</CommandGroup>
+
+							{!hasResults && search && (
+								<CommandEmpty>No people found.</CommandEmpty>
+							)}
+
+							{visibleUsers.length > 0 && (
+								<>
+									<CommandSeparator />
+									<CommandGroup
+										heading={
+											tab === "all" && visibleExternal.length > 0
+												? "Internal"
+												: undefined
+										}
+									>
+										{visibleUsers.map((user) => (
+											<CommandItem
+												key={user.id}
+												onSelect={() => handleSelect(user.id)}
+											>
+												<Avatar
+													size="xs"
+													fullName={user.name}
+													image={user.image}
+												/>
+												<div className="flex flex-col min-w-0">
+													<span className="text-sm truncate">{user.name}</span>
+													<span className="text-xs text-muted-foreground truncate">
+														{user.email}
+													</span>
+												</div>
+												{user.id === value && (
+													<HiCheck className="ml-auto size-3.5 shrink-0" />
+												)}
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</>
+							)}
+
+							{visibleExternal.length > 0 && (
+								<>
+									<CommandSeparator />
+									<CommandGroup
+										heading={
+											tab === "all" && visibleUsers.length > 0
+												? "External"
+												: undefined
+										}
+									>
+										{visibleExternal.map((ext) => (
+											<CommandItem
+												key={ext.id}
+												onSelect={() => handleSelect(`ext:${ext.id}`)}
+											>
+												<Avatar
+													size="xs"
+													fullName={ext.name || "External"}
+													image={ext.avatar}
+												/>
+												<span className="text-sm truncate">
+													{ext.name || "External"}
+												</span>
+												{value === `ext:${ext.id}` && (
+													<HiCheck className="ml-auto size-3.5 shrink-0" />
+												)}
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</>
+							)}
+						</CommandList>
+						{canScroll && (
+							<div
+								className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-popover to-transparent"
+								aria-hidden="true"
+							/>
+						)}
+					</div>
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }

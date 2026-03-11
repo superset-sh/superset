@@ -57,6 +57,11 @@ const config: NextConfig = {
 				permanent: true,
 			},
 			{
+				source: "/changelog/2026-03-09-codemirror-workspace-modal-icons",
+				destination: "/changelog/2026-03-09-codemirror-workspace",
+				permanent: true,
+			},
+			{
 				source: "/docs/:path*",
 				destination: `${docsUrl}/:path*`,
 				permanent: false,

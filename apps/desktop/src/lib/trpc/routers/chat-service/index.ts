@@ -3,9 +3,9 @@ import {
 	ChatService,
 } from "@superset/chat/host";
 
-const service = new ChatService();
+export const chatService = new ChatService();
 
-export const createChatServiceRouter = () => buildRouter(service);
+export const createChatServiceRouter = () => buildRouter(chatService);
 
 export type ChatServiceDesktopRouter = ReturnType<
 	typeof createChatServiceRouter
