@@ -366,12 +366,14 @@ export function FileViewerContent({
 							className="min-h-full"
 						/>
 					</div>
-					<DiffScrollIndicators
-						scrollRef={diffContainerRef}
-						original={diffData.original}
-						modified={diffData.modified}
-						filePath={filePath}
-					/>
+					{!hideUnchangedRegions && (
+						<DiffScrollIndicators
+							scrollRef={diffContainerRef}
+							original={diffData.original}
+							modified={diffData.modified}
+							filePath={filePath}
+						/>
+					)}
 				</div>
 			</DiffViewerContextMenu>
 		);
