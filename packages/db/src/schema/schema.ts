@@ -20,6 +20,8 @@ import {
 	integrationProviderValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
+	v2DeviceTypeValues,
+	v2UsersDeviceRoleValues,
 	workspaceTypeValues,
 } from "./enums";
 import { githubRepositories } from "./github";
@@ -33,6 +35,11 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const deviceType = pgEnum("device_type", deviceTypeValues);
+export const v2DeviceType = pgEnum("v2_device_type", v2DeviceTypeValues);
+export const v2UsersDeviceRole = pgEnum(
+	"v2_users_device_role",
+	v2UsersDeviceRoleValues,
+);
 export const commandStatus = pgEnum("command_status", commandStatusValues);
 
 export const taskStatuses = pgTable(
@@ -369,6 +376,170 @@ export const projects = pgTable(
 
 export type InsertProject = typeof projects.$inferInsert;
 export type SelectProject = typeof projects.$inferSelect;
+
+export const v2Projects = pgTable(
+	"v2_projects",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		slug: text().notNull(),
+		githubRepositoryId: uuid("github_repository_id").references(
+			() => githubRepositories.id,
+			{ onDelete: "set null" },
+		),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_projects_organization_id_idx").on(table.organizationId),
+		unique("v2_projects_org_slug_unique").on(table.organizationId, table.slug),
+	],
+);
+
+export type InsertV2Project = typeof v2Projects.$inferInsert;
+export type SelectV2Project = typeof v2Projects.$inferSelect;
+
+export const v2Devices = pgTable(
+	"v2_devices",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		clientId: text("client_id"),
+		name: text().notNull(),
+		type: v2DeviceType().notNull(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_devices_organization_id_idx").on(table.organizationId),
+		unique("v2_devices_org_client_id_unique").on(
+			table.organizationId,
+			table.clientId,
+		),
+	],
+);
+
+export type InsertV2Device = typeof v2Devices.$inferInsert;
+export type SelectV2Device = typeof v2Devices.$inferSelect;
+
+export const v2UsersDevices = pgTable(
+	"v2_users_devices",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		deviceId: uuid("device_id")
+			.notNull()
+			.references(() => v2Devices.id, { onDelete: "cascade" }),
+		role: v2UsersDeviceRole().notNull().default("member"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_users_devices_organization_id_idx").on(table.organizationId),
+		index("v2_users_devices_user_id_idx").on(table.userId),
+		index("v2_users_devices_device_id_idx").on(table.deviceId),
+		unique("v2_users_devices_user_device_unique").on(
+			table.userId,
+			table.deviceId,
+		),
+	],
+);
+
+export type InsertV2UsersDevices = typeof v2UsersDevices.$inferInsert;
+export type SelectV2UsersDevices = typeof v2UsersDevices.$inferSelect;
+
+export const v2DevicePresence = pgTable(
+	"v2_device_presence",
+	{
+		deviceId: uuid("device_id")
+			.primaryKey()
+			.references(() => v2Devices.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_device_presence_organization_id_idx").on(table.organizationId),
+		index("v2_device_presence_last_seen_idx").on(table.lastSeenAt),
+	],
+);
+
+export type InsertV2DevicePresence = typeof v2DevicePresence.$inferInsert;
+export type SelectV2DevicePresence = typeof v2DevicePresence.$inferSelect;
+
+export const v2Workspaces = pgTable(
+	"v2_workspaces",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		projectId: uuid("project_id")
+			.notNull()
+			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		deviceId: uuid("device_id").references(() => v2Devices.id, {
+			onDelete: "set null",
+		}),
+		name: text().notNull(),
+		branch: text().notNull(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_workspaces_project_id_idx").on(table.projectId),
+		index("v2_workspaces_organization_id_idx").on(table.organizationId),
+		index("v2_workspaces_device_id_idx").on(table.deviceId),
+	],
+);
+
+export type InsertV2Workspace = typeof v2Workspaces.$inferInsert;
+export type SelectV2Workspace = typeof v2Workspaces.$inferSelect;
 
 export const secrets = pgTable(
 	"secrets",
