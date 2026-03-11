@@ -4,69 +4,103 @@ This is the final state I would target for the remote filesystem shim.
 
 ## Core API
 
+### `listDirectory`
+
+Returns the direct children of a directory.
+
 ```ts
-listDirectory({
-  absolutePath,
-})
+listDirectory({ absolutePath })
+```
 
-readFile({
-  absolutePath,
-  maxBytes,
-  encoding,
-})
+### `readFile`
 
-getMetadata({
-  absolutePath,
-})
+Reads a file as text or bytes. `maxBytes` supports capped reads.
+Use this instead of separate text, bytes, and capped-read primitives.
 
+```ts
+readFile({ absolutePath, maxBytes, encoding })
+```
+
+### `getMetadata`
+
+Returns file metadata, or `null` if the path does not exist.
+Use this instead of separate `exists` and `stat` calls.
+
+```ts
+getMetadata({ absolutePath })
+```
+
+### `writeFile`
+
+Writes file contents. `ifMatch` is the recommended conflict-aware write mechanism.
+Use an opaque revision token from `readFile` or `getMetadata`.
+
+```ts
 writeFile({
   absolutePath,
   content,
   encoding,
-  expectedContent,
+  precondition: {
+    ifMatch: revision,
+  },
 })
+```
 
-createPath({
-  absolutePath,
-  kind,
-  content,
-})
+### `createPath`
 
-deletePaths({
-  absolutePaths,
-  permanent,
-})
+Creates a file or directory. `content` only applies to file creation.
 
-movePaths({
-  sourceAbsolutePaths,
-  destinationAbsolutePath,
-})
+```ts
+createPath({ absolutePath, kind, content })
+```
 
-copyPaths({
-  sourceAbsolutePaths,
-  destinationAbsolutePath,
-})
+### `deletePaths`
 
-searchFiles({
-  query,
-  includeHidden,
-  includePattern,
-  excludePattern,
-  limit,
-})
+Deletes one or more paths. `permanent` controls trash vs hard delete behavior.
 
-searchContent({
-  query,
-  includeHidden,
-  includePattern,
-  excludePattern,
-  limit,
-})
+```ts
+deletePaths({ absolutePaths, permanent })
+```
 
-watchPath({
-  absolutePath,
-  recursive,
-})
+### `movePaths`
+
+Moves one or more paths. Rename is just a same-parent move.
+
+```ts
+movePaths({ sourceAbsolutePaths, destinationAbsolutePath })
+```
+
+### `copyPaths`
+
+Copies one or more paths.
+
+```ts
+copyPaths({ sourceAbsolutePaths, destinationAbsolutePath })
+```
+
+### `searchFiles`
+
+Searches file names and paths.
+
+```ts
+searchFiles({ query, includeHidden, includePattern, excludePattern, limit })
+```
+
+### `searchContent`
+
+Searches file contents and should return line/column-oriented matches.
+
+```ts
+searchContent({ query, includeHidden, includePattern, excludePattern, limit })
+```
+
+### `watchPath`
+
+Subscribes to path changes. This should be the primitive watch operation.
+Any workspace-wide watch should be a wrapper around this.
+
+```ts
+watchPath({ absolutePath, recursive })
 ```
 
 ## Consolidation
@@ -93,7 +127,4 @@ They have different semantics, different cost profiles, and different result sha
 
 - The shim should be pure path-based
 - Workspace scoping should live in client logic, not in the remote filesystem interface
-- `writeFile` should support conflict-aware writes via `expectedContent`
-- `getMetadata` should return `null` for missing paths
-- `watchPath` should be the primitive; any workspace-wide watch should be a wrapper
 - higher-level helpers like `readWorkspaceDirectory` or `searchFilesMulti` should stay above the shim layer
