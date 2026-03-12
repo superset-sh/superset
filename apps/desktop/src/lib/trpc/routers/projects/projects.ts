@@ -39,7 +39,10 @@ import {
 	refreshDefaultBranch,
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
-import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import {
+	getGitLfsConfigArgs,
+	getSimpleGitWithShellPath,
+} from "../workspaces/utils/git-client";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -889,8 +892,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					}
 
 					// Clone the repository
+					// When git-lfs is not available but the user's global gitconfig
+					// has LFS filter entries, git clone fails because it cannot spawn
+					// the missing `git-lfs` binary. Disable the filter via `-c` flags
+					// so the clone succeeds with LFS pointer files instead.
 					const git = await getSimpleGitWithShellPath();
-					await git.clone(input.url, clonePath);
+					const lfsArgs = await getGitLfsConfigArgs();
+					await git.clone(input.url, clonePath, [...lfsArgs]);
 
 					// Create new project
 					const name = basename(clonePath);

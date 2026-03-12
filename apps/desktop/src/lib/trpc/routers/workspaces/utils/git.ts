@@ -12,7 +12,7 @@ import {
 } from "shared/utils/branch";
 import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { getSimpleGitWithShellPath } from "./git-client";
+import { getGitLfsConfigArgs, getSimpleGitWithShellPath } from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -92,10 +92,15 @@ async function execWorktreeAdd({
 	worktreePath: string;
 	timeout?: number;
 }): Promise<void> {
+	// Disable LFS smudge filter when git-lfs is not installed to prevent
+	// worktree creation from failing with "git-lfs not found" errors.
+	const lfsArgs = await getGitLfsConfigArgs();
+	const fullArgs = lfsArgs.length > 0 ? [...lfsArgs, ...args] : args;
+
 	await runWithPostCheckoutHookTolerance({
 		context: `Worktree created at ${worktreePath}`,
 		run: async () => {
-			await execWithShellEnv("git", args, { timeout });
+			await execWithShellEnv("git", fullArgs, { timeout });
 		},
 		didSucceed: async () =>
 			isWorktreeRegistered({ mainRepoPath, worktreePath }),
