@@ -38,12 +38,14 @@ export function PostHogUserIdentifier() {
 	}, [user, session, setUserId]);
 
 	useEffect(() => {
+		if (session === undefined) return;
+
 		if (activeOrganizationId) {
 			localStorage.setItem(ACTIVE_ORG_ID_KEY, activeOrganizationId);
 		} else {
 			localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		}
-	}, [activeOrganizationId]);
+	}, [session, activeOrganizationId]);
 
 	return null;
 }
