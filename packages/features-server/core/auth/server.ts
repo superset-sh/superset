@@ -3,7 +3,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization, genericOAuth } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { eq } from "drizzle-orm";
 import postgres from "postgres";
+import { profiles } from "@superbuilder/features-db";
 import { env } from "./env";
 
 const client = postgres(env.DATABASE_URL);
@@ -84,6 +86,45 @@ export const auth = betterAuth({
     },
   },
   socialProviders,
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Better Auth user 생성 시 profiles 테이블에도 레코드 동기화
+          // 기존 Feature들이 profiles를 FK 참조하므로 필수
+          const existing = await db
+            .select({ id: profiles.id })
+            .from(profiles)
+            .where(eq(profiles.id, user.id))
+            .limit(1);
+
+          if (existing.length === 0) {
+            await db.insert(profiles).values({
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              avatar: user.image ?? null,
+              authProvider: "email",
+            });
+          }
+        },
+      },
+      update: {
+        after: async (user) => {
+          // Better Auth user 업데이트 시 profiles도 동기화
+          await db
+            .update(profiles)
+            .set({
+              ...(user.name ? { name: user.name } : {}),
+              ...(user.email ? { email: user.email } : {}),
+              ...(user.image !== undefined ? { avatar: user.image } : {}),
+              updatedAt: new Date(),
+            })
+            .where(eq(profiles.id, user.id));
+        },
+      },
+    },
+  },
   plugins: [
     organization({
       creatorRole: "owner",
