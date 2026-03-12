@@ -35,8 +35,12 @@ export function statusCommand(): void {
 	}
 
 	const parts: string[] = [];
-	if (worktreeCount > 0) parts.push(`${worktreeCount} worktree`);
-	if (branchCount > 0) parts.push(`${branchCount} branch`);
+	if (worktreeCount > 0)
+		parts.push(
+			`${worktreeCount} ${worktreeCount === 1 ? "worktree" : "worktrees"}`,
+		);
+	if (branchCount > 0)
+		parts.push(`${branchCount} ${branchCount === 1 ? "branch" : "branches"}`);
 	console.log(
 		`${bold("Workspaces:")} ${rows.length}${parts.length > 0 ? ` (${parts.join(", ")})` : ""}`,
 	);

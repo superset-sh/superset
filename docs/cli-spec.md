@@ -33,7 +33,7 @@ The CLI does not embed application logic. It translates user intent into either 
 | Entry point | `src/bin.ts` |
 | Runtime | Bun |
 
-Follows the existing `@superset/desktop-mcp` pattern: `bin` field in `package.json` points directly to a `.ts` file with a `#!/usr/bin/env node` shebang.
+Follows the existing `@superset/desktop-mcp` pattern: `bin` field in `package.json` points directly to a `.ts` file with a `#!/usr/bin/env bun` shebang.
 
 ### Dependencies
 

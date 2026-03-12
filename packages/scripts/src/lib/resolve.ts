@@ -55,8 +55,8 @@ export function getCurrentBranch(dir: string): string | null {
 		return head.slice(refPrefix.length);
 	}
 
-	// Detached HEAD — return short hash
-	return head.slice(0, 8);
+	// Detached HEAD — not on a branch
+	return null;
 }
 
 export function tildeContract(absPath: string): string {

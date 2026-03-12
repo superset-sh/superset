@@ -3,7 +3,9 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DB_PATH = join(homedir(), ".superset", "local.db");
+const supersetHomeDir =
+	process.env.SUPERSET_HOME_DIR || join(homedir(), ".superset");
+const DB_PATH = join(supersetHomeDir, "local.db");
 
 export interface Project {
 	id: string;
@@ -42,7 +44,8 @@ function getDb(): Database | null {
 
 	try {
 		return new Database(DB_PATH, { readonly: true });
-	} catch {
+	} catch (err) {
+		console.warn("[superset] Failed to open local database:", err);
 		return null;
 	}
 }
