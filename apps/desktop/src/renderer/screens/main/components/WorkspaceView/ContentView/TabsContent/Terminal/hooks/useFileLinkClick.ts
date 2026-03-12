@@ -82,11 +82,7 @@ export function useFileLinkClick({
 					});
 				})
 				.catch((error) => {
-					console.error(
-						"[Terminal] Failed to resolve path:",
-						path,
-						error,
-					);
+					console.error("[Terminal] Failed to resolve path:", path, error);
 					openInExternalEditor();
 				});
 		},
