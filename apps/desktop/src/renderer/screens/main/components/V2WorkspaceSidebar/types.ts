@@ -15,5 +15,6 @@ export interface V2SidebarProject {
 	githubRepositoryId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
+	isCollapsed: boolean;
 	workspaces: V2SidebarWorkspace[];
 }
