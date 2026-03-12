@@ -625,10 +625,9 @@ export async function deleteLocalBranch({
 	branch: string;
 }): Promise<void> {
 	try {
-		await execGitWithShellPath(
-			["-C", mainRepoPath, "branch", "-D", branch],
-			{ timeout: 10_000 },
-		);
+		await execGitWithShellPath(["-C", mainRepoPath, "branch", "-D", branch], {
+			timeout: 10_000,
+		});
 		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -684,10 +683,9 @@ export async function removeWorktree(
 		// If the worktree directory is already gone, just prune metadata
 		if (code === "ENOENT") {
 			try {
-				await execGitWithShellPath(
-					["-C", mainRepoPath, "worktree", "prune"],
-					{ timeout: 10_000 },
-				);
+				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
+					timeout: 10_000,
+				});
 			} catch {}
 			return;
 		}
