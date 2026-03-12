@@ -58,20 +58,12 @@ export function useFileLinkClick({
 				return;
 			}
 
-			// Resolve to absolute path on main process (~, relative, file:// all handled)
-			// then route based on whether the result is inside the workspace.
+			console.log("[Terminal] File link click:", { path, workspaceCwd, behavior });
 			trpcClient.external.resolvePath
 				.query({ path, cwd: workspaceCwd })
 				.then((filePath) => {
+					console.log("[Terminal] Resolved path:", { raw: path, resolved: filePath });
 					if (filePath === workspaceCwd) {
-						return;
-					}
-
-					if (!filePath.startsWith(`${workspaceCwd}/`)) {
-						toast.warning("File is outside the workspace", {
-							description:
-								"Switch to 'External editor' in Settings to open this file",
-						});
 						return;
 					}
 
