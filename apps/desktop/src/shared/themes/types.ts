@@ -321,9 +321,9 @@ export function getEditorTheme(theme: Theme): EditorTheme {
 			diffBuffer: theme.ui.tertiary,
 			diffHover: theme.ui.accent,
 			diffSeparator: theme.ui.border,
-			addition: withAlpha(terminal.green, theme.type === "dark" ? 0.18 : 0.14),
-			deletion: withAlpha(terminal.red, theme.type === "dark" ? 0.18 : 0.14),
-			modified: withAlpha(terminal.blue, theme.type === "dark" ? 0.18 : 0.14),
+			addition: theme.type === "dark" ? terminal.brightGreen : terminal.green,
+			deletion: theme.type === "dark" ? terminal.brightRed : terminal.red,
+			modified: theme.type === "dark" ? terminal.brightBlue : terminal.blue,
 		},
 		syntax: {
 			plainText: terminal.foreground,

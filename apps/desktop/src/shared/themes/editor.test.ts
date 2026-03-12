@@ -13,6 +13,8 @@ describe("getEditorTheme", () => {
 			darkTheme.terminal?.foreground ?? darkTheme.ui.foreground,
 		);
 		expect(editorTheme.colors.search).toBe(darkTheme.ui.highlightMatch);
+		expect(editorTheme.colors.addition).toBe(darkTheme.terminal?.brightGreen);
+		expect(editorTheme.colors.deletion).toBe(darkTheme.terminal?.brightRed);
 		expect(editorTheme.syntax.keyword).toBe(
 			darkTheme.terminal?.magenta ?? darkTheme.ui.foreground,
 		);
