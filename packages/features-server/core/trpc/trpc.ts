@@ -9,9 +9,7 @@ import type { DrizzleDB } from "@superbuilder/features-db";
 export interface User {
   id: string;
   email?: string;
-  role?: string;
-  roleIds?: string[]; // Added for RBAC support
-  // Add other user fields as needed
+  organizationIds?: string[];
 }
 
 /**
@@ -22,11 +20,6 @@ export interface User {
 export interface BaseTRPCContext extends CreateFastifyContextOptions {
   db: DrizzleDB;
   user?: User;
-  // Services (injected by NestJS)
-  roleService?: any;
-  permissionService?: any;
-  authService?: any;
-  // Additional context fields can be added by apps
 }
 
 /**
