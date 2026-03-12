@@ -367,6 +367,27 @@ export class WorkspaceFsWatcherManager {
 			flushTimer: null,
 		};
 
+		try {
+			const rootStats = await stat(state.rootPath);
+			if (!rootStats.isDirectory()) {
+				throw new Error(
+					`Cannot watch workspace ${options.workspaceId}: path is not a directory: ${state.rootPath}`,
+				);
+			}
+		} catch (error) {
+			if (
+				error instanceof Error &&
+				"code" in error &&
+				((error as NodeJS.ErrnoException).code === "ENOENT" ||
+					(error as NodeJS.ErrnoException).code === "ENOTDIR")
+			) {
+				throw new Error(
+					`Cannot watch workspace ${options.workspaceId}: path does not exist: ${state.rootPath}`,
+				);
+			}
+			throw error;
+		}
+
 		state.subscription = await subscribeToFilesystem(
 			state.rootPath,
 			(error, events) => {
@@ -374,7 +395,7 @@ export class WorkspaceFsWatcherManager {
 					console.error("[workspace-fs/watch] Watcher error:", {
 						workspaceId: state.workspaceId,
 						rootPath: state.rootPath,
-						error,
+						error: error instanceof Error ? error.message : String(error),
 					});
 					this.emit(state, {
 						type: "overflow",
