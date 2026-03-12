@@ -33,6 +33,7 @@
 	align-items: center;
 	transition: background-color 0.15s ease;
 	border-radius: 0;
+	box-shadow: none;
 }
 :is(.mosaic-theme-dark, .mosaic-theme-light)
 	.mosaic-window
@@ -106,6 +107,16 @@
 
 :is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-split.-row {
 	cursor: col-resize;
+}
+
+/* Remove default outline shadow and border from preview panes */
+:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-preview {
+	box-shadow: none;
+}
+:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window .mosaic-preview,
+:is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-preview .mosaic-preview {
+	border: none;
+	box-shadow: none;
 }
 
 /* Drop target when hovering - shows the split preview */

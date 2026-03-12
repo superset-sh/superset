@@ -514,6 +514,16 @@ export const HOTKEYS = {
 			linux: "ctrl+shift+alt+s",
 		},
 	}),
+	EQUALIZE_PANE_SPLITS: defineHotkey({
+		keys: "meta+shift+0",
+		label: "Equalize Pane Splits",
+		category: "Layout",
+		description: "Make all panes equal size",
+		defaults: {
+			win32: "ctrl+shift+0",
+			linux: "ctrl+shift+0",
+		},
+	}),
 	CLOSE_PANE: defineHotkey({
 		keys: "meta+w",
 		label: "Close Pane",

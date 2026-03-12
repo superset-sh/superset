@@ -41,6 +41,10 @@ const RESOURCES_TO_COPY = [
 		dest: resolve(__dirname, "..", devPath, "resources/migrations"),
 	},
 	{
+		src: resolve(__dirname, "../../../packages/host-service/drizzle"),
+		dest: resolve(__dirname, "..", devPath, "resources/host-migrations"),
+	},
+	{
 		src: resolve(__dirname, "../src/main/lib/agent-setup/templates"),
 		dest: resolve(__dirname, "..", devPath, "main/templates"),
 	},

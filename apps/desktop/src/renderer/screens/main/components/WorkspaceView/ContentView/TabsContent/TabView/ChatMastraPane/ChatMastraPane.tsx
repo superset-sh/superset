@@ -66,6 +66,7 @@ export function ChatMastraPane({
 }: ChatMastraPaneProps) {
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name ?? "New Chat");
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
@@ -199,6 +200,7 @@ export function ChatMastraPane({
 						onSplitWithNewBrowser={() =>
 							splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 						}
+						onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 						onClosePane={() => removePane(paneId)}
 						currentTabId={tabId}
 						availableTabs={availableTabs}

@@ -11,7 +11,11 @@ import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { FileMentionChip } from "../../../../components/FileMentionChip";
+import { LinkedTaskChip } from "../../../../components/LinkedTaskChip";
+import { parseUserMentions } from "../../../../utils/parseUserMentions";
 import type { InterruptedMessagePreview } from "../../types";
+import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 
@@ -94,11 +98,26 @@ export function MessageList({
 								.map((p) => p.text)
 								.join("");
 							const fileParts = msg.parts.filter((p) => p.type === "file");
-							const imageParts = fileParts.filter(
-								(p) => p.type === "file" && p.mediaType.startsWith("image/"),
+							const imageParts = fileParts.filter((p) =>
+								p.mediaType.startsWith("image/"),
 							);
 							const nonImageParts = fileParts.filter(
-								(p) => p.type === "file" && !p.mediaType.startsWith("image/"),
+								(p) => !p.mediaType.startsWith("image/"),
+							);
+
+							const mentionSegments = textContent
+								? parseUserMentions(textContent)
+								: [];
+							const taskMentions = mentionSegments.filter(
+								(s) => s.type === "task-mention",
+							);
+							const otherSegments = mentionSegments.filter(
+								(s) => s.type !== "task-mention",
+							);
+							const hasNonTaskContent = otherSegments.some(
+								(s) =>
+									(s.type === "text" && s.value.trim()) ||
+									s.type === "file-mention",
 							);
 
 							return (
@@ -110,40 +129,81 @@ export function MessageList({
 								>
 									{imageParts.length > 0 && (
 										<div className="flex max-w-[85%] flex-wrap gap-2">
-											{imageParts.map((p) =>
-												p.type === "file" ? (
-													<button
-														key={`${msg.id}-img-${p.url}`}
-														type="button"
-														className="cursor-zoom-in"
-														onClick={() => handleImageClick(p.url)}
-													>
-														<img
-															src={p.url}
-															alt={p.filename || "Attached image"}
-															className="max-h-48 rounded-lg object-contain"
-														/>
-													</button>
-												) : null,
-											)}
+											{imageParts.map((p) => (
+												<button
+													key={`${msg.id}-img-${p.url}`}
+													type="button"
+													className="cursor-zoom-in"
+													onClick={() => handleImageClick(p.url)}
+												>
+													<img
+														src={p.url}
+														alt={p.filename || "Attached image"}
+														className="max-h-48 rounded-lg object-contain"
+													/>
+												</button>
+											))}
 										</div>
 									)}
 									{nonImageParts.length > 0 && (
 										<div className="flex max-w-[85%] flex-wrap gap-1.5">
-											{nonImageParts.map((p) =>
-												p.type === "file" ? (
-													<FileChip
-														key={`${msg.id}-file-${p.url}`}
-														filename={p.filename || ""}
-														mediaType={p.mediaType}
-													/>
-												) : null,
-											)}
+											{nonImageParts.map((p) => (
+												<FileChip
+													key={`${msg.id}-file-${p.url}`}
+													filename={p.filename || ""}
+													mediaType={p.mediaType}
+												/>
+											))}
 										</div>
 									)}
-									{textContent && (
-										<div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground">
-											{textContent}
+									{taskMentions.length > 0 && (
+										<div className="flex max-w-[85%] flex-wrap justify-end gap-2">
+											{taskMentions.map((segment, segIdx) => (
+												<LinkedTaskChip
+													key={`${msg.id}-task-${segIdx}`}
+													slug={segment.slug}
+												/>
+											))}
+										</div>
+									)}
+									{hasNonTaskContent && (
+										<div className="max-w-[85%] rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
+											{otherSegments.map((segment, segIdx) => {
+												if (segment.type === "text") {
+													return (
+														<span
+															key={`${msg.id}-seg-${segIdx}`}
+															className="whitespace-pre-wrap break-words"
+														>
+															{segment.value}
+														</span>
+													);
+												}
+												if (segment.type === "file-mention") {
+													const normalizedPath = normalizeWorkspaceFilePath({
+														filePath: segment.relativePath,
+														workspaceRoot: workspaceCwd,
+													});
+													const canOpen =
+														Boolean(normalizedPath) && Boolean(workspaceId);
+
+													return (
+														<FileMentionChip
+															key={`${msg.id}-seg-${segIdx}`}
+															relativePath={segment.relativePath}
+															disabled={!canOpen}
+															onClick={() => {
+																if (!normalizedPath || !workspaceId) return;
+																addFileViewerPane(workspaceId, {
+																	filePath: normalizedPath,
+																	isPinned: true,
+																});
+															}}
+														/>
+													);
+												}
+												return null;
+											})}
 										</div>
 									)}
 								</div>

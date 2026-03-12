@@ -73,6 +73,7 @@ export function FileViewerPane({
 	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 	const {
 		viewMode: diffViewMode,
 		setViewMode: setDiffViewMode,
@@ -545,6 +546,7 @@ export function FileViewerPane({
 							onSplitWithNewBrowser={() =>
 								splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 							}
+							onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 							onClosePane={() => removePane(paneId)}
 							currentTabId={tabId}
 							availableTabs={availableTabs}

@@ -10,11 +10,11 @@ import { deviceRouter } from "./router/device";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
 import { projectRouter } from "./router/project";
-import { projectsV2Router } from "./router/projects-v2";
 import { taskRouter } from "./router/task";
 import { userRouter } from "./router/user";
+import { v2ProjectRouter } from "./router/v2-project";
+import { v2WorkspaceRouter } from "./router/v2-workspace";
 import { workspaceRouter } from "./router/workspace";
-import { workspacesV2Router } from "./router/workspaces-v2";
 import { createCallerFactory, createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -28,11 +28,11 @@ export const appRouter = createTRPCRouter({
 	integration: integrationRouter,
 	organization: organizationRouter,
 	project: projectRouter,
-	projectsV2: projectsV2Router,
 	task: taskRouter,
 	user: userRouter,
+	v2Project: v2ProjectRouter,
+	v2Workspace: v2WorkspaceRouter,
 	workspace: workspaceRouter,
-	workspacesV2: workspacesV2Router,
 });
 
 export type AppRouter = typeof appRouter;

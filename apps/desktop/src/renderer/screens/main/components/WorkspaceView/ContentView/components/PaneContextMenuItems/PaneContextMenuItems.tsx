@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/context-menu";
 import {
 	LuColumns2,
+	LuEqual,
 	LuGlobe,
 	LuMessageSquare,
 	LuMoveRight,
@@ -23,6 +24,7 @@ export interface PaneContextMenuActions {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -43,6 +45,7 @@ export function PaneContextMenuItems({
 	const splitRightShortcut = useHotkeyText("SPLIT_RIGHT");
 	const splitWithChatShortcut = useHotkeyText("SPLIT_WITH_CHAT");
 	const splitWithBrowserShortcut = useHotkeyText("SPLIT_WITH_BROWSER");
+	const equalizePaneSplitsShortcut = useHotkeyText("EQUALIZE_PANE_SPLITS");
 	const targetTabs = actions.availableTabs.filter(
 		(tab) => tab.id !== actions.currentTabId,
 	);
@@ -75,6 +78,13 @@ export function PaneContextMenuItems({
 					<LuGlobe className="size-4" />
 					Split with New Browser
 					{renderShortcut(splitWithBrowserShortcut)}
+				</ContextMenuItem>
+			)}
+			{actions.onEqualizePaneSplits && (
+				<ContextMenuItem onSelect={actions.onEqualizePaneSplits}>
+					<LuEqual className="size-4" />
+					Equalize Pane Splits
+					{renderShortcut(equalizePaneSplitsShortcut)}
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />

@@ -1,5 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import path from "node:path";
+import { app } from "electron";
+import { SUPERSET_HOME_DIR } from "./app-environment";
 
 type HostServiceStatus = "starting" | "running" | "crashed";
 
@@ -69,6 +71,10 @@ class HostServiceManager {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
+			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host.db"),
+			HOST_MIGRATIONS_PATH: app.isPackaged
+				? path.join(process.resourcesPath, "resources/host-migrations")
+				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
 		};
 		if (this.authToken) {
 			env.AUTH_TOKEN = this.authToken;
