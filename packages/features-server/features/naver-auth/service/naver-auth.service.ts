@@ -298,7 +298,7 @@ export class NaverAuthService {
           })
           .returning();
 
-        userId = newUser.id;
+        userId = newUser!.id;
 
         // Naver 계정 연결 (baAccounts)
         await this.db.insert(baAccounts).values({
