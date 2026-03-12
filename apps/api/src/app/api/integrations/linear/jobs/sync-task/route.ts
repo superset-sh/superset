@@ -86,7 +86,7 @@ async function resolveLinearAssigneeId(
 
 async function syncTaskToLinear(
 	task: SelectTask,
-	teamId: string,
+	teamId: string | null,
 ): Promise<{
 	success: boolean;
 	externalId?: string;
@@ -109,9 +109,22 @@ async function syncTaskToLinear(
 			return { success: false, error: "Task status not found" };
 		}
 
-		const stateId = await findLinearState(client, teamId, taskStatus.name);
-
 		if (task.externalProvider === "linear" && task.externalId) {
+			// For updates, resolve the team from the issue if not provided via config
+			let effectiveTeamId = teamId;
+			if (!effectiveTeamId) {
+				try {
+					const issue = await client.issue(task.externalId);
+					const team = await issue.team;
+					effectiveTeamId = team?.id ?? null;
+				} catch {
+					// If we can't resolve the team, proceed without state mapping
+				}
+			}
+
+			const stateId = effectiveTeamId
+				? await findLinearState(client, effectiveTeamId, taskStatus.name)
+				: undefined;
 			// Resolve assignee for Linear
 			let linearAssigneeId: string | null | undefined; // undefined = don't change
 			if (task.assigneeId === null && !task.assigneeExternalId) {
@@ -160,6 +173,13 @@ async function syncTaskToLinear(
 				externalUrl: issue.url,
 			};
 		}
+
+		// Create path requires a team ID
+		if (!teamId) {
+			return { success: false, error: "No team configured for new tasks" };
+		}
+
+		const stateId = await findLinearState(client, teamId, taskStatus.name);
 
 		// Resolve assignee for Linear (create)
 		const createAssigneeId = task.assigneeId
@@ -261,7 +281,11 @@ export async function POST(request: Request) {
 
 	const resolvedTeamId =
 		teamId ?? (await getNewTasksTeamId(task.organizationId));
-	if (!resolvedTeamId) {
+
+	// Only require a team for new tasks; existing Linear tasks can sync without one
+	const isExistingLinearTask =
+		task.externalProvider === "linear" && task.externalId;
+	if (!resolvedTeamId && !isExistingLinearTask) {
 		return Response.json({ error: "No team configured", skipped: true });
 	}
 
