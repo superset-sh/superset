@@ -3,9 +3,9 @@
  *
  * 인증 상태를 관리하는 Jotai atoms
  * 모든 Feature와 App에서 참조 가능
+ *
+ * Better Auth 기반 (Supabase 제거)
  */
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { isNil } from "es-toolkit/compat";
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 
@@ -19,26 +19,26 @@ export interface Profile {
   name: string;
   email: string;
   avatar: string | null;
-  authProvider: "email" | "google" | "naver" | "kakao" | null;
-  role: "owner" | "admin" | "editor" | "guest" | null;
+  authProvider: string | null;
+  role: "owner" | "admin" | "member" | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
 
 /**
- * Supabase 클라이언트를 저장하는 atom
- * App 초기화 시 설정 필요
- *
- * @example
- * ```tsx
- * import { supabaseAtom } from '@/core/auth';
- *
- * <Provider initialValues={[[supabaseAtom, supabase]]}>
- *   <App />
- * </Provider>
- * ```
+ * Better Auth Session 타입
  */
-export const supabaseAtom = atom<SupabaseClient | null>(null);
+export interface BetterAuthSession {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    image?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+}
 
 /**
  * Access Token (로컬스토리지 동기화)
@@ -54,16 +54,16 @@ export const tokenAtom = atomWithStorage<string | null>(TOKEN_STORAGE_KEY, null)
 export const authenticatedAtom = atom<boolean | null>(null);
 
 /**
- * Supabase Session
+ * Better Auth Session
  */
-const _sessionAtom = atom<Session | null>(null);
+const _sessionAtom = atom<BetterAuthSession | null>(null);
 export const sessionAtom = atom(
   (get) => get(_sessionAtom),
-  (_, set, updates: Session | null | undefined) => {
+  (_, set, updates: BetterAuthSession | null | undefined) => {
     set(_sessionAtom, updates ?? null);
 
     if (updates) {
-      set(tokenAtom, updates.access_token);
+      set(tokenAtom, updates.token);
       set(authenticatedAtom, true);
     } else {
       set(tokenAtom, null);
@@ -71,28 +71,6 @@ export const sessionAtom = atom(
     }
   },
 );
-
-/**
- * 현재 세션 (null이면 에러 throw)
- */
-export const currentSessionAtom = atom((get) => {
-  const session = get(sessionAtom);
-  if (isNil(session)) {
-    throw new Error("현재 세션을 찾을 수 없습니다.");
-  }
-  return session;
-});
-
-/**
- * Supabase 클라이언트 (null이면 에러 throw)
- */
-export const getSupabaseAtom = atom((get) => {
-  const supabase = get(supabaseAtom);
-  if (isNil(supabase)) {
-    throw new Error("Supabase 클라이언트가 초기화되지 않았습니다.");
-  }
-  return supabase;
-});
 
 /**
  * 현재 사용자 Profile

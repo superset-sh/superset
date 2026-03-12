@@ -1,54 +1,35 @@
 /**
  * Session Refresh Utility
  *
- * 401 에러 발생 시 Supabase 세션을 갱신하고 토큰을 업데이트한다.
- * 여러 요청이 동시에 401을 받아도 갱신은 1회만 수행한다.
+ * Better Auth handles session refresh automatically via cookies.
+ * This module provides backward-compatible utilities.
  */
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { TOKEN_STORAGE_KEY } from "./store";
 
-let refreshPromise: Promise<boolean> | null = null;
-let supabaseRef: SupabaseClient | null = null;
-
 /**
- * Supabase 클라이언트 등록 (앱 초기화 시 1회 호출)
+ * No-op: Better Auth handles session refresh automatically
+ * @deprecated Not needed with Better Auth
  */
-export function setSupabaseForRefresh(client: SupabaseClient) {
-  supabaseRef = client;
+export function setSupabaseForRefresh(_client: unknown) {
+  // No-op: Better Auth handles session refresh automatically
 }
 
 /**
- * 세션 갱신 시도 (중복 호출 방지, 동시 요청은 하나의 Promise 공유)
- * @returns 갱신 성공 여부
+ * Trigger a session refresh by calling the Better Auth session endpoint
  */
 export async function refreshSessionToken(): Promise<boolean> {
-  if (!supabaseRef) return false;
-
-  // 이미 갱신 중이면 기존 Promise 공유
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = (async () => {
-    try {
-      const { data, error } = await supabaseRef!.auth.refreshSession();
-      if (error || !data.session) {
-        return false;
-      }
-
-      // localStorage 직접 업데이트 (tRPC getAuthHeaders가 읽는 곳)
-      localStorage.setItem(
-        TOKEN_STORAGE_KEY,
-        JSON.stringify(data.session.access_token),
-      );
-
+  try {
+    const res = await fetch("/api/auth/get-session", { credentials: "include" });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data?.session?.token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(data.session.token));
       return true;
-    } catch {
-      return false;
-    } finally {
-      refreshPromise = null;
     }
-  })();
-
-  return refreshPromise;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**

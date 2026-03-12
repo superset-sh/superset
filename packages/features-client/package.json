@@ -30,7 +30,7 @@
   "dependencies": {
     "@superbuilder/features-db": "workspace:*",
     "@superbuilder/features-server": "workspace:*",
-    "@supabase/supabase-js": "2.93.3",
+    "better-auth": "^1.4.18",
     "@tanstack/react-query": "^5.62.8",
     "@tanstack/react-router": "^1.122.1",
     "@trpc/client": "^11.8.1",

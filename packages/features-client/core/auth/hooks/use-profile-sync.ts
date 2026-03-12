@@ -1,15 +1,16 @@
 /**
  * Profile Sync Hook
  *
- * 세션 변경 시 profiles 테이블에서 사용자 정보 조회
+ * Better Auth 세션의 사용자 정보를 profileAtom에 동기화
  */
 import { useEffect } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import { profileAtom, sessionAtom, supabaseAtom } from "../store";
+import { authClient } from "@superbuilder/features-server/core/auth/client";
+import { profileAtom, authenticatedAtom } from "../store";
 
 /**
- * 세션이 변경될 때 Profile 정보를 동기화
- * - 로그인 시: profiles 테이블에서 현재 사용자 정보 조회
+ * Better Auth 세션이 변경될 때 Profile 정보를 동기화
+ * - 로그인 시: 세션의 user 정보 + organization member 역할로 Profile 구성
  * - 로그아웃 시: profile을 null로 설정
  *
  * @example
@@ -22,73 +23,35 @@ import { profileAtom, sessionAtom, supabaseAtom } from "../store";
  * ```
  */
 export function useProfileSync() {
-  const supabase = useAtomValue(supabaseAtom);
-  const session = useAtomValue(sessionAtom);
+  const authenticated = useAtomValue(authenticatedAtom);
   const setProfile = useSetAtom(profileAtom);
 
+  const { data: session } = authClient.useSession();
+  const { data: activeOrg } = authClient.useActiveOrganization();
+
   useEffect(() => {
-    if (!supabase) return;
-
-    const client = supabase;
-
-    async function fetchProfile() {
-      if (!session?.user?.id) {
-        setProfile(null);
-        return;
-      }
-
-      // 프로필과 역할을 병렬로 조회
-      const [profileResult, roleResult] = await Promise.all([
-        client
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single(),
-        client
-          .from("user_roles")
-          .select("roles(slug)")
-          .eq("user_id", session.user.id)
-          .limit(1)
-          .single(),
-      ]);
-
-      if (profileResult.error) {
-        console.error("Failed to fetch profile:", profileResult.error);
-        setProfile(null);
-        return;
-      }
-
-      // user_roles에서 역할 slug 추출 (없으면 null)
-      let roleSlug: string | null = null;
-      if (!roleResult.error && roleResult.data) {
-        const roles = (roleResult.data as unknown as { roles: { slug: string } | { slug: string }[] | null }).roles;
-        if (Array.isArray(roles)) {
-          roleSlug = roles[0]?.slug ?? null;
-        } else {
-          roleSlug = roles?.slug ?? null;
-        }
-      }
-
-      const profile = profileResult.data;
-
-      // auth_provider 동기화: session metadata의 provider 정보로 profiles 테이블 업데이트
-      const sessionProvider = session.user.app_metadata?.provider as string | undefined;
-      const validProviders = ["email", "google", "naver", "kakao"] as const;
-      const resolvedProvider = validProviders.includes(sessionProvider as typeof validProviders[number])
-        ? (sessionProvider as typeof validProviders[number])
-        : null;
-
-      if (resolvedProvider && profile.auth_provider !== resolvedProvider) {
-        client
-          .from("profiles")
-          .update({ auth_provider: resolvedProvider })
-          .eq("id", session.user.id)
-          .then();
-      }
-
-      setProfile({ ...profile, role: roleSlug });
+    if (!authenticated || !session?.user) {
+      setProfile(null);
+      return;
     }
 
-    fetchProfile();
-  }, [supabase, session?.user?.id, setProfile]);
+    const user = session.user;
+
+    // activeOrg에서 현재 사용자의 멤버 역할 추출
+    const currentMember = activeOrg?.members?.find(
+      (m: { userId: string }) => m.userId === user.id,
+    );
+    const memberRole = currentMember?.role as "owner" | "admin" | "member" | null ?? null;
+
+    setProfile({
+      id: user.id,
+      name: user.name || "",
+      email: user.email,
+      avatar: user.image ?? null,
+      authProvider: null,
+      role: memberRole,
+      createdAt: user.createdAt ? new Date(user.createdAt) : null,
+      updatedAt: user.updatedAt ? new Date(user.updatedAt) : null,
+    });
+  }, [authenticated, session, activeOrg, setProfile]);
 }
