@@ -734,14 +734,6 @@ function PromptGroupInner({
 								)}
 							</SelectContent>
 						</Select>
-
-						<ProjectPickerPill
-							selectedProject={selectedProject}
-							recentProjects={recentProjects}
-							onSelectProject={onSelectProject}
-							onImportRepo={onImportRepo}
-							onNewProject={onNewProject}
-						/>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
 						<PlusMenu
@@ -767,16 +759,25 @@ function PromptGroupInner({
 			</PromptInput>
 
 			<div className="flex items-center justify-between">
-				{!linkedPR && (
-					<BaseBranchPickerInline
-						effectiveBaseBranch={effectiveBaseBranch}
-						defaultBranch={branchData?.defaultBranch}
-						isBranchesLoading={isBranchesLoading}
-						isBranchesError={isBranchesError}
-						branches={branchData?.branches ?? []}
-						onSelectBaseBranch={handleBaseBranchSelect}
+				<div className="flex items-center gap-2">
+					<ProjectPickerPill
+						selectedProject={selectedProject}
+						recentProjects={recentProjects}
+						onSelectProject={onSelectProject}
+						onImportRepo={onImportRepo}
+						onNewProject={onNewProject}
 					/>
-				)}
+					{!linkedPR && (
+						<BaseBranchPickerInline
+							effectiveBaseBranch={effectiveBaseBranch}
+							defaultBranch={branchData?.defaultBranch}
+							isBranchesLoading={isBranchesLoading}
+							isBranchesError={isBranchesError}
+							branches={branchData?.branches ?? []}
+							onSelectBaseBranch={handleBaseBranchSelect}
+						/>
+					)}
+				</div>
 				<span className="text-[11px] text-muted-foreground/50">
 					{modKey}+↵ to create
 				</span>
