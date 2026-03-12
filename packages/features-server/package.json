@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    "./core/auth": "./core/auth/index.ts",
+    "./core/auth/server": "./core/auth/server.ts",
+    "./core/auth/client": "./core/auth/client.ts",
+    "./core/auth/env": "./core/auth/env.ts",
     "./core/trpc": "./core/trpc/index.ts",
     "./core/nestjs/auth": "./core/nestjs/auth/index.ts",
     "./core/nestjs/auth/jwt-parser": "./core/nestjs/auth/jwt-parser.ts",
@@ -95,6 +99,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@t3-oss/env-core": "^0.13.8",
     "@anthropic-ai/claude-agent-sdk": "^0.2.59",
     "@anthropic-ai/sdk": "^0.76.0",
     "@fastify/multipart": "^9.4.0",
@@ -130,6 +135,8 @@
     "resend": "^6.9.1",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.0",
+    "better-auth": "1.4.18",
+    "jose": "^6.0.11",
     "zod": "^3.25.32"
   }
 }
