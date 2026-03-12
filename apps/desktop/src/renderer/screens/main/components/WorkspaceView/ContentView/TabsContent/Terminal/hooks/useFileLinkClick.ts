@@ -58,11 +58,9 @@ export function useFileLinkClick({
 				return;
 			}
 
-			console.log("[Terminal] File link click:", { path, workspaceCwd, behavior });
 			trpcClient.external.resolvePath
 				.query({ path, cwd: workspaceCwd })
 				.then((filePath) => {
-					console.log("[Terminal] Resolved path:", { raw: path, resolved: filePath });
 					if (filePath === workspaceCwd) {
 						return;
 					}

@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
@@ -76,6 +77,28 @@ function isBinaryContent(buffer: Buffer): boolean {
 		}
 	}
 	return false;
+}
+
+function isInsideWorktree(worktreePath: string, absolutePath: string): boolean {
+	const rel = path.relative(path.resolve(worktreePath), path.resolve(absolutePath));
+	return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
+async function readFileBufferUpTo(
+	absolutePath: string,
+	maxBytes: number,
+): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
+	const handle = await fs.open(absolutePath, "r");
+	try {
+		const buf = Buffer.alloc(maxBytes + 1);
+		const { bytesRead } = await handle.read(buf, 0, maxBytes + 1, 0);
+		if (bytesRead > maxBytes) {
+			return { buffer: buf.subarray(0, maxBytes), exceededLimit: true };
+		}
+		return { buffer: buf.subarray(0, bytesRead), exceededLimit: false };
+	} finally {
+		await handle.close();
+	}
 }
 
 export const createFileContentsRouter = () => {
@@ -159,12 +182,16 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
+				const external = !isInsideWorktree(input.worktreePath, input.absolutePath);
+
 				try {
-					const result = await readRegisteredWorktreeFileBufferUpTo({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-						maxBytes: MAX_FILE_SIZE,
-					});
+					const result = external
+						? await readFileBufferUpTo(input.absolutePath, MAX_FILE_SIZE)
+						: await readRegisteredWorktreeFileBufferUpTo({
+								worktreePath: input.worktreePath,
+								absolutePath: input.absolutePath,
+								maxBytes: MAX_FILE_SIZE,
+							});
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
@@ -210,12 +237,16 @@ export const createFileContentsRouter = () => {
 					return { ok: false, reason: "not-image" };
 				}
 
+				const external = !isInsideWorktree(input.worktreePath, input.absolutePath);
+
 				try {
-					const result = await readRegisteredWorktreeFileBufferUpTo({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-						maxBytes: MAX_IMAGE_SIZE,
-					});
+					const result = external
+						? await readFileBufferUpTo(input.absolutePath, MAX_IMAGE_SIZE)
+						: await readRegisteredWorktreeFileBufferUpTo({
+								worktreePath: input.worktreePath,
+								absolutePath: input.absolutePath,
+								maxBytes: MAX_IMAGE_SIZE,
+							});
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
