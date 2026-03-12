@@ -1,1 +1,0 @@
-export { PullRequestsGroup } from "./PullRequestsGroup";

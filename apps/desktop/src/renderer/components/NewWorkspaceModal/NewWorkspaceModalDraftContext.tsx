@@ -8,25 +8,19 @@ import {
 	useState,
 } from "react";
 
-export type NewWorkspaceModalTab =
-	| "prompt"
-	| "issues"
-	| "pull-requests"
-	| "branches";
+export type LinkedIssue = {
+	slug: string;
+	title: string;
+};
 
 export interface NewWorkspaceModalDraft {
-	activeTab: NewWorkspaceModalTab;
 	selectedProjectId: string | null;
 	prompt: string;
-	branchName: string;
-	branchNameEdited: boolean;
 	baseBranch: string | null;
-	showAdvanced: boolean;
 	runSetupScript: boolean;
-	branchSearch: string;
-	issuesQuery: string;
-	pullRequestsQuery: string;
-	branchesQuery: string;
+	workspaceName: string;
+	workspaceNameEdited: boolean;
+	linkedIssues: LinkedIssue[];
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
@@ -34,18 +28,13 @@ interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
 }
 
 const initialDraft: NewWorkspaceModalDraft = {
-	activeTab: "prompt",
 	selectedProjectId: null,
 	prompt: "",
-	branchName: "",
-	branchNameEdited: false,
 	baseBranch: null,
-	showAdvanced: false,
 	runSetupScript: true,
-	branchSearch: "",
-	issuesQuery: "",
-	pullRequestsQuery: "",
-	branchesQuery: "",
+	workspaceName: "",
+	workspaceNameEdited: false,
+	linkedIssues: [],
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
@@ -137,18 +126,13 @@ export function NewWorkspaceModalDraftProvider({
 	const value = useMemo<NewWorkspaceModalDraftContextValue>(
 		() => ({
 			draft: {
-				activeTab: state.activeTab,
 				selectedProjectId: state.selectedProjectId,
 				prompt: state.prompt,
-				branchName: state.branchName,
-				branchNameEdited: state.branchNameEdited,
 				baseBranch: state.baseBranch,
-				showAdvanced: state.showAdvanced,
 				runSetupScript: state.runSetupScript,
-				branchSearch: state.branchSearch,
-				issuesQuery: state.issuesQuery,
-				pullRequestsQuery: state.pullRequestsQuery,
-				branchesQuery: state.branchesQuery,
+				workspaceName: state.workspaceName,
+				workspaceNameEdited: state.workspaceNameEdited,
+				linkedIssues: state.linkedIssues,
 			},
 			draftVersion: state.draftVersion,
 			closeModal: onClose,
