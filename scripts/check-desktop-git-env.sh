@@ -13,7 +13,7 @@ report_violation() {
 	shift 2
 
 	local output
-	if output=$(rg -n --pcre2 "$pattern" "$TARGET_DIR" "$@" 2>/dev/null); then
+	if output=$(rg -n -U --pcre2 "$pattern" "$TARGET_DIR" "$@" 2>/dev/null); then
 		echo "$message"
 		echo "$output"
 		echo
@@ -38,6 +38,11 @@ report_violation \
 	"\\bexecFile(?:Async)?\\(\\s*['\"]git['\"]" \
 	--glob '!**/*.test.ts' \
 	--glob '!apps/desktop/src/lib/trpc/routers/workspaces/utils/git-client.ts'
+
+report_violation \
+	"[desktop-git-env] execWithShellEnv(\"git\", ...) is forbidden. Use execGitWithShellPath from workspaces/utils/git-client.ts." \
+	"\\bexecWithShellEnv\\(\\s*['\"]git['\"]" \
+	--glob '!**/*.test.ts'
 
 if [[ "$failures" -ne 0 ]]; then
 	exit 1

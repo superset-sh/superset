@@ -2,6 +2,7 @@ import type { ITheme } from "@xterm/xterm";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
+	darkTheme,
 	getTerminalColors,
 	type Theme,
 	type ThemeMetadata,
@@ -278,6 +279,8 @@ export const useThemeStore = create<ThemeState>()(
 
 // Convenience hooks
 export const useTheme = () => useThemeStore((state) => state.activeTheme);
+export const useResolvedTheme = () =>
+	useThemeStore((state) => state.activeTheme ?? darkTheme);
 export const useTerminalTheme = () =>
 	useThemeStore((state) => state.terminalTheme);
 export const useSetTheme = () => useThemeStore((state) => state.setTheme);

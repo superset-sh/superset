@@ -1,4 +1,8 @@
-import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import {
+	type ExecutionMode,
+	normalizeExecutionMode,
+	type TerminalPreset,
+} from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -233,7 +237,7 @@ export function PresetsSection({
 			name: "",
 			cwd: "",
 			commands: [""],
-			executionMode: "split-pane",
+			executionMode: "new-tab",
 		});
 	}, [createPreset]);
 
@@ -303,13 +307,12 @@ export function PresetsSection({
 		(!editingPreset?.applyOnWorkspaceCreated && editingPreset?.isDefault)
 	);
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
-	const modeValue: ExecutionMode =
-		editingPreset?.executionMode === "new-tab" ||
-		editingPreset?.executionMode === "new-tab-split-pane"
-			? hasMultipleCommands
-				? editingPreset.executionMode
-				: "new-tab"
-			: "split-pane";
+	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
+	const modeValue: ExecutionMode = hasMultipleCommands
+		? normalizedMode
+		: normalizedMode === "split-pane"
+			? "split-pane"
+			: "new-tab";
 
 	const handleEditorFieldChange = useCallback(
 		(column: PresetColumnKey, value: string) => {

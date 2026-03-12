@@ -12,7 +12,7 @@ import {
 } from "shared/utils/branch";
 import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { getSimpleGitWithShellPath } from "./git-client";
+import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -52,8 +52,7 @@ async function isWorktreeRegistered({
 	worktreePath: string;
 }): Promise<boolean> {
 	try {
-		const { stdout } = await execWithShellEnv(
-			"git",
+		const { stdout } = await execGitWithShellPath(
 			["-C", mainRepoPath, "worktree", "list", "--porcelain"],
 			{ timeout: 10_000 },
 		);
@@ -95,7 +94,7 @@ async function execWorktreeAdd({
 	await runWithPostCheckoutHookTolerance({
 		context: `Worktree created at ${worktreePath}`,
 		run: async () => {
-			await execWithShellEnv("git", args, { timeout });
+			await execGitWithShellPath(args, { timeout });
 		},
 		didSucceed: async () =>
 			isWorktreeRegistered({ mainRepoPath, worktreePath }),
@@ -139,8 +138,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		// Use -z for NUL-terminated output (handles filenames with special chars)
 		// Use -uall to show individual files in untracked directories (not just the directory)
 		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
-		const { stdout } = await execFileAsync(
-			"git",
+		const { stdout } = await execGitWithShellPath(
 			[
 				"--no-optional-locks",
 				"-C",
@@ -151,7 +149,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"-z",
 				"-uall",
 			],
-			{ env, timeout: 30_000 },
+			{ env, timeout: 30_000, maxBuffer: 10 * 1024 * 1024 },
 		);
 
 		return parsePortelainStatus(stdout);
@@ -485,8 +483,7 @@ export async function createWorktree(
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execWithShellEnv(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ timeout: 10_000 },
 		);
@@ -575,8 +572,7 @@ export async function createWorktreeFromExistingBranch({
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execWithShellEnv(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ timeout: 10_000 },
 		);
@@ -629,11 +625,9 @@ export async function deleteLocalBranch({
 	branch: string;
 }): Promise<void> {
 	try {
-		await execWithShellEnv(
-			"git",
-			["-C", mainRepoPath, "branch", "-D", branch],
-			{ timeout: 10_000 },
-		);
+		await execGitWithShellPath(["-C", mainRepoPath, "branch", "-D", branch], {
+			timeout: 10_000,
+		});
 		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -659,7 +653,7 @@ export async function removeWorktree(
 		);
 		await rename(worktreePath, tempPath);
 
-		await execWithShellEnv("git", ["-C", mainRepoPath, "worktree", "prune"], {
+		await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
 			timeout: 10_000,
 		});
 
@@ -689,11 +683,9 @@ export async function removeWorktree(
 		// If the worktree directory is already gone, just prune metadata
 		if (code === "ENOENT") {
 			try {
-				await execWithShellEnv(
-					"git",
-					["-C", mainRepoPath, "worktree", "prune"],
-					{ timeout: 10_000 },
-				);
+				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
+					timeout: 10_000,
+				});
 			} catch {}
 			return;
 		}
@@ -1118,8 +1110,7 @@ export async function branchExistsOnRemote(
 	try {
 		// Use execFileAsync directly to get reliable exit codes
 		// simple-git doesn't expose exit codes in a predictable way
-		await execFileAsync(
-			"git",
+		await execGitWithShellPath(
 			[
 				"-C",
 				worktreePath,
@@ -1669,8 +1660,7 @@ export async function createWorktreeFromPr({
 		);
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
-		await execWithShellEnv(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ timeout: 10_000 },
 		);

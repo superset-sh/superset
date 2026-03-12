@@ -70,7 +70,11 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 		return mode;
 	}
 
-	return "split-pane";
+	if (mode === "parallel" || mode === "sequential") {
+		return "split-pane";
+	}
+
+	return "new-tab";
 }
 
 /**

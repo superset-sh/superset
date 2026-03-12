@@ -2,7 +2,10 @@ import { TRPCError } from "@trpc/server";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import {
+	execGitWithShellPath,
+	getSimpleGitWithShellPath,
+} from "../workspaces/utils/git-client";
 import {
 	getPullRequestRepoArgs,
 	getRepoContext,
@@ -197,8 +200,7 @@ async function findOpenPRByHeadCommit(
 	worktreePath: string,
 ): Promise<string | null> {
 	try {
-		const { stdout: headOutput } = await execWithShellEnv(
-			"git",
+		const { stdout: headOutput } = await execGitWithShellPath(
 			["rev-parse", "HEAD"],
 			{ cwd: worktreePath },
 		);
