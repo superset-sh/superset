@@ -1,11 +1,27 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, type LinearConfig } from "@superset/db/schema";
+import {
+	integrationConnections,
+	type LinearConfig,
+	tasks,
+} from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 import { getLinearClient } from "./utils";
+
+export async function softDeleteLinearTasks(organizationId: string) {
+	await db
+		.update(tasks)
+		.set({ deletedAt: new Date() })
+		.where(
+			and(
+				eq(tasks.organizationId, organizationId),
+				eq(tasks.externalProvider, "linear"),
+			),
+		);
+}
 
 export const linearRouter = {
 	getConnection: protectedProcedure
@@ -41,6 +57,8 @@ export const linearRouter = {
 			if (result.length === 0) {
 				return { success: false, error: "No connection found" };
 			}
+
+			await softDeleteLinearTasks(input.organizationId);
 
 			return { success: true };
 		}),
