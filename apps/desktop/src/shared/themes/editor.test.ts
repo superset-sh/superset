@@ -13,8 +13,15 @@ describe("getEditorTheme", () => {
 			darkTheme.terminal?.foreground ?? darkTheme.ui.foreground,
 		);
 		expect(editorTheme.colors.search).toBe(darkTheme.ui.highlightMatch);
-		expect(editorTheme.colors.addition).toBe(darkTheme.terminal?.brightGreen);
-		expect(editorTheme.colors.deletion).toBe(darkTheme.terminal?.brightRed);
+		const brightGreen = darkTheme.terminal?.brightGreen;
+		const brightRed = darkTheme.terminal?.brightRed;
+		if (!brightGreen || !brightRed) {
+			throw new Error(
+				"Dark theme terminal colors must define bright diff accents",
+			);
+		}
+		expect(editorTheme.colors.addition).toBe(brightGreen);
+		expect(editorTheme.colors.deletion).toBe(brightRed);
 		expect(editorTheme.syntax.keyword).toBe(
 			darkTheme.terminal?.magenta ?? darkTheme.ui.foreground,
 		);
