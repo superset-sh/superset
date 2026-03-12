@@ -8,6 +8,7 @@ import {
 } from "react-icons/hi2";
 import {
 	useSetSettingsSearchQuery,
+	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { getMatchCountBySection } from "../../utils/settings-search";
@@ -17,13 +18,14 @@ import { ProjectsSettings } from "./ProjectsSettings";
 export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
+	const originRoute = useSettingsOriginRoute();
 	const matchCounts = searchQuery ? getMatchCountBySection(searchQuery) : null;
 
 	return (
 		<div className="w-56 flex flex-col p-3 overflow-hidden">
 			{/* Back button */}
 			<Link
-				to="/workspace"
+				to={originRoute}
 				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
 			>
 				<HiArrowLeft className="h-4 w-4" />
