@@ -5,7 +5,7 @@ import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import Fuse from "fuse.js";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
 	GoArrowUpRight,
 	GoGitPullRequest,
@@ -19,6 +19,8 @@ import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
+
+const PAGE_SIZE = 50;
 
 interface PullRequestsGroupProps {
 	projectId: string | null;
@@ -92,7 +94,15 @@ export function PullRequestsGroup({
 		[pullRequests],
 	);
 
+	const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 	const debouncedQuery = useDebouncedValue(draft.pullRequestsQuery, 150);
+
+	// Reset pagination when search query changes
+	const [prevQuery, setPrevQuery] = useState(debouncedQuery);
+	if (prevQuery !== debouncedQuery) {
+		setPrevQuery(debouncedQuery);
+		setDisplayLimit(PAGE_SIZE);
+	}
 
 	const prFuse = useMemo(
 		() =>
@@ -109,18 +119,21 @@ export function PullRequestsGroup({
 		[allPrs],
 	);
 
-	const visiblePrs = useMemo(() => {
+	const allMatchingPrs = useMemo(() => {
 		const query = debouncedQuery.trim();
 		if (!query) {
-			return allPrs.slice(0, 100);
+			return allPrs;
 		}
 		const urlMatch = allPrs.find((pr) => pr.url === query);
 		if (urlMatch) return [urlMatch];
-		return prFuse
-			.search(query)
-			.slice(0, 100)
-			.map((result) => result.item);
+		return prFuse.search(query).map((result) => result.item);
 	}, [debouncedQuery, allPrs, prFuse]);
+
+	const visiblePrs = useMemo(
+		() => allMatchingPrs.slice(0, displayLimit),
+		[allMatchingPrs, displayLimit],
+	);
+	const hasMore = allMatchingPrs.length > displayLimit;
 
 	if (!projectId) {
 		return (
@@ -220,6 +233,15 @@ export function PullRequestsGroup({
 					</span>
 				</CommandItem>
 			))}
+			{hasMore && (
+				<CommandItem
+					onSelect={() => setDisplayLimit((prev) => prev + PAGE_SIZE)}
+					className="justify-center text-muted-foreground"
+				>
+					Show more pull requests ({allMatchingPrs.length - displayLimit}{" "}
+					remaining)
+				</CommandItem>
+			)}
 		</CommandGroup>
 	);
 }

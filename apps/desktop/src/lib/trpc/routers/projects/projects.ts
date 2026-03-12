@@ -256,6 +256,10 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
+function sanitizeGlobPattern(input: string): string {
+	return input.replace(/[*?[\]\\]/g, "\\$&");
+}
+
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
@@ -648,6 +652,153 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					});
 
 					return { branches, defaultBranch };
+				},
+			),
+
+		// Paginated, server-side searched branch listing
+		searchBranches: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					search: z.string().default(""),
+					limit: z.number().min(1).max(200).default(50),
+					offset: z.number().min(0).default(0),
+				}),
+			)
+			.query(
+				async ({
+					input,
+				}): Promise<{
+					branches: Array<{
+						name: string;
+						lastCommitDate: number;
+						isLocal: boolean;
+						isRemote: boolean;
+					}>;
+					defaultBranch: string;
+					totalCount: number;
+					hasMore: boolean;
+				}> => {
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
+					if (!project) {
+						throw new Error(`Project ${input.projectId} not found`);
+					}
+
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const search = input.search.trim();
+					const sanitized = search ? sanitizeGlobPattern(search) : "";
+
+					// Build ref patterns for for-each-ref
+					const localPattern = sanitized
+						? `refs/heads/*${sanitized}*`
+						: "refs/heads/";
+					const remotePattern = sanitized
+						? `refs/remotes/origin/*${sanitized}*`
+						: "refs/remotes/origin/";
+
+					const branchMap = new Map<
+						string,
+						{ lastCommitDate: number; isLocal: boolean; isRemote: boolean }
+					>();
+
+					// Fetch remote refs
+					try {
+						const remoteOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							remotePattern,
+						]);
+
+						for (const line of remoteOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							let branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch.startsWith("origin/")) {
+								branch = branch.replace("origin/", "");
+							}
+							if (branch === "HEAD") continue;
+
+							branchMap.set(branch, {
+								lastCommitDate: timestamp * 1000,
+								isLocal: false,
+								isRemote: true,
+							});
+						}
+					} catch {
+						// Ignore errors (e.g. no remote)
+					}
+
+					// Fetch local refs
+					try {
+						const localOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							localPattern,
+						]);
+
+						for (const line of localOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							const branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch === "HEAD") continue;
+
+							const existing = branchMap.get(branch);
+							if (existing) {
+								existing.isLocal = true;
+							} else {
+								branchMap.set(branch, {
+									lastCommitDate: timestamp * 1000,
+									isLocal: true,
+									isRemote: false,
+								});
+							}
+						}
+					} catch {
+						// Ignore errors
+					}
+
+					const defaultBranch =
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					// Sort: default branch first, then local before remote, then by date
+					const allBranches = Array.from(branchMap.entries())
+						.map(([name, data]) => ({ name, ...data }))
+						.sort((a, b) => {
+							if (a.name === defaultBranch) return -1;
+							if (b.name === defaultBranch) return 1;
+							if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
+							return b.lastCommitDate - a.lastCommitDate;
+						});
+
+					const totalCount = allBranches.length;
+					const branches = allBranches.slice(
+						input.offset,
+						input.offset + input.limit,
+					);
+
+					return {
+						branches,
+						defaultBranch,
+						totalCount,
+						hasMore: input.offset + input.limit < totalCount,
+					};
 				},
 			),
 

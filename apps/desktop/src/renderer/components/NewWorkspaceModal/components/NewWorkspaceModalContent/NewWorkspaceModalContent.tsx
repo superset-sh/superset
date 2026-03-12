@@ -38,6 +38,7 @@ export function NewWorkspaceModalContent({
 		if (!isOpen) return;
 		void utils.projects.getBranches.invalidate();
 		void utils.projects.getBranchesLocal.invalidate();
+		void utils.projects.searchBranches.invalidate();
 	}, [isOpen, utils]);
 
 	useEffect(() => {
