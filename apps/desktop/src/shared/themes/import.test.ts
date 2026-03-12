@@ -68,6 +68,35 @@ describe("parseThemeConfigFile", () => {
 		expect(result.themes[0]?.terminal?.foreground).toBeDefined();
 	});
 
+	it("supports partial editor overrides", () => {
+		const result = parseThemeConfigFile(
+			JSON.stringify({
+				name: "Editor Theme",
+				type: "dark",
+				ui: {
+					highlightActive: "rgba(0, 200, 255, 0.4)",
+				},
+				editor: {
+					colors: {
+						background: "#101418",
+					},
+					syntax: {
+						keyword: "#ff79c6",
+					},
+				},
+			}),
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+
+		expect(result.themes[0]?.editor?.colors.background).toBe("#101418");
+		expect(result.themes[0]?.editor?.syntax.keyword).toBe("#ff79c6");
+		expect(result.themes[0]?.editor?.colors.searchActive).toBe(
+			"rgba(0, 200, 255, 0.4)",
+		);
+	});
+
 	it("returns an error for invalid JSON", () => {
 		const result = parseThemeConfigFile("{invalid-json");
 		expect(result.ok).toBe(false);

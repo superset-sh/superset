@@ -27,6 +27,8 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
+import { useTheme } from "renderer/stores/theme";
+import { darkTheme } from "shared/themes";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { loadLanguageSupport } from "./loadLanguageSupport";
 
@@ -184,6 +186,7 @@ export function CodeEditor({
 	);
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const activeTheme = useTheme() ?? darkTheme;
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
@@ -238,8 +241,9 @@ export function CodeEditor({
 				]),
 				saveKeymap,
 				themeCompartment.of([
-					getCodeSyntaxHighlighting(),
+					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
+						activeTheme,
 						{
 							fontFamily: editorFontFamily,
 							fontSize: editorFontSize,
@@ -294,8 +298,9 @@ export function CodeEditor({
 
 		view.dispatch({
 			effects: themeCompartment.reconfigure([
-				getCodeSyntaxHighlighting(),
+				getCodeSyntaxHighlighting(activeTheme),
 				createCodeMirrorTheme(
+					activeTheme,
 					{
 						fontFamily: editorFontFamily,
 						fontSize: editorFontSize,
@@ -304,7 +309,13 @@ export function CodeEditor({
 				),
 			]),
 		});
-	}, [editorFontFamily, editorFontSize, fillHeight, themeCompartment]);
+	}, [
+		activeTheme,
+		editorFontFamily,
+		editorFontSize,
+		fillHeight,
+		themeCompartment,
+	]);
 
 	useEffect(() => {
 		const view = viewRef.current;

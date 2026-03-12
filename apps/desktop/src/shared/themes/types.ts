@@ -1,7 +1,9 @@
+import { withAlpha } from "./utils";
+
 /**
  * Theme type definitions for the Superset desktop app
  *
- * Themes control both UI colors (via CSS variables) and terminal colors (via xterm.js)
+ * Themes control UI colors, terminal colors, and editor/diff colors.
  */
 
 /**
@@ -187,6 +189,64 @@ export interface TerminalColors {
 }
 
 /**
+ * Editor chrome colors shared by raw editing and diff rendering
+ */
+export interface EditorColors {
+	background: string;
+	foreground: string;
+	border: string;
+	cursor: string;
+	gutterBackground: string;
+	gutterForeground: string;
+	activeLine: string;
+	selection: string;
+	search: string;
+	searchActive: string;
+	panel: string;
+	panelBorder: string;
+	panelInputBackground: string;
+	panelInputForeground: string;
+	panelInputBorder: string;
+	panelButtonBackground: string;
+	panelButtonForeground: string;
+	panelButtonBorder: string;
+	diffBuffer: string;
+	diffHover: string;
+	diffSeparator: string;
+	addition: string;
+	deletion: string;
+	modified: string;
+}
+
+/**
+ * Syntax colors shared by CodeMirror and Shiki/Pierre
+ */
+export interface EditorSyntaxColors {
+	plainText: string;
+	comment: string;
+	keyword: string;
+	string: string;
+	number: string;
+	functionCall: string;
+	variableName: string;
+	typeName: string;
+	className: string;
+	constant: string;
+	regexp: string;
+	tagName: string;
+	attributeName: string;
+	invalid: string;
+}
+
+/**
+ * Complete editor theme definition
+ */
+export interface EditorTheme {
+	colors: EditorColors;
+	syntax: EditorSyntaxColors;
+}
+
+/**
  * Complete theme definition
  */
 export interface Theme {
@@ -207,6 +267,8 @@ export interface Theme {
 	ui: UIColors;
 	/** Terminal ANSI colors (optional, falls back to xterm defaults based on theme type) */
 	terminal?: TerminalColors;
+	/** Code editor and diff colors (optional, otherwise derived from UI + terminal tokens) */
+	editor?: EditorTheme;
 
 	/** Whether this is a built-in theme */
 	isBuiltIn?: boolean;
@@ -224,4 +286,75 @@ export interface ThemeMetadata {
 	type: "dark" | "light";
 	isBuiltIn: boolean;
 	isCustom: boolean;
+}
+
+/**
+ * Get editor colors from a theme, falling back to a derived palette if not defined
+ */
+export function getEditorTheme(theme: Theme): EditorTheme {
+	const terminal = getTerminalColors(theme);
+	const derived: EditorTheme = {
+		colors: {
+			background: terminal.background,
+			foreground: terminal.foreground,
+			border: theme.ui.border,
+			cursor: terminal.cursor,
+			gutterBackground: terminal.background,
+			gutterForeground: theme.ui.mutedForeground,
+			activeLine: withAlpha(
+				theme.ui.foreground,
+				theme.type === "dark" ? 0.04 : 0.06,
+			),
+			selection:
+				terminal.selectionBackground ??
+				withAlpha(theme.ui.primary, theme.type === "dark" ? 0.28 : 0.18),
+			search: theme.ui.highlightMatch,
+			searchActive: theme.ui.highlightActive,
+			panel: theme.ui.card,
+			panelBorder: theme.ui.border,
+			panelInputBackground: theme.ui.background,
+			panelInputForeground: terminal.foreground,
+			panelInputBorder: theme.ui.input,
+			panelButtonBackground: theme.ui.secondary,
+			panelButtonForeground: theme.ui.secondaryForeground,
+			panelButtonBorder: theme.ui.border,
+			diffBuffer: theme.ui.tertiary,
+			diffHover: theme.ui.accent,
+			diffSeparator: theme.ui.border,
+			addition: withAlpha(terminal.green, theme.type === "dark" ? 0.18 : 0.14),
+			deletion: withAlpha(terminal.red, theme.type === "dark" ? 0.18 : 0.14),
+			modified: withAlpha(terminal.blue, theme.type === "dark" ? 0.18 : 0.14),
+		},
+		syntax: {
+			plainText: terminal.foreground,
+			comment: terminal.brightBlack,
+			keyword: terminal.magenta,
+			string: terminal.green,
+			number: terminal.yellow,
+			functionCall: terminal.blue,
+			variableName: terminal.foreground,
+			typeName: terminal.cyan,
+			className: terminal.yellow,
+			constant: terminal.cyan,
+			regexp: terminal.red,
+			tagName: terminal.red,
+			attributeName: terminal.yellow,
+			invalid: terminal.brightRed,
+		},
+	};
+
+	if (!theme.editor) {
+		return derived;
+	}
+
+	return {
+		colors: {
+			...derived.colors,
+			...theme.editor.colors,
+		},
+		syntax: {
+			...derived.syntax,
+			...theme.editor.syntax,
+		},
+	};
 }
