@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { builtInThemes, darkTheme, lightTheme } from "./built-in";
-import { getDefaultTerminalColors, getEditorTheme, type Theme } from "./types";
+import { getEditorTheme } from "./editor-theme";
+import { getDefaultTerminalColors, type Theme } from "./types";
 
 const uiColorsSchema = z
 	.object({

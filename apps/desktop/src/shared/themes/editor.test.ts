@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { darkTheme, lightTheme } from "./built-in";
-import { getEditorTheme } from "./types";
+import { getEditorTheme } from "./editor-theme";
 
 describe("getEditorTheme", () => {
 	it("derives editor colors from dark theme tokens", () => {
@@ -28,15 +28,16 @@ describe("getEditorTheme", () => {
 	});
 
 	it("returns explicit editor overrides when present", () => {
+		const baseEditorTheme = getEditorTheme(lightTheme);
 		const editorTheme = getEditorTheme({
 			...lightTheme,
 			editor: {
 				colors: {
-					...getEditorTheme(lightTheme).colors,
+					...baseEditorTheme.colors,
 					background: "#f5f0e8",
 				},
 				syntax: {
-					...getEditorTheme(lightTheme).syntax,
+					...baseEditorTheme.syntax,
 					string: "#00875a",
 				},
 			},

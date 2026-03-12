@@ -6,9 +6,8 @@ import {
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
-import { useTheme } from "renderer/stores/theme";
+import { useResolvedTheme } from "renderer/stores/theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-import { darkTheme } from "shared/themes";
 
 interface LightDiffViewerProps {
 	contents: FileContents;
@@ -27,7 +26,7 @@ export function LightDiffViewer({
 	className,
 	style,
 }: LightDiffViewerProps) {
-	const activeTheme = useTheme() ?? darkTheme;
+	const activeTheme = useResolvedTheme();
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
 		{

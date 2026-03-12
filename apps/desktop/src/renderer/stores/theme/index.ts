@@ -1,5 +1,6 @@
 export {
 	SYSTEM_THEME_ID,
+	useResolvedTheme,
 	useSetTheme,
 	useTerminalTheme,
 	useTheme,

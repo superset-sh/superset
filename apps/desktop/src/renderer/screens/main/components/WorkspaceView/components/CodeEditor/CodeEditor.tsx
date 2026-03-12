@@ -27,8 +27,7 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
-import { useTheme } from "renderer/stores/theme";
-import { darkTheme } from "shared/themes";
+import { useResolvedTheme } from "renderer/stores/theme";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { loadLanguageSupport } from "./loadLanguageSupport";
 
@@ -186,7 +185,7 @@ export function CodeEditor({
 	);
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
-	const activeTheme = useTheme() ?? darkTheme;
+	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;

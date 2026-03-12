@@ -9,6 +9,7 @@ export {
 	lightTheme,
 	monokaiTheme,
 } from "./built-in";
+export { getEditorTheme } from "./editor-theme";
 export { parseThemeConfigFile, type ThemeConfigParseResult } from "./import";
 export type {
 	EditorColors,
@@ -23,6 +24,5 @@ export {
 	DEFAULT_TERMINAL_COLORS_DARK,
 	DEFAULT_TERMINAL_COLORS_LIGHT,
 	getDefaultTerminalColors,
-	getEditorTheme,
 	getTerminalColors,
 } from "./types";
