@@ -33,7 +33,6 @@ import { AgentDeskModule } from '@superbuilder/features-server/agent-desk';
 import { AiImageModule } from '@superbuilder/features-server/ai-image';
 import { TaskModule } from '@superbuilder/features-server/task';
 import { BlogModule } from '@superbuilder/features-server/blog';
-import { NaverAuthModule } from '@superbuilder/features-server/naver-auth';
 import { StoryStudioModule } from '@superbuilder/features-server/story-studio';
 import { CouponModule } from '@superbuilder/features-server/coupon';
 import { BookmarkModule } from '@superbuilder/features-server/bookmark';
@@ -85,7 +84,6 @@ import { FeatureCatalogModule } from '@superbuilder/features-server/feature-cata
     AiImageModule,
     TaskModule,
     BlogModule,
-    NaverAuthModule,
     StoryStudioModule,
     CouponModule,
     BookmarkModule,

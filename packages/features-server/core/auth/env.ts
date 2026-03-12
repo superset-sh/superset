@@ -13,6 +13,8 @@ export const env = createEnv({
     GH_CLIENT_SECRET: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    NAVER_CLIENT_ID: z.string().optional(),
+    NAVER_CLIENT_SECRET: z.string().optional(),
   },
   clientPrefix: "NEXT_PUBLIC_",
   client: {

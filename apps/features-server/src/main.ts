@@ -25,6 +25,7 @@ import {
 } from '@trpc/server/adapters/fastify';
 import type { TrpcRouter } from './trpc';
 import { parseJwtFromHeader } from '@superbuilder/features-server/core/nestjs/auth';
+import { auth } from '@superbuilder/features-server/core/auth/server';
 import { GlobalExceptionFilter } from '@superbuilder/features-server/core/error';
 import {
   initPostHogServer,
@@ -105,6 +106,29 @@ async function bootstrap() {
 
   // Fastify instance
   const fastify = app.getHttpAdapter().getInstance() as FastifyInstance;
+
+  // Better Auth handler — /api/auth/* catch-all (NestJS 라우트보다 먼저 등록)
+  fastify.route({
+    method: ['GET', 'POST'],
+    url: '/api/auth/*',
+    async handler(request, reply) {
+      const url = new URL(request.url, `http://${request.headers.host}`);
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(request.headers)) {
+        if (value) headers.append(key, Array.isArray(value) ? value.join(', ') : value);
+      }
+      const req = new Request(url.toString(), {
+        method: request.method,
+        headers,
+        ...(request.body ? { body: JSON.stringify(request.body) } : {}),
+      });
+      const response = await auth.handler(req);
+      reply.status(response.status);
+      response.headers.forEach((value, key) => reply.header(key, value));
+      const body = await response.text();
+      reply.send(body || null);
+    },
+  });
 
   // Swagger (OpenAPI) — JSON spec + inline Swagger UI (CDN)
   const swaggerConfig = new DocumentBuilder()

@@ -10,9 +10,8 @@ import type {
 /**
  * app-router.ts에서 router key 매핑 파싱
  *
- * NOTE: naver-auth는 별도 tRPC router가 없어 제외.
- * onboarding은 widget이지만 tRPC router가 없어 제외.
- * 이들은 registry에 등록되지 않으며, 다른 feature의 dependency로도 참조하지 않는다.
+ * NOTE: onboarding은 widget이지만 tRPC router가 없어 제외.
+ * registry에 등록되지 않으며, 다른 feature의 dependency로도 참조하지 않는다.
  */
 const ROUTER_KEY_MAP: Record<string, RouterMapping> = {
   "hello-world": { key: "helloWorld", import: "helloWorldRouter", from: "@repo/features/hello-world" },
@@ -62,7 +61,7 @@ const CORE_FEATURES = ["profile", "role-permission"];
 /**
  * NOTE: `auth`는 @repo/core/auth에 위치하며 packages/features/에 별도 디렉토리가 없다.
  * Core 인프라로 모든 프로젝트에 자동 포함되므로 registry에 등록하지 않는다.
- * `naver-auth` 등 OAuth provider는 별도 feature로 registry에 등록한다.
+ * OAuth provider는 Better Auth genericOAuth 플러그인으로 처리한다.
  */
 
 /** Feature Atlas packages/features/ 하위 디렉토리 스캔 */
@@ -86,7 +85,7 @@ function detectFeatureType(name: string): FeatureType {
 /** feature 그룹 판별 */
 function detectFeatureGroup(name: string): string {
   const groupMap: Record<string, string> = {
-    "profile": "core", "role-permission": "core", "naver-auth": "core",
+    "profile": "core", "role-permission": "core",
     "blog": "content", "content-studio": "content", "story-studio": "content",
     "marketing": "content", "feature-catalog": "content",
     "payment": "commerce", "booking": "commerce", "course": "commerce",

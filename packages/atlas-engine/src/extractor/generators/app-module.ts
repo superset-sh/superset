@@ -143,7 +143,6 @@ function toModuleName(featurePath: string): string {
   // 특수 케이스 매핑
   const specialCases: Record<string, string> = {
     ai: "AIModule",
-    "naver-auth": "NaverAuthModule",
   };
 
   if (specialCases[featurePath]) {
