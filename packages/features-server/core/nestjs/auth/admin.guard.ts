@@ -1,16 +1,3 @@
-/**
- * NestJS Admin Guard
- *
- * JwtAuthGuard 이후에 실행되어 사용자의 admin/owner 역할을 확인.
- * user_roles + roles 테이블을 조회하여 권한을 검증한다.
- *
- * @example
- * ```ts
- * @UseGuards(JwtAuthGuard, NestAdminGuard)
- * @Get('admin/stats')
- * async getStats() { ... }
- * ```
- */
 import {
   Injectable,
   CanActivate,
@@ -18,12 +5,12 @@ import {
   ForbiddenException,
   Inject,
 } from "@nestjs/common";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { DRIZZLE } from "@superbuilder/features-db";
-import { userRoles, roles } from "@superbuilder/features-db";
+import { baMembers } from "@superbuilder/features-db";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-const ADMIN_ROLE_SLUGS = ["owner", "admin"];
+const ADMIN_ROLES = ["owner", "admin"];
 
 @Injectable()
 export class NestAdminGuard implements CanActivate {
@@ -40,25 +27,23 @@ export class NestAdminGuard implements CanActivate {
       throw new ForbiddenException("관리자 권한이 필요합니다.");
     }
 
-    let hasAdminRole = false;
-
     try {
-      const result = await this.db
-        .select({ slug: roles.slug })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(eq(userRoles.userId, user.id))
-        .limit(10);
+      const membership = await this.db
+        .select({ role: baMembers.role })
+        .from(baMembers)
+        .where(
+          and(
+            eq(baMembers.userId, user.id),
+            sql`${baMembers.role} = ANY(${ADMIN_ROLES})`,
+          ),
+        )
+        .limit(1);
 
-      hasAdminRole = result.some((r) =>
-        ADMIN_ROLE_SLUGS.includes(r.slug),
-      );
-    } catch {
-      // user_roles/roles 테이블 미생성 시 안전하게 거부
-      hasAdminRole = false;
-    }
-
-    if (!hasAdminRole) {
+      if (membership.length === 0) {
+        throw new ForbiddenException("관리자 권한이 필요합니다.");
+      }
+    } catch (error) {
+      if (error instanceof ForbiddenException) throw error;
       throw new ForbiddenException("관리자 권한이 필요합니다.");
     }
 
