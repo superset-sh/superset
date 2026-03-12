@@ -72,6 +72,13 @@ export function useFileLinkClick({
 				if (path === workspaceCwd) {
 					return;
 				}
+				// Tilde paths (e.g. ~/.claude/plans/foo.md) can't be resolved by
+				// the file viewer since it treats them as relative paths. Fall back
+				// to the external editor which handles ~ expansion via resolvePath.
+				if (path.startsWith("~/")) {
+					openInExternalEditor();
+					return;
+				}
 				if (path.startsWith("/") && !path.startsWith(`${workspaceCwd}/`)) {
 					// Absolute path outside workspace - show warning and don't attempt to open
 					toast.warning("File is outside the workspace", {

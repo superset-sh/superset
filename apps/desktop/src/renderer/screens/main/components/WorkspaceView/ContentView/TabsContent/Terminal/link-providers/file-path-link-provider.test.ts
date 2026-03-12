@@ -661,6 +661,46 @@ describe("FilePathLinkProvider", () => {
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("./path/file.ts");
 		});
+
+		it("should detect tilde path in parentheses without trailing paren (#2372)", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Plan saved (~/.claude/plans/rosy-purring-map.md)" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			// The link text should NOT include the trailing )
+			expect(links[0].text).toBe("~/.claude/plans/rosy-purring-map.md");
+		});
+
+		it("should detect tilde path followed by closing paren (#2372)", async () => {
+			const terminal = createMockTerminal([
+				{ text: "~/.claude/plans/rosy-purring-map.md)" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("~/.claude/plans/rosy-purring-map.md");
+		});
+
+		it("should detect standalone tilde path", async () => {
+			const terminal = createMockTerminal([
+				{ text: "~/.claude/plans/rosy-purring-map.md" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("~/.claude/plans/rosy-purring-map.md");
+		});
 	});
 
 	describe("edge cases", () => {
