@@ -215,10 +215,12 @@ function parseThemeEntry(
 			...baseTheme.ui,
 			...(config.ui ?? {}),
 		},
-		terminal: {
-			...getDefaultTerminalColors(type),
-			...(terminalOverrides ?? {}),
-		},
+		terminal: terminalOverrides
+			? {
+					...getDefaultTerminalColors(type),
+					...terminalOverrides,
+				}
+			: undefined,
 	};
 	const baseEditorTheme = getEditorTheme(resolvedThemeBase);
 
@@ -226,6 +228,12 @@ function parseThemeEntry(
 		ok: true,
 		theme: {
 			...resolvedThemeBase,
+			terminal: terminalOverrides
+				? {
+						...getDefaultTerminalColors(type),
+						...terminalOverrides,
+					}
+				: undefined,
 			editor: editorOverrides
 				? {
 						colors: {

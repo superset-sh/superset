@@ -47,4 +47,41 @@ describe("getEditorTheme", () => {
 		expect(editorTheme.syntax.string).toBe("#00875a");
 		expect(editorTheme.colors.searchActive).toBe(lightTheme.ui.highlightActive);
 	});
+
+	it("prefers ui colors when terminal colors are not provided", () => {
+		const editorTheme = getEditorTheme({
+			...darkTheme,
+			terminal: undefined,
+			ui: {
+				...darkTheme.ui,
+				background: "#101820",
+				foreground: "#f4efe6",
+				card: "#18232d",
+				border: "#355066",
+				mutedForeground: "#8ea3b7",
+				primary: "#e39b57",
+				secondary: "#21303d",
+				secondaryForeground: "#f4efe6",
+				accent: "#25465f",
+				destructive: "#ff6b6b",
+				chart1: "#ff8f6b",
+				chart2: "#4dd4ac",
+				chart3: "#6bbcff",
+				chart4: "#ffd166",
+				chart5: "#c792ea",
+				highlightMatch: "rgba(255, 209, 102, 0.28)",
+				highlightActive: "rgba(107, 188, 255, 0.36)",
+			},
+		});
+
+		expect(editorTheme.colors.background).toBe("#101820");
+		expect(editorTheme.colors.foreground).toBe("#f4efe6");
+		expect(editorTheme.colors.panel).toBe("#18232d");
+		expect(editorTheme.colors.addition).toBe("#4dd4ac");
+		expect(editorTheme.colors.deletion).toBe("#ff6b6b");
+		expect(editorTheme.colors.modified).toBe("#6bbcff");
+		expect(editorTheme.syntax.keyword).toBe("#e39b57");
+		expect(editorTheme.syntax.comment).toBe("#8ea3b7");
+		expect(editorTheme.syntax.string).toBe("#4dd4ac");
+	});
 });
