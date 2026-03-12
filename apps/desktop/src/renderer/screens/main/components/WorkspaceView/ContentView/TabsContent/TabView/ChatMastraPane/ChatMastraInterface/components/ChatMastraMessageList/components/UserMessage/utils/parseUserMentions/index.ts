@@ -1,4 +1,4 @@
 export {
 	parseUserMentions,
 	type UserMentionSegment,
-} from "./parseUserMentions";
+} from "../../../../../../../../utils/parseUserMentions";
