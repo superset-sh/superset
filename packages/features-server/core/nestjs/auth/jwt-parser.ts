@@ -1,12 +1,64 @@
-import type { User } from "../../trpc/trpc";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import type { JWTPayload } from "jose";
+
+export interface JwtUser {
+  id: string;
+  email?: string;
+  organizationIds?: string[];
+}
+
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function getJwks(baseUrl: string) {
+  if (!jwks) {
+    jwks = createRemoteJWKSet(
+      new URL(`${baseUrl}/api/auth/jwks`),
+    );
+  }
+  return jwks;
+}
 
 /**
- * Authorization 헤더에서 JWT를 추출하고 파싱하여 User 객체를 반환.
- * 서명 검증 없이 페이로드만 디코딩 (Supabase JWT 기준).
+ * Authorization 헤더에서 JWT를 추출하고 JWKS로 서명 검증.
+ * Better Auth JWT 플러그인이 발급한 RS256 토큰 기준.
  */
-export function parseJwtFromHeader(
+export async function parseJwtFromHeader(
   authHeader: string | undefined,
-): User | undefined {
+): Promise<JwtUser | undefined> {
+  if (!authHeader?.startsWith("Bearer ")) return undefined;
+
+  const token = authHeader.slice(7);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!baseUrl) return undefined;
+
+  try {
+    const { payload } = await jwtVerify(token, getJwks(baseUrl), {
+      issuer: baseUrl,
+      audience: baseUrl,
+    });
+
+    if (payload.sub) {
+      return {
+        id: payload.sub,
+        email: (payload as JWTPayload & { email?: string }).email,
+        organizationIds: (payload as JWTPayload & { organizationIds?: string[] }).organizationIds,
+      };
+    }
+  } catch {
+    // Invalid or expired token
+  }
+
+  return undefined;
+}
+
+/**
+ * Fallback: 서명 검증 없이 JWT payload만 디코딩.
+ * JWKS가 사용 불가능한 환경(테스트 등)에서 사용.
+ */
+export function parseJwtPayloadUnsafe(
+  authHeader: string | undefined,
+): JwtUser | undefined {
   if (!authHeader?.startsWith("Bearer ")) return undefined;
 
   const token = authHeader.slice(7);
@@ -19,7 +71,7 @@ export function parseJwtFromHeader(
     );
 
     if (payload.sub && payload.exp && payload.exp > Date.now() / 1000) {
-      return { id: payload.sub, email: payload.email };
+      return { id: payload.sub, email: payload.email, organizationIds: payload.organizationIds };
     }
   } catch {
     // Invalid token
