@@ -9,7 +9,6 @@ import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
-	useCreateWorkspace,
 	useHandleOpenedWorktree,
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
@@ -30,11 +29,10 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
-	const createWorkspace = useCreateWorkspace();
 	const handleOpenedWorktree = useHandleOpenedWorktree();
 	const importAllWorktrees = useImportAllWorktrees();
 	const openExternalWorktree = useOpenExternalWorktree();
-	const { draft, closeAndResetDraft, runAsyncAction } =
+	const { createWorkspace, draft, closeAndResetDraft, runAsyncAction } =
 		useNewWorkspaceModalDraft();
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 

@@ -7,6 +7,8 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
+import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 
 export type NewWorkspaceModalTab =
 	| "prompt"
@@ -66,6 +68,8 @@ interface NewWorkspaceModalDraftContextValue {
 	draftVersion: number;
 	closeModal: () => void;
 	closeAndResetDraft: () => void;
+	createWorkspace: ReturnType<typeof useCreateWorkspace>;
+	createFromPr: ReturnType<typeof useCreateFromPr>;
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: NewWorkspaceModalActionMessages,
@@ -83,6 +87,11 @@ export function NewWorkspaceModalDraftProvider({
 	onClose,
 }: PropsWithChildren<{ onClose: () => void }>) {
 	const [state, setState] = useState(buildInitialDraftState);
+
+	// Mutations live here (outside the Dialog) so onSuccess callbacks
+	// survive when the Dialog unmounts its content on close.
+	const createWorkspace = useCreateWorkspace();
+	const createFromPr = useCreateFromPr();
 
 	const updateDraft = useCallback((patch: Partial<NewWorkspaceModalDraft>) => {
 		setState((state) => ({
@@ -153,6 +162,8 @@ export function NewWorkspaceModalDraftProvider({
 			draftVersion: state.draftVersion,
 			closeModal: onClose,
 			closeAndResetDraft,
+			createWorkspace,
+			createFromPr,
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
@@ -160,6 +171,8 @@ export function NewWorkspaceModalDraftProvider({
 		}),
 		[
 			closeAndResetDraft,
+			createFromPr,
+			createWorkspace,
 			onClose,
 			resetDraft,
 			resetDraftIfVersion,
