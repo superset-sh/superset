@@ -10,7 +10,6 @@ import {
 	guardedWriteRegisteredWorktreeTextFile,
 	readRegisteredWorktreeFileBufferUpTo,
 	toRegisteredWorktreeRelativePath,
-	type WorkspaceFsPathError,
 } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
@@ -24,51 +23,24 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 /** Bytes to scan for binary detection */
 const BINARY_CHECK_SIZE = 8192;
 
-/**
- * Result type for readWorkingFile procedure
- */
 type ReadWorkingFileResult =
 	| { ok: true; content: string; truncated: boolean; byteLength: number }
 	| {
 			ok: false;
-			reason:
-				| "not-found"
-				| "too-large"
-				| "binary"
-				| "outside-worktree"
-				| "symlink-escape";
+			reason: "not-found" | "too-large" | "binary";
 	  };
 
-/**
- * Result type for readWorkingFileImage procedure
- */
 type ReadWorkingFileImageResult =
 	| { ok: true; dataUrl: string; byteLength: number }
 	| {
 			ok: false;
-			reason:
-				| "not-found"
-				| "too-large"
-				| "not-image"
-				| "outside-worktree"
-				| "symlink-escape";
+			reason: "not-found" | "too-large" | "not-image";
 	  };
 
 type SaveFileResult =
 	| { status: "saved" }
 	| { status: "conflict"; currentContent: string | null };
 
-function isWorkspaceFsPathError(error: unknown): error is WorkspaceFsPathError {
-	return (
-		error instanceof Error &&
-		"name" in error &&
-		error.name === "WorkspaceFsPathError"
-	);
-}
-
-/**
- * Detects if a buffer contains binary content by checking for NUL bytes
- */
 function isBinaryContent(buffer: Buffer): boolean {
 	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
 	for (let i = 0; i < checkLength; i++) {
@@ -79,11 +51,7 @@ function isBinaryContent(buffer: Buffer): boolean {
 	return false;
 }
 
-function isInsideWorktree(worktreePath: string, absolutePath: string): boolean {
-	const rel = path.relative(path.resolve(worktreePath), path.resolve(absolutePath));
-	return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
-}
-
+/** Path-based file read with size cap — no workspace scoping. */
 async function readFileBufferUpTo(
 	absolutePath: string,
 	maxBytes: number,
@@ -170,10 +138,6 @@ export const createFileContentsRouter = () => {
 				return { status: "saved" };
 			}),
 
-		/**
-		 * Read a working tree file safely with size cap and binary detection.
-		 * Used for File Viewer raw/rendered modes.
-		 */
 		readWorkingFile: publicProcedure
 			.input(
 				z.object({
@@ -182,48 +146,31 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
-				const external = !isInsideWorktree(input.worktreePath, input.absolutePath);
-
 				try {
-					const result = external
-						? await readFileBufferUpTo(input.absolutePath, MAX_FILE_SIZE)
-						: await readRegisteredWorktreeFileBufferUpTo({
-								worktreePath: input.worktreePath,
-								absolutePath: input.absolutePath,
-								maxBytes: MAX_FILE_SIZE,
-							});
+					const result = await readFileBufferUpTo(
+						input.absolutePath,
+						MAX_FILE_SIZE,
+					);
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = result.buffer;
-
-					if (isBinaryContent(buffer)) {
+					if (isBinaryContent(result.buffer)) {
 						return { ok: false, reason: "binary" };
 					}
 
 					return {
 						ok: true,
-						content: buffer.toString("utf-8"),
+						content: result.buffer.toString("utf-8"),
 						truncated: false,
-						byteLength: buffer.length,
+						byteLength: result.buffer.length,
 					};
-				} catch (error) {
-					if (isWorkspaceFsPathError(error)) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
-					}
+				} catch {
 					return { ok: false, reason: "not-found" };
 				}
 			}),
 
-		/**
-		 * Read an image file and return as base64 data URL.
-		 * Used for File Viewer rendered mode for images.
-		 */
 		readWorkingFileImage: publicProcedure
 			.input(
 				z.object({
@@ -237,38 +184,23 @@ export const createFileContentsRouter = () => {
 					return { ok: false, reason: "not-image" };
 				}
 
-				const external = !isInsideWorktree(input.worktreePath, input.absolutePath);
-
 				try {
-					const result = external
-						? await readFileBufferUpTo(input.absolutePath, MAX_IMAGE_SIZE)
-						: await readRegisteredWorktreeFileBufferUpTo({
-								worktreePath: input.worktreePath,
-								absolutePath: input.absolutePath,
-								maxBytes: MAX_IMAGE_SIZE,
-							});
+					const result = await readFileBufferUpTo(
+						input.absolutePath,
+						MAX_IMAGE_SIZE,
+					);
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = result.buffer;
-
-					const base64 = buffer.toString("base64");
-					const dataUrl = `data:${mimeType};base64,${base64}`;
-
+					const base64 = result.buffer.toString("base64");
 					return {
 						ok: true,
-						dataUrl,
-						byteLength: buffer.length,
+						dataUrl: `data:${mimeType};base64,${base64}`,
+						byteLength: result.buffer.length,
 					};
-				} catch (error) {
-					if (isWorkspaceFsPathError(error)) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
-					}
+				} catch {
 					return { ok: false, reason: "not-found" };
 				}
 			}),
