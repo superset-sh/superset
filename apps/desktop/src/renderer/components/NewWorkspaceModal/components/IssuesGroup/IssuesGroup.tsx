@@ -13,7 +13,6 @@ import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	StatusIcon,
 	type StatusType,
@@ -32,8 +31,7 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
-	const createWorkspace = useCreateWorkspace();
-	const { draft, closeAndResetDraft, runAsyncAction } =
+	const { createWorkspace, draft, closeAndResetDraft, runAsyncAction } =
 		useNewWorkspaceModalDraft();
 
 	const { data: integrations } = useLiveQuery(
