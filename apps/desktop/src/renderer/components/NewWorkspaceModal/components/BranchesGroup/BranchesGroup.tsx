@@ -8,11 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	useHandleOpenedWorktree,
-	useImportAllWorktrees,
-	useOpenExternalWorktree,
-} from "renderer/react-query/workspaces";
+import { useImportAllWorktrees } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
@@ -29,11 +25,15 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const navigate = useNavigate();
-	const handleOpenedWorktree = useHandleOpenedWorktree();
 	const importAllWorktrees = useImportAllWorktrees();
-	const openExternalWorktree = useOpenExternalWorktree();
-	const { createWorkspace, draft, closeAndResetDraft, runAsyncAction } =
-		useNewWorkspaceModalDraft();
+	const {
+		createWorkspace,
+		openTrackedWorktree,
+		openExternalWorktree,
+		draft,
+		closeAndResetDraft,
+		runAsyncAction,
+	} = useNewWorkspaceModalDraft();
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 
 	// Fast query: local branches + cached remote refs (no network)
@@ -229,12 +229,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		},
 		[closeAndResetDraft, navigate],
 	);
-
-	const openTrackedWorktree = electronTrpc.workspaces.openWorktree.useMutation({
-		onSuccess: async (data) => {
-			await handleOpenedWorktree(data);
-		},
-	});
 
 	const handleOpenTrackedWorktree = useCallback(
 		(worktreeId: string, branchName: string) => {
