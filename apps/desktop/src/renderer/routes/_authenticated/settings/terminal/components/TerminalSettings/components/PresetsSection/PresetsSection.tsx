@@ -269,6 +269,16 @@ export function PresetsSection({
 		[setPresetAutoApply],
 	);
 
+	const handleTogglePin = useCallback(
+		(presetId: string, pinned: boolean) => {
+			updatePreset.mutate({
+				id: presetId,
+				patch: { pinnedToBar: pinned },
+			});
+		},
+		[updatePreset],
+	);
+
 	const handleLocalReorder = useCallback(
 		(fromIndex: number, toIndex: number) => {
 			setLocalPresets((prev) => {
@@ -401,6 +411,7 @@ export function PresetsSection({
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
+						onTogglePin={handleTogglePin}
 					/>
 					<p className="text-xs text-muted-foreground">
 						Click a preset row to edit details.
