@@ -118,6 +118,20 @@ const mockLlmService = {
 };
 
 // ============================================================================
+// Mock Storage Provider
+// ============================================================================
+
+const mockStorageProvider = {
+  upload: jest.fn(),
+  delete: jest.fn(),
+  createSignedUrl: jest.fn().mockImplementation((_bucket: string, _path: string) =>
+    Promise.resolve("https://signed-url.example.com/file"),
+  ),
+  createSignedUploadUrl: jest.fn(),
+  getPublicUrl: jest.fn(),
+};
+
+// ============================================================================
 // Global fetch mock
 // ============================================================================
 
@@ -143,12 +157,7 @@ describe("FileParserService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDb = createChainableMockDb();
-    const mockConfigService = { get: jest.fn((key: string) => {
-      if (key === "SUPABASE_URL") return "https://mock.supabase.co";
-      if (key === "SUPABASE_SECRET_KEY") return "mock-secret-key";
-      return undefined;
-    }) };
-    service = new FileParserService(mockDb as any, mockLlmService as any, mockConfigService as any);
+    service = new FileParserService(mockDb as any, mockLlmService as any, mockStorageProvider as any);
   });
 
   afterAll(() => {

@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Inject, NotFoundException, BadRequestException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { InjectDrizzle, type DrizzleDB } from "@superbuilder/features-db";
 import { agentDeskFiles } from "@superbuilder/features-db";
 import { createLogger } from "../../../core/logger";
 import { LLMService } from "../../../features/ai";
+import { STORAGE_PROVIDER, type StorageProvider } from "../../file-manager/service/storage-provider.interface";
 import type { ParsedFileResult } from "../types";
 
 const logger = createLogger("agent-desk");
@@ -24,17 +24,11 @@ const ALLOWED_MIME_TYPES = new Set([
 
 @Injectable()
 export class FileParserService {
-  private readonly supabaseUrl: string;
-  private readonly supabaseKey: string;
-
   constructor(
     @InjectDrizzle() private readonly db: DrizzleDB,
     private readonly llmService: LLMService,
-    private readonly configService: ConfigService,
-  ) {
-    this.supabaseUrl = this.configService.get<string>("SUPABASE_URL") ?? "";
-    this.supabaseKey = this.configService.get<string>("SUPABASE_SECRET_KEY") ?? "";
-  }
+    @Inject(STORAGE_PROVIDER) private readonly storageProvider: StorageProvider,
+  ) {}
 
   async parseFile(fileId: string): Promise<ParsedFileResult> {
     const file = await this.db.query.agentDeskFiles.findFirst({
@@ -46,13 +40,8 @@ export class FileParserService {
     let metadata: ParsedFileResult["metadata"] = {};
 
     try {
-      const downloadUrl = this.resolveStorageUrl(file.storageUrl);
-      const headers: Record<string, string> = {};
-      if (downloadUrl.includes(this.supabaseUrl) && this.supabaseKey) {
-        headers["Authorization"] = `Bearer ${this.supabaseKey}`;
-        headers["apikey"] = this.supabaseKey;
-      }
-      const response = await fetch(downloadUrl, { headers });
+      const downloadUrl = await this.resolveDownloadUrl(file.storageUrl);
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         throw new Error(`Storage download failed: ${response.status} ${response.statusText}`);
       }
@@ -415,9 +404,9 @@ export class FileParserService {
   }
 
   /**
-   * storage:// URL을 실제 Supabase Storage download URL로 변환
+   * storage:// URL을 실제 다운로드 URL로 변환 (StorageProvider signed URL 사용)
    */
-  private resolveStorageUrl(storageUrl: string): string {
+  private async resolveDownloadUrl(storageUrl: string): Promise<string> {
     if (!storageUrl.startsWith("storage://")) return storageUrl;
 
     // storage://files/agent-desk/.../file.pptx → bucket=files, path=agent-desk/.../file.pptx
@@ -428,7 +417,7 @@ export class FileParserService {
     const bucket = withoutProtocol.slice(0, slashIndex);
     const path = withoutProtocol.slice(slashIndex + 1);
 
-    return `${this.supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+    return this.storageProvider.createSignedUrl(bucket, path);
   }
 
   private parseText(buffer: Buffer, fileName: string): string {

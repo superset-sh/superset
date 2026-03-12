@@ -1,6 +1,7 @@
 import { Module, OnModuleInit } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AIModule, LLMService } from "../../features/ai";
+import { FileManagerModule } from "../file-manager/file-manager.module";
 import {
   SessionService,
   FileParserService,
@@ -23,7 +24,7 @@ import { AgentDeskController } from "./controller";
 import { injectAgentDeskServices } from "./trpc";
 
 @Module({
-  imports: [ConfigModule, AIModule],
+  imports: [ConfigModule, AIModule, FileManagerModule],
   controllers: [AgentDeskController],
   providers: [
     SessionService,
