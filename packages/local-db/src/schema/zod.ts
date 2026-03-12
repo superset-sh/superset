@@ -132,6 +132,7 @@ export const EXTERNAL_APPS = [
 	"appcode",
 	"fleet",
 	"rustrover",
+	"android-studio",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];

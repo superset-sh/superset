@@ -29,6 +29,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	appcode: "AppCode",
 	fleet: "Fleet",
 	rustrover: "RustRover",
+	"android-studio": "Android Studio",
 };
 
 /**
@@ -68,6 +69,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	appcode: null, // macOS only
 	fleet: "fleet",
 	rustrover: "rustrover",
+	"android-studio": "studio",
 };
 
 /**
