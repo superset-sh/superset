@@ -8,6 +8,11 @@ import {
 	useState,
 } from "react";
 
+export type LinkedIssue = {
+	slug: string;
+	title: string;
+};
+
 export interface NewWorkspaceModalDraft {
 	selectedProjectId: string | null;
 	prompt: string;
@@ -15,7 +20,7 @@ export interface NewWorkspaceModalDraft {
 	runSetupScript: boolean;
 	workspaceName: string;
 	workspaceNameEdited: boolean;
-	linkedIssueSlug: string | null;
+	linkedIssues: LinkedIssue[];
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
@@ -29,7 +34,7 @@ const initialDraft: NewWorkspaceModalDraft = {
 	runSetupScript: true,
 	workspaceName: "",
 	workspaceNameEdited: false,
-	linkedIssueSlug: null,
+	linkedIssues: [],
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
@@ -127,7 +132,7 @@ export function NewWorkspaceModalDraftProvider({
 				runSetupScript: state.runSetupScript,
 				workspaceName: state.workspaceName,
 				workspaceNameEdited: state.workspaceNameEdited,
-				linkedIssueSlug: state.linkedIssueSlug,
+				linkedIssues: state.linkedIssues,
 			},
 			draftVersion: state.draftVersion,
 			closeModal: onClose,

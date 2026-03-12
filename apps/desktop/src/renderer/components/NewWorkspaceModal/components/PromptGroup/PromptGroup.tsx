@@ -46,13 +46,12 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import {
 	ArrowUpIcon,
-	LinkIcon,
 	Loader2Icon,
 	PaperclipIcon,
 	PlusIcon,
-	XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
@@ -68,6 +67,7 @@ import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { LinkedIssuePill } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/IssueLinkCommand";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
@@ -128,33 +128,11 @@ function PlusMenu({ onOpenIssueLink }: { onOpenIssueLink: () => void }) {
 					Add attachment
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={onOpenIssueLink}>
-					<LinkIcon className="size-4" />
+					<SiLinear className="size-4" />
 					Link issue
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
-	);
-}
-
-function LinkedIssueChip({
-	slug,
-	onRemove,
-}: {
-	slug: string;
-	onRemove: () => void;
-}) {
-	return (
-		<span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs">
-			<SiLinear className="size-3 shrink-0" />
-			<span className="truncate max-w-[140px]">{slug}</span>
-			<button
-				type="button"
-				onClick={onRemove}
-				className="ml-0.5 rounded-sm hover:bg-muted p-0.5"
-			>
-				<XIcon className="size-3" />
-			</button>
-		</span>
 	);
 }
 
@@ -374,7 +352,7 @@ function PromptGroupInner({
 		runSetupScript,
 		workspaceName,
 		workspaceNameEdited,
-		linkedIssueSlug,
+		linkedIssues,
 	} = draft;
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
@@ -395,6 +373,7 @@ function PromptGroupInner({
 	);
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const trimmedPrompt = prompt.trim();
+	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
@@ -425,7 +404,7 @@ function PromptGroupInner({
 	});
 
 	const branchSlug = sanitizeBranchNameWithMaxLength(
-		trimmedPrompt || linkedIssueSlug || "",
+		trimmedPrompt || firstIssueSlug || "",
 	);
 
 	const previousProjectIdRef = useRef(projectId);
@@ -469,7 +448,7 @@ function PromptGroupInner({
 					chat: {
 						initialPrompt: prompt || undefined,
 						initialFiles: files?.length ? files : undefined,
-						taskSlug: linkedIssueSlug || undefined,
+						taskSlug: firstIssueSlug || undefined,
 					},
 				};
 			}
@@ -495,7 +474,7 @@ function PromptGroupInner({
 				},
 			};
 		},
-		[selectedAgent, linkedIssueSlug],
+		[selectedAgent, firstIssueSlug],
 	);
 
 	const handleCreate = useCallback(async () => {
@@ -559,8 +538,15 @@ function PromptGroupInner({
 		updateDraft({ baseBranch: selectedBaseBranch });
 	};
 
-	const handleIssueSelect = (slug: string) => {
-		updateDraft({ linkedIssueSlug: slug });
+	const addLinkedIssue = (slug: string, title: string) => {
+		if (linkedIssues.some((issue) => issue.slug === slug)) return;
+		updateDraft({ linkedIssues: [...linkedIssues, { slug, title }] });
+	};
+
+	const removeLinkedIssue = (slug: string) => {
+		updateDraft({
+			linkedIssues: linkedIssues.filter((issue) => issue.slug !== slug),
+		});
 	};
 
 	const agentIcon =
@@ -598,14 +584,25 @@ function PromptGroupInner({
 				maxFileSize={10 * 1024 * 1024}
 				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
-				{(linkedIssueSlug || attachments.files.length > 0) && (
-					<div className="flex flex-wrap items-center gap-2 px-3 pt-3">
-						{linkedIssueSlug && (
-							<LinkedIssueChip
-								slug={linkedIssueSlug}
-								onRemove={() => updateDraft({ linkedIssueSlug: null })}
-							/>
-						)}
+				{(linkedIssues.length > 0 || attachments.files.length > 0) && (
+					<div className="flex flex-wrap items-start gap-2 px-3 pt-3 self-stretch">
+						<AnimatePresence initial={false}>
+							{linkedIssues.map((issue) => (
+								<motion.div
+									key={issue.slug}
+									initial={{ opacity: 0, scale: 0.8 }}
+									animate={{ opacity: 1, scale: 1 }}
+									exit={{ opacity: 0, scale: 0.8 }}
+									transition={{ duration: 0.15 }}
+								>
+									<LinkedIssuePill
+										slug={issue.slug}
+										title={issue.title}
+										onRemove={() => removeLinkedIssue(issue.slug)}
+									/>
+								</motion.div>
+							))}
+						</AnimatePresence>
 						<PromptInputAttachments>
 							{(file) => <PromptInputAttachment data={file} />}
 						</PromptInputAttachments>
@@ -715,7 +712,7 @@ function PromptGroupInner({
 			<IssueLinkCommand
 				open={issueLinkOpen}
 				onOpenChange={setIssueLinkOpen}
-				onSelect={handleIssueSelect}
+				onSelect={addLinkedIssue}
 			/>
 		</div>
 	);
