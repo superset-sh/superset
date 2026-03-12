@@ -8,9 +8,12 @@ import {
 import {
 	advanceFeatureRequestSchema,
 	appendFeatureRequestMessageSchema,
+	completeImplementationSchema,
 	createFeatureRequestSchema,
+	failImplementationSchema,
 	featureRequestIdSchema,
 	listFeatureRequestsSchema,
+	prepareImplementationSchema,
 	registerFeatureRequestSchema,
 	respondToApprovalSchema,
 	requestRegistrationApprovalSchema,
@@ -99,6 +102,42 @@ export const featureStudioRouter = router({
 			return services
 				.get()
 				.featureStudioRunnerService.advance(input.featureRequestId);
+		}),
+
+	prepareImplementation: authProcedure
+		.input(prepareImplementationSchema)
+		.mutation(async ({ input }) => {
+			return services
+				.get()
+				.featureStudioRunnerService.prepareImplementation(
+					input.featureRequestId,
+					{
+						agentType: input.agentType,
+						workspaceId: input.workspaceId,
+					},
+				);
+		}),
+
+	completeImplementation: authProcedure
+		.input(completeImplementationSchema)
+		.mutation(async ({ input }) => {
+			return services
+				.get()
+				.featureStudioRunnerService.completeImplementation(
+					input.featureRequestId,
+					{ summary: input.summary },
+				);
+		}),
+
+	failImplementation: authProcedure
+		.input(failImplementationSchema)
+		.mutation(async ({ input }) => {
+			return services
+				.get()
+				.featureStudioRunnerService.failImplementation(
+					input.featureRequestId,
+					input.error,
+				);
 		}),
 
 	requestRegistrationApproval: authProcedure

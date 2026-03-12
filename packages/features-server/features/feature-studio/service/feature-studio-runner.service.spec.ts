@@ -1,5 +1,6 @@
 import { FeatureStudioRunnerService } from "./feature-studio-runner.service";
 import type { WorktreeExecutionService } from "./worktree-execution.service";
+import type { BrowserQaService } from "./browser-qa.service";
 
 jest.mock("@superset/agent", () => ({
 	generateFeatureStudioPlan: jest.fn(),
@@ -113,15 +114,18 @@ describe("FeatureStudioRunnerService", () => {
 	let service: FeatureStudioRunnerService;
 	let mockDb: ReturnType<typeof createMockDb>;
 	let worktreeExecutionService: Pick<WorktreeExecutionService, "prepareWorktree">;
+	let browserQaService: Pick<BrowserQaService, never>;
 
 	beforeEach(() => {
 		mockDb = createMockDb();
 		worktreeExecutionService = {
 			prepareWorktree: jest.fn(),
 		};
+		browserQaService = {};
 		service = new FeatureStudioRunnerService(
 			mockDb as never,
 			worktreeExecutionService as never,
+			browserQaService as never,
 		);
 		generateFeatureStudioSpecMock.mockReset();
 		generateFeatureStudioPlanMock.mockReset();

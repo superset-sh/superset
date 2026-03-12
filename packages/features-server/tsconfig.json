@@ -5,6 +5,8 @@
 		"rootDir": ".",
 		"paths": {
 			"@superset/agent": ["../agent/src/index.ts"],
+			"@superset/shared/agent-command": ["../shared/src/agent-command.ts"],
+			"@superset/shared/agent-launch": ["../shared/src/agent-launch.ts"],
 			"@/*": ["./*"],
 			"@/core/*": ["./core/*"],
 			"@/shared/*": ["./shared/*"],
