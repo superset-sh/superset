@@ -33,8 +33,4 @@ export interface FileConstraints {
   allowedMimeTypes: string[];
 }
 
-export interface StorageUploadResult {
-  id?: string;
-  path: string;
-  publicUrl?: string;
-}
+export type { StorageUploadResult } from "../service/storage-provider.interface";

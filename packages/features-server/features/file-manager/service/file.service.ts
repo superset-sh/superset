@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -8,7 +9,7 @@ import { eq, desc, count } from "drizzle-orm";
 import { InjectDrizzle, type DrizzleDB } from "@superbuilder/features-db";
 import { files } from "@superbuilder/features-db";
 import { buildPaginatedResult } from "../../../shared/utils/offset-pagination";
-import { SupabaseStorageService } from "./supabase-storage.service";
+import { STORAGE_PROVIDER, type StorageProvider } from "./storage-provider.interface";
 import type {
   FileRecord,
   UploadInput,
@@ -43,7 +44,7 @@ const FILE_CONSTRAINTS: FileConstraints = {
 export class FileService {
   constructor(
     @InjectDrizzle() private readonly db: DrizzleDB,
-    private readonly storageService: SupabaseStorageService
+    @Inject(STORAGE_PROVIDER) private readonly storageService: StorageProvider,
   ) {}
 
   /**
@@ -225,7 +226,14 @@ export class FileService {
     const fileName = `${randomUUID()}${ext}`;
     const path = `${userId}/${fileName}`;
 
-    return this.storageService.createSignedUploadUrl(bucket, path);
+    const result = await this.storageService.createSignedUploadUrl(bucket, path);
+
+    return {
+      signedUrl: result.signedUrl,
+      path: result.path,
+      token: result.token,
+      fileId: randomUUID(),
+    };
   }
 
   /**

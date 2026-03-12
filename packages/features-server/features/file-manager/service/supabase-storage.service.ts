@@ -1,16 +1,18 @@
+/**
+ * Supabase Storage Provider
+ *
+ * StorageProvider 인터페이스의 Supabase Storage 구현체.
+ * S3-compatible 스토리지로 마이그레이션 시 이 파일만 교체하면 됨.
+ */
+
 import { Injectable, InternalServerErrorException, BadGatewayException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
-import type { StorageUploadResult, SignedUploadUrlResponse } from "../types";
-
-export interface UploadOptions {
-  contentType: string;
-  upsert?: boolean;
-}
+import type { StorageProvider, UploadOptions, StorageUploadResult, SignedUploadUrlResult } from "./storage-provider.interface";
 
 @Injectable()
-export class SupabaseStorageService {
+export class SupabaseStorageService implements StorageProvider {
   private supabase: SupabaseClient;
 
   constructor(private readonly configService: ConfigService) {
@@ -24,9 +26,6 @@ export class SupabaseStorageService {
     this.supabase = createClient(supabaseUrl, supabaseSecretKey);
   }
 
-  /**
-   * 파일을 Supabase Storage에 업로드
-   */
   async upload(
     bucket: string,
     path: string,
@@ -50,9 +49,6 @@ export class SupabaseStorageService {
     };
   }
 
-  /**
-   * Supabase Storage에서 파일 삭제
-   */
   async delete(bucket: string, paths: string[]): Promise<void> {
     const { error } = await this.supabase.storage.from(bucket).remove(paths);
 
@@ -61,9 +57,6 @@ export class SupabaseStorageService {
     }
   }
 
-  /**
-   * 다운로드용 Signed URL 생성
-   */
   async createSignedUrl(
     bucket: string,
     path: string,
@@ -80,13 +73,10 @@ export class SupabaseStorageService {
     return data.signedUrl;
   }
 
-  /**
-   * Client Direct Upload용 Signed Upload URL 생성
-   */
   async createSignedUploadUrl(
     bucket: string,
     path: string
-  ): Promise<SignedUploadUrlResponse> {
+  ): Promise<SignedUploadUrlResult> {
     const { data, error } = await this.supabase.storage
       .from(bucket)
       .createSignedUploadUrl(path);
@@ -99,13 +89,9 @@ export class SupabaseStorageService {
       signedUrl: data.signedUrl,
       path: data.path,
       token: data.token,
-      fileId: randomUUID(),
     };
   }
 
-  /**
-   * Public bucket의 공개 URL 반환
-   */
   getPublicUrl(bucket: string, path: string): string {
     const { data } = this.supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
