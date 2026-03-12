@@ -532,6 +532,13 @@ export function setupKeyboardHandler(
 	const isWindows = platform.includes("win");
 
 	const handler = (event: KeyboardEvent): boolean => {
+		// Prevent bare Alt/Option keydown from reaching xterm's CompositionHelper
+		// on macOS. When Korean IME is active, the Alt keydown passes through
+		// compositionHelper.keydown() which can corrupt the textarea state
+		// even after compositionend has fired.
+		if (isMac && event.key === "Alt" && !event.metaKey && !event.ctrlKey) {
+			return false;
+		}
 		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&
@@ -605,7 +612,9 @@ export function setupKeyboardHandler(
 
 		if (isOptionLeft) {
 			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
+				event.preventDefault();
+				// Always defer to let any pending IME _finalizeComposition complete (setTimeout(0) in xterm)
+				setTimeout(() => options.onWrite?.("\x1bb"), 50);
 			}
 			return false;
 		}
@@ -621,7 +630,8 @@ export function setupKeyboardHandler(
 
 		if (isOptionRight) {
 			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
+				event.preventDefault();
+				setTimeout(() => options.onWrite?.("\x1bf"), 50);
 			}
 			return false;
 		}
