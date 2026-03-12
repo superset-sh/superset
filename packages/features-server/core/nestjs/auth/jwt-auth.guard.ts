@@ -8,9 +8,9 @@ import { parseJwtFromHeader } from "./jwt-parser";
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const user = parseJwtFromHeader(request.headers.authorization);
+    const user = await parseJwtFromHeader(request.headers.authorization);
 
     if (!user) {
       throw new UnauthorizedException("인증이 필요합니다.");
