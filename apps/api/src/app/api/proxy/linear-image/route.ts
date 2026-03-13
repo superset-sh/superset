@@ -35,6 +35,11 @@ export async function GET(request: Request): Promise<Response> {
 		return new Response("Invalid URL", { status: 400 });
 	}
 
+	// Security: Enforce HTTPS protocol
+	if (parsedUrl.protocol !== "https:") {
+		return new Response("Only HTTPS URLs are allowed", { status: 400 });
+	}
+
 	if (parsedUrl.host !== LINEAR_IMAGE_HOST) {
 		return new Response(`Only ${LINEAR_IMAGE_HOST} URLs are allowed`, {
 			status: 400,
@@ -71,7 +76,15 @@ export async function GET(request: Request): Promise<Response> {
 		});
 	}
 
-	const contentType = linearResponse.headers.get("content-type") ?? "image/png";
+	// Security: Whitelist allowed image content types
+	const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"];
+	const contentType = linearResponse.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "image/png";
+
+	if (!allowedTypes.includes(contentType)) {
+		console.error("[proxy/linear-image] Blocked non-image content type:", contentType);
+		return new Response("Unsupported content type", { status: 400 });
+	}
+
 	const imageData = await linearResponse.arrayBuffer();
 
 	return new Response(imageData, {
