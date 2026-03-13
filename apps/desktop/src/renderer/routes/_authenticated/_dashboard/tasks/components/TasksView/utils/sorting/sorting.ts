@@ -88,6 +88,19 @@ export function compareTasks(
 	return priorityOrderA - priorityOrderB;
 }
 
+/** Multiple Linear teams can create duplicate status entries with the same name and type */
+export function deduplicateStatuses(
+	statuses: SelectTaskStatus[],
+): SelectTaskStatus[] {
+	const seen = new Set<string>();
+	return statuses.filter((status) => {
+		const key = `${status.name}:${status.type}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+}
+
 /**
  * Compare two statuses for dropdown sorting.
  * Sort order: status type (workflow order) → status position
