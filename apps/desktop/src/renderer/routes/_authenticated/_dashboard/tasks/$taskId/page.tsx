@@ -4,7 +4,7 @@ import { Separator } from "@superset/ui/separator";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -62,6 +62,30 @@ function TaskDetailPage() {
 		if (!taskData || taskData.length === 0) return null;
 		return taskData[0];
 	}, [taskData]);
+	const [draftTitle, setDraftTitle] = useState("");
+	const [draftDescription, setDraftDescription] = useState("");
+	const persistedTitleSnapshot = useMemo(
+		() => ({
+			taskId: task?.id ?? null,
+			value: task?.title ?? "",
+		}),
+		[task?.id, task?.title],
+	);
+	const persistedDescriptionSnapshot = useMemo(
+		() => ({
+			taskId: task?.id ?? null,
+			value: task?.description ?? "",
+		}),
+		[task?.description, task?.id],
+	);
+
+	useEffect(() => {
+		setDraftTitle(persistedTitleSnapshot.value);
+	}, [persistedTitleSnapshot]);
+
+	useEffect(() => {
+		setDraftDescription(persistedDescriptionSnapshot.value);
+	}, [persistedDescriptionSnapshot]);
 
 	const handleBack = () => {
 		navigate({ to: "/tasks", search: backSearch });
@@ -117,11 +141,16 @@ function TaskDetailPage() {
 
 				<ScrollArea className="flex-1 min-h-0">
 					<div className="px-6 py-6 max-w-4xl">
-						<EditableTitle value={task.title} onSave={handleSaveTitle} />
+						<EditableTitle
+							value={task.title}
+							onSave={handleSaveTitle}
+							onValueChange={setDraftTitle}
+						/>
 
 						<TaskMarkdownRenderer
 							content={task.description ?? ""}
 							onSave={handleSaveDescription}
+							onValueChange={setDraftDescription}
 						/>
 
 						<Separator className="my-8" />
@@ -141,7 +170,11 @@ function TaskDetailPage() {
 				</ScrollArea>
 			</div>
 
-			<PropertiesSidebar task={task} />
+			<PropertiesSidebar
+				task={task}
+				draftTitle={draftTitle}
+				draftDescription={draftDescription}
+			/>
 		</div>
 	);
 }

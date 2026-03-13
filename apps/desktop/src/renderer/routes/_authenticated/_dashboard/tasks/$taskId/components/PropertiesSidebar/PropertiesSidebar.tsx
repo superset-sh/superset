@@ -8,9 +8,15 @@ import { StatusProperty } from "./components/StatusProperty";
 
 interface PropertiesSidebarProps {
 	task: TaskWithStatus;
+	draftTitle?: string;
+	draftDescription?: string;
 }
 
-export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
+export function PropertiesSidebar({
+	task,
+	draftTitle,
+	draftDescription,
+}: PropertiesSidebarProps) {
 	const labels = task.labels ?? [];
 
 	return (
@@ -43,7 +49,11 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 						)}
 					</div>
 
-					<OpenInWorkspace task={task} />
+					<OpenInWorkspace
+						task={task}
+						draftTitle={draftTitle}
+						draftDescription={draftDescription}
+					/>
 				</div>
 			</ScrollArea>
 		</div>

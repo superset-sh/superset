@@ -117,11 +117,13 @@ const KeyboardHandler = Extension.create({
 interface TaskMarkdownRendererProps {
 	content: string;
 	onSave: (markdown: string) => void;
+	onValueChange?: (markdown: string) => void;
 }
 
 export function TaskMarkdownRenderer({
 	content,
 	onSave,
+	onValueChange,
 }: TaskMarkdownRendererProps) {
 	const editor = useEditor({
 		extensions: [
@@ -218,6 +220,14 @@ export function TaskMarkdownRenderer({
 			attributes: {
 				class: "focus:outline-none min-h-[100px]",
 			},
+		},
+		onUpdate: ({ editor }) => {
+			const storage = editor.storage as unknown as Record<
+				string,
+				{ getMarkdown?: () => string }
+			>;
+			const markdown = storage.markdown?.getMarkdown?.() ?? "";
+			onValueChange?.(markdown);
 		},
 		onBlur: ({ editor }) => {
 			const storage = editor.storage as unknown as Record<

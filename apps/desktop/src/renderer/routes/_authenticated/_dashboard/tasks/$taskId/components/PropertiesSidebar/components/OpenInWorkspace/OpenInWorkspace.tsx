@@ -1,3 +1,4 @@
+import type { TaskInput } from "@superset/shared/agent-command";
 import {
 	buildAgentFileCommand,
 	buildAgentTaskPrompt,
@@ -34,15 +35,23 @@ import {
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
 	task: TaskWithStatus;
+	draftTitle?: string;
+	draftDescription?: string;
 }
 
-export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+export function OpenInWorkspace({
+	task,
+	draftTitle,
+	draftDescription,
+}: OpenInWorkspaceProps) {
+	const collections = useCollections();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
@@ -91,17 +100,28 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		await handleSelectProject(effectiveProjectId);
 	};
 
-	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest => {
-		const taskInput = {
-			id: task.id,
-			slug: task.slug,
-			title: task.title,
-			description: task.description,
-			priority: task.priority,
-			statusName: task.status.name,
-			labels: task.labels,
-		};
+	const getLaunchTaskInput = (): TaskInput => {
+		const latestTask = collections.tasks.get(task.id) ?? task;
+		const latestStatus = latestTask.statusId
+			? collections.taskStatuses.get(latestTask.statusId)
+			: null;
+		const normalizedDraftTitle = draftTitle?.trim();
 
+		return {
+			id: latestTask.id,
+			slug: latestTask.slug,
+			title: normalizedDraftTitle || latestTask.title,
+			description: draftDescription ?? latestTask.description,
+			priority: latestTask.priority,
+			statusName: latestStatus?.name ?? task.status.name,
+			labels: latestTask.labels,
+		};
+	};
+
+	const buildLaunchRequest = (
+		workspaceId: string,
+		launchTask: TaskInput,
+	): AgentLaunchRequest => {
 		if (selectedAgent === "superset-chat") {
 			return {
 				kind: "chat",
@@ -109,15 +129,15 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				agentType: "superset-chat",
 				source: "open-in-workspace",
 				chat: {
-					initialPrompt: buildAgentTaskPrompt(taskInput),
+					initialPrompt: buildAgentTaskPrompt(launchTask),
 					retryCount: 1,
 					autoExecute: autoRun,
-					taskSlug: task.slug,
+					taskSlug: launchTask.slug,
 				},
 			};
 		}
 
-		const taskPromptFileName = `task-${task.slug}.md`;
+		const taskPromptFileName = `task-${launchTask.slug}.md`;
 		return {
 			kind: "terminal",
 			workspaceId,
@@ -128,8 +148,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					filePath: `.superset/${taskPromptFileName}`,
 					agent: selectedAgent,
 				}),
-				name: task.slug,
-				taskPromptContent: buildAgentTaskPrompt(taskInput),
+				name: launchTask.slug,
+				taskPromptContent: buildAgentTaskPrompt(launchTask),
 				taskPromptFileName,
 				autoExecute: autoRun,
 			},
@@ -137,17 +157,21 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	};
 
 	const handleSelectProject = async (projectId: string) => {
+		const launchTask = getLaunchTaskInput();
 		const branchName = deriveBranchName({
-			slug: task.slug,
-			title: task.title,
+			slug: launchTask.slug,
+			title: launchTask.title,
 		});
-		const launchRequestTemplate = buildLaunchRequest("pending-workspace");
+		const launchRequestTemplate = buildLaunchRequest(
+			"pending-workspace",
+			launchTask,
+		);
 
 		try {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
-					name: task.slug,
+					name: launchTask.slug,
 					branchName,
 				},
 				{ agentLaunchRequest: launchRequestTemplate },
