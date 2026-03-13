@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildAgentPromptCommand } from "./agent-command";
+import { AGENT_PRESET_COMMANDS, buildAgentPromptCommand } from "./agent-command";
 
 describe("buildAgentPromptCommand", () => {
 	it("adds `--` before codex prompt payload", () => {
@@ -25,5 +25,15 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith(
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
+	});
+});
+
+describe("AGENT_PRESET_COMMANDS", () => {
+	it("does not set reasoning.summary for codex preset", () => {
+		const codexPreset = AGENT_PRESET_COMMANDS.codex[0];
+
+		expect(codexPreset).toContain('model_reasoning_effort="high"');
+		expect(codexPreset).not.toContain("model_reasoning_summary");
+		expect(codexPreset).not.toContain("model_supports_reasoning_summaries");
 	});
 });
