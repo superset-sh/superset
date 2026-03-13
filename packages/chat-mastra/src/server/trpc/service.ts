@@ -8,6 +8,7 @@ import {
 	authenticateRuntimeMcpServer,
 	destroyRuntime,
 	generateAndSetTitle,
+	type LifecycleEvent,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
 	type RuntimeSession,
@@ -59,6 +60,7 @@ function resolveOmModelFromAuth(): string | undefined {
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
+	onLifecycleEvent?: (event: LifecycleEvent) => void;
 }
 
 export class ChatMastraService {
@@ -143,7 +145,7 @@ export class ChatMastraService {
 				};
 				syncRuntimeHookSessionId(runtime);
 				await runSessionStartHook(runtime).catch(() => {});
-				subscribeToSessionEvents(runtime);
+				subscribeToSessionEvents(runtime, this.opts.onLifecycleEvent);
 				this.runtimes.set(sessionId, runtime);
 				return runtime;
 			} finally {

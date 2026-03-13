@@ -171,11 +171,23 @@ export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 	await harnessWithDestroy.destroy?.().catch(() => {});
 }
 
+export interface LifecycleEvent {
+	sessionId: string;
+	eventType: "Start" | "Stop" | "PermissionRequest";
+}
+
 /**
  * Subscribe to harness lifecycle events for a runtime session.
  * Call once after creating a runtime — handles runtime error state and stop hooks.
+ *
+ * The optional `onLifecycleEvent` callback is invoked for agent start/stop and
+ * permission-request events so the host (e.g. the desktop app) can update UI
+ * indicators without going through the shell-based hook chain.
  */
-export function subscribeToSessionEvents(runtime: RuntimeSession): void {
+export function subscribeToSessionEvents(
+	runtime: RuntimeSession,
+	onLifecycleEvent?: (event: LifecycleEvent) => void,
+): void {
 	runtime.harness.subscribe((event: unknown) => {
 		if (
 			isHarnessThreadChangedEvent(event) ||
@@ -194,11 +206,19 @@ export function subscribeToSessionEvents(runtime: RuntimeSession): void {
 				path: event.path,
 				reason: event.reason,
 			};
+			onLifecycleEvent?.({
+				sessionId: runtime.sessionId,
+				eventType: "PermissionRequest",
+			});
 			return;
 		}
 		if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
 			runtime.pendingSandboxQuestion = null;
+			onLifecycleEvent?.({
+				sessionId: runtime.sessionId,
+				eventType: "Start",
+			});
 			return;
 		}
 		if (isHarnessAgentEndEvent(event)) {
@@ -208,6 +228,10 @@ export function subscribeToSessionEvents(runtime: RuntimeSession): void {
 			if (runtime.hookManager) {
 				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
 			}
+			onLifecycleEvent?.({
+				sessionId: runtime.sessionId,
+				eventType: "Stop",
+			});
 		}
 	});
 }
