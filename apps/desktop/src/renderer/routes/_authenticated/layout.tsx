@@ -40,6 +40,7 @@ function AuthenticatedLayout() {
 		data: session,
 		isPending,
 		isRefetching,
+		error: sessionError,
 		refetch,
 	} = authClient.useSession();
 	const hasLocalToken = !!getAuthToken();
@@ -119,14 +120,25 @@ function AuthenticatedLayout() {
 		);
 	}
 
-	if (!isSignedIn && hasLocalToken && !isOnline) {
+	// Show a retry screen when we have a local token but can't reach the
+	// session endpoint. This covers two cases:
+	//   1. Device is offline.
+	//   2. Network is momentarily unavailable after waking from sleep/hibernation
+	//      (issue #1937): better-auth sets data=null on any fetch error, which
+	//      would otherwise fall through to the sign-in redirect below even though
+	//      the on-disk token is still valid.
+	if (!isSignedIn && hasLocalToken && (!isOnline || !!sessionError)) {
 		return (
 			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
 				<HiOutlineWifi className="size-12 text-muted-foreground" />
 				<div className="text-center">
-					<h2 className="text-lg font-medium">You're offline</h2>
+					<h2 className="text-lg font-medium">
+						{!isOnline ? "You're offline" : "Connection error"}
+					</h2>
 					<p className="text-sm text-muted-foreground">
-						Connect to the internet to continue
+						{!isOnline
+							? "Connect to the internet to continue"
+							: "Could not verify your session. Please retry."}
 					</p>
 				</div>
 				<Button variant="outline" size="sm" onClick={() => refetch()}>
