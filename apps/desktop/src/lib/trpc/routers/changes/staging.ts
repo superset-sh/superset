@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
 import { resolve } from "node:path";
+import { deletePath } from "@superset/workspace-fs/host";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
@@ -43,7 +43,11 @@ async function deleteFiles(
 ): Promise<void> {
 	await Promise.all(
 		filePaths.map((filePath) =>
-			fs.rm(resolve(worktreePath, filePath), { recursive: true, force: true }),
+			deletePath({
+				rootPath: worktreePath,
+				absolutePath: resolve(worktreePath, filePath),
+				permanent: true,
+			}),
 		),
 	);
 }
@@ -139,9 +143,10 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await fs.rm(resolve(input.worktreePath, input.filePath), {
-					recursive: true,
-					force: true,
+				await deletePath({
+					rootPath: input.worktreePath,
+					absolutePath: resolve(input.worktreePath, input.filePath),
+					permanent: true,
 				});
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };

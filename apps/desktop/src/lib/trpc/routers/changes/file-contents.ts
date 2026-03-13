@@ -1,5 +1,8 @@
-import fs from "node:fs/promises";
 import path from "node:path";
+import {
+	readFile as fsReadFile,
+	writeFile as fsWriteFile,
+} from "@superset/workspace-fs/host";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType } from "shared/file-types";
@@ -41,36 +44,95 @@ function isEisdir(error: unknown): boolean {
 	return error instanceof Error && "code" in error && error.code === "EISDIR";
 }
 
-function isBinaryContent(buffer: Buffer): boolean {
-	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
+function isBinaryContent(bytes: Uint8Array): boolean {
+	const checkLength = Math.min(bytes.length, BINARY_CHECK_SIZE);
 	for (let i = 0; i < checkLength; i++) {
-		if (buffer[i] === 0) {
+		if (bytes[i] === 0) {
 			return true;
 		}
 	}
 	return false;
 }
 
-/** Path-based file read with size cap — no workspace scoping. */
-async function readFileBufferUpTo(
-	absolutePath: string,
-	maxBytes: number,
-): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
-	const handle = await fs.open(absolutePath, "r");
-	try {
-		const buf = Buffer.alloc(maxBytes + 1);
-		const { bytesRead } = await handle.read(buf, 0, maxBytes + 1, 0);
-		if (bytesRead > maxBytes) {
-			return { buffer: buf.subarray(0, maxBytes), exceededLimit: true };
-		}
-		return { buffer: buf.subarray(0, bytesRead), exceededLimit: false };
-	} finally {
-		await handle.close();
-	}
-}
-
 export const createFileContentsRouter = () => {
 	return router({
+		// -----------------------------------------------------------------
+		// New pure-git procedures (Milestone 4)
+		// -----------------------------------------------------------------
+
+		getGitFileContents: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					absolutePath: z.string(),
+					oldAbsolutePath: z.string().optional(),
+					category: z.enum(["against-base", "committed", "staged"]),
+					commitHash: z.string().optional(),
+					defaultBranch: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }): Promise<FileContents> => {
+				const git = await getSimpleGitWithShellPath(input.worktreePath);
+				const defaultBranch = input.defaultBranch || "main";
+				const filePath = toRegisteredWorktreeRelativePath(
+					input.worktreePath,
+					input.absolutePath,
+				);
+				const originalPath = input.oldAbsolutePath
+					? toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.oldAbsolutePath,
+						)
+					: filePath;
+
+				const versions = await getGitOnlyVersions(
+					git,
+					filePath,
+					originalPath,
+					input.category,
+					defaultBranch,
+					input.commitHash,
+				);
+
+				return {
+					original: versions.original,
+					modified: versions.modified,
+					language: detectLanguage(input.absolutePath),
+				};
+			}),
+
+		getGitOriginalContent: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					absolutePath: z.string(),
+					oldAbsolutePath: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }): Promise<{ content: string }> => {
+				const git = await getSimpleGitWithShellPath(input.worktreePath);
+				const originalPath = input.oldAbsolutePath
+					? toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.oldAbsolutePath,
+						)
+					: toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.absolutePath,
+						);
+
+				// Try staged version first, fall back to HEAD
+				let content = await safeGitShow(git, `:0:${originalPath}`);
+				if (!content) {
+					content = await safeGitShow(git, `HEAD:${originalPath}`);
+				}
+				return { content };
+			}),
+
+		// -----------------------------------------------------------------
+		// Legacy procedures (backward compat — renderer migrates in M7)
+		// -----------------------------------------------------------------
+
 		getFileContents: publicProcedure
 			.input(
 				z.object({
@@ -126,7 +188,12 @@ export const createFileContentsRouter = () => {
 				if (input.expectedContent !== undefined) {
 					let currentContent: string | null = null;
 					try {
-						currentContent = await fs.readFile(input.absolutePath, "utf-8");
+						const result = await fsReadFile({
+							rootPath: input.worktreePath,
+							absolutePath: input.absolutePath,
+							encoding: "utf-8",
+						});
+						currentContent = result.content as string;
 					} catch {
 						// File doesn't exist yet
 					}
@@ -138,7 +205,12 @@ export const createFileContentsRouter = () => {
 					}
 				}
 
-				await fs.writeFile(input.absolutePath, input.content, "utf-8");
+				await fsWriteFile({
+					rootPath: input.worktreePath,
+					absolutePath: input.absolutePath,
+					content: input.content,
+					encoding: "utf-8",
+				});
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { status: "saved" };
 			}),
@@ -152,24 +224,27 @@ export const createFileContentsRouter = () => {
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const result = await readFileBufferUpTo(
-						input.absolutePath,
-						MAX_FILE_SIZE,
-					);
+					const result = await fsReadFile({
+						rootPath: input.worktreePath,
+						absolutePath: input.absolutePath,
+						maxBytes: MAX_FILE_SIZE,
+					});
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					if (isBinaryContent(result.buffer)) {
+					// No encoding → bytes mode
+					const bytes = result.content as Uint8Array;
+					if (isBinaryContent(bytes)) {
 						return { ok: false, reason: "binary" };
 					}
 
 					return {
 						ok: true,
-						content: result.buffer.toString("utf-8"),
+						content: new TextDecoder("utf-8").decode(bytes),
 						truncated: false,
-						byteLength: result.buffer.length,
+						byteLength: result.byteLength,
 					};
 				} catch (error) {
 					if (isEisdir(error)) {
@@ -193,20 +268,22 @@ export const createFileContentsRouter = () => {
 				}
 
 				try {
-					const result = await readFileBufferUpTo(
-						input.absolutePath,
-						MAX_IMAGE_SIZE,
-					);
+					const result = await fsReadFile({
+						rootPath: input.worktreePath,
+						absolutePath: input.absolutePath,
+						maxBytes: MAX_IMAGE_SIZE,
+					});
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const base64 = result.buffer.toString("base64");
+					const bytes = result.content as Uint8Array;
+					const base64 = Buffer.from(bytes).toString("base64");
 					return {
 						ok: true,
 						dataUrl: `data:${mimeType};base64,${base64}`,
-						byteLength: result.buffer.length,
+						byteLength: result.byteLength,
 					};
 				} catch (error) {
 					if (isEisdir(error)) {
@@ -217,6 +294,10 @@ export const createFileContentsRouter = () => {
 			}),
 	});
 };
+
+// ---------------------------------------------------------------------------
+// Git helpers
+// ---------------------------------------------------------------------------
 
 type DiffCategory = "against-base" | "committed" | "staged" | "unstaged";
 
@@ -249,6 +330,29 @@ async function getFileVersions(
 
 		case "unstaged":
 			return getUnstagedVersions(git, worktreePath, filePath, originalPath);
+	}
+}
+
+async function getGitOnlyVersions(
+	git: SimpleGit,
+	filePath: string,
+	originalPath: string,
+	category: "against-base" | "committed" | "staged",
+	defaultBranch: string,
+	commitHash?: string,
+): Promise<FileVersions> {
+	switch (category) {
+		case "against-base":
+			return getAgainstBaseVersions(git, filePath, originalPath, defaultBranch);
+
+		case "committed":
+			if (!commitHash) {
+				throw new Error("commitHash required for committed category");
+			}
+			return getCommittedVersions(git, filePath, originalPath, commitHash);
+
+		case "staged":
+			return getStagedVersions(git, filePath, originalPath);
 	}
 }
 
@@ -330,12 +434,17 @@ async function getUnstagedVersions(
 	let modified = "";
 	try {
 		const absolutePath = path.resolve(worktreePath, filePath);
-		const result = await readFileBufferUpTo(absolutePath, MAX_FILE_SIZE);
+		const result = await fsReadFile({
+			rootPath: worktreePath,
+			absolutePath,
+			maxBytes: MAX_FILE_SIZE,
+			encoding: "utf-8",
+		});
 
 		if (result.exceededLimit) {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 		} else {
-			modified = result.buffer.toString("utf-8");
+			modified = result.content as string;
 		}
 	} catch {
 		modified = "";

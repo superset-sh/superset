@@ -1,6 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	createDirectory,
+	writeFile as fsWriteFile,
+} from "@superset/workspace-fs/host";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -35,8 +38,13 @@ async function writeTaskFile(
 	}
 
 	const dir = path.join(workspacePath, ".superset");
-	await mkdir(dir, { recursive: true });
-	await writeFile(path.join(dir, baseName), content, { encoding: "utf-8" });
+	await createDirectory({ rootPath: workspacePath, absolutePath: dir });
+	await fsWriteFile({
+		rootPath: workspacePath,
+		absolutePath: path.join(dir, baseName),
+		content,
+		encoding: "utf-8",
+	});
 }
 
 const SAFE_ID = z
