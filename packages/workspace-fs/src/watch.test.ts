@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
 import type { WorkspaceFsWatchEvent } from "./types";
-import { coalesceWatchEvents, reconcileRenameEvents } from "./watch";
+import {
+	coalesceWatchEvents,
+	extractWatcherErrorMessage,
+	reconcileRenameEvents,
+	WorkspaceFsWatcherManager,
+} from "./watch";
 
 function createEvent(
 	type: ParcelWatcherEvent["type"],
@@ -151,5 +156,61 @@ describe("reconcileRenameEvents", () => {
 
 		expect(events).toHaveLength(4);
 		expect(events.every((event) => event.type !== "rename")).toEqual(true);
+	});
+});
+
+describe("WorkspaceFsWatcherManager.subscribe", () => {
+	it("throws when watching a non-existent path", async () => {
+		const manager = new WorkspaceFsWatcherManager();
+
+		try {
+			await expect(
+				manager.subscribe(
+					{
+						workspaceId: "test-ws",
+						rootPath: "/nonexistent/path/that/does/not/exist",
+					},
+					() => {},
+				),
+			).rejects.toThrow("Cannot watch non-existent path");
+		} finally {
+			await manager.close();
+		}
+	});
+});
+
+describe("extractWatcherErrorMessage", () => {
+	it("extracts message from a standard Error", () => {
+		const error = new Error("something broke");
+		expect(extractWatcherErrorMessage(error)).toBe("something broke");
+	});
+
+	it("returns a string error as-is", () => {
+		expect(extractWatcherErrorMessage("raw string error")).toBe(
+			"raw string error",
+		);
+	});
+
+	it("extracts message from an object with a message property", () => {
+		const nativeError = { message: "Bad file descriptor", code: "EBADF" };
+		expect(extractWatcherErrorMessage(nativeError)).toBe("Bad file descriptor");
+	});
+
+	it("handles native errors that serialize as empty objects", () => {
+		const nativeError = Object.create(null);
+		Object.defineProperty(nativeError, "message", {
+			value: "Bad file descriptor",
+			enumerable: false,
+		});
+		// JSON.stringify produces "{}" for this object
+		expect(JSON.stringify(nativeError)).toBe("{}");
+		// But our extractor gets the message
+		expect(extractWatcherErrorMessage(nativeError)).toBe("Bad file descriptor");
+	});
+
+	it("falls back to String() for unknown error shapes", () => {
+		expect(extractWatcherErrorMessage(42)).toBe("42");
+		expect(extractWatcherErrorMessage(null)).toBe("null");
+		expect(extractWatcherErrorMessage(undefined)).toBe("undefined");
 	});
 });

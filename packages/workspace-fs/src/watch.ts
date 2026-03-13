@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { access, stat } from "node:fs/promises";
 import path from "node:path";
 import {
 	type AsyncSubscription,
@@ -282,6 +282,24 @@ export function reconcileRenameEvents(
 	return reconciled;
 }
 
+export function extractWatcherErrorMessage(error: unknown): string {
+	if (error instanceof Error) {
+		return error.message;
+	}
+	if (typeof error === "string") {
+		return error;
+	}
+	if (
+		error !== null &&
+		typeof error === "object" &&
+		"message" in error &&
+		typeof (error as { message: unknown }).message === "string"
+	) {
+		return (error as { message: string }).message;
+	}
+	return String(error);
+}
+
 export interface WorkspaceFsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
@@ -356,9 +374,17 @@ export class WorkspaceFsWatcherManager {
 	private async createWatcher(
 		options: WorkspaceWatchSubscriptionOptions,
 	): Promise<WorkspaceWatcherState> {
+		const rootPath = normalizeAbsolutePath(options.rootPath);
+
+		await access(rootPath).catch(() => {
+			throw new Error(
+				`Cannot watch non-existent path: ${rootPath} (workspace: ${options.workspaceId})`,
+			);
+		});
+
 		const state: WorkspaceWatcherState = {
 			workspaceId: options.workspaceId,
-			rootPath: normalizeAbsolutePath(options.rootPath),
+			rootPath,
 			revision: 0,
 			subscription: null as unknown as AsyncSubscription,
 			listeners: new Set<WorkspaceWatchListener>(),
@@ -374,7 +400,7 @@ export class WorkspaceFsWatcherManager {
 					console.error("[workspace-fs/watch] Watcher error:", {
 						workspaceId: state.workspaceId,
 						rootPath: state.rootPath,
-						error,
+						error: extractWatcherErrorMessage(error),
 					});
 					this.emit(state, {
 						type: "overflow",

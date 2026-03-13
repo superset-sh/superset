@@ -105,7 +105,7 @@ export const createFilesystemRouter = () => {
 						} catch (error) {
 							console.error("[filesystem/subscribe] Failed:", {
 								workspaceId: input.workspaceId,
-								error,
+								error: error instanceof Error ? error.message : String(error),
 							});
 							safeNext({
 								type: "overflow",
