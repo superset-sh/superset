@@ -3,4 +3,4 @@ export {
 	type ChatMastraServiceOptions,
 	type ChatMastraServiceRouter,
 } from "./service";
-export { type LifecycleEvent } from "./utils/runtime";
+export type { LifecycleEvent } from "./utils/runtime";

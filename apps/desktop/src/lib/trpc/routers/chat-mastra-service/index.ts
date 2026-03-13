@@ -1,7 +1,7 @@
-import { ChatMastraService } from "@superset/chat-mastra/server/trpc";
 import type { LifecycleEvent } from "@superset/chat-mastra/server/trpc";
-import { appState } from "main/lib/app-state";
+import { ChatMastraService } from "@superset/chat-mastra/server/trpc";
 import { env } from "main/env.main";
+import { appState } from "main/lib/app-state";
 import { notificationsEmitter } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { loadToken } from "../auth/utils/auth-functions";
