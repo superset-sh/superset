@@ -255,6 +255,15 @@ protocol.registerSchemesAsPrivileged([
 			supportFetchAPI: true,
 		},
 	},
+	{
+		scheme: "superset-font",
+		privileges: {
+			standard: true,
+			secure: true,
+			bypassCSP: true,
+			supportFetchAPI: true,
+		},
+	},
 ]);
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -290,6 +299,36 @@ if (!gotTheLock) {
 		session
 			.fromPartition("persist:superset")
 			.protocol.handle("superset-icon", iconProtocolHandler);
+
+		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
+		// so the renderer can use @font-face with font-src 'self' CSP
+		if (process.platform === "darwin") {
+			const SYSTEM_FONT_DIRS = [
+				"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
+				"/System/Library/Fonts",
+				"/Library/Fonts",
+			];
+			const fontProtocolHandler = async (request: Request) => {
+				const url = new URL(request.url);
+				const filename = path.basename(url.pathname);
+				if (!/\.(otf|ttf|woff2?)$/i.test(filename)) {
+					return new Response("Not found", { status: 404 });
+				}
+				for (const dir of SYSTEM_FONT_DIRS) {
+					const fontPath = path.join(dir, filename);
+					try {
+						return await net.fetch(pathToFileURL(fontPath).toString());
+					} catch {
+						// Font not in this directory, try next
+					}
+				}
+				return new Response("Not found", { status: 404 });
+			};
+			protocol.handle("superset-font", fontProtocolHandler);
+			session
+				.fromPartition("persist:superset")
+				.protocol.handle("superset-font", fontProtocolHandler);
+		}
 
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();

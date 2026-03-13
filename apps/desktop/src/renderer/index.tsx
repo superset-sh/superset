@@ -19,6 +19,7 @@ import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
+import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
