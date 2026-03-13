@@ -11,6 +11,7 @@ import {
 import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
+	defaultPresetAgents,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
@@ -89,15 +90,7 @@ function saveTerminalPresets(
 		.run();
 }
 
-const DEFAULT_PRESET_AGENTS = [
-	"claude",
-	"codex",
-	"copilot",
-	"opencode",
-	"gemini",
-] as const;
-
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = defaultPresetAgents.map(
 	(name) => ({
 		name,
 		description: AGENT_PRESET_DESCRIPTIONS[name],

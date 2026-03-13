@@ -63,11 +63,14 @@ const {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
+	createQoderSettingsJson,
+	createQoderWrapper,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getQoderSettingsJsonContent,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
@@ -221,6 +224,17 @@ describe("agent-wrappers copilot", () => {
 
 		expect(wrapper).toContain("# Superset wrapper for droid");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "droid")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates qodercli wrapper passthrough", () => {
+		createQoderWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "qodercli");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for qodercli");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "qodercli")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
@@ -543,6 +557,198 @@ describe("agent-wrappers copilot", () => {
 			true,
 		);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("replaces stale Qoder hook commands from old superset paths", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(qoderSettingsPath), { recursive: true });
+		writeFileSync(
+			qoderSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-notify.sh" },
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getQoderSettingsJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) {
+			throw new Error("Expected Qoder settings content for valid JSON object");
+		}
+		writeFileSync(qoderSettingsPath, content);
+
+		const content2 = getQoderSettingsJsonContent(currentHookPath);
+		expect(content2).not.toBeNull();
+		if (content2 === null) {
+			throw new Error("Expected Qoder settings content after rewrite");
+		}
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		const notificationHooks = parsed.hooks.Notification;
+		expect(Array.isArray(notificationHooks)).toBe(true);
+		expect(
+			notificationHooks.some((entry) =>
+				entry.hooks.some((hook) => hook.command === currentHookPath),
+			),
+		).toBe(true);
+		expect(
+			notificationHooks.some((entry) =>
+				entry.hooks.some((hook) => hook.command.includes(staleHookPath)),
+			),
+		).toBe(false);
+		expect(
+			notificationHooks.some((entry) =>
+				entry.hooks.some((hook) => hook.command === "/opt/custom-notify.sh"),
+			),
+		).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("initializes Qoder settings for first-time users", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const currentHookPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+
+		expect(getQoderSettingsJsonContent(currentHookPath)).not.toBeNull();
+		expect(() => createQoderSettingsJson()).not.toThrow();
+		expect(readFileSync(qoderSettingsPath, "utf-8")).toBe(
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							{
+								hooks: [{ type: "command", command: currentHookPath }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+	});
+
+	it("sanitizes malformed Qoder Notification hooks before merging", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(qoderSettingsPath), { recursive: true });
+		writeFileSync(
+			qoderSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							null,
+							"invalid-entry",
+							{
+								hooks: [
+									null,
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-notify.sh" },
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getQoderSettingsJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) {
+			throw new Error("Expected Qoder settings content for malformed JSON");
+		}
+
+		const parsed = JSON.parse(content) as {
+			hooks: { Notification: Array<{ hooks?: Array<{ command?: string }> }> };
+		};
+		expect(parsed.hooks.Notification).toHaveLength(2);
+		expect(
+			parsed.hooks.Notification.every((entry) => typeof entry === "object"),
+		).toBe(true);
+		expect(parsed.hooks.Notification[0]?.hooks).toEqual([
+			{ type: "command", command: "/opt/custom-notify.sh" },
+		]);
+		expect(parsed.hooks.Notification[1]?.hooks).toEqual([
+			{ type: "command", command: currentHookPath },
+		]);
+	});
+
+	it("ignores truthy non-string Qoder hook commands without throwing", () => {
+		const qoderSettingsPath = path.join(
+			mockedHomeDir,
+			".qoder",
+			"settings.json",
+		);
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(qoderSettingsPath), { recursive: true });
+		writeFileSync(
+			qoderSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						Notification: [
+							{
+								hooks: [
+									{ type: "command", command: 42 },
+									{ type: "command", command: "/opt/custom-notify.sh" },
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		expect(() => getQoderSettingsJsonContent(currentHookPath)).not.toThrow();
+	});
+
+	it("continues setup when Qoder settings.json cannot be written", () => {
+		mkdirSync(mockedHomeDir, { recursive: true });
+		writeFileSync(path.join(mockedHomeDir, ".qoder"), "blocked");
+
+		expect(() => createQoderSettingsJson()).not.toThrow();
 	});
 
 	it("skips Droid settings writes when the existing JSON is invalid", () => {

@@ -17,6 +17,8 @@ import {
 	createMastraWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
+	createQoderSettingsJson,
+	createQoderWrapper,
 } from "./agent-wrappers";
 import { createNotifyScript } from "./notify-hook";
 import {
@@ -60,6 +62,8 @@ export function setupAgentHooks(): void {
 	createGeminiSettingsJson();
 	createMastraWrapper();
 	createMastraHooksJson();
+	createQoderWrapper();
+	createQoderSettingsJson();
 	createCopilotHookScript();
 	createCopilotWrapper();
 

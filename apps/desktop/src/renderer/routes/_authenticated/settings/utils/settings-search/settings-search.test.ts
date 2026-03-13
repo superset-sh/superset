@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "qoder cli" returns TERMINAL_QUICK_ADD', () => {
+		const results = searchSettings("qoder cli");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.TERMINAL_QUICK_ADD);
+	});
 });
