@@ -2,12 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
-// ---------------------------------------------------------------------------
-// Module-level singletons
-// ---------------------------------------------------------------------------
-
 const webviewRegistry = new Map<string, Electron.WebviewTag>();
-/** Tracks paneId → last-registered webContentsId so we can re-register if it changes. */
 const registeredWebContentsIds = new Map<string, number>();
 let hiddenContainer: HTMLDivElement | null = null;
 
@@ -26,7 +21,6 @@ function getHiddenContainer(): HTMLDivElement {
 	return hiddenContainer;
 }
 
-/** Call from useBrowserLifecycle when a pane is removed. */
 export function destroyPersistentWebview(paneId: string): void {
 	const webview = webviewRegistry.get(paneId);
 	if (webview) {
@@ -35,10 +29,6 @@ export function destroyPersistentWebview(paneId: string): void {
 	}
 	registeredWebContentsIds.delete(paneId);
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function sanitizeUrl(url: string): string {
 	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
@@ -53,10 +43,6 @@ function sanitizeUrl(url: string): string {
 	return `https://www.google.com/search?q=${encodeURIComponent(url)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 interface UsePersistentWebviewOptions {
 	paneId: string;
 	initialUrl: string;
@@ -68,6 +54,7 @@ export function usePersistentWebview({
 }: UsePersistentWebviewOptions) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const isHistoryNavigation = useRef(false);
+	const isReparenting = useRef(false);
 	const faviconUrlRef = useRef<string | undefined>(undefined);
 	const initialUrlRef = useRef(initialUrl);
 
@@ -83,8 +70,6 @@ export function usePersistentWebview({
 	const { mutate: upsertHistory } =
 		electronTrpc.browserHistory.upsert.useMutation();
 
-	// Subscribe to new-window events (target="_blank" links, window.open)
-	// handled via setWindowOpenHandler in the main process
 	electronTrpc.browser.onNewWindow.useSubscription(
 		{ paneId },
 		{
@@ -116,32 +101,6 @@ export function usePersistentWebview({
 		},
 	);
 
-	// Sync store from webview state (handles agent-triggered navigation while hidden)
-	const syncStoreFromWebview = useCallback(
-		(webview: Electron.WebviewTag) => {
-			try {
-				const url = webview.getURL();
-				const title = webview.getTitle();
-				if (url) {
-					const store = useTabsStore.getState();
-					const currentUrl = store.panes[paneId]?.browser?.currentUrl;
-					if (url !== currentUrl) {
-						store.updateBrowserUrl(
-							paneId,
-							url,
-							title ?? "",
-							faviconUrlRef.current,
-						);
-					}
-				}
-			} catch {
-				// webview may not be ready
-			}
-		},
-		[paneId],
-	);
-
-	// Main lifecycle effect: create or reclaim webview, attach events, park on unmount
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -149,11 +108,24 @@ export function usePersistentWebview({
 		let webview = webviewRegistry.get(paneId);
 
 		if (webview) {
-			// Reclaim from hidden container
+			// Electron may reload from the stale `src` attribute when reparenting,
+			// stripping query params. Suppress those events and restore the correct URL.
+			isReparenting.current = true;
+			const reclaimedWv = webview;
 			container.appendChild(webview);
-			syncStoreFromWebview(webview);
+			setTimeout(() => {
+				isReparenting.current = false;
+				const store = useTabsStore.getState();
+				const expectedUrl = store.panes[paneId]?.browser?.currentUrl;
+				if (!expectedUrl) return;
+				try {
+					if (reclaimedWv.getURL() !== expectedUrl) {
+						isHistoryNavigation.current = true;
+						reclaimedWv.loadURL(expectedUrl);
+					}
+				} catch {}
+			}, 500);
 		} else {
-			// Create new webview
 			webview = document.createElement("webview") as Electron.WebviewTag;
 			webview.setAttribute("partition", "persist:superset");
 			webview.setAttribute("allowpopups", "");
@@ -172,12 +144,9 @@ export function usePersistentWebview({
 
 		const wv = webview;
 
-		// -- Event handlers ------------------------------------------------
-
 		const handleDomReady = () => {
 			const webContentsId = wv.getWebContentsId();
 			const previousId = registeredWebContentsIds.get(paneId);
-			// Register on first load, or re-register if webContentsId changed (e.g. after DOM reparenting)
 			if (previousId !== webContentsId) {
 				registeredWebContentsIds.set(paneId, webContentsId);
 				registerBrowser({ paneId, webContentsId });
@@ -185,6 +154,7 @@ export function usePersistentWebview({
 		};
 
 		const handleDidStartLoading = () => {
+			if (isReparenting.current) return;
 			const store = useTabsStore.getState();
 			store.updateBrowserLoading(paneId, true);
 			store.setBrowserError(paneId, null);
@@ -192,6 +162,7 @@ export function usePersistentWebview({
 		};
 
 		const handleDidStopLoading = () => {
+			if (isReparenting.current) return;
 			const store = useTabsStore.getState();
 			store.updateBrowserLoading(paneId, false);
 
@@ -219,6 +190,7 @@ export function usePersistentWebview({
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
+			if (isReparenting.current) return;
 			if (isHistoryNavigation.current) {
 				isHistoryNavigation.current = false;
 				return;
@@ -234,6 +206,7 @@ export function usePersistentWebview({
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
+			if (isReparenting.current) return;
 			if (isHistoryNavigation.current) {
 				isHistoryNavigation.current = false;
 				return;
@@ -290,8 +263,6 @@ export function usePersistentWebview({
 			});
 		};
 
-		// -- Attach listeners ----------------------------------------------
-
 		wv.addEventListener("dom-ready", handleDomReady);
 		wv.addEventListener("did-start-loading", handleDidStartLoading);
 		wv.addEventListener("did-stop-loading", handleDidStopLoading);
@@ -309,8 +280,6 @@ export function usePersistentWebview({
 			handlePageFaviconUpdated as EventListener,
 		);
 		wv.addEventListener("did-fail-load", handleDidFailLoad as EventListener);
-
-		// -- Cleanup: park in hidden container -----------------------------
 
 		return () => {
 			wv.removeEventListener("dom-ready", handleDomReady);
@@ -339,10 +308,7 @@ export function usePersistentWebview({
 
 			getHiddenContainer().appendChild(wv);
 		};
-		// paneId is stable for the lifetime of a pane; initialUrlRef only used on first create.
-	}, [paneId, registerBrowser, syncStoreFromWebview, upsertHistory]);
-
-	// -- Navigation methods (operate directly on the webview) ---------------
+	}, [paneId, registerBrowser, upsertHistory]);
 
 	const goBack = useCallback(() => {
 		const url = navigateBrowserHistory(paneId, "back");
