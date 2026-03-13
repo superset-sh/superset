@@ -1,6 +1,7 @@
 import { router } from "../..";
 import { createBranchesRouter } from "./branches";
 import { createFileContentsRouter } from "./file-contents";
+import { createGitMetadataRouter } from "./git-metadata";
 import { createGitOperationsRouter } from "./git-operations";
 import { createStagingRouter } from "./staging";
 import { createStatusRouter } from "./status";
@@ -9,6 +10,7 @@ export const createChangesRouter = () => {
 	const branchesRouter = createBranchesRouter();
 	const statusRouter = createStatusRouter();
 	const fileContentsRouter = createFileContentsRouter();
+	const gitMetadataRouter = createGitMetadataRouter();
 	const stagingRouter = createStagingRouter();
 	const gitOperationsRouter = createGitOperationsRouter();
 
@@ -21,6 +23,9 @@ export const createChangesRouter = () => {
 
 		// File contents operations
 		...fileContentsRouter._def.procedures,
+
+		// Git metadata subscriptions
+		...gitMetadataRouter._def.procedures,
 
 		// Staging operations
 		...stagingRouter._def.procedures,

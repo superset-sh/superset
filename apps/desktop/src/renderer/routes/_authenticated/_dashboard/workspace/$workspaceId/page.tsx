@@ -21,7 +21,11 @@ import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/Wo
 import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
-import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
+import {
+	useCreateOrOpenPR,
+	usePRStatus,
+	useWorkspaceGitChangesRefresh,
+} from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -79,11 +83,25 @@ function WorkspacePage() {
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
+	const worktreePath = workspace?.worktreePath;
+	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
+		{ worktreePath: worktreePath ?? "" },
+		{ enabled: Boolean(worktreePath) },
+	);
+	const effectiveBaseBranch =
+		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
+
 	useWorkspaceFileEventBridge(workspaceId, Boolean(workspace?.worktreePath));
 	useWorkspaceRenameReconciliation({
 		workspaceId,
-		worktreePath: workspace?.worktreePath,
-		enabled: Boolean(workspace?.worktreePath),
+		worktreePath,
+		enabled: Boolean(worktreePath),
+	});
+	useWorkspaceGitChangesRefresh({
+		workspaceId,
+		worktreePath,
+		defaultBranch: effectiveBaseBranch,
+		enabled: Boolean(workspaceId && worktreePath),
 	});
 	const navigate = useNavigate();
 	const routeNavigate = Route.useNavigate();

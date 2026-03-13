@@ -20,7 +20,6 @@ export function ChangesContent() {
 
 	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
 		worktreePath,
-		refetchInterval: isChangesSidebarVisible ? undefined : 2500,
 		refetchOnWindowFocus: !isChangesSidebarVisible,
 	});
 

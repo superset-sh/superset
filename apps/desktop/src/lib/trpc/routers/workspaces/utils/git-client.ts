@@ -2,6 +2,7 @@ import {
 	type ExecFileOptionsWithStringEncoding,
 	execFile,
 } from "node:child_process";
+import path from "node:path";
 import { promisify } from "node:util";
 import simpleGit, { type SimpleGit } from "simple-git";
 import { getProcessEnvWithShellPath } from "./shell-env";
@@ -29,4 +30,27 @@ export async function execGitWithShellPath(
 		encoding: "utf8",
 		env,
 	});
+}
+
+export async function getGitWatchRoots(
+	worktreePath: string,
+): Promise<string[]> {
+	const { stdout } = await execGitWithShellPath(
+		["rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
+		{ cwd: worktreePath },
+	);
+
+	return Array.from(
+		new Set(
+			stdout
+				.split(/\r?\n/)
+				.map((line) => line.trim())
+				.filter(Boolean)
+				.map((rootPath) =>
+					path.isAbsolute(rootPath)
+						? path.normalize(rootPath)
+						: path.resolve(worktreePath, rootPath),
+				),
+		),
+	);
 }

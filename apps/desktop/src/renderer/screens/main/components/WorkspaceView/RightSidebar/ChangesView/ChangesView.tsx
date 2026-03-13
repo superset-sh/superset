@@ -39,8 +39,6 @@ interface ChangesViewProps {
 	isActive?: boolean;
 }
 
-const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
-
 interface PendingChangesRefresh {
 	invalidateBranches: boolean;
 	invalidateSelectedFile: boolean;
@@ -89,11 +87,7 @@ export function ChangesView({
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
 			worktreePath,
-			refetchInterval: isActive ? 2500 : undefined,
 			refetchOnWindowFocus: isActive,
-			branchRefetchInterval: isActive
-				? undefined
-				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
 			branchRefetchOnWindowFocus: true,
 		});
 
@@ -374,7 +368,7 @@ export function ChangesView({
 				});
 			}, 75);
 		},
-		Boolean(workspaceId && worktreePath),
+		Boolean(workspaceId && worktreePath && isActive),
 	);
 
 	const expandedCommitHashes = useMemo(

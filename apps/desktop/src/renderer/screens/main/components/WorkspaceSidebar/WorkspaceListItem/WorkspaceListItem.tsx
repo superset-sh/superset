@@ -131,7 +131,7 @@ export function WorkspaceListItem({
 
 	const { status: localChanges } = useGitChangesStatus({
 		worktreePath,
-		enabled: hasHovered && !!worktreePath,
+		enabled: (hasHovered || isActive) && !!worktreePath,
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
 
