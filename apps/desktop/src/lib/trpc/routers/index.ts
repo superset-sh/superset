@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
 import { createAnalyticsRouter } from "./analytics";
+import { createArchOneRouter } from "./arch-one";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
 import { createBrowserRouter } from "./browser/browser";
@@ -53,6 +54,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(getWindow),
+		archOne: createArchOneRouter(),
 	});
 };
 

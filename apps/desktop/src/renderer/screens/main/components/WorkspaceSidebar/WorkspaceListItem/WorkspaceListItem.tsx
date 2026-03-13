@@ -22,6 +22,7 @@ import {
 	GITHUB_STATUS_STALE_TIME,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
 } from "./constants";
+import { GreptileScoreBadge } from "./GreptileScoreBadge";
 import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
@@ -144,6 +145,14 @@ export function WorkspaceListItem({
 				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
 			},
 		);
+
+	const { data: greptileData } = electronTrpc.archOne.getGreptileScore.useQuery(
+		{ worktreePath: worktreePath ?? "" },
+		{
+			enabled: hasHovered && !!worktreePath,
+			staleTime: GITHUB_STATUS_STALE_TIME,
+		},
+	);
 
 	useBranchSyncInvalidation({
 		gitBranch: localChanges?.branch,
@@ -398,21 +407,29 @@ export function WorkspaceListItem({
 							</div>
 						</div>
 
-						{(showBranchSubtitle || pr) && (
+						{(showBranchSubtitle || pr || greptileData) && (
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
 										{branch}
 									</span>
 								)}
-								{pr && (
-									<WorkspaceStatusBadge
-										state={pr.state}
-										prNumber={pr.number}
-										prUrl={pr.url}
-										className="ml-auto"
-									/>
-								)}
+								<div className="flex items-center gap-1 ml-auto">
+									{greptileData &&
+										(greptileData.score !== null || greptileData.reviewing) && (
+											<GreptileScoreBadge
+												score={greptileData.score}
+												reviewing={greptileData.reviewing}
+											/>
+										)}
+									{pr && (
+										<WorkspaceStatusBadge
+											state={pr.state}
+											prNumber={pr.number}
+											prUrl={pr.url}
+										/>
+									)}
+								</div>
 							</div>
 						)}
 					</div>

@@ -9,6 +9,8 @@ export enum SidebarMode {
 export enum RightSidebarTab {
 	Changes = "changes",
 	Files = "files",
+	ArchOne = "arch-one",
+	Pulse = "pulse",
 }
 
 export const DEFAULT_SIDEBAR_WIDTH = 250;
