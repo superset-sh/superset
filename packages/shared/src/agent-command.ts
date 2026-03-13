@@ -97,13 +97,13 @@ function buildHeredoc(
 
 const AGENT_FILE_COMMANDS: Record<AgentType, (filePath: string) => string> = {
 	claude: (filePath) =>
-		`claude --dangerously-skip-permissions "$(cat '${filePath}')"`,
+		`claude --dangerously-skip-permissions -- "$(cat '${filePath}')"`,
 	codex: (filePath) =>
 		`codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true -- "$(cat '${filePath}')"`,
-	gemini: (filePath) => `gemini --yolo "$(cat '${filePath}')"`,
+	gemini: (filePath) => `gemini --yolo -- "$(cat '${filePath}')"`,
 	opencode: (filePath) => `opencode --prompt "$(cat '${filePath}')"`,
-	copilot: (filePath) => `copilot -i "$(cat '${filePath}')" --yolo`,
-	"cursor-agent": (filePath) => `cursor-agent --yolo "$(cat '${filePath}')"`,
+	copilot: (filePath) => `copilot -i -- "$(cat '${filePath}')" --yolo`,
+	"cursor-agent": (filePath) => `cursor-agent --yolo -- "$(cat '${filePath}')"`,
 };
 
 export function buildAgentFileCommand({
@@ -123,7 +123,7 @@ const AGENT_COMMANDS: Record<
 	(prompt: string, delimiter: string) => string
 > = {
 	claude: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
+		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions --"),
 	codex: (prompt, delimiter) =>
 		buildHeredoc(
 			prompt,
@@ -131,13 +131,13 @@ const AGENT_COMMANDS: Record<
 			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
 		),
 	gemini: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "gemini --yolo"),
+		buildHeredoc(prompt, delimiter, "gemini --yolo --"),
 	opencode: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "opencode --prompt"),
 	copilot: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
+		buildHeredoc(prompt, delimiter, "copilot -i --", "--yolo"),
 	"cursor-agent": (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
+		buildHeredoc(prompt, delimiter, "cursor-agent --yolo --"),
 };
 
 export function buildAgentPromptCommand({
