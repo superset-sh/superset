@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"presets": [
+		{
+			"slug": "mock-shared-preset",
+			"name": "Mock Shared Preset",
+			"description": "Test preset loaded from .superset/presets.json",
+			"cwd": "",
+			"commands": ["echo \"mock shared preset\""],
+			"executionMode": "split-pane",
+			"pinnedToBar": true,
+			"isDefault": true,
+			"applyOnWorkspaceCreated": true,
+			"applyOnNewTab": false
+		}
+	]
+}
