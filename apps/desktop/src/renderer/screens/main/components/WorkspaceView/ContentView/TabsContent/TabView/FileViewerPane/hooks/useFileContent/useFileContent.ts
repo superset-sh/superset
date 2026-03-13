@@ -55,6 +55,11 @@ export function useFileContent({
 					!isImage &&
 					!!filePath &&
 					!!worktreePath,
+				// Disable window-focus refetch: the file watcher (useWorkspaceFileEvents)
+				// already invalidates this query when the file changes on disk.
+				// Without this, switching apps to copy text then returning to paste
+				// triggers a refetch that races with the paste and can overwrite edits.
+				refetchOnWindowFocus: false,
 			},
 		);
 
