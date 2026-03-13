@@ -32,6 +32,7 @@ import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
+import { deriveWorkspaceBranchFromPrompt } from "shared/utils/workspace-naming";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOptions";
 
@@ -135,7 +136,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
 				preserveFirstSegmentCase: true,
 			})
-		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
+		: deriveWorkspaceBranchFromPrompt(trimmedPrompt);
 
 	const applyPrefix = !branchNameEdited;
 
