@@ -8,7 +8,8 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import Fuse from "fuse.js";
-import type { ReactNode } from "react";
+import type React from "react";
+import type { RefObject } from "react";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -30,7 +31,7 @@ interface PRLinkCommandProps {
 	onOpenChange: (open: boolean) => void;
 	onSelect: (pr: SelectedPR) => void;
 	projectId: string | null;
-	children: ReactNode;
+	anchorRef: RefObject<HTMLElement | null>;
 }
 
 export function PRLinkCommand({
@@ -38,7 +39,7 @@ export function PRLinkCommand({
 	onOpenChange,
 	onSelect,
 	projectId,
-	children,
+	anchorRef,
 }: PRLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -80,6 +81,11 @@ export function PRLinkCommand({
 			.map((r) => r.item);
 	}, [prsWithSearchField, searchQuery, prFuse]);
 
+	const handleClose = () => {
+		setSearchQuery("");
+		onOpenChange(false);
+	};
+
 	const handleSelect = (pr: (typeof searchResults)[number]) => {
 		onSelect({
 			prNumber: pr.prNumber,
@@ -90,14 +96,9 @@ export function PRLinkCommand({
 		handleClose();
 	};
 
-	const handleClose = () => {
-		setSearchQuery("");
-		onOpenChange(false);
-	};
-
 	return (
 		<Popover open={open}>
-			<PopoverAnchor asChild>{children}</PopoverAnchor>
+			<PopoverAnchor virtualRef={anchorRef as React.RefObject<Element>} />
 			<PopoverContent
 				className="w-80 p-0"
 				align="end"
