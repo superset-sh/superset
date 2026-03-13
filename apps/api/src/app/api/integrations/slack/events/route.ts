@@ -25,7 +25,14 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const payload = JSON.parse(body);
+	// biome-ignore lint/suspicious/noExplicitAny: JSON.parse returns any
+	let payload: any;
+	try {
+		payload = JSON.parse(body);
+	} catch {
+		console.warn("[slack/events] Malformed JSON in webhook payload");
+		return new Response("Invalid JSON", { status: 400 });
+	}
 
 	// Slack sends this once when configuring the Events URL
 	if (payload.type === "url_verification") {

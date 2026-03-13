@@ -29,7 +29,14 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	const payload = JSON.parse(payloadRaw);
+	// biome-ignore lint/suspicious/noExplicitAny: JSON.parse returns any
+	let payload: any;
+	try {
+		payload = JSON.parse(payloadRaw);
+	} catch {
+		console.warn("[slack/interactions] Malformed JSON in interactions payload");
+		return new Response("ok", { status: 200 });
+	}
 
 	if (payload.type === "block_actions") {
 		const teamId: string = payload.team?.id;

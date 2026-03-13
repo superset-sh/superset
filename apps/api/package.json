@@ -8,6 +8,7 @@
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "dotenv -e ../../.env -- sh -c 'next dev --port ${API_PORT:-3001}'",
 		"start": "next start --port 3001",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
