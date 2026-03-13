@@ -5,12 +5,7 @@ import { promisify } from "node:util";
 import fg from "fast-glob";
 import Fuse from "fuse.js";
 import { normalizeAbsolutePath, toRelativePath } from "./paths";
-import type {
-	WorkspaceFsEntry,
-	WorkspaceFsKeywordMatch,
-	WorkspaceFsSearchResult,
-	WorkspaceFsWatchEvent,
-} from "./types";
+import type { FsContentMatch, FsSearchMatch } from "./types";
 
 const execFileAsync = promisify(execFile);
 
@@ -33,9 +28,19 @@ export const DEFAULT_IGNORE_PATTERNS = [
 	"**/coverage/**",
 ];
 
+// ---------------------------------------------------------------------------
+// Internal types for search indexing
+// ---------------------------------------------------------------------------
+
+interface SearchIndexEntry {
+	absolutePath: string;
+	relativePath: string;
+	name: string;
+}
+
 interface FileSearchIndex {
-	items: WorkspaceFsEntry[];
-	fuse: Fuse<WorkspaceFsEntry>;
+	items: SearchIndexEntry[];
+	fuse: Fuse<SearchIndexEntry>;
 }
 
 interface FileSearchCacheEntry {
@@ -54,6 +59,30 @@ interface SearchIndexKeyOptions {
 	includeHidden: boolean;
 }
 
+interface InternalContentMatch {
+	absolutePath: string;
+	relativePath: string;
+	name: string;
+	line: number;
+	column: number;
+	preview: string;
+}
+
+// ---------------------------------------------------------------------------
+// Event type for search index patching (used by watch module)
+// ---------------------------------------------------------------------------
+
+export interface SearchPatchEvent {
+	kind: "create" | "update" | "delete" | "rename";
+	absolutePath: string;
+	oldAbsolutePath?: string;
+	isDirectory: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Public options types
+// ---------------------------------------------------------------------------
+
 export interface SearchFilesOptions {
 	rootPath: string;
 	query: string;
@@ -68,7 +97,7 @@ export interface RunRipgrepOptions {
 	maxBuffer: number;
 }
 
-export interface SearchKeywordOptions {
+export interface SearchContentOptions {
 	rootPath: string;
 	query: string;
 	includeHidden?: boolean;
@@ -81,13 +110,17 @@ export interface SearchKeywordOptions {
 	) => Promise<{ stdout: string }>;
 }
 
+// ---------------------------------------------------------------------------
+// Search index cache
+// ---------------------------------------------------------------------------
+
 const searchIndexCache = new Map<string, FileSearchCacheEntry>();
 const searchIndexBuilds = new Map<string, Promise<FileSearchIndex>>();
 const searchIndexVersions = new Map<string, number>();
 
 function createFileSearchFuse(
-	items: WorkspaceFsEntry[],
-): Fuse<WorkspaceFsEntry> {
+	items: SearchIndexEntry[],
+): Fuse<SearchIndexEntry> {
 	return new Fuse(items, {
 		keys: [
 			{ name: "name", weight: 2 },
@@ -115,6 +148,10 @@ function advanceSearchIndexVersion(cacheKey: string): number {
 	searchIndexVersions.set(cacheKey, nextVersion);
 	return nextVersion;
 }
+
+// ---------------------------------------------------------------------------
+// Glob / path matching
+// ---------------------------------------------------------------------------
 
 function parseGlobPatterns(input: string): string[] {
 	return input
@@ -240,6 +277,10 @@ function matchesPathFilters(
 	return true;
 }
 
+// ---------------------------------------------------------------------------
+// Search index building
+// ---------------------------------------------------------------------------
+
 async function buildSearchIndex({
 	rootPath,
 	includeHidden,
@@ -255,16 +296,11 @@ async function buildSearchIndex({
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
 
-	const items = entries.map((relativePath) => {
-		const absolutePath = path.join(normalizedRootPath, relativePath);
-		return {
-			id: absolutePath,
-			name: path.basename(relativePath),
-			absolutePath,
-			relativePath,
-			isDirectory: false,
-		};
-	});
+	const items: SearchIndexEntry[] = entries.map((relativePath) => ({
+		absolutePath: path.join(normalizedRootPath, relativePath),
+		relativePath,
+		name: path.basename(relativePath),
+	}));
 
 	return {
 		items,
@@ -353,11 +389,15 @@ function formatPreviewLine(line: string): string {
 	return `${normalized.slice(0, MAX_PREVIEW_LENGTH - 3)}...`;
 }
 
-function rankKeywordMatches(
-	matches: WorkspaceFsKeywordMatch[],
+// ---------------------------------------------------------------------------
+// Content matching helpers
+// ---------------------------------------------------------------------------
+
+function rankContentMatches(
+	matches: InternalContentMatch[],
 	query: string,
 	limit: number,
-): WorkspaceFsKeywordMatch[] {
+): InternalContentMatch[] {
 	if (matches.length === 0) {
 		return [];
 	}
@@ -394,7 +434,7 @@ async function defaultRunRipgrep(
 	return { stdout: result.stdout };
 }
 
-async function searchKeywordWithRipgrep({
+async function searchContentWithRipgrep({
 	rootPath,
 	query,
 	includeHidden,
@@ -402,9 +442,9 @@ async function searchKeywordWithRipgrep({
 	excludePattern,
 	limit,
 	runRipgrep,
-}: Required<Omit<SearchKeywordOptions, "runRipgrep">> & {
-	runRipgrep: NonNullable<SearchKeywordOptions["runRipgrep"]>;
-}): Promise<WorkspaceFsKeywordMatch[]> {
+}: Required<Omit<SearchContentOptions, "runRipgrep">> & {
+	runRipgrep: NonNullable<SearchContentOptions["runRipgrep"]>;
+}): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
 	const maxCandidates = safeLimit * KEYWORD_SEARCH_CANDIDATE_MULTIPLIER;
 	const args = [
@@ -443,7 +483,7 @@ async function searchKeywordWithRipgrep({
 			cwd: normalizeAbsolutePath(rootPath),
 			maxBuffer: KEYWORD_SEARCH_RIPGREP_BUFFER_BYTES,
 		});
-		const matches: WorkspaceFsKeywordMatch[] = [];
+		const matches: InternalContentMatch[] = [];
 		const seen = new Set<string>();
 		const lines = stdout.split(/\r?\n/);
 
@@ -526,18 +566,16 @@ async function searchKeywordWithRipgrep({
 			seen.add(id);
 
 			matches.push({
-				id,
-				name: path.basename(relativePath),
 				absolutePath,
 				relativePath,
-				isDirectory: false,
+				name: path.basename(relativePath),
 				line: lineNumber,
 				column,
 				preview: formatPreviewLine(lineText.replace(/\r?\n$/, "")),
 			});
 		}
 
-		return rankKeywordMatches(matches, query, safeLimit);
+		return rankContentMatches(matches, query, safeLimit);
 	} catch (error) {
 		const err = error as NodeJS.ErrnoException & {
 			code?: string | number | null;
@@ -555,7 +593,7 @@ async function searchKeywordWithRipgrep({
 	}
 }
 
-async function searchKeywordWithScan({
+async function searchContentWithScan({
 	index,
 	query,
 	pathMatcher,
@@ -565,11 +603,11 @@ async function searchKeywordWithScan({
 	query: string;
 	pathMatcher: PathFilterMatcher;
 	limit: number;
-}): Promise<WorkspaceFsKeywordMatch[]> {
+}): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
 	const maxCandidates = safeLimit * KEYWORD_SEARCH_CANDIDATE_MULTIPLIER;
 	const lowerNeedle = query.toLowerCase();
-	const matches: WorkspaceFsKeywordMatch[] = [];
+	const matches: InternalContentMatch[] = [];
 
 	for (const item of index.items) {
 		if (matches.length >= maxCandidates) {
@@ -611,11 +649,9 @@ async function searchKeywordWithScan({
 					}
 
 					matches.push({
-						id: `${item.absolutePath}:${lineIndex + 1}:${matchIndex + 1}`,
-						name: item.name,
 						absolutePath: item.absolutePath,
 						relativePath: item.relativePath,
-						isDirectory: false,
+						name: item.name,
 						line: lineIndex + 1,
 						column: matchIndex + 1,
 						preview: formatPreviewLine(line),
@@ -629,8 +665,12 @@ async function searchKeywordWithScan({
 		}
 	}
 
-	return rankKeywordMatches(matches, query, safeLimit);
+	return rankContentMatches(matches, query, safeLimit);
 }
+
+// ---------------------------------------------------------------------------
+// Search index visibility helpers
+// ---------------------------------------------------------------------------
 
 function isHiddenRelativePath(relativePath: string): boolean {
 	return normalizePathForGlob(relativePath)
@@ -650,18 +690,22 @@ function shouldIndexRelativePath(
 	return !defaultIgnoreMatchers.some((matcher) => matcher.test(normalizedPath));
 }
 
-function applySearchEventToItems({
+// ---------------------------------------------------------------------------
+// Search index patching (from watch events)
+// ---------------------------------------------------------------------------
+
+function applySearchPatchEvent({
 	itemsByPath,
 	rootPath,
 	includeHidden,
 	event,
 }: {
-	itemsByPath: Map<string, WorkspaceFsEntry>;
+	itemsByPath: Map<string, SearchIndexEntry>;
 	rootPath: string;
 	includeHidden: boolean;
-	event: Exclude<WorkspaceFsWatchEvent, { type: "overflow" }>;
+	event: SearchPatchEvent;
 }): void {
-	if (event.type === "rename") {
+	if (event.kind === "rename" && event.oldAbsolutePath) {
 		itemsByPath.delete(normalizeAbsolutePath(event.oldAbsolutePath));
 		const nextRelativePath = toRelativePath(rootPath, event.absolutePath);
 		if (
@@ -673,11 +717,9 @@ function applySearchEventToItems({
 
 		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
 		itemsByPath.set(nextAbsolutePath, {
-			id: nextAbsolutePath,
-			name: path.basename(nextAbsolutePath),
 			absolutePath: nextAbsolutePath,
 			relativePath: nextRelativePath,
-			isDirectory: false,
+			name: path.basename(nextAbsolutePath),
 		});
 		return;
 	}
@@ -685,7 +727,7 @@ function applySearchEventToItems({
 	const absolutePath = normalizeAbsolutePath(event.absolutePath);
 	const relativePath = toRelativePath(rootPath, absolutePath);
 	const shouldRemove =
-		event.type === "delete" ||
+		event.kind === "delete" ||
 		event.isDirectory ||
 		!shouldIndexRelativePath(relativePath, includeHidden);
 
@@ -694,15 +736,11 @@ function applySearchEventToItems({
 		return;
 	}
 
-	const nextEntry: WorkspaceFsEntry = {
-		id: absolutePath,
-		name: path.basename(absolutePath),
+	itemsByPath.set(absolutePath, {
 		absolutePath,
 		relativePath,
-		isDirectory: false,
-	};
-
-	itemsByPath.set(absolutePath, nextEntry);
+		name: path.basename(absolutePath),
+	});
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
@@ -732,21 +770,13 @@ export function invalidateAllSearchIndexes(): void {
 
 export function patchSearchIndexesForRoot(
 	rootPath: string,
-	events: WorkspaceFsWatchEvent[],
+	events: SearchPatchEvent[],
 ): void {
 	if (events.length === 0) {
 		return;
 	}
 
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const patchableEvents = events.filter(
-		(event): event is Exclude<WorkspaceFsWatchEvent, { type: "overflow" }> =>
-			event.type !== "overflow",
-	);
-
-	if (patchableEvents.length === 0) {
-		return;
-	}
 
 	for (const includeHidden of [true, false]) {
 		const cacheKey = getSearchCacheKey({
@@ -769,8 +799,8 @@ export function patchSearchIndexesForRoot(
 		const nextItemsByPath = new Map(
 			cached.index.items.map((item) => [item.absolutePath, item]),
 		);
-		for (const event of patchableEvents) {
-			applySearchEventToItems({
+		for (const event of events) {
+			applySearchPatchEvent({
 				itemsByPath: nextItemsByPath,
 				rootPath: normalizedRootPath,
 				includeHidden,
@@ -789,6 +819,10 @@ export function patchSearchIndexesForRoot(
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 export async function searchFiles({
 	rootPath,
 	query,
@@ -796,7 +830,7 @@ export async function searchFiles({
 	includePattern = "",
 	excludePattern = "",
 	limit = 20,
-}: SearchFilesOptions): Promise<WorkspaceFsSearchResult[]> {
+}: SearchFilesOptions): Promise<FsSearchMatch[]> {
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
 		return [];
@@ -828,12 +862,15 @@ export async function searchFiles({
 	});
 
 	return results.map((result) => ({
-		...result.item,
+		absolutePath: result.item.absolutePath,
+		relativePath: result.item.relativePath,
+		name: result.item.name,
+		kind: "file" as const,
 		score: 1 - (result.score ?? 0),
 	}));
 }
 
-export async function searchKeyword({
+export async function searchContent({
 	rootPath,
 	query,
 	includeHidden = true,
@@ -841,7 +878,7 @@ export async function searchKeyword({
 	excludePattern = "",
 	limit = 20,
 	runRipgrep = defaultRunRipgrep,
-}: SearchKeywordOptions): Promise<WorkspaceFsKeywordMatch[]> {
+}: SearchContentOptions): Promise<FsContentMatch[]> {
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
 		return [];
@@ -856,8 +893,9 @@ export async function searchKeyword({
 		excludePattern,
 	});
 
+	let internalMatches: InternalContentMatch[];
 	try {
-		return await searchKeywordWithRipgrep({
+		internalMatches = await searchContentWithRipgrep({
 			rootPath,
 			query: trimmedQuery,
 			includeHidden,
@@ -867,26 +905,19 @@ export async function searchKeyword({
 			runRipgrep,
 		});
 	} catch {
-		return await searchKeywordWithScan({
+		internalMatches = await searchContentWithScan({
 			index,
 			query: trimmedQuery,
 			pathMatcher,
 			limit,
 		});
 	}
-}
 
-export function createWorkspaceFsEntry(input: {
-	rootPath: string;
-	absolutePath: string;
-	isDirectory: boolean;
-}): WorkspaceFsEntry {
-	const normalizedAbsolutePath = normalizeAbsolutePath(input.absolutePath);
-	return {
-		id: normalizedAbsolutePath,
-		name: path.basename(normalizedAbsolutePath),
-		absolutePath: normalizedAbsolutePath,
-		relativePath: toRelativePath(input.rootPath, normalizedAbsolutePath),
-		isDirectory: input.isDirectory,
-	};
+	return internalMatches.map(({ absolutePath, relativePath, line, column, preview }) => ({
+		absolutePath,
+		relativePath,
+		line,
+		column,
+		preview,
+	}));
 }

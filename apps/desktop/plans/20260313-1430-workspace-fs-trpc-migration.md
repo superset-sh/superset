@@ -20,8 +20,8 @@ Refactor `packages/workspace-fs` and desktop filesystem router to match `plans/w
 
 ## Progress
 
-- [ ] Milestone 1: Refactor `packages/workspace-fs` types + service interface
-- [ ] Milestone 2: Refactor host implementation
+- [x] Milestone 1: Refactor `packages/workspace-fs` types + service interface
+- [x] Milestone 2: Refactor host implementation (fs.ts, search.ts, watch.ts, host/service.ts, client)
 - [ ] Milestone 3: Desktop adapter + filesystem tRPC router
 - [ ] Milestone 4: Changes router — git only
 - [ ] Milestone 5: Staging router — remove fs ops
