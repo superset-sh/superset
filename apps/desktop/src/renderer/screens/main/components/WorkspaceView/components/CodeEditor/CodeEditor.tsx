@@ -177,9 +177,7 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
-	// Tracks whether a dispatch was initiated by the value-sync effect (external prop change)
-	// vs a user edit. Used to prevent the value-sync effect's dispatch from propagating
-	// back through onChange and overwriting draftContentRef with old content.
+	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
@@ -200,10 +198,6 @@ export function CodeEditor({
 
 		const updateListener = EditorView.updateListener.of((update) => {
 			if (!update.docChanged) return;
-			// Skip onChange for dispatches initiated by the value-sync effect.
-			// If we didn't skip, the external value (e.g. stale rawFileData after
-			// a refetch) would propagate to handleEditorChange and overwrite
-			// draftContentRef.current, permanently losing the user's edits.
 			if (isExternalUpdateRef.current) return;
 			onChangeRef.current?.(update.state.doc.toString());
 		});
@@ -291,9 +285,7 @@ export function CodeEditor({
 		const currentValue = view.state.doc.toString();
 		if (currentValue === value) return;
 
-		// try/finally: if dispatch throws (e.g. view destroyed mid-effect), the flag
-		// must still reset — otherwise isExternalUpdateRef stays true forever and
-		// every subsequent user edit is silently dropped by the updateListener guard.
+		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
 		isExternalUpdateRef.current = true;
 		try {
 			view.dispatch({
