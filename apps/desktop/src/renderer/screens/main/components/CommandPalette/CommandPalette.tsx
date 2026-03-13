@@ -1,12 +1,15 @@
-import {
-	SearchDialog,
-	type SearchDialogItem,
-} from "renderer/screens/main/components/SearchDialog";
+import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
+import { LuLayoutGrid } from "react-icons/lu";
+import { SearchDialog } from "renderer/screens/main/components/SearchDialog";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import type { SearchScope } from "renderer/stores/search-dialog-state";
 import { ScopeToggle } from "./components/ScopeToggle";
+import type { CommandPaletteResult } from "./useCommandPalette";
 
-interface CommandPaletteResult extends SearchDialogItem {
+/** A file match result in the command palette. */
+interface FileResult {
+	id: string;
+	resultType: "file";
 	name: string;
 	relativePath: string;
 	path: string;
@@ -16,6 +19,16 @@ interface CommandPaletteResult extends SearchDialogItem {
 	workspaceName?: string;
 }
 
+/** A workspace match result in the command palette. */
+interface WorkspaceResult {
+	id: string;
+	resultType: "workspace";
+	name: string;
+	projectName: string;
+	type: "worktree" | "branch";
+}
+
+/** Props for the CommandPalette component. */
 interface CommandPaletteProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -29,12 +42,13 @@ interface CommandPaletteProps {
 	onExcludePatternChange: (value: string) => void;
 	isLoading: boolean;
 	searchResults: CommandPaletteResult[];
-	onSelectFile: (filePath: string, workspaceId?: string) => void;
+	onSelectResult: (result: CommandPaletteResult) => void;
 	scope: SearchScope;
 	onScopeChange: (scope: SearchScope) => void;
 	workspaceName?: string;
 }
 
+/** Quick Open dialog that shows workspace and file search results in separate groups. */
 export function CommandPalette({
 	open,
 	onOpenChange,
@@ -48,11 +62,19 @@ export function CommandPalette({
 	onExcludePatternChange,
 	isLoading,
 	searchResults,
-	onSelectFile,
+	onSelectResult,
 	scope,
 	onScopeChange,
 	workspaceName,
 }: CommandPaletteProps) {
+	const workspaceResults = searchResults.filter(
+		(r): r is WorkspaceResult => r.resultType === "workspace",
+	);
+	const fileResults = searchResults.filter(
+		(r): r is FileResult => r.resultType === "file",
+	);
+	const hasResults = searchResults.length > 0;
+
 	return (
 		<SearchDialog
 			open={open}
@@ -74,7 +96,6 @@ export function CommandPalette({
 			onIncludePatternChange={onIncludePatternChange}
 			excludePattern={excludePattern}
 			onExcludePatternChange={onExcludePatternChange}
-			emptyMessage="No files found."
 			isLoading={isLoading}
 			results={searchResults}
 			getItemValue={(file) => `${file.path} ${query}`}
@@ -86,22 +107,55 @@ export function CommandPalette({
 					workspaceName={workspaceName}
 				/>
 			}
-			renderItem={(file) => {
-				return (
-					<>
-						<FileIcon fileName={file.name} className="size-3.5 shrink-0" />
-						<span className="truncate font-medium">{file.name}</span>
-						{scope === "global" && file.workspaceName && (
-							<span className="shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-								{file.workspaceName}
+		>
+			{query.trim().length > 0 && !isLoading && !hasResults && (
+				<CommandEmpty>No results found.</CommandEmpty>
+			)}
+			{workspaceResults.length > 0 && (
+				<CommandGroup heading="Workspaces">
+					{workspaceResults.map((ws) => (
+						<CommandItem
+							key={ws.id}
+							value={`workspace:${ws.name} ${ws.projectName} ${query}`}
+							onSelect={() => onSelectResult(ws)}
+						>
+							<LuLayoutGrid className="size-3.5 shrink-0" />
+							<span className="truncate font-medium">
+								{ws.name === "main" && ws.type === "worktree"
+									? ws.projectName
+									: ws.name}
 							</span>
-						)}
-						<span className="truncate text-muted-foreground text-xs ml-auto">
-							{file.relativePath}
-						</span>
-					</>
-				);
-			}}
-		/>
+							<span className="shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+								{ws.projectName}
+							</span>
+						</CommandItem>
+					))}
+				</CommandGroup>
+			)}
+			{fileResults.length > 0 && (
+				<CommandGroup
+					heading={workspaceResults.length > 0 ? "Files" : undefined}
+				>
+					{fileResults.map((file) => (
+						<CommandItem
+							key={file.id}
+							value={`${file.path} ${query}`}
+							onSelect={() => onSelectResult(file)}
+						>
+							<FileIcon fileName={file.name} className="size-3.5 shrink-0" />
+							<span className="truncate font-medium">{file.name}</span>
+							{scope === "global" && file.workspaceName && (
+								<span className="shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+									{file.workspaceName}
+								</span>
+							)}
+							<span className="truncate text-muted-foreground text-xs ml-auto">
+								{file.relativePath}
+							</span>
+						</CommandItem>
+					))}
+				</CommandGroup>
+			)}
+		</SearchDialog>
 	);
 }
