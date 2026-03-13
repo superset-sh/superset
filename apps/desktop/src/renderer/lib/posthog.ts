@@ -11,20 +11,24 @@ export function initPostHog() {
 		return;
 	}
 
-	posthogFull.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
-		api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
-		defaults: "2025-11-30",
-		capture_pageview: false,
-		capture_pageleave: false,
-		capture_exceptions: true,
-		person_profiles: "identified_only",
-		persistence: "localStorage",
-		debug: false,
-		loaded: (ph) => {
-			ph.register({
-				app_name: "desktop",
-				platform: window.navigator.platform,
-			});
-		},
-	});
+	try {
+		posthogFull.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+			api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
+			defaults: "2025-11-30",
+			capture_pageview: false,
+			capture_pageleave: false,
+			capture_exceptions: true,
+			person_profiles: "identified_only",
+			persistence: "localStorage",
+			debug: false,
+			loaded: (ph) => {
+				ph.register({
+					app_name: "desktop",
+					platform: window.navigator.platform,
+				});
+			},
+		});
+	} catch (error) {
+		console.error("[posthog] Initialization failed:", error);
+	}
 }
