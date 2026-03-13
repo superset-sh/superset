@@ -34,6 +34,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	);
 
 	const canJumpToTerminal = !!port.paneId;
+	const canKill = !!port.paneId;
 
 	const handleClick = () => {
 		if (!port.paneId) return;
@@ -47,7 +48,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	};
 
 	const handleOpenInBrowser = () => {
-		const url = `http://localhost:${port.port}`;
+		const url = port.url ?? `http://localhost:${port.port}`;
 
 		if (openLinksInApp) {
 			navigateToWorkspace(port.workspaceId, navigate);
@@ -85,8 +86,9 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					<button
 						type="button"
 						onClick={handleClose}
+						disabled={!canKill}
 						aria-label={`Close ${port.label || `port ${port.port}`}`}
-						className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
+						className={`opacity-0 group-hover:opacity-100 pr-1 transition-opacity focus-visible:opacity-100 focus-visible:outline-none ${canKill ? "text-muted-foreground hover:text-primary" : "text-muted-foreground/40 cursor-default"}`}
 					>
 						<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
 					</button>
@@ -98,17 +100,21 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					<div
 						className={`font-mono ${port.label ? "text-muted-foreground" : "font-medium"}`}
 					>
-						localhost:{port.port}
+						{port.url ?? `localhost:${port.port}`}
 					</div>
-					{(port.processName || port.pid != null) && (
+					{(port.processName || port.pid > 0) && (
 						<div className="text-muted-foreground">
 							{port.processName}
-							{port.pid != null && ` (pid ${port.pid})`}
+							{port.pid > 0 && ` (pid ${port.pid})`}
 						</div>
 					)}
-					{canJumpToTerminal && (
+					{canJumpToTerminal ? (
 						<div className="text-muted-foreground/70 text-[10px]">
 							Click to open workspace
+						</div>
+					) : (
+						<div className="text-muted-foreground/70 text-[10px]">
+							Detected via check script
 						</div>
 					)}
 				</div>
