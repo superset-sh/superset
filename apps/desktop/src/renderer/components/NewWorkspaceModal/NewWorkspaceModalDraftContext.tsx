@@ -7,6 +7,10 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
+import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
+import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpenExternalWorktree";
+import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
 export type NewWorkspaceModalTab =
 	| "prompt"
@@ -66,6 +70,10 @@ interface NewWorkspaceModalDraftContextValue {
 	draftVersion: number;
 	closeModal: () => void;
 	closeAndResetDraft: () => void;
+	createWorkspace: ReturnType<typeof useCreateWorkspace>;
+	createFromPr: ReturnType<typeof useCreateFromPr>;
+	openTrackedWorktree: ReturnType<typeof useOpenTrackedWorktree>;
+	openExternalWorktree: ReturnType<typeof useOpenExternalWorktree>;
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: NewWorkspaceModalActionMessages,
@@ -83,6 +91,12 @@ export function NewWorkspaceModalDraftProvider({
 	onClose,
 }: PropsWithChildren<{ onClose: () => void }>) {
 	const [state, setState] = useState(buildInitialDraftState);
+
+	// Owned here so onSuccess survives Dialog unmounting content on close.
+	const createWorkspace = useCreateWorkspace();
+	const createFromPr = useCreateFromPr();
+	const openTrackedWorktree = useOpenTrackedWorktree();
+	const openExternalWorktree = useOpenExternalWorktree();
 
 	const updateDraft = useCallback((patch: Partial<NewWorkspaceModalDraft>) => {
 		setState((state) => ({
@@ -153,6 +167,10 @@ export function NewWorkspaceModalDraftProvider({
 			draftVersion: state.draftVersion,
 			closeModal: onClose,
 			closeAndResetDraft,
+			createWorkspace,
+			createFromPr,
+			openTrackedWorktree,
+			openExternalWorktree,
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
@@ -160,6 +178,10 @@ export function NewWorkspaceModalDraftProvider({
 		}),
 		[
 			closeAndResetDraft,
+			createFromPr,
+			createWorkspace,
+			openExternalWorktree,
+			openTrackedWorktree,
 			onClose,
 			resetDraft,
 			resetDraftIfVersion,

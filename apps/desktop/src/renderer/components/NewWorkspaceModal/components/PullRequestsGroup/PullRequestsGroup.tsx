@@ -15,7 +15,6 @@ import { SiGithub } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
@@ -34,8 +33,7 @@ export function PullRequestsGroup({
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
-	const createFromPr = useCreateFromPr();
-	const { draft, closeAndResetDraft, runAsyncAction } =
+	const { createFromPr, draft, closeAndResetDraft, runAsyncAction } =
 		useNewWorkspaceModalDraft();
 
 	// Match GitHub repository by owner + name from the local project

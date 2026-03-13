@@ -34,6 +34,13 @@ export const linearRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
+			const client = await getLinearClient(input.organizationId);
+			if (client) {
+				try {
+					await client.logout();
+				} catch {}
+			}
+
 			const result = await dbWs.transaction(async (tx) => {
 				// 1. Delete Linear-synced tasks
 				await tx

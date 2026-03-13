@@ -56,6 +56,12 @@ export function HostServiceStatus() {
 	const [cloudLoading, setCloudLoading] = useState(false);
 	const [cloudError, setCloudError] = useState<string | null>(null);
 
+	const [ghLoading, setGhLoading] = useState(false);
+	const [ghResult, setGhResult] = useState<string | null>(null);
+	const [ghError, setGhError] = useState<string | null>(null);
+	const [ghOwner, setGhOwner] = useState("");
+	const [ghRepo, setGhRepo] = useState("");
+
 	const [v2ProjectId, setV2ProjectId] = useState("");
 	const [v2WorkspaceId, setV2WorkspaceId] = useState("");
 	const [v2Branch, setV2Branch] = useState("main");
@@ -222,6 +228,136 @@ export function HostServiceStatus() {
 									<span className="font-mono text-xs">{cloudUser.id}</span>
 								</div>
 							</div>
+						)}
+					</div>
+
+					{/* GitHub API */}
+					<div className="space-y-3 border-b border-border pb-3">
+						<span className="text-sm font-medium">GitHub API</span>
+						<div className="flex gap-2">
+							<input
+								type="text"
+								value={ghOwner}
+								onChange={(e) => setGhOwner(e.target.value)}
+								placeholder="Owner"
+								className="w-40 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+							/>
+							<input
+								type="text"
+								value={ghRepo}
+								onChange={(e) => setGhRepo(e.target.value)}
+								placeholder="Repo"
+								className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+							/>
+						</div>
+						<div className="flex gap-2 flex-wrap">
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={ghLoading || !service}
+								onClick={async () => {
+									setGhLoading(true);
+									setGhError(null);
+									setGhResult(null);
+									try {
+										const data = await service?.client.github.getUser.query();
+										setGhResult(JSON.stringify(data, null, 2));
+									} catch (err) {
+										setGhError(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setGhLoading(false);
+									}
+								}}
+							>
+								GitHub User
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={ghLoading || !service || !ghOwner || !ghRepo}
+								onClick={async () => {
+									setGhLoading(true);
+									setGhError(null);
+									setGhResult(null);
+									try {
+										const data = await service?.client.github.getRepo.query({
+											owner: ghOwner,
+											repo: ghRepo,
+										});
+										setGhResult(JSON.stringify(data, null, 2));
+									} catch (err) {
+										setGhError(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setGhLoading(false);
+									}
+								}}
+							>
+								Get Repo
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={ghLoading || !service || !ghOwner || !ghRepo}
+								onClick={async () => {
+									setGhLoading(true);
+									setGhError(null);
+									setGhResult(null);
+									try {
+										const data = await service?.client.github.listPRs.query({
+											owner: ghOwner,
+											repo: ghRepo,
+											state: "open",
+											perPage: 5,
+										});
+										setGhResult(JSON.stringify(data, null, 2));
+									} catch (err) {
+										setGhError(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setGhLoading(false);
+									}
+								}}
+							>
+								List PRs
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={ghLoading || !service || !ghOwner || !ghRepo}
+								onClick={async () => {
+									setGhLoading(true);
+									setGhError(null);
+									setGhResult(null);
+									try {
+										const data =
+											await service?.client.github.listDeployments.query({
+												owner: ghOwner,
+												repo: ghRepo,
+											});
+										setGhResult(JSON.stringify(data, null, 2));
+									} catch (err) {
+										setGhError(err instanceof Error ? err.message : "Failed");
+									} finally {
+										setGhLoading(false);
+									}
+								}}
+							>
+								Deployments
+							</Button>
+						</div>
+						{ghLoading && (
+							<div className="text-sm text-muted-foreground">Loading...</div>
+						)}
+						{ghError && (
+							<div className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+								{ghError}
+							</div>
+						)}
+						{ghResult && (
+							<ScrollArea className="max-h-48">
+								<pre className="text-xs font-mono bg-muted rounded-md p-2">
+									{ghResult}
+								</pre>
+							</ScrollArea>
 						)}
 					</div>
 

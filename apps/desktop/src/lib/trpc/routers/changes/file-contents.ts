@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
@@ -5,12 +6,7 @@ import { getImageMimeType } from "shared/file-types";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import {
-	guardedWriteRegisteredWorktreeTextFile,
-	readRegisteredWorktreeFileBufferUpTo,
-	toRegisteredWorktreeRelativePath,
-	type WorkspaceFsPathError,
-} from "../workspace-fs-service";
+import { toRegisteredWorktreeRelativePath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
@@ -23,51 +19,28 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 /** Bytes to scan for binary detection */
 const BINARY_CHECK_SIZE = 8192;
 
-/**
- * Result type for readWorkingFile procedure
- */
 type ReadWorkingFileResult =
 	| { ok: true; content: string; truncated: boolean; byteLength: number }
 	| {
 			ok: false;
-			reason:
-				| "not-found"
-				| "too-large"
-				| "binary"
-				| "outside-worktree"
-				| "symlink-escape";
+			reason: "not-found" | "too-large" | "binary" | "is-directory";
 	  };
 
-/**
- * Result type for readWorkingFileImage procedure
- */
 type ReadWorkingFileImageResult =
 	| { ok: true; dataUrl: string; byteLength: number }
 	| {
 			ok: false;
-			reason:
-				| "not-found"
-				| "too-large"
-				| "not-image"
-				| "outside-worktree"
-				| "symlink-escape";
+			reason: "not-found" | "too-large" | "not-image" | "is-directory";
 	  };
 
 type SaveFileResult =
 	| { status: "saved" }
 	| { status: "conflict"; currentContent: string | null };
 
-function isWorkspaceFsPathError(error: unknown): error is WorkspaceFsPathError {
-	return (
-		error instanceof Error &&
-		"name" in error &&
-		error.name === "WorkspaceFsPathError"
-	);
+function isEisdir(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "EISDIR";
 }
 
-/**
- * Detects if a buffer contains binary content by checking for NUL bytes
- */
 function isBinaryContent(buffer: Buffer): boolean {
 	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
 	for (let i = 0; i < checkLength; i++) {
@@ -76,6 +49,24 @@ function isBinaryContent(buffer: Buffer): boolean {
 		}
 	}
 	return false;
+}
+
+/** Path-based file read with size cap — no workspace scoping. */
+async function readFileBufferUpTo(
+	absolutePath: string,
+	maxBytes: number,
+): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
+	const handle = await fs.open(absolutePath, "r");
+	try {
+		const buf = Buffer.alloc(maxBytes + 1);
+		const { bytesRead } = await handle.read(buf, 0, maxBytes + 1, 0);
+		if (bytesRead > maxBytes) {
+			return { buffer: buf.subarray(0, maxBytes), exceededLimit: true };
+		}
+		return { buffer: buf.subarray(0, bytesRead), exceededLimit: false };
+	} finally {
+		await handle.close();
+	}
 }
 
 export const createFileContentsRouter = () => {
@@ -132,25 +123,26 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<SaveFileResult> => {
-				const result = await guardedWriteRegisteredWorktreeTextFile({
-					worktreePath: input.worktreePath,
-					absolutePath: input.absolutePath,
-					content: input.content,
-					expectedContent: input.expectedContent,
-				});
-
-				if (result.status === "conflict") {
-					return result;
+				if (input.expectedContent !== undefined) {
+					let currentContent: string | null = null;
+					try {
+						currentContent = await fs.readFile(input.absolutePath, "utf-8");
+					} catch {
+						// File doesn't exist yet
+					}
+					if (
+						currentContent !== null &&
+						currentContent !== input.expectedContent
+					) {
+						return { status: "conflict", currentContent };
+					}
 				}
 
+				await fs.writeFile(input.absolutePath, input.content, "utf-8");
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { status: "saved" };
 			}),
 
-		/**
-		 * Read a working tree file safely with size cap and binary detection.
-		 * Used for File Viewer raw/rendered modes.
-		 */
 		readWorkingFile: publicProcedure
 			.input(
 				z.object({
@@ -160,43 +152,33 @@ export const createFileContentsRouter = () => {
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const result = await readRegisteredWorktreeFileBufferUpTo({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-						maxBytes: MAX_FILE_SIZE,
-					});
+					const result = await readFileBufferUpTo(
+						input.absolutePath,
+						MAX_FILE_SIZE,
+					);
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = result.buffer;
-
-					if (isBinaryContent(buffer)) {
+					if (isBinaryContent(result.buffer)) {
 						return { ok: false, reason: "binary" };
 					}
 
 					return {
 						ok: true,
-						content: buffer.toString("utf-8"),
+						content: result.buffer.toString("utf-8"),
 						truncated: false,
-						byteLength: buffer.length,
+						byteLength: result.buffer.length,
 					};
 				} catch (error) {
-					if (isWorkspaceFsPathError(error)) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
+					if (isEisdir(error)) {
+						return { ok: false, reason: "is-directory" };
 					}
 					return { ok: false, reason: "not-found" };
 				}
 			}),
 
-		/**
-		 * Read an image file and return as base64 data URL.
-		 * Used for File Viewer rendered mode for images.
-		 */
 		readWorkingFileImage: publicProcedure
 			.input(
 				z.object({
@@ -211,32 +193,24 @@ export const createFileContentsRouter = () => {
 				}
 
 				try {
-					const result = await readRegisteredWorktreeFileBufferUpTo({
-						worktreePath: input.worktreePath,
-						absolutePath: input.absolutePath,
-						maxBytes: MAX_IMAGE_SIZE,
-					});
+					const result = await readFileBufferUpTo(
+						input.absolutePath,
+						MAX_IMAGE_SIZE,
+					);
 
 					if (result.exceededLimit) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = result.buffer;
-
-					const base64 = buffer.toString("base64");
-					const dataUrl = `data:${mimeType};base64,${base64}`;
-
+					const base64 = result.buffer.toString("base64");
 					return {
 						ok: true,
-						dataUrl,
-						byteLength: buffer.length,
+						dataUrl: `data:${mimeType};base64,${base64}`,
+						byteLength: result.buffer.length,
 					};
 				} catch (error) {
-					if (isWorkspaceFsPathError(error)) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
+					if (isEisdir(error)) {
+						return { ok: false, reason: "is-directory" };
 					}
 					return { ok: false, reason: "not-found" };
 				}
@@ -356,11 +330,7 @@ async function getUnstagedVersions(
 	let modified = "";
 	try {
 		const absolutePath = path.resolve(worktreePath, filePath);
-		const result = await readRegisteredWorktreeFileBufferUpTo({
-			worktreePath,
-			absolutePath,
-			maxBytes: MAX_FILE_SIZE,
-		});
+		const result = await readFileBufferUpTo(absolutePath, MAX_FILE_SIZE);
 
 		if (result.exceededLimit) {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
@@ -368,7 +338,6 @@ async function getUnstagedVersions(
 			modified = result.buffer.toString("utf-8");
 		}
 	} catch {
-		// File doesn't exist or validation failed - that's ok for diff display
 		modified = "";
 	}
 

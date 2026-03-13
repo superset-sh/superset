@@ -38,7 +38,7 @@ export function createDb(dbPath: string) {
 	const db = drizzle(sqlite, { schema });
 
 	const migrationsFolder = getMigrationsFolder();
-	console.log(
+	console.error(
 		`[host-service:db] Initialized at ${dbPath}, migrations from ${migrationsFolder}`,
 	);
 

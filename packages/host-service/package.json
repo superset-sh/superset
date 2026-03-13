@@ -30,6 +30,7 @@
 	"dependencies": {
 		"@hono/node-server": "^1.14.1",
 		"@hono/trpc-server": "^0.3.4",
+		"@octokit/rest": "^22.0.1",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",

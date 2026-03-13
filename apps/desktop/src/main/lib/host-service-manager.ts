@@ -1,7 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import path from "node:path";
 import { app } from "electron";
-import { getProcessEnvWithShellPath } from "lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
 type HostServiceStatus = "starting" | "running" | "crashed";
@@ -67,16 +66,16 @@ class HostServiceManager {
 		return this.instances.get(organizationId)?.status ?? null;
 	}
 
-	private async spawn(organizationId: string): Promise<number> {
-		const env = await getProcessEnvWithShellPath({
-			...process.env,
+	private spawn(organizationId: string): Promise<number> {
+		const env: Record<string, string> = {
+			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
 			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host.db"),
 			HOST_MIGRATIONS_PATH: app.isPackaged
 				? path.join(process.resourcesPath, "resources/host-migrations")
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
-		});
+		};
 		if (this.authToken) {
 			env.AUTH_TOKEN = this.authToken;
 		}
