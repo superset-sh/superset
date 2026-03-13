@@ -171,23 +171,6 @@ export async function readRegisteredWorktreeFileBuffer(input: {
 	);
 }
 
-export async function readRegisteredWorktreeFileBufferUpTo(input: {
-	worktreePath: string;
-	absolutePath: string;
-	maxBytes: number;
-}): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
-	const result = await registeredWorktreeFsService.readFileBufferUpTo({
-		workspaceId: input.worktreePath,
-		absolutePath: input.absolutePath,
-		maxBytes: input.maxBytes,
-	});
-
-	return {
-		buffer: Buffer.from(result.buffer),
-		exceededLimit: result.exceededLimit,
-	};
-}
-
 export async function statRegisteredWorktreeFile(input: {
 	worktreePath: string;
 	absolutePath: string;

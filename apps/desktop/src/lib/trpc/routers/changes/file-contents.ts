@@ -8,7 +8,6 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	guardedWriteRegisteredWorktreeTextFile,
-	readRegisteredWorktreeFileBufferUpTo,
 	toRegisteredWorktreeRelativePath,
 } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
@@ -319,11 +318,7 @@ async function getUnstagedVersions(
 	let modified = "";
 	try {
 		const absolutePath = path.resolve(worktreePath, filePath);
-		const result = await readRegisteredWorktreeFileBufferUpTo({
-			worktreePath,
-			absolutePath,
-			maxBytes: MAX_FILE_SIZE,
-		});
+		const result = await readFileBufferUpTo(absolutePath, MAX_FILE_SIZE);
 
 		if (result.exceededLimit) {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
@@ -331,7 +326,6 @@ async function getUnstagedVersions(
 			modified = result.buffer.toString("utf-8");
 		}
 	} catch {
-		// File doesn't exist or validation failed - that's ok for diff display
 		modified = "";
 	}
 
