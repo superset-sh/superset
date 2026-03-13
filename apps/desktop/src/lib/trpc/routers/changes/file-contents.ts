@@ -6,10 +6,7 @@ import { getImageMimeType } from "shared/file-types";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import {
-	guardedWriteRegisteredWorktreeTextFile,
-	toRegisteredWorktreeRelativePath,
-} from "../workspace-fs-service";
+import { toRegisteredWorktreeRelativePath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
@@ -126,17 +123,22 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<SaveFileResult> => {
-				const result = await guardedWriteRegisteredWorktreeTextFile({
-					worktreePath: input.worktreePath,
-					absolutePath: input.absolutePath,
-					content: input.content,
-					expectedContent: input.expectedContent,
-				});
-
-				if (result.status === "conflict") {
-					return result;
+				if (input.expectedContent !== undefined) {
+					let currentContent: string | null = null;
+					try {
+						currentContent = await fs.readFile(input.absolutePath, "utf-8");
+					} catch {
+						// File doesn't exist yet
+					}
+					if (
+						currentContent !== null &&
+						currentContent !== input.expectedContent
+					) {
+						return { status: "conflict", currentContent };
+					}
 				}
 
+				await fs.writeFile(input.absolutePath, input.content, "utf-8");
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { status: "saved" };
 			}),
