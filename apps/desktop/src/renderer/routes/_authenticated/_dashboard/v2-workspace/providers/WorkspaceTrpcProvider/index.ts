@@ -1,0 +1,1 @@
+export { WorkspaceTrpcProvider } from "./WorkspaceTrpcProvider";

@@ -71,7 +71,7 @@ class HostServiceManager {
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
-			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host.db"),
+			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host", organizationId, "host.db"),
 			HOST_MIGRATIONS_PATH: app.isPackaged
 				? path.join(process.resourcesPath, "resources/host-migrations")
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),

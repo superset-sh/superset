@@ -386,10 +386,9 @@ export const v2Projects = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
 		slug: text().notNull(),
-		githubRepositoryId: uuid("github_repository_id").references(
-			() => githubRepositories.id,
-			{ onDelete: "set null" },
-		),
+		githubRepositoryId: uuid("github_repository_id")
+			.notNull()
+			.references(() => githubRepositories.id, { onDelete: "restrict" }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
