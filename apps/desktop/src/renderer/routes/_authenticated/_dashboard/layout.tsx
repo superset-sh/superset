@@ -4,7 +4,10 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useDeleteWorkspace } from "renderer/react-query/workspaces";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
@@ -87,6 +90,31 @@ function DashboardLayout() {
 		undefined,
 		[openNewWorkspaceModal, currentWorkspace?.projectId],
 	);
+
+	const deleteWorkspace = useDeleteWorkspace();
+
+	const handleDeleteWorkspace = useCallback(() => {
+		if (!currentWorkspaceId || !currentWorkspace) return;
+
+		deleteWithToast({
+			name: currentWorkspace.name,
+			deleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: currentWorkspaceId,
+					deleteLocalBranch: false,
+				}),
+			forceDeleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: currentWorkspaceId,
+					deleteLocalBranch: false,
+					force: true,
+				}),
+		});
+	}, [currentWorkspaceId, currentWorkspace, deleteWorkspace]);
+
+	useAppHotkey("DELETE_WORKSPACE", handleDeleteWorkspace, undefined, [
+		handleDeleteWorkspace,
+	]);
 
 	return (
 		<div className="flex flex-col h-full w-full">
