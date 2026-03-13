@@ -734,8 +734,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								isRemote: true,
 							});
 						}
-					} catch {
-						// Ignore errors (e.g. no remote)
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list remote refs:", err);
 					}
 
 					// Fetch local refs
@@ -769,8 +769,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								});
 							}
 						}
-					} catch {
-						// Ignore errors
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list local refs:", err);
 					}
 
 					const defaultBranch =

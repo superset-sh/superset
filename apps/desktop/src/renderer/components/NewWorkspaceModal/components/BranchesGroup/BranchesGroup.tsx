@@ -74,15 +74,17 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 
 	// Background: fetch from remote to refresh local refs, then invalidate search cache
 	const utils = electronTrpc.useUtils();
-	const [prevRemoteData, setPrevRemoteData] = useState<unknown>(undefined);
 	const { data: remoteBranchData } = electronTrpc.projects.getBranches.useQuery(
 		{ projectId: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
-	if (remoteBranchData && remoteBranchData !== prevRemoteData) {
-		setPrevRemoteData(remoteBranchData);
-		void utils.projects.searchBranches.invalidate();
-	}
+	const prevRemoteDataRef = useRef(remoteBranchData);
+	useEffect(() => {
+		if (remoteBranchData && remoteBranchData !== prevRemoteDataRef.current) {
+			prevRemoteDataRef.current = remoteBranchData;
+			void utils.projects.searchBranches.invalidate();
+		}
+	}, [remoteBranchData, utils]);
 
 	// Combine: prefer searchBranches, fall back to getBranchesLocal with client-side search
 	const allBranchData = useMemo(() => {
@@ -180,11 +182,12 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		externalWorktreeByBranch,
 	]);
 
-	// For "worktrees" mode, keep client-side (small dataset)
+	// For "worktrees" mode, keep client-side (small dataset).
+	// Uses allBranchData (unpaginated) so metadata is available for all worktree branches.
 	const worktreeBranchRows = useMemo(() => {
 		return externalWorktrees
 			.map((worktree) => {
-				const branch = effectiveData?.branches.find(
+				const branch = allBranchData?.branches.find(
 					(b) => b.name === worktree.branch,
 				) ?? {
 					name: worktree.branch,
@@ -201,7 +204,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 				return { branch, action };
 			})
 			.sort((a, b) => {
-				const defaultBranch = effectiveData?.defaultBranch ?? "main";
+				const defaultBranch = allBranchData?.defaultBranch ?? "main";
 				if (a.branch.name === defaultBranch) return -1;
 				if (b.branch.name === defaultBranch) return 1;
 				if (a.branch.isLocal !== b.branch.isLocal) {
@@ -211,7 +214,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 			});
 	}, [
 		externalWorktrees,
-		effectiveData,
+		allBranchData,
 		workspaceByBranch,
 		trackedWorktreeByBranch,
 		externalWorktreeByBranch,
