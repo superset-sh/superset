@@ -394,6 +394,7 @@ export function useTerminalLifecycle({
 					if (DEBUG_TERMINAL) {
 						console.log(`[Terminal] createOrAttach start: ${paneId}`);
 					}
+					const attachStartedAt = performance.now();
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -405,6 +406,13 @@ export function useTerminalLifecycle({
 						},
 						{
 							onSuccess: (result) => {
+								if (DEBUG_TERMINAL) {
+									console.log(`[Terminal] createOrAttach success: ${paneId}`, {
+										durationMs: Math.round(performance.now() - attachStartedAt),
+										isNew: result.isNew,
+										isColdRestore: !!result.isColdRestore,
+									});
+								}
 								if (!isAttachActive()) return;
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
@@ -444,6 +452,12 @@ export function useTerminalLifecycle({
 								maybeApplyInitialState();
 							},
 							onError: (error) => {
+								if (DEBUG_TERMINAL) {
+									console.warn(`[Terminal] createOrAttach error: ${paneId}`, {
+										durationMs: Math.round(performance.now() - attachStartedAt),
+										error: error.message,
+									});
+								}
 								if (!isAttachActive()) return;
 								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
 									wasKilledByUserRef.current = true;
