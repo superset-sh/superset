@@ -3,6 +3,7 @@ import {
 	canonicalizeHotkey,
 	canonicalizeHotkeyForPlatform,
 	deriveNonMacDefault,
+	HOTKEYS,
 	hotkeyFromKeyboardEvent,
 	isTerminalReservedEvent,
 	toElectronAccelerator,
@@ -76,6 +77,30 @@ describe("toElectronAccelerator", () => {
 
 	it("returns null for meta on non-mac", () => {
 		expect(toElectronAccelerator("meta+w", "win32")).toBeNull();
+	});
+});
+
+describe("HOTKEYS.CLOSE_WORKSPACE", () => {
+	it("is defined in the HOTKEYS registry", () => {
+		expect(HOTKEYS.CLOSE_WORKSPACE).toBeDefined();
+	});
+
+	it("has the correct label and category", () => {
+		expect(HOTKEYS.CLOSE_WORKSPACE.label).toBe("Close Workspace");
+		expect(HOTKEYS.CLOSE_WORKSPACE.category).toBe("Workspace");
+	});
+
+	it("has meta+alt+w as the default darwin binding", () => {
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe("meta+alt+w");
+	});
+
+	it("does not conflict with CLOSE_PANE (meta+w) or CLOSE_TAB (meta+shift+w)", () => {
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).not.toBe(
+			HOTKEYS.CLOSE_PANE.defaults.darwin,
+		);
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).not.toBe(
+			HOTKEYS.CLOSE_TAB.defaults.darwin,
+		);
 	});
 });
 
