@@ -381,6 +381,44 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
+	// Terminal background image settings
+	// Background image is rendered at TabView level (shared across all panes).
+	// We only need the data URI here to know whether to make xterm transparent.
+	const { data: bgSettings } =
+		electronTrpc.settings.getTerminalBackground.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+	const bgImageDataUri = bgSettings?.imageDataUri ?? null;
+	// Invert: user sets image visibility %, overlay opacity = 1 - that
+	const bgOpacity = 1 - (bgSettings?.opacity ?? 85) / 100;
+
+	// When a background image is set, make xterm background semi-transparent
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || !bgImageDataUri) return;
+
+		const currentTheme = xterm.options.theme ?? {};
+		const bg = currentTheme.background ?? terminalBg;
+		// Parse hex color to rgba — supports #rgb, #rrggbb, #rrggbbaa
+		const hexMatch = bg.match(/^#([0-9a-f]{3,8})$/i);
+		if (!hexMatch) return;
+		const hex = hexMatch[1];
+		let r: number, g: number, b: number;
+		if (hex.length === 3) {
+			r = Number.parseInt(hex[0] + hex[0], 16);
+			g = Number.parseInt(hex[1] + hex[1], 16);
+			b = Number.parseInt(hex[2] + hex[2], 16);
+		} else {
+			r = Number.parseInt(hex.slice(0, 2), 16);
+			g = Number.parseInt(hex.slice(2, 4), 16);
+			b = Number.parseInt(hex.slice(4, 6), 16);
+		}
+		xterm.options.theme = {
+			...currentTheme,
+			background: `rgba(${r}, ${g}, ${b}, ${bgOpacity})`,
+		};
+	}, [bgImageDataUri, bgOpacity, terminalBg]);
+
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
 		event.dataTransfer.dropEffect = "copy";
@@ -409,21 +447,24 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		<div
 			role="application"
 			className="relative h-full w-full overflow-hidden"
-			style={{ backgroundColor: terminalBg }}
+			style={{ backgroundColor: bgImageDataUri ? "transparent" : terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			<TerminalSearch
-				searchAddon={searchAddonRef.current}
-				isOpen={isSearchOpen}
-				onClose={() => setIsSearchOpen(false)}
-			/>
-			<ScrollToBottomButton terminal={xtermInstance} />
-			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
-				<SessionKilledOverlay onRestart={restartTerminal} />
-			)}
-			<div className="h-full w-full p-2">
-				<div ref={terminalRef} className="h-full w-full" />
+			{/* Background image is rendered at TabView level (shared across panes) */}
+			<div className="relative h-full w-full">
+				<TerminalSearch
+					searchAddon={searchAddonRef.current}
+					isOpen={isSearchOpen}
+					onClose={() => setIsSearchOpen(false)}
+				/>
+				<ScrollToBottomButton terminal={xtermInstance} />
+				{exitStatus === "killed" && !connectionError && !isRestoredMode && (
+					<SessionKilledOverlay onRestart={restartTerminal} />
+				)}
+				<div className="h-full w-full p-2">
+					<div ref={terminalRef} className="h-full w-full" />
+				</div>
 			</div>
 		</div>
 	);

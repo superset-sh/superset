@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
@@ -13,7 +14,7 @@ import {
 	AGENT_PRESET_DESCRIPTIONS,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
-import { app } from "electron";
+import { app, dialog } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
@@ -715,6 +716,79 @@ export const createSettingsRouter = () => {
 		setTelemetryEnabled: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
 			.mutation(() => {
+				return { success: true };
+			}),
+
+		pickImageFile: publicProcedure.mutation(async () => {
+			const result = await dialog.showOpenDialog({
+				properties: ["openFile"],
+				filters: [
+					{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif"] },
+				],
+			});
+			if (result.canceled || !result.filePaths[0]) return null;
+			return result.filePaths[0];
+		}),
+
+		getTerminalBackground: publicProcedure.query(() => {
+			const row = getSettings();
+			const imagePath = row.terminalBackgroundImage ?? null;
+			let imageDataUri: string | null = null;
+			if (imagePath) {
+				try {
+					const buf = fs.readFileSync(imagePath);
+					const ext = imagePath.split(".").pop()?.toLowerCase() ?? "png";
+					const mime =
+						ext === "jpg" || ext === "jpeg"
+							? "image/jpeg"
+							: ext === "webp"
+								? "image/webp"
+								: ext === "gif"
+									? "image/gif"
+									: "image/png";
+					imageDataUri = `data:${mime};base64,${buf.toString("base64")}`;
+				} catch {
+					// File not found or unreadable
+				}
+			}
+			return {
+				image: imagePath,
+				imageDataUri,
+				opacity: row.terminalBackgroundOpacity ?? 85,
+				blur: row.terminalBackgroundBlur ?? 8,
+			};
+		}),
+
+		setTerminalBackground: publicProcedure
+			.input(
+				z.object({
+					image: z.string().nullable().optional(),
+					opacity: z.number().int().min(0).max(100).optional(),
+					blur: z.number().int().min(0).max(50).optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const set: Record<string, unknown> = {};
+				if (input.image !== undefined)
+					set.terminalBackgroundImage = input.image;
+				if (input.opacity !== undefined)
+					set.terminalBackgroundOpacity = input.opacity;
+				if (input.blur !== undefined)
+					set.terminalBackgroundBlur = input.blur;
+
+				if (Object.keys(set).length === 0) {
+					return { success: true };
+				}
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, ...set })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set,
+					})
+					.run();
+
 				return { success: true };
 			}),
 	});

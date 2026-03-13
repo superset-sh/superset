@@ -4,6 +4,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { BackgroundImageSetting } from "./components/BackgroundImageSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
@@ -56,6 +57,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
 	);
+	const showBackgroundImage = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_BACKGROUND_IMAGE,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-7xl w-full">
@@ -77,6 +82,9 @@ export function TerminalSettings({
 					/>
 				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
+				{showBackgroundImage && (
+					<BackgroundImageSetting key="background-image" />
+				)}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>
 		</div>

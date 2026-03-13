@@ -35,6 +35,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_IMAGE: "terminal-background-image",
 
 	MODELS_ANTHROPIC: "models-anthropic",
 	MODELS_OPENAI: "models-openai",
