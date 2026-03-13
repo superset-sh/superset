@@ -9,6 +9,7 @@ import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
+import { DiffScrollIndicators } from "renderer/screens/main/components/WorkspaceView/components/DiffScrollIndicators";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
@@ -321,41 +322,51 @@ export function FileViewerContent({
 					});
 				}}
 			>
-				<div
-					ref={diffContainerRef}
-					className="h-full min-h-0 overflow-auto bg-background select-text"
-					onClickCapture={(event) => {
-						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
-							event.stopPropagation();
-						}
-					}}
-					onContextMenuCapture={(event) => {
-						const location = getDiffLocationFromEvent(event.nativeEvent);
-						if (!location) {
-							return;
-						}
+				<div className="flex h-full min-h-0">
+					<div
+						ref={diffContainerRef}
+						className="flex-1 min-w-0 h-full overflow-auto bg-background select-text"
+						onClickCapture={(event) => {
+							if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+								event.stopPropagation();
+							}
+						}}
+						onContextMenuCapture={(event) => {
+							const location = getDiffLocationFromEvent(event.nativeEvent);
+							if (!location) {
+								return;
+							}
 
-						const column = getColumnFromDiffPoint({
-							lineElement: location.lineElement,
-							numberColumn: location.numberColumn,
-							clientX: event.clientX,
-							clientY: event.clientY,
-						});
+							const column = getColumnFromDiffPoint({
+								lineElement: location.lineElement,
+								numberColumn: location.numberColumn,
+								clientX: event.clientX,
+								clientY: event.clientY,
+							});
 
-						lastDiffLocationRef.current = {
-							...location,
-							column,
-						};
-					}}
-				>
-					<LightDiffViewer
-						key={filePath}
-						contents={diffData}
-						viewMode={diffViewMode}
-						hideUnchangedRegions={hideUnchangedRegions}
-						filePath={filePath}
-						className="min-h-full"
-					/>
+							lastDiffLocationRef.current = {
+								...location,
+								column,
+							};
+						}}
+					>
+						<LightDiffViewer
+							key={filePath}
+							contents={diffData}
+							viewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
+							filePath={filePath}
+							className="min-h-full"
+						/>
+					</div>
+					{!hideUnchangedRegions && (
+						<DiffScrollIndicators
+							scrollRef={diffContainerRef}
+							original={diffData.original}
+							modified={diffData.modified}
+							filePath={filePath}
+						/>
+					)}
 				</div>
 			</DiffViewerContextMenu>
 		);
