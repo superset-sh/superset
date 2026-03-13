@@ -86,7 +86,9 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		{ enabled: !!projectId },
 	);
 	if (remoteBranchData && remoteBranchData !== prevRemoteData) {
-		console.log("[BranchesGroup] remoteBranchData changed, invalidating searchBranches");
+		console.log(
+			"[BranchesGroup] remoteBranchData changed, invalidating searchBranches",
+		);
 		setPrevRemoteData(remoteBranchData);
 		void utils.projects.searchBranches.invalidate();
 	}
@@ -241,7 +243,10 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const hasMore = filterMode === "all" && (effectiveData?.hasMore ?? false);
 	useEffect(() => {
 		const el = sentinelRef.current;
-		console.log("[BranchesGroup] IntersectionObserver effect", { hasMore, elExists: !!el });
+		console.log("[BranchesGroup] IntersectionObserver effect", {
+			hasMore,
+			elExists: !!el,
+		});
 		if (!el || !hasMore) return;
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -376,10 +381,15 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	}
 
 	if (
+		!allBranchData &&
 		(isSearchLoading || (isSearchError && isLocalLoading)) &&
 		filterMode === "all"
 	) {
-		console.log("[BranchesGroup] early return: loading", { isSearchLoading, isSearchError, isLocalLoading });
+		console.log("[BranchesGroup] early return: loading", {
+			isSearchLoading,
+			isSearchError,
+			isLocalLoading,
+		});
 		return (
 			<CommandGroup>
 				<CommandEmpty>Loading branches...</CommandEmpty>
@@ -387,7 +397,10 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		);
 	}
 
-	console.log("[BranchesGroup] full render, visibleRows:", visibleBranchRows.length);
+	console.log(
+		"[BranchesGroup] full render, visibleRows:",
+		visibleBranchRows.length,
+	);
 
 	return (
 		<>
