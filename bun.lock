@@ -792,6 +792,16 @@
     "packages/scripts": {
       "name": "@superset/scripts",
       "version": "0.1.0",
+      "dependencies": {
+        "@superset/db": "workspace:*",
+        "@superset/shared": "workspace:*",
+        "drizzle-orm": "0.45.1",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/node": "^24.9.1",
+        "typescript": "^5.9.3",
+      },
     },
     "packages/shared": {
       "name": "@superset/shared",

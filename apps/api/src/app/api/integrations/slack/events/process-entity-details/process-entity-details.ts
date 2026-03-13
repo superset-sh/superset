@@ -1,6 +1,7 @@
 import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 import { createSlackClient } from "../utils/slack-client";
 import {
@@ -47,7 +48,7 @@ export async function processEntityDetails({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(decryptOAuthToken(connection.accessToken));
 
 	const taskSlug = parseTaskSlugFromUrl(event.entity_url);
 

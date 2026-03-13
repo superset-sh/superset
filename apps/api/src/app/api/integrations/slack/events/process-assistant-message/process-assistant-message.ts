@@ -4,6 +4,7 @@ import {
 	subscriptions,
 	usersSlackUsers,
 } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import { generateConnectUrl } from "../utils/generate-connect-url";
@@ -74,7 +75,8 @@ export async function processAssistantMessage({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const slackToken = decryptOAuthToken(connection.accessToken);
+	const slack = createSlackClient(slackToken);
 
 	const [slackUserLink, activeSubscription] = await Promise.all([
 		event.user
@@ -199,25 +201,25 @@ export async function processAssistantMessage({
 	}
 
 	try {
-		const imageAssets = await extractSlackImageAssets({
-			eventFiles: event.files,
-			slack,
-			slackToken: connection.accessToken,
-		});
+			const imageAssets = await extractSlackImageAssets({
+				eventFiles: event.files,
+				slack,
+				slackToken,
+			});
 
 		const resolve = await resolveUserMentions({
 			texts: [event.text ?? ""],
 			slack,
 		});
 
-		const result = await runSlackAgent({
+			const result = await runSlackAgent({
 			prompt: resolve(event.text ?? ""),
 			channelId: event.channel,
 			threadTs,
-			organizationId: connection.organizationId,
-			userId: slackUserLink.userId,
-			slackToken: connection.accessToken,
-			model: slackUserLink.modelPreference ?? undefined,
+				organizationId: connection.organizationId,
+				userId: slackUserLink.userId,
+				slackToken,
+				model: slackUserLink.modelPreference ?? undefined,
 			images: imageAssets,
 			onProgress: messageTs
 				? async (status) => {

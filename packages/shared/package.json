@@ -31,6 +31,10 @@
 		"./claude-command": {
 			"types": "./src/claude-command.ts",
 			"default": "./src/claude-command.ts"
+		},
+		"./oauth-token-crypto": {
+			"types": "./src/oauth-token-crypto.ts",
+			"default": "./src/oauth-token-crypto.ts"
 		}
 	},
 	"scripts": {
