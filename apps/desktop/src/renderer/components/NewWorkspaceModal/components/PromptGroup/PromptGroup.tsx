@@ -46,6 +46,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
 	ArrowUpIcon,
@@ -53,7 +54,14 @@ import {
 	PaperclipIcon,
 	PlusIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	forwardRef,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
@@ -116,39 +124,38 @@ export function PromptGroup(props: PromptGroupProps) {
 	);
 }
 
-function PlusMenu({
-	onOpenIssueLink,
-	onOpenPRLink,
-}: {
-	onOpenIssueLink: () => void;
-	onOpenPRLink: () => void;
-}) {
+const PlusMenu = forwardRef<
+	HTMLDivElement,
+	{ onOpenIssueLink: () => void; onOpenPRLink: () => void }
+>(function PlusMenu({ onOpenIssueLink, onOpenPRLink }, ref) {
 	const attachments = usePromptInputAttachments();
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<PromptInputButton className={`${PILL_BUTTON_CLASS} w-[22px]`}>
-					<PlusIcon className="size-3.5" />
-				</PromptInputButton>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent side="top" align="end" className="w-52">
-				<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
-					<PaperclipIcon className="size-4" />
-					Add attachment
-				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={onOpenIssueLink}>
-					<SiLinear className="size-4" />
-					Link issue
-				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={onOpenPRLink}>
-					<LuGitPullRequest className="size-4" />
-					Link pull request
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<div ref={ref}>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<PromptInputButton className={`${PILL_BUTTON_CLASS} w-[22px]`}>
+						<PlusIcon className="size-3.5" />
+					</PromptInputButton>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent side="top" align="end" className="w-52">
+					<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
+						<PaperclipIcon className="size-4" />
+						Add attachment
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={onOpenIssueLink}>
+						<SiLinear className="size-4" />
+						Link issue
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={onOpenPRLink}>
+						<LuGitPullRequest className="size-4" />
+						Link pull request
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
 	);
-}
+});
 
 function ProjectPickerPill({
 	selectedProject,
@@ -254,6 +261,7 @@ function BaseBranchPickerInline({
 	isBranchesLoading,
 	isBranchesError,
 	branches,
+	worktreeBranches,
 	onSelectBaseBranch,
 }: {
 	effectiveBaseBranch: string | null;
@@ -261,10 +269,12 @@ function BaseBranchPickerInline({
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
 	branches: Array<{ name: string; lastCommitDate: number }>;
+	worktreeBranches: Set<string>;
 	onSelectBaseBranch: (branchName: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
+	const [filterMode, setFilterMode] = useState<"all" | "worktrees">("all");
 
 	const filteredBranches = useMemo(() => {
 		if (!branches.length) return [];
@@ -274,6 +284,11 @@ function BaseBranchPickerInline({
 			branch.name.toLowerCase().includes(searchLower),
 		);
 	}, [branches, branchSearch]);
+
+	const displayBranches = useMemo(() => {
+		if (filterMode === "all") return filteredBranches;
+		return filteredBranches.filter((b) => worktreeBranches.has(b.name));
+	}, [filteredBranches, filterMode, worktreeBranches]);
 
 	if (isBranchesError) {
 		return (
@@ -286,7 +301,10 @@ function BaseBranchPickerInline({
 			open={open}
 			onOpenChange={(v) => {
 				setOpen(v);
-				if (!v) setBranchSearch("");
+				if (!v) {
+					setBranchSearch("");
+					setFilterMode("all");
+				}
 			}}
 		>
 			<PopoverTrigger asChild>
@@ -296,7 +314,11 @@ function BaseBranchPickerInline({
 					className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
 				>
 					<GoGitBranch className="size-3 shrink-0" />
-					<span className="font-mono">{effectiveBaseBranch || "..."}</span>
+					{isBranchesLoading ? (
+						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
+					) : (
+						<span className="font-mono">{effectiveBaseBranch || "..."}</span>
+					)}
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</button>
 			</PopoverTrigger>
@@ -306,6 +328,30 @@ function BaseBranchPickerInline({
 				onWheel={(event) => event.stopPropagation()}
 			>
 				<Command shouldFilter={false}>
+					<div className="flex items-center gap-0.5 rounded-md bg-muted/40 p-0.5 mx-2 mt-2">
+						{(["all", "worktrees"] as const).map((value) => {
+							const count =
+								value === "all"
+									? branches.length
+									: branches.filter((b) => worktreeBranches.has(b.name)).length;
+							return (
+								<button
+									key={value}
+									type="button"
+									onClick={() => setFilterMode(value)}
+									className={cn(
+										"flex-1 rounded px-2 py-1 text-xs text-center transition-colors",
+										filterMode === value
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground",
+									)}
+								>
+									{value === "all" ? "All" : "Worktrees"}
+									<span className="ml-1 text-foreground/40">{count}</span>
+								</button>
+							);
+						})}
+					</div>
 					<CommandInput
 						placeholder="Search branches..."
 						value={branchSearch}
@@ -313,7 +359,7 @@ function BaseBranchPickerInline({
 					/>
 					<CommandList className="max-h-[200px]">
 						<CommandEmpty>No branches found</CommandEmpty>
-						{filteredBranches.map((branch) => (
+						{displayBranches.map((branch) => (
 							<CommandItem
 								key={branch.name}
 								value={branch.name}
@@ -393,6 +439,7 @@ function PromptGroupInner({
 	const createFromPr = useCreateFromPr();
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
+	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const trimmedPrompt = prompt.trim();
 	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
@@ -416,6 +463,25 @@ function PromptGroupInner({
 	const branchData = remoteBranchData ?? localBranchData;
 	// Only show loading while waiting for the fast local query
 	const isBranchesLoading = isLocalBranchesLoading && !branchData;
+
+	const { data: externalWorktrees = [] } =
+		electronTrpc.workspaces.getExternalWorktrees.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: !!projectId },
+		);
+
+	const { data: trackedWorktrees = [] } =
+		electronTrpc.workspaces.getWorktreesByProject.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: !!projectId },
+		);
+
+	const worktreeBranches = useMemo(() => {
+		const set = new Set<string>();
+		for (const wt of externalWorktrees) set.add(wt.branch);
+		for (const wt of trackedWorktrees) set.add(wt.branch);
+		return set;
+	}, [externalWorktrees, trackedWorktrees]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -507,10 +573,25 @@ function PromptGroupInner({
 			return;
 		}
 
+		let convertedFiles: ConvertedFile[] | undefined;
+		if (attachments.files.length > 0) {
+			convertedFiles = await Promise.all(
+				attachments.files.map(async (file) => ({
+					data: await convertBlobUrlToDataUrl(file.url),
+					mediaType: file.mediaType,
+					filename: file.filename,
+				})),
+			);
+		}
+
 		// If a PR is linked, use createFromPr instead of regular create
 		if (linkedPR) {
+			const launchRequest = buildLaunchRequest(trimmedPrompt, convertedFiles);
 			void runAsyncAction(
-				createFromPr.mutateAsync({ projectId, prUrl: linkedPR.url }),
+				createFromPr.mutateAsyncWithSetup(
+					{ projectId, prUrl: linkedPR.url },
+					launchRequest ?? undefined,
+				),
 				{
 					loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
 					success: "Workspace created from PR",
@@ -521,17 +602,6 @@ function PromptGroupInner({
 				},
 			);
 			return;
-		}
-
-		let convertedFiles: ConvertedFile[] | undefined;
-		if (attachments.files.length > 0) {
-			convertedFiles = await Promise.all(
-				attachments.files.map(async (file) => ({
-					data: await convertBlobUrlToDataUrl(file.url),
-					mediaType: file.mediaType,
-					filename: file.filename,
-				})),
-			);
 		}
 
 		const launchRequest = buildLaunchRequest(trimmedPrompt, convertedFiles);
@@ -736,21 +806,29 @@ function PromptGroupInner({
 						</Select>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
+						<PlusMenu
+							ref={plusMenuRef}
+							onOpenIssueLink={() =>
+								requestAnimationFrame(() => setIssueLinkOpen(true))
+							}
+							onOpenPRLink={() =>
+								requestAnimationFrame(() => setPRLinkOpen(true))
+							}
+						/>
+						<IssueLinkCommand
+							variant="popover"
+							anchorRef={plusMenuRef}
+							open={issueLinkOpen}
+							onOpenChange={setIssueLinkOpen}
+							onSelect={addLinkedIssue}
+						/>
 						<PRLinkCommand
 							open={prLinkOpen}
 							onOpenChange={setPRLinkOpen}
 							onSelect={setLinkedPR}
 							projectId={projectId}
-						>
-							<div>
-								<PlusMenu
-									onOpenIssueLink={() => setIssueLinkOpen(true)}
-									onOpenPRLink={() =>
-										requestAnimationFrame(() => setPRLinkOpen(true))
-									}
-								/>
-							</div>
-						</PRLinkCommand>
+							anchorRef={plusMenuRef}
+						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
 							disabled={createWorkspace.isPending || createFromPr.isPending}
@@ -778,32 +856,44 @@ function PromptGroupInner({
 						onImportRepo={onImportRepo}
 						onNewProject={onNewProject}
 					/>
-					{linkedPR ? (
-						<span className="flex items-center gap-1 text-xs text-muted-foreground">
-							<LuGitPullRequest className="size-3 shrink-0" />
-							based off PR #{linkedPR.prNumber}
-						</span>
-					) : (
-						<BaseBranchPickerInline
-							effectiveBaseBranch={effectiveBaseBranch}
-							defaultBranch={branchData?.defaultBranch}
-							isBranchesLoading={isBranchesLoading}
-							isBranchesError={isBranchesError}
-							branches={branchData?.branches ?? []}
-							onSelectBaseBranch={handleBaseBranchSelect}
-						/>
-					)}
+					<AnimatePresence mode="wait" initial={false}>
+						{linkedPR ? (
+							<motion.span
+								key="linked-pr-label"
+								initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
+								animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+								className="flex items-center gap-1 text-xs text-muted-foreground"
+							>
+								<LuGitPullRequest className="size-3 shrink-0" />
+								based off PR #{linkedPR.prNumber}
+							</motion.span>
+						) : (
+							<motion.div
+								key="branch-picker"
+								initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
+								animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+							>
+								<BaseBranchPickerInline
+									effectiveBaseBranch={effectiveBaseBranch}
+									defaultBranch={branchData?.defaultBranch}
+									isBranchesLoading={isBranchesLoading}
+									isBranchesError={isBranchesError}
+									branches={branchData?.branches ?? []}
+									worktreeBranches={worktreeBranches}
+									onSelectBaseBranch={handleBaseBranchSelect}
+								/>
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
 					{modKey}+↵ to create
 				</span>
 			</div>
-
-			<IssueLinkCommand
-				open={issueLinkOpen}
-				onOpenChange={setIssueLinkOpen}
-				onSelect={addLinkedIssue}
-			/>
 		</div>
 	);
 }
