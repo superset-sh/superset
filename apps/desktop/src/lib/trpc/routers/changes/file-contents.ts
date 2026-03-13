@@ -41,9 +41,7 @@ type SaveFileResult =
 	| { status: "conflict"; currentContent: string | null };
 
 function isEisdir(error: unknown): boolean {
-	return (
-		error instanceof Error && "code" in error && error.code === "EISDIR"
-	);
+	return error instanceof Error && "code" in error && error.code === "EISDIR";
 }
 
 function isBinaryContent(buffer: Buffer): boolean {
