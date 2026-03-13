@@ -406,6 +406,22 @@ export async function initializeWorkspaceWorktree({
 						return;
 					}
 					startPoint = ref;
+				} else {
+					const sanitizedError = sanitizeGitError(
+						fetchError instanceof Error
+							? fetchError.message
+							: String(fetchError),
+					);
+					console.warn(
+						`[workspace-init] Fetch failed for "${effectiveBaseBranch}" but local ref "${originRef}" exists. Using potentially stale ref. Error: ${sanitizedError}`,
+					);
+					manager.updateProgress(
+						workspaceId,
+						"fetching",
+						"Using cached reference (fetch failed)",
+						undefined,
+						`Could not fetch latest "${effectiveBaseBranch}" from remote. The workspace will use a locally cached version which may be outdated. Error: ${sanitizedError}`,
+					);
 				}
 			}
 		}
