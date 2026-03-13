@@ -259,8 +259,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {
 		onData: (event) => {
-			if (connectionErrorRef.current && event.type === "data") {
-				setConnectionError(null);
+			if (event.type === "data") {
+				// Always reset the retry budget on incoming data so that normal
+				// terminal traffic restores a full MAX_RETRIES allocation after a
+				// reconnect, even when handleRetryConnection already cleared
+				// connectionError before the first packet arrived (issue #2277).
+				if (connectionErrorRef.current) {
+					setConnectionError(null);
+				}
 				retryCountRef.current = 0;
 			}
 			handleStreamData(event);
