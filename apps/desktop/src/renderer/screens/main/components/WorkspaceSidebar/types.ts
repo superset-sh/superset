@@ -1,6 +1,10 @@
 export interface SidebarWorkspace {
 	id: string;
+	existsOnDisk: boolean;
 	projectId: string;
+	repairCommand: string | null;
+	repairMessage: string | null;
+	repairState: "ok" | "missing" | "repair_required" | "repairing";
 	worktreePath: string;
 	type: "worktree" | "branch";
 	branch: string;

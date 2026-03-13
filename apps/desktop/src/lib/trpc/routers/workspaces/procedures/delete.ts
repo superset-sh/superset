@@ -22,7 +22,98 @@ import {
 	hasUnpushedCommits,
 	worktreeExists,
 } from "../utils/git";
+import {
+	getTrackedWorktreeRepairMessage,
+	type ResolveTrackedWorktreePathResult,
+	resolveTrackedWorktreePath,
+} from "../utils/repair-worktree-path";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+
+interface CleanupTrackedWorktreePath {
+	path: string;
+	usesFallbackPath: boolean;
+	warning: string | null;
+}
+
+interface DeleteProcedureDeps {
+	clearWorkspaceDeletingStatus: typeof clearWorkspaceDeletingStatus;
+	deleteLocalBranch: typeof deleteLocalBranch;
+	deleteWorkspace: typeof deleteWorkspace;
+	deleteWorktreeRecord: typeof deleteWorktreeRecord;
+	getProject: typeof getProject;
+	getWorkspace: typeof getWorkspace;
+	getWorkspaceRuntimeRegistry: typeof getWorkspaceRuntimeRegistry;
+	getWorktree: typeof getWorktree;
+	hasUncommittedChanges: typeof hasUncommittedChanges;
+	hasUnpushedCommits: typeof hasUnpushedCommits;
+	hideProjectIfNoWorkspaces: typeof hideProjectIfNoWorkspaces;
+	markWorkspaceAsDeleting: typeof markWorkspaceAsDeleting;
+	removeWorktreeFromDisk: typeof removeWorktreeFromDisk;
+	resolveTrackedWorktreePath: typeof resolveTrackedWorktreePath;
+	runTeardown: typeof runTeardown;
+	track: typeof track;
+	updateActiveWorkspaceIfRemoved: typeof updateActiveWorkspaceIfRemoved;
+	workspaceInitManager: typeof workspaceInitManager;
+	worktreeExists: typeof worktreeExists;
+}
+
+export const __testOnlyDeleteProcedureDeps: DeleteProcedureDeps = {
+	clearWorkspaceDeletingStatus,
+	deleteLocalBranch,
+	deleteWorkspace,
+	deleteWorktreeRecord,
+	getProject,
+	getWorkspace,
+	getWorkspaceRuntimeRegistry,
+	getWorktree,
+	hasUncommittedChanges,
+	hasUnpushedCommits,
+	hideProjectIfNoWorkspaces,
+	markWorkspaceAsDeleting,
+	removeWorktreeFromDisk,
+	resolveTrackedWorktreePath,
+	runTeardown,
+	track,
+	updateActiveWorkspaceIfRemoved,
+	workspaceInitManager,
+	worktreeExists,
+};
+
+function getCleanupFallbackWarning(
+	resolution: Exclude<ResolveTrackedWorktreePathResult, { status: "resolved" }>,
+): string {
+	if (resolution.status === "git_repair_required") {
+		return `Worktree was moved and could not be auto-repaired. Delete will fall back to the stored path. ${getTrackedWorktreeRepairMessage(
+			{
+				branch: resolution.branch,
+				mainRepoPath: resolution.mainRepoPath,
+			},
+		)}`;
+	}
+
+	return "Tracked worktree path no longer exists on disk. Delete will remove the Superset record and skip any on-disk teardown.";
+}
+
+async function resolveTrackedWorktreePathForCleanup(
+	worktree: SelectWorktree,
+): Promise<CleanupTrackedWorktreePath> {
+	const resolution =
+		await __testOnlyDeleteProcedureDeps.resolveTrackedWorktreePath(worktree.id);
+
+	if (resolution.status === "resolved") {
+		return {
+			path: resolution.path,
+			usesFallbackPath: false,
+			warning: null,
+		};
+	}
+
+	return {
+		path: worktree.path,
+		usesFallbackPath: true,
+		warning: getCleanupFallbackWarning(resolution),
+	};
+}
 
 export const createDeleteProcedures = () => {
 	return router({
@@ -34,7 +125,7 @@ export const createDeleteProcedures = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = __testOnlyDeleteProcedureDeps.getWorkspace(input.id);
 
 				if (!workspace) {
 					return {
@@ -58,7 +149,8 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				const activeTerminalCount = await getWorkspaceRuntimeRegistry()
+				const activeTerminalCount = await __testOnlyDeleteProcedureDeps
+					.getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)
 					.terminal.getSessionCountByWorkspaceId(input.id);
 
@@ -87,15 +179,32 @@ export const createDeleteProcedures = () => {
 				}
 
 				const worktree = workspace.worktreeId
-					? getWorktree(workspace.worktreeId)
+					? __testOnlyDeleteProcedureDeps.getWorktree(workspace.worktreeId)
 					: null;
-				const project = getProject(workspace.projectId);
+				const project = __testOnlyDeleteProcedureDeps.getProject(
+					workspace.projectId,
+				);
 
 				if (worktree && project) {
 					try {
-						const exists = await worktreeExists(
+						const pathResolution =
+							await resolveTrackedWorktreePathForCleanup(worktree);
+						if (pathResolution.usesFallbackPath) {
+							return {
+								canDelete: true,
+								reason: null,
+								workspace,
+								warning: pathResolution.warning,
+								activeTerminalCount,
+								hasChanges: false,
+								hasUnpushedCommits: false,
+							};
+						}
+
+						const worktreePath = pathResolution.path;
+						const exists = await __testOnlyDeleteProcedureDeps.worktreeExists(
 							project.mainRepoPath,
-							worktree.path,
+							worktreePath,
 						);
 
 						if (!exists) {
@@ -112,8 +221,8 @@ export const createDeleteProcedures = () => {
 						}
 
 						const [hasChanges, unpushedCommits] = await Promise.all([
-							hasUncommittedChanges(worktree.path),
-							hasUnpushedCommits(worktree.path),
+							__testOnlyDeleteProcedureDeps.hasUncommittedChanges(worktreePath),
+							__testOnlyDeleteProcedureDeps.hasUnpushedCommits(worktreePath),
 						]);
 
 						return {
@@ -157,7 +266,7 @@ export const createDeleteProcedures = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = __testOnlyDeleteProcedureDeps.getWorkspace(input.id);
 
 				if (!workspace) {
 					return { success: false, error: "Workspace not found" };
@@ -167,163 +276,211 @@ export const createDeleteProcedures = () => {
 					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
 				);
 
-				markWorkspaceAsDeleting(input.id);
-				updateActiveWorkspaceIfRemoved(input.id);
-
-				if (workspaceInitManager.isInitializing(input.id)) {
-					console.log(
-						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
+				__testOnlyDeleteProcedureDeps.markWorkspaceAsDeleting(input.id);
+				try {
+					__testOnlyDeleteProcedureDeps.updateActiveWorkspaceIfRemoved(
+						input.id,
 					);
-					workspaceInitManager.cancel(input.id);
-					try {
-						await workspaceInitManager.waitForInit(input.id, 30000);
-					} catch (error) {
-						console.error(
-							`[workspace/delete] Failed to wait for init cancellation:`,
-							error,
+
+					if (
+						__testOnlyDeleteProcedureDeps.workspaceInitManager.isInitializing(
+							input.id,
+						)
+					) {
+						console.log(
+							`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
 						);
-						clearWorkspaceDeletingStatus(input.id);
-						return {
-							success: false,
-							error:
-								"Failed to cancel workspace initialization. Please try again.",
-						};
-					}
-				}
-
-				const project = getProject(workspace.projectId);
-
-				let worktree: SelectWorktree | undefined;
-
-				const terminalPromise = getWorkspaceRuntimeRegistry()
-					.getForWorkspaceId(input.id)
-					.terminal.killByWorkspaceId(input.id);
-
-				let teardownPromise:
-					| Promise<{ success: boolean; error?: string; output?: string }>
-					| undefined;
-				if (workspace.type === "worktree" && workspace.worktreeId) {
-					worktree = getWorktree(workspace.worktreeId);
-
-					if (worktree && project && existsSync(worktree.path)) {
-						teardownPromise = runTeardown({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-							workspaceName: workspace.name,
-							projectId: project.id,
-						});
-					} else {
-						console.warn(
-							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
-						);
-					}
-				} else {
-					console.log(
-						`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
-					);
-				}
-
-				const [terminalResult, teardownResult] = await Promise.all([
-					terminalPromise,
-					teardownPromise ?? Promise.resolve({ success: true as const }),
-				]);
-
-				if (teardownResult && !teardownResult.success) {
-					if (input.force) {
-						console.warn(
-							`[workspace/delete] Teardown failed but force=true, continuing deletion:`,
-							teardownResult.error,
-						);
-					} else {
-						console.error(
-							`[workspace/delete] Teardown failed:`,
-							teardownResult.error,
-						);
-						clearWorkspaceDeletingStatus(input.id);
-						return {
-							success: false,
-							error: `Teardown failed: ${teardownResult.error}`,
-							output: teardownResult.output,
-						};
-					}
-				}
-
-				if (worktree && project) {
-					await workspaceInitManager.acquireProjectLock(project.id);
-
-					try {
-						const removeResult = await removeWorktreeFromDisk({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-						});
-						if (!removeResult.success) {
-							clearWorkspaceDeletingStatus(input.id);
-							return removeResult;
-						}
-					} finally {
-						workspaceInitManager.releaseProjectLock(project.id);
-					}
-
-					if (input.deleteLocalBranch && workspace.branch) {
+						__testOnlyDeleteProcedureDeps.workspaceInitManager.cancel(input.id);
 						try {
-							await deleteLocalBranch({
-								mainRepoPath: project.mainRepoPath,
-								branch: workspace.branch,
-							});
+							await __testOnlyDeleteProcedureDeps.workspaceInitManager.waitForInit(
+								input.id,
+								30000,
+							);
 						} catch (error) {
 							console.error(
-								`[workspace/delete] Branch cleanup failed (non-blocking):`,
-								error instanceof Error ? error.message : String(error),
+								`[workspace/delete] Failed to wait for init cancellation:`,
+								error,
 							);
+							__testOnlyDeleteProcedureDeps.clearWorkspaceDeletingStatus(
+								input.id,
+							);
+							return {
+								success: false,
+								error:
+									"Failed to cancel workspace initialization. Please try again.",
+							};
 						}
 					}
+
+					const project = __testOnlyDeleteProcedureDeps.getProject(
+						workspace.projectId,
+					);
+
+					let worktree: SelectWorktree | undefined;
+					let worktreePath: string | undefined;
+
+					const terminalPromise = __testOnlyDeleteProcedureDeps
+						.getWorkspaceRuntimeRegistry()
+						.getForWorkspaceId(input.id)
+						.terminal.killByWorkspaceId(input.id);
+
+					let teardownPromise:
+						| Promise<{ success: boolean; error?: string; output?: string }>
+						| undefined;
+					if (workspace.type === "worktree" && workspace.worktreeId) {
+						worktree = __testOnlyDeleteProcedureDeps.getWorktree(
+							workspace.worktreeId,
+						);
+						const pathResolution = worktree
+							? await resolveTrackedWorktreePathForCleanup(worktree)
+							: null;
+						worktreePath = pathResolution?.path;
+
+						if (pathResolution?.warning) {
+							console.warn(`[workspace/delete] ${pathResolution.warning}`);
+						}
+
+						if (worktreePath && project && existsSync(worktreePath)) {
+							teardownPromise = __testOnlyDeleteProcedureDeps.runTeardown({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath,
+								workspaceName: workspace.name,
+								projectId: project.id,
+							});
+						} else {
+							console.warn(
+								`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktreePath ? existsSync(worktreePath) : "N/A"}`,
+							);
+						}
+					} else {
+						console.log(
+							`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
+						);
+					}
+
+					const [terminalResult, teardownResult] = await Promise.all([
+						terminalPromise,
+						teardownPromise ?? Promise.resolve({ success: true as const }),
+					]);
+
+					if (teardownResult && !teardownResult.success) {
+						if (input.force) {
+							console.warn(
+								`[workspace/delete] Teardown failed but force=true, continuing deletion:`,
+								teardownResult.error,
+							);
+						} else {
+							console.error(
+								`[workspace/delete] Teardown failed:`,
+								teardownResult.error,
+							);
+							__testOnlyDeleteProcedureDeps.clearWorkspaceDeletingStatus(
+								input.id,
+							);
+							return {
+								success: false,
+								error: `Teardown failed: ${teardownResult.error}`,
+								output: teardownResult.output,
+							};
+						}
+					}
+
+					if (worktree && project) {
+						await __testOnlyDeleteProcedureDeps.workspaceInitManager.acquireProjectLock(
+							project.id,
+						);
+
+						try {
+							const removeResult =
+								await __testOnlyDeleteProcedureDeps.removeWorktreeFromDisk({
+									mainRepoPath: project.mainRepoPath,
+									worktreePath: worktreePath ?? worktree.path,
+								});
+							if (!removeResult.success) {
+								__testOnlyDeleteProcedureDeps.clearWorkspaceDeletingStatus(
+									input.id,
+								);
+								return removeResult;
+							}
+						} finally {
+							__testOnlyDeleteProcedureDeps.workspaceInitManager.releaseProjectLock(
+								project.id,
+							);
+						}
+
+						if (input.deleteLocalBranch && workspace.branch) {
+							try {
+								await __testOnlyDeleteProcedureDeps.deleteLocalBranch({
+									mainRepoPath: project.mainRepoPath,
+									branch: workspace.branch,
+								});
+							} catch (error) {
+								console.error(
+									`[workspace/delete] Branch cleanup failed (non-blocking):`,
+									error instanceof Error ? error.message : String(error),
+								);
+							}
+						}
+					}
+
+					__testOnlyDeleteProcedureDeps.deleteWorkspace(input.id);
+
+					if (worktree) {
+						__testOnlyDeleteProcedureDeps.deleteWorktreeRecord(worktree.id);
+					}
+
+					if (project) {
+						__testOnlyDeleteProcedureDeps.hideProjectIfNoWorkspaces(
+							workspace.projectId,
+						);
+					}
+
+					const terminalWarning =
+						terminalResult.failed > 0
+							? `${terminalResult.failed} terminal process(es) may still be running`
+							: undefined;
+
+					__testOnlyDeleteProcedureDeps.track("workspace_deleted", {
+						workspace_id: input.id,
+					});
+
+					__testOnlyDeleteProcedureDeps.workspaceInitManager.clearJob(input.id);
+
+					return { success: true, terminalWarning };
+				} catch (error) {
+					__testOnlyDeleteProcedureDeps.clearWorkspaceDeletingStatus(input.id);
+					throw error;
 				}
-
-				deleteWorkspace(input.id);
-
-				if (worktree) {
-					deleteWorktreeRecord(worktree.id);
-				}
-
-				if (project) {
-					hideProjectIfNoWorkspaces(workspace.projectId);
-				}
-
-				const terminalWarning =
-					terminalResult.failed > 0
-						? `${terminalResult.failed} terminal process(es) may still be running`
-						: undefined;
-
-				track("workspace_deleted", { workspace_id: input.id });
-
-				workspaceInitManager.clearJob(input.id);
-
-				return { success: true, terminalWarning };
 			}),
 
 		close: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = __testOnlyDeleteProcedureDeps.getWorkspace(input.id);
 
 				if (!workspace) {
 					throw new Error("Workspace not found");
 				}
 
-				const terminalResult = await getWorkspaceRuntimeRegistry()
+				const terminalResult = await __testOnlyDeleteProcedureDeps
+					.getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)
 					.terminal.killByWorkspaceId(input.id);
 
-				deleteWorkspace(input.id);
-				hideProjectIfNoWorkspaces(workspace.projectId);
-				updateActiveWorkspaceIfRemoved(input.id);
+				__testOnlyDeleteProcedureDeps.deleteWorkspace(input.id);
+				__testOnlyDeleteProcedureDeps.hideProjectIfNoWorkspaces(
+					workspace.projectId,
+				);
+				__testOnlyDeleteProcedureDeps.updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
 						: undefined;
 
-				track("workspace_closed", { workspace_id: input.id });
+				__testOnlyDeleteProcedureDeps.track("workspace_closed", {
+					workspace_id: input.id,
+				});
 
 				return { success: true, terminalWarning };
 			}),
@@ -336,7 +493,9 @@ export const createDeleteProcedures = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				const worktree = getWorktree(input.worktreeId);
+				const worktree = __testOnlyDeleteProcedureDeps.getWorktree(
+					input.worktreeId,
+				);
 
 				if (!worktree) {
 					return {
@@ -348,7 +507,9 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				const project = getProject(worktree.projectId);
+				const project = __testOnlyDeleteProcedureDeps.getProject(
+					worktree.projectId,
+				);
 
 				if (!project) {
 					return {
@@ -372,9 +533,23 @@ export const createDeleteProcedures = () => {
 				}
 
 				try {
-					const exists = await worktreeExists(
+					const pathResolution =
+						await resolveTrackedWorktreePathForCleanup(worktree);
+					if (pathResolution.usesFallbackPath) {
+						return {
+							canDelete: true,
+							reason: null,
+							worktree,
+							warning: pathResolution.warning,
+							hasChanges: false,
+							hasUnpushedCommits: false,
+						};
+					}
+
+					const worktreePath = pathResolution.path;
+					const exists = await __testOnlyDeleteProcedureDeps.worktreeExists(
 						project.mainRepoPath,
-						worktree.path,
+						worktreePath,
 					);
 
 					if (!exists) {
@@ -390,8 +565,8 @@ export const createDeleteProcedures = () => {
 					}
 
 					const [hasChanges, unpushedCommits] = await Promise.all([
-						hasUncommittedChanges(worktree.path),
-						hasUnpushedCommits(worktree.path),
+						__testOnlyDeleteProcedureDeps.hasUncommittedChanges(worktreePath),
+						__testOnlyDeleteProcedureDeps.hasUnpushedCommits(worktreePath),
 					]);
 
 					return {
@@ -421,33 +596,43 @@ export const createDeleteProcedures = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const worktree = getWorktree(input.worktreeId);
+				const worktree = __testOnlyDeleteProcedureDeps.getWorktree(
+					input.worktreeId,
+				);
 
 				if (!worktree) {
 					return { success: false, error: "Worktree not found" };
 				}
 
-				const project = getProject(worktree.projectId);
+				const project = __testOnlyDeleteProcedureDeps.getProject(
+					worktree.projectId,
+				);
 
 				if (!project) {
 					return { success: false, error: "Project not found" };
 				}
 
-				await workspaceInitManager.acquireProjectLock(project.id);
+				await __testOnlyDeleteProcedureDeps.workspaceInitManager.acquireProjectLock(
+					project.id,
+				);
 
 				try {
-					const exists = await worktreeExists(
-						project.mainRepoPath,
-						worktree.path,
-					);
+					const pathResolution =
+						await resolveTrackedWorktreePathForCleanup(worktree);
+					const worktreePath = pathResolution.path;
 
-					if (exists) {
-						const teardownResult = await runTeardown({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-							workspaceName: worktree.branch,
-							projectId: project.id,
-						});
+					if (pathResolution.warning) {
+						console.warn(`[worktree/delete] ${pathResolution.warning}`);
+					}
+
+					if (existsSync(worktreePath)) {
+						const teardownResult =
+							await __testOnlyDeleteProcedureDeps.runTeardown({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath,
+								workspaceName: worktree.branch,
+								projectId: project.id,
+							});
 						if (!teardownResult.success) {
 							if (input.force) {
 								console.warn(
@@ -464,27 +649,28 @@ export const createDeleteProcedures = () => {
 						}
 					}
 
-					if (exists) {
-						const removeResult = await removeWorktreeFromDisk({
+					const removeResult =
+						await __testOnlyDeleteProcedureDeps.removeWorktreeFromDisk({
 							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
+							worktreePath,
 						});
-						if (!removeResult.success) {
-							return removeResult;
-						}
-					} else {
-						console.warn(
-							`Worktree ${worktree.path} not found in git, skipping removal`,
-						);
+					if (!removeResult.success) {
+						return removeResult;
 					}
 				} finally {
-					workspaceInitManager.releaseProjectLock(project.id);
+					__testOnlyDeleteProcedureDeps.workspaceInitManager.releaseProjectLock(
+						project.id,
+					);
 				}
 
-				deleteWorktreeRecord(input.worktreeId);
-				hideProjectIfNoWorkspaces(worktree.projectId);
+				__testOnlyDeleteProcedureDeps.deleteWorktreeRecord(input.worktreeId);
+				__testOnlyDeleteProcedureDeps.hideProjectIfNoWorkspaces(
+					worktree.projectId,
+				);
 
-				track("worktree_deleted", { worktree_id: input.worktreeId });
+				__testOnlyDeleteProcedureDeps.track("worktree_deleted", {
+					worktree_id: input.worktreeId,
+				});
 
 				return { success: true };
 			}),

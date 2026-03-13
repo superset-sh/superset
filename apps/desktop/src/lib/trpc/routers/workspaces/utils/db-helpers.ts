@@ -7,7 +7,7 @@ import {
 	workspaceSections,
 	workspaces,
 	worktrees,
-} from "@superset/local-db";
+} from "@superset/local-db/schema";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { localDb } from "main/lib/local-db";

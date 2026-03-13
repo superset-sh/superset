@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import { projects, workspaces } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -15,6 +15,10 @@ import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	resolveWorktreePathOrThrowWithMetadata,
+	resolveWorktreePathWithRepair,
+} from "../workspaces/utils/repair-worktree-path";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveTerminalThemeType } from "./theme-type";
@@ -109,9 +113,16 @@ export const createTerminalRouter = () => {
 					.from(workspaces)
 					.where(eq(workspaces.id, workspaceId))
 					.get();
+				const worktreeResolution =
+					workspace?.type === "worktree" && workspace.worktreeId
+						? await resolveWorktreePathOrThrowWithMetadata(workspace.worktreeId)
+						: null;
 				const workspacePath = workspace
-					? (getWorkspacePath(workspace) ?? undefined)
+					? workspace.type === "worktree" && workspace.worktreeId
+						? (worktreeResolution?.path ?? undefined)
+						: (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
+
 				if (workspace?.type === "worktree") {
 					assertWorkspaceUsable(workspaceId, workspacePath);
 				}
@@ -182,6 +193,7 @@ export const createTerminalRouter = () => {
 					return {
 						paneId,
 						isNew: result.isNew,
+						pathChanged: worktreeResolution?.pathChanged ?? false,
 						scrollback: result.scrollback,
 						wasRecovered: result.wasRecovered,
 						// Cold restore fields (for reboot recovery)
@@ -442,7 +454,7 @@ export const createTerminalRouter = () => {
 
 		getWorkspaceCwd: publicProcedure
 			.input(z.string())
-			.query(({ input: workspaceId }) => {
+			.query(async ({ input: workspaceId }) => {
 				const workspace = localDb
 					.select()
 					.from(workspaces)
@@ -456,12 +468,7 @@ export const createTerminalRouter = () => {
 					return null;
 				}
 
-				const worktree = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.id, workspace.worktreeId))
-					.get();
-				return worktree?.path ?? null;
+				return resolveWorktreePathWithRepair(workspace.worktreeId);
 			}),
 
 		stream: publicProcedure

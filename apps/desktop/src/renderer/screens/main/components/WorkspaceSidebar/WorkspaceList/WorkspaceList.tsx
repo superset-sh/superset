@@ -23,8 +23,12 @@ export function WorkspaceList({
 			{workspaces.map((workspace, wsIndex) => (
 				<WorkspaceListItem
 					key={workspace.id}
+					existsOnDisk={workspace.existsOnDisk}
 					id={workspace.id}
 					projectId={workspace.projectId}
+					repairCommand={workspace.repairCommand}
+					repairMessage={workspace.repairMessage}
+					repairState={workspace.repairState}
 					worktreePath={workspace.worktreePath}
 					name={workspace.name}
 					branch={workspace.branch}

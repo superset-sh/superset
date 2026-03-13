@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { workspaces, worktrees } from "@superset/local-db";
+import { workspaces, worktrees } from "@superset/local-db/schema";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -10,14 +11,19 @@ import {
 	getWorktree,
 	updateProjectDefaultBranch,
 } from "../utils/db-helpers";
+import { listImportableExternalWorktrees } from "../utils/external-worktrees";
 import {
 	fetchDefaultBranch,
 	getAheadBehindCount,
 	getDefaultBranch,
-	listExternalWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
+import {
+	listProjectWorktreesWithCurrentPaths,
+	resolveWorktreePathOrThrow,
+	resolveWorktreePathWithRepair,
+} from "../utils/repair-worktree-path";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -61,8 +67,20 @@ export const createGitStatusProcedures = () => {
 
 				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 
+				// Repair stale worktree path if directory was moved/unnested
+				const worktreePath =
+					(await resolveWorktreePathOrThrow(worktree.id)) ?? worktree.path;
+
+				if (!existsSync(worktreePath)) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Worktree path does not exist on disk",
+						cause: { reason: "path_missing", path: worktreePath },
+					});
+				}
+
 				const { ahead, behind } = await getAheadBehindCount({
-					repoPath: worktree.path,
+					repoPath: worktreePath,
 					defaultBranch,
 				});
 
@@ -117,7 +135,12 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				const worktreePath = await resolveWorktreePathWithRepair(worktree.id);
+				if (!worktreePath) {
+					return null;
+				}
+
+				const freshStatus = await fetchGitHubPRStatus(worktreePath);
 
 				if (freshStatus) {
 					localDb
@@ -132,7 +155,7 @@ export const createGitStatusProcedures = () => {
 
 		getWorktreeInfo: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
-			.query(({ input }) => {
+			.query(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					return null;
@@ -145,7 +168,9 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
+				const worktreePath =
+					(await resolveWorktreePathWithRepair(worktree.id)) ?? worktree.path;
+				const worktreeName = worktreePath.split("/").pop() ?? worktree.branch;
 				const branchName = worktree.branch;
 
 				return {
@@ -159,28 +184,26 @@ export const createGitStatusProcedures = () => {
 
 		getWorktreesByProject: publicProcedure
 			.input(z.object({ projectId: z.string() }))
-			.query(({ input }) => {
-				const projectWorktrees = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.projectId, input.projectId))
-					.all();
+			.query(async ({ input }) => {
+				const projectWorktrees = await listProjectWorktreesWithCurrentPaths(
+					input.projectId,
+				);
 
-				return projectWorktrees.map((wt) => {
+				return projectWorktrees.map(({ worktree, existsOnDisk }) => {
 					const workspace = localDb
 						.select()
 						.from(workspaces)
 						.where(
 							and(
-								eq(workspaces.worktreeId, wt.id),
+								eq(workspaces.worktreeId, worktree.id),
 								isNull(workspaces.deletingAt),
 							),
 						)
 						.get();
 					return {
-						...wt,
+						...worktree,
 						hasActiveWorkspace: workspace !== undefined,
-						existsOnDisk: existsSync(wt.path),
+						existsOnDisk,
 						workspace: workspace ?? null,
 					};
 				});
@@ -194,29 +217,10 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
-				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
-
-				const trackedWorktrees = localDb
-					.select({ path: worktrees.path })
-					.from(worktrees)
-					.where(eq(worktrees.projectId, input.projectId))
-					.all();
-				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
-
-				return allWorktrees
-					.filter((wt) => {
-						if (wt.path === project.mainRepoPath) return false;
-						if (wt.isBare) return false;
-						if (wt.isDetached) return false;
-						if (!wt.branch) return false;
-						if (trackedPaths.has(wt.path)) return false;
-						return true;
-					})
-					.map((wt) => ({
-						path: wt.path,
-						// biome-ignore lint/style/noNonNullAssertion: filtered above
-						branch: wt.branch!,
-					}));
+				return listImportableExternalWorktrees({
+					projectId: input.projectId,
+					mainRepoPath: project.mainRepoPath,
+				});
 			}),
 	});
 };

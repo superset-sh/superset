@@ -20,6 +20,7 @@ export type TerminalStreamEvent =
 export type CreateOrAttachResult = {
 	wasRecovered: boolean;
 	isNew: boolean;
+	pathChanged?: boolean;
 	scrollback: string;
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
