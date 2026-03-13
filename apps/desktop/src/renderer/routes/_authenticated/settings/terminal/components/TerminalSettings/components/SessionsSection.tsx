@@ -214,8 +214,15 @@ export function SessionsSection() {
 								<tbody className="divide-y divide-border/60">
 									{sessionsSorted.map((session) => (
 										<tr key={session.sessionId} className="hover:bg-muted/30">
-											<td className="px-2 py-2 font-mono">
-												{session.workspaceId}
+											<td className="px-2 py-2">
+												<div className="font-mono truncate max-w-[10rem]" title={session.workspaceId}>
+													{session.workspaceName ?? session.workspaceId}
+												</div>
+												{session.workspacePath && (
+													<div className="text-[10px] text-muted-foreground truncate max-w-[10rem]" title={session.workspacePath}>
+														{session.workspacePath}
+													</div>
+												)}
 											</td>
 											<td className="px-2 py-2 font-mono">
 												{session.sessionId}
