@@ -90,6 +90,13 @@ let testSupersetHomeDir: string | null = null;
 
 mock.module("mastracode", () => ({
 	createAuthStorage: createAuthStorageMock,
+	createMastraCode: mock(async () => ({
+		harness: {},
+		mcpManager: null,
+		hookManager: null,
+		authStorage: null,
+		storageWarning: undefined,
+	})),
 }));
 
 mock.module("../auth/anthropic", () => ({

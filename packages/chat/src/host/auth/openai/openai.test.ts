@@ -7,6 +7,13 @@ const fakeAuthStorage = {
 
 mock.module("mastracode", () => ({
 	createAuthStorage: mock(() => fakeAuthStorage),
+	createMastraCode: mock(async () => ({
+		harness: {},
+		mcpManager: null,
+		hookManager: null,
+		authStorage: null,
+		storageWarning: undefined,
+	})),
 }));
 
 const { getOpenAICredentialsFromAuthStorage } = await import("./openai");

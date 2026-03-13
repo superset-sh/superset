@@ -40,7 +40,7 @@ export function useV2SidebarData() {
 				id: project.id,
 				name: project.name,
 				slug: project.slug,
-				githubRepositoryId: project.githubRepositoryId ?? null,
+				githubRepositoryId: project.githubRepositoryId,
 				createdAt: project.createdAt,
 				updatedAt: project.updatedAt,
 				workspaces: (workspacesByProject.get(project.id) ?? []).sort((a, b) =>

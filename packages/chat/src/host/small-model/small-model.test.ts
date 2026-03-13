@@ -110,6 +110,13 @@ mock.module("@ai-sdk/openai", () => ({
 
 mock.module("mastracode", () => ({
 	createAuthStorage: mock(() => fakeAuthStorage),
+	createMastraCode: mock(async () => ({
+		harness: {},
+		mcpManager: null,
+		hookManager: null,
+		authStorage: null,
+		storageWarning: undefined,
+	})),
 }));
 
 mock.module("../auth/anthropic", () => ({
