@@ -10,6 +10,7 @@ export function mapEventType(
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
+		eventType === "AfterAgent" ||
 		eventType === "AfterTool" ||
 		eventType === "sessionStart" ||
 		eventType === "userPromptSubmitted" ||
@@ -27,7 +28,6 @@ export function mapEventType(
 	if (
 		eventType === "Stop" ||
 		eventType === "agent-turn-complete" ||
-		eventType === "AfterAgent" ||
 		eventType === "sessionEnd"
 	) {
 		return "Stop";

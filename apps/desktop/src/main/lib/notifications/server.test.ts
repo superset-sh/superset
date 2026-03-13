@@ -31,8 +31,12 @@ describe("notifications/server", () => {
 			expect(mapEventType("BeforeAgent")).toBe("Start");
 		});
 
-		it("should map Gemini 'AfterAgent' to 'Stop'", () => {
-			expect(mapEventType("AfterAgent")).toBe("Stop");
+		it("should map 'AfterAgent' to 'Start' to keep workspace busy during post-response hooks", () => {
+			// Gemini's hook script maps AfterAgent → "Stop" in the shell before sending
+			// to the server, so the server never receives raw "AfterAgent" from Gemini.
+			// If another framework sends "AfterAgent" before hooks complete, the workspace
+			// must stay busy until the final "Stop" event arrives.
+			expect(mapEventType("AfterAgent")).toBe("Start");
 		});
 
 		it("should map Gemini 'AfterTool' to 'Start'", () => {
