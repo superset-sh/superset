@@ -5,7 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoArrowUpRight, GoGitBranch, GoGlobe } from "react-icons/go";
-import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
+
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useImportAllWorktrees } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -22,6 +22,7 @@ const PAGE_SIZE = 50;
 
 type BranchFilterMode = "all" | "worktrees";
 
+/** Displays a searchable, infinitely-scrollable list of git branches for creating or opening workspaces. */
 export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
@@ -38,12 +39,10 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 	const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 
-	const debouncedQuery = useDebouncedValue(draft.branchesQuery, 300);
-
 	// Reset pagination when search query changes
-	const [prevQuery, setPrevQuery] = useState(debouncedQuery);
-	if (prevQuery !== debouncedQuery) {
-		setPrevQuery(debouncedQuery);
+	const [prevQuery, setPrevQuery] = useState(draft.branchesQuery);
+	if (prevQuery !== draft.branchesQuery) {
+		setPrevQuery(draft.branchesQuery);
 		setDisplayLimit(PAGE_SIZE);
 	}
 
@@ -54,8 +53,8 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	} = electronTrpc.projects.searchBranches.useQuery(
 		{
 			projectId: projectId ?? "",
-			search: debouncedQuery,
-			limit: 200,
+			search: "",
+			limit: 5000,
 			offset: 0,
 		},
 		{
@@ -86,22 +85,20 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		}
 	}, [remoteBranchData, utils]);
 
-	// Combine: prefer searchBranches, fall back to getBranchesLocal with client-side search
+	// Combine: prefer searchBranches, fall back to getBranchesLocal; always filter client-side
 	const allBranchData = useMemo(() => {
-		if (searchData && !isSearchError) return searchData;
-		if (!localBranchData) return undefined;
-		const query = debouncedQuery.trim().toLowerCase();
+		const source = searchData && !isSearchError ? searchData : localBranchData;
+		if (!source) return undefined;
+		const query = draft.branchesQuery.trim().toLowerCase();
 		const filtered = query
-			? localBranchData.branches.filter((b) =>
-					b.name.toLowerCase().includes(query),
-				)
-			: localBranchData.branches;
+			? source.branches.filter((b) => b.name.toLowerCase().includes(query))
+			: source.branches;
 		return {
 			branches: filtered,
-			defaultBranch: localBranchData.defaultBranch,
+			defaultBranch: source.defaultBranch,
 			totalCount: filtered.length,
 		};
-	}, [searchData, isSearchError, localBranchData, debouncedQuery]);
+	}, [searchData, isSearchError, localBranchData, draft.branchesQuery]);
 
 	const effectiveData = useMemo(
 		() =>
@@ -185,7 +182,9 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	// For "worktrees" mode, keep client-side (small dataset).
 	// Uses allBranchData (unpaginated) so metadata is available for all worktree branches.
 	const worktreeBranchRows = useMemo(() => {
+		const query = draft.branchesQuery.trim().toLowerCase();
 		return externalWorktrees
+			.filter((wt) => !query || wt.branch.toLowerCase().includes(query))
 			.map((worktree) => {
 				const branch = allBranchData?.branches.find(
 					(b) => b.name === worktree.branch,
@@ -218,6 +217,7 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		workspaceByBranch,
 		trackedWorktreeByBranch,
 		externalWorktreeByBranch,
+		draft.branchesQuery,
 	]);
 
 	const visibleBranchRows =

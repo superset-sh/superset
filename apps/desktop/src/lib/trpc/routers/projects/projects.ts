@@ -96,6 +96,7 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	return { defaultBranch };
 }
 
+/** Insert or update a project record in the local database, returning the persisted row. */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
 
@@ -213,6 +214,7 @@ const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
 const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
 
+/** Extract the repository name from a git URL (HTTPS, SSH, or git:// protocol). */
 function extractRepoName(urlInput: string): string | null {
 	let normalized = urlInput.trim().replace(/\/+$/, "");
 
@@ -256,10 +258,7 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
-function sanitizeGlobPattern(input: string): string {
-	return input.replace(/[*?[\]\\]/g, "\\$&");
-}
-
+/** Create the tRPC router for project CRUD, branch listing, and git operations. */
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
@@ -690,15 +689,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 					const search = input.search.trim();
-					const sanitized = search ? sanitizeGlobPattern(search) : "";
+					const searchLower = search.toLowerCase();
 
-					// Build ref patterns for for-each-ref
-					const localPattern = sanitized
-						? `refs/heads/*${sanitized}*`
-						: "refs/heads/";
-					const remotePattern = sanitized
-						? `refs/remotes/origin/*${sanitized}*`
-						: "refs/remotes/origin/";
+					// Always list all refs — git glob `*` doesn't cross `/` and is
+					// case-sensitive, so we filter in JS for reliable substring search.
+					const localPattern = "refs/heads/";
+					const remotePattern = "refs/remotes/origin/";
 
 					const branchMap = new Map<
 						string,
@@ -779,6 +775,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					// Sort: default branch first, then local before remote, then by date
 					const allBranches = Array.from(branchMap.entries())
+						.filter(
+							([name]) =>
+								!searchLower || name.toLowerCase().includes(searchLower),
+						)
 						.map(([name, data]) => ({ name, ...data }))
 						.sort((a, b) => {
 							if (a.name === defaultBranch) return -1;
