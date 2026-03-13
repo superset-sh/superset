@@ -184,6 +184,12 @@ function createBaseProps(
 		pendingQuestion: null,
 		isQuestionSubmitting: false,
 		onQuestionRespond: async () => {},
+		editingUserMessageId: null,
+		isEditSubmitting: false,
+		onStartEditUserMessage: () => {},
+		onCancelEditUserMessage: () => {},
+		onSubmitEditedUserMessage: async () => {},
+		onRestartUserMessage: async () => {},
 		...overrides,
 	};
 }
@@ -273,7 +279,7 @@ describe("ChatMastraMessageList", () => {
 		expect(html).not.toContain("Response stopped");
 	});
 
-	it("does not render standalone pending-plan or subagent blocks at list level", () => {
+	it("renders subagent activity while keeping anchored pending plan inline", () => {
 		const html = renderListHtml({
 			messages: [
 				{
@@ -306,7 +312,7 @@ describe("ChatMastraMessageList", () => {
 			} as never,
 		});
 
-		expect(html).not.toContain("SUBAGENT_EXECUTION_MESSAGE");
+		expect(html).toContain("SUBAGENT_EXECUTION_MESSAGE");
 		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
 	});
 

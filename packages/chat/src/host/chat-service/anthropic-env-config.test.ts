@@ -163,7 +163,7 @@ describe("Anthropic env config persistence", () => {
 });
 
 describe("Anthropic runtime env helpers", () => {
-	it("maps auth token to API key when explicit API key is absent", () => {
+	it("keeps explicit auth token values without synthesizing an API key", () => {
 		expect(
 			buildAnthropicRuntimeEnv({
 				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
@@ -171,37 +171,29 @@ describe("Anthropic runtime env helpers", () => {
 			}),
 		).toEqual({
 			ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/v1",
-			ANTHROPIC_API_KEY: "gw-token",
 			ANTHROPIC_AUTH_TOKEN: "gw-token",
 		});
 	});
 
-	it("prefers explicit API key over token and fallback", () => {
+	it("preserves explicit auth variables as provided", () => {
 		expect(
-			buildAnthropicRuntimeEnv(
-				{
-					ANTHROPIC_API_KEY: "env-key",
-					ANTHROPIC_AUTH_TOKEN: "gw-token",
-				},
-				{ fallbackApiKey: "fallback-key" },
-			),
+			buildAnthropicRuntimeEnv({
+				ANTHROPIC_API_KEY: "env-key",
+				ANTHROPIC_AUTH_TOKEN: "gw-token",
+			}),
 		).toEqual({
 			ANTHROPIC_API_KEY: "env-key",
 			ANTHROPIC_AUTH_TOKEN: "gw-token",
 		});
 	});
 
-	it("uses fallback API key when env block has no key values", () => {
+	it("normalizes a gateway base URL without adding auth vars", () => {
 		expect(
-			buildAnthropicRuntimeEnv(
-				{
-					ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
-				},
-				{ fallbackApiKey: "fallback-key" },
-			),
+			buildAnthropicRuntimeEnv({
+				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
+			}),
 		).toEqual({
 			ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/v1",
-			ANTHROPIC_API_KEY: "fallback-key",
 		});
 	});
 
@@ -213,7 +205,6 @@ describe("Anthropic runtime env helpers", () => {
 			}),
 		).toEqual({
 			ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/v1",
-			ANTHROPIC_API_KEY: "gw-token",
 			ANTHROPIC_AUTH_TOKEN: "gw-token",
 		});
 	});

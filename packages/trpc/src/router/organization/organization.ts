@@ -5,10 +5,11 @@ import {
 	sessions as authSessions,
 	invitations,
 } from "@superset/db/schema/auth";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
@@ -105,6 +106,20 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const domain = ctx.session.user.email.split("@")[1]?.toLowerCase();
+			if (domain) {
+				const domainOrg = await db.query.organizations.findFirst({
+					where: sql`${organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
+				});
+				if (domainOrg) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Your account is managed by your organization. Contact your admin to create a new organization.",
+					});
+				}
+			}
+
 			const [organization] = await db
 				.insert(organizations)
 				.values({
@@ -120,6 +135,8 @@ export const organizationRouter = {
 					userId: ctx.session.user.id,
 					role: "owner",
 				});
+
+				await seedDefaultStatuses(organization.id);
 			}
 
 			return organization;

@@ -101,7 +101,7 @@ export type DiffLayout = "inline" | "side-by-side";
  * File viewer pane-specific properties
  */
 export interface FileViewerState {
-	/** Worktree-relative file path */
+	/** Canonical absolute file path (or remote URL for attachments) */
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
 	viewMode: FileViewerMode;
@@ -113,12 +113,14 @@ export interface FileViewerState {
 	diffCategory?: ChangeCategory;
 	/** Commit hash for committed category diffs */
 	commitHash?: string;
-	/** Original path for renamed files */
+	/** Canonical absolute original path for renamed files */
 	oldPath?: string;
 	/** Initial line to scroll to (raw mode only, transient - applied once) */
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
+	/** Optional user-facing name override for remote URLs/attachments */
+	displayName?: string;
 }
 
 /**
@@ -129,6 +131,7 @@ export interface Pane {
 	tabId: string;
 	type: PaneType;
 	name: string;
+	userTitle?: string;
 	isNew?: boolean;
 	status?: PaneStatus;
 	initialCwd?: string;
@@ -143,6 +146,7 @@ export interface Pane {
 
 export interface ChatMastraLaunchConfig {
 	initialPrompt?: string;
+	draftInput?: string;
 	metadata?: {
 		model?: string;
 	};

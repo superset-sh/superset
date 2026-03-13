@@ -25,6 +25,10 @@
 			"type": "http",
 			"url": "https://mcp.sentry.dev/mcp"
 		},
+		"posthog": {
+			"type": "http",
+			"url": "https://mcp.posthog.com/mcp"
+		},
 		"desktop-automation": {
 			"command": "bun",
 			"args": ["run", "packages/desktop-mcp/src/bin.ts"]

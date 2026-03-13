@@ -3,6 +3,8 @@ import type {
 	SelectAgentCommand,
 	SelectChatSession,
 	SelectDevicePresence,
+	SelectGithubPullRequest,
+	SelectGithubRepository,
 	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
@@ -13,12 +15,20 @@ import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
+	SelectV2Device,
+	SelectV2DevicePresence,
+	SelectV2Project,
+	SelectV2UsersDevices,
+	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
-import { createCollection } from "@tanstack/react-db";
+import {
+	createCollection,
+	localOnlyCollectionOptions,
+} from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
@@ -27,11 +37,7 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 
-let electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_PROXY_URL}/v1/shape`;
-
-export function setElectricUrl(url: string) {
-	electricUrl = `${url}/v1/shape`;
-}
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -52,6 +58,11 @@ interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
+	v2Devices: Collection<SelectV2Device>;
+	v2DevicePresence: Collection<SelectV2DevicePresence>;
+	v2Projects: Collection<SelectV2Project>;
+	v2UsersDevices: Collection<SelectV2UsersDevices>;
+	v2Workspaces: Collection<SelectV2Workspace>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
@@ -63,10 +74,32 @@ interface OrgCollections {
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
 	sessionHosts: Collection<SelectSessionHost>;
+	githubRepositories: Collection<SelectGithubRepository>;
+	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
 
 // Per-org collections cache
 const collectionsCache = new Map<string, OrgCollections>();
+
+function getCollectionsCacheKey(
+	organizationId: string,
+	enableV2Cloud: boolean,
+): string {
+	return `${organizationId}:${enableV2Cloud ? "v2" : "legacy"}`;
+}
+
+function createDisabledCollection<
+	T extends object,
+	TKey extends string | number,
+>(id: string, getKey: (item: T) => TKey): Collection<T> {
+	return createCollection(
+		localOnlyCollectionOptions({
+			id,
+			getKey,
+			initialData: [],
+		}),
+	) as unknown as Collection<T>;
+}
 
 // Singleton API client with dynamic auth headers
 const apiClient = createTRPCProxyClient<AppRouter>({
@@ -89,27 +122,23 @@ const electricHeaders = {
 	},
 };
 
-let organizationsCollection: Collection<SelectOrganization> | null = null;
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
-function getOrganizationsCollection(): Collection<SelectOrganization> {
-	if (!organizationsCollection) {
-		organizationsCollection = createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: electricHeaders,
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-	}
-	return organizationsCollection;
-}
-
-function createOrgCollections(organizationId: string): OrgCollections {
+function createOrgCollections(
+	organizationId: string,
+	enableV2Cloud: boolean,
+): OrgCollections {
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
@@ -175,6 +204,111 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.id,
 		}),
 	);
+
+	const v2Projects = enableV2Cloud
+		? createCollection(
+				electricCollectionOptions<SelectV2Project>({
+					id: `v2_projects-${organizationId}`,
+					shapeOptions: {
+						url: electricUrl,
+						params: {
+							table: "v2_projects",
+							organizationId,
+						},
+						headers: electricHeaders,
+						columnMapper,
+					},
+					getKey: (item) => item.id,
+				}),
+			)
+		: createDisabledCollection<SelectV2Project, string>(
+				`v2_projects-disabled-${organizationId}`,
+				(item) => item.id,
+			);
+
+	const v2Devices = enableV2Cloud
+		? createCollection(
+				electricCollectionOptions<SelectV2Device>({
+					id: `v2_devices-${organizationId}`,
+					shapeOptions: {
+						url: electricUrl,
+						params: {
+							table: "v2_devices",
+							organizationId,
+						},
+						headers: electricHeaders,
+						columnMapper,
+					},
+					getKey: (item) => item.id,
+				}),
+			)
+		: createDisabledCollection<SelectV2Device, string>(
+				`v2_devices-disabled-${organizationId}`,
+				(item) => item.id,
+			);
+
+	const v2DevicePresence = enableV2Cloud
+		? createCollection(
+				electricCollectionOptions<SelectV2DevicePresence>({
+					id: `v2_device_presence-${organizationId}`,
+					shapeOptions: {
+						url: electricUrl,
+						params: {
+							table: "v2_device_presence",
+							organizationId,
+						},
+						headers: electricHeaders,
+						columnMapper,
+					},
+					getKey: (item) => item.deviceId,
+				}),
+			)
+		: createDisabledCollection<SelectV2DevicePresence, string>(
+				`v2_device_presence-disabled-${organizationId}`,
+				(item) => item.deviceId,
+			);
+
+	const v2UsersDevices = enableV2Cloud
+		? createCollection(
+				electricCollectionOptions<SelectV2UsersDevices>({
+					id: `v2_users_devices-${organizationId}`,
+					shapeOptions: {
+						url: electricUrl,
+						params: {
+							table: "v2_users_devices",
+							organizationId,
+						},
+						headers: electricHeaders,
+						columnMapper,
+					},
+					getKey: (item) => item.id,
+				}),
+			)
+		: createDisabledCollection<SelectV2UsersDevices, string>(
+				`v2_users_devices-disabled-${organizationId}`,
+				(item) => item.id,
+			);
+
+	const v2Workspaces = enableV2Cloud
+		? createCollection(
+				electricCollectionOptions<SelectV2Workspace>({
+					id: `v2_workspaces-${organizationId}`,
+					shapeOptions: {
+						url: electricUrl,
+						params: {
+							table: "v2_workspaces",
+							organizationId,
+						},
+						headers: electricHeaders,
+						columnMapper,
+					},
+					getKey: (item) => item.id,
+				}),
+			)
+		: createDisabledCollection<SelectV2Workspace, string>(
+				`v2_workspaces-disabled-${organizationId}`,
+				(item) => item.id,
+			);
 
 	const workspaces = createCollection(
 		electricCollectionOptions<SelectWorkspace>({
@@ -360,10 +494,47 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const githubRepositories = createCollection(
+		electricCollectionOptions<SelectGithubRepository>({
+			id: `github_repositories-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_repositories",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const githubPullRequests = createCollection(
+		electricCollectionOptions<SelectGithubPullRequest>({
+			id: `github_pull_requests-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_pull_requests",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
 		projects,
+		v2Devices,
+		v2DevicePresence,
+		v2Projects,
+		v2UsersDevices,
+		v2Workspaces,
 		workspaces,
 		members,
 		users,
@@ -375,6 +546,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		apiKeys,
 		chatSessions,
 		sessionHosts,
+		githubRepositories,
+		githubPullRequests,
 	};
 }
 
@@ -387,14 +560,21 @@ export async function preloadCollections(
 	organizationId: string,
 	options?: {
 		includeChatCollections?: boolean;
+		enableV2Cloud?: boolean;
 	},
 ): Promise<void> {
-	const { organizations, chatSessions, sessionHosts, ...orgCollections } =
-		getCollections(organizationId);
+	const enableV2Cloud = options?.enableV2Cloud ?? false;
+	const { chatSessions, sessionHosts, ...collections } = getCollections(
+		organizationId,
+		enableV2Cloud,
+	);
 	const includeChatCollections = options?.includeChatCollections ?? true;
+	const orgCollections = Object.entries(collections)
+		.filter(([name]) => name !== "organizations")
+		.map(([, collection]) => collection as Collection<object>);
 	const collectionsToPreload = includeChatCollections
-		? [...Object.values(orgCollections), chatSessions, sessionHosts]
-		: Object.values(orgCollections);
+		? [...orgCollections, chatSessions, sessionHosts]
+		: orgCollections;
 
 	await Promise.allSettled(
 		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
@@ -406,19 +586,24 @@ export async function preloadCollections(
  * Collections are cached per org for instant switching.
  * Auth token is read dynamically via getAuthToken() - no need to pass it.
  */
-export function getCollections(organizationId: string) {
+export function getCollections(organizationId: string, enableV2Cloud = false) {
+	const cacheKey = getCollectionsCacheKey(organizationId, enableV2Cloud);
+
 	// Get or create org-specific collections
-	if (!collectionsCache.has(organizationId)) {
-		collectionsCache.set(organizationId, createOrgCollections(organizationId));
+	if (!collectionsCache.has(cacheKey)) {
+		collectionsCache.set(
+			cacheKey,
+			createOrgCollections(organizationId, enableV2Cloud),
+		);
 	}
 
-	const orgCollections = collectionsCache.get(organizationId);
+	const orgCollections = collectionsCache.get(cacheKey);
 	if (!orgCollections) {
 		throw new Error(`Collections not found for org: ${organizationId}`);
 	}
 
 	return {
 		...orgCollections,
-		organizations: getOrganizationsCollection(),
+		organizations: organizationsCollection,
 	};
 }

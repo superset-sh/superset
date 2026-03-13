@@ -82,7 +82,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	tabIdRef.current = tabId;
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
-	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 
@@ -251,7 +250,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			setConnectionError,
 			updateModesFromData,
 			updateCwdFromData,
-			onShellExit: () => removePane(paneId),
 		});
 
 	// Populate handler refs for flushPendingEvents to use
@@ -424,7 +422,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div className="h-full w-full p-2">
+				<div ref={terminalRef} className="h-full w-full" />
+			</div>
 		</div>
 	);
 };

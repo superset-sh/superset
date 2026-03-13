@@ -250,8 +250,15 @@
     {
       "idx": 35,
       "version": "6",
-      "when": 1772612383593,
-      "tag": "0035_famous_vargas",
+      "when": 1772841491441,
+      "tag": "0035_add_workspace_sections",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1773423254238,
+      "tag": "0036_add_agent_presets_settings",
       "breakpoints": true
     }
   ]

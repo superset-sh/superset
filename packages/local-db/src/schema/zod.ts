@@ -40,10 +40,14 @@ export const gitHubStatusSchema = z.object({
 			reviewDecision: z.enum(["approved", "changes_requested", "pending"]),
 			checksStatus: z.enum(["success", "failure", "pending", "none"]),
 			checks: z.array(checkItemSchema),
+			requestedReviewers: z.array(z.string()).optional(),
 		})
 		.nullable(),
 	repoUrl: z.string(),
+	upstreamUrl: z.string().optional(),
+	isFork: z.boolean().optional(),
 	branchExistsOnRemote: z.boolean(),
+	previewUrl: z.string().optional(),
 	lastRefreshed: z.number(),
 });
 
@@ -66,7 +70,11 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 		return mode;
 	}
 
-	return "split-pane";
+	if (mode === "parallel" || mode === "sequential") {
+		return "split-pane";
+	}
+
+	return "new-tab";
 }
 
 /**
@@ -151,6 +159,7 @@ export const EXTERNAL_APPS = [
 	"appcode",
 	"fleet",
 	"rustrover",
+	"android-studio",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];

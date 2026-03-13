@@ -1,6 +1,8 @@
 import type { GitHubStatus } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
+const GITHUB_STATUS_STALE_TIME_MS = 5 * 60 * 1000;
+
 interface UsePRStatusOptions {
 	workspaceId: string | undefined;
 	enabled?: boolean;
@@ -11,6 +13,7 @@ interface UsePRStatusResult {
 	pr: GitHubStatus["pr"] | null;
 	repoUrl: string | null;
 	branchExistsOnRemote: boolean;
+	previewUrl: string | undefined;
 	isLoading: boolean;
 	refetch: () => void;
 }
@@ -33,6 +36,8 @@ export function usePRStatus({
 		{
 			enabled: enabled && !!workspaceId,
 			refetchInterval,
+			staleTime: GITHUB_STATUS_STALE_TIME_MS,
+			refetchOnWindowFocus: false,
 		},
 	);
 
@@ -40,6 +45,7 @@ export function usePRStatus({
 		pr: githubStatus?.pr ?? null,
 		repoUrl: githubStatus?.repoUrl ?? null,
 		branchExistsOnRemote: githubStatus?.branchExistsOnRemote ?? false,
+		previewUrl: githubStatus?.previewUrl,
 		isLoading,
 		refetch,
 	};

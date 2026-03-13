@@ -12,6 +12,7 @@ interface MenuItemProps {
 interface AssigneeMenuItemsProps {
 	users: SelectUser[];
 	currentAssigneeId: string | null;
+	hasExternalAssignee?: boolean;
 	onSelect: (userId: string | null) => void;
 	MenuItem: React.ComponentType<MenuItemProps>;
 }
@@ -19,6 +20,7 @@ interface AssigneeMenuItemsProps {
 export function AssigneeMenuItems({
 	users,
 	currentAssigneeId,
+	hasExternalAssignee,
 	onSelect,
 	MenuItem,
 }: AssigneeMenuItemsProps) {
@@ -30,7 +32,7 @@ export function AssigneeMenuItems({
 			>
 				<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 				<span className="text-sm">No assignee</span>
-				{!currentAssigneeId && (
+				{!currentAssigneeId && !hasExternalAssignee && (
 					<span className="ml-auto text-xs text-muted-foreground">✓</span>
 				)}
 			</MenuItem>

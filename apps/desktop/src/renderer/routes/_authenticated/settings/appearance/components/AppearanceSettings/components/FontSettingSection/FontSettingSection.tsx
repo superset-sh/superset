@@ -2,15 +2,18 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useCallback, useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
+import {
+	DEFAULT_CODE_EDITOR_FONT_FAMILY,
+	DEFAULT_CODE_EDITOR_FONT_SIZE,
+} from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
 import { FontPreview } from "../FontPreview";
 
-const DEFAULT_EDITOR_FONT_FAMILY = MONACO_EDITOR_OPTIONS.fontFamily;
-const DEFAULT_EDITOR_FONT_SIZE = MONACO_EDITOR_OPTIONS.fontSize;
+const DEFAULT_EDITOR_FONT_FAMILY = DEFAULT_CODE_EDITOR_FONT_FAMILY;
+const DEFAULT_EDITOR_FONT_SIZE = DEFAULT_CODE_EDITOR_FONT_SIZE;
 
 const VARIANT_CONFIG = {
 	editor: {

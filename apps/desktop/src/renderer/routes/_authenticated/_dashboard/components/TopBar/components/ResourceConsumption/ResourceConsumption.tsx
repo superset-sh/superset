@@ -1,5 +1,5 @@
-import { cn } from "@superset/ui/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
@@ -10,11 +10,7 @@ import { MetricBadge } from "./components/MetricBadge";
 import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
 import type { UsageValues } from "./types";
 import { formatCpu, formatMemory, formatPercent } from "./utils/formatters";
-import {
-	getTrackedHostMemorySeverity,
-	getUsageClasses,
-	getUsageSeverity,
-} from "./utils/resourceSeverity";
+import { normalizeResourceMetricsSnapshot } from "./utils/normalizeSnapshot";
 
 function getTotalUsage(
 	cpu: number | undefined,
@@ -64,6 +60,7 @@ export function ResourceConsumption() {
 	);
 
 	if (!enabled) return null;
+	const normalizedSnapshot = normalizeResourceMetricsSnapshot(snapshot);
 
 	const getPaneName = (paneId: string): string => {
 		const pane = panes[paneId];
@@ -109,54 +106,47 @@ export function ResourceConsumption() {
 		});
 	};
 
-	const totalUsage = getTotalUsage(snapshot?.totalCpu, snapshot?.totalMemory);
-	const totalSeverity = getUsageSeverity(totalUsage, totalUsage, {
-		includeShare: false,
-	});
-	const totalUsageClasses = getUsageClasses(totalSeverity);
-
-	const trackedMemorySharePercent = snapshot
-		? getTrackedMemorySharePercent(
-				snapshot.totalMemory,
-				snapshot.host?.totalMemory ?? 0,
-			)
-		: 0;
-	const trackedHostMemorySeverity = getTrackedHostMemorySeverity(
-		trackedMemorySharePercent,
+	const totalUsage = getTotalUsage(
+		normalizedSnapshot?.totalCpu,
+		normalizedSnapshot?.totalMemory,
 	);
 
+	const trackedMemorySharePercent = normalizedSnapshot
+		? getTrackedMemorySharePercent(
+				normalizedSnapshot.totalMemory,
+				normalizedSnapshot.host.totalMemory,
+			)
+		: 0;
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					className={cn(
-						"no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring",
-						totalSeverity === "elevated" &&
-							"border-amber-500/25 bg-amber-500/8 hover:bg-amber-500/12",
-						totalSeverity === "high" &&
-							"border-destructive/25 bg-destructive/8 hover:bg-destructive/12",
-					)}
-					aria-label="Resource consumption"
-				>
-					<HiOutlineCpuChip
-						className={cn(
-							"h-3.5 w-3.5 shrink-0",
-							totalUsageClasses.metricClass,
-						)}
-					/>
-					{snapshot && (
-						<span
-							className={cn(
-								"text-xs font-medium tabular-nums",
-								totalUsageClasses.metricClass,
-							)}
+			<Tooltip delayDuration={150}>
+				<TooltipTrigger asChild>
+					<PopoverTrigger asChild>
+						<button
+							type="button"
+							className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+							aria-label="Resource consumption"
 						>
-							{formatMemory(snapshot.totalMemory)}
-						</span>
-					)}
-				</button>
-			</PopoverTrigger>
+							<HiOutlineCpuChip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+							{normalizedSnapshot && (
+								<span className="text-xs font-medium tabular-nums text-muted-foreground hidden md:inline">
+									{formatMemory(normalizedSnapshot.totalMemory)}
+								</span>
+							)}
+						</button>
+					</PopoverTrigger>
+				</TooltipTrigger>
+				{normalizedSnapshot && (
+					<TooltipContent
+						side="bottom"
+						sideOffset={6}
+						showArrow={false}
+						className="md:hidden"
+					>
+						{formatMemory(normalizedSnapshot.totalMemory)}
+					</TooltipContent>
+				)}
+			</Tooltip>
 
 			<PopoverContent align="start" className="w-[26rem] p-0">
 				<div className="p-3 border-b border-border">
@@ -176,24 +166,21 @@ export function ResourceConsumption() {
 						</button>
 					</div>
 
-					{snapshot && (
+					{normalizedSnapshot && (
 						<div className="mt-2 grid grid-cols-3 gap-2">
 							<MetricBadge
 								label="CPU"
-								value={formatCpu(snapshot.totalCpu)}
-								severity={totalSeverity}
+								value={formatCpu(normalizedSnapshot.totalCpu)}
 								tooltip="Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 							/>
 							<MetricBadge
 								label="Memory"
-								value={formatMemory(snapshot.totalMemory)}
-								severity={totalSeverity}
+								value={formatMemory(normalizedSnapshot.totalMemory)}
 								tooltip="Resident memory used by Superset and monitored terminal process trees. If this keeps climbing without dropping, a workspace process may be retaining memory. High values increase swap risk and can cause stutter."
 							/>
 							<MetricBadge
 								label="RAM Share"
 								value={formatPercent(trackedMemorySharePercent)}
-								severity={trackedHostMemorySeverity}
 								tooltip="Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 							/>
 						</div>
@@ -201,13 +188,16 @@ export function ResourceConsumption() {
 				</div>
 
 				<div className="max-h-[50vh] overflow-y-auto">
-					{snapshot && (
-						<AppResourceSection app={snapshot.app} totalUsage={totalUsage} />
+					{normalizedSnapshot && (
+						<AppResourceSection
+							app={normalizedSnapshot.app}
+							totalUsage={totalUsage}
+						/>
 					)}
 
-					{snapshot && (
+					{normalizedSnapshot && (
 						<WorkspaceResourceSection
-							workspaces={snapshot.workspaces}
+							workspaces={normalizedSnapshot.workspaces}
 							collapsedProjects={collapsedProjects}
 							toggleProject={toggleProject}
 							collapsedWorkspaces={collapsedWorkspaces}
@@ -218,13 +208,13 @@ export function ResourceConsumption() {
 						/>
 					)}
 
-					{snapshot && snapshot.workspaces.length === 0 && (
+					{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							No active terminal sessions
 						</div>
 					)}
 
-					{!snapshot && (
+					{!normalizedSnapshot && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							Loading...
 						</div>

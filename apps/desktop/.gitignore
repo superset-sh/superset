@@ -27,3 +27,6 @@ electron.vite.config.*.mjs
 
 # TanStack Router generated file
 routeTree.gen.ts
+
+# Generated file icons (material-icon-theme)
+src/resources/public/file-icons/

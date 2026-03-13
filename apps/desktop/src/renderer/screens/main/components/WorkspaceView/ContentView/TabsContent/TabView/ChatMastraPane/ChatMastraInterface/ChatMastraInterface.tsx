@@ -5,8 +5,10 @@ import {
 	useMastraChatDisplay,
 } from "@superset/chat-mastra/client";
 import {
+	PromptInputAttachment,
 	type PromptInputMessage,
 	PromptInputProvider,
+	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
@@ -23,20 +25,102 @@ import type {
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
+import type { UserMessageRestartRequest } from "./components/ChatMastraMessageList/ChatMastraMessageList.types";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
+import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import type { ChatMastraInterfaceProps } from "./types";
-import {
-	hasMatchingUserMessage,
-	type MastraHistoryMessage,
-	toOptimisticUserMessage,
-} from "./utils/optimisticUserMessage";
+import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
-import { toMastraImages } from "./utils/toMastraImages";
+import {
+	getVisibleMessagesWithPendingUserTurn,
+	type PendingUserTurn,
+	shouldClearPendingUserTurn,
+} from "./utils/transientUserTurn";
+import { uploadFiles } from "./utils/uploadFiles";
+
+type HarnessFilePayload = {
+	data: string;
+	mediaType: string;
+	filename?: string;
+	uploaded?: boolean;
+};
+
+function MastraUploadFooter({
+	sessionId,
+	onError,
+	onSend,
+	...footerProps
+}: {
+	sessionId: string | null;
+	onError: (message: string) => void;
+	onSend: (payload: {
+		content: string;
+		files?: HarnessFilePayload[];
+	}) => void | Promise<void>;
+} & Omit<React.ComponentProps<typeof ChatInputFooter>, "onSend">) {
+	const attachments = useProviderAttachments();
+	const { entries, getUploadedFiles, isUploading } = useOptimisticUpload({
+		sessionId,
+		attachmentFiles: attachments.files,
+		removeAttachment: attachments.remove,
+		onError,
+	});
+
+	const handleSend = useCallback(
+		(message: PromptInputMessage) => {
+			const files = sessionId
+				? (() => {
+						const { files: uploadedFiles, ready } = getUploadedFiles();
+						if (!ready) return null;
+						return uploadedFiles.map((file) => ({
+							data: file.url,
+							mediaType: file.mediaType,
+							filename: file.filename,
+							uploaded: true,
+						}));
+					})()
+				: (message.files ?? []).map((file) => ({
+						data: file.url,
+						mediaType: file.mediaType,
+						filename: file.filename,
+						uploaded: false,
+					}));
+			if (files === null) return;
+
+			return onSend({
+				content: message.text,
+				files: files.length > 0 ? files : undefined,
+			});
+		},
+		[getUploadedFiles, onSend, sessionId],
+	);
+
+	const renderAttachment = useCallback(
+		(file: { id: string; type: "file"; url: string; mediaType: string }) => {
+			if (!sessionId) {
+				return <PromptInputAttachment data={file} />;
+			}
+			const entry = entries.get(file.id);
+			const loading = entry?.uploading ?? !entries.has(file.id);
+			return <PromptInputAttachment data={file} loading={loading} />;
+		},
+		[entries, sessionId],
+	);
+
+	return (
+		<ChatInputFooter
+			{...footerProps}
+			submitDisabled={sessionId ? isUploading : false}
+			renderAttachment={renderAttachment}
+			onSend={handleSend}
+		/>
+	);
+}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -107,6 +191,7 @@ export function ChatMastraInterface({
 	ensureSessionReady,
 	onStartFreshSession,
 	onConsumeLaunchConfig,
+	onUserMessageSubmitted,
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
@@ -129,11 +214,14 @@ export function ChatMastraInterface({
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
-	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
-		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
+	const [editingUserMessageId, setEditingUserMessageId] = useState<
+		string | null
+	>(null);
+	const [pendingUserTurn, setPendingUserTurn] =
+		useState<PendingUserTurn | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
@@ -184,6 +272,8 @@ export function ChatMastraInterface({
 		pendingPlanApproval = null,
 		pendingQuestion = null,
 	} = chat;
+	const isAwaitingAssistant =
+		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	const clearRuntimeError = useCallback(() => {
 		setRuntimeError(null);
@@ -349,7 +439,8 @@ export function ChatMastraInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		setInterruptedMessage(null);
-		setPendingImmediateUserMessage(null);
+		setPendingUserTurn(null);
+		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
@@ -357,29 +448,30 @@ export function ChatMastraInterface({
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
-		if (!pendingImmediateUserMessage) return;
 		if (
-			hasMatchingUserMessage({
+			shouldClearPendingUserTurn({
 				messages,
-				candidate: pendingImmediateUserMessage,
+				pendingUserTurn,
+				isAwaitingAssistant,
 			})
 		) {
-			setPendingImmediateUserMessage(null);
+			setPendingUserTurn(null);
 		}
-	}, [messages, pendingImmediateUserMessage]);
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
+
+	useEffect(() => {
+		if (!editingUserMessageId) return;
+		if (messages.some((message) => message.id === editingUserMessageId)) return;
+		setEditingUserMessageId(null);
+	}, [editingUserMessageId, messages]);
 
 	const visibleMessages = useMemo(() => {
-		if (!pendingImmediateUserMessage) return messages;
-		if (
-			hasMatchingUserMessage({
-				messages,
-				candidate: pendingImmediateUserMessage,
-			})
-		) {
-			return messages;
-		}
-		return [...messages, pendingImmediateUserMessage];
-	}, [messages, pendingImmediateUserMessage]);
+		return getVisibleMessagesWithPendingUserTurn({
+			messages,
+			pendingUserTurn,
+			isAwaitingAssistant,
+		});
+	}, [isAwaitingAssistant, messages, pendingUserTurn]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -415,24 +507,18 @@ export function ChatMastraInterface({
 	}, [messages]);
 
 	const handleSend = useCallback(
-		async (message: PromptInputMessage) => {
-			let text = message.text.trim();
-			const files = (message.files ?? []).map((file) => ({
-				url: file.url,
-				mediaType: file.mediaType,
-				filename: file.filename,
-			}));
+		async (payload: { content: string; files?: HarnessFilePayload[] }) => {
+			let content = payload.content.trim();
 
-			const isSlashCommand = text.startsWith("/");
-			const slashCommandResult = await resolveSlashCommandInput(text);
+			const isSlashCommand = content.startsWith("/");
+			const slashCommandResult = await resolveSlashCommandInput(content);
 			if (slashCommandResult.handled) {
 				setSubmitStatus(undefined);
 				return;
 			}
-			text = slashCommandResult.nextText.trim();
+			content = slashCommandResult.nextText.trim();
 
-			const images = toMastraImages(files);
-			if (!text && images.length === 0) {
+			if (!content && (!payload.files || payload.files.length === 0)) {
 				setSubmitStatus(undefined);
 				return;
 			}
@@ -440,44 +526,100 @@ export function ChatMastraInterface({
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
+			let preparedFiles = payload.files;
+			let effectiveSessionId = sessionId;
+
+			if (preparedFiles?.some((file) => file.uploaded === false)) {
+				if (!effectiveSessionId) {
+					const startResult = await onStartFreshSession();
+					if (!startResult.created || !startResult.sessionId) {
+						throw new Error(
+							startResult.errorMessage ??
+								"Failed to create a chat session. Please retry.",
+						);
+					}
+					effectiveSessionId = startResult.sessionId;
+				}
+
+				const uploadedFiles = await uploadFiles(
+					effectiveSessionId,
+					preparedFiles.map((file) => ({
+						type: "file",
+						url: file.data,
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
+				);
+				preparedFiles = uploadedFiles.map((file) => ({
+					data: file.url,
+					mediaType: file.mediaType,
+					filename: file.filename,
+					uploaded: true,
+				}));
+			}
+
 			const sendInput: ChatSendMessageInput = {
 				payload: {
-					content: text || "",
-					...(images.length > 0 ? { images } : {}),
+					content,
+					...(preparedFiles?.length
+						? {
+								files: preparedFiles.map(({ data, filename, mediaType }) => ({
+									data,
+									mediaType,
+									filename,
+								})),
+							}
+						: {}),
 				},
 				metadata: {
 					model: activeModel?.id,
 				},
 			};
 			const immediateUserMessage =
-				sessionId && !isSessionReady
+				effectiveSessionId && !isSessionReady
 					? toOptimisticUserMessage(sendInput)
 					: null;
 			if (immediateUserMessage) {
-				setPendingImmediateUserMessage(immediateUserMessage);
+				setPendingUserTurn({
+					kind: "append",
+					message: immediateUserMessage,
+				});
 			}
 
-			let targetSessionId = sessionId;
+			let targetSessionId = effectiveSessionId;
 			try {
-				const sendResult = await sendMessageForSession({
-					currentSessionId: sessionId,
-					isSessionReady,
-					ensureSessionReady,
-					onStartFreshSession,
-					sendToCurrentSession: () => commands.sendMessage(sendInput),
-					sendToSession: (nextSessionId) =>
-						sendMessageToSession(nextSessionId, sendInput),
-				});
+				const sendResult =
+					effectiveSessionId && effectiveSessionId !== sessionId
+						? {
+								targetSessionId: effectiveSessionId,
+								value: await sendMessageToSession(
+									effectiveSessionId,
+									sendInput,
+								),
+							}
+						: await sendMessageForSession({
+								currentSessionId: effectiveSessionId,
+								isSessionReady,
+								ensureSessionReady,
+								onStartFreshSession,
+								sendToCurrentSession: () => commands.sendMessage(sendInput),
+								sendToSession: (nextSessionId) =>
+									sendMessageToSession(nextSessionId, sendInput),
+							});
 				targetSessionId = sendResult.targetSessionId;
+				if (content) {
+					onUserMessageSubmitted?.(content);
+				}
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
 				if (immediateUserMessage) {
-					setPendingImmediateUserMessage((previousMessage) =>
-						previousMessage?.id === immediateUserMessage.id
+					setPendingUserTurn((previousTurn) =>
+						previousTurn?.kind === "append" &&
+						previousTurn.message.id === immediateUserMessage.id
 							? null
-							: previousMessage,
+							: previousTurn,
 					);
 				}
 				if (error instanceof Error) throw error;
@@ -488,9 +630,9 @@ export function ChatMastraInterface({
 				session_id: targetSessionId,
 				model_id: activeModel?.id ?? null,
 				mention_count: 0,
-				attachment_count: files.length,
+				attachment_count: payload.files?.length ?? 0,
 				is_slash_command: isSlashCommand,
-				message_length: text.length,
+				message_length: content.length,
 				turn_number: (messages?.length ?? 0) + 1,
 			});
 		},
@@ -499,14 +641,15 @@ export function ChatMastraInterface({
 			captureChatEvent,
 			clearRuntimeError,
 			commands,
-			messages?.length,
 			isSessionReady,
+			messages?.length,
 			onStartFreshSession,
 			resolveSlashCommandInput,
 			ensureSessionReady,
-			sendMessageToSession,
 			sessionId,
+			sendMessageToSession,
 			setRuntimeErrorMessage,
+			onUserMessageSubmitted,
 		],
 	);
 
@@ -572,6 +715,7 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				onUserMessageSubmitted?.(prompt);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
@@ -628,6 +772,7 @@ export function ChatMastraInterface({
 		sendMessageToSession,
 		sessionId,
 		setRuntimeErrorMessage,
+		onUserMessageSubmitted,
 	]);
 
 	const handleStop = useCallback(
@@ -640,13 +785,99 @@ export function ChatMastraInterface({
 
 	const handleSlashCommandSend = useCallback(
 		(command: SlashCommand) => {
-			void handleSend({ text: `/${command.name}`, files: [] }).catch(
-				(error) => {
-					console.debug("[chat-mastra] handleSlashCommandSend error", error);
-				},
-			);
+			void handleSend({ content: `/${command.name}` }).catch((error) => {
+				console.debug("[chat-mastra] handleSlashCommandSend error", error);
+			});
 		},
 		[handleSend],
+	);
+	const restartFromUserMessage = useCallback(
+		async (
+			request: UserMessageRestartRequest,
+			options?: { trigger?: "edit" | "resend" },
+		) => {
+			if (!sessionId) {
+				throw new Error("Chat session is still starting. Please retry.");
+			}
+
+			setInterruptedMessage(null);
+			setPendingUserTurn(null);
+			setSubmitStatus("submitted");
+			clearRuntimeError();
+
+			const optimisticMessage = toOptimisticUserMessage({
+				payload: request.payload,
+				metadata: {
+					model: activeModel?.id,
+				},
+			});
+			if (optimisticMessage) {
+				setPendingUserTurn({
+					kind: "restart",
+					prefixMessages: request.prefixMessages,
+					message: optimisticMessage,
+				});
+			}
+
+			try {
+				await chatMastraServiceTrpcUtils.client.session.restartFromMessage.mutate(
+					{
+						sessionId,
+						...(cwd ? { cwd } : {}),
+						messageId: request.messageId,
+						payload: request.payload,
+						metadata: {
+							model: activeModel?.id,
+						},
+					},
+				);
+				setEditingUserMessageId(null);
+				if (request.payload.content) {
+					onUserMessageSubmitted?.(request.payload.content);
+				}
+				captureChatEvent("chat_message_sent", {
+					session_id: sessionId,
+					model_id: activeModel?.id ?? null,
+					mention_count: 0,
+					attachment_count: request.payload.files?.length ?? 0,
+					is_slash_command: false,
+					message_length: request.payload.content.length,
+					turn_number: (messages?.length ?? 0) + 1,
+					send_trigger: options?.trigger ?? "resend",
+					restarted_from_message_id: request.messageId,
+				});
+			} catch (error) {
+				setPendingUserTurn(null);
+				const sendErrorMessage = toSendFailureMessage(error);
+				setSubmitStatus(undefined);
+				setRuntimeErrorMessage(sendErrorMessage);
+				if (error instanceof Error) throw error;
+				throw new Error(sendErrorMessage);
+			}
+		},
+		[
+			activeModel?.id,
+			captureChatEvent,
+			chatMastraServiceTrpcUtils.client.session.restartFromMessage,
+			clearRuntimeError,
+			cwd,
+			messages,
+			onUserMessageSubmitted,
+			sessionId,
+			setRuntimeErrorMessage,
+		],
+	);
+	const handleResendUserMessage = useCallback(
+		async (request: UserMessageRestartRequest) => {
+			await restartFromUserMessage(request, { trigger: "resend" });
+		},
+		[restartFromUserMessage],
+	);
+	const handleSubmitEditedUserMessage = useCallback(
+		async (request: UserMessageRestartRequest) => {
+			await restartFromUserMessage(request, { trigger: "edit" });
+		},
+		[restartFromUserMessage],
 	);
 	const handleApprovalResponse = useCallback(
 		async (decision: "approve" | "decline" | "always_allow_category") => {
@@ -710,11 +941,9 @@ export function ChatMastraInterface({
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);
-	const isAwaitingAssistant =
-		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 
 	return (
-		<PromptInputProvider>
+		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
 					messages={visibleMessages}
@@ -740,9 +969,15 @@ export function ChatMastraInterface({
 					pendingQuestion={pendingQuestion}
 					isQuestionSubmitting={questionResponsePending}
 					onQuestionRespond={handleQuestionResponse}
+					editingUserMessageId={editingUserMessageId}
+					isEditSubmitting={isAwaitingAssistant}
+					onStartEditUserMessage={setEditingUserMessageId}
+					onCancelEditUserMessage={() => setEditingUserMessageId(null)}
+					onSubmitEditedUserMessage={handleSubmitEditedUserMessage}
+					onRestartUserMessage={handleResendUserMessage}
 				/>
 				<McpControls mcpUi={mcpUi} />
-				<ChatInputFooter
+				<MastraUploadFooter
 					cwd={cwd}
 					isFocused={isFocused}
 					error={errorMessage}
@@ -758,6 +993,8 @@ export function ChatMastraInterface({
 					thinkingEnabled={thinkingEnabled}
 					setThinkingEnabled={setThinkingEnabled}
 					slashCommands={slashCommands}
+					sessionId={sessionId}
+					onError={setRuntimeErrorMessage}
 					onSend={handleSend}
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}

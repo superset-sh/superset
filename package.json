@@ -24,9 +24,10 @@
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test",
 		"lint": "./scripts/lint.sh",
-		"lint:fix": "biome migrate --write && biome check --write --unsafe .",
-		"format": "biome format --write .",
-		"format:check": "biome format .",
+		"check:desktop-git-env": "./scripts/check-desktop-git-env.sh",
+		"lint:fix": "bunx @biomejs/biome@2.4.2 migrate --write && bunx @biomejs/biome@2.4.2 check --write --unsafe .",
+		"format": "bunx @biomejs/biome@2.4.2 format --write .",
+		"format:check": "bunx @biomejs/biome@2.4.2 format .",
 		"typecheck": "turbo typecheck",
 		"ui-add": "turbo run ui-add",
 		"postinstall": "./scripts/postinstall.sh",
@@ -45,7 +46,9 @@
 		"tooling/*"
 	],
 	"resolutions": {
-		"mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.11/mastracode-0.4.0-superset.11.tgz"
+		"mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.12/mastracode-0.4.0-superset.12.tgz",
+		"@mastra/core": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.12/mastra-core-1.8.0-superset.1.tgz",
+		"@mastra/memory": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.12/mastra-memory-1.5.2-superset.1.tgz"
 	},
 	"patchedDependencies": {
 		"@durable-streams/state@0.2.1": "patches/@durable-streams%2Fstate@0.2.1.patch"

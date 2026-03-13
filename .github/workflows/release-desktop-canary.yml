@@ -96,6 +96,12 @@ jobs:
           pattern: desktop-canary-*
           merge-multiple: true
 
+      - name: Merge macOS auto-update manifests
+        uses: ./.github/actions/merge-mac-manifests
+        with:
+          artifact-prefix: desktop-canary
+          extra-manifest-names: canary-mac.yml
+
       - name: Create canary-named copies for updater URLs
         run: |
           cd release-artifacts

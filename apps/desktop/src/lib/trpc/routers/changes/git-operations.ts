@@ -1,20 +1,28 @@
 import { TRPCError } from "@trpc/server";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	execWithShellEnv,
-	getProcessEnvWithShellPath,
-} from "../workspaces/utils/shell-env";
+	execGitWithShellPath,
+	getSimpleGitWithShellPath,
+} from "../workspaces/utils/git-client";
+import {
+	getPullRequestRepoArgs,
+	getRepoContext,
+} from "../workspaces/utils/github/github";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
-import { assertRegisteredWorktree } from "./security";
+import { assertRegisteredWorktree } from "./security/path-validation";
+import {
+	buildPullRequestCompareUrl,
+	normalizeGitHubRepoUrl,
+	parseUpstreamRef,
+} from "./utils/pull-request-url";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export { isUpstreamMissingError };
 
-async function hasUpstreamBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<boolean> {
+async function hasUpstreamBranch(git: SimpleGit): Promise<boolean> {
 	try {
 		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
 		return true;
@@ -23,9 +31,7 @@ async function hasUpstreamBranch(
 	}
 }
 
-async function fetchCurrentBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<void> {
+async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 	try {
 		await git.fetch(["origin", branch]);
@@ -57,7 +63,7 @@ async function pushWithSetUpstream({
 	git,
 	branch,
 }: {
-	git: ReturnType<typeof simpleGit>;
+	git: SimpleGit;
 	branch: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
@@ -110,7 +116,7 @@ interface TrackingStatus {
 }
 
 async function getTrackingBranchStatus(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 ): Promise<TrackingStatus> {
 	try {
 		const upstream = await git.raw([
@@ -147,14 +153,8 @@ async function getTrackingBranchStatus(
 	}
 }
 
-function extractPRUrl(text: string): string | null {
-	const match = text.match(/https:\/\/github\.com\/\S+\/pull\/\d+/);
-	return match?.[0] ?? null;
-}
-
 async function findExistingOpenPRUrl(
 	worktreePath: string,
-	branch: string,
 ): Promise<string | null> {
 	// Prefer tracking-based lookup first for fork/branch-name mismatch scenarios.
 	try {
@@ -185,62 +185,156 @@ async function findExistingOpenPRUrl(
 				message,
 			);
 		}
-		// Fallback to head-branch search below.
+		// Fallback to commit-SHA search below.
 	}
 
+	const byHeadCommit = await findOpenPRByHeadCommit(worktreePath);
+	if (byHeadCommit) {
+		return byHeadCommit;
+	}
+
+	return null;
+}
+
+async function findOpenPRByHeadCommit(
+	worktreePath: string,
+): Promise<string | null> {
 	try {
+		const { stdout: headOutput } = await execGitWithShellPath(
+			["rev-parse", "HEAD"],
+			{ cwd: worktreePath },
+		);
+		const headSha = headOutput.trim();
+		if (!headSha) {
+			return null;
+		}
+
+		const repoArgs = getPullRequestRepoArgs(await getRepoContext(worktreePath));
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"list",
+				...repoArgs,
 				"--state",
 				"open",
 				"--search",
-				`head:${branch}`,
+				`${headSha} is:pr`,
 				"--limit",
 				"20",
 				"--json",
-				"url",
-				"--jq",
-				'.[0].url // ""',
+				"url,headRefOid",
 			],
 			{ cwd: worktreePath },
 		);
-		const url = stdout.trim();
-		return url || null;
+
+		const parsed = JSON.parse(stdout) as Array<{
+			url?: string;
+			headRefOid?: string;
+		}>;
+		const match = parsed.find((candidate) => candidate.headRefOid === headSha);
+		return match?.url?.trim() || null;
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		console.warn(
-			"[git/findExistingOpenPRUrl] Failed head-branch PR lookup:",
+			"[git/findExistingOpenPRUrl] Failed commit-based PR lookup:",
 			message,
 		);
 		return null;
 	}
 }
 
-async function openPRInBrowser(
-	worktreePath: string,
-	prUrl: string,
-): Promise<void> {
+const ghRepoMetadataSchema = z.object({
+	url: z.string().url(),
+	isFork: z.boolean(),
+	parent: z
+		.object({
+			url: z.string().url(),
+		})
+		.nullable(),
+	defaultBranchRef: z.object({
+		name: z.string().min(1),
+	}),
+});
+
+async function getMergeBaseBranch(
+	git: SimpleGit,
+	branch: string,
+): Promise<string | null> {
 	try {
-		await execWithShellEnv("gh", ["pr", "view", prUrl, "--web"], {
-			cwd: worktreePath,
-		});
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		console.warn(
-			`[git/openPRInBrowser] Failed to open PR URL ${prUrl}:`,
-			message,
-		);
-		// Opening in browser is best-effort; return URL either way.
+		const configuredBaseBranch = await git.raw([
+			"config",
+			"--get",
+			`branch.${branch}.gh-merge-base`,
+		]);
+		return configuredBaseBranch.trim() || null;
+	} catch {
+		return null;
 	}
 }
 
+async function buildNewPullRequestUrl(
+	worktreePath: string,
+	git: SimpleGit,
+	branch: string,
+): Promise<string> {
+	const { stdout } = await execWithShellEnv(
+		"gh",
+		["repo", "view", "--json", "url,isFork,parent,defaultBranchRef"],
+		{ cwd: worktreePath },
+	);
+	const repoMetadata = ghRepoMetadataSchema.parse(JSON.parse(stdout));
+	const currentRepoUrl = normalizeGitHubRepoUrl(repoMetadata.url);
+	const baseRepoUrl = normalizeGitHubRepoUrl(
+		repoMetadata.isFork && repoMetadata.parent?.url
+			? repoMetadata.parent.url
+			: repoMetadata.url,
+	);
+
+	if (!currentRepoUrl || !baseRepoUrl) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "GitHub is not available for this workspace.",
+		});
+	}
+
+	const configuredBaseBranch = await getMergeBaseBranch(git, branch);
+	const baseBranch = configuredBaseBranch ?? repoMetadata.defaultBranchRef.name;
+	let headRepoOwner = currentRepoUrl.split("/").at(-2) ?? "";
+	let headBranch = branch;
+
+	try {
+		const upstreamRef = (
+			await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"])
+		).trim();
+		const parsedUpstreamRef = parseUpstreamRef(upstreamRef);
+
+		if (parsedUpstreamRef) {
+			headBranch = parsedUpstreamRef.branchName;
+			const upstreamRemoteUrl = await git.raw([
+				"remote",
+				"get-url",
+				parsedUpstreamRef.remoteName,
+			]);
+			headRepoOwner =
+				normalizeGitHubRepoUrl(upstreamRemoteUrl)?.split("/").at(-2) ??
+				headRepoOwner;
+		}
+	} catch {
+		// Fall back to the current repository owner and local branch name.
+	}
+
+	return buildPullRequestCompareUrl({
+		baseRepoUrl,
+		baseBranch,
+		headRepoOwner,
+		headBranch,
+	});
+}
+
 async function getGitWithShellPath(worktreePath: string) {
-	const git = simpleGit(worktreePath);
-	git.env(await getProcessEnvWithShellPath());
-	return git;
+	return getSimpleGitWithShellPath(worktreePath);
 }
 
 export const createGitOperationsRouter = () => {
@@ -424,47 +518,36 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 
-					const existingPRUrl = await findExistingOpenPRUrl(
-						input.worktreePath,
-						branch,
-					);
+					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
 					if (existingPRUrl) {
-						await openPRInBrowser(input.worktreePath, existingPRUrl);
 						await fetchCurrentBranch(git);
 						clearStatusCacheForWorktree(input.worktreePath);
 						return { success: true, url: existingPRUrl };
 					}
 
-					let stdout = "";
 					try {
-						const result = await execWithShellEnv(
-							"gh",
-							["pr", "create", "--web", "--fill", "--head", branch],
-							{ cwd: input.worktreePath },
+						const url = await buildNewPullRequestUrl(
+							input.worktreePath,
+							git,
+							branch,
 						);
-						stdout = result.stdout;
+						await fetchCurrentBranch(git);
+						clearStatusCacheForWorktree(input.worktreePath);
+
+						return { success: true, url };
 					} catch (error) {
 						// If creation reports branch/tracking mismatch but an open PR exists,
 						// recover by opening that existing PR instead of failing.
 						const recoveredPRUrl = await findExistingOpenPRUrl(
 							input.worktreePath,
-							branch,
 						);
 						if (recoveredPRUrl) {
-							await openPRInBrowser(input.worktreePath, recoveredPRUrl);
 							await fetchCurrentBranch(git);
 							clearStatusCacheForWorktree(input.worktreePath);
 							return { success: true, url: recoveredPRUrl };
 						}
 						throw error;
 					}
-
-					const url =
-						(extractPRUrl(stdout) ?? stdout.trim()) || "https://github.com";
-					await fetchCurrentBranch(git);
-					clearStatusCacheForWorktree(input.worktreePath);
-
-					return { success: true, url };
 				},
 			),
 

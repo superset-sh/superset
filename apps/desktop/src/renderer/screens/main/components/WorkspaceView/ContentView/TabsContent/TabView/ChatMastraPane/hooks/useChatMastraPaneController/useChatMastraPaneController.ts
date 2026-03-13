@@ -95,6 +95,12 @@ async function createSessionRecord(input: {
 
 	if (!response.ok) {
 		const detail = await getHttpErrorDetail(response);
+		console.warn("[chat-sessions] create session failed", {
+			sessionId: input.sessionId,
+			organizationId: input.organizationId,
+			workspaceId: input.workspaceId,
+			detail,
+		});
 		throw new Error(`Failed to create session ${input.sessionId}: ${detail}`);
 	}
 }
@@ -194,16 +200,21 @@ export function useChatMastraPaneController({
 			});
 	}, [existsRemotely, organizationId, paneId, workspace, workspaceId]);
 
-	const { data: sessionsData } = useLiveQuery(
+	const { data: allSessionsData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => eq(chatSessions.workspaceId, workspaceId))
 				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
 				.select(({ chatSessions }) => ({ ...chatSessions })),
-		[collections.chatSessions, workspaceId],
+		[collections.chatSessions],
 	);
-	const sessions = sessionsData ?? [];
+	const allSessions = allSessionsData ?? [];
+	const sessions = useMemo(() => {
+		const scopedOrUnscoped = allSessions.filter(
+			(item) => item.workspaceId === workspaceId || item.workspaceId === null,
+		);
+		return scopedOrUnscoped.length > 0 ? scopedOrUnscoped : allSessions;
+	}, [allSessions, workspaceId]);
 	const hasCurrentSessionRecord = Boolean(
 		sessionId && sessions.some((item) => item.id === sessionId),
 	);

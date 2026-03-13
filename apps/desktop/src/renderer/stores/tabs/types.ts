@@ -48,6 +48,11 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
+export interface SplitPaneOptions {
+	initialCwd?: string;
+	paneType?: "terminal" | "chat-mastra" | "webview";
+}
+
 export interface AddChatMastraTabOptions {
 	launchConfig?: ChatMastraLaunchConfig | null;
 }
@@ -61,13 +66,16 @@ export interface AddTabWithMultiplePanesOptions {
  * Options for opening a file in a file-viewer pane
  */
 export interface AddFileViewerPaneOptions {
+	/** Canonical absolute filesystem path, or remote URL for non-local content */
 	filePath: string;
+	displayName?: string;
 	/** Override default view mode (raw/diff/rendered) */
 	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;
 	/** File status from git — used to determine default view mode for new files */
 	fileStatus?: FileStatus;
 	commitHash?: string;
+	/** Canonical absolute original path for renamed files */
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
 	line?: number;
@@ -127,12 +135,19 @@ export interface TabsStore extends TabsState {
 	markPaneAsUsed: (paneId: string) => void;
 	setPaneStatus: (paneId: string, status: PaneStatus) => void;
 	setPaneName: (paneId: string, name: string) => void;
+	setPaneAutoTitle: (paneId: string, title: string) => void;
 	clearWorkspaceAttentionStatus: (workspaceId: string) => void;
 	resetWorkspaceStatus: (workspaceId: string) => void;
 	updatePaneCwd: (
 		paneId: string,
 		cwd: string | null,
 		confirmed: boolean,
+	) => void;
+	retargetFileViewerPaths: (
+		workspaceId: string,
+		oldAbsolutePath: string,
+		newAbsolutePath: string,
+		isDirectory: boolean,
 	) => void;
 	clearPaneInitialData: (paneId: string) => void;
 	/** Pin a file-viewer pane so it won't be replaced by new file clicks */
@@ -143,21 +158,24 @@ export interface TabsStore extends TabsState {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneHorizontal: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
-		options?: AddTabOptions,
+		options?: SplitPaneOptions,
 	) => void;
+
+	// Equalize operations
+	equalizePaneSplits: (tabId: string) => void;
 
 	// Move operations
 	movePaneToTab: (paneId: string, targetTabId: string) => void;

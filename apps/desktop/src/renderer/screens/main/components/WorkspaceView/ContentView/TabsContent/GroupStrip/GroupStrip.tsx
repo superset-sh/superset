@@ -1,9 +1,7 @@
 import type { TerminalPreset } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { eq } from "@tanstack/db";
+import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
 	useEffect,
@@ -47,12 +45,13 @@ export function GroupStrip() {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const { presets } = usePresets();
 	const navigate = useNavigate();
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
@@ -135,48 +134,84 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync Electric session titles → tab names for all Mastra chat tabs in this workspace
-	const chatPaneSessionMap = useMemo(() => {
-		const map = new Map<string, string>(); // sessionId → tabId
+	// Sync Electric session titles → tab and pane names for Mastra chat panes in this workspace
+	const chatSessionTargets = useMemo(() => {
+		const map = new Map<
+			string,
+			{ tabIds: Set<string>; paneIds: Set<string> }
+		>();
 		for (const pane of Object.values(panes)) {
 			if (pane.type === "chat-mastra" && pane.chatMastra?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
-				if (tab) map.set(pane.chatMastra.sessionId, tab.id);
+				if (!tab) continue;
+				const sessionId = pane.chatMastra.sessionId;
+				const existing = map.get(sessionId) ?? {
+					tabIds: new Set<string>(),
+					paneIds: new Set<string>(),
+				};
+				existing.tabIds.add(tab.id);
+				existing.paneIds.add(pane.id);
+				map.set(sessionId, existing);
 			}
 		}
 		return map;
 	}, [panes, tabs]);
+	const targetSessionIds = useMemo(
+		() => Array.from(chatSessionTargets.keys()),
+		[chatSessionTargets],
+	);
+	const targetSessionIdsKey = targetSessionIds.join(",");
 	const shouldSyncChatTitles =
-		Boolean(activeWorkspaceId) && chatPaneSessionMap.size > 0;
-	const workspaceIdForChatTitleSync = shouldSyncChatTitles
-		? activeWorkspaceId
-		: NO_WORKSPACE_MATCH;
+		Boolean(activeWorkspaceId) && targetSessionIds.length > 0;
 
 	const collections = useCollections();
 	const { data: chatSessions } = useLiveQuery(
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) =>
-					eq(chatSessions.workspaceId, workspaceIdForChatTitleSync),
-				)
+				.where(({ chatSessions }) => {
+					if (!shouldSyncChatTitles) {
+						return eq(chatSessions.workspaceId, NO_WORKSPACE_MATCH);
+					}
+					const [firstSessionId, ...restSessionIds] = targetSessionIds;
+					if (!firstSessionId) {
+						return eq(chatSessions.workspaceId, NO_WORKSPACE_MATCH);
+					}
+					let predicate = eq(chatSessions.id, firstSessionId);
+					for (const sessionId of restSessionIds) {
+						predicate = or(predicate, eq(chatSessions.id, sessionId));
+					}
+					return predicate;
+				})
 				.select(({ chatSessions }) => ({
 					id: chatSessions.id,
 					title: chatSessions.title,
+					workspaceId: chatSessions.workspaceId,
 				})),
-		[collections.chatSessions, workspaceIdForChatTitleSync],
+		[collections.chatSessions, shouldSyncChatTitles, targetSessionIdsKey],
 	);
 
 	useEffect(() => {
 		if (!shouldSyncChatTitles) return;
 		if (!chatSessions) return;
 		for (const session of chatSessions) {
-			const tabId = chatPaneSessionMap.get(session.id);
-			if (tabId) {
-				setTabAutoTitle(tabId, session.title || "New Chat");
+			const target = chatSessionTargets.get(session.id);
+			const title = session.title?.trim();
+			if (!target || !title) continue;
+			for (const tabId of target.tabIds) {
+				setTabAutoTitle(tabId, title);
+			}
+			for (const paneId of target.paneIds) {
+				setPaneAutoTitle(paneId, title);
 			}
 		}
-	}, [chatSessions, chatPaneSessionMap, setTabAutoTitle, shouldSyncChatTitles]);
+	}, [
+		chatSessions,
+		chatSessionTargets,
+		setPaneAutoTitle,
+		setTabAutoTitle,
+		shouldSyncChatTitles,
+	]);
 
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;
@@ -217,6 +252,14 @@ export function GroupStrip() {
 
 	const handleRenameGroup = (tabId: string, newName: string) => {
 		renameTab(tabId, newName);
+	};
+
+	const handleMarkTabAsUnread = (tabId: string) => {
+		for (const pane of Object.values(panes)) {
+			if (pane.tabId === tabId) {
+				setPaneStatus(pane.id, "review");
+			}
+		}
 	};
 
 	const handleReorderTabs = useCallback(
@@ -269,7 +312,6 @@ export function GroupStrip() {
 
 	const plusControl = (
 		<AddTabButton
-			hasAiChat={hasAiChat === true}
 			useCompactAddButton={useCompactAddButton}
 			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
@@ -314,6 +356,7 @@ export function GroupStrip() {
 											onSelect={() => handleSelectGroup(tab.id)}
 											onClose={() => handleCloseGroup(tab.id)}
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
+											onMarkAsUnread={() => handleMarkTabAsUnread(tab.id)}
 											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
 											onReorder={handleReorderTabs}
 										/>
@@ -325,11 +368,7 @@ export function GroupStrip() {
 					{hasHorizontalOverflow ? (
 						<div
 							className={`h-full shrink-0 ${
-								!useCompactAddButton
-									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
-									: "w-10"
+								!useCompactAddButton ? "w-[220px]" : "w-10"
 							}`}
 						/>
 					) : (

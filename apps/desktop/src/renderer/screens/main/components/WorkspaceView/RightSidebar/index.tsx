@@ -18,6 +18,7 @@ import {
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
@@ -84,14 +85,12 @@ export function RightSidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
-	const {
-		currentMode,
-		rightSidebarTab,
-		setRightSidebarTab,
-		toggleSidebar,
-		setMode,
-		sidebarWidth,
-	} = useSidebarStore();
+	const currentMode = useSidebarStore((s) => s.currentMode);
+	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
+	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const setMode = useSidebarStore((s) => s.setMode);
+	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
 	const isExpanded = currentMode === SidebarMode.Changes;
 	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
@@ -105,22 +104,22 @@ export function RightSidebar() {
 	const { scrollToFile } = useScrollContext();
 
 	const invalidateFileContent = useCallback(
-		(filePath: string) => {
+		(absolutePath: string) => {
 			if (!worktreePath) return;
 
 			Promise.all([
 				trpcUtils.changes.readWorkingFile.invalidate({
 					worktreePath,
-					filePath,
+					absolutePath,
 				}),
 				trpcUtils.changes.getFileContents.invalidate({
 					worktreePath,
-					filePath,
+					absolutePath,
 				}),
 			]).catch((error) => {
 				console.error(
 					"[RightSidebar/invalidateFileContent] Failed to invalidate file content queries:",
-					{ worktreePath, filePath, error },
+					{ worktreePath, absolutePath, error },
 				);
 			});
 		},
@@ -130,23 +129,26 @@ export function RightSidebar() {
 	const handleFileOpenPane = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			if (!workspaceId || !worktreePath) return;
+			const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
 			addFileViewerPane(workspaceId, {
-				filePath: file.path,
+				filePath: absolutePath,
 				diffCategory: category,
 				fileStatus: file.status,
 				commitHash,
-				oldPath: file.oldPath,
+				oldPath: file.oldPath
+					? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
+					: undefined,
 			});
-			invalidateFileContent(file.path);
+			invalidateFileContent(absolutePath);
 		},
 		[workspaceId, worktreePath, addFileViewerPane, invalidateFileContent],
 	);
 
 	const handleFileScrollTo = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-			scrollToFile(file, category, commitHash);
+			scrollToFile(file, category, commitHash, worktreePath);
 		},
-		[scrollToFile],
+		[scrollToFile, worktreePath],
 	);
 
 	const handleFileOpen =
@@ -232,6 +234,7 @@ export function RightSidebar() {
 					<ChangesView
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
+						isActive={rightSidebarTab === RightSidebarTab.Changes}
 					/>
 				</div>
 			)}

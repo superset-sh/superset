@@ -20,7 +20,7 @@ const MAX_RESULTS = 20;
 interface IssueLinkCommandProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSelect: (slug: string) => void;
+	onSelect: (slug: string, title: string) => void;
 }
 
 export function IssueLinkCommand({
@@ -98,8 +98,8 @@ export function IssueLinkCommand({
 			.map((r) => r.item);
 	}, [allTasks, searchQuery, taskFuse]);
 
-	const handleSelect = (slug: string) => {
-		onSelect(slug);
+	const handleSelect = (slug: string, title: string) => {
+		onSelect(slug, title);
 		onOpenChange(false);
 	};
 
@@ -112,6 +112,7 @@ export function IssueLinkCommand({
 		<CommandDialog
 			open={open}
 			onOpenChange={handleOpenChange}
+			modal
 			title="Link issue"
 			description="Search for an issue to link"
 			showCloseButton={false}
@@ -135,7 +136,7 @@ export function IssueLinkCommand({
 								<CommandItem
 									key={task.id}
 									value={task.slug}
-									onSelect={() => handleSelect(task.slug)}
+									onSelect={() => handleSelect(task.slug, task.title)}
 									className="group"
 								>
 									{status ? (

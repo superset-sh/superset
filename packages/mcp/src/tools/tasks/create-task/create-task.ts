@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
-import { taskStatuses, tasks } from "@superset/db/schema";
+import { tasks } from "@superset/db/schema";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -89,25 +90,7 @@ export function register(server: McpServer) {
 			const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
 
 			if (needsDefaultStatus) {
-				const [defaultStatus] = await db
-					.select({ id: taskStatuses.id })
-					.from(taskStatuses)
-					.where(
-						and(
-							eq(taskStatuses.organizationId, ctx.organizationId),
-							eq(taskStatuses.type, "backlog"),
-						),
-					)
-					.orderBy(taskStatuses.position)
-					.limit(1);
-
-				defaultStatusId = defaultStatus?.id;
-				if (!defaultStatusId) {
-					return {
-						content: [{ type: "text", text: "Error: No default status found" }],
-						isError: true,
-					};
-				}
+				defaultStatusId = await seedDefaultStatuses(ctx.organizationId);
 			}
 
 			const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
@@ -138,6 +121,9 @@ export function register(server: McpServer) {
 				organizationId: string;
 				creatorId: string;
 				assigneeId: string | null;
+				assigneeExternalId: string | null;
+				assigneeDisplayName: string | null;
+				assigneeAvatarUrl: string | null;
 				labels: string[];
 				dueDate: Date | null;
 				estimate: number | null;
@@ -163,6 +149,9 @@ export function register(server: McpServer) {
 					organizationId: ctx.organizationId,
 					creatorId: ctx.userId,
 					assigneeId: input.assigneeId ?? null,
+					assigneeExternalId: null,
+					assigneeDisplayName: null,
+					assigneeAvatarUrl: null,
 					labels: input.labels ?? [],
 					dueDate: input.dueDate ? new Date(input.dueDate) : null,
 					estimate: input.estimate ?? null,

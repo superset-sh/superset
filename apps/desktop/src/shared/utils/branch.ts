@@ -1,15 +1,28 @@
 export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
 export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
 
+interface SanitizeSegmentOptions {
+	preserveCase?: boolean;
+}
+
+interface SanitizeBranchNameOptions {
+	preserveFirstSegmentCase?: boolean;
+}
+
 export function sanitizeSegment(
 	text: string,
 	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+	{ preserveCase = false }: SanitizeSegmentOptions = {},
 ): string {
-	return text
-		.toLowerCase()
+	const normalized = preserveCase ? text : text.toLowerCase();
+	const allowedCharacters = preserveCase
+		? /[^a-zA-Z0-9._+@-]/g
+		: /[^a-z0-9._+@-]/g;
+
+	return normalized
 		.trim()
 		.replace(/\s+/g, "-")
-		.replace(/[^a-z0-9._+@-]/g, "")
+		.replace(allowedCharacters, "")
 		.replace(/\.{2,}/g, ".")
 		.replace(/@\{/g, "@")
 		.replace(/-+/g, "-")
@@ -19,13 +32,22 @@ export function sanitizeSegment(
 }
 
 export function sanitizeAuthorPrefix(name: string): string {
-	return sanitizeSegment(name);
+	return sanitizeSegment(name, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+		preserveCase: true,
+	});
 }
 
-export function sanitizeBranchName(name: string): string {
+export function sanitizeBranchName(
+	name: string,
+	{ preserveFirstSegmentCase = false }: SanitizeBranchNameOptions = {},
+): string {
 	return name
 		.split("/")
-		.map((s) => sanitizeSegment(s))
+		.map((segment, index) =>
+			sanitizeSegment(segment, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+				preserveCase: preserveFirstSegmentCase && index === 0,
+			}),
+		)
 		.filter(Boolean)
 		.join("/");
 }
@@ -40,8 +62,9 @@ export function truncateBranchName(
 export function sanitizeBranchNameWithMaxLength(
 	name: string,
 	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+	options?: SanitizeBranchNameOptions,
 ): string {
-	return truncateBranchName(sanitizeBranchName(name), maxLength);
+	return truncateBranchName(sanitizeBranchName(name, options), maxLength);
 }
 
 /**
@@ -111,5 +134,9 @@ export function resolveBranchPrefix({
 		default:
 			return null;
 	}
-	return prefix ? sanitizeSegment(prefix) : null;
+	return prefix
+		? sanitizeSegment(prefix, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
+				preserveCase: true,
+			})
+		: null;
 }

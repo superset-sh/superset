@@ -8,22 +8,26 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
-import { LuUndo2 } from "react-icons/lu";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
+import {
+	pathsMatch,
+	retargetAbsolutePath,
+	toAbsoluteWorkspacePath,
+} from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
-import { CommitItem } from "./components/CommitItem";
-import { FileList } from "./components/FileList";
-import { getPRActionState } from "./utils";
+import { PRChecksStatus } from "./components/PRChecksStatus";
+import { useOrderedSections } from "./hooks";
+import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -32,10 +36,49 @@ interface ChangesViewProps {
 		commitHash?: string,
 	) => void;
 	isExpandedView?: boolean;
+	isActive?: boolean;
 }
 
-export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
+const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
+
+interface PendingChangesRefresh {
+	invalidateBranches: boolean;
+	invalidateSelectedFile: boolean;
+}
+
+function eventTargetsSelectedFile(
+	event: FileSystemChangeEvent,
+	selectedAbsolutePath: string | null,
+): boolean {
+	if (!selectedAbsolutePath) {
+		return false;
+	}
+
+	if (event.type === "overflow") {
+		return true;
+	}
+
+	if (event.type === "rename" && event.absolutePath && event.oldAbsolutePath) {
+		return (
+			retargetAbsolutePath(
+				selectedAbsolutePath,
+				event.oldAbsolutePath,
+				event.absolutePath,
+				Boolean(event.isDirectory),
+			) !== null
+		);
+	}
+
+	return event.absolutePath === selectedAbsolutePath;
+}
+
+export function ChangesView({
+	onFileOpen,
+	isExpandedView,
+	isActive = true,
+}: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
+	const trpcUtils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -46,8 +89,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
 			worktreePath,
-			refetchInterval: 2500,
-			refetchOnWindowFocus: true,
+			refetchInterval: isActive ? 2500 : undefined,
+			refetchOnWindowFocus: isActive,
+			branchRefetchInterval: isActive
+				? undefined
+				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
+			branchRefetchOnWindowFocus: true,
 		});
 
 	const {
@@ -57,13 +104,13 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
 		{
-			enabled: !!workspaceId,
-			refetchInterval: 10000,
+			enabled: !!workspaceId && isActive,
+			refetchInterval: isActive ? 10000 : false,
 		},
 	);
 
 	useBranchSyncInvalidation({
-		gitBranch: status?.branch,
+		gitBranch: status?.branch ?? branchData?.currentBranch ?? undefined,
 		workspaceBranch: workspace?.branch,
 		workspaceId: workspaceId ?? "",
 	});
@@ -209,6 +256,11 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
+	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const pendingRefreshRef = useRef<PendingChangesRefresh>({
+		invalidateBranches: false,
+		invalidateSelectedFile: false,
+	});
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -228,13 +280,15 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const {
 		expandedSections,
 		fileListViewMode,
+		sectionOrder,
 		selectFile,
 		getSelectedFile,
 		toggleSection,
+		moveSection,
 		setFileListViewMode,
 	} = useChangesStore();
 
-	const selectedFileState = getSelectedFile(worktreePath || "");
+	const selectedFileState = getSelectedFile(workspaceId || "");
 	const selectedFile = selectedFileState?.file ?? null;
 	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
@@ -247,12 +301,88 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);
 
+	useEffect(() => {
+		return () => {
+			if (refreshTimerRef.current) {
+				clearTimeout(refreshTimerRef.current);
+				refreshTimerRef.current = null;
+			}
+		};
+	}, []);
+
+	useWorkspaceFileEvents(
+		workspaceId ?? "",
+		(event) => {
+			if (!worktreePath) {
+				return;
+			}
+
+			const selectedAbsolutePath = selectedFileState?.absolutePath ?? null;
+			pendingRefreshRef.current.invalidateBranches ||=
+				event.type === "overflow";
+			pendingRefreshRef.current.invalidateSelectedFile ||=
+				eventTargetsSelectedFile(event, selectedAbsolutePath);
+
+			if (refreshTimerRef.current) {
+				clearTimeout(refreshTimerRef.current);
+			}
+
+			refreshTimerRef.current = setTimeout(() => {
+				refreshTimerRef.current = null;
+				const pending = pendingRefreshRef.current;
+				pendingRefreshRef.current = {
+					invalidateBranches: false,
+					invalidateSelectedFile: false,
+				};
+
+				const invalidations: Promise<unknown>[] = [
+					trpcUtils.changes.getStatus.invalidate({
+						worktreePath,
+						defaultBranch: effectiveBaseBranch,
+					}),
+				];
+
+				if (pending.invalidateBranches) {
+					invalidations.push(
+						trpcUtils.changes.getBranches.invalidate({ worktreePath }),
+					);
+				}
+
+				if (pending.invalidateSelectedFile && selectedFileState) {
+					invalidations.push(
+						trpcUtils.changes.getFileContents.invalidate({
+							worktreePath,
+							absolutePath: selectedFileState.absolutePath,
+							oldAbsolutePath: selectedFileState.file.oldPath
+								? toAbsoluteWorkspacePath(
+										worktreePath,
+										selectedFileState.file.oldPath,
+									)
+								: undefined,
+							category: selectedFileState.category,
+							commitHash: selectedFileState.commitHash ?? undefined,
+							defaultBranch: effectiveBaseBranch,
+						}),
+					);
+				}
+
+				Promise.all(invalidations).catch((error) => {
+					console.error("[ChangesView] Failed to refresh changes state:", {
+						worktreePath,
+						error,
+					});
+				});
+			}, 75);
+		},
+		Boolean(workspaceId && worktreePath),
+	);
+
 	const expandedCommitHashes = useMemo(
 		() =>
-			expandedSections.committed
+			isActive && expandedSections.committed
 				? Array.from(expandedCommits)
 				: ([] as string[]),
-		[expandedSections.committed, expandedCommits],
+		[isActive, expandedSections.committed, expandedCommits],
 	);
 
 	const commitFilesQueries = electronTrpc.useQueries((t) =>
@@ -284,14 +414,26 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	);
 
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			category,
+			null,
+		);
 		onFileOpen?.(file, category);
 	};
 
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			"committed",
+			commitHash,
+		);
 		onFileOpen?.(file, "committed", commitHash);
 	};
 
@@ -306,6 +448,157 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 			return next;
 		});
 	};
+
+	const againstBaseFiles = status?.againstBase ?? [];
+	const commits = status?.commits ?? [];
+	const stagedFiles = status?.staged ?? [];
+	const unstagedFiles = status?.unstaged ?? [];
+	const untrackedFiles = status?.untracked ?? [];
+
+	const hasChanges =
+		againstBaseFiles.length > 0 ||
+		commits.length > 0 ||
+		stagedFiles.length > 0 ||
+		unstagedFiles.length > 0 ||
+		untrackedFiles.length > 0;
+
+	const commitsWithFiles = commits.map((commit) => ({
+		...commit,
+		files: commitFilesMap.get(commit.hash) || commit.files,
+	}));
+
+	useEffect(() => {
+		if (!workspaceId || !worktreePath || !selectedFileState) {
+			return;
+		}
+
+		const existsInSelection =
+			selectedFileState.category === "against-base"
+				? againstBaseFiles.some((file) =>
+						pathsMatch(
+							toAbsoluteWorkspacePath(worktreePath, file.path),
+							selectedFileState.absolutePath,
+						),
+					)
+				: selectedFileState.category === "staged"
+					? stagedFiles.some((file) =>
+							pathsMatch(
+								toAbsoluteWorkspacePath(worktreePath, file.path),
+								selectedFileState.absolutePath,
+							),
+						)
+					: selectedFileState.category === "unstaged"
+						? combinedUnstaged.some((file) =>
+								pathsMatch(
+									toAbsoluteWorkspacePath(worktreePath, file.path),
+									selectedFileState.absolutePath,
+								),
+							)
+						: selectedFileState.category === "committed";
+
+		if (!existsInSelection) {
+			selectFile(workspaceId, null, null);
+		}
+	}, [
+		againstBaseFiles,
+		combinedUnstaged,
+		selectFile,
+		selectedFileState,
+		stagedFiles,
+		workspaceId,
+		worktreePath,
+	]);
+
+	const hasStagedChanges = stagedFiles.length > 0;
+	const hasExistingPR = !!githubStatus?.pr;
+	const prUrl = githubStatus?.pr?.url;
+	const hasGitHubRepo = !!githubStatus?.repoUrl;
+	const defaultBranch =
+		branchData?.defaultBranch ?? status?.defaultBranch ?? "";
+	const isDefaultBranch = status?.branch === defaultBranch;
+	const prActionState = getPRActionState({
+		hasRepo: hasGitHubRepo,
+		hasExistingPR,
+		hasUpstream: status?.hasUpstream ?? false,
+		pushCount: status?.pushCount ?? 0,
+		pullCount: status?.pullCount ?? 0,
+		isDefaultBranch,
+	});
+	const shouldAutoCreatePR =
+		hasGitHubRepo &&
+		shouldAutoCreatePRAfterPublish({
+			hasExistingPR,
+			isDefaultBranch,
+		});
+	const orderedSections = useOrderedSections({
+		sectionOrder,
+		effectiveBaseBranch: effectiveBaseBranch ?? "",
+		expandedSections,
+		toggleSection,
+		fileListViewMode,
+		selectedFile,
+		selectedCommitHash,
+		worktreePath: worktreePath ?? "",
+		projectId,
+		isExpandedView,
+		againstBaseFiles,
+		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
+		commitsWithFiles,
+		expandedCommits,
+		onCommitToggle: handleCommitToggle,
+		onCommitFileSelect: handleCommitFileSelect,
+		stagedFiles,
+		onStagedFileSelect: (file) => handleFileSelect(file, "staged"),
+		onUnstageFile: (file) =>
+			unstageFileMutation.mutate({
+				worktreePath: worktreePath || "",
+				filePath: file.path,
+			}),
+		onUnstageFiles: (files) =>
+			unstageFilesMutation.mutate({
+				worktreePath: worktreePath || "",
+				filePaths: files.map((f) => f.path),
+			}),
+		onShowDiscardStagedDialog: () => setShowDiscardStagedDialog(true),
+		onUnstageAll: () =>
+			unstageAllMutation.mutate({
+				worktreePath: worktreePath || "",
+			}),
+		isDiscardAllStagedPending: discardAllStagedMutation.isPending,
+		isUnstageAllPending: unstageAllMutation.isPending,
+		isStagedActioning:
+			unstageFileMutation.isPending ||
+			unstageFilesMutation.isPending ||
+			unstageAllMutation.isPending ||
+			discardAllStagedMutation.isPending,
+		unstagedFiles: combinedUnstaged,
+		onUnstagedFileSelect: (file) => handleFileSelect(file, "unstaged"),
+		onStageFile: (file) =>
+			stageFileMutation.mutate({
+				worktreePath: worktreePath || "",
+				filePath: file.path,
+			}),
+		onStageFiles: (files) =>
+			stageFilesMutation.mutate({
+				worktreePath: worktreePath || "",
+				filePaths: files.map((f) => f.path),
+			}),
+		onDiscardFile: handleDiscard,
+		onShowDiscardUnstagedDialog: () => setShowDiscardUnstagedDialog(true),
+		onStageAll: () =>
+			stageAllMutation.mutate({
+				worktreePath: worktreePath || "",
+			}),
+		isDiscardAllUnstagedPending: discardAllUnstagedMutation.isPending,
+		isStageAllPending: stageAllMutation.isPending,
+		isUnstagedActioning:
+			stageFileMutation.isPending ||
+			stageFilesMutation.isPending ||
+			stageAllMutation.isPending ||
+			discardChangesMutation.isPending ||
+			deleteUntrackedMutation.isPending ||
+			discardAllUnstagedMutation.isPending,
+	});
 
 	if (!worktreePath) {
 		return (
@@ -338,35 +631,6 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		);
 	}
 
-	const hasChanges =
-		status.againstBase.length > 0 ||
-		status.commits.length > 0 ||
-		status.staged.length > 0 ||
-		status.unstaged.length > 0 ||
-		status.untracked.length > 0;
-
-	const commitsWithFiles = status.commits.map((commit) => ({
-		...commit,
-		files: commitFilesMap.get(commit.hash) || [],
-	}));
-
-	const hasStagedChanges = status.staged.length > 0;
-	const hasExistingPR = !!githubStatus?.pr;
-	const prUrl = githubStatus?.pr?.url;
-	const hasGitHubRepo = !!githubStatus?.repoUrl;
-	const defaultBranch = branchData?.defaultBranch ?? status.defaultBranch;
-	const isDefaultBranch = status.branch === defaultBranch;
-	const prActionState = getPRActionState({
-		hasRepo: hasGitHubRepo,
-		hasExistingPR,
-		hasUpstream: status.hasUpstream,
-		pushCount: status.pushCount,
-		pullCount: status.pullCount,
-		isDefaultBranch,
-	});
-	const shouldAutoCreatePRAfterPublish =
-		hasGitHubRepo && !isDefaultBranch && !hasExistingPR;
-
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
 			<ChangesHeader
@@ -390,18 +654,21 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				}
 			/>
 
-			<CommitInput
-				worktreePath={worktreePath}
-				hasStagedChanges={hasStagedChanges}
-				pushCount={status.pushCount}
-				pullCount={status.pullCount}
-				hasUpstream={status.hasUpstream}
-				hasExistingPR={hasExistingPR}
-				canCreatePR={prActionState.canCreatePR}
-				shouldAutoCreatePRAfterPublish={shouldAutoCreatePRAfterPublish}
-				prUrl={prUrl}
-				onRefresh={handleRefresh}
-			/>
+			<div className="border-b border-border">
+				{githubStatus?.pr && <PRChecksStatus pr={githubStatus.pr} />}
+				<CommitInput
+					worktreePath={worktreePath}
+					hasStagedChanges={hasStagedChanges}
+					pushCount={status.pushCount}
+					pullCount={status.pullCount}
+					hasUpstream={status.hasUpstream}
+					hasExistingPR={hasExistingPR}
+					canCreatePR={prActionState.canCreatePR}
+					shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
+					prUrl={prUrl}
+					onRefresh={handleRefresh}
+				/>
+			</div>
 
 			{!hasChanges ? (
 				<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4 text-center">
@@ -409,208 +676,22 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto" data-changes-scroll-container>
-					<CategorySection
-						title={`Against ${effectiveBaseBranch}`}
-						count={status.againstBase.length}
-						isExpanded={expandedSections["against-base"]}
-						onToggle={() => toggleSection("against-base")}
-					>
-						{expandedSections["against-base"] ? (
-							<FileList
-								files={status.againstBase}
-								viewMode={fileListViewMode}
-								selectedFile={selectedFile}
-								selectedCommitHash={selectedCommitHash}
-								onFileSelect={(file) => handleFileSelect(file, "against-base")}
-								worktreePath={worktreePath}
-								projectId={projectId}
-								category="against-base"
-								isExpandedView={isExpandedView}
-							/>
-						) : null}
-					</CategorySection>
-
-					<CategorySection
-						title="Commits"
-						count={status.commits.length}
-						isExpanded={expandedSections.committed}
-						onToggle={() => toggleSection("committed")}
-					>
-						{expandedSections.committed
-							? commitsWithFiles.map((commit) => (
-									<CommitItem
-										key={commit.hash}
-										commit={commit}
-										isExpanded={expandedCommits.has(commit.hash)}
-										onToggle={() => handleCommitToggle(commit.hash)}
-										selectedFile={selectedFile}
-										selectedCommitHash={selectedCommitHash}
-										onFileSelect={handleCommitFileSelect}
-										viewMode={fileListViewMode}
-										worktreePath={worktreePath}
-										projectId={projectId}
-										isExpandedView={isExpandedView}
-									/>
-								))
-							: null}
-					</CategorySection>
-
-					<CategorySection
-						title="Staged"
-						count={status.staged.length}
-						isExpanded={expandedSections.staged}
-						onToggle={() => toggleSection("staged")}
-						actions={
-							<div className="flex items-center gap-0.5">
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-											onClick={() => setShowDiscardStagedDialog(true)}
-											disabled={discardAllStagedMutation.isPending}
-										>
-											<LuUndo2 className="w-3.5 h-3.5" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom">
-										Discard all staged
-									</TooltipContent>
-								</Tooltip>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6"
-											onClick={() =>
-												unstageAllMutation.mutate({
-													worktreePath: worktreePath || "",
-												})
-											}
-											disabled={unstageAllMutation.isPending}
-										>
-											<HiMiniMinus className="w-4 h-4" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom">Unstage all</TooltipContent>
-								</Tooltip>
-							</div>
-						}
-					>
-						{expandedSections.staged ? (
-							<FileList
-								files={status.staged}
-								viewMode={fileListViewMode}
-								selectedFile={selectedFile}
-								selectedCommitHash={selectedCommitHash}
-								onFileSelect={(file) => handleFileSelect(file, "staged")}
-								onUnstage={(file) =>
-									unstageFileMutation.mutate({
-										worktreePath: worktreePath || "",
-										filePath: file.path,
-									})
-								}
-								onUnstageFiles={(files) =>
-									unstageFilesMutation.mutate({
-										worktreePath: worktreePath || "",
-										filePaths: files.map((f) => f.path),
-									})
-								}
-								isActioning={
-									unstageFileMutation.isPending ||
-									unstageFilesMutation.isPending ||
-									unstageAllMutation.isPending ||
-									discardAllStagedMutation.isPending
-								}
-								worktreePath={worktreePath}
-								projectId={projectId}
-								category="staged"
-								isExpandedView={isExpandedView}
-							/>
-						) : null}
-					</CategorySection>
-
-					<CategorySection
-						title="Unstaged"
-						count={combinedUnstaged.length}
-						isExpanded={expandedSections.unstaged}
-						onToggle={() => toggleSection("unstaged")}
-						actions={
-							<div className="flex items-center gap-0.5">
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-											onClick={() => setShowDiscardUnstagedDialog(true)}
-											disabled={discardAllUnstagedMutation.isPending}
-										>
-											<LuUndo2 className="w-3.5 h-3.5" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom">
-										Discard all unstaged
-									</TooltipContent>
-								</Tooltip>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6"
-											onClick={() =>
-												stageAllMutation.mutate({
-													worktreePath: worktreePath || "",
-												})
-											}
-											disabled={stageAllMutation.isPending}
-										>
-											<HiMiniPlus className="w-4 h-4" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom">Stage all</TooltipContent>
-								</Tooltip>
-							</div>
-						}
-					>
-						{expandedSections.unstaged ? (
-							<FileList
-								files={combinedUnstaged}
-								viewMode={fileListViewMode}
-								selectedFile={selectedFile}
-								selectedCommitHash={selectedCommitHash}
-								onFileSelect={(file) => handleFileSelect(file, "unstaged")}
-								onStage={(file) =>
-									stageFileMutation.mutate({
-										worktreePath: worktreePath || "",
-										filePath: file.path,
-									})
-								}
-								onStageFiles={(files) =>
-									stageFilesMutation.mutate({
-										worktreePath: worktreePath || "",
-										filePaths: files.map((f) => f.path),
-									})
-								}
-								isActioning={
-									stageFileMutation.isPending ||
-									stageFilesMutation.isPending ||
-									stageAllMutation.isPending ||
-									discardChangesMutation.isPending ||
-									deleteUntrackedMutation.isPending ||
-									discardAllUnstagedMutation.isPending
-								}
-								worktreePath={worktreePath}
-								projectId={projectId}
-								onDiscard={handleDiscard}
-								category="unstaged"
-								isExpandedView={isExpandedView}
-							/>
-						) : null}
-					</CategorySection>
+					{orderedSections
+						.filter((section) => section.count > 0)
+						.map((section) => (
+							<CategorySection
+								key={section.id}
+								id={section.id}
+								title={section.title}
+								count={section.count}
+								isExpanded={section.isExpanded}
+								onToggle={section.onToggle}
+								actions={section.actions}
+								onMove={moveSection}
+							>
+								{section.content}
+							</CategorySection>
+						))}
 				</div>
 			)}
 

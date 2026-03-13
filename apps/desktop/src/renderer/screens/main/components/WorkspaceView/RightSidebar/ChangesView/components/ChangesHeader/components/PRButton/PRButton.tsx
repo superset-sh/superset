@@ -8,9 +8,12 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiChevronDown } from "react-icons/hi2";
-import { LuGitPullRequest, LuLoaderCircle } from "react-icons/lu";
-import { VscGitMerge } from "react-icons/vsc";
+import {
+	VscChevronDown,
+	VscGitMerge,
+	VscGitPullRequest,
+	VscLoading,
+} from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
@@ -55,7 +58,7 @@ export function PRButton({
 
 	if (isLoading) {
 		return (
-			<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+			<VscLoading className="w-4 h-4 animate-spin text-muted-foreground" />
 		);
 	}
 
@@ -65,7 +68,7 @@ export function PRButton({
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span className="flex items-center ml-auto text-muted-foreground/40">
-							<LuGitPullRequest className="w-4 h-4" />
+							<VscGitPullRequest className="w-4 h-4" />
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="top">
@@ -85,9 +88,9 @@ export function PRButton({
 						disabled={isCreatePending}
 					>
 						{isCreatePending ? (
-							<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+							<VscLoading className="w-4 h-4 animate-spin text-muted-foreground" />
 						) : (
-							<LuGitPullRequest className="w-4 h-4 text-muted-foreground" />
+							<VscGitPullRequest className="w-4 h-4 text-muted-foreground" />
 						)}
 					</button>
 				</TooltipTrigger>
@@ -135,7 +138,7 @@ export function PRButton({
 						className="flex items-center px-1 py-0.5 hover:bg-accent transition-colors"
 						disabled={mergePRMutation.isPending}
 					>
-						<HiChevronDown className="size-3 text-muted-foreground" />
+						<VscChevronDown className="size-3 text-muted-foreground" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-44">

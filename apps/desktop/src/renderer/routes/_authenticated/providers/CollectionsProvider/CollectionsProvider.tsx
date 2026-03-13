@@ -11,11 +11,7 @@ import {
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import {
-	getCollections,
-	preloadCollections,
-	setElectricUrl,
-} from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	switchOrganization: (organizationId: string) => Promise<void>;
@@ -25,10 +21,12 @@ const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
 export function preloadActiveOrganizationCollections(
 	activeOrganizationId: string | null | undefined,
+	enableV2Cloud: boolean,
 ): void {
 	if (!activeOrganizationId) return;
 	void preloadCollections(activeOrganizationId, {
 		includeChatCollections: false,
+		enableV2Cloud,
 	}).catch((error) => {
 		console.error(
 			"[collections-provider] Failed to preload active org collections:",
@@ -39,7 +37,8 @@ export function preloadActiveOrganizationCollections(
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const useElectricCloud = useFeatureFlagEnabled(FEATURE_FLAGS.ELECTRIC_CLOUD);
+	const isV2CloudEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
 	const [isSwitching, setIsSwitching] = useState(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -51,31 +50,26 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
-				await preloadCollections(organizationId);
+				await preloadCollections(organizationId, {
+					enableV2Cloud: isV2CloudEnabled,
+				});
 				await refetchSession();
 			} finally {
 				setIsSwitching(false);
 			}
 		},
-		[activeOrganizationId, refetchSession],
+		[activeOrganizationId, isV2CloudEnabled, refetchSession],
 	);
 
 	useEffect(() => {
-		preloadActiveOrganizationCollections(activeOrganizationId);
-	}, [activeOrganizationId]);
-
-	if (useElectricCloud === undefined) {
-		return null;
-	}
-
-	setElectricUrl(
-		useElectricCloud
-			? env.NEXT_PUBLIC_ELECTRIC_URL
-			: env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
-	);
+		preloadActiveOrganizationCollections(
+			activeOrganizationId,
+			isV2CloudEnabled,
+		);
+	}, [activeOrganizationId, isV2CloudEnabled]);
 
 	const collections = activeOrganizationId
-		? getCollections(activeOrganizationId)
+		? getCollections(activeOrganizationId, isV2CloudEnabled)
 		: null;
 
 	if (!collections || isSwitching) {

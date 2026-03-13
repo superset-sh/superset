@@ -18,6 +18,7 @@ import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
+import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
@@ -45,7 +46,7 @@ export function ChatMastraMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
-	activeSubagents: _activeSubagents,
+	activeSubagents,
 	pendingApproval,
 	isApprovalSubmitting,
 	onApprovalRespond,
@@ -55,6 +56,12 @@ export function ChatMastraMessageList({
 	pendingQuestion,
 	isQuestionSubmitting,
 	onQuestionRespond,
+	editingUserMessageId,
+	isEditSubmitting,
+	onStartEditUserMessage,
+	onCancelEditUserMessage,
+	onSubmitEditedUserMessage,
+	onRestartUserMessage,
 }: ChatMastraMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -98,6 +105,11 @@ export function ChatMastraMessageList({
 			}),
 		[activeTools, toolInputBuffers],
 	);
+	const activeSubagentEntries = useMemo(
+		() => (activeSubagents ? [...activeSubagents.entries()] : []),
+		[activeSubagents],
+	);
+	const hasSubagentActivity = activeSubagentEntries.length > 0;
 
 	const pendingPlanToolCallId = useMemo(() => {
 		const anchorMessages: MastraMessage[] = [...renderedMessages];
@@ -132,6 +144,7 @@ export function ChatMastraMessageList({
 	const canShowPendingAssistantUi =
 		isAwaitingAssistant &&
 		!currentMessage &&
+		!hasSubagentActivity &&
 		!pendingApproval &&
 		!pendingQuestion;
 	const shouldShowThinking =
@@ -159,7 +172,7 @@ export function ChatMastraMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl py-6 pl-6 pr-16">
+			<ConversationContent className="mx-auto w-full max-w-[680px] py-6">
 				<div ref={messageListRef} className="flex flex-col gap-6">
 					{shouldShowConversationLoading ? (
 						<ConversationLoadingState />
@@ -170,14 +183,22 @@ export function ChatMastraMessageList({
 							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 						/>
 					) : (
-						renderedMessages.map((message) => {
+						renderedMessages.map((message, messageIndex) => {
 							if (message.role === "user") {
 								return (
 									<UserMessage
 										key={message.id}
 										message={message}
+										prefixMessages={renderedMessages.slice(0, messageIndex)}
 										workspaceId={workspaceId}
 										workspaceCwd={workspaceCwd}
+										isEditing={editingUserMessageId === message.id}
+										isSubmitting={isEditSubmitting}
+										onStartEdit={onStartEditUserMessage}
+										onCancelEdit={onCancelEditUserMessage}
+										onSubmitEdit={onSubmitEditedUserMessage}
+										onRestart={onRestartUserMessage}
+										actionDisabled={isAwaitingAssistant}
 									/>
 								);
 							}
@@ -237,6 +258,9 @@ export function ChatMastraMessageList({
 							isPlanSubmitting={isPlanSubmitting}
 							onPlanRespond={onPlanRespond}
 						/>
+					) : null}
+					{hasSubagentActivity ? (
+						<SubagentExecutionMessage subagents={activeSubagentEntries} />
 					) : null}
 					{pendingApproval && (
 						<PendingApprovalMessage

@@ -15,8 +15,23 @@ export function useWorkspaceShortcuts() {
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const navigate = useNavigate();
 
-	// Flatten workspaces for keyboard navigation
-	const allWorkspaces = groups.flatMap((group) => group.workspaces);
+	const allWorkspaces = groups.flatMap((group) => {
+		const topLevelWorkspacesById = new Map(
+			group.workspaces.map((workspace) => [workspace.id, workspace]),
+		);
+		const sectionsById = new Map(
+			(group.sections ?? []).map((section) => [section.id, section]),
+		);
+
+		return group.topLevelItems.flatMap((item) => {
+			if (item.kind === "workspace") {
+				const workspace = topLevelWorkspacesById.get(item.id);
+				return workspace ? [workspace] : [];
+			}
+
+			return sectionsById.get(item.id)?.workspaces ?? [];
+		});
+	});
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {

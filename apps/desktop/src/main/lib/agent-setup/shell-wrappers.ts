@@ -22,6 +22,26 @@ function getShellName(shell: string): string {
 	return shell.split("/").pop() || shell;
 }
 
+/**
+ * Shell snippet to save all SUPERSET_* env vars before sourcing user RC files.
+ * Used in tandem with {@link SUPERSET_ENV_RESTORE} to prevent user shell
+ * configs from overriding Superset-managed environment variables (e.g.
+ * SUPERSET_WORKSPACE_NAME).
+ *
+ * @see https://github.com/AidenIO/superset/issues/2386
+ */
+const SUPERSET_ENV_SAVE = `_superset_saved_env="$(export -p 2>/dev/null | grep ' SUPERSET_')"`;
+
+/**
+ * Shell snippet to restore previously saved SUPERSET_* env vars after
+ * sourcing user RC files.
+ */
+const SUPERSET_ENV_RESTORE = `eval "$_superset_saved_env" 2>/dev/null || true`;
+
+function quoteShellLiteral(value: string): string {
+	return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
 function logModeDiagnostics(shellName: string): void {
 	const key = `${shellName}:native`;
 	if (modeDiagnosticsLogged.has(key)) return;
@@ -57,6 +77,10 @@ function writeFileIfChanged(
 	return true;
 }
 
+/**
+ * Build shell function wrappers for managed binaries (claude, codex, etc.)
+ * that prefer BIN_DIR executables over system-installed ones.
+ */
 function buildManagedCommandPrelude(shellName: string, binDir: string): string {
 	if (shellName === "fish") {
 		const escapedBinDir = escapeFishDoubleQuoted(binDir);
@@ -78,7 +102,7 @@ end`,
 		(name) =>
 			`unalias ${name} 2>/dev/null || true
 ${name}() {
-  _superset_wrapper="${binDir}/${name}"
+  _superset_wrapper=${quoteShellLiteral(`${binDir}/${name}`)}
   if [ -x "$_superset_wrapper" ] && [ ! -d "$_superset_wrapper" ]; then
     "$_superset_wrapper" "$@"
   else
@@ -88,14 +112,35 @@ ${name}() {
 	).join("\n");
 }
 
+/** Build a shell snippet that idempotently prepends BIN_DIR to PATH. */
 function buildPathPrependFunction(binDir: string): string {
 	return `_superset_prepend_bin() {
   case ":$PATH:" in
-    *:"${binDir}":*) ;;
-    *) export PATH="${binDir}:$PATH" ;;
+    *:${quoteShellLiteral(binDir)}:*) ;;
+    *) export PATH=${quoteShellLiteral(binDir)}:"$PATH" ;;
   esac
 }
 _superset_prepend_bin`;
+}
+
+/**
+ * Build a zsh precmd hook that re-asserts BIN_DIR in PATH.
+ * Tools like mise/asdf register precmd hooks that reconstruct PATH,
+ * which can remove our BIN_DIR. This is intentionally best-effort so
+ * unusual user zsh configs don't break shell startup.
+ */
+function buildZshPrecmdHook(binDir: string): string {
+	return `typeset -ga precmd_functions 2>/dev/null || true
+_superset_ensure_path() {
+  case ":$PATH:" in
+    *:${quoteShellLiteral(binDir)}:*) ;;
+    *) PATH=${quoteShellLiteral(binDir)}:"$PATH" ;;
+  esac
+}
+{
+  # Keep our hook last so it wins over other PATH-mutating precmd hooks.
+  precmd_functions=(\${precmd_functions:#_superset_ensure_path} _superset_ensure_path)
+} 2>/dev/null || true`;
 }
 
 function escapeFishDoubleQuoted(value: string): string {
@@ -109,16 +154,19 @@ export function createZshWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
 	logModeDiagnostics("zsh");
+	const quotedZshDir = quoteShellLiteral(paths.ZSH_DIR);
 
 	// .zshenv is always sourced first by zsh (interactive + non-interactive).
 	// Temporarily restore the user's ZDOTDIR while sourcing user config, then
 	// switch back so zsh continues through our wrapper chain.
 	const zshenvPath = path.join(paths.ZSH_DIR, ".zshenv");
 	const zshenvScript = `# Superset zsh env wrapper
+${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
-export ZDOTDIR="${paths.ZSH_DIR}"
+${SUPERSET_ENV_RESTORE}
+export ZDOTDIR=${quotedZshDir}
 `;
 	const wroteZshenv = writeFileIfChanged(zshenvPath, zshenvScript, 0o644);
 
@@ -126,23 +174,28 @@ export ZDOTDIR="${paths.ZSH_DIR}"
 	// so startup continues into our .zshrc wrapper.
 	const zprofilePath = path.join(paths.ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
+${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
-export ZDOTDIR="${paths.ZSH_DIR}"
+${SUPERSET_ENV_RESTORE}
+export ZDOTDIR=${quotedZshDir}
 `;
 	const wroteZprofile = writeFileIfChanged(zprofilePath, zprofileScript, 0o644);
 
 	// Reset ZDOTDIR before sourcing so Oh My Zsh works correctly
 	const zshrcPath = path.join(paths.ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
+${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
+${SUPERSET_ENV_RESTORE}
 ${buildPathPrependFunction(paths.BIN_DIR)}
+${buildZshPrecmdHook(paths.BIN_DIR)}
 rehash 2>/dev/null || true
 # Restore ZDOTDIR so our .zlogin runs after user's .zlogin
-export ZDOTDIR="${paths.ZSH_DIR}"
+export ZDOTDIR=${quotedZshDir}
 `;
 	const wroteZshrc = writeFileIfChanged(zshrcPath, zshrcScript, 0o644);
 
@@ -152,11 +205,14 @@ export ZDOTDIR="${paths.ZSH_DIR}"
 	// PATH prepend after user startup hooks run.
 	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
 	const zloginScript = `# Superset zsh login wrapper
+${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 if [[ -o interactive ]]; then
   [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
 fi
+${SUPERSET_ENV_RESTORE}
+${buildZshPrecmdHook(paths.BIN_DIR)}
 ${buildPathPrependFunction(paths.BIN_DIR)}
 rehash 2>/dev/null || true
 export ZDOTDIR="$_superset_home"
@@ -176,6 +232,9 @@ export function createBashWrapper(
 	const rcfilePath = path.join(paths.BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
 
+# Save Superset env vars before sourcing user config
+${SUPERSET_ENV_SAVE}
+
 # Source system profile
 [[ -f /etc/profile ]] && source /etc/profile
 
@@ -190,6 +249,9 @@ fi
 
 # Source bashrc if separate
 [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+
+# Restore Superset env vars that user config may have overridden
+${SUPERSET_ENV_RESTORE}
 
 # Keep superset bin first without duplicating entries
 ${buildPathPrependFunction(paths.BIN_DIR)}
@@ -261,10 +323,16 @@ export function getCommandShellArgs(
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
 	const commandWithManagedPrelude = `${buildManagedCommandPrelude(shellName, paths.BIN_DIR)}\n${command}`;
 	if (shellName === "zsh" && fs.existsSync(zshRc)) {
-		return ["-lc", `source "${zshRc}" &&\n${commandWithManagedPrelude}`];
+		return [
+			"-lc",
+			`source ${quoteShellLiteral(zshRc)} &&\n${commandWithManagedPrelude}`,
+		];
 	}
 	if (shellName === "bash" && fs.existsSync(bashRcfile)) {
-		return ["-c", `source "${bashRcfile}" &&\n${commandWithManagedPrelude}`];
+		return [
+			"-c",
+			`source ${quoteShellLiteral(bashRcfile)} &&\n${commandWithManagedPrelude}`,
+		];
 	}
 	return ["-lc", commandWithManagedPrelude];
 }

@@ -1,6 +1,6 @@
 export {
 	SYSTEM_THEME_ID,
-	useMonacoTheme,
+	useResolvedTheme,
 	useSetTheme,
 	useTerminalTheme,
 	useTheme,

@@ -126,6 +126,15 @@ function buildHeredoc(
 	].join("\n");
 }
 
+function buildFileCommand(
+	filePath: string,
+	command: string,
+	suffix?: string,
+): string {
+	const escapedPath = filePath.replaceAll("'", "'\\''");
+	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
+}
+
 export function buildPromptCommandFromAgentPreset({
 	prompt,
 	randomId,
@@ -152,6 +161,27 @@ export function buildPromptCommandFromAgentPreset({
 			: undefined;
 
 	return buildHeredoc(prompt, delimiter, promptCommand, suffix);
+}
+
+export function buildFileCommandFromAgentPreset({
+	filePath,
+	preset,
+}: {
+	filePath: string;
+	preset: Pick<
+		AgentPreset,
+		"command" | "promptCommand" | "promptCommandSuffix"
+	>;
+}): string | null {
+	const promptCommand = preset.promptCommand.trim() || preset.command.trim();
+	if (!promptCommand) return null;
+
+	const suffix =
+		preset.promptCommandSuffix && preset.promptCommandSuffix.trim().length > 0
+			? preset.promptCommandSuffix.trim()
+			: undefined;
+
+	return buildFileCommand(filePath, promptCommand, suffix);
 }
 
 export function getCommandFromAgentPreset(

@@ -15,7 +15,9 @@ export function OpenAIProviderHeading({
 	isPending,
 	onOpenAuthModal,
 }: OpenAIProviderHeadingProps) {
-	const tooltipLabel = isConnected ? "Manage OpenAI auth" : "Connect OpenAI";
+	const tooltipLabel = isConnected
+		? "Manage OpenAI in Settings"
+		: "Connect OpenAI in Settings";
 
 	return (
 		<div className="text-muted-foreground flex items-center justify-between px-2 py-1.5 text-xs font-medium">

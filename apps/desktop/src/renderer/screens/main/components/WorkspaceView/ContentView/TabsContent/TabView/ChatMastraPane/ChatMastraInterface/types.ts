@@ -21,5 +21,6 @@ export interface ChatMastraInterfaceProps {
 	ensureSessionReady: () => Promise<boolean>;
 	onStartFreshSession: () => Promise<StartFreshSessionResult>;
 	onConsumeLaunchConfig: () => void;
+	onUserMessageSubmitted?: (message: string) => void;
 	onRawSnapshotChange?: (snapshot: ChatMastraRawSnapshot) => void;
 }

@@ -494,6 +494,36 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	}),
+	SPLIT_WITH_CHAT: defineHotkey({
+		keys: "meta+shift+e",
+		label: "Split with New Chat",
+		category: "Layout",
+		description: "Split the current pane and open a new chat pane",
+		defaults: {
+			win32: "ctrl+alt+e",
+			linux: "ctrl+alt+e",
+		},
+	}),
+	SPLIT_WITH_BROWSER: defineHotkey({
+		keys: "meta+shift+s",
+		label: "Split with New Browser",
+		category: "Layout",
+		description: "Split the current pane and open a new browser pane",
+		defaults: {
+			win32: "ctrl+shift+alt+s",
+			linux: "ctrl+shift+alt+s",
+		},
+	}),
+	EQUALIZE_PANE_SPLITS: defineHotkey({
+		keys: "meta+shift+0",
+		label: "Equalize Pane Splits",
+		category: "Layout",
+		description: "Make all panes equal size",
+		defaults: {
+			win32: "ctrl+shift+0",
+			linux: "ctrl+shift+0",
+		},
+	}),
 	CLOSE_PANE: defineHotkey({
 		keys: "meta+w",
 		label: "Close Pane",

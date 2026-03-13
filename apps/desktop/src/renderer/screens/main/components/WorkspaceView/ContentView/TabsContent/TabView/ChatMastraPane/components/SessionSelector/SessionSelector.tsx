@@ -2,13 +2,13 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useEffect, useMemo, useState } from "react";
 import {
 	HiMiniArrowPath,
-	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniPlus,
 } from "react-icons/hi2";
@@ -24,6 +24,7 @@ interface SessionItem {
 interface SessionSelectorProps {
 	currentSessionId: string | null;
 	sessions: SessionItem[];
+	fallbackTitle?: string;
 	isSessionInitializing?: boolean;
 	onSelectSession: (sessionId: string) => void;
 	onNewChat: () => Promise<void>;
@@ -38,7 +39,23 @@ interface SessionGroup {
 const SESSION_PAGE_SIZE = 20;
 
 function toSessionGroupLabel(updatedAt: Date): string {
-	return getRelativeTime(updatedAt.getTime(), { format: "compact" });
+	const startOfToday = new Date();
+	startOfToday.setHours(0, 0, 0, 0);
+
+	const startOfYesterday = new Date(startOfToday);
+	startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+	const startOfLastWeek = new Date(startOfToday);
+	startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+	const startOfLastMonth = new Date(startOfToday);
+	startOfLastMonth.setDate(startOfLastMonth.getDate() - 30);
+
+	if (updatedAt >= startOfToday) return "Today";
+	if (updatedAt >= startOfYesterday) return "Yesterday";
+	if (updatedAt >= startOfLastWeek) return "Last 7 days";
+	if (updatedAt >= startOfLastMonth) return "Last 30 days";
+	return getRelativeTime(updatedAt.getTime());
 }
 
 function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {
@@ -62,6 +79,7 @@ function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {
 export function SessionSelector({
 	currentSessionId,
 	sessions,
+	fallbackTitle,
 	isSessionInitializing = false,
 	onSelectSession,
 	onNewChat,
@@ -94,8 +112,12 @@ export function SessionSelector({
 	const current = sessions.find(
 		(session) => session.sessionId === currentSessionId,
 	);
+	const resolvedFallbackTitle =
+		fallbackTitle && fallbackTitle !== "New Chat" ? fallbackTitle : null;
 	const currentTitle =
-		current?.title || (isSessionInitializing ? "Creating Chat" : "New Chat");
+		current?.title ||
+		resolvedFallbackTitle ||
+		(isSessionInitializing ? "Creating Chat" : "New Chat");
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -103,17 +125,20 @@ export function SessionSelector({
 				<button
 					type="button"
 					aria-busy={isSessionInitializing}
-					className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex w-full min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
-					<HiMiniChatBubbleLeftRight className="size-3.5" />
-					<span className="max-w-[120px] truncate">{currentTitle}</span>
+					<HiMiniChevronDown className="size-3" />
+					<span className="min-w-0 flex-1 truncate text-left">
+						{currentTitle}
+					</span>
 					{isSessionInitializing && (
 						<HiMiniArrowPath className="size-3 animate-spin" />
 					)}
-					<HiMiniChevronDown className="size-3" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-80">
+				<DropdownMenuLabel className="text-xs">Sessions</DropdownMenuLabel>
+				<DropdownMenuSeparator />
 				<div className="max-h-80 overflow-y-auto">
 					{sessions.length > 0 ? (
 						<>

@@ -14,6 +14,7 @@ import {
 } from "../../../utils/settings-search";
 import type { PlanTier } from "../../constants";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
+import { RecentInvoices } from "./components/RecentInvoices";
 import { UpgradeCard } from "./components/UpgradeCard";
 
 interface BillingOverviewProps {
@@ -166,6 +167,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 						)}
 					</>
 				)}
+				<RecentInvoices />
 			</div>
 		</div>
 	);

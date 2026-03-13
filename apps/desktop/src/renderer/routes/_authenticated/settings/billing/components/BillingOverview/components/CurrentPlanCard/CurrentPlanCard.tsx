@@ -25,7 +25,8 @@ export function CurrentPlanCard({
 }: CurrentPlanCardProps) {
 	const plan = PLANS[currentPlan];
 	const isPaidPlan = currentPlan !== "free";
-	const isCancelingAtPeriodEnd = isPaidPlan && !!cancelAt;
+	const isEnterprise = currentPlan === "enterprise";
+	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
 
 	return (
 		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
@@ -48,12 +49,15 @@ export function CurrentPlanCard({
 						<p className="text-xs text-muted-foreground">
 							{isCancelingAtPeriodEnd
 								? "Your plan will be downgraded to Free at the end of the billing period"
-								: isPaidPlan && periodEnd
-									? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}`
-									: plan.description}
+								: isEnterprise
+									? "Managed by your organization admin"
+									: isPaidPlan && periodEnd
+										? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}`
+										: plan.description}
 						</p>
 					</div>
 					{isPaidPlan &&
+						!isEnterprise &&
 						(isCancelingAtPeriodEnd ? (
 							<Button
 								variant="ghost"

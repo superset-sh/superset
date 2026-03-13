@@ -6,34 +6,52 @@ import { isDiffEditable } from "shared/changes-types";
 interface UseFileDiffEditParams {
 	category: ChangeCategory;
 	worktreePath: string;
-	filePath: string;
+	absolutePath: string;
 }
 
 export function useFileDiffEdit({
 	category,
 	worktreePath,
-	filePath,
+	absolutePath,
 }: UseFileDiffEditParams) {
 	const [isEditing, setIsEditing] = useState(false);
 	const editable = isDiffEditable(category);
 
 	const utils = electronTrpc.useUtils();
 	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
-		onSuccess: () => {
+		onSuccess: (result) => {
+			if (result.status !== "saved") {
+				return;
+			}
+
 			utils.changes.getFileContents.invalidate();
 			utils.changes.getStatus.invalidate();
 		},
 	});
 
 	const handleSave = useCallback(
-		(content: string) => {
-			if (!worktreePath || !filePath) return;
-			saveFileMutation.mutate({ worktreePath, filePath, content });
+		(
+			content: string,
+			options?: { expectedContent?: string; force?: boolean },
+		) => {
+			if (!worktreePath || !absolutePath) return;
+			return saveFileMutation.mutateAsync({
+				worktreePath,
+				absolutePath,
+				content,
+				expectedContent: options?.force ? undefined : options?.expectedContent,
+			});
 		},
-		[worktreePath, filePath, saveFileMutation],
+		[absolutePath, worktreePath, saveFileMutation],
 	);
 
 	const toggleEdit = editable ? () => setIsEditing((prev) => !prev) : undefined;
 
-	return { isEditing, editable, toggleEdit, handleSave };
+	return {
+		isEditing,
+		editable,
+		isSaving: saveFileMutation.isPending,
+		toggleEdit,
+		handleSave,
+	};
 }

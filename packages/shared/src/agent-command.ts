@@ -127,6 +127,15 @@ function buildHeredoc(
 	].join("\n");
 }
 
+function buildFileCommand(
+	filePath: string,
+	command: string,
+	suffix?: string,
+): string {
+	const escapedPath = filePath.replaceAll("'", "'\\''");
+	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
+}
+
 export function buildAgentPromptCommand({
 	prompt,
 	randomId,
@@ -142,6 +151,17 @@ export function buildAgentPromptCommand({
 	}
 	const command = AGENT_PROMPT_COMMANDS[agent];
 	return buildHeredoc(prompt, delimiter, command.command, command.suffix);
+}
+
+export function buildAgentFileCommand({
+	filePath,
+	agent = "claude",
+}: {
+	filePath: string;
+	agent?: AgentType;
+}): string {
+	const command = AGENT_PROMPT_COMMANDS[agent];
+	return buildFileCommand(filePath, command.command, command.suffix);
 }
 
 export function buildAgentCommand({

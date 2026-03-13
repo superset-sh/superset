@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
 
     steps:
       - name: Checkout code
@@ -81,6 +81,10 @@ jobs:
         working-directory: apps/desktop
         run: bun run clean:dev
 
+      - name: Generate file icons
+        working-directory: apps/desktop
+        run: bun run generate:icons
+
       - name: Compile app with electron-vite
         working-directory: apps/desktop
         env:
@@ -94,7 +98,6 @@ jobs:
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
-          NEXT_PUBLIC_ELECTRIC_PROXY_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_PROXY_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPERSET_WORKSPACE_NAME: superset
@@ -108,12 +111,20 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
 
       - name: Verify app-update.yml exists
         working-directory: apps/desktop
         run: |
-          APP_DIR=$(ls -d release/mac-arm64/*.app | head -1)
+          # electron-builder uses mac-arm64/ for arm64 and mac/ for x64 (when host is arm64)
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::No .app bundle found in release/"
+            ls -la release/
+            exit 1
+          fi
+          echo "Found app bundle: $APP_DIR"
           test -f "$APP_DIR/Contents/Resources/app-update.yml" || {
             echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
             exit 1
@@ -138,7 +149,7 @@ jobs:
       - name: Upload auto-update manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_prefix }}-mac-update-manifest
+          name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-update-manifest
           path: apps/desktop/release/*-mac.yml
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error
@@ -188,6 +199,10 @@ jobs:
         working-directory: apps/desktop
         run: bun run clean:dev
 
+      - name: Generate file icons
+        working-directory: apps/desktop
+        run: bun run generate:icons
+
       - name: Compile app with electron-vite
         working-directory: apps/desktop
         env:
@@ -201,7 +216,6 @@ jobs:
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
-          NEXT_PUBLIC_ELECTRIC_PROXY_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_PROXY_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPERSET_WORKSPACE_NAME: superset

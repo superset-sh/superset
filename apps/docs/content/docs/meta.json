@@ -12,6 +12,7 @@
 		"ports",
 		"browser",
 		"agent-integration",
+		"providers",
 		"mcp",
 		"---BookOpen Guides---",
 		"setup-teardown-scripts",

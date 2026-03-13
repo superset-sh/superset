@@ -2,11 +2,12 @@ import { ChatServiceProvider } from "@superset/chat/client";
 import { ChatMastraServiceProvider } from "@superset/chat-mastra/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { CopyIcon } from "lucide-react";
+import { useCallback } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { env } from "renderer/env.renderer";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Tab } from "renderer/stores/tabs/types";
+import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
@@ -34,11 +35,13 @@ interface ChatMastraPaneProps {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneVertical: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
@@ -63,6 +66,10 @@ export function ChatMastraPane({
 }: ChatMastraPaneProps) {
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
+	const paneName = useTabsStore((s) => s.panes[paneId]?.name ?? "New Chat");
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const {
 		sessionId,
 		launchConfig,
@@ -87,6 +94,42 @@ export function ChatMastraPane({
 		handleCopyRawSnapshot,
 	} = useChatMastraRawSnapshot({ sessionId });
 
+	const applySubmittedMessageFallbackTitle = useCallback(
+		(message: string) => {
+			const normalized = message.trim().replace(/\s+/g, " ");
+			if (!normalized) return;
+			const fallbackTitle =
+				normalized.length > 72
+					? `${normalized.slice(0, 69).trimEnd()}...`
+					: normalized;
+
+			const state = useTabsStore.getState();
+			const pane = state.panes[paneId];
+			const tab = state.tabs.find((candidate) => candidate.id === tabId);
+			const tabPaneCount = Object.values(state.panes).filter(
+				(candidate) => candidate.tabId === tabId,
+			).length;
+			const paneName = pane?.name?.trim() ?? "";
+			const tabName = tab?.name?.trim() ?? "";
+			const hasCustomTabTitle = Boolean(tab?.userTitle?.trim());
+			const shouldSetPaneTitle =
+				paneName.length === 0 || paneName === "New Chat";
+			const shouldSetTabTitle =
+				!hasCustomTabTitle &&
+				(tabName.length === 0 ||
+					tabName === "New Chat" ||
+					(tabPaneCount === 1 && pane?.type === "chat-mastra"));
+
+			if (shouldSetPaneTitle) {
+				setPaneAutoTitle(paneId, fallbackTitle);
+			}
+			if (shouldSetTabTitle) {
+				setTabAutoTitle(tabId, fallbackTitle);
+			}
+		},
+		[paneId, setPaneAutoTitle, setTabAutoTitle, tabId],
+	);
+
 	return (
 		<ChatMastraServiceProvider
 			client={mastraIpcClient}
@@ -105,10 +148,11 @@ export function ChatMastraPane({
 					setFocusedPane={setFocusedPane}
 					renderToolbar={(handlers) => (
 						<div className="flex h-full w-full items-center justify-between px-3">
-							<div className="flex min-w-0 items-center gap-2">
+							<div className="flex min-w-0 flex-1 items-center gap-2 pr-2">
 								<SessionSelector
 									currentSessionId={sessionId}
 									sessions={sessionItems}
+									fallbackTitle={paneName}
 									isSessionInitializing={isSessionInitializing}
 									onSelectSession={handleSelectSession}
 									onNewChat={handleNewChat}
@@ -148,6 +192,15 @@ export function ChatMastraPane({
 					<TabContentContextMenu
 						onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 						onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+						onSplitWithNewChat={() =>
+							splitPaneVertical(tabId, paneId, path, {
+								paneType: "chat-mastra",
+							})
+						}
+						onSplitWithNewBrowser={() =>
+							splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+						}
+						onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 						onClosePane={() => removePane(paneId)}
 						currentTabId={tabId}
 						availableTabs={availableTabs}
@@ -167,6 +220,7 @@ export function ChatMastraPane({
 								ensureSessionReady={ensureCurrentSessionRecord}
 								onStartFreshSession={handleStartFreshSession}
 								onConsumeLaunchConfig={consumeLaunchConfig}
+								onUserMessageSubmitted={applySubmittedMessageFallbackTitle}
 								onRawSnapshotChange={
 									showDevToolbarActions ? handleRawSnapshotChange : undefined
 								}

@@ -8,7 +8,9 @@ import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PlanTier } from "../constants";
 
@@ -73,9 +75,12 @@ const PLAN_CARDS: PlanCardData[] = [
 	{
 		id: "pro",
 		name: "Pro",
-		price: { monthly: "$20", yearly: "$180" },
-		priceNote: { monthly: "per user/month", yearly: "per user/year" },
-		billingText: { monthly: "Billed monthly", yearly: "Billed yearly" },
+		price: { monthly: "$20", yearly: "$15" },
+		priceNote: { monthly: "per user/month", yearly: "per user/month" },
+		billingText: {
+			monthly: "Billed monthly",
+			yearly: "$180/year · billed annually",
+		},
 		showBillingToggle: true,
 		actions: [
 			{
@@ -199,6 +204,7 @@ function PlansPage() {
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const { data: session } = authClient.useSession();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const collections = useCollections();
 
 	const activeOrgId = session?.session?.activeOrganizationId;
@@ -252,7 +258,8 @@ function PlansPage() {
 		}
 
 		if (action === "contact") {
-			window.open("mailto:founders@superset.sh", "_blank");
+			track("enterprise_trial_requested", { source: "billing_plans" });
+			openUrl.mutate("mailto:founders@superset.sh");
 			return;
 		}
 
@@ -358,13 +365,19 @@ function PlansPage() {
 						</span>
 						. If you have any questions or would like further support with your
 						plan,{" "}
-						<a
-							href="mailto:founders@superset.sh"
+						<button
+							type="button"
+							onClick={() => {
+								track("billing_support_contacted", {
+									source: "billing_plans_inline",
+								});
+								openUrl.mutate("mailto:founders@superset.sh");
+							}}
 							className="inline-flex items-center gap-1 text-primary hover:underline"
 						>
 							contact us
 							<HiArrowUpRight className="h-3 w-3" />
-						</a>
+						</button>
 						.
 					</p>
 				</div>
@@ -396,9 +409,20 @@ function PlansPage() {
 									const isCurrent = currentPlanLabel === plan.name;
 									const isDowngrade =
 										plan.id === "free" && currentPlan !== "free";
+									const isOnEnterprise = currentPlan === "enterprise";
 
 									let planActions: typeof plan.actions;
-									if (isCurrent && cancelAt) {
+									if (isOnEnterprise) {
+										planActions = [
+											{
+												label: isCurrent
+													? "Current plan"
+													: "Included in Enterprise",
+												action: "current" as const,
+												variant: "secondary" as const,
+											},
+										];
+									} else if (isCurrent && cancelAt) {
 										planActions = [
 											{
 												label: isRestoring ? "Restoring..." : "Restore plan",

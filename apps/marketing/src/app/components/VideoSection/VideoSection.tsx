@@ -18,7 +18,7 @@ export function VideoSection() {
 							Code 10x faster with no switching cost
 						</h2>
 						<p className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							Superset works with your existing tools. We provides
+							Superset works with your existing tools. We provide
 							parallelization and better UX to enhance your Claude Code,
 							OpenCode, Cursor, etc.
 						</p>

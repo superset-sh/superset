@@ -1,8 +1,9 @@
-import simpleGit from "simple-git";
+import fs from "node:fs/promises";
+import { resolve } from "node:path";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
-	assertRegisteredWorktree,
 	gitCheckoutFile,
 	gitDiscardAllStaged,
 	gitDiscardAllUnstaged,
@@ -15,21 +16,21 @@ import {
 	gitUnstageAll,
 	gitUnstageFile,
 	gitUnstageFiles,
-	secureFs,
-} from "./security";
+} from "./security/git-commands";
+import { assertRegisteredWorktree } from "./security/path-validation";
 import { parseGitStatus } from "./utils/parse-status";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
 	assertRegisteredWorktree(worktreePath);
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const status = await git.status();
 	return parseGitStatus(status).untracked.map((f) => f.path);
 }
 
 async function getStagedNewFilePaths(worktreePath: string): Promise<string[]> {
 	assertRegisteredWorktree(worktreePath);
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const status = await git.status();
 	return parseGitStatus(status)
 		.staged.filter((f) => f.status === "added")
@@ -41,7 +42,9 @@ async function deleteFiles(
 	filePaths: string[],
 ): Promise<void> {
 	await Promise.all(
-		filePaths.map((filePath) => secureFs.delete(worktreePath, filePath)),
+		filePaths.map((filePath) =>
+			fs.rm(resolve(worktreePath, filePath), { recursive: true, force: true }),
+		),
 	);
 }
 
@@ -136,7 +139,10 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await secureFs.delete(input.worktreePath, input.filePath);
+				await fs.rm(resolve(input.worktreePath, input.filePath), {
+					recursive: true,
+					force: true,
+				});
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),

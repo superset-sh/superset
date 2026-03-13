@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDurableStream, requireAuth } from "../lib";
 
 function errorMessage(error: unknown): string {
@@ -95,6 +95,28 @@ export async function PUT(
 			error: errorMessage(error),
 		});
 		await db.insert(chatSessions).values(baseValues).onConflictDoNothing();
+	}
+
+	if (body.workspaceId) {
+		try {
+			await db
+				.update(chatSessions)
+				.set({ workspaceId: body.workspaceId })
+				.where(
+					and(
+						eq(chatSessions.id, sessionId),
+						eq(chatSessions.createdBy, session.user.id),
+						isNull(chatSessions.workspaceId),
+					),
+				)
+				.returning({ id: chatSessions.id });
+		} catch (error) {
+			console.warn("[chat] failed to ensure workspace_id on session", {
+				sessionId,
+				workspaceId: body.workspaceId,
+				error: errorMessage(error),
+			});
+		}
 	}
 
 	return Response.json(

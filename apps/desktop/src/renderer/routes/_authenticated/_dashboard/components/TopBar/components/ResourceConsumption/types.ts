@@ -31,3 +31,21 @@ export interface AppMetrics extends UsageValues {
 	renderer: UsageValues;
 	other: UsageValues;
 }
+
+export interface HostMetrics {
+	totalMemory: number;
+	freeMemory: number;
+	usedMemory: number;
+	memoryUsagePercent: number;
+	cpuCoreCount: number;
+	loadAverage1m: number;
+}
+
+export interface ResourceMetricsSnapshot {
+	app: AppMetrics;
+	workspaces: WorkspaceMetrics[];
+	host: HostMetrics;
+	totalCpu: number;
+	totalMemory: number;
+	collectedAt: number;
+}

@@ -169,6 +169,34 @@
       "when": 1771866677057,
       "tag": "0023_agent_commands_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772675221034,
+      "tag": "0024_add_allowed_domains_to_organizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1772851349454,
+      "tag": "0025_add_org_id_to_github_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1772932229222,
+      "tag": "0026_add_assignee_external_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1773253217707,
+      "tag": "0027_v2_projects_and_sidebar",
+      "breakpoints": true
     }
   ]
 }

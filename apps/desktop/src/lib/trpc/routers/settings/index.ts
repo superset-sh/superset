@@ -148,7 +148,7 @@ function initializeDefaultPresets() {
 			: DEFAULT_PRESETS.map((p) => ({
 					id: crypto.randomUUID(),
 					...p,
-					executionMode: p.executionMode ?? "split-pane",
+					executionMode: p.executionMode ?? "new-tab",
 				}));
 
 	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
@@ -206,7 +206,7 @@ export const createSettingsRouter = () => {
 				const preset: TerminalPreset = {
 					id: crypto.randomUUID(),
 					...input,
-					executionMode: input.executionMode ?? "split-pane",
+					executionMode: input.executionMode ?? "new-tab",
 				};
 
 				const presets = getNormalizedTerminalPresets();

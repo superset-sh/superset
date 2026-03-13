@@ -10,6 +10,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { Label } from "@superset/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -19,6 +20,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
@@ -32,7 +34,7 @@ import { useAgentLaunchAgents } from "renderer/react-query/agent-presets";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import {
-	buildPromptCommandFromAgentPreset,
+	buildFileCommandFromAgentPreset,
 	DEFAULT_AGENT_TASK_PROMPT_TEMPLATE,
 	getDefaultAgentPreset,
 	OPEN_AGENT_SETTINGS_OPTION,
@@ -71,10 +73,13 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			? (stored as StartableAgentType)
 			: "claude";
 	});
+	const [autoRun, setAutoRun] = useState(
+		() => localStorage.getItem("agentAutoRun") !== "false",
+	);
 
 	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(
-		(p) => p.id === effectiveProjectId,
+		(project) => project.id === effectiveProjectId,
 	);
 
 	useEffect(() => {
@@ -120,6 +125,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				chat: {
 					initialPrompt: renderTaskPromptTemplate(template, taskPromptInput),
 					retryCount: 1,
+					autoExecute: autoRun,
+					taskSlug: task.slug,
 				},
 			};
 		}
@@ -131,9 +138,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			selectedPreset.taskPromptTemplate,
 			taskPromptInput,
 		);
-		const command = buildPromptCommandFromAgentPreset({
-			prompt: taskPrompt,
-			randomId: window.crypto.randomUUID(),
+		const taskPromptFileName = `task-${task.slug}.md`;
+		const command = buildFileCommandFromAgentPreset({
+			filePath: `.superset/${taskPromptFileName}`,
 			preset: selectedPreset,
 		});
 
@@ -149,6 +156,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			terminal: {
 				command,
 				name: task.slug,
+				taskPromptContent: taskPrompt,
+				taskPromptFileName,
+				autoExecute: autoRun,
 			},
 		};
 	};
@@ -238,7 +248,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
 						) : (
 							recentProjects
-								.filter((p) => p.id)
+								.filter((project) => project.id)
 								.map((project) => (
 									<DropdownMenuItem
 										key={project.id}
@@ -312,6 +322,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					</SelectItem>
 				</SelectContent>
 			</Select>
+			<div className="flex items-center justify-between">
+				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
+					Auto-run command
+				</Label>
+				<Switch
+					id="auto-run-toggle"
+					checked={autoRun}
+					onCheckedChange={(value) => {
+						setAutoRun(value);
+						localStorage.setItem("agentAutoRun", String(value));
+					}}
+				/>
+			</div>
 		</div>
 	);
 }

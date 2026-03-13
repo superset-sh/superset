@@ -25,7 +25,9 @@ import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
+import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { PresetBarItem } from "./components/PresetBarItem";
 
 interface PresetTemplate {
@@ -125,7 +127,7 @@ export function PresetsBar() {
 	const navigate = useNavigate();
 	const { presets, createPreset, updatePreset, reorderPresets } = usePresets();
 	const isDark = useIsDarkTheme();
-	const { openPreset } = useTabsWithPresets();
+	const { openPreset, openPresetInCurrentTerminal } = useTabsWithPresets();
 	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
 		() => getPinnedPresetOrder(presets),
 	);
@@ -262,6 +264,30 @@ export function PresetsBar() {
 		},
 		[workspaceId, openPreset],
 	);
+
+	const handleOpenPresetInCurrentTerminal = useCallback(
+		(preset: (typeof presets)[number]) => {
+			if (!workspaceId) return;
+			openPresetInCurrentTerminal(workspaceId, preset);
+		},
+		[workspaceId, openPresetInCurrentTerminal],
+	);
+
+	const canOpenInCurrentTerminal = useTabsStore((state) => {
+		if (!workspaceId) return false;
+		const activeTabId = resolveActiveTabIdForWorkspace({
+			workspaceId,
+			tabs: state.tabs,
+			activeTabIds: state.activeTabIds,
+			tabHistoryStacks: state.tabHistoryStacks,
+		});
+		if (!activeTabId) return false;
+
+		const paneId = state.focusedPaneIds[activeTabId];
+		if (!paneId) return false;
+
+		return state.panes[paneId]?.type === "terminal";
+	});
 
 	const handleEditPreset = useCallback(
 		(presetId: string) => {
@@ -423,7 +449,9 @@ export function PresetsBar() {
 						hotkeyId={hotkeyId}
 						isDark={isDark}
 						canOpen={!!workspaceId}
+						canOpenInCurrentTerminal={canOpenInCurrentTerminal}
 						onOpenDefault={handleOpenPresetDefault}
+						onOpenInCurrentTerminal={handleOpenPresetInCurrentTerminal}
 						onOpenInNewTab={handleOpenPresetInNewTab}
 						onOpenInPane={handleOpenPresetInPane}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}

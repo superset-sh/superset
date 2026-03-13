@@ -1,4 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
+import { getPathBaseName } from "shared/absolute-paths";
 import {
 	type ChangeCategory,
 	type FileStatus,
@@ -171,6 +172,7 @@ export const createPane = (
  */
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
+	displayName?: string;
 	viewMode?: FileViewerMode;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
@@ -212,10 +214,11 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
+		displayName: options.displayName,
 	};
 
 	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	const fileName = options.displayName || getPathBaseName(options.filePath);
 
 	return {
 		id,
@@ -580,6 +583,32 @@ export const addPaneToLayout = (
 	second: newPaneId,
 	splitPercentage: 50,
 });
+
+/**
+ * Counts the number of leaf panes in a mosaic subtree.
+ */
+const countLeaves = (node: MosaicNode<string>): number => {
+	if (typeof node === "string") return 1;
+	return countLeaves(node.first) + countLeaves(node.second);
+};
+
+/**
+ * Recursively sets split percentages so all leaf panes get equal space.
+ * Each split is proportional to the number of leaves on each side.
+ */
+export const equalizeSplitPercentages = (
+	node: MosaicNode<string>,
+): MosaicNode<string> => {
+	if (typeof node === "string") return node;
+	const leftLeaves = countLeaves(node.first);
+	const rightLeaves = countLeaves(node.second);
+	return {
+		...node,
+		splitPercentage: (leftLeaves / (leftLeaves + rightLeaves)) * 100,
+		first: equalizeSplitPercentages(node.first),
+		second: equalizeSplitPercentages(node.second),
+	};
+};
 
 /**
  * Builds a balanced multi-pane Mosaic layout using recursive binary splits.

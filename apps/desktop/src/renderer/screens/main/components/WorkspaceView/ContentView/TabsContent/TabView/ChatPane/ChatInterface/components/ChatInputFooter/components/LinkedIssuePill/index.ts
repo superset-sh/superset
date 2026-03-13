@@ -1,0 +1,1 @@
+export { LinkedIssuePill } from "./LinkedIssuePill";

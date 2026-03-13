@@ -3,6 +3,11 @@ import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import {
+	getPathBaseName,
+	pathsMatch,
+	retargetAbsolutePath,
+} from "shared/absolute-paths";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -24,6 +29,7 @@ import {
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
+	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
 	generateId,
 	generateTabName,
@@ -339,7 +345,9 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						if (!tab || tab.name === title) return state;
+						if (!tab || tab.name === title || tab.userTitle?.trim()) {
+							return state;
+						}
 						return {
 							tabs: state.tabs.map((t) =>
 								t.id === tabId ? { ...t, name: title } : t,
@@ -491,6 +499,13 @@ export const useTabsStore = create<TabsStore>()(
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
 					});
+				},
+
+				equalizePaneSplits: (tabId) => {
+					const tab = get().tabs.find((t) => t.id === tabId);
+					if (!tab?.layout || typeof tab.layout === "string") return;
+					const equalizedLayout = equalizeSplitPercentages(tab.layout);
+					get().updateTabLayout(tabId, equalizedLayout);
 				},
 
 				// Pane operations
@@ -666,7 +681,7 @@ export const useTabsStore = create<TabsStore>()(
 							(p) =>
 								p?.type === "file-viewer" &&
 								p.fileViewer?.isPinned &&
-								p.fileViewer.filePath === options.filePath &&
+								pathsMatch(p.fileViewer.filePath, options.filePath) &&
 								p.fileViewer.diffCategory === options.diffCategory &&
 								p.fileViewer.commitHash === options.commitHash,
 						);
@@ -703,15 +718,19 @@ export const useTabsStore = create<TabsStore>()(
 
 						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
-							existingFileViewer.filePath === options.filePath &&
+							pathsMatch(existingFileViewer.filePath, options.filePath) &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							if (
-								options.viewMode &&
-								existingFileViewer.viewMode !== options.viewMode
-							) {
+							const nextViewMode =
+								options.viewMode ?? existingFileViewer.viewMode;
+							const shouldUpdateViewerState =
+								nextViewMode !== existingFileViewer.viewMode ||
+								options.line !== undefined ||
+								options.column !== undefined;
+
+							if (shouldUpdateViewerState) {
 								set({
 									panes: {
 										...state.panes,
@@ -719,7 +738,11 @@ export const useTabsStore = create<TabsStore>()(
 											...paneToReuse,
 											fileViewer: {
 												...existingFileViewer,
-												viewMode: options.viewMode,
+												viewMode: nextViewMode,
+												initialLine:
+													options.line ?? existingFileViewer.initialLine,
+												initialColumn:
+													options.column ?? existingFileViewer.initialColumn,
 											},
 										},
 									},
@@ -741,7 +764,7 @@ export const useTabsStore = create<TabsStore>()(
 
 						// Different file - replace the preview pane content
 						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
+							options.displayName || getPathBaseName(options.filePath);
 
 						const viewMode = resolveFileViewerMode({
 							filePath: options.filePath,
@@ -766,6 +789,7 @@ export const useTabsStore = create<TabsStore>()(
 										oldPath: options.oldPath,
 										initialLine: options.line,
 										initialColumn: options.column,
+										displayName: options.displayName,
 									},
 								},
 							},
@@ -936,10 +960,17 @@ export const useTabsStore = create<TabsStore>()(
 					const pane = state.panes[paneId];
 					if (!pane || pane.tabId !== tabId) return;
 
+					const alreadyFocused = state.focusedPaneIds[tabId] === paneId;
+
 					set({
 						panes: {
 							...state.panes,
-							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
+							[paneId]: {
+								...pane,
+								status: alreadyFocused
+									? pane.status
+									: acknowledgedStatus(pane.status),
+							},
 						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
@@ -981,7 +1012,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = {
 						...state.panes,
-						[paneId]: { ...pane, name },
+						[paneId]: { ...pane, name, userTitle: name },
 					};
 					const tabName = deriveTabName(newPanes, pane.tabId);
 
@@ -990,6 +1021,20 @@ export const useTabsStore = create<TabsStore>()(
 						tabs: state.tabs.map((t) =>
 							t.id === pane.tabId ? { ...t, name: tabName } : t,
 						),
+					});
+				},
+				setPaneAutoTitle: (paneId, title) => {
+					set((state) => {
+						const pane = state.panes[paneId];
+						if (!pane || pane.name === title || pane.userTitle?.trim()) {
+							return state;
+						}
+						return {
+							panes: {
+								...state.panes,
+								[paneId]: { ...pane, name: title },
+							},
+						};
 					});
 				},
 
@@ -1071,6 +1116,80 @@ export const useTabsStore = create<TabsStore>()(
 					});
 				},
 
+				retargetFileViewerPaths: (
+					workspaceId,
+					oldAbsolutePath,
+					newAbsolutePath,
+					isDirectory,
+				) => {
+					set((state) => {
+						const workspaceTabIds = new Set(
+							state.tabs
+								.filter((tab) => tab.workspaceId === workspaceId)
+								.map((tab) => tab.id),
+						);
+						if (workspaceTabIds.size === 0) {
+							return state;
+						}
+
+						let hasChanges = false;
+						const nextPanes = { ...state.panes };
+						const touchedTabIds = new Set<string>();
+
+						for (const [paneId, pane] of Object.entries(state.panes)) {
+							if (
+								pane.type !== "file-viewer" ||
+								!pane.fileViewer ||
+								!workspaceTabIds.has(pane.tabId)
+							) {
+								continue;
+							}
+
+							const nextFilePath = retargetAbsolutePath(
+								pane.fileViewer.filePath,
+								oldAbsolutePath,
+								newAbsolutePath,
+								isDirectory,
+							);
+							if (!nextFilePath) {
+								continue;
+							}
+
+							hasChanges = true;
+							touchedTabIds.add(pane.tabId);
+							nextPanes[paneId] = {
+								...pane,
+								name:
+									pane.fileViewer.displayName ?? getPathBaseName(nextFilePath),
+								fileViewer: {
+									...pane.fileViewer,
+									filePath: nextFilePath,
+								},
+							};
+						}
+
+						if (!hasChanges) {
+							return state;
+						}
+
+						const nextTabs = state.tabs.map((tab) => {
+							if (tab.userTitle?.trim() || !touchedTabIds.has(tab.id)) {
+								return tab;
+							}
+
+							return {
+								...tab,
+								name: deriveTabName(nextPanes, tab.id),
+							};
+						});
+
+						return {
+							panes: nextPanes,
+							tabs: nextTabs,
+						};
+					});
+				},
+
 				clearPaneInitialData: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
@@ -1119,8 +1238,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1163,7 +1293,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});
@@ -1177,8 +1307,19 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Always create a new terminal when splitting
-					const newPane = createPane(tabId, "terminal", options);
+					const paneType = options?.paneType ?? "terminal";
+					const newPane =
+						paneType === "chat-mastra"
+							? createChatMastraPane(tabId)
+							: paneType === "webview"
+								? createBrowserPane(tabId)
+								: createPane(tabId, "terminal", options);
+					const panelType =
+						paneType === "chat-mastra"
+							? "chat"
+							: paneType === "webview"
+								? "browser"
+								: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1221,7 +1362,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					posthog.capture("panel_opened", {
-						panel_type: "terminal",
+						panel_type: panelType,
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});

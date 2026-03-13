@@ -14,7 +14,12 @@ export interface LinearIssue {
 	url: string;
 	startedAt: string | null;
 	completedAt: string | null;
-	assignee: { id: string; email: string } | null;
+	assignee: {
+		id: string;
+		email: string;
+		name: string;
+		avatarUrl: string | null;
+	} | null;
 	state: {
 		id: string;
 		name: string;
@@ -99,6 +104,8 @@ const ISSUES_QUERY = `
         assignee {
           id
           email
+          name
+          avatarUrl
         }
         state {
           id
@@ -155,6 +162,16 @@ export function mapIssueToTask(
 		? (userByEmail.get(issue.assignee.email) ?? null)
 		: null;
 
+	let assigneeExternalId: string | null = null;
+	let assigneeDisplayName: string | null = null;
+	let assigneeAvatarUrl: string | null = null;
+
+	if (issue.assignee && !assigneeId) {
+		assigneeExternalId = issue.assignee.id;
+		assigneeDisplayName = issue.assignee.name;
+		assigneeAvatarUrl = issue.assignee.avatarUrl;
+	}
+
 	const statusId = statusByExternalId.get(issue.state.id);
 	if (!statusId) {
 		throw new Error(`Status not found for state ${issue.state.id}`);
@@ -169,6 +186,9 @@ export function mapIssueToTask(
 		statusId,
 		priority: mapPriorityFromLinear(issue.priority),
 		assigneeId,
+		assigneeExternalId,
+		assigneeDisplayName,
+		assigneeAvatarUrl,
 		estimate: issue.estimate,
 		dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 		labels: issue.labels.nodes.map((l) => l.name),

@@ -3,6 +3,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 import { isImageFile } from "shared/file-types";
 
+const BRANCH_QUERY_STALE_TIME_MS = 10_000;
+
 interface UseFileContentParams {
 	worktreePath: string;
 	filePath: string;
@@ -34,6 +36,8 @@ export function useFileContent({
 		{ worktreePath },
 		{
 			enabled: !isRemote && !!worktreePath && diffCategory === "against-base",
+			staleTime: BRANCH_QUERY_STALE_TIME_MS,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const effectiveBaseBranch =
@@ -43,7 +47,7 @@ export function useFileContent({
 
 	const { data: rawFileData, isLoading: isLoadingRaw } =
 		electronTrpc.changes.readWorkingFile.useQuery(
-			{ worktreePath, filePath },
+			{ worktreePath, absolutePath: filePath },
 			{
 				enabled:
 					!isRemote &&
@@ -56,7 +60,7 @@ export function useFileContent({
 
 	const { data: imageData, isLoading: isLoadingImage } =
 		electronTrpc.changes.readWorkingFileImage.useQuery(
-			{ worktreePath, filePath },
+			{ worktreePath, absolutePath: filePath },
 			{
 				enabled:
 					!isRemote &&
@@ -71,8 +75,8 @@ export function useFileContent({
 		electronTrpc.changes.getFileContents.useQuery(
 			{
 				worktreePath,
-				filePath,
-				oldPath,
+				absolutePath: filePath,
+				oldAbsolutePath: oldPath,
 				category: diffCategory ?? "unstaged",
 				commitHash,
 				defaultBranch:

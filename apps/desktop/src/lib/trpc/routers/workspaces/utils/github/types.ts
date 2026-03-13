@@ -25,6 +25,13 @@ export const GHCheckContextSchema = z.object({
 	workflowName: z.string().optional(),
 });
 
+export const GHReviewRequestSchema = z.object({
+	login: z.string().optional(),
+	name: z.string().optional(),
+	slug: z.string().optional(),
+	type: z.enum(["User", "Team"]).optional(),
+});
+
 export const GHPRResponseSchema = z.object({
 	number: z.number(),
 	title: z.string(),
@@ -35,15 +42,45 @@ export const GHPRResponseSchema = z.object({
 	additions: z.number(),
 	deletions: z.number(),
 	headRefOid: z.string(),
+	headRefName: z.string(),
 	reviewDecision: z
 		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
 		.nullable(),
 	// statusCheckRollup is an array directly, not { contexts: [...] }
 	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
+	reviewRequests: z.array(GHReviewRequestSchema).nullable().optional(),
 });
 
 export const GHRepoResponseSchema = z.object({
 	url: z.string(),
+	isFork: z.boolean().optional().default(false),
+	parent: z.object({ url: z.string() }).nullable().optional(),
 });
 
+export interface RepoContext {
+	repoUrl: string;
+	upstreamUrl: string;
+	isFork: boolean;
+}
+
 export type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+
+export const GHDeploymentSchema = z.object({
+	id: z.number(),
+	ref: z.string(),
+	environment: z.string(),
+	created_at: z.string(),
+});
+
+export const GHDeploymentStatusSchema = z.object({
+	state: z.enum([
+		"error",
+		"failure",
+		"inactive",
+		"in_progress",
+		"queued",
+		"pending",
+		"success",
+	]),
+	environment_url: z.string().optional(),
+});

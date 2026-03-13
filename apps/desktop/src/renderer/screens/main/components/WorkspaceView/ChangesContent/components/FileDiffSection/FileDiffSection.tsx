@@ -1,18 +1,23 @@
+import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
+import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useChangesStore } from "renderer/stores/changes";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { detectLanguage } from "shared/detect-language";
 import {
 	getStatusColor,
 	getStatusIndicator,
 } from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
-import { DiffViewer } from "../DiffViewer";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
+import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
 
 interface FileDiffSectionProps {
@@ -29,7 +34,7 @@ interface FileDiffSectionProps {
 	isActioning?: boolean;
 }
 
-const VISIBILITY_MARGIN = "200px 0px";
+const DIFF_LOAD_MARGIN = "150px 0px";
 const LARGE_DIFF_THRESHOLD = 500;
 
 const GENERATED_FILE_PATTERNS = [
@@ -83,20 +88,30 @@ export function FileDiffSection({
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
+	const [isInLoadRange, setIsInLoadRange] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
+	const [editedContent, setEditedContent] = useState<string | null>(null);
+	const [hasExternalDiskChange, setHasExternalDiskChange] = useState(false);
+	const [saveConflict, setSaveConflict] = useState<{
+		localContent: string;
+		diskContent: string | null;
+	} | null>(null);
+	const baselineContentRef = useRef("");
+	const editedContentRef = useRef<string | null>(null);
 
-	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
-		category,
-		worktreePath,
-		filePath: file.path,
-	});
+	const { isEditing, editable, isSaving, toggleEdit, handleSave } =
+		useFileDiffEdit({
+			category,
+			worktreePath,
+			absolutePath: toAbsoluteWorkspacePath(worktreePath, file.path),
+		});
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
 	const isGenerated = isGeneratedFile(file.path);
 	const isHiddenByDefault = isLargeDiff || isGenerated;
 
-	const fileKey = createFileKey(file, category, commitHash);
+	const fileKey = createFileKey(file, category, commitHash, worktreePath);
 	const isViewed = viewedFiles.has(fileKey);
 
 	const openInEditorMutation =
@@ -106,7 +121,7 @@ export function FileDiffSection({
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
 			if (worktreePath) {
-				const absolutePath = `${worktreePath}/${file.path}`;
+				const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
 				openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
 			}
 		},
@@ -152,12 +167,24 @@ export function FileDiffSection({
 		[fileKey, setFileViewed, isExpanded, onToggleExpanded],
 	);
 
+	const handleToggleEdit = useCallback(() => {
+		if (!toggleEdit) return;
+		setActiveFileKey(fileKey);
+		toggleEdit();
+	}, [fileKey, setActiveFileKey, toggleEdit]);
+
 	useEffect(() => {
-		registerFileRef(file, category, commitHash, sectionRef.current);
+		registerFileRef(
+			file,
+			category,
+			commitHash,
+			worktreePath,
+			sectionRef.current,
+		);
 		return () => {
-			registerFileRef(file, category, commitHash, null);
+			registerFileRef(file, category, commitHash, worktreePath, null);
 		};
-	}, [file, category, commitHash, registerFileRef]);
+	}, [file, category, commitHash, registerFileRef, worktreePath]);
 
 	useEffect(() => {
 		const element = sectionRef.current;
@@ -179,11 +206,12 @@ export function FileDiffSection({
 
 		const visibilityObserver = new IntersectionObserver(
 			([entry]) => {
+				setIsInLoadRange(entry.isIntersecting);
 				if (entry.isIntersecting) {
 					setHasBeenVisible(true);
 				}
 			},
-			{ root: container, rootMargin: VISIBILITY_MARGIN },
+			{ root: container, rootMargin: DIFF_LOAD_MARGIN },
 		);
 
 		activeObserver.observe(element);
@@ -195,29 +223,121 @@ export function FileDiffSection({
 		};
 	}, [fileKey, setActiveFileKey, containerRef]);
 
+	const statusBadgeColor = getStatusColor(file.status);
+	const statusIndicator = getStatusIndicator(file.status);
+	const showStats = file.additions > 0 || file.deletions > 0;
+	const canShowDiffBody =
+		isExpanded && (!isHiddenByDefault || loadHiddenDiff) && !!worktreePath;
+	const shouldLoadDiff =
+		canShowDiffBody && hasBeenVisible && (isInLoadRange || isEditing);
+
 	const { data: diffData, isLoading: isLoadingDiff } =
 		electronTrpc.changes.getFileContents.useQuery(
 			{
 				worktreePath,
-				filePath: file.path,
-				oldPath: file.oldPath,
+				absolutePath: toAbsoluteWorkspacePath(worktreePath, file.path),
+				oldAbsolutePath: file.oldPath
+					? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
+					: undefined,
 				category,
 				commitHash,
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
-				enabled:
-					isExpanded &&
-					(!isHiddenByDefault || loadHiddenDiff) &&
-					!!worktreePath,
+				enabled: shouldLoadDiff,
 			},
 		);
+	const hasRenderedDiff = canShowDiffBody && !!diffData;
+	const modifiedDiffContent = diffData?.modified;
 
-	const statusBadgeColor = getStatusColor(file.status);
-	const statusIndicator = getStatusIndicator(file.status);
-	const showStats = file.additions > 0 || file.deletions > 0;
+	useEffect(() => {
+		editedContentRef.current = editedContent;
+	}, [editedContent]);
 
-	const shouldRenderEditor = hasBeenVisible && diffData;
+	useEffect(() => {
+		if (!isEditing) {
+			setEditedContent(null);
+			setHasExternalDiskChange(false);
+			setSaveConflict(null);
+			baselineContentRef.current = modifiedDiffContent ?? "";
+			return;
+		}
+
+		if (modifiedDiffContent == null) return;
+
+		const currentEditedContent = editedContentRef.current;
+		const isDirty =
+			currentEditedContent !== null &&
+			currentEditedContent !== baselineContentRef.current;
+
+		if (!isDirty) {
+			baselineContentRef.current = modifiedDiffContent;
+			setEditedContent(modifiedDiffContent);
+			setHasExternalDiskChange(false);
+			return;
+		}
+
+		if (modifiedDiffContent !== baselineContentRef.current) {
+			setHasExternalDiskChange(true);
+		}
+	}, [isEditing, modifiedDiffContent]);
+
+	const handleSaveEditedContent = useCallback(async () => {
+		if (!editable || !isEditing) {
+			return;
+		}
+
+		const nextContent = editedContentRef.current ?? modifiedDiffContent ?? "";
+		const result = await handleSave(nextContent, {
+			expectedContent: baselineContentRef.current,
+		});
+
+		if (result?.status === "conflict") {
+			setSaveConflict({
+				localContent: nextContent,
+				diskContent: result.currentContent,
+			});
+			return;
+		}
+
+		baselineContentRef.current = nextContent;
+		setEditedContent(nextContent);
+		setHasExternalDiskChange(false);
+	}, [editable, handleSave, isEditing, modifiedDiffContent]);
+
+	const handleReloadFromDisk = useCallback(() => {
+		const nextDiskContent =
+			saveConflict?.diskContent ??
+			diffData?.modified ??
+			modifiedDiffContent ??
+			"";
+		baselineContentRef.current = nextDiskContent;
+		setEditedContent(nextDiskContent);
+		setHasExternalDiskChange(false);
+		setSaveConflict(null);
+	}, [diffData?.modified, modifiedDiffContent, saveConflict]);
+
+	const handleOverwriteSave = useCallback(async () => {
+		const nextContent = editedContentRef.current ?? modifiedDiffContent ?? "";
+		const result = await handleSave(nextContent, { force: true });
+		if (result?.status !== "saved") {
+			return;
+		}
+
+		baselineContentRef.current = nextContent;
+		setEditedContent(nextContent);
+		setHasExternalDiskChange(false);
+		setSaveConflict(null);
+	}, [handleSave, modifiedDiffContent]);
+
+	const inactivePlaceholder = (
+		<div
+			className="flex items-center justify-center text-xs text-muted-foreground bg-background"
+			style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+		>
+			Diff preview loads when this file is on screen
+		</div>
+	);
 
 	return (
 		<div
@@ -239,7 +359,7 @@ export function FileDiffSection({
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
 					isEditing={isEditing}
-					onToggleEdit={toggleEdit}
+					onToggleEdit={handleToggleEdit}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
@@ -264,22 +384,61 @@ export function FileDiffSection({
 							</Button>
 						</div>
 					) : isLoadingDiff ? (
-						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
+						<div
+							className="flex items-center justify-center text-muted-foreground bg-background"
+							style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+						>
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
 						</div>
-					) : shouldRenderEditor ? (
+					) : hasRenderedDiff ? (
 						isEditing ? (
-							<DiffViewer
-								contents={diffData}
-								viewMode={diffViewMode}
-								hideUnchangedRegions={hideUnchangedRegions}
-								filePath={file.path}
-								editable
-								onSave={handleSave}
-								fitContent
-								captureScroll={false}
-							/>
+							<div className="max-h-[70vh] min-h-[240px] overflow-auto bg-background">
+								{hasExternalDiskChange && (
+									<div className="border-b px-3 py-2">
+										<Alert variant="destructive">
+											<AlertTitle>File changed on disk</AlertTitle>
+											<AlertDescription>
+												This diff editor has local edits. Review the conflict
+												before saving or reload the current disk version.
+												<div className="mt-2 flex gap-2">
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={handleReloadFromDisk}
+													>
+														Reload From Disk
+													</Button>
+													<Button
+														size="sm"
+														onClick={() => {
+															setSaveConflict({
+																localContent:
+																	editedContentRef.current ?? diffData.modified,
+																diskContent: diffData.modified,
+															});
+														}}
+													>
+														Review Diff
+													</Button>
+												</div>
+											</AlertDescription>
+										</Alert>
+									</div>
+								)}
+								<CodeEditor
+									key={`${file.path}-edit`}
+									value={editedContent ?? diffData.modified}
+									language={detectLanguage(file.path)}
+									onChange={(value) => {
+										setEditedContent(value);
+									}}
+									onSave={() => {
+										void handleSaveEditedContent();
+									}}
+									fillHeight={false}
+								/>
+							</div>
 						) : (
 							<LightDiffViewer
 								contents={diffData}
@@ -288,8 +447,13 @@ export function FileDiffSection({
 								filePath={file.path}
 							/>
 						)
+					) : !shouldLoadDiff ? (
+						inactivePlaceholder
 					) : (
-						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
+						<div
+							className="flex items-center justify-center text-muted-foreground bg-background"
+							style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+						>
 							{diffData ? (
 								<>
 									<LuLoader className="w-4 h-4 animate-spin mr-2" />
@@ -302,6 +466,28 @@ export function FileDiffSection({
 					)}
 				</CollapsibleContent>
 			</Collapsible>
+			<FileSaveConflictDialog
+				open={saveConflict !== null}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSaveConflict(null);
+					}
+				}}
+				filePath={file.path}
+				localContent={
+					saveConflict?.localContent ??
+					editedContentRef.current ??
+					modifiedDiffContent ??
+					""
+				}
+				diskContent={saveConflict?.diskContent ?? null}
+				isSaving={isSaving}
+				onKeepEditing={() => setSaveConflict(null)}
+				onReloadFromDisk={handleReloadFromDisk}
+				onOverwrite={() => {
+					void handleOverwriteSave();
+				}}
+			/>
 		</div>
 	);
 }

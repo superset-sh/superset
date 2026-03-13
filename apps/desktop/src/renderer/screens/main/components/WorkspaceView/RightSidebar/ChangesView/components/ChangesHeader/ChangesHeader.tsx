@@ -17,13 +17,19 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiArrowPath, HiCheck } from "react-icons/hi2";
-import { LuGitBranch } from "react-icons/lu";
-import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
+import {
+	VscCheck,
+	VscGitStash,
+	VscGitStashApply,
+	VscRefresh,
+	VscSourceControl,
+} from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 import { PRButton } from "./components/PRButton";
+
+const BRANCH_QUERY_STALE_TIME_MS = 10_000;
 
 interface ChangesHeaderProps {
 	onRefresh: () => void;
@@ -47,7 +53,11 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const { data: branchData, isLoading } =
 		electronTrpc.changes.getBranches.useQuery(
 			{ worktreePath },
-			{ enabled: !!worktreePath },
+			{
+				enabled: !!worktreePath,
+				staleTime: BRANCH_QUERY_STALE_TIME_MS,
+				refetchOnWindowFocus: false,
+			},
 		);
 
 	const updateBaseBranch = electronTrpc.changes.updateBaseBranch.useMutation({
@@ -96,7 +106,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 							className="size-6 p-0"
 							disabled={isLoading}
 						>
-							<LuGitBranch className="size-3.5" />
+							<VscSourceControl className="size-3.5" />
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
@@ -129,7 +139,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 									)}
 								</span>
 								{branch === effectiveBaseBranch && (
-									<HiCheck className="size-3.5 shrink-0 text-primary" />
+									<VscCheck className="size-3.5 shrink-0 text-primary" />
 								)}
 							</CommandItem>
 						))}
@@ -216,7 +226,7 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 					disabled={isSpinning}
 					className="size-6 p-0"
 				>
-					<HiArrowPath
+					<VscRefresh
 						className={`size-3.5 ${isSpinning ? "animate-spin" : ""}`}
 					/>
 				</Button>
@@ -225,6 +235,43 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 				Refresh changes
 			</TooltipContent>
 		</Tooltip>
+	);
+}
+
+const reviewTagStyles = {
+	approved:
+		"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+	changes_requested:
+		"border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+	pending:
+		"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+} as const;
+
+const reviewTagLabels = {
+	approved: "Approved",
+	changes_requested: "Changes req.",
+	pending: "Review pending",
+} as const;
+
+function ReviewTag({
+	status,
+	requestedReviewers,
+}: {
+	status: "approved" | "changes_requested" | "pending";
+	requestedReviewers?: string[];
+}) {
+	const label =
+		status === "pending" && requestedReviewers && requestedReviewers.length > 0
+			? `Awaiting ${requestedReviewers.join(", ")}`
+			: reviewTagLabels[status];
+
+	return (
+		<span
+			className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[140px] ${reviewTagStyles[status]}`}
+			title={label}
+		>
+			{label}
+		</span>
 	);
 }
 
@@ -253,6 +300,12 @@ export function ChangesHeader({
 			/>
 			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
 			<RefreshButton onRefresh={onRefresh} />
+			{pr && pr.state === "open" && (
+				<ReviewTag
+					status={pr.reviewDecision}
+					requestedReviewers={pr.requestedReviewers}
+				/>
+			)}
 			<PRButton
 				pr={pr}
 				isLoading={isPRStatusLoading}

@@ -6,6 +6,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
+	reconcileManagedEntries,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { HOOKS_DIR } from "./paths";
@@ -86,19 +87,16 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 
 	for (const [eventName, ourEntry] of Object.entries(ourHooks)) {
 		const current = existing.hooks[eventName];
-		if (Array.isArray(current)) {
-			const filtered = current.filter(
-				(entry: CursorHookEntry) =>
-					!(
-						entry.command?.includes(hookScriptPath) ||
-						isSupersetManagedHookCommand(entry.command, CURSOR_HOOK_SCRIPT_NAME)
-					),
-			);
-			filtered.push(ourEntry);
-			existing.hooks[eventName] = filtered;
-		} else {
-			existing.hooks[eventName] = [ourEntry];
-		}
+		const { entries } = reconcileManagedEntries({
+			current,
+			desired: [ourEntry],
+			isManaged: (entry: CursorHookEntry) =>
+				entry.command?.includes(hookScriptPath) ||
+				isSupersetManagedHookCommand(entry.command, CURSOR_HOOK_SCRIPT_NAME),
+			isEquivalent: (entry: CursorHookEntry, desiredEntry: CursorHookEntry) =>
+				entry.command === desiredEntry.command,
+		});
+		existing.hooks[eventName] = entries;
 	}
 
 	return JSON.stringify(existing, null, 2);

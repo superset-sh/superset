@@ -83,13 +83,42 @@ export function withoutActiveTurnAssistantHistory({
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
+function hasFileOrImagePart(message: HistoryMessage): boolean {
+	return message.content.some(
+		(part: HistoryMessagePart) =>
+			(part as Record<string, unknown>).type === "file" ||
+			part.type === "image",
+	);
+}
+
+function countFileMessages(messages: ListMessagesOutput): number {
+	return messages.filter(
+		(message: HistoryMessage) =>
+			message.role === "user" && hasFileOrImagePart(message),
+	).length;
+}
+
+function getLegacyImagePayload(
+	payload: SessionInputs["sendMessage"]["payload"],
+): Array<{ data: string; mimeType: string }> {
+	const images = (payload as { images?: unknown }).images;
+	if (!Array.isArray(images)) return [];
+	return images.flatMap((image) => {
+		const record = image as { data?: unknown; mimeType?: unknown };
+		return typeof record.data === "string" &&
+			typeof record.mimeType === "string"
+			? [{ data: record.data, mimeType: record.mimeType }]
+			: [];
+	});
+}
+
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
-	const queryInput = sessionId
-		? { sessionId, ...(cwd ? { cwd } : {}) }
-		: skipToken;
+	const sessionCommandInput =
+		sessionId === null ? null : { sessionId, ...(cwd ? { cwd } : {}) };
+	const queryInput = sessionCommandInput ?? skipToken;
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
 	const queryOptions = {
@@ -131,25 +160,38 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		ListMessagesOutput[number] | null
 	>(null);
 	const optimisticTextRef = useRef<string | null>(null);
+	const optimisticIdRef = useRef<string | null>(null);
+	const fileMessageCountAtSendRef = useRef<number | null>(null);
 
 	useEffect(() => {
-		const optimisticText = optimisticTextRef.current;
-		if (!optimisticText) return;
+		if (!optimisticIdRef.current) return;
 
-		const found = historicalMessages.some(
-			(message: HistoryMessage) =>
-				message.role === "user" &&
-				message.content.some(
-					(part: HistoryMessagePart) =>
-						part.type === "text" &&
-						"text" in part &&
-						part.text === optimisticText,
-				),
-		);
+		const optimisticText = optimisticTextRef.current;
+
+		const found = optimisticText
+			? historicalMessages.some(
+					(message: HistoryMessage) =>
+						message.role === "user" &&
+						message.content.some(
+							(part: HistoryMessagePart) =>
+								part.type === "text" &&
+								"text" in part &&
+								part.text === optimisticText,
+						),
+				)
+			: (() => {
+					const currentFileMessageCount = countFileMessages(historicalMessages);
+					return (
+						fileMessageCountAtSendRef.current !== null &&
+						currentFileMessageCount > fileMessageCountAtSendRef.current
+					);
+				})();
 		if (!found) return;
 
 		setOptimisticUserMessage(null);
 		optimisticTextRef.current = null;
+		optimisticIdRef.current = null;
+		fileMessageCountAtSendRef.current = null;
 	}, [historicalMessages]);
 
 	const messages = useMemo(() => {
@@ -181,12 +223,42 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					typeof input.payload?.content === "string"
 						? input.payload.content
 						: "";
-				if (text) {
-					optimisticTextRef.current = text;
+				const files = input.payload?.files ?? [];
+				const legacyImages = getLegacyImagePayload(input.payload);
+				if (text || files.length > 0 || legacyImages.length > 0) {
+					const optimisticId = `optimistic-${Date.now()}`;
+					optimisticTextRef.current = text || null;
+					optimisticIdRef.current = optimisticId;
+					if (!text) {
+						fileMessageCountAtSendRef.current =
+							countFileMessages(historicalMessages);
+					}
+					const content: ListMessagesOutput[number]["content"] = [];
+					for (const file of files) {
+						content.push({
+							type: "file",
+							data: file.data,
+							mediaType: file.mediaType,
+							filename: file.filename,
+						} as unknown as ListMessagesOutput[number]["content"][number]);
+					}
+					for (const image of legacyImages) {
+						content.push({
+							type: "image",
+							data: image.data,
+							mimeType: image.mimeType,
+						} as unknown as ListMessagesOutput[number]["content"][number]);
+					}
+					if (text) {
+						content.push({
+							type: "text",
+							text,
+						} as ListMessagesOutput[number]["content"][number]);
+					}
 					setOptimisticUserMessage({
-						id: `optimistic-${Date.now()}`,
+						id: optimisticId,
 						role: "user",
-						content: [{ type: "text", text }],
+						content,
 						createdAt: new Date(),
 					} as ListMessagesOutput[number]);
 				}
@@ -201,24 +273,26 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					setCommandError(error);
 					setOptimisticUserMessage(null);
 					optimisticTextRef.current = null;
+					optimisticIdRef.current = null;
+					fileMessageCountAtSendRef.current = null;
 					throw error;
 				}
 			},
 			stop: async () => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.stop.mutate({ sessionId });
+					return await utils.client.session.stop.mutate(sessionCommandInput);
 				} catch (error) {
 					setCommandError(error);
 					return;
 				}
 			},
 			abort: async () => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.abort.mutate({ sessionId });
+					return await utils.client.session.abort.mutate(sessionCommandInput);
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -227,11 +301,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToApproval: async (
 				input: Omit<SessionInputs["approval"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.approval.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -242,11 +316,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToQuestion: async (
 				input: Omit<SessionInputs["question"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.question.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -257,11 +331,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToPlan: async (
 				input: Omit<SessionInputs["plan"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.plan.respond.mutate({
-						sessionId,
+						...sessionCommandInput,
 						...input,
 					});
 				} catch (error) {
@@ -270,7 +344,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, sessionId, utils],
+		[cwd, historicalMessages, sessionCommandInput, sessionId, utils],
 	);
 
 	return {

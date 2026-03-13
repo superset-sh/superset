@@ -5,20 +5,23 @@ import {
 	type PromptInputMessage,
 	PromptInputTextarea,
 } from "@superset/ui/ai-elements/prompt-input";
-import type { ChatStatus } from "ai";
+import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
-import { useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
+import { IssueLinkCommand } from "../IssueLinkCommand";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { SlashCommandInput } from "../SlashCommandInput";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
 import { ChatShortcuts } from "./components/ChatShortcuts";
 import { FileDropOverlay } from "./components/FileDropOverlay";
-import { IssueLinkInserter } from "./components/IssueLinkInserter";
+import { LinkedIssues } from "./components/LinkedIssues";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
+import type { LinkedIssue } from "./types";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
@@ -37,6 +40,8 @@ interface ChatInputFooterProps {
 	thinkingEnabled: boolean;
 	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 	slashCommands: SlashCommand[];
+	submitDisabled?: boolean;
+	renderAttachment?: (file: FileUIPart & { id: string }) => ReactNode;
 	onSubmitStart?: () => void;
 	onSubmitEnd?: () => void;
 	onSend: (message: PromptInputMessage) => Promise<void> | void;
@@ -60,6 +65,8 @@ export function ChatInputFooter({
 	thinkingEnabled,
 	setThinkingEnabled,
 	slashCommands,
+	submitDisabled,
+	renderAttachment,
 	onSubmitStart,
 	onSubmitEnd,
 	onSend,
@@ -67,10 +74,39 @@ export function ChatInputFooter({
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
 	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
 	const showFocusHint = focusShortcutText !== "Unassigned";
+
+	const addLinkedIssue = useCallback((slug: string, title: string) => {
+		setLinkedIssues((prev) => {
+			if (prev.some((issue) => issue.slug === slug)) return prev;
+			return [...prev, { slug, title }];
+		});
+	}, []);
+
+	const removeLinkedIssue = useCallback((slug: string) => {
+		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
+	}, []);
+
+	const handleSend = useCallback(
+		(message: PromptInputMessage) => {
+			if (linkedIssues.length === 0) return onSend(message);
+
+			const prefix = linkedIssues
+				.map((issue) => `@task:${issue.slug}`)
+				.join(" ");
+			const modifiedMessage: PromptInputMessage = {
+				...message,
+				text: `${prefix} ${message.text}`,
+			};
+			setLinkedIssues([]);
+			return onSend(modifiedMessage);
+		},
+		[linkedIssues, onSend],
+	);
 
 	return (
 		<ChatInputDropZone className="bg-background px-4 py-3">
@@ -107,7 +143,7 @@ export function ChatInputFooter({
 										className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 										onSubmitStart={onSubmitStart}
 										onSubmitEnd={onSubmitEnd}
-										onSubmit={onSend}
+										onSubmit={handleSend}
 										multiple
 										maxFiles={5}
 										maxFileSize={10 * 1024 * 1024}
@@ -118,20 +154,26 @@ export function ChatInputFooter({
 											setIssueLinkOpen={setIssueLinkOpen}
 											inputRootRef={inputRootRef}
 										/>
-										<IssueLinkInserter
-											issueLinkOpen={issueLinkOpen}
-											setIssueLinkOpen={setIssueLinkOpen}
+										<IssueLinkCommand
+											open={issueLinkOpen}
+											onOpenChange={setIssueLinkOpen}
+											onSelect={addLinkedIssue}
 										/>
 										<FileDropOverlay visible={dragType === "files"} />
 										<PromptInputAttachments>
-											{(file) => <PromptInputAttachment data={file} />}
+											{renderAttachment ??
+												((file) => <PromptInputAttachment data={file} />)}
 										</PromptInputAttachments>
+										<LinkedIssues
+											issues={linkedIssues}
+											onRemove={removeLinkedIssue}
+										/>
 										<SlashCommandPreview
 											cwd={cwd}
 											slashCommands={slashCommands}
 										/>
 										<PromptInputTextarea
-											placeholder="Ask anything..."
+											placeholder="Ask to make changes, @mention files, run /commands"
 											className="min-h-10"
 										/>
 										<ChatComposerControls
@@ -146,6 +188,7 @@ export function ChatInputFooter({
 											setThinkingEnabled={setThinkingEnabled}
 											canAbort={canAbort}
 											submitStatus={submitStatus}
+											submitDisabled={submitDisabled}
 											onStop={onStop}
 											onLinkIssue={() => setIssueLinkOpen(true)}
 										/>
@@ -154,11 +197,7 @@ export function ChatInputFooter({
 							</MentionAnchor>
 						</MentionProvider>
 					</SlashCommandInput>
-					<div className="flex items-center px-2 pt-1.5">
-						<span className="text-xs text-muted-foreground/50">
-							Use '@' to mention files, run /commands
-						</span>
-					</div>
+					<div className="py-1.5" />
 				</div>
 			)}
 		</ChatInputDropZone>
