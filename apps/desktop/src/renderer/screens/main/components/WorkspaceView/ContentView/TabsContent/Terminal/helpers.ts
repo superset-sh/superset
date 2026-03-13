@@ -5,7 +5,7 @@ import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
-import type { ITheme } from "@xterm/xterm";
+import type { ILinkHandler, ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -190,7 +190,37 @@ export function createTerminalInstance(
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+
+	const openUrl = (uri: string) => {
+		const handler = urlClickRef?.current;
+		if (handler) {
+			handler(uri);
+			return;
+		}
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+			toast.error("Failed to open URL", {
+				description:
+					error instanceof Error
+						? error.message
+						: "Could not open URL in browser",
+			});
+		});
+	};
+
+	// Handle OSC 8 hyperlinks (e.g. Claude Code footer links) using the same
+	// Cmd/Ctrl+click behavior as plain URL links.
+	const linkHandler: ILinkHandler = {
+		activate: (event, text) => {
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
+			event.preventDefault();
+			openUrl(text);
+		},
+	};
+
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme, linkHandler };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
@@ -244,20 +274,7 @@ export function createTerminalInstance(
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		const handler = urlClickRef?.current;
-		if (handler) {
-			handler(uri);
-			return;
-		}
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-			toast.error("Failed to open URL", {
-				description:
-					error instanceof Error
-						? error.message
-						: "Could not open URL in browser",
-			});
-		});
+		openUrl(uri);
 	});
 	xterm.registerLinkProvider(urlLinkProvider);
 
