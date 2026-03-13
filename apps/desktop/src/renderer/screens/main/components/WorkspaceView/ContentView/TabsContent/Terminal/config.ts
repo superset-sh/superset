@@ -28,6 +28,24 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	// SF fonts for Apple tools (swift, xcodebuild) that use SF Symbols private use area characters
 	"SF Mono",
 	"SF Pro",
+	// CJK monospace fonts — must come before the generic "monospace" fallback.
+	// CJK characters (Chinese/Japanese/Korean) are full-width (2 terminal cells).
+	// Without an explicit CJK monospace font, the browser falls back to a system
+	// font whose glyph width may not equal exactly 2× the primary cell width,
+	// causing xterm.js underline decorations to drift from the actual glyph
+	// positions in mixed-width lines. Sarasa Mono and Noto Sans Mono CJK are
+	// designed so each CJK glyph is exactly 2× a half-width cell, keeping
+	// underlines aligned regardless of renderer (WebGL or DOM).
+	"Sarasa Mono SC",
+	"Sarasa Mono TC",
+	"Sarasa Mono HC",
+	"Sarasa Mono J",
+	"Sarasa Mono K",
+	"Noto Sans Mono CJK SC",
+	"Noto Sans Mono CJK TC",
+	"Noto Sans Mono CJK HK",
+	"Noto Sans Mono CJK JP",
+	"Noto Sans Mono CJK KR",
 	"monospace",
 ].join(", ");
 
