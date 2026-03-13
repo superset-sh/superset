@@ -31,16 +31,28 @@ export function usePortsData() {
 
 	const ports = detectedPorts ?? [];
 
+	const { data: recentProjects } =
+		electronTrpc.projects.getRecents.useQuery();
+
 	const workspaceNames = useMemo(() => {
 		if (!allWorkspaces) return {};
+		const projectNames: Record<string, string> = {};
+		if (recentProjects) {
+			for (const p of recentProjects) {
+				projectNames[p.id] = p.name;
+			}
+		}
 		return allWorkspaces.reduce(
 			(acc, ws) => {
-				acc[ws.id] = ws.name;
+				const projectName = projectNames[ws.projectId];
+				acc[ws.id] = projectName
+					? `${projectName}: ${ws.name}`
+					: ws.name;
 				return acc;
 			},
 			{} as Record<string, string>,
 		);
-	}, [allWorkspaces]);
+	}, [allWorkspaces, recentProjects]);
 
 	const workspacePortGroups = useMemo(() => {
 		const groupMap = new Map<string, EnrichedPort[]>();
