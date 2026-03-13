@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { projects, type SelectProject } from "@superset/local-db";
@@ -8,6 +8,7 @@ import type { SetupAction, SetupDetectionResult } from "shared/types/config";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { loadSetupConfig } from "../workspaces/utils/setup";
+import { getLocalConfigPath, resolveConfigFilePath } from "./utils";
 
 function hasConfiguredScripts(
 	project: Pick<SelectProject, "id" | "mainRepoPath">,
@@ -28,12 +29,6 @@ function hasConfiguredScripts(
 		: [];
 	return setup.length > 0 || teardown.length > 0;
 }
-
-const CONFIG_TEMPLATE = `{
-  "setup": [],
-  "teardown": []
-}
-`;
 
 async function fileExists(path: string): Promise<boolean> {
 	try {
@@ -332,26 +327,6 @@ async function detectSetupDefaults(
 	};
 }
 
-function getConfigPath(mainRepoPath: string): string {
-	return join(mainRepoPath, ".superset", "config.json");
-}
-
-function ensureConfigExists(mainRepoPath: string): string {
-	const configPath = getConfigPath(mainRepoPath);
-	const supersetDir = join(mainRepoPath, ".superset");
-
-	if (!existsSync(configPath)) {
-		// Create .superset directory if it doesn't exist
-		if (!existsSync(supersetDir)) {
-			mkdirSync(supersetDir, { recursive: true });
-		}
-		// Create config.json with template
-		writeFileSync(configPath, CONFIG_TEMPLATE, "utf-8");
-	}
-
-	return configPath;
-}
-
 export const createConfigRouter = () => {
 	return router({
 		// Check if we should show the setup card for a project
@@ -399,7 +374,7 @@ export const createConfigRouter = () => {
 				if (!project) {
 					return null;
 				}
-				return ensureConfigExists(project.mainRepoPath);
+				return resolveConfigFilePath(project.mainRepoPath, project.id);
 			}),
 
 		// Get the config file content
@@ -415,7 +390,7 @@ export const createConfigRouter = () => {
 					return { content: null, exists: false };
 				}
 
-				const configPath = getConfigPath(project.mainRepoPath);
+				const configPath = getLocalConfigPath(project.mainRepoPath);
 				if (!existsSync(configPath)) {
 					return { content: null, exists: false };
 				}
@@ -462,7 +437,10 @@ export const createConfigRouter = () => {
 					throw new Error("Project not found");
 				}
 
-				const configPath = ensureConfigExists(project.mainRepoPath);
+				const configPath = resolveConfigFilePath(
+					project.mainRepoPath,
+					project.id,
+				);
 
 				// Read and parse existing config, preserving other fields
 				let existingConfig: Record<string, unknown> = {};
