@@ -13,6 +13,41 @@ const mockLocalStorage = {
 // @ts-expect-error - mocking global localStorage
 globalThis.localStorage = mockLocalStorage;
 
+// Mock @xterm/xterm itself — the full library requires a browser window
+mock.module("@xterm/xterm", () => ({
+	Terminal: class {
+		loadAddon() {}
+		attachCustomKeyEventHandler(_handler: (e: KeyboardEvent) => boolean) {}
+	},
+}));
+
+// Mock xterm addons that require a browser environment (window/WebGL)
+mock.module("@xterm/addon-webgl", () => ({
+	WebglAddon: class {
+		activate() {}
+		dispose() {}
+		clearTextureAtlas() {}
+	},
+}));
+mock.module("@xterm/addon-image", () => ({
+	ImageAddon: class {
+		activate() {}
+		dispose() {}
+	},
+}));
+mock.module("@xterm/addon-ligatures", () => ({
+	LigaturesAddon: class {
+		activate() {}
+		dispose() {}
+	},
+}));
+mock.module("@xterm/addon-clipboard", () => ({
+	ClipboardAddon: class {
+		activate() {}
+		dispose() {}
+	},
+}));
+
 // Mock trpc-client to avoid electronTRPC dependency
 mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
@@ -198,6 +233,68 @@ describe("setupKeyboardHandler", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+
+	it("maps Option+Backspace to Ctrl+W (delete word) on macOS", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "Backspace",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x17"); // Ctrl+W
+		expect(result).toBe(false);
+	});
+
+	it("maps Cmd+Z to Ctrl+_ (undo) on macOS instead of ^Z (suspend)", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "z",
+			altKey: false,
+			metaKey: true,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1f"); // Ctrl+_
+		expect(result).toBe(false);
 	});
 });
 

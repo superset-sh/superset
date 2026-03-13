@@ -657,6 +657,38 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Option+Backspace (macOS): delete previous word (Ctrl+W)
+		const isOptionBackspace =
+			event.key === "Backspace" &&
+			event.altKey &&
+			isMac &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey;
+
+		if (isOptionBackspace) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x17"); // Ctrl+W - delete previous word
+			}
+			return false;
+		}
+
+		// Cmd+Z (macOS): undo in readline/zle (Ctrl+_) instead of ^Z (suspend)
+		const isCmdZ =
+			event.key === "z" &&
+			event.metaKey &&
+			isMac &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdZ) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1f"); // Ctrl+_ - undo
+			}
+			return false;
+		}
+
 		if (isTerminalReservedEvent(event)) return true;
 
 		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
