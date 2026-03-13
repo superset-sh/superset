@@ -206,6 +206,9 @@ export const settings = sqliteTable("settings", {
 	editorFontSize: integer("editor_font_size"),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
+	useProjectLocalWorktrees: integer("use_project_local_worktrees", {
+		mode: "boolean",
+	}),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
 });

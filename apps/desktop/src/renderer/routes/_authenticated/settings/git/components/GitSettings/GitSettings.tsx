@@ -40,6 +40,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
 		visibleItems,
 	);
+	const showProjectLocalWorktrees = isItemVisible(
+		SETTING_ITEM_ID.GIT_PROJECT_LOCAL_WORKTREES,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -130,6 +134,31 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 			},
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
+
+	const {
+		data: useProjectLocalWorktrees,
+		isLoading: isProjectLocalWorktreesLoading,
+	} = electronTrpc.settings.getUseProjectLocalWorktrees.useQuery();
+	const setUseProjectLocalWorktrees =
+		electronTrpc.settings.setUseProjectLocalWorktrees.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getUseProjectLocalWorktrees.cancel();
+				const previous = utils.settings.getUseProjectLocalWorktrees.getData();
+				utils.settings.getUseProjectLocalWorktrees.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getUseProjectLocalWorktrees.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getUseProjectLocalWorktrees.invalidate();
+			},
+		});
 
 	const previewPrefix =
 		resolveBranchPrefix({
@@ -228,6 +257,37 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 					</div>
 				)}
 
+				{showProjectLocalWorktrees && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="project-local-worktrees"
+								className="text-sm font-medium"
+							>
+								Create worktrees inside project directory
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Store worktrees in each project's{" "}
+								<code className="bg-muted px-1 py-0.5 rounded text-foreground">
+									.worktrees/
+								</code>{" "}
+								folder instead of a shared global location
+							</p>
+						</div>
+						<Switch
+							id="project-local-worktrees"
+							checked={useProjectLocalWorktrees ?? false}
+							onCheckedChange={(enabled) =>
+								setUseProjectLocalWorktrees.mutate({ enabled })
+							}
+							disabled={
+								isProjectLocalWorktreesLoading ||
+								setUseProjectLocalWorktrees.isPending
+							}
+						/>
+					</div>
+				)}
+
 				{showWorktreeLocation && (
 					<div className="space-y-0.5">
 						<Label className="text-sm font-medium">Worktree location</Label>
@@ -239,7 +299,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							defaultPathLabel={`Default (${defaultWorktreePath})`}
 							defaultBrowsePath={worktreeBaseDir}
 							disabled={
-								isWorktreeBaseDirLoading || setWorktreeBaseDir.isPending
+								isWorktreeBaseDirLoading ||
+								setWorktreeBaseDir.isPending ||
+								(useProjectLocalWorktrees ?? false)
 							}
 							onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
 							onReset={() => setWorktreeBaseDir.mutate({ path: null })}

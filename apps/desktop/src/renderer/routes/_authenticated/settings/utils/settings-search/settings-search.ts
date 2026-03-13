@@ -30,6 +30,7 @@ export const SETTING_ITEM_ID = {
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
+	GIT_PROJECT_LOCAL_WORKTREES: "git-project-local-worktrees",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -463,6 +464,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"storage",
 			"base",
 			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.GIT_PROJECT_LOCAL_WORKTREES,
+		section: "git",
+		title: "Create worktrees inside project directory",
+		description:
+			"Create worktrees inside each project's root directory (.worktrees/) instead of a shared global location",
+		keywords: [
+			"git",
+			"worktree",
+			"project",
+			"local",
+			"directory",
+			"co-locate",
+			"root",
+			".worktrees",
 		],
 	},
 	{

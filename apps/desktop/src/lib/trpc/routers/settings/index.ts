@@ -658,6 +658,26 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getUseProjectLocalWorktrees: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.useProjectLocalWorktrees ?? false;
+		}),
+
+		setUseProjectLocalWorktrees: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, useProjectLocalWorktrees: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { useProjectLocalWorktrees: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getOpenLinksInApp: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.openLinksInApp ?? DEFAULT_OPEN_LINKS_IN_APP;
