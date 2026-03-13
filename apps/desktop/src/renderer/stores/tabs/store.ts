@@ -41,7 +41,10 @@ import {
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
 } from "./utils";
-import { killTerminalForPane } from "./utils/terminal-cleanup";
+import {
+	cancelPendingKill,
+	scheduleKillTerminalForPane,
+} from "./utils/terminal-cleanup";
 
 /**
  * Finds the next best tab to activate when closing a tab.
@@ -297,7 +300,7 @@ export const useTabsStore = create<TabsStore>()(
 						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
 						const pane = state.panes[paneId];
 						if (pane?.type === "terminal") {
-							killTerminalForPane(paneId);
+							scheduleKillTerminalForPane(paneId);
 						}
 					}
 
@@ -473,7 +476,7 @@ export const useTabsStore = create<TabsStore>()(
 						// in layouts - we must not delete those when they're "removed"
 						if (pane && pane.tabId === tabId) {
 							if (pane.type === "terminal") {
-								killTerminalForPane(paneId);
+								scheduleKillTerminalForPane(paneId);
 							}
 							delete newPanes[paneId];
 						}
@@ -916,7 +919,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Kill terminal sessions for terminal panes
 					for (const id of paneIdsToRemove) {
 						if (state.panes[id]?.type === "terminal") {
-							killTerminalForPane(id);
+							scheduleKillTerminalForPane(id);
 						}
 					}
 
@@ -1845,12 +1848,19 @@ export const useTabsStore = create<TabsStore>()(
 						id: newTabId,
 					};
 
-					// Restore panes with updated tabId references
+					// Restore panes with updated tabId references.
+					// For terminal panes with a pending soft-close kill, reuse the
+					// original pane ID so the daemon session (keyed by paneId) is
+					// found and reattached instead of spawning a new PTY.
 					const idMap = new Map<string, string>();
 					const restoredPanes: Record<string, (typeof entry.panes)[number]> =
 						{};
 					for (const pane of entry.panes) {
-						const newPaneId = generateId("pane");
+						const sessionStillAlive =
+							pane.type === "terminal" && cancelPendingKill(pane.id);
+						const newPaneId = sessionStillAlive
+							? pane.id
+							: generateId("pane");
 						idMap.set(pane.id, newPaneId);
 						restoredPanes[newPaneId] = {
 							...pane,
