@@ -7,27 +7,68 @@ Pure path-based filesystem shim. Workspace scoping lives in client logic above t
 ### `listDirectory`
 
 ```ts
-listDirectory({ absolutePath })
-→ { entries: Array<{ absolutePath, name, kind: "file" | "directory" | "symlink" | "other" }> }
+listDirectory({ absolutePath: string })
+```
+
+Returns:
+
+```ts
+{
+  entries: Array<{
+    absolutePath: string
+    name: string
+    kind: "file" | "directory" | "symlink" | "other"
+  }>
+}
 ```
 
 ### `readFile`
 
-Text or byte reads with optional paging. Returns opaque `revision` token.
+Text or byte reads. `offset` and `maxBytes` support paged reads. Returns opaque `revision` token.
+
+If `exceededLimit` is `true`, more data is available and the client can continue with a larger `offset`.
 
 ```ts
-readFile({ absolutePath, offset?, maxBytes?, encoding? })
-→ { kind: "text" | "bytes", content: string | Uint8Array, byteLength, exceededLimit, revision }
+readFile({ absolutePath: string, offset?: number, maxBytes?: number, encoding?: string })
+```
+
+Returns:
+
+```ts
+{
+  kind: "text" | "bytes"
+  content: string | Uint8Array
+  byteLength: number
+  exceededLimit: boolean
+  revision: string
+}
 ```
 
 ### `getMetadata`
 
-Returns `null` if path does not exist. Returns opaque `revision` token.
+Returns `null` if path does not exist.
 
 ```ts
-getMetadata({ absolutePath })
-→ null | { absolutePath, kind, size, createdAt, modifiedAt, accessedAt, revision,
-           mode?, permissions?, owner?, group?, symlinkTarget? }
+getMetadata({ absolutePath: string })
+```
+
+Returns:
+
+```ts
+null | {
+  absolutePath: string
+  kind: "file" | "directory" | "symlink" | "other"
+  size: number | null
+  createdAt: string | null
+  modifiedAt: string | null
+  accessedAt: string | null
+  mode?: number | null
+  permissions?: string | null
+  owner?: string | null
+  group?: string | null
+  symlinkTarget?: string | null
+  revision: string
+}
 ```
 
 ### `writeFile`
@@ -37,12 +78,23 @@ getMetadata({ absolutePath })
 - `create: true, overwrite: false` — create only, fail if exists
 - `create: false, overwrite: true` — update only, fail if not exists
 
-`precondition.ifMatch` enables revision-based conflict detection. Both `options` and `precondition` are optional.
+`precondition.ifMatch` enables revision-based conflict detection using an opaque token from `readFile` or `getMetadata`. Both `options` and `precondition` are optional.
 
 ```ts
-writeFile({ absolutePath, content, encoding?, options?: { create, overwrite }, precondition?: { ifMatch: revision } })
-→ { ok: true, revision }
-| { ok: false, reason: "conflict", currentRevision }
+writeFile({
+  absolutePath: string,
+  content: string | Uint8Array,
+  encoding?: string,
+  options?: { create: boolean, overwrite: boolean },
+  precondition?: { ifMatch: string },
+})
+```
+
+Returns:
+
+```ts
+| { ok: true, revision: string }
+| { ok: false, reason: "conflict", currentRevision: string }
 | { ok: false, reason: "exists" }
 | { ok: false, reason: "not-found" }
 ```
@@ -52,8 +104,13 @@ writeFile({ absolutePath, content, encoding?, options?: { create, overwrite }, p
 File creation happens through `writeFile`.
 
 ```ts
-createDirectory({ absolutePath })
-→ { absolutePath, kind: "directory" }
+createDirectory({ absolutePath: string })
+```
+
+Returns:
+
+```ts
+{ absolutePath: string, kind: "directory" }
 ```
 
 ### `deletePath`
@@ -61,8 +118,13 @@ createDirectory({ absolutePath })
 `permanent` controls trash vs hard delete.
 
 ```ts
-deletePath({ absolutePath, permanent? })
-→ { absolutePath }
+deletePath({ absolutePath: string, permanent?: boolean })
+```
+
+Returns:
+
+```ts
+{ absolutePath: string }
 ```
 
 ### `movePath`
@@ -70,29 +132,65 @@ deletePath({ absolutePath, permanent? })
 Rename is a same-parent move.
 
 ```ts
-movePath({ sourceAbsolutePath, destinationAbsolutePath })
-→ { fromAbsolutePath, toAbsolutePath }
+movePath({ sourceAbsolutePath: string, destinationAbsolutePath: string })
+```
+
+Returns:
+
+```ts
+{ fromAbsolutePath: string, toAbsolutePath: string }
 ```
 
 ### `copyPath`
 
 ```ts
-copyPath({ sourceAbsolutePath, destinationAbsolutePath })
-→ { fromAbsolutePath, toAbsolutePath }
+copyPath({ sourceAbsolutePath: string, destinationAbsolutePath: string })
+```
+
+Returns:
+
+```ts
+{ fromAbsolutePath: string, toAbsolutePath: string }
 ```
 
 ### `searchFiles`
 
 ```ts
-searchFiles({ query, includeHidden?, includePattern?, excludePattern?, limit? })
-→ { matches: Array<{ absolutePath, relativePath, name, kind, score }> }
+searchFiles({ query: string, includeHidden?: boolean, includePattern?: string, excludePattern?: string, limit?: number })
+```
+
+Returns:
+
+```ts
+{
+  matches: Array<{
+    absolutePath: string
+    relativePath: string
+    name: string
+    kind: "file" | "directory" | "symlink" | "other"
+    score: number
+  }>
+}
 ```
 
 ### `searchContent`
 
 ```ts
-searchContent({ query, includeHidden?, includePattern?, excludePattern?, limit? })
-→ { matches: Array<{ absolutePath, relativePath, line, column, preview }> }
+searchContent({ query: string, includeHidden?: boolean, includePattern?: string, excludePattern?: string, limit?: number })
+```
+
+Returns:
+
+```ts
+{
+  matches: Array<{
+    absolutePath: string
+    relativePath: string
+    line: number
+    column: number
+    preview: string
+  }>
+}
 ```
 
 ### `watchPath`
@@ -100,8 +198,19 @@ searchContent({ query, includeHidden?, includePattern?, excludePattern?, limit? 
 Best-effort delivery, no ordering guarantees. On `overflow`, client should full-resync.
 
 ```ts
-watchPath({ absolutePath, recursive? })
-yields { events: Array<{ kind: "create" | "update" | "delete" | "rename" | "overflow", absolutePath, oldAbsolutePath? }> }
+watchPath({ absolutePath: string, recursive?: boolean })
+```
+
+Yields:
+
+```ts
+{
+  events: Array<{
+    kind: "create" | "update" | "delete" | "rename" | "overflow"
+    absolutePath: string
+    oldAbsolutePath?: string
+  }>
+}
 ```
 
 ## Notes
