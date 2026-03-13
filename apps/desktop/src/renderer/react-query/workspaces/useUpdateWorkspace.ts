@@ -1,4 +1,5 @@
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { invalidateWorkspaceQueries } from "./invalidateWorkspaceQueries";
 
 /**
  * Mutation hook for updating a workspace
@@ -12,8 +13,11 @@ export function useUpdateWorkspace(
 	return electronTrpc.workspaces.update.useMutation({
 		...options,
 		onSuccess: async (...args) => {
-			// Auto-invalidate all workspace queries
-			await utils.workspaces.invalidate();
+			// Explicitly invalidate each workspace query to ensure all consumers
+			// (including PortsList which uses workspaces.getAll) get fresh data.
+			// Namespace-level invalidation (utils.workspaces.invalidate()) may not
+			// reliably reach all queries via trpc-electron IPC.
+			await invalidateWorkspaceQueries(utils);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(...args);

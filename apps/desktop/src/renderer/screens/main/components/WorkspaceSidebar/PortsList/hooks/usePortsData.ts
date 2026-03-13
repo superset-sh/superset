@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { EnrichedPort } from "shared/types";
+import {
+	buildWorkspaceNames,
+	buildWorkspacePortGroups,
+	type WorkspacePortGroup,
+} from "./buildWorkspacePortGroups";
+
+export type { WorkspacePortGroup };
 
 const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 10_000;
-
-export interface WorkspacePortGroup {
-	workspaceId: string;
-	workspaceName: string;
-	ports: EnrichedPort[];
-}
 
 export function usePortsData() {
 	const { data: allWorkspaces } = electronTrpc.workspaces.getAll.useQuery();
@@ -31,42 +31,15 @@ export function usePortsData() {
 
 	const ports = detectedPorts ?? [];
 
-	const workspaceNames = useMemo(() => {
-		if (!allWorkspaces) return {};
-		return allWorkspaces.reduce(
-			(acc, ws) => {
-				acc[ws.id] = ws.name;
-				return acc;
-			},
-			{} as Record<string, string>,
-		);
-	}, [allWorkspaces]);
+	const workspaceNames = useMemo(
+		() => buildWorkspaceNames(allWorkspaces),
+		[allWorkspaces],
+	);
 
-	const workspacePortGroups = useMemo(() => {
-		const groupMap = new Map<string, EnrichedPort[]>();
-
-		for (const port of ports) {
-			const existing = groupMap.get(port.workspaceId);
-			if (existing) {
-				existing.push(port);
-			} else {
-				groupMap.set(port.workspaceId, [port]);
-			}
-		}
-
-		const groups: WorkspacePortGroup[] = [];
-		for (const [workspaceId, wsPorts] of groupMap) {
-			groups.push({
-				workspaceId,
-				workspaceName: workspaceNames[workspaceId] || "Unknown",
-				ports: wsPorts.sort((a, b) => a.port - b.port),
-			});
-		}
-
-		return groups.sort((a, b) =>
-			a.workspaceName.localeCompare(b.workspaceName),
-		);
-	}, [ports, workspaceNames]);
+	const workspacePortGroups = useMemo(
+		() => buildWorkspacePortGroups(ports, workspaceNames),
+		[ports, workspaceNames],
+	);
 
 	const totalPortCount = workspacePortGroups.reduce(
 		(sum, g) => sum + g.ports.length,
