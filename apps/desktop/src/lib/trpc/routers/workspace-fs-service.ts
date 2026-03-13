@@ -123,28 +123,6 @@ export function toRegisteredWorktreeRelativePath(
 	return relativePath.replace(/\\/g, "/");
 }
 
-export async function readRegisteredWorktreeTextFile(input: {
-	worktreePath: string;
-	absolutePath: string;
-}): Promise<string> {
-	return await registeredWorktreeFsService.readTextFile({
-		workspaceId: input.worktreePath,
-		absolutePath: input.absolutePath,
-	});
-}
-
-export async function writeRegisteredWorktreeTextFile(input: {
-	worktreePath: string;
-	absolutePath: string;
-	content: string;
-}): Promise<void> {
-	await registeredWorktreeFsService.writeTextFile({
-		workspaceId: input.worktreePath,
-		absolutePath: input.absolutePath,
-		content: input.content,
-	});
-}
-
 export async function guardedWriteRegisteredWorktreeTextFile(input: {
 	worktreePath: string;
 	absolutePath: string;
@@ -156,28 +134,6 @@ export async function guardedWriteRegisteredWorktreeTextFile(input: {
 		absolutePath: input.absolutePath,
 		content: input.content,
 		expectedContent: input.expectedContent,
-	});
-}
-
-export async function readRegisteredWorktreeFileBuffer(input: {
-	worktreePath: string;
-	absolutePath: string;
-}): Promise<Buffer> {
-	return Buffer.from(
-		await registeredWorktreeFsService.readFileBuffer({
-			workspaceId: input.worktreePath,
-			absolutePath: input.absolutePath,
-		}),
-	);
-}
-
-export async function statRegisteredWorktreeFile(input: {
-	worktreePath: string;
-	absolutePath: string;
-}) {
-	return await registeredWorktreeFsService.stat({
-		workspaceId: input.worktreePath,
-		absolutePath: input.absolutePath,
 	});
 }
 
