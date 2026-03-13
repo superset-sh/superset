@@ -38,12 +38,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const [filterMode, setFilterMode] = useState<BranchFilterMode>("all");
 	const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 
-	console.log("[BranchesGroup] render", {
-		displayLimit,
-		filterMode,
-		debouncedQuery: draft.branchesQuery,
-	});
-
 	const debouncedQuery = useDebouncedValue(draft.branchesQuery, 300);
 
 	// Reset pagination when search query changes
@@ -86,9 +80,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		{ enabled: !!projectId },
 	);
 	if (remoteBranchData && remoteBranchData !== prevRemoteData) {
-		console.log(
-			"[BranchesGroup] remoteBranchData changed, invalidating searchBranches",
-		);
 		setPrevRemoteData(remoteBranchData);
 		void utils.projects.searchBranches.invalidate();
 	}
@@ -121,15 +112,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 				: undefined,
 		[allBranchData, displayLimit],
 	);
-
-	console.log("[BranchesGroup] data", {
-		searchDataRef: searchData ? "present" : "null",
-		isSearchError,
-		allBranchCount: allBranchData?.branches.length,
-		effectiveBranchCount: effectiveData?.branches.length,
-		hasMore: effectiveData?.hasMore,
-		isSearchLoading,
-	});
 
 	const { data: allWorkspaces = [] } =
 		electronTrpc.workspaces.getAll.useQuery();
@@ -243,15 +225,10 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	const hasMore = filterMode === "all" && (effectiveData?.hasMore ?? false);
 	useEffect(() => {
 		const el = sentinelRef.current;
-		console.log("[BranchesGroup] IntersectionObserver effect", {
-			hasMore,
-			elExists: !!el,
-		});
 		if (!el || !hasMore) return;
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (entries[0]?.isIntersecting) {
-					console.log("[BranchesGroup] sentinel intersecting, loading more");
 					setDisplayLimit((prev) => prev + PAGE_SIZE);
 				}
 			},
@@ -372,7 +349,6 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 	}, [importAllWorktrees, projectId]);
 
 	if (!projectId) {
-		console.log("[BranchesGroup] early return: no projectId");
 		return (
 			<CommandGroup>
 				<CommandEmpty>Select a project to view branches.</CommandEmpty>
@@ -385,22 +361,12 @@ export function BranchesGroup({ projectId }: BranchesGroupProps) {
 		(isSearchLoading || (isSearchError && isLocalLoading)) &&
 		filterMode === "all"
 	) {
-		console.log("[BranchesGroup] early return: loading", {
-			isSearchLoading,
-			isSearchError,
-			isLocalLoading,
-		});
 		return (
 			<CommandGroup>
 				<CommandEmpty>Loading branches...</CommandEmpty>
 			</CommandGroup>
 		);
 	}
-
-	console.log(
-		"[BranchesGroup] full render, visibleRows:",
-		visibleBranchRows.length,
-	);
 
 	return (
 		<>
