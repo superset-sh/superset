@@ -150,6 +150,11 @@ export interface UIColors {
 	// Search highlight colors (CSS Custom Highlight API)
 	highlightMatch: string;
 	highlightActive: string;
+
+	// Tab status background tints (optional; falls back to no tint when unset)
+	tabReviewBackground?: string;
+	tabWorkingBackground?: string;
+	tabPermissionBackground?: string;
 }
 
 /**
