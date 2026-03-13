@@ -170,6 +170,7 @@ export const createInitProcedures = () => {
 					worktreePath,
 					branch,
 					mainRepoPath: project.mainRepoPath,
+					baseBranch: worktree.baseBranch ?? undefined,
 				});
 
 				return { success: true };

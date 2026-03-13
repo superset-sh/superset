@@ -32,6 +32,12 @@ export interface WorkspaceInitParams {
 	useExistingBranch?: boolean;
 	/** If true, skip worktree creation (worktree already exists on disk) */
 	skipWorktreeCreation?: boolean;
+	/**
+	 * The resolved base branch for this workspace.
+	 * When provided, takes priority over git config / project defaults
+	 * so the explicit user selection is never lost.
+	 */
+	baseBranch?: string;
 }
 
 /**
@@ -50,6 +56,7 @@ export async function initializeWorkspaceWorktree({
 	namingPrompt,
 	useExistingBranch,
 	skipWorktreeCreation,
+	baseBranch: callerBaseBranch,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
 	const completeReadyState = async (): Promise<void> => {
@@ -97,6 +104,7 @@ export async function initializeWorkspaceWorktree({
 				branch,
 			});
 		let effectiveBaseBranch =
+			callerBaseBranch ||
 			gitConfigBase ||
 			resolveWorkspaceBaseBranch({
 				workspaceBaseBranch: project?.workspaceBaseBranch,
