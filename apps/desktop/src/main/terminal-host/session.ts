@@ -152,7 +152,7 @@ export class Session {
 		this.emulator = new HeadlessEmulator({
 			cols: options.cols,
 			rows: options.rows,
-			scrollback: options.scrollbackLines ?? 2000,
+			scrollback: options.scrollbackLines ?? 5000,
 		});
 
 		// Set initial CWD
@@ -960,5 +960,6 @@ export function createSession(request: CreateOrAttachRequest): Session {
 		workspaceName: request.workspaceName,
 		workspacePath: request.workspacePath,
 		rootPath: request.rootPath,
+		scrollbackLines: request.scrollbackLines,
 	});
 }

@@ -25,6 +25,7 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
+	DEFAULT_TERMINAL_SCROLLBACK,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import {
@@ -701,6 +702,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { defaultEditor: input.editor },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalScrollback: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.terminalScrollback ?? DEFAULT_TERMINAL_SCROLLBACK;
+		}),
+
+		setTerminalScrollback: publicProcedure
+			.input(z.object({ scrollback: z.number().int().min(1000).max(100000) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalScrollback: input.scrollback })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalScrollback: input.scrollback },
 					})
 					.run();
 

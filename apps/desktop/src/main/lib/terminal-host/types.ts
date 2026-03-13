@@ -167,6 +167,7 @@ export interface CreateOrAttachRequest {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
+	scrollbackLines?: number;
 }
 
 export interface CreateOrAttachResponse {

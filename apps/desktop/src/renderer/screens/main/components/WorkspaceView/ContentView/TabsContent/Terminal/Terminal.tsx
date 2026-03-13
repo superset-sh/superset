@@ -379,6 +379,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef.current?.fit();
 	}, [fontSettings]);
 
+	const { data: scrollbackSetting } =
+		electronTrpc.settings.getTerminalScrollback.useQuery(undefined, {
+			staleTime: 30_000,
+		});
+
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || scrollbackSetting === undefined) return;
+		xterm.options.scrollback = scrollbackSetting;
+	}, [scrollbackSetting]);
+
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	const handleDragOver = (event: React.DragEvent) => {

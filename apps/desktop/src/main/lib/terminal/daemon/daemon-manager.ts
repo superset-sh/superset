@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { workspaces } from "@superset/local-db";
+import { settings, workspaces } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
@@ -24,6 +24,17 @@ import {
 import { HistoryManager } from "./history-manager";
 import { PrioritySemaphore } from "./priority-semaphore";
 import type { ColdRestoreInfo, SessionInfo } from "./types";
+
+const DEFAULT_SCROLLBACK = 5000;
+
+function getTerminalScrollback(): number {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.terminalScrollback ?? DEFAULT_SCROLLBACK;
+	} catch {
+		return DEFAULT_SCROLLBACK;
+	}
+}
 
 export class DaemonTerminalManager extends EventEmitter {
 	private client!: TerminalHostClient;
@@ -405,6 +416,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				cwd,
 				env,
 				shell,
+				scrollbackLines: getTerminalScrollback(),
 			});
 
 			this.daemonAliveSessionIds.add(paneId);

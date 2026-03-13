@@ -35,6 +35,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_SCROLLBACK: "terminal-scrollback",
 
 	MODELS_ANTHROPIC: "models-anthropic",
 	MODELS_OPENAI: "models-openai",
@@ -556,6 +557,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_SCROLLBACK,
+		section: "terminal",
+		title: "Scrollback Lines",
+		description: "Maximum number of lines kept in terminal scrollback buffer",
+		keywords: [
+			"terminal",
+			"scrollback",
+			"buffer",
+			"history",
+			"lines",
+			"scroll",
+			"output",
+			"limit",
 		],
 	},
 	{
