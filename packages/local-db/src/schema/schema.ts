@@ -200,6 +200,10 @@ export const settings = sqliteTable("settings", {
 	useCompactTerminalAddButton: integer("use_compact_terminal_add_button", {
 		mode: "boolean",
 	}),
+	newTerminalInCurrentTabDirectory: integer(
+		"new_terminal_in_current_tab_directory",
+		{ mode: "boolean" },
+	),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),

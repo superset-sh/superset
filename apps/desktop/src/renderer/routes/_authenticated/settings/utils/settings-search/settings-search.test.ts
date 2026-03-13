@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "directory" returns the new terminal directory setting', () => {
+		const results = searchSettings("directory");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.TERMINAL_NEW_TERMINAL_DIRECTORY);
+	});
 });
