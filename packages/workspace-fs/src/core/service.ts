@@ -20,9 +20,7 @@ export interface FsService {
 		encoding?: string;
 	}): Promise<FsReadResult>;
 
-	getMetadata(input: {
-		absolutePath: string;
-	}): Promise<FsMetadata | null>;
+	getMetadata(input: { absolutePath: string }): Promise<FsMetadata | null>;
 
 	writeFile(input: {
 		absolutePath: string;

@@ -8,9 +8,9 @@ import {
 import { normalizeAbsolutePath } from "./paths";
 import {
 	DEFAULT_IGNORE_PATTERNS,
-	type SearchPatchEvent,
 	invalidateSearchIndexesForRoot,
 	patchSearchIndexesForRoot,
+	type SearchPatchEvent,
 } from "./search";
 import type { FsWatchEvent } from "./types";
 
@@ -487,10 +487,7 @@ export class FsWatcherManager {
 		};
 	}
 
-	private emit(
-		state: WatcherState,
-		batch: { events: FsWatchEvent[] },
-	): void {
+	private emit(state: WatcherState, batch: { events: FsWatchEvent[] }): void {
 		for (const listener of state.listeners) {
 			listener(batch);
 		}

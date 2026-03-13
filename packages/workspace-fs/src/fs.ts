@@ -3,10 +3,7 @@ import type { Dirent, Stats } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import {
-	isPathWithinRoot,
-	normalizeAbsolutePath,
-} from "./paths";
+import { isPathWithinRoot, normalizeAbsolutePath } from "./paths";
 import type {
 	FsEntry,
 	FsEntryKind,

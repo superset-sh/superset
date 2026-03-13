@@ -1,4 +1,8 @@
-export type { FsRequestMap, FsService, FsSubscriptionMap } from "../core/service";
+export type {
+	FsRequestMap,
+	FsService,
+	FsSubscriptionMap,
+} from "../core/service";
 
 import type {
 	FsRequestMap,

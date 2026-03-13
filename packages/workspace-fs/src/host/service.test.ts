@@ -54,9 +54,7 @@ describe("createFsHostService", () => {
 	});
 
 	it("streams watcher events through the host service contract", async () => {
-		const listeners: Array<
-			(batch: { events: FsWatchEvent[] }) => void
-		> = [];
+		const listeners: Array<(batch: { events: FsWatchEvent[] }) => void> = [];
 		let unsubscribed = false;
 
 		const service = createFsHostService({

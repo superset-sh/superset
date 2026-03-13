@@ -28,9 +28,7 @@ async function createTempRoot(): Promise<string> {
 	return rootPath;
 }
 
-function createPatchEvent(
-	event: SearchPatchEvent,
-): SearchPatchEvent {
+function createPatchEvent(event: SearchPatchEvent): SearchPatchEvent {
 	return event;
 }
 

@@ -913,11 +913,13 @@ export async function searchContent({
 		});
 	}
 
-	return internalMatches.map(({ absolutePath, relativePath, line, column, preview }) => ({
-		absolutePath,
-		relativePath,
-		line,
-		column,
-		preview,
-	}));
+	return internalMatches.map(
+		({ absolutePath, relativePath, line, column, preview }) => ({
+			absolutePath,
+			relativePath,
+			line,
+			column,
+			preview,
+		}),
+	);
 }

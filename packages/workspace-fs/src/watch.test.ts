@@ -52,9 +52,7 @@ describe("coalesceWatchEvents", () => {
 	});
 });
 
-function createInternalEvent(
-	event: InternalWatchEvent,
-): InternalWatchEvent {
+function createInternalEvent(event: InternalWatchEvent): InternalWatchEvent {
 	return event;
 }
 
