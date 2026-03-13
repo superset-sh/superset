@@ -238,6 +238,9 @@ const ALLOWED_ENV_VARS = new Set([
 	// macOS specific
 	"__CF_USER_TEXT_ENCODING",
 	"Apple_PubSub_Socket_Render",
+	"SECURITYSESSIONID", // macOS Security Session ID — needed by system services (configd, etc.)
+	"COMMAND_MODE", // macOS command-line tools behavior mode (unix2003 vs legacy)
+	"MallocNanoZone", // macOS malloc configuration — some binaries crash without it
 
 	// Windows specific (for cross-platform compatibility)
 	// Note: Windows stores these with various casings (Path, SystemRoot, etc.)
@@ -439,8 +442,6 @@ export function buildTerminalEnv(params: {
 		// Hook protocol version for forward compatibility
 		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 	};
-
-	delete terminalEnv.GOOGLE_API_KEY;
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,
 	// causing "x509: OSStatus -26276" in Go binaries like `gh`. File-based fallback.

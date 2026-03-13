@@ -382,6 +382,35 @@ describe("env", () => {
 			});
 		});
 
+		describe("includes macOS system framework vars (#2327)", () => {
+			it("should include SECURITYSESSIONID (required by macOS system services like configd)", () => {
+				const env = {
+					SECURITYSESSIONID: "186a5",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env, { platform: "darwin" });
+				expect(result.SECURITYSESSIONID).toBe("186a5");
+			});
+
+			it("should include COMMAND_MODE (macOS command-line tools behavior mode)", () => {
+				const env = {
+					COMMAND_MODE: "unix2003",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env, { platform: "darwin" });
+				expect(result.COMMAND_MODE).toBe("unix2003");
+			});
+
+			it("should include MallocNanoZone (macOS malloc configuration)", () => {
+				const env = {
+					MallocNanoZone: "0",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env, { platform: "darwin" });
+				expect(result.MallocNanoZone).toBe("0");
+			});
+		});
+
 		describe("includes developer tool config vars (non-secrets)", () => {
 			it("should include SSL/TLS config vars", () => {
 				const env = {
