@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
 	oneDark,
@@ -44,10 +45,12 @@ export function FontPreview({
 	fontFamily,
 	fontSize,
 	variant,
+	isCustomFont,
 }: {
 	fontFamily: string;
 	fontSize: number;
 	variant: "editor" | "terminal";
+	isCustomFont: boolean;
 }) {
 	const theme = useTheme();
 	const isDark = theme?.type !== "light";
@@ -75,9 +78,7 @@ export function FontPreview({
 			) : (
 				<SyntaxHighlighter
 					language="typescript"
-					style={
-						(isDark ? oneDark : oneLight) as Record<string, React.CSSProperties>
-					}
+					style={(isDark ? oneDark : oneLight) as Record<string, CSSProperties>}
 					customStyle={{
 						margin: 0,
 						padding: "12px",
@@ -95,7 +96,7 @@ export function FontPreview({
 					{CODE_PREVIEW}
 				</SyntaxHighlighter>
 			)}
-			<FontNotFoundBanner fontFamily={fontFamily} />
+			{isCustomFont && <FontNotFoundBanner fontFamily={fontFamily} />}
 		</div>
 	);
 }

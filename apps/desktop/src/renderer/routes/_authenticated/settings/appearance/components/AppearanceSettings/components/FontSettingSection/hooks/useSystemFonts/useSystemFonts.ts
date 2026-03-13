@@ -140,8 +140,16 @@ export function useSystemFonts() {
 		async function loadFonts() {
 			await document.fonts.ready;
 
-			const result: FontInfo[] = [...REGISTERED_FONTS];
-			const seen = new Set(result.map((f) => f.family));
+			const result: FontInfo[] = [];
+			const seen = new Set<string>();
+
+			// Add registered @font-face fonts only if they loaded successfully
+			for (const font of REGISTERED_FONTS) {
+				if (isFontAvailable(font.family)) {
+					result.push(font);
+					seen.add(font.family);
+				}
+			}
 
 			for (const font of discoverSystemFonts()) {
 				if (!seen.has(font.family)) {
@@ -163,8 +171,8 @@ export function useSystemFonts() {
 						}
 						result.push({ family: fd.family, category });
 					}
-				} catch {
-					// Permission denied or API unavailable
+				} catch (err) {
+					console.warn("[useSystemFonts] queryLocalFonts failed:", err);
 				}
 			}
 
@@ -177,7 +185,9 @@ export function useSystemFonts() {
 			}
 		}
 
-		loadFonts();
+		loadFonts().catch((err) => {
+			console.warn("[useSystemFonts] Font loading failed:", err);
+		});
 		return () => {
 			cancelled = true;
 		};

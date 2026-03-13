@@ -70,9 +70,10 @@ export function FontFamilyCombobox({
 
 	function renderGroup(heading: string, items: FontInfo[]) {
 		if (items.length === 0) return null;
+		const visible = search.trim() ? items : items.slice(0, MAX_VISIBLE);
 		return (
 			<CommandGroup heading={heading}>
-				{items.slice(0, MAX_VISIBLE).map((font) => (
+				{visible.map((font) => (
 					<CommandItem
 						key={font.family}
 						value={font.family}
@@ -105,7 +106,7 @@ export function FontFamilyCombobox({
 						className="truncate"
 						style={{ fontFamily: `"${displayLabel}"` }}
 					>
-						{fontsLoading ? "Loading fonts\u2026" : displayLabel}
+						{fontsLoading ? "Loading fonts..." : displayLabel}
 					</span>
 					<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 				</Button>
@@ -113,7 +114,7 @@ export function FontFamilyCombobox({
 			<PopoverContent className="w-[320px] p-0" align="start" side="top">
 				<Command shouldFilter={true}>
 					<CommandInput
-						placeholder="Search fonts\u2026"
+						placeholder="Search fonts..."
 						value={search}
 						onValueChange={setSearch}
 					/>

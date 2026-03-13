@@ -170,6 +170,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 					fontFamily={previewFamily}
 					fontSize={previewSize}
 					variant={variant}
+					isCustomFont={currentFamily !== null}
 				/>
 			</div>
 		</div>
