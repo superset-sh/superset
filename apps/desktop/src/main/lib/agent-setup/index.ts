@@ -15,6 +15,7 @@ import {
 	createGeminiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
+	createOpenClawWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 } from "./agent-wrappers";
@@ -52,6 +53,7 @@ export function setupAgentHooks(): void {
 	createDroidSettingsJson();
 	createOpenCodePlugin();
 	createOpenCodeWrapper();
+	createOpenClawWrapper();
 	createCursorHookScript();
 	createCursorAgentWrapper();
 	createCursorHooksJson();

@@ -3,6 +3,7 @@ export const AGENT_TYPES = [
 	"codex",
 	"gemini",
 	"opencode",
+	"openclaw",
 	"copilot",
 	"cursor-agent",
 ] as const;
@@ -14,6 +15,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 	codex: "Codex",
 	gemini: "Gemini",
 	opencode: "OpenCode",
+	openclaw: "OpenClaw",
 	copilot: "Copilot",
 	"cursor-agent": "Cursor Agent",
 };
@@ -25,6 +27,7 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
+	openclaw: ["openclaw tui"],
 	copilot: ["copilot --allow-all"],
 	"cursor-agent": ["cursor-agent"],
 };
@@ -34,6 +37,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	codex: "Danger mode: All permissions auto-approved",
 	gemini: "Danger mode: All permissions auto-approved",
 	opencode: "OpenCode: Open-source AI coding agent",
+	openclaw: "OpenClaw: Personal AI agent with lifecycle hooks",
 	copilot: "Danger mode: All permissions auto-approved",
 	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
 };
@@ -102,6 +106,7 @@ const AGENT_FILE_COMMANDS: Record<AgentType, (filePath: string) => string> = {
 		`codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true -- "$(cat '${filePath}')"`,
 	gemini: (filePath) => `gemini --yolo "$(cat '${filePath}')"`,
 	opencode: (filePath) => `opencode --prompt "$(cat '${filePath}')"`,
+	openclaw: (filePath) => `openclaw tui --prompt "$(cat '${filePath}')"`,
 	copilot: (filePath) => `copilot -i "$(cat '${filePath}')" --yolo`,
 	"cursor-agent": (filePath) => `cursor-agent --yolo "$(cat '${filePath}')"`,
 };
@@ -134,6 +139,8 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
 	opencode: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "opencode --prompt"),
+	openclaw: (prompt, delimiter) =>
+		buildHeredoc(prompt, delimiter, "openclaw tui --prompt"),
 	copilot: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
 	"cursor-agent": (prompt, delimiter) =>

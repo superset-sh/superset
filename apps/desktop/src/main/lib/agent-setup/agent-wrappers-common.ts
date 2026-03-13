@@ -8,6 +8,7 @@ export const SUPERSET_MANAGED_BINARIES = [
 	"codex",
 	"droid",
 	"opencode",
+	"openclaw",
 	"gemini",
 	"copilot",
 	"mastracode",

@@ -46,6 +46,7 @@ export {
 	getDroidSettingsJsonContent,
 	getDroidSettingsJsonPath,
 } from "./agent-wrappers-droid";
+export { createOpenClawWrapper } from "./agent-wrappers-openclaw";
 export {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
