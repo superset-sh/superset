@@ -161,6 +161,44 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 
+	it("Cmd+A on macOS selects only the current input line, not all terminal output", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const select = mock(() => {});
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			buffer: {
+				active: { baseY: 100, cursorY: 5 },
+			},
+			cols: 80,
+			select,
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "a",
+			metaKey: true,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		// Must select only the current line (baseY + cursorY = row 105), not all output
+		expect(select).toHaveBeenCalledWith(0, 105, 80);
+		// Must return false so xterm does NOT perform its native select-all
+		expect(result).toBe(false);
+	});
+
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
 		// @ts-expect-error - mocking navigator for tests
 		globalThis.navigator = { platform: "Win32" };

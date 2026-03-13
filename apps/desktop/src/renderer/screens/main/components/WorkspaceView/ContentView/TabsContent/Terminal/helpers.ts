@@ -547,6 +547,23 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Cmd+A on macOS: select only the current input line instead of all terminal output
+		const isCmdA =
+			event.key === "a" &&
+			event.metaKey &&
+			isMac &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdA) {
+			if (event.type === "keydown") {
+				const buffer = xterm.buffer.active;
+				xterm.select(0, buffer.baseY + buffer.cursorY, xterm.cols);
+			}
+			return false;
+		}
+
 		const isCmdBackspace =
 			event.key === "Backspace" &&
 			event.metaKey &&
