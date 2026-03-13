@@ -31,7 +31,7 @@ interface RawFileData {
 
 interface RawFileError {
 	ok: false;
-	reason: "too-large" | "binary" | "not-found";
+	reason: "too-large" | "binary" | "not-found" | "is-directory";
 }
 
 type RawFileResult = RawFileData | RawFileError | undefined;
@@ -44,7 +44,7 @@ interface ImageData {
 
 interface ImageError {
 	ok: false;
-	reason: "too-large" | "not-image" | "not-found";
+	reason: "too-large" | "not-image" | "not-found" | "is-directory";
 }
 
 type ImageResult = ImageData | ImageError | undefined;
@@ -377,7 +377,9 @@ export function FileViewerContent({
 					? "Image is too large to preview (max 10MB)"
 					: imageData?.reason === "not-image"
 						? "Not a supported image format"
-						: "Image not found";
+						: imageData?.reason === "is-directory"
+							? "This path is a directory"
+							: "Image not found";
 
 			return (
 				<div className="flex h-full items-center justify-center text-muted-foreground">
@@ -412,7 +414,9 @@ export function FileViewerContent({
 				? "File is too large to preview"
 				: rawFileData?.reason === "binary"
 					? "Binary file preview not supported"
-					: "File not found";
+					: rawFileData?.reason === "is-directory"
+						? "This path is a directory"
+						: "File not found";
 
 		return (
 			<div className="flex h-full items-center justify-center text-muted-foreground">

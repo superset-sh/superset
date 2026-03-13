@@ -26,19 +26,25 @@ type ReadWorkingFileResult =
 	| { ok: true; content: string; truncated: boolean; byteLength: number }
 	| {
 			ok: false;
-			reason: "not-found" | "too-large" | "binary";
+			reason: "not-found" | "too-large" | "binary" | "is-directory";
 	  };
 
 type ReadWorkingFileImageResult =
 	| { ok: true; dataUrl: string; byteLength: number }
 	| {
 			ok: false;
-			reason: "not-found" | "too-large" | "not-image";
+			reason: "not-found" | "too-large" | "not-image" | "is-directory";
 	  };
 
 type SaveFileResult =
 	| { status: "saved" }
 	| { status: "conflict"; currentContent: string | null };
+
+function isEisdir(error: unknown): boolean {
+	return (
+		error instanceof Error && "code" in error && error.code === "EISDIR"
+	);
+}
 
 function isBinaryContent(buffer: Buffer): boolean {
 	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
@@ -165,7 +171,10 @@ export const createFileContentsRouter = () => {
 						truncated: false,
 						byteLength: result.buffer.length,
 					};
-				} catch {
+				} catch (error) {
+					if (isEisdir(error)) {
+						return { ok: false, reason: "is-directory" };
+					}
 					return { ok: false, reason: "not-found" };
 				}
 			}),
@@ -199,7 +208,10 @@ export const createFileContentsRouter = () => {
 						dataUrl: `data:${mimeType};base64,${base64}`,
 						byteLength: result.buffer.length,
 					};
-				} catch {
+				} catch (error) {
+					if (isEisdir(error)) {
+						return { ok: false, reason: "is-directory" };
+					}
 					return { ok: false, reason: "not-found" };
 				}
 			}),
