@@ -46,6 +46,11 @@ export function useTerminalStream({
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
 
+	// Write coalescing: buffer data arriving in the same animation frame and
+	// flush as a single xterm.write() call to reduce parser + WebGL overhead.
+	const pendingWriteBufferRef = useRef<string[]>([]);
+	const rafScheduledRef = useRef(false);
+
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
 	updateModesRef.current = updateModesFromData;
@@ -147,9 +152,28 @@ export function useTerminalStream({
 					);
 				}
 
+				// Mode and CWD tracking must stay synchronous so state is always
+				// up-to-date regardless of when the write actually reaches xterm.
 				updateModesRef.current(event.data);
-				xterm.write(event.data);
 				updateCwdRef.current(event.data);
+
+				// Coalesce writes within a single animation frame to reduce the number
+				// of xterm parser + WebGL render cycles when bursts of IPC messages
+				// arrive faster than the display refresh rate.
+				pendingWriteBufferRef.current.push(event.data);
+				if (!rafScheduledRef.current) {
+					rafScheduledRef.current = true;
+					requestAnimationFrame(() => {
+						rafScheduledRef.current = false;
+						const pendingXterm = xtermRef.current;
+						if (!pendingXterm || pendingWriteBufferRef.current.length === 0) {
+							pendingWriteBufferRef.current = [];
+							return;
+						}
+						pendingXterm.write(pendingWriteBufferRef.current.join(""));
+						pendingWriteBufferRef.current = [];
+					});
+				}
 			} else if (event.type === "exit") {
 				handleTerminalExit(event.exitCode, xterm, event.reason);
 			} else if (event.type === "disconnect") {
