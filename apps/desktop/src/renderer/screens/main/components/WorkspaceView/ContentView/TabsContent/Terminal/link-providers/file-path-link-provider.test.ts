@@ -105,6 +105,20 @@ describe("FilePathLinkProvider", () => {
 			expect(links[0].text).toBe("/path/file.ts:42:10");
 		});
 
+		it("should calculate path start column using terminal cell width for CJK prefixes", async () => {
+			const terminal = createMockTerminal([
+				{ text: "错误在 ./src/index.ts:12" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			// "错误在 " => 7 terminal cells (not 4 UTF-16 chars)
+			expect(links[0].range.start.x).toBe(8);
+		});
+
 		it("should detect multiple paths on one line", async () => {
 			const terminal = createMockTerminal([
 				{ text: "Import ./src/a.ts and ./src/b.ts" },
@@ -117,6 +131,21 @@ describe("FilePathLinkProvider", () => {
 			expect(links.length).toBe(2);
 			expect(links[0].text).toBe("./src/a.ts");
 			expect(links[1].text).toBe("./src/b.ts");
+		});
+
+		it("should calculate link start column using terminal cell width for CJK prefixes", async () => {
+			const terminal = createMockTerminal([
+				{
+					text: "本地 main 改动都在 ./fix/hardened-error-handling-and-consistency 分支上。",
+				},
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].range.start.x).toBe(20);
 		});
 	});
 
