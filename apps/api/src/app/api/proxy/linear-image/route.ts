@@ -5,6 +5,13 @@ import { and, eq } from "drizzle-orm";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
 const CACHE_MAX_AGE = 31536000; // 1 year (Linear URLs are content-addressed)
+const ALLOWED_CONTENT_TYPES = new Set([
+	"image/png",
+	"image/jpeg",
+	"image/gif",
+	"image/webp",
+	"image/svg+xml",
+]);
 
 export async function GET(request: Request): Promise<Response> {
 	const sessionData = await auth.api.getSession({
@@ -33,6 +40,10 @@ export async function GET(request: Request): Promise<Response> {
 		parsedUrl = new URL(linearUrl);
 	} catch {
 		return new Response("Invalid URL", { status: 400 });
+	}
+
+	if (parsedUrl.protocol !== "https:") {
+		return new Response("Only HTTPS URLs are allowed", { status: 400 });
 	}
 
 	if (parsedUrl.host !== LINEAR_IMAGE_HOST) {
@@ -71,7 +82,17 @@ export async function GET(request: Request): Promise<Response> {
 		});
 	}
 
-	const contentType = linearResponse.headers.get("content-type") ?? "image/png";
+	const contentType =
+		linearResponse.headers
+			.get("content-type")
+			?.split(";")[0]
+			?.trim()
+			.toLowerCase() ?? "image/png";
+
+	if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+		return new Response("Unsupported content type", { status: 400 });
+	}
+
 	const imageData = await linearResponse.arrayBuffer();
 
 	return new Response(imageData, {
