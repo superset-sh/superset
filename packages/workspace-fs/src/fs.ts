@@ -327,17 +327,30 @@ export async function listDirectory({
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
-	return entries
-		.map((entry) => {
+	const results = await Promise.all(
+		entries.map(async (entry) => {
 			const entryAbsolutePath = path.join(targetPath, entry.name);
-			return toEntry(rootPath, entryAbsolutePath, entry.isDirectory());
-		})
-		.sort((left, right) => {
-			if (left.isDirectory !== right.isDirectory) {
-				return left.isDirectory ? -1 : 1;
+			let isDirectory = entry.isDirectory();
+
+			if (!isDirectory && entry.isSymbolicLink()) {
+				try {
+					const stats = await fs.stat(entryAbsolutePath);
+					isDirectory = stats.isDirectory();
+				} catch {
+					// Broken symlink — keep isDirectory as false
+				}
 			}
-			return left.name.localeCompare(right.name);
-		});
+
+			return toEntry(rootPath, entryAbsolutePath, isDirectory);
+		}),
+	);
+
+	return results.sort((left, right) => {
+		if (left.isDirectory !== right.isDirectory) {
+			return left.isDirectory ? -1 : 1;
+		}
+		return left.name.localeCompare(right.name);
+	});
 }
 
 export async function readTextFile({
