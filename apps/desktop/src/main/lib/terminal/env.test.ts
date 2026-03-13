@@ -396,6 +396,23 @@ describe("env", () => {
 				expect(result.NODE_EXTRA_CA_CERTS).toBe("/path/to/custom-ca.crt");
 			});
 
+			it("should include GitHub CLI auth vars (macOS Keychain workaround)", () => {
+				const env = {
+					GH_TOKEN: "ghp_test123",
+					GITHUB_TOKEN: "ghp_test456",
+					GH_HOST: "github.example.com",
+					GH_ENTERPRISE_TOKEN: "ghp_ent789",
+					GITHUB_ENTERPRISE_TOKEN: "ghp_ent012",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.GH_TOKEN).toBe("ghp_test123");
+				expect(result.GITHUB_TOKEN).toBe("ghp_test456");
+				expect(result.GH_HOST).toBe("github.example.com");
+				expect(result.GH_ENTERPRISE_TOKEN).toBe("ghp_ent789");
+				expect(result.GITHUB_ENTERPRISE_TOKEN).toBe("ghp_ent012");
+			});
+
 			it("should include Git config vars (not credentials)", () => {
 				const env = {
 					GIT_SSH_COMMAND: "ssh -i ~/.ssh/custom_key",
@@ -583,6 +600,8 @@ describe("env", () => {
 			"DATABASE_URL",
 			"CLERK_SECRET_KEY",
 			"SSL_CERT_FILE",
+			"GH_TOKEN",
+			"GITHUB_TOKEN",
 		];
 
 		beforeEach(() => {
@@ -709,6 +728,20 @@ describe("env", () => {
 			const result = buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
+		});
+
+		describe("GitHub auth vars for macOS Keychain workaround", () => {
+			it("should pass through GH_TOKEN to terminal when set", () => {
+				process.env.GH_TOKEN = "ghp_test_token";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.GH_TOKEN).toBe("ghp_test_token");
+			});
+
+			it("should pass through GITHUB_TOKEN to terminal when set", () => {
+				process.env.GITHUB_TOKEN = "ghp_github_token";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.GITHUB_TOKEN).toBe("ghp_github_token");
+			});
 		});
 
 		describe("SSL_CERT_FILE fallback on macOS", () => {
