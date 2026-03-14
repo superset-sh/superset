@@ -164,7 +164,14 @@ export function createZshWrapper(
 ${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
+_superset_pre_histfile="$HISTFILE"
 [[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
+# Fix HISTFILE: zsh defaults HISTFILE to $ZDOTDIR/.zsh_history before startup
+# files run. Since our ZDOTDIR redirect pointed it to the wrapper directory,
+# the user's real history file (in their home) would not be found. If the
+# user's .zshenv didn't explicitly change HISTFILE, redirect it to their home.
+[[ "$HISTFILE" = "$_superset_pre_histfile" ]] && export HISTFILE="$_superset_home/.zsh_history"
+unset _superset_pre_histfile
 ${SUPERSET_ENV_RESTORE}
 export ZDOTDIR=${quotedZshDir}
 `;
