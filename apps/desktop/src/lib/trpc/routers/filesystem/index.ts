@@ -103,14 +103,23 @@ export const createFilesystemRouter = () => {
 								safeNext(event);
 							}
 						} catch (error) {
+							const errorMessage =
+								error instanceof Error
+									? error.message
+									: typeof error === "object" &&
+											error !== null &&
+											"message" in error
+										? String((error as { message: unknown }).message)
+										: String(error);
 							console.error("[filesystem/subscribe] Failed:", {
 								workspaceId: input.workspaceId,
-								error,
+								error: errorMessage,
 							});
 							safeNext({
 								type: "overflow",
 								revision: 0,
 							});
+							runCleanup();
 						}
 					})();
 
