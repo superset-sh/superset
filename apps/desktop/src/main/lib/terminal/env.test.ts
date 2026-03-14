@@ -236,6 +236,23 @@ describe("env", () => {
 			});
 		});
 
+		describe("includes shell history vars", () => {
+			it("should include HISTFILE when set", () => {
+				const env = {
+					HISTFILE: "/home/user/.custom_history",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.HISTFILE).toBe("/home/user/.custom_history");
+			});
+
+			it("should not include HISTFILE when not present", () => {
+				const env = { PATH: "/usr/bin" };
+				const result = buildSafeEnv(env);
+				expect(result.HISTFILE).toBeUndefined();
+			});
+		});
+
 		describe("includes allowlisted shell environment vars", () => {
 			it("should include PATH, HOME, SHELL, USER", () => {
 				const env = {
