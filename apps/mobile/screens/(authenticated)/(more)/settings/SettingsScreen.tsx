@@ -17,7 +17,10 @@ export function SettingsScreen() {
 		>
 			<View className="p-6 gap-4">
 				<View className="flex-row items-center gap-2">
-					<Pressable onPress={() => router.back()} className="p-1">
+					<Pressable
+						onPress={() => router.navigate("/(authenticated)/(more)")}
+						className="p-1"
+					>
 						<Icon as={ChevronLeft} className="text-foreground size-6" />
 					</Pressable>
 					<Text className="text-2xl font-bold">Settings</Text>
