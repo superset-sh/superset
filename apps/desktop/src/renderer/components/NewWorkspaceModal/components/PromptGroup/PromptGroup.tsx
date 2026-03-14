@@ -1,8 +1,4 @@
-import {
-	type AgentLaunchRequest,
-	STARTABLE_AGENT_TYPES,
-	type StartableAgentType,
-} from "@superset/shared/agent-launch";
+import type { StartableAgentType } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import {
@@ -21,16 +17,13 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useAgentLaunchAgents } from "renderer/react-query/agent-presets";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
-import {
-	buildPromptCommandFromAgentPreset,
-	getCommandFromAgentPreset,
-	getDefaultAgentPreset,
-	OPEN_AGENT_SETTINGS_OPTION,
-} from "shared/utils/agent-preset-settings";
+import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
+import { OPEN_AGENT_SETTINGS_OPTION } from "shared/utils/agent-preset-settings";
 import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
@@ -66,20 +59,20 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 	} = draft;
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
-	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
-		() => {
-			if (typeof window === "undefined") return "none";
-			const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
-			if (stored === "none") return "none";
-			return stored &&
-				(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
-				? (stored as WorkspaceCreateAgent)
-				: "none";
-		},
-	);
 	const trimmedPrompt = prompt.trim();
-	const { agentLabels, agentPresetById, selectableAgents, selectableAgentSet } =
+	const { agentLabels, agentPresetById, selectableAgents } =
 		useAgentLaunchAgents();
+	const validAgents = useMemo(
+		() => ["none", ...selectableAgents] as WorkspaceCreateAgent[],
+		[selectableAgents],
+	);
+	const { selectedAgent, setSelectedAgent } =
+		useAgentLaunchPreferences<WorkspaceCreateAgent>({
+			agentStorageKey: AGENT_STORAGE_KEY,
+			defaultAgent: "none",
+			fallbackAgent: "none",
+			validAgents,
+		});
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
@@ -163,68 +156,18 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 		setBaseBranchOpen(false);
 	}, [projectId, updateDraft]);
 
-	useEffect(() => {
-		if (selectedAgent === "none") return;
-		if (selectableAgentSet.has(selectedAgent)) {
-			return;
-		}
-		setSelectedAgent("none");
-		window.localStorage.setItem(AGENT_STORAGE_KEY, "none");
-	}, [selectedAgent, selectableAgentSet]);
-
-	const handleAgentChange = (value: WorkspaceCreateAgent) => {
-		setSelectedAgent(value);
-		window.localStorage.setItem(AGENT_STORAGE_KEY, value);
-	};
-
-	const buildLaunchRequest = (
-		currentPrompt: string,
-	): AgentLaunchRequest | null => {
-		if (selectedAgent === "none") return null;
-
-		if (selectedAgent === "superset-chat") {
-			return {
-				kind: "chat",
-				workspaceId: "pending-workspace",
-				agentType: "superset-chat",
-				source: "new-workspace",
-				chat: {
-					initialPrompt: currentPrompt || undefined,
-				},
-			};
-		}
-
-		const selectedPreset =
-			agentPresetById.get(selectedAgent) ??
-			getDefaultAgentPreset(selectedAgent);
-		const command = currentPrompt
-			? buildPromptCommandFromAgentPreset({
-					prompt: currentPrompt,
-					randomId: window.crypto.randomUUID(),
-					preset: selectedPreset,
-				})
-			: getCommandFromAgentPreset(selectedPreset);
-
-		if (!command) return null;
-
-		return {
-			kind: "terminal",
-			workspaceId: "pending-workspace",
-			agentType: selectedAgent,
-			source: "new-workspace",
-			terminal: {
-				command,
-				name: "Agent",
-			},
-		};
-	};
-
 	const handleCreate = () => {
 		if (!projectId) {
 			toast.error("Select a project first");
 			return;
 		}
-		const launchRequest = buildLaunchRequest(trimmedPrompt);
+		const launchRequest = buildPromptAgentLaunchRequest({
+			workspaceId: "pending-workspace",
+			source: "new-workspace",
+			selectedAgent,
+			prompt: trimmedPrompt,
+			agentPresetById,
+		});
 		void runAsyncAction(
 			createWorkspace.mutateAsyncWithPendingSetup(
 				{
@@ -283,7 +226,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 						navigate({ to: "/settings/agent" });
 						return;
 					}
-					handleAgentChange(value as WorkspaceCreateAgent);
+					setSelectedAgent(value as WorkspaceCreateAgent);
 				}}
 			>
 				<SelectTrigger className="h-8 text-xs w-full">
