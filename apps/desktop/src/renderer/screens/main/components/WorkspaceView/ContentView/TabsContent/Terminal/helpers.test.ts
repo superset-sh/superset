@@ -161,6 +161,83 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 
+	it("intercepts Shift+Enter in normal buffer mode (shell prompt)", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const normalBuffer = {};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			buffer: {
+				active: normalBuffer,
+				normal: normalBuffer,
+			},
+		};
+
+		const onShiftEnter = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onShiftEnter });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "Enter",
+			shiftKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			preventDefault: mock(() => {}),
+		} as unknown as KeyboardEvent);
+
+		expect(onShiftEnter).toHaveBeenCalled();
+		expect(result).toBe(false);
+	});
+
+	it("passes Shift+Enter through to xterm in alternate buffer mode (TUI apps)", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const normalBuffer = {};
+		const alternateBuffer = {};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			buffer: {
+				active: alternateBuffer,
+				normal: normalBuffer,
+			},
+		};
+
+		const onShiftEnter = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onShiftEnter });
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "Enter",
+			shiftKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			preventDefault: mock(() => {}),
+		} as unknown as KeyboardEvent);
+
+		// Shift+Enter should NOT be intercepted in alternate buffer mode
+		// so TUI apps (gsd-pi, etc.) can distinguish it from plain Enter
+		expect(onShiftEnter).not.toHaveBeenCalled();
+		expect(result).toBe(true);
+	});
+
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
 		// @ts-expect-error - mocking navigator for tests
 		globalThis.navigator = { platform: "Win32" };
