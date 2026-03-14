@@ -1,12 +1,6 @@
-import {
-	buildAgentFileCommand,
-	buildAgentTaskPrompt,
-} from "@superset/shared/agent-command";
-import {
-	type AgentLaunchRequest,
-	STARTABLE_AGENT_LABELS,
-	STARTABLE_AGENT_TYPES,
-	type StartableAgentType,
+import type {
+	AgentLaunchRequest,
+	StartableAgentType,
 } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
 import {
@@ -21,24 +15,30 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { Switch } from "@superset/ui/switch";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { HiCheck, HiMiniPlay, HiXMark } from "react-icons/hi2";
 import { LuCircle } from "react-icons/lu";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useAgentLaunchAgents } from "renderer/react-query/agent-presets";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
+import { OPEN_AGENT_SETTINGS_OPTION } from "shared/utils/agent-preset-settings";
 import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
@@ -66,103 +66,64 @@ export function RunInWorkspacePopover({
 	tasks,
 	onComplete,
 }: RunInWorkspacePopoverProps) {
+	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { agentLabels, agentPresetById, fallbackAgent, selectableAgents } =
+		useAgentLaunchAgents();
 	const createWorkspace = useCreateWorkspace({ skipNavigation: true });
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const isDark = useIsDarkTheme();
-	const selectableAgents =
-		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 
 	const [open, setOpen] = useState(false);
-	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-		() => localStorage.getItem("lastOpenedInProjectId"),
-	);
-	const [selectedAgent, setSelectedAgent] = useState<StartableAgentType>(() => {
-		const stored = localStorage.getItem("lastSelectedAgent");
-		return stored &&
-			(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
-			? (stored as StartableAgentType)
-			: "claude";
+	const {
+		autoRun,
+		effectiveProjectId,
+		selectedAgent,
+		setAutoRun,
+		setSelectedAgent,
+		setSelectedProjectId,
+	} = useAgentLaunchPreferences<StartableAgentType>({
+		agentStorageKey: "lastSelectedAgent",
+		defaultAgent: "claude",
+		fallbackAgent,
+		validAgents: selectableAgents,
+		projectStorageKey: "lastOpenedInProjectId",
+		recentProjects,
+		autoRunStorageKey: "agentAutoRun",
 	});
-	const [autoRun, setAutoRun] = useState(
-		() => localStorage.getItem("agentAutoRun") !== "false",
-	);
 	const [isRunning, setIsRunning] = useState(false);
 	const [taskStatuses, setTaskStatuses] = useState<Map<string, TaskStatus>>(
 		new Map(),
 	);
 
 	const abortRef = useRef(false);
-
-	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(
-		(p) => p.id === effectiveProjectId,
+		(project) => project.id === effectiveProjectId,
 	);
-
-	useEffect(() => {
-		if (!selectedProjectId && recentProjects.length > 0) {
-			setSelectedProjectId(recentProjects[0].id);
-			localStorage.setItem("lastOpenedInProjectId", recentProjects[0].id);
-		}
-	}, [selectedProjectId, recentProjects]);
-
-	useEffect(() => {
-		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
-			return;
-		}
-		setSelectedAgent("claude");
-		localStorage.setItem("lastSelectedAgent", "claude");
-	}, [selectedAgent]);
 
 	const buildLaunchRequest = (
 		task: TaskWithStatus,
 		workspaceId: string,
 	): AgentLaunchRequest => {
-		const taskInput = {
-			id: task.id,
-			slug: task.slug,
-			title: task.title,
-			description: task.description,
-			priority: task.priority,
-			statusName: task.status.name,
-			labels: task.labels,
-		};
-
-		if (selectedAgent === "superset-chat") {
-			return {
-				kind: "chat",
-				workspaceId,
-				agentType: "superset-chat",
-				source: "open-in-workspace",
-				chat: {
-					initialPrompt: buildAgentTaskPrompt(taskInput),
-					retryCount: 1,
-					autoExecute: autoRun,
-					taskSlug: task.slug,
-				},
-			};
-		}
-
-		const taskPromptFileName = `task-${task.slug}.md`;
-		return {
-			kind: "terminal",
+		return buildTaskAgentLaunchRequest({
 			workspaceId,
-			agentType: selectedAgent,
 			source: "open-in-workspace",
-			terminal: {
-				command: buildAgentFileCommand({
-					filePath: `.superset/${taskPromptFileName}`,
-					agent: selectedAgent,
-				}),
-				name: task.slug,
-				taskPromptContent: buildAgentTaskPrompt(taskInput),
-				taskPromptFileName,
-				autoExecute: autoRun,
+			selectedAgent,
+			task: {
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				description: task.description,
+				priority: task.priority,
+				statusName: task.status.name,
+				labels: task.labels,
 			},
-		};
+			autoRun,
+			agentPresetById,
+		});
 	};
 
 	const handleRun = async () => {
@@ -183,10 +144,10 @@ export function RunInWorkspacePopover({
 		for (const task of tasks) {
 			if (abortRef.current) break;
 
-			setTaskStatuses((prev) => {
-				const next = new Map(prev);
-				next.set(task.id, "creating");
-				return next;
+			setTaskStatuses((previousStatuses) => {
+				const nextStatuses = new Map(previousStatuses);
+				nextStatuses.set(task.id, "creating");
+				return nextStatuses;
 			});
 
 			try {
@@ -226,10 +187,10 @@ export function RunInWorkspacePopover({
 					}
 				}
 
-				setTaskStatuses((prev) => {
-					const next = new Map(prev);
-					next.set(task.id, "done");
-					return next;
+				setTaskStatuses((previousStatuses) => {
+					const nextStatuses = new Map(previousStatuses);
+					nextStatuses.set(task.id, "done");
+					return nextStatuses;
 				});
 				successCount++;
 			} catch (err) {
@@ -237,10 +198,10 @@ export function RunInWorkspacePopover({
 					`[RunInWorkspacePopover] Failed to create workspace for task ${task.slug}:`,
 					err,
 				);
-				setTaskStatuses((prev) => {
-					const next = new Map(prev);
-					next.set(task.id, "failed");
-					return next;
+				setTaskStatuses((previousStatuses) => {
+					const nextStatuses = new Map(previousStatuses);
+					nextStatuses.set(task.id, "failed");
+					return nextStatuses;
 				});
 				failCount++;
 			}
@@ -266,9 +227,9 @@ export function RunInWorkspacePopover({
 	return (
 		<Popover
 			open={open}
-			onOpenChange={(next) => {
+			onOpenChange={(nextOpen) => {
 				if (isRunning) return;
-				setOpen(next);
+				setOpen(nextOpen);
 			}}
 		>
 			<PopoverTrigger asChild>
@@ -284,11 +245,11 @@ export function RunInWorkspacePopover({
 			<PopoverContent
 				align="start"
 				className="w-64 p-0"
-				onPointerDownOutside={(e) => {
-					if (isRunning) e.preventDefault();
+				onPointerDownOutside={(event) => {
+					if (isRunning) event.preventDefault();
 				}}
-				onEscapeKeyDown={(e) => {
-					if (isRunning) e.preventDefault();
+				onEscapeKeyDown={(event) => {
+					if (isRunning) event.preventDefault();
 				}}
 			>
 				<div className="flex flex-col gap-2 p-2">
@@ -331,17 +292,11 @@ export function RunInWorkspacePopover({
 								<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
 							) : (
 								recentProjects
-									.filter((p) => p.id)
+									.filter((project) => project.id)
 									.map((project) => (
 										<DropdownMenuItem
 											key={project.id}
-											onClick={() => {
-												setSelectedProjectId(project.id);
-												localStorage.setItem(
-													"lastOpenedInProjectId",
-													project.id,
-												);
-											}}
+											onClick={() => setSelectedProjectId(project.id)}
 											className="flex items-center gap-2"
 										>
 											<ProjectThumbnail
@@ -362,9 +317,13 @@ export function RunInWorkspacePopover({
 
 					<Select
 						value={selectedAgent}
-						onValueChange={(value: StartableAgentType) => {
-							setSelectedAgent(value);
-							localStorage.setItem("lastSelectedAgent", value);
+						onValueChange={(value) => {
+							if (value === OPEN_AGENT_SETTINGS_OPTION) {
+								setOpen(false);
+								navigate({ to: "/settings/agent" });
+								return;
+							}
+							setSelectedAgent(value as StartableAgentType);
 						}}
 						disabled={isRunning}
 					>
@@ -374,6 +333,7 @@ export function RunInWorkspacePopover({
 						<SelectContent>
 							{selectableAgents.map((agent) => {
 								const icon = getPresetIcon(agent, isDark);
+								const label = agentLabels[agent] ?? agent;
 								return (
 									<SelectItem key={agent} value={agent}>
 										<span className="flex items-center gap-2">
@@ -384,11 +344,15 @@ export function RunInWorkspacePopover({
 													className="size-3.5 object-contain"
 												/>
 											)}
-											{STARTABLE_AGENT_LABELS[agent]}
+											{label}
 										</span>
 									</SelectItem>
 								);
 							})}
+							<SelectSeparator />
+							<SelectItem value={OPEN_AGENT_SETTINGS_OPTION}>
+								Agent settings...
+							</SelectItem>
 						</SelectContent>
 					</Select>
 
@@ -402,10 +366,7 @@ export function RunInWorkspacePopover({
 						<Switch
 							id="batch-auto-run-toggle"
 							checked={autoRun}
-							onCheckedChange={(value) => {
-								setAutoRun(value);
-								localStorage.setItem("agentAutoRun", String(value));
-							}}
+							onCheckedChange={setAutoRun}
 							disabled={isRunning}
 						/>
 					</div>

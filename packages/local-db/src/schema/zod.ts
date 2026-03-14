@@ -95,6 +95,33 @@ export const terminalPresetSchema = z.object({
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
+export const AGENT_PRESET_IDS = [
+	"claude",
+	"codex",
+	"gemini",
+	"opencode",
+	"copilot",
+	"cursor-agent",
+] as const;
+
+export type AgentPresetId = (typeof AGENT_PRESET_IDS)[number];
+
+/**
+ * Agent preset configuration used by agent dropdown launchers.
+ */
+export const agentPresetSchema = z.object({
+	id: z.enum(AGENT_PRESET_IDS),
+	label: z.string(),
+	description: z.string().optional(),
+	command: z.string(),
+	promptCommand: z.string(),
+	promptCommandSuffix: z.string().optional(),
+	taskPromptTemplate: z.string(),
+	enabled: z.boolean().optional(),
+});
+
+export type AgentPreset = z.infer<typeof agentPresetSchema>;
+
 /**
  * Workspace type
  */

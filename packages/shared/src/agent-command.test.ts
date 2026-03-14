@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { buildAgentPromptCommand } from "./agent-command";
+import {
+	buildAgentFileCommand,
+	buildAgentPromptCommand,
+} from "./agent-command";
 
 describe("buildAgentPromptCommand", () => {
 	it("adds `--` before codex prompt payload", () => {
@@ -9,8 +12,10 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
+		expect(command).toContain("--dangerously-bypass-approvals-and-sandbox");
+		expect(command).toContain('model_reasoning_summary="detailed"');
 		expect(command).toContain(
-			"--dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"model_supports_reasoning_summaries=true -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -25,5 +30,38 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith(
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
+	});
+
+	it("applies gemini yolo mode as suffix after prompt payload", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "gem-123",
+			agent: "gemini",
+		});
+
+		expect(command).toStartWith("gemini \"$(cat <<'SUPERSET_PROMPT_gem123'");
+		expect(command).toContain(')" --yolo');
+	});
+
+	it("builds codex file commands with the prompt separator", () => {
+		const command = buildAgentFileCommand({
+			filePath: ".superset/task-demo.md",
+			agent: "codex",
+		});
+
+		expect(command).toContain("--dangerously-bypass-approvals-and-sandbox");
+		expect(command).toContain('model_reasoning_summary="detailed"');
+		expect(command).toContain(
+			"model_supports_reasoning_summaries=true -- \"$(cat '.superset/task-demo.md')\"",
+		);
+	});
+
+	it("applies suffixes when building file-based commands", () => {
+		const command = buildAgentFileCommand({
+			filePath: ".superset/task-demo.md",
+			agent: "gemini",
+		});
+
+		expect(command).toBe(`gemini "$(cat '.superset/task-demo.md')" --yolo`);
 	});
 });
