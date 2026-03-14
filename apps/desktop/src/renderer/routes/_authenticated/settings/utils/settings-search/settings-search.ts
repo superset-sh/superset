@@ -26,6 +26,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_OPTION_AS_META: "behavior-option-as-meta",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -480,6 +481,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_OPTION_AS_META,
+		section: "behavior",
+		title: "Use Option as Meta key",
+		description:
+			"Send Option+letter as ESC+letter for terminal Meta key bindings (e.g., Meta+B, Meta+D, Meta+P)",
+		keywords: [
+			"option",
+			"meta",
+			"alt",
+			"escape",
+			"terminal",
+			"macos",
+			"keyboard",
+			"iterm",
+			"emacs",
 		],
 	},
 	{

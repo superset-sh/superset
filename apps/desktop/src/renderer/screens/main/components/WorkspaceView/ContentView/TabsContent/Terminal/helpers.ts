@@ -311,6 +311,8 @@ export interface KeyboardHandlerOptions {
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
 	onWrite?: (data: string) => void;
+	/** Ref to read the "Use Option as Meta key" setting at keypress time */
+	optionAsMetaRef?: { current: boolean };
 }
 
 export interface PasteHandlerOptions {
@@ -605,7 +607,12 @@ export function setupKeyboardHandler(
 
 		if (isOptionLeft) {
 			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
+				// When optionAsMeta is on, send Alt-modified CSI sequence so TUI apps
+				// (Zellij, tmux) see Alt+Left. Shells also interpret this as word-back.
+				// When off, send ESC+b (readline word-back) for basic shell compat.
+				options.onWrite(
+					options.optionAsMetaRef?.current ? "\x1b[1;3D" : "\x1bb",
+				);
 			}
 			return false;
 		}
@@ -621,9 +628,31 @@ export function setupKeyboardHandler(
 
 		if (isOptionRight) {
 			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
+				options.onWrite(
+					options.optionAsMetaRef?.current ? "\x1b[1;3C" : "\x1bf",
+				);
 			}
 			return false;
+		}
+
+		// Generic Option+letter → ESC+letter (macOS, when optionAsMeta enabled)
+		if (
+			isMac &&
+			event.altKey &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			options.optionAsMetaRef?.current
+		) {
+			const code = event.code;
+			if (code.startsWith("Key") && code.length === 4) {
+				const letter = event.shiftKey
+					? code.charAt(3)
+					: code.charAt(3).toLowerCase();
+				if (event.type === "keydown" && options.onWrite) {
+					options.onWrite(`\x1b${letter}`);
+				}
+				return false;
+			}
 		}
 
 		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)

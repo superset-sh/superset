@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { PLATFORM } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -38,6 +39,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
+	const showOptionAsMeta = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_OPTION_AS_META,
 		visibleItems,
 	);
 
@@ -159,6 +164,28 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
+	const isMac = PLATFORM.IS_MAC;
+	const { data: optionAsMeta, isLoading: isOptionAsMetaLoading } =
+		electronTrpc.settings.getOptionAsMeta.useQuery(undefined, {
+			enabled: isMac,
+		});
+	const setOptionAsMeta = electronTrpc.settings.setOptionAsMeta.useMutation({
+		onMutate: async ({ enabled }) => {
+			await utils.settings.getOptionAsMeta.cancel();
+			const previous = utils.settings.getOptionAsMeta.getData();
+			utils.settings.getOptionAsMeta.setData(undefined, enabled);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getOptionAsMeta.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getOptionAsMeta.invalidate();
+		},
+	});
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -258,6 +285,26 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{isMac && showOptionAsMeta && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="option-as-meta" className="text-sm font-medium">
+								Use Option as Meta key
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Send Option+letter as ESC+letter for terminal Meta key bindings
+								(e.g., Meta+B, Meta+D, Meta+P)
+							</p>
+						</div>
+						<Switch
+							id="option-as-meta"
+							checked={optionAsMeta ?? false}
+							onCheckedChange={(enabled) => setOptionAsMeta.mutate({ enabled })}
+							disabled={isOptionAsMetaLoading || setOptionAsMeta.isPending}
 						/>
 					</div>
 				)}
