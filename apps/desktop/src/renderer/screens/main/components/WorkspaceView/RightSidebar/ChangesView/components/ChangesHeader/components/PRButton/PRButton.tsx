@@ -17,6 +17,8 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
+import { transformPrUrl } from "renderer/utils/pr-url";
+import { DEFAULT_PR_LINK_PROVIDER } from "shared/constants";
 
 interface PRButtonProps {
 	pr: GitHubStatus["pr"] | null;
@@ -35,6 +37,11 @@ export function PRButton({
 	worktreePath,
 	onRefresh,
 }: PRButtonProps) {
+	const { data: prLinkSettings } =
+		electronTrpc.settings.getPrLinkProvider.useQuery();
+	const prProvider = prLinkSettings?.provider ?? DEFAULT_PR_LINK_PROVIDER;
+	const prCustomDomain = prLinkSettings?.customDomain;
+
 	const mergePRMutation = electronTrpc.changes.mergePR.useMutation({
 		onSuccess: () => {
 			toast.success("PR merged successfully");
@@ -100,11 +107,12 @@ export function PRButton({
 	}
 
 	const canMerge = pr.state === "open";
+	const transformedPrUrl = transformPrUrl(pr.url, prProvider, prCustomDomain);
 
 	if (!canMerge) {
 		return (
 			<a
-				href={pr.url}
+				href={transformedPrUrl}
 				target="_blank"
 				rel="noopener noreferrer"
 				className="flex items-center gap-1 ml-auto hover:opacity-80 transition-opacity"
@@ -120,7 +128,7 @@ export function PRButton({
 	return (
 		<div className="flex items-center ml-auto rounded border border-border overflow-hidden">
 			<a
-				href={pr.url}
+				href={transformedPrUrl}
 				target="_blank"
 				rel="noopener noreferrer"
 				className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-accent transition-colors"

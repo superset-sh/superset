@@ -7,6 +7,7 @@ import type {
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
+	PrLinkProvider,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -208,6 +209,8 @@ export const settings = sqliteTable("settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	prLinkProvider: text("pr_link_provider").$type<PrLinkProvider>(),
+	prLinkCustomDomain: text("pr_link_custom_domain"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

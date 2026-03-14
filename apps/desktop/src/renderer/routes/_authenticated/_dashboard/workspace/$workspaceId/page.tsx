@@ -39,6 +39,8 @@ import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
+import { transformPrUrl } from "renderer/utils/pr-url";
+import { DEFAULT_PR_LINK_PROVIDER } from "shared/constants";
 
 const EMPTY_HISTORY_STACK: string[] = [];
 
@@ -376,17 +378,24 @@ function WorkspacePage() {
 	const { createOrOpenPR } = useCreateOrOpenPR({
 		worktreePath: workspace?.worktreePath,
 	});
+	const { data: prLinkSettings } =
+		electronTrpc.settings.getPrLinkProvider.useQuery();
+	const prProvider = prLinkSettings?.provider ?? DEFAULT_PR_LINK_PROVIDER;
+	const prCustomDomain = prLinkSettings?.customDomain;
 	useAppHotkey(
 		"OPEN_PR",
 		() => {
 			if (pr?.url) {
-				window.open(pr.url, "_blank");
+				window.open(
+					transformPrUrl(pr.url, prProvider, prCustomDomain),
+					"_blank",
+				);
 			} else {
 				createOrOpenPR();
 			}
 		},
 		undefined,
-		[pr?.url, createOrOpenPR],
+		[pr?.url, createOrOpenPR, prProvider, prCustomDomain],
 	);
 
 	const commandPalette = useCommandPalette({

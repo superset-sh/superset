@@ -9,8 +9,11 @@ import {
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { PR_LINK_PROVIDER_LABELS } from "renderer/routes/_authenticated/settings/utils/pr-link-provider";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
+import { transformPrUrl } from "renderer/utils/pr-url";
+import { DEFAULT_PR_LINK_PROVIDER } from "shared/constants";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -39,6 +42,11 @@ export function WorkspaceHoverCardContent({
 		previewUrl,
 		isLoading: isLoadingGithub,
 	} = usePRStatus({ workspaceId });
+
+	const { data: prLinkSettings } =
+		electronTrpc.settings.getPrLinkProvider.useQuery();
+	const prProvider = prLinkSettings?.provider ?? DEFAULT_PR_LINK_PROVIDER;
+	const prCustomDomain = prLinkSettings?.customDomain;
 
 	const openPRDisplay = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(
@@ -168,9 +176,17 @@ export function WorkspaceHoverCardContent({
 						className="w-full mt-1 h-7 text-xs gap-1.5"
 						asChild
 					>
-						<a href={pr.url} target="_blank" rel="noopener noreferrer">
-							<FaGithub className="size-3" />
-							View on GitHub
+						<a
+							href={transformPrUrl(pr.url, prProvider, prCustomDomain)}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{prProvider === "github" ? (
+								<FaGithub className="size-3" />
+							) : (
+								<LuExternalLink className="size-3" strokeWidth={STROKE_WIDTH} />
+							)}
+							View on {PR_LINK_PROVIDER_LABELS[prProvider]}
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (

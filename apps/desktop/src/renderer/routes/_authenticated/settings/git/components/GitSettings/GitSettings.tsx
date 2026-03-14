@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, PrLinkProvider } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -17,6 +17,7 @@ import {
 	WorktreeLocationPicker,
 } from "../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
+import { PR_LINK_PROVIDER_LABELS } from "../../../utils/pr-link-provider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -34,6 +35,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	);
 	const showBranchPrefix = isItemVisible(
 		SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
+		visibleItems,
+	);
+	const showPrLinkProvider = isItemVisible(
+		SETTING_ITEM_ID.GIT_PR_LINK_PROVIDER,
 		visibleItems,
 	);
 	const showWorktreeLocation = isItemVisible(
@@ -104,6 +109,44 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		setBranchPrefix.mutate({
 			mode: "custom",
 			customPrefix: sanitized || null,
+		});
+	};
+
+	const { data: prLinkProvider, isLoading: isPrLinkProviderLoading } =
+		electronTrpc.settings.getPrLinkProvider.useQuery();
+
+	const [customDomainInput, setCustomDomainInput] = useState(
+		prLinkProvider?.customDomain ?? "",
+	);
+
+	useEffect(() => {
+		setCustomDomainInput(prLinkProvider?.customDomain ?? "");
+	}, [prLinkProvider?.customDomain]);
+
+	const setPrLinkProvider = electronTrpc.settings.setPrLinkProvider.useMutation(
+		{
+			onError: (err) => {
+				console.error("[settings/pr-link-provider] Failed to update:", err);
+			},
+			onSettled: () => {
+				utils.settings.getPrLinkProvider.invalidate();
+			},
+		},
+	);
+
+	const handlePrLinkProviderChange = (provider: PrLinkProvider) => {
+		setPrLinkProvider.mutate({
+			provider,
+			customDomain: customDomainInput || null,
+		});
+	};
+
+	const handleCustomDomainBlur = () => {
+		const trimmed = customDomainInput.trim().replace(/\/+$/, "");
+		setCustomDomainInput(trimmed);
+		setPrLinkProvider.mutate({
+			provider: "custom",
+			customDomain: trimmed || null,
 		});
 	};
 
@@ -222,6 +265,56 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 									onBlur={handleCustomPrefixBlur}
 									className="w-[120px]"
 									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+								/>
+							)}
+						</div>
+					</div>
+				)}
+
+				{showPrLinkProvider && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">PR Link Provider</Label>
+							<p className="text-xs text-muted-foreground">
+								Choose where pull request links open
+							</p>
+						</div>
+						<div className="flex items-center gap-2">
+							<Select
+								value={prLinkProvider?.provider ?? "github"}
+								onValueChange={(value) =>
+									handlePrLinkProviderChange(value as PrLinkProvider)
+								}
+								disabled={
+									isPrLinkProviderLoading || setPrLinkProvider.isPending
+								}
+							>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{(
+										Object.entries(PR_LINK_PROVIDER_LABELS) as [
+											PrLinkProvider,
+											string,
+										][]
+									).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{prLinkProvider?.provider === "custom" && (
+								<Input
+									placeholder="https://example.com"
+									value={customDomainInput}
+									onChange={(e) => setCustomDomainInput(e.target.value)}
+									onBlur={handleCustomDomainBlur}
+									className="w-[200px]"
+									disabled={
+										isPrLinkProviderLoading || setPrLinkProvider.isPending
+									}
 								/>
 							)}
 						</div>
