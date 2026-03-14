@@ -514,9 +514,9 @@ export const v2Workspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		deviceId: uuid("device_id").references(() => v2Devices.id, {
-			onDelete: "set null",
-		}),
+		deviceId: uuid("device_id")
+			.notNull()
+			.references(() => v2Devices.id),
 		name: text().notNull(),
 		branch: text().notNull(),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {

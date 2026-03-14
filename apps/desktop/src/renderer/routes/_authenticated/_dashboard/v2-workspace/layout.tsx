@@ -1,7 +1,7 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
@@ -11,11 +11,6 @@ export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
 		component: V2WorkspaceLayout,
 	},
 );
-
-function getExternalWorkspaceHostUrl(workspaceId: string): string {
-	// Placeholder until external-device host calls are proxied through the API.
-	return `${env.NEXT_PUBLIC_API_URL}/api/v2-workspaces/${workspaceId}/host`;
-}
 
 function V2WorkspaceLayout() {
 	const matchRoute = useMatchRoute();
@@ -36,25 +31,31 @@ function V2WorkspaceLayout() {
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
+	const { data: currentDevices = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ v2Devices: collections.v2Devices })
+				.where(({ v2Devices }) => eq(v2Devices.clientId, deviceInfo?.deviceId ?? "")),
+		[collections, deviceInfo?.deviceId],
+	);
 	const workspace = workspaces[0] ?? null;
-	const localHostService = workspace
-		? (services.get(workspace.organizationId) ?? null)
+	const currentDevice = currentDevices[0] ?? null;
+	const localHostUrl = workspace
+		? (services.get(workspace.organizationId)?.url ?? null)
 		: null;
-	const isExternalWorkspace =
-		!!workspace?.deviceId &&
-		!!deviceInfo?.deviceId &&
-		workspace.deviceId !== deviceInfo.deviceId;
-	const hostUrl = workspace
-		? isExternalWorkspace
-			? getExternalWorkspaceHostUrl(workspace.id)
-			: (localHostService?.url ?? null)
-		: null;
+	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
+	const hostUrl =
+		!workspace || shouldWaitForDeviceInfo
+			? null
+			: workspace.deviceId === currentDevice?.id
+				? localHostUrl
+				: getWorkspaceHostUrlForWorkspace(workspace.id);
 
 	if (!workspaceId || !workspace) {
 		return <Outlet />;
 	}
 
-	if (workspace.deviceId && isDeviceInfoPending) {
+	if (shouldWaitForDeviceInfo) {
 		return (
 			<div className="flex h-full items-center justify-center text-muted-foreground">
 				Resolving workspace host...

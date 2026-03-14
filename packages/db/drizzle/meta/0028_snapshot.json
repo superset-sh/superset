@@ -1,5 +1,5 @@
 {
-  "id": "ebbf16e0-b206-4390-a56c-5b94ee7bb302",
+  "id": "bd531a5a-2309-4e84-afc9-34fda6fffc11",
   "prevId": "e1618e5b-cfa6-4219-bb55-2d7fc7ecda9d",
   "version": "7",
   "dialect": "postgresql",
@@ -4733,7 +4733,7 @@
           "name": "device_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -4853,7 +4853,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "v2_workspaces_created_by_user_id_users_id_fk": {

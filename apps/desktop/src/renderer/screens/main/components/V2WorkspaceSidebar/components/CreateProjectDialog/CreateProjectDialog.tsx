@@ -85,7 +85,6 @@ export function CreateProjectDialog({
 								value={name}
 								onChange={(e) => setName(e.target.value)}
 								placeholder="My Project"
-								autoFocus
 							/>
 						</div>
 						{slug && (
@@ -124,7 +123,9 @@ export function CreateProjectDialog({
 						</Button>
 						<Button
 							type="submit"
-							disabled={!name.trim() || !githubRepositoryId || isSubmitting}
+							disabled={
+								!name.trim() || !slug || !githubRepositoryId || isSubmitting
+							}
 						>
 							{isSubmitting ? "Creating..." : "Create"}
 						</Button>

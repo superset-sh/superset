@@ -1,7 +1,7 @@
 export interface V2SidebarWorkspace {
 	id: string;
 	projectId: string;
-	deviceId: string | null;
+	deviceId: string;
 	name: string;
 	branch: string;
 	createdAt: Date;

@@ -8,6 +8,8 @@ export function createContextFactory(opts: {
 	credentials: CredentialProvider;
 	api: ApiClient | null;
 	db: HostDb;
+	deviceId?: string;
+	deviceName?: string;
 }): () => Promise<HostServiceContext> {
 	return async () => ({
 		git: createGitFactory(opts.credentials),
@@ -22,5 +24,7 @@ export function createContextFactory(opts: {
 		},
 		api: opts.api,
 		db: opts.db,
+		deviceId: opts.deviceId ?? null,
+		deviceName: opts.deviceName ?? null,
 	});
 }

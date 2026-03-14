@@ -25,7 +25,7 @@ export function useV2SidebarData() {
 			projectWorkspaces.push({
 				id: workspace.id,
 				projectId: workspace.projectId,
-				deviceId: workspace.deviceId ?? null,
+				deviceId: workspace.deviceId,
 				name: workspace.name,
 				branch: workspace.branch,
 				createdAt: workspace.createdAt,

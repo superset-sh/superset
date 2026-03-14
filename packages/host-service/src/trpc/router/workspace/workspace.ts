@@ -69,6 +69,12 @@ export const workspaceRouter = router({
 				".worktrees",
 				input.branch,
 			);
+			if (!ctx.deviceId || !ctx.deviceName) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Host device metadata not configured",
+				});
+			}
 
 			const git = await ctx.git(localProject.repoPath);
 			try {
@@ -77,11 +83,17 @@ export const workspaceRouter = router({
 				await git.raw(["worktree", "add", "-b", input.branch, worktreePath]);
 			}
 
+			const device = await ctx.api.device.ensureV2Host.mutate({
+				clientId: ctx.deviceId,
+				name: ctx.deviceName,
+			});
+
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
+					deviceId: device.id,
 				})
 				.catch(async (err) => {
 					try {

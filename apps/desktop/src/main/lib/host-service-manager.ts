@@ -2,6 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import path from "node:path";
 import { app } from "electron";
 import { SUPERSET_HOME_DIR } from "./app-environment";
+import { getDeviceName, getHashedDeviceId } from "./device-info";
 
 type HostServiceStatus = "starting" | "running" | "crashed";
 
@@ -71,6 +72,8 @@ class HostServiceManager {
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
+			DEVICE_ID: getHashedDeviceId(),
+			DEVICE_NAME: getDeviceName(),
 			HOST_DB_PATH: path.join(
 				SUPERSET_HOME_DIR,
 				"host",
