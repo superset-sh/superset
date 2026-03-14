@@ -780,7 +780,8 @@ describe("agent-wrappers claude settings.json", () => {
 		).toBe(true);
 
 		// Idempotent
-		expect(JSON.parse(content2!)).toEqual(JSON.parse(content));
+		expect(content2).not.toBeNull();
+		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
 	});
 
 	it("skips Claude settings writes when existing JSON is invalid", () => {
@@ -987,7 +988,8 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 
 		// Idempotent
-		expect(JSON.parse(content2!)).toEqual(JSON.parse(content));
+		expect(content2).not.toBeNull();
+		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
 	});
 
 	it("skips Codex hooks writes when existing JSON is invalid", () => {
