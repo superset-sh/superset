@@ -526,6 +526,8 @@ export function setupKeyboardHandler(
 	xterm: XTerm,
 	options: KeyboardHandlerOptions = {},
 ): () => void {
+	const deferredTimers = new Set<ReturnType<typeof setTimeout>>();
+
 	const platform =
 		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
 	const isMac = platform.includes("mac");
@@ -614,7 +616,11 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				event.preventDefault();
 				// Always defer to let any pending IME _finalizeComposition complete (setTimeout(0) in xterm)
-				setTimeout(() => options.onWrite?.("\x1bb"), 50);
+				const timerId = setTimeout(() => {
+					deferredTimers.delete(timerId);
+					options.onWrite?.("\x1bb");
+				}, 50);
+				deferredTimers.add(timerId);
 			}
 			return false;
 		}
@@ -631,7 +637,11 @@ export function setupKeyboardHandler(
 		if (isOptionRight) {
 			if (event.type === "keydown" && options.onWrite) {
 				event.preventDefault();
-				setTimeout(() => options.onWrite?.("\x1bf"), 50);
+				const timerId = setTimeout(() => {
+					deferredTimers.delete(timerId);
+					options.onWrite?.("\x1bf");
+				}, 50);
+				deferredTimers.add(timerId);
 			}
 			return false;
 		}
@@ -699,6 +709,10 @@ export function setupKeyboardHandler(
 	xterm.attachCustomKeyEventHandler(handler);
 
 	return () => {
+		for (const timerId of deferredTimers) {
+			clearTimeout(timerId);
+		}
+		deferredTimers.clear();
 		xterm.attachCustomKeyEventHandler(() => true);
 	};
 }
