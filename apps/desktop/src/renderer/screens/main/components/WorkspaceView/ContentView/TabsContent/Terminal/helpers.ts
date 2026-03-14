@@ -626,6 +626,22 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Option+P (macOS): send Meta+P for Claude Code model picker and other CLI bindings
+		const isOptionP =
+			event.code === "KeyP" &&
+			event.altKey &&
+			isMac &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey;
+
+		if (isOptionP) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bp"); // Meta+P
+			}
+			return false;
+		}
+
 		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
 		const isCtrlLeft =
 			event.key === "ArrowLeft" &&
