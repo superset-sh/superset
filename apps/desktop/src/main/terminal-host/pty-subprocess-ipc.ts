@@ -128,9 +128,5 @@ export class PtySubprocessFrameDecoder {
 	}
 }
 
-/**
- * OSC escape sequence emitted by shell wrappers once the shell is fully
- * initialized (RC files sourced, direnv loaded, prompt ready).
- * Detected and stripped by {@link Session} to resolve shellReadyPromise.
- */
+/** OSC marker emitted by shell wrappers once shell init is complete. */
 export const SHELL_READY_MARKER = "\x1b]777;superset-shell-ready\x07";

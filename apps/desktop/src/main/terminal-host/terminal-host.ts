@@ -33,13 +33,7 @@ const KILL_TIMEOUT_MS = 5000;
 const MAX_CONCURRENT_SPAWNS = 3;
 const SPAWN_READY_TIMEOUT_MS = 5000;
 
-/**
- * Timeout for waiting for the shell to finish initialization after PTY spawn.
- * Shell init includes sourcing RC files, direnv/devenv environment loading,
- * nvm/asdf/conda activation, oh-my-zsh plugins, etc. 15s accommodates
- * heavy setups (e.g. Nix-based devenv via direnv) while the timeout fallback
- * ensures we never block indefinitely.
- */
+// 15s accommodates heavy shell setups (e.g. Nix-based devenv via direnv)
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
 function promiseWithTimeout<T>(
@@ -150,16 +144,10 @@ export class TerminalHost {
 				throw new Error("Session spawn failed: PTY process exited immediately");
 			}
 
-			// Register the session before the shell-ready wait so concurrent
-			// operations (kill, disconnect cleanup) can see it during the window.
+			// Register before shell-ready wait so concurrent operations can see it
 			this.sessions.set(sessionId, session);
 
-			// Wait for shell to finish initialization (RC files, direnv, etc.)
-			// before returning. This ensures preset commands aren't sent before
-			// the shell prompt is ready. Only wait for shells that have a marker
-			// injected (zsh, bash, fish) — others (sh, ksh) would hit a
-			// guaranteed timeout. Placed outside the spawn semaphore so other
-			// sessions can still spawn concurrently.
+			// Wait for shell init so preset commands aren't sent before the prompt
 			if (session.hasShellReadyMarker) {
 				try {
 					await promiseWithTimeout(
@@ -172,9 +160,6 @@ export class TerminalHost {
 					);
 				}
 
-				// If the session died or was killed during the wait (e.g. shell
-				// exited, subprocess crashed, or a concurrent kill was issued),
-				// clean it up instead of returning a non-attachable session.
 				if (!session.isAttachable) {
 					void session.dispose();
 					this.sessions.delete(sessionId);

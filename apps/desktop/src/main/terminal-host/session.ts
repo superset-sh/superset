@@ -113,14 +113,10 @@ export class Session {
 	private ptyReadyPromise: Promise<void>;
 	private ptyReadyResolve: (() => void) | null = null;
 
-	// Promise that resolves when the shell has finished initialization
-	// (RC files sourced, direnv loaded, prompt ready)
 	private shellReadyPromise: Promise<void>;
 	private shellReadyResolve: (() => void) | null = null;
 	private shellReadyResolved = false;
-	// Carry buffer for marker detection across chunk boundaries.
-	// Stores the tail of the previous data frame (up to marker length - 1
-	// bytes) so a marker split across two PTY reads is still detected.
+	// Tail of previous data frame for detecting markers split across chunks
 	private shellReadyCarry = "";
 
 	private emulatorWriteQueue: string[] = [];
@@ -159,7 +155,6 @@ export class Session {
 			this.ptyReadyResolve = resolve;
 		});
 
-		// Initialize shell ready promise (resolves when first prompt is displayed)
 		this.shellReadyPromise = new Promise((resolve) => {
 			this.shellReadyResolve = resolve;
 		});
@@ -298,19 +293,14 @@ export class Session {
 				if (payload.length === 0) break;
 				let data = payload.toString("utf8");
 
-				// Detect and strip shell-ready marker before forwarding to clients.
-				// Uses a carry buffer so markers split across PTY data frames are
-				// still detected (the marker is 30 bytes; a single printf usually
-				// lands in one frame, but output batching can split it).
+				// Strip shell-ready marker before forwarding to clients.
+				// Carry buffer handles markers split across PTY data frames.
 				if (!this.shellReadyResolved) {
 					const combined = this.shellReadyCarry + data;
 					const markerIndex = combined.indexOf(SHELL_READY_MARKER);
 					if (markerIndex !== -1) {
-						// Marker found in combined carry+data — strip only
-						// the marker bytes that belong to the current data
-						// frame. Carry bytes were already forwarded last time;
-						// any partial OSC in them is harmlessly discarded by
-						// the terminal emulator.
+						// Strip only marker bytes belonging to current frame
+						// (carry bytes were already forwarded last time)
 						const carryLen = this.shellReadyCarry.length;
 						const markerEnd = markerIndex + SHELL_READY_MARKER.length;
 						const dataStripStart = Math.max(0, markerIndex - carryLen);
@@ -323,7 +313,6 @@ export class Session {
 							this.shellReadyResolve = null;
 						}
 					} else {
-						// No match yet — save tail as carry for next frame.
 						const maxCarry = SHELL_READY_MARKER.length - 1;
 						this.shellReadyCarry = combined.slice(-maxCarry);
 					}
@@ -715,23 +704,13 @@ export class Session {
 		return this.ptyReadyPromise;
 	}
 
-	/**
-	 * Whether this session's shell has a shell-ready marker injected.
-	 * Only zsh, bash, and fish get markers via our shell wrappers.
-	 * Shells like sh/ksh do not, so callers should skip the shell-ready
-	 * wait to avoid a guaranteed timeout delay.
-	 */
+	/** Only zsh/bash/fish have markers; others (sh/ksh) would timeout. */
 	get hasShellReadyMarker(): boolean {
 		const shellName = this.shell.split("/").pop() || this.shell;
 		return ["zsh", "bash", "fish"].includes(shellName);
 	}
 
-	/**
-	 * Wait for the shell to finish initialization (RC files, direnv, etc.).
-	 * Resolves when the shell-ready OSC marker is detected in PTY output,
-	 * which is emitted by a one-shot precmd/PROMPT_COMMAND hook right
-	 * before the first prompt is displayed.
-	 */
+	/** Resolves when the shell-ready OSC marker is detected in PTY output. */
 	waitForShellReady(): Promise<void> {
 		return this.shellReadyPromise;
 	}
