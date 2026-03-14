@@ -18,6 +18,8 @@ import {
 import { createFileKey, useScrollContext } from "../../context";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
 
@@ -247,7 +249,6 @@ export function FileDiffSection({
 
 	const isUnstaged = category === "unstaged";
 
-	// Non-unstaged: pure git diff
 	const { data: gitDiffData, isLoading: isLoadingGitDiff } =
 		electronTrpc.changes.getGitFileContents.useQuery(
 			{
@@ -264,7 +265,6 @@ export function FileDiffSection({
 			},
 		);
 
-	// Unstaged: git original + filesystem working copy
 	const { data: gitOriginal, isLoading: isLoadingGitOriginal } =
 		electronTrpc.changes.getGitOriginalContent.useQuery(
 			{
@@ -277,7 +277,6 @@ export function FileDiffSection({
 			},
 		);
 
-	const MAX_FILE_SIZE = 2 * 1024 * 1024;
 	const { data: workingCopy, isLoading: isLoadingWorkingCopy } =
 		electronTrpc.filesystem.readFile.useQuery(
 			{

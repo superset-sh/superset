@@ -11,10 +11,6 @@ import { getWorkspace } from "./workspaces/utils/db-helpers";
 import { execWithShellEnv } from "./workspaces/utils/shell-env";
 import { getWorkspacePath } from "./workspaces/utils/worktree";
 
-// ---------------------------------------------------------------------------
-// Shared infrastructure
-// ---------------------------------------------------------------------------
-
 const filesystemWatcherManager = new FsWatcherManager();
 
 const sharedHostServiceOptions = {
@@ -34,10 +30,6 @@ const sharedHostServiceOptions = {
 	},
 };
 
-// ---------------------------------------------------------------------------
-// Workspace resolution
-// ---------------------------------------------------------------------------
-
 export function resolveWorkspaceRootPath(workspaceId: string): string {
 	const workspace = getWorkspace(workspaceId);
 	if (!workspace) {
@@ -51,10 +43,6 @@ export function resolveWorkspaceRootPath(workspaceId: string): string {
 
 	return rootPath;
 }
-
-// ---------------------------------------------------------------------------
-// Per-workspace service cache
-// ---------------------------------------------------------------------------
 
 const serviceCache = new Map<string, FsHostService>();
 
@@ -71,10 +59,6 @@ export function getServiceForWorkspace(workspaceId: string): FsHostService {
 	}
 	return service;
 }
-
-// ---------------------------------------------------------------------------
-// Path helpers (used by changes router)
-// ---------------------------------------------------------------------------
 
 export function toRegisteredWorktreeRelativePath(
 	worktreePath: string,
@@ -99,10 +83,6 @@ export function toRegisteredWorktreeRelativePath(
 
 	return relativePath.replace(/\\/g, "/");
 }
-
-// ---------------------------------------------------------------------------
-// Re-exports for consumers
-// ---------------------------------------------------------------------------
 
 export { toRelativePath };
 export type { WorkspaceFsPathError };

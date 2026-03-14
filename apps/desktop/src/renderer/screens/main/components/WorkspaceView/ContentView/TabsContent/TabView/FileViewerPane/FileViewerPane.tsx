@@ -70,7 +70,6 @@ export function FileViewerPane({
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
 	const { workspaceId } = useParams({ strict: false });
-	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
@@ -180,7 +179,6 @@ export function FileViewerPane({
 			);
 		}
 
-		// Invalidate filesystem.readFile for this path (covers raw, image, and working copy reads)
 		if (workspaceId) {
 			invalidations.push(
 				trpcUtils.filesystem.readFile.invalidate({
@@ -233,7 +231,6 @@ export function FileViewerPane({
 		setSaveConflict(null);
 	}, [filePath]);
 
-	// Auto-pin when user makes edits (converts preview to pinned)
 	useEffect(() => {
 		if (isDirty && !isPinned) {
 			pinPane(paneId);

@@ -12,10 +12,6 @@ import type {
 	FsWriteResult,
 } from "./types";
 
-// ---------------------------------------------------------------------------
-// Error types
-// ---------------------------------------------------------------------------
-
 export type WorkspaceFsPathErrorCode =
 	| "OUTSIDE_ROOT"
 	| "INVALID_TARGET"
@@ -31,17 +27,9 @@ export class WorkspaceFsPathError extends Error {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const PATH_LOCK_STALE_MS = 30_000;
 const PATH_LOCK_RETRY_MS = 50;
 const PATH_LOCK_TIMEOUT_MS = 5_000;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function isEnoent(error: unknown): boolean {
 	return error instanceof Error && "code" in error && error.code === "ENOENT";
@@ -78,10 +66,6 @@ function contentToBuffer(
 	}
 	return Buffer.from(content);
 }
-
-// ---------------------------------------------------------------------------
-// Path validation
-// ---------------------------------------------------------------------------
 
 interface EnsureWithinRootOptions {
 	rootPath: string;
@@ -278,10 +262,6 @@ async function assertRealpathWithinRoot(
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Path locking (for precondition-based writes)
-// ---------------------------------------------------------------------------
-
 function getPathLockDirectory(absolutePath: string): string {
 	return path.join(
 		os.tmpdir(),
@@ -351,10 +331,6 @@ async function withPathLock<T>(
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Atomic write helper
-// ---------------------------------------------------------------------------
-
 async function writeAtomically({
 	rootPath,
 	absolutePath,
@@ -391,10 +367,6 @@ async function writeAtomically({
 		await fs.rm(tempPath, { force: true });
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export async function listDirectory({
 	rootPath,

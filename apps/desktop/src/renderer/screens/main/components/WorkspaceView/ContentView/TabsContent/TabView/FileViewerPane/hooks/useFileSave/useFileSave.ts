@@ -59,7 +59,6 @@ export function useFileSave({
 			if (!result.ok) {
 				savingFromRawRef.current = false;
 				if (result.reason === "conflict") {
-					// Read current disk content for the conflict dialog
 					try {
 						const currentFile = await utils.filesystem.readFile.fetch({
 							workspaceId,
@@ -78,7 +77,6 @@ export function useFileSave({
 				return undefined;
 			}
 
-			// Success — update revision and state
 			revisionRef.current = result.revision;
 
 			const currentEditorValue = editorRef.current?.getValue() ?? content;

@@ -30,7 +30,7 @@ export function useFileDiffEdit({
 		) => {
 			if (!workspaceId || !absolutePath) return;
 
-			// Content-based conflict check (diff edits don't track revisions)
+			// Diff edits don't track revisions, so compare content directly
 			if (!options?.force && options?.expectedContent !== undefined) {
 				try {
 					const current = await utils.filesystem.readFile.fetch({

@@ -14,10 +14,6 @@ import {
 } from "./search";
 import type { FsWatchEvent } from "./types";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface WatchPathOptions {
 	absolutePath: string;
 	recursive?: boolean;
@@ -40,10 +36,6 @@ interface WatcherState {
 	pendingEvents: ParcelWatcherEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
 }
-
-// ---------------------------------------------------------------------------
-// Event coalescing
-// ---------------------------------------------------------------------------
 
 function coalesceWatchEvent(
 	current: ParcelWatcherEvent | undefined,
@@ -102,10 +94,6 @@ export function coalesceWatchEvents(
 
 	return Array.from(coalescedByPath.values());
 }
-
-// ---------------------------------------------------------------------------
-// Rename reconciliation
-// ---------------------------------------------------------------------------
 
 function getParentPath(absolutePath: string): string {
 	return normalizeAbsolutePath(path.dirname(absolutePath));
@@ -288,10 +276,6 @@ export function reconcileRenameEvents(
 	return reconciled;
 }
 
-// ---------------------------------------------------------------------------
-// Conversion helpers
-// ---------------------------------------------------------------------------
-
 function internalToFsWatchEvent(event: InternalWatchEvent): FsWatchEvent {
 	return {
 		kind: event.kind,
@@ -313,10 +297,6 @@ function internalToSearchPatchEvent(
 		isDirectory: event.isDirectory,
 	};
 }
-
-// ---------------------------------------------------------------------------
-// Watcher manager
-// ---------------------------------------------------------------------------
 
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;

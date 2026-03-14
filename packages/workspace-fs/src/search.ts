@@ -28,10 +28,6 @@ export const DEFAULT_IGNORE_PATTERNS = [
 	"**/coverage/**",
 ];
 
-// ---------------------------------------------------------------------------
-// Internal types for search indexing
-// ---------------------------------------------------------------------------
-
 interface SearchIndexEntry {
 	absolutePath: string;
 	relativePath: string;
@@ -68,20 +64,12 @@ interface InternalContentMatch {
 	preview: string;
 }
 
-// ---------------------------------------------------------------------------
-// Event type for search index patching (used by watch module)
-// ---------------------------------------------------------------------------
-
 export interface SearchPatchEvent {
 	kind: "create" | "update" | "delete" | "rename";
 	absolutePath: string;
 	oldAbsolutePath?: string;
 	isDirectory: boolean;
 }
-
-// ---------------------------------------------------------------------------
-// Public options types
-// ---------------------------------------------------------------------------
 
 export interface SearchFilesOptions {
 	rootPath: string;
@@ -109,10 +97,6 @@ export interface SearchContentOptions {
 		options: RunRipgrepOptions,
 	) => Promise<{ stdout: string }>;
 }
-
-// ---------------------------------------------------------------------------
-// Search index cache
-// ---------------------------------------------------------------------------
 
 const searchIndexCache = new Map<string, FileSearchCacheEntry>();
 const searchIndexBuilds = new Map<string, Promise<FileSearchIndex>>();
@@ -148,10 +132,6 @@ function advanceSearchIndexVersion(cacheKey: string): number {
 	searchIndexVersions.set(cacheKey, nextVersion);
 	return nextVersion;
 }
-
-// ---------------------------------------------------------------------------
-// Glob / path matching
-// ---------------------------------------------------------------------------
 
 function parseGlobPatterns(input: string): string[] {
 	return input
@@ -277,10 +257,6 @@ function matchesPathFilters(
 	return true;
 }
 
-// ---------------------------------------------------------------------------
-// Search index building
-// ---------------------------------------------------------------------------
-
 async function buildSearchIndex({
 	rootPath,
 	includeHidden,
@@ -388,10 +364,6 @@ function formatPreviewLine(line: string): string {
 	}
 	return `${normalized.slice(0, MAX_PREVIEW_LENGTH - 3)}...`;
 }
-
-// ---------------------------------------------------------------------------
-// Content matching helpers
-// ---------------------------------------------------------------------------
 
 function rankContentMatches(
 	matches: InternalContentMatch[],
@@ -668,10 +640,6 @@ async function searchContentWithScan({
 	return rankContentMatches(matches, query, safeLimit);
 }
 
-// ---------------------------------------------------------------------------
-// Search index visibility helpers
-// ---------------------------------------------------------------------------
-
 function isHiddenRelativePath(relativePath: string): boolean {
 	return normalizePathForGlob(relativePath)
 		.split("/")
@@ -689,10 +657,6 @@ function shouldIndexRelativePath(
 
 	return !defaultIgnoreMatchers.some((matcher) => matcher.test(normalizedPath));
 }
-
-// ---------------------------------------------------------------------------
-// Search index patching (from watch events)
-// ---------------------------------------------------------------------------
 
 function applySearchPatchEvent({
 	itemsByPath,
@@ -818,10 +782,6 @@ export function patchSearchIndexesForRoot(
 		});
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export async function searchFiles({
 	rootPath,

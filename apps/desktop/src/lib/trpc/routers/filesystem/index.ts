@@ -9,10 +9,6 @@ import {
 	resolveWorkspaceRootPath,
 } from "../workspace-fs-service";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function isClosedStreamError(error: unknown): boolean {
 	return (
 		error instanceof TypeError &&
@@ -21,16 +17,8 @@ function isClosedStreamError(error: unknown): boolean {
 	);
 }
 
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
-
 export const createFilesystemRouter = () => {
 	return router({
-		// -----------------------------------------------------------------
-		// New schema-aligned procedures (Milestone 3)
-		// -----------------------------------------------------------------
-
 		listDirectory: publicProcedure
 			.input(
 				z.object({
@@ -63,7 +51,6 @@ export const createFilesystemRouter = () => {
 					maxBytes: input.maxBytes,
 					encoding: input.encoding,
 				});
-				// Convert Uint8Array to base64 for serialization over IPC
 				if (result.kind === "bytes") {
 					return {
 						...result,
@@ -270,10 +257,6 @@ export const createFilesystemRouter = () => {
 					};
 				});
 			}),
-
-		// -----------------------------------------------------------------
-		// Legacy procedures (backward compat — renderer migrates in M7)
-		// -----------------------------------------------------------------
 
 		readDirectory: publicProcedure
 			.input(

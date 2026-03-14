@@ -14,10 +14,6 @@ import { searchContent, searchFiles } from "../search";
 import type { FsWatchEvent } from "../types";
 import type { FsWatcherManager, WatchPathOptions } from "../watch";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface FsHostService extends FsService {
 	close(): Promise<void>;
 }
@@ -28,10 +24,6 @@ export interface FsHostServiceOptions {
 	trashItem?: (absolutePath: string) => Promise<void>;
 	runRipgrep?: SearchContentOptions["runRipgrep"];
 }
-
-// ---------------------------------------------------------------------------
-// Async queue (for subscription → AsyncIterable bridge)
-// ---------------------------------------------------------------------------
 
 interface AsyncQueueState<T> {
 	queue: T[];
@@ -137,10 +129,6 @@ function createAsyncQueue<T>(
 		},
 	};
 }
-
-// ---------------------------------------------------------------------------
-// Host service factory
-// ---------------------------------------------------------------------------
 
 export function createFsHostService(
 	options: FsHostServiceOptions,

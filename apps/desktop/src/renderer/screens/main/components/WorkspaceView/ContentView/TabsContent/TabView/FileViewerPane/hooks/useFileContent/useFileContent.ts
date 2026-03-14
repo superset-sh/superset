@@ -69,7 +69,6 @@ export function useFileContent({
 
 	const isImage = isImageFile(filePath);
 
-	// --- Raw file read (text mode with client-side binary detection) ---
 	const rawReadEnabled =
 		!isRemote && viewMode !== "diff" && !isImage && !!filePath && !!workspaceId;
 	const rawQuery = electronTrpc.filesystem.readFile.useQuery(
@@ -113,7 +112,6 @@ export function useFileContent({
 		};
 	}, [rawQuery.data, rawQuery.error]);
 
-	// --- Image read (bytes mode, base64 conversion client-side) ---
 	const imageReadEnabled =
 		!isRemote &&
 		viewMode === "rendered" &&
@@ -149,7 +147,6 @@ export function useFileContent({
 		if (!mimeType) {
 			return { ok: false as const, reason: "not-image" as const };
 		}
-		// Bytes mode: content is base64 string (converted by server for IPC)
 		return {
 			ok: true as const,
 			dataUrl: `data:${mimeType};base64,${result.content}`,
@@ -157,12 +154,10 @@ export function useFileContent({
 		};
 	}, [imageQuery.data, imageQuery.error, filePath, isRemote]);
 
-	// --- Diff data ---
 	const isUnstagedDiff = viewMode === "diff" && diffCategory === "unstaged";
 	const isGitDiff =
 		viewMode === "diff" && !!diffCategory && diffCategory !== "unstaged";
 
-	// Non-unstaged: pure git diff via getGitFileContents
 	const { data: gitDiffData, isLoading: isLoadingGitDiff } =
 		electronTrpc.changes.getGitFileContents.useQuery(
 			{
@@ -180,7 +175,6 @@ export function useFileContent({
 			},
 		);
 
-	// Unstaged: git original + filesystem working copy
 	const { data: gitOriginal, isLoading: isLoadingGitOriginal } =
 		electronTrpc.changes.getGitOriginalContent.useQuery(
 			{
@@ -237,7 +231,6 @@ export function useFileContent({
 			? isLoadingGitOriginal || isLoadingWorkingCopy
 			: false;
 
-	// Track revision from filesystem reads for conflict detection
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update revision when data loads
 	useEffect(() => {
 		if (rawQuery.data && !isDirty) {

@@ -11,10 +11,6 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 export const createFileContentsRouter = () => {
 	return router({
-		// -----------------------------------------------------------------
-		// New pure-git procedures (Milestone 4)
-		// -----------------------------------------------------------------
-
 		getGitFileContents: publicProcedure
 			.input(
 				z.object({
@@ -76,7 +72,6 @@ export const createFileContentsRouter = () => {
 							input.absolutePath,
 						);
 
-				// Try staged version first, fall back to HEAD
 				let content = await safeGitShow(git, `:0:${originalPath}`);
 				if (!content) {
 					content = await safeGitShow(git, `HEAD:${originalPath}`);
@@ -85,10 +80,6 @@ export const createFileContentsRouter = () => {
 			}),
 	});
 };
-
-// ---------------------------------------------------------------------------
-// Git helpers
-// ---------------------------------------------------------------------------
 
 interface FileVersions {
 	original: string;
@@ -118,20 +109,16 @@ async function getGitOnlyVersions(
 	}
 }
 
-/** Helper to safely get git show content with size limit and memory protection */
 async function safeGitShow(git: SimpleGit, spec: string): Promise<string> {
 	try {
-		// Preflight: check blob size before loading into memory
-		// This prevents memory spikes from large files in git history
+		// Guard against memory spikes from large blobs in git history
 		try {
 			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
 			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
 			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
 				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 			}
-		} catch {
-			// cat-file failed (blob doesn't exist) - let git.show handle the error
-		}
+		} catch {}
 
 		const content = await git.show([spec]);
 		return content;
