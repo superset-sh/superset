@@ -1,14 +1,20 @@
 import { cn } from "@superset/ui/utils";
-import { HiCheck } from "react-icons/hi2";
+import { HiCheck, HiOutlineTrash } from "react-icons/hi2";
 import { getTerminalColors, type Theme } from "shared/themes";
 
 interface ThemeCardProps {
 	theme: Theme;
 	isSelected: boolean;
 	onSelect: () => void;
+	onDelete?: () => void;
 }
 
-export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
+export function ThemeCard({
+	theme,
+	isSelected,
+	onSelect,
+	onDelete,
+}: ThemeCardProps) {
 	const terminal = getTerminalColors(theme);
 	const bgColor = terminal.background;
 	const fgColor = terminal.foreground;
@@ -84,11 +90,26 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
 						<div className="text-xs text-muted-foreground">{theme.author}</div>
 					)}
 				</div>
-				{isSelected && (
-					<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-						<HiCheck className="h-3 w-3 text-primary-foreground" />
-					</div>
-				)}
+				<div className="flex items-center gap-1">
+					{onDelete && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								onDelete();
+							}}
+							className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+							aria-label={`Delete ${theme.name}`}
+						>
+							<HiOutlineTrash className="h-3.5 w-3.5" />
+						</button>
+					)}
+					{isSelected && (
+						<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+							<HiCheck className="h-3 w-3 text-primary-foreground" />
+						</div>
+					)}
+				</div>
 			</div>
 		</button>
 	);

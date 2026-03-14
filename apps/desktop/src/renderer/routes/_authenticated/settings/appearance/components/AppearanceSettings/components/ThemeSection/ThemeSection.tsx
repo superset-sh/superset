@@ -31,6 +31,7 @@ export function ThemeSection() {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const customThemes = useThemeStore((state) => state.customThemes);
 	const upsertCustomThemes = useThemeStore((state) => state.upsertCustomThemes);
+	const removeCustomTheme = useThemeStore((state) => state.removeCustomTheme);
 
 	const allThemes = [...builtInThemes, ...customThemes];
 
@@ -175,6 +176,9 @@ export function ThemeSection() {
 						theme={theme}
 						isSelected={activeThemeId === theme.id}
 						onSelect={() => setTheme(theme.id)}
+						onDelete={
+							theme.isCustom ? () => removeCustomTheme(theme.id) : undefined
+						}
 					/>
 				))}
 			</div>
