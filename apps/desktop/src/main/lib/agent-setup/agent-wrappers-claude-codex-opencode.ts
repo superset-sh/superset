@@ -7,7 +7,7 @@ import {
 	isSupersetManagedHookCommand,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
-import { NOTIFY_SCRIPT_NAME, getNotifyScriptPath } from "./notify-hook";
+import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
 import { OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_DIR } from "./paths";
 
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";

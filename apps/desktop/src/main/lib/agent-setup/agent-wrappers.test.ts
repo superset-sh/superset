@@ -650,9 +650,7 @@ describe("agent-wrappers claude settings.json", () => {
 					hooks: {
 						UserPromptSubmit: [
 							{
-								hooks: [
-									{ type: "command", command: "/opt/my-custom-hook.sh" },
-								],
+								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
 							},
 						],
 					},
@@ -674,17 +672,22 @@ describe("agent-wrappers claude settings.json", () => {
 
 		// Preserves user hook
 		expect(
-			parsed.hooks.UserPromptSubmit.some((def: { hooks: Array<{ command: string }> }) =>
-				def.hooks.some(
-					(hook: { command: string }) => hook.command === "/opt/my-custom-hook.sh",
-				),
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-hook.sh",
+					),
 			),
 		).toBe(true);
 
 		// Adds managed hook
 		expect(
-			parsed.hooks.UserPromptSubmit.some((def: { hooks: Array<{ command: string }> }) =>
-				def.hooks.some((hook: { command: string }) => hook.command === notifyPath),
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
 			),
 		).toBe(true);
 	});
@@ -750,7 +753,11 @@ describe("agent-wrappers claude settings.json", () => {
 		};
 
 		// Stale hooks removed, current hooks present
-		for (const eventName of ["UserPromptSubmit", "Stop", "PostToolUse"] as const) {
+		for (const eventName of [
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
@@ -852,11 +859,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("preserves user hooks when merging", () => {
-		const codexHooksPath = path.join(
-			mockedHomeDir,
-			".codex",
-			"hooks.json",
-		);
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(
 			codexHooksPath,
@@ -865,9 +868,7 @@ describe("agent-wrappers codex hooks.json", () => {
 					hooks: {
 						Stop: [
 							{
-								hooks: [
-									{ type: "command", command: "/opt/my-custom-hook.sh" },
-								],
+								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
 							},
 						],
 					},
@@ -888,7 +889,8 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
 				def.hooks.some(
-					(hook: { command: string }) => hook.command === "/opt/my-custom-hook.sh",
+					(hook: { command: string }) =>
+						hook.command === "/opt/my-custom-hook.sh",
 				),
 			),
 		).toBe(true);
@@ -896,24 +898,25 @@ describe("agent-wrappers codex hooks.json", () => {
 		// Adds managed hook
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
-				def.hooks.some((hook: { command: string }) => hook.command === notifyPath),
+				def.hooks.some(
+					(hook: { command: string }) => hook.command === notifyPath,
+				),
 			),
 		).toBe(true);
 
 		// Also creates SessionStart
 		expect(
-			parsed.hooks.SessionStart.some((def: { hooks: Array<{ command: string }> }) =>
-				def.hooks.some((hook: { command: string }) => hook.command === notifyPath),
+			parsed.hooks.SessionStart.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
 			),
 		).toBe(true);
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
-		const codexHooksPath = path.join(
-			mockedHomeDir,
-			".codex",
-			"hooks.json",
-		);
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
 
@@ -988,11 +991,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("skips Codex hooks writes when existing JSON is invalid", () => {
-		const codexHooksPath = path.join(
-			mockedHomeDir,
-			".codex",
-			"hooks.json",
-		);
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const invalidJson = "{not-json";
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
@@ -1008,11 +1007,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("skips Codex hooks writes when existing JSON is not an object", () => {
-		const codexHooksPath = path.join(
-			mockedHomeDir,
-			".codex",
-			"hooks.json",
-		);
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(codexHooksPath, JSON.stringify("not-an-object"));
