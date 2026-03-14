@@ -4,6 +4,7 @@ import { taskStatuses, tasks } from "@superset/db/schema";
 import {
 	type AGENT_TYPES,
 	buildAgentCommand,
+	buildAgentPromptCommand,
 	buildAgentTaskPrompt,
 } from "@superset/shared/agent-command";
 import {
@@ -49,7 +50,18 @@ async function fetchTask({
 
 const inputSchemaShape = {
 	deviceId: z.string().min(1).describe("Target device ID"),
-	taskId: z.string().min(1).describe("Task ID to work on"),
+	taskId: z
+		.string()
+		.min(1)
+		.optional()
+		.describe("Task ID to work on. Required unless prompt is provided."),
+	prompt: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			"Direct prompt to start the agent with. Use this for task-free launches. Required unless taskId is provided.",
+		),
 	workspaceId: z
 		.string()
 		.min(1)
@@ -69,14 +81,17 @@ const inputSchemaShape = {
 		),
 };
 
-const inputSchema = z.object(inputSchemaShape);
+const inputSchema = z.object(inputSchemaShape).refine(
+	(data) => data.taskId || data.prompt,
+	{ message: "Either taskId or prompt must be provided" },
+);
 
 const ERROR_TASK_NOT_FOUND = {
 	content: [{ type: "text" as const, text: "Error: Task not found" }],
 	isError: true,
 };
 
-function buildLaunchRequest({
+function buildTaskLaunchRequest({
 	workspaceId,
 	paneId,
 	agent,
@@ -85,12 +100,8 @@ function buildLaunchRequest({
 	workspaceId: string;
 	paneId?: string;
 	agent: (typeof STARTABLE_AGENT_TYPES)[number];
-	task: Awaited<ReturnType<typeof fetchTask>>;
+	task: NonNullable<Awaited<ReturnType<typeof fetchTask>>>;
 }): AgentLaunchRequest {
-	if (!task) {
-		throw new Error("Task not found");
-	}
-
 	if (agent === "superset-chat") {
 		return {
 			kind: "chat",
@@ -122,12 +133,53 @@ function buildLaunchRequest({
 	};
 }
 
+function buildPromptLaunchRequest({
+	workspaceId,
+	paneId,
+	agent,
+	prompt,
+}: {
+	workspaceId: string;
+	paneId?: string;
+	agent: (typeof STARTABLE_AGENT_TYPES)[number];
+	prompt: string;
+}): AgentLaunchRequest {
+	if (agent === "superset-chat") {
+		return {
+			kind: "chat",
+			workspaceId,
+			agentType: "superset-chat",
+			source: "mcp",
+			chat: {
+				...(paneId ? { paneId } : {}),
+				initialPrompt: prompt,
+				retryCount: 1,
+			},
+		};
+	}
+
+	return {
+		kind: "terminal",
+		workspaceId,
+		agentType: agent,
+		source: "mcp",
+		terminal: {
+			command: buildAgentPromptCommand({
+				prompt,
+				randomId: crypto.randomUUID(),
+				agent: agent as (typeof AGENT_TYPES)[number],
+			}),
+			...(paneId ? { paneId } : {}),
+		},
+	};
+}
+
 export function register(server: McpServer) {
 	server.registerTool(
 		"start_agent_session",
 		{
 			description:
-				"Start an autonomous AI session for a task in an existing workspace. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
+				"Start an autonomous AI session in an existing workspace. Provide either a taskId to work on a tracked task, or a prompt for a direct task-free launch. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
 			inputSchema: inputSchemaShape,
 		},
 		async (args, extra) => {
@@ -148,18 +200,39 @@ export function register(server: McpServer) {
 			const input = parsed.data;
 			const agent = input.agent ?? "claude";
 
-			const task = await fetchTask({
-				taskId: input.taskId,
-				organizationId: ctx.organizationId,
-			});
-			if (!task) return ERROR_TASK_NOT_FOUND;
+			let request: AgentLaunchRequest;
 
-			const request = buildLaunchRequest({
-				workspaceId: input.workspaceId,
-				paneId: input.paneId,
-				agent,
-				task,
-			});
+			if (input.taskId) {
+				const task = await fetchTask({
+					taskId: input.taskId,
+					organizationId: ctx.organizationId,
+				});
+				if (!task) return ERROR_TASK_NOT_FOUND;
+
+				request = buildTaskLaunchRequest({
+					workspaceId: input.workspaceId,
+					paneId: input.paneId,
+					agent,
+					task,
+				});
+			} else if (typeof input.prompt === "string") {
+				request = buildPromptLaunchRequest({
+					workspaceId: input.workspaceId,
+					paneId: input.paneId,
+					agent,
+					prompt: input.prompt,
+				});
+			} else {
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: "Error: Either taskId or prompt must be provided",
+						},
+					],
+					isError: true,
+				};
+			}
 
 			const params: Record<string, unknown> = {
 				workspaceId: input.workspaceId,
@@ -170,7 +243,7 @@ export function register(server: McpServer) {
 
 			if (request.kind === "terminal") {
 				params.command = request.terminal.command;
-				params.name = request.terminal.name;
+				if (request.terminal.name) params.name = request.terminal.name;
 			} else {
 				params.openChatPane = true;
 				params.chatLaunchConfig = {
