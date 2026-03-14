@@ -1,6 +1,5 @@
 export {
 	buildCodexWrapperExecLine,
-	CLAUDE_SETTINGS_FILE,
 	cleanupGlobalOpenCodePlugin,
 	createClaudeSettingsJson,
 	createClaudeWrapper,
@@ -10,8 +9,6 @@ export {
 	createOpenCodeWrapper,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeGlobalSettingsJsonPath,
-	getClaudeSettingsContent,
-	getClaudeSettingsPath,
 	getCodexGlobalHooksJsonContent,
 	getCodexGlobalHooksJsonPath,
 	getOpenCodeGlobalPluginPath,

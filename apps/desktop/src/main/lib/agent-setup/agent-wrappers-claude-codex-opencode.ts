@@ -8,9 +8,8 @@ import {
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { NOTIFY_SCRIPT_NAME, getNotifyScriptPath } from "./notify-hook";
-import { HOOKS_DIR, OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_DIR } from "./paths";
+import { OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_DIR } from "./paths";
 
-export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 
 const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
@@ -28,10 +27,6 @@ const CODEX_WRAPPER_EXEC_TEMPLATE_PATH = path.join(
 	"codex-wrapper-exec.template.sh",
 );
 
-export function getClaudeSettingsPath(): string {
-	return path.join(HOOKS_DIR, CLAUDE_SETTINGS_FILE);
-}
-
 export function getOpenCodePluginPath(): string {
 	return path.join(OPENCODE_PLUGIN_DIR, OPENCODE_PLUGIN_FILE);
 }
@@ -43,26 +38,6 @@ export function getOpenCodeGlobalPluginPath(): string {
 		? xdgConfigHome
 		: path.join(os.homedir(), ".config");
 	return path.join(configHome, "opencode", "plugin", OPENCODE_PLUGIN_FILE);
-}
-
-export function getClaudeSettingsContent(notifyPath: string): string {
-	const settings = {
-		hooks: {
-			UserPromptSubmit: [{ hooks: [{ type: "command", command: notifyPath }] }],
-			Stop: [{ hooks: [{ type: "command", command: notifyPath }] }],
-			PostToolUse: [
-				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
-			],
-			PostToolUseFailure: [
-				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
-			],
-			PermissionRequest: [
-				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
-			],
-		},
-	};
-
-	return JSON.stringify(settings);
 }
 
 // ---------------------------------------------------------------------------
@@ -265,21 +240,11 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		.replace("{{NOTIFY_PATH}}", notifyPath);
 }
 
-function createClaudeSettings(): string {
-	const settingsPath = getClaudeSettingsPath();
-	const notifyPath = getNotifyScriptPath();
-	const settings = getClaudeSettingsContent(notifyPath);
-
-	writeFileIfChanged(settingsPath, settings, 0o644);
-	return settingsPath;
-}
-
 export function createClaudeWrapper(): void {
 	// Hooks are now written directly to ~/.claude/settings.json via
 	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
 	// We still create the wrapper so SUPERSET_* env vars flow through
 	// and the notify script can identify the Superset terminal context.
-	createClaudeSettings();
 	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`);
 	createWrapper("claude", script);
 }
