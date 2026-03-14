@@ -178,9 +178,7 @@ export class TerminalHost {
 				if (!session.isAttachable) {
 					void session.dispose();
 					this.sessions.delete(sessionId);
-					throw new Error(
-						"Session died during shell initialization",
-					);
+					throw new Error("Session died during shell initialization");
 				}
 			}
 

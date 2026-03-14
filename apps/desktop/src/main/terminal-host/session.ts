@@ -312,16 +312,10 @@ export class Session {
 						// any partial OSC in them is harmlessly discarded by
 						// the terminal emulator.
 						const carryLen = this.shellReadyCarry.length;
-						const markerEnd =
-							markerIndex + SHELL_READY_MARKER.length;
-						const dataStripStart = Math.max(
-							0,
-							markerIndex - carryLen,
-						);
+						const markerEnd = markerIndex + SHELL_READY_MARKER.length;
+						const dataStripStart = Math.max(0, markerIndex - carryLen);
 						const dataStripEnd = markerEnd - carryLen;
-						data =
-							data.slice(0, dataStripStart) +
-							data.slice(dataStripEnd);
+						data = data.slice(0, dataStripStart) + data.slice(dataStripEnd);
 						this.shellReadyCarry = "";
 						this.shellReadyResolved = true;
 						if (this.shellReadyResolve) {
