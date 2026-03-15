@@ -18,6 +18,7 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	buildFileCommandFromAgentConfig,
@@ -122,6 +123,7 @@ export function AgentCard({
 		},
 	});
 	const [draft, setDraft] = useState<AgentDraft>(() => toDraft(preset));
+	const [showPreview, setShowPreview] = useState(false);
 	const [validationMessage, setValidationMessage] = useState<string | null>(
 		null,
 	);
@@ -129,6 +131,7 @@ export function AgentCard({
 
 	useEffect(() => {
 		setDraft(toDraft(preset));
+		setShowPreview(false);
 		setValidationMessage(null);
 	}, [preset]);
 
@@ -399,38 +402,54 @@ export function AgentCard({
 					</div>
 				)}
 
-				<div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+				<div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
 					<div>
 						<p className="text-sm font-medium">Preview</p>
 						<p className="text-xs text-muted-foreground">
-							Sample launch output for a representative task
+							Check the rendered prompt and launch output before saving
 						</p>
 					</div>
-					<div className="space-y-1">
-						<p className="text-xs font-medium text-muted-foreground">
-							Rendered Task Prompt
-						</p>
-						<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
-							{previewPrompt}
-						</pre>
-					</div>
-					<div className="space-y-1">
-						<p className="text-xs font-medium text-muted-foreground">
-							No-Prompt Launch
-						</p>
-						<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
-							{previewNoPromptCommand}
-						</pre>
-					</div>
-					<div className="space-y-1">
-						<p className="text-xs font-medium text-muted-foreground">
-							Task Launch
-						</p>
-						<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
-							{previewTaskCommand}
-						</pre>
-					</div>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => setShowPreview((current) => !current)}
+					>
+						{showPreview ? "Hide Preview" : "Show Preview"}
+					</Button>
 				</div>
+
+				{showPreview && (
+					<div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+						<div className="space-y-1">
+							<p className="text-xs font-medium text-muted-foreground">
+								Rendered Task Prompt
+							</p>
+							<MarkdownRenderer
+								content={previewPrompt}
+								className="h-64 rounded-md border bg-background text-sm"
+							/>
+						</div>
+						{preset.kind === "terminal" && (
+							<div className="space-y-1">
+								<p className="text-xs font-medium text-muted-foreground">
+									No-Prompt Launch
+								</p>
+								<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+									{previewNoPromptCommand}
+								</pre>
+							</div>
+						)}
+						<div className="space-y-1">
+							<p className="text-xs font-medium text-muted-foreground">
+								{preset.kind === "terminal" ? "Task Launch" : "Chat Launch"}
+							</p>
+							<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+								{previewTaskCommand}
+							</pre>
+						</div>
+					</div>
+				)}
 
 				{validationMessage && (
 					<p className="text-sm text-destructive">{validationMessage}</p>
