@@ -23,10 +23,13 @@ import {
 	HiOutlinePencil,
 } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { getBranchLocationLabel } from "./branchLocation";
 
 interface BranchOption {
 	name: string;
 	lastCommitDate: number;
+	isLocal: boolean;
+	isRemote: boolean;
 }
 
 interface PromptGroupAdvancedOptionsProps {
@@ -164,6 +167,11 @@ export function PromptGroupAdvancedOptions({
 													{branch.name === defaultBranch && (
 														<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 															default
+														</span>
+													)}
+													{getBranchLocationLabel(branch) != null && (
+														<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+															{getBranchLocationLabel(branch)}
 														</span>
 													)}
 												</span>
