@@ -143,12 +143,17 @@ export interface HelloRequest {
 	clientId: string;
 	/** Socket role: control carries RPC; stream carries events */
 	role: "control" | "stream";
+	/** Optional app version for rollout coordination */
+	appVersion?: string;
+	/** Optional requested preferred worker generation */
+	preferredWorkerGeneration?: string;
 }
 
 export interface HelloResponse {
 	protocolVersion: number;
 	daemonVersion: string;
 	daemonPid: number;
+	preferredWorkerGeneration?: string;
 }
 
 /**
@@ -175,6 +180,8 @@ export interface CreateOrAttachResponse {
 	wasRecovered: boolean;
 	/** PTY process ID for port scanning (null if not yet spawned or exited) */
 	pid: number | null;
+	/** Worker generation selected by the supervisor */
+	workerGeneration?: string;
 }
 
 /**
@@ -241,6 +248,8 @@ export interface ListSessionsResponse {
 		/** ISO timestamp */
 		lastAttachedAt?: string;
 		shell?: string;
+		/** Worker generation selected by the supervisor */
+		workerGeneration?: string;
 	}>;
 }
 

@@ -16,15 +16,22 @@ import { randomBytes } from "node:crypto";
 import {
 	chmodSync,
 	existsSync,
-	mkdirSync,
 	readFileSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { createServer, type Server, Socket } from "node:net";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { SUPERSET_DIR_NAME } from "shared/constants";
+import {
+	ensureSupersetHomeDirExists,
+	SUPERSET_HOME_DIR,
+	SUPERSET_SENSITIVE_FILE_MODE,
+} from "../lib/app-environment";
+import {
+	getTerminalWorkerRuntimePaths,
+	sanitizeTerminalWorkerGeneration,
+	TERMINAL_HOST_RUNTIME_PATHS,
+	TERMINAL_WORKER_GENERATION_ENV,
+} from "../lib/terminal-host/runtime-paths";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -53,15 +60,17 @@ import { TerminalHost } from "./terminal-host";
 // =============================================================================
 
 const DAEMON_VERSION = "1.0.0";
-
-// SUPERSET_DIR_NAME is imported from shared/constants for multi-worktree support
-// This allows workspace-specific home directories (e.g., ~/.superset-my-feature)
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-// Socket and token paths
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
+const WORKER_GENERATION =
+	process.env[TERMINAL_WORKER_GENERATION_ENV]?.trim() || null;
+const WORKER_GENERATION_LABEL = WORKER_GENERATION
+	? sanitizeTerminalWorkerGeneration(WORKER_GENERATION)
+	: null;
+const RUNTIME_PATHS = WORKER_GENERATION
+	? getTerminalWorkerRuntimePaths(WORKER_GENERATION)
+	: TERMINAL_HOST_RUNTIME_PATHS;
+const DAEMON_LABEL = WORKER_GENERATION_LABEL
+	? `terminal-worker:${WORKER_GENERATION_LABEL}`
+	: "terminal-host";
 
 // =============================================================================
 // Logging
@@ -73,7 +82,7 @@ function log(
 	data?: unknown,
 ) {
 	const timestamp = new Date().toISOString();
-	const prefix = `[${timestamp}] [terminal-host] [${level.toUpperCase()}]`;
+	const prefix = `[${timestamp}] [${DAEMON_LABEL}] [${level.toUpperCase()}]`;
 	if (data !== undefined) {
 		console.log(`${prefix} ${message}`, data);
 	} else {
@@ -88,14 +97,16 @@ function log(
 let authToken: string;
 
 function ensureAuthToken(): string {
-	if (existsSync(TOKEN_PATH)) {
+	if (existsSync(RUNTIME_PATHS.tokenPath)) {
 		// Read existing token
-		return readFileSync(TOKEN_PATH, "utf-8").trim();
+		return readFileSync(RUNTIME_PATHS.tokenPath, "utf-8").trim();
 	}
 
 	// Generate new token (32 bytes = 64 hex chars)
 	const token = randomBytes(32).toString("hex");
-	writeFileSync(TOKEN_PATH, token, { mode: 0o600 });
+	writeFileSync(RUNTIME_PATHS.tokenPath, token, {
+		mode: SUPERSET_SENSITIVE_FILE_MODE,
+	});
 	log("info", "Generated new auth token");
 	return token;
 }
@@ -637,7 +648,7 @@ function handleConnection(socket: Socket) {
  */
 function isSocketLive(): Promise<boolean> {
 	return new Promise((resolve) => {
-		if (!existsSync(SOCKET_PATH)) {
+		if (!existsSync(RUNTIME_PATHS.socketPath)) {
 			resolve(false);
 			return;
 		}
@@ -659,27 +670,16 @@ function isSocketLive(): Promise<boolean> {
 			resolve(false);
 		});
 
-		testSocket.connect(SOCKET_PATH);
+		testSocket.connect(RUNTIME_PATHS.socketPath);
 	});
 }
 
 async function startServer(): Promise<void> {
-	// Ensure superset directory exists with proper permissions
-	if (!existsSync(SUPERSET_HOME_DIR)) {
-		mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
-		log("info", `Created directory: ${SUPERSET_HOME_DIR}`);
-	}
-
-	// Ensure directory has correct permissions
-	try {
-		chmodSync(SUPERSET_HOME_DIR, 0o700);
-	} catch {
-		// May fail if not owner, that's okay
-	}
+	ensureSupersetHomeDirExists();
 
 	// Check if socket is live before removing it
 	// This prevents orphaning a running daemon
-	if (existsSync(SOCKET_PATH)) {
+	if (existsSync(RUNTIME_PATHS.socketPath)) {
 		const isLive = await isSocketLive();
 		if (isLive) {
 			log("error", "Another daemon is already running and responsive");
@@ -688,7 +688,7 @@ async function startServer(): Promise<void> {
 
 		// Socket exists but not responsive - safe to remove
 		try {
-			unlinkSync(SOCKET_PATH);
+			unlinkSync(RUNTIME_PATHS.socketPath);
 			log("info", "Removed stale socket file");
 		} catch (error) {
 			throw new Error(`Failed to remove stale socket: ${error}`);
@@ -696,9 +696,9 @@ async function startServer(): Promise<void> {
 	}
 
 	// Clean up stale PID file if socket was removed
-	if (existsSync(PID_PATH)) {
+	if (existsSync(RUNTIME_PATHS.pidPath)) {
 		try {
-			unlinkSync(PID_PATH);
+			unlinkSync(RUNTIME_PATHS.pidPath);
 		} catch {
 			// Ignore - may not have permission
 		}
@@ -741,20 +741,25 @@ async function startServer(): Promise<void> {
 			}
 		});
 
-		newServer.listen(SOCKET_PATH, () => {
+		newServer.listen(RUNTIME_PATHS.socketPath, () => {
 			// Set socket permissions (readable/writable by owner only)
 			try {
-				chmodSync(SOCKET_PATH, 0o600);
+				chmodSync(RUNTIME_PATHS.socketPath, SUPERSET_SENSITIVE_FILE_MODE);
 			} catch {
 				// May fail on some systems, that's okay - directory permissions protect us
 			}
 
 			// Write PID file
-			writeFileSync(PID_PATH, String(process.pid), { mode: 0o600 });
+			writeFileSync(RUNTIME_PATHS.pidPath, String(process.pid), {
+				mode: SUPERSET_SENSITIVE_FILE_MODE,
+			});
 
 			log("info", `Daemon started`);
-			log("info", `Socket: ${SOCKET_PATH}`);
+			log("info", `Socket: ${RUNTIME_PATHS.socketPath}`);
 			log("info", `PID: ${process.pid}`);
+			if (WORKER_GENERATION) {
+				log("info", `Generation: ${WORKER_GENERATION}`);
+			}
 			resolve();
 		});
 	});
@@ -778,8 +783,9 @@ async function stopServer(): Promise<void> {
 	});
 
 	try {
-		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
-		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
+		if (existsSync(RUNTIME_PATHS.socketPath))
+			unlinkSync(RUNTIME_PATHS.socketPath);
+		if (existsSync(RUNTIME_PATHS.pidPath)) unlinkSync(RUNTIME_PATHS.pidPath);
 	} catch {
 		// Best effort cleanup
 	}

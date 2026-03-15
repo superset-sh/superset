@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
@@ -16,6 +16,12 @@ const TERMINAL_STATE_PATHS = [
 	"terminal-host.spawn.lock",
 	"terminal-host.mtime",
 	"daemon.log",
+	"terminal-supervisor.sock",
+	"terminal-supervisor.token",
+	"terminal-supervisor.pid",
+	"terminal-supervisor.spawn.lock",
+	"terminal-supervisor.mtime",
+	"terminal-supervisor.log",
 ] as const;
 
 export async function resetTerminalStateDev(): Promise<void> {
@@ -38,6 +44,22 @@ export async function resetTerminalStateDev(): Promise<void> {
 		await rm(fullPath, { recursive: true, force: true }).catch((error) => {
 			console.warn(
 				"[dev/reset-terminal-state] Failed to remove state path:",
+				fullPath,
+				error,
+			);
+		});
+	}
+
+	const runtimeEntries = await readdir(SUPERSET_HOME_DIR).catch(() => []);
+	for (const entry of runtimeEntries) {
+		if (!entry.startsWith("terminal-worker.")) {
+			continue;
+		}
+
+		const fullPath = join(SUPERSET_HOME_DIR, entry);
+		await rm(fullPath, { recursive: true, force: true }).catch((error) => {
+			console.warn(
+				"[dev/reset-terminal-state] Failed to remove worker state path:",
 				fullPath,
 				error,
 			);

@@ -120,6 +120,7 @@ if (!canRunSessionLifecycleIntegration) {
 							...process.env,
 							HOME: TEST_HOME_DIR,
 							NODE_ENV: "development",
+							SUPERSET_HOME_DIR,
 							SUPERSET_WORKSPACE_NAME: "test",
 						},
 						stdio: ["ignore", "pipe", "pipe"],
