@@ -73,8 +73,6 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
-import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { LinkedIssuePill } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/IssueLinkCommand";
@@ -408,7 +406,8 @@ function PromptGroupInner({
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isDark = useIsDarkTheme();
-	const { draft, runAsyncAction, updateDraft } = useNewWorkspaceModalDraft();
+	const { createWorkspace, createFromPr, draft, runAsyncAction, updateDraft } =
+		useNewWorkspaceModalDraft();
 	const attachments = useProviderAttachments();
 	const {
 		baseBranch,
@@ -423,10 +422,6 @@ function PromptGroupInner({
 	} = draft;
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
-	const createWorkspace = useCreateWorkspace({
-		resolveInitialCommands: (commands) =>
-			runSetupScriptRef.current ? commands : null,
-	});
 	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
 		() => {
 			if (typeof window === "undefined") return "none";
@@ -438,7 +433,6 @@ function PromptGroupInner({
 				: "none";
 		},
 	);
-	const createFromPr = useCreateFromPr();
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -623,7 +617,11 @@ function PromptGroupInner({
 							: branchSlug) || undefined,
 					baseBranch: baseBranch || undefined,
 				},
-				launchRequest ? { agentLaunchRequest: launchRequest } : undefined,
+				{
+					agentLaunchRequest: launchRequest ?? undefined,
+					resolveInitialCommands: (commands) =>
+						runSetupScriptRef.current ? commands : null,
+				},
 			),
 			{
 				loading: "Creating workspace...",

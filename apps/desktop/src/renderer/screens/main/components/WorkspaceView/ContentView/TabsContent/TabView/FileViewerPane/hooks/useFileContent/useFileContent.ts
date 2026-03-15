@@ -55,6 +55,9 @@ export function useFileContent({
 					!isImage &&
 					!!filePath &&
 					!!worktreePath,
+				// useWorkspaceFileEvents is the authoritative invalidation source for on-disk changes;
+				// window-focus refetches are redundant and introduce a race with in-flight user edits.
+				refetchOnWindowFocus: false,
 			},
 		);
 

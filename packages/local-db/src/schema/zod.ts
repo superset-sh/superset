@@ -70,7 +70,11 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 		return mode;
 	}
 
-	return "split-pane";
+	if (mode === "parallel" || mode === "sequential") {
+		return "split-pane";
+	}
+
+	return "new-tab";
 }
 
 /**
@@ -128,6 +132,7 @@ export const EXTERNAL_APPS = [
 	"appcode",
 	"fleet",
 	"rustrover",
+	"android-studio",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];

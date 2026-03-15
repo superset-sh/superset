@@ -45,7 +45,7 @@ export async function fetchGitHubPRStatus(
 
 		const [branchCheck, prInfo, previewUrl] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath, repoContext, headSha),
+			getPRForBranch(worktreePath, branchName, repoContext, headSha),
 			fetchPreviewDeploymentUrl(worktreePath, headSha, branchName, repoContext),
 		]);
 
@@ -213,14 +213,15 @@ export function getPullRequestRepoArgs(
 }
 
 const PR_JSON_FIELDS =
-	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup,reviewRequests";
+	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,headRefName,reviewDecision,statusCheckRollup,reviewRequests";
 
 async function getPRForBranch(
 	worktreePath: string,
+	localBranch: string,
 	repoContext?: RepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
-	const byTracking = await getPRByBranchTracking(worktreePath);
+	const byTracking = await getPRByBranchTracking(worktreePath, localBranch);
 	if (byTracking) {
 		return byTracking;
 	}
@@ -229,11 +230,26 @@ async function getPRForBranch(
 }
 
 /**
+ * Returns true when the local branch name matches the PR's head branch.
+ * Handles fork PRs where the local branch is prefixed with the fork owner
+ * (e.g. local "owner/feature" matches PR headRefName "feature").
+ */
+export function branchMatchesPR(
+	localBranch: string,
+	prHeadRefName: string,
+): boolean {
+	return (
+		localBranch === prHeadRefName || localBranch.endsWith(`/${prHeadRefName}`)
+	);
+}
+
+/**
  * Looks up a PR using `gh pr view` (no args), which matches via the branch's
  * tracking ref. Essential for fork PRs that track refs/pull/XXX/head.
  */
 async function getPRByBranchTracking(
 	worktreePath: string,
+	localBranch: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		const { stdout } = await execWithShellEnv(
@@ -247,7 +263,11 @@ async function getPRByBranchTracking(
 			return null;
 		}
 
-		if (!(await sharesAncestry(worktreePath, data.headRefOid))) {
+		// Verify the PR's head branch matches the local branch.
+		// `gh pr view` can match via stale tracking refs (e.g. refs/pull/N/head)
+		// left over from a previous `gh pr checkout`, causing a new workspace
+		// to incorrectly show an old, unrelated PR.
+		if (!branchMatchesPR(localBranch, data.headRefName)) {
 			return null;
 		}
 
@@ -370,46 +390,6 @@ function parsePRListResponse(stdout: string): GHPRResponse[] {
 		}
 	}
 	return parsed;
-}
-
-/**
- * Returns true if local HEAD and the given commit share ancestry
- * (one is an ancestor of the other, or they are the same commit).
- */
-async function sharesAncestry(
-	worktreePath: string,
-	prHeadOid: string,
-): Promise<boolean> {
-	try {
-		const { stdout: localHead } = await execGitWithShellPath(
-			["rev-parse", "HEAD"],
-			{ cwd: worktreePath },
-		);
-		const localOid = localHead.trim();
-
-		if (localOid === prHeadOid) {
-			return true;
-		}
-
-		for (const [ancestor, descendant] of [
-			[prHeadOid, localOid],
-			[localOid, prHeadOid],
-		]) {
-			try {
-				await execGitWithShellPath(
-					["merge-base", "--is-ancestor", ancestor, descendant],
-					{ cwd: worktreePath },
-				);
-				return true;
-			} catch {
-				// Try the other direction.
-			}
-		}
-
-		return false;
-	} catch {
-		return false;
-	}
 }
 
 function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {

@@ -68,6 +68,55 @@ describe("parseThemeConfigFile", () => {
 		expect(result.themes[0]?.terminal?.foreground).toBeDefined();
 	});
 
+	it("supports partial editor overrides", () => {
+		const result = parseThemeConfigFile(
+			JSON.stringify({
+				name: "Editor Theme",
+				type: "dark",
+				ui: {
+					highlightActive: "rgba(0, 200, 255, 0.4)",
+				},
+				editor: {
+					colors: {
+						background: "#101418",
+					},
+					syntax: {
+						keyword: "#ff79c6",
+					},
+				},
+			}),
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+
+		expect(result.themes[0]?.editor?.colors.background).toBe("#101418");
+		expect(result.themes[0]?.editor?.syntax.keyword).toBe("#ff79c6");
+		expect(result.themes[0]?.editor?.colors.searchActive).toBe(
+			"rgba(0, 200, 255, 0.4)",
+		);
+	});
+
+	it("keeps terminal undefined for ui-only imported themes", () => {
+		const result = parseThemeConfigFile(
+			JSON.stringify({
+				name: "UI Only Theme",
+				type: "dark",
+				ui: {
+					background: "#112233",
+					foreground: "#f4f7fb",
+				},
+			}),
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+
+		expect(result.themes[0]?.terminal).toBeUndefined();
+		expect(result.themes[0]?.ui.background).toBe("#112233");
+		expect(result.themes[0]?.ui.foreground).toBe("#f4f7fb");
+	});
+
 	it("returns an error for invalid JSON", () => {
 		const result = parseThemeConfigFile("{invalid-json");
 		expect(result.ok).toBe(false);

@@ -97,6 +97,7 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	return { defaultBranch };
 }
 
+/** Insert or update a project record in the local database, returning the persisted row. */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
 
@@ -213,7 +214,9 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
 const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
+const BRANCH_SEARCH_LIMIT = 5000;
 
+/** Extract the repository name from a git URL (HTTPS, SSH, or git:// protocol). */
 function extractRepoName(urlInput: string): string | null {
 	let normalized = urlInput.trim().replace(/\/+$/, "");
 
@@ -257,6 +260,7 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
+/** Create the tRPC router for project CRUD, branch listing, and git operations. */
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
@@ -708,6 +712,154 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					});
 
 					return { branches, defaultBranch };
+				},
+			),
+
+		// Paginated, server-side searched branch listing
+		searchBranches: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					search: z.string().default(""),
+					limit: z.number().min(1).max(BRANCH_SEARCH_LIMIT).default(50),
+					offset: z.number().min(0).default(0),
+				}),
+			)
+			.query(
+				async ({
+					input,
+				}): Promise<{
+					branches: Array<{
+						name: string;
+						lastCommitDate: number;
+						isLocal: boolean;
+						isRemote: boolean;
+					}>;
+					defaultBranch: string;
+					totalCount: number;
+					hasMore: boolean;
+				}> => {
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
+					if (!project) {
+						throw new Error(`Project ${input.projectId} not found`);
+					}
+
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const search = input.search.trim();
+					const searchLower = search.toLowerCase();
+
+					// Always list all refs — git glob `*` doesn't cross `/` and is
+					// case-sensitive, so we filter in JS for reliable substring search.
+					const localPattern = "refs/heads/";
+					const remotePattern = "refs/remotes/origin/";
+
+					const branchMap = new Map<
+						string,
+						{ lastCommitDate: number; isLocal: boolean; isRemote: boolean }
+					>();
+
+					// Fetch remote refs
+					try {
+						const remoteOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							remotePattern,
+						]);
+
+						for (const line of remoteOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							let branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch.startsWith("origin/")) {
+								branch = branch.replace("origin/", "");
+							}
+							if (branch === "HEAD") continue;
+
+							branchMap.set(branch, {
+								lastCommitDate: timestamp * 1000,
+								isLocal: false,
+								isRemote: true,
+							});
+						}
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list remote refs:", err);
+					}
+
+					// Fetch local refs
+					try {
+						const localOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							localPattern,
+						]);
+
+						for (const line of localOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							const branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch === "HEAD") continue;
+
+							const existing = branchMap.get(branch);
+							if (existing) {
+								existing.isLocal = true;
+							} else {
+								branchMap.set(branch, {
+									lastCommitDate: timestamp * 1000,
+									isLocal: true,
+									isRemote: false,
+								});
+							}
+						}
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list local refs:", err);
+					}
+
+					const defaultBranch =
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					// Sort: default branch first, then local before remote, then by date
+					const allBranches = Array.from(branchMap.entries())
+						.filter(
+							([name]) =>
+								!searchLower || name.toLowerCase().includes(searchLower),
+						)
+						.map(([name, data]) => ({ name, ...data }))
+						.sort((a, b) => {
+							if (a.name === defaultBranch) return -1;
+							if (b.name === defaultBranch) return 1;
+							if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
+							return b.lastCommitDate - a.lastCommitDate;
+						});
+
+					const totalCount = allBranches.length;
+					const branches = allBranches.slice(
+						input.offset,
+						input.offset + input.limit,
+					);
+
+					return {
+						branches,
+						defaultBranch,
+						totalCount,
+						hasMore: input.offset + input.limit < totalCount,
+					};
 				},
 			),
 

@@ -1,6 +1,7 @@
 export {
 	destroyRuntime,
 	generateAndSetTitle,
+	type LifecycleEvent,
 	onUserPromptSubmit,
 	type RuntimeHarness,
 	type RuntimeHookManager,

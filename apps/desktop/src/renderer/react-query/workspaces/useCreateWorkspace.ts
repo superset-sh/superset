@@ -19,7 +19,9 @@ interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
 type PendingSetupOverrides = Pick<
 	PendingTerminalSetup,
 	"defaultPresets" | "agentCommand" | "agentLaunchRequest"
->;
+> & {
+	resolveInitialCommands?: (serverCommands: string[] | null) => string[] | null;
+};
 
 export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 	const navigate = useNavigate();
@@ -82,11 +84,14 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 								workspaceId: data.workspace.id,
 							}
 						: undefined;
+				const resolveCommands =
+					pendingSetupOverrides?.resolveInitialCommands ??
+					options?.resolveInitialCommands;
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
-					initialCommands: options?.resolveInitialCommands
-						? options.resolveInitialCommands(data.initialCommands)
+					initialCommands: resolveCommands
+						? resolveCommands(data.initialCommands)
 						: data.initialCommands,
 					defaultPresets: pendingSetupOverrides?.defaultPresets,
 					agentCommand: pendingSetupOverrides?.agentCommand,

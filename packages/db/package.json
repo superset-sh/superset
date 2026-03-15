@@ -24,6 +24,10 @@
 			"types": "./src/schema/auth.ts",
 			"default": "./src/schema/auth.ts"
 		},
+		"./seed-default-statuses": {
+			"types": "./src/seed-default-statuses.ts",
+			"default": "./src/seed-default-statuses.ts"
+		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"

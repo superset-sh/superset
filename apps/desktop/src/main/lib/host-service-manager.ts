@@ -66,9 +66,9 @@ class HostServiceManager {
 		return this.instances.get(organizationId)?.status ?? null;
 	}
 
-	private async spawn(organizationId: string): Promise<number> {
-		const env: Record<string, string | undefined> = {
-			...process.env,
+	private spawn(organizationId: string): Promise<number> {
+		const env: Record<string, string> = {
+			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
 			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host.db"),

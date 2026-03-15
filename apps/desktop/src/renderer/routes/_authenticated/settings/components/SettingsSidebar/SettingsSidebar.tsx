@@ -1,5 +1,5 @@
 import { COMPANY } from "@superset/shared/constants";
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
 	HiArrowLeft,
 	HiArrowTopRightOnSquare,
@@ -8,6 +8,7 @@ import {
 } from "react-icons/hi2";
 import {
 	useSetSettingsSearchQuery,
+	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { getMatchCountBySection } from "../../utils/settings-search";
@@ -15,32 +16,21 @@ import { GeneralSettings } from "./GeneralSettings";
 import { ProjectsSettings } from "./ProjectsSettings";
 
 export function SettingsSidebar() {
-	const navigate = useNavigate();
-	const router = useRouter();
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
+	const originRoute = useSettingsOriginRoute();
 	const matchCounts = searchQuery ? getMatchCountBySection(searchQuery) : null;
-
-	const handleBack = () => {
-		if (router.history.canGoBack()) {
-			router.history.back();
-			return;
-		}
-
-		void navigate({ to: "/workspace" });
-	};
 
 	return (
 		<div className="w-56 flex flex-col p-3 overflow-hidden">
 			{/* Back button */}
-			<button
-				type="button"
-				onClick={handleBack}
+			<Link
+				to={originRoute}
 				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
 			>
 				<HiArrowLeft className="h-4 w-4" />
 				<span>Back</span>
-			</button>
+			</Link>
 
 			{/* Settings title */}
 			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
