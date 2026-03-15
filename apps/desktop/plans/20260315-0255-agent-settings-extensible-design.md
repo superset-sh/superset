@@ -23,7 +23,7 @@ The design must be:
 ## Goals
 
 1. Built-in agent defaults live in code, not in persisted rows.
-2. Local storage persists only user overrides.
+2. Local storage persists only user-defined local state.
 3. All launch surfaces use one launch-request builder layer.
 4. Settings editing is atomic per agent card.
 5. Reset removes overrides instead of rewriting defaults.
@@ -33,43 +33,69 @@ The design must be:
 ## Non-Goals
 
 1. Syncing agent settings across devices
-2. User-defined arbitrary custom agents
+2. Third-party plugin architecture for external launchers
 3. Server-side launch orchestration changes
-4. Plugin architecture for external launchers
+4. Shared cloud-managed agent catalogs
 
 
 ## Architecture
 
 The system should have four layers.
 
-### 1. Static Agent Catalog
+### 1. Agent Definitions
 
-Create a shared built-in catalog, e.g. `packages/shared/src/agent-catalog.ts`.
+Create a shared agent-definition layer, e.g. `packages/shared/src/agent-catalog.ts`.
 
-Each entry should define:
+Definitions should be discriminated by `kind`.
 
-1. `id`
-2. `defaultLabel`
-3. `defaultDescription`
-4. `defaultCommand`
-5. `defaultPromptCommand`
-6. `defaultPromptCommandSuffix`
-7. `defaultTaskPromptTemplate`
-8. `defaultEnabled`
-9. `supportsTaskPrompt`
-10. `supportsNoPromptLaunch`
+Recommended shape:
 
-This catalog is the only source of defaults.
+```ts
+type AgentDefinition =
+  | {
+      id: BuiltinAgentId | `custom:${string}`;
+      source: "builtin" | "user";
+      kind: "terminal";
+      defaultLabel: string;
+      defaultDescription?: string;
+      defaultCommand: string;
+      defaultPromptCommand: string;
+      defaultPromptCommandSuffix?: string;
+      defaultTaskPromptTemplate: string;
+      defaultEnabled: boolean;
+    }
+  | {
+      id: "superset-chat";
+      source: "builtin";
+      kind: "chat";
+      defaultLabel: string;
+      defaultDescription?: string;
+      defaultTaskPromptTemplate: string;
+      defaultEnabled: boolean;
+      defaultModel?: string;
+    };
+```
 
-### 2. Persisted Local Overrides
+Built-in definitions live in code. Custom agents use the same model:
 
-Persist only mutable local overrides in local SQLite.
+1. built-ins come from the shared catalog
+2. custom agents are local user definitions with ids like `custom:<uuid>`
+3. launch code does not care whether a definition is built-in or user-created
+
+### 2. Persisted Local State
+
+Persist only mutable local state in local SQLite.
+
+There are two kinds of local state:
+
+1. custom agent definitions
+2. overrides applied to any definition
 
 Recommended shape:
 
 ```ts
 type AgentPresetOverride = {
-  id: AgentPresetId;
+  id: string;
   enabled?: boolean;
   label?: string;
   description?: string | null;
@@ -85,7 +111,21 @@ type AgentPresetOverrideEnvelope = {
 };
 ```
 
-Persist the envelope as JSON text in `settings`.
+Persist overrides as JSON text in `settings`. Persist custom-agent definitions separately, for example:
+
+```ts
+type CustomAgentDefinition = {
+  id: `custom:${string}`;
+  kind: "terminal";
+  label: string;
+  description?: string;
+  command: string;
+  promptCommand: string;
+  promptCommandSuffix?: string;
+  taskPromptTemplate: string;
+  enabled?: boolean;
+};
+```
 
 Do not persist:
 
@@ -93,25 +133,44 @@ Do not persist:
 2. copied default values
 3. an initialization flag
 
-### 3. Resolved Runtime Presets
+### 3. Resolved Runtime Configs
 
-Desktop should resolve catalog entries and overrides into a runtime shape:
+Desktop should resolve definitions and overrides into a runtime shape.
 
 ```ts
-type ResolvedAgentPreset = {
-  id: AgentPresetId;
-  label: string;
-  description?: string;
-  command: string;
-  promptCommand: string;
-  promptCommandSuffix?: string;
-  taskPromptTemplate: string;
-  enabled: boolean;
-  overriddenFields: AgentPresetField[];
-};
+type ResolvedAgentConfig =
+  | {
+      id: string;
+      source: "builtin" | "user";
+      kind: "terminal";
+      label: string;
+      description?: string;
+      enabled: boolean;
+      command: string;
+      promptCommand: string;
+      promptCommandSuffix?: string;
+      taskPromptTemplate: string;
+      overriddenFields: AgentPresetField[];
+    }
+  | {
+      id: string;
+      source: "builtin" | "user";
+      kind: "chat";
+      label: string;
+      description?: string;
+      enabled: boolean;
+      taskPromptTemplate: string;
+      model?: string;
+      overriddenFields: AgentPresetField[];
+    };
 ```
 
-The UI and launch builders should consume only `ResolvedAgentPreset`.
+The UI and launch builders should consume only `ResolvedAgentConfig`.
+
+This is the key distinction:
+
+1. terminal agents expose shell-command fields
+2. `superset-chat` exposes chat-specific fields and never pretends to be a terminal agent
 
 ### 4. Launch Builders and Preferences
 
@@ -128,8 +187,10 @@ Responsibilities:
 Renderer surfaces should only:
 
 1. collect inputs
-2. read resolved presets
+2. read resolved configs
 3. call the shared builder
+
+The launch builder should switch on `kind`, not on ad hoc agent ids.
 
 
 ## Storage Design
@@ -139,6 +200,11 @@ Keep this feature local to desktop SQLite.
 Recommended `settings` column:
 
 1. `agent_preset_overrides` or equivalent JSON text column
+
+Store custom-agent definitions separately from overrides:
+
+1. `agent_custom_definitions`
+2. `agent_preset_overrides`
 
 Do not use:
 
@@ -155,28 +221,29 @@ Why:
 
 ## Router Design
 
-The Electron settings router should expose resolved presets while internally storing overrides.
+The Electron settings router should expose resolved configs while internally storing definitions and overrides.
 
 Recommended procedures:
 
-1. `getAgentPresets(): ResolvedAgentPreset[]`
+1. `getAgentPresets(): ResolvedAgentConfig[]`
 2. `updateAgentPreset({ id, patch })`
 3. `resetAgentPreset({ id })`
 4. `resetAllAgentPresets()`
-
-Optional:
-
-1. `validateAgentPromptTemplate({ template })`
-2. `previewAgentPromptTemplate({ id, sampleTask })`
+5. `validateAgentPromptTemplate({ template })`
+6. `previewAgentPromptTemplate({ id, sampleTask })`
+7. `createCustomAgent(input)`
+8. `updateCustomAgent({ id, patch })`
+9. `deleteCustomAgent({ id })`
 
 ### Read Semantics
 
 `getAgentPresets` should:
 
-1. read overrides
-2. merge them with the static catalog
-3. return resolved presets
-4. never write
+1. load built-in definitions
+2. load local custom definitions
+3. load overrides
+4. resolve everything into `ResolvedAgentConfig[]`
+5. never write
 
 ### Write Semantics
 
@@ -219,9 +286,16 @@ Central utilities should own:
 
 ## UI Design
 
-Keep the settings route under desktop settings and present one card per built-in agent.
+Keep the settings route under desktop settings and present one card per resolved agent.
 
-Each card should expose:
+The page should include:
+
+1. one card per resolved agent
+2. `New Agent`
+3. duplicate built-in into a custom agent
+4. delete actions for custom agents only
+
+Terminal agent cards should expose:
 
 1. `Enabled`
 2. `Label`
@@ -231,6 +305,16 @@ Each card should expose:
 6. `Prompt Command Suffix`
 7. `Task Prompt Template`
 8. `Preview`
+
+Chat agent cards should expose:
+
+1. `Enabled`
+2. `Label`
+3. `Description`
+4. `Task Prompt Template`
+5. `Preview`
+
+They should not render shell-command fields.
 
 ### Save Model
 
@@ -248,12 +332,14 @@ Do not save on blur.
 Each card should show:
 
 1. a sample rendered task prompt
-2. a sample no-prompt command
-3. a sample task-driven command
+2. for terminal agents, a sample no-prompt command
+3. for terminal agents, a sample task-driven command
 
 ### Override Visibility
 
 The UI should indicate which fields differ from defaults.
+
+Custom agents should be limited to `kind: "terminal"`.
 
 
 ## Launch Surface Integration
@@ -267,6 +353,11 @@ Required surfaces:
 3. batch task launch
 
 UI surfaces should not compile shell commands directly.
+
+Launch compilation should work like this:
+
+1. if `kind === "terminal"`, compile shell commands
+2. if `kind === "chat"`, build chat launch requests
 
 Local preference keys should be centralized constants, not scattered string literals.
 
@@ -335,35 +426,40 @@ Verify:
 2. custom labels appear everywhere
 3. task template changes affect all task launchers
 4. prompt command changes affect prompt launches
+5. `superset-chat` uses chat launch flow with no terminal-command assumptions
+6. custom terminal agents launch through the same terminal path as built-ins
 
 
 ## Milestones
 
 ### Milestone 1: Catalog and Overrides
 
-1. add static built-in catalog
-2. add override schema
-3. persist override envelope only
-4. remove initialization semantics
+1. add definition model with `kind`
+2. add built-in catalog
+3. add override schema
+4. persist override envelope only
+5. remove initialization semantics
 
-### Milestone 2: Resolved Presets and Router
+### Milestone 2: Resolved Configs and Router
 
-1. resolve catalog + overrides into runtime presets
-2. expose resolved presets from the router
+1. resolve definitions + overrides into runtime configs
+2. expose resolved configs from the router
 3. add reset endpoints
 
 ### Milestone 3: Settings UI
 
 1. move to card-level draft editing
-2. add save/reset actions
-3. add preview
-4. surface override state
+2. render fields by `kind`
+3. add save/reset actions
+4. add preview
+5. surface override state
 
 ### Milestone 4: Launch Surface Wiring
 
 1. keep one preference hook
 2. keep one launch builder layer
-3. remove command compilation from UI surfaces
+3. dispatch by `kind`
+4. remove command compilation from UI surfaces
 
 ### Milestone 5: Verification
 
@@ -381,7 +477,7 @@ Agent settings stay local because binaries, flags, and safety posture are machin
 
 ### 2. Catalog + Overrides
 
-Defaults live in code; storage contains only user changes.
+Definitions live in code or local custom-definition storage; overrides contain only user changes.
 
 ### 3. Pure Reads
 
@@ -394,3 +490,7 @@ Agent configuration is edited and saved as one unit per card.
 ### 5. Explicit Chat Defaults
 
 `superset-chat` owns its own default prompt template.
+
+### 6. Custom Agents Are Definitions, Not Overrides
+
+User-added agents should be stored as local agent definitions and resolved through the same runtime model as built-ins.
