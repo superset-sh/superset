@@ -31,6 +31,28 @@ describe("launchCommandInPane", () => {
 		});
 	});
 
+	it("forwards cwd when launching a command into a new terminal session", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			cwd: "./apps/desktop",
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			cwd: "./apps/desktop",
+		});
+	});
+
 	it("does not append a second newline when command already has one", async () => {
 		const createOrAttach = mock(async () => ({}));
 		const write = mock(async () => ({}));

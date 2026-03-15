@@ -2,6 +2,7 @@ interface TerminalCreateOrAttachInput {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
+	cwd?: string;
 	taskPromptContent?: string;
 	taskPromptFileName?: string;
 }
@@ -17,6 +18,7 @@ interface LaunchCommandInPaneOptions {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd?: string;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 	noExecute?: boolean;
@@ -77,6 +79,7 @@ export async function launchCommandInPane({
 	tabId,
 	workspaceId,
 	command,
+	cwd,
 	createOrAttach,
 	write,
 	noExecute,
@@ -87,6 +90,7 @@ export async function launchCommandInPane({
 		paneId,
 		tabId,
 		workspaceId,
+		cwd,
 		taskPromptContent,
 		taskPromptFileName,
 	});
