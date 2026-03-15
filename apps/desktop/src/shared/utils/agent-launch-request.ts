@@ -21,6 +21,9 @@ function getRequiredAgentConfig(
 	if (!config) {
 		throw new Error(`Agent "${selectedAgent}" is not configured`);
 	}
+	if (!config.enabled) {
+		throw new Error(`Agent "${selectedAgent}" is disabled`);
+	}
 	return config;
 }
 

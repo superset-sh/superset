@@ -386,17 +386,20 @@ export function createOverrideEnvelopeWithPatch({
 		delete (next as Record<string, unknown>)[field];
 	};
 
-	setOrDelete(
-		"enabled",
-		patch.enabled,
-		patch.enabled !== undefined && patch.enabled !== definition.defaultEnabled,
-	);
-	setOrDelete(
-		"label",
-		patch.label,
-		patch.label !== undefined && patch.label !== definition.defaultLabel,
-	);
-	if (patch.description !== undefined) {
+	const hasField = <TField extends keyof AgentPresetPatch>(field: TField) =>
+		Object.hasOwn(patch, field);
+
+	if (hasField("enabled")) {
+		setOrDelete(
+			"enabled",
+			patch.enabled,
+			patch.enabled !== definition.defaultEnabled,
+		);
+	}
+	if (hasField("label")) {
+		setOrDelete("label", patch.label, patch.label !== definition.defaultLabel);
+	}
+	if (hasField("description")) {
 		const defaultDescription = definition.defaultDescription;
 		const shouldPersist =
 			patch.description === null
@@ -404,27 +407,30 @@ export function createOverrideEnvelopeWithPatch({
 				: patch.description !== defaultDescription;
 		setOrDelete("description", patch.description, shouldPersist);
 	}
-	setOrDelete(
-		"taskPromptTemplate",
-		patch.taskPromptTemplate,
-		patch.taskPromptTemplate !== undefined &&
+	if (hasField("taskPromptTemplate")) {
+		setOrDelete(
+			"taskPromptTemplate",
+			patch.taskPromptTemplate,
 			patch.taskPromptTemplate !== definition.defaultTaskPromptTemplate,
-	);
+		);
+	}
 
 	if (definition.kind === "terminal") {
-		setOrDelete(
-			"command",
-			patch.command,
-			patch.command !== undefined &&
+		if (hasField("command")) {
+			setOrDelete(
+				"command",
+				patch.command,
 				patch.command !== definition.defaultCommand,
-		);
-		setOrDelete(
-			"promptCommand",
-			patch.promptCommand,
-			patch.promptCommand !== undefined &&
+			);
+		}
+		if (hasField("promptCommand")) {
+			setOrDelete(
+				"promptCommand",
+				patch.promptCommand,
 				patch.promptCommand !== definition.defaultPromptCommand,
-		);
-		if (patch.promptCommandSuffix !== undefined) {
+			);
+		}
+		if (hasField("promptCommandSuffix")) {
 			const shouldPersist =
 				patch.promptCommandSuffix === null
 					? definition.defaultPromptCommandSuffix !== undefined
@@ -435,7 +441,7 @@ export function createOverrideEnvelopeWithPatch({
 				shouldPersist,
 			);
 		}
-	} else if (patch.model !== undefined) {
+	} else if (hasField("model")) {
 		const shouldPersist =
 			patch.model === null
 				? definition.defaultModel !== undefined

@@ -64,4 +64,15 @@ describe("normalizeAgentPresetPatch", () => {
 			}),
 		).toThrow(TRPCError);
 	});
+
+	test("rejects patches that do not apply to the agent kind", () => {
+		expect(() =>
+			normalizeAgentPresetPatch({
+				definition: getBuiltinAgentDefinition("superset-chat"),
+				patch: {
+					command: "codex",
+				},
+			}),
+		).toThrow(TRPCError);
+	});
 });

@@ -80,8 +80,8 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 
 	const { data: allWorkspaces = [] } =
 		electronTrpc.workspaces.getAll.useQuery();
-	const { data: agentPresets = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
 		() => getEnabledAgentConfigs(agentPresets),
 		[agentPresets],
@@ -104,6 +104,7 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 			defaultAgent: fallbackAgentId ?? "claude",
 			fallbackAgent: fallbackAgentId ?? "claude",
 			validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+			agentsReady: agentPresetsQuery.isFetched,
 			autoRunStorageKey: "agentAutoRun",
 		});
 
@@ -210,7 +211,8 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						if (!agentConfigsById.has(selectedAgent)) {
+						const selectedAgentConfig = agentConfigsById.get(selectedAgent);
+						if (!selectedAgentConfig?.enabled) {
 							toast.error("Enable an agent in Settings > Agents first");
 							return;
 						}

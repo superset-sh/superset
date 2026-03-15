@@ -118,4 +118,31 @@ describe("buildTaskAgentLaunchRequest", () => {
 			},
 		});
 	});
+
+	test("rejects disabled agents", () => {
+		const configsById = indexResolvedAgentConfigs(
+			resolveAgentConfigs({
+				overrideEnvelope: {
+					version: 1,
+					presets: [
+						{
+							id: "codex",
+							enabled: false,
+						},
+					],
+				},
+			}),
+		);
+
+		expect(() =>
+			buildTaskAgentLaunchRequest({
+				workspaceId: "workspace-1",
+				source: "open-in-workspace",
+				selectedAgent: "codex",
+				task: TASK,
+				autoRun: false,
+				configsById,
+			}),
+		).toThrow('Agent "codex" is disabled');
+	});
 });

@@ -51,8 +51,8 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 	const runSetupScriptRef = useRef(runSetupScript);
 	runSetupScriptRef.current = runSetupScript;
 	const trimmedPrompt = prompt.trim();
-	const { data: agentPresets = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
 		() => getEnabledAgentConfigs(agentPresets),
 		[agentPresets],
@@ -71,6 +71,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			defaultAgent: "none",
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
+			agentsReady: agentPresetsQuery.isFetched,
 		});
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
@@ -172,7 +173,17 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			toast.error("Select a project first");
 			return;
 		}
-		const launchRequest = buildLaunchRequest(trimmedPrompt);
+		let launchRequest: AgentLaunchRequest | null = null;
+		try {
+			launchRequest = buildLaunchRequest(trimmedPrompt);
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to prepare agent launch",
+			);
+			return;
+		}
 		void runAsyncAction(
 			createWorkspace.mutateAsyncWithPendingSetup(
 				{

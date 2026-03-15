@@ -107,7 +107,6 @@ export function AgentCard({
 	};
 
 	const applyPatch = async (patch: AgentPresetPatch) => {
-		const previousPresets = utils.settings.getAgentPresets.getData();
 		utils.settings.getAgentPresets.setData(undefined, (currentPresets) =>
 			currentPresets?.map((candidate) =>
 				candidate.id === preset.id
@@ -130,7 +129,7 @@ export function AgentCard({
 			}
 			setValidationMessage(null);
 		} catch (error) {
-			utils.settings.getAgentPresets.setData(undefined, previousPresets);
+			await utils.settings.getAgentPresets.invalidate();
 			resetFieldInputs();
 			toast.error(
 				error instanceof Error

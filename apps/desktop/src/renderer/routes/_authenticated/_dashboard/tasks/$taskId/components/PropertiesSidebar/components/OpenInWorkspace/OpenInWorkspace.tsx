@@ -38,8 +38,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const { data: agentPresets = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
 		() => getEnabledAgentConfigs(agentPresets),
 		[agentPresets],
@@ -68,6 +68,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		defaultAgent: fallbackAgentId ?? "claude",
 		fallbackAgent: fallbackAgentId ?? "claude",
 		validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+		agentsReady: agentPresetsQuery.isFetched,
 		projectStorageKey: "lastOpenedInProjectId",
 		recentProjects,
 		autoRunStorageKey: "agentAutoRun",
@@ -79,7 +80,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
-		if (!agentConfigsById.has(selectedAgent)) {
+		const selectedAgentConfig = agentConfigsById.get(selectedAgent);
+		if (!selectedAgentConfig?.enabled) {
 			toast.error("Enable an agent in Settings > Agents first");
 			return;
 		}
@@ -109,9 +111,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			slug: task.slug,
 			title: task.title,
 		});
-		const launchRequestTemplate = buildLaunchRequest("pending-workspace");
 
 		try {
+			const launchRequestTemplate = buildLaunchRequest("pending-workspace");
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,

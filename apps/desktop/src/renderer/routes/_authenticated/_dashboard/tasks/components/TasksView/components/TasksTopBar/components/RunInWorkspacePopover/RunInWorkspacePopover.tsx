@@ -61,8 +61,8 @@ export function RunInWorkspacePopover({
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const { data: agentPresets = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
 		() => getEnabledAgentConfigs(agentPresets),
 		[agentPresets],
@@ -97,6 +97,7 @@ export function RunInWorkspacePopover({
 		defaultAgent: fallbackAgentId ?? "claude",
 		fallbackAgent: fallbackAgentId ?? "claude",
 		validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+		agentsReady: agentPresetsQuery.isFetched,
 		projectStorageKey: "lastOpenedInProjectId",
 		recentProjects,
 		autoRunStorageKey: "agentAutoRun",
@@ -130,7 +131,8 @@ export function RunInWorkspacePopover({
 
 	const handleRun = async () => {
 		if (!effectiveProjectId) return;
-		if (!agentConfigsById.has(selectedAgent)) {
+		const selectedAgentConfig = agentConfigsById.get(selectedAgent);
+		if (!selectedAgentConfig?.enabled) {
 			toast.error("Enable an agent in Settings > Agents first");
 			return;
 		}

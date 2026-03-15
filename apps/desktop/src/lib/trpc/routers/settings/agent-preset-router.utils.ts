@@ -86,5 +86,12 @@ export function normalizeAgentPresetPatch({
 		normalized.model = model || null;
 	}
 
+	if (Object.keys(normalized).length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Patch must include at least one supported field",
+		});
+	}
+
 	return normalized;
 }

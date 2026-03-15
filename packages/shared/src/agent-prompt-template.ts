@@ -70,10 +70,10 @@ export function renderTaskPromptTemplate(
 	const variables = getTaskPromptVariables(task);
 
 	return template
-		.replace(
-			/\{\{(id|slug|title|description|priority|statusName|labels)\}\}/g,
-			(match, key: AgentTaskPromptVariable) => variables[key] ?? match,
-		)
+		.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
+			const key = rawKey.trim() as AgentTaskPromptVariable;
+			return variables[key] ?? match;
+		})
 		.trim();
 }
 

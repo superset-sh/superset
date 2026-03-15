@@ -9,6 +9,7 @@ interface UseAgentLaunchPreferencesOptions<TAgent extends string> {
 	defaultAgent: TAgent;
 	fallbackAgent: TAgent;
 	validAgents: readonly TAgent[];
+	agentsReady?: boolean;
 	projectStorageKey?: string;
 	recentProjects?: ProjectPreference[];
 	autoRunStorageKey?: string;
@@ -20,6 +21,7 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	defaultAgent,
 	fallbackAgent,
 	validAgents,
+	agentsReady = true,
 	projectStorageKey,
 	recentProjects = [],
 	autoRunStorageKey,
@@ -35,9 +37,7 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	const [selectedAgent, setSelectedAgentState] = useState<TAgent>(() => {
 		if (typeof window === "undefined") return defaultAgent;
 		const stored = window.localStorage.getItem(agentStorageKey);
-		return stored && validAgents.includes(stored as TAgent)
-			? (stored as TAgent)
-			: defaultAgent;
+		return stored ? (stored as TAgent) : defaultAgent;
 	});
 	const [autoRun, setAutoRunState] = useState(() => {
 		if (typeof window === "undefined" || !autoRunStorageKey) {
@@ -61,14 +61,33 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	}, [projectStorageKey, recentProjects, selectedProjectId]);
 
 	useEffect(() => {
+		if (!agentsReady) {
+			return;
+		}
 		if (validAgentSet.has(selectedAgent)) {
 			return;
 		}
+
+		const stored =
+			typeof window === "undefined"
+				? null
+				: window.localStorage.getItem(agentStorageKey);
+		if (stored && validAgentSet.has(stored as TAgent)) {
+			setSelectedAgentState(stored as TAgent);
+			return;
+		}
+
 		setSelectedAgentState(fallbackAgent);
 		if (typeof window !== "undefined") {
 			window.localStorage.setItem(agentStorageKey, fallbackAgent);
 		}
-	}, [agentStorageKey, fallbackAgent, selectedAgent, validAgentSet]);
+	}, [
+		agentStorageKey,
+		agentsReady,
+		fallbackAgent,
+		selectedAgent,
+		validAgentSet,
+	]);
 
 	const setSelectedProjectId = (projectId: string | null) => {
 		setSelectedProjectIdState(projectId);

@@ -75,4 +75,37 @@ describe("createOverrideEnvelopeWithPatch", () => {
 			],
 		});
 	});
+
+	test("preserves unrelated existing overrides when patching one field", () => {
+		const definition = getBuiltinAgentDefinition("claude");
+		const overrides = createOverrideEnvelopeWithPatch({
+			definition,
+			currentOverrides: {
+				version: 1,
+				presets: [
+					{
+						id: "claude",
+						enabled: false,
+						command: "claude-custom",
+					},
+				],
+			},
+			id: "claude",
+			patch: {
+				label: "Claude Team",
+			},
+		});
+
+		expect(overrides).toEqual({
+			version: 1,
+			presets: [
+				{
+					id: "claude",
+					enabled: false,
+					command: "claude-custom",
+					label: "Claude Team",
+				},
+			],
+		});
+	});
 });
