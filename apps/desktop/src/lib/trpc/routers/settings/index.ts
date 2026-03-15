@@ -18,6 +18,7 @@ import { quitWithoutConfirmation } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_AGENT_STATUS_INDICATORS,
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
@@ -701,6 +702,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { defaultEditor: input.editor },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getAgentStatusIndicators: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.agentStatusIndicators ?? DEFAULT_AGENT_STATUS_INDICATORS;
+		}),
+
+		setAgentStatusIndicators: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, agentStatusIndicators: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { agentStatusIndicators: input.enabled },
 					})
 					.run();
 

@@ -1,11 +1,16 @@
 import { EventEmitter } from "node:events";
+import { settings } from "@superset/local-db";
 import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
-import { NOTIFICATION_EVENTS } from "shared/constants";
+import {
+	DEFAULT_AGENT_STATUS_INDICATORS,
+	NOTIFICATION_EVENTS,
+} from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
+import { localDb } from "../local-db";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
 
@@ -28,6 +33,20 @@ const DEBUG_HOOKS_ENABLED =
 		: !/^(0|false)$/i.test(debugHooksOverride);
 
 export const notificationsEmitter = new EventEmitter();
+
+/**
+ * Checks if agent status indicators are enabled in user settings.
+ * When disabled, hook events are silently ignored so agents keep running
+ * without triggering status updates or notifications.
+ */
+export function areAgentStatusIndicatorsEnabled(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.agentStatusIndicators ?? DEFAULT_AGENT_STATUS_INDICATORS;
+	} catch {
+		return DEFAULT_AGENT_STATUS_INDICATORS;
+	}
+}
 
 const app = express();
 
@@ -117,6 +136,11 @@ app.get("/hook/complete", (req, res) => {
 		env: clientEnv,
 		version,
 	} = req.query;
+
+	// If the user has disabled agent status indicators, silently ignore all hook events
+	if (!areAgentStatusIndicatorsEnabled()) {
+		return res.json({ success: true, ignored: true, reason: "disabled" });
+	}
 
 	// Environment validation: detect dev/prod cross-talk
 	// We still return success to not block the agent, but log a warning

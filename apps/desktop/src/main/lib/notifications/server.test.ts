@@ -1,7 +1,39 @@
 import { describe, expect, it } from "bun:test";
+import { DEFAULT_AGENT_STATUS_INDICATORS } from "shared/constants";
 import { mapEventType } from "./map-event-type";
 
 describe("notifications/server", () => {
+	describe("agent status indicators default", () => {
+		it("defaults to enabled so existing users are not affected", () => {
+			expect(DEFAULT_AGENT_STATUS_INDICATORS).toBe(true);
+		});
+	});
+
+	describe("PostToolUse frequency (issue #2411)", () => {
+		const frequentEvents = [
+			"PostToolUse",
+			"PostToolUseFailure",
+			"AfterTool",
+			"postToolUse",
+		];
+
+		it("maps all per-tool-use events to 'Start', which fires on every tool call", () => {
+			for (const event of frequentEvents) {
+				expect(mapEventType(event)).toBe("Start");
+			}
+		});
+
+		it("has no built-in throttling — each call produces a mapped event", () => {
+			// Simulate 50 rapid PostToolUse events (typical in a single agent session)
+			const results = Array.from({ length: 50 }, () =>
+				mapEventType("PostToolUse"),
+			);
+			// Every single one maps to "Start" with no deduplication
+			expect(results.every((r) => r === "Start")).toBe(true);
+			expect(results.length).toBe(50);
+		});
+	});
+
 	describe("mapEventType", () => {
 		it("should map 'Start' to 'Start'", () => {
 			expect(mapEventType("Start")).toBe("Start");

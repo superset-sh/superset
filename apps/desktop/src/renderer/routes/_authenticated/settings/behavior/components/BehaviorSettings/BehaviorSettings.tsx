@@ -40,6 +40,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showAgentStatusIndicators = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_AGENT_STATUS_INDICATORS,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -159,6 +163,31 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
+	const {
+		data: agentStatusIndicators,
+		isLoading: isAgentStatusIndicatorsLoading,
+	} = electronTrpc.settings.getAgentStatusIndicators.useQuery();
+	const setAgentStatusIndicators =
+		electronTrpc.settings.setAgentStatusIndicators.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getAgentStatusIndicators.cancel();
+				const previous = utils.settings.getAgentStatusIndicators.getData();
+				utils.settings.getAgentStatusIndicators.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getAgentStatusIndicators.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getAgentStatusIndicators.invalidate();
+			},
+		});
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -258,6 +287,33 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showAgentStatusIndicators && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="agent-status-indicators"
+								className="text-sm font-medium"
+							>
+								Agent status indicators
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show working/review indicators on terminal panes when agents run
+							</p>
+						</div>
+						<Switch
+							id="agent-status-indicators"
+							checked={agentStatusIndicators ?? true}
+							onCheckedChange={(enabled) =>
+								setAgentStatusIndicators.mutate({ enabled })
+							}
+							disabled={
+								isAgentStatusIndicatorsLoading ||
+								setAgentStatusIndicators.isPending
+							}
 						/>
 					</div>
 				)}
