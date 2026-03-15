@@ -45,9 +45,7 @@ export function NewWorkspaceModal() {
 			<Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
 				<DialogHeader className="sr-only">
 					<DialogTitle>New Workspace</DialogTitle>
-					<DialogDescription>
-						Create a new workspace from a PR, branch, issue, or prompt.
-					</DialogDescription>
+					<DialogDescription>Create a new workspace</DialogDescription>
 				</DialogHeader>
 				<DialogContent
 					showCloseButton={false}

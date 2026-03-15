@@ -1,4 +1,5 @@
 import {
+	Command,
 	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
@@ -6,8 +7,11 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
+import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { useLiveQuery } from "@tanstack/react-db";
 import Fuse from "fuse.js";
+import type React from "react";
+import type { RefObject } from "react";
 import { useMemo, useState } from "react";
 import {
 	StatusIcon,
@@ -17,17 +21,17 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 
 const MAX_RESULTS = 20;
 
-interface IssueLinkCommandProps {
+type IssueLinkCommandProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSelect: (slug: string, title: string) => void;
-}
+} & (
+	| { variant?: "dialog" }
+	| { variant: "popover"; anchorRef: RefObject<HTMLElement | null> }
+);
 
-export function IssueLinkCommand({
-	open,
-	onOpenChange,
-	onSelect,
-}: IssueLinkCommandProps) {
+export function IssueLinkCommand(props: IssueLinkCommandProps) {
+	const { open, onOpenChange, onSelect } = props;
 	const [searchQuery, setSearchQuery] = useState("");
 	const collections = useCollections();
 
@@ -98,31 +102,26 @@ export function IssueLinkCommand({
 			.map((r) => r.item);
 	}, [allTasks, searchQuery, taskFuse]);
 
-	const handleSelect = (slug: string, title: string) => {
-		onSelect(slug, title);
+	const handleClose = () => {
+		setSearchQuery("");
 		onOpenChange(false);
 	};
 
-	const handleOpenChange = (nextOpen: boolean) => {
-		if (!nextOpen) setSearchQuery("");
-		onOpenChange(nextOpen);
+	const handleSelect = (slug: string, title: string) => {
+		onSelect(slug, title);
+		handleClose();
 	};
 
-	return (
-		<CommandDialog
-			open={open}
-			onOpenChange={handleOpenChange}
-			modal
-			title="Link issue"
-			description="Search for an issue to link"
-			showCloseButton={false}
-		>
+	const issueListContent = (
+		<>
 			<CommandInput
 				placeholder="Search issues..."
 				value={searchQuery}
 				onValueChange={setSearchQuery}
 			/>
-			<CommandList>
+			<CommandList
+				className={props.variant === "popover" ? "max-h-[280px]" : undefined}
+			>
 				{filteredTasks.length === 0 && (
 					<CommandEmpty>No issues found.</CommandEmpty>
 				)}
@@ -163,6 +162,43 @@ export function IssueLinkCommand({
 					</CommandGroup>
 				)}
 			</CommandList>
+		</>
+	);
+
+	if (props.variant === "popover") {
+		return (
+			<Popover open={open}>
+				<PopoverAnchor
+					virtualRef={props.anchorRef as React.RefObject<Element>}
+				/>
+				<PopoverContent
+					className="w-80 p-0"
+					align="end"
+					side="top"
+					onWheel={(event) => event.stopPropagation()}
+					onPointerDownOutside={handleClose}
+					onEscapeKeyDown={handleClose}
+					onFocusOutside={(e) => e.preventDefault()}
+				>
+					<Command shouldFilter={false}>{issueListContent}</Command>
+				</PopoverContent>
+			</Popover>
+		);
+	}
+
+	return (
+		<CommandDialog
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen) setSearchQuery("");
+				onOpenChange(nextOpen);
+			}}
+			modal
+			title="Link issue"
+			description="Search for an issue to link"
+			showCloseButton={false}
+		>
+			{issueListContent}
 		</CommandDialog>
 	);
 }

@@ -42,12 +42,20 @@ export function buildPromptAgentLaunchRequest({
 	source,
 	selectedAgent,
 	prompt,
+	initialFiles,
+	taskSlug,
 	configsById,
 }: {
 	workspaceId: string;
 	source: AgentLaunchSource;
 	selectedAgent: AgentDefinitionId | "none";
 	prompt: string;
+	initialFiles?: Array<{
+		data: string;
+		mediaType: string;
+		filename?: string;
+	}>;
+	taskSlug?: string;
 	configsById: ReadonlyMap<AgentDefinitionId, ResolvedAgentConfig>;
 }): AgentLaunchRequest | null {
 	if (selectedAgent === "none") return null;
@@ -62,7 +70,9 @@ export function buildPromptAgentLaunchRequest({
 			source,
 			chat: {
 				initialPrompt: prompt || undefined,
+				initialFiles: initialFiles?.length ? initialFiles : undefined,
 				model: config.model,
+				taskSlug,
 			},
 		};
 	}

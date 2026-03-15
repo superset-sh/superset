@@ -12,25 +12,29 @@ import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWor
 import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpenExternalWorktree";
 import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
-export type NewWorkspaceModalTab =
-	| "prompt"
-	| "issues"
-	| "pull-requests"
-	| "branches";
+export type LinkedIssue = {
+	slug: string;
+	title: string;
+};
+
+export type LinkedPR = {
+	prNumber: number;
+	title: string;
+	url: string;
+	state: string;
+};
 
 export interface NewWorkspaceModalDraft {
-	activeTab: NewWorkspaceModalTab;
 	selectedProjectId: string | null;
 	prompt: string;
+	baseBranch: string | null;
+	runSetupScript: boolean;
+	workspaceName: string;
+	workspaceNameEdited: boolean;
 	branchName: string;
 	branchNameEdited: boolean;
-	baseBranch: string | null;
-	showAdvanced: boolean;
-	runSetupScript: boolean;
-	branchSearch: string;
-	issuesQuery: string;
-	pullRequestsQuery: string;
-	branchesQuery: string;
+	linkedIssues: LinkedIssue[];
+	linkedPR: LinkedPR | null;
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
@@ -38,18 +42,16 @@ interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
 }
 
 const initialDraft: NewWorkspaceModalDraft = {
-	activeTab: "prompt",
 	selectedProjectId: null,
 	prompt: "",
+	baseBranch: null,
+	runSetupScript: true,
+	workspaceName: "",
+	workspaceNameEdited: false,
 	branchName: "",
 	branchNameEdited: false,
-	baseBranch: null,
-	showAdvanced: false,
-	runSetupScript: true,
-	branchSearch: "",
-	issuesQuery: "",
-	pullRequestsQuery: "",
-	branchesQuery: "",
+	linkedIssues: [],
+	linkedPR: null,
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
@@ -151,18 +153,16 @@ export function NewWorkspaceModalDraftProvider({
 	const value = useMemo<NewWorkspaceModalDraftContextValue>(
 		() => ({
 			draft: {
-				activeTab: state.activeTab,
 				selectedProjectId: state.selectedProjectId,
 				prompt: state.prompt,
+				baseBranch: state.baseBranch,
+				runSetupScript: state.runSetupScript,
+				workspaceName: state.workspaceName,
+				workspaceNameEdited: state.workspaceNameEdited,
 				branchName: state.branchName,
 				branchNameEdited: state.branchNameEdited,
-				baseBranch: state.baseBranch,
-				showAdvanced: state.showAdvanced,
-				runSetupScript: state.runSetupScript,
-				branchSearch: state.branchSearch,
-				issuesQuery: state.issuesQuery,
-				pullRequestsQuery: state.pullRequestsQuery,
-				branchesQuery: state.branchesQuery,
+				linkedIssues: state.linkedIssues,
+				linkedPR: state.linkedPR,
 			},
 			draftVersion: state.draftVersion,
 			closeModal: onClose,

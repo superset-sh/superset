@@ -50,6 +50,41 @@ describe("buildPromptAgentLaunchRequest", () => {
 			},
 		});
 	});
+
+	test("passes files and task slug through for chat agents", () => {
+		const configsById = indexResolvedAgentConfigs(resolveAgentConfigs({}));
+		const request = buildPromptAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "new-workspace",
+			selectedAgent: "superset-chat",
+			prompt: "hello",
+			initialFiles: [
+				{
+					data: "data:text/plain;base64,aGVsbG8=",
+					mediaType: "text/plain",
+					filename: "hello.txt",
+				},
+			],
+			taskSlug: "demo-task",
+			configsById,
+		});
+
+		expect(request).toMatchObject({
+			kind: "chat",
+			agentType: "superset-chat",
+			chat: {
+				initialPrompt: "hello",
+				initialFiles: [
+					{
+						data: "data:text/plain;base64,aGVsbG8=",
+						mediaType: "text/plain",
+						filename: "hello.txt",
+					},
+				],
+				taskSlug: "demo-task",
+			},
+		});
+	});
 });
 
 describe("buildTaskAgentLaunchRequest", () => {
