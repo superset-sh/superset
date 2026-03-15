@@ -3,9 +3,14 @@ import { projects, workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import { localDb } from "main/lib/local-db";
-import { getProcessTree } from "main/lib/terminal/port-scanner";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
 import pidusage from "pidusage";
+import {
+	captureProcessSnapshot,
+	getSubtreePids,
+	getSubtreeResources,
+	type ProcessSnapshot,
+} from "./process-tree";
 
 interface ProcessMetrics {
 	cpu: number;
@@ -216,6 +221,25 @@ export async function collectResourceMetrics(
 	return inflightCollection;
 }
 
+async function enrichSnapshotCpu(
+	snapshot: ProcessSnapshot,
+	pids: number[],
+): Promise<void> {
+	if (pids.length === 0) return;
+	try {
+		const stats = await pidusage(pids);
+		for (const pid of pids) {
+			const stat = stats[pid];
+			const info = snapshot.byPid.get(pid);
+			if (info && stat) {
+				info.cpu = normalizeFiniteNumber(stat.cpu);
+			}
+		}
+	} catch {
+		// PIDs may have exited between listing and querying.
+	}
+}
+
 async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	const registry = getWorkspaceRuntimeRegistry();
 	const { sessions } = await registry
@@ -243,21 +267,19 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	}
 
 	const allEntries = [...workspaceSessionMap.values()].flat();
-	const sessionPidTrees = await Promise.all(
-		allEntries.map(async (entry) => ({
-			entry,
-			treePids: await getProcessTree(entry.pid).catch(() => [entry.pid]),
-		})),
-	);
 
-	const allPids = [...new Set(sessionPidTrees.flatMap((s) => s.treePids))];
-	let pidStats: Record<number, pidusage.Status> = {};
-	if (allPids.length > 0) {
-		try {
-			pidStats = await pidusage(allPids);
-		} catch {
-			// PIDs may have exited between listing and querying.
+	// Single atomic snapshot: tree structure + resource data from one `ps`
+	// call, eliminating the race between pidtree and pidusage.
+	const processSnapshot = await captureProcessSnapshot();
+
+	// On Windows, `ps` isn't available so the snapshot has cpu: 0.
+	// Enrich the relevant subtree PIDs with CPU data from pidusage.
+	if (os.platform() === "win32") {
+		const relevantPids: number[] = [];
+		for (const entry of allEntries) {
+			relevantPids.push(...getSubtreePids(processSnapshot, entry.pid));
 		}
+		await enrichSnapshotCpu(processSnapshot, relevantPids);
 	}
 
 	const electronMetrics = app.getAppMetrics();
@@ -295,17 +317,12 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	};
 
 	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();
-	for (const { entry, treePids } of sessionPidTrees) {
-		let cpu = 0;
-		let memory = 0;
-		for (const pid of treePids) {
-			const stats = pidStats[pid];
-			if (stats) {
-				cpu += normalizeFiniteNumber(stats.cpu);
-				memory += normalizeFiniteNumber(stats.memory);
-			}
-		}
-		sessionAggregated.set(entry.sessionId, { cpu, memory });
+	for (const entry of allEntries) {
+		const resources = getSubtreeResources(processSnapshot, entry.pid);
+		sessionAggregated.set(entry.sessionId, {
+			cpu: normalizeFiniteNumber(resources.cpu),
+			memory: normalizeFiniteNumber(resources.memory),
+		});
 	}
 
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
