@@ -25,6 +25,11 @@ import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { useSettingsOriginRoute } from "renderer/stores/settings-state";
+import {
+	isAbsoluteFilesystemPath,
+	toAbsoluteWorkspacePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import { CommandsEditor } from "../../../PresetRow/components/CommandsEditor";
 import type { AutoApplyField } from "../../constants";
 import { LabelWithTooltip } from "../LabelWithTooltip";
@@ -45,6 +50,23 @@ interface PresetEditorSheetProps {
 	hasMultipleCommands: boolean;
 	isWorkspaceCreation: boolean;
 	isNewTab: boolean;
+}
+
+function getWorkspaceIdFromRoute(route: string): string | null {
+	const match = route.match(/\/workspace\/([^/]+)/);
+	return match ? match[1] : null;
+}
+
+function toPresetDirectoryValue(
+	workspacePath: string,
+	selectedPath: string,
+): string {
+	const relativePath = toRelativeWorkspacePath(workspacePath, selectedPath);
+	if (isAbsoluteFilesystemPath(relativePath)) {
+		return selectedPath;
+	}
+
+	return relativePath === "." ? "." : `./${relativePath}`;
 }
 
 export function PresetEditorSheet({
@@ -69,22 +91,19 @@ export function PresetEditorSheet({
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
-	const originWorkspaceId = useMemo(() => {
-		const match = originRoute.match(/\/workspace\/([^/]+)/);
-		return match ? match[1] : null;
-	}, [originRoute]);
+	const originWorkspaceId = useMemo(
+		() => getWorkspaceIdFromRoute(originRoute),
+		[originRoute],
+	);
 	const { data: originWorkspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: originWorkspaceId ?? "" },
 		{ enabled: open && !!originWorkspaceId },
 	);
-	const isAbsolutePath = useMemo(
-		() =>
-			trimmedCwd.startsWith("/") ||
-			trimmedCwd.startsWith("\\\\") ||
-			/^[A-Za-z]:[\\/]/.test(trimmedCwd),
-		[trimmedCwd],
-	);
+	const isAbsolutePath = isAbsoluteFilesystemPath(trimmedCwd);
 	const browseDefaultPath =
+		(originWorkspace?.worktreePath && trimmedCwd
+			? toAbsoluteWorkspacePath(originWorkspace.worktreePath, trimmedCwd)
+			: undefined) ??
 		(isAbsolutePath ? trimmedCwd : undefined) ??
 		originWorkspace?.worktreePath ??
 		undefined;
@@ -104,6 +123,13 @@ export function PresetEditorSheet({
 		});
 
 		if (!result.canceled && result.path) {
+			if (originWorkspace?.worktreePath) {
+				onDirectorySelect(
+					toPresetDirectoryValue(originWorkspace.worktreePath, result.path),
+				);
+				return;
+			}
+
 			onDirectorySelect(result.path);
 		}
 	};
