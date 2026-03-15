@@ -82,11 +82,15 @@ export function FileViewerPane({
 
 	const editorRef = useRef<CodeEditorAdapter | null>(null);
 	const markdownContainerRef = useRef<HTMLDivElement>(null);
-	const [isDirty, setIsDirty] = useState(false);
+	const storedDraft = fileViewer?.draftContent ?? null;
+	const [isDirty, setIsDirty] = useState(!!storedDraft);
 	const originalContentRef = useRef<string>("");
-	const draftContentRef = useRef<string | null>(null);
+	const draftContentRef = useRef<string | null>(storedDraft);
 	const originalDiffContentRef = useRef<string>("");
 	const revisionRef = useRef<string>("");
+	const restoringDraftRef = useRef(!!storedDraft);
+	const isDirtyRef = useRef(isDirty);
+	isDirtyRef.current = isDirty;
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
 	const [saveConflict, setSaveConflict] = useState<{
@@ -204,13 +208,35 @@ export function FileViewerPane({
 		worktreePath,
 	]);
 
+	const updateStoreDraft = useCallback(
+		(draft: string | undefined) => {
+			const panes = useTabsStore.getState().panes;
+			const pane = panes[paneId];
+			if (!pane?.fileViewer) return;
+			if (pane.fileViewer.draftContent === draft) return;
+			useTabsStore.setState({
+				panes: {
+					...panes,
+					[paneId]: {
+						...pane,
+						fileViewer: { ...pane.fileViewer, draftContent: draft },
+					},
+				},
+			});
+		},
+		[paneId],
+	);
+
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
 		draftContentRef.current = value;
 		if (originalContentRef.current === "") {
-			originalContentRef.current = value;
+			if (!restoringDraftRef.current) {
+				originalContentRef.current = value;
+			}
 			return;
 		}
+		restoringDraftRef.current = false;
 		setIsDirty(value !== originalContentRef.current);
 	}, []);
 
@@ -228,8 +254,37 @@ export function FileViewerPane({
 		originalContentRef.current = "";
 		originalDiffContentRef.current = "";
 		draftContentRef.current = null;
+		restoringDraftRef.current = false;
+		updateStoreDraft(undefined);
 		setSaveConflict(null);
-	}, [filePath]);
+	}, [filePath, updateStoreDraft]);
+
+	// Save draft to store on unmount so it survives tab switches
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cleanup-only effect keyed to paneId lifetime
+	useEffect(() => {
+		return () => {
+			if (isDirtyRef.current && draftContentRef.current !== null) {
+				updateStoreDraft(draftContentRef.current);
+			} else {
+				updateStoreDraft(undefined);
+			}
+		};
+	}, [paneId, updateStoreDraft]);
+
+	// When restoring a draft, set originalContent from rawFileData once available
+	useEffect(() => {
+		if (
+			restoringDraftRef.current &&
+			rawFileData?.ok &&
+			originalContentRef.current === ""
+		) {
+			originalContentRef.current = rawFileData.content;
+			restoringDraftRef.current = false;
+			if (draftContentRef.current !== null) {
+				setIsDirty(draftContentRef.current !== rawFileData.content);
+			}
+		}
+	}, [rawFileData]);
 
 	useEffect(() => {
 		if (isDirty && !isPinned) {
@@ -379,6 +434,7 @@ export function FileViewerPane({
 
 		setIsDirty(false);
 		draftContentRef.current = null;
+		updateStoreDraft(undefined);
 		setSaveConflict(null);
 
 		completePendingModeSwitch();
@@ -396,6 +452,7 @@ export function FileViewerPane({
 		originalContentRef.current = nextDiskContent ?? "";
 		originalDiffContentRef.current = "";
 		draftContentRef.current = null;
+		updateStoreDraft(undefined);
 		setIsDirty(false);
 		setSaveConflict(null);
 		invalidateCurrentFile();
@@ -408,6 +465,7 @@ export function FileViewerPane({
 		invalidateCurrentFile,
 		rawFileData,
 		saveConflict,
+		updateStoreDraft,
 	]);
 
 	const handleOverwriteSave = useCallback(async () => {

@@ -2036,6 +2036,10 @@ export const useTabsStore = create<TabsStore>()(
 							if (pane.status === "working" || pane.status === "permission") {
 								pane.status = "idle";
 							}
+							// Draft content is transient — only survives tab switches, not app restarts
+							if (pane.fileViewer?.draftContent !== undefined) {
+								pane.fileViewer.draftContent = undefined;
+							}
 						}
 					}
 
