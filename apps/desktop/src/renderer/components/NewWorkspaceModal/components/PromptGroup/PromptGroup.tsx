@@ -5,6 +5,7 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
@@ -36,6 +37,7 @@ import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOpti
 type WorkspaceCreateAgent = AgentDefinitionId | "none";
 
 const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
+const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
 
 interface PromptGroupProps {
 	projectId: string | null;
@@ -83,6 +85,16 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
 		});
+
+	const handleAgentValueChange = (value: string) => {
+		if (value === CONFIGURE_AGENTS_VALUE) {
+			closeModal();
+			navigate({ to: "/settings/agents" });
+			return;
+		}
+
+		setSelectedAgent(value as WorkspaceCreateAgent);
+	};
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
@@ -234,10 +246,7 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 
 	return (
 		<div className="p-3 space-y-3">
-			<Select
-				value={selectedAgent}
-				onValueChange={(value: WorkspaceCreateAgent) => setSelectedAgent(value)}
-			>
+			<Select value={selectedAgent} onValueChange={handleAgentValueChange}>
 				<SelectTrigger className="h-8 text-xs w-full">
 					<SelectValue placeholder="No agent" />
 				</SelectTrigger>
@@ -256,6 +265,10 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 							</SelectItem>
 						);
 					})}
+					<SelectSeparator />
+					<SelectItem value={CONFIGURE_AGENTS_VALUE}>
+						Configure agents...
+					</SelectItem>
 				</SelectContent>
 			</Select>
 

@@ -12,12 +12,14 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { Switch } from "@superset/ui/switch";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HiCheck, HiMiniPlay, HiXMark } from "react-icons/hi2";
@@ -61,10 +63,13 @@ interface RunInWorkspacePopoverProps {
 	onComplete: () => void;
 }
 
+const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
+
 export function RunInWorkspacePopover({
 	tasks,
 	onComplete,
 }: RunInWorkspacePopoverProps) {
+	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace({ skipNavigation: true });
@@ -117,6 +122,19 @@ export function RunInWorkspacePopover({
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
+	const selectedAgentValue = selectableAgents.includes(selectedAgent)
+		? selectedAgent
+		: undefined;
+
+	const handleAgentValueChange = (value: string) => {
+		if (value === CONFIGURE_AGENTS_VALUE) {
+			setOpen(false);
+			navigate({ to: "/settings/agents" });
+			return;
+		}
+
+		setSelectedAgent(value as AgentDefinitionId);
+	};
 
 	const buildLaunchRequest = (
 		task: TaskWithStatus,
@@ -335,11 +353,9 @@ export function RunInWorkspacePopover({
 					</DropdownMenu>
 
 					<Select
-						value={selectedAgent}
-						onValueChange={(value: AgentDefinitionId) =>
-							setSelectedAgent(value)
-						}
-						disabled={isRunning || selectableAgents.length === 0}
+						value={selectedAgentValue}
+						onValueChange={handleAgentValueChange}
+						disabled={isRunning}
 					>
 						<SelectTrigger className="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md">
 							<SelectValue placeholder="Select agent" />
@@ -363,6 +379,10 @@ export function RunInWorkspacePopover({
 									</SelectItem>
 								);
 							})}
+							<SelectSeparator />
+							<SelectItem value={CONFIGURE_AGENTS_VALUE}>
+								Configure agents...
+							</SelectItem>
 						</SelectContent>
 					</Select>
 
