@@ -24,6 +24,7 @@ import { useMemo } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
+import { useSettingsOriginRoute } from "renderer/stores/settings-state";
 import { CommandsEditor } from "../../../PresetRow/components/CommandsEditor";
 import type { AutoApplyField } from "../../constants";
 import { LabelWithTooltip } from "../LabelWithTooltip";
@@ -66,7 +67,16 @@ export function PresetEditorSheet({
 	const singleCommandModeValue =
 		modeValue === "split-pane" ? modeValue : "new-tab";
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
+	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
+	const originWorkspaceId = useMemo(() => {
+		const match = originRoute.match(/\/workspace\/([^/]+)/);
+		return match ? match[1] : null;
+	}, [originRoute]);
+	const { data: originWorkspace } = electronTrpc.workspaces.get.useQuery(
+		{ id: originWorkspaceId ?? "" },
+		{ enabled: open && !!originWorkspaceId },
+	);
 	const isAbsolutePath = useMemo(
 		() =>
 			trimmedCwd.startsWith("/") ||
@@ -74,6 +84,10 @@ export function PresetEditorSheet({
 			/^[A-Za-z]:[\\/]/.test(trimmedCwd),
 		[trimmedCwd],
 	);
+	const browseDefaultPath =
+		(isAbsolutePath ? trimmedCwd : undefined) ??
+		originWorkspace?.worktreePath ??
+		undefined;
 	const { data: directoryStatus } =
 		electronTrpc.window.getDirectoryStatus.useQuery(
 			{ path: trimmedCwd },
@@ -86,7 +100,7 @@ export function PresetEditorSheet({
 	const handleBrowseDirectory = async () => {
 		const result = await selectDirectory.mutateAsync({
 			title: "Select preset directory",
-			defaultPath: isAbsolutePath ? trimmedCwd : undefined,
+			defaultPath: browseDefaultPath,
 		});
 
 		if (!result.canceled && result.path) {
