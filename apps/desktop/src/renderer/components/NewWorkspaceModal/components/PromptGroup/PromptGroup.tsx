@@ -512,10 +512,16 @@ function PromptGroupInner({
 	const convertBlobUrlToDataUrl = useCallback(
 		async (url: string): Promise<string> => {
 			const response = await fetch(url);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch attachment: ${response.statusText}`);
+			}
 			const blob = await response.blob();
-			return new Promise<string>((resolve) => {
+			return new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onloadend = () => resolve(reader.result as string);
+				reader.onerror = () =>
+					reject(new Error("Failed to read attachment data"));
+				reader.onabort = () => reject(new Error("Attachment read was aborted"));
 				reader.readAsDataURL(blob);
 			});
 		},
@@ -572,13 +578,20 @@ function PromptGroupInner({
 
 		let convertedFiles: ConvertedFile[] | undefined;
 		if (attachments.files.length > 0) {
-			convertedFiles = await Promise.all(
-				attachments.files.map(async (file) => ({
-					data: await convertBlobUrlToDataUrl(file.url),
-					mediaType: file.mediaType,
-					filename: file.filename,
-				})),
-			);
+			try {
+				convertedFiles = await Promise.all(
+					attachments.files.map(async (file) => ({
+						data: await convertBlobUrlToDataUrl(file.url),
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
+				);
+			} catch (err) {
+				toast.error(
+					err instanceof Error ? err.message : "Failed to process attachments",
+				);
+				return;
+			}
 		}
 
 		// If a PR is linked, use createFromPr instead of regular create
@@ -715,8 +728,13 @@ function PromptGroupInner({
 							})
 						}
 						onBlur={() => {
-							if (!branchName.trim()) {
+							const sanitized = sanitizeBranchNameWithMaxLength(
+								branchName.trim(),
+							);
+							if (!sanitized) {
 								updateDraft({ branchName: "", branchNameEdited: false });
+							} else {
+								updateDraft({ branchName: sanitized });
 							}
 						}}
 					/>

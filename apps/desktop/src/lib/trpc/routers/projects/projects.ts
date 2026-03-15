@@ -351,7 +351,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 									? "open"
 									: pr.state.toLowerCase(),
 						}));
-				} catch {
+				} catch (err) {
+					console.warn("[listPullRequests] Failed to list PRs:", err);
 					return [];
 				}
 			}),
