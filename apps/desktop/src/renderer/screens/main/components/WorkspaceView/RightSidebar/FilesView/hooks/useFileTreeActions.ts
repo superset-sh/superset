@@ -1,61 +1,18 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getBaseName,
+	getParentPath,
+	joinAbsolutePath,
+	resolveNewDirectoryTarget,
+	resolveNewFileTarget,
+} from "../utils/new-item-paths";
 
 interface UseFileTreeActionsProps {
 	workspaceId: string | undefined;
 	worktreePath: string | undefined;
 	onRefresh: (parentPath: string) => void | Promise<void>;
-}
-
-function getPathSeparator(absolutePath: string): string {
-	return absolutePath.includes("\\") ? "\\" : "/";
-}
-
-function joinAbsolutePath(parentAbsolutePath: string, name: string): string {
-	const separator = getPathSeparator(parentAbsolutePath);
-	return `${parentAbsolutePath.replace(/[\\/]+$/, "")}${separator}${name}`;
-}
-
-function getBaseName(absolutePath: string): string {
-	return absolutePath.split(/[/\\]/).pop() ?? absolutePath;
-}
-
-function splitRelativeInputPath(input: string): string[] {
-	return input.split(/[\\/]+/).filter(Boolean);
-}
-
-function hasTraversalSegment(pathSegments: string[]): boolean {
-	return pathSegments.some((segment) => segment === "." || segment === "..");
-}
-
-function joinPathSegments(
-	parentAbsolutePath: string,
-	pathSegments: string[],
-): string {
-	return pathSegments.reduce(
-		(currentAbsolutePath, pathSegment) =>
-			joinAbsolutePath(currentAbsolutePath, pathSegment),
-		parentAbsolutePath,
-	);
-}
-
-function getParentPath(absolutePath: string): string {
-	const trimmedPath = absolutePath.replace(/[\\/]+$/, "");
-	const lastSeparatorIndex = Math.max(
-		trimmedPath.lastIndexOf("/"),
-		trimmedPath.lastIndexOf("\\"),
-	);
-
-	if (lastSeparatorIndex <= 0) {
-		return trimmedPath;
-	}
-
-	if (/^[A-Za-z]:$/.test(trimmedPath.slice(0, lastSeparatorIndex))) {
-		return `${trimmedPath.slice(0, lastSeparatorIndex)}\\`;
-	}
-
-	return trimmedPath.slice(0, lastSeparatorIndex);
 }
 
 export function useFileTreeActions({
@@ -76,35 +33,19 @@ export function useFileTreeActions({
 				return;
 			}
 
-			const pathSegments = splitRelativeInputPath(name.trim());
-			if (pathSegments.length === 0) {
-				return;
-			}
-
-			if (hasTraversalSegment(pathSegments)) {
+			const fileTarget = resolveNewFileTarget(parentAbsolutePath, name);
+			if (!fileTarget) {
 				toast.error(
 					"Failed to create file: nested paths cannot contain . or ..",
 				);
 				return;
 			}
 
-			const parentSegments = pathSegments.slice(0, -1);
-			const fileName = pathSegments[pathSegments.length - 1];
-			if (!fileName) {
-				return;
-			}
-
-			const targetParentPath =
-				parentSegments.length > 0
-					? joinPathSegments(parentAbsolutePath, parentSegments)
-					: parentAbsolutePath;
-			const absolutePath = joinAbsolutePath(targetParentPath, fileName);
-
 			void (
-				parentSegments.length > 0
+				fileTarget.targetParentPath !== parentAbsolutePath
 					? createDirectoryMutation.mutateAsync({
 							workspaceId,
-							absolutePath: targetParentPath,
+							absolutePath: fileTarget.targetParentPath,
 							recursive: true,
 						})
 					: Promise.resolve()
@@ -112,7 +53,7 @@ export function useFileTreeActions({
 				.then(() =>
 					writeFileMutation.mutateAsync({
 						workspaceId,
-						absolutePath,
+						absolutePath: fileTarget.absolutePath,
 						content,
 						encoding: "utf-8",
 						options: { create: true, overwrite: false },
@@ -144,23 +85,20 @@ export function useFileTreeActions({
 				return;
 			}
 
-			const pathSegments = splitRelativeInputPath(name.trim());
-			if (pathSegments.length === 0) {
-				return;
-			}
-
-			if (hasTraversalSegment(pathSegments)) {
+			const directoryTarget = resolveNewDirectoryTarget(
+				parentAbsolutePath,
+				name,
+			);
+			if (!directoryTarget) {
 				toast.error(
 					"Failed to create folder: nested paths cannot contain . or ..",
 				);
 				return;
 			}
-
-			const absolutePath = joinPathSegments(parentAbsolutePath, pathSegments);
 			void createDirectoryMutation
 				.mutateAsync({
 					workspaceId,
-					absolutePath,
+					absolutePath: directoryTarget.absolutePath,
 					recursive: true,
 				})
 				.then(() => {
