@@ -3,13 +3,13 @@ import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
 } from "../terminal-escape-filter";
-import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { PtyWriteQueue } from "./pty-write-queue";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
