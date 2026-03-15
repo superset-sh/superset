@@ -37,7 +37,7 @@ interface PresetPaneLaunch {
 	tabId: string;
 	workspaceId: string;
 	command: string;
-	cwd?: string;
+	cwd: string | undefined;
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -146,9 +146,15 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPreset?.cwd || undefined,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand, resolveWorkspaceIdForTab],
+		[
+			firstPreset,
+			firstPresetCommand,
+			launchPresetCommand,
+			resolveWorkspaceIdForTab,
+		],
 	);
 
 	const launchFirstPresetInFocusedPane = useCallback(
@@ -164,9 +170,10 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId: tab.workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPreset?.cwd || undefined,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand],
+		[firstPreset, firstPresetCommand, launchPresetCommand],
 	);
 
 	const executePresetInNewTab = useCallback(
