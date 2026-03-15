@@ -13,7 +13,9 @@ export function mapEventType(
 		eventType === "AfterTool" ||
 		eventType === "sessionStart" ||
 		eventType === "userPromptSubmitted" ||
-		eventType === "postToolUse"
+		eventType === "postToolUse" ||
+		// OpenClaw events
+		eventType === "message:received"
 	) {
 		return "Start";
 	}
@@ -28,7 +30,9 @@ export function mapEventType(
 		eventType === "Stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
-		eventType === "sessionEnd"
+		eventType === "sessionEnd" ||
+		// OpenClaw events
+		eventType === "message:sent"
 	) {
 		return "Stop";
 	}
