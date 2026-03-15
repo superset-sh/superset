@@ -11,14 +11,16 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { toRelativePath } from "@superset/workspace-fs/core";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { retargetAbsolutePath } from "shared/absolute-paths";
+import {
+	retargetAbsolutePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
@@ -46,6 +48,11 @@ interface FileTreeController {
 	getItemInstance(
 		itemId: string,
 	): ItemInstance<DirectoryEntry> | null | undefined;
+}
+
+function getEntryRelativePath(rootPath: string, absolutePath: string): string {
+	const relativePath = toRelativeWorkspacePath(rootPath, absolutePath);
+	return relativePath === "." ? "" : relativePath;
 }
 
 function getPathSegmentSeparator(absolutePath: string): string {
@@ -212,7 +219,7 @@ export function FilesView() {
 						id: entry.absolutePath,
 						name: entry.name,
 						path: entry.absolutePath,
-						relativePath: toRelativePath(currentPath, entry.absolutePath),
+						relativePath: getEntryRelativePath(currentPath, entry.absolutePath),
 						isDirectory: entry.kind === "directory",
 					}));
 					for (const entry of nextEntries) {

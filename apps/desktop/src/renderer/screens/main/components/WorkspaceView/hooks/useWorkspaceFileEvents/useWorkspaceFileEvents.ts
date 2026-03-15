@@ -1,6 +1,6 @@
-import { toRelativePath } from "@superset/workspace-fs/core";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 
 type WorkspaceFileEventListener = (event: FileSystemChangeEvent) => void;
@@ -84,6 +84,14 @@ function subscribeToListenerCounts(onStoreChange: () => void): () => void {
 	};
 }
 
+function toEventRelativePath(
+	worktreePath: string,
+	absolutePath: string,
+): string {
+	const relativePath = toRelativeWorkspacePath(worktreePath, absolutePath);
+	return relativePath === "." ? "" : relativePath;
+}
+
 export function useWorkspaceFileEventBridge(
 	workspaceId: string,
 	worktreePath: string | undefined,
@@ -117,9 +125,9 @@ export function useWorkspaceFileEventBridge(
 						type: event.kind as FileSystemChangeEvent["type"],
 						absolutePath: event.absolutePath,
 						oldAbsolutePath: event.oldAbsolutePath,
-						relativePath: toRelativePath(worktreePath, event.absolutePath),
+						relativePath: toEventRelativePath(worktreePath, event.absolutePath),
 						oldRelativePath: event.oldAbsolutePath
-							? toRelativePath(worktreePath, event.oldAbsolutePath)
+							? toEventRelativePath(worktreePath, event.oldAbsolutePath)
 							: undefined,
 						revision: 0,
 					};

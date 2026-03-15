@@ -1,9 +1,9 @@
 import path from "node:path";
-import { toRelativePath } from "@superset/workspace-fs/core";
 import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
+	toRelativePath,
 	type WorkspaceFsPathError,
 } from "@superset/workspace-fs/host";
 import { shell } from "electron";
