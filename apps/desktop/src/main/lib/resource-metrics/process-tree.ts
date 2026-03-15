@@ -2,6 +2,15 @@ import { exec } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 
+let nativeMetrics: typeof import("@superset/macos-process-metrics") | null =
+	null;
+try {
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	nativeMetrics = require("@superset/macos-process-metrics");
+} catch {
+	// Native addon unavailable (non-macOS or build skipped).
+}
+
 const execAsync = promisify(exec);
 const EXEC_TIMEOUT_MS = 5_000;
 const MAX_BUFFER = 10 * 1024 * 1024;
@@ -111,6 +120,32 @@ export function getSubtreeResources(
 	}
 
 	return { cpu, memory, pids };
+}
+
+/**
+ * Replace RSS values with macOS `phys_footprint` for the given PIDs.
+ *
+ * `phys_footprint` is what Activity Monitor shows as "Memory" — it
+ * accounts for compressed pages, unlike RSS which always reports the
+ * uncompressed size.  On non-macOS platforms this is a no-op.
+ */
+export function enrichWithPhysFootprint(
+	snapshot: ProcessSnapshot,
+	pids: number[],
+): void {
+	if (!nativeMetrics || pids.length === 0) return;
+	try {
+		const footprints = nativeMetrics.getPhysFootprints(pids);
+		for (const pid of pids) {
+			const footprint = footprints[pid];
+			const info = snapshot.byPid.get(pid);
+			if (info && typeof footprint === "number" && footprint > 0) {
+				info.memory = footprint;
+			}
+		}
+	} catch {
+		// Fall back to RSS already in the snapshot.
+	}
 }
 
 // ── Platform-specific process listing ─────────────────────────────────

@@ -7,6 +7,7 @@ import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry
 import pidusage from "pidusage";
 import {
 	captureProcessSnapshot,
+	enrichWithPhysFootprint,
 	getSubtreePids,
 	getSubtreeResources,
 	type ProcessSnapshot,
@@ -272,15 +273,21 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	// call, eliminating the race between pidtree and pidusage.
 	const processSnapshot = await captureProcessSnapshot();
 
+	// Collect all subtree PIDs so we can enrich them in bulk.
+	const allSubtreePids: number[] = [];
+	for (const entry of allEntries) {
+		allSubtreePids.push(...getSubtreePids(processSnapshot, entry.pid));
+	}
+
 	// On Windows, `ps` isn't available so the snapshot has cpu: 0.
 	// Enrich the relevant subtree PIDs with CPU data from pidusage.
 	if (os.platform() === "win32") {
-		const relevantPids: number[] = [];
-		for (const entry of allEntries) {
-			relevantPids.push(...getSubtreePids(processSnapshot, entry.pid));
-		}
-		await enrichSnapshotCpu(processSnapshot, relevantPids);
+		await enrichSnapshotCpu(processSnapshot, allSubtreePids);
 	}
+
+	// On macOS, replace RSS with phys_footprint (compressed memory) to
+	// match what Activity Monitor reports as "Memory".
+	enrichWithPhysFootprint(processSnapshot, allSubtreePids);
 
 	const electronMetrics = app.getAppMetrics();
 	const main: ProcessMetrics = { cpu: 0, memory: 0 };
