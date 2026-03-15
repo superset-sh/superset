@@ -108,6 +108,36 @@ const deriveTabName = (
 	return `Multiple panes (${tabPanes.length})`;
 };
 
+type TabsMoveStateUpdate = Pick<
+	TabsState,
+	"tabs" | "panes" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
+>;
+
+const withDerivedTabNames = (
+	state: TabsMoveStateUpdate,
+	tabIds: Iterable<string | undefined>,
+): TabsMoveStateUpdate => {
+	const affectedTabIds = new Set<string>();
+	for (const tabId of tabIds) {
+		if (tabId) {
+			affectedTabIds.add(tabId);
+		}
+	}
+
+	if (affectedTabIds.size === 0) {
+		return state;
+	}
+
+	return {
+		...state,
+		tabs: state.tabs.map((tab) =>
+			affectedTabIds.has(tab.id)
+				? { ...tab, name: deriveTabName(state.panes, tab.id) }
+				: tab,
+		),
+	};
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -1386,16 +1416,7 @@ export const useTabsStore = create<TabsStore>()(
 					const result = movePaneToTab(state, paneId, targetTabId);
 					if (!result) return;
 
-					// Re-derive tab names for affected tabs
-					const sourceTabId = pane?.tabId;
-					result.tabs = result.tabs.map((t) => {
-						if (t.id === targetTabId || t.id === sourceTabId) {
-							return { ...t, name: deriveTabName(result.panes, t.id) };
-						}
-						return t;
-					});
-
-					set(result);
+					set(withDerivedTabNames(result, [pane?.tabId, targetTabId]));
 				},
 
 				movePaneToNewTab: (paneId) => {
@@ -1412,18 +1433,12 @@ export const useTabsStore = create<TabsStore>()(
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
-					// Re-derive tab names for affected tabs
-					moveResult.result.tabs = moveResult.result.tabs.map((t) => {
-						if (t.id === moveResult.newTabId || t.id === sourceTab.id) {
-							return {
-								...t,
-								name: deriveTabName(moveResult.result.panes, t.id),
-							};
-						}
-						return t;
-					});
-
-					set(moveResult.result);
+					set(
+						withDerivedTabNames(moveResult.result, [
+							sourceTab.id,
+							moveResult.newTabId,
+						]),
+					);
 					return moveResult.newTabId;
 				},
 
@@ -1443,15 +1458,7 @@ export const useTabsStore = create<TabsStore>()(
 					);
 					if (!result) return;
 
-					// Re-derive tab name for the target tab
-					result.tabs = result.tabs.map((t) => {
-						if (t.id === targetTabId) {
-							return { ...t, name: deriveTabName(result.panes, t.id) };
-						}
-						return t;
-					});
-
-					set(result);
+					set(withDerivedTabNames(result, [targetTabId]));
 				},
 
 				// Browser operations

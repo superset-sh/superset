@@ -164,6 +164,7 @@
         "@superset/desktop-mcp": "workspace:*",
         "@superset/host-service": "workspace:*",
         "@superset/local-db": "workspace:*",
+        "@superset/macos-process-metrics": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@superset/ui": "workspace:*",
@@ -771,6 +772,13 @@
         "bun-types": "^1.3.1",
         "drizzle-kit": "0.31.8",
         "typescript": "^5.9.3",
+      },
+    },
+    "packages/macos-process-metrics": {
+      "name": "@superset/macos-process-metrics",
+      "version": "0.0.1",
+      "dependencies": {
+        "node-addon-api": "^7.1.0",
       },
     },
     "packages/mcp": {
@@ -2327,6 +2335,8 @@
     "@superset/host-service": ["@superset/host-service@workspace:packages/host-service"],
 
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
+
+    "@superset/macos-process-metrics": ["@superset/macos-process-metrics@workspace:packages/macos-process-metrics"],
 
     "@superset/marketing": ["@superset/marketing@workspace:apps/marketing"],
 

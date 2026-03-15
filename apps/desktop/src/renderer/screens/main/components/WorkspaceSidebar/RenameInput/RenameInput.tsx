@@ -6,6 +6,7 @@ interface RenameInputProps {
 	onSubmit: () => void;
 	onCancel: () => void;
 	className?: string;
+	maxLength?: number;
 }
 
 export function RenameInput({
@@ -14,6 +15,7 @@ export function RenameInput({
 	onSubmit,
 	onCancel,
 	className,
+	maxLength,
 }: RenameInputProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,6 +51,7 @@ export function RenameInput({
 			onKeyDown={handleKeyDown}
 			onClick={(e) => e.stopPropagation()}
 			onMouseDown={(e) => e.stopPropagation()}
+			maxLength={maxLength}
 			className={className}
 		/>
 	);

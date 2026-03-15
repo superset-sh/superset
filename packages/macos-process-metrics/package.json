@@ -1,0 +1,13 @@
+{
+	"name": "@superset/macos-process-metrics",
+	"version": "0.0.1",
+	"private": true,
+	"main": "index.js",
+	"types": "index.d.ts",
+	"scripts": {
+		"install": "node-gyp rebuild || echo 'Native build skipped (non-macOS or missing toolchain)'"
+	},
+	"dependencies": {
+		"node-addon-api": "^7.1.0"
+	}
+}

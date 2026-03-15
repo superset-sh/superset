@@ -73,6 +73,7 @@ export function ProjectThumbnail({
 	const owner = avatarData?.owner ?? githubOwner;
 	const firstLetter = projectName.charAt(0).toUpperCase();
 	const hasCustomColor = isCustomColor(projectColor);
+	const shouldUseTransparentIconFrame = projectColor === PROJECT_COLOR_DEFAULT;
 
 	// Border: gray by default, custom color with slight transparency when set
 	const borderClasses = cn(
@@ -88,8 +89,10 @@ export function ProjectThumbnail({
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted",
-					borderClasses,
+					"relative size-6 rounded overflow-hidden flex-shrink-0",
+					!shouldUseTransparentIconFrame && "bg-muted",
+					!shouldUseTransparentIconFrame && borderClasses,
+					shouldUseTransparentIconFrame && "p-[1.5px]",
 					className,
 				)}
 				style={borderStyle}
