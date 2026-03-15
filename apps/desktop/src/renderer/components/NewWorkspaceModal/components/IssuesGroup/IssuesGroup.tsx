@@ -1,3 +1,8 @@
+import {
+	buildTaskLaunchRequest,
+	STARTABLE_AGENT_TYPES,
+	type StartableAgentType,
+} from "@superset/shared/agent-launch";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
@@ -176,12 +181,38 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
+						const storedAgent = localStorage.getItem("lastSelectedAgent");
+						const agentType: StartableAgentType =
+							storedAgent &&
+							(STARTABLE_AGENT_TYPES as readonly string[]).includes(storedAgent)
+								? (storedAgent as StartableAgentType)
+								: "claude";
+						const autoExecute =
+							localStorage.getItem("agentAutoRun") !== "false";
+						const launchRequest = buildTaskLaunchRequest({
+							task: {
+								id: task.id,
+								slug: task.slug,
+								title: task.title,
+								description: task.description,
+								priority: task.priority,
+								statusName: task.status.name,
+								labels: task.labels,
+							},
+							workspaceId: "pending-workspace",
+							agentType,
+							source: "new-workspace",
+							autoExecute,
+						});
 						void runAsyncAction(
-							createWorkspace.mutateAsync({
-								projectId,
-								name: task.title,
-								branchName: task.slug.toLowerCase(),
-							}),
+							createWorkspace.mutateAsyncWithPendingSetup(
+								{
+									projectId,
+									name: task.title,
+									branchName: task.slug.toLowerCase(),
+								},
+								{ agentLaunchRequest: launchRequest },
+							),
 							{
 								loading: "Creating workspace...",
 								success: "Workspace created",

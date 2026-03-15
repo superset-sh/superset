@@ -1,9 +1,6 @@
 import {
-	buildAgentFileCommand,
-	buildAgentTaskPrompt,
-} from "@superset/shared/agent-command";
-import {
 	type AgentLaunchRequest,
+	buildTaskLaunchRequest,
 	STARTABLE_AGENT_LABELS,
 	STARTABLE_AGENT_TYPES,
 	type StartableAgentType,
@@ -120,50 +117,22 @@ export function RunInWorkspacePopover({
 	const buildLaunchRequest = (
 		task: TaskWithStatus,
 		workspaceId: string,
-	): AgentLaunchRequest => {
-		const taskInput = {
-			id: task.id,
-			slug: task.slug,
-			title: task.title,
-			description: task.description,
-			priority: task.priority,
-			statusName: task.status.name,
-			labels: task.labels,
-		};
-
-		if (selectedAgent === "superset-chat") {
-			return {
-				kind: "chat",
-				workspaceId,
-				agentType: "superset-chat",
-				source: "open-in-workspace",
-				chat: {
-					initialPrompt: buildAgentTaskPrompt(taskInput),
-					retryCount: 1,
-					autoExecute: autoRun,
-					taskSlug: task.slug,
-				},
-			};
-		}
-
-		const taskPromptFileName = `task-${task.slug}.md`;
-		return {
-			kind: "terminal",
+	): AgentLaunchRequest =>
+		buildTaskLaunchRequest({
+			task: {
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				description: task.description,
+				priority: task.priority,
+				statusName: task.status.name,
+				labels: task.labels,
+			},
 			workspaceId,
 			agentType: selectedAgent,
 			source: "open-in-workspace",
-			terminal: {
-				command: buildAgentFileCommand({
-					filePath: `.superset/${taskPromptFileName}`,
-					agent: selectedAgent,
-				}),
-				name: task.slug,
-				taskPromptContent: buildAgentTaskPrompt(taskInput),
-				taskPromptFileName,
-				autoExecute: autoRun,
-			},
-		};
-	};
+			autoExecute: autoRun,
+		});
 
 	const handleRun = async () => {
 		if (!effectiveProjectId) return;
