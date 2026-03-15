@@ -1,6 +1,5 @@
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
-import { Switch } from "@superset/ui/switch";
 import { Textarea } from "@superset/ui/textarea";
 import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
 import type { AgentDraft } from "../../agent-card.types";
@@ -8,7 +7,6 @@ import type { AgentDraft } from "../../agent-card.types";
 interface AgentCardFieldsProps {
 	preset: ResolvedAgentConfig;
 	draft: AgentDraft;
-	showEnabled: boolean;
 	showCommands: boolean;
 	showTaskPrompts: boolean;
 	validationMessage: string | null;
@@ -18,7 +16,6 @@ interface AgentCardFieldsProps {
 export function AgentCardFields({
 	preset,
 	draft,
-	showEnabled,
 	showCommands,
 	showTaskPrompts,
 	validationMessage,
@@ -26,22 +23,6 @@ export function AgentCardFields({
 }: AgentCardFieldsProps) {
 	return (
 		<>
-			{showEnabled && (
-				<div className="flex items-center justify-between">
-					<div className="space-y-0.5">
-						<Label htmlFor={`${preset.id}-enabled`}>Enabled</Label>
-						<p className="text-xs text-muted-foreground">
-							Show this agent in workspace launchers
-						</p>
-					</div>
-					<Switch
-						id={`${preset.id}-enabled`}
-						checked={draft.enabled}
-						onCheckedChange={(enabled) => onDraftChange({ enabled })}
-					/>
-				</div>
-			)}
-
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="space-y-2">
 					<Label htmlFor={`${preset.id}-label`}>Label</Label>

@@ -35,12 +35,17 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 };
 
 export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
-	claude: "Danger mode: All permissions auto-approved",
-	codex: "Danger mode: All permissions auto-approved",
-	gemini: "Danger mode: All permissions auto-approved",
-	opencode: "OpenCode: Open-source AI coding agent",
-	copilot: "Danger mode: All permissions auto-approved",
-	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
+	claude:
+		"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
+	codex:
+		"OpenAI's coding agent for reading, modifying, and running code across tasks.",
+	gemini:
+		"Google's open-source terminal agent for coding, problem-solving, and task work.",
+	opencode: "Open-source coding agent for the terminal, IDE, and desktop.",
+	copilot:
+		"GitHub's coding agent for planning, editing, and building in your repo.",
+	"cursor-agent":
+		"Cursor's coding agent for editing, running, and debugging code in parallel.",
 };
 
 export interface AgentPromptCommandDefaults {

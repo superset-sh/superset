@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@superset/ui/card";
+import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -34,6 +35,7 @@ export function AgentCard({
 		},
 	});
 	const [draft, setDraft] = useState<AgentDraft>(() => toDraft(preset));
+	const [isOpen, setIsOpen] = useState(false);
 	const [showPreview, setShowPreview] = useState(false);
 	const [validationMessage, setValidationMessage] = useState<string | null>(
 		null,
@@ -41,6 +43,7 @@ export function AgentCard({
 
 	useEffect(() => {
 		setDraft(toDraft(preset));
+		setIsOpen(false);
 		setShowPreview(false);
 		setValidationMessage(null);
 	}, [preset]);
@@ -62,6 +65,12 @@ export function AgentCard({
 
 	const updateDraft = (patch: Partial<AgentDraft>) => {
 		setDraft((current) => ({ ...current, ...patch }));
+	};
+	const handleOpenChange = (open: boolean) => {
+		setIsOpen(open);
+		if (!open) {
+			setShowPreview(false);
+		}
 	};
 
 	const handleSave = async () => {
@@ -116,33 +125,43 @@ export function AgentCard({
 
 	return (
 		<Card>
-			<AgentCardHeader preset={preset} />
-			<CardContent className="space-y-4">
-				<AgentCardFields
+			<Collapsible open={isOpen} onOpenChange={handleOpenChange}>
+				<AgentCardHeader
 					preset={preset}
-					draft={draft}
+					isOpen={isOpen}
 					showEnabled={showEnabled}
-					showCommands={showCommands}
-					showTaskPrompts={showTaskPrompts}
-					validationMessage={validationMessage}
-					onDraftChange={updateDraft}
+					enabled={draft.enabled}
+					onEnabledChange={(enabled) => updateDraft({ enabled })}
+					onToggle={() => handleOpenChange(!isOpen)}
 				/>
-				<AgentCardPreview
-					preset={preset}
-					showPreview={showPreview}
-					previewPrompt={previewPrompt}
-					previewNoPromptCommand={previewNoPromptCommand}
-					previewTaskCommand={previewTaskCommand}
-					onToggle={() => setShowPreview((current) => !current)}
-				/>
-			</CardContent>
-			<AgentCardActions
-				isDirty={isDirty}
-				isUpdating={updatePreset.isPending}
-				isResetting={resetPreset.isPending}
-				onSave={handleSave}
-				onReset={handleReset}
-			/>
+				<CollapsibleContent id={`${preset.id}-settings`}>
+					<CardContent className="space-y-4">
+						<AgentCardFields
+							preset={preset}
+							draft={draft}
+							showCommands={showCommands}
+							showTaskPrompts={showTaskPrompts}
+							validationMessage={validationMessage}
+							onDraftChange={updateDraft}
+						/>
+						<AgentCardPreview
+							preset={preset}
+							showPreview={showPreview}
+							previewPrompt={previewPrompt}
+							previewNoPromptCommand={previewNoPromptCommand}
+							previewTaskCommand={previewTaskCommand}
+							onToggle={() => setShowPreview((current) => !current)}
+						/>
+					</CardContent>
+					<AgentCardActions
+						isDirty={isDirty}
+						isUpdating={updatePreset.isPending}
+						isResetting={resetPreset.isPending}
+						onSave={handleSave}
+						onReset={handleReset}
+					/>
+				</CollapsibleContent>
+			</Collapsible>
 		</Card>
 	);
 }

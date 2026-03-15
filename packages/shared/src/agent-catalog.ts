@@ -74,7 +74,8 @@ export const BUILTIN_AGENT_DEFINITIONS: AgentDefinition[] = [
 		source: "builtin",
 		kind: "chat",
 		defaultLabel: BUILTIN_AGENT_LABELS["superset-chat"],
-		defaultDescription: "Open a Superset chat session in the workspace",
+		defaultDescription:
+			"Superset's built-in workspace chat for project-aware help and task launches.",
 		defaultTaskPromptTemplate: DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
 		defaultEnabled: true,
 	},
