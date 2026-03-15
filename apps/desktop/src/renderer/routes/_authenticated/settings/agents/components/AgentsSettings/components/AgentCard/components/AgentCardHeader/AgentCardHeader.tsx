@@ -35,7 +35,7 @@ export function AgentCardHeader({
 			tabIndex={0}
 			aria-expanded={isOpen}
 			aria-controls={contentId}
-			className="cursor-pointer gap-3 transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className="cursor-pointer gap-3 p-4 transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			onClick={onToggle}
 			onKeyDown={(event) => {
 				if (event.key === "Enter" || event.key === " ") {

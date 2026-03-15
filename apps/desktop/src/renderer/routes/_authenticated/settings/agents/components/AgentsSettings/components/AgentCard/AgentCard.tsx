@@ -185,7 +185,7 @@ export function AgentCard({
 	};
 
 	return (
-		<Card>
+		<Card className="p-0">
 			<Collapsible open={isOpen} onOpenChange={handleOpenChange}>
 				<AgentCardHeader
 					preset={preset}

@@ -11,7 +11,7 @@ export function AgentCardActions({
 	onReset,
 }: AgentCardActionsProps) {
 	return (
-		<CardFooter className="justify-end">
+		<CardFooter className="mt-2 justify-end">
 			<Button variant="outline" onClick={onReset} disabled={isResetting}>
 				Reset to Defaults
 			</Button>
