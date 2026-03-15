@@ -1,5 +1,3 @@
-"use strict";
-
 let native;
 try {
 	native = require("./build/Release/macos_process_metrics.node");

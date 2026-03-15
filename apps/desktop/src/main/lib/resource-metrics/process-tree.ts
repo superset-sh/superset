@@ -82,8 +82,8 @@ export function getSubtreePids(
 	const visited = new Set<number>();
 
 	while (stack.length > 0) {
-		const pid = stack.pop()!;
-		if (visited.has(pid)) continue;
+		const pid = stack.pop();
+		if (pid === undefined || visited.has(pid)) continue;
 		visited.add(pid);
 
 		if (snapshot.byPid.has(pid)) {
