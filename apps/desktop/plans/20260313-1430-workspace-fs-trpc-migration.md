@@ -179,6 +179,6 @@ Manual: diff viewer, save with revision-based conflict detection, discard untrac
 
 ## Outcomes & Retrospective
 
-All milestones complete. The workspace-fs package now exposes a pure path-based service interface (no workspaceId). Desktop adapter handles workspace scoping. Renderer hooks (useFileContent, useFileSave, useFileDiffEdit) and components (FileViewerPane, FileDiffSection, ChangesView, RightSidebar) all route through `trpc.filesystem.*` for reads/writes and `trpc.changes.getGitFileContents`/`getGitOriginalContent` for git-only diffs. Legacy changes procedures (getFileContents, saveFile, readWorkingFile, readWorkingFileImage) removed. Legacy filesystem procedures (exists, stat) removed. Legacy filesystem procedures still actively used by file tree UI (readDirectory, subscribe, searchFiles, searchFilesMulti, searchKeyword, createFile, createDirectory, rename, delete, move, copy) retained — these should be migrated in a follow-up.
+This migration established the schema-aligned path-based service and moved desktop workspace scoping to the adapter boundary. A later follow-up completed the remaining file-tree and search migration, removed the legacy `trpc.filesystem` compatibility procedures, added explicit client/host package boundaries for `workspace-fs`, and extended `createDirectory` with `recursive?: boolean` for higher-level nested create flows.
 
-Validation: typecheck passes, lint clean, no `node:fs` in changes router or terminal router. 4 pre-existing test failures unrelated to this migration.
+Validation at that milestone: typecheck passes, lint clean, no `node:fs` in changes router or terminal router. 4 pre-existing test failures unrelated to that migration pass.
