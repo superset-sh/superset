@@ -32,6 +32,7 @@ import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchNa
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 type TaskStatus = "pending" | "creating" | "done" | "failed";
+type TaskLaunchAgent = AgentDefinitionId | "none";
 
 function BatchStatusIcon({ status }: { status: TaskStatus }) {
 	switch (status) {
@@ -92,11 +93,11 @@ export function RunInWorkspacePopover({
 		setAutoRun,
 		setSelectedAgent,
 		setSelectedProjectId,
-	} = useAgentLaunchPreferences<AgentDefinitionId>({
+	} = useAgentLaunchPreferences<TaskLaunchAgent>({
 		agentStorageKey: "lastSelectedAgent",
-		defaultAgent: fallbackAgentId ?? "claude",
-		fallbackAgent: fallbackAgentId ?? "claude",
-		validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+		defaultAgent: fallbackAgentId ?? "none",
+		fallbackAgent: fallbackAgentId ?? "none",
+		validAgents: ["none", ...selectableAgents],
 		agentsReady: agentPresetsQuery.isFetched,
 		projectStorageKey: "lastOpenedInProjectId",
 		recentProjects,
@@ -111,7 +112,7 @@ export function RunInWorkspacePopover({
 	const buildLaunchRequest = (
 		task: TaskWithStatus,
 		workspaceId: string,
-	): AgentLaunchRequest =>
+	): AgentLaunchRequest | null =>
 		buildTaskAgentLaunchRequest({
 			task: {
 				id: task.id,
@@ -131,8 +132,10 @@ export function RunInWorkspacePopover({
 
 	const handleRun = async () => {
 		if (!effectiveProjectId) return;
-		const selectedAgentConfig = agentConfigsById.get(selectedAgent);
-		if (!selectedAgentConfig?.enabled) {
+		if (
+			selectedAgent !== "none" &&
+			!agentConfigsById.get(selectedAgent)?.enabled
+		) {
 			toast.error("Enable an agent in Settings > Agents first");
 			return;
 		}
@@ -174,10 +177,10 @@ export function RunInWorkspacePopover({
 						name: task.slug,
 						branchName,
 					},
-					{ agentLaunchRequest: launchRequestTemplate },
+					{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 				);
 
-				if (result.wasExisting) {
+				if (result.wasExisting && launchRequestTemplate) {
 					const launchRequest: AgentLaunchRequest = {
 						...launchRequestTemplate,
 						workspaceId: result.workspace.id,
@@ -325,7 +328,7 @@ export function RunInWorkspacePopover({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<AgentSelect<AgentDefinitionId>
+					<AgentSelect<TaskLaunchAgent>
 						agents={enabledAgentPresets}
 						value={selectedAgent}
 						placeholder="Select agent"
@@ -333,6 +336,9 @@ export function RunInWorkspacePopover({
 						onBeforeConfigureAgents={() => setOpen(false)}
 						disabled={isRunning}
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
+						allowNone
+						noneLabel="No agent"
+						noneValue="none"
 					/>
 
 					<div className="flex items-center justify-between px-1">
@@ -371,9 +377,7 @@ export function RunInWorkspacePopover({
 					<Button
 						size="sm"
 						className="w-full h-8"
-						disabled={
-							!effectiveProjectId || isRunning || selectableAgents.length === 0
-						}
+						disabled={!effectiveProjectId || isRunning}
 						onClick={handleRun}
 					>
 						{isRunning ? (

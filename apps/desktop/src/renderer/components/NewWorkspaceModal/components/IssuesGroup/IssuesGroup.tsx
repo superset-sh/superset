@@ -32,6 +32,7 @@ import {
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
 const PAGE_SIZE = 50;
+type TaskLaunchAgent = AgentDefinitionId | "none";
 
 interface IssuesGroupProps {
 	projectId: string | null;
@@ -98,15 +99,16 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 		() => enabledAgentPresets.map((preset) => preset.id),
 		[enabledAgentPresets],
 	);
-	const { autoRun, selectedAgent } =
-		useAgentLaunchPreferences<AgentDefinitionId>({
+	const { autoRun, selectedAgent } = useAgentLaunchPreferences<TaskLaunchAgent>(
+		{
 			agentStorageKey: "lastSelectedAgent",
-			defaultAgent: fallbackAgentId ?? "claude",
-			fallbackAgent: fallbackAgentId ?? "claude",
-			validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+			defaultAgent: fallbackAgentId ?? "none",
+			fallbackAgent: fallbackAgentId ?? "none",
+			validAgents: ["none", ...selectableAgents],
 			agentsReady: agentPresetsQuery.isFetched,
 			autoRunStorageKey: "agentAutoRun",
-		});
+		},
+	);
 
 	const workspaceByBranch = useMemo(() => {
 		const map = new Map<string, string>();
@@ -211,8 +213,10 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						const selectedAgentConfig = agentConfigsById.get(selectedAgent);
-						if (!selectedAgentConfig?.enabled) {
+						if (
+							selectedAgent !== "none" &&
+							!agentConfigsById.get(selectedAgent)?.enabled
+						) {
 							toast.error("Enable an agent in Settings > Agents first");
 							return;
 						}
@@ -239,7 +243,7 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 									name: task.title,
 									branchName: task.slug.toLowerCase(),
 								},
-								{ agentLaunchRequest: launchRequest },
+								{ agentLaunchRequest: launchRequest ?? undefined },
 							),
 							{
 								loading: "Creating workspace...",

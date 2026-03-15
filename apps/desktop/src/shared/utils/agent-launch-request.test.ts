@@ -53,6 +53,19 @@ describe("buildPromptAgentLaunchRequest", () => {
 });
 
 describe("buildTaskAgentLaunchRequest", () => {
+	test("returns null for no selection", () => {
+		const request = buildTaskAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "open-in-workspace",
+			selectedAgent: "none",
+			task: TASK,
+			autoRun: false,
+			configsById: new Map(),
+		});
+
+		expect(request).toBeNull();
+	});
+
 	test("uses the chat template configured for superset chat", () => {
 		const configsById = indexResolvedAgentConfigs(
 			resolveAgentConfigs({

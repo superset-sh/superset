@@ -27,6 +27,8 @@ import {
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
+type TaskLaunchAgent = AgentDefinitionId | "none";
+
 interface OpenInWorkspaceProps {
 	task: TaskWithStatus;
 }
@@ -63,11 +65,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		setAutoRun,
 		setSelectedAgent,
 		setSelectedProjectId,
-	} = useAgentLaunchPreferences<AgentDefinitionId>({
+	} = useAgentLaunchPreferences<TaskLaunchAgent>({
 		agentStorageKey: "lastSelectedAgent",
-		defaultAgent: fallbackAgentId ?? "claude",
-		fallbackAgent: fallbackAgentId ?? "claude",
-		validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+		defaultAgent: fallbackAgentId ?? "none",
+		fallbackAgent: fallbackAgentId ?? "none",
+		validAgents: ["none", ...selectableAgents],
 		agentsReady: agentPresetsQuery.isFetched,
 		projectStorageKey: "lastOpenedInProjectId",
 		recentProjects,
@@ -80,15 +82,17 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
-		const selectedAgentConfig = agentConfigsById.get(selectedAgent);
-		if (!selectedAgentConfig?.enabled) {
+		if (
+			selectedAgent !== "none" &&
+			!agentConfigsById.get(selectedAgent)?.enabled
+		) {
 			toast.error("Enable an agent in Settings > Agents first");
 			return;
 		}
 		await handleSelectProject(effectiveProjectId);
 	};
 
-	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest =>
+	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest | null =>
 		buildTaskAgentLaunchRequest({
 			task: {
 				id: task.id,
@@ -120,14 +124,14 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					name: task.slug,
 					branchName,
 				},
-				{ agentLaunchRequest: launchRequestTemplate },
+				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);
 
-			const launchRequest: AgentLaunchRequest = {
-				...launchRequestTemplate,
-				workspaceId: result.workspace.id,
-			};
-			if (result.wasExisting) {
+			if (result.wasExisting && launchRequestTemplate) {
+				const launchRequest: AgentLaunchRequest = {
+					...launchRequestTemplate,
+					workspaceId: result.workspace.id,
+				};
 				const launchResult = await launchAgentSession(launchRequest, {
 					source: "open-in-workspace",
 					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
@@ -218,22 +222,21 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				<Button
 					size="icon"
 					className="h-8 w-8 shrink-0"
-					disabled={
-						!effectiveProjectId ||
-						createWorkspace.isPending ||
-						selectableAgents.length === 0
-					}
+					disabled={!effectiveProjectId || createWorkspace.isPending}
 					onClick={handleOpen}
 				>
 					<HiArrowRight className="w-3.5 h-3.5" />
 				</Button>
 			</div>
-			<AgentSelect<AgentDefinitionId>
+			<AgentSelect<TaskLaunchAgent>
 				agents={enabledAgentPresets}
 				value={selectedAgent}
 				placeholder="Select agent"
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
+				allowNone
+				noneLabel="No agent"
+				noneValue="none"
 			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">

@@ -99,11 +99,13 @@ export function buildTaskAgentLaunchRequest({
 }: {
 	workspaceId: string;
 	source: AgentLaunchSource;
-	selectedAgent: AgentDefinitionId;
+	selectedAgent: AgentDefinitionId | "none";
 	task: TaskInput;
 	autoRun: boolean;
 	configsById: ReadonlyMap<AgentDefinitionId, ResolvedAgentConfig>;
-}): AgentLaunchRequest {
+}): AgentLaunchRequest | null {
+	if (selectedAgent === "none") return null;
+
 	const config = getRequiredAgentConfig(configsById, selectedAgent);
 
 	if (config.kind === "chat") {
