@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readFile, writeFile } from "./fs";
+import { createDirectory, readFile, writeFile } from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -241,5 +241,43 @@ describe("writeFile", () => {
 		expect(result.ok).toEqual(true);
 		const written = await fs.readFile(absolutePath);
 		expect(written.toString("utf-8")).toEqual("Hello");
+	});
+});
+
+describe("createDirectory", () => {
+	it("creates a nested directory tree when recursive is enabled", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "nested", "deeper", "folder");
+
+		const result = await createDirectory({
+			rootPath,
+			absolutePath,
+			recursive: true,
+		});
+
+		expect(result).toEqual({
+			absolutePath,
+			kind: "directory",
+		});
+
+		const stats = await fs.stat(absolutePath);
+		expect(stats.isDirectory()).toEqual(true);
+	});
+
+	it("fails for missing parents when recursive is disabled", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "nested", "deeper", "folder");
+		let didThrow = false;
+
+		try {
+			await createDirectory({
+				rootPath,
+				absolutePath,
+			});
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
 	});
 });

@@ -105,8 +105,10 @@ Returns:
 
 File creation happens through `writeFile`. Idempotent — succeeds silently if the directory already exists.
 
+`recursive` enables `mkdir -p` semantics for higher-level callers that need nested creation.
+
 ```ts
-createDirectory({ absolutePath: string })
+createDirectory({ absolutePath: string, recursive?: boolean })
 ```
 
 Returns:

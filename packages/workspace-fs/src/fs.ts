@@ -604,13 +604,15 @@ export async function writeFile({
 export async function createDirectory({
 	rootPath,
 	absolutePath,
+	recursive = false,
 }: {
 	rootPath: string;
 	absolutePath: string;
+	recursive?: boolean;
 }): Promise<{ absolutePath: string; kind: "directory" }> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	try {
-		await fs.mkdir(targetPath);
+		await fs.mkdir(targetPath, { recursive });
 	} catch (error) {
 		if (!isEexist(error)) {
 			throw error;

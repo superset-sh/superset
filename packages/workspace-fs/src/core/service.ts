@@ -32,6 +32,7 @@ export interface FsService {
 
 	createDirectory(input: {
 		absolutePath: string;
+		recursive?: boolean;
 	}): Promise<{ absolutePath: string; kind: "directory" }>;
 
 	deletePath(input: {
@@ -100,7 +101,7 @@ export interface FsRequestMap {
 		output: FsWriteResult;
 	};
 	createDirectory: {
-		input: { absolutePath: string };
+		input: { absolutePath: string; recursive?: boolean };
 		output: { absolutePath: string; kind: "directory" };
 	};
 	deletePath: {

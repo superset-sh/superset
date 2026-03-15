@@ -80,6 +80,7 @@ File tree:
 - `readDirectory` -> `listDirectory`
 - `createFile` -> `writeFile({ create: true, overwrite: false })`
 - legacy `createDirectory` -> `createDirectory`
+- add `createDirectory({ recursive: true })` for nested new-file/new-folder input like `hi/hi.txt`
 - `rename` -> `movePath`
 - batched `delete` -> loop `deletePath`
 - batched `move` -> loop `movePath`

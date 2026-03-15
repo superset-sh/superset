@@ -21,6 +21,25 @@ function getBaseName(absolutePath: string): string {
 	return absolutePath.split(/[/\\]/).pop() ?? absolutePath;
 }
 
+function splitRelativeInputPath(input: string): string[] {
+	return input.split(/[\\/]+/).filter(Boolean);
+}
+
+function hasTraversalSegment(pathSegments: string[]): boolean {
+	return pathSegments.some((segment) => segment === "." || segment === "..");
+}
+
+function joinPathSegments(
+	parentAbsolutePath: string,
+	pathSegments: string[],
+): string {
+	return pathSegments.reduce(
+		(currentAbsolutePath, pathSegment) =>
+			joinAbsolutePath(currentAbsolutePath, pathSegment),
+		parentAbsolutePath,
+	);
+}
+
 function getParentPath(absolutePath: string): string {
 	const trimmedPath = absolutePath.replace(/[\\/]+$/, "");
 	const lastSeparatorIndex = Math.max(
@@ -57,15 +76,48 @@ export function useFileTreeActions({
 				return;
 			}
 
-			const absolutePath = joinAbsolutePath(parentAbsolutePath, name);
-			void writeFileMutation
-				.mutateAsync({
-					workspaceId,
-					absolutePath,
-					content,
-					encoding: "utf-8",
-					options: { create: true, overwrite: false },
-				})
+			const pathSegments = splitRelativeInputPath(name.trim());
+			if (pathSegments.length === 0) {
+				return;
+			}
+
+			if (hasTraversalSegment(pathSegments)) {
+				toast.error(
+					"Failed to create file: nested paths cannot contain . or ..",
+				);
+				return;
+			}
+
+			const parentSegments = pathSegments.slice(0, -1);
+			const fileName = pathSegments[pathSegments.length - 1];
+			if (!fileName) {
+				return;
+			}
+
+			const targetParentPath =
+				parentSegments.length > 0
+					? joinPathSegments(parentAbsolutePath, parentSegments)
+					: parentAbsolutePath;
+			const absolutePath = joinAbsolutePath(targetParentPath, fileName);
+
+			void (
+				parentSegments.length > 0
+					? createDirectoryMutation.mutateAsync({
+							workspaceId,
+							absolutePath: targetParentPath,
+							recursive: true,
+						})
+					: Promise.resolve()
+			)
+				.then(() =>
+					writeFileMutation.mutateAsync({
+						workspaceId,
+						absolutePath,
+						content,
+						encoding: "utf-8",
+						options: { create: true, overwrite: false },
+					}),
+				)
 				.then((result) => {
 					if (!result.ok) {
 						if (result.reason === "exists") {
@@ -83,7 +135,7 @@ export function useFileTreeActions({
 					toast.error(`Failed to create file: ${error.message}`);
 				});
 		},
-		[onRefresh, workspaceId, writeFileMutation],
+		[createDirectoryMutation, onRefresh, workspaceId, writeFileMutation],
 	);
 
 	const createDirectory = useCallback(
@@ -92,11 +144,24 @@ export function useFileTreeActions({
 				return;
 			}
 
-			const absolutePath = joinAbsolutePath(parentAbsolutePath, name);
+			const pathSegments = splitRelativeInputPath(name.trim());
+			if (pathSegments.length === 0) {
+				return;
+			}
+
+			if (hasTraversalSegment(pathSegments)) {
+				toast.error(
+					"Failed to create folder: nested paths cannot contain . or ..",
+				);
+				return;
+			}
+
+			const absolutePath = joinPathSegments(parentAbsolutePath, pathSegments);
 			void createDirectoryMutation
 				.mutateAsync({
 					workspaceId,
 					absolutePath,
+					recursive: true,
 				})
 				.then(() => {
 					toast.success(`Created ${name}`);

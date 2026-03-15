@@ -119,12 +119,14 @@ export const createFilesystemRouter = () => {
 				z.object({
 					workspaceId: z.string(),
 					absolutePath: z.string(),
+					recursive: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
 				return await service.createDirectory({
 					absolutePath: input.absolutePath,
+					recursive: input.recursive,
 				});
 			}),
 

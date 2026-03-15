@@ -176,6 +176,7 @@ export function createFsHostService(
 			return await createDirectory({
 				rootPath,
 				absolutePath: input.absolutePath,
+				recursive: input.recursive,
 			});
 		},
 
