@@ -1,4 +1,3 @@
-import { Badge } from "@superset/ui/badge";
 import { CardDescription, CardHeader, CardTitle } from "@superset/ui/card";
 import { Switch } from "@superset/ui/switch";
 import {
@@ -75,15 +74,6 @@ export function AgentCardHeader({
 					)}
 				</div>
 			</div>
-			{preset.overriddenFields.length > 0 && (
-				<div className="flex flex-wrap gap-1">
-					{preset.overriddenFields.map((field) => (
-						<Badge key={field} variant="secondary">
-							{field}
-						</Badge>
-					))}
-				</div>
-			)}
 		</CardHeader>
 	);
 }
