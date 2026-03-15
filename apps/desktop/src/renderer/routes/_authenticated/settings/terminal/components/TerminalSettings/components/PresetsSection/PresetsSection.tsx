@@ -330,6 +330,24 @@ export function PresetsSection({
 		[editingRowIndex, handleCellBlur],
 	);
 
+	const handleEditorDirectorySelect = useCallback(
+		(value: string) => {
+			if (!editingPreset || editingRowIndex < 0) return;
+
+			setLocalPresets((prev) =>
+				prev.map((preset, index) =>
+					index === editingRowIndex ? { ...preset, cwd: value } : preset,
+				),
+			);
+
+			updatePreset.mutate({
+				id: editingPreset.id,
+				patch: { cwd: value },
+			});
+		},
+		[editingPreset, editingRowIndex, updatePreset],
+	);
+
 	const handleEditorCommandsChange = useCallback(
 		(commands: string[]) => {
 			if (editingRowIndex < 0) return;
@@ -415,6 +433,7 @@ export function PresetsSection({
 				onDeletePreset={handleDeleteEditingPreset}
 				onFieldChange={handleEditorFieldChange}
 				onFieldBlur={handleEditorFieldBlur}
+				onDirectorySelect={handleEditorDirectorySelect}
 				onCommandsChange={handleEditorCommandsChange}
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}

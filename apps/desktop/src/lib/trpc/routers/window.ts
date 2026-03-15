@@ -47,6 +47,27 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return homedir();
 		}),
 
+		getDirectoryStatus: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				try {
+					const stats = await fs.stat(input.path);
+					return {
+						exists: true,
+						isDirectory: stats.isDirectory(),
+					};
+				} catch {
+					return {
+						exists: false,
+						isDirectory: false,
+					};
+				}
+			}),
+
 		selectDirectory: publicProcedure
 			.input(
 				z

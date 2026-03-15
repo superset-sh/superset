@@ -1,4 +1,5 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Input } from "@superset/ui/input";
@@ -19,6 +20,9 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@superset/ui/sheet";
+import { useMemo } from "react";
+import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { CommandsEditor } from "../../../PresetRow/components/CommandsEditor";
 import type { AutoApplyField } from "../../constants";
@@ -31,6 +35,7 @@ interface PresetEditorSheetProps {
 	onDeletePreset: () => void;
 	onFieldChange: (column: PresetColumnKey, value: string) => void;
 	onFieldBlur: (column: PresetColumnKey) => void;
+	onDirectorySelect: (path: string) => void;
 	onCommandsChange: (commands: string[]) => void;
 	onCommandsBlur: () => void;
 	onModeChange: (mode: ExecutionMode) => void;
@@ -48,6 +53,7 @@ export function PresetEditorSheet({
 	onDeletePreset,
 	onFieldChange,
 	onFieldBlur,
+	onDirectorySelect,
 	onCommandsChange,
 	onCommandsBlur,
 	onModeChange,
@@ -59,6 +65,34 @@ export function PresetEditorSheet({
 }: PresetEditorSheetProps) {
 	const singleCommandModeValue =
 		modeValue === "split-pane" ? modeValue : "new-tab";
+	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
+	const trimmedCwd = preset?.cwd.trim() ?? "";
+	const isAbsolutePath = useMemo(
+		() =>
+			trimmedCwd.startsWith("/") ||
+			trimmedCwd.startsWith("\\\\") ||
+			/^[A-Za-z]:[\\/]/.test(trimmedCwd),
+		[trimmedCwd],
+	);
+	const { data: directoryStatus } =
+		electronTrpc.window.getDirectoryStatus.useQuery(
+			{ path: trimmedCwd },
+			{
+				enabled: open && Boolean(trimmedCwd) && isAbsolutePath,
+				staleTime: 5_000,
+			},
+		);
+
+	const handleBrowseDirectory = async () => {
+		const result = await selectDirectory.mutateAsync({
+			title: "Select preset directory",
+			defaultPath: isAbsolutePath ? trimmedCwd : undefined,
+		});
+
+		if (!result.canceled && result.path) {
+			onDirectorySelect(result.path);
+		}
+	};
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -109,15 +143,55 @@ export function PresetEditorSheet({
 								<LabelWithTooltip
 									label="Directory"
 									htmlFor="preset-directory"
-									tooltip="Working directory for commands. Use a workspace-relative path like ./apps/web."
+									tooltip="Working directory for commands. Use a workspace-relative path like ./apps/web or choose an absolute folder."
 								/>
-								<Input
-									id="preset-directory"
-									value={preset.cwd}
-									onChange={(e) => onFieldChange("cwd", e.target.value)}
-									onBlur={() => onFieldBlur("cwd")}
-									placeholder="e.g. ./src (optional)"
-								/>
+								<div className="flex items-center gap-2">
+									<Input
+										id="preset-directory"
+										value={preset.cwd}
+										onChange={(e) => onFieldChange("cwd", e.target.value)}
+										onBlur={() => onFieldBlur("cwd")}
+										placeholder="e.g. ./apps/web or /full/path (optional)"
+									/>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={handleBrowseDirectory}
+										disabled={selectDirectory.isPending}
+									>
+										<HiOutlineFolderOpen className="size-4" />
+										Browse
+									</Button>
+								</div>
+								{trimmedCwd &&
+								isAbsolutePath &&
+								directoryStatus?.exists === false ? (
+									<Alert variant="destructive">
+										<HiExclamationTriangle />
+										<AlertDescription>
+											This directory does not exist. Launching the preset will
+											fall back to the workspace root.
+										</AlertDescription>
+									</Alert>
+								) : null}
+								{trimmedCwd &&
+								isAbsolutePath &&
+								directoryStatus?.exists &&
+								!directoryStatus.isDirectory ? (
+									<Alert variant="destructive">
+										<HiExclamationTriangle />
+										<AlertDescription>
+											This path exists, but it is not a directory.
+										</AlertDescription>
+									</Alert>
+								) : null}
+								{trimmedCwd && !isAbsolutePath ? (
+									<p className="text-xs text-muted-foreground">
+										Relative paths are resolved from each workspace root when
+										the preset launches.
+									</p>
+								) : null}
 							</div>
 
 							<div className="space-y-2">
