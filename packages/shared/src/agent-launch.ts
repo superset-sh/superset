@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { AGENT_LABELS, AGENT_TYPES, type AgentType } from "./agent-command";
+import {
+	AGENT_LABELS,
+	AGENT_TYPES,
+	type AgentType,
+	buildAgentFileCommand,
+	buildAgentTaskPrompt,
+	type TaskInput,
+} from "./agent-command";
 
 export const STARTABLE_AGENT_TYPES = [...AGENT_TYPES, "superset-chat"] as const;
 
@@ -173,4 +180,57 @@ export function normalizeAgentLaunchRequest(
 
 	const legacy = legacyAgentLaunchRequestSchema.parse(request);
 	return agentLaunchRequestSchema.parse(normalizeLegacyLaunchRequest(legacy));
+}
+
+/**
+ * Builds an AgentLaunchRequest for a task, used when creating workspaces
+ * from the issues tab, task sidebar, or batch run popover.
+ */
+export function buildTaskLaunchRequest({
+	task,
+	workspaceId,
+	agentType,
+	source,
+	autoExecute,
+}: {
+	task: TaskInput;
+	workspaceId: string;
+	agentType: StartableAgentType;
+	source: AgentLaunchSource;
+	autoExecute?: boolean;
+}): AgentLaunchRequest {
+	const prompt = buildAgentTaskPrompt(task);
+
+	if (agentType === "superset-chat") {
+		return {
+			kind: "chat",
+			workspaceId,
+			agentType: "superset-chat",
+			source,
+			chat: {
+				initialPrompt: prompt,
+				retryCount: 1,
+				autoExecute,
+				taskSlug: task.slug,
+			},
+		};
+	}
+
+	const taskPromptFileName = `task-${task.slug}.md`;
+	return {
+		kind: "terminal",
+		workspaceId,
+		agentType,
+		source,
+		terminal: {
+			command: buildAgentFileCommand({
+				filePath: `.superset/${taskPromptFileName}`,
+				agent: agentType,
+			}),
+			name: task.slug,
+			taskPromptContent: prompt,
+			taskPromptFileName,
+			autoExecute,
+		},
+	};
 }
