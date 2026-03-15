@@ -26,9 +26,11 @@ import { TabPane } from "./TabPane";
 
 interface TabViewProps {
 	tab: Tab;
+	/** Whether this tab is currently active/visible. Can be used by panes to throttle expensive effects. */
+	isActive?: boolean;
 }
 
-export function TabView({ tab }: TabViewProps) {
+export function TabView({ tab, isActive = true }: TabViewProps) {
 	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
@@ -160,6 +162,7 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						worktreePath={worktreePath}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
@@ -180,6 +183,7 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						workspaceId={tab.workspaceId}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}
@@ -199,6 +203,7 @@ export function TabView({ tab }: TabViewProps) {
 						paneId={paneId}
 						path={path}
 						tabId={tab.id}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
@@ -214,6 +219,7 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						targetPaneId={paneInfo.devtools.targetPaneId}
+						isActive={isActive}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
@@ -228,6 +234,7 @@ export function TabView({ tab }: TabViewProps) {
 					path={path}
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
+					isActive={isActive}
 					splitPaneAuto={splitPaneAuto}
 					splitPaneHorizontal={splitPaneHorizontal}
 					splitPaneVertical={splitPaneVertical}
@@ -244,6 +251,7 @@ export function TabView({ tab }: TabViewProps) {
 			tab.id,
 			tab.workspaceId,
 			worktreePath,
+			isActive,
 			splitPaneAuto,
 			splitPaneHorizontal,
 			splitPaneVertical,

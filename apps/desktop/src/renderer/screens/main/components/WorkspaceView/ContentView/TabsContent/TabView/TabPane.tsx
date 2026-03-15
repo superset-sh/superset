@@ -17,6 +17,8 @@ interface TabPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	workspaceId: string;
+	/** Whether this pane's tab is currently active/visible */
+	isActive?: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -47,6 +49,7 @@ export function TabPane({
 	path,
 	tabId,
 	workspaceId,
+	isActive: _isActive,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,

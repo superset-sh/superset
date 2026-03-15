@@ -38,15 +38,26 @@ export function TabsContent({
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	const tabToRender = useMemo(() => {
-		if (!activeTabId) return null;
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
-	}, [activeTabId, allTabs]);
+	// Get all tabs for the current workspace to keep them mounted
+	const workspaceTabs = useMemo(() => {
+		if (!activeWorkspaceId) return [];
+		return allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId);
+	}, [activeWorkspaceId, allTabs]);
+
+	const hasActiveTabs = workspaceTabs.length > 0 && activeTabId !== null;
 
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? (
-				<TabView tab={tabToRender} />
+			{hasActiveTabs ? (
+				// Render all workspace tabs, hide inactive ones to preserve state
+				workspaceTabs.map((tab) => (
+					<div
+						key={tab.id}
+						className={`w-full h-full ${tab.id === activeTabId ? "block" : "hidden"}`}
+					>
+						<TabView tab={tab} isActive={tab.id === activeTabId} />
+					</div>
+				))
 			) : (
 				<EmptyTabView
 					defaultExternalApp={defaultExternalApp}

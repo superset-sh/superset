@@ -15,6 +15,8 @@ interface BrowserPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	tabId: string;
+	/** Whether this pane's tab is currently active/visible */
+	isActive?: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -29,6 +31,7 @@ export function BrowserPane({
 	paneId,
 	path,
 	tabId,
+	isActive: _isActive,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,

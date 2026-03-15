@@ -30,6 +30,8 @@ interface FileViewerPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	worktreePath: string;
+	/** Whether this pane's tab is currently active/visible */
+	isActive?: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -60,6 +62,7 @@ export function FileViewerPane({
 	path,
 	tabId,
 	worktreePath,
+	isActive: _isActive,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
