@@ -1,3 +1,8 @@
+import {
+	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+	renderTaskPromptTemplate,
+} from "./agent-prompt-template";
+
 export const AGENT_TYPES = [
 	"claude",
 	"codex",
@@ -38,6 +43,38 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
 };
 
+export interface AgentPromptCommandDefaults {
+	command: string;
+	suffix?: string;
+}
+
+export const AGENT_PROMPT_COMMANDS: Record<
+	AgentType,
+	AgentPromptCommandDefaults
+> = {
+	claude: {
+		command: AGENT_PRESET_COMMANDS.claude[0] ?? "claude",
+	},
+	codex: {
+		command: `${AGENT_PRESET_COMMANDS.codex[0] ?? "codex"} --`,
+	},
+	gemini: {
+		command: "gemini",
+		suffix: "--yolo",
+	},
+	opencode: {
+		command: "opencode --prompt",
+	},
+	copilot: {
+		command: "copilot -i --allow-all",
+		suffix: "--yolo",
+	},
+	"cursor-agent": {
+		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
+		suffix: "--yolo",
+	},
+};
+
 export interface TaskInput {
 	id: string;
 	slug: string;
@@ -49,35 +86,7 @@ export interface TaskInput {
 }
 
 export function buildAgentTaskPrompt(task: TaskInput): string {
-	const metadata = [
-		`Priority: ${task.priority}`,
-		task.statusName && `Status: ${task.statusName}`,
-		task.labels?.length && `Labels: ${task.labels.join(", ")}`,
-	]
-		.filter(Boolean)
-		.join("\n");
-
-	return `You are working on task "${task.title}" (${task.slug}).
-
-${metadata}
-
-## Task Description
-
-${task.description || "No description provided."}
-
-## Instructions
-
-You are running fully autonomously. Do not ask questions or wait for user feedback — make all decisions independently based on the codebase and task description.
-
-1. Explore the codebase to understand the relevant code and architecture
-2. Create a detailed execution plan for this task including:
-   - Purpose and scope of the changes
-   - Key assumptions
-   - Concrete implementation steps with specific files to modify
-   - How to validate the changes work correctly
-3. Implement the plan
-4. Verify your changes work correctly (run relevant tests, typecheck, lint)
-5. When done, use the Superset MCP \`update_task\` tool to update task "${task.id}" with a summary of what was done`;
+	return renderTaskPromptTemplate(DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE, task);
 }
 
 function buildHeredoc(
@@ -95,16 +104,14 @@ function buildHeredoc(
 	].join("\n");
 }
 
-const AGENT_FILE_COMMANDS: Record<AgentType, (filePath: string) => string> = {
-	claude: (filePath) =>
-		`claude --dangerously-skip-permissions "$(cat '${filePath}')"`,
-	codex: (filePath) =>
-		`codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true -- "$(cat '${filePath}')"`,
-	gemini: (filePath) => `gemini --yolo "$(cat '${filePath}')"`,
-	opencode: (filePath) => `opencode --prompt "$(cat '${filePath}')"`,
-	copilot: (filePath) => `copilot -i "$(cat '${filePath}')" --yolo`,
-	"cursor-agent": (filePath) => `cursor-agent --yolo "$(cat '${filePath}')"`,
-};
+function buildFileCommand(
+	filePath: string,
+	command: string,
+	suffix?: string,
+): string {
+	const escapedPath = filePath.replaceAll("'", "'\\''");
+	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
+}
 
 export function buildAgentFileCommand({
 	filePath,
@@ -113,32 +120,13 @@ export function buildAgentFileCommand({
 	filePath: string;
 	agent?: AgentType;
 }): string {
-	const builder = AGENT_FILE_COMMANDS[agent];
-	const escaped = filePath.replaceAll("'", "'\\''");
-	return builder(escaped);
+	const promptCommand = AGENT_PROMPT_COMMANDS[agent];
+	return buildFileCommand(
+		filePath,
+		promptCommand.command,
+		promptCommand.suffix,
+	);
 }
-
-const AGENT_COMMANDS: Record<
-	AgentType,
-	(prompt: string, delimiter: string) => string
-> = {
-	claude: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
-	codex: (prompt, delimiter) =>
-		buildHeredoc(
-			prompt,
-			delimiter,
-			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
-		),
-	gemini: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "gemini --yolo"),
-	opencode: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "opencode --prompt"),
-	copilot: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
-	"cursor-agent": (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
-};
 
 export function buildAgentPromptCommand({
 	prompt,
@@ -153,8 +141,13 @@ export function buildAgentPromptCommand({
 	while (prompt.includes(delimiter)) {
 		delimiter = `${delimiter}_X`;
 	}
-	const builder = AGENT_COMMANDS[agent];
-	return builder(prompt, delimiter);
+	const promptCommand = AGENT_PROMPT_COMMANDS[agent];
+	return buildHeredoc(
+		prompt,
+		delimiter,
+		promptCommand.command,
+		promptCommand.suffix,
+	);
 }
 
 export function buildAgentCommand({

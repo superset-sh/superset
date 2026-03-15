@@ -1,4 +1,6 @@
 import {
+	type AgentCustomDefinition,
+	type AgentPresetOverrideEnvelope,
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	EXTERNAL_APPS,
@@ -8,6 +10,7 @@ import {
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
+import type { AgentDefinition } from "@superset/shared/agent-catalog";
 import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
@@ -32,6 +35,16 @@ import {
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
 } from "shared/ringtones";
+import {
+	type AgentDefinitionId,
+	type AgentPresetPatch,
+	createOverrideEnvelopeWithPatch,
+	getAgentDefinitionById,
+	readAgentPresetOverrides,
+	resetAgentPresetOverride,
+	resolveAgentConfigs,
+	validateTaskPromptTemplate,
+} from "shared/utils/agent-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
@@ -87,6 +100,122 @@ function saveTerminalPresets(
 			set: { terminalPresets: presets, ...options },
 		})
 		.run();
+}
+
+function readRawAgentPresetOverrides(): AgentPresetOverrideEnvelope {
+	const row = getSettings();
+	return readAgentPresetOverrides(row.agentPresetOverrides);
+}
+
+function readRawAgentCustomDefinitions(): AgentCustomDefinition[] {
+	const row = getSettings();
+	return row.agentCustomDefinitions ?? [];
+}
+
+function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			agentPresetOverrides: overrides,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { agentPresetOverrides: overrides },
+		})
+		.run();
+}
+
+function getResolvedAgentPresets() {
+	return resolveAgentConfigs({
+		customDefinitions: readRawAgentCustomDefinitions(),
+		overrideEnvelope: readRawAgentPresetOverrides(),
+	});
+}
+
+const updateAgentPresetInputSchema = z.object({
+	id: z.string().min(1),
+	patch: z
+		.object({
+			enabled: z.boolean().optional(),
+			label: z.string().optional(),
+			description: z.string().nullable().optional(),
+			command: z.string().optional(),
+			promptCommand: z.string().optional(),
+			promptCommandSuffix: z.string().nullable().optional(),
+			taskPromptTemplate: z.string().optional(),
+			model: z.string().nullable().optional(),
+		})
+		.refine((patch) => Object.keys(patch).length > 0, {
+			message: "Patch must include at least one field",
+		}),
+});
+
+function toTrimmedRequiredValue(field: string, value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${field} cannot be empty`,
+		});
+	}
+	return trimmed;
+}
+
+function normalizeAgentPresetPatch({
+	definition,
+	patch,
+}: {
+	definition: AgentDefinition;
+	patch: z.infer<typeof updateAgentPresetInputSchema>["patch"];
+}): AgentPresetPatch {
+	const normalized: AgentPresetPatch = {};
+
+	if (patch.enabled !== undefined) {
+		normalized.enabled = patch.enabled;
+	}
+	if (patch.label !== undefined) {
+		normalized.label = toTrimmedRequiredValue("Label", patch.label);
+	}
+	if (patch.description !== undefined) {
+		const description = patch.description?.trim() ?? "";
+		normalized.description = description ? description : null;
+	}
+	if (patch.taskPromptTemplate !== undefined) {
+		const taskPromptTemplate = toTrimmedRequiredValue(
+			"Task prompt template",
+			patch.taskPromptTemplate,
+		);
+		const validation = validateTaskPromptTemplate(taskPromptTemplate);
+		if (!validation.valid) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Unknown task prompt variables: ${validation.unknownVariables.join(", ")}`,
+			});
+		}
+		normalized.taskPromptTemplate = taskPromptTemplate;
+	}
+
+	if (definition.kind === "terminal") {
+		if (patch.command !== undefined) {
+			normalized.command = toTrimmedRequiredValue("Command", patch.command);
+		}
+		if (patch.promptCommand !== undefined) {
+			normalized.promptCommand = toTrimmedRequiredValue(
+				"Prompt command",
+				patch.promptCommand,
+			);
+		}
+		if (patch.promptCommandSuffix !== undefined) {
+			const promptCommandSuffix = patch.promptCommandSuffix?.trim() ?? "";
+			normalized.promptCommandSuffix = promptCommandSuffix || null;
+		}
+	} else if (patch.model !== undefined) {
+		const model = patch.model?.trim() ?? "";
+		normalized.model = model || null;
+	}
+
+	return normalized;
 }
 
 const DEFAULT_PRESET_AGENTS = [
@@ -145,6 +274,52 @@ export const createSettingsRouter = () => {
 				return initializeDefaultPresets();
 			}
 			return getNormalizedTerminalPresets();
+		}),
+		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		updateAgentPreset: publicProcedure
+			.input(updateAgentPresetInputSchema)
+			.mutation(({ input }) => {
+				const definition = getAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as AgentDefinitionId,
+				});
+				if (!definition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Agent preset ${input.id} not found`,
+					});
+				}
+
+				const normalizedPatch = normalizeAgentPresetPatch({
+					definition,
+					patch: input.patch,
+				});
+				const nextOverrides = createOverrideEnvelopeWithPatch({
+					definition,
+					currentOverrides: readRawAgentPresetOverrides(),
+					id: input.id as AgentDefinitionId,
+					patch: normalizedPatch,
+				});
+
+				saveAgentPresetOverrides(nextOverrides);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === input.id,
+				);
+			}),
+		resetAgentPreset: publicProcedure
+			.input(z.object({ id: z.string().min(1) }))
+			.mutation(({ input }) => {
+				const nextOverrides = resetAgentPresetOverride({
+					currentOverrides: readRawAgentPresetOverrides(),
+					id: input.id as AgentDefinitionId,
+				});
+				saveAgentPresetOverrides(nextOverrides);
+				return { success: true };
+			}),
+		resetAllAgentPresets: publicProcedure.mutation(() => {
+			saveAgentPresetOverrides({ version: 1, presets: [] });
+			return { success: true };
 		}),
 		createTerminalPreset: publicProcedure
 			.input(

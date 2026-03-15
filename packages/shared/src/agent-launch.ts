@@ -1,21 +1,22 @@
 import { z } from "zod";
+import { BUILTIN_AGENT_IDS, BUILTIN_AGENT_LABELS } from "./agent-catalog";
 import {
-	AGENT_LABELS,
 	AGENT_TYPES,
 	type AgentType,
 	buildAgentFileCommand,
-	buildAgentTaskPrompt,
 	type TaskInput,
 } from "./agent-command";
+import {
+	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+	renderTaskPromptTemplate,
+} from "./agent-prompt-template";
 
-export const STARTABLE_AGENT_TYPES = [...AGENT_TYPES, "superset-chat"] as const;
+export const STARTABLE_AGENT_TYPES = BUILTIN_AGENT_IDS;
 
 export type StartableAgentType = (typeof STARTABLE_AGENT_TYPES)[number];
 
-export const STARTABLE_AGENT_LABELS: Record<StartableAgentType, string> = {
-	...AGENT_LABELS,
-	"superset-chat": "Superset Chat",
-};
+export const STARTABLE_AGENT_LABELS = BUILTIN_AGENT_LABELS;
 
 export const AGENT_LAUNCH_STATUS = [
 	"queued",
@@ -42,7 +43,7 @@ const launchSourceSchema = z.enum(AGENT_LAUNCH_SOURCE);
 const baseAgentLaunchSchema = z.object({
 	workspaceId: z.string().min(1),
 	idempotencyKey: z.string().min(1).optional(),
-	agentType: z.enum(STARTABLE_AGENT_TYPES).optional(),
+	agentType: z.string().min(1).optional(),
 	source: launchSourceSchema.optional(),
 });
 
@@ -67,13 +68,11 @@ export const chatLaunchConfigSchema = z.object({
 
 export const terminalAgentLaunchRequestSchema = baseAgentLaunchSchema.extend({
 	kind: z.literal("terminal"),
-	agentType: z.enum(AGENT_TYPES).optional(),
 	terminal: terminalLaunchConfigSchema,
 });
 
 export const chatAgentLaunchRequestSchema = baseAgentLaunchSchema.extend({
 	kind: z.literal("chat"),
-	agentType: z.literal("superset-chat").optional(),
 	chat: chatLaunchConfigSchema,
 });
 
@@ -103,7 +102,7 @@ const legacyAgentLaunchRequestSchema = z.object({
 	openChatPane: z.boolean().optional(),
 	chatLaunchConfig: chatLaunchConfigSchema.partial().optional(),
 	idempotencyKey: z.string().min(1).optional(),
-	agentType: z.enum(STARTABLE_AGENT_TYPES).optional(),
+	agentType: z.string().min(1).optional(),
 	source: launchSourceSchema.optional(),
 });
 
@@ -111,10 +110,8 @@ export type LegacyAgentLaunchRequest = z.infer<
 	typeof legacyAgentLaunchRequestSchema
 >;
 
-export function isTerminalAgentType(
-	agent: StartableAgentType,
-): agent is AgentType {
-	return agent !== "superset-chat";
+export function isTerminalAgentType(agent: string): agent is AgentType {
+	return (AGENT_TYPES as readonly string[]).includes(agent);
 }
 
 function normalizeLegacyLaunchRequest(
@@ -153,10 +150,7 @@ function normalizeLegacyLaunchRequest(
 		kind: "terminal",
 		workspaceId: legacy.workspaceId,
 		idempotencyKey: legacy.idempotencyKey,
-		agentType:
-			legacy.agentType && isTerminalAgentType(legacy.agentType)
-				? legacy.agentType
-				: undefined,
+		agentType: legacy.agentType,
 		source: legacy.source,
 		terminal: {
 			command: legacy.command,
@@ -199,8 +193,6 @@ export function buildTaskLaunchRequest({
 	source: AgentLaunchSource;
 	autoExecute?: boolean;
 }): AgentLaunchRequest {
-	const prompt = buildAgentTaskPrompt(task);
-
 	if (agentType === "superset-chat") {
 		return {
 			kind: "chat",
@@ -208,7 +200,10 @@ export function buildTaskLaunchRequest({
 			agentType: "superset-chat",
 			source,
 			chat: {
-				initialPrompt: prompt,
+				initialPrompt: renderTaskPromptTemplate(
+					DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+					task,
+				),
 				retryCount: 1,
 				autoExecute,
 				taskSlug: task.slug,
@@ -216,6 +211,10 @@ export function buildTaskLaunchRequest({
 		};
 	}
 
+	const prompt = renderTaskPromptTemplate(
+		DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+		task,
+	);
 	const taskPromptFileName = `task-${task.slug}.md`;
 	return {
 		kind: "terminal",

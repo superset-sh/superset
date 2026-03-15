@@ -1,8 +1,3 @@
-import {
-	buildTaskLaunchRequest,
-	STARTABLE_AGENT_TYPES,
-	type StartableAgentType,
-} from "@superset/shared/agent-launch";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
@@ -15,6 +10,7 @@ import { GoArrowUpRight } from "react-icons/go";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
@@ -26,6 +22,13 @@ import { useHybridSearch } from "renderer/routes/_authenticated/_dashboard/tasks
 import { compareTasks } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/utils/sorting";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
+import {
+	type AgentDefinitionId,
+	getEnabledAgentConfigs,
+	getFallbackAgentId,
+	indexResolvedAgentConfigs,
+} from "shared/utils/agent-settings";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 
 const PAGE_SIZE = 50;
@@ -77,6 +80,32 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 
 	const { data: allWorkspaces = [] } =
 		electronTrpc.workspaces.getAll.useQuery();
+	const { data: agentPresets = [] } =
+		electronTrpc.settings.getAgentPresets.useQuery();
+	const enabledAgentPresets = useMemo(
+		() => getEnabledAgentConfigs(agentPresets),
+		[agentPresets],
+	);
+	const agentConfigsById = useMemo(
+		() => indexResolvedAgentConfigs(agentPresets),
+		[agentPresets],
+	);
+	const fallbackAgentId = useMemo(
+		() => getFallbackAgentId(agentPresets),
+		[agentPresets],
+	);
+	const selectableAgents = useMemo(
+		() => enabledAgentPresets.map((preset) => preset.id),
+		[enabledAgentPresets],
+	);
+	const { autoRun, selectedAgent } =
+		useAgentLaunchPreferences<AgentDefinitionId>({
+			agentStorageKey: "lastSelectedAgent",
+			defaultAgent: fallbackAgentId ?? "claude",
+			fallbackAgent: fallbackAgentId ?? "claude",
+			validAgents: selectableAgents.length > 0 ? selectableAgents : ["claude"],
+			autoRunStorageKey: "agentAutoRun",
+		});
 
 	const workspaceByBranch = useMemo(() => {
 		const map = new Map<string, string>();
@@ -181,15 +210,11 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 							navigateToWorkspace(existingId, navigate);
 							return;
 						}
-						const storedAgent = localStorage.getItem("lastSelectedAgent");
-						const agentType: StartableAgentType =
-							storedAgent &&
-							(STARTABLE_AGENT_TYPES as readonly string[]).includes(storedAgent)
-								? (storedAgent as StartableAgentType)
-								: "claude";
-						const autoExecute =
-							localStorage.getItem("agentAutoRun") !== "false";
-						const launchRequest = buildTaskLaunchRequest({
+						if (!agentConfigsById.has(selectedAgent)) {
+							toast.error("Enable an agent in Settings > Agents first");
+							return;
+						}
+						const launchRequest = buildTaskAgentLaunchRequest({
 							task: {
 								id: task.id,
 								slug: task.slug,
@@ -200,9 +225,10 @@ export function IssuesGroup({ projectId }: IssuesGroupProps) {
 								labels: task.labels,
 							},
 							workspaceId: "pending-workspace",
-							agentType,
+							selectedAgent,
 							source: "new-workspace",
-							autoExecute,
+							autoRun,
+							configsById: agentConfigsById,
 						});
 						void runAsyncAction(
 							createWorkspace.mutateAsyncWithPendingSetup(
