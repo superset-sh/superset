@@ -10,6 +10,7 @@
 import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	DEFAULT_MODES,
 	type TerminalModes,
@@ -76,7 +77,11 @@ export class HeadlessEmulator {
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
-		const { cols = 80, rows = 24, scrollback = 2000 } = options;
+		const {
+			cols = 80,
+			rows = 24,
+			scrollback = DEFAULT_TERMINAL_SCROLLBACK,
+		} = options;
 
 		this.terminal = new Terminal({
 			cols,
@@ -225,7 +230,8 @@ export class HeadlessEmulator {
 	 */
 	getSnapshot(): TerminalSnapshot {
 		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback: this.terminal.options.scrollback ?? 2000,
+			scrollback:
+				this.terminal.options.scrollback ?? DEFAULT_TERMINAL_SCROLLBACK,
 		});
 
 		const rehydrateSequences = this.generateRehydrateSequences();

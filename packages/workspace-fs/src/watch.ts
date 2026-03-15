@@ -5,41 +5,37 @@ import {
 	type Event as ParcelWatcherEvent,
 	subscribe as subscribeToFilesystem,
 } from "@parcel/watcher";
-import { normalizeAbsolutePath, toRelativePath } from "./paths";
+import { normalizeAbsolutePath } from "./paths";
 import {
 	DEFAULT_IGNORE_PATTERNS,
 	invalidateSearchIndexesForRoot,
 	patchSearchIndexesForRoot,
+	type SearchPatchEvent,
 } from "./search";
-import type { WorkspaceFsWatchEvent } from "./types";
+import type { FsWatchEvent } from "./types";
 
-export interface WorkspaceWatchSubscriptionOptions {
-	workspaceId: string;
-	rootPath: string;
+export interface WatchPathOptions {
+	absolutePath: string;
+	recursive?: boolean;
 }
 
-type WorkspaceWatchListener = (event: WorkspaceFsWatchEvent) => void;
+export interface InternalWatchEvent {
+	kind: "create" | "update" | "delete" | "rename" | "overflow";
+	absolutePath: string;
+	oldAbsolutePath?: string;
+	isDirectory: boolean;
+}
 
-interface WorkspaceWatcherState {
-	workspaceId: string;
-	rootPath: string;
-	revision: number;
+type WatchListener = (batch: { events: FsWatchEvent[] }) => void;
+
+interface WatcherState {
+	absolutePath: string;
 	subscription: AsyncSubscription;
-	listeners: Set<WorkspaceWatchListener>;
+	listeners: Set<WatchListener>;
 	pathTypes: Map<string, boolean>;
 	pendingEvents: ParcelWatcherEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
 }
-
-type WorkspaceFsCreateDeleteEvent = {
-	type: "create" | "delete";
-	workspaceId: string;
-	absolutePath: string;
-	isDirectory: boolean;
-	revision: number;
-};
-
-type RenameCandidate = WorkspaceFsCreateDeleteEvent & { index: number };
 
 function coalesceWatchEvent(
 	current: ParcelWatcherEvent | undefined,
@@ -105,6 +101,13 @@ function getParentPath(absolutePath: string): string {
 
 function getBaseName(absolutePath: string): string {
 	return path.basename(absolutePath);
+}
+
+interface RenameCandidate {
+	kind: "create" | "delete";
+	absolutePath: string;
+	isDirectory: boolean;
+	index: number;
 }
 
 function pairRenameCandidates(
@@ -209,29 +212,25 @@ function pairRenameCandidates(
 }
 
 export function reconcileRenameEvents(
-	events: WorkspaceFsWatchEvent[],
-): WorkspaceFsWatchEvent[] {
+	events: InternalWatchEvent[],
+): InternalWatchEvent[] {
 	const deletes: RenameCandidate[] = [];
 	const creates: RenameCandidate[] = [];
 
 	for (const [index, event] of events.entries()) {
-		if (event.type === "delete") {
+		if (event.kind === "delete") {
 			deletes.push({
 				index,
-				type: "delete",
-				workspaceId: event.workspaceId,
+				kind: "delete",
 				absolutePath: event.absolutePath,
 				isDirectory: event.isDirectory,
-				revision: event.revision,
 			});
-		} else if (event.type === "create") {
+		} else if (event.kind === "create") {
 			creates.push({
 				index,
-				type: "create",
-				workspaceId: event.workspaceId,
+				kind: "create",
 				absolutePath: event.absolutePath,
 				isDirectory: event.isDirectory,
-				revision: event.revision,
 			});
 		}
 	}
@@ -245,26 +244,21 @@ export function reconcileRenameEvents(
 		return events;
 	}
 
-	const renameByCreateIndex = new Map<
-		number,
-		Extract<WorkspaceFsWatchEvent, { type: "rename" }>
-	>();
+	const renameByCreateIndex = new Map<number, InternalWatchEvent>();
 	const consumedIndexes = new Set<number>();
 
 	for (const { deleteCandidate, createCandidate } of pairs) {
 		consumedIndexes.add(deleteCandidate.index);
 		consumedIndexes.add(createCandidate.index);
 		renameByCreateIndex.set(createCandidate.index, {
-			type: "rename",
-			workspaceId: createCandidate.workspaceId,
+			kind: "rename",
 			oldAbsolutePath: deleteCandidate.absolutePath,
 			absolutePath: createCandidate.absolutePath,
 			isDirectory: createCandidate.isDirectory,
-			revision: createCandidate.revision,
 		});
 	}
 
-	const reconciled: WorkspaceFsWatchEvent[] = [];
+	const reconciled: InternalWatchEvent[] = [];
 	for (const [index, event] of events.entries()) {
 		const renameEvent = renameByCreateIndex.get(index);
 		if (renameEvent) {
@@ -282,41 +276,59 @@ export function reconcileRenameEvents(
 	return reconciled;
 }
 
-export interface WorkspaceFsWatcherManagerOptions {
+function internalToFsWatchEvent(event: InternalWatchEvent): FsWatchEvent {
+	return {
+		kind: event.kind,
+		absolutePath: event.absolutePath,
+		oldAbsolutePath: event.oldAbsolutePath,
+	};
+}
+
+function internalToSearchPatchEvent(
+	event: InternalWatchEvent,
+): SearchPatchEvent | null {
+	if (event.kind === "overflow") {
+		return null;
+	}
+	return {
+		kind: event.kind,
+		absolutePath: event.absolutePath,
+		oldAbsolutePath: event.oldAbsolutePath,
+		isDirectory: event.isDirectory,
+	};
+}
+
+export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
 }
 
-export class WorkspaceFsWatcherManager {
+export class FsWatcherManager {
 	private readonly debounceMs: number;
 	private readonly ignore: string[];
-	private readonly watchers = new Map<string, WorkspaceWatcherState>();
+	private readonly watchers = new Map<string, WatcherState>();
 
-	constructor(options: WorkspaceFsWatcherManagerOptions = {}) {
+	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
 		this.ignore = options.ignore ?? DEFAULT_IGNORE_PATTERNS;
 	}
 
 	async subscribe(
-		options: WorkspaceWatchSubscriptionOptions,
-		listener: WorkspaceWatchListener,
+		options: WatchPathOptions,
+		listener: WatchListener,
 	): Promise<() => Promise<void>> {
-		const rootPath = normalizeAbsolutePath(options.rootPath);
-		const key = this.getWatcherKey(options.workspaceId, rootPath);
-		let state = this.watchers.get(key);
+		const absolutePath = normalizeAbsolutePath(options.absolutePath);
+		let state = this.watchers.get(absolutePath);
 
 		if (!state) {
-			state = await this.createWatcher({
-				workspaceId: options.workspaceId,
-				rootPath,
-			});
-			this.watchers.set(key, state);
+			state = await this.createWatcher(absolutePath);
+			this.watchers.set(absolutePath, state);
 		}
 
 		state.listeners.add(listener);
 
 		return async () => {
-			const currentState = this.watchers.get(key);
+			const currentState = this.watchers.get(absolutePath);
 			if (!currentState) {
 				return;
 			}
@@ -332,7 +344,7 @@ export class WorkspaceFsWatcherManager {
 			}
 
 			await currentState.subscription.unsubscribe();
-			this.watchers.delete(key);
+			this.watchers.delete(absolutePath);
 		};
 	}
 
@@ -349,39 +361,28 @@ export class WorkspaceFsWatcherManager {
 		this.watchers.clear();
 	}
 
-	private getWatcherKey(workspaceId: string, rootPath: string): string {
-		return `${workspaceId}::${rootPath}`;
-	}
-
-	private async createWatcher(
-		options: WorkspaceWatchSubscriptionOptions,
-	): Promise<WorkspaceWatcherState> {
-		const state: WorkspaceWatcherState = {
-			workspaceId: options.workspaceId,
-			rootPath: normalizeAbsolutePath(options.rootPath),
-			revision: 0,
+	private async createWatcher(absolutePath: string): Promise<WatcherState> {
+		const state: WatcherState = {
+			absolutePath: normalizeAbsolutePath(absolutePath),
 			subscription: null as unknown as AsyncSubscription,
-			listeners: new Set<WorkspaceWatchListener>(),
+			listeners: new Set<WatchListener>(),
 			pathTypes: new Map<string, boolean>(),
 			pendingEvents: [],
 			flushTimer: null,
 		};
 
 		state.subscription = await subscribeToFilesystem(
-			state.rootPath,
+			state.absolutePath,
 			(error, events) => {
 				if (error) {
 					console.error("[workspace-fs/watch] Watcher error:", {
-						workspaceId: state.workspaceId,
-						rootPath: state.rootPath,
+						absolutePath: state.absolutePath,
 						error,
 					});
 					this.emit(state, {
-						type: "overflow",
-						workspaceId: state.workspaceId,
-						revision: this.nextRevision(state),
+						events: [{ kind: "overflow", absolutePath: state.absolutePath }],
 					});
-					invalidateSearchIndexesForRoot(state.rootPath);
+					invalidateSearchIndexesForRoot(state.absolutePath);
 					return;
 				}
 
@@ -414,7 +415,7 @@ export class WorkspaceFsWatcherManager {
 	}
 
 	private async flushPendingEvents(
-		state: WorkspaceWatcherState,
+		state: WatcherState,
 		events: ParcelWatcherEvent[],
 	): Promise<void> {
 		if (events.length === 0) {
@@ -426,21 +427,24 @@ export class WorkspaceFsWatcherManager {
 			return;
 		}
 
-		const normalizedEvents = await Promise.all(
+		const internalEvents = await Promise.all(
 			coalescedEvents.map((event) => this.normalizeEvent(state, event)),
 		);
-		const reconciledEvents = reconcileRenameEvents(normalizedEvents);
-		patchSearchIndexesForRoot(state.rootPath, reconciledEvents);
+		const reconciledEvents = reconcileRenameEvents(internalEvents);
 
-		for (const normalizedEvent of reconciledEvents) {
-			this.emit(state, normalizedEvent);
-		}
+		const searchPatchEvents = reconciledEvents
+			.map(internalToSearchPatchEvent)
+			.filter((e): e is SearchPatchEvent => e !== null);
+		patchSearchIndexesForRoot(state.absolutePath, searchPatchEvents);
+
+		const publicEvents = reconciledEvents.map(internalToFsWatchEvent);
+		this.emit(state, { events: publicEvents });
 	}
 
 	private async normalizeEvent(
-		state: WorkspaceWatcherState,
+		state: WatcherState,
 		event: ParcelWatcherEvent,
-	): Promise<WorkspaceFsWatchEvent> {
+	): Promise<InternalWatchEvent> {
 		const absolutePath = normalizeAbsolutePath(event.path);
 		let isDirectory = state.pathTypes.get(absolutePath) ?? false;
 
@@ -457,77 +461,15 @@ export class WorkspaceFsWatcherManager {
 		}
 
 		return {
-			type: event.type,
-			workspaceId: state.workspaceId,
+			kind: event.type,
 			absolutePath,
 			isDirectory,
-			revision: this.nextRevision(state),
 		};
 	}
 
-	private nextRevision(state: WorkspaceWatcherState): number {
-		state.revision += 1;
-		return state.revision;
-	}
-
-	private emit(
-		state: WorkspaceWatcherState,
-		event: WorkspaceFsWatchEvent,
-	): void {
+	private emit(state: WatcherState, batch: { events: FsWatchEvent[] }): void {
 		for (const listener of state.listeners) {
-			listener(event);
+			listener(batch);
 		}
 	}
-}
-
-export function toFileSystemChangeEvent(
-	event: WorkspaceFsWatchEvent,
-	rootPath: string,
-):
-	| {
-			type: "create" | "update" | "delete";
-			absolutePath: string;
-			relativePath: string;
-			isDirectory: boolean;
-			revision: number;
-	  }
-	| {
-			type: "rename";
-			oldAbsolutePath: string;
-			absolutePath: string;
-			oldRelativePath: string;
-			relativePath: string;
-			isDirectory: boolean;
-			revision: number;
-	  }
-	| {
-			type: "overflow";
-			revision: number;
-	  } {
-	if (event.type === "overflow") {
-		return {
-			type: "overflow",
-			revision: event.revision,
-		};
-	}
-
-	if (event.type === "rename") {
-		return {
-			type: "rename",
-			oldAbsolutePath: event.oldAbsolutePath,
-			absolutePath: event.absolutePath,
-			oldRelativePath: toRelativePath(rootPath, event.oldAbsolutePath),
-			relativePath: toRelativePath(rootPath, event.absolutePath),
-			isDirectory: event.isDirectory,
-			revision: event.revision,
-		};
-	}
-
-	return {
-		type: event.type,
-		absolutePath: event.absolutePath,
-		relativePath: toRelativePath(rootPath, event.absolutePath),
-		isDirectory: event.isDirectory,
-		revision: event.revision,
-	};
 }

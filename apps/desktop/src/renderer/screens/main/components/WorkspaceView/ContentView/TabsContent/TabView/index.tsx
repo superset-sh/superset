@@ -15,6 +15,7 @@ import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
+	getPaneIdSetForTab,
 } from "renderer/stores/tabs/utils";
 import { useTheme } from "renderer/stores/theme";
 import { BrowserPane } from "./BrowserPane";
@@ -23,6 +24,8 @@ import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
+
+export const MOSAIC_ID = "superset-mosaic";
 
 interface TabViewProps {
 	tab: Tab;
@@ -107,11 +110,30 @@ export function TabView({ tab }: TabViewProps) {
 			const freshTab = state.tabs.find((t) => t.id === tab.id);
 			const freshPanes = state.panes;
 
+			// Strip panes from the layout that no longer belong to this tab.
+			// This prevents Mosaic's drag-end "reset" from re-adding panes that
+			// were moved to another tab (e.g., via movePaneToNewTab).
+			const ownPaneIds = getPaneIdSetForTab(freshPanes, tab.id);
+			const sanitizedLayout = cleanLayout(newLayout, ownPaneIds);
+			if (!sanitizedLayout) return;
+
+			if (
+				process.env.NODE_ENV === "development" &&
+				sanitizedLayout !== newLayout
+			) {
+				console.warn(
+					"[TabView] Sanitized foreign panes from layout:",
+					extractPaneIdsFromLayout(newLayout).filter(
+						(id) => !ownPaneIds.has(id),
+					),
+				);
+			}
+
 			// Use fresh tab layout to determine what panes were removed
 			const oldPaneIds = extractPaneIdsFromLayout(
-				freshTab?.layout ?? newLayout,
+				freshTab?.layout ?? sanitizedLayout,
 			);
-			const newPaneIds = extractPaneIdsFromLayout(newLayout);
+			const newPaneIds = extractPaneIdsFromLayout(sanitizedLayout);
 
 			// Find removed panes (e.g., from Mosaic close button)
 			const removedPaneIds = oldPaneIds.filter(
@@ -119,16 +141,14 @@ export function TabView({ tab }: TabViewProps) {
 			);
 
 			// Remove panes that were removed via Mosaic UI
-			// But skip panes that were moved to another tab (their tabId changed)
 			for (const removedId of removedPaneIds) {
 				const pane = freshPanes[removedId];
-				// Only remove if pane still belongs to this tab (actual removal, not move)
 				if (pane && pane.tabId === tab.id) {
 					removePane(removedId);
 				}
 			}
 
-			updateTabLayout(tab.id, newLayout);
+			updateTabLayout(tab.id, sanitizedLayout);
 		},
 		[tab.id, updateTabLayout, removePane],
 	);
@@ -270,6 +290,7 @@ export function TabView({ tab }: TabViewProps) {
 	return (
 		<div className="relative w-full h-full mosaic-container">
 			<Mosaic<string>
+				mosaicId={MOSAIC_ID}
 				renderTile={renderPane}
 				value={cleanedLayout}
 				onChange={handleLayoutChange}

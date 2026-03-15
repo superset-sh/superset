@@ -438,6 +438,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							for (const line of remoteBranchInfo.trim().split("\n")) {
 								if (!line) continue;
 								const lastSpaceIdx = line.lastIndexOf(" ");
+								if (lastSpaceIdx <= 0) continue;
 								let branch = line.substring(0, lastSpaceIdx);
 								const timestamp = Number.parseInt(
 									line.substring(lastSpaceIdx + 1),
@@ -448,7 +449,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 									branch = branch.replace("origin/", "");
 								}
 
-								if (branch === "HEAD") continue;
+								if (!branch || branch === "HEAD") continue;
 
 								branchMap.set(branch, {
 									lastCommitDate: timestamp * 1000,
@@ -478,13 +479,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						for (const line of localBranchInfo.trim().split("\n")) {
 							if (!line) continue;
 							const lastSpaceIdx = line.lastIndexOf(" ");
+							if (lastSpaceIdx <= 0) continue;
 							const branch = line.substring(0, lastSpaceIdx);
 							const timestamp = Number.parseInt(
 								line.substring(lastSpaceIdx + 1),
 								10,
 							);
 
-							if (branch === "HEAD") continue;
+							if (!branch || branch === "HEAD") continue;
 
 							if (!branchMap.has(branch)) {
 								branchMap.set(branch, {
@@ -602,6 +604,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							for (const line of remoteBranchInfo.trim().split("\n")) {
 								if (!line) continue;
 								const lastSpaceIdx = line.lastIndexOf(" ");
+								if (lastSpaceIdx <= 0) continue;
 								let branch = line.substring(0, lastSpaceIdx);
 								const timestamp = Number.parseInt(
 									line.substring(lastSpaceIdx + 1),
@@ -613,7 +616,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 									branch = branch.replace("origin/", "");
 								}
 
-								if (branch === "HEAD") continue;
+								if (!branch || branch === "HEAD") continue;
 
 								branchMap.set(branch, {
 									lastCommitDate: timestamp * 1000,
@@ -643,13 +646,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						for (const line of localBranchInfo.trim().split("\n")) {
 							if (!line) continue;
 							const lastSpaceIdx = line.lastIndexOf(" ");
+							if (lastSpaceIdx <= 0) continue;
 							const branch = line.substring(0, lastSpaceIdx);
 							const timestamp = Number.parseInt(
 								line.substring(lastSpaceIdx + 1),
 								10,
 							);
 
-							if (branch === "HEAD") continue;
+							if (!branch || branch === "HEAD") continue;
 
 							// Only add if not already in map (remote takes precedence for date)
 							if (!branchMap.has(branch)) {

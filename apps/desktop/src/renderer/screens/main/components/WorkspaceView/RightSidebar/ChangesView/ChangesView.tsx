@@ -349,21 +349,32 @@ export function ChangesView({
 				}
 
 				if (pending.invalidateSelectedFile && selectedFileState) {
+					const oldAbsPath = selectedFileState.file.oldPath
+						? toAbsoluteWorkspacePath(
+								worktreePath,
+								selectedFileState.file.oldPath,
+							)
+						: undefined;
 					invalidations.push(
-						trpcUtils.changes.getFileContents.invalidate({
+						trpcUtils.changes.getGitFileContents.invalidate({
 							worktreePath,
 							absolutePath: selectedFileState.absolutePath,
-							oldAbsolutePath: selectedFileState.file.oldPath
-								? toAbsoluteWorkspacePath(
-										worktreePath,
-										selectedFileState.file.oldPath,
-									)
-								: undefined,
-							category: selectedFileState.category,
-							commitHash: selectedFileState.commitHash ?? undefined,
-							defaultBranch: effectiveBaseBranch,
+							oldAbsolutePath: oldAbsPath,
+						}),
+						trpcUtils.changes.getGitOriginalContent.invalidate({
+							worktreePath,
+							absolutePath: selectedFileState.absolutePath,
+							oldAbsolutePath: oldAbsPath,
 						}),
 					);
+					if (workspaceId) {
+						invalidations.push(
+							trpcUtils.filesystem.readFile.invalidate({
+								workspaceId,
+								absolutePath: selectedFileState.absolutePath,
+							}),
+						);
+					}
 				}
 
 				Promise.all(invalidations).catch((error) => {

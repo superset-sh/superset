@@ -12,5 +12,7 @@ declare module "bun:test" {
 		toContain(expected: unknown): void;
 		toEqual(expected: unknown): void;
 		toHaveLength(expected: number): void;
+		toBeNull(): void;
+		toBeTruthy(): void;
 	};
 }

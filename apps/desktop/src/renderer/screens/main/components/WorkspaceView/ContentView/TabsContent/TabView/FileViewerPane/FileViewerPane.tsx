@@ -70,7 +70,6 @@ export function FileViewerPane({
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
 	const { workspaceId } = useParams({ strict: false });
-	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
@@ -87,6 +86,7 @@ export function FileViewerPane({
 	const originalContentRef = useRef<string>("");
 	const draftContentRef = useRef<string | null>(null);
 	const originalDiffContentRef = useRef<string>("");
+	const revisionRef = useRef<string>("");
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
 	const [saveConflict, setSaveConflict] = useState<{
@@ -115,7 +115,7 @@ export function FileViewerPane({
 	});
 
 	const { handleSaveRaw, isSaving } = useFileSave({
-		worktreePath,
+		workspaceId,
 		filePath,
 		paneId,
 		diffCategory,
@@ -123,6 +123,7 @@ export function FileViewerPane({
 		originalContentRef,
 		originalDiffContentRef,
 		draftContentRef,
+		revisionRef,
 		setIsDirty,
 	});
 
@@ -134,6 +135,7 @@ export function FileViewerPane({
 		diffData,
 		isLoadingDiff,
 	} = useFileContent({
+		workspaceId,
 		worktreePath,
 		filePath,
 		viewMode,
@@ -143,12 +145,12 @@ export function FileViewerPane({
 		isDirty,
 		originalContentRef,
 		originalDiffContentRef,
+		revisionRef,
 	});
 	const absoluteFilePath = useMemo(
 		() => toAbsoluteWorkspacePath(worktreePath, filePath),
 		[worktreePath, filePath],
 	);
-	const isImage = useMemo(() => isImageFile(filePath), [filePath]);
 	const hasExternalDiskChange =
 		isDirty &&
 		viewMode === "raw" &&
@@ -157,30 +159,30 @@ export function FileViewerPane({
 			(rawFileData?.ok === false && rawFileData.reason === "not-found"));
 
 	const invalidateCurrentFile = useCallback(() => {
-		if (!worktreePath || !filePath) {
+		if (!filePath) {
 			return;
 		}
 
 		const invalidations: Promise<unknown>[] = [];
 		if (viewMode === "diff") {
 			invalidations.push(
-				trpcUtils.changes.getFileContents.invalidate({
+				trpcUtils.changes.getGitFileContents.invalidate({
+					worktreePath,
+					absolutePath: absoluteFilePath,
+					oldAbsolutePath: oldPath,
+				}),
+				trpcUtils.changes.getGitOriginalContent.invalidate({
 					worktreePath,
 					absolutePath: absoluteFilePath,
 					oldAbsolutePath: oldPath,
 				}),
 			);
-		} else if (viewMode === "rendered" && isImage) {
+		}
+
+		if (workspaceId) {
 			invalidations.push(
-				trpcUtils.changes.readWorkingFileImage.invalidate({
-					worktreePath,
-					absolutePath: absoluteFilePath,
-				}),
-			);
-		} else {
-			invalidations.push(
-				trpcUtils.changes.readWorkingFile.invalidate({
-					worktreePath,
+				trpcUtils.filesystem.readFile.invalidate({
+					workspaceId,
 					absolutePath: absoluteFilePath,
 				}),
 			);
@@ -188,7 +190,6 @@ export function FileViewerPane({
 
 		Promise.all(invalidations).catch((error) => {
 			console.error("[FileViewerPane] Failed to invalidate file queries:", {
-				worktreePath,
 				absolutePath: absoluteFilePath,
 				error,
 			});
@@ -196,10 +197,10 @@ export function FileViewerPane({
 	}, [
 		absoluteFilePath,
 		filePath,
-		isImage,
 		oldPath,
 		trpcUtils,
 		viewMode,
+		workspaceId,
 		worktreePath,
 	]);
 
@@ -230,7 +231,6 @@ export function FileViewerPane({
 		setSaveConflict(null);
 	}, [filePath]);
 
-	// Auto-pin when user makes edits (converts preview to pinned)
 	useEffect(() => {
 		if (isDirty && !isPinned) {
 			pinPane(paneId);

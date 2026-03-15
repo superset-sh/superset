@@ -142,7 +142,9 @@ export function ProjectSettings({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleIconUpload = useCallback(() => {
-		fileInputRef.current?.click();
+		if (!fileInputRef.current) return;
+		fileInputRef.current.value = "";
+		fileInputRef.current.click();
 	}, []);
 
 	const handleFileChange = useCallback(

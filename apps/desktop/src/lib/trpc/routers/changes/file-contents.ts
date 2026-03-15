@@ -1,83 +1,22 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
-import { getImageMimeType } from "shared/file-types";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { toRegisteredWorktreeRelativePath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
-import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
-/** Maximum file size for reading (2 MiB) */
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
-/** Maximum image file size (10 MiB) */
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-
-/** Bytes to scan for binary detection */
-const BINARY_CHECK_SIZE = 8192;
-
-type ReadWorkingFileResult =
-	| { ok: true; content: string; truncated: boolean; byteLength: number }
-	| {
-			ok: false;
-			reason: "not-found" | "too-large" | "binary" | "is-directory";
-	  };
-
-type ReadWorkingFileImageResult =
-	| { ok: true; dataUrl: string; byteLength: number }
-	| {
-			ok: false;
-			reason: "not-found" | "too-large" | "not-image" | "is-directory";
-	  };
-
-type SaveFileResult =
-	| { status: "saved" }
-	| { status: "conflict"; currentContent: string | null };
-
-function isEisdir(error: unknown): boolean {
-	return error instanceof Error && "code" in error && error.code === "EISDIR";
-}
-
-function isBinaryContent(buffer: Buffer): boolean {
-	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
-	for (let i = 0; i < checkLength; i++) {
-		if (buffer[i] === 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/** Path-based file read with size cap — no workspace scoping. */
-async function readFileBufferUpTo(
-	absolutePath: string,
-	maxBytes: number,
-): Promise<{ buffer: Buffer; exceededLimit: boolean }> {
-	const handle = await fs.open(absolutePath, "r");
-	try {
-		const buf = Buffer.alloc(maxBytes + 1);
-		const { bytesRead } = await handle.read(buf, 0, maxBytes + 1, 0);
-		if (bytesRead > maxBytes) {
-			return { buffer: buf.subarray(0, maxBytes), exceededLimit: true };
-		}
-		return { buffer: buf.subarray(0, bytesRead), exceededLimit: false };
-	} finally {
-		await handle.close();
-	}
-}
 
 export const createFileContentsRouter = () => {
 	return router({
-		getFileContents: publicProcedure
+		getGitFileContents: publicProcedure
 			.input(
 				z.object({
 					worktreePath: z.string(),
 					absolutePath: z.string(),
 					oldAbsolutePath: z.string().optional(),
-					category: z.enum(["against-base", "committed", "staged", "unstaged"]),
+					category: z.enum(["against-base", "committed", "staged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
 				}),
@@ -96,9 +35,8 @@ export const createFileContentsRouter = () => {
 						)
 					: filePath;
 
-				const { original, modified } = await getFileVersions(
+				const versions = await getGitOnlyVersions(
 					git,
-					input.worktreePath,
 					filePath,
 					originalPath,
 					input.category,
@@ -107,130 +45,50 @@ export const createFileContentsRouter = () => {
 				);
 
 				return {
-					original,
-					modified,
+					original: versions.original,
+					modified: versions.modified,
 					language: detectLanguage(input.absolutePath),
 				};
 			}),
 
-		saveFile: publicProcedure
+		getGitOriginalContent: publicProcedure
 			.input(
 				z.object({
 					worktreePath: z.string(),
 					absolutePath: z.string(),
-					content: z.string(),
-					expectedContent: z.string().optional(),
+					oldAbsolutePath: z.string().optional(),
 				}),
 			)
-			.mutation(async ({ input }): Promise<SaveFileResult> => {
-				if (input.expectedContent !== undefined) {
-					let currentContent: string | null = null;
-					try {
-						currentContent = await fs.readFile(input.absolutePath, "utf-8");
-					} catch {
-						// File doesn't exist yet
-					}
-					if (
-						currentContent !== null &&
-						currentContent !== input.expectedContent
-					) {
-						return { status: "conflict", currentContent };
-					}
-				}
+			.query(async ({ input }): Promise<{ content: string }> => {
+				const git = await getSimpleGitWithShellPath(input.worktreePath);
+				const originalPath = input.oldAbsolutePath
+					? toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.oldAbsolutePath,
+						)
+					: toRegisteredWorktreeRelativePath(
+							input.worktreePath,
+							input.absolutePath,
+						);
 
-				await fs.writeFile(input.absolutePath, input.content, "utf-8");
-				clearStatusCacheForWorktree(input.worktreePath);
-				return { status: "saved" };
-			}),
-
-		readWorkingFile: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					absolutePath: z.string(),
-				}),
-			)
-			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
-				try {
-					const result = await readFileBufferUpTo(
-						input.absolutePath,
-						MAX_FILE_SIZE,
-					);
-
-					if (result.exceededLimit) {
-						return { ok: false, reason: "too-large" };
-					}
-
-					if (isBinaryContent(result.buffer)) {
-						return { ok: false, reason: "binary" };
-					}
-
-					return {
-						ok: true,
-						content: result.buffer.toString("utf-8"),
-						truncated: false,
-						byteLength: result.buffer.length,
-					};
-				} catch (error) {
-					if (isEisdir(error)) {
-						return { ok: false, reason: "is-directory" };
-					}
-					return { ok: false, reason: "not-found" };
-				}
-			}),
-
-		readWorkingFileImage: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					absolutePath: z.string(),
-				}),
-			)
-			.query(async ({ input }): Promise<ReadWorkingFileImageResult> => {
-				const mimeType = getImageMimeType(input.absolutePath);
-				if (!mimeType) {
-					return { ok: false, reason: "not-image" };
-				}
-
-				try {
-					const result = await readFileBufferUpTo(
-						input.absolutePath,
-						MAX_IMAGE_SIZE,
-					);
-
-					if (result.exceededLimit) {
-						return { ok: false, reason: "too-large" };
-					}
-
-					const base64 = result.buffer.toString("base64");
-					return {
-						ok: true,
-						dataUrl: `data:${mimeType};base64,${base64}`,
-						byteLength: result.buffer.length,
-					};
-				} catch (error) {
-					if (isEisdir(error)) {
-						return { ok: false, reason: "is-directory" };
-					}
-					return { ok: false, reason: "not-found" };
-				}
+				const staged = await safeGitShow(git, `:0:${originalPath}`);
+				const content =
+					staged ?? (await safeGitShow(git, `HEAD:${originalPath}`));
+				return { content: content ?? "" };
 			}),
 	});
 };
-
-type DiffCategory = "against-base" | "committed" | "staged" | "unstaged";
 
 interface FileVersions {
 	original: string;
 	modified: string;
 }
 
-async function getFileVersions(
+async function getGitOnlyVersions(
 	git: SimpleGit,
-	worktreePath: string,
 	filePath: string,
 	originalPath: string,
-	category: DiffCategory,
+	category: "against-base" | "committed" | "staged",
 	defaultBranch: string,
 	commitHash?: string,
 ): Promise<FileVersions> {
@@ -246,31 +104,27 @@ async function getFileVersions(
 
 		case "staged":
 			return getStagedVersions(git, filePath, originalPath);
-
-		case "unstaged":
-			return getUnstagedVersions(git, worktreePath, filePath, originalPath);
 	}
 }
 
-/** Helper to safely get git show content with size limit and memory protection */
-async function safeGitShow(git: SimpleGit, spec: string): Promise<string> {
+async function safeGitShow(
+	git: SimpleGit,
+	spec: string,
+): Promise<string | null> {
 	try {
-		// Preflight: check blob size before loading into memory
-		// This prevents memory spikes from large files in git history
+		// Guard against memory spikes from large blobs in git history
 		try {
 			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
 			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
 			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
 				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 			}
-		} catch {
-			// cat-file failed (blob doesn't exist) - let git.show handle the error
-		}
+		} catch {}
 
 		const content = await git.show([spec]);
 		return content;
 	} catch {
-		return "";
+		return null;
 	}
 }
 
@@ -285,7 +139,7 @@ async function getAgainstBaseVersions(
 		safeGitShow(git, `HEAD:${filePath}`),
 	]);
 
-	return { original, modified };
+	return { original: original ?? "", modified: modified ?? "" };
 }
 
 async function getCommittedVersions(
@@ -299,7 +153,7 @@ async function getCommittedVersions(
 		safeGitShow(git, `${commitHash}:${filePath}`),
 	]);
 
-	return { original, modified };
+	return { original: original ?? "", modified: modified ?? "" };
 }
 
 async function getStagedVersions(
@@ -312,34 +166,5 @@ async function getStagedVersions(
 		safeGitShow(git, `:0:${filePath}`),
 	]);
 
-	return { original, modified };
-}
-
-async function getUnstagedVersions(
-	git: SimpleGit,
-	worktreePath: string,
-	filePath: string,
-	originalPath: string,
-): Promise<FileVersions> {
-	// Try staged version first, fall back to HEAD
-	let original = await safeGitShow(git, `:0:${originalPath}`);
-	if (!original) {
-		original = await safeGitShow(git, `HEAD:${originalPath}`);
-	}
-
-	let modified = "";
-	try {
-		const absolutePath = path.resolve(worktreePath, filePath);
-		const result = await readFileBufferUpTo(absolutePath, MAX_FILE_SIZE);
-
-		if (result.exceededLimit) {
-			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
-		} else {
-			modified = result.buffer.toString("utf-8");
-		}
-	} catch {
-		modified = "";
-	}
-
-	return { original, modified };
+	return { original: original ?? "", modified: modified ?? "" };
 }

@@ -1,7 +1,8 @@
 import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
@@ -19,6 +20,8 @@ import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -76,6 +79,7 @@ export function FileDiffSection({
 	onDiscard,
 	isActioning = false,
 }: FileDiffSectionProps) {
+	const { workspaceId } = useParams({ strict: false });
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const {
@@ -99,11 +103,23 @@ export function FileDiffSection({
 	const baselineContentRef = useRef("");
 	const editedContentRef = useRef<string | null>(null);
 
+	const absolutePath = useMemo(
+		() => toAbsoluteWorkspacePath(worktreePath, file.path),
+		[worktreePath, file.path],
+	);
+	const oldAbsolutePath = useMemo(
+		() =>
+			file.oldPath
+				? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
+				: undefined,
+		[worktreePath, file.oldPath],
+	);
+
 	const { isEditing, editable, isSaving, toggleEdit, handleSave } =
 		useFileDiffEdit({
 			category,
-			worktreePath,
-			absolutePath: toAbsoluteWorkspacePath(worktreePath, file.path),
+			workspaceId,
+			absolutePath,
 		});
 
 	const totalChanges = file.additions + file.deletions;
@@ -231,22 +247,73 @@ export function FileDiffSection({
 	const shouldLoadDiff =
 		canShowDiffBody && hasBeenVisible && (isInLoadRange || isEditing);
 
-	const { data: diffData, isLoading: isLoadingDiff } =
-		electronTrpc.changes.getFileContents.useQuery(
+	const isUnstaged = category === "unstaged";
+
+	const { data: gitDiffData, isLoading: isLoadingGitDiff } =
+		electronTrpc.changes.getGitFileContents.useQuery(
 			{
 				worktreePath,
-				absolutePath: toAbsoluteWorkspacePath(worktreePath, file.path),
-				oldAbsolutePath: file.oldPath
-					? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
-					: undefined,
-				category,
+				absolutePath,
+				oldAbsolutePath: oldAbsolutePath,
+				category:
+					(category as "against-base" | "committed" | "staged") ?? "staged",
 				commitHash,
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
-				enabled: shouldLoadDiff,
+				enabled: !isUnstaged && shouldLoadDiff,
 			},
 		);
+
+	const { data: gitOriginal, isLoading: isLoadingGitOriginal } =
+		electronTrpc.changes.getGitOriginalContent.useQuery(
+			{
+				worktreePath,
+				absolutePath,
+				oldAbsolutePath: oldAbsolutePath,
+			},
+			{
+				enabled: isUnstaged && shouldLoadDiff,
+			},
+		);
+
+	const { data: workingCopy, isLoading: isLoadingWorkingCopy } =
+		electronTrpc.filesystem.readFile.useQuery(
+			{
+				workspaceId: workspaceId ?? "",
+				absolutePath,
+				encoding: "utf-8",
+				maxBytes: MAX_FILE_SIZE,
+			},
+			{
+				enabled: isUnstaged && shouldLoadDiff && !!workspaceId,
+			},
+		);
+
+	const diffData = useMemo(() => {
+		if (!isUnstaged) return gitDiffData;
+		if (gitOriginal) {
+			let modifiedContent = "";
+			if (workingCopy) {
+				if (workingCopy.exceededLimit) {
+					modifiedContent = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+				} else {
+					modifiedContent = workingCopy.content as string;
+				}
+			}
+			return {
+				original: gitOriginal.content,
+				modified: modifiedContent,
+				language: detectLanguage(file.path),
+			};
+		}
+		return undefined;
+	}, [isUnstaged, gitDiffData, gitOriginal, workingCopy, file.path]);
+
+	const isLoadingDiff = isUnstaged
+		? isLoadingGitOriginal || isLoadingWorkingCopy
+		: isLoadingGitDiff;
+
 	const hasRenderedDiff = canShowDiffBody && !!diffData;
 	const modifiedDiffContent = diffData?.modified;
 

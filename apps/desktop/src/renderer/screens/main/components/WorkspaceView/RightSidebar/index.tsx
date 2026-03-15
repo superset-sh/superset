@@ -105,25 +105,31 @@ export function RightSidebar() {
 
 	const invalidateFileContent = useCallback(
 		(absolutePath: string) => {
-			if (!worktreePath) return;
-
-			Promise.all([
-				trpcUtils.changes.readWorkingFile.invalidate({
-					worktreePath,
-					absolutePath,
-				}),
-				trpcUtils.changes.getFileContents.invalidate({
-					worktreePath,
-					absolutePath,
-				}),
-			]).catch((error) => {
+			const invalidations: Promise<unknown>[] = [];
+			if (workspaceId) {
+				invalidations.push(
+					trpcUtils.filesystem.readFile.invalidate({
+						workspaceId,
+						absolutePath,
+					}),
+				);
+			}
+			if (worktreePath) {
+				invalidations.push(
+					trpcUtils.changes.getGitFileContents.invalidate({
+						worktreePath,
+						absolutePath,
+					}),
+				);
+			}
+			Promise.all(invalidations).catch((error) => {
 				console.error(
 					"[RightSidebar/invalidateFileContent] Failed to invalidate file content queries:",
-					{ worktreePath, absolutePath, error },
+					{ absolutePath, error },
 				);
 			});
 		},
-		[worktreePath, trpcUtils],
+		[workspaceId, worktreePath, trpcUtils],
 	);
 
 	const handleFileOpenPane = useCallback(

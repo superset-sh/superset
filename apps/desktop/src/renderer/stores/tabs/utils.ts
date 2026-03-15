@@ -405,6 +405,13 @@ export const getPaneIdsForTab = (
 		.map((pane) => pane.id);
 };
 
+export const getPaneIdSetForTab = (
+	panes: Record<string, Pane>,
+	tabId: string,
+): Set<string> => {
+	return new Set(getPaneIdsForTab(panes, tabId));
+};
+
 /**
  * Checks if a tab has only one pane remaining
  */

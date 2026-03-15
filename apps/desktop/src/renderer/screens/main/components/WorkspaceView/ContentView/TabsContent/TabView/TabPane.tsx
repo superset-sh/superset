@@ -10,7 +10,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
-import { BasePaneWindow, PaneToolbarActions } from "./components";
+import { BasePaneWindow, PaneTitle, PaneToolbarActions } from "./components";
 
 interface TabPaneProps {
 	paneId: string;
@@ -58,6 +58,7 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 
@@ -100,9 +101,11 @@ export function TabPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
-						<span className="truncate text-sm text-muted-foreground">
-							{paneName || "Terminal"}
-						</span>
+						<PaneTitle
+							name={paneName ?? ""}
+							fallback="Terminal"
+							onRename={(newName) => setPaneName(paneId, newName)}
+						/>
 						{paneStatus && paneStatus !== "idle" && (
 							<StatusIndicator status={paneStatus} />
 						)}
