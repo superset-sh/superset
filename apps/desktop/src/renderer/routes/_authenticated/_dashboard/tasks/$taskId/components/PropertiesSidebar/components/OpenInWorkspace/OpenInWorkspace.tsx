@@ -25,7 +25,8 @@ import {
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
-import { useEffect, useState } from "react";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useEffect, useMemo, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -34,8 +35,10 @@ import {
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
+import { resolveInProgressStatus } from "../../../../../utils/resolveInProgressStatus";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
@@ -50,8 +53,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const isDark = useIsDarkTheme();
+	const collections = useCollections();
 	const selectableAgents =
 		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
+
+	const { data: allStatuses } = useLiveQuery(
+		(q) => q.from({ taskStatuses: collections.taskStatuses }),
+		[collections],
+	);
+	const inProgressStatus = useMemo(
+		() => resolveInProgressStatus(allStatuses ?? []),
+		[allStatuses],
+	);
+
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
@@ -168,6 +182,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						description: launchResult.error ?? "Failed to start agent session.",
 					});
 					return;
+				}
+			}
+
+			if (inProgressStatus && task.statusId !== inProgressStatus.id) {
+				try {
+					collections.tasks.update(task.id, (draft) => {
+						draft.statusId = inProgressStatus.id;
+					});
+				} catch (statusErr) {
+					console.error(
+						"[OpenInWorkspace] Failed to update task status:",
+						statusErr,
+					);
 				}
 			}
 
