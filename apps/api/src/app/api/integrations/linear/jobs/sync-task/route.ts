@@ -86,7 +86,7 @@ async function resolveLinearAssigneeId(
 
 async function syncTaskToLinear(
 	task: SelectTask,
-	teamId: string,
+	teamId: string | null,
 ): Promise<{
 	success: boolean;
 	externalId?: string;
@@ -109,13 +109,29 @@ async function syncTaskToLinear(
 			return { success: false, error: "Task status not found" };
 		}
 
-		const stateId = await findLinearState(client, teamId, taskStatus.name);
-
 		if (task.externalProvider === "linear" && task.externalId) {
-			// Resolve assignee for Linear
-			let linearAssigneeId: string | null | undefined; // undefined = don't change
+			if (task.deletedAt) {
+				await client.archiveIssue(task.externalId);
+				await db
+					.update(tasks)
+					.set({
+						lastSyncedAt: new Date(),
+						syncError: null,
+					})
+					.where(eq(tasks.id, task.id));
+				return { success: true, externalId: task.externalId };
+			}
+
+			const existingIssue = await client.issue(task.externalId);
+			const issueTeam = await existingIssue.team;
+			const resolvedUpdateTeamId = issueTeam?.id;
+
+			const stateId = resolvedUpdateTeamId
+				? await findLinearState(client, resolvedUpdateTeamId, taskStatus.name)
+				: undefined;
+
+			let linearAssigneeId: string | null | undefined;
 			if (task.assigneeId === null && !task.assigneeExternalId) {
-				// Explicitly unassign (only when no external assignee exists)
 				linearAssigneeId = null;
 			} else if (task.assigneeId) {
 				linearAssigneeId =
@@ -161,7 +177,12 @@ async function syncTaskToLinear(
 			};
 		}
 
-		// Resolve assignee for Linear (create)
+		if (!teamId) {
+			return { success: false, error: "No team configured" };
+		}
+
+		const stateId = await findLinearState(client, teamId, taskStatus.name);
+
 		const createAssigneeId = task.assigneeId
 			? await resolveLinearAssigneeId(
 					client,
@@ -225,14 +246,11 @@ export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("upstash-signature");
 
-	// Skip signature verification in development (QStash can't reach localhost)
-	const isDev = env.NODE_ENV === "development";
+	if (!signature) {
+		return Response.json({ error: "Missing signature" }, { status: 401 });
+	}
 
-	if (!isDev) {
-		if (!signature) {
-			return Response.json({ error: "Missing signature" }, { status: 401 });
-		}
-
+	try {
 		const isValid = await receiver.verify({
 			body,
 			signature,
@@ -242,6 +260,12 @@ export async function POST(request: Request) {
 		if (!isValid) {
 			return Response.json({ error: "Invalid signature" }, { status: 401 });
 		}
+	} catch (verifyError) {
+		console.error("[sync-task] Signature verification failed:", verifyError);
+		return Response.json(
+			{ error: "Signature verification failed" },
+			{ status: 401 },
+		);
 	}
 
 	const parsed = payloadSchema.safeParse(JSON.parse(body));
@@ -261,9 +285,6 @@ export async function POST(request: Request) {
 
 	const resolvedTeamId =
 		teamId ?? (await getNewTasksTeamId(task.organizationId));
-	if (!resolvedTeamId) {
-		return Response.json({ error: "No team configured", skipped: true });
-	}
 
 	const result = await syncTaskToLinear(task, resolvedTeamId);
 
