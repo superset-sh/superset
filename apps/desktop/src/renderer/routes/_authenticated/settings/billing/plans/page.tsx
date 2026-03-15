@@ -12,6 +12,7 @@ import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import type { PlanTier } from "../constants";
 
 export const Route = createFileRoute("/_authenticated/settings/billing/plans/")(
@@ -308,7 +309,7 @@ function PlansPage() {
 					referenceId: activeOrgId,
 					annual: isYearly,
 					seats: memberCount,
-					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					successUrl: `${PROTOCOL_SCHEME}://settings/billing?success=true`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
 					returnUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,

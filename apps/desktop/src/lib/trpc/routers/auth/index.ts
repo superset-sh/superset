@@ -67,6 +67,24 @@ export const createAuthRouter = () => {
 		}),
 
 		/**
+		 * Subscribe to session refetch requests.
+		 * Fires when the app needs to refetch the session (e.g. after Stripe checkout deeplink).
+		 */
+		onSessionRefetch: publicProcedure.subscription(() => {
+			return observable<true>((emit) => {
+				const handler = () => {
+					emit.next(true);
+				};
+
+				authEvents.on("session-refetch", handler);
+
+				return () => {
+					authEvents.off("session-refetch", handler);
+				};
+			});
+		}),
+
+		/**
 		 * Start OAuth sign-in flow.
 		 * Opens browser for OAuth, token delivered via deep link on macOS
 		 * or localhost callback on Linux (where deep links are unreliable).
