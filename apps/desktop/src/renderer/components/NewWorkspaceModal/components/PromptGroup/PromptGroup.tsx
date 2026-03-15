@@ -257,7 +257,16 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 	};
 
 	return (
-		<div className="p-3 space-y-3">
+		<form
+			className="p-3 space-y-3"
+			onSubmit={(e) => e.preventDefault()}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+					e.preventDefault();
+					handleCreate();
+				}
+			}}
+		>
 			<Select
 				value={selectedAgent}
 				onValueChange={(value: WorkspaceCreateAgent) =>
@@ -299,12 +308,6 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 				placeholder="What do you want to do?"
 				value={prompt}
 				onChange={(e) => updateDraft({ prompt: e.target.value })}
-				onKeyDown={(e) => {
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-						e.preventDefault();
-						handleCreate();
-					}
-				}}
 			/>
 
 			<PromptGroupAdvancedOptions
@@ -348,6 +351,6 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 					</Kbd>
 				</KbdGroup>
 			</Button>
-		</div>
+		</form>
 	);
 }
