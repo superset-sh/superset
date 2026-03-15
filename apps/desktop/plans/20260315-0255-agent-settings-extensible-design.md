@@ -1,174 +1,52 @@
-# Agent Settings as Catalog + Local Overrides
+# Agent Settings End-State Design
 
-This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` should be updated as implementation proceeds.
-
-Reference branch: `kitenite/please-add-a-new-settings-sect`
+This ExecPlan describes the desired final implementation for desktop agent settings.
 
 
-## Purpose / Big Picture
+## Purpose
 
-Add a first-class desktop Agent settings section that lets users control:
+Desktop should expose a single Agent settings section that controls:
 
-1. which terminal agents appear in launcher dropdowns
-2. the command used when launching an agent without a task prompt
-3. the command used when launching an agent with a task prompt
+1. which agents appear in launcher dropdowns
+2. the command used for no-prompt launches
+3. the command used for prompt/task launches
 4. the task prompt template used by task-driven launch surfaces
 
-The correct implementation should be:
+The design must be:
 
-1. device-local, because agent binaries, flags, and safety posture are machine-specific
-2. centrally defined, so every launch surface compiles launch requests the same way
-3. extensible, so adding a new built-in agent or a new launch surface does not require touching persistence, migrations, UI, and command builders in multiple places
-4. side-effect free on read, so loading settings never mutates the database
-
-
-## Current State
-
-The current branch already introduces the core user-facing feature:
-
-1. a new settings route and UI under [AgentSettings.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/settings/agent/components/AgentSettings/AgentSettings.tsx)
-2. local SQLite storage for agent presets in [schema.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/packages/local-db/src/schema/schema.ts)
-3. Zod typing for agent presets in [zod.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/packages/local-db/src/schema/zod.ts)
-4. Electron tRPC procedures in [settings/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/lib/trpc/routers/settings/index.ts)
-5. shared launch builders and persisted launch preferences used by:
-   - [PromptGroup.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx)
-   - [OpenInWorkspace.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/PropertiesSidebar/components/OpenInWorkspace/OpenInWorkspace.tsx)
-   - [RunInWorkspacePopover.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/components/RunInWorkspacePopover/RunInWorkspacePopover.tsx)
-
-The recent refactor improved blast radius meaningfully by introducing:
-
-1. [agent-launch-request.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/shared/utils/agent-launch-request.ts)
-2. [useAgentLaunchPreferences.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/hooks/useAgentLaunchPreferences/useAgentLaunchPreferences.ts)
-
-That is a good incremental step, but it is still not the design I would consider final.
-
-
-## Problems With the Current Branch Design
-
-### 1. The persisted model stores full preset snapshots instead of overrides
-
-Today the branch persists a fully materialized `AgentPreset[]` plus an `agentPresetsInitialized` flag in local SQLite. That creates unnecessary coupling between:
-
-1. static built-in defaults
-2. persisted device-local changes
-3. initialization semantics
-
-This makes future changes awkward:
-
-1. changing a built-in default does not naturally flow to users who have no override for that field
-2. adding a new field requires touching initialization, normalization, and reset logic everywhere
-3. resetting to default means copying a full object back into storage instead of deleting the override
-
-### 2. Reads have hidden write behavior
-
-`getAgentPresets` currently initializes defaults on first read in [settings/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/lib/trpc/routers/settings/index.ts).
-
-That is a bad long-term contract because:
-
-1. queries should not mutate storage
-2. debugging becomes harder when simply opening settings changes local state
-3. tests need to account for initialization side effects rather than pure reads
-
-### 3. The settings UI saves field-by-field on blur
-
-The current UI in [AgentSettings.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/settings/agent/components/AgentSettings/AgentSettings.tsx) issues a mutation per field blur.
-
-That is serviceable, but it is not the best editor model for multi-field command configuration. These fields are interdependent:
-
-1. `command`
-2. `promptCommand`
-3. `promptCommandSuffix`
-4. `taskPromptTemplate`
-5. `enabled`
-
-Saving them one field at a time produces unnecessary mutation volume and awkward rollback logic.
-
-### 4. `superset-chat` is still implicitly tied to Claude defaults
-
-The current launch builder uses Claude’s template as the fallback for `superset-chat`. That works mechanically, but it is the wrong ownership boundary:
-
-1. `superset-chat` should own its own default task prompt contract
-2. changing Claude defaults should not implicitly change chat behavior
-
-### 5. Agent definition and agent override concerns are still mixed
-
-Today the system conceptually mixes:
-
-1. the built-in agent catalog
-2. the mutable per-device override state
-3. the resolved runtime preset
-4. the launch-request compiler
-
-Those should be separate layers.
+1. device-local
+2. centrally defined
+3. extensible
+4. pure on read
 
 
 ## Goals
 
-1. Make agent defaults declarative and centralized.
-2. Persist only device-local overrides, not duplicated defaults.
-3. Eliminate database writes during read paths.
-4. Make reset behavior remove overrides instead of re-copying defaults.
-5. Make all renderer launch surfaces depend on one launch-request builder layer.
-6. Make adding a new built-in agent a mostly catalog-only change.
-7. Make settings editing atomic at the card level.
-8. Keep implementation local to desktop and local SQLite. No cloud sync in this PR.
+1. Built-in agent defaults live in code, not in persisted rows.
+2. Local storage persists only user overrides.
+3. All launch surfaces use one launch-request builder layer.
+4. Settings editing is atomic per agent card.
+5. Reset removes overrides instead of rewriting defaults.
+6. Adding a new built-in agent is mostly a catalog change.
 
 
 ## Non-Goals
 
-1. User-defined arbitrary custom agents.
-2. Cross-device syncing of agent settings.
-3. Server-side launch orchestration changes.
-4. Replacing `superset-chat` itself.
-5. Designing a plugin system for external launchers.
+1. Syncing agent settings across devices
+2. User-defined arbitrary custom agents
+3. Server-side launch orchestration changes
+4. Plugin architecture for external launchers
 
 
-## Design Principles
+## Architecture
 
-### Principle 1: Device-local agent behavior stays local
+The system should have four layers.
 
-Agent launch commands frequently encode:
+### 1. Static Agent Catalog
 
-1. local binary names
-2. machine-specific flags
-3. user-specific safety posture
-4. local filesystem conventions
+Create a shared built-in catalog, e.g. `packages/shared/src/agent-catalog.ts`.
 
-These should remain in desktop local storage, not shared cloud state.
-
-### Principle 2: Persist deltas, not materialized defaults
-
-The system should store only what the user changed. Defaults belong in code.
-
-### Principle 3: Reads are pure
-
-`getAgentPresets()` should never write. The absence of overrides should be a valid state.
-
-### Principle 4: UI surfaces do not compile shell strings directly
-
-Every renderer surface should consume a central launch builder and hand it:
-
-1. selected agent
-2. source
-3. task or prompt input
-4. runtime preferences
-
-### Principle 5: Save units should reflect user intent
-
-Agent settings edits should be saved per agent card, not one field blur at a time.
-
-
-## Proposed Architecture
-
-The correct design is a four-layer model.
-
-### Layer 1: Static Agent Catalog
-
-Create a built-in catalog in shared code, for example:
-
-`packages/shared/src/agent-catalog.ts`
-
-Each catalog entry should describe immutable built-in behavior:
+Each entry should define:
 
 1. `id`
 2. `defaultLabel`
@@ -178,21 +56,14 @@ Each catalog entry should describe immutable built-in behavior:
 6. `defaultPromptCommandSuffix`
 7. `defaultTaskPromptTemplate`
 8. `defaultEnabled`
-9. `launchMode`
-10. `supportsTaskPrompt`
-11. `supportsNoPromptLaunch`
+9. `supportsTaskPrompt`
+10. `supportsNoPromptLaunch`
 
-The key idea is that built-in defaults live here and nowhere else.
+This catalog is the only source of defaults.
 
-### Layer 2: Persisted Local Overrides
+### 2. Persisted Local Overrides
 
 Persist only mutable local overrides in local SQLite.
-
-Preferred schema:
-
-1. replace `agentPresets` with `agentPresetOverrides`
-2. remove `agentPresetsInitialized`
-3. store a JSON wrapper object with versioning
 
 Recommended shape:
 
@@ -214,33 +85,17 @@ type AgentPresetOverrideEnvelope = {
 };
 ```
 
-Why a wrapper object instead of a raw array:
+Persist the envelope as JSON text in `settings`.
 
-1. it gives us schema-version room without another column
-2. it supports future metadata cleanly
-3. it avoids another `initialized` flag
+Do not persist:
 
-Why overrides instead of a normalized SQL table:
+1. fully resolved presets
+2. copied default values
+3. an initialization flag
 
-1. the data is device-local
-2. cardinality is tiny
-3. queries are always “load all presets”
-4. there is no relational reporting need
+### 3. Resolved Runtime Presets
 
-### Layer 3: Resolved Runtime Presets
-
-Create a normalization layer in desktop code, for example:
-
-`apps/desktop/src/shared/agent-settings/resolve-agent-presets.ts`
-
-This layer merges:
-
-1. static catalog entry
-2. local override for that agent
-
-into a `ResolvedAgentPreset`.
-
-Recommended runtime shape:
+Desktop should resolve catalog entries and overrides into a runtime shape:
 
 ```ts
 type ResolvedAgentPreset = {
@@ -256,62 +111,53 @@ type ResolvedAgentPreset = {
 };
 ```
 
-The UI and launch builders should consume only resolved presets.
+The UI and launch builders should consume only `ResolvedAgentPreset`.
 
-### Layer 4: Launch Builders and Launch Preferences
+### 4. Launch Builders and Preferences
 
-Keep the launch-request compiler in one place, similar to:
+Keep launch compilation centralized in desktop shared utilities.
 
-1. [agent-launch-request.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/shared/utils/agent-launch-request.ts)
-2. [useAgentLaunchPreferences.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/hooks/useAgentLaunchPreferences/useAgentLaunchPreferences.ts)
+Responsibilities:
 
-This layer should own:
+1. build prompt launch requests
+2. build task launch requests
+3. compile file-based prompt injection
+4. compile heredoc-based prompt injection
+5. manage local launch preferences from one hook
 
-1. prompt launch request construction
-2. task launch request construction
-3. file-based prompt injection
-4. heredoc-based prompt injection
-5. localStorage-backed launch preferences
+Renderer surfaces should only:
 
-Renderer surfaces should only map local domain objects into the shared builder input.
-
-
-## Detailed Data Model
-
-### Preferred Local DB Columns
-
-If this PR is not yet merged, I would change the current migration before merge and land:
-
-1. `settings.agent_preset_overrides` as JSON text
-2. no `agent_presets_initialized` column
-
-If keeping the existing `agent_presets` column name is cheaper before merge, I would still change the semantics:
-
-1. `agent_presets` stores override envelope, not full resolved presets
-2. `agent_presets_initialized` is removed
-
-### Zod Types
-
-Update [zod.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/packages/local-db/src/schema/zod.ts) to include:
-
-1. `agentPresetOverrideSchema`
-2. `agentPresetOverrideEnvelopeSchema`
-3. `ResolvedAgentPreset` stays in desktop/shared code, not DB schema code
-
-### Migration Strategy
-
-Because this branch is still pre-merge, the cleanest path is:
-
-1. replace the branch migration with a single migration that adds only the override column
-2. regenerate migration artifacts before merge
-3. do not ship a migration that introduces `agentPresetsInitialized` if we do not want that long-term
+1. collect inputs
+2. read resolved presets
+3. call the shared builder
 
 
-## Settings Router Design
+## Storage Design
 
-The desktop tRPC router in [settings/index.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/lib/trpc/routers/settings/index.ts) should expose resolved presets, while internally storing overrides.
+Keep this feature local to desktop SQLite.
 
-### Recommended Procedures
+Recommended `settings` column:
+
+1. `agent_preset_overrides` or equivalent JSON text column
+
+Do not use:
+
+1. `agentPresetsInitialized`
+2. read-time initialization writes
+
+Why:
+
+1. commands are machine-specific
+2. reads should be pure
+3. reset semantics are cleaner
+4. schema evolution is simpler
+
+
+## Router Design
+
+The Electron settings router should expose resolved presets while internally storing overrides.
+
+Recommended procedures:
 
 1. `getAgentPresets(): ResolvedAgentPreset[]`
 2. `updateAgentPreset({ id, patch })`
@@ -327,7 +173,7 @@ Optional:
 
 `getAgentPresets` should:
 
-1. read overrides from SQLite
+1. read overrides
 2. merge them with the static catalog
 3. return resolved presets
 4. never write
@@ -336,29 +182,21 @@ Optional:
 
 `updateAgentPreset` should:
 
-1. read the current overrides envelope
-2. apply a patch to the override for that agent
-3. drop fields whose value equals the default
-4. drop the full override record if it becomes empty
-5. write back the envelope
-
-This keeps storage minimal and reset behavior natural.
+1. apply the patch to that agent’s override entry
+2. drop fields whose value equals the default
+3. remove the override entirely if it becomes empty
+4. persist the updated override envelope
 
 ### Reset Semantics
 
-`resetAgentPreset({ id })` should:
-
-1. remove that agent’s override entry
-2. not copy any defaults into storage
+`resetAgentPreset({ id })` should remove the override entry for that agent.
 
 
-## Task Prompt Template Design
+## Prompt Template Design
 
-The template system should remain intentionally small.
+Keep the template system intentionally small and explicit.
 
-### Supported Variables
-
-Keep a central exported variable list:
+Supported variables:
 
 1. `id`
 2. `slug`
@@ -368,9 +206,7 @@ Keep a central exported variable list:
 6. `statusName`
 7. `labels`
 
-### Recommended Utilities
-
-Create or expand a single prompt-template module that owns:
+Central utilities should own:
 
 1. `renderTaskPromptTemplate`
 2. `validateTaskPromptTemplate`
@@ -378,47 +214,14 @@ Create or expand a single prompt-template module that owns:
 4. `buildDefaultTerminalTaskPrompt`
 5. `buildDefaultChatTaskPrompt`
 
-### Important Design Choice
-
-`superset-chat` should not inherit Claude’s template implicitly.
-
-Instead:
-
-1. define `DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE`
-2. define `DEFAULT_CHAT_TASK_PROMPT_TEMPLATE`
-3. if they are initially identical, that should still be explicit
+`superset-chat` should have its own explicit default template. It should not implicitly inherit another agent’s default.
 
 
-## Settings UI Design
+## UI Design
 
-The current UI location is correct:
+Keep the settings route under desktop settings and present one card per built-in agent.
 
-1. [settings/layout.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/settings/layout.tsx)
-2. [AgentSettings.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/settings/agent/components/AgentSettings/AgentSettings.tsx)
-
-The editor model should change.
-
-### Recommended Editor Model
-
-Each agent card should maintain a local draft and expose:
-
-1. `Save`
-2. `Reset to defaults`
-3. dirty state
-4. field-level validation
-
-Do not save on blur.
-
-Why:
-
-1. commands and prompt template changes are often edited together
-2. atomic card-level save is easier to reason about
-3. rollback logic becomes much simpler
-4. network and disk churn are lower
-
-### Recommended Card Sections
-
-Each card should have:
+Each card should expose:
 
 1. `Enabled`
 2. `Label`
@@ -429,298 +232,165 @@ Each card should have:
 7. `Task Prompt Template`
 8. `Preview`
 
-### Preview Panel
+### Save Model
 
-Each agent card should show:
+Each card should edit a local draft and expose:
+
+1. `Save`
+2. `Reset to defaults`
+3. dirty state
+4. field validation
+
+Do not save on blur.
+
+### Preview
+
+Each card should show:
 
 1. a sample rendered task prompt
-2. a sample compiled command for:
-   - no-prompt launch
-   - task-driven launch
-
-That will dramatically reduce misconfiguration risk.
+2. a sample no-prompt command
+3. a sample task-driven command
 
 ### Override Visibility
 
-The UI should indicate which fields differ from default. For example:
-
-1. badge: `Modified`
-2. field-level reset buttons
-3. copy like `Using default` vs `Overridden`
+The UI should indicate which fields differ from defaults.
 
 
 ## Launch Surface Integration
 
-Every launch surface should only do three things:
+Every launch surface should use the same preference hook and the same request builder layer.
 
-1. collect input
-2. call the shared preference hook
-3. call the shared launch builder
+Required surfaces:
 
-### Surface 1: New Workspace Prompt
+1. new workspace prompt launch
+2. single task launch
+3. batch task launch
 
-Keep the current path in [PromptGroup.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx), but the component should never know how commands are compiled.
+UI surfaces should not compile shell commands directly.
 
-### Surface 2: Single Task Launch
-
-Keep the current path in [OpenInWorkspace.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/PropertiesSidebar/components/OpenInWorkspace/OpenInWorkspace.tsx), but only map `TaskWithStatus` into a shared task input shape.
-
-### Surface 3: Batch Task Launch
-
-Keep the current path in [RunInWorkspacePopover.tsx](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/components/RunInWorkspacePopover/RunInWorkspacePopover.tsx), but reuse the same builder used by single-task launch.
-
-### Preferred Shared Hook
-
-Retain and formalize the shared localStorage hook:
-
-1. `lastSelectedAgent`
-2. `lastOpenedInProjectId`
-3. `agentAutoRun`
-4. `lastSelectedWorkspaceCreateAgent`
-
-Those keys should be centralized constants, not string literals scattered across components.
+Local preference keys should be centralized constants, not scattered string literals.
 
 
-## Validation Rules
+## Validation
 
-Validation should happen at two levels.
+### Router Validation
 
-### Router-Level Validation
+Validate:
 
-The router should enforce:
+1. agent id
+2. required fields after trim
+3. max lengths
+4. template shape
+5. override envelope schema
 
-1. valid agent id
-2. non-empty required overridden strings after trim
-3. maximum field lengths
-4. maximum template length
-5. valid override schema shape
+### UI Validation
 
-### UI-Level Validation
-
-The UI should provide immediate feedback for:
+Validate:
 
 1. empty required fields
-2. template tokens not in the supported variable list
-3. commands that appear malformed
-4. likely accidental whitespace-only changes
-
-The UI should warn on unknown tokens, but I would not block save unless the token grammar itself is invalid.
+2. unknown template tokens
+3. whitespace-only edits
+4. obviously malformed command input
 
 
-## Testing Strategy
+## Testing
 
 ### Unit Tests
 
-Add unit tests for:
+Add tests for:
 
 1. catalog-to-resolved preset normalization
 2. override patch application
-3. override cleanup when values match defaults
+3. dropping fields that match defaults
 4. prompt template rendering
 5. prompt template validation
 6. prompt launch request building
 7. task launch request building
-8. localStorage preference hook
-
-Relevant existing test anchors:
-
-1. [agent-command.test.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/packages/shared/src/agent-command.test.ts)
-2. [agent-launch-request.test.ts](/Users/kietho/.superset/worktrees/superset/kitenite/kitenite/please-add-a-new-settings-sect/apps/desktop/src/shared/utils/agent-launch-request.test.ts)
+8. launch preference hook behavior
 
 ### Router Tests
 
 Add tests for:
 
-1. `getAgentPresets` with no overrides
-2. `getAgentPresets` with partial overrides
-3. `updateAgentPreset` dropping fields equal to defaults
-4. `resetAgentPreset` removing the override entry
-5. no write occurring during reads
+1. empty override state
+2. partial override state
+3. update semantics
+4. reset semantics
+5. read purity
 
 ### Component Tests
 
 Add tests for:
 
 1. card dirty state
-2. save button enablement
-3. reset removing overrides
-4. preview rendering
-5. enabled-toggle behavior
-6. search visibility behavior for agent settings items
+2. save/reset behavior
+3. preview rendering
+4. enabled-toggle behavior
 
-### Integration Tests
+### Integration Checks
 
-Smoke-test all three launch surfaces to verify:
+Verify:
 
 1. disabled agents disappear from dropdowns
-2. renamed agents show the custom label
-3. task prompt template changes affect:
-   - single task launch
-   - batch task launch
-4. prompt command changes affect:
-   - new workspace prompt launch
+2. custom labels appear everywhere
+3. task template changes affect all task launchers
+4. prompt command changes affect prompt launches
 
 
-## Rollout and Safety
+## Milestones
 
-This feature should ship as ordinary desktop settings behavior with no cloud dependency.
+### Milestone 1: Catalog and Overrides
 
-Safety checks:
-
-1. keep settings local only
-2. do not auto-run mutated commands without the existing user action path
-3. maintain conservative defaults for built-in agents
-4. avoid background writes during settings page load
-
-
-## Implementation Plan
-
-### Milestone 0: Fix the data model before merge
-
-Checklist:
-
-1. remove `agentPresetsInitialized`
-2. switch stored payload to override envelope
-3. regenerate the branch migration before merge
-4. add normalization helpers
-
-Acceptance:
-
-1. reading agent settings from an empty DB row returns defaults with no write
-
-### Milestone 1: Introduce static catalog + resolved presets
-
-Checklist:
-
-1. add shared built-in agent catalog
+1. add static built-in catalog
 2. add override schema
-3. add resolved preset model
-4. add `getResolvedAgentPresets()`
+3. persist override envelope only
+4. remove initialization semantics
 
-Acceptance:
+### Milestone 2: Resolved Presets and Router
 
-1. adding a new built-in agent requires catalog changes only, plus UI icon wiring if needed
+1. resolve catalog + overrides into runtime presets
+2. expose resolved presets from the router
+3. add reset endpoints
 
-### Milestone 2: Rework router semantics
+### Milestone 3: Settings UI
 
-Checklist:
-
-1. `getAgentPresets` returns resolved presets
-2. `updateAgentPreset` patches overrides only
-3. add `resetAgentPreset`
-4. add validation helpers
-
-Acceptance:
-
-1. reset removes override data instead of re-copying defaults
-
-### Milestone 3: Rework settings UI to card-level save
-
-Checklist:
-
-1. add local draft state per card
+1. move to card-level draft editing
 2. add save/reset actions
 3. add preview
-4. surface overridden field state
+4. surface override state
 
-Acceptance:
+### Milestone 4: Launch Surface Wiring
 
-1. editing multiple fields for one agent can be saved atomically
+1. keep one preference hook
+2. keep one launch builder layer
+3. remove command compilation from UI surfaces
 
-### Milestone 4: Keep launch surfaces thin
-
-Checklist:
-
-1. keep centralized launch builder
-2. keep centralized preference hook
-3. eliminate direct command compilation in UI
-4. eliminate scattered localStorage mutations in UI
-
-Acceptance:
-
-1. launch behavior differences between surfaces exist only where product behavior actually differs
-
-### Milestone 5: Verify thoroughly
-
-Checklist:
+### Milestone 5: Verification
 
 1. unit tests
 2. router tests
 3. component tests
-4. integration smoke tests
-5. targeted manual checks
-
-Acceptance:
-
-1. feature behavior is consistent across settings, prompt launch, single-task launch, and batch launch
+4. launch smoke tests
 
 
-## Decision Log
+## Decisions
 
-### DL-1 Local-only persistence
+### 1. Local-Only Persistence
 
-Decision: keep agent settings in desktop local SQLite, not cloud.
+Agent settings stay local because binaries, flags, and safety posture are machine-specific.
 
-Reason:
+### 2. Catalog + Overrides
 
-1. commands are machine-specific
-2. binaries may differ by device
-3. safety posture is not suitable for silent cross-device sync
+Defaults live in code; storage contains only user changes.
 
-### DL-2 Catalog plus overrides
+### 3. Pure Reads
 
-Decision: code owns built-in defaults, storage owns only overrides.
+Loading settings must never write.
 
-Reason:
+### 4. Card-Level Save
 
-1. it minimizes migration churn
-2. it makes reset semantics correct
-3. it scales better as fields are added
+Agent configuration is edited and saved as one unit per card.
 
-### DL-3 No read-time initialization
+### 5. Explicit Chat Defaults
 
-Decision: queries must not mutate settings rows.
-
-Reason:
-
-1. purity
-2. testability
-3. fewer surprising side effects
-
-### DL-4 Card-level save
-
-Decision: save per agent card, not per field blur.
-
-Reason:
-
-1. these fields are edited together
-2. rollback becomes simpler
-3. mutation spam is reduced
-
-### DL-5 Explicit chat defaults
-
-Decision: `superset-chat` gets its own default prompt template ownership.
-
-Reason:
-
-1. avoids hidden coupling to Claude
-2. makes chat behavior independently evolvable
-
-
-## Progress
-
-- [x] (2026-03-15 07:55Z) Review current branch implementation and recent refactor state
-- [x] (2026-03-15 08:10Z) Identify remaining architectural weaknesses in persistence and UI save semantics
-- [x] (2026-03-15 08:20Z) Draft full ExecPlan for a correct, extensible implementation
-
-
-## Surprises & Discoveries
-
-1. The branch already moved launch-request construction and localStorage preferences into shared helpers, which is the right direction.
-2. The biggest remaining architectural issue is not launch duplication anymore; it is the persistence model storing fully materialized defaults and mutating on read.
-3. The settings UI is functional, but its save-on-blur model makes the implementation noisier and less atomic than it needs to be.
-
-
-## Outcomes & Retrospective
-
-To be filled in during implementation.
+`superset-chat` owns its own default prompt template.
