@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import { copyFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
@@ -45,10 +46,10 @@ function removeExistingIcon(projectId: string): void {
 }
 
 /**
- * Returns the protocol URL for a project icon.
+ * Returns the protocol URL for a project icon with a cache-busting query param.
  */
 export function getProjectIconProtocolUrl(projectId: string): string {
-	return `superset-icon://projects/${projectId}`;
+	return `superset-icon://projects/${projectId}?v=${encodeURIComponent(randomUUID())}`;
 }
 
 /**
