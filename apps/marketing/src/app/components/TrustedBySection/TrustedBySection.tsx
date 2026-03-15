@@ -42,8 +42,8 @@ const CLIENT_LOGOS = [
 		marginTop: 4,
 	},
 	{
-		name: "servicenow",
-		logo: "/logos/servicenow.svg",
+		name: "runway",
+		logo: "/logos/runway.svg",
 		height: 15,
 	},
 	{ name: "wix", logo: "/logos/wix.svg", height: 34 },
