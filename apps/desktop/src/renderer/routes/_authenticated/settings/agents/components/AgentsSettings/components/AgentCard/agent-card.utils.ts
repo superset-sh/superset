@@ -1,12 +1,11 @@
 import {
+	type AgentPresetPatch,
 	buildFileCommandFromAgentConfig,
-	type ChatResolvedAgentConfig,
 	type ResolvedAgentConfig,
 	renderTaskPromptTemplate,
-	type TerminalResolvedAgentConfig,
 	validateTaskPromptTemplate,
 } from "shared/utils/agent-settings";
-import type { AgentDraft } from "./agent-card.types";
+import type { AgentEditableField } from "./agent-card.types";
 
 const SAMPLE_TASK = {
 	id: "task_agent_settings",
@@ -18,118 +17,115 @@ const SAMPLE_TASK = {
 	labels: ["desktop", "agents"],
 };
 
-export function toDraft(preset: ResolvedAgentConfig): AgentDraft {
-	return {
-		enabled: preset.enabled,
-		label: preset.label,
-		description: preset.description ?? "",
-		command: preset.kind === "terminal" ? preset.command : "",
-		promptCommand: preset.kind === "terminal" ? preset.promptCommand : "",
-		promptCommandSuffix:
-			preset.kind === "terminal" ? (preset.promptCommandSuffix ?? "") : "",
-		taskPromptTemplate: preset.taskPromptTemplate,
-		model: preset.kind === "chat" ? (preset.model ?? "") : "",
-	};
+export function getPreviewPrompt(preset: ResolvedAgentConfig): string {
+	return renderTaskPromptTemplate(preset.taskPromptTemplate, SAMPLE_TASK);
 }
 
-export function areDraftsEqual(a: AgentDraft, b: AgentDraft): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
-}
-
-export function getPreviewPrompt(taskPromptTemplate: string): string {
-	return renderTaskPromptTemplate(taskPromptTemplate, SAMPLE_TASK);
-}
-
-export function getPreviewNoPromptCommand(
-	preset: ResolvedAgentConfig,
-	draft: AgentDraft,
-): string {
+export function getPreviewNoPromptCommand(preset: ResolvedAgentConfig): string {
 	if (preset.kind !== "terminal") {
 		return "Superset Chat opens a chat pane without a shell command.";
 	}
 
-	return (
-		toTerminalPreviewConfig(preset, draft).command.trim() ||
-		"No command configured."
-	);
+	return preset.command.trim() || "No command configured.";
 }
 
-export function getPreviewTaskCommand(
-	preset: ResolvedAgentConfig,
-	draft: AgentDraft,
-): string {
+export function getPreviewTaskCommand(preset: ResolvedAgentConfig): string {
 	if (preset.kind !== "terminal") {
-		const config = toChatPreviewConfig(preset, draft);
-		return config.model
-			? `Superset Chat opens with model ${config.model}.`
+		return preset.model
+			? `Superset Chat opens with model ${preset.model}.`
 			: "Superset Chat opens with the rendered task prompt.";
 	}
 
 	return (
 		buildFileCommandFromAgentConfig({
 			filePath: `.superset/task-${SAMPLE_TASK.slug}.md`,
-			config: toTerminalPreviewConfig(preset, draft),
+			config: preset,
 		}) ?? "No prompt-capable command configured."
 	);
 }
 
-export function validateAgentDraft(
+export function getAgentFieldValue(
 	preset: ResolvedAgentConfig,
-	draft: AgentDraft,
-): string | null {
-	if (!draft.label.trim()) {
-		return "Label is required.";
+	field: AgentEditableField,
+): string {
+	switch (field) {
+		case "label":
+			return preset.label;
+		case "description":
+			return preset.description ?? "";
+		case "command":
+			return preset.kind === "terminal" ? preset.command : "";
+		case "promptCommand":
+			return preset.kind === "terminal" ? preset.promptCommand : "";
+		case "promptCommandSuffix":
+			return preset.kind === "terminal"
+				? (preset.promptCommandSuffix ?? "")
+				: "";
+		case "taskPromptTemplate":
+			return preset.taskPromptTemplate;
+		case "model":
+			return preset.kind === "chat" ? (preset.model ?? "") : "";
 	}
-
-	if (preset.kind === "terminal") {
-		if (!draft.command.trim()) {
-			return "Command is required for terminal agents.";
-		}
-		if (!draft.promptCommand.trim()) {
-			return "Prompt command is required for terminal agents.";
-		}
-	}
-
-	if (!draft.taskPromptTemplate.trim()) {
-		return "Task prompt template is required.";
-	}
-
-	const templateValidation = validateTaskPromptTemplate(
-		draft.taskPromptTemplate,
-	);
-	if (!templateValidation.valid) {
-		return `Unknown variables: ${templateValidation.unknownVariables.join(", ")}`;
-	}
-
-	return null;
 }
 
-function toTerminalPreviewConfig(
-	preset: TerminalResolvedAgentConfig,
-	draft: AgentDraft,
-): TerminalResolvedAgentConfig {
-	return {
-		...preset,
-		enabled: draft.enabled,
-		label: draft.label,
-		description: draft.description || undefined,
-		command: draft.command,
-		promptCommand: draft.promptCommand,
-		promptCommandSuffix: draft.promptCommandSuffix || undefined,
-		taskPromptTemplate: draft.taskPromptTemplate,
-	};
-}
-
-function toChatPreviewConfig(
-	preset: ChatResolvedAgentConfig,
-	draft: AgentDraft,
-): ChatResolvedAgentConfig {
-	return {
-		...preset,
-		enabled: draft.enabled,
-		label: draft.label,
-		description: draft.description || undefined,
-		taskPromptTemplate: draft.taskPromptTemplate,
-		model: draft.model || undefined,
-	};
+export function buildAgentFieldPatch({
+	preset,
+	field,
+	value,
+}: {
+	preset: ResolvedAgentConfig;
+	field: AgentEditableField;
+	value: string;
+}): { patch: AgentPresetPatch } | { error: string } {
+	switch (field) {
+		case "label":
+			if (!value.trim()) {
+				return { error: "Label is required." };
+			}
+			return { patch: { label: value } };
+		case "description":
+			return { patch: { description: value || null } };
+		case "command":
+			if (preset.kind !== "terminal") {
+				return { error: "Command is only available for terminal agents." };
+			}
+			if (!value.trim()) {
+				return { error: "Command is required for terminal agents." };
+			}
+			return { patch: { command: value } };
+		case "promptCommand":
+			if (preset.kind !== "terminal") {
+				return {
+					error: "Prompt command is only available for terminal agents.",
+				};
+			}
+			if (!value.trim()) {
+				return { error: "Prompt command is required for terminal agents." };
+			}
+			return { patch: { promptCommand: value } };
+		case "promptCommandSuffix":
+			if (preset.kind !== "terminal") {
+				return {
+					error: "Prompt command suffix is only available for terminal agents.",
+				};
+			}
+			return { patch: { promptCommandSuffix: value || null } };
+		case "taskPromptTemplate": {
+			if (!value.trim()) {
+				return { error: "Task prompt template is required." };
+			}
+			const templateValidation = validateTaskPromptTemplate(value);
+			if (!templateValidation.valid) {
+				return {
+					error: `Unknown variables: ${templateValidation.unknownVariables.join(", ")}`,
+				};
+			}
+			return { patch: { taskPromptTemplate: value } };
+		}
+		case "model":
+			if (preset.kind !== "chat") {
+				return { error: "Model override is only available for chat agents." };
+			}
+			return { patch: { model: value || null } };
+	}
 }

@@ -7,23 +7,11 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Label } from "@superset/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
-import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -43,17 +31,13 @@ interface OpenInWorkspaceProps {
 	task: TaskWithStatus;
 }
 
-const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
-
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
-	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const isDark = useIsDarkTheme();
 	const { data: agentPresets = [] } =
 		electronTrpc.settings.getAgentPresets.useQuery();
 	const enabledAgentPresets = useMemo(
@@ -92,18 +76,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
-	const selectedAgentValue = selectableAgents.includes(selectedAgent)
-		? selectedAgent
-		: undefined;
-
-	const handleAgentValueChange = (value: string) => {
-		if (value === CONFIGURE_AGENTS_VALUE) {
-			navigate({ to: "/settings/agents" });
-			return;
-		}
-
-		setSelectedAgent(value as AgentDefinitionId);
-	};
 
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
@@ -254,35 +226,13 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					<HiArrowRight className="w-3.5 h-3.5" />
 				</Button>
 			</div>
-			<Select value={selectedAgentValue} onValueChange={handleAgentValueChange}>
-				<SelectTrigger className="h-8 text-xs">
-					<SelectValue placeholder="Select agent" />
-				</SelectTrigger>
-				<SelectContent>
-					{selectableAgents.map((agent) => {
-						const icon = getPresetIcon(agent, isDark);
-						const config = agentConfigsById.get(agent);
-						return (
-							<SelectItem key={agent} value={agent}>
-								<span className="flex items-center gap-2">
-									{icon && (
-										<img
-											src={icon}
-											alt=""
-											className="size-3.5 object-contain"
-										/>
-									)}
-									{config?.label ?? agent}
-								</span>
-							</SelectItem>
-						);
-					})}
-					<SelectSeparator />
-					<SelectItem value={CONFIGURE_AGENTS_VALUE}>
-						Configure agents...
-					</SelectItem>
-				</SelectContent>
-			</Select>
+			<AgentSelect<AgentDefinitionId>
+				agents={enabledAgentPresets}
+				value={selectedAgent}
+				placeholder="Select agent"
+				onValueChange={setSelectedAgent}
+				triggerClassName="h-8 text-xs"
+			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
 					Auto-run command

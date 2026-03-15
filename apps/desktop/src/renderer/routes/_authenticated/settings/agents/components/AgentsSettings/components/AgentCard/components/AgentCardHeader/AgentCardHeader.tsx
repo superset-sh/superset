@@ -12,6 +12,7 @@ interface AgentCardHeaderProps {
 	isOpen: boolean;
 	showEnabled: boolean;
 	enabled: boolean;
+	isUpdatingEnabled: boolean;
 	onEnabledChange: (enabled: boolean) => void;
 	onToggle: () => void;
 }
@@ -21,6 +22,7 @@ export function AgentCardHeader({
 	isOpen,
 	showEnabled,
 	enabled,
+	isUpdatingEnabled,
 	onEnabledChange,
 	onToggle,
 }: AgentCardHeaderProps) {
@@ -64,6 +66,7 @@ export function AgentCardHeader({
 								id={`${preset.id}-enabled`}
 								aria-label={`Enable ${preset.label}`}
 								checked={enabled}
+								disabled={isUpdatingEnabled}
 								onCheckedChange={onEnabledChange}
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}

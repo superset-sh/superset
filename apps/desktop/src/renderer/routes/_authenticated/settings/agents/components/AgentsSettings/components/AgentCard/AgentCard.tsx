@@ -1,16 +1,19 @@
 import { Card, CardContent } from "@superset/ui/card";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { AgentCardProps, AgentDraft } from "./agent-card.types";
+import type {
+	AgentPresetPatch,
+	ResolvedAgentConfig,
+} from "shared/utils/agent-settings";
+import type { AgentCardProps, AgentEditableField } from "./agent-card.types";
 import {
-	areDraftsEqual,
+	buildAgentFieldPatch,
+	getAgentFieldValue,
 	getPreviewNoPromptCommand,
 	getPreviewPrompt,
 	getPreviewTaskCommand,
-	toDraft,
-	validateAgentDraft,
 } from "./agent-card.utils";
 import { AgentCardActions } from "./components/AgentCardActions";
 import { AgentCardFields } from "./components/AgentCardFields";
@@ -34,38 +37,23 @@ export function AgentCard({
 			await utils.settings.getAgentPresets.invalidate();
 		},
 	});
-	const [draft, setDraft] = useState<AgentDraft>(() => toDraft(preset));
 	const [isOpen, setIsOpen] = useState(false);
 	const [showPreview, setShowPreview] = useState(false);
+	const [inputVersion, setInputVersion] = useState(0);
 	const [validationMessage, setValidationMessage] = useState<string | null>(
 		null,
 	);
 
-	useEffect(() => {
-		setDraft(toDraft(preset));
-		setIsOpen(false);
-		setShowPreview(false);
-		setValidationMessage(null);
-	}, [preset]);
-
-	const savedDraft = useMemo(() => toDraft(preset), [preset]);
-	const isDirty = !areDraftsEqual(savedDraft, draft);
-	const previewPrompt = useMemo(
-		() => getPreviewPrompt(draft.taskPromptTemplate),
-		[draft.taskPromptTemplate],
-	);
+	const previewPrompt = useMemo(() => getPreviewPrompt(preset), [preset]);
 	const previewNoPromptCommand = useMemo(
-		() => getPreviewNoPromptCommand(preset, draft),
-		[draft, preset],
+		() => getPreviewNoPromptCommand(preset),
+		[preset],
 	);
 	const previewTaskCommand = useMemo(
-		() => getPreviewTaskCommand(preset, draft),
-		[draft, preset],
+		() => getPreviewTaskCommand(preset),
+		[preset],
 	);
 
-	const updateDraft = (patch: Partial<AgentDraft>) => {
-		setDraft((current) => ({ ...current, ...patch }));
-	};
 	const handleOpenChange = (open: boolean) => {
 		setIsOpen(open);
 		if (!open) {
@@ -73,35 +61,77 @@ export function AgentCard({
 		}
 	};
 
-	const handleSave = async () => {
-		const nextValidationMessage = validateAgentDraft(preset, draft);
-		if (nextValidationMessage) {
-			setValidationMessage(nextValidationMessage);
-			return;
+	const resetFieldInputs = () => {
+		setInputVersion((current) => current + 1);
+	};
+
+	const mergePresetPatch = (
+		currentPreset: ResolvedAgentConfig,
+		patch: AgentPresetPatch,
+	): ResolvedAgentConfig => {
+		if (currentPreset.kind === "terminal") {
+			return {
+				...currentPreset,
+				enabled: patch.enabled ?? currentPreset.enabled,
+				label: patch.label ?? currentPreset.label,
+				description:
+					patch.description !== undefined
+						? (patch.description ?? undefined)
+						: currentPreset.description,
+				command: patch.command ?? currentPreset.command,
+				promptCommand: patch.promptCommand ?? currentPreset.promptCommand,
+				promptCommandSuffix:
+					patch.promptCommandSuffix !== undefined
+						? (patch.promptCommandSuffix ?? undefined)
+						: currentPreset.promptCommandSuffix,
+				taskPromptTemplate:
+					patch.taskPromptTemplate ?? currentPreset.taskPromptTemplate,
+			};
 		}
 
-		setValidationMessage(null);
+		return {
+			...currentPreset,
+			enabled: patch.enabled ?? currentPreset.enabled,
+			label: patch.label ?? currentPreset.label,
+			description:
+				patch.description !== undefined
+					? (patch.description ?? undefined)
+					: currentPreset.description,
+			taskPromptTemplate:
+				patch.taskPromptTemplate ?? currentPreset.taskPromptTemplate,
+			model:
+				patch.model !== undefined
+					? (patch.model ?? undefined)
+					: currentPreset.model,
+		};
+	};
+
+	const applyPatch = async (patch: AgentPresetPatch) => {
+		const previousPresets = utils.settings.getAgentPresets.getData();
+		utils.settings.getAgentPresets.setData(undefined, (currentPresets) =>
+			currentPresets?.map((candidate) =>
+				candidate.id === preset.id
+					? mergePresetPatch(candidate, patch)
+					: candidate,
+			),
+		);
 
 		try {
-			await updatePreset.mutateAsync({
+			const updatedPreset = await updatePreset.mutateAsync({
 				id: preset.id,
-				patch: {
-					enabled: draft.enabled,
-					label: draft.label,
-					description: draft.description || null,
-					command: preset.kind === "terminal" ? draft.command : undefined,
-					promptCommand:
-						preset.kind === "terminal" ? draft.promptCommand : undefined,
-					promptCommandSuffix:
-						preset.kind === "terminal"
-							? draft.promptCommandSuffix || null
-							: undefined,
-					taskPromptTemplate: draft.taskPromptTemplate,
-					model: preset.kind === "chat" ? draft.model || null : undefined,
-				},
+				patch,
 			});
-			toast.success(`${preset.label} settings updated`);
+			if (updatedPreset) {
+				utils.settings.getAgentPresets.setData(undefined, (currentPresets) =>
+					currentPresets?.map((candidate) =>
+						candidate.id === preset.id ? updatedPreset : candidate,
+					),
+				);
+			}
+			setValidationMessage(null);
 		} catch (error) {
+			utils.settings.getAgentPresets.setData(undefined, previousPresets);
+			resetFieldInputs();
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -110,9 +140,40 @@ export function AgentCard({
 		}
 	};
 
+	const handleEnabledChange = async (enabled: boolean) => {
+		await applyPatch({ enabled });
+	};
+
+	const handleFieldBlur = async (
+		field: AgentEditableField,
+		nextValue: string,
+	) => {
+		if (nextValue === getAgentFieldValue(preset, field)) {
+			setValidationMessage(null);
+			return;
+		}
+
+		const result = buildAgentFieldPatch({
+			preset,
+			field,
+			value: nextValue,
+		});
+		if ("error" in result) {
+			setValidationMessage(result.error);
+			resetFieldInputs();
+			return;
+		}
+
+		await applyPatch(result.patch);
+	};
+
 	const handleReset = async () => {
 		try {
 			await resetPreset.mutateAsync({ id: preset.id });
+			await utils.settings.getAgentPresets.fetch();
+			resetFieldInputs();
+			setShowPreview(false);
+			setValidationMessage(null);
 			toast.success(`${preset.label} reset to defaults`);
 		} catch (error) {
 			toast.error(
@@ -130,19 +191,20 @@ export function AgentCard({
 					preset={preset}
 					isOpen={isOpen}
 					showEnabled={showEnabled}
-					enabled={draft.enabled}
-					onEnabledChange={(enabled) => updateDraft({ enabled })}
+					enabled={preset.enabled}
+					isUpdatingEnabled={updatePreset.isPending || resetPreset.isPending}
+					onEnabledChange={handleEnabledChange}
 					onToggle={() => handleOpenChange(!isOpen)}
 				/>
 				<CollapsibleContent id={`${preset.id}-settings`}>
 					<CardContent className="space-y-4">
 						<AgentCardFields
 							preset={preset}
-							draft={draft}
+							inputVersion={inputVersion}
 							showCommands={showCommands}
 							showTaskPrompts={showTaskPrompts}
 							validationMessage={validationMessage}
-							onDraftChange={updateDraft}
+							onFieldBlur={handleFieldBlur}
 						/>
 						<AgentCardPreview
 							preset={preset}
@@ -154,10 +216,7 @@ export function AgentCard({
 						/>
 					</CardContent>
 					<AgentCardActions
-						isDirty={isDirty}
-						isUpdating={updatePreset.isPending}
-						isResetting={resetPreset.isPending}
-						onSave={handleSave}
+						isResetting={resetPreset.isPending || updatePreset.isPending}
 						onReset={handleReset}
 					/>
 				</CollapsibleContent>

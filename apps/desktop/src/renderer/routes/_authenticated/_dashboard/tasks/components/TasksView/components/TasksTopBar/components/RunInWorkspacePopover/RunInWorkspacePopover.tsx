@@ -8,26 +8,14 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { Switch } from "@superset/ui/switch";
-import { useNavigate } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HiCheck, HiMiniPlay, HiXMark } from "react-icons/hi2";
 import { LuCircle } from "react-icons/lu";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -63,20 +51,16 @@ interface RunInWorkspacePopoverProps {
 	onComplete: () => void;
 }
 
-const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
-
 export function RunInWorkspacePopover({
 	tasks,
 	onComplete,
 }: RunInWorkspacePopoverProps) {
-	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace({ skipNavigation: true });
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const isDark = useIsDarkTheme();
 	const { data: agentPresets = [] } =
 		electronTrpc.settings.getAgentPresets.useQuery();
 	const enabledAgentPresets = useMemo(
@@ -122,19 +106,6 @@ export function RunInWorkspacePopover({
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
-	const selectedAgentValue = selectableAgents.includes(selectedAgent)
-		? selectedAgent
-		: undefined;
-
-	const handleAgentValueChange = (value: string) => {
-		if (value === CONFIGURE_AGENTS_VALUE) {
-			setOpen(false);
-			navigate({ to: "/settings/agents" });
-			return;
-		}
-
-		setSelectedAgent(value as AgentDefinitionId);
-	};
 
 	const buildLaunchRequest = (
 		task: TaskWithStatus,
@@ -352,39 +323,15 @@ export function RunInWorkspacePopover({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<Select
-						value={selectedAgentValue}
-						onValueChange={handleAgentValueChange}
+					<AgentSelect<AgentDefinitionId>
+						agents={enabledAgentPresets}
+						value={selectedAgent}
+						placeholder="Select agent"
+						onValueChange={setSelectedAgent}
+						onBeforeConfigureAgents={() => setOpen(false)}
 						disabled={isRunning}
-					>
-						<SelectTrigger className="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md">
-							<SelectValue placeholder="Select agent" />
-						</SelectTrigger>
-						<SelectContent>
-							{selectableAgents.map((agent) => {
-								const icon = getPresetIcon(agent, isDark);
-								const config = agentConfigsById.get(agent);
-								return (
-									<SelectItem key={agent} value={agent}>
-										<span className="flex items-center gap-2">
-											{icon && (
-												<img
-													src={icon}
-													alt=""
-													className="size-3.5 object-contain"
-												/>
-											)}
-											{config?.label ?? agent}
-										</span>
-									</SelectItem>
-								);
-							})}
-							<SelectSeparator />
-							<SelectItem value={CONFIGURE_AGENTS_VALUE}>
-								Configure agents...
-							</SelectItem>
-						</SelectContent>
-					</Select>
+						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
+					/>
 
 					<div className="flex items-center justify-between px-1">
 						<Label

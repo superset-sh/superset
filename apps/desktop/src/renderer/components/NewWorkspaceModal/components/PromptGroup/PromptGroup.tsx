@@ -1,22 +1,11 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
@@ -37,7 +26,6 @@ import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOpti
 type WorkspaceCreateAgent = AgentDefinitionId | "none";
 
 const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
-const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
 
 interface PromptGroupProps {
 	projectId: string | null;
@@ -47,7 +35,6 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 	const navigate = useNavigate();
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
-	const isDark = useIsDarkTheme();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const { closeModal, createWorkspace, draft, runAsyncAction, updateDraft } =
 		useNewWorkspaceModalDraft();
@@ -85,16 +72,6 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
 		});
-
-	const handleAgentValueChange = (value: string) => {
-		if (value === CONFIGURE_AGENTS_VALUE) {
-			closeModal();
-			navigate({ to: "/settings/agents" });
-			return;
-		}
-
-		setSelectedAgent(value as WorkspaceCreateAgent);
-	};
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
@@ -246,31 +223,18 @@ export function PromptGroup({ projectId }: PromptGroupProps) {
 
 	return (
 		<div className="p-3 space-y-3">
-			<Select value={selectedAgent} onValueChange={handleAgentValueChange}>
-				<SelectTrigger className="h-8 text-xs w-full">
-					<SelectValue placeholder="No agent" />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="none">No agent</SelectItem>
-					{enabledAgentPresets.map((agent) => {
-						const icon = getPresetIcon(agent.id, isDark);
-						return (
-							<SelectItem key={agent.id} value={agent.id}>
-								<span className="flex items-center gap-2">
-									{icon && (
-										<img src={icon} alt="" className="size-5 object-contain" />
-									)}
-									{agent.label}
-								</span>
-							</SelectItem>
-						);
-					})}
-					<SelectSeparator />
-					<SelectItem value={CONFIGURE_AGENTS_VALUE}>
-						Configure agents...
-					</SelectItem>
-				</SelectContent>
-			</Select>
+			<AgentSelect<WorkspaceCreateAgent>
+				agents={enabledAgentPresets}
+				value={selectedAgent}
+				placeholder="No agent"
+				onValueChange={setSelectedAgent}
+				onBeforeConfigureAgents={closeModal}
+				triggerClassName="h-8 text-xs w-full"
+				iconClassName="size-5 object-contain"
+				allowNone
+				noneLabel="No agent"
+				noneValue="none"
+			/>
 
 			<Textarea
 				ref={textareaRef}

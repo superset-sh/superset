@@ -7,13 +7,11 @@ export interface AgentCardProps {
 	showTaskPrompts: boolean;
 }
 
-export type AgentDraft = {
-	enabled: boolean;
-	label: string;
-	description: string;
-	command: string;
-	promptCommand: string;
-	promptCommandSuffix: string;
-	taskPromptTemplate: string;
-	model: string;
-};
+export type AgentEditableField =
+	| "label"
+	| "description"
+	| "command"
+	| "promptCommand"
+	| "promptCommandSuffix"
+	| "taskPromptTemplate"
+	| "model";
