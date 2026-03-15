@@ -29,6 +29,7 @@ import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceManager } from "./lib/host-service-manager";
+import { applyLinuxSandboxFallback } from "./lib/linux-sandbox";
 import { localDb } from "./lib/local-db";
 import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -41,6 +42,12 @@ import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
+
+// Must run before app.whenReady() — Chromium sandbox init happens at startup.
+// On Linux (especially Ubuntu 24.04+ AppImage), the namespace sandbox may be
+// blocked by AppArmor. This detects that and falls back to --no-sandbox.
+applyLinuxSandboxFallback();
+
 const IS_DEV = process.env.NODE_ENV === "development";
 
 void applyShellEnvToProcess().catch((error) => {
