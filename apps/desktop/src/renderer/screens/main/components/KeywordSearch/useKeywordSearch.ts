@@ -47,7 +47,7 @@ export function useKeywordSearch({ workspaceId }: UseKeywordSearchParams) {
 		trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
 
 	const { data: searchResults, isFetching } =
-		electronTrpc.filesystem.searchKeyword.useQuery(
+		electronTrpc.filesystem.searchContent.useQuery(
 			{
 				workspaceId,
 				query: debouncedQuery,
@@ -58,9 +58,20 @@ export function useKeywordSearch({ workspaceId }: UseKeywordSearchParams) {
 			{
 				enabled: open && debouncedQuery.length > 0,
 				staleTime: 1000,
-				placeholderData: (previous) => previous ?? [],
+				placeholderData: (previous) => previous ?? { matches: [] },
 			},
 		);
+
+	const results =
+		searchResults?.matches.map((match) => ({
+			id: `${match.absolutePath}:${match.line}:${match.column}`,
+			name: match.absolutePath.split(/[/\\]/).pop() ?? match.absolutePath,
+			relativePath: match.relativePath,
+			path: match.absolutePath,
+			line: match.line,
+			column: match.column,
+			preview: match.preview,
+		})) ?? [];
 
 	const handleOpenChange = useCallback((nextOpen: boolean) => {
 		setOpen(nextOpen);
@@ -124,7 +135,7 @@ export function useKeywordSearch({ workspaceId }: UseKeywordSearchParams) {
 		handleOpenChange,
 		toggle,
 		selectMatch,
-		searchResults: searchResults ?? [],
+		searchResults: results,
 		isFetching: isFetching || isDebouncing,
 	};
 }

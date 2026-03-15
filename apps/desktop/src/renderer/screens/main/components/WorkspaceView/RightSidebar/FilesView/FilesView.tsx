@@ -11,6 +11,7 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { toRelativePath } from "@superset/workspace-fs/core";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
@@ -203,14 +204,21 @@ export function FilesView() {
 				if (!dirPath) return [];
 
 				try {
-					const entries = await trpcUtils.filesystem.readDirectory.fetch({
+					const { entries } = await trpcUtils.filesystem.listDirectory.fetch({
 						workspaceId: workspaceId ?? "",
 						absolutePath: dirPath,
 					});
-					for (const entry of entries) {
+					const nextEntries = entries.map((entry) => ({
+						id: entry.absolutePath,
+						name: entry.name,
+						path: entry.absolutePath,
+						relativePath: toRelativePath(currentPath, entry.absolutePath),
+						isDirectory: entry.kind === "directory",
+					}));
+					for (const entry of nextEntries) {
 						entryCacheRef.current.set(entry.path, entry);
 					}
-					return entries.map((entry) => entry.path);
+					return nextEntries.map((entry) => entry.path);
 				} catch (error) {
 					console.error("[FilesView] Failed to load children:", error);
 					return [];

@@ -1,4 +1,4 @@
-import { normalizeAbsolutePath } from "../paths";
+import { normalizeAbsolutePath } from "./paths";
 
 export const WORKSPACE_FS_RESOURCE_SCHEME = "workspace-fs";
 

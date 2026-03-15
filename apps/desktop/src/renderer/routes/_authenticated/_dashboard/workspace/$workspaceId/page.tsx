@@ -79,7 +79,11 @@ function WorkspacePage() {
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
-	useWorkspaceFileEventBridge(workspaceId, Boolean(workspace?.worktreePath));
+	useWorkspaceFileEventBridge(
+		workspaceId,
+		workspace?.worktreePath,
+		Boolean(workspace?.worktreePath),
+	);
 	useWorkspaceRenameReconciliation({
 		workspaceId,
 		worktreePath: workspace?.worktreePath,

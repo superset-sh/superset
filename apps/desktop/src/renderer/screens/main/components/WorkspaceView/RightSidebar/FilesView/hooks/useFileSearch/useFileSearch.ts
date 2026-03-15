@@ -34,12 +34,22 @@ export function useFileSearch({
 			{
 				enabled: Boolean(workspaceId) && debouncedQuery.length > 0,
 				staleTime: 1000,
-				placeholderData: (previous) => previous ?? [],
+				placeholderData: (previous) => previous ?? { matches: [] },
 			},
 		);
 
+	const results =
+		searchResults?.matches.map((match) => ({
+			id: match.absolutePath,
+			name: match.name,
+			path: match.absolutePath,
+			relativePath: match.relativePath,
+			isDirectory: match.kind === "directory",
+			score: match.score,
+		})) ?? [];
+
 	return {
-		searchResults: searchResults ?? [],
+		searchResults: results,
 		isFetching: isFetching || isDebouncing,
 		hasQuery: trimmedQuery.length > 0,
 	};

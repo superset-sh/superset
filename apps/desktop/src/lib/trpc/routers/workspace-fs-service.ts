@@ -46,8 +46,7 @@ export function resolveWorkspaceRootPath(workspaceId: string): string {
 
 const serviceCache = new Map<string, FsHostService>();
 
-export function getServiceForWorkspace(workspaceId: string): FsHostService {
-	const rootPath = resolveWorkspaceRootPath(workspaceId);
+export function getServiceForRootPath(rootPath: string): FsHostService {
 	let service = serviceCache.get(rootPath);
 	if (!service) {
 		service = createFsHostService({
@@ -58,6 +57,10 @@ export function getServiceForWorkspace(workspaceId: string): FsHostService {
 		serviceCache.set(rootPath, service);
 	}
 	return service;
+}
+
+export function getServiceForWorkspace(workspaceId: string): FsHostService {
+	return getServiceForRootPath(resolveWorkspaceRootPath(workspaceId));
 }
 
 export function toRegisteredWorktreeRelativePath(
