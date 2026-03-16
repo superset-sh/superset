@@ -1,5 +1,5 @@
 import type { Rectangle } from "electron";
-import * as electron from "electron";
+import { screen } from "electron";
 import type { WindowState } from "./window-state";
 
 const MIN_VISIBLE_OVERLAP = 50;
@@ -10,7 +10,7 @@ const MIN_WINDOW_SIZE = 400;
  * Returns false if window would be completely off-screen (e.g., monitor disconnected).
  */
 export function isVisibleOnAnyDisplay(bounds: Rectangle): boolean {
-	const displays = electron.screen.getAllDisplays();
+	const displays = screen.getAllDisplays();
 
 	return displays.some((display) => {
 		const db = display.bounds;
@@ -31,7 +31,7 @@ function clampToWorkArea(
 	width: number,
 	height: number,
 ): { width: number; height: number } {
-	const { workAreaSize } = electron.screen.getPrimaryDisplay();
+	const { workAreaSize } = screen.getPrimaryDisplay();
 	return {
 		width: Math.min(Math.max(width, MIN_WINDOW_SIZE), workAreaSize.width),
 		height: Math.min(Math.max(height, MIN_WINDOW_SIZE), workAreaSize.height),
@@ -57,7 +57,7 @@ export interface InitialWindowBounds {
 export function getInitialWindowBounds(
 	savedState: WindowState | null,
 ): InitialWindowBounds {
-	const { workAreaSize } = electron.screen.getPrimaryDisplay();
+	const { workAreaSize } = screen.getPrimaryDisplay();
 
 	// No saved state → default to primary display size, centered
 	if (!savedState) {
