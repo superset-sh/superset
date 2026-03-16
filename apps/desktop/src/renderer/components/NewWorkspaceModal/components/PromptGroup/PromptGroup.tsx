@@ -64,7 +64,10 @@ import {
 	getEnabledAgentConfigs,
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
-import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchNameWithMaxLength,
+} from "shared/utils/branch";
 import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { LinkedPRPill } from "./components/LinkedPRPill";
@@ -459,6 +462,28 @@ function PromptGroupInner({
 	// Only show loading while waiting for the fast local query
 	const isBranchesLoading = isLocalBranchesLoading && !branchData;
 
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+
+	const resolvedPrefix = useMemo(() => {
+		const projectOverrides = project?.branchPrefixMode != null;
+		return resolveBranchPrefix({
+			mode: projectOverrides
+				? project?.branchPrefixMode
+				: (globalBranchPrefix?.mode ?? "none"),
+			customPrefix: projectOverrides
+				? project?.branchPrefixCustom
+				: globalBranchPrefix?.customPrefix,
+			authorPrefix: gitAuthor?.prefix,
+			githubUsername: gitInfo?.githubUsername,
+		});
+	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
+
 	const { data: externalWorktrees = [] } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery(
 			{ projectId: projectId ?? "" },
@@ -492,6 +517,11 @@ function PromptGroupInner({
 			"",
 		18,
 	);
+
+	const branchPreview =
+		branchSlug && !branchNameEdited && resolvedPrefix
+			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
+			: branchSlug;
 
 	const previousProjectIdRef = useRef(projectId);
 
@@ -686,7 +716,7 @@ function PromptGroupInner({
 				<div className="shrink-0 ml-auto">
 					<Input
 						className="border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right w-[160px] placeholder:text-right"
-						placeholder={branchSlug || "branch-name"}
+						placeholder={branchPreview || "branch-name"}
 						value={branchNameEdited ? branchName : ""}
 						onChange={(e) =>
 							updateDraft({
