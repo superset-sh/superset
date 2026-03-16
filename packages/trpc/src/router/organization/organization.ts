@@ -293,7 +293,40 @@ export const organizationRouter = {
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: input,
+			});
+
+			if (!membership) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			if (membership.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners can delete organizations",
+				});
+			}
+
+			const organization = await db.query.organizations.findFirst({
+				where: eq(organizations.id, input),
+			});
+
+			if (organization?.stripeCustomerId) {
+				const subs = await stripeClient.subscriptions.list({
+					customer: organization.stripeCustomerId,
+					status: "active",
+				});
+				for (const sub of subs.data) {
+					await stripeClient.subscriptions.cancel(sub.id);
+				}
+			}
+
 			await db.delete(organizations).where(eq(organizations.id, input));
 			return { success: true };
 		}),
