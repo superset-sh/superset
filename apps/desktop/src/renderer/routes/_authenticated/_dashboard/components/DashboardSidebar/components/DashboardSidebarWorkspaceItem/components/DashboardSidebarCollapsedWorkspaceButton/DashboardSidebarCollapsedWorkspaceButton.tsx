@@ -8,9 +8,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	extends ComponentPropsWithoutRef<"button"> {
 	hostType: DashboardSidebarWorkspaceHostType;
 	isActive: boolean;
-	isDragging: boolean;
 	isUnread?: boolean;
-	setDragHandle: (node: HTMLButtonElement | null) => void;
 	workspaceStatus?: ActivePaneStatus | null;
 }
 
@@ -22,9 +20,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 		{
 			hostType,
 			isActive,
-			isDragging,
 			isUnread = false,
-			setDragHandle,
 			workspaceStatus = null,
 			className,
 			...props
@@ -34,19 +30,11 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 		return (
 			<button
 				type="button"
-				ref={(node) => {
-					setDragHandle(node);
-					if (typeof ref === "function") {
-						ref(node);
-					} else if (ref) {
-						ref.current = node;
-					}
-				}}
+				ref={ref}
 				className={cn(
 					"relative flex items-center justify-center size-8 rounded-md",
 					"hover:bg-muted/50 transition-colors cursor-pointer",
 					isActive && "bg-muted",
-					isDragging && "opacity-30",
 					className,
 				)}
 				{...props}

@@ -15,8 +15,6 @@ export function DashboardSidebarSectionContent({
 	allSections,
 	workspaceShortcutLabels,
 }: DashboardSidebarSectionContentProps) {
-	const workspaceIds = section.workspaces.map((workspace) => workspace.id);
-
 	return (
 		<AnimatePresence initial={false}>
 			{!section.isCollapsed && (
@@ -28,18 +26,15 @@ export function DashboardSidebarSectionContent({
 					className="overflow-hidden"
 				>
 					<div>
-						{section.workspaces.map((workspace, index) => (
+						{section.workspaces.map((workspace) => (
 							<DashboardSidebarWorkspaceItem
 								accentColor={section.color}
 								key={workspace.id}
 								id={workspace.id}
 								projectId={projectId}
-								sectionId={section.id}
 								hostType={workspace.hostType}
 								name={workspace.name}
 								branch={workspace.branch}
-								index={index}
-								workspaceIds={workspaceIds}
 								sections={allSections}
 								shortcutLabel={workspaceShortcutLabels.get(workspace.id)}
 							/>

@@ -16,7 +16,6 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	name: string;
 	branch: string;
 	isActive: boolean;
-	isDragging: boolean;
 	isRenaming: boolean;
 	renameValue: string;
 	shortcutLabel?: string;
@@ -27,7 +26,6 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
 	onCancelRename: () => void;
-	setDragHandle: (node: HTMLDivElement | null) => void;
 }
 
 export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
@@ -41,7 +39,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			name,
 			branch,
 			isActive,
-			isDragging,
 			isRenaming,
 			renameValue,
 			shortcutLabel,
@@ -52,7 +49,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			onRenameValueChange,
 			onSubmitRename,
 			onCancelRename,
-			setDragHandle,
 			className,
 			...props
 		},
@@ -72,14 +68,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			<div
 				role="button"
 				tabIndex={0}
-				ref={(node) => {
-					setDragHandle(node);
-					if (typeof ref === "function") {
-						ref(node);
-					} else if (ref) {
-						ref.current = node;
-					}
-				}}
+				ref={ref}
 				onClick={onClick}
 				onKeyDown={(event) => {
 					if (event.key === "Enter" || event.key === " ") {
@@ -93,7 +82,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					"hover:bg-muted/50 transition-colors group",
 					showSubtitle ? "py-1.5" : "py-2",
 					isActive && "bg-muted",
-					isDragging && "opacity-30",
 					className,
 				)}
 				{...props}

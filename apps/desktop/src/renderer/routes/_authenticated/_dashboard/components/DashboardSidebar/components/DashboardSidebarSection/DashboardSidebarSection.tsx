@@ -50,7 +50,7 @@ export function DashboardSidebarSection({
 	};
 
 	return (
-		<div className="mb-1" style={sectionBorderStyle}>
+		<div style={sectionBorderStyle}>
 			<DashboardSidebarSectionContextMenu
 				color={section.color}
 				onRename={() => setIsRenaming(true)}

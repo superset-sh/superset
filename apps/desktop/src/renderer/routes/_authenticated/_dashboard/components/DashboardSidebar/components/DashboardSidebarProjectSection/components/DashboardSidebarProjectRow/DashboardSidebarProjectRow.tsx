@@ -46,8 +46,22 @@ export const DashboardSidebarProjectRow = forwardRef<
 		ref,
 	) => {
 		return (
+			// biome-ignore lint/a11y/noStaticElementInteractions: The header acts as a single toggle target in view mode while preserving nested inline controls.
 			<div
 				ref={ref}
+				role={isRenaming ? undefined : "button"}
+				tabIndex={isRenaming ? undefined : 0}
+				onClick={isRenaming ? undefined : onToggleCollapse}
+				onKeyDown={
+					isRenaming
+						? undefined
+						: (event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									event.preventDefault();
+									onToggleCollapse();
+								}
+							}
+				}
 				className={cn(
 					"group flex min-h-10 w-full items-center pl-3 pr-2 py-1.5 text-sm font-medium",
 					"hover:bg-muted/50 transition-colors",
@@ -69,17 +83,11 @@ export const DashboardSidebarProjectRow = forwardRef<
 							className="-ml-1 h-6 min-w-0 flex-1 bg-transparent border-none px-1 py-0 text-sm font-medium outline-none"
 						/>
 					) : (
-						<button
-							type="button"
-							onClick={onToggleCollapse}
-							className="flex min-w-0 max-w-full items-center text-left cursor-pointer"
-						>
-							<span className="truncate">{projectName}</span>
-						</button>
+						<span className="truncate">{projectName}</span>
 					)}
 					<div className="grid shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
 						{!isRenaming && (
-							<span className="text-xs font-normal tabular-nums text-muted-foreground transition-all duration-150 group-hover:scale-95 group-hover:opacity-0 group-focus-within:scale-95 group-focus-within:opacity-0">
+							<span className="text-xs font-normal tabular-nums text-muted-foreground transition-all duration-150 group-hover:scale-95 group-hover:opacity-0">
 								({totalWorkspaceCount})
 							</span>
 						)}
@@ -90,10 +98,10 @@ export const DashboardSidebarProjectRow = forwardRef<
 									event.stopPropagation();
 									onStartRename();
 								}}
-								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 hover:text-foreground"
+								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 hover:text-foreground"
 								aria-label="Rename project"
 							>
-								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg] group-focus-within:rotate-[-8deg]" />
+								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg]" />
 							</button>
 						)}
 					</div>
@@ -120,7 +128,10 @@ export const DashboardSidebarProjectRow = forwardRef<
 
 				<button
 					type="button"
-					onClick={onToggleCollapse}
+					onClick={(event) => {
+						event.stopPropagation();
+						onToggleCollapse();
+					}}
 					onContextMenu={(event) => event.stopPropagation()}
 					aria-expanded={!isCollapsed}
 					className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"

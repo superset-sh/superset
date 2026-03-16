@@ -1,6 +1,5 @@
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
-import { useDashboardSidebarProjectDnD } from "../../hooks/useDashboardSidebarProjectDnD";
 import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
@@ -22,8 +21,6 @@ interface DashboardSidebarProjectSectionProps {
 	workspaces: DashboardSidebarWorkspace[];
 	sections: DashboardSidebarSection[];
 	workspaceShortcutLabels: Map<string, string>;
-	index: number;
-	projectIds: string[];
 	onToggleCollapse: (projectId: string) => void;
 }
 
@@ -36,21 +33,8 @@ export function DashboardSidebarProjectSection({
 	workspaces,
 	sections,
 	workspaceShortcutLabels,
-	index,
-	projectIds,
 	onToggleCollapse,
 }: DashboardSidebarProjectSectionProps) {
-	const { isDragging, drag, drop } = useDashboardSidebarProjectDnD({
-		projectId,
-		index,
-		projectIds,
-	});
-
-	const topLevelWorkspaceIds = useMemo(
-		() => workspaces.map((workspace) => workspace.id),
-		[workspaces],
-	);
-
 	const allSections = useMemo(
 		() => sections.map((section) => ({ id: section.id, name: section.name })),
 		[sections],
@@ -97,21 +81,14 @@ export function DashboardSidebarProjectSection({
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
 				>
-					<div
-						ref={(node) => {
-							drag(drop(node));
-						}}
-						className={cn("border-b border-border last:border-b-0")}
-					>
+					<div className={cn("border-b border-border last:border-b-0")}>
 						<DashboardSidebarCollapsedProjectContent
 							projectId={projectId}
 							projectName={projectName}
 							githubOwner={githubOwner}
 							isCollapsed={isCollapsed}
-							isDragging={isDragging}
 							totalWorkspaceCount={totalWorkspaceCount}
 							workspaces={flattenedCollapsedWorkspaces}
-							workspaceIds={flattenedCollapsedWorkspaces.map((item) => item.id)}
 							allSections={allSections}
 							workspaceShortcutLabels={workspaceShortcutLabels}
 							onToggleCollapse={() => onToggleCollapse(projectId)}
@@ -133,15 +110,7 @@ export function DashboardSidebarProjectSection({
 
 	return (
 		<>
-			<div
-				ref={(node) => {
-					drag(drop(node));
-				}}
-				className={cn(
-					"border-b border-border last:border-b-0",
-					isDragging && "opacity-30",
-				)}
-			>
+			<div className={cn("border-b border-border last:border-b-0")}>
 				<DashboardSidebarProjectContextMenu
 					id={projectId}
 					onCreateSection={handleNewSection}
@@ -170,7 +139,6 @@ export function DashboardSidebarProjectSection({
 					isCollapsed={isCollapsed}
 					workspaces={workspaces}
 					sections={sections}
-					topLevelWorkspaceIds={topLevelWorkspaceIds}
 					allSections={allSections}
 					workspaceShortcutLabels={workspaceShortcutLabels}
 					onDeleteSection={deleteSection}

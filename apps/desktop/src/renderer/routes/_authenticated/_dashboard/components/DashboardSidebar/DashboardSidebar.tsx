@@ -25,14 +25,12 @@ export function DashboardSidebar({
 
 	useDashboardSidebarShortcuts(flattenedWorkspaces);
 
-	const projectIds = useMemo(() => groups.map((g) => g.id), [groups]);
-
 	return (
 		<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 			<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
-				{groups.map((project, index) => (
+				{groups.map((project) => (
 					<DashboardSidebarProjectSection
 						key={project.id}
 						projectId={project.id}
@@ -43,8 +41,6 @@ export function DashboardSidebar({
 						workspaces={project.workspaces}
 						sections={project.sections}
 						workspaceShortcutLabels={workspaceShortcutLabels}
-						index={index}
-						projectIds={projectIds}
 						onToggleCollapse={toggleProjectCollapsed}
 					/>
 				))}

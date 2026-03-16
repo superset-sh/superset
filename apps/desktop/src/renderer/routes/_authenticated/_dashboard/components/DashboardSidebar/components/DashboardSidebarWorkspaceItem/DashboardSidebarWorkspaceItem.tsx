@@ -1,5 +1,4 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useDashboardSidebarWorkspaceDnD } from "../../hooks/useDashboardSidebarWorkspaceDnD";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
@@ -14,12 +13,9 @@ interface DashboardSidebarWorkspaceItemProps {
 	id: string;
 	projectId: string;
 	accentColor?: string | null;
-	sectionId?: string | null;
 	hostType: "local-device" | "remote-device" | "cloud";
 	name: string;
 	branch: string;
-	index: number;
-	workspaceIds: string[];
 	sections?: { id: string; name: string }[];
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
@@ -29,12 +25,9 @@ export function DashboardSidebarWorkspaceItem({
 	id,
 	projectId,
 	accentColor = null,
-	sectionId = null,
 	hostType,
 	name,
 	branch,
-	index,
-	workspaceIds,
 	sections = EMPTY_SECTIONS,
 	shortcutLabel,
 	isCollapsed = false,
@@ -60,14 +53,6 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceId: id,
 		projectId,
 		workspaceName: name,
-	});
-
-	const { isDragging, drag, drop } = useDashboardSidebarWorkspaceDnD({
-		workspaceId: id,
-		projectId,
-		sectionId,
-		index,
-		workspaceIds,
 	});
 
 	if (isCollapsed) {
@@ -97,12 +82,8 @@ export function DashboardSidebarWorkspaceItem({
 							<DashboardSidebarCollapsedWorkspaceButton
 								hostType={hostType}
 								isActive={isActive}
-								isDragging={isDragging}
 								isUnread={mockData.isUnread}
 								onClick={handleClick}
-								setDragHandle={(node) => {
-									drag(drop(node));
-								}}
 								workspaceStatus={mockData.workspaceStatus}
 							/>
 						</TooltipTrigger>
@@ -154,7 +135,6 @@ export function DashboardSidebarWorkspaceItem({
 					name={name}
 					branch={branch}
 					isActive={isActive}
-					isDragging={isDragging}
 					isRenaming={isRenaming}
 					renameValue={renameValue}
 					shortcutLabel={shortcutLabel}
@@ -165,9 +145,6 @@ export function DashboardSidebarWorkspaceItem({
 					onRenameValueChange={setRenameValue}
 					onSubmitRename={submitRename}
 					onCancelRename={cancelRename}
-					setDragHandle={(node) => {
-						drag(drop(node));
-					}}
 				/>
 			</DashboardSidebarWorkspaceContextMenu>
 

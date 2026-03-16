@@ -37,70 +37,79 @@ export const DashboardSidebarSectionHeader = forwardRef<
 		ref,
 	) => {
 		return (
+			// biome-ignore lint/a11y/noStaticElementInteractions: The header acts as a single toggle target in view mode while preserving nested inline controls.
 			<div
 				ref={ref}
+				role={isRenaming ? undefined : "button"}
+				tabIndex={isRenaming ? undefined : 0}
+				onClick={isRenaming ? undefined : onToggleCollapse}
+				onKeyDown={
+					isRenaming
+						? undefined
+						: (event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									event.preventDefault();
+									onToggleCollapse();
+								}
+							}
+				}
 				className={cn(
-					"group flex min-h-10 w-full items-center pl-2 pr-2 py-2 text-[11px] font-medium uppercase tracking-wider",
+					"group flex min-h-10 w-full items-center pl-2 pr-2 py-2 text-sm font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-1.5">
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						className="flex shrink-0 items-center text-left cursor-pointer"
-						aria-label={
-							section.isCollapsed ? "Expand section" : "Collapse section"
-						}
-					>
-						<HiChevronRight
-							className={cn(
-								"size-3 shrink-0 transition-transform duration-150",
-								!section.isCollapsed && "rotate-90",
-							)}
-						/>
-					</button>
 					{isRenaming ? (
 						<RenameInput
 							value={renameValue}
 							onChange={onRenameValueChange}
 							onSubmit={onSubmitRename}
 							onCancel={onCancelRename}
-							className="-ml-1 h-6 w-full min-w-0 px-1 py-0 text-[11px] tracking-wider font-medium bg-transparent border-none outline-none text-muted-foreground"
+							className="-ml-1 h-6 w-full min-w-0 px-1 py-0 text-sm font-medium bg-transparent border-none outline-none text-muted-foreground"
 						/>
 					) : (
-						<button
-							type="button"
-							onClick={onToggleCollapse}
-							className="flex min-w-0 max-w-full items-center text-left cursor-pointer"
-						>
-							<span className="truncate">{section.name}</span>
-						</button>
+						<span className="truncate">{section.name}</span>
 					)}
 
-					<div className="grid shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
-						{!isRenaming && (
-							<span className="text-[10px] font-normal tabular-nums transition-all duration-150 group-hover:scale-95 group-hover:opacity-0 group-focus-within:scale-95 group-focus-within:opacity-0">
+					{!isRenaming && (
+						<div className="grid shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
+							<span className="text-[10px] font-normal tabular-nums transition-all duration-150 group-hover:scale-95 group-hover:opacity-0">
 								({section.workspaces.length})
 							</span>
-						)}
-						{!isRenaming && (
 							<button
 								type="button"
 								onClick={(event) => {
 									event.stopPropagation();
 									onStartRename();
 								}}
-								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 hover:text-foreground"
+								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 hover:text-foreground"
 								aria-label="Rename section"
 							>
-								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg] group-focus-within:rotate-[-8deg]" />
+								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg]" />
 							</button>
-						)}
-					</div>
+						</div>
+					)}
 				</div>
+
+				<button
+					type="button"
+					onClick={(event) => {
+						event.stopPropagation();
+						onToggleCollapse();
+					}}
+					onContextMenu={(event) => event.stopPropagation()}
+					aria-expanded={!section.isCollapsed}
+					className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+				>
+					<HiChevronRight
+						className={cn(
+							"size-3 text-muted-foreground transition-transform duration-150",
+							!section.isCollapsed && "rotate-90",
+						)}
+					/>
+				</button>
 			</div>
 		);
 	},

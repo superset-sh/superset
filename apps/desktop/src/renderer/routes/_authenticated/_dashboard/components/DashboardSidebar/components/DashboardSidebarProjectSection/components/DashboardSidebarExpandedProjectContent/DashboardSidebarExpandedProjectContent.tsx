@@ -11,7 +11,6 @@ interface DashboardSidebarExpandedProjectContentProps {
 	isCollapsed: boolean;
 	workspaces: DashboardSidebarWorkspace[];
 	sections: DashboardSidebarSection[];
-	topLevelWorkspaceIds: string[];
 	allSections: Array<{ id: string; name: string }>;
 	workspaceShortcutLabels: Map<string, string>;
 	onDeleteSection: (sectionId: string) => void;
@@ -24,7 +23,6 @@ export function DashboardSidebarExpandedProjectContent({
 	isCollapsed,
 	workspaces,
 	sections,
-	topLevelWorkspaceIds,
 	allSections,
 	workspaceShortcutLabels,
 	onDeleteSection,
@@ -42,7 +40,7 @@ export function DashboardSidebarExpandedProjectContent({
 					className="overflow-hidden"
 				>
 					<div className="pb-1">
-						{workspaces.map((workspace, index) => (
+						{workspaces.map((workspace) => (
 							<DashboardSidebarWorkspaceItem
 								key={workspace.id}
 								id={workspace.id}
@@ -51,8 +49,6 @@ export function DashboardSidebarExpandedProjectContent({
 								hostType={workspace.hostType}
 								name={workspace.name}
 								branch={workspace.branch}
-								index={index}
-								workspaceIds={topLevelWorkspaceIds}
 								sections={allSections}
 								shortcutLabel={workspaceShortcutLabels.get(workspace.id)}
 							/>

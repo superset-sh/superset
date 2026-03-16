@@ -12,10 +12,8 @@ interface DashboardSidebarCollapsedProjectContentProps
 	projectName: string;
 	githubOwner: string | null;
 	isCollapsed: boolean;
-	isDragging: boolean;
 	totalWorkspaceCount: number;
 	workspaces: DashboardSidebarWorkspace[];
-	workspaceIds: string[];
 	allSections: Array<{ id: string; name: string }>;
 	workspaceShortcutLabels: Map<string, string>;
 	onToggleCollapse: () => void;
@@ -31,10 +29,8 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			projectName,
 			githubOwner,
 			isCollapsed,
-			isDragging,
 			totalWorkspaceCount,
 			workspaces,
-			workspaceIds,
 			allSections,
 			workspaceShortcutLabels,
 			onToggleCollapse,
@@ -48,7 +44,6 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 				ref={ref}
 				className={cn(
 					"flex flex-col items-center py-2 border-b border-border last:border-b-0",
-					isDragging && "opacity-30",
 					className,
 				)}
 				{...props}
@@ -88,7 +83,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 							className="overflow-hidden w-full"
 						>
 							<div className="flex flex-col items-center gap-1 pt-1">
-								{workspaces.map((workspace, index) => (
+								{workspaces.map((workspace) => (
 									<DashboardSidebarWorkspaceItem
 										key={workspace.id}
 										id={workspace.id}
@@ -96,8 +91,6 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 										hostType={workspace.hostType}
 										name={workspace.name}
 										branch={workspace.branch}
-										index={index}
-										workspaceIds={workspaceIds}
 										sections={allSections}
 										shortcutLabel={workspaceShortcutLabels.get(workspace.id)}
 										isCollapsed
