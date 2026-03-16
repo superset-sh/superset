@@ -269,6 +269,17 @@ const ALLOWED_ENV_VARS = new Set([
 	"GIT_EDITOR",
 	"GIT_PAGER",
 
+	// GitHub CLI / Copilot authentication
+	// Electron child processes can't access macOS Keychain (SecItemCopyMatching fails
+	// with errSecParam -50), so tools like `gh` and `copilot` that store credentials
+	// in Keychain will crash. Passing these env vars lets users work around the issue
+	// by setting e.g. GITHUB_TOKEN=$(gh auth token) in their shell profile.
+	"GH_TOKEN",
+	"GITHUB_TOKEN",
+	"GH_HOST",
+	"GH_ENTERPRISE_TOKEN",
+	"GITHUB_ENTERPRISE_TOKEN",
+
 	// AWS configuration (profile selection, not credentials)
 	// Actual secrets are in ~/.aws/credentials, not env vars
 	"AWS_PROFILE",
