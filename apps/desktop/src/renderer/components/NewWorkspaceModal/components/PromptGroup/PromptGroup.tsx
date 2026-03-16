@@ -5,7 +5,6 @@ import {
 	PromptInputAttachments,
 	PromptInputButton,
 	PromptInputFooter,
-	PromptInputProvider,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
@@ -103,11 +102,7 @@ interface PromptGroupProps {
 }
 
 export function PromptGroup(props: PromptGroupProps) {
-	return (
-		<PromptInputProvider>
-			<PromptGroupInner {...props} />
-		</PromptInputProvider>
-	);
+	return <PromptGroupInner {...props} />;
 }
 
 const PlusMenu = forwardRef<
@@ -432,7 +427,7 @@ function PromptGroupInner({
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent: "none",
+			defaultAgent: "claude",
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: agentPresetsQuery.isFetched,

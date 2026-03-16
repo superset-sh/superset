@@ -39,6 +39,7 @@ export interface NewWorkspaceModalDraft {
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
 	draftVersion: number;
+	resetKey: number;
 }
 
 const initialDraft: NewWorkspaceModalDraft = {
@@ -58,6 +59,7 @@ function buildInitialDraftState(): NewWorkspaceModalDraftState {
 	return {
 		...initialDraft,
 		draftVersion: 0,
+		resetKey: 0,
 	};
 }
 
@@ -70,6 +72,7 @@ interface NewWorkspaceModalActionMessages {
 interface NewWorkspaceModalDraftContextValue {
 	draft: NewWorkspaceModalDraft;
 	draftVersion: number;
+	resetKey: number;
 	closeModal: () => void;
 	closeAndResetDraft: () => void;
 	createWorkspace: ReturnType<typeof useCreateWorkspace>;
@@ -112,6 +115,7 @@ export function NewWorkspaceModalDraftProvider({
 		setState((state) => ({
 			...initialDraft,
 			draftVersion: state.draftVersion + 1,
+			resetKey: state.resetKey + 1,
 		}));
 	}, []);
 
@@ -122,6 +126,7 @@ export function NewWorkspaceModalDraftProvider({
 				: {
 						...initialDraft,
 						draftVersion: state.draftVersion + 1,
+						resetKey: state.resetKey + 1,
 					},
 		);
 	}, []);
@@ -165,6 +170,7 @@ export function NewWorkspaceModalDraftProvider({
 				linkedPR: state.linkedPR,
 			},
 			draftVersion: state.draftVersion,
+			resetKey: state.resetKey,
 			closeModal: onClose,
 			closeAndResetDraft,
 			createWorkspace,
