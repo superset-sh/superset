@@ -9,6 +9,7 @@ import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
 import { DashboardSidebarExpandedProjectContent } from "./components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarProjectContextMenu } from "./components/DashboardSidebarProjectContextMenu";
+import { DashboardSidebarProjectRow } from "./components/DashboardSidebarProjectRow";
 import { useDashboardSidebarProjectSectionActions } from "./hooks/useDashboardSidebarProjectSectionActions";
 import { countProjectWorkspaces } from "./utils/countProjectWorkspaces";
 
@@ -95,7 +96,6 @@ export function DashboardSidebarProjectSection({
 					onRemoveFromSidebar={() => removeProjectFromSidebar(projectId)}
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
-					onNewWorkspace={handleNewWorkspace}
 				>
 					<div
 						ref={(node) => {
@@ -148,34 +148,35 @@ export function DashboardSidebarProjectSection({
 					onRemoveFromSidebar={() => removeProjectFromSidebar(projectId)}
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
-					onNewWorkspace={handleNewWorkspace}
 				>
-					<div>
-						<DashboardSidebarExpandedProjectContent
-							projectId={projectId}
-							projectName={projectName}
-							githubOwner={githubOwner}
-							isCollapsed={isCollapsed}
-							workspaces={workspaces}
-							sections={sections}
-							topLevelWorkspaceIds={topLevelWorkspaceIds}
-							allSections={allSections}
-							workspaceShortcutLabels={workspaceShortcutLabels}
-							totalWorkspaceCount={totalWorkspaceCount}
-							isRenaming={isRenaming}
-							renameValue={renameValue}
-							onRenameValueChange={setRenameValue}
-							onSubmitRename={submitRename}
-							onCancelRename={cancelRename}
-							onStartRename={startRename}
-							onToggleCollapse={() => onToggleCollapse(projectId)}
-							onNewWorkspace={handleNewWorkspace}
-							onDeleteSection={deleteSection}
-							onRenameSection={renameSection}
-							onToggleSectionCollapse={toggleSectionCollapsed}
-						/>
-					</div>
+					<DashboardSidebarProjectRow
+						projectName={projectName}
+						githubOwner={githubOwner}
+						totalWorkspaceCount={totalWorkspaceCount}
+						isCollapsed={isCollapsed}
+						isRenaming={isRenaming}
+						renameValue={renameValue}
+						onRenameValueChange={setRenameValue}
+						onSubmitRename={submitRename}
+						onCancelRename={cancelRename}
+						onStartRename={startRename}
+						onToggleCollapse={() => onToggleCollapse(projectId)}
+						onNewWorkspace={handleNewWorkspace}
+					/>
 				</DashboardSidebarProjectContextMenu>
+
+				<DashboardSidebarExpandedProjectContent
+					projectId={projectId}
+					isCollapsed={isCollapsed}
+					workspaces={workspaces}
+					sections={sections}
+					topLevelWorkspaceIds={topLevelWorkspaceIds}
+					allSections={allSections}
+					workspaceShortcutLabels={workspaceShortcutLabels}
+					onDeleteSection={deleteSection}
+					onRenameSection={renameSection}
+					onToggleSectionCollapse={toggleSectionCollapsed}
+				/>
 			</div>
 
 			<DashboardSidebarDeleteDialog

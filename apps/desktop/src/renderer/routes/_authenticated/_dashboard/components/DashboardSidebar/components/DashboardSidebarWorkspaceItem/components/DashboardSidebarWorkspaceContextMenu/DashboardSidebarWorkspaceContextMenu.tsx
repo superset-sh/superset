@@ -8,10 +8,8 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { toast } from "@superset/ui/sonner";
 import {
 	LuArrowRightLeft,
-	LuCopy,
 	LuFolderPlus,
 	LuMinus,
 	LuPencil,
@@ -30,7 +28,6 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 }
 
 export function DashboardSidebarWorkspaceContextMenu({
-	id,
 	sections,
 	onCreateSection,
 	onMoveToSection,
@@ -39,11 +36,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onDelete,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
-	const handleCopyId = () => {
-		navigator.clipboard.writeText(id);
-		toast.success("Workspace ID copied");
-	};
-
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -51,10 +43,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
 					Rename
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={handleCopyId}>
-					<LuCopy className="size-4 mr-2" />
-					Copy ID
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuSub>

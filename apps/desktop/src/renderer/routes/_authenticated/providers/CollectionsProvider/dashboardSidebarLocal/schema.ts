@@ -26,6 +26,7 @@ export const dashboardSidebarSectionSchema = z.object({
 	createdAt: persistedDateSchema,
 	tabOrder: z.number().int().default(0),
 	isCollapsed: z.boolean().default(false),
+	color: z.string().nullable().default(null),
 });
 
 export type DashboardSidebarProjectRow = z.infer<

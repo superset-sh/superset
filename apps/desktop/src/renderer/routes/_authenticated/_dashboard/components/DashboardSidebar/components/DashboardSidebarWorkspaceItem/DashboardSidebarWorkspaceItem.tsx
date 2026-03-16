@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useDashboardSidebarWorkspaceDnD } from "../../hooks/useDashboardSidebarWorkspaceDnD";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
@@ -61,6 +62,8 @@ export function DashboardSidebarWorkspaceItem({
 	});
 
 	if (isCollapsed) {
+		const showBranch = !!name && name !== branch;
+
 		return (
 			<>
 				<DashboardSidebarWorkspaceContextMenu
@@ -74,16 +77,26 @@ export function DashboardSidebarWorkspaceItem({
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
 				>
-					<DashboardSidebarCollapsedWorkspaceButton
-						name={name}
-						branch={branch}
-						isActive={isActive}
-						isDragging={isDragging}
-						onClick={handleClick}
-						setDragHandle={(node) => {
-							drag(drop(node));
-						}}
-					/>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<DashboardSidebarCollapsedWorkspaceButton
+								isActive={isActive}
+								isDragging={isDragging}
+								onClick={handleClick}
+								setDragHandle={(node) => {
+									drag(drop(node));
+								}}
+							/>
+						</TooltipTrigger>
+						<TooltipContent side="right" className="flex flex-col gap-0.5">
+							<span className="font-medium">{name || branch}</span>
+							{showBranch && (
+								<span className="text-xs text-muted-foreground font-mono">
+									{branch}
+								</span>
+							)}
+						</TooltipContent>
+					</Tooltip>
 				</DashboardSidebarWorkspaceContextMenu>
 
 				<DashboardSidebarDeleteDialog

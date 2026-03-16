@@ -127,6 +127,7 @@ export function useDashboardSidebarState() {
 				createdAt: new Date(),
 				tabOrder: getNextTabOrder(sectionOrders),
 				isCollapsed: false,
+				color: null,
 			});
 
 			return sectionId;
@@ -149,6 +150,16 @@ export function useDashboardSidebarState() {
 			if (!collections.v2SidebarSections.get(sectionId)) return;
 			collections.v2SidebarSections.update(sectionId, (draft) => {
 				draft.name = name.trim();
+			});
+		},
+		[collections],
+	);
+
+	const setSectionColor = useCallback(
+		(sectionId: string, color: string | null) => {
+			if (!collections.v2SidebarSections.get(sectionId)) return;
+			collections.v2SidebarSections.update(sectionId, (draft) => {
+				draft.color = color;
 			});
 		},
 		[collections],
@@ -251,6 +262,7 @@ export function useDashboardSidebarState() {
 		reorderProjects,
 		reorderWorkspaces,
 		renameSection,
+		setSectionColor,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};

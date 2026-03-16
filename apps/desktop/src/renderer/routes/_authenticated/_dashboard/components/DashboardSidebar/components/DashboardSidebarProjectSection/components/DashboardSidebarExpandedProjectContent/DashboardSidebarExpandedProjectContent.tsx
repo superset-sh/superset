@@ -5,27 +5,15 @@ import type {
 } from "../../../../types";
 import { DashboardSidebarSection as DashboardSidebarSectionComponent } from "../../../DashboardSidebarSection";
 import { DashboardSidebarWorkspaceItem } from "../../../DashboardSidebarWorkspaceItem";
-import { DashboardSidebarProjectRow } from "../DashboardSidebarProjectRow";
 
 interface DashboardSidebarExpandedProjectContentProps {
 	projectId: string;
-	projectName: string;
-	githubOwner: string | null;
 	isCollapsed: boolean;
 	workspaces: DashboardSidebarWorkspace[];
 	sections: DashboardSidebarSection[];
 	topLevelWorkspaceIds: string[];
 	allSections: Array<{ id: string; name: string }>;
 	workspaceShortcutLabels: Map<string, string>;
-	totalWorkspaceCount: number;
-	isRenaming: boolean;
-	renameValue: string;
-	onRenameValueChange: (value: string) => void;
-	onSubmitRename: () => void;
-	onCancelRename: () => void;
-	onStartRename: () => void;
-	onToggleCollapse: () => void;
-	onNewWorkspace: () => void;
 	onDeleteSection: (sectionId: string) => void;
 	onRenameSection: (sectionId: string, name: string) => void;
 	onToggleSectionCollapse: (sectionId: string) => void;
@@ -33,44 +21,18 @@ interface DashboardSidebarExpandedProjectContentProps {
 
 export function DashboardSidebarExpandedProjectContent({
 	projectId,
-	projectName,
-	githubOwner,
 	isCollapsed,
 	workspaces,
 	sections,
 	topLevelWorkspaceIds,
 	allSections,
 	workspaceShortcutLabels,
-	totalWorkspaceCount,
-	isRenaming,
-	renameValue,
-	onRenameValueChange,
-	onSubmitRename,
-	onCancelRename,
-	onStartRename,
-	onToggleCollapse,
-	onNewWorkspace,
 	onDeleteSection,
 	onRenameSection,
 	onToggleSectionCollapse,
 }: DashboardSidebarExpandedProjectContentProps) {
 	return (
 		<>
-			<DashboardSidebarProjectRow
-				projectName={projectName}
-				githubOwner={githubOwner}
-				totalWorkspaceCount={totalWorkspaceCount}
-				isCollapsed={isCollapsed}
-				isRenaming={isRenaming}
-				renameValue={renameValue}
-				onRenameValueChange={onRenameValueChange}
-				onSubmitRename={onSubmitRename}
-				onCancelRename={onCancelRename}
-				onStartRename={onStartRename}
-				onToggleCollapse={onToggleCollapse}
-				onNewWorkspace={onNewWorkspace}
-			/>
-
 			<AnimatePresence initial={false}>
 				{!isCollapsed && (
 					<motion.div

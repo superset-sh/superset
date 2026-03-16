@@ -6,13 +6,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
-import {
-	LuCopy,
-	LuFolderPlus,
-	LuPencil,
-	LuPlus,
-	LuTrash2,
-} from "react-icons/lu";
+import { LuCopy, LuFolderPlus, LuPencil, LuTrash2 } from "react-icons/lu";
 
 interface DashboardSidebarProjectContextMenuProps {
 	id: string;
@@ -20,7 +14,6 @@ interface DashboardSidebarProjectContextMenuProps {
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
 	onDelete: () => void;
-	onNewWorkspace: () => void;
 	children: React.ReactNode;
 }
 
@@ -30,7 +23,6 @@ export function DashboardSidebarProjectContextMenu({
 	onRemoveFromSidebar,
 	onRename,
 	onDelete,
-	onNewWorkspace,
 	children,
 }: DashboardSidebarProjectContextMenuProps) {
 	const handleCopyId = () => {
@@ -45,10 +37,6 @@ export function DashboardSidebarProjectContextMenu({
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
 					Rename
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={onNewWorkspace}>
-					<LuPlus className="size-4 mr-2" />
-					New Workspace
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onCreateSection}>
 					<LuFolderPlus className="size-4 mr-2" />

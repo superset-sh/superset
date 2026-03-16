@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarSection as DashboardSidebarSectionRecord } from "../../types";
 import { DashboardSidebarSectionContent } from "./components/DashboardSidebarSectionContent";
 import { DashboardSidebarSectionContextMenu } from "./components/DashboardSidebarSectionContextMenu";
@@ -23,8 +25,16 @@ export function DashboardSidebarSection({
 	onRename,
 	onToggleCollapse,
 }: DashboardSidebarSectionProps) {
+	const { setSectionColor } = useDashboardSidebarState();
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(section.name);
+	const hasColor =
+		section.color != null && section.color !== PROJECT_COLOR_DEFAULT;
+	const sectionBorderStyle = {
+		borderLeft: hasColor
+			? `2px solid ${section.color}`
+			: "2px solid var(--color-border)",
+	};
 
 	const handleSubmitRename = () => {
 		const trimmed = renameValue.trim();
@@ -40,11 +50,11 @@ export function DashboardSidebarSection({
 	};
 
 	return (
-		<div className="pb-1">
+		<div className="pb-1" style={sectionBorderStyle}>
 			<DashboardSidebarSectionContextMenu
-				isCollapsed={section.isCollapsed}
+				color={section.color}
 				onRename={() => setIsRenaming(true)}
-				onToggleCollapse={() => onToggleCollapse(section.id)}
+				onSetColor={(color) => setSectionColor(section.id, color)}
 				onDelete={() => onDelete(section.id)}
 			>
 				<DashboardSidebarSectionHeader

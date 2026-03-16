@@ -26,6 +26,7 @@ interface BuildDashboardSidebarProjectsOptions {
 		createdAt: Date;
 		isCollapsed: boolean;
 		tabOrder: number;
+		color: string | null;
 	}>;
 	sidebarWorkspaces: Array<{
 		workspaceId: string;
@@ -75,6 +76,7 @@ export function buildDashboardSidebarProjects({
 			createdAt: section.createdAt,
 			isCollapsed: section.isCollapsed,
 			tabOrder: section.tabOrder,
+			color: section.color,
 			workspaces: [],
 		});
 		localSectionsByProject.set(section.projectId, sectionsForProject);

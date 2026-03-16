@@ -15,6 +15,7 @@ export interface DashboardSidebarSection {
 	createdAt: Date;
 	isCollapsed: boolean;
 	tabOrder: number;
+	color: string | null;
 	workspaces: DashboardSidebarWorkspace[];
 }
 
