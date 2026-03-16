@@ -71,8 +71,7 @@ describe("HostServiceManager", () => {
 		expect(getProcessEnvWithShellPathMock.mock.calls).toHaveLength(1);
 
 		pendingEnv.resolve({ PATH: "/usr/bin:/bin" });
-		await Promise.resolve();
-		await Promise.resolve();
+		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(spawnMock.mock.calls).toHaveLength(1);
 		expect(lastChild).not.toBeNull();
