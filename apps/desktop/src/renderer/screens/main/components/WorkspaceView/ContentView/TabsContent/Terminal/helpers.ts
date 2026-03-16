@@ -311,6 +311,7 @@ export interface KeyboardHandlerOptions {
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
 	onWrite?: (data: string) => void;
+	isOptionAsMetaKeyEnabled?: () => boolean;
 }
 
 export interface PasteHandlerOptions {
@@ -626,21 +627,24 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
-		// Option+P (macOS): send Meta+P for Claude Code model picker and other CLI bindings
-		const isOptionP =
-			event.code === "KeyP" &&
-			event.altKey &&
-			isMac &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey;
+			const isOptionLetter =
+				(options.isOptionAsMetaKeyEnabled?.() ?? false) &&
+				/^Key[A-Z]$/.test(event.code) &&
+				event.altKey &&
+				isMac &&
+				!event.metaKey &&
+				!event.ctrlKey;
 
-		if (isOptionP) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bp"); // Meta+P
+			if (isOptionLetter) {
+				if (event.type === "keydown" && options.onWrite) {
+					const baseLetter = event.code.slice(3);
+					const letter = event.shiftKey
+						? baseLetter
+						: baseLetter.toLowerCase();
+					options.onWrite(`\x1b${letter}`);
+				}
+				return false;
 			}
-			return false;
-		}
 
 		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
 		const isCtrlLeft =

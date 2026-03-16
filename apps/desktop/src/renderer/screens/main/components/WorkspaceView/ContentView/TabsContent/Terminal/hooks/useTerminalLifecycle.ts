@@ -132,6 +132,7 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
+	useOptionAsMetaKey: boolean;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -188,9 +189,12 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
+	useOptionAsMetaKey,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
+	const useOptionAsMetaKeyRef = useRef(useOptionAsMetaKey);
+	useOptionAsMetaKeyRef.current = useOptionAsMetaKey;
 	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
@@ -488,11 +492,12 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
-		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
-			onClear: handleClear,
-			onWrite: handleWrite,
-		});
+			const cleanupKeyboard = setupKeyboardHandler(xterm, {
+				onShiftEnter: () => handleWrite("\x1b\r"),
+				onClear: handleClear,
+				onWrite: handleWrite,
+				isOptionAsMetaKeyEnabled: () => useOptionAsMetaKeyRef.current,
+			});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,
 		});

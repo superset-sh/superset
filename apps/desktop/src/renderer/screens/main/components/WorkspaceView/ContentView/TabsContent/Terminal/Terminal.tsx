@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
+import { DEFAULT_OPTION_AS_META_KEY } from "shared/constants";
 import { SessionKilledOverlay } from "./components";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
@@ -124,6 +125,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// URL click handler - opens in app browser or system browser based on setting
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const { data: optionAsMetaKey } =
+		electronTrpc.settings.getOptionAsMetaKey.useQuery();
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 	const handleUrlClickRef = useRef<((url: string) => void) | undefined>(
 		undefined,
@@ -340,20 +343,21 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
-		isAlternateScreenRef,
-		isBracketedPasteRef,
-		setPaneNameRef,
-		renameUnnamedWorkspaceRef,
-		handleTerminalFocusRef,
-		registerClearCallbackRef,
-		unregisterClearCallbackRef,
-		registerScrollToBottomCallbackRef,
-		unregisterScrollToBottomCallbackRef,
-		registerGetSelectionCallbackRef,
-		unregisterGetSelectionCallbackRef,
-		registerPasteCallbackRef,
-		unregisterPasteCallbackRef,
-	});
+			isAlternateScreenRef,
+			isBracketedPasteRef,
+			setPaneNameRef,
+			renameUnnamedWorkspaceRef,
+			handleTerminalFocusRef,
+			registerClearCallbackRef,
+			unregisterClearCallbackRef,
+			registerScrollToBottomCallbackRef,
+			unregisterScrollToBottomCallbackRef,
+			registerGetSelectionCallbackRef,
+			unregisterGetSelectionCallbackRef,
+			registerPasteCallbackRef,
+			unregisterPasteCallbackRef,
+			useOptionAsMetaKey: optionAsMetaKey ?? DEFAULT_OPTION_AS_META_KEY,
+		});
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
