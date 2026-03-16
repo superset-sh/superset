@@ -5,6 +5,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { useV2WorkspaceDnD } from "../../hooks/useV2WorkspaceDnD";
 import { V2DeleteDialog } from "../V2DeleteDialog";
@@ -15,10 +16,12 @@ const MAX_KEYBOARD_SHORTCUT_INDEX = 9;
 interface V2WorkspaceListItemProps {
 	id: string;
 	projectId: string;
+	sectionId?: string | null;
 	name: string;
 	branch: string;
 	index: number;
 	workspaceIds: string[];
+	sections?: { id: string; name: string }[];
 	shortcutIndex?: number;
 	isCollapsed?: boolean;
 }
@@ -26,15 +29,19 @@ interface V2WorkspaceListItemProps {
 export function V2WorkspaceListItem({
 	id,
 	projectId,
+	sectionId = null,
 	name,
 	branch,
 	index,
 	workspaceIds,
+	sections = [],
 	shortcutIndex,
 	isCollapsed = false,
 }: V2WorkspaceListItemProps) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
+	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
+		useV2SidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(name);
@@ -44,6 +51,7 @@ export function V2WorkspaceListItem({
 	const { isDragging, drag, drop } = useV2WorkspaceDnD({
 		workspaceId: id,
 		projectId,
+		sectionId,
 		index,
 		workspaceIds,
 	});
@@ -94,6 +102,7 @@ export function V2WorkspaceListItem({
 		setIsDeleting(true);
 		try {
 			await apiTrpcClient.v2Workspace.delete.mutate({ id });
+			removeWorkspaceFromSidebar(id);
 			setIsDeleteDialogOpen(false);
 			toast.success("Workspace deleted");
 			if (isActive) {
@@ -113,6 +122,15 @@ export function V2WorkspaceListItem({
 			<>
 				<V2WorkspaceContextMenu
 					id={id}
+					sections={sections}
+					onCreateSection={() => {
+						const newSectionId = createSection(projectId);
+						moveWorkspaceToSection(id, projectId, newSectionId);
+					}}
+					onMoveToSection={(targetSectionId) =>
+						moveWorkspaceToSection(id, projectId, targetSectionId)
+					}
+					onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
 				>
@@ -166,6 +184,15 @@ export function V2WorkspaceListItem({
 		<>
 			<V2WorkspaceContextMenu
 				id={id}
+				sections={sections}
+				onCreateSection={() => {
+					const newSectionId = createSection(projectId);
+					moveWorkspaceToSection(id, projectId, newSectionId);
+				}}
+				onMoveToSection={(targetSectionId) =>
+					moveWorkspaceToSection(id, projectId, targetSectionId)
+				}
+				onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 				onRename={startRename}
 				onDelete={() => setIsDeleteDialogOpen(true)}
 			>

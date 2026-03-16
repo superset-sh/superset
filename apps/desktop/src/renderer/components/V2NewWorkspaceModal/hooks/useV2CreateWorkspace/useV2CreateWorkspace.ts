@@ -3,6 +3,7 @@ import {
 	getHostServiceClientByUrl,
 	type HostServiceClient,
 } from "renderer/lib/host-service-client";
+import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 import {
 	resolveCreateWorkspaceHostUrl,
 	type WorkspaceHostTarget,
@@ -19,6 +20,7 @@ interface V2CreateWorkspaceInput {
 export function useV2CreateWorkspace() {
 	const [isPending, setIsPending] = useState(false);
 	const { localHostService } = useWorkspaceHostOptions();
+	const { ensureWorkspaceInSidebar } = useV2SidebarState();
 
 	const createWorkspace = useCallback(
 		async (input: V2CreateWorkspaceInput) => {
@@ -37,16 +39,18 @@ export function useV2CreateWorkspace() {
 						? localHostService.client
 						: getHostServiceClientByUrl(hostUrl);
 
-				return await client.workspace.create.mutate({
+				const workspace = await client.workspace.create.mutate({
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
 				});
+				ensureWorkspaceInSidebar(workspace.id, input.projectId);
+				return workspace;
 			} finally {
 				setIsPending(false);
 			}
 		},
-		[localHostService],
+		[ensureWorkspaceInSidebar, localHostService],
 	);
 
 	return { createWorkspace, isPending };

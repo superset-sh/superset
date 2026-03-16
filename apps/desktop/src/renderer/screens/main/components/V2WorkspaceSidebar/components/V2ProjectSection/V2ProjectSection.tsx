@@ -6,12 +6,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useV2ProjectDnD } from "../../hooks/useV2ProjectDnD";
-import type { V2SidebarWorkspace } from "../../types";
+import type { V2SidebarSection, V2SidebarWorkspace } from "../../types";
 import { V2DeleteDialog } from "../V2DeleteDialog";
 import { V2ProjectThumbnail } from "../V2ProjectThumbnail";
+import { V2SidebarSection as V2SidebarSectionComponent } from "../V2SidebarSection";
 import { V2WorkspaceListItem } from "../V2WorkspaceListItem";
 import { V2ProjectContextMenu } from "./V2ProjectContextMenu";
 
@@ -22,10 +24,21 @@ interface V2ProjectSectionProps {
 	isCollapsed: boolean;
 	isSidebarCollapsed?: boolean;
 	workspaces: V2SidebarWorkspace[];
+	sections: V2SidebarSection[];
 	shortcutBaseIndex: number;
 	index: number;
 	projectIds: string[];
 	onToggleCollapse: (projectId: string) => void;
+}
+
+function countProjectWorkspaces(
+	workspaces: V2SidebarWorkspace[],
+	sections: V2SidebarSection[],
+): number {
+	return (
+		workspaces.length +
+		sections.reduce((sum, section) => sum + section.workspaces.length, 0)
+	);
 }
 
 export function V2ProjectSection({
@@ -35,6 +48,7 @@ export function V2ProjectSection({
 	isCollapsed,
 	isSidebarCollapsed = false,
 	workspaces,
+	sections,
 	shortcutBaseIndex,
 	index,
 	projectIds,
@@ -43,6 +57,13 @@ export function V2ProjectSection({
 	const openModal = useOpenNewWorkspaceModal();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
+	const {
+		createSection,
+		deleteSection,
+		removeProjectFromSidebar,
+		renameSection,
+		toggleSectionCollapsed,
+	} = useV2SidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(projectName);
@@ -55,7 +76,20 @@ export function V2ProjectSection({
 		projectIds,
 	});
 
-	const workspaceIds = useMemo(() => workspaces.map((w) => w.id), [workspaces]);
+	const topLevelWorkspaceIds = useMemo(
+		() => workspaces.map((workspace) => workspace.id),
+		[workspaces],
+	);
+
+	const allSections = useMemo(
+		() => sections.map((section) => ({ id: section.id, name: section.name })),
+		[sections],
+	);
+
+	const flattenedCollapsedWorkspaces = useMemo(
+		() => [...workspaces, ...sections.flatMap((section) => section.workspaces)],
+		[sections, workspaces],
+	);
 
 	const startRename = () => {
 		setRenameValue(projectName);
@@ -88,14 +122,18 @@ export function V2ProjectSection({
 		setIsDeleting(true);
 		try {
 			await apiTrpcClient.v2Project.delete.mutate({ id: projectId });
+			removeProjectFromSidebar(projectId);
 			setIsDeleteDialogOpen(false);
 			toast.success("Project deleted");
 
-			const isInProject = workspaces.some(
-				(w) =>
+			const isInProject = [
+				...workspaces,
+				...sections.flatMap((s) => s.workspaces),
+			].some(
+				(workspace) =>
 					!!matchRoute({
 						to: "/v2-workspace/$workspaceId",
-						params: { workspaceId: w.id },
+						params: { workspaceId: workspace.id },
 						fuzzy: true,
 					}),
 			);
@@ -115,11 +153,19 @@ export function V2ProjectSection({
 		openModal(projectId);
 	};
 
+	const handleNewSection = () => {
+		createSection(projectId);
+	};
+
+	const totalWorkspaceCount = countProjectWorkspaces(workspaces, sections);
+
 	if (isSidebarCollapsed) {
 		return (
 			<>
 				<V2ProjectContextMenu
 					id={projectId}
+					onCreateSection={handleNewSection}
+					onRemoveFromSidebar={() => removeProjectFromSidebar(projectId)}
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
 					onNewWorkspace={handleNewWorkspace}
@@ -152,8 +198,8 @@ export function V2ProjectSection({
 							<TooltipContent side="right" className="flex flex-col gap-0.5">
 								<span className="font-medium">{projectName}</span>
 								<span className="text-xs text-muted-foreground">
-									{workspaces.length} workspace
-									{workspaces.length !== 1 ? "s" : ""}
+									{totalWorkspaceCount} workspace
+									{totalWorkspaceCount !== 1 ? "s" : ""}
 								</span>
 							</TooltipContent>
 						</Tooltip>
@@ -168,19 +214,24 @@ export function V2ProjectSection({
 									className="overflow-hidden w-full"
 								>
 									<div className="flex flex-col items-center gap-1 pt-1">
-										{workspaces.map((workspace, i) => (
-											<V2WorkspaceListItem
-												key={workspace.id}
-												id={workspace.id}
-												projectId={projectId}
-												name={workspace.name}
-												branch={workspace.branch}
-												index={i}
-												workspaceIds={workspaceIds}
-												shortcutIndex={shortcutBaseIndex + i}
-												isCollapsed
-											/>
-										))}
+										{flattenedCollapsedWorkspaces.map(
+											(workspace, itemIndex) => (
+												<V2WorkspaceListItem
+													key={workspace.id}
+													id={workspace.id}
+													projectId={projectId}
+													name={workspace.name}
+													branch={workspace.branch}
+													index={itemIndex}
+													workspaceIds={flattenedCollapsedWorkspaces.map(
+														(item) => item.id,
+													)}
+													sections={allSections}
+													shortcutIndex={shortcutBaseIndex + itemIndex}
+													isCollapsed
+												/>
+											),
+										)}
 									</div>
 								</motion.div>
 							)}
@@ -213,6 +264,8 @@ export function V2ProjectSection({
 			>
 				<V2ProjectContextMenu
 					id={projectId}
+					onCreateSection={handleNewSection}
+					onRemoveFromSidebar={() => removeProjectFromSidebar(projectId)}
 					onRename={startRename}
 					onDelete={() => setIsDeleteDialogOpen(true)}
 					onNewWorkspace={handleNewWorkspace}
@@ -250,7 +303,7 @@ export function V2ProjectSection({
 								/>
 								<span className="truncate">{projectName}</span>
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">
-									({workspaces.length})
+									({totalWorkspaceCount})
 								</span>
 							</button>
 						)}
@@ -259,11 +312,11 @@ export function V2ProjectSection({
 							<TooltipTrigger asChild>
 								<button
 									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
+									onClick={(event) => {
+										event.stopPropagation();
 										handleNewWorkspace();
 									}}
-									onContextMenu={(e) => e.stopPropagation()}
+									onContextMenu={(event) => event.stopPropagation()}
 									className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
@@ -277,7 +330,7 @@ export function V2ProjectSection({
 						<button
 							type="button"
 							onClick={() => onToggleCollapse(projectId)}
-							onContextMenu={(e) => e.stopPropagation()}
+							onContextMenu={(event) => event.stopPropagation()}
 							aria-expanded={!isCollapsed}
 							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
 						>
@@ -301,18 +354,44 @@ export function V2ProjectSection({
 							className="overflow-hidden"
 						>
 							<div className="pb-1">
-								{workspaces.map((workspace, i) => (
+								{workspaces.map((workspace, itemIndex) => (
 									<V2WorkspaceListItem
 										key={workspace.id}
 										id={workspace.id}
 										projectId={projectId}
 										name={workspace.name}
 										branch={workspace.branch}
-										index={i}
-										workspaceIds={workspaceIds}
-										shortcutIndex={shortcutBaseIndex + i}
+										index={itemIndex}
+										workspaceIds={topLevelWorkspaceIds}
+										sections={allSections}
+										shortcutIndex={shortcutBaseIndex + itemIndex}
 									/>
 								))}
+								{sections.map((section, sectionIndex) => {
+									const sectionShortcutBase =
+										shortcutBaseIndex +
+										workspaces.length +
+										sections
+											.slice(0, sectionIndex)
+											.reduce(
+												(sum, currentSection) =>
+													sum + currentSection.workspaces.length,
+												0,
+											);
+
+									return (
+										<V2SidebarSectionComponent
+											key={section.id}
+											projectId={projectId}
+											section={section}
+											shortcutBaseIndex={sectionShortcutBase}
+											allSections={allSections}
+											onDelete={deleteSection}
+											onRename={renameSection}
+											onToggleCollapse={toggleSectionCollapsed}
+										/>
+									);
+								})}
 							</div>
 						</motion.div>
 					)}

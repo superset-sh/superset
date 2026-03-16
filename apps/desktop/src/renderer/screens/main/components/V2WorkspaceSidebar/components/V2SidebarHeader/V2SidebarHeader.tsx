@@ -1,5 +1,11 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuPlus } from "react-icons/lu";
+import { cn } from "@superset/ui/utils";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { LuLayers, LuPlus } from "react-icons/lu";
+import {
+	STROKE_WIDTH,
+	STROKE_WIDTH_THICK,
+} from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
 	useEffectiveHotkeysMap,
 	useHotkeysStore,
@@ -12,24 +18,47 @@ interface V2SidebarHeaderProps {
 }
 
 export function V2SidebarHeader({ isCollapsed = false }: V2SidebarHeaderProps) {
+	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
 	const openModal = useOpenNewWorkspaceModal();
 	const platform = useHotkeysStore((state) => state.platform);
 	const effective = useEffectiveHotkeysMap();
 	const shortcutText = formatHotkeyText(effective.NEW_WORKSPACE, platform);
+	const isWorkspacesPageOpen = !!matchRoute({ to: "/v2-workspaces" });
+
+	const handleWorkspacesClick = () => {
+		navigate({ to: "/v2-workspaces" });
+	};
 
 	if (isCollapsed) {
 		return (
-			<div className="flex flex-col items-center border-b border-border py-2">
+			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleWorkspacesClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isWorkspacesPageOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Workspaces</TooltipContent>
+				</Tooltip>
+
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
 							onClick={() => openModal()}
-							className="group flex items-center justify-center size-8 rounded-md bg-accent/40 hover:bg-accent/60 transition-colors"
+							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 						>
-							<div className="flex items-center justify-center size-5 rounded bg-accent">
-								<LuPlus className="size-3" strokeWidth={2} />
-							</div>
+							<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">
@@ -41,17 +70,36 @@ export function V2SidebarHeader({ isCollapsed = false }: V2SidebarHeaderProps) {
 	}
 
 	return (
-		<div className="border-b border-border px-2 pt-2 pb-2">
+		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+			<button
+				type="button"
+				onClick={handleWorkspacesClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isWorkspacesPageOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<div className="flex size-5 items-center justify-center">
+					<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
+				</div>
+				<span className="flex-1 text-left">Workspaces</span>
+			</button>
+
 			<button
 				type="button"
 				onClick={() => openModal()}
-				className="group flex items-center gap-2 px-2 py-1.5 w-full text-sm font-medium text-muted-foreground hover:text-foreground bg-accent/40 hover:bg-accent/60 rounded-md transition-colors"
+				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 			>
-				<div className="flex items-center justify-center size-5 rounded bg-accent">
-					<LuPlus className="size-3" strokeWidth={2} />
-				</div>
+				<LuPlus className="size-4 shrink-0" strokeWidth={STROKE_WIDTH_THICK} />
 				<span className="flex-1 text-left">New Workspace</span>
-				<span className="text-[10px] text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors font-mono tabular-nums shrink-0">
+				<span
+					className={cn(
+						"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+						"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+					)}
+				>
 					{shortcutText}
 				</span>
 			</button>

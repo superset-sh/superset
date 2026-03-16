@@ -22,7 +22,13 @@ export function V2WorkspaceSidebar({
 			groups.reduce<{ indices: number[]; cumulative: number }>(
 				(acc, group) => ({
 					indices: [...acc.indices, acc.cumulative],
-					cumulative: acc.cumulative + group.workspaces.length,
+					cumulative:
+						acc.cumulative +
+						group.workspaces.length +
+						group.sections.reduce(
+							(sum, section) => sum + section.workspaces.length,
+							0,
+						),
 				}),
 				{ indices: [], cumulative: 0 },
 			).indices,
@@ -43,6 +49,7 @@ export function V2WorkspaceSidebar({
 						isCollapsed={project.isCollapsed}
 						isSidebarCollapsed={isCollapsed}
 						workspaces={project.workspaces}
+						sections={project.sections}
 						shortcutBaseIndex={projectShortcutIndices[index]}
 						index={index}
 						projectIds={projectIds}

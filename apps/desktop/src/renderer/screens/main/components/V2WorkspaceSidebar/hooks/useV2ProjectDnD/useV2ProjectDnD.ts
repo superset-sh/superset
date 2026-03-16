@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
+import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 
 const V2_PROJECT_DND_TYPE = "V2_PROJECT";
 
@@ -21,17 +21,13 @@ export function useV2ProjectDnD({
 	index,
 	projectIds,
 }: UseV2ProjectDnDOptions) {
-	const setProjectTabOrder = useV2ProjectLocalMetaStore(
-		(s) => s.setProjectTabOrder,
-	);
+	const { reorderProjects } = useV2SidebarState();
 
 	const commitOrder = useCallback(
 		(orderedIds: string[]) => {
-			for (let i = 0; i < orderedIds.length; i++) {
-				setProjectTabOrder(orderedIds[i], i + 1);
-			}
+			reorderProjects(orderedIds);
 		},
-		[setProjectTabOrder],
+		[reorderProjects],
 	);
 
 	const [{ isDragging }, drag] = useDrag(

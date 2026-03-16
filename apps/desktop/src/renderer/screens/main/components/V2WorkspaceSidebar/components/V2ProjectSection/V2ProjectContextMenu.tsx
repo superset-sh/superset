@@ -6,10 +6,18 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
-import { LuCopy, LuPencil, LuPlus, LuTrash2 } from "react-icons/lu";
+import {
+	LuCopy,
+	LuFolderPlus,
+	LuPencil,
+	LuPlus,
+	LuTrash2,
+} from "react-icons/lu";
 
 interface V2ProjectContextMenuProps {
 	id: string;
+	onCreateSection: () => void;
+	onRemoveFromSidebar: () => void;
 	onRename: () => void;
 	onDelete: () => void;
 	onNewWorkspace: () => void;
@@ -18,6 +26,8 @@ interface V2ProjectContextMenuProps {
 
 export function V2ProjectContextMenu({
 	id,
+	onCreateSection,
+	onRemoveFromSidebar,
 	onRename,
 	onDelete,
 	onNewWorkspace,
@@ -40,11 +50,19 @@ export function V2ProjectContextMenu({
 					<LuPlus className="size-4 mr-2" />
 					New Workspace
 				</ContextMenuItem>
+				<ContextMenuItem onSelect={onCreateSection}>
+					<LuFolderPlus className="size-4 mr-2" />
+					New Section
+				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleCopyId}>
 					<LuCopy className="size-4 mr-2" />
 					Copy ID
 				</ContextMenuItem>
 				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={onRemoveFromSidebar}>
+					<LuTrash2 className="size-4 mr-2" />
+					Remove from Sidebar
+				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={onDelete}
 					className="text-destructive focus:text-destructive"

@@ -8,6 +8,16 @@ export interface V2SidebarWorkspace {
 	updatedAt: Date;
 }
 
+export interface V2SidebarSection {
+	id: string;
+	projectId: string;
+	name: string;
+	createdAt: Date;
+	isCollapsed: boolean;
+	tabOrder: number;
+	workspaces: V2SidebarWorkspace[];
+}
+
 export interface V2SidebarProject {
 	id: string;
 	name: string;
@@ -18,4 +28,5 @@ export interface V2SidebarProject {
 	updatedAt: Date;
 	isCollapsed: boolean;
 	workspaces: V2SidebarWorkspace[];
+	sections: V2SidebarSection[];
 }

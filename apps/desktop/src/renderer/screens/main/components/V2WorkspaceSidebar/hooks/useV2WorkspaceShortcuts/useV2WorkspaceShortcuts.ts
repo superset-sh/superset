@@ -11,7 +11,10 @@ import type { V2SidebarProject } from "../../types";
 export function useV2WorkspaceShortcuts(groups: V2SidebarProject[]) {
 	const navigate = useNavigate();
 
-	const allWorkspaces = groups.flatMap((group) => group.workspaces);
+	const allWorkspaces = groups.flatMap((group) => [
+		...group.workspaces,
+		...group.sections.flatMap((section) => section.workspaces),
+	]);
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {

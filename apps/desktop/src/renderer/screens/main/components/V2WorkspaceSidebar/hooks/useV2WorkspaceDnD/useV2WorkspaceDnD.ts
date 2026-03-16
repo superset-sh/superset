@@ -1,12 +1,13 @@
 import { useCallback } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { useV2WorkspaceLocalMetaStore } from "renderer/stores/v2-workspace-local-meta";
+import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 
 const V2_WORKSPACE_DND_TYPE = "V2_WORKSPACE";
 
 interface DragItem {
 	workspaceId: string;
 	projectId: string;
+	sectionId: string | null;
 	index: number;
 	originalIndex: number;
 }
@@ -14,6 +15,7 @@ interface DragItem {
 interface UseV2WorkspaceDnDOptions {
 	workspaceId: string;
 	projectId: string;
+	sectionId: string | null;
 	index: number;
 	workspaceIds: string[];
 }
@@ -21,24 +23,17 @@ interface UseV2WorkspaceDnDOptions {
 export function useV2WorkspaceDnD({
 	workspaceId,
 	projectId,
+	sectionId,
 	index,
 	workspaceIds,
 }: UseV2WorkspaceDnDOptions) {
-	const setWorkspaceTabOrder = useV2WorkspaceLocalMetaStore(
-		(s) => s.setWorkspaceTabOrder,
-	);
-	const bumpSortVersion = useV2WorkspaceLocalMetaStore(
-		(s) => s.bumpSortVersion,
-	);
+	const { reorderWorkspaces } = useV2SidebarState();
 
 	const commitOrder = useCallback(
 		(orderedIds: string[]) => {
-			for (let i = 0; i < orderedIds.length; i++) {
-				setWorkspaceTabOrder(orderedIds[i], i + 1);
-			}
-			bumpSortVersion();
+			reorderWorkspaces(orderedIds);
 		},
-		[setWorkspaceTabOrder, bumpSortVersion],
+		[reorderWorkspaces],
 	);
 
 	const [{ isDragging }, drag] = useDrag(
@@ -47,6 +42,7 @@ export function useV2WorkspaceDnD({
 			item: (): DragItem => ({
 				workspaceId,
 				projectId,
+				sectionId,
 				index,
 				originalIndex: index,
 			}),
@@ -61,18 +57,24 @@ export function useV2WorkspaceDnD({
 				commitOrder(ids);
 			},
 		}),
-		[workspaceId, projectId, index, workspaceIds, commitOrder],
+		[workspaceId, projectId, sectionId, index, workspaceIds, commitOrder],
 	);
 
 	const [, drop] = useDrop(
 		{
 			accept: V2_WORKSPACE_DND_TYPE,
 			hover: (item: DragItem) => {
-				if (item.projectId !== projectId || item.index === index) return;
+				if (
+					item.projectId !== projectId ||
+					item.sectionId !== sectionId ||
+					item.index === index
+				) {
+					return;
+				}
 				item.index = index;
 			},
 		},
-		[projectId, index],
+		[projectId, sectionId, index],
 	);
 
 	return { isDragging, drag, drop };
