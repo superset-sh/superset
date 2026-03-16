@@ -13,19 +13,18 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import { env } from "renderer/env.renderer";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { V2ProjectThumbnail } from "renderer/screens/main/components/V2WorkspaceSidebar/components/V2ProjectThumbnail";
 
 interface V2ProjectSelectorProps {
 	selectedProjectId: string | null;
 	onSelectProject: (projectId: string) => void;
-	onAddFromGitHub: () => void;
 }
 
 export function V2ProjectSelector({
 	selectedProjectId,
 	onSelectProject,
-	onAddFromGitHub,
 }: V2ProjectSelectorProps) {
 	const [open, setOpen] = useState(false);
 	const collections = useCollections();
@@ -123,7 +122,10 @@ export function V2ProjectSelector({
 							className="w-full justify-start gap-2 px-2 py-1.5 text-sm font-normal"
 							onClick={() => {
 								setOpen(false);
-								onAddFromGitHub();
+								window.open(
+									`${env.NEXT_PUBLIC_WEB_URL}/integrations/github`,
+									"_blank",
+								);
 							}}
 						>
 							<FaGithub className="size-4" />
