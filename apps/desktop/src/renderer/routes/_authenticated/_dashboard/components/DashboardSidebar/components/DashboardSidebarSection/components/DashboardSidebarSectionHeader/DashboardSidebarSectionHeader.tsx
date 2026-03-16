@@ -75,7 +75,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 
 					{!isRenaming && (
 						<div className="grid shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
-							<span className="text-[10px] font-normal tabular-nums transition-all duration-150 group-hover:scale-95 group-hover:opacity-0">
+							<span className="pointer-events-none text-[10px] font-normal tabular-nums transition-opacity duration-150 group-hover:opacity-0">
 								({section.workspaces.length})
 							</span>
 							<button
@@ -84,10 +84,10 @@ export const DashboardSidebarSectionHeader = forwardRef<
 									event.stopPropagation();
 									onStartRename();
 								}}
-								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 hover:text-foreground"
+								className="z-10 flex items-center justify-center opacity-0 text-muted-foreground transition-[opacity,color] duration-150 group-hover:opacity-100 hover:text-foreground"
 								aria-label="Rename section"
 							>
-								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg]" />
+								<LuPencil className="size-3.5" />
 							</button>
 						</div>
 					)}

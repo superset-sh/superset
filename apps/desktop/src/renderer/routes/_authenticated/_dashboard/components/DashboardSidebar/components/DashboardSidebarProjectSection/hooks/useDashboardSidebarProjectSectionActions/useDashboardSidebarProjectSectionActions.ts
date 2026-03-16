@@ -1,11 +1,10 @@
+import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
-import { getProjectChildrenWorkspaces } from "../../../../utils/projectChildren";
 
 interface UseDashboardSidebarProjectSectionActionsOptions {
 	project: DashboardSidebarProject;
@@ -15,8 +14,6 @@ export function useDashboardSidebarProjectSectionActions({
 	project,
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const openModal = useOpenNewWorkspaceModal();
-	const navigate = useNavigate();
-	const matchRoute = useMatchRoute();
 	const {
 		createSection,
 		deleteSection,
@@ -27,8 +24,6 @@ export function useDashboardSidebarProjectSectionActions({
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(project.name);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
 
 	const startRename = () => {
 		setRenameValue(project.name);
@@ -57,32 +52,22 @@ export function useDashboardSidebarProjectSectionActions({
 		}
 	};
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			await apiTrpcClient.v2Project.delete.mutate({ id: project.id });
-			removeProjectFromSidebar(project.id);
-			setIsDeleteDialogOpen(false);
-			toast.success("Project deleted");
+	const handleOpenInFinder = () => {
+		toast.info("Open in Finder is coming soon");
+	};
 
-			const isInProject = getProjectChildrenWorkspaces(project.children).some(
-				(workspace) =>
-					!!matchRoute({
-						to: "/v2-workspace/$workspaceId",
-						params: { workspaceId: workspace.id },
-						fuzzy: true,
-					}),
-			);
-			if (isInProject) {
-				navigate({ to: "/" });
-			}
-		} catch (error) {
-			toast.error(
-				`Failed to delete: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		} finally {
-			setIsDeleting(false);
-		}
+	const handleOpenSettings = () => {
+		toast.info("Project settings are coming soon");
+	};
+
+	const confirmRemoveFromSidebar = () => {
+		alert.destructive({
+			title: "Remove project from sidebar?",
+			description:
+				"This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted.",
+			confirmText: "Remove",
+			onConfirm: () => removeProjectFromSidebar(project.id),
+		});
 	};
 
 	const handleNewWorkspace = () => {
@@ -95,17 +80,15 @@ export function useDashboardSidebarProjectSectionActions({
 
 	return {
 		cancelRename,
+		confirmRemoveFromSidebar,
 		deleteSection,
-		handleDelete,
 		handleNewSection,
 		handleNewWorkspace,
-		isDeleteDialogOpen,
-		isDeleting,
+		handleOpenInFinder,
+		handleOpenSettings,
 		isRenaming,
-		removeProjectFromSidebar,
 		renameSection,
 		renameValue,
-		setIsDeleteDialogOpen,
 		setRenameValue,
 		startRename,
 		submitRename,

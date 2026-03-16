@@ -5,58 +5,59 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { toast } from "@superset/ui/sonner";
-import { LuCopy, LuFolderPlus, LuPencil, LuTrash2 } from "react-icons/lu";
+import {
+	LuFolderOpen,
+	LuFolderPlus,
+	LuPencil,
+	LuSettings,
+	LuX,
+} from "react-icons/lu";
 
 interface DashboardSidebarProjectContextMenuProps {
-	id: string;
 	onCreateSection: () => void;
+	onOpenInFinder: () => void;
+	onOpenSettings: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
-	onDelete: () => void;
 	children: React.ReactNode;
 }
 
 export function DashboardSidebarProjectContextMenu({
-	id,
 	onCreateSection,
+	onOpenInFinder,
+	onOpenSettings,
 	onRemoveFromSidebar,
 	onRename,
-	onDelete,
 	children,
 }: DashboardSidebarProjectContextMenuProps) {
-	const handleCopyId = () => {
-		navigator.clipboard.writeText(id);
-		toast.success("Project ID copied");
-	};
-
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-			<ContextMenuContent>
+			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
 					Rename
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={onOpenInFinder}>
+					<LuFolderOpen className="size-4 mr-2" />
+					Open in Finder
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onOpenSettings}>
+					<LuSettings className="size-4 mr-2" />
+					Project Settings
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onCreateSection}>
 					<LuFolderPlus className="size-4 mr-2" />
 					New Section
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={handleCopyId}>
-					<LuCopy className="size-4 mr-2" />
-					Copy ID
-				</ContextMenuItem>
 				<ContextMenuSeparator />
-				<ContextMenuItem onSelect={onRemoveFromSidebar}>
-					<LuTrash2 className="size-4 mr-2" />
-					Remove from Sidebar
-				</ContextMenuItem>
 				<ContextMenuItem
-					onSelect={onDelete}
+					onSelect={onRemoveFromSidebar}
 					className="text-destructive focus:text-destructive"
 				>
-					<LuTrash2 className="size-4 mr-2 text-destructive" />
-					Delete
+					<LuX className="size-4 mr-2 text-destructive" />
+					Remove from Sidebar
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

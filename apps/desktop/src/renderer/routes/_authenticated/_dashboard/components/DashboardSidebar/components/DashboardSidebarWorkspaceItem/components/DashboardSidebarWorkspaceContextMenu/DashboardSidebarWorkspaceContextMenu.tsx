@@ -18,10 +18,13 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
 import {
 	LuArrowRightLeft,
+	LuCopy,
+	LuFolderOpen,
 	LuFolderPlus,
 	LuMinus,
 	LuPencil,
 	LuTrash2,
+	LuX,
 } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
@@ -30,6 +33,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	projectId: string;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
+	onOpenInFinder: () => void;
+	onCopyPath: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
 	onDelete: () => void;
@@ -41,6 +46,8 @@ export function DashboardSidebarWorkspaceContextMenu({
 	hoverCardContent,
 	onCreateSection,
 	onMoveToSection,
+	onOpenInFinder,
+	onCopyPath,
 	onRemoveFromSidebar,
 	onRename,
 	onDelete,
@@ -64,10 +71,19 @@ export function DashboardSidebarWorkspaceContextMenu({
 	);
 
 	const menuContent = (
-		<ContextMenuContent>
+		<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 			<ContextMenuItem onSelect={onRename}>
 				<LuPencil className="size-4 mr-2" />
 				Rename
+			</ContextMenuItem>
+			<ContextMenuSeparator />
+			<ContextMenuItem onSelect={onOpenInFinder}>
+				<LuFolderOpen className="size-4 mr-2" />
+				Open in Finder
+			</ContextMenuItem>
+			<ContextMenuItem onSelect={onCopyPath}>
+				<LuCopy className="size-4 mr-2" />
+				Copy Path
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuSub>
@@ -94,11 +110,14 @@ export function DashboardSidebarWorkspaceContextMenu({
 					))}
 				</ContextMenuSubContent>
 			</ContextMenuSub>
-			<ContextMenuItem onSelect={onRemoveFromSidebar}>
-				<LuTrash2 className="size-4 mr-2" />
+			<ContextMenuSeparator />
+			<ContextMenuItem
+				onSelect={onRemoveFromSidebar}
+				className="text-destructive focus:text-destructive"
+			>
+				<LuX className="size-4 mr-2 text-destructive" />
 				Remove from Sidebar
 			</ContextMenuItem>
-			<ContextMenuSeparator />
 			<ContextMenuItem
 				onSelect={onDelete}
 				className="text-destructive focus:text-destructive"

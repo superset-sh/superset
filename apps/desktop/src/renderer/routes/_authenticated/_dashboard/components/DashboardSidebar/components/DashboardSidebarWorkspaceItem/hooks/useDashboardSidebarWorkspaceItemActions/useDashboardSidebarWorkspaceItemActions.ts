@@ -89,11 +89,21 @@ export function useDashboardSidebarWorkspaceItemActions({
 		moveWorkspaceToSection(workspaceId, projectId, newSectionId);
 	};
 
+	const handleOpenInFinder = () => {
+		toast.info("Open in Finder is coming soon");
+	};
+
+	const handleCopyPath = () => {
+		toast.info("Copy Path is coming soon");
+	};
+
 	return {
 		cancelRename,
 		handleClick,
+		handleCopyPath,
 		handleCreateSection,
 		handleDelete,
+		handleOpenInFinder,
 		isActive,
 		isDeleteDialogOpen,
 		isDeleting,

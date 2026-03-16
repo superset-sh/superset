@@ -37,7 +37,7 @@ export function DashboardSidebarSectionContextMenu({
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
-					Rename Section
+					Rename
 				</ContextMenuItem>
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
