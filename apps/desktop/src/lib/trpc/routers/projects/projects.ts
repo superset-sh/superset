@@ -7,7 +7,9 @@ import {
 	projects,
 	type SelectProject,
 	settings,
+	workspaceSections,
 	workspaces,
+	worktrees,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
@@ -27,6 +29,7 @@ import { resolveDefaultEditor } from "../external";
 import {
 	activateProject,
 	getBranchWorkspace,
+	selectNextActiveWorkspace,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
@@ -1398,12 +1401,19 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.run();
 				}
 
-				// Hide the project by setting tabOrder to null
 				localDb
-					.update(projects)
-					.set({ tabOrder: null })
-					.where(eq(projects.id, input.id))
+					.delete(worktrees)
+					.where(eq(worktrees.projectId, input.id))
 					.run();
+
+				localDb
+					.delete(workspaceSections)
+					.where(eq(workspaceSections.projectId, input.id))
+					.run();
+
+				deleteProjectIcon(input.id);
+
+				localDb.delete(projects).where(eq(projects.id, input.id)).run();
 
 				// Update active workspace if it was in this project
 				const currentSettings = localDb.select().from(settings).get();
@@ -1411,19 +1421,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					currentSettings?.lastActiveWorkspaceId &&
 					closedWorkspaceIds.includes(currentSettings.lastActiveWorkspaceId)
 				) {
-					const remainingWorkspaces = localDb
-						.select()
-						.from(workspaces)
-						.orderBy(desc(workspaces.lastOpenedAt))
-						.all();
-
-					localDb
-						.update(settings)
-						.set({
-							lastActiveWorkspaceId: remainingWorkspaces[0]?.id ?? null,
-						})
-						.where(eq(settings.id, 1))
-						.run();
+					setLastActiveWorkspace(selectNextActiveWorkspace());
 				}
 
 				const terminalWarning =
