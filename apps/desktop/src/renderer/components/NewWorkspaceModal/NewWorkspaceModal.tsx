@@ -49,9 +49,7 @@ export function NewWorkspaceModal() {
 	const { openNew } = useOpenProject();
 	const preSelectedProjectId = usePreSelectedProjectId();
 
-	// Prefetch agent presets so the data is cached before the dialog opens.
-	// This prevents the AgentSelect from briefly showing "No agent" while the
-	// query loads after a page refresh.
+	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
 	electronTrpc.settings.getAgentPresets.useQuery();
 
 	const handleImportRepo = async () => {
