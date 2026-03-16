@@ -39,13 +39,13 @@ import { getAuthToken, getJwt } from "renderer/lib/auth-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
-	type V2SidebarProjectRow,
-	type V2SidebarSectionRow,
-	type V2SidebarWorkspaceRow,
-	v2SidebarProjectSchema,
-	v2SidebarSectionSchema,
-	v2SidebarWorkspaceSchema,
-} from "./v2-sidebar-local";
+	type DashboardSidebarProjectRow,
+	type DashboardSidebarSectionRow,
+	type DashboardSidebarWorkspaceRow,
+	dashboardSidebarProjectSchema,
+	dashboardSidebarSectionSchema,
+	dashboardSidebarWorkspaceSchema,
+} from "./dashboardSidebarLocal";
 
 const columnMapper = snakeCamelMapper();
 
@@ -89,25 +89,25 @@ export interface OrgCollections {
 	githubRepositories: Collection<SelectGithubRepository>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 	v2SidebarProjects: Collection<
-		V2SidebarProjectRow,
+		DashboardSidebarProjectRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof v2SidebarProjectSchema,
-		z.input<typeof v2SidebarProjectSchema>
+		typeof dashboardSidebarProjectSchema,
+		z.input<typeof dashboardSidebarProjectSchema>
 	>;
 	v2SidebarWorkspaces: Collection<
-		V2SidebarWorkspaceRow,
+		DashboardSidebarWorkspaceRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof v2SidebarWorkspaceSchema,
-		z.input<typeof v2SidebarWorkspaceSchema>
+		typeof dashboardSidebarWorkspaceSchema,
+		z.input<typeof dashboardSidebarWorkspaceSchema>
 	>;
 	v2SidebarSections: Collection<
-		V2SidebarSectionRow,
+		DashboardSidebarSectionRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof v2SidebarSectionSchema,
-		z.input<typeof v2SidebarSectionSchema>
+		typeof dashboardSidebarSectionSchema,
+		z.input<typeof dashboardSidebarSectionSchema>
 	>;
 }
 
@@ -563,7 +563,7 @@ function createOrgCollections(
 		localStorageCollectionOptions({
 			id: `v2_sidebar_projects-${organizationId}`,
 			storageKey: `v2-sidebar-projects-${organizationId}`,
-			schema: v2SidebarProjectSchema,
+			schema: dashboardSidebarProjectSchema,
 			getKey: (item) => item.projectId,
 		}),
 	);
@@ -572,7 +572,7 @@ function createOrgCollections(
 		localStorageCollectionOptions({
 			id: `v2_sidebar_workspaces-${organizationId}`,
 			storageKey: `v2-sidebar-workspaces-${organizationId}`,
-			schema: v2SidebarWorkspaceSchema,
+			schema: dashboardSidebarWorkspaceSchema,
 			getKey: (item) => item.workspaceId,
 		}),
 	);
@@ -581,7 +581,7 @@ function createOrgCollections(
 		localStorageCollectionOptions({
 			id: `v2_sidebar_sections-${organizationId}`,
 			storageKey: `v2-sidebar-sections-${organizationId}`,
-			schema: v2SidebarSectionSchema,
+			schema: dashboardSidebarSectionSchema,
 			getKey: (item) => item.sectionId,
 		}),
 	);

@@ -3,8 +3,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useV2SidebarState } from "renderer/lib/v2-sidebar-state";
 import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
@@ -24,7 +24,7 @@ function V2WorkspaceLayout() {
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
 	const { services } = useHostService();
-	const { ensureWorkspaceInSidebar } = useV2SidebarState();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const { data: deviceInfo, isPending: isDeviceInfoPending } =
 		electronTrpc.auth.getDeviceInfo.useQuery();
 
