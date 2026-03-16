@@ -264,6 +264,7 @@ async function handleNewWorktree({
 		mainRepoPath: project.mainRepoPath,
 		useExistingBranch: true,
 		skipWorktreeCreation: true,
+		baseBranch,
 	});
 
 	const setupConfig = loadSetupConfig({
@@ -510,6 +511,7 @@ export const createCreateProcedures = () => {
 					mainRepoPath: project.mainRepoPath,
 					namingPrompt: input.prompt,
 					useExistingBranch: input.useExistingBranch,
+					baseBranch: targetBranch,
 				});
 
 				const setupConfig = loadSetupConfig({
