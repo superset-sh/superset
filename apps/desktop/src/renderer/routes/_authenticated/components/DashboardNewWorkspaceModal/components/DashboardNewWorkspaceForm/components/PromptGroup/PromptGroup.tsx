@@ -4,7 +4,6 @@ import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PromptGroupAdvancedOptions } from "renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
@@ -15,6 +14,7 @@ import {
 } from "shared/utils/branch";
 import { useDashboardNewWorkspaceDraft } from "../../../../DashboardNewWorkspaceDraftContext";
 import { useCreateDashboardWorkspace } from "../../../../hooks/useCreateDashboardWorkspace";
+import { PromptGroupAdvancedOptions } from "./components/PromptGroupAdvancedOptions";
 
 interface PromptGroupProps {
 	projectId: string | null;

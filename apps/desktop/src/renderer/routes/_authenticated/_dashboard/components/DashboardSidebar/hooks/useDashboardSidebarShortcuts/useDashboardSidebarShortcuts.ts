@@ -2,21 +2,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import type { DashboardSidebarProject } from "../../types";
+import type { DashboardSidebarWorkspace } from "../../types";
 
 /**
  * Keyboard shortcuts for V2 workspace switching (⌘1-9).
  * Mirrors the legacy useWorkspaceShortcuts hook but for V2 workspaces.
  */
 export function useDashboardSidebarShortcuts(
-	groups: DashboardSidebarProject[],
+	allWorkspaces: DashboardSidebarWorkspace[],
 ) {
 	const navigate = useNavigate();
-
-	const allWorkspaces = groups.flatMap((group) => [
-		...group.workspaces,
-		...group.sections.flatMap((section) => section.workspaces),
-	]);
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {
