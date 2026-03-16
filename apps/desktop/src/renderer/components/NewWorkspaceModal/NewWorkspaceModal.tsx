@@ -28,16 +28,16 @@ import {
 /** Clears the PromptInputProvider text & attachments when the draft resets. */
 function PromptInputResetSync() {
 	const { resetKey } = useNewWorkspaceModalDraft();
-	const controller = usePromptInputController();
+	const { textInput, attachments } = usePromptInputController();
 	const prevResetKeyRef = useRef(resetKey);
 
 	useEffect(() => {
 		if (resetKey !== prevResetKeyRef.current) {
 			prevResetKeyRef.current = resetKey;
-			controller.textInput.clear();
-			controller.attachments.clear();
+			textInput.clear();
+			attachments.clear();
 		}
-	}, [resetKey, controller]);
+	}, [resetKey, textInput.clear, attachments.clear]);
 
 	return null;
 }
