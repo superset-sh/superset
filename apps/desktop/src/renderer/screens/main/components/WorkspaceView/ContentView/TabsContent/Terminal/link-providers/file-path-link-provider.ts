@@ -7,7 +7,7 @@ import {
 	type IParsedLink,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
-import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import type { IBufferLine, ILink, ILinkProvider, Terminal } from "@xterm/xterm";
 
 /**
  * A link provider that detects file paths in terminal output using VSCode's
@@ -52,17 +52,22 @@ export class FilePathLinkProvider implements ILinkProvider {
 		const isCurrentLineWrapped = line.isWrapped;
 
 		// Get previous line if current is wrapped (for handling wrapped paths)
-		const prevLine = isCurrentLineWrapped
+		const prevBufferLine = isCurrentLineWrapped
 			? this.terminal.buffer.active.getLine(lineIndex - 1)
 			: null;
-		const prevLineText = prevLine ? prevLine.translateToString(true) : "";
+		const prevLineText = prevBufferLine
+			? prevBufferLine.translateToString(true)
+			: "";
 		const prevLineLength = prevLineText.length;
 
 		// Get next line if it's wrapped (for handling wrapped paths)
-		const nextLine = this.terminal.buffer.active.getLine(lineIndex + 1);
-		const nextLineIsWrapped = nextLine?.isWrapped ?? false;
+		const nextBufferLine =
+			this.terminal.buffer.active.getLine(lineIndex + 1) ?? null;
+		const nextLineIsWrapped = nextBufferLine?.isWrapped ?? false;
 		const nextLineText =
-			nextLineIsWrapped && nextLine ? nextLine.translateToString(true) : "";
+			nextLineIsWrapped && nextBufferLine
+				? nextBufferLine.translateToString(true)
+				: "";
 
 		// Combine lines for multi-line path detection
 		const combinedText = prevLineText + lineText + nextLineText;
@@ -127,6 +132,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 				bufferLineNumber,
 				isCurrentLineWrapped,
 				nextLineIsWrapped,
+				prevBufferLine,
+				line,
+				nextBufferLine,
 			);
 
 			// Build the full link text for display
@@ -165,6 +173,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 					bufferLineNumber,
 					isCurrentLineWrapped,
 					nextLineIsWrapped,
+					prevBufferLine,
+					line,
+					nextBufferLine,
 				);
 
 				links.push({
@@ -335,6 +346,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 		bufferLineNumber: number,
 		isCurrentLineWrapped: boolean,
 		nextLineIsWrapped: boolean,
+		prevLine: IBufferLine | null | undefined,
+		currentLine: IBufferLine,
+		nextLine: IBufferLine | null | undefined,
 	): ILink["range"] {
 		const currentLineStart = prevLineLength;
 		const currentLineEnd = prevLineLength + lineLength;
@@ -350,26 +364,58 @@ export class FilePathLinkProvider implements ILinkProvider {
 
 		if (startsInPrevLine) {
 			startY = bufferLineNumber - 1;
-			startX = matchIndex + 1;
+			startX = this.stringOffsetToCellX(prevLine ?? null, matchIndex);
 		} else {
 			startY = bufferLineNumber;
-			startX = matchIndex - currentLineStart + 1;
+			startX = this.stringOffsetToCellX(
+				currentLine,
+				matchIndex - currentLineStart,
+			);
 		}
 
 		if (endsInNextLine) {
 			endY = bufferLineNumber + 1;
-			endX = matchEnd - currentLineEnd + 1;
+			endX = this.stringOffsetToCellX(
+				nextLine ?? null,
+				matchEnd - currentLineEnd,
+			);
 		} else if (matchEnd <= currentLineStart) {
 			endY = bufferLineNumber - 1;
-			endX = matchEnd + 1;
+			endX = this.stringOffsetToCellX(prevLine ?? null, matchEnd);
 		} else {
 			endY = bufferLineNumber;
-			endX = matchEnd - currentLineStart + 1;
+			endX = this.stringOffsetToCellX(currentLine, matchEnd - currentLineStart);
 		}
 
 		return {
 			start: { x: startX, y: startY },
 			end: { x: endX, y: endY },
 		};
+	}
+
+	/**
+	 * Convert a string character offset within a line to a 1-indexed cell x position.
+	 * Handles wide characters (e.g. CJK) that occupy 2 cells but are 1 string character.
+	 */
+	private stringOffsetToCellX(
+		line: IBufferLine | null,
+		stringOffset: number,
+	): number {
+		if (!line) return stringOffset + 1;
+
+		let strIdx = 0;
+		let cellIdx = 0;
+		while (cellIdx < line.length && strIdx < stringOffset) {
+			const cell = line.getCell(cellIdx);
+			if (!cell) break;
+			const width = cell.getWidth();
+			if (width === 0) {
+				cellIdx++;
+				continue;
+			}
+			strIdx++;
+			cellIdx += width;
+		}
+		return cellIdx + 1; // 1-indexed
 	}
 }

@@ -2,12 +2,48 @@ import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
 import { FilePathLinkProvider } from "./file-path-link-provider";
 
+/**
+ * Check if a character is a wide (double-width) character.
+ * CJK characters occupy 2 cells in terminal emulators.
+ */
+function isWideCharacter(char: string): boolean {
+	const code = char.codePointAt(0);
+	if (!code) return false;
+	return (
+		(code >= 0x1100 && code <= 0x115f) || // Hangul Jamo
+		(code >= 0x2e80 && code <= 0x303e) || // CJK Radicals
+		(code >= 0x3040 && code <= 0x33bf) || // Hiragana, Katakana
+		(code >= 0x3400 && code <= 0x4dbf) || // CJK Extension A
+		(code >= 0x4e00 && code <= 0x9fff) || // CJK Unified Ideographs
+		(code >= 0xac00 && code <= 0xd7af) || // Hangul Syllables
+		(code >= 0xf900 && code <= 0xfaff) || // CJK Compatibility Ideographs
+		(code >= 0xff01 && code <= 0xff60) || // Fullwidth Forms
+		(code >= 0x20000 && code <= 0x2fa1f) // CJK Extensions B-F
+	);
+}
+
 function createMockLine(text: string, isWrapped = false): IBufferLine {
+	// Build cells accounting for wide characters
+	const cells: Array<{ chars: string; width: number }> = [];
+	for (const char of text) {
+		const wide = isWideCharacter(char);
+		cells.push({ chars: char, width: wide ? 2 : 1 });
+		if (wide) {
+			cells.push({ chars: "", width: 0 }); // continuation cell
+		}
+	}
+
 	return {
 		translateToString: () => text,
 		isWrapped,
-		length: text.length,
-		getCell: mock(() => null),
+		length: cells.length,
+		getCell: (index: number) =>
+			cells[index]
+				? {
+						getWidth: () => cells[index].width,
+						getChars: () => cells[index].chars,
+					}
+				: null,
 		getCells: mock(() => []),
 	} as unknown as IBufferLine;
 }
@@ -695,6 +731,119 @@ describe("FilePathLinkProvider", () => {
 
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("src/components/Button.tsx");
+		});
+	});
+
+	describe("CJK (non-ASCII) file paths (#2317)", () => {
+		it("should detect CJK file paths", async () => {
+			const terminal = createMockTerminal([
+				{ text: "電馭工作流/筆記/直播腳本骨架-v2.md" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("電馭工作流/筆記/直播腳本骨架-v2.md");
+		});
+
+		it("should calculate correct cell-based range for CJK paths", async () => {
+			// "電馭工作流/筆記/直播腳本骨架-v2.md"
+			// Each CJK char occupies 2 cells in the terminal
+			// 電(2)馭(2)工(2)作(2)流(2)/(1)筆(2)記(2)/(1)直(2)播(2)腳(2)本(2)骨(2)架(2)-(1)v(1)2(1).(1)m(1)d(1)
+			// Total cells: 5*2 + 1 + 2*2 + 1 + 6*2 + 6*1 = 10 + 1 + 4 + 1 + 12 + 6 = 34
+			const terminal = createMockTerminal([
+				{ text: "電馭工作流/筆記/直播腳本骨架-v2.md" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			// Start should be cell 1 (1-indexed)
+			expect(links[0].range.start.x).toBe(1);
+			// End should account for wide CJK characters: 34 + 1 = 35
+			expect(links[0].range.end.x).toBe(35);
+		});
+
+		it("should calculate correct range for CJK path with prefix text", async () => {
+			// "See " (4 chars, 4 cells) + "./電馭/筆記.md"
+			// ./電(2)馭(2)/(1)筆(2)記(2)/(1).(1)m(1)d(1) = 2+4+1+4+1+1+1+1 = 15 cells
+			const terminal = createMockTerminal([{ text: "See ./電馭/筆記.md" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("./電馭/筆記.md");
+			// "See " is 4 cells, then "./" is 2 cells, so link starts at cell 5
+			expect(links[0].range.start.x).toBe(5);
+			// "See " (4) + "./" (2) + "電馭" (4) + "/" (1) + "筆記" (4) + ".md" (3) = 18 cells
+			expect(links[0].range.end.x).toBe(19);
+		});
+
+		it("should detect Japanese file paths", async () => {
+			const terminal = createMockTerminal([
+				{ text: "プロジェクト/ドキュメント/README.md" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("プロジェクト/ドキュメント/README.md");
+		});
+
+		it("should detect Korean file paths", async () => {
+			const terminal = createMockTerminal([{ text: "프로젝트/문서/파일.txt" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("프로젝트/문서/파일.txt");
+		});
+
+		it("should handle CJK path with line number suffix", async () => {
+			const terminal = createMockTerminal([{ text: "電馭工作流/筆記.md:42" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("電馭工作流/筆記.md:42");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe("電馭工作流/筆記.md");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+		});
+
+		it("should handle absolute CJK path", async () => {
+			const terminal = createMockTerminal([
+				{ text: "/home/user/電馭工作流/筆記/直播腳本骨架-v2.md" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"/home/user/電馭工作流/筆記/直播腳本骨架-v2.md",
+			);
 		});
 	});
 });
