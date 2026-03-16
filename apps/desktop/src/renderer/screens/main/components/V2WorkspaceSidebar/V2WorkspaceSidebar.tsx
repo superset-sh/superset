@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { V2ProjectSection } from "./components/V2ProjectSection";
-import { V2SidebarEmptyState } from "./components/V2SidebarEmptyState";
-import { V2SidebarFooter } from "./components/V2SidebarFooter";
 import { V2SidebarHeader } from "./components/V2SidebarHeader";
 import { useV2SidebarData } from "./hooks/useV2SidebarData";
 import { useV2WorkspaceShortcuts } from "./hooks/useV2WorkspaceShortcuts";
@@ -13,7 +11,7 @@ interface V2WorkspaceSidebarProps {
 export function V2WorkspaceSidebar({
 	isCollapsed = false,
 }: V2WorkspaceSidebarProps) {
-	const { groups, isEmpty, toggleProjectCollapsed } = useV2SidebarData();
+	const { groups, toggleProjectCollapsed } = useV2SidebarData();
 
 	useV2WorkspaceShortcuts(groups);
 
@@ -36,28 +34,22 @@ export function V2WorkspaceSidebar({
 			<V2SidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
-				{isEmpty && !isCollapsed ? (
-					<V2SidebarEmptyState />
-				) : (
-					groups.map((project, index) => (
-						<V2ProjectSection
-							key={project.id}
-							projectId={project.id}
-							projectName={project.name}
-							githubOwner={project.githubOwner}
-							isCollapsed={project.isCollapsed}
-							isSidebarCollapsed={isCollapsed}
-							workspaces={project.workspaces}
-							shortcutBaseIndex={projectShortcutIndices[index]}
-							index={index}
-							projectIds={projectIds}
-							onToggleCollapse={toggleProjectCollapsed}
-						/>
-					))
-				)}
+				{groups.map((project, index) => (
+					<V2ProjectSection
+						key={project.id}
+						projectId={project.id}
+						projectName={project.name}
+						githubOwner={project.githubOwner}
+						isCollapsed={project.isCollapsed}
+						isSidebarCollapsed={isCollapsed}
+						workspaces={project.workspaces}
+						shortcutBaseIndex={projectShortcutIndices[index]}
+						index={index}
+						projectIds={projectIds}
+						onToggleCollapse={toggleProjectCollapsed}
+					/>
+				))}
 			</div>
-
-			<V2SidebarFooter isCollapsed={isCollapsed} />
 		</div>
 	);
 }

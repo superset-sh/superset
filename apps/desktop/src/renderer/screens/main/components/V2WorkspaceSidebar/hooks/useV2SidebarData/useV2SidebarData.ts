@@ -94,12 +94,6 @@ export function useV2SidebarData() {
 			});
 	}, [projects, workspaces, projectMetas, githubRepos, workspaceSortVersion]);
 
-	const totalWorkspaceCount = useMemo(
-		() =>
-			groups.reduce((count, project) => count + project.workspaces.length, 0),
-		[groups],
-	);
-
 	const handleToggleProjectCollapsed = useCallback(
 		(projectId: string) => {
 			toggleProjectCollapsed(projectId);
@@ -109,8 +103,6 @@ export function useV2SidebarData() {
 
 	return {
 		groups,
-		totalWorkspaceCount,
-		isEmpty: totalWorkspaceCount === 0,
 		toggleProjectCollapsed: handleToggleProjectCollapsed,
 	};
 }

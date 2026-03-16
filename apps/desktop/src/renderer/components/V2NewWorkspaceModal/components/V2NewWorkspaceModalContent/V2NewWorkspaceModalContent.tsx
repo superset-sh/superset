@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
+import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -153,6 +154,10 @@ export function V2NewWorkspaceModalContent({
 		}
 	};
 
+	const handleAddFromGitHub = () => {
+		window.open(`${env.NEXT_PUBLIC_WEB_URL}/integrations/github`, "_blank");
+	};
+
 	return (
 		<>
 			<div className="flex items-center justify-between border-b px-4 py-2.5">
@@ -180,6 +185,7 @@ export function V2NewWorkspaceModalContent({
 						onSelectProject={(selectedProjectId) =>
 							updateDraft({ selectedProjectId })
 						}
+						onAddFromGitHub={handleAddFromGitHub}
 					/>
 				</div>
 			</div>
