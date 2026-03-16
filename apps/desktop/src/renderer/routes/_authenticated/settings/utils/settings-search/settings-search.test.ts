@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "option meta" returns the Option as Meta key setting', () => {
+		const results = searchSettings("option meta");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_OPTION_AS_META_KEY);
+	});
 });

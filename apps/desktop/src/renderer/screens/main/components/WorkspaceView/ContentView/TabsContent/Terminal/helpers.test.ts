@@ -161,9 +161,9 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 
-	it("maps Option+P to Meta+P on macOS", () => {
-		// @ts-expect-error - mocking navigator for tests
-		globalThis.navigator = { platform: "MacIntel" };
+		it("maps Option+letter to Meta+letter on macOS when enabled", () => {
+			// @ts-expect-error - mocking navigator for tests
+			globalThis.navigator = { platform: "MacIntel" };
 
 		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
 			handler: null,
@@ -176,21 +176,66 @@ describe("setupKeyboardHandler", () => {
 			},
 		};
 
-		const onWrite = mock(() => {});
-		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+			const onWrite = mock(() => {});
+			setupKeyboardHandler(xterm as unknown as XTerm, {
+				onWrite,
+				isOptionAsMetaKeyEnabled: () => true,
+			});
 
-		captured.handler?.({
-			type: "keydown",
+			captured.handler?.({
+				type: "keydown",
 			key: "π",
 			code: "KeyP",
 			altKey: true,
 			metaKey: false,
-			ctrlKey: false,
-			shiftKey: false,
-		} as KeyboardEvent);
+				ctrlKey: false,
+				shiftKey: false,
+			} as KeyboardEvent);
+			captured.handler?.({
+				type: "keydown",
+				key: "Í",
+				code: "KeyF",
+				altKey: true,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: true,
+			} as KeyboardEvent);
 
-		expect(onWrite).toHaveBeenCalledWith("\x1bp");
-	});
+			expect(onWrite).toHaveBeenCalledWith("\x1bp");
+			expect(onWrite).toHaveBeenCalledWith("\x1bF");
+		});
+
+		it("does not map Option+letter on macOS when disabled", () => {
+			// @ts-expect-error - mocking navigator for tests
+			globalThis.navigator = { platform: "MacIntel" };
+
+			const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+				handler: null,
+			};
+			const xterm = {
+				attachCustomKeyEventHandler: (
+					next: (event: KeyboardEvent) => boolean,
+				) => {
+					captured.handler = next;
+				},
+			};
+
+			const onWrite = mock(() => {});
+			setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+			const result = captured.handler?.({
+				type: "keydown",
+				key: "π",
+				code: "KeyP",
+				altKey: true,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+			} as KeyboardEvent);
+
+			expect(result).toBeTrue();
+			expect(onWrite).not.toHaveBeenCalled();
+		});
 
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
 		// @ts-expect-error - mocking navigator for tests
