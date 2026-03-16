@@ -24,7 +24,7 @@ export type ExploringGroupProps = {
 const MAX_VISIBLE_TOOLS = 5;
 const TOOL_HEIGHT_PX = 24;
 
-function buildSummary(items: ExploringGroupItem[]): string {
+export function buildSummary(items: ExploringGroupItem[]): string {
 	let files = 0;
 	let searches = 0;
 	for (const item of items) {
@@ -69,7 +69,7 @@ export const ExploringGroup = ({
 	const summary = buildSummary(items);
 
 	return (
-		<div className={className}>
+		<div className={className} style={{ overflowAnchor: "none" }}>
 			{/* Header - clickable to toggle */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive group header */}
 			<div
@@ -95,47 +95,56 @@ export const ExploringGroup = ({
 				</div>
 			</div>
 
-			{/* Tools list */}
-			{isExpanded && (
-				<div className="relative mt-1">
-					{/* Top gradient fade when streaming and many items */}
-					<div
-						className={cn(
-							"pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-background to-transparent transition-opacity duration-200",
-							isStreaming && items.length > MAX_VISIBLE_TOOLS
-								? "opacity-100"
-								: "opacity-0",
-						)}
-					/>
+			{/* Tools list — uses CSS grid collapse transition instead of
+			    conditional rendering to avoid abrupt height changes that
+			    disrupt scroll position in the parent conversation. */}
+			<div
+				className={cn(
+					"grid transition-[grid-template-rows] duration-200 ease-out",
+					isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+				)}
+			>
+				<div className="overflow-hidden">
+					<div className="relative mt-1">
+						{/* Top gradient fade when streaming and many items */}
+						<div
+							className={cn(
+								"pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-background to-transparent transition-opacity duration-200",
+								isStreaming && items.length > MAX_VISIBLE_TOOLS
+									? "opacity-100"
+									: "opacity-0",
+							)}
+						/>
 
-					{/* Scrollable container */}
-					<div
-						className={cn(
-							"space-y-1.5",
-							items.length > MAX_VISIBLE_TOOLS &&
-								"overflow-y-auto scrollbar-hide",
-						)}
-						ref={scrollRef}
-						style={
-							items.length > MAX_VISIBLE_TOOLS
-								? { maxHeight: `${MAX_VISIBLE_TOOLS * TOOL_HEIGHT_PX}px` }
-								: undefined
-						}
-					>
-						{items.map((item, i) => (
-							<ToolCall
-								icon={item.icon}
-								isError={item.isError}
-								isPending={item.isPending}
-								key={`${item.title}-${i}`}
-								onClick={item.onClick}
-								subtitle={item.subtitle}
-								title={item.title}
-							/>
-						))}
+						{/* Scrollable container */}
+						<div
+							className={cn(
+								"space-y-1.5",
+								items.length > MAX_VISIBLE_TOOLS &&
+									"overflow-y-auto scrollbar-hide",
+							)}
+							ref={scrollRef}
+							style={
+								items.length > MAX_VISIBLE_TOOLS
+									? { maxHeight: `${MAX_VISIBLE_TOOLS * TOOL_HEIGHT_PX}px` }
+									: undefined
+							}
+						>
+							{items.map((item, i) => (
+								<ToolCall
+									icon={item.icon}
+									isError={item.isError}
+									isPending={item.isPending}
+									key={`${item.title}-${i}`}
+									onClick={item.onClick}
+									subtitle={item.subtitle}
+									title={item.title}
+								/>
+							))}
+						</div>
 					</div>
 				</div>
-			)}
+			</div>
 		</div>
 	);
 };

@@ -322,7 +322,10 @@ export function AssistantMessage({
 	}
 
 	return (
-		<Message from="assistant">
+		<Message
+			from="assistant"
+			style={isStreaming ? { overflowAnchor: "none" } : undefined}
+		>
 			<MessageContent>
 				{nodes.length === 0 && isStreaming ? (
 					<ShimmerLabel className="text-sm text-muted-foreground">

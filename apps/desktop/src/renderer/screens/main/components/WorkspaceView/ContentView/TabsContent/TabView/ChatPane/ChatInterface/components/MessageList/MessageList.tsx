@@ -211,7 +211,15 @@ export function MessageList({
 						}
 
 						return (
-							<Message key={msg.id} from={msg.role}>
+							<Message
+								key={msg.id}
+								from={msg.role}
+								style={
+									shouldAnimateStreaming
+										? { overflowAnchor: "none" }
+										: undefined
+								}
+							>
 								<MessageContent>
 									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
 										<ShimmerLabel className="text-sm text-muted-foreground">

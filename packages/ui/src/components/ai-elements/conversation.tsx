@@ -10,11 +10,22 @@ import { Loader } from "./loader";
 
 export type ConversationProps = ComponentProps<typeof StickToBottom>;
 
+/**
+ * Smooth spring animation for resize-triggered scroll-to-bottom.
+ * Using a spring instead of "instant" prevents jarring scroll jumps
+ * when content height changes while the user is reading.
+ */
+const RESIZE_ANIMATION = {
+	damping: 0.85,
+	stiffness: 0.12,
+	mass: 0.8,
+};
+
 export const Conversation = ({ className, ...props }: ConversationProps) => (
 	<StickToBottom
 		className={cn("relative flex-1 overflow-y-hidden", className)}
 		initial="instant"
-		resize="instant"
+		resize={RESIZE_ANIMATION}
 		role="log"
 		{...props}
 	/>
