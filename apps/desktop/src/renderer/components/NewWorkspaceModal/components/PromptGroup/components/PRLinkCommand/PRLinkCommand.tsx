@@ -76,6 +76,8 @@ export function PRLinkCommand({
 		if (!searchQuery) {
 			return prsWithSearchField.slice(0, MAX_RESULTS);
 		}
+		const urlMatch = prsWithSearchField.find((pr) => pr.url === searchQuery);
+		if (urlMatch) return [urlMatch];
 		return prFuse
 			.search(searchQuery, { limit: MAX_RESULTS })
 			.map((r) => r.item);
