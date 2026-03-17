@@ -10,7 +10,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
+import {
+	branchExistsOnRemote,
+	createWorktree,
+	getCurrentBranch,
+	parsePrUrl,
+} from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -495,6 +500,46 @@ describe("getCurrentBranch", () => {
 				rmSync(repoPath, { recursive: true, force: true });
 			}
 		}
+	});
+});
+
+describe("branchExistsOnRemote", () => {
+	test("checks the requested remote instead of always origin", async () => {
+		const repoPath = createTestRepo("branch-exists-on-remote");
+		seedCommit(repoPath);
+
+		const originRemotePath = join(TEST_DIR, "branch-exists-origin.git");
+		const forkRemotePath = join(TEST_DIR, "branch-exists-fork.git");
+
+		execSync(`git init --bare "${originRemotePath}"`, { stdio: "ignore" });
+		execSync(`git init --bare "${forkRemotePath}"`, { stdio: "ignore" });
+
+		execSync(`git remote add origin "${originRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(`git remote add contributor "${forkRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(
+			"git push contributor HEAD:refs/heads/feature/fork-tracking-remote",
+			{
+				cwd: repoPath,
+				stdio: "ignore",
+			},
+		);
+
+		await expect(
+			branchExistsOnRemote(repoPath, "feature/fork-tracking-remote"),
+		).resolves.toEqual({ status: "not_found" });
+		await expect(
+			branchExistsOnRemote(
+				repoPath,
+				"feature/fork-tracking-remote",
+				"contributor",
+			),
+		).resolves.toEqual({ status: "exists" });
 	});
 });
 
