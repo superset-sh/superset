@@ -1,5 +1,4 @@
 import type { SelectProject, SelectWorkspace } from "@superset/local-db";
-import type { WorkspaceListGroup } from "./types";
 
 export interface ListedWorkspace {
 	id: string;
@@ -11,33 +10,30 @@ export interface ListedWorkspace {
 	type: "worktree" | "branch";
 }
 
+export type WorkspaceListSourceWorkspace = Pick<
+	SelectWorkspace,
+	"id" | "name" | "branch" | "projectId" | "type"
+>;
+
+export type WorkspaceListSourceProject = Pick<
+	SelectProject,
+	"id" | "mainRepoPath"
+>;
+
 export function buildWorkspaceList({
 	workspaces,
 	projects,
-	groupedWorkspaces,
 	activeWorkspaceId,
+	getWorktreePathByWorkspaceId,
 }: {
-	workspaces: SelectWorkspace[];
-	projects?: SelectProject[];
-	groupedWorkspaces?: WorkspaceListGroup[];
+	workspaces: WorkspaceListSourceWorkspace[];
+	projects?: WorkspaceListSourceProject[];
 	activeWorkspaceId: string | null;
+	getWorktreePathByWorkspaceId?: (workspaceId: string) => string | undefined;
 }): ListedWorkspace[] {
 	const mainRepoPathByProjectId = new Map(
 		(projects ?? []).map((project) => [project.id, project.mainRepoPath]),
 	);
-	const worktreePathByWorkspaceId = new Map<string, string>();
-
-	for (const group of groupedWorkspaces ?? []) {
-		for (const workspace of group.workspaces) {
-			worktreePathByWorkspaceId.set(workspace.id, workspace.worktreePath);
-		}
-
-		for (const section of group.sections) {
-			for (const workspace of section.workspaces) {
-				worktreePathByWorkspaceId.set(workspace.id, workspace.worktreePath);
-			}
-		}
-	}
 
 	return workspaces.map((workspace) => ({
 		id: workspace.id,
@@ -45,7 +41,7 @@ export function buildWorkspaceList({
 		path:
 			workspace.type === "branch"
 				? (mainRepoPathByProjectId.get(workspace.projectId) ?? "")
-				: (worktreePathByWorkspaceId.get(workspace.id) ?? ""),
+				: (getWorktreePathByWorkspaceId?.(workspace.id) ?? ""),
 		branch: workspace.branch,
 		isActive: workspace.id === activeWorkspaceId,
 		projectId: workspace.projectId,

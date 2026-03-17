@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { SelectProject, SelectWorkspace } from "@superset/local-db";
-import { buildWorkspaceList } from "./list-workspaces.utils";
-import type { WorkspaceListGroup } from "./types";
+import {
+	buildWorkspaceList,
+	type WorkspaceListSourceProject,
+	type WorkspaceListSourceWorkspace,
+} from "./list-workspaces.utils";
 
 describe("buildWorkspaceList", () => {
 	it("returns compact workspace summaries with resolved paths and active state", () => {
@@ -9,78 +11,35 @@ describe("buildWorkspaceList", () => {
 			{
 				id: "workspace-worktree",
 				projectId: "project-1",
-				worktreeId: "worktree-1",
 				type: "worktree",
 				branch: "feature/mcp-fix",
 				name: "MCP Fix",
-				tabOrder: 1,
-				createdAt: 1,
-				updatedAt: 1,
-				lastOpenedAt: 1,
-				isUnread: false,
-				isUnnamed: false,
-				deletingAt: null,
-				portBase: null,
-				sectionId: null,
 			},
 			{
 				id: "workspace-branch",
 				projectId: "project-1",
-				worktreeId: null,
 				type: "branch",
 				branch: "main",
 				name: "Main",
-				tabOrder: 2,
-				createdAt: 2,
-				updatedAt: 2,
-				lastOpenedAt: 2,
-				isUnread: false,
-				isUnnamed: false,
-				deletingAt: null,
-				portBase: null,
-				sectionId: null,
 			},
-		] satisfies SelectWorkspace[];
+		] satisfies WorkspaceListSourceWorkspace[];
 
 		const projects = [
 			{
 				id: "project-1",
-				name: "Superset",
 				mainRepoPath: "/repos/superset",
-				defaultBranch: "main",
-				workspaceBaseBranch: null,
-				color: "#000000",
-				tabOrder: 1,
-				lastOpenedAt: 1,
-				githubOwner: null,
-				iconUrl: null,
-				hideImage: false,
-				createdAt: 1,
 			},
-		] as unknown as SelectProject[];
-
-		const groupedWorkspaces = [
-			{
-				project: {
-					id: "project-1",
-					mainRepoPath: "/repos/superset",
-				},
-				workspaces: [
-					{
-						id: "workspace-worktree",
-						worktreePath: "/repos/superset-feature-mcp-fix",
-					},
-				],
-				sections: [],
-			},
-		] satisfies WorkspaceListGroup[];
+		] satisfies WorkspaceListSourceProject[];
 
 		expect(
 			buildWorkspaceList({
 				workspaces,
 				projects,
-				groupedWorkspaces,
 				activeWorkspaceId: "workspace-worktree",
+				getWorktreePathByWorkspaceId: (workspaceId) =>
+					workspaceId === "workspace-worktree"
+						? "/repos/superset-feature-mcp-fix"
+						: undefined,
 			}),
 		).toEqual([
 			{
@@ -109,21 +68,11 @@ describe("buildWorkspaceList", () => {
 			{
 				id: "workspace-worktree",
 				projectId: "project-1",
-				worktreeId: "worktree-1",
 				type: "worktree",
 				branch: "feature/missing-path",
 				name: "Missing Path",
-				tabOrder: 1,
-				createdAt: 1,
-				updatedAt: 1,
-				lastOpenedAt: 1,
-				isUnread: false,
-				isUnnamed: false,
-				deletingAt: null,
-				portBase: null,
-				sectionId: null,
 			},
-		] satisfies SelectWorkspace[];
+		] satisfies WorkspaceListSourceWorkspace[];
 
 		expect(
 			buildWorkspaceList({
