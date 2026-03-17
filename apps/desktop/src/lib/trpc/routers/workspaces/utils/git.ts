@@ -1006,6 +1006,29 @@ export async function hasUnpushedCommits(
 		]);
 		return Number.parseInt(aheadCount.trim(), 10) > 0;
 	} catch {
+		// Upstream ref is gone (e.g. remote branch deleted after merge).
+		// Before falling back to the broad --remotes check, see whether the
+		// branch's patches are already present in the default branch via
+		// cherry-pick detection (handles squash & rebase merges).
+		try {
+			const defaultBranch = await getDefaultBranch(worktreePath);
+			const unmergedPatches = await git.raw([
+				"log",
+				"--cherry-pick",
+				"--right-only",
+				"--no-merges",
+				"--oneline",
+				`origin/${defaultBranch}...HEAD`,
+			]);
+			if (unmergedPatches.trim() === "") {
+				// All patches are already in the default branch
+				return false;
+			}
+		} catch {
+			// Could not determine default branch or run cherry-pick check;
+			// fall through to the broad remotes check.
+		}
+
 		try {
 			const localCommits = await git.raw([
 				"rev-list",
