@@ -72,6 +72,7 @@ import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
+import { handleCreateShortcutKeyDown } from "./handleCreateShortcutKeyDown";
 
 type WorkspaceCreateAgent = AgentDefinitionId | "none";
 
@@ -745,6 +746,11 @@ function PromptGroupInner({
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
+				onKeyDown={(event) => {
+					handleCreateShortcutKeyDown(event, () => {
+						void handleCreate();
+					});
+				}}
 				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR ||
@@ -795,12 +801,6 @@ function PromptGroupInner({
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
