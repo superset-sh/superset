@@ -1,4 +1,5 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import * as childProcess from "node:child_process";
 import path from "node:path";
 import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
@@ -125,7 +126,7 @@ export class HostServiceManager {
 				throw new Error("Host service start cancelled");
 			}
 
-			const child = spawn(process.execPath, [this.scriptPath], {
+			const child = childProcess.spawn(process.execPath, [this.scriptPath], {
 				stdio: ["ignore", "pipe", "pipe"],
 				env,
 			});

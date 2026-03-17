@@ -1,16 +1,46 @@
 import type { Rectangle } from "electron";
-import { screen } from "electron";
 import type { WindowState } from "./window-state";
 
 const MIN_VISIBLE_OVERLAP = 50;
 const MIN_WINDOW_SIZE = 400;
+interface DisplayBoundsLike {
+	bounds: Rectangle;
+}
+
+interface PrimaryDisplayLike {
+	workAreaSize: {
+		width: number;
+		height: number;
+	};
+}
+
+interface ScreenLike {
+	getAllDisplays(): DisplayBoundsLike[];
+	getPrimaryDisplay(): PrimaryDisplayLike;
+}
+
+let screenOverride: ScreenLike | null = null;
+
+function getScreen(): ScreenLike {
+	if (screenOverride) {
+		return screenOverride;
+	}
+
+	// Resolve Electron lazily so Bun tests can inject a stub without relying on
+	// its unsupported named-export handling for the "electron" package.
+	return (require("electron") as typeof import("electron")).screen;
+}
+
+export function setScreenForTesting(screen: ScreenLike | null): void {
+	screenOverride = screen;
+}
 
 /**
  * Checks if bounds overlap at least MIN_VISIBLE_OVERLAP pixels with any display.
  * Returns false if window would be completely off-screen (e.g., monitor disconnected).
  */
 export function isVisibleOnAnyDisplay(bounds: Rectangle): boolean {
-	const displays = screen.getAllDisplays();
+	const displays = getScreen().getAllDisplays();
 
 	return displays.some((display) => {
 		const db = display.bounds;
@@ -31,7 +61,7 @@ function clampToWorkArea(
 	width: number,
 	height: number,
 ): { width: number; height: number } {
-	const { workAreaSize } = screen.getPrimaryDisplay();
+	const { workAreaSize } = getScreen().getPrimaryDisplay();
 	return {
 		width: Math.min(Math.max(width, MIN_WINDOW_SIZE), workAreaSize.width),
 		height: Math.min(Math.max(height, MIN_WINDOW_SIZE), workAreaSize.height),
@@ -57,7 +87,7 @@ export interface InitialWindowBounds {
 export function getInitialWindowBounds(
 	savedState: WindowState | null,
 ): InitialWindowBounds {
-	const { workAreaSize } = screen.getPrimaryDisplay();
+	const { workAreaSize } = getScreen().getPrimaryDisplay();
 
 	// No saved state → default to primary display size, centered
 	if (!savedState) {
