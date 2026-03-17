@@ -5,7 +5,9 @@ const TEST_ORG_ID = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22";
 
 // ── Mock state ──────────────────────────────────────────────────────────
 let mockMembership: { role: string } | undefined;
-let mockOrganization: { id: string; stripeCustomerId: string | null } | undefined;
+let mockOrganization:
+	| { id: string; stripeCustomerId: string | null }
+	| undefined;
 const mockDeleteWhere = mock(() => Promise.resolve());
 const mockSubscriptionsList = mock(
 	() =>
@@ -44,7 +46,10 @@ mock.module("@superset/auth/stripe", () => ({
 // Re-export real schema symbols so `eq()` / `organizations` references work
 mock.module("@superset/db/schema", () => ({
 	organizations: { id: "organizations.id" },
-	members: { organizationId: "members.organizationId", userId: "members.userId" },
+	members: {
+		organizationId: "members.organizationId",
+		userId: "members.userId",
+	},
 }));
 
 // Stubs for imports used by the router file but not by the `delete` mutation
@@ -111,7 +116,10 @@ describe("organization.delete", () => {
 		mockMembership = undefined;
 		const caller = authedCaller();
 		await expect(caller.organization.delete(TEST_ORG_ID)).rejects.toMatchObject(
-			{ code: "FORBIDDEN", message: "You are not a member of this organization" },
+			{
+				code: "FORBIDDEN",
+				message: "You are not a member of this organization",
+			},
 		);
 	});
 
@@ -166,8 +174,8 @@ describe("organization.delete", () => {
 
 	test("rejects invalid UUID input", async () => {
 		const caller = authedCaller();
-		await expect(caller.organization.delete("not-a-uuid")).rejects.toMatchObject(
-			{ code: "BAD_REQUEST" },
-		);
+		await expect(
+			caller.organization.delete("not-a-uuid"),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 });
