@@ -1,7 +1,7 @@
-import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { PendingTerminalSetup } from "renderer/stores/workspace-init";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
@@ -19,7 +19,9 @@ interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
 type PendingSetupOverrides = Pick<
 	PendingTerminalSetup,
 	"defaultPresets" | "agentCommand" | "agentLaunchRequest"
->;
+> & {
+	resolveInitialCommands?: (serverCommands: string[] | null) => string[] | null;
+};
 
 export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 	const navigate = useNavigate();
@@ -66,8 +68,11 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			}
 
 			if (!data.isInitializing && data.autoRenameWarning) {
-				toast.warning("Workspace created without auto-name", {
+				showWorkspaceAutoNameWarningToast({
 					description: data.autoRenameWarning,
+					onOpenModelAuthSettings: () => {
+						void navigate({ to: "/settings/models" });
+					},
 				});
 			}
 
@@ -79,11 +84,14 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 								workspaceId: data.workspace.id,
 							}
 						: undefined;
+				const resolveCommands =
+					pendingSetupOverrides?.resolveInitialCommands ??
+					options?.resolveInitialCommands;
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
-					initialCommands: options?.resolveInitialCommands
-						? options.resolveInitialCommands(data.initialCommands)
+					initialCommands: resolveCommands
+						? resolveCommands(data.initialCommands)
 						: data.initialCommands,
 					defaultPresets: pendingSetupOverrides?.defaultPresets,
 					agentCommand: pendingSetupOverrides?.agentCommand,

@@ -1,3 +1,8 @@
+import {
+	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+	renderTaskPromptTemplate,
+} from "./agent-prompt-template";
+
 export const AGENT_TYPES = [
 	"claude",
 	"codex",
@@ -30,12 +35,49 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 };
 
 export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
-	claude: "Danger mode: All permissions auto-approved",
-	codex: "Danger mode: All permissions auto-approved",
-	gemini: "Danger mode: All permissions auto-approved",
-	opencode: "OpenCode: Open-source AI coding agent",
-	copilot: "Danger mode: All permissions auto-approved",
-	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
+	claude:
+		"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
+	codex:
+		"OpenAI's coding agent for reading, modifying, and running code across tasks.",
+	gemini:
+		"Google's open-source terminal agent for coding, problem-solving, and task work.",
+	opencode: "Open-source coding agent for the terminal, IDE, and desktop.",
+	copilot:
+		"GitHub's coding agent for planning, editing, and building in your repo.",
+	"cursor-agent":
+		"Cursor's coding agent for editing, running, and debugging code in parallel.",
+};
+
+export interface AgentPromptCommandDefaults {
+	command: string;
+	suffix?: string;
+}
+
+export const AGENT_PROMPT_COMMANDS: Record<
+	AgentType,
+	AgentPromptCommandDefaults
+> = {
+	claude: {
+		command: AGENT_PRESET_COMMANDS.claude[0] ?? "claude",
+	},
+	codex: {
+		command: `${AGENT_PRESET_COMMANDS.codex[0] ?? "codex"} --`,
+	},
+	gemini: {
+		command: "gemini",
+		suffix: "--yolo",
+	},
+	opencode: {
+		command: "opencode --prompt",
+	},
+	copilot: {
+		command: "copilot -i --allow-all",
+		suffix: "--yolo",
+	},
+	"cursor-agent": {
+		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
+		suffix: "--yolo",
+	},
 };
 
 export interface TaskInput {
@@ -49,35 +91,7 @@ export interface TaskInput {
 }
 
 export function buildAgentTaskPrompt(task: TaskInput): string {
-	const metadata = [
-		`Priority: ${task.priority}`,
-		task.statusName && `Status: ${task.statusName}`,
-		task.labels?.length && `Labels: ${task.labels.join(", ")}`,
-	]
-		.filter(Boolean)
-		.join("\n");
-
-	return `You are working on task "${task.title}" (${task.slug}).
-
-${metadata}
-
-## Task Description
-
-${task.description || "No description provided."}
-
-## Instructions
-
-You are running fully autonomously. Do not ask questions or wait for user feedback — make all decisions independently based on the codebase and task description.
-
-1. Explore the codebase to understand the relevant code and architecture
-2. Create a detailed execution plan for this task including:
-   - Purpose and scope of the changes
-   - Key assumptions
-   - Concrete implementation steps with specific files to modify
-   - How to validate the changes work correctly
-3. Implement the plan
-4. Verify your changes work correctly (run relevant tests, typecheck, lint)
-5. When done, use the Superset MCP \`update_task\` tool to update task "${task.id}" with a summary of what was done`;
+	return renderTaskPromptTemplate(DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE, task);
 }
 
 export type ShellPlatform = "win32" | "unix";

@@ -22,13 +22,13 @@ const AVAILABLE_MODELS = [
 		provider: "Anthropic",
 	},
 	{
-		id: "openai/gpt-5.3-codex",
-		name: "GPT-5.3 Codex",
+		id: "openai/gpt-5.4",
+		name: "GPT-5.4",
 		provider: "OpenAI",
 	},
 	{
-		id: "openai/gpt-5.2",
-		name: "GPT-5.2",
+		id: "openai/gpt-5.3-codex",
+		name: "GPT-5.3 Codex",
 		provider: "OpenAI",
 	},
 ];

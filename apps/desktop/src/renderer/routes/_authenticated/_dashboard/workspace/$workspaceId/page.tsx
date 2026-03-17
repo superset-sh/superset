@@ -79,7 +79,11 @@ function WorkspacePage() {
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
-	useWorkspaceFileEventBridge(workspaceId, Boolean(workspace?.worktreePath));
+	useWorkspaceFileEventBridge(
+		workspaceId,
+		workspace?.worktreePath,
+		Boolean(workspace?.worktreePath),
+	);
 	useWorkspaceRenameReconciliation({
 		workspaceId,
 		worktreePath: workspace?.worktreePath,
@@ -559,6 +563,18 @@ function WorkspacePage() {
 			splitPaneVertical,
 			resolveSplitTarget,
 		],
+	);
+
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
+	useAppHotkey(
+		"EQUALIZE_PANE_SPLITS",
+		() => {
+			if (activeTabId) {
+				equalizePaneSplits(activeTabId);
+			}
+		},
+		undefined,
+		[activeTabId, equalizePaneSplits],
 	);
 
 	// Navigate to previous workspace (⌘↑)

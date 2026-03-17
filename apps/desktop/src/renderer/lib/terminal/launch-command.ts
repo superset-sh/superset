@@ -2,8 +2,7 @@ interface TerminalCreateOrAttachInput {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
-	taskPromptContent?: string;
-	taskPromptFileName?: string;
+	cwd?: string;
 }
 
 interface TerminalWriteInput {
@@ -17,11 +16,10 @@ interface LaunchCommandInPaneOptions {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd?: string;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 	noExecute?: boolean;
-	taskPromptContent?: string;
-	taskPromptFileName?: string;
 }
 
 function normalizeTerminalCommand(command: string): string {
@@ -77,18 +75,16 @@ export async function launchCommandInPane({
 	tabId,
 	workspaceId,
 	command,
+	cwd,
 	createOrAttach,
 	write,
 	noExecute,
-	taskPromptContent,
-	taskPromptFileName,
 }: LaunchCommandInPaneOptions): Promise<void> {
 	await createOrAttach({
 		paneId,
 		tabId,
 		workspaceId,
-		taskPromptContent,
-		taskPromptFileName,
+		cwd,
 	});
 
 	await writeCommandInPane({ paneId, command, write, noExecute });

@@ -1,4 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import {
+	existsSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
 
 describe("shell env merging", () => {
@@ -44,5 +53,57 @@ describe("shell env merging", () => {
 		await applyShellEnvToProcess(targetEnv, {});
 
 		expect(targetEnv).toEqual({});
+	});
+});
+
+describe("shell env cache", () => {
+	test("getShellEnvironment forceRefresh bypasses cached values", async () => {
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		const zshPath = ["/bin/zsh", "/usr/bin/zsh"].find((candidate) =>
+			existsSync(candidate),
+		);
+		if (!zshPath) {
+			return;
+		}
+
+		const tmpDir = mkdtempSync(
+			join(realpathSync(tmpdir()), "shell-env-refresh-test-"),
+		);
+		const zshrcPath = join(tmpDir, ".zshrc");
+		writeFileSync(
+			zshrcPath,
+			'export __SUPERSET_SHELL_ENV_REFRESH_TEST__="first"\n',
+		);
+
+		const origZDOTDIR = process.env.ZDOTDIR;
+		const origShell = process.env.SHELL;
+		process.env.SHELL = zshPath;
+		process.env.ZDOTDIR = tmpDir;
+		clearShellEnvCache();
+
+		try {
+			const cachedEnv = await getShellEnvironment();
+			expect(cachedEnv.__SUPERSET_SHELL_ENV_REFRESH_TEST__).toBe("first");
+
+			writeFileSync(
+				zshrcPath,
+				'export __SUPERSET_SHELL_ENV_REFRESH_TEST__="second"\n',
+			);
+
+			const stillCachedEnv = await getShellEnvironment();
+			expect(stillCachedEnv.__SUPERSET_SHELL_ENV_REFRESH_TEST__).toBe("first");
+
+			const refreshedEnv = await getShellEnvironment({ forceRefresh: true });
+			expect(refreshedEnv.__SUPERSET_SHELL_ENV_REFRESH_TEST__).toBe("second");
+		} finally {
+			if (origZDOTDIR !== undefined) process.env.ZDOTDIR = origZDOTDIR;
+			else delete process.env.ZDOTDIR;
+			if (origShell !== undefined) process.env.SHELL = origShell;
+			else delete process.env.SHELL;
+			clearShellEnvCache();
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
 	});
 });

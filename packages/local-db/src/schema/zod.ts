@@ -70,7 +70,11 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 		return mode;
 	}
 
-	return "split-pane";
+	if (mode === "parallel" || mode === "sequential") {
+		return "split-pane";
+	}
+
+	return "new-tab";
 }
 
 /**
@@ -90,6 +94,56 @@ export const terminalPresetSchema = z.object({
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
+
+export const AGENT_PRESET_FIELDS = [
+	"enabled",
+	"label",
+	"description",
+	"command",
+	"promptCommand",
+	"promptCommandSuffix",
+	"taskPromptTemplate",
+	"model",
+] as const;
+
+export type AgentPresetField = (typeof AGENT_PRESET_FIELDS)[number];
+
+export const agentPresetOverrideSchema = z.object({
+	id: z.string(),
+	enabled: z.boolean().optional(),
+	label: z.string().optional(),
+	description: z.string().nullable().optional(),
+	command: z.string().optional(),
+	promptCommand: z.string().optional(),
+	promptCommandSuffix: z.string().nullable().optional(),
+	taskPromptTemplate: z.string().optional(),
+	model: z.string().optional(),
+});
+
+export type AgentPresetOverride = z.infer<typeof agentPresetOverrideSchema>;
+
+export const agentPresetOverrideEnvelopeSchema = z.object({
+	version: z.literal(1),
+	presets: z.array(agentPresetOverrideSchema),
+});
+
+export type AgentPresetOverrideEnvelope = z.infer<
+	typeof agentPresetOverrideEnvelopeSchema
+>;
+
+export const agentCustomDefinitionSchema = z.object({
+	id: z.string().regex(/^custom:/),
+	kind: z.literal("terminal"),
+	label: z.string(),
+	description: z.string().optional(),
+	command: z.string(),
+	promptCommand: z.string(),
+	promptCommandSuffix: z.string().optional(),
+	taskPromptTemplate: z.string(),
+	enabled: z.boolean().optional(),
+});
+
+export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
 
 /**
  * Workspace type
@@ -128,6 +182,7 @@ export const EXTERNAL_APPS = [
 	"appcode",
 	"fleet",
 	"rustrover",
+	"android-studio",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];

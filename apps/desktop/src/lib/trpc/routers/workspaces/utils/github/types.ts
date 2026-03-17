@@ -42,6 +42,7 @@ export const GHPRResponseSchema = z.object({
 	additions: z.number(),
 	deletions: z.number(),
 	headRefOid: z.string(),
+	headRefName: z.string(),
 	reviewDecision: z
 		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
 		.nullable(),

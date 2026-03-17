@@ -62,6 +62,8 @@ export interface AddTabWithMultiplePanesOptions {
 	initialCwd?: string;
 }
 
+export type MosaicDropPosition = "top" | "bottom" | "left" | "right";
+
 /**
  * Options for opening a file in a file-viewer pane
  */
@@ -174,9 +176,18 @@ export interface TabsStore extends TabsState {
 		options?: SplitPaneOptions,
 	) => void;
 
+	// Equalize operations
+	equalizePaneSplits: (tabId: string) => void;
+
 	// Move operations
 	movePaneToTab: (paneId: string, targetTabId: string) => void;
 	movePaneToNewTab: (paneId: string) => string;
+	mergeTabIntoTab: (
+		sourceTabId: string,
+		targetTabId: string,
+		destinationPath: MosaicBranch[],
+		position: MosaicDropPosition,
+	) => void;
 
 	// Browser operations
 	addBrowserTab: (

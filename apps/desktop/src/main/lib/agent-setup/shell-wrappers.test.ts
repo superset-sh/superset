@@ -614,6 +614,210 @@ echo wrapper
 		expect(output).toBe("wrapper");
 	});
 
+	describe("SUPERSET_* env var protection from user RC overrides", () => {
+		it("bash wrapper restores SUPERSET_WORKSPACE_NAME after user .bashrc overrides it", () => {
+			const integrationRoot = path.join(TEST_ROOT, "bash-env-protect");
+			const homeDir = path.join(integrationRoot, "home");
+			mkdirSync(homeDir, { recursive: true });
+
+			// User .bashrc overrides SUPERSET_WORKSPACE_NAME with corrupted value
+			writeFileSync(
+				path.join(homeDir, ".bashrc"),
+				`export SUPERSET_WORKSPACE_NAME="user@host:~/path/to/worktree"\n`,
+			);
+
+			createBashWrapper(TEST_PATHS);
+
+			const args = [
+				"--rcfile",
+				path.join(TEST_BASH_DIR, "rcfile"),
+				"-ic",
+				'echo "$SUPERSET_WORKSPACE_NAME"',
+			];
+			const output = execFileSync("bash", args, {
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: "/usr/bin:/bin",
+					SUPERSET_WORKSPACE_NAME: "my-clean-workspace",
+				},
+			}).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("my-clean-workspace");
+		});
+
+		it("bash wrapper restores SUPERSET_WORKSPACE_NAME after user .bash_profile overrides it", () => {
+			const integrationRoot = path.join(TEST_ROOT, "bash-profile-env-protect");
+			const homeDir = path.join(integrationRoot, "home");
+			mkdirSync(homeDir, { recursive: true });
+
+			// User .bash_profile overrides SUPERSET_WORKSPACE_NAME
+			writeFileSync(
+				path.join(homeDir, ".bash_profile"),
+				`export SUPERSET_WORKSPACE_NAME="$(whoami)@$(hostname):$(pwd)"\n`,
+			);
+
+			createBashWrapper(TEST_PATHS);
+
+			const args = [
+				"--rcfile",
+				path.join(TEST_BASH_DIR, "rcfile"),
+				"-ic",
+				'echo "$SUPERSET_WORKSPACE_NAME"',
+			];
+			const output = execFileSync("bash", args, {
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: "/usr/bin:/bin",
+					SUPERSET_WORKSPACE_NAME: "correct-name",
+				},
+			}).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("correct-name");
+		});
+
+		it("bash wrapper restores multiple SUPERSET_* vars after user RC overrides them", () => {
+			const integrationRoot = path.join(TEST_ROOT, "bash-multi-env-protect");
+			const homeDir = path.join(integrationRoot, "home");
+			mkdirSync(homeDir, { recursive: true });
+
+			writeFileSync(
+				path.join(homeDir, ".bashrc"),
+				`export SUPERSET_WORKSPACE_NAME="corrupted"
+export SUPERSET_WORKSPACE_PATH="/wrong/path"
+`,
+			);
+
+			createBashWrapper(TEST_PATHS);
+
+			const args = [
+				"--rcfile",
+				path.join(TEST_BASH_DIR, "rcfile"),
+				"-ic",
+				'echo "$SUPERSET_WORKSPACE_NAME|$SUPERSET_WORKSPACE_PATH"',
+			];
+			const output = execFileSync("bash", args, {
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: "/usr/bin:/bin",
+					SUPERSET_WORKSPACE_NAME: "correct-name",
+					SUPERSET_WORKSPACE_PATH: "/correct/path",
+				},
+			}).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("correct-name|/correct/path");
+		});
+
+		it("zsh wrapper restores SUPERSET_WORKSPACE_NAME after user .zshrc overrides it", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zsh-env-protect");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+
+			// User .zshrc overrides SUPERSET_WORKSPACE_NAME with corrupted value
+			writeFileSync(
+				path.join(homeDir, ".zshrc"),
+				`export SUPERSET_WORKSPACE_NAME="user@host:~/path/to/worktree"\n`,
+			);
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync(
+				"zsh",
+				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+						SUPERSET_WORKSPACE_NAME: "my-clean-workspace",
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("my-clean-workspace");
+		});
+
+		it("zsh wrapper restores SUPERSET_WORKSPACE_NAME after user .zlogin overrides it", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zsh-zlogin-env-protect");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+
+			writeFileSync(
+				path.join(homeDir, ".zlogin"),
+				`export SUPERSET_WORKSPACE_NAME="overridden-by-zlogin"\n`,
+			);
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync(
+				"zsh",
+				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+						SUPERSET_WORKSPACE_NAME: "correct-name",
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("correct-name");
+		});
+	});
+
 	describe("fish shell", () => {
 		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
 			const args = getCommandShellArgs(

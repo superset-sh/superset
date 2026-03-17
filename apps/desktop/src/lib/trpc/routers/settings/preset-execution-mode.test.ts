@@ -30,11 +30,12 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
-	it("maps legacy and missing modes to split-pane", () => {
+	it("maps legacy modes to split-pane and missing modes to new-tab", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
 		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
-		expect(normalizeExecutionMode(undefined)).toBe("split-pane");
+		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
+		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
 	});
 });
 
@@ -51,7 +52,7 @@ describe("normalizeTerminalPresets", () => {
 			"new-tab",
 			"new-tab-split-pane",
 			"split-pane",
-			"split-pane",
+			"new-tab",
 		] satisfies TerminalPreset["executionMode"][]);
 	});
 });

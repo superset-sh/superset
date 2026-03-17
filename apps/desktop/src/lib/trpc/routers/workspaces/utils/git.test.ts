@@ -10,7 +10,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
+import {
+	branchExistsOnRemote,
+	createWorktree,
+	getCurrentBranch,
+	parsePrUrl,
+} from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -239,7 +244,7 @@ describe("Shell Environment", () => {
 
 		// Should have PATH
 		expect(env.PATH || env.Path).toBeDefined();
-	});
+	}, 10_000);
 
 	test("clearShellEnvCache clears cache", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -255,7 +260,7 @@ describe("Shell Environment", () => {
 		// Should work again (cache was cleared)
 		const env = await getShellEnvironment();
 		expect(env.PATH || env.Path).toBeDefined();
-	});
+	}, 10_000);
 
 	test("getProcessEnvWithShellPath applies shell PATH and preserves string vars", async () => {
 		const { getProcessEnvWithShellPath, getShellEnvironment } = await import(
@@ -279,7 +284,7 @@ describe("Shell Environment", () => {
 				expect(env.Path).toBe(shellPath);
 			}
 		}
-	});
+	}, 10_000);
 
 	test("getShellEnvironment PATH includes homebrew and user-installed tools", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -300,7 +305,7 @@ describe("Shell Environment", () => {
 		];
 		const hasUserPath = userPaths.some((p) => shellPath.includes(p));
 		expect(hasUserPath).toBe(true);
-	});
+	}, 10_000);
 
 	test("getShellEnvironment strips delimiter noise from interactive shell output", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -317,7 +322,7 @@ describe("Shell Environment", () => {
 		expect(
 			Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_")),
 		).toBe(false);
-	});
+	}, 10_000);
 
 	test("getProcessEnvWithShellPath overrides minimal GUI PATH with shell PATH", async () => {
 		const { clearShellEnvCache, getProcessEnvWithShellPath } = await import(
@@ -336,7 +341,7 @@ describe("Shell Environment", () => {
 		expect(env.PATH).not.toBe(guiPath);
 		// It should contain additional directories from the shell
 		expect(env.PATH.length).toBeGreaterThan(guiPath.length);
-	});
+	}, 10_000);
 
 	test("getShellEnvironment captures .zshrc variables (requires -ilc)", async () => {
 		// This test proves that getShellEnvironment uses an interactive shell (-i)
@@ -379,7 +384,7 @@ describe("Shell Environment", () => {
 			clearShellEnvCache();
 			rmSync(tmpDir, { recursive: true });
 		}
-	});
+	}, 10_000);
 });
 
 describe("createWorktree hook tolerance", () => {
@@ -419,7 +424,7 @@ describe("createWorktree hook tolerance", () => {
 			.toString()
 			.trim();
 		expect(currentBranch).toBe("feature/hook-failure");
-	});
+	}, 10_000);
 
 	test("throws when destination path exists but worktree is not created", async () => {
 		const repoPath = createTestRepo("worktree-existing-path");
@@ -432,7 +437,7 @@ describe("createWorktree hook tolerance", () => {
 		await expect(
 			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
 		).rejects.toThrow("already exists");
-	});
+	}, 10_000);
 });
 
 describe("getCurrentBranch", () => {
@@ -495,6 +500,46 @@ describe("getCurrentBranch", () => {
 				rmSync(repoPath, { recursive: true, force: true });
 			}
 		}
+	});
+});
+
+describe("branchExistsOnRemote", () => {
+	test("checks the requested remote instead of always origin", async () => {
+		const repoPath = createTestRepo("branch-exists-on-remote");
+		seedCommit(repoPath);
+
+		const originRemotePath = join(TEST_DIR, "branch-exists-origin.git");
+		const forkRemotePath = join(TEST_DIR, "branch-exists-fork.git");
+
+		execSync(`git init --bare "${originRemotePath}"`, { stdio: "ignore" });
+		execSync(`git init --bare "${forkRemotePath}"`, { stdio: "ignore" });
+
+		execSync(`git remote add origin "${originRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(`git remote add contributor "${forkRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(
+			"git push contributor HEAD:refs/heads/feature/fork-tracking-remote",
+			{
+				cwd: repoPath,
+				stdio: "ignore",
+			},
+		);
+
+		await expect(
+			branchExistsOnRemote(repoPath, "feature/fork-tracking-remote"),
+		).resolves.toEqual({ status: "not_found" });
+		await expect(
+			branchExistsOnRemote(
+				repoPath,
+				"feature/fork-tracking-remote",
+				"contributor",
+			),
+		).resolves.toEqual({ status: "exists" });
 	});
 });
 

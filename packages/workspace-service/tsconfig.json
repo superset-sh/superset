@@ -1,4 +1,0 @@
-{
-	"extends": "@superset/typescript/base.json",
-	"include": ["src"]
-}

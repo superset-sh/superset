@@ -1,31 +1,45 @@
-import {
-	buildAgentFileCommand,
-	type ShellPlatform,
-} from "@superset/shared/agent-command";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
-
-import { IS_WINDOWS } from "renderer/lib/platform";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
-
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
 type TerminalLaunchRequest = Extract<AgentLaunchRequest, { kind: "terminal" }>;
 
-const SHELL_PLATFORM: ShellPlatform = IS_WINDOWS ? "win32" : "unix";
+function joinAbsolutePath(parentAbsolutePath: string, name: string): string {
+	const separator = parentAbsolutePath.includes("\\") ? "\\" : "/";
+	return `${parentAbsolutePath.replace(/[\\/]+$/, "")}${separator}${name}`;
+}
 
-function resolveCommand(request: TerminalLaunchRequest): string {
-	if (request.terminal.command) return request.terminal.command;
-
-	if (!request.terminal.taskPromptFileName) {
-		throw new Error(
-			"Terminal launch requires either a command or taskPromptFileName",
-		);
+async function writeTaskPromptFile(
+	workspaceId: string,
+	fileName: string,
+	content: string,
+): Promise<void> {
+	const baseName = fileName.split(/[/\\]/).pop() ?? fileName;
+	if (!baseName || baseName !== fileName || fileName.includes("..")) {
+		throw new Error(`Invalid task file name: ${fileName}`);
 	}
 
-	return buildAgentFileCommand({
-		filePath: `.superset/${request.terminal.taskPromptFileName}`,
-		agent: request.agentType ?? "claude",
-		platform: SHELL_PLATFORM,
+	const { electronTrpcClient } = await import("renderer/lib/trpc-client");
+	const workspace = await electronTrpcClient.workspaces.get.query({
+		id: workspaceId,
+	});
+	if (!workspace?.worktreePath) {
+		throw new Error(`Workspace path not found: ${workspaceId}`);
+	}
+
+	const supersetDirectory = joinAbsolutePath(
+		workspace.worktreePath,
+		".superset",
+	);
+	await electronTrpcClient.filesystem.createDirectory.mutate({
+		workspaceId,
+		absolutePath: supersetDirectory,
+	});
+	await electronTrpcClient.filesystem.writeFile.mutate({
+		workspaceId,
+		absolutePath: joinAbsolutePath(supersetDirectory, baseName),
+		content,
+		encoding: "utf-8",
 	});
 }
 
@@ -40,7 +54,6 @@ export async function launchTerminalAdapter(
 
 	const { workspaceId } = request;
 	const targetPaneId = request.terminal.paneId;
-	const command = resolveCommand(request);
 
 	const noExecute = request.terminal.autoExecute === false;
 
@@ -61,16 +74,25 @@ export async function launchTerminalAdapter(
 		}
 
 		try {
+			if (
+				request.terminal.taskPromptContent &&
+				request.terminal.taskPromptFileName
+			) {
+				await writeTaskPromptFile(
+					workspaceId,
+					request.terminal.taskPromptFileName,
+					request.terminal.taskPromptContent,
+				);
+			}
+
 			await launchCommandInPane({
 				paneId: newPaneId,
 				tabId: tab.id,
 				workspaceId,
-				command,
+				command: request.terminal.command,
 				createOrAttach: context.createOrAttach,
 				write: context.write,
 				noExecute,
-				taskPromptContent: request.terminal.taskPromptContent,
-				taskPromptFileName: request.terminal.taskPromptFileName,
 			});
 		} catch (error) {
 			tabs.removePane(newPaneId);
@@ -88,16 +110,25 @@ export async function launchTerminalAdapter(
 	tabs.setTabAutoTitle(tabId, request.terminal.name ?? "Agent");
 
 	try {
+		if (
+			request.terminal.taskPromptContent &&
+			request.terminal.taskPromptFileName
+		) {
+			await writeTaskPromptFile(
+				workspaceId,
+				request.terminal.taskPromptFileName,
+				request.terminal.taskPromptContent,
+			);
+		}
+
 		await launchCommandInPane({
 			paneId,
 			tabId,
 			workspaceId,
-			command,
+			command: request.terminal.command,
 			createOrAttach: context.createOrAttach,
 			write: context.write,
 			noExecute,
-			taskPromptContent: request.terminal.taskPromptContent,
-			taskPromptFileName: request.terminal.taskPromptFileName,
 		});
 	} catch (error) {
 		tabs.removePane(paneId);

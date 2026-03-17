@@ -36,6 +36,9 @@ export const NOTIFICATION_EVENTS = {
 // Development/testing mock values (used when SKIP_ENV_VALIDATION is set)
 export const MOCK_ORG_ID = "mock-org-id";
 
+// Terminal defaults
+export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
+
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;
 export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "file-viewer" as const;

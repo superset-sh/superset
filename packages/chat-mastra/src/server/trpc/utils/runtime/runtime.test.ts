@@ -1,10 +1,31 @@
-import { describe, expect, it } from "bun:test";
-import {
+import { describe, expect, it, mock } from "bun:test";
+import type { RuntimeSession } from "./runtime";
+
+const generateTitleFromMessageMock = mock(
+	(async ({
+		agent,
+		message,
+	}: {
+		agent: {
+			generateTitleFromUserMessage?: (input: {
+				message: string;
+			}) => Promise<string>;
+		};
+		message: string;
+	}) => agent.generateTitleFromUserMessage?.({ message }) ?? "") as (
+		args: unknown,
+	) => Promise<string>,
+);
+
+mock.module("@superset/chat/host", () => ({
+	generateTitleFromMessage: generateTitleFromMessageMock,
+}));
+
+const {
 	generateAndSetTitle,
-	type RuntimeSession,
 	restartRuntimeFromUserMessage,
 	subscribeToSessionEvents,
-} from "./runtime";
+} = await import("./runtime");
 
 function createRuntimeForTest(): {
 	runtime: RuntimeSession;

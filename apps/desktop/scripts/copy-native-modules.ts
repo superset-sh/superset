@@ -25,32 +25,13 @@ import {
 	rmSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import { requiredMaterializedNodeModules } from "../runtime-dependencies";
 
 // Target architecture for cross-compilation. When set, platform-specific
 // packages for this arch are fetched from npm if not already present.
 // Set via TARGET_ARCH env var (e.g., TARGET_ARCH=x64).
 const TARGET_ARCH = process.env.TARGET_ARCH || process.arch;
 const TARGET_PLATFORM = process.env.TARGET_PLATFORM || process.platform;
-
-// Native modules that must exist for the app to work
-const NATIVE_MODULES = [
-	"better-sqlite3",
-	"node-pty",
-	"@ast-grep/napi",
-	"@parcel/watcher",
-	"libsql",
-] as const;
-
-// Dependencies of native modules that need to be copied (may be hoisted or symlinked)
-const NATIVE_MODULE_DEPS = [
-	"bindings",
-	"file-uri-to-path",
-	"detect-libc",
-	"is-glob",
-	"is-extglob",
-	"picomatch",
-	"node-addon-api",
-] as const;
 
 function getWorkspaceRootNodeModulesDir(nodeModulesDir: string): string {
 	return join(nodeModulesDir, "..", "..", "..", "node_modules");
@@ -376,7 +357,7 @@ function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 }
 
 function prepareNativeModules() {
-	console.log("Preparing native modules for electron-builder...");
+	console.log("Preparing external runtime modules for electron-builder...");
 	console.log(
 		`  Target: ${TARGET_PLATFORM}/${TARGET_ARCH} (host: ${process.platform}/${process.arch})`,
 	);
@@ -384,15 +365,9 @@ function prepareNativeModules() {
 	// bun creates symlinks for direct dependencies in the workspace's node_modules
 	const nodeModulesDir = join(dirname(import.meta.dirname), "node_modules");
 
-	// Copy required native modules
-	for (const moduleName of NATIVE_MODULES) {
+	console.log("\nMaterializing packaged runtime modules...");
+	for (const moduleName of requiredMaterializedNodeModules) {
 		copyModuleIfSymlink(nodeModulesDir, moduleName, true);
-	}
-
-	// Copy native module dependencies (not required but needed if present)
-	console.log("\nPreparing native module dependencies...");
-	for (const moduleName of NATIVE_MODULE_DEPS) {
-		copyModuleIfSymlink(nodeModulesDir, moduleName, false);
 	}
 
 	console.log("\nPreparing ast-grep platform package...");

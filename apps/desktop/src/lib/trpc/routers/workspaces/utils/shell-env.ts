@@ -45,6 +45,10 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
 	}
 }
 
+interface GetShellEnvironmentOptions {
+	forceRefresh?: boolean;
+}
+
 /**
  * Gets the full shell environment using sindresorhus/shell-env.
  * Spawns an interactive login shell (-ilc) to capture PATH from ALL configs:
@@ -53,14 +57,16 @@ async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
  *
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
-export async function getShellEnvironment(): Promise<Record<string, string>> {
+export async function getShellEnvironment(
+	options?: GetShellEnvironmentOptions,
+): Promise<Record<string, string>> {
 	if (process.platform === "win32") {
 		return copyStringEnv();
 	}
 
 	const now = Date.now();
 	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
-	if (cachedEnv && now - cacheTime < ttl) {
+	if (!options?.forceRefresh && cachedEnv && now - cacheTime < ttl) {
 		return { ...cachedEnv };
 	}
 
@@ -82,6 +88,7 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 				fallback[key] = value;
 			}
 		}
+		augmentPathForMacOS(fallback);
 		cachedEnv = fallback;
 		cacheTime = now;
 		isFallbackCache = true;
@@ -90,6 +97,32 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 			: FALLBACK_CACHE_TTL_MS;
 		return { ...fallback };
 	}
+}
+
+const COMMON_MACOS_PATHS = [
+	"/opt/homebrew/bin",
+	"/opt/homebrew/sbin",
+	"/usr/local/bin",
+	"/usr/local/sbin",
+];
+
+/**
+ * On macOS, Electron GUI apps get a minimal PATH that may exclude
+ * Homebrew and other user-installed tool directories. Augment with
+ * well-known locations so git and similar binaries can be found.
+ */
+export function augmentPathForMacOS(
+	env: Record<string, string>,
+	platform: NodeJS.Platform = process.platform,
+): void {
+	if (platform !== "darwin") return;
+	const currentPath = env.PATH ?? "";
+	const currentEntries = currentPath.split(":").filter(Boolean);
+	const pathEntries = new Set(currentEntries);
+	const missingPaths = COMMON_MACOS_PATHS.filter(
+		(path) => !pathEntries.has(path),
+	);
+	env.PATH = [...missingPaths, currentPath].filter(Boolean).join(":");
 }
 
 /**
@@ -146,8 +179,9 @@ export async function getProcessEnvWithShellEnv(
  */
 export async function getProcessEnvWithShellPath(
 	baseEnv: NodeJS.ProcessEnv = process.env,
+	options?: GetShellEnvironmentOptions,
 ): Promise<Record<string, string>> {
-	const shellEnvResult = await getShellEnvironment();
+	const shellEnvResult = await getShellEnvironment(options);
 	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
@@ -206,7 +240,7 @@ export async function execWithShellEnv(
 		console.log("[shell-env] Command not found, deriving shell environment");
 
 		try {
-			const shellEnvResult = await getShellEnvironment();
+			const shellEnvResult = await getShellEnvironment({ forceRefresh: true });
 			const mergedShellEnv = await getProcessEnvWithShellEnv(
 				baseEnv,
 				shellEnvResult,

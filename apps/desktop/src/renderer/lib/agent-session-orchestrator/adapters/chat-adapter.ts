@@ -12,8 +12,15 @@ function toLaunchConfig(
 	const retryCount = request.chat.retryCount;
 	const autoExecute = request.chat.autoExecute;
 	const taskSlug = request.chat.taskSlug?.trim();
+	const initialFiles = request.chat.initialFiles;
 
-	if (!prompt && !model && retryCount === undefined && !taskSlug) {
+	if (
+		!prompt &&
+		!model &&
+		retryCount === undefined &&
+		!taskSlug &&
+		!initialFiles?.length
+	) {
 		return null;
 	}
 
@@ -21,6 +28,7 @@ function toLaunchConfig(
 
 	return {
 		initialPrompt: !isDraft ? prompt || undefined : undefined,
+		initialFiles: !isDraft ? initialFiles : undefined,
 		draftInput: isDraft && taskSlug ? `@task:${taskSlug} ` : undefined,
 		metadata: model ? { model } : undefined,
 		retryCount: !isDraft ? retryCount : undefined,

@@ -1,232 +1,152 @@
 import type {
-	DeletePathsResult,
-	MoveCopyResult,
-	WorkspaceFsEntry,
-	WorkspaceFsExistsResult,
-	WorkspaceFsGuardedWriteResult,
-	WorkspaceFsKeywordMatch,
-	WorkspaceFsLimitedReadResult,
-	WorkspaceFsSearchResult,
-	WorkspaceFsStat,
-	WorkspaceFsWatchEvent,
+	FsContentMatch,
+	FsEntry,
+	FsMetadata,
+	FsReadResult,
+	FsSearchMatch,
+	FsWatchEvent,
+	FsWriteResult,
 } from "../types";
-import { WORKSPACE_FS_RESOURCE_SCHEME } from "./resource-uri";
 
-export type WorkspaceFsHostKind = "local" | "remote";
+export interface FsService {
+	listDirectory(input: {
+		absolutePath: string;
+	}): Promise<{ entries: FsEntry[] }>;
 
-export interface WorkspaceFsCapabilities {
-	read: boolean;
-	write: boolean;
-	watch: boolean;
-	searchFiles: boolean;
-	searchKeyword: boolean;
-	trash: boolean;
-	resourceUris: boolean;
+	readFile(input: {
+		absolutePath: string;
+		offset?: number;
+		maxBytes?: number;
+		encoding?: string;
+	}): Promise<FsReadResult>;
+
+	getMetadata(input: { absolutePath: string }): Promise<FsMetadata | null>;
+
+	writeFile(input: {
+		absolutePath: string;
+		content: string | Uint8Array;
+		encoding?: string;
+		options?: { create: boolean; overwrite: boolean };
+		precondition?: { ifMatch: string };
+	}): Promise<FsWriteResult>;
+
+	createDirectory(input: {
+		absolutePath: string;
+		recursive?: boolean;
+	}): Promise<{ absolutePath: string; kind: "directory" }>;
+
+	deletePath(input: {
+		absolutePath: string;
+		permanent?: boolean;
+	}): Promise<{ absolutePath: string }>;
+
+	movePath(input: {
+		sourceAbsolutePath: string;
+		destinationAbsolutePath: string;
+	}): Promise<{ fromAbsolutePath: string; toAbsolutePath: string }>;
+
+	copyPath(input: {
+		sourceAbsolutePath: string;
+		destinationAbsolutePath: string;
+	}): Promise<{ fromAbsolutePath: string; toAbsolutePath: string }>;
+
+	searchFiles(input: {
+		query: string;
+		includeHidden?: boolean;
+		includePattern?: string;
+		excludePattern?: string;
+		limit?: number;
+	}): Promise<{ matches: FsSearchMatch[] }>;
+
+	searchContent(input: {
+		query: string;
+		includeHidden?: boolean;
+		includePattern?: string;
+		excludePattern?: string;
+		limit?: number;
+	}): Promise<{ matches: FsContentMatch[] }>;
+
+	watchPath(input: {
+		absolutePath: string;
+		recursive?: boolean;
+	}): AsyncIterable<{ events: FsWatchEvent[] }>;
 }
 
-export interface WorkspaceFsServiceInfo {
-	hostKind: WorkspaceFsHostKind;
-	resourceScheme: string;
-	pathIdentity: "absolute-path";
-	capabilities: WorkspaceFsCapabilities;
-}
-
-export interface WorkspaceFsLocation {
-	workspaceId: string;
-	absolutePath: string;
-}
-
-export interface WorkspaceFsDirectoryQuery extends WorkspaceFsLocation {}
-
-export interface WorkspaceFsWriteFileInput extends WorkspaceFsLocation {
-	content: string;
-	expectedContent?: string;
-}
-
-export interface WorkspaceFsLimitedReadInput extends WorkspaceFsLocation {
-	maxBytes: number;
-}
-
-export interface WorkspaceFsCreateFileInput extends WorkspaceFsLocation {
-	content?: string;
-}
-
-export interface WorkspaceFsCreateDirectoryInput extends WorkspaceFsLocation {}
-
-export interface WorkspaceFsRenameInput extends WorkspaceFsLocation {
-	newName: string;
-}
-
-export interface WorkspaceFsDeletePathsInput {
-	workspaceId: string;
-	absolutePaths: string[];
-	permanent?: boolean;
-}
-
-export interface WorkspaceFsMoveCopyInput {
-	workspaceId: string;
-	absolutePaths: string[];
-	destinationAbsolutePath: string;
-}
-
-export interface WorkspaceFsSearchFilesInput {
-	workspaceId: string;
-	query: string;
-	includeHidden?: boolean;
-	includePattern?: string;
-	excludePattern?: string;
-	limit?: number;
-}
-
-export interface WorkspaceFsWatchInput {
-	workspaceId: string;
-}
-
-export interface WorkspaceFsServiceMetadata {
-	getServiceInfo(): Promise<WorkspaceFsServiceInfo>;
-}
-
-export interface WorkspaceFsQueryService {
-	listDirectory(input: WorkspaceFsDirectoryQuery): Promise<WorkspaceFsEntry[]>;
-	readTextFile(input: WorkspaceFsLocation): Promise<string>;
-	readFileBuffer(input: WorkspaceFsLocation): Promise<Uint8Array>;
-	readFileBufferUpTo(
-		input: WorkspaceFsLimitedReadInput,
-	): Promise<WorkspaceFsLimitedReadResult>;
-	stat(input: WorkspaceFsLocation): Promise<WorkspaceFsStat>;
-	exists(input: WorkspaceFsLocation): Promise<WorkspaceFsExistsResult>;
-}
-
-export interface WorkspaceFsMutationService {
-	writeTextFile(input: WorkspaceFsWriteFileInput): Promise<void>;
-	guardedWriteTextFile(
-		input: WorkspaceFsWriteFileInput,
-	): Promise<WorkspaceFsGuardedWriteResult>;
-	createFile(
-		input: WorkspaceFsCreateFileInput,
-	): Promise<{ absolutePath: string }>;
-	createDirectory(
-		input: WorkspaceFsCreateDirectoryInput,
-	): Promise<{ absolutePath: string }>;
-	rename(
-		input: WorkspaceFsRenameInput,
-	): Promise<{ oldAbsolutePath: string; newAbsolutePath: string }>;
-	deletePaths(input: WorkspaceFsDeletePathsInput): Promise<DeletePathsResult>;
-	movePaths(input: WorkspaceFsMoveCopyInput): Promise<MoveCopyResult>;
-	copyPaths(input: WorkspaceFsMoveCopyInput): Promise<MoveCopyResult>;
-}
-
-export interface WorkspaceFsSearchService {
-	searchFiles(
-		input: WorkspaceFsSearchFilesInput,
-	): Promise<WorkspaceFsSearchResult[]>;
-	searchKeyword(
-		input: WorkspaceFsSearchFilesInput,
-	): Promise<WorkspaceFsKeywordMatch[]>;
-}
-
-export interface WorkspaceFsWatchService {
-	watchWorkspace(
-		input: WorkspaceFsWatchInput,
-	): AsyncIterable<WorkspaceFsWatchEvent>;
-}
-
-export interface WorkspaceFsService
-	extends WorkspaceFsServiceMetadata,
-		WorkspaceFsQueryService,
-		WorkspaceFsMutationService,
-		WorkspaceFsSearchService,
-		WorkspaceFsWatchService {}
-
-export interface WorkspaceFsRequestMap {
-	getServiceInfo: {
-		input: undefined;
-		output: WorkspaceFsServiceInfo;
-	};
+export interface FsRequestMap {
 	listDirectory: {
-		input: WorkspaceFsDirectoryQuery;
-		output: WorkspaceFsEntry[];
+		input: { absolutePath: string };
+		output: { entries: FsEntry[] };
 	};
-	readTextFile: {
-		input: WorkspaceFsLocation;
-		output: string;
+	readFile: {
+		input: {
+			absolutePath: string;
+			offset?: number;
+			maxBytes?: number;
+			encoding?: string;
+		};
+		output: FsReadResult;
 	};
-	readFileBuffer: {
-		input: WorkspaceFsLocation;
-		output: Uint8Array;
+	getMetadata: {
+		input: { absolutePath: string };
+		output: FsMetadata | null;
 	};
-	readFileBufferUpTo: {
-		input: WorkspaceFsLimitedReadInput;
-		output: WorkspaceFsLimitedReadResult;
-	};
-	stat: {
-		input: WorkspaceFsLocation;
-		output: WorkspaceFsStat;
-	};
-	exists: {
-		input: WorkspaceFsLocation;
-		output: WorkspaceFsExistsResult;
-	};
-	writeTextFile: {
-		input: WorkspaceFsWriteFileInput;
-		output: undefined;
-	};
-	guardedWriteTextFile: {
-		input: WorkspaceFsWriteFileInput;
-		output: WorkspaceFsGuardedWriteResult;
-	};
-	createFile: {
-		input: WorkspaceFsCreateFileInput;
-		output: { absolutePath: string };
+	writeFile: {
+		input: {
+			absolutePath: string;
+			content: string | Uint8Array;
+			encoding?: string;
+			options?: { create: boolean; overwrite: boolean };
+			precondition?: { ifMatch: string };
+		};
+		output: FsWriteResult;
 	};
 	createDirectory: {
-		input: WorkspaceFsCreateDirectoryInput;
+		input: { absolutePath: string; recursive?: boolean };
+		output: { absolutePath: string; kind: "directory" };
+	};
+	deletePath: {
+		input: { absolutePath: string; permanent?: boolean };
 		output: { absolutePath: string };
 	};
-	rename: {
-		input: WorkspaceFsRenameInput;
-		output: { oldAbsolutePath: string; newAbsolutePath: string };
+	movePath: {
+		input: {
+			sourceAbsolutePath: string;
+			destinationAbsolutePath: string;
+		};
+		output: { fromAbsolutePath: string; toAbsolutePath: string };
 	};
-	deletePaths: {
-		input: WorkspaceFsDeletePathsInput;
-		output: DeletePathsResult;
-	};
-	movePaths: {
-		input: WorkspaceFsMoveCopyInput;
-		output: MoveCopyResult;
-	};
-	copyPaths: {
-		input: WorkspaceFsMoveCopyInput;
-		output: MoveCopyResult;
+	copyPath: {
+		input: {
+			sourceAbsolutePath: string;
+			destinationAbsolutePath: string;
+		};
+		output: { fromAbsolutePath: string; toAbsolutePath: string };
 	};
 	searchFiles: {
-		input: WorkspaceFsSearchFilesInput;
-		output: WorkspaceFsSearchResult[];
+		input: {
+			query: string;
+			includeHidden?: boolean;
+			includePattern?: string;
+			excludePattern?: string;
+			limit?: number;
+		};
+		output: { matches: FsSearchMatch[] };
 	};
-	searchKeyword: {
-		input: WorkspaceFsSearchFilesInput;
-		output: WorkspaceFsKeywordMatch[];
+	searchContent: {
+		input: {
+			query: string;
+			includeHidden?: boolean;
+			includePattern?: string;
+			excludePattern?: string;
+			limit?: number;
+		};
+		output: { matches: FsContentMatch[] };
 	};
 }
 
-export interface WorkspaceFsSubscriptionMap {
-	watchWorkspace: {
-		input: WorkspaceFsWatchInput;
-		event: WorkspaceFsWatchEvent;
+export interface FsSubscriptionMap {
+	watchPath: {
+		input: { absolutePath: string; recursive?: boolean };
+		event: { events: FsWatchEvent[] };
 	};
 }
-
-export const DEFAULT_WORKSPACE_FS_SERVICE_INFO: WorkspaceFsServiceInfo = {
-	hostKind: "local",
-	resourceScheme: WORKSPACE_FS_RESOURCE_SCHEME,
-	pathIdentity: "absolute-path",
-	capabilities: {
-		read: true,
-		write: true,
-		watch: true,
-		searchFiles: true,
-		searchKeyword: true,
-		trash: true,
-		resourceUris: true,
-	},
-};

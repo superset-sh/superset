@@ -1,5 +1,33 @@
 import { describe, expect, test } from "bun:test";
-import { getPullRequestRepoArgs } from "./github";
+import { branchMatchesPR, getPullRequestRepoArgs } from "./github";
+
+describe("branchMatchesPR", () => {
+	test("matches same-repo branch exactly", () => {
+		expect(branchMatchesPR("feature/my-thing", "feature/my-thing")).toBe(true);
+	});
+
+	test("matches fork PR with owner prefix", () => {
+		expect(
+			branchMatchesPR("forkowner/feature/my-thing", "feature/my-thing"),
+		).toBe(true);
+	});
+
+	test("rejects different branch name", () => {
+		expect(branchMatchesPR("feature/new-thing", "feature/old-thing")).toBe(
+			false,
+		);
+	});
+
+	test("rejects stale tracking ref mismatch", () => {
+		expect(branchMatchesPR("kitenite/fix-bug", "someone-else/old-pr")).toBe(
+			false,
+		);
+	});
+
+	test("rejects partial suffix match that is not a path segment", () => {
+		expect(branchMatchesPR("my-thing", "thing")).toBe(false);
+	});
+});
 
 describe("getPullRequestRepoArgs", () => {
 	test("returns upstream repo args for forks", () => {

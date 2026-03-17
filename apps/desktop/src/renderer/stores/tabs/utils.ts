@@ -405,6 +405,13 @@ export const getPaneIdsForTab = (
 		.map((pane) => pane.id);
 };
 
+export const getPaneIdSetForTab = (
+	panes: Record<string, Pane>,
+	tabId: string,
+): Set<string> => {
+	return new Set(getPaneIdsForTab(panes, tabId));
+};
+
 /**
  * Checks if a tab has only one pane remaining
  */
@@ -583,6 +590,32 @@ export const addPaneToLayout = (
 	second: newPaneId,
 	splitPercentage: 50,
 });
+
+/**
+ * Counts the number of leaf panes in a mosaic subtree.
+ */
+const countLeaves = (node: MosaicNode<string>): number => {
+	if (typeof node === "string") return 1;
+	return countLeaves(node.first) + countLeaves(node.second);
+};
+
+/**
+ * Recursively sets split percentages so all leaf panes get equal space.
+ * Each split is proportional to the number of leaves on each side.
+ */
+export const equalizeSplitPercentages = (
+	node: MosaicNode<string>,
+): MosaicNode<string> => {
+	if (typeof node === "string") return node;
+	const leftLeaves = countLeaves(node.first);
+	const rightLeaves = countLeaves(node.second);
+	return {
+		...node,
+		splitPercentage: (leftLeaves / (leftLeaves + rightLeaves)) * 100,
+		first: equalizeSplitPercentages(node.first),
+		second: equalizeSplitPercentages(node.second),
+	};
+};
 
 /**
  * Builds a balanced multi-pane Mosaic layout using recursive binary splits.

@@ -1,15 +1,17 @@
 import { TRPCError } from "@trpc/server";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	execGitWithShellPath,
+	getSimpleGitWithShellPath,
+} from "../workspaces/utils/git-client";
 import {
 	getPullRequestRepoArgs,
 	getRepoContext,
 } from "../workspaces/utils/github/github";
-import {
-	execWithShellEnv,
-	getProcessEnvWithShellPath,
-} from "../workspaces/utils/shell-env";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
+import { resolveTrackingRemoteName } from "../workspaces/utils/upstream-ref";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security/path-validation";
 import {
@@ -21,9 +23,7 @@ import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export { isUpstreamMissingError };
 
-async function hasUpstreamBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<boolean> {
+async function hasUpstreamBranch(git: SimpleGit): Promise<boolean> {
 	try {
 		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
 		return true;
@@ -32,17 +32,27 @@ async function hasUpstreamBranch(
 	}
 }
 
-async function fetchCurrentBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<void> {
-	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+async function getTrackingRemote(git: SimpleGit): Promise<string> {
 	try {
-		await git.fetch(["origin", branch]);
+		const upstream = (
+			await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"])
+		).trim();
+		return resolveTrackingRemoteName(upstream);
+	} catch {
+		return "origin";
+	}
+}
+
+async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
+	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+	const remote = await getTrackingRemote(git);
+	try {
+		await git.fetch([remote, branch]);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (isUpstreamMissingError(message)) {
 			try {
-				await git.fetch(["origin"]);
+				await git.fetch([remote]);
 			} catch (fallbackError) {
 				const fallbackMessage =
 					fallbackError instanceof Error
@@ -65,9 +75,11 @@ async function fetchCurrentBranch(
 async function pushWithSetUpstream({
 	git,
 	branch,
+	remote,
 }: {
-	git: ReturnType<typeof simpleGit>;
+	git: SimpleGit;
 	branch: string;
+	remote?: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
 	if (!trimmedBranch || trimmedBranch === "HEAD") {
@@ -78,11 +90,13 @@ async function pushWithSetUpstream({
 		});
 	}
 
+	const targetRemote = remote ?? (await getTrackingRemote(git));
+
 	// Use HEAD refspec to avoid resolving the branch name as a local ref.
 	// This is more reliable for worktrees where upstream tracking isn't set yet.
 	await git.push([
 		"--set-upstream",
-		"origin",
+		targetRemote,
 		`HEAD:refs/heads/${trimmedBranch}`,
 	]);
 }
@@ -119,7 +133,7 @@ interface TrackingStatus {
 }
 
 async function getTrackingBranchStatus(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 ): Promise<TrackingStatus> {
 	try {
 		const upstream = await git.raw([
@@ -203,8 +217,7 @@ async function findOpenPRByHeadCommit(
 	worktreePath: string,
 ): Promise<string | null> {
 	try {
-		const { stdout: headOutput } = await execWithShellEnv(
-			"git",
+		const { stdout: headOutput } = await execGitWithShellPath(
 			["rev-parse", "HEAD"],
 			{ cwd: worktreePath },
 		);
@@ -263,7 +276,7 @@ const ghRepoMetadataSchema = z.object({
 });
 
 async function getMergeBaseBranch(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	branch: string,
 ): Promise<string | null> {
 	try {
@@ -280,7 +293,7 @@ async function getMergeBaseBranch(
 
 async function buildNewPullRequestUrl(
 	worktreePath: string,
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	branch: string,
 ): Promise<string> {
 	const { stdout } = await execWithShellEnv(
@@ -338,9 +351,7 @@ async function buildNewPullRequestUrl(
 }
 
 async function getGitWithShellPath(worktreePath: string) {
-	const git = simpleGit(worktreePath);
-	git.env(await getProcessEnvWithShellPath());
-	return git;
+	return getSimpleGitWithShellPath(worktreePath);
 }
 
 export const createGitOperationsRouter = () => {

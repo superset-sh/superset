@@ -1,4 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
+import androidStudioIcon from "renderer/assets/app-icons/android-studio.svg";
 import antigravityIcon from "renderer/assets/app-icons/antigravity.svg";
 import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
 import clionIcon from "renderer/assets/app-icons/clion.svg";
@@ -169,6 +170,12 @@ export const JETBRAINS_OPTIONS: OpenInExternalAppOption[] = [
 		label: "RustRover",
 		lightIcon: rustroverIcon,
 		darkIcon: rustroverIcon,
+	},
+	{
+		id: "android-studio",
+		label: "Android Studio",
+		lightIcon: androidStudioIcon,
+		darkIcon: androidStudioIcon,
 	},
 ];
 

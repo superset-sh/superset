@@ -1,4 +1,4 @@
-import simpleGit from "simple-git";
+import { getSimpleGitWithShellPath } from "./git-client";
 
 interface BranchConfigParams {
 	repoPath: string;
@@ -29,7 +29,7 @@ export async function getBranchBaseConfig({
 	repoPath,
 	branch,
 }: BranchConfigParams): Promise<BranchBaseConfig> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	const [baseOutput, explicitOutput] = await Promise.all([
 		git.raw(["config", `branch.${branch}.base`]).catch(() => ""),
 		git
@@ -49,7 +49,7 @@ export async function setBranchBaseConfig({
 	baseBranch,
 	isExplicit,
 }: SetBranchBaseConfigParams): Promise<void> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 
 	await git
 		.raw(["config", `branch.${branch}.base`, baseBranch])
@@ -70,7 +70,7 @@ export async function unsetBranchBaseConfig({
 	repoPath,
 	branch,
 }: BranchConfigParams): Promise<void> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	await Promise.all([
 		git.raw(["config", "--unset", `branch.${branch}.base`]).catch(() => {}),
 		git

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 
 type WorkspaceFileEventListener = (event: FileSystemChangeEvent) => void;
@@ -83,8 +84,17 @@ function subscribeToListenerCounts(onStoreChange: () => void): () => void {
 	};
 }
 
+function toEventRelativePath(
+	worktreePath: string,
+	absolutePath: string,
+): string {
+	const relativePath = toRelativeWorkspacePath(worktreePath, absolutePath);
+	return relativePath === "." ? "" : relativePath;
+}
+
 export function useWorkspaceFileEventBridge(
 	workspaceId: string,
+	worktreePath: string | undefined,
 	enabled = true,
 ): void {
 	const listenerCount = useSyncExternalStore(
@@ -93,12 +103,36 @@ export function useWorkspaceFileEventBridge(
 		() => 0,
 	);
 
-	electronTrpc.filesystem.subscribe.useSubscription(
-		{ workspaceId },
+	electronTrpc.filesystem.watchPath.useSubscription(
 		{
-			enabled: enabled && Boolean(workspaceId) && listenerCount > 0,
-			onData: (event) => {
-				emitWorkspaceFileEvent(workspaceId, event);
+			workspaceId,
+			absolutePath: worktreePath ?? "",
+			recursive: true,
+		},
+		{
+			enabled:
+				enabled &&
+				Boolean(workspaceId) &&
+				Boolean(worktreePath) &&
+				listenerCount > 0,
+			onData: (payload) => {
+				if (!worktreePath) {
+					return;
+				}
+
+				for (const event of payload.events) {
+					const nextEvent: FileSystemChangeEvent = {
+						type: event.kind as FileSystemChangeEvent["type"],
+						absolutePath: event.absolutePath,
+						oldAbsolutePath: event.oldAbsolutePath,
+						relativePath: toEventRelativePath(worktreePath, event.absolutePath),
+						oldRelativePath: event.oldAbsolutePath
+							? toEventRelativePath(worktreePath, event.oldAbsolutePath)
+							: undefined,
+						revision: 0,
+					};
+					emitWorkspaceFileEvent(workspaceId, nextEvent);
+				}
 			},
 		},
 	);

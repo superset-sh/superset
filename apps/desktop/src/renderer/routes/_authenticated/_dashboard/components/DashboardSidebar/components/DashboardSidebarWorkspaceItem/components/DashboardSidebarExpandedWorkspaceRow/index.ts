@@ -1,0 +1,1 @@
+export { DashboardSidebarExpandedWorkspaceRow } from "./DashboardSidebarExpandedWorkspaceRow";

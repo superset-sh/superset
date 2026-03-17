@@ -1,101 +1,60 @@
 export type {
-	WorkspaceFsCapabilities,
-	WorkspaceFsCreateDirectoryInput,
-	WorkspaceFsCreateFileInput,
-	WorkspaceFsDeletePathsInput,
-	WorkspaceFsDirectoryQuery,
-	WorkspaceFsHostKind,
-	WorkspaceFsLimitedReadInput,
-	WorkspaceFsLocation,
-	WorkspaceFsMoveCopyInput,
-	WorkspaceFsMutationService,
-	WorkspaceFsQueryService,
-	WorkspaceFsRenameInput,
-	WorkspaceFsRequestMap,
-	WorkspaceFsSearchFilesInput,
-	WorkspaceFsSearchService,
-	WorkspaceFsService,
-	WorkspaceFsServiceInfo,
-	WorkspaceFsSubscriptionMap,
-	WorkspaceFsWatchInput,
-	WorkspaceFsWatchService,
-	WorkspaceFsWriteFileInput,
+	FsRequestMap,
+	FsService,
+	FsSubscriptionMap,
 } from "../core/service";
 
 import type {
-	WorkspaceFsRequestMap,
-	WorkspaceFsService,
-	WorkspaceFsSubscriptionMap,
+	FsRequestMap,
+	FsService,
+	FsSubscriptionMap,
 } from "../core/service";
 
-export interface WorkspaceFsClientTransport {
-	request<TKey extends keyof WorkspaceFsRequestMap>(
+export interface FsClientTransport {
+	request<TKey extends keyof FsRequestMap>(
 		method: TKey,
-		input: WorkspaceFsRequestMap[TKey]["input"],
-	): Promise<WorkspaceFsRequestMap[TKey]["output"]>;
-	subscribe<TKey extends keyof WorkspaceFsSubscriptionMap>(
+		input: FsRequestMap[TKey]["input"],
+	): Promise<FsRequestMap[TKey]["output"]>;
+	subscribe<TKey extends keyof FsSubscriptionMap>(
 		method: TKey,
-		input: WorkspaceFsSubscriptionMap[TKey]["input"],
-	): AsyncIterable<WorkspaceFsSubscriptionMap[TKey]["event"]>;
+		input: FsSubscriptionMap[TKey]["input"],
+	): AsyncIterable<FsSubscriptionMap[TKey]["event"]>;
 }
 
-export function createWorkspaceFsClient(
-	transport: WorkspaceFsClientTransport,
-): WorkspaceFsService {
+export function createFsClient(transport: FsClientTransport): FsService {
 	return {
-		async getServiceInfo() {
-			return await transport.request("getServiceInfo", undefined);
-		},
 		async listDirectory(input) {
 			return await transport.request("listDirectory", input);
 		},
-		async readTextFile(input) {
-			return await transport.request("readTextFile", input);
+		async readFile(input) {
+			return await transport.request("readFile", input);
 		},
-		async readFileBuffer(input) {
-			return await transport.request("readFileBuffer", input);
+		async getMetadata(input) {
+			return await transport.request("getMetadata", input);
 		},
-		async readFileBufferUpTo(input) {
-			return await transport.request("readFileBufferUpTo", input);
-		},
-		async stat(input) {
-			return await transport.request("stat", input);
-		},
-		async exists(input) {
-			return await transport.request("exists", input);
-		},
-		async writeTextFile(input) {
-			await transport.request("writeTextFile", input);
-		},
-		async guardedWriteTextFile(input) {
-			return await transport.request("guardedWriteTextFile", input);
-		},
-		async createFile(input) {
-			return await transport.request("createFile", input);
+		async writeFile(input) {
+			return await transport.request("writeFile", input);
 		},
 		async createDirectory(input) {
 			return await transport.request("createDirectory", input);
 		},
-		async rename(input) {
-			return await transport.request("rename", input);
+		async deletePath(input) {
+			return await transport.request("deletePath", input);
 		},
-		async deletePaths(input) {
-			return await transport.request("deletePaths", input);
+		async movePath(input) {
+			return await transport.request("movePath", input);
 		},
-		async movePaths(input) {
-			return await transport.request("movePaths", input);
-		},
-		async copyPaths(input) {
-			return await transport.request("copyPaths", input);
+		async copyPath(input) {
+			return await transport.request("copyPath", input);
 		},
 		async searchFiles(input) {
 			return await transport.request("searchFiles", input);
 		},
-		async searchKeyword(input) {
-			return await transport.request("searchKeyword", input);
+		async searchContent(input) {
+			return await transport.request("searchContent", input);
 		},
-		watchWorkspace(input) {
-			return transport.subscribe("watchWorkspace", input);
+		watchPath(input) {
+			return transport.subscribe("watchPath", input);
 		},
 	};
 }

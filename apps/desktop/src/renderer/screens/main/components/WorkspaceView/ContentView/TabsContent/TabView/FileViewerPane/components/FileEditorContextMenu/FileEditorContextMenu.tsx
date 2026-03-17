@@ -14,6 +14,7 @@ interface FileEditorContextMenuProps {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
@@ -29,6 +30,7 @@ export function FileEditorContextMenu({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onEqualizePaneSplits,
 	onClosePane,
 	currentTabId,
 	availableTabs,
@@ -51,6 +53,7 @@ export function FileEditorContextMenu({
 				onSplitVertical,
 				onSplitWithNewChat,
 				onSplitWithNewBrowser,
+				onEqualizePaneSplits,
 				onClosePane,
 				currentTabId,
 				availableTabs,

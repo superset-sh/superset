@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { builtInThemes, darkTheme, lightTheme } from "./built-in";
+import { getEditorTheme } from "./editor-theme";
 import { getDefaultTerminalColors, type Theme } from "./types";
 
 const uiColorsSchema = z
@@ -70,6 +71,61 @@ const terminalColorsSchema = z
 	})
 	.passthrough();
 
+const editorColorsSchema = z
+	.object({
+		background: z.string().optional(),
+		foreground: z.string().optional(),
+		border: z.string().optional(),
+		cursor: z.string().optional(),
+		gutterBackground: z.string().optional(),
+		gutterForeground: z.string().optional(),
+		activeLine: z.string().optional(),
+		selection: z.string().optional(),
+		search: z.string().optional(),
+		searchActive: z.string().optional(),
+		panel: z.string().optional(),
+		panelBorder: z.string().optional(),
+		panelInputBackground: z.string().optional(),
+		panelInputForeground: z.string().optional(),
+		panelInputBorder: z.string().optional(),
+		panelButtonBackground: z.string().optional(),
+		panelButtonForeground: z.string().optional(),
+		panelButtonBorder: z.string().optional(),
+		diffBuffer: z.string().optional(),
+		diffHover: z.string().optional(),
+		diffSeparator: z.string().optional(),
+		addition: z.string().optional(),
+		deletion: z.string().optional(),
+		modified: z.string().optional(),
+	})
+	.passthrough();
+
+const editorSyntaxSchema = z
+	.object({
+		plainText: z.string().optional(),
+		comment: z.string().optional(),
+		keyword: z.string().optional(),
+		string: z.string().optional(),
+		number: z.string().optional(),
+		functionCall: z.string().optional(),
+		variableName: z.string().optional(),
+		typeName: z.string().optional(),
+		className: z.string().optional(),
+		constant: z.string().optional(),
+		regexp: z.string().optional(),
+		tagName: z.string().optional(),
+		attributeName: z.string().optional(),
+		invalid: z.string().optional(),
+	})
+	.passthrough();
+
+const editorThemeSchema = z
+	.object({
+		colors: editorColorsSchema.optional(),
+		syntax: editorSyntaxSchema.optional(),
+	})
+	.passthrough();
+
 const themeConfigSchema = z
 	.object({
 		id: z.string().optional(),
@@ -81,6 +137,7 @@ const themeConfigSchema = z
 		ui: uiColorsSchema.optional(),
 		terminal: terminalColorsSchema.optional(),
 		colors: terminalColorsSchema.optional(),
+		editor: editorThemeSchema.optional(),
 	})
 	.passthrough();
 
@@ -146,24 +203,49 @@ function parseThemeEntry(
 	const type = config.type ?? "dark";
 	const baseTheme = type === "light" ? lightTheme : darkTheme;
 	const terminalOverrides = config.terminal ?? config.colors;
+	const editorOverrides = config.editor;
+	const resolvedThemeBase: Theme = {
+		id,
+		name: rawName || config.id || id,
+		author: config.author,
+		version: config.version,
+		description: config.description,
+		type,
+		ui: {
+			...baseTheme.ui,
+			...(config.ui ?? {}),
+		},
+		terminal: terminalOverrides
+			? {
+					...getDefaultTerminalColors(type),
+					...terminalOverrides,
+				}
+			: undefined,
+	};
+	const baseEditorTheme = getEditorTheme(resolvedThemeBase);
 
 	return {
 		ok: true,
 		theme: {
-			id,
-			name: rawName || config.id || id,
-			author: config.author,
-			version: config.version,
-			description: config.description,
-			type,
-			ui: {
-				...baseTheme.ui,
-				...(config.ui ?? {}),
-			},
-			terminal: {
-				...getDefaultTerminalColors(type),
-				...(terminalOverrides ?? {}),
-			},
+			...resolvedThemeBase,
+			terminal: terminalOverrides
+				? {
+						...getDefaultTerminalColors(type),
+						...terminalOverrides,
+					}
+				: undefined,
+			editor: editorOverrides
+				? {
+						colors: {
+							...baseEditorTheme.colors,
+							...(editorOverrides.colors ?? {}),
+						},
+						syntax: {
+							...baseEditorTheme.syntax,
+							...(editorOverrides.syntax ?? {}),
+						},
+					}
+				: undefined,
 		},
 	};
 }

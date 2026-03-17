@@ -3,7 +3,10 @@ import {
 	PromptInputSubmit,
 	PromptInputTools,
 } from "@superset/ui/ai-elements/prompt-input";
-import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
+import {
+	type ThinkingLevel,
+	ThinkingToggle,
+} from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus } from "ai";
 import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import type React from "react";
@@ -21,8 +24,8 @@ interface ChatComposerControlsProps {
 	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	permissionMode: PermissionMode;
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
-	thinkingEnabled: boolean;
-	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+	thinkingLevel: ThinkingLevel;
+	setThinkingLevel: (level: ThinkingLevel) => void;
 	canAbort: boolean;
 	submitStatus?: ChatStatus;
 	submitDisabled?: boolean;
@@ -38,8 +41,8 @@ export function ChatComposerControls({
 	setModelSelectorOpen,
 	permissionMode,
 	setPermissionMode,
-	thinkingEnabled,
-	setThinkingEnabled,
+	thinkingLevel,
+	setThinkingLevel,
 	canAbort,
 	submitStatus,
 	submitDisabled,
@@ -61,9 +64,9 @@ export function ChatComposerControls({
 					onOpenChange={setModelSelectorOpen}
 				/>
 				<ThinkingToggle
-					enabled={thinkingEnabled}
-					onToggle={setThinkingEnabled}
-					className={`${PILL_BUTTON_CLASS} w-[23px] [&>svg]:size-3.5`}
+					level={thinkingLevel}
+					onLevelChange={setThinkingLevel}
+					className={PILL_BUTTON_CLASS}
 				/>
 			</PromptInputTools>
 			<div className="flex items-center gap-2">

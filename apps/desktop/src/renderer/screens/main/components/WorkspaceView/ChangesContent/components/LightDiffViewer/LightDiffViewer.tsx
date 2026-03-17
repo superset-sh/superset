@@ -6,6 +6,7 @@ import {
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
+import { useResolvedTheme } from "renderer/stores/theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
 interface LightDiffViewerProps {
@@ -25,20 +26,21 @@ export function LightDiffViewer({
 	className,
 	style,
 }: LightDiffViewerProps) {
+	const activeTheme = useResolvedTheme();
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
 		{
 			staleTime: 30_000,
 		},
 	);
-	const shikiTheme = getDiffsTheme();
+	const shikiTheme = getDiffsTheme(activeTheme);
 	const parsedEditorFontSize =
 		typeof fontSettings?.editorFontSize === "number"
 			? fontSettings.editorFontSize
 			: typeof fontSettings?.editorFontSize === "string"
 				? Number.parseFloat(fontSettings.editorFontSize)
 				: Number.NaN;
-	const diffStyle = getDiffViewerStyle({
+	const diffStyle = getDiffViewerStyle(activeTheme, {
 		fontFamily: fontSettings?.editorFontFamily ?? undefined,
 		fontSize: Number.isFinite(parsedEditorFontSize)
 			? parsedEditorFontSize
@@ -58,7 +60,7 @@ export function LightDiffViewer({
 				diffStyle: viewMode === "side-by-side" ? "split" : "unified",
 				expandUnchanged: !hideUnchangedRegions,
 				theme: shikiTheme,
-				themeType: "dark",
+				themeType: activeTheme.type,
 				overflow: "wrap",
 				disableFileHeader: true,
 				unsafeCSS: `

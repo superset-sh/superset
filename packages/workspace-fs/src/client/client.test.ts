@@ -1,31 +1,29 @@
 import { describe, expect, it } from "bun:test";
-import { createWorkspaceFsClient } from "./index";
+import { createFsClient } from "./index";
 
-describe("createWorkspaceFsClient", () => {
+describe("createFsClient", () => {
 	it("adapts a transport-neutral request/subscribe client to the service contract", async () => {
 		const calls: Array<{ method: string; input: unknown }> = [];
-		const client = createWorkspaceFsClient({
+		const client = createFsClient({
 			async request(method, input) {
 				calls.push({ method, input });
-				if (method === "getServiceInfo") {
+
+				if (method === "listDirectory") {
+					return { entries: [] };
+				}
+
+				if (method === "readFile") {
 					return {
-						hostKind: "remote",
-						resourceScheme: "workspace-fs",
-						pathIdentity: "absolute-path",
-						capabilities: {
-							read: true,
-							write: true,
-							watch: true,
-							searchFiles: true,
-							searchKeyword: true,
-							trash: false,
-							resourceUris: true,
-						},
+						kind: "text",
+						content: "hello",
+						byteLength: 5,
+						exceededLimit: false,
+						revision: "123:5",
 					};
 				}
 
-				if (method === "listDirectory") {
-					return [];
+				if (method === "getMetadata") {
+					return null;
 				}
 
 				throw new Error(`Unexpected method: ${method}`);
@@ -33,49 +31,71 @@ describe("createWorkspaceFsClient", () => {
 			async *subscribe(method, input) {
 				calls.push({ method, input });
 				yield {
-					type: "overflow",
-					workspaceId: "workspace-1",
-					revision: 1,
+					events: [
+						{
+							kind: "overflow" as const,
+							absolutePath: "/tmp/workspace",
+						},
+					],
 				};
 			},
 		});
 
-		const serviceInfo = await client.getServiceInfo();
-		expect(serviceInfo.hostKind).toEqual("remote");
-
-		const entries = await client.listDirectory({
-			workspaceId: "workspace-1",
+		const { entries } = await client.listDirectory({
 			absolutePath: "/tmp/workspace",
 		});
 		expect(entries).toEqual([]);
 
+		const readResult = await client.readFile({
+			absolutePath: "/tmp/workspace/file.txt",
+			encoding: "utf-8",
+		});
+		expect(readResult.kind).toEqual("text");
+		if (readResult.kind === "text") {
+			expect(readResult.content).toEqual("hello");
+		}
+		expect(readResult.revision).toEqual("123:5");
+
+		const metadata = await client.getMetadata({
+			absolutePath: "/tmp/workspace/missing",
+		});
+		expect(metadata).toBeNull();
+
 		const iterator = client
-			.watchWorkspace({ workspaceId: "workspace-1" })
+			.watchPath({ absolutePath: "/tmp/workspace", recursive: true })
 			[Symbol.asyncIterator]();
 		const next = await iterator.next();
 		expect(next).toEqual({
 			value: {
-				type: "overflow",
-				workspaceId: "workspace-1",
-				revision: 1,
+				events: [
+					{
+						kind: "overflow",
+						absolutePath: "/tmp/workspace",
+					},
+				],
 			},
 			done: false,
 		});
 
 		expect(calls).toEqual([
-			{ method: "getServiceInfo", input: undefined },
 			{
 				method: "listDirectory",
+				input: { absolutePath: "/tmp/workspace" },
+			},
+			{
+				method: "readFile",
 				input: {
-					workspaceId: "workspace-1",
-					absolutePath: "/tmp/workspace",
+					absolutePath: "/tmp/workspace/file.txt",
+					encoding: "utf-8",
 				},
 			},
 			{
-				method: "watchWorkspace",
-				input: {
-					workspaceId: "workspace-1",
-				},
+				method: "getMetadata",
+				input: { absolutePath: "/tmp/workspace/missing" },
+			},
+			{
+				method: "watchPath",
+				input: { absolutePath: "/tmp/workspace", recursive: true },
 			},
 		]);
 	});

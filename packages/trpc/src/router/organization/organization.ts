@@ -5,6 +5,7 @@ import {
 	sessions as authSessions,
 	invitations,
 } from "@superset/db/schema/auth";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
@@ -134,6 +135,8 @@ export const organizationRouter = {
 					userId: ctx.session.user.id,
 					role: "owner",
 				});
+
+				await seedDefaultStatuses(organization.id);
 			}
 
 			return organization;

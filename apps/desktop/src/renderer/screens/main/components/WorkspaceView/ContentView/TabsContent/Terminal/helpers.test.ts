@@ -25,6 +25,10 @@ mock.module("renderer/lib/trpc-client", () => ({
 				get: { query: mock(() => Promise.resolve(null)) },
 				set: { mutate: mock(() => Promise.resolve()) },
 			},
+			theme: {
+				get: { query: mock(() => Promise.resolve(null)) },
+				set: { mutate: mock(() => Promise.resolve()) },
+			},
 		},
 	},
 	electronReactClient: {},

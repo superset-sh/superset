@@ -7,51 +7,59 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
+import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
+import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpenExternalWorktree";
+import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
-export type NewWorkspaceModalTab =
-	| "prompt"
-	| "issues"
-	| "pull-requests"
-	| "branches";
+export type LinkedIssue = {
+	slug: string;
+	title: string;
+};
+
+export type LinkedPR = {
+	prNumber: number;
+	title: string;
+	url: string;
+	state: string;
+};
 
 export interface NewWorkspaceModalDraft {
-	activeTab: NewWorkspaceModalTab;
 	selectedProjectId: string | null;
 	prompt: string;
+	baseBranch: string | null;
+	runSetupScript: boolean;
+	workspaceName: string;
+	workspaceNameEdited: boolean;
 	branchName: string;
 	branchNameEdited: boolean;
-	baseBranch: string | null;
-	showAdvanced: boolean;
-	runSetupScript: boolean;
-	branchSearch: string;
-	issuesQuery: string;
-	pullRequestsQuery: string;
-	branchesQuery: string;
+	linkedIssues: LinkedIssue[];
+	linkedPR: LinkedPR | null;
 }
 
 interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
 	draftVersion: number;
+	resetKey: number;
 }
 
 const initialDraft: NewWorkspaceModalDraft = {
-	activeTab: "prompt",
 	selectedProjectId: null,
 	prompt: "",
+	baseBranch: null,
+	runSetupScript: true,
+	workspaceName: "",
+	workspaceNameEdited: false,
 	branchName: "",
 	branchNameEdited: false,
-	baseBranch: null,
-	showAdvanced: false,
-	runSetupScript: true,
-	branchSearch: "",
-	issuesQuery: "",
-	pullRequestsQuery: "",
-	branchesQuery: "",
+	linkedIssues: [],
+	linkedPR: null,
 };
 
 function buildInitialDraftState(): NewWorkspaceModalDraftState {
 	return {
 		...initialDraft,
 		draftVersion: 0,
+		resetKey: 0,
 	};
 }
 
@@ -64,8 +72,13 @@ interface NewWorkspaceModalActionMessages {
 interface NewWorkspaceModalDraftContextValue {
 	draft: NewWorkspaceModalDraft;
 	draftVersion: number;
+	resetKey: number;
 	closeModal: () => void;
 	closeAndResetDraft: () => void;
+	createWorkspace: ReturnType<typeof useCreateWorkspace>;
+	createFromPr: ReturnType<typeof useCreateFromPr>;
+	openTrackedWorktree: ReturnType<typeof useOpenTrackedWorktree>;
+	openExternalWorktree: ReturnType<typeof useOpenExternalWorktree>;
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: NewWorkspaceModalActionMessages,
@@ -84,6 +97,12 @@ export function NewWorkspaceModalDraftProvider({
 }: PropsWithChildren<{ onClose: () => void }>) {
 	const [state, setState] = useState(buildInitialDraftState);
 
+	// Owned here so onSuccess survives Dialog unmounting content on close.
+	const createWorkspace = useCreateWorkspace();
+	const createFromPr = useCreateFromPr();
+	const openTrackedWorktree = useOpenTrackedWorktree();
+	const openExternalWorktree = useOpenExternalWorktree();
+
 	const updateDraft = useCallback((patch: Partial<NewWorkspaceModalDraft>) => {
 		setState((state) => ({
 			...state,
@@ -96,6 +115,7 @@ export function NewWorkspaceModalDraftProvider({
 		setState((state) => ({
 			...initialDraft,
 			draftVersion: state.draftVersion + 1,
+			resetKey: state.resetKey + 1,
 		}));
 	}, []);
 
@@ -106,6 +126,7 @@ export function NewWorkspaceModalDraftProvider({
 				: {
 						...initialDraft,
 						draftVersion: state.draftVersion + 1,
+						resetKey: state.resetKey + 1,
 					},
 		);
 	}, []);
@@ -137,22 +158,25 @@ export function NewWorkspaceModalDraftProvider({
 	const value = useMemo<NewWorkspaceModalDraftContextValue>(
 		() => ({
 			draft: {
-				activeTab: state.activeTab,
 				selectedProjectId: state.selectedProjectId,
 				prompt: state.prompt,
+				baseBranch: state.baseBranch,
+				runSetupScript: state.runSetupScript,
+				workspaceName: state.workspaceName,
+				workspaceNameEdited: state.workspaceNameEdited,
 				branchName: state.branchName,
 				branchNameEdited: state.branchNameEdited,
-				baseBranch: state.baseBranch,
-				showAdvanced: state.showAdvanced,
-				runSetupScript: state.runSetupScript,
-				branchSearch: state.branchSearch,
-				issuesQuery: state.issuesQuery,
-				pullRequestsQuery: state.pullRequestsQuery,
-				branchesQuery: state.branchesQuery,
+				linkedIssues: state.linkedIssues,
+				linkedPR: state.linkedPR,
 			},
 			draftVersion: state.draftVersion,
+			resetKey: state.resetKey,
 			closeModal: onClose,
 			closeAndResetDraft,
+			createWorkspace,
+			createFromPr,
+			openTrackedWorktree,
+			openExternalWorktree,
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
@@ -160,6 +184,10 @@ export function NewWorkspaceModalDraftProvider({
 		}),
 		[
 			closeAndResetDraft,
+			createFromPr,
+			createWorkspace,
+			openExternalWorktree,
+			openTrackedWorktree,
 			onClose,
 			resetDraft,
 			resetDraftIfVersion,

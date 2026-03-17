@@ -1,3 +1,4 @@
+import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
 import type { StartFreshSessionResult } from "../../../../ChatPane/ChatInterface/types";
 
 export type ChatSendMessageInput = {
@@ -11,6 +12,7 @@ export type ChatSendMessageInput = {
 	};
 	metadata: {
 		model?: string;
+		thinkingLevel?: ThinkingLevel;
 	};
 };
 

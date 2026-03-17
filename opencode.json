@@ -30,6 +30,11 @@
 			"type": "remote",
 			"url": "https://mcp.sentry.dev/mcp"
 		},
+		"posthog": {
+			"type": "remote",
+			"url": "https://mcp.posthog.com/mcp",
+			"oauth": {}
+		},
 		"desktop-automation": {
 			"type": "local",
 			"command": ["bun", "run", "packages/desktop-mcp/src/bin.ts"]

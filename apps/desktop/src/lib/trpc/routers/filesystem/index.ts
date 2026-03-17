@@ -1,23 +1,7 @@
 import { observable } from "@trpc/server/observable";
-import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import {
-	copyWorkspacePaths,
-	createWorkspaceDirectory,
-	createWorkspaceFile,
-	deleteWorkspacePaths,
-	getWorkspaceFsServiceInfo,
-	moveWorkspacePaths,
-	readWorkspaceDirectory,
-	renameWorkspacePath,
-	searchWorkspaceFiles,
-	searchWorkspaceFilesMulti,
-	searchWorkspaceKeyword,
-	statWorkspacePath,
-	watchWorkspaceFileSystemEvents,
-	workspacePathExists,
-} from "../workspace-fs-service";
+import { getServiceForWorkspace } from "../workspace-fs-service";
 
 function isClosedStreamError(error: unknown): boolean {
 	return (
@@ -27,13 +11,17 @@ function isClosedStreamError(error: unknown): boolean {
 	);
 }
 
+const writeFileContentSchema = z.union([
+	z.string(),
+	z.object({
+		kind: z.literal("base64"),
+		data: z.string(),
+	}),
+]);
+
 export const createFilesystemRouter = () => {
 	return router({
-		getServiceInfo: publicProcedure.query(async () => {
-			return await getWorkspaceFsServiceInfo();
-		}),
-
-		readDirectory: publicProcedure
+		listDirectory: publicProcedure
 			.input(
 				z.object({
 					workspaceId: z.string(),
@@ -41,75 +29,265 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				try {
-					return await readWorkspaceDirectory(input);
-				} catch (error) {
-					console.error("[filesystem/readDirectory] Failed:", {
-						workspaceId: input.workspaceId,
-						absolutePath: input.absolutePath,
-						error,
-					});
-					return [];
-				}
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.listDirectory({
+					absolutePath: input.absolutePath,
+				});
 			}),
 
-		subscribe: publicProcedure
-			.input(z.object({ workspaceId: z.string() }))
+		readFile: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+					offset: z.number().optional(),
+					maxBytes: z.number().optional(),
+					encoding: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				const result = await service.readFile({
+					absolutePath: input.absolutePath,
+					offset: input.offset,
+					maxBytes: input.maxBytes,
+					encoding: input.encoding,
+				});
+
+				if (result.kind === "bytes") {
+					return {
+						...result,
+						content: Buffer.from(result.content).toString("base64"),
+					};
+				}
+
+				return result;
+			}),
+
+		getMetadata: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.getMetadata({
+					absolutePath: input.absolutePath,
+				});
+			}),
+
+		writeFile: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+					content: writeFileContentSchema,
+					encoding: z.string().optional(),
+					options: z
+						.object({
+							create: z.boolean(),
+							overwrite: z.boolean(),
+						})
+						.optional(),
+					precondition: z
+						.object({
+							ifMatch: z.string(),
+						})
+						.optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				const content =
+					typeof input.content === "string"
+						? input.content
+						: new Uint8Array(Buffer.from(input.content.data, "base64"));
+
+				return await service.writeFile({
+					absolutePath: input.absolutePath,
+					content,
+					encoding: input.encoding,
+					options: input.options,
+					precondition: input.precondition,
+				});
+			}),
+
+		createDirectory: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+					recursive: z.boolean().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.createDirectory({
+					absolutePath: input.absolutePath,
+					recursive: input.recursive,
+				});
+			}),
+
+		deletePath: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+					permanent: z.boolean().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.deletePath({
+					absolutePath: input.absolutePath,
+					permanent: input.permanent,
+				});
+			}),
+
+		movePath: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					sourceAbsolutePath: z.string(),
+					destinationAbsolutePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.movePath({
+					sourceAbsolutePath: input.sourceAbsolutePath,
+					destinationAbsolutePath: input.destinationAbsolutePath,
+				});
+			}),
+
+		copyPath: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					sourceAbsolutePath: z.string(),
+					destinationAbsolutePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.copyPath({
+					sourceAbsolutePath: input.sourceAbsolutePath,
+					destinationAbsolutePath: input.destinationAbsolutePath,
+				});
+			}),
+
+		searchFiles: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					query: z.string(),
+					includeHidden: z.boolean().optional(),
+					includePattern: z.string().optional(),
+					excludePattern: z.string().optional(),
+					limit: z.number().optional(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const trimmedQuery = input.query.trim();
+				if (!trimmedQuery) {
+					return { matches: [] };
+				}
+
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.searchFiles({
+					query: trimmedQuery,
+					includeHidden: input.includeHidden,
+					includePattern: input.includePattern,
+					excludePattern: input.excludePattern,
+					limit: input.limit,
+				});
+			}),
+
+		searchContent: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					query: z.string(),
+					includeHidden: z.boolean().optional(),
+					includePattern: z.string().optional(),
+					excludePattern: z.string().optional(),
+					limit: z.number().optional(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const trimmedQuery = input.query.trim();
+				if (!trimmedQuery) {
+					return { matches: [] };
+				}
+
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.searchContent({
+					query: trimmedQuery,
+					includeHidden: input.includeHidden,
+					includePattern: input.includePattern,
+					excludePattern: input.excludePattern,
+					limit: input.limit,
+				});
+			}),
+
+		watchPath: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					absolutePath: z.string(),
+					recursive: z.boolean().optional(),
+				}),
+			)
 			.subscription(({ input }) => {
-				return observable<FileSystemChangeEvent>((emit) => {
+				return observable<{
+					events: Array<{
+						kind: string;
+						absolutePath: string;
+						oldAbsolutePath?: string;
+					}>;
+				}>((emit) => {
+					const service = getServiceForWorkspace(input.workspaceId);
 					let isDisposed = false;
-					const stream = watchWorkspaceFileSystemEvents(input.workspaceId);
+					const stream = service.watchPath({
+						absolutePath: input.absolutePath,
+						recursive: input.recursive,
+					});
 					const iterator = stream[Symbol.asyncIterator]();
 
 					const runCleanup = () => {
 						isDisposed = true;
 						void iterator.return?.().catch((error) => {
-							console.error("[filesystem/subscribe] Cleanup failed:", {
+							console.error("[filesystem/watchPath] Cleanup failed:", {
 								workspaceId: input.workspaceId,
 								error,
 							});
 						});
 					};
 
-					const safeNext = (event: FileSystemChangeEvent) => {
-						if (isDisposed) {
-							return;
-						}
-
-						try {
-							emit.next(event);
-						} catch (error) {
-							if (isClosedStreamError(error)) {
-								runCleanup();
-								return;
-							}
-
-							throw error;
-						}
-					};
-
 					void (async () => {
 						try {
 							while (!isDisposed) {
 								const next = await iterator.next();
-								if (next.done) {
+								if (next.done || isDisposed) {
 									return;
 								}
 
-								const event = next.value;
-								if (isDisposed) {
-									return;
+								try {
+									emit.next(next.value);
+								} catch (error) {
+									if (isClosedStreamError(error)) {
+										runCleanup();
+										return;
+									}
+									throw error;
 								}
-								safeNext(event);
 							}
 						} catch (error) {
-							console.error("[filesystem/subscribe] Failed:", {
+							console.error("[filesystem/watchPath] Failed:", {
 								workspaceId: input.workspaceId,
 								error,
-							});
-							safeNext({
-								type: "overflow",
-								revision: 0,
 							});
 						}
 					})();
@@ -119,205 +297,5 @@ export const createFilesystemRouter = () => {
 					};
 				});
 			}),
-
-		searchFiles: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					query: z.string(),
-					includePattern: z.string().default(""),
-					excludePattern: z.string().default(""),
-					limit: z.number().default(200),
-				}),
-			)
-			.query(async ({ input }) => {
-				const { workspaceId, query, includePattern, excludePattern, limit } =
-					input;
-				const trimmedQuery = query.trim();
-
-				if (!trimmedQuery) {
-					return [];
-				}
-
-				try {
-					return await searchWorkspaceFiles({
-						workspaceId,
-						query: trimmedQuery,
-						includePattern,
-						excludePattern,
-						limit,
-					});
-				} catch (error) {
-					console.error("[filesystem/searchFiles] Failed:", {
-						workspaceId,
-						query,
-						error,
-					});
-					return [];
-				}
-			}),
-
-		searchFilesMulti: publicProcedure
-			.input(
-				z.object({
-					roots: z.array(
-						z.object({
-							rootPath: z.string(),
-							workspaceId: z.string(),
-							workspaceName: z.string(),
-						}),
-					),
-					query: z.string(),
-					includePattern: z.string().default(""),
-					excludePattern: z.string().default(""),
-					limit: z.number().default(50),
-				}),
-			)
-			.query(async ({ input }) => {
-				const { roots, query, includePattern, excludePattern, limit } = input;
-				const trimmedQuery = query.trim();
-
-				if (!trimmedQuery || roots.length === 0) {
-					return [];
-				}
-
-				try {
-					return await searchWorkspaceFilesMulti({
-						roots,
-						query: trimmedQuery,
-						includePattern,
-						excludePattern,
-						limit,
-					});
-				} catch (error) {
-					console.error("[filesystem/searchFilesMulti] Failed:", {
-						query,
-						error,
-					});
-					return [];
-				}
-			}),
-
-		searchKeyword: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					query: z.string(),
-					includePattern: z.string().default(""),
-					excludePattern: z.string().default(""),
-					limit: z.number().default(200),
-				}),
-			)
-			.query(async ({ input }) => {
-				const { workspaceId, query, includePattern, excludePattern, limit } =
-					input;
-				const trimmedQuery = query.trim();
-
-				if (!trimmedQuery) {
-					return [];
-				}
-
-				try {
-					return await searchWorkspaceKeyword({
-						workspaceId,
-						query: trimmedQuery,
-						includePattern,
-						excludePattern,
-						limit,
-					});
-				} catch (error) {
-					console.error("[filesystem/searchKeyword] Failed:", {
-						workspaceId,
-						query,
-						error,
-					});
-					return [];
-				}
-			}),
-
-		createFile: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					parentAbsolutePath: z.string(),
-					name: z.string(),
-					content: z.string().default(""),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				return await createWorkspaceFile(input);
-			}),
-
-		createDirectory: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					parentAbsolutePath: z.string(),
-					name: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				return await createWorkspaceDirectory(input);
-			}),
-
-		rename: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					absolutePath: z.string(),
-					newName: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				return await renameWorkspacePath(input);
-			}),
-
-		delete: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					absolutePaths: z.array(z.string()),
-					permanent: z.boolean().default(false),
-				}),
-			)
-			.mutation(async ({ input }) => await deleteWorkspacePaths(input)),
-
-		move: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					sourceAbsolutePaths: z.array(z.string()),
-					destinationAbsolutePath: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => await moveWorkspacePaths(input)),
-
-		copy: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					sourceAbsolutePaths: z.array(z.string()),
-					destinationAbsolutePath: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => await copyWorkspacePaths(input)),
-
-		exists: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					absolutePath: z.string(),
-				}),
-			)
-			.query(async ({ input }) => await workspacePathExists(input)),
-
-		stat: publicProcedure
-			.input(
-				z.object({
-					workspaceId: z.string(),
-					absolutePath: z.string(),
-				}),
-			)
-			.query(async ({ input }) => await statWorkspacePath(input)),
 	});
 };

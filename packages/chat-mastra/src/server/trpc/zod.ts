@@ -70,6 +70,14 @@ export const listMessagesInput = z.object({
 	cwd: z.string().optional(),
 });
 
+export const thinkingLevelSchema = z.enum([
+	"off",
+	"low",
+	"medium",
+	"high",
+	"xhigh",
+]);
+
 export const sendMessageInput = z.object({
 	sessionId: z.uuid(),
 	cwd: z.string().optional(),
@@ -77,6 +85,7 @@ export const sendMessageInput = z.object({
 	metadata: z
 		.object({
 			model: z.string().optional(),
+			thinkingLevel: thinkingLevelSchema.optional(),
 		})
 		.optional(),
 });
@@ -89,6 +98,7 @@ export const restartFromMessageInput = z.object({
 	metadata: z
 		.object({
 			model: z.string().optional(),
+			thinkingLevel: thinkingLevelSchema.optional(),
 		})
 		.optional(),
 });
@@ -126,3 +136,4 @@ export type RestartFromMessageInput = z.infer<typeof restartFromMessageInput>;
 export type ApprovalRespondInput = z.infer<typeof approvalRespondInput>;
 export type QuestionRespondInput = z.infer<typeof questionRespondInput>;
 export type PlanRespondInput = z.infer<typeof planRespondInput>;
+export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;

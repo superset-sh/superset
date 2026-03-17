@@ -24,9 +24,17 @@
 			"types": "./src/agent-command.ts",
 			"default": "./src/agent-command.ts"
 		},
+		"./agent-catalog": {
+			"types": "./src/agent-catalog.ts",
+			"default": "./src/agent-catalog.ts"
+		},
 		"./agent-launch": {
 			"types": "./src/agent-launch.ts",
 			"default": "./src/agent-launch.ts"
+		},
+		"./agent-prompt-template": {
+			"types": "./src/agent-prompt-template.ts",
+			"default": "./src/agent-prompt-template.ts"
 		},
 		"./claude-command": {
 			"types": "./src/claude-command.ts",

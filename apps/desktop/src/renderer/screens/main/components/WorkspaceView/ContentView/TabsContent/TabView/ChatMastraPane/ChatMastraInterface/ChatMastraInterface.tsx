@@ -175,6 +175,7 @@ function getLaunchConfigKey(
 ): string {
 	return JSON.stringify({
 		initialPrompt: config.initialPrompt ?? null,
+		initialFiles: config.initialFiles ?? null,
 		model: config.metadata?.model ?? null,
 		retryCount: config.retryCount ?? null,
 	});
@@ -205,7 +206,10 @@ export function ChatMastraInterface({
 		availableModels.find((model) => model.id === selectedModelId) ?? null;
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const thinkingLevel = useChatPreferencesStore((state) => state.thinkingLevel);
+	const setThinkingLevel = useChatPreferencesStore(
+		(state) => state.setThinkingLevel,
+	);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 	const [submitStatus, setSubmitStatus] = useState<ChatStatus | undefined>(
@@ -573,6 +577,7 @@ export function ChatMastraInterface({
 				},
 				metadata: {
 					model: activeModel?.id,
+					thinkingLevel,
 				},
 			};
 			const immediateUserMessage =
@@ -650,6 +655,7 @@ export function ChatMastraInterface({
 			sendMessageToSession,
 			setRuntimeErrorMessage,
 			onUserMessageSubmitted,
+			thinkingLevel,
 		],
 	);
 
@@ -662,7 +668,8 @@ export function ChatMastraInterface({
 			if (autoLaunchInFlightRef.current === launchConfigKey) return;
 
 			const prompt = initialLaunchConfig.initialPrompt?.trim();
-			if (!prompt) {
+			const launchFiles = initialLaunchConfig.initialFiles;
+			if (!prompt && !launchFiles?.length) {
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
@@ -698,10 +705,12 @@ export function ChatMastraInterface({
 			const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
 			const sendInput: ChatSendMessageInput = {
 				payload: {
-					content: prompt,
+					content: prompt ?? "",
+					files: launchFiles,
 				},
 				metadata: {
 					model: modelId,
+					thinkingLevel,
 				},
 			};
 
@@ -715,7 +724,9 @@ export function ChatMastraInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
-				onUserMessageSubmitted?.(prompt);
+				if (prompt) {
+					onUserMessageSubmitted?.(prompt);
+				}
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
@@ -727,9 +738,9 @@ export function ChatMastraInterface({
 					session_id: sendResult.targetSessionId,
 					model_id: modelId ?? null,
 					mention_count: 0,
-					attachment_count: 0,
+					attachment_count: launchFiles?.length ?? 0,
 					is_slash_command: false,
-					message_length: prompt.length,
+					message_length: prompt?.length ?? 0,
 					turn_number: messagesLengthRef.current + 1,
 					send_trigger: "launch-config",
 				});
@@ -773,6 +784,7 @@ export function ChatMastraInterface({
 		sessionId,
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
+		thinkingLevel,
 	]);
 
 	const handleStop = useCallback(
@@ -809,6 +821,7 @@ export function ChatMastraInterface({
 				payload: request.payload,
 				metadata: {
 					model: activeModel?.id,
+					thinkingLevel,
 				},
 			});
 			if (optimisticMessage) {
@@ -828,6 +841,7 @@ export function ChatMastraInterface({
 						payload: request.payload,
 						metadata: {
 							model: activeModel?.id,
+							thinkingLevel,
 						},
 					},
 				);
@@ -865,6 +879,7 @@ export function ChatMastraInterface({
 			onUserMessageSubmitted,
 			sessionId,
 			setRuntimeErrorMessage,
+			thinkingLevel,
 		],
 	);
 	const handleResendUserMessage = useCallback(
@@ -990,8 +1005,8 @@ export function ChatMastraInterface({
 					setModelSelectorOpen={setModelSelectorOpen}
 					permissionMode={permissionMode}
 					setPermissionMode={setPermissionMode}
-					thinkingEnabled={thinkingEnabled}
-					setThinkingEnabled={setThinkingEnabled}
+					thinkingLevel={thinkingLevel}
+					setThinkingLevel={setThinkingLevel}
 					slashCommands={slashCommands}
 					sessionId={sessionId}
 					onError={setRuntimeErrorMessage}

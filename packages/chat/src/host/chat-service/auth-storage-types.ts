@@ -1,6 +1,16 @@
 import type { createAuthStorage } from "mastracode";
 
 export type AuthMethod = "api_key" | "oauth" | "env" | null;
+export type AuthSource = "external" | "managed" | null;
+export type AuthIssue = "expired" | null;
+
+export interface AuthStatus {
+	authenticated: boolean;
+	method: AuthMethod;
+	source: AuthSource;
+	issue: AuthIssue;
+	hasManagedOAuth?: boolean;
+}
 
 export type AuthStorageLike = ReturnType<typeof createAuthStorage>;
 

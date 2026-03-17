@@ -1,79 +1,66 @@
-export interface WorkspaceFsEntry {
-	id: string;
-	name: string;
+export type FsEntryKind = "file" | "directory" | "symlink" | "other";
+
+export interface FsEntry {
 	absolutePath: string;
-	relativePath: string;
-	isDirectory: boolean;
+	name: string;
+	kind: FsEntryKind;
 }
 
-export interface WorkspaceFsSearchResult extends WorkspaceFsEntry {
+export type FsReadResult =
+	| {
+			kind: "text";
+			content: string;
+			byteLength: number;
+			exceededLimit: boolean;
+			revision: string;
+	  }
+	| {
+			kind: "bytes";
+			content: Uint8Array;
+			byteLength: number;
+			exceededLimit: boolean;
+			revision: string;
+	  };
+
+export type FsWriteResult =
+	| { ok: true; revision: string }
+	| { ok: false; reason: "conflict"; currentRevision: string }
+	| { ok: false; reason: "exists" }
+	| { ok: false; reason: "not-found" };
+
+export interface FsMetadata {
+	absolutePath: string;
+	kind: FsEntryKind;
+	size: number | null;
+	createdAt: string | null;
+	modifiedAt: string | null;
+	accessedAt: string | null;
+	mode?: number | null;
+	permissions?: string | null;
+	owner?: string | null;
+	group?: string | null;
+	symlinkTarget?: string | null;
+	revision: string;
+}
+
+export interface FsSearchMatch {
+	absolutePath: string;
+	relativePath: string;
+	name: string;
+	kind: FsEntryKind;
 	score: number;
 }
 
-export interface WorkspaceFsExistsResult {
-	exists: boolean;
-	isDirectory: boolean;
-	isFile: boolean;
-}
-
-export interface WorkspaceFsStat {
-	size: number;
-	isDirectory: boolean;
-	isFile: boolean;
-	isSymbolicLink: boolean;
-	createdAt: string;
-	modifiedAt: string;
-	accessedAt: string;
-}
-
-export interface WorkspaceFsLimitedReadResult {
-	buffer: Uint8Array;
-	exceededLimit: boolean;
-}
-
-export type WorkspaceFsGuardedWriteResult =
-	| { status: "saved" }
-	| { status: "conflict"; currentContent: string | null };
-
-export interface WorkspaceFsPathOperationError {
+export interface FsContentMatch {
 	absolutePath: string;
-	error: string;
-}
-
-export interface DeletePathsResult {
-	deleted: string[];
-	errors: WorkspaceFsPathOperationError[];
-}
-
-export interface MoveCopyResult {
-	entries: { from: string; to: string }[];
-	errors: WorkspaceFsPathOperationError[];
-}
-
-export interface WorkspaceFsKeywordMatch extends WorkspaceFsEntry {
+	relativePath: string;
 	line: number;
 	column: number;
 	preview: string;
 }
 
-export type WorkspaceFsWatchEvent =
-	| {
-			type: "create" | "update" | "delete";
-			workspaceId: string;
-			absolutePath: string;
-			isDirectory: boolean;
-			revision: number;
-	  }
-	| {
-			type: "rename";
-			workspaceId: string;
-			oldAbsolutePath: string;
-			absolutePath: string;
-			isDirectory: boolean;
-			revision: number;
-	  }
-	| {
-			type: "overflow";
-			workspaceId: string;
-			revision: number;
-	  };
+export type FsWatchEvent = {
+	kind: "create" | "update" | "delete" | "rename" | "overflow";
+	absolutePath: string;
+	oldAbsolutePath?: string;
+};

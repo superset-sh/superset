@@ -1,9 +1,24 @@
 import { describe, expect, it, mock } from "bun:test";
-import { ChatMastraService } from "./service";
 import type { RuntimeSession } from "./utils/runtime";
 
 const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CWD = "/tmp/project";
+
+mock.module("mastracode", () => ({
+	createAuthStorage: mock(() => ({
+		reload: () => {},
+		get: () => undefined,
+	})),
+	createMastraCode: mock(async () => ({
+		harness: {},
+		mcpManager: null,
+		hookManager: null,
+		authStorage: null,
+		storageWarning: undefined,
+	})),
+}));
+
+const { ChatMastraService } = await import("./service");
 
 function createRuntime(): RuntimeSession {
 	return {

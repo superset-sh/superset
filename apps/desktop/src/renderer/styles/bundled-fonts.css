@@ -1,0 +1,37 @@
+/*
+ * System font references for Superset Desktop
+ *
+ * SF Mono: Apple system font loaded at runtime from the macOS system path
+ *          via the superset-font:// protocol. No font files are bundled in
+ *          the app binary. The @font-face declarations gracefully no-op on
+ *          non-Mac platforms.
+ */
+
+@font-face {
+	font-family: "SF Mono";
+	src: url("superset-font://fonts/SF-Mono-Regular.otf") format("opentype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "SF Mono";
+	src: url("superset-font://fonts/SF-Mono-Bold.otf") format("opentype");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "SF Mono";
+	src: url("superset-font://fonts/SF-Mono-RegularItalic.otf") format("opentype");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "SF Mono";
+	src: url("superset-font://fonts/SF-Mono-BoldItalic.otf") format("opentype");
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}

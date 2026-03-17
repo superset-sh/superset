@@ -1,4 +1,5 @@
 import type { ITerminalOptions } from "@xterm/xterm";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
@@ -25,9 +26,6 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	"Menlo",
 	"Monaco",
 	'"Courier New"',
-	// SF fonts for Apple tools (swift, xcodebuild) that use SF Symbols private use area characters
-	"SF Mono",
-	"SF Pro",
 	"monospace",
 ].join(", ");
 
@@ -39,7 +37,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
-	scrollback: 2000,
+	scrollback: DEFAULT_TERMINAL_SCROLLBACK,
 	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
 	macOptionIsMeta: false,
 	cursorStyle: "block",

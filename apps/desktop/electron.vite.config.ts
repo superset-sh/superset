@@ -8,8 +8,8 @@ import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-
 import { dependencies, resources, version } from "./package.json";
+import { mainExternalizedDependencies } from "./runtime-dependencies";
 import {
 	copyResourcesPlugin,
 	defineEnv,
@@ -45,21 +45,7 @@ const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
 
 export default defineConfig({
 	main: {
-		plugins: [
-			tsconfigPaths,
-			copyResourcesPlugin(),
-			externalizeDepsPlugin({
-				include: [
-					"better-sqlite3",
-					"node-pty",
-					"pg-native",
-					"@ast-grep/napi",
-					"@parcel/watcher",
-					"libsql",
-				],
-				exclude: workspaceDependencies,
-			}),
-		],
+		plugins: [tsconfigPaths, copyResourcesPlugin()],
 
 		define: {
 			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),
@@ -122,12 +108,12 @@ export default defineConfig({
 					// Worker-thread entrypoint for heavy git/status computations
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
-					"workspace-service": resolve("src/main/workspace-service/index.ts"),
+					"host-service": resolve("src/main/host-service/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: ["electron"],
+				external: ["electron", ...mainExternalizedDependencies],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},

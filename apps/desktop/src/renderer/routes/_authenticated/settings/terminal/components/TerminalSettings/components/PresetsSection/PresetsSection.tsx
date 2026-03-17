@@ -1,4 +1,8 @@
-import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import {
+	type ExecutionMode,
+	normalizeExecutionMode,
+	type TerminalPreset,
+} from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -233,7 +237,7 @@ export function PresetsSection({
 			name: "",
 			cwd: "",
 			commands: [""],
-			executionMode: "split-pane",
+			executionMode: "new-tab",
 		});
 	}, [createPreset]);
 
@@ -263,6 +267,16 @@ export function PresetsSection({
 			setPresetAutoApply.mutate({ id: presetId, field, enabled });
 		},
 		[setPresetAutoApply],
+	);
+
+	const handleTogglePin = useCallback(
+		(presetId: string, pinned: boolean) => {
+			updatePreset.mutate({
+				id: presetId,
+				patch: { pinnedToBar: pinned },
+			});
+		},
+		[updatePreset],
 	);
 
 	const handleLocalReorder = useCallback(
@@ -303,13 +317,12 @@ export function PresetsSection({
 		(!editingPreset?.applyOnWorkspaceCreated && editingPreset?.isDefault)
 	);
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
-	const modeValue: ExecutionMode =
-		editingPreset?.executionMode === "new-tab" ||
-		editingPreset?.executionMode === "new-tab-split-pane"
-			? hasMultipleCommands
-				? editingPreset.executionMode
-				: "new-tab"
-			: "split-pane";
+	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
+	const modeValue: ExecutionMode = hasMultipleCommands
+		? normalizedMode
+		: normalizedMode === "split-pane"
+			? "split-pane"
+			: "new-tab";
 
 	const handleEditorFieldChange = useCallback(
 		(column: PresetColumnKey, value: string) => {
@@ -325,6 +338,24 @@ export function PresetsSection({
 			handleCellBlur(editingRowIndex, column);
 		},
 		[editingRowIndex, handleCellBlur],
+	);
+
+	const handleEditorDirectorySelect = useCallback(
+		(value: string) => {
+			if (!editingPreset || editingRowIndex < 0) return;
+
+			setLocalPresets((prev) =>
+				prev.map((preset, index) =>
+					index === editingRowIndex ? { ...preset, cwd: value } : preset,
+				),
+			);
+
+			updatePreset.mutate({
+				id: editingPreset.id,
+				patch: { cwd: value },
+			});
+		},
+		[editingPreset, editingRowIndex, updatePreset],
 	);
 
 	const handleEditorCommandsChange = useCallback(
@@ -398,6 +429,7 @@ export function PresetsSection({
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
+						onTogglePin={handleTogglePin}
 					/>
 					<p className="text-xs text-muted-foreground">
 						Click a preset row to edit details.
@@ -412,6 +444,7 @@ export function PresetsSection({
 				onDeletePreset={handleDeleteEditingPreset}
 				onFieldChange={handleEditorFieldChange}
 				onFieldBlur={handleEditorFieldBlur}
+				onDirectorySelect={handleEditorDirectorySelect}
 				onCommandsChange={handleEditorCommandsChange}
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}
