@@ -1,5 +1,5 @@
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
-import type { StartFreshSessionResult } from "../../../../ChatPane/ChatInterface/types";
+import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
 
 export type ChatSendMessageInput = {
 	payload: {

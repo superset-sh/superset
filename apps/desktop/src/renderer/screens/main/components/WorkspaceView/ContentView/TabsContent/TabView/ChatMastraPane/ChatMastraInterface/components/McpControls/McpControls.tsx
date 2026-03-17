@@ -1,4 +1,4 @@
-import { McpOverviewPicker } from "../../../../ChatPane/ChatInterface/components/McpOverviewPicker";
+import { McpOverviewPicker } from "renderer/components/Chat/ChatInterface/components/McpOverviewPicker";
 import type { UseMcpUiReturn } from "../../hooks/useMcpUi";
 
 interface McpControlsProps {

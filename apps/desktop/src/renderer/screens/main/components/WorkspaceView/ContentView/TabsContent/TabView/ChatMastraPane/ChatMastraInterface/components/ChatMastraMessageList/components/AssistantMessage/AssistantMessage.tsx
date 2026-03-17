@@ -3,12 +3,12 @@ import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
 import { type ReactNode, useCallback } from "react";
+import { MastraToolCallBlock } from "renderer/components/Chat/ChatInterface/components/MastraToolCallBlock";
+import { StreamingMessageText } from "renderer/components/Chat/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
+import { ReasoningBlock } from "renderer/components/Chat/ChatInterface/components/ReasoningBlock";
+import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
+import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
-import { StreamingMessageText } from "../../../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
-import { ReasoningBlock } from "../../../../../../ChatPane/ChatInterface/components/ReasoningBlock";
-import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
-import { normalizeToolName } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AttachmentChip } from "../AttachmentChip";
 import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
 

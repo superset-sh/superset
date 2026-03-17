@@ -14,16 +14,16 @@ import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { posthog } from "renderer/lib/posthog";
-import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
-import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
-import { useSlashCommandExecutor } from "../../ChatPane/ChatInterface/hooks/useSlashCommandExecutor";
-import type { SlashCommand } from "../../ChatPane/ChatInterface/hooks/useSlashCommands";
+import { ChatInputFooter } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter";
+import { useSlashCommandExecutor } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommandExecutor";
+import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
 	PermissionMode,
-} from "../../ChatPane/ChatInterface/types";
+} from "renderer/components/Chat/ChatInterface/types";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { posthog } from "renderer/lib/posthog";
+import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import type { UserMessageRestartRequest } from "./components/ChatMastraMessageList/ChatMastraMessageList.types";
 import { McpControls } from "./components/McpControls";

@@ -7,7 +7,7 @@ import {
 import { cn } from "@superset/ui/lib/utils";
 import { BotIcon, CheckIcon, Loader2Icon, XIcon } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { MarkdownToggleContent } from "../../../../../../components/MarkdownToggleContent";
+import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 

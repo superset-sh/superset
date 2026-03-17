@@ -1,8 +1,8 @@
-import { normalizeWorkspaceFilePath } from "../../../../../../../../ChatPane/ChatInterface/utils/file-paths";
-import { FileMentionChip } from "../../../../../../../../components/FileMentionChip";
-import { LinkedTaskChip } from "../../../../../../../../components/LinkedTaskChip";
+import { normalizeWorkspaceFilePath } from "renderer/components/Chat/ChatInterface/utils/file-paths";
+import { FileMentionChip } from "renderer/components/Chat/components/FileMentionChip";
+import { LinkedTaskChip } from "renderer/components/Chat/components/LinkedTaskChip";
+import { parseUserMentions } from "renderer/components/Chat/utils/parseUserMentions";
 import type { MastraMessage, MastraMessagePart } from "../../types";
-import { parseUserMentions } from "../../utils/parseUserMentions";
 
 interface UserMessageTextProps {
 	message: MastraMessage;

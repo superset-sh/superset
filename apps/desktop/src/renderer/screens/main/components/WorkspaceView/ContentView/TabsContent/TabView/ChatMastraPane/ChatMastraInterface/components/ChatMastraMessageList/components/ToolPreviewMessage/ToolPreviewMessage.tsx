@@ -1,6 +1,6 @@
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
-import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
-import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import { MastraToolCallBlock } from "renderer/components/Chat/ChatInterface/components/MastraToolCallBlock";
+import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import type { MastraPendingPlanApproval } from "../../ChatMastraMessageList.types";
 import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
 

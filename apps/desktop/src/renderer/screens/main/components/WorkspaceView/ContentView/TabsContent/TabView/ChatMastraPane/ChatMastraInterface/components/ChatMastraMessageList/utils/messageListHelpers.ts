@@ -1,5 +1,5 @@
-import type { ToolPart } from "../../../../../ChatPane/ChatInterface/utils/tool-helpers";
-import { normalizeToolName } from "../../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
+import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import type {
 	InterruptedMessagePreview,
 	MastraActiveTool,

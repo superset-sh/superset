@@ -35,7 +35,7 @@ mock.module("@superset/ui/ai-elements/shimmer-label", () => ({
 }));
 
 mock.module(
-	"../../../../ChatPane/ChatInterface/components/MastraToolCallBlock",
+	"renderer/components/Chat/ChatInterface/components/MastraToolCallBlock",
 	() => ({
 		MastraToolCallBlock: () => null,
 	}),

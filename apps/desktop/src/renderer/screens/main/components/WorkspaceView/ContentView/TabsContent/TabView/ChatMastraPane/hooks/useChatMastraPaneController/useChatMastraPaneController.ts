@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -10,7 +11,6 @@ import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChatMastraLaunchConfig } from "shared/tabs-types";
-import type { StartFreshSessionResult } from "../../../ChatPane/ChatInterface/types";
 import { reportChatMastraError } from "../../utils/reportChatMastraError";
 import { createSessionInitRunner } from "../../utils/session-init-runner";
 

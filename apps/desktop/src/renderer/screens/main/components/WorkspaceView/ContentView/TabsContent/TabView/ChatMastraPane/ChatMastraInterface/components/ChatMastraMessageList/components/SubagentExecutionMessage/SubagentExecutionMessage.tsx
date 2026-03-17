@@ -1,7 +1,7 @@
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
 import { useState } from "react";
-import { MarkdownToggleContent } from "../../../../../../components/MarkdownToggleContent";
+import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
 import {
 	type SubagentEntries,
 	toSubagentViewModels,

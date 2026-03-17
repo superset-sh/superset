@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { McpOverviewPayload } from "../../../../ChatPane/ChatInterface/types";
+import type { McpOverviewPayload } from "renderer/components/Chat/ChatInterface/types";
 
 export interface UseMcpUiOptions {
 	cwd: string;
