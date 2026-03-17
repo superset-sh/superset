@@ -12,7 +12,11 @@ import {
 } from "shared/utils/branch";
 import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
+import {
+	execGitWithShellPath,
+	getSimpleGitWithShellPath,
+	runGit,
+} from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 import { resolveTrackingRemoteName } from "./upstream-ref";
 
@@ -698,13 +702,19 @@ export async function removeWorktree(
 
 export async function getGitRoot(path: string): Promise<string> {
 	try {
-		const git = await getSimpleGitWithShellPath(path);
-		const root = await git.revparse(["--show-toplevel"]);
-		return root.trim();
+		return await runGit(path, async (git) => {
+			const root = await git.revparse(["--show-toplevel"]);
+			return root.trim();
+		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (message.toLowerCase().includes("not a git repository")) {
 			throw new NotGitRepoError(path);
+		}
+		if (message.includes("ENOENT")) {
+			throw new Error(
+				"Could not find git. Please ensure Git is installed and available in your PATH.",
+			);
 		}
 		throw error;
 	}
