@@ -1,4 +1,9 @@
 export {
+	type ChatServiceClient,
+	ChatServiceProvider,
+	chatServiceTrpc,
+} from "./chat-service-provider";
+export {
 	type CreateChatMastraServiceClientOptions,
 	type CreateChatMastraServiceHttpClientOptions,
 	createChatMastraServiceClient,

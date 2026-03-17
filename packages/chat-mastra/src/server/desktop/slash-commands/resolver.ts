@@ -3,7 +3,7 @@ import {
 	findSlashCommandByNameOrAlias,
 	parseNamedSlashArgumentToken,
 	tokenizeSlashCommandArguments,
-} from "../../shared";
+} from "../../../shared";
 import { buildSlashCommandRegistry } from "./registry";
 import type { SlashCommandActionType } from "./types";
 

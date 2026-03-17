@@ -1,5 +1,7 @@
-import { ChatServiceProvider } from "@superset/chat/client";
-import { ChatMastraServiceProvider } from "@superset/chat-mastra/client";
+import {
+	ChatMastraServiceProvider,
+	ChatServiceProvider,
+} from "@superset/chat-mastra/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { CopyIcon } from "lucide-react";
 import { useCallback } from "react";

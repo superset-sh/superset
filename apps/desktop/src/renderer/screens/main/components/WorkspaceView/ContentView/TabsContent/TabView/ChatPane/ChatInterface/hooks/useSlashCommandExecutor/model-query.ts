@@ -1,4 +1,4 @@
-import { tokenizeSlashCommandArguments } from "@superset/chat/shared";
+import { tokenizeSlashCommandArguments } from "@superset/chat-mastra/shared";
 import type { ModelOption } from "../../types";
 
 export function normalizeModelQueryFromActionArgument(

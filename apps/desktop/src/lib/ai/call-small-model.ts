@@ -2,7 +2,7 @@ import {
 	getDefaultSmallModelProviders,
 	type SmallModelCredential,
 	type SmallModelProvider,
-} from "@superset/chat/host";
+} from "@superset/chat-mastra/server/desktop";
 import {
 	classifyProviderIssue,
 	type ProviderId,

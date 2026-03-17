@@ -1,4 +1,4 @@
-import { ChatServiceProvider } from "@superset/chat/client";
+import { ChatServiceProvider } from "@superset/chat-mastra/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
