@@ -68,12 +68,24 @@ type OpenNewMultiResult =
 	| { canceled: false; multi: true; results: FolderOutcome[] }
 	| OpenNewError;
 
+const GIT_NOT_FOUND_MESSAGE =
+	'Git was not found. Your shell config (e.g. ~/.zshrc) may contain a broken command that corrupts PATH.\n\nCommon cause: export PATH="$(npm bin -g):$PATH"\n\nFix: remove or fix the line in ~/.zshrc, then restart the app.';
+
+function isGitNotFoundError(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	if ("code" in err && err.code === "ENOENT") return true;
+	return err.message.includes("spawn git ENOENT");
+}
+
 async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	const git = await getSimpleGitWithShellPath(path);
 
 	try {
 		await git.init(["--initial-branch=main"]);
 	} catch (err) {
+		if (isGitNotFoundError(err)) {
+			throw new Error(GIT_NOT_FOUND_MESSAGE);
+		}
 		console.warn("Git init with --initial-branch failed, using fallback:", err);
 		await git.init();
 	}
@@ -902,7 +914,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					outcomes.push({ status: "success", project });
 				} catch (gitError) {
-					if (gitError instanceof NotGitRepoError) {
+					if (isGitNotFoundError(gitError)) {
+						outcomes.push({
+							status: "error",
+							selectedPath,
+							error: GIT_NOT_FOUND_MESSAGE,
+						});
+					} else if (gitError instanceof NotGitRepoError) {
 						outcomes.push({ status: "needsGitInit", selectedPath });
 					} else {
 						const msg =
@@ -952,6 +970,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				try {
 					mainRepoPath = await getGitRoot(selectedPath);
 				} catch (error) {
+					if (isGitNotFoundError(error)) {
+						return {
+							canceled: false,
+							error: GIT_NOT_FOUND_MESSAGE,
+						};
+					}
 					if (error instanceof NotGitRepoError) {
 						return {
 							canceled: false,
@@ -1140,6 +1164,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						project,
 					};
 				} catch (error) {
+					if (isGitNotFoundError(error)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: GIT_NOT_FOUND_MESSAGE,
+						};
+					}
 					const errorMessage =
 						error instanceof Error ? error.message : String(error);
 					return {

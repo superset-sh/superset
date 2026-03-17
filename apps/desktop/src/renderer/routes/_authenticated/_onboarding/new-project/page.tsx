@@ -127,7 +127,7 @@ function NewProjectPage() {
 
 						{error && (
 							<div className="w-full flex items-start gap-2 rounded-md px-4 py-3 bg-destructive/10 border border-destructive/20">
-								<span className="flex-1 text-sm text-destructive">{error}</span>
+								<span className="flex-1 text-sm text-destructive whitespace-pre-line">{error}</span>
 								<button
 									type="button"
 									onClick={() => setError(null)}

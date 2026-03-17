@@ -57,10 +57,18 @@ export function NewWorkspaceModal() {
 		try {
 			await openNew();
 		} catch (error) {
-			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
-			});
+			const message =
+				error instanceof Error ? error.message : "An unknown error occurred";
+			if (message.includes("spawn git ENOENT")) {
+				toast.error("Git was not found", {
+					description:
+						'Your shell config (e.g. ~/.zshrc) may have a broken command that corrupts PATH. Check for lines like export PATH="$(npm bin -g):$PATH" and remove them.',
+				});
+			} else {
+				toast.error("Failed to open project", {
+					description: message,
+				});
+			}
 		}
 	};
 

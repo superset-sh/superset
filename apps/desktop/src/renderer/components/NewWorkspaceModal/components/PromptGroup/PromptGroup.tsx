@@ -647,8 +647,14 @@ function PromptGroupInner({
 			{
 				loading: "Creating workspace...",
 				success: "Workspace created",
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to create workspace",
+				error: (err) => {
+					const message =
+						err instanceof Error ? err.message : "Failed to create workspace";
+					if (message.includes("spawn git ENOENT")) {
+						return 'Git was not found. Your shell config (e.g. ~/.zshrc) may have a broken command that corrupts PATH. Check for lines like export PATH="$(npm bin -g):$PATH" and remove them.';
+					}
+					return message;
+				},
 			},
 		);
 	}, [
