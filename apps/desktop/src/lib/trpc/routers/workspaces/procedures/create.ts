@@ -295,6 +295,7 @@ export const createCreateProcedures = () => {
 					baseBranch: z.string().optional(),
 					useExistingBranch: z.boolean().optional(),
 					applyPrefix: z.boolean().optional().default(true),
+					useWorktree: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -305,6 +306,87 @@ export const createCreateProcedures = () => {
 					.get();
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				// Resolve effective worktree mode
+				const globalSettings = localDb.select().from(settings).get();
+				const effectiveWorktreeMode =
+					project.worktreeMode ?? globalSettings?.worktreeMode ?? "always";
+
+				// If worktrees are disabled (or user explicitly chose no worktree),
+				// open directly in the main repo
+				if (
+					effectiveWorktreeMode === "disabled" ||
+					input.useWorktree === false
+				) {
+					const branch =
+						input.branchName?.trim() ||
+						(await getCurrentBranch(project.mainRepoPath));
+					if (!branch) {
+						throw new Error("Could not determine current branch");
+					}
+
+					const existing = getBranchWorkspace(input.projectId);
+
+					if (existing) {
+						if (existing.branch !== branch) {
+							localDb
+								.update(workspaces)
+								.set({ branch })
+								.where(eq(workspaces.id, existing.id))
+								.run();
+						}
+						touchWorkspace(existing.id);
+						setLastActiveWorkspace(existing.id);
+						return {
+							workspace: {
+								...existing,
+								branch,
+								lastOpenedAt: Date.now(),
+							},
+							worktreePath: project.mainRepoPath,
+							projectId: project.id,
+							isInitializing: false,
+							wasExisting: true,
+						};
+					}
+
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
+					const workspace = localDb
+						.insert(workspaces)
+						.values({
+							projectId: input.projectId,
+							type: "branch",
+							branch,
+							name: input.name ?? branch,
+							tabOrder: maxTabOrder + 1,
+						})
+						.onConflictDoNothing()
+						.returning()
+						.all();
+
+					const ws = workspace[0] ?? getBranchWorkspace(input.projectId);
+					if (!ws) {
+						throw new Error("Failed to create or find branch workspace");
+					}
+
+					setLastActiveWorkspace(ws.id);
+					activateProject(project);
+
+					track("workspace_created", {
+						workspace_id: ws.id,
+						project_id: project.id,
+						type: "branch",
+					});
+
+					return {
+						workspace: ws,
+						initialCommands: null,
+						worktreePath: project.mainRepoPath,
+						projectId: project.id,
+						isInitializing: false,
+						wasExisting: false,
+					};
 				}
 
 				let existingBranchName: string | undefined;
@@ -332,7 +414,6 @@ export const createCreateProcedures = () => {
 
 				let branchPrefix: string | undefined;
 				if (input.applyPrefix) {
-					const globalSettings = localDb.select().from(settings).get();
 					const projectOverrides = project.branchPrefixMode != null;
 					const prefixMode = projectOverrides
 						? project.branchPrefixMode

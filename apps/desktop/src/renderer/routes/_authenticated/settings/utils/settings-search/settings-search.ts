@@ -27,6 +27,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 
+	GIT_WORKTREE_MODE: "git-worktree-mode",
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
@@ -359,6 +360,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"warning",
 			"prompt",
 			"unsaved",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.GIT_WORKTREE_MODE,
+		section: "git",
+		title: "Worktree Mode",
+		description:
+			"Control whether new workspaces use git worktrees (always, ask each time, or never)",
+		keywords: [
+			"git",
+			"worktree",
+			"mode",
+			"always",
+			"optional",
+			"disabled",
+			"branch",
+			"workspace",
+			"direct",
 		],
 	},
 	{

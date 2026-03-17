@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, WorktreeMode } from "@superset/local-db";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -55,6 +55,16 @@ import {
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
+
+const WORKTREE_MODE_LABELS_WITH_DEFAULT: Record<
+	WorktreeMode | "default",
+	string
+> = {
+	default: "Use global default",
+	always: "Always use worktrees",
+	optional: "Ask each time",
+	disabled: "Never use worktrees",
+};
 
 export function SettingsSection({
 	icon,
@@ -209,6 +219,22 @@ export function ProjectSettings({
 			},
 		});
 	};
+
+	const { data: globalWorktreeMode } =
+		electronTrpc.settings.getWorktreeMode.useQuery();
+
+	const handleWorktreeModeChange = (value: string) => {
+		updateProject.mutate({
+			id: projectId,
+			patch: {
+				worktreeMode: value === "default" ? null : (value as WorktreeMode),
+			},
+		});
+	};
+
+	const effectiveWorktreeMode =
+		project?.worktreeMode ?? globalWorktreeMode ?? "always";
+	const isWorktreeDisabled = effectiveWorktreeMode === "disabled";
 
 	const { data: globalWorktreeBaseDir } =
 		electronTrpc.settings.getWorktreeBaseDir.useQuery();
@@ -407,27 +433,62 @@ export function ProjectSettings({
 					title="Worktrees"
 					description="Manage worktree location and import existing worktrees."
 				>
-					<WorktreeLocationPicker
-						currentPath={project.worktreeBaseDir}
-						defaultPathLabel={`Using global default: ${globalPath}`}
-						dialogTitle="Select worktree location for this project"
-						defaultBrowsePath={project.worktreeBaseDir ?? globalWorktreeBaseDir}
-						disabled={updateProject.isPending}
-						onSelect={(path) =>
-							updateProject.mutate({
-								id: projectId,
-								patch: { worktreeBaseDir: path },
-							})
-						}
-						onReset={() =>
-							updateProject.mutate({
-								id: projectId,
-								patch: { worktreeBaseDir: null },
-							})
-						}
-					/>
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Worktree Mode</Label>
+							<p className="text-xs text-muted-foreground">
+								Override the global worktree mode for this project
+							</p>
+						</div>
+						<Select
+							value={project.worktreeMode ?? "default"}
+							onValueChange={handleWorktreeModeChange}
+							disabled={updateProject.isPending}
+						>
+							<SelectTrigger className="w-[220px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{(
+									Object.entries(WORKTREE_MODE_LABELS_WITH_DEFAULT) as [
+										WorktreeMode | "default",
+										string,
+									][]
+								).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 
-					{!isExternalLoading &&
+					{!isWorktreeDisabled && (
+						<WorktreeLocationPicker
+							currentPath={project.worktreeBaseDir}
+							defaultPathLabel={`Using global default: ${globalPath}`}
+							dialogTitle="Select worktree location for this project"
+							defaultBrowsePath={
+								project.worktreeBaseDir ?? globalWorktreeBaseDir
+							}
+							disabled={updateProject.isPending}
+							onSelect={(path) =>
+								updateProject.mutate({
+									id: projectId,
+									patch: { worktreeBaseDir: path },
+								})
+							}
+							onReset={() =>
+								updateProject.mutate({
+									id: projectId,
+									patch: { worktreeBaseDir: null },
+								})
+							}
+						/>
+					)}
+
+					{!isWorktreeDisabled &&
+						!isExternalLoading &&
 						externalWorktrees.length > 0 &&
 						isItemVisible(
 							SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,

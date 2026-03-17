@@ -9,6 +9,7 @@ import {
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
+	WORKTREE_MODES,
 } from "@superset/local-db";
 import {
 	AGENT_PRESET_COMMANDS,
@@ -743,6 +744,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { worktreeBaseDir: input.path },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWorktreeMode: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.worktreeMode ?? "always";
+		}),
+
+		setWorktreeMode: publicProcedure
+			.input(z.object({ mode: z.enum(WORKTREE_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, worktreeMode: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { worktreeMode: input.mode },
 					})
 					.run();
 

@@ -27,8 +27,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -471,6 +473,12 @@ function PromptGroupInner({
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const { data: globalWorktreeMode } =
+		electronTrpc.settings.getWorktreeMode.useQuery();
+
+	const effectiveWorktreeMode =
+		project?.worktreeMode ?? globalWorktreeMode ?? "always";
+	const [useWorktreeToggle, setUseWorktreeToggle] = useState(true);
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -637,6 +645,12 @@ function PromptGroupInner({
 							? sanitizeBranchNameWithMaxLength(branchName.trim())
 							: branchSlug) || undefined,
 					baseBranch: baseBranch || undefined,
+					...(effectiveWorktreeMode === "optional" && {
+						useWorktree: useWorktreeToggle,
+					}),
+					...(effectiveWorktreeMode === "disabled" && {
+						useWorktree: false,
+					}),
 				},
 				{
 					agentLaunchRequest: launchRequest ?? undefined,
@@ -661,10 +675,12 @@ function PromptGroupInner({
 		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
+		effectiveWorktreeMode,
 		linkedPR,
 		projectId,
 		runAsyncAction,
 		trimmedPrompt,
+		useWorktreeToggle,
 		workspaceName,
 		workspaceNameEdited,
 	]);
@@ -903,9 +919,27 @@ function PromptGroupInner({
 						)}
 					</AnimatePresence>
 				</div>
-				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}+↵ to create
-				</span>
+				<div className="flex items-center gap-2">
+					{effectiveWorktreeMode === "optional" && (
+						<div className="flex items-center gap-1.5">
+							<Switch
+								id="use-worktree"
+								checked={useWorktreeToggle}
+								onCheckedChange={setUseWorktreeToggle}
+								className="scale-75"
+							/>
+							<Label
+								htmlFor="use-worktree"
+								className="text-[11px] text-muted-foreground/60 cursor-pointer"
+							>
+								Worktree
+							</Label>
+						</div>
+					)}
+					<span className="text-[11px] text-muted-foreground/50">
+						{modKey}+↵ to create
+					</span>
+				</div>
 			</div>
 		</div>
 	);

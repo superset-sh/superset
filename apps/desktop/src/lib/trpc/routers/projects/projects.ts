@@ -7,6 +7,7 @@ import {
 	projects,
 	type SelectProject,
 	settings,
+	WORKTREE_MODES,
 	workspaceSections,
 	workspaces,
 	worktrees,
@@ -1230,6 +1231,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						worktreeBaseDir: z.string().nullable().optional(),
 						hideImage: z.boolean().optional(),
 						defaultApp: z.enum(EXTERNAL_APPS).nullable().optional(),
+						worktreeMode: z.enum(WORKTREE_MODES).nullable().optional(),
 					}),
 				}),
 			)
@@ -1267,6 +1269,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}),
 						...(input.patch.defaultApp !== undefined && {
 							defaultApp: input.patch.defaultApp,
+						}),
+						...(input.patch.worktreeMode !== undefined && {
+							worktreeMode: input.patch.worktreeMode,
 						}),
 						lastOpenedAt: Date.now(),
 					})
