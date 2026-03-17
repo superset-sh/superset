@@ -3,7 +3,10 @@ import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
-import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
+import type {
+	DashboardSidebarWorkspaceHostType,
+	DashboardSidebarWorkspacePullRequest,
+} from "../../../../types";
 import type { WorkspaceRowMockData } from "../../utils";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
@@ -20,6 +23,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	renameValue: string;
 	shortcutLabel?: string;
 	mockData: WorkspaceRowMockData;
+	pullRequest: DashboardSidebarWorkspacePullRequest | null;
 	onClick: () => void;
 	onDoubleClick?: () => void;
 	onDeleteClick: () => void;
@@ -43,6 +47,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			renameValue,
 			shortcutLabel,
 			mockData,
+			pullRequest,
 			onClick,
 			onDoubleClick,
 			onDeleteClick,
@@ -55,7 +60,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		ref,
 	) => {
 		const showBranchSubtitle = !!name && name !== branch;
-		const showSubtitle = showBranchSubtitle || !!mockData.pr;
+		const showSubtitle = showBranchSubtitle || !!pullRequest;
 		const showsStandaloneActiveStripe = accentColor == null;
 
 		return (
@@ -174,10 +179,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								</span>
 							)}
 
-							{mockData.pr && (
+							{pullRequest && (
 								<DashboardSidebarWorkspaceStatusBadge
-									state={mockData.pr.state}
-									prNumber={mockData.pr.number}
+									state={pullRequest.state}
+									prNumber={pullRequest.number}
 									className="col-start-2 row-start-2 justify-self-end"
 								/>
 							)}

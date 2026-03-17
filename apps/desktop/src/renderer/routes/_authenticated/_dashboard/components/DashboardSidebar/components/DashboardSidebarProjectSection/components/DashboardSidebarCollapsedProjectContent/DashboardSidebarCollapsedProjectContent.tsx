@@ -90,6 +90,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 										hostType={workspace.hostType}
 										name={workspace.name}
 										branch={workspace.branch}
+										pullRequest={workspace.pullRequest}
 										shortcutLabel={workspaceShortcutLabels.get(workspace.id)}
 										isCollapsed
 									/>

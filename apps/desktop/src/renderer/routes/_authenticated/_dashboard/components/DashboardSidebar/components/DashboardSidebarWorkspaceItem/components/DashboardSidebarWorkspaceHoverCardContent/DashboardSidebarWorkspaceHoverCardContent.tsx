@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { LuExternalLink, LuGitBranch, LuGlobe } from "react-icons/lu";
+import { LuExternalLink, LuGitBranch } from "react-icons/lu";
+import type { DashboardSidebarWorkspacePullRequest } from "../../../../types";
 import type { WorkspaceRowMockData } from "../../utils";
 import { DashboardSidebarWorkspaceStatusBadge } from "../DashboardSidebarWorkspaceStatusBadge";
 
@@ -7,12 +8,14 @@ interface DashboardSidebarWorkspaceHoverCardContentProps {
 	name: string;
 	branch: string;
 	mockData: WorkspaceRowMockData;
+	pullRequest: DashboardSidebarWorkspacePullRequest | null;
 }
 
 export function DashboardSidebarWorkspaceHoverCardContent({
 	name,
 	branch,
 	mockData,
+	pullRequest,
 }: DashboardSidebarWorkspaceHoverCardContentProps) {
 	return (
 		<div className="space-y-3">
@@ -32,17 +35,13 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 				</span>
 			</div>
 
-			<div className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs text-muted-foreground">
-				Mocked preview of the legacy workspace hover card.
-			</div>
-
-			{mockData.pr ? (
+			{pullRequest ? (
 				<div className="space-y-2 border-t border-border pt-2">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-1.5">
 							<DashboardSidebarWorkspaceStatusBadge
-								state={mockData.pr.state}
-								prNumber={mockData.pr.number}
+								state={pullRequest.state}
+								prNumber={pullRequest.number}
 							/>
 						</div>
 						<div className="flex items-center gap-2 text-xs font-mono">
@@ -54,27 +53,38 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 							</span>
 						</div>
 					</div>
-					<p className="text-xs leading-relaxed">{mockData.pr.title}</p>
+					<p className="text-xs leading-relaxed">{pullRequest.title}</p>
+					<div className="text-xs text-muted-foreground">
+						{getChecksStatusLabel(pullRequest.checksStatus)}
+					</div>
 					<div className="flex gap-2">
 						<Button
 							variant="outline"
 							size="sm"
 							className="h-7 flex-1 gap-1.5 text-xs"
+							onClick={() => window.open(pullRequest.url, "_blank")}
 						>
 							<LuGitBranch className="size-3" />
-							View branch
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-7 flex-1 gap-1.5 text-xs"
-						>
-							<LuGlobe className="size-3" />
-							Open preview
+							Open pull request
 						</Button>
 					</div>
 				</div>
 			) : null}
 		</div>
 	);
+}
+
+function getChecksStatusLabel(
+	checksStatus: DashboardSidebarWorkspacePullRequest["checksStatus"],
+): string {
+	switch (checksStatus) {
+		case "success":
+			return "All checks passing";
+		case "failure":
+			return "Checks failing";
+		case "pending":
+			return "Checks still running";
+		default:
+			return "No checks reported";
+	}
 }

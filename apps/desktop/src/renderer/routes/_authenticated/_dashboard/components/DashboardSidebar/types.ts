@@ -3,6 +3,22 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
+export interface DashboardSidebarWorkspacePullRequestCheck {
+	name: string;
+	status: "success" | "failure" | "pending" | "skipped" | "cancelled";
+	url: string | null;
+}
+
+export interface DashboardSidebarWorkspacePullRequest {
+	url: string;
+	number: number;
+	title: string;
+	state: "open" | "merged" | "closed" | "draft";
+	reviewDecision: "approved" | "changes_requested" | "pending" | null;
+	checksStatus: "success" | "failure" | "pending" | "none";
+	checks: DashboardSidebarWorkspacePullRequestCheck[];
+}
+
 export interface DashboardSidebarWorkspace {
 	id: string;
 	projectId: string;
@@ -11,6 +27,7 @@ export interface DashboardSidebarWorkspace {
 	accentColor: string | null;
 	name: string;
 	branch: string;
+	pullRequest: DashboardSidebarWorkspacePullRequest | null;
 	createdAt: Date;
 	updatedAt: Date;
 }

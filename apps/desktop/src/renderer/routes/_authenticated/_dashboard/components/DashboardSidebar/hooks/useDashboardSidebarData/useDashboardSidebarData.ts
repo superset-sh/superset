@@ -1,9 +1,14 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { env } from "renderer/env.renderer";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { MOCK_ORG_ID } from "shared/constants";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -12,9 +17,18 @@ import type {
 } from "../../types";
 
 export function useDashboardSidebarData() {
+	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const { services } = useHostService();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
+	const activeHostService =
+		activeOrganizationId !== null
+			? (services.get(activeOrganizationId) ?? null)
+			: null;
 
 	const { data: sidebarProjects = [] } = useLiveQuery(
 		(q) =>
@@ -90,6 +104,45 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
+	const localWorkspaceIds = useMemo(
+		() =>
+			sidebarWorkspaces
+				.filter(
+					(workspace) =>
+						workspace.deviceType !== "cloud" &&
+						workspace.deviceClientId === deviceInfo?.deviceId,
+				)
+				.map((workspace) => workspace.id)
+				.sort(),
+		[deviceInfo?.deviceId, sidebarWorkspaces],
+	);
+
+	const { data: pullRequestData } = useQuery({
+		queryKey: [
+			"dashboard-sidebar",
+			"pull-requests",
+			activeOrganizationId,
+			localWorkspaceIds,
+		],
+		enabled: activeHostService !== null && localWorkspaceIds.length > 0,
+		refetchInterval: 30_000,
+		queryFn: () =>
+			activeHostService?.client.pullRequests.getByWorkspaces.query({
+				workspaceIds: localWorkspaceIds,
+			}) ?? Promise.resolve({ workspaces: [] }),
+	});
+
+	const localPullRequestsByWorkspaceId = useMemo(
+		() =>
+			new Map(
+				(pullRequestData?.workspaces ?? []).map((workspace) => [
+					workspace.workspaceId,
+					workspace.pullRequest,
+				]),
+			),
+		[pullRequestData?.workspaces],
+	);
+
 	const groups = useMemo<DashboardSidebarProject[]>(() => {
 		const projectsById = new Map<
 			string,
@@ -149,6 +202,10 @@ export function useDashboardSidebarData() {
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,
+				pullRequest:
+					hostType === "local-device"
+						? (localPullRequestsByWorkspaceId.get(workspace.id) ?? null)
+						: null,
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
 			};
@@ -188,6 +245,7 @@ export function useDashboardSidebarData() {
 		});
 	}, [
 		deviceInfo?.deviceId,
+		localPullRequestsByWorkspaceId,
 		sidebarProjects,
 		sidebarSections,
 		sidebarWorkspaces,

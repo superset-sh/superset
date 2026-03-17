@@ -1,4 +1,5 @@
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
+import type { DashboardSidebarWorkspacePullRequest } from "../../types";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
@@ -13,6 +14,7 @@ interface DashboardSidebarWorkspaceItemProps {
 	hostType: "local-device" | "remote-device" | "cloud";
 	name: string;
 	branch: string;
+	pullRequest: DashboardSidebarWorkspacePullRequest | null;
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 }
@@ -24,6 +26,7 @@ export function DashboardSidebarWorkspaceItem({
 	hostType,
 	name,
 	branch,
+	pullRequest,
 	shortcutLabel,
 	isCollapsed = false,
 }: DashboardSidebarWorkspaceItemProps) {
@@ -62,6 +65,7 @@ export function DashboardSidebarWorkspaceItem({
 							name={name}
 							branch={branch}
 							mockData={mockData}
+							pullRequest={pullRequest}
 						/>
 					}
 					onCreateSection={handleCreateSection}
@@ -113,6 +117,7 @@ export function DashboardSidebarWorkspaceItem({
 						name={name}
 						branch={branch}
 						mockData={mockData}
+						pullRequest={pullRequest}
 					/>
 				}
 				onCreateSection={handleCreateSection}
@@ -135,6 +140,7 @@ export function DashboardSidebarWorkspaceItem({
 					renameValue={renameValue}
 					shortcutLabel={shortcutLabel}
 					mockData={mockData}
+					pullRequest={pullRequest}
 					onClick={handleClick}
 					onDoubleClick={startRename}
 					onDeleteClick={() => setIsDeleteDialogOpen(true)}

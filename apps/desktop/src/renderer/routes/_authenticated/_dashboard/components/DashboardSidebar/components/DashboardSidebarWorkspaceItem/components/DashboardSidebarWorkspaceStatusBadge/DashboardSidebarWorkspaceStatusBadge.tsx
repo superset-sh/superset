@@ -1,10 +1,9 @@
 import { cn } from "@superset/ui/utils";
 import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
-
-type MockPrState = "open" | "merged" | "closed" | "draft";
+import type { DashboardSidebarWorkspacePullRequest } from "../../../../types";
 
 interface DashboardSidebarWorkspaceStatusBadgeProps {
-	state: MockPrState;
+	state: DashboardSidebarWorkspacePullRequest["state"];
 	prNumber?: number;
 	className?: string;
 }

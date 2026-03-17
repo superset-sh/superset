@@ -45,6 +45,7 @@ export function DashboardSidebarExpandedProjectContent({
 									hostType={child.workspace.hostType}
 									name={child.workspace.name}
 									branch={child.workspace.branch}
+									pullRequest={child.workspace.pullRequest}
 									shortcutLabel={workspaceShortcutLabels.get(
 										child.workspace.id,
 									)}
