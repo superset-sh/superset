@@ -229,6 +229,19 @@ export const createFileViewerPane = (
 	};
 };
 
+/**
+ * Creates a new file-tree pane
+ */
+export const createFileTreePane = (tabId: string): Pane => {
+	const id = generateId("pane");
+	return {
+		id,
+		tabId,
+		type: "file-tree",
+		name: "File Tree",
+	};
+};
+
 export const createChatMastraPane = (
 	tabId: string,
 	options?: AddChatMastraTabOptions,

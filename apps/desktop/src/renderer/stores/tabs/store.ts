@@ -30,6 +30,7 @@ import {
 	createChatMastraPane,
 	createChatMastraTabWithPane,
 	createDevToolsPane,
+	createFileTreePane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
@@ -1278,13 +1279,17 @@ export const useTabsStore = create<TabsStore>()(
 							? createChatMastraPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
-								: createPane(tabId, "terminal", options);
+								: paneType === "file-tree"
+									? createFileTreePane(tabId)
+									: createPane(tabId, "terminal", options);
 					const panelType =
 						paneType === "chat-mastra"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
-								: "terminal";
+								: paneType === "file-tree"
+									? "file-tree"
+									: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -1347,13 +1352,17 @@ export const useTabsStore = create<TabsStore>()(
 							? createChatMastraPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
-								: createPane(tabId, "terminal", options);
+								: paneType === "file-tree"
+									? createFileTreePane(tabId)
+									: createPane(tabId, "terminal", options);
 					const panelType =
 						paneType === "chat-mastra"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
-								: "terminal";
+								: paneType === "file-tree"
+									? "file-tree"
+									: "terminal";
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {

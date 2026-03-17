@@ -22,6 +22,7 @@ import { BrowserPane } from "./BrowserPane";
 import { ChatMastraPane } from "./ChatMastraPane";
 import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
+import { FileTreePane } from "./FileTreePane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
@@ -222,6 +223,25 @@ export function TabView({ tab }: TabViewProps) {
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route file-tree panes
+			if (paneInfo.type === "file-tree") {
+				return (
+					<FileTreePane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
+						splitPaneAuto={splitPaneAuto}
+						splitPaneHorizontal={splitPaneHorizontal}
+						splitPaneVertical={splitPaneVertical}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+						availableTabs={workspaceTabs}
+						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
+						onMoveToNewTab={() => movePaneToNewTab(paneId)}
 					/>
 				);
 			}
