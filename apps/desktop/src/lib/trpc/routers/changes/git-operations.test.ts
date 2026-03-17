@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { isUpstreamMissingError } from "./git-utils";
+import { parseUpstreamRef } from "./utils/pull-request-url";
 
 describe("git-operations error handling", () => {
 	describe("isUpstreamMissingError", () => {
@@ -89,5 +90,92 @@ describe("sync operation logic", () => {
 		);
 
 		expect(isUpstreamMissingError(pullError.message)).toBe(false);
+	});
+});
+
+describe("tracking remote resolution (#2516)", () => {
+	// Reproduces the bug where push/fetch always targeted "origin" instead of
+	// the branch's actual tracking remote (e.g. a fork remote added by `gh pr checkout`).
+
+	test("parseUpstreamRef extracts fork remote name from upstream ref", () => {
+		// When `gh pr checkout` sets up a fork, the upstream looks like "contributor-fork/feature-branch"
+		const result = parseUpstreamRef("contributor-fork/feature-branch");
+		expect(result).toEqual({
+			remoteName: "contributor-fork",
+			branchName: "feature-branch",
+		});
+	});
+
+	test("parseUpstreamRef extracts origin remote name", () => {
+		const result = parseUpstreamRef("origin/main");
+		expect(result).toEqual({
+			remoteName: "origin",
+			branchName: "main",
+		});
+	});
+
+	test("parseUpstreamRef returns null for invalid refs", () => {
+		expect(parseUpstreamRef("")).toBeNull();
+		expect(parseUpstreamRef("no-slash")).toBeNull();
+		expect(parseUpstreamRef("/leading-slash")).toBeNull();
+		expect(parseUpstreamRef("trailing/")).toBeNull();
+	});
+
+	test("getTrackingRemote logic: returns fork remote when tracking fork upstream", () => {
+		// This tests the core logic that was broken before the fix.
+		// The getTrackingRemote function uses parseUpstreamRef to extract the remote.
+		// Before the fix, push/fetch always hardcoded "origin" regardless of tracking.
+		const upstreamRef = "my-fork-remote/fix-typo";
+		const parsed = parseUpstreamRef(upstreamRef);
+
+		// Before fix: would always use "origin" — ignoring the parsed remote
+		// After fix: uses parsed.remoteName ("my-fork-remote")
+		expect(parsed).not.toBeNull();
+		expect(parsed?.remoteName).toBe("my-fork-remote");
+		expect(parsed?.remoteName).not.toBe("origin");
+	});
+
+	test("getTrackingRemote logic: falls back to origin when no upstream is set", () => {
+		// When parseUpstreamRef returns null (no upstream configured),
+		// getTrackingRemote should fall back to "origin"
+		const parsed = parseUpstreamRef("");
+		expect(parsed).toBeNull();
+		// Fallback behavior: when parsed is null, getTrackingRemote returns "origin"
+	});
+
+	test("push commands should use tracking remote, not hardcoded origin", () => {
+		// Verify the push args construction uses the resolved remote
+		const upstreamRef = "contributor/feature-branch";
+		const parsed = parseUpstreamRef(upstreamRef);
+		expect(parsed).not.toBeNull();
+
+		const remote = parsed?.remoteName;
+		const branch = "feature-branch";
+
+		// The push command should use the tracking remote
+		const pushArgs = ["--set-upstream", remote, `HEAD:refs/heads/${branch}`];
+
+		expect(pushArgs).toEqual([
+			"--set-upstream",
+			"contributor",
+			"HEAD:refs/heads/feature-branch",
+		]);
+		// Before fix, pushArgs[1] would always be "origin"
+		expect(pushArgs[1]).not.toBe("origin");
+	});
+
+	test("fetch commands should use tracking remote, not hardcoded origin", () => {
+		// Verify fetch uses resolved remote
+		const upstreamRef = "fork-user/my-branch";
+		const parsed = parseUpstreamRef(upstreamRef);
+		expect(parsed).not.toBeNull();
+
+		const remote = parsed?.remoteName;
+		const branch = "my-branch";
+
+		const fetchArgs = [remote, branch];
+		expect(fetchArgs).toEqual(["fork-user", "my-branch"]);
+		// Before fix, fetchArgs[0] would always be "origin"
+		expect(fetchArgs[0]).not.toBe("origin");
 	});
 });

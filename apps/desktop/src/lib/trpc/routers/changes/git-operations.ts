@@ -31,15 +31,31 @@ async function hasUpstreamBranch(git: SimpleGit): Promise<boolean> {
 	}
 }
 
+async function getTrackingRemote(git: SimpleGit): Promise<string> {
+	try {
+		const upstream = (
+			await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"])
+		).trim();
+		const parsed = parseUpstreamRef(upstream);
+		if (parsed) {
+			return parsed.remoteName;
+		}
+	} catch {
+		// No upstream configured, fall back to origin
+	}
+	return "origin";
+}
+
 async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+	const remote = await getTrackingRemote(git);
 	try {
-		await git.fetch(["origin", branch]);
+		await git.fetch([remote, branch]);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (isUpstreamMissingError(message)) {
 			try {
-				await git.fetch(["origin"]);
+				await git.fetch([remote]);
 			} catch (fallbackError) {
 				const fallbackMessage =
 					fallbackError instanceof Error
@@ -62,9 +78,11 @@ async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 async function pushWithSetUpstream({
 	git,
 	branch,
+	remote,
 }: {
 	git: SimpleGit;
 	branch: string;
+	remote?: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
 	if (!trimmedBranch || trimmedBranch === "HEAD") {
@@ -75,11 +93,13 @@ async function pushWithSetUpstream({
 		});
 	}
 
+	const targetRemote = remote ?? (await getTrackingRemote(git));
+
 	// Use HEAD refspec to avoid resolving the branch name as a local ref.
 	// This is more reliable for worktrees where upstream tracking isn't set yet.
 	await git.push([
 		"--set-upstream",
-		"origin",
+		targetRemote,
 		`HEAD:refs/heads/${trimmedBranch}`,
 	]);
 }
