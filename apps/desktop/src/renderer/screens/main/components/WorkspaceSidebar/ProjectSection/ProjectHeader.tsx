@@ -22,6 +22,7 @@ import {
 	LuPalette,
 	LuPencil,
 	LuSettings,
+	LuSquareArrowOutUpRight,
 	LuX,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -183,6 +184,12 @@ export function ProjectHeader({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 
+	const openInNewWindow =
+		electronTrpc.window.openProjectInNewWindow.useMutation({
+			onError: (error) =>
+				toast.error(`Failed to open in new window: ${error.message}`),
+		});
+
 	const handleCloseProject = () => {
 		setIsCloseDialogOpen(true);
 	};
@@ -302,6 +309,15 @@ export function ProjectHeader({
 								strokeWidth={STROKE_WIDTH}
 							/>
 							Open in Finder
+						</ContextMenuItem>
+						<ContextMenuItem
+							onSelect={() => openInNewWindow.mutate({ projectId })}
+						>
+							<LuSquareArrowOutUpRight
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
+							Open in New Window
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={handleOpenSettings}>
 							<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
@@ -492,6 +508,15 @@ export function ProjectHeader({
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
+					</ContextMenuItem>
+					<ContextMenuItem
+						onSelect={() => openInNewWindow.mutate({ projectId })}
+					>
+						<LuSquareArrowOutUpRight
+							className="size-4 mr-2"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						Open in New Window
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleOpenSettings}>
 						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

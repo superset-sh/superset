@@ -22,6 +22,7 @@ import {
 	deleteProjectIcon,
 	saveProjectIconFromDataUrl,
 } from "main/lib/project-icons";
+import { windowManager } from "main/lib/window-manager";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
@@ -1529,6 +1530,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						: undefined;
 
 				track("project_closed", { project_id: input.id });
+
+				// Close the project's dedicated window if one is open
+				const projectWin = windowManager.getProjectWindow(input.id);
+				if (projectWin && !projectWin.isDestroyed()) {
+					projectWin.close();
+				}
 
 				return { success: true, terminalWarning };
 			}),
