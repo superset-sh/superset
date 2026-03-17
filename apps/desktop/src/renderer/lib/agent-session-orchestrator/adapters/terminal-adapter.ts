@@ -43,6 +43,63 @@ async function writeTaskPromptFile(
 	});
 }
 
+async function writeAttachmentFiles(
+	workspaceId: string,
+	files: Array<{ data: string; mediaType: string; filename?: string }>,
+): Promise<string[]> {
+	const { electronTrpcClient } = await import("renderer/lib/trpc-client");
+	const workspace = await electronTrpcClient.workspaces.get.query({
+		id: workspaceId,
+	});
+	if (!workspace?.worktreePath) {
+		throw new Error(`Workspace path not found: ${workspaceId}`);
+	}
+
+	const attachmentsDirectory = joinAbsolutePath(
+		workspace.worktreePath,
+		".superset/attachments",
+	);
+	await electronTrpcClient.filesystem.createDirectory.mutate({
+		workspaceId,
+		absolutePath: attachmentsDirectory,
+	});
+
+	const writtenPaths: string[] = [];
+	for (let i = 0; i < files.length; i++) {
+		const file = files[i];
+		if (!file) continue;
+
+		// Generate a safe filename
+		const timestamp = Date.now();
+		const index = i + 1;
+		const extension = file.filename?.split(".").pop() ?? "dat";
+		const sanitizedFilename =
+			file.filename?.replace(/[^a-zA-Z0-9._-]/g, "_") ??
+			`attachment_${timestamp}_${index}`;
+		const fileName = sanitizedFilename.endsWith(`.${extension}`)
+			? sanitizedFilename
+			: `${sanitizedFilename}.${extension}`;
+
+		// Extract base64 data from data URL (format: data:mime/type;base64,DATA)
+		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
+		if (!base64Match?.[1]) {
+			throw new Error(`Invalid data URL format for file: ${fileName}`);
+		}
+
+		const absolutePath = joinAbsolutePath(attachmentsDirectory, fileName);
+		await electronTrpcClient.filesystem.writeFile.mutate({
+			workspaceId,
+			absolutePath,
+			content: { kind: "base64", data: base64Match[1] },
+		});
+
+		// Return relative path from workspace root
+		writtenPaths.push(`.superset/attachments/${fileName}`);
+	}
+
+	return writtenPaths;
+}
+
 export async function launchTerminalAdapter(
 	request: TerminalLaunchRequest,
 	context: AgentSessionLaunchContext,
@@ -85,6 +142,11 @@ export async function launchTerminalAdapter(
 				);
 			}
 
+			// Write attachment files if present
+			if (request.terminal.initialFiles?.length) {
+				await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
+			}
+
 			await launchCommandInPane({
 				paneId: newPaneId,
 				tabId: tab.id,
@@ -119,6 +181,11 @@ export async function launchTerminalAdapter(
 				request.terminal.taskPromptFileName,
 				request.terminal.taskPromptContent,
 			);
+		}
+
+		// Write attachment files if present
+		if (request.terminal.initialFiles?.length) {
+			await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
 		}
 
 		await launchCommandInPane({

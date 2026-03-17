@@ -77,9 +77,21 @@ export function buildPromptAgentLaunchRequest({
 		};
 	}
 
-	const command = prompt
+	// For terminal agents with files, append file information to the prompt
+	let enhancedPrompt = prompt;
+	if (initialFiles?.length && prompt) {
+		const fileList = initialFiles
+			.map((file, index) => {
+				const filename = file.filename || `attachment_${index + 1}`;
+				return `- .superset/attachments/${filename}`;
+			})
+			.join("\n");
+		enhancedPrompt = `${prompt}\n\nAttached files (available in workspace):\n${fileList}`;
+	}
+
+	const command = enhancedPrompt
 		? buildPromptCommandFromAgentConfig({
-				prompt,
+				prompt: enhancedPrompt,
 				randomId: crypto.randomUUID(),
 				config,
 			})
@@ -95,6 +107,7 @@ export function buildPromptAgentLaunchRequest({
 		terminal: {
 			command,
 			name: config.label,
+			initialFiles: initialFiles?.length ? initialFiles : undefined,
 		},
 	};
 }
