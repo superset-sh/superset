@@ -10,11 +10,11 @@ import {
 	unsetBranchBaseConfig,
 } from "../workspaces/utils/base-branch-config";
 import { getCurrentBranch } from "../workspaces/utils/git";
+import { gitSwitchBranch } from "./security/git-commands";
 import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
-	gitSwitchBranch,
-} from "./security";
+} from "./security/path-validation";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {

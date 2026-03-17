@@ -58,6 +58,11 @@ jobs:
           pattern: desktop-*
           merge-multiple: true
 
+      - name: Merge macOS auto-update manifests
+        uses: ./.github/actions/merge-mac-manifests
+        with:
+          artifact-prefix: desktop
+
       - name: Create stable-named copies for latest download URLs
         run: |
           cd release-artifacts
@@ -65,7 +70,11 @@ jobs:
           for file in *.dmg; do
             if [[ -f "$file" ]]; then
               # Extract architecture from filename (e.g., Superset-0.0.1-arm64.dmg -> arm64)
+              # x64 builds may omit the arch suffix (Superset-0.0.1.dmg), default to x64
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.dmg$/\1/')
+              if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
+                arch="x64"
+              fi
               cp "$file" "Superset-${arch}.dmg"
               echo "Created stable copy: Superset-${arch}.dmg"
             fi
@@ -73,7 +82,11 @@ jobs:
           for file in *-mac.zip; do
             if [[ -f "$file" ]]; then
               # Extract architecture from filename (e.g., Superset-0.0.1-arm64-mac.zip -> arm64)
+              # x64 builds may omit the arch suffix (Superset-0.0.1-mac.zip), default to x64
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)-mac\.zip$/\1/')
+              if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
+                arch="x64"
+              fi
               cp "$file" "Superset-${arch}-mac.zip"
               echo "Created stable copy: Superset-${arch}-mac.zip"
             fi
@@ -91,14 +104,6 @@ jobs:
             if [[ -f "$file" && "$file" != "latest-linux.yml" ]]; then
               cp "$file" "latest-linux.yml"
               echo "Created stable copy: latest-linux.yml"
-              break
-            fi
-          done
-          # Keep macOS updater manifest at a stable filename for electron-updater lookups.
-          for file in *-mac.yml; do
-            if [[ -f "$file" && "$file" != "latest-mac.yml" ]]; then
-              cp "$file" "latest-mac.yml"
-              echo "Created stable copy: latest-mac.yml"
               break
             fi
           done

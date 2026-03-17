@@ -9,7 +9,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 
-import { resources, version } from "./package.json";
+import { dependencies, resources, version } from "./package.json";
 import {
 	copyResourcesPlugin,
 	defineEnv,
@@ -29,6 +29,10 @@ const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
 
+const workspaceDependencies = Object.keys(dependencies).filter((dependency) =>
+	dependency.startsWith("@superset/"),
+);
+
 // Sentry plugin for uploading sourcemaps (only in CI with auth token)
 const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
 	? sentryVitePlugin({
@@ -41,7 +45,21 @@ const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
 
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, copyResourcesPlugin()],
+		plugins: [
+			tsconfigPaths,
+			copyResourcesPlugin(),
+			externalizeDepsPlugin({
+				include: [
+					"better-sqlite3",
+					"node-pty",
+					"pg-native",
+					"@ast-grep/napi",
+					"@parcel/watcher",
+					"libsql",
+				],
+				exclude: workspaceDependencies,
+			}),
+		],
 
 		define: {
 			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),
@@ -103,18 +121,13 @@ export default defineConfig({
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 					// Worker-thread entrypoint for heavy git/status computations
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
+					// Workspace service - local HTTP/tRPC server per org
+					"workspace-service": resolve("src/main/workspace-service/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: [
-					"electron",
-					"better-sqlite3",
-					"node-pty",
-					"pg-native",
-					"@ast-grep/napi",
-					"libsql",
-				],
+				external: ["electron"],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},
@@ -131,7 +144,11 @@ export default defineConfig({
 		plugins: [
 			tsconfigPaths,
 			externalizeDepsPlugin({
-				exclude: ["trpc-electron", "@sentry/electron"],
+				exclude: [
+					"trpc-electron",
+					"@sentry/electron",
+					...workspaceDependencies,
+				],
 			}),
 		],
 

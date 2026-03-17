@@ -1,9 +1,7 @@
 import type { TerminalPreset } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
 	useEffect,
@@ -54,7 +52,6 @@ export function GroupStrip() {
 	const { presets } = usePresets();
 	const navigate = useNavigate();
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
@@ -315,7 +312,6 @@ export function GroupStrip() {
 
 	const plusControl = (
 		<AddTabButton
-			hasAiChat={hasAiChat === true}
 			useCompactAddButton={useCompactAddButton}
 			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
@@ -372,11 +368,7 @@ export function GroupStrip() {
 					{hasHorizontalOverflow ? (
 						<div
 							className={`h-full shrink-0 ${
-								!useCompactAddButton
-									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
-									: "w-10"
+								!useCompactAddButton ? "w-[220px]" : "w-10"
 							}`}
 						/>
 					) : (

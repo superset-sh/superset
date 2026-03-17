@@ -9,12 +9,19 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
+import {
+	pathsMatch,
+	retargetAbsolutePath,
+	toAbsoluteWorkspacePath,
+} from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -34,12 +41,44 @@ interface ChangesViewProps {
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
 
+interface PendingChangesRefresh {
+	invalidateBranches: boolean;
+	invalidateSelectedFile: boolean;
+}
+
+function eventTargetsSelectedFile(
+	event: FileSystemChangeEvent,
+	selectedAbsolutePath: string | null,
+): boolean {
+	if (!selectedAbsolutePath) {
+		return false;
+	}
+
+	if (event.type === "overflow") {
+		return true;
+	}
+
+	if (event.type === "rename" && event.absolutePath && event.oldAbsolutePath) {
+		return (
+			retargetAbsolutePath(
+				selectedAbsolutePath,
+				event.oldAbsolutePath,
+				event.absolutePath,
+				Boolean(event.isDirectory),
+			) !== null
+		);
+	}
+
+	return event.absolutePath === selectedAbsolutePath;
+}
+
 export function ChangesView({
 	onFileOpen,
 	isExpandedView,
 	isActive = true,
 }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
+	const trpcUtils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -217,6 +256,11 @@ export function ChangesView({
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
+	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const pendingRefreshRef = useRef<PendingChangesRefresh>({
+		invalidateBranches: false,
+		invalidateSelectedFile: false,
+	});
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -244,7 +288,7 @@ export function ChangesView({
 		setFileListViewMode,
 	} = useChangesStore();
 
-	const selectedFileState = getSelectedFile(worktreePath || "");
+	const selectedFileState = getSelectedFile(workspaceId || "");
 	const selectedFile = selectedFileState?.file ?? null;
 	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
@@ -256,6 +300,82 @@ export function ChangesView({
 	useEffect(() => {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);
+
+	useEffect(() => {
+		return () => {
+			if (refreshTimerRef.current) {
+				clearTimeout(refreshTimerRef.current);
+				refreshTimerRef.current = null;
+			}
+		};
+	}, []);
+
+	useWorkspaceFileEvents(
+		workspaceId ?? "",
+		(event) => {
+			if (!worktreePath) {
+				return;
+			}
+
+			const selectedAbsolutePath = selectedFileState?.absolutePath ?? null;
+			pendingRefreshRef.current.invalidateBranches ||=
+				event.type === "overflow";
+			pendingRefreshRef.current.invalidateSelectedFile ||=
+				eventTargetsSelectedFile(event, selectedAbsolutePath);
+
+			if (refreshTimerRef.current) {
+				clearTimeout(refreshTimerRef.current);
+			}
+
+			refreshTimerRef.current = setTimeout(() => {
+				refreshTimerRef.current = null;
+				const pending = pendingRefreshRef.current;
+				pendingRefreshRef.current = {
+					invalidateBranches: false,
+					invalidateSelectedFile: false,
+				};
+
+				const invalidations: Promise<unknown>[] = [
+					trpcUtils.changes.getStatus.invalidate({
+						worktreePath,
+						defaultBranch: effectiveBaseBranch,
+					}),
+				];
+
+				if (pending.invalidateBranches) {
+					invalidations.push(
+						trpcUtils.changes.getBranches.invalidate({ worktreePath }),
+					);
+				}
+
+				if (pending.invalidateSelectedFile && selectedFileState) {
+					invalidations.push(
+						trpcUtils.changes.getFileContents.invalidate({
+							worktreePath,
+							absolutePath: selectedFileState.absolutePath,
+							oldAbsolutePath: selectedFileState.file.oldPath
+								? toAbsoluteWorkspacePath(
+										worktreePath,
+										selectedFileState.file.oldPath,
+									)
+								: undefined,
+							category: selectedFileState.category,
+							commitHash: selectedFileState.commitHash ?? undefined,
+							defaultBranch: effectiveBaseBranch,
+						}),
+					);
+				}
+
+				Promise.all(invalidations).catch((error) => {
+					console.error("[ChangesView] Failed to refresh changes state:", {
+						worktreePath,
+						error,
+					});
+				});
+			}, 75);
+		},
+		Boolean(workspaceId && worktreePath),
+	);
 
 	const expandedCommitHashes = useMemo(
 		() =>
@@ -294,14 +414,26 @@ export function ChangesView({
 	);
 
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			category,
+			null,
+		);
 		onFileOpen?.(file, category);
 	};
 
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			"committed",
+			commitHash,
+		);
 		onFileOpen?.(file, "committed", commitHash);
 	};
 
@@ -334,6 +466,48 @@ export function ChangesView({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || commit.files,
 	}));
+
+	useEffect(() => {
+		if (!workspaceId || !worktreePath || !selectedFileState) {
+			return;
+		}
+
+		const existsInSelection =
+			selectedFileState.category === "against-base"
+				? againstBaseFiles.some((file) =>
+						pathsMatch(
+							toAbsoluteWorkspacePath(worktreePath, file.path),
+							selectedFileState.absolutePath,
+						),
+					)
+				: selectedFileState.category === "staged"
+					? stagedFiles.some((file) =>
+							pathsMatch(
+								toAbsoluteWorkspacePath(worktreePath, file.path),
+								selectedFileState.absolutePath,
+							),
+						)
+					: selectedFileState.category === "unstaged"
+						? combinedUnstaged.some((file) =>
+								pathsMatch(
+									toAbsoluteWorkspacePath(worktreePath, file.path),
+									selectedFileState.absolutePath,
+								),
+							)
+						: selectedFileState.category === "committed";
+
+		if (!existsInSelection) {
+			selectFile(workspaceId, null, null);
+		}
+	}, [
+		againstBaseFiles,
+		combinedUnstaged,
+		selectFile,
+		selectedFileState,
+		stagedFiles,
+		workspaceId,
+		worktreePath,
+	]);
 
 	const hasStagedChanges = stagedFiles.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
