@@ -739,7 +739,8 @@ export const useTabsStore = create<TabsStore>()(
 						);
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
-					if (fileViewerPanes.length > 0) {
+					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
+					if (fileViewerPanes.length > 0 && !options.openInNewTab) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
 						if (!existingFileViewer) {
@@ -837,7 +838,10 @@ export const useTabsStore = create<TabsStore>()(
 					if (options.openInNewTab) {
 						const workspaceId = activeTab.workspaceId;
 						const newTabId = generateId("tab");
-						const newPane = createFileViewerPane(newTabId, options);
+						const newPane = createFileViewerPane(newTabId, {
+							...options,
+							isPinned: true,
+						});
 
 						const newTab = {
 							id: newTabId,
