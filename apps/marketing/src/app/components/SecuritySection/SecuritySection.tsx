@@ -27,9 +27,9 @@ const SECURITY_FEATURES: {
 	},
 	{
 		icon: <HiOutlineSignal className="w-5 h-5 text-foreground/70" />,
-		title: "No Network Required",
+		title: "Local Control",
 		description:
-			"Zero telemetry by default. No data leaves your machine unless you explicitly connect to external services.",
+			"Superset runs on your machine and lets you choose which agents and external services to connect.",
 	},
 ];
 
