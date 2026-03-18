@@ -2,7 +2,6 @@ import { type MutableRefObject, useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
-import type { CodeEditorAdapter } from "../../../../../components";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -11,7 +10,7 @@ interface UseFileSaveParams {
 	filePath: string;
 	paneId: string;
 	diffCategory?: ChangeCategory;
-	editorRef: MutableRefObject<CodeEditorAdapter | null>;
+	getCurrentContent: () => string;
 	originalContentRef: MutableRefObject<string>;
 	originalDiffContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
@@ -24,24 +23,24 @@ export function useFileSave({
 	filePath,
 	paneId,
 	diffCategory,
-	editorRef,
+	getCurrentContent,
 	originalContentRef,
 	originalDiffContentRef,
 	draftContentRef,
 	revisionRef,
 	setIsDirty,
 }: UseFileSaveParams) {
-	const savingFromRawRef = useRef(false);
+	const savingFromEditorRef = useRef(false);
 	const utils = electronTrpc.useUtils();
 
 	const writeFileMutation = electronTrpc.filesystem.writeFile.useMutation();
 
-	const handleSaveRaw = useCallback(
+	const handleSaveFile = useCallback(
 		async (options?: { force?: boolean }) => {
-			if (!editorRef.current || !filePath || !workspaceId) return;
-			savingFromRawRef.current = true;
+			if (!filePath || !workspaceId) return;
+			savingFromEditorRef.current = true;
 
-			const content = editorRef.current.getValue();
+			const content = getCurrentContent();
 			const precondition =
 				options?.force || !revisionRef.current
 					? undefined
@@ -56,7 +55,7 @@ export function useFileSave({
 			});
 
 			if (!result.ok) {
-				savingFromRawRef.current = false;
+				savingFromEditorRef.current = false;
 				if (result.reason === "conflict") {
 					try {
 						const currentFile = await utils.filesystem.readFile.fetch({
@@ -78,17 +77,17 @@ export function useFileSave({
 
 			revisionRef.current = result.revision;
 
-			const currentEditorValue = editorRef.current?.getValue() ?? content;
-			const hasUnsavedChanges = currentEditorValue !== content;
+			const currentContent = getCurrentContent();
+			const hasUnsavedChanges = currentContent !== content;
 
 			originalContentRef.current = content;
 			setIsDirty(hasUnsavedChanges);
-			if (savingFromRawRef.current && !hasUnsavedChanges) {
+			if (savingFromEditorRef.current && !hasUnsavedChanges) {
 				draftContentRef.current = null;
 			} else if (hasUnsavedChanges) {
-				draftContentRef.current = currentEditorValue;
+				draftContentRef.current = currentContent;
 			}
-			savingFromRawRef.current = false;
+			savingFromEditorRef.current = false;
 			originalDiffContentRef.current = "";
 
 			void utils.filesystem.readFile.invalidate({
@@ -120,23 +119,23 @@ export function useFileSave({
 			return { status: "saved" as const };
 		},
 		[
+			diffCategory,
+			draftContentRef,
 			filePath,
-			workspaceId,
-			writeFileMutation,
-			editorRef,
+			getCurrentContent,
 			originalContentRef,
 			originalDiffContentRef,
-			draftContentRef,
+			paneId,
 			revisionRef,
 			setIsDirty,
 			utils,
-			paneId,
-			diffCategory,
+			workspaceId,
+			writeFileMutation,
 		],
 	);
 
 	return {
-		handleSaveRaw,
+		handleSaveFile,
 		isSaving: writeFileMutation.isPending,
 	};
 }

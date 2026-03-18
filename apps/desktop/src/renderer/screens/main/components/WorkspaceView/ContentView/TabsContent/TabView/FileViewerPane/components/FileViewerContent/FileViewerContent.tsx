@@ -5,7 +5,10 @@ import {
 	useRef,
 } from "react";
 import { LuLoader } from "react-icons/lu";
-import { TipTapMarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import {
+	type MarkdownEditorAdapter,
+	TipTapMarkdownRenderer,
+} from "renderer/components/MarkdownRenderer";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
@@ -92,14 +95,16 @@ interface FileViewerContentProps {
 	imageData?: ImageResult;
 	diffData: DiffData | undefined;
 	editorRef: MutableRefObject<CodeEditorAdapter | null>;
+	markdownEditorRef: MutableRefObject<MarkdownEditorAdapter | null>;
 	originalContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
+	renderedContent: string;
 	initialLine?: number;
 	initialColumn?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
-	onSaveRaw: () => Promise<unknown> | undefined;
-	onEditorChange: (value: string | undefined) => void;
+	onSaveFile: () => Promise<unknown> | undefined;
+	onContentChange: (value: string | undefined) => void;
 	setIsDirty: (dirty: boolean) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
@@ -137,14 +142,16 @@ export function FileViewerContent({
 	imageData,
 	diffData,
 	editorRef,
+	markdownEditorRef,
 	originalContentRef,
 	draftContentRef,
+	renderedContent,
 	initialLine,
 	initialColumn,
 	diffViewMode,
 	hideUnchangedRegions,
-	onSaveRaw,
-	onEditorChange,
+	onSaveFile,
+	onContentChange,
 	setIsDirty,
 	onSwitchToRawAtLocation,
 	onSplitHorizontal,
@@ -441,7 +448,15 @@ export function FileViewerContent({
 					onClose={markdownSearch.closeSearch}
 				/>
 				<div ref={markdownContainerRef} className="h-full overflow-auto p-4">
-					<TipTapMarkdownRenderer content={rawFileData.content} />
+					<TipTapMarkdownRenderer
+						value={renderedContent}
+						editable
+						editorRef={markdownEditorRef}
+						onChange={onContentChange}
+						onSave={() => {
+							void onSaveFile();
+						}}
+					/>
 				</div>
 			</div>
 		);
@@ -467,9 +482,9 @@ export function FileViewerContent({
 					key={filePath}
 					language={detectLanguage(filePath)}
 					value={draftContentRef.current ?? rawFileData.content}
-					onChange={onEditorChange}
+					onChange={onContentChange}
 					onSave={() => {
-						void onSaveRaw();
+						void onSaveFile();
 					}}
 					editorRef={editorRef}
 					fillHeight
