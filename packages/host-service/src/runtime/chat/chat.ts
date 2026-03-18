@@ -11,6 +11,20 @@ type RuntimeMcpManager = Awaited<
 type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
+type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
+type RuntimeMessages = Awaited<ReturnType<RuntimeHarness["listMessages"]>>;
+type RuntimeSendMessageResult = Awaited<
+	ReturnType<RuntimeHarness["sendMessage"]>
+>;
+type RuntimeApprovalResult = Awaited<
+	ReturnType<RuntimeHarness["respondToToolApproval"]>
+>;
+type RuntimeQuestionResult = Awaited<
+	ReturnType<RuntimeHarness["respondToQuestion"]>
+>;
+type RuntimePlanResult = Awaited<
+	ReturnType<RuntimeHarness["respondToPlanApproval"]>
+>;
 type ChatThinkingLevel = "off" | "low" | "medium" | "high" | "xhigh";
 
 interface ChatSendMessageInput {
@@ -39,6 +53,25 @@ interface PendingSandboxQuestion {
 	path: string;
 	reason: string;
 }
+
+interface ChatPendingQuestionOption {
+	label: string;
+	description: string;
+}
+
+interface ChatPendingQuestion {
+	questionId: string;
+	question: string;
+	options: ChatPendingQuestionOption[];
+}
+
+export type ChatDisplayState = RuntimeDisplayState & {
+	pendingQuestion:
+		| RuntimeDisplayState["pendingQuestion"]
+		| ChatPendingQuestion
+		| null;
+	errorMessage: string | null;
+};
 
 interface ChatApprovalPayload {
 	decision: "approve" | "decline" | "always_allow_category";
@@ -388,12 +421,25 @@ export class ChatRuntimeManager {
 	async getDisplayState(input: {
 		sessionId: string;
 		workspaceId: string;
-	}): Promise<unknown> {
+	}): Promise<ChatDisplayState> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
 		const displayState = runtime.harness.getDisplayState();
+		const currentMessage = displayState.currentMessage as
+			| {
+					role?: string;
+					errorMessage?: string;
+			  }
+			| null;
+		const currentMessageError =
+			currentMessage?.role === "assistant" &&
+			typeof currentMessage.errorMessage === "string" &&
+			currentMessage.errorMessage.trim()
+				? currentMessage.errorMessage.trim()
+				: null;
+
 		return {
 			...displayState,
 			pendingQuestion:
@@ -413,15 +459,15 @@ export class ChatRuntimeManager {
 								},
 							],
 						}
-					: null),
-			errorMessage: runtime.lastErrorMessage,
+							: null),
+			errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 		};
 	}
 
 	async listMessages(input: {
 		sessionId: string;
 		workspaceId: string;
-	}): Promise<unknown> {
+	}): Promise<RuntimeMessages> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -429,7 +475,7 @@ export class ChatRuntimeManager {
 		return runtime.harness.listMessages();
 	}
 
-	async sendMessage(input: ChatSendMessageInput): Promise<unknown> {
+	async sendMessage(input: ChatSendMessageInput): Promise<RuntimeSendMessageResult> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -473,7 +519,7 @@ export class ChatRuntimeManager {
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatApprovalPayload;
-	}): Promise<unknown> {
+	}): Promise<RuntimeApprovalResult> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -485,11 +531,16 @@ export class ChatRuntimeManager {
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatQuestionPayload;
-	}): Promise<unknown> {
+	}): Promise<RuntimeQuestionResult> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
+
+		if (runtime.pendingSandboxQuestion?.questionId === input.payload.questionId) {
+			runtime.pendingSandboxQuestion = null;
+		}
+
 		return runtime.harness.respondToQuestion(input.payload);
 	}
 
@@ -497,7 +548,7 @@ export class ChatRuntimeManager {
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatPlanPayload;
-	}): Promise<unknown> {
+	}): Promise<RuntimePlanResult> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -508,7 +559,15 @@ export class ChatRuntimeManager {
 	async getSlashCommands(_input: {
 		sessionId: string;
 		workspaceId: string;
-	}): Promise<unknown[]> {
+	}): Promise<
+		Array<{
+			name: string;
+			aliases: string[];
+			description: string;
+			argumentHint: string;
+			kind: "builtin" | "prompt";
+		}>
+	> {
 		return [];
 	}
 
@@ -533,7 +592,10 @@ export class ChatRuntimeManager {
 		return this.resolveSlashCommand(input);
 	}
 
-	async getMcpOverview(_input: { sessionId: string; workspaceId: string }) {
+	async getMcpOverview(_input: {
+		sessionId: string;
+		workspaceId: string;
+	}): Promise<{ sourcePath: string | null; servers: never[] }> {
 		return { sourcePath: null, servers: [] };
 	}
 }
