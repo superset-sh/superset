@@ -224,6 +224,7 @@ async function handleNewWorktree({
 			branch: localBranchName,
 			baseBranch,
 			gitStatus: null,
+			createdBySuperset: true,
 		})
 		.returning()
 		.get();
@@ -443,6 +444,90 @@ export const createCreateProcedures = () => {
 							wasExisting: true,
 						};
 					}
+
+					// Check for external worktree (exists on disk but not tracked in DB)
+					const externalWorktrees = await listExternalWorktrees(
+						project.mainRepoPath,
+					);
+					const externalMatch = externalWorktrees.find(
+						(wt) => wt.branch === branch && !wt.isBare && !wt.isDetached,
+					);
+
+					if (externalMatch) {
+						console.log(
+							`[workspaces/create] Found external worktree for branch "${branch}", importing automatically`,
+						);
+
+						// Import the external worktree
+						const knownBranches = await getKnownBranchesSafe(
+							project.mainRepoPath,
+						);
+						const baseBranch = resolveWorkspaceBaseBranch({
+							workspaceBaseBranch: project.workspaceBaseBranch,
+							defaultBranch: project.defaultBranch,
+							knownBranches,
+						});
+
+						const worktree = localDb
+							.insert(worktrees)
+							.values({
+								projectId: input.projectId,
+								path: externalMatch.path,
+								branch,
+								baseBranch,
+								gitStatus: {
+									branch,
+									needsRebase: false,
+									ahead: 0,
+									behind: 0,
+									lastRefreshed: Date.now(),
+								},
+								createdBySuperset: false, // Mark as external
+							})
+							.returning()
+							.get();
+
+						const workspace = createWorkspaceFromWorktree({
+							projectId: input.projectId,
+							worktreeId: worktree.id,
+							branch,
+							name: input.name ?? branch,
+						});
+
+						activateProject(project);
+
+						copySupersetConfigToWorktree(project.mainRepoPath, externalMatch.path);
+
+						await setBranchBaseConfig({
+							repoPath: project.mainRepoPath,
+							branch,
+							baseBranch,
+							isExplicit: false,
+						});
+
+						const setupConfig = loadSetupConfig({
+							mainRepoPath: project.mainRepoPath,
+							worktreePath: externalMatch.path,
+							projectId: project.id,
+						});
+
+						track("workspace_created", {
+							workspace_id: workspace.id,
+							project_id: project.id,
+							branch,
+							base_branch: baseBranch,
+							source: "external_import_auto",
+						});
+
+						return {
+							workspace,
+							initialCommands: setupConfig?.setup || null,
+							worktreePath: externalMatch.path,
+							projectId: project.id,
+							isInitializing: false,
+							wasExisting: true,
+						};
+					}
 				}
 
 				const worktreePath = resolveWorktreePath(project, branch);
@@ -462,6 +547,7 @@ export const createCreateProcedures = () => {
 						branch,
 						baseBranch: targetBranch,
 						gitStatus: null,
+						createdBySuperset: true,
 					})
 					.returning()
 					.get();
@@ -859,6 +945,7 @@ export const createCreateProcedures = () => {
 							behind: 0,
 							lastRefreshed: Date.now(),
 						},
+						createdBySuperset: false, // External worktree
 					})
 					.returning()
 					.get();
@@ -1058,6 +1145,7 @@ export const createCreateProcedures = () => {
 								behind: 0,
 								lastRefreshed: Date.now(),
 							},
+							createdBySuperset: false, // External worktree
 						})
 						.returning()
 						.get();

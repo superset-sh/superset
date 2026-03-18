@@ -20,6 +20,7 @@ import {
 	deleteLocalBranch,
 	hasUncommittedChanges,
 	hasUnpushedCommits,
+	listExternalWorktrees,
 	worktreeExists,
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
@@ -252,13 +253,42 @@ export const createDeleteProcedures = () => {
 					await workspaceInitManager.acquireProjectLock(project.id);
 
 					try {
-						const removeResult = await removeWorktreeFromDisk({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-						});
-						if (!removeResult.success) {
-							clearWorkspaceDeletingStatus(input.id);
-							return removeResult;
+						// Only delete from disk if this worktree was created by Superset
+						// External worktrees should only have their DB records removed
+						if (worktree.createdBySuperset) {
+							// Safety: Double-check it's not actually external (catches race conditions)
+							const externalWorktrees = await listExternalWorktrees(
+								project.mainRepoPath,
+							);
+							const isActuallyExternal = externalWorktrees.some(
+								(wt) => wt.path === worktree.path,
+							);
+
+							if (isActuallyExternal) {
+								console.warn(
+									`[workspace/delete] Worktree at ${worktree.path} marked as created by Superset but found in external list - preserving as safety measure`,
+								);
+								track("worktree_delete_safety_trigger", {
+									workspace_id: input.id,
+									worktree_id: worktree.id,
+									worktree_path: worktree.path,
+									reason: "external_detection_mismatch",
+								});
+							} else {
+								// Confirmed safe to delete
+								const removeResult = await removeWorktreeFromDisk({
+									mainRepoPath: project.mainRepoPath,
+									worktreePath: worktree.path,
+								});
+								if (!removeResult.success) {
+									clearWorkspaceDeletingStatus(input.id);
+									return removeResult;
+								}
+							}
+						} else {
+							console.log(
+								`[workspace/delete] Skipping disk deletion for external worktree at ${worktree.path}`,
+							);
 						}
 					} finally {
 						workspaceInitManager.releaseProjectLock(project.id);
@@ -441,40 +471,67 @@ export const createDeleteProcedures = () => {
 						worktree.path,
 					);
 
-					if (exists) {
-						const teardownResult = await runTeardown({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-							workspaceName: worktree.branch,
-							projectId: project.id,
-						});
-						if (!teardownResult.success) {
-							if (input.force) {
-								console.warn(
-									`[worktree/delete] Teardown failed but force=true, continuing deletion:`,
-									teardownResult.error,
-								);
+					// Only delete from disk if this worktree was created by Superset
+					if (worktree.createdBySuperset) {
+						// Safety: Double-check it's not actually external (catches race conditions)
+						const externalWorktrees = await listExternalWorktrees(
+							project.mainRepoPath,
+						);
+						const isActuallyExternal = externalWorktrees.some(
+							(wt) => wt.path === worktree.path,
+						);
+
+						if (isActuallyExternal) {
+							console.warn(
+								`[worktree/delete] Worktree at ${worktree.path} marked as created by Superset but found in external list - preserving as safety measure`,
+							);
+							track("worktree_delete_safety_trigger", {
+								worktree_id: input.worktreeId,
+								worktree_path: worktree.path,
+								reason: "external_detection_mismatch",
+							});
+						} else {
+							// Confirmed safe to delete
+							if (exists) {
+								const teardownResult = await runTeardown({
+									mainRepoPath: project.mainRepoPath,
+									worktreePath: worktree.path,
+									workspaceName: worktree.branch,
+									projectId: project.id,
+								});
+								if (!teardownResult.success) {
+									if (input.force) {
+										console.warn(
+											`[worktree/delete] Teardown failed but force=true, continuing deletion:`,
+											teardownResult.error,
+										);
+									} else {
+										return {
+											success: false,
+											error: `Teardown failed: ${teardownResult.error}`,
+											output: teardownResult.output,
+										};
+									}
+								}
+							}
+
+							if (exists) {
+								const removeResult = await removeWorktreeFromDisk({
+									mainRepoPath: project.mainRepoPath,
+									worktreePath: worktree.path,
+								});
+								if (!removeResult.success) {
+									return removeResult;
+								}
 							} else {
-								return {
-									success: false,
-									error: `Teardown failed: ${teardownResult.error}`,
-									output: teardownResult.output,
-								};
+								console.warn(
+									`Worktree ${worktree.path} not found in git, skipping removal`,
+								);
 							}
 						}
-					}
-
-					if (exists) {
-						const removeResult = await removeWorktreeFromDisk({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-						});
-						if (!removeResult.success) {
-							return removeResult;
-						}
 					} else {
-						console.warn(
-							`Worktree ${worktree.path} not found in git, skipping removal`,
+						console.log(
+							`[worktree/delete] Skipping disk deletion for external worktree at ${worktree.path}`,
 						);
 					}
 				} finally {
