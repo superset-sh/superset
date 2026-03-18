@@ -47,6 +47,7 @@ import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
+import { parseGhPrListOutput } from "./utils/parse-pull-requests";
 
 type Project = SelectProject;
 
@@ -325,35 +326,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						],
 						{ cwd: project.mainRepoPath },
 					);
-					const raw: unknown = JSON.parse(stdout.trim() || "[]");
-					if (!Array.isArray(raw)) return [];
-					return raw
-						.filter(
-							(
-								item: unknown,
-							): item is {
-								number: number;
-								title: string;
-								url: string;
-								state: string;
-								isDraft: boolean;
-							} =>
-								typeof item === "object" &&
-								item !== null &&
-								"number" in item &&
-								"title" in item &&
-								"url" in item,
-						)
-						.map((pr) => ({
-							prNumber: pr.number,
-							title: pr.title,
-							url: pr.url,
-							state: pr.isDraft
-								? "draft"
-								: pr.state === "OPEN"
-									? "open"
-									: pr.state.toLowerCase(),
-						}));
+					return parseGhPrListOutput(stdout);
 				} catch (err) {
 					console.warn("[listPullRequests] Failed to list PRs:", err);
 					return [];
