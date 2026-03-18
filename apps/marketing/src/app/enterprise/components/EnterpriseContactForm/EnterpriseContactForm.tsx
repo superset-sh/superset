@@ -12,6 +12,7 @@ export function EnterpriseContactForm() {
 		email: "",
 		phone: "",
 		message: "",
+		honeypot: "", // Hidden field for bot detection
 	});
 	const [status, setStatus] = useState<
 		"idle" | "submitting" | "success" | "error"
@@ -32,7 +33,7 @@ export function EnterpriseContactForm() {
 				setStatus("error");
 				setErrorMessage(result.error ?? "Something went wrong.");
 			}
-		} catch (error) {
+		} catch (_error) {
 			setStatus("error");
 			setErrorMessage("Something went wrong. Please try again.");
 		}
@@ -53,7 +54,7 @@ export function EnterpriseContactForm() {
 	}
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-5">
+		<form onSubmit={handleSubmit} className="relative space-y-5">
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 				<div>
 					<label
@@ -169,6 +170,20 @@ export function EnterpriseContactForm() {
 					className="w-full px-3.5 py-2.5 text-sm bg-background border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/25 transition-colors resize-none"
 				/>
 			</div>
+
+			{/* Honeypot field - hidden from users, traps bots */}
+			<input
+				type="text"
+				name="website"
+				value={formState.honeypot}
+				onChange={(e) =>
+					setFormState((s) => ({ ...s, honeypot: e.target.value }))
+				}
+				tabIndex={-1}
+				autoComplete="off"
+				className="absolute left-0 top-0 opacity-0 pointer-events-none h-0 w-0"
+				aria-hidden="true"
+			/>
 
 			{status === "error" && (
 				<p className="text-sm text-red-400">{errorMessage}</p>
