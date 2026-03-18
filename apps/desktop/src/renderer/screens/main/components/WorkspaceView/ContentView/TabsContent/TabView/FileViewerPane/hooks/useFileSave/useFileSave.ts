@@ -1,9 +1,16 @@
-import { type MutableRefObject, useCallback, useRef } from "react";
+import { type MutableRefObject, useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+export type FileSaveResult =
+	| { status: "saved" }
+	| {
+			status: "conflict";
+			currentContent: string | null;
+	  };
 
 interface UseFileSaveParams {
 	workspaceId?: string;
@@ -32,15 +39,15 @@ export function useFileSave({
 	revisionRef,
 	setIsDirty,
 }: UseFileSaveParams) {
-	const savingFromEditorRef = useRef(false);
 	const utils = electronTrpc.useUtils();
 
 	const writeFileMutation = electronTrpc.filesystem.writeFile.useMutation();
 
 	const handleSaveFile = useCallback(
-		async (options?: { force?: boolean }) => {
+		async (options?: {
+			force?: boolean;
+		}): Promise<FileSaveResult | undefined> => {
 			if (!filePath || !workspaceId) return;
-			savingFromEditorRef.current = true;
 
 			const content = getCurrentContent();
 			const precondition =
@@ -57,7 +64,6 @@ export function useFileSave({
 			});
 
 			if (!result.ok) {
-				savingFromEditorRef.current = false;
 				if (result.reason === "conflict") {
 					try {
 						const currentFile = await utils.filesystem.readFile.fetch({
@@ -85,12 +91,11 @@ export function useFileSave({
 			originalContentRef.current = content;
 			hasLoadedOriginalContentRef.current = true;
 			setIsDirty(hasUnsavedChanges);
-			if (savingFromEditorRef.current && !hasUnsavedChanges) {
+			if (!hasUnsavedChanges) {
 				draftContentRef.current = null;
 			} else if (hasUnsavedChanges) {
 				draftContentRef.current = currentContent;
 			}
-			savingFromEditorRef.current = false;
 			originalDiffContentRef.current = "";
 
 			void utils.filesystem.readFile.invalidate({

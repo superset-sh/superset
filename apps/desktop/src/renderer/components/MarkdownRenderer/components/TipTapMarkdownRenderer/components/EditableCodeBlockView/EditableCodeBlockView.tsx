@@ -31,9 +31,16 @@ export function EditableCodeBlockView({
 	);
 
 	const handleCopy = async () => {
-		await navigator.clipboard.writeText(node.textContent);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+		try {
+			await navigator.clipboard.writeText(node.textContent);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch (error) {
+			console.error(
+				"[EditableCodeBlockView] Failed to copy code block:",
+				error,
+			);
+		}
 	};
 
 	const handleLanguageChange = (language: string) => {
@@ -44,7 +51,7 @@ export function EditableCodeBlockView({
 	return (
 		<NodeViewWrapper as="pre" className={`${htmlAttrs.class} relative group`}>
 			<div
-				className={`absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 ${menuOpen ? "opacity-100" : ""}`}
+				className={`absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${menuOpen ? "opacity-100" : ""}`}
 			>
 				<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 					<DropdownMenuTrigger asChild>
@@ -78,6 +85,8 @@ export function EditableCodeBlockView({
 				<button
 					type="button"
 					onClick={handleCopy}
+					aria-label={copied ? "Copied code block" : "Copy code block"}
+					title={copied ? "Copied code block" : "Copy code block"}
 					className="flex h-6 w-6 items-center justify-center rounded border border-border bg-background/80 backdrop-blur transition-colors hover:bg-accent"
 				>
 					{copied ? (

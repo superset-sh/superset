@@ -102,7 +102,7 @@ interface FileViewerContentProps {
 	initialColumn?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
-	onSaveFile: () => Promise<unknown> | undefined;
+	onSaveFile: () => void;
 	onContentChange: (value: string | undefined) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
@@ -432,9 +432,7 @@ export function FileViewerContent({
 						editable
 						editorRef={markdownEditorRef}
 						onChange={onContentChange}
-						onSave={() => {
-							void onSaveFile();
-						}}
+						onSave={onSaveFile}
 					/>
 				</div>
 			</div>
@@ -462,9 +460,7 @@ export function FileViewerContent({
 					language={detectLanguage(filePath)}
 					value={draftContentRef.current ?? rawFileData.content}
 					onChange={onContentChange}
-					onSave={() => {
-						void onSaveFile();
-					}}
+					onSave={onSaveFile}
 					editorRef={editorRef}
 					fillHeight
 				/>

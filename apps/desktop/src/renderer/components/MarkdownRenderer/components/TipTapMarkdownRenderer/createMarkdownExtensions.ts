@@ -33,6 +33,7 @@ import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
 import { ReadOnlySafeImageView } from "./components/ReadOnlySafeImageView";
 
 const lowlight = createLowlight(common);
+const ENABLE_RAW_MARKDOWN_HTML = false;
 
 const SafeImage = Image.extend({
 	addNodeView() {
@@ -175,7 +176,8 @@ export function createMarkdownExtensions({
 			},
 		}),
 		Markdown.configure({
-			html: true,
+			// Keep raw HTML disabled until the TipTap path has an explicit sanitizer.
+			html: ENABLE_RAW_MARKDOWN_HTML,
 			transformPastedText: true,
 			transformCopiedText: true,
 		}),

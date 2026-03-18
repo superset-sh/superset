@@ -22,7 +22,7 @@ import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
 import { FileViewerToolbar } from "./components/FileViewerToolbar";
 import { useFileContent } from "./hooks/useFileContent";
-import { useFileSave } from "./hooks/useFileSave";
+import { type FileSaveResult, useFileSave } from "./hooks/useFileSave";
 import { useMarkdownSearch } from "./hooks/useMarkdownSearch";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 
@@ -328,6 +328,38 @@ export function FileViewerPane({
 		pinPane(paneId);
 	};
 
+	const openSaveConflict = useCallback(
+		(diskContent: string | null) => {
+			setSaveConflict({
+				localContent: getCurrentContent(),
+				diskContent,
+			});
+		},
+		[getCurrentContent],
+	);
+
+	const performFileSave = useCallback(
+		async (options?: {
+			force?: boolean;
+		}): Promise<FileSaveResult | undefined> => {
+			try {
+				return await handleSaveFile(options);
+			} catch (error) {
+				console.error("[FileViewerPane] Save failed:", error);
+				return undefined;
+			}
+		},
+		[handleSaveFile],
+	);
+
+	const handleEditorSave = useCallback(() => {
+		void performFileSave().then((result) => {
+			if (result?.status === "conflict") {
+				openSaveConflict(result.currentContent);
+			}
+		});
+	}, [openSaveConflict, performFileSave]);
+
 	const syncEditorContent = useCallback((nextContent: string) => {
 		editorRef.current?.setValue(nextContent);
 		markdownEditorRef.current?.setValue(nextContent);
@@ -409,23 +441,19 @@ export function FileViewerPane({
 		if (!pendingModeRef.current) return;
 
 		setIsSavingAndSwitching(true);
-		try {
-			const result = await handleSaveFile();
-			if (result?.status === "conflict") {
-				setSaveConflict({
-					localContent: getCurrentContent(),
-					diskContent: result.currentContent,
-				});
-				setShowUnsavedDialog(false);
-				return;
-			}
-
-			completePendingModeSwitch();
-		} catch (error) {
-			console.error("[FileViewerPane] Save failed:", error);
-		} finally {
+		const result = await performFileSave();
+		if (result?.status === "conflict") {
+			openSaveConflict(result.currentContent);
+			setShowUnsavedDialog(false);
 			setIsSavingAndSwitching(false);
+			return;
 		}
+
+		if (result?.status === "saved") {
+			completePendingModeSwitch();
+		}
+
+		setIsSavingAndSwitching(false);
 	};
 
 	const handleDiscardAndSwitch = () => {
@@ -455,7 +483,7 @@ export function FileViewerPane({
 	]);
 
 	const handleOverwriteSave = useCallback(async () => {
-		const result = await handleSaveFile({ force: true });
+		const result = await performFileSave({ force: true });
 		if (result?.status !== "saved") {
 			return;
 		}
@@ -464,12 +492,16 @@ export function FileViewerPane({
 		if (pendingModeRef.current) {
 			completePendingModeSwitch();
 		}
-	}, [completePendingModeSwitch, handleSaveFile]);
+	}, [completePendingModeSwitch, performFileSave]);
 
 	const fileName = filePath.split("/").pop() || filePath;
 	const renderedContent =
 		draftContentRef.current ??
-		(rawFileData?.ok === true ? rawFileData.content : "");
+		(hasLoadedOriginalContentRef.current
+			? originalContentRef.current
+			: rawFileData?.ok === true
+				? rawFileData.content
+				: "");
 	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 
@@ -542,13 +574,9 @@ export function FileViewerPane({
 										<Button
 											size="sm"
 											onClick={() => {
-												setSaveConflict({
-													localContent: getCurrentContent(),
-													diskContent:
-														rawFileData?.ok === true
-															? rawFileData.content
-															: null,
-												});
+												openSaveConflict(
+													rawFileData?.ok === true ? rawFileData.content : null,
+												);
 											}}
 										>
 											Review Diff
@@ -576,7 +604,7 @@ export function FileViewerPane({
 							initialColumn={initialColumn}
 							diffViewMode={diffViewMode}
 							hideUnchangedRegions={hideUnchangedRegions}
-							onSaveFile={handleSaveFile}
+							onSaveFile={handleEditorSave}
 							onContentChange={handleContentChange}
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							// Context menu props
