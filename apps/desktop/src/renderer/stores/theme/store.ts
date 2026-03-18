@@ -72,16 +72,24 @@ function getSystemPreferredThemeType(): "dark" | "light" {
 /**
  * Resolve a theme ID to the actual theme ID to use.
  * If "system" is passed, resolves based on OS preference and user-configured system theme preferences.
+ * Validates that the resolved system theme ID exists; falls back to built-in light/dark if stale.
  */
 function resolveThemeId(
 	themeId: string,
 	systemLightThemeId: string,
 	systemDarkThemeId: string,
+	customThemes: Theme[] = [],
 ): string {
 	if (themeId === SYSTEM_THEME_ID) {
-		return getSystemPreferredThemeType() === "dark"
-			? systemDarkThemeId
-			: systemLightThemeId;
+		const prefersDark = getSystemPreferredThemeType() === "dark";
+		const preferredId = prefersDark ? systemDarkThemeId : systemLightThemeId;
+		const fallbackId = prefersDark ? "dark" : "light";
+
+		// Validate that the preferred ID still references an existing theme
+		if (findTheme(preferredId, customThemes)) {
+			return preferredId;
+		}
+		return fallbackId;
 	}
 	return themeId;
 }
@@ -153,6 +161,7 @@ export const useThemeStore = create<ThemeState>()(
 						themeId,
 						state.systemLightThemeId,
 						state.systemDarkThemeId,
+						state.customThemes,
 					);
 					const theme = findTheme(resolvedId, state.customThemes);
 
@@ -189,6 +198,7 @@ export const useThemeStore = create<ThemeState>()(
 							SYSTEM_THEME_ID,
 							newLightId,
 							newDarkId,
+							state.customThemes,
 						);
 						const theme = findTheme(resolvedId, state.customThemes);
 						if (theme) {
@@ -236,6 +246,7 @@ export const useThemeStore = create<ThemeState>()(
 						state.activeThemeId,
 						state.systemLightThemeId,
 						state.systemDarkThemeId,
+						customThemes,
 					);
 					const resolvedTheme = findTheme(resolvedId, customThemes);
 
@@ -289,6 +300,7 @@ export const useThemeStore = create<ThemeState>()(
 							SYSTEM_THEME_ID,
 							newLightId,
 							newDarkId,
+							customThemes,
 						);
 						const theme = findTheme(resolvedId, customThemes);
 						if (theme) {
@@ -313,10 +325,35 @@ export const useThemeStore = create<ThemeState>()(
 
 				initializeTheme: () => {
 					const state = get();
+
+					// Normalize stale system theme IDs before resolving
+					const lightExists = findTheme(
+						state.systemLightThemeId,
+						state.customThemes,
+					);
+					const darkExists = findTheme(
+						state.systemDarkThemeId,
+						state.customThemes,
+					);
+					const normalizedLightId = lightExists
+						? state.systemLightThemeId
+						: "light";
+					const normalizedDarkId = darkExists
+						? state.systemDarkThemeId
+						: "dark";
+
+					if (!lightExists || !darkExists) {
+						set({
+							systemLightThemeId: normalizedLightId,
+							systemDarkThemeId: normalizedDarkId,
+						});
+					}
+
 					const resolvedId = resolveThemeId(
 						state.activeThemeId,
-						state.systemLightThemeId,
-						state.systemDarkThemeId,
+						normalizedLightId,
+						normalizedDarkId,
+						state.customThemes,
 					);
 					const theme = findTheme(resolvedId, state.customThemes);
 

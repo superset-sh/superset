@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
 import { HiCheck } from "react-icons/hi2";
-import type { Theme } from "shared/themes";
+import { getTerminalColors, type Theme } from "shared/themes";
 
 interface SystemThemeCardProps {
 	isSelected: boolean;
@@ -29,12 +29,8 @@ export function SystemThemeCard({
 	allThemes,
 	onSystemThemePreferenceChange,
 }: SystemThemeCardProps) {
-	const darkTerminal = darkTheme.terminal;
-	const lightTerminal = lightTheme.terminal;
-
-	if (!darkTerminal || !lightTerminal) {
-		return null;
-	}
+	const darkTerminal = getTerminalColors(darkTheme);
+	const lightTerminal = getTerminalColors(lightTheme);
 
 	return (
 		<div className="flex flex-col gap-2">
