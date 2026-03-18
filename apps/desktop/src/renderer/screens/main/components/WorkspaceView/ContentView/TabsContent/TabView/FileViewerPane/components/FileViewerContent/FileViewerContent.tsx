@@ -362,10 +362,7 @@ export function FileViewerContent({
 							className="min-h-full"
 						/>
 					</div>
-					<DiffScrollbarDecorations
-						contents={diffData}
-						scrollContainerRef={diffContainerRef}
-					/>
+					<DiffScrollbarDecorations scrollContainerRef={diffContainerRef} />
 				</div>
 			</DiffViewerContextMenu>
 		);
