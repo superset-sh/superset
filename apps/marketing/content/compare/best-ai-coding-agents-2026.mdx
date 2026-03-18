@@ -57,9 +57,9 @@ Most developers use one tool from each category. The agent does the coding; the 
 
 ## Comparison Table
 
-| Tool | Type | Parallelism | Editor Required | Open Source | Pricing |
+| Tool | Type | Parallelism | Editor Required | License | Pricing |
 |---|---|---|---|---|---|
-| **Superset** | Orchestrator | 10+ agents, Git worktrees | None (works with any) | Yes (Apache 2.0) | Free + Pro $20/seat/mo |
+| **Superset** | Orchestrator | 10+ agents, Git worktrees | None (works with any) | Source-available (ELv2) | Free + Pro $20/seat/mo |
 | **Cursor** | Agent (IDE) | Sequential (+ cloud Background Agents) | Cursor IDE | No | Free, Pro $20/mo, Ultra $200/mo |
 | **Claude Code** | Agent (CLI) | Single session | None | Source-available | Max $20-200/mo or API usage |
 | **Codex CLI** | Agent (CLI) | Single session (+ cloud Codex) | None | Yes (Apache 2.0) | Free + API usage |
@@ -128,7 +128,7 @@ Open-source terminal agent focused on pair programming. Works with many models, 
 
 ### Superset
 
-Desktop terminal that runs any CLI-based coding agent in parallel across isolated Git worktrees. Each task gets its own branch and working directory — agents can't conflict with each other or your main work. Persistent daemon means sessions survive crashes. Integrates with VS Code, Cursor, JetBrains, and Xcode. Open source (Apache 2.0), zero telemetry.
+Desktop terminal that runs any CLI-based coding agent in parallel across isolated Git worktrees. Each task gets its own branch and working directory — agents can't conflict with each other or your main work. Persistent daemon means sessions survive crashes. Integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2), zero telemetry.
 
 **Best for:** Running 5-10+ agents in parallel, agent-agnostic teams, privacy-conscious developers
 
@@ -158,7 +158,7 @@ If you want everything in one app — completions, chat, agentic workflows — p
 
 **Superset + OpenCode + Aider**
 
-All open source. Use OpenCode with cost-efficient models (local Ollama, AWS Bedrock) and Aider for iterative work. Superset orchestrates both in parallel. Total cost: API usage only.
+OpenCode and Aider are open source, and Superset adds source-available orchestration. Use OpenCode with cost-efficient models (local Ollama, AWS Bedrock) and Aider for iterative work. Superset orchestrates both in parallel. Total cost: API usage plus any Superset plan.
 
 ### The Autonomous Delegator
 
@@ -188,4 +188,4 @@ The free tiers of most tools are sufficient for light usage. If you're using age
 
 ### Which tool is most private?
 
-Superset and OpenCode are both open source and run locally with no telemetry. Codex CLI is open source but requires OpenAI API calls. Cursor, Windsurf, Devin, and Copilot all route code through external servers.
+Superset runs locally with zero telemetry by default, and its source is available under ELv2. OpenCode is open source and also runs locally. Codex CLI is open source but requires OpenAI API calls. Cursor, Windsurf, Devin, and Copilot all route code through external servers.
