@@ -25,10 +25,21 @@ const fileViewerStateSchema = z.object({
 		.optional(),
 	commitHash: z.string().optional(),
 	oldPath: z.string().optional(),
+	displayName: z.string().optional(),
 });
 
 const chatLaunchConfigSchema = z.object({
 	initialPrompt: z.string().optional(),
+	draftInput: z.string().optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
 	metadata: z
 		.object({
 			model: z.string().optional(),
@@ -45,6 +56,7 @@ const paneSchema = z.object({
 	tabId: z.string(),
 	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
 	name: z.string(),
+	userTitle: z.string().optional(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
 	initialCwd: z.string().optional(),
@@ -71,6 +83,14 @@ const paneSchema = z.object({
 			),
 			historyIndex: z.number(),
 			isLoading: z.boolean(),
+			error: z
+				.object({
+					code: z.number(),
+					description: z.string(),
+					url: z.string(),
+				})
+				.nullable()
+				.optional(),
 			viewport: z
 				.object({
 					name: z.string(),
