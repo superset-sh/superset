@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@superset/workspace-fs/host";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -11,18 +12,6 @@ function isClosedStreamError(error: unknown): boolean {
 	);
 }
 
-function getErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-
-	if (typeof error === "object" && error !== null && "message" in error) {
-		return String((error as { message: unknown }).message);
-	}
-
-	return String(error);
-}
-
 const writeFileContentSchema = z.union([
 	z.string(),
 	z.object({
@@ -30,6 +19,14 @@ const writeFileContentSchema = z.union([
 		data: z.string(),
 	}),
 ]);
+
+type WatchPathEventBatch = {
+	events: Array<{
+		kind: string;
+		absolutePath: string;
+		oldAbsolutePath?: string;
+	}>;
+};
 
 export const createFilesystemRouter = () => {
 	return router({
@@ -253,13 +250,7 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.subscription(({ input }) => {
-				return observable<{
-					events: Array<{
-						kind: string;
-						absolutePath: string;
-						oldAbsolutePath?: string;
-					}>;
-				}>((emit) => {
+				return observable<WatchPathEventBatch>((emit) => {
 					const service = getServiceForWorkspace(input.workspaceId);
 					let isDisposed = false;
 					const stream = service.watchPath({
@@ -278,13 +269,7 @@ export const createFilesystemRouter = () => {
 						});
 					};
 
-					const emitIfOpen = (value: {
-						events: Array<{
-							kind: string;
-							absolutePath: string;
-							oldAbsolutePath?: string;
-						}>;
-					}): boolean => {
+					const emitIfOpen = (value: WatchPathEventBatch): boolean => {
 						try {
 							emit.next(value);
 							return true;
@@ -313,7 +298,7 @@ export const createFilesystemRouter = () => {
 						} catch (error) {
 							console.error("[filesystem/watchPath] Failed:", {
 								workspaceId: input.workspaceId,
-								error: getErrorMessage(error),
+								error: toErrorMessage(error),
 							});
 
 							if (

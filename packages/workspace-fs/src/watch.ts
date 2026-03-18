@@ -5,6 +5,7 @@ import {
 	type Event as ParcelWatcherEvent,
 	subscribe as subscribeToFilesystem,
 } from "@parcel/watcher";
+import { toErrorMessage } from "./error-message";
 import { normalizeAbsolutePath } from "./paths";
 import {
 	DEFAULT_IGNORE_PATTERNS,
@@ -35,18 +36,6 @@ interface WatcherState {
 	pathTypes: Map<string, boolean>;
 	pendingEvents: ParcelWatcherEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
-}
-
-function getErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-
-	if (typeof error === "object" && error !== null && "message" in error) {
-		return String((error as { message: unknown }).message);
-	}
-
-	return String(error);
 }
 
 function coalesceWatchEvent(
@@ -410,7 +399,7 @@ export class FsWatcherManager {
 				if (error) {
 					console.error("[workspace-fs/watch] Watcher error:", {
 						absolutePath: state.absolutePath,
-						error: getErrorMessage(error),
+						error: toErrorMessage(error),
 					});
 					this.emit(state, {
 						events: [{ kind: "overflow", absolutePath: state.absolutePath }],
