@@ -1,3 +1,4 @@
+import { DIFFS_TAG_NAME } from "@pierre/diffs";
 import {
 	type RefObject,
 	useCallback,
@@ -27,10 +28,18 @@ interface MeasuredRegion {
 	bottom: number;
 }
 
+function getDiffShadowRoots(container: HTMLDivElement): ShadowRoot[] {
+	return Array.from(container.querySelectorAll<HTMLElement>(DIFFS_TAG_NAME))
+		.map((diffContainer) => diffContainer.shadowRoot)
+		.filter((shadowRoot): shadowRoot is ShadowRoot => shadowRoot !== null);
+}
+
 function measureDiffRegions(container: HTMLDivElement): DiffRegion[] {
-	const lineElements = Array.from(
-		container.querySelectorAll<HTMLElement>(
-			"[data-line-type='change-addition'], [data-line-type='change-deletion']",
+	const lineElements = getDiffShadowRoots(container).flatMap((shadowRoot) =>
+		Array.from(
+			shadowRoot.querySelectorAll<HTMLElement>(
+				"[data-line-type='change-addition'], [data-line-type='change-deletion']",
+			),
 		),
 	);
 
@@ -178,17 +187,35 @@ export function DiffScrollbarDecorations({
 				updateRegions();
 			});
 		};
+		const observedShadowRoots = new Set<ShadowRoot>();
+		const observeShadowRoots = () => {
+			for (const shadowRoot of getDiffShadowRoots(container)) {
+				if (observedShadowRoots.has(shadowRoot)) {
+					continue;
+				}
+
+				mutationObserver.observe(shadowRoot, {
+					childList: true,
+					subtree: true,
+				});
+				observedShadowRoots.add(shadowRoot);
+			}
+		};
 
 		scheduleUpdate();
 		container.addEventListener("scroll", updateViewport, { passive: true });
 
 		const resizeObserver = new ResizeObserver(scheduleUpdate);
 		resizeObserver.observe(container);
-		const mutationObserver = new MutationObserver(scheduleUpdate);
+		const mutationObserver = new MutationObserver(() => {
+			observeShadowRoots();
+			scheduleUpdate();
+		});
 		mutationObserver.observe(container, {
 			childList: true,
 			subtree: true,
 		});
+		observeShadowRoots();
 
 		return () => {
 			cancelAnimationFrame(frameId);
