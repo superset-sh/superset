@@ -43,10 +43,50 @@ async function writeTaskPromptFile(
 	});
 }
 
+// Attachment limits to prevent memory/disk exhaustion
+const MAX_ATTACHMENTS = 20;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB total decoded size
+const MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024; // 10MB per file
+
 async function writeAttachmentFiles(
 	workspaceId: string,
 	files: Array<{ data: string; mediaType: string; filename?: string }>,
 ): Promise<string[]> {
+	// Enforce attachment count limit
+	if (files.length > MAX_ATTACHMENTS) {
+		throw new Error(
+			`Too many attachments: ${files.length} files (max ${MAX_ATTACHMENTS})`,
+		);
+	}
+
+	// Validate sizes before any processing
+	let totalBytes = 0;
+	for (const file of files) {
+		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
+		if (!base64Match?.[1]) {
+			throw new Error(
+				`Invalid data URL format for file: ${file.filename ?? "unknown"}`,
+			);
+		}
+
+		// Base64 encodes 3 bytes as 4 characters, so decoded size is ~3/4 of base64 length
+		const decodedBytes = Math.ceil((base64Match[1].length * 3) / 4);
+
+		if (decodedBytes > MAX_SINGLE_FILE_BYTES) {
+			throw new Error(
+				`File too large: ${file.filename ?? "unknown"} is ${(decodedBytes / 1024 / 1024).toFixed(1)}MB (max ${MAX_SINGLE_FILE_BYTES / 1024 / 1024}MB)`,
+			);
+		}
+
+		totalBytes += decodedBytes;
+	}
+
+	if (totalBytes > MAX_TOTAL_BYTES) {
+		throw new Error(
+			`Total attachments size too large: ${(totalBytes / 1024 / 1024).toFixed(1)}MB (max ${MAX_TOTAL_BYTES / 1024 / 1024}MB)`,
+		);
+	}
+
 	const { electronTrpcClient } = await import("renderer/lib/trpc-client");
 	const workspace = await electronTrpcClient.workspaces.get.query({
 		id: workspaceId,
@@ -64,42 +104,47 @@ async function writeAttachmentFiles(
 		absolutePath: attachmentsDirectory,
 	});
 
-	// Track seen filenames to handle duplicates (same logic as agent-launch-request.ts)
-	const seenFilenames = new Map<string, number>();
+	// Track all used filenames to prevent collisions (includes user and generated names)
+	const usedFilenames = new Set<string>();
 	const writtenPaths: string[] = [];
 
 	for (let i = 0; i < files.length; i++) {
 		const file = files[i];
 		if (!file) continue;
 
-		// Generate filename using same logic as agent-launch-request.ts to ensure paths match
+		// Generate unique filename
 		let fileName: string;
 
 		if (!file.filename) {
-			fileName = `attachment_${i + 1}`;
+			// Generated names: find next available attachment_N
+			let index = i + 1;
+			do {
+				fileName = `attachment_${index}`;
+				index++;
+			} while (usedFilenames.has(fileName));
 		} else {
 			// Sanitize filename
 			const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-			// Handle duplicates by appending _1, _2, etc.
-			if (seenFilenames.has(sanitized)) {
-				const prevCount = seenFilenames.get(sanitized);
-				const count = (prevCount ?? 0) + 1;
-				seenFilenames.set(sanitized, count);
-
-				// Insert counter before extension
+			// Find unique name by appending _1, _2, etc. if needed
+			if (usedFilenames.has(sanitized)) {
 				const parts = sanitized.split(".");
-				if (parts.length > 1) {
-					const ext = parts.pop();
-					fileName = `${parts.join(".")}_${count}.${ext}`;
-				} else {
-					fileName = `${sanitized}_${count}`;
-				}
+				const ext = parts.length > 1 ? parts.pop() : undefined;
+				const base = parts.join(".");
+
+				let counter = 1;
+				do {
+					fileName = ext
+						? `${base}_${counter}.${ext}`
+						: `${sanitized}_${counter}`;
+					counter++;
+				} while (usedFilenames.has(fileName));
 			} else {
-				seenFilenames.set(sanitized, 0);
 				fileName = sanitized;
 			}
 		}
+
+		usedFilenames.add(fileName);
 
 		// Extract base64 data from data URL (format: data:mime/type;base64,DATA)
 		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);

@@ -81,39 +81,43 @@ export function buildPromptAgentLaunchRequest({
 	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
 	let enhancedPrompt = prompt;
 	if (initialFiles?.length && prompt) {
-		// Track seen filenames to handle duplicates
-		const seenFilenames = new Map<string, number>();
+		// Track all used filenames to prevent collisions (same logic as terminal-adapter.ts)
+		const usedFilenames = new Set<string>();
 
 		const fileList = initialFiles
 			.map((file, index) => {
 				let filename: string;
 
 				if (!file.filename) {
-					filename = `attachment_${index + 1}`;
+					// Generated names: find next available attachment_N
+					let counter = index + 1;
+					do {
+						filename = `attachment_${counter}`;
+						counter++;
+					} while (usedFilenames.has(filename));
 				} else {
 					// Sanitize filename
 					const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-					// Handle duplicates by appending _1, _2, etc.
-					if (seenFilenames.has(sanitized)) {
-						const prevCount = seenFilenames.get(sanitized);
-						const count = (prevCount ?? 0) + 1;
-						seenFilenames.set(sanitized, count);
-
-						// Insert counter before extension
+					// Find unique name by appending _1, _2, etc. if needed
+					if (usedFilenames.has(sanitized)) {
 						const parts = sanitized.split(".");
-						if (parts.length > 1) {
-							const ext = parts.pop();
-							filename = `${parts.join(".")}_${count}.${ext}`;
-						} else {
-							filename = `${sanitized}_${count}`;
-						}
+						const ext = parts.length > 1 ? parts.pop() : undefined;
+						const base = parts.join(".");
+
+						let counter = 1;
+						do {
+							filename = ext
+								? `${base}_${counter}.${ext}`
+								: `${sanitized}_${counter}`;
+							counter++;
+						} while (usedFilenames.has(filename));
 					} else {
-						seenFilenames.set(sanitized, 0);
 						filename = sanitized;
 					}
 				}
 
+				usedFilenames.add(filename);
 				return `- .superset/attachments/${filename}`;
 			})
 			.join("\n");
