@@ -1,6 +1,13 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getBaseName,
+	getParentPath,
+	joinAbsolutePath,
+	resolveNewDirectoryTarget,
+	resolveNewFileTarget,
+} from "../utils/new-item-paths";
 
 interface UseFileTreeActionsProps {
 	workspaceId: string | undefined;
@@ -13,160 +20,244 @@ export function useFileTreeActions({
 	worktreePath,
 	onRefresh,
 }: UseFileTreeActionsProps) {
-	const createFileMutation = electronTrpc.filesystem.createFile.useMutation({
-		onSuccess: (data, variables) => {
-			toast.success(`Created ${data.path.split("/").pop()}`);
-			onRefresh(variables.parentAbsolutePath);
-		},
-		onError: (error) => {
-			toast.error(`Failed to create file: ${error.message}`);
-		},
-	});
-
+	const writeFileMutation = electronTrpc.filesystem.writeFile.useMutation();
 	const createDirectoryMutation =
-		electronTrpc.filesystem.createDirectory.useMutation({
-			onSuccess: (data, variables) => {
-				toast.success(`Created ${data.path.split("/").pop()}`);
-				onRefresh(variables.parentAbsolutePath);
-			},
-			onError: (error) => {
-				toast.error(`Failed to create folder: ${error.message}`);
-			},
-		});
-
-	const renameMutation = electronTrpc.filesystem.rename.useMutation({
-		onSuccess: (data, variables) => {
-			toast.success(`Renamed to ${data.newPath.split("/").pop()}`);
-			const parentPath = variables.absolutePath
-				.split("/")
-				.slice(0, -1)
-				.join("/");
-			onRefresh(parentPath || worktreePath || "");
-		},
-		onError: (error) => {
-			toast.error(`Failed to rename: ${error.message}`);
-		},
-	});
-
-	const deleteMutation = electronTrpc.filesystem.delete.useMutation({
-		onSuccess: (data, variables) => {
-			const count = data.deleted.length;
-			if (count === 1) {
-				toast.success(`Moved to trash`);
-			} else {
-				toast.success(`Moved ${count} items to trash`);
-			}
-			if (data.errors.length > 0) {
-				toast.error(`Failed to delete ${data.errors.length} items`);
-			}
-			const firstPath = variables.absolutePaths[0];
-			const parentPath = firstPath?.split("/").slice(0, -1).join("/");
-			onRefresh(parentPath || worktreePath || "");
-		},
-		onError: (error) => {
-			toast.error(`Failed to delete: ${error.message}`);
-		},
-	});
-
-	const moveMutation = electronTrpc.filesystem.move.useMutation({
-		onSuccess: (data, variables) => {
-			const count = data.moved.length;
-			if (count === 1) {
-				toast.success(`Moved ${data.moved[0].to.split("/").pop()}`);
-			} else {
-				toast.success(`Moved ${count} items`);
-			}
-			if (data.errors.length > 0) {
-				toast.error(`Failed to move ${data.errors.length} items`);
-			}
-			onRefresh(variables.destinationAbsolutePath);
-		},
-		onError: (error) => {
-			toast.error(`Failed to move: ${error.message}`);
-		},
-	});
-
-	const copyMutation = electronTrpc.filesystem.copy.useMutation({
-		onSuccess: (data, variables) => {
-			const count = data.copied.length;
-			if (count === 1) {
-				toast.success(`Copied ${data.copied[0].to.split("/").pop()}`);
-			} else {
-				toast.success(`Copied ${count} items`);
-			}
-			if (data.errors.length > 0) {
-				toast.error(`Failed to copy ${data.errors.length} items`);
-			}
-			onRefresh(variables.destinationAbsolutePath);
-		},
-		onError: (error) => {
-			toast.error(`Failed to copy: ${error.message}`);
-		},
-	});
+		electronTrpc.filesystem.createDirectory.useMutation();
+	const movePathMutation = electronTrpc.filesystem.movePath.useMutation();
+	const deletePathMutation = electronTrpc.filesystem.deletePath.useMutation();
+	const copyPathMutation = electronTrpc.filesystem.copyPath.useMutation();
 
 	const createFile = useCallback(
 		(parentAbsolutePath: string, name: string, content = "") => {
-			if (!workspaceId) return;
-			createFileMutation.mutate({
-				workspaceId,
-				parentAbsolutePath,
-				name,
-				content,
-			});
+			if (!workspaceId) {
+				return;
+			}
+
+			const fileTarget = resolveNewFileTarget(parentAbsolutePath, name);
+			if (!fileTarget) {
+				toast.error(
+					"Failed to create file: nested paths cannot contain . or ..",
+				);
+				return;
+			}
+
+			void (
+				fileTarget.targetParentPath !== parentAbsolutePath
+					? createDirectoryMutation.mutateAsync({
+							workspaceId,
+							absolutePath: fileTarget.targetParentPath,
+							recursive: true,
+						})
+					: Promise.resolve()
+			)
+				.then(() =>
+					writeFileMutation.mutateAsync({
+						workspaceId,
+						absolutePath: fileTarget.absolutePath,
+						content,
+						encoding: "utf-8",
+						options: { create: true, overwrite: false },
+					}),
+				)
+				.then((result) => {
+					if (!result.ok) {
+						if (result.reason === "exists") {
+							toast.error(`Failed to create file: ${name} already exists`);
+							return;
+						}
+						toast.error(`Failed to create file: ${result.reason}`);
+						return;
+					}
+
+					toast.success(`Created ${name}`);
+					void onRefresh(parentAbsolutePath);
+				})
+				.catch((error: Error) => {
+					toast.error(`Failed to create file: ${error.message}`);
+				});
 		},
-		[createFileMutation, workspaceId],
+		[createDirectoryMutation, onRefresh, workspaceId, writeFileMutation],
 	);
 
 	const createDirectory = useCallback(
 		(parentAbsolutePath: string, name: string) => {
-			if (!workspaceId) return;
-			createDirectoryMutation.mutate({
-				workspaceId,
+			if (!workspaceId) {
+				return;
+			}
+
+			const directoryTarget = resolveNewDirectoryTarget(
 				parentAbsolutePath,
 				name,
-			});
+			);
+			if (!directoryTarget) {
+				toast.error(
+					"Failed to create folder: nested paths cannot contain . or ..",
+				);
+				return;
+			}
+			void createDirectoryMutation
+				.mutateAsync({
+					workspaceId,
+					absolutePath: directoryTarget.absolutePath,
+					recursive: true,
+				})
+				.then(() => {
+					toast.success(`Created ${name}`);
+					void onRefresh(parentAbsolutePath);
+				})
+				.catch((error: Error) => {
+					toast.error(`Failed to create folder: ${error.message}`);
+				});
 		},
-		[createDirectoryMutation, workspaceId],
+		[createDirectoryMutation, onRefresh, workspaceId],
 	);
 
 	const rename = useCallback(
 		(absolutePath: string, newName: string) => {
-			if (!workspaceId) return;
-			renameMutation.mutate({ workspaceId, absolutePath, newName });
+			if (!workspaceId) {
+				return;
+			}
+
+			const destinationAbsolutePath = joinAbsolutePath(
+				getParentPath(absolutePath),
+				newName,
+			);
+			void movePathMutation
+				.mutateAsync({
+					workspaceId,
+					sourceAbsolutePath: absolutePath,
+					destinationAbsolutePath,
+				})
+				.then(() => {
+					toast.success(`Renamed to ${newName}`);
+					void onRefresh(getParentPath(absolutePath) || worktreePath || "");
+				})
+				.catch((error: Error) => {
+					toast.error(`Failed to rename: ${error.message}`);
+				});
 		},
-		[renameMutation, workspaceId],
+		[movePathMutation, onRefresh, workspaceId, worktreePath],
 	);
 
 	const deleteItems = useCallback(
 		(absolutePaths: string[], permanent = false) => {
-			if (!workspaceId) return;
-			deleteMutation.mutate({ workspaceId, absolutePaths, permanent });
+			if (!workspaceId || absolutePaths.length === 0) {
+				return;
+			}
+
+			void Promise.allSettled(
+				absolutePaths.map((absolutePath) =>
+					deletePathMutation.mutateAsync({
+						workspaceId,
+						absolutePath,
+						permanent,
+					}),
+				),
+			).then((results) => {
+				const deletedCount = results.filter(
+					(result) => result.status === "fulfilled",
+				).length;
+				const errorCount = results.length - deletedCount;
+
+				if (deletedCount > 0) {
+					toast.success(
+						deletedCount === 1
+							? permanent
+								? "Deleted"
+								: "Moved to trash"
+							: permanent
+								? `Deleted ${deletedCount} items`
+								: `Moved ${deletedCount} items to trash`,
+					);
+				}
+
+				if (errorCount > 0) {
+					toast.error(`Failed to delete ${errorCount} items`);
+				}
+
+				const parentPath = getParentPath(absolutePaths[0]);
+				void onRefresh(parentPath || worktreePath || "");
+			});
 		},
-		[deleteMutation, workspaceId],
+		[deletePathMutation, onRefresh, workspaceId, worktreePath],
 	);
 
 	const moveItems = useCallback(
 		(sourceAbsolutePaths: string[], destinationAbsolutePath: string) => {
-			if (!workspaceId) return;
-			moveMutation.mutate({
-				workspaceId,
-				sourceAbsolutePaths,
-				destinationAbsolutePath,
+			if (!workspaceId || sourceAbsolutePaths.length === 0) {
+				return;
+			}
+
+			void Promise.allSettled(
+				sourceAbsolutePaths.map((sourceAbsolutePath) =>
+					movePathMutation.mutateAsync({
+						workspaceId,
+						sourceAbsolutePath,
+						destinationAbsolutePath: joinAbsolutePath(
+							destinationAbsolutePath,
+							getBaseName(sourceAbsolutePath),
+						),
+					}),
+				),
+			).then((results) => {
+				const movedCount = results.filter(
+					(result) => result.status === "fulfilled",
+				).length;
+				const errorCount = results.length - movedCount;
+
+				if (movedCount > 0) {
+					toast.success(
+						movedCount === 1 ? "Moved item" : `Moved ${movedCount} items`,
+					);
+				}
+
+				if (errorCount > 0) {
+					toast.error(`Failed to move ${errorCount} items`);
+				}
+
+				void onRefresh(destinationAbsolutePath);
 			});
 		},
-		[moveMutation, workspaceId],
+		[movePathMutation, onRefresh, workspaceId],
 	);
 
 	const copyItems = useCallback(
 		(sourceAbsolutePaths: string[], destinationAbsolutePath: string) => {
-			if (!workspaceId) return;
-			copyMutation.mutate({
-				workspaceId,
-				sourceAbsolutePaths,
-				destinationAbsolutePath,
+			if (!workspaceId || sourceAbsolutePaths.length === 0) {
+				return;
+			}
+
+			void Promise.allSettled(
+				sourceAbsolutePaths.map((sourceAbsolutePath) =>
+					copyPathMutation.mutateAsync({
+						workspaceId,
+						sourceAbsolutePath,
+						destinationAbsolutePath: joinAbsolutePath(
+							destinationAbsolutePath,
+							getBaseName(sourceAbsolutePath),
+						),
+					}),
+				),
+			).then((results) => {
+				const copiedCount = results.filter(
+					(result) => result.status === "fulfilled",
+				).length;
+				const errorCount = results.length - copiedCount;
+
+				if (copiedCount > 0) {
+					toast.success(
+						copiedCount === 1 ? "Copied item" : `Copied ${copiedCount} items`,
+					);
+				}
+
+				if (errorCount > 0) {
+					toast.error(`Failed to copy ${errorCount} items`);
+				}
+
+				void onRefresh(destinationAbsolutePath);
 			});
 		},
-		[copyMutation, workspaceId],
+		[copyPathMutation, onRefresh, workspaceId],
 	);
 
 	return {
@@ -176,11 +267,11 @@ export function useFileTreeActions({
 		deleteItems,
 		moveItems,
 		copyItems,
-		isCreatingFile: createFileMutation.isPending,
+		isCreatingFile: writeFileMutation.isPending,
 		isCreatingDirectory: createDirectoryMutation.isPending,
-		isRenaming: renameMutation.isPending,
-		isDeleting: deleteMutation.isPending,
-		isMoving: moveMutation.isPending,
-		isCopying: copyMutation.isPending,
+		isRenaming: movePathMutation.isPending,
+		isDeleting: deletePathMutation.isPending,
+		isMoving: movePathMutation.isPending,
+		isCopying: copyPathMutation.isPending,
 	};
 }

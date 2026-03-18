@@ -23,8 +23,6 @@ url = "https://mcp.linear.app/mcp"
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
 
-[mcp_servers.posthog]
-url = "https://mcp.posthog.com/mcp"
 
 [mcp_servers.desktop-automation]
 command = "bun"

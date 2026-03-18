@@ -1,13 +1,4 @@
-import {
-	buildAgentFileCommand,
-	buildAgentTaskPrompt,
-} from "@superset/shared/agent-command";
-import {
-	type AgentLaunchRequest,
-	STARTABLE_AGENT_LABELS,
-	STARTABLE_AGENT_TYPES,
-	type StartableAgentType,
-} from "@superset/shared/agent-launch";
+import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -16,27 +7,27 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Label } from "@superset/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { AgentSelect } from "renderer/components/AgentSelect";
+import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
+import {
+	type AgentDefinitionId,
+	getEnabledAgentConfigs,
+	getFallbackAgentId,
+	indexResolvedAgentConfigs,
+} from "shared/utils/agent-settings";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
+
+type TaskLaunchAgent = AgentDefinitionId | "none";
 
 interface OpenInWorkspaceProps {
 	task: TaskWithStatus;
@@ -49,115 +40,98 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const isDark = useIsDarkTheme();
-	const selectableAgents =
-		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
-	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-		() => localStorage.getItem("lastOpenedInProjectId"),
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
+	const enabledAgentPresets = useMemo(
+		() => getEnabledAgentConfigs(agentPresets),
+		[agentPresets],
 	);
-	const [selectedAgent, setSelectedAgent] = useState<StartableAgentType>(() => {
-		const stored = localStorage.getItem("lastSelectedAgent");
-		return stored &&
-			(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
-			? (stored as StartableAgentType)
-			: "claude";
+	const agentConfigsById = useMemo(
+		() => indexResolvedAgentConfigs(agentPresets),
+		[agentPresets],
+	);
+	const fallbackAgentId = useMemo(
+		() => getFallbackAgentId(agentPresets),
+		[agentPresets],
+	);
+	const selectableAgents = useMemo(
+		() => enabledAgentPresets.map((preset) => preset.id),
+		[enabledAgentPresets],
+	);
+	const {
+		autoRun,
+		effectiveProjectId,
+		selectedAgent,
+		setAutoRun,
+		setSelectedAgent,
+		setSelectedProjectId,
+	} = useAgentLaunchPreferences<TaskLaunchAgent>({
+		agentStorageKey: "lastSelectedAgent",
+		defaultAgent: fallbackAgentId ?? "none",
+		fallbackAgent: fallbackAgentId ?? "none",
+		validAgents: ["none", ...selectableAgents],
+		agentsReady: agentPresetsQuery.isFetched,
+		projectStorageKey: "lastOpenedInProjectId",
+		recentProjects,
+		autoRunStorageKey: "agentAutoRun",
 	});
-	const [autoRun, setAutoRun] = useState(
-		() => localStorage.getItem("agentAutoRun") !== "false",
-	);
 
-	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
 
-	useEffect(() => {
-		if (!selectedProjectId && recentProjects.length > 0) {
-			setSelectedProjectId(recentProjects[0].id);
-			localStorage.setItem("lastOpenedInProjectId", recentProjects[0].id);
-		}
-	}, [selectedProjectId, recentProjects]);
-
-	useEffect(() => {
-		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
-			return;
-		}
-		setSelectedAgent("claude");
-		localStorage.setItem("lastSelectedAgent", "claude");
-	}, [selectedAgent]);
-
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
+		if (
+			selectedAgent !== "none" &&
+			!agentConfigsById.get(selectedAgent)?.enabled
+		) {
+			toast.error("Enable an agent in Settings > Agents first");
+			return;
+		}
 		await handleSelectProject(effectiveProjectId);
 	};
 
-	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest => {
-		const taskInput = {
-			id: task.id,
-			slug: task.slug,
-			title: task.title,
-			description: task.description,
-			priority: task.priority,
-			statusName: task.status.name,
-			labels: task.labels,
-		};
-
-		if (selectedAgent === "superset-chat") {
-			return {
-				kind: "chat",
-				workspaceId,
-				agentType: "superset-chat",
-				source: "open-in-workspace",
-				chat: {
-					initialPrompt: buildAgentTaskPrompt(taskInput),
-					retryCount: 1,
-					autoExecute: autoRun,
-					taskSlug: task.slug,
-				},
-			};
-		}
-
-		const taskPromptFileName = `task-${task.slug}.md`;
-		return {
-			kind: "terminal",
-			workspaceId,
-			agentType: selectedAgent,
-			source: "open-in-workspace",
-			terminal: {
-				command: buildAgentFileCommand({
-					filePath: `.superset/${taskPromptFileName}`,
-					agent: selectedAgent,
-				}),
-				name: task.slug,
-				taskPromptContent: buildAgentTaskPrompt(taskInput),
-				taskPromptFileName,
-				autoExecute: autoRun,
+	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest | null =>
+		buildTaskAgentLaunchRequest({
+			task: {
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				description: task.description,
+				priority: task.priority,
+				statusName: task.status.name,
+				labels: task.labels,
 			},
-		};
-	};
+			workspaceId,
+			selectedAgent,
+			source: "open-in-workspace",
+			autoRun,
+			configsById: agentConfigsById,
+		});
 
 	const handleSelectProject = async (projectId: string) => {
 		const branchName = deriveBranchName({
 			slug: task.slug,
 			title: task.title,
 		});
-		const launchRequestTemplate = buildLaunchRequest("pending-workspace");
 
 		try {
+			const launchRequestTemplate = buildLaunchRequest("pending-workspace");
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
 					name: task.slug,
 					branchName,
 				},
-				{ agentLaunchRequest: launchRequestTemplate },
+				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);
 
-			const launchRequest: AgentLaunchRequest = {
-				...launchRequestTemplate,
-				workspaceId: result.workspace.id,
-			};
-			if (result.wasExisting) {
+			if (result.wasExisting && launchRequestTemplate) {
+				const launchRequest: AgentLaunchRequest = {
+					...launchRequestTemplate,
+					workspaceId: result.workspace.id,
+				};
 				const launchResult = await launchAgentSession(launchRequest, {
 					source: "open-in-workspace",
 					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
@@ -227,7 +201,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 										key={project.id}
 										onClick={() => {
 											setSelectedProjectId(project.id);
-											localStorage.setItem("lastOpenedInProjectId", project.id);
 										}}
 										className="flex items-center gap-2"
 									>
@@ -255,36 +228,16 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					<HiArrowRight className="w-3.5 h-3.5" />
 				</Button>
 			</div>
-			<Select
+			<AgentSelect<TaskLaunchAgent>
+				agents={enabledAgentPresets}
 				value={selectedAgent}
-				onValueChange={(value: StartableAgentType) => {
-					setSelectedAgent(value);
-					localStorage.setItem("lastSelectedAgent", value);
-				}}
-			>
-				<SelectTrigger className="h-8 text-xs">
-					<SelectValue placeholder="Select agent" />
-				</SelectTrigger>
-				<SelectContent>
-					{selectableAgents.map((agent) => {
-						const icon = getPresetIcon(agent, isDark);
-						return (
-							<SelectItem key={agent} value={agent}>
-								<span className="flex items-center gap-2">
-									{icon && (
-										<img
-											src={icon}
-											alt=""
-											className="size-3.5 object-contain"
-										/>
-									)}
-									{STARTABLE_AGENT_LABELS[agent]}
-								</span>
-							</SelectItem>
-						);
-					})}
-				</SelectContent>
-			</Select>
+				placeholder="Select agent"
+				onValueChange={setSelectedAgent}
+				triggerClassName="h-8 text-xs"
+				allowNone
+				noneLabel="No agent"
+				noneValue="none"
+			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
 					Auto-run command
@@ -292,10 +245,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				<Switch
 					id="auto-run-toggle"
 					checked={autoRun}
-					onCheckedChange={(value) => {
-						setAutoRun(value);
-						localStorage.setItem("agentAutoRun", String(value));
-					}}
+					onCheckedChange={setAutoRun}
 				/>
 			</div>
 		</div>

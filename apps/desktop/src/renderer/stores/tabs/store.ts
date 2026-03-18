@@ -11,7 +11,11 @@ import {
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
+import {
+	mergeTabIntoTab,
+	movePaneToNewTab,
+	movePaneToTab,
+} from "./actions/move-pane";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
@@ -23,8 +27,8 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
-	createChatMastraPane,
-	createChatMastraTabWithPane,
+	createChatPane,
+	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
@@ -104,6 +108,36 @@ const deriveTabName = (
 	return `Multiple panes (${tabPanes.length})`;
 };
 
+type TabsMoveStateUpdate = Pick<
+	TabsState,
+	"tabs" | "panes" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
+>;
+
+const withDerivedTabNames = (
+	state: TabsMoveStateUpdate,
+	tabIds: Iterable<string | undefined>,
+): TabsMoveStateUpdate => {
+	const affectedTabIds = new Set<string>();
+	for (const tabId of tabIds) {
+		if (tabId) {
+			affectedTabIds.add(tabId);
+		}
+	}
+
+	if (affectedTabIds.size === 0) {
+		return state;
+	}
+
+	return {
+		...state,
+		tabs: state.tabs.map((tab) =>
+			affectedTabIds.has(tab.id)
+				? { ...tab, name: deriveTabName(state.panes, tab.id) }
+				: tab,
+		),
+	};
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -160,13 +194,10 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
-				addChatMastraTab: (workspaceId: string, options) => {
+				addChatTab: (workspaceId: string, options) => {
 					const state = get();
 
-					const { tab, pane } = createChatMastraTabWithPane(
-						workspaceId,
-						options,
-					);
+					const { tab, pane } = createChatTabWithPane(workspaceId, options);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -545,12 +576,12 @@ export const useTabsStore = create<TabsStore>()(
 
 					return newPane.id;
 				},
-				addChatMastraPane: (tabId, options) => {
+				addChatPane: (tabId, options) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
-					const newPane = createChatMastraPane(tabId, options);
+					const newPane = createChatPane(tabId, options);
 
 					const newLayout: MosaicNode<string> = {
 						direction: "row",
@@ -1240,13 +1271,13 @@ export const useTabsStore = create<TabsStore>()(
 
 					const paneType = options?.paneType ?? "terminal";
 					const newPane =
-						paneType === "chat-mastra"
-							? createChatMastraPane(tabId)
+						paneType === "chat"
+							? createChatPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
 								: createPane(tabId, "terminal", options);
 					const panelType =
-						paneType === "chat-mastra"
+						paneType === "chat"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
@@ -1309,13 +1340,13 @@ export const useTabsStore = create<TabsStore>()(
 
 					const paneType = options?.paneType ?? "terminal";
 					const newPane =
-						paneType === "chat-mastra"
-							? createChatMastraPane(tabId)
+						paneType === "chat"
+							? createChatPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
 								: createPane(tabId, "terminal", options);
 					const panelType =
-						paneType === "chat-mastra"
+						paneType === "chat"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
@@ -1382,16 +1413,7 @@ export const useTabsStore = create<TabsStore>()(
 					const result = movePaneToTab(state, paneId, targetTabId);
 					if (!result) return;
 
-					// Re-derive tab names for affected tabs
-					const sourceTabId = pane?.tabId;
-					result.tabs = result.tabs.map((t) => {
-						if (t.id === targetTabId || t.id === sourceTabId) {
-							return { ...t, name: deriveTabName(result.panes, t.id) };
-						}
-						return t;
-					});
-
-					set(result);
+					set(withDerivedTabNames(result, [pane?.tabId, targetTabId]));
 				},
 
 				movePaneToNewTab: (paneId) => {
@@ -1408,19 +1430,32 @@ export const useTabsStore = create<TabsStore>()(
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
-					// Re-derive tab names for affected tabs
-					moveResult.result.tabs = moveResult.result.tabs.map((t) => {
-						if (t.id === moveResult.newTabId || t.id === sourceTab.id) {
-							return {
-								...t,
-								name: deriveTabName(moveResult.result.panes, t.id),
-							};
-						}
-						return t;
-					});
-
-					set(moveResult.result);
+					set(
+						withDerivedTabNames(moveResult.result, [
+							sourceTab.id,
+							moveResult.newTabId,
+						]),
+					);
 					return moveResult.newTabId;
+				},
+
+				mergeTabIntoTab: (
+					sourceTabId,
+					targetTabId,
+					destinationPath,
+					position,
+				) => {
+					const state = get();
+					const result = mergeTabIntoTab(
+						state,
+						sourceTabId,
+						targetTabId,
+						destinationPath,
+						position,
+					);
+					if (!result) return;
+
+					set(withDerivedTabNames(result, [targetTabId]));
 				},
 
 				// Browser operations
@@ -1908,35 +1943,35 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Chat operations
-				switchChatMastraSession: (paneId, sessionId) => {
+				switchChatSession: (paneId, sessionId) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane || pane.type !== "chat-mastra") return;
+					if (!pane || pane.type !== "chat") return;
 
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: {
-									...pane.chatMastra,
+								chat: {
+									...pane.chat,
 									sessionId,
 								},
 							},
 						},
 					});
 				},
-				setChatMastraLaunchConfig: (paneId, launchConfig) => {
+				setChatLaunchConfig: (paneId, launchConfig) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane || pane.type !== "chat-mastra") return;
-					const sessionId = pane.chatMastra?.sessionId ?? null;
+					if (!pane || pane.type !== "chat") return;
+					const sessionId = pane.chat?.sessionId ?? null;
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: {
+								chat: {
 									sessionId,
 									launchConfig: launchConfig ?? null,
 								},
@@ -1976,7 +2011,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 7,
+				version: 8,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -2005,8 +2040,8 @@ export const useTabsStore = create<TabsStore>()(
 					}
 					if (version < 5 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							if (pane.chatMastra) {
-								pane.chatMastra.sessionId = null;
+							if (pane.chat) {
+								pane.chat.sessionId = null;
 							}
 						}
 					}
@@ -2015,9 +2050,23 @@ export const useTabsStore = create<TabsStore>()(
 							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
 							const legacyPane = pane as any;
 							if (legacyPane.type === "chat") {
-								legacyPane.type = "chat-mastra";
-								legacyPane.chatMastra = {
+								legacyPane.type = "chat";
+								legacyPane.chat = {
 									sessionId: legacyPane.chat?.sessionId ?? null,
+								};
+								delete legacyPane.chat;
+							}
+						}
+					}
+					if (version < 8 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
+							const legacyPane = pane as any;
+							if (legacyPane.type === "chat") {
+								legacyPane.type = "chat";
+								legacyPane.chat = {
+									sessionId: legacyPane.chat?.sessionId ?? null,
+									launchConfig: legacyPane.chat?.launchConfig ?? null,
 								};
 								delete legacyPane.chat;
 							}

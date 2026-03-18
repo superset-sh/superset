@@ -87,12 +87,12 @@ function resolvePaneId(
 			}
 		}
 
-		// Resolve from Mastra chat session ID
+		// Resolve from chat session ID
 		if (sessionId) {
 			for (const [existingPaneId, pane] of Object.entries(
 				tabsState.panes ?? {},
 			)) {
-				if (pane.chatMastra?.sessionId === sessionId) {
+				if (pane.chat?.sessionId === sessionId) {
 					return existingPaneId;
 				}
 			}

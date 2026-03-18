@@ -9,6 +9,7 @@ export type SettingsSection =
 	| "keyboard"
 	| "behavior"
 	| "git"
+	| "agents"
 	| "terminal"
 	| "models"
 	| "integrations"

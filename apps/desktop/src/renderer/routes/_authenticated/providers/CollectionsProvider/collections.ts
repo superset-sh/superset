@@ -24,16 +24,28 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
-import type { Collection } from "@tanstack/react-db";
+import type {
+	Collection,
+	LocalStorageCollectionUtils,
+} from "@tanstack/react-db";
 import {
 	createCollection,
 	localOnlyCollectionOptions,
+	localStorageCollectionOptions,
 } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
 import superjson from "superjson";
 import { z } from "zod";
+import {
+	type DashboardSidebarProjectRow,
+	type DashboardSidebarSectionRow,
+	type DashboardSidebarWorkspaceRow,
+	dashboardSidebarProjectSchema,
+	dashboardSidebarSectionSchema,
+	dashboardSidebarWorkspaceSchema,
+} from "./dashboardSidebarLocal";
 
 const columnMapper = snakeCamelMapper();
 
@@ -54,7 +66,7 @@ type IntegrationConnectionDisplay = Omit<
 	"accessToken" | "refreshToken"
 >;
 
-interface OrgCollections {
+export interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
@@ -76,6 +88,27 @@ interface OrgCollections {
 	sessionHosts: Collection<SelectSessionHost>;
 	githubRepositories: Collection<SelectGithubRepository>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
+	v2SidebarProjects: Collection<
+		DashboardSidebarProjectRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarProjectSchema,
+		z.input<typeof dashboardSidebarProjectSchema>
+	>;
+	v2SidebarWorkspaces: Collection<
+		DashboardSidebarWorkspaceRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarWorkspaceSchema,
+		z.input<typeof dashboardSidebarWorkspaceSchema>
+	>;
+	v2SidebarSections: Collection<
+		DashboardSidebarSectionRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarSectionSchema,
+		z.input<typeof dashboardSidebarSectionSchema>
+	>;
 }
 
 // Per-org collections cache
@@ -526,6 +559,33 @@ function createOrgCollections(
 		}),
 	);
 
+	const v2SidebarProjects = createCollection(
+		localStorageCollectionOptions({
+			id: `v2_sidebar_projects-${organizationId}`,
+			storageKey: `v2-sidebar-projects-${organizationId}`,
+			schema: dashboardSidebarProjectSchema,
+			getKey: (item) => item.projectId,
+		}),
+	);
+
+	const v2SidebarWorkspaces = createCollection(
+		localStorageCollectionOptions({
+			id: `v2_sidebar_workspaces-${organizationId}`,
+			storageKey: `v2-sidebar-workspaces-${organizationId}`,
+			schema: dashboardSidebarWorkspaceSchema,
+			getKey: (item) => item.workspaceId,
+		}),
+	);
+
+	const v2SidebarSections = createCollection(
+		localStorageCollectionOptions({
+			id: `v2_sidebar_sections-${organizationId}`,
+			storageKey: `v2-sidebar-sections-${organizationId}`,
+			schema: dashboardSidebarSectionSchema,
+			getKey: (item) => item.sectionId,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -548,6 +608,9 @@ function createOrgCollections(
 		sessionHosts,
 		githubRepositories,
 		githubPullRequests,
+		v2SidebarProjects,
+		v2SidebarWorkspaces,
+		v2SidebarSections,
 	};
 }
 
@@ -607,3 +670,5 @@ export function getCollections(organizationId: string, enableV2Cloud = false) {
 		organizations: organizationsCollection,
 	};
 }
+
+export type AppCollections = ReturnType<typeof getCollections>;

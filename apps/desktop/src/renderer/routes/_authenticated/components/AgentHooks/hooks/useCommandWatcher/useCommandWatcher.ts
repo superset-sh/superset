@@ -35,7 +35,26 @@ export function useCommandWatcher() {
 
 	const { data: workspaces, refetch: refetchWorkspaces } =
 		electronTrpc.workspaces.getAll.useQuery();
+	const { data: workspaceGroups } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const { data: projects } = electronTrpc.projects.getRecents.useQuery();
+	const worktreePathByWorkspaceId = useMemo(() => {
+		const pathByWorkspaceId = new Map<string, string>();
+
+		for (const group of workspaceGroups ?? []) {
+			for (const workspace of group.workspaces) {
+				pathByWorkspaceId.set(workspace.id, workspace.worktreePath);
+			}
+
+			for (const section of group.sections) {
+				for (const workspace of section.workspaces) {
+					pathByWorkspaceId.set(workspace.id, workspace.worktreePath);
+				}
+			}
+		}
+
+		return pathByWorkspaceId;
+	}, [workspaceGroups]);
 
 	const getCurrentWorkspaceIdFromRoute = useCallback(() => {
 		const hash = window.location.hash;
@@ -56,6 +75,8 @@ export function useCommandWatcher() {
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
+			getWorktreePathByWorkspaceId: (workspaceId) =>
+				worktreePathByWorkspaceId.get(workspaceId),
 		}),
 		[
 			createWorktree,
@@ -68,6 +89,7 @@ export function useCommandWatcher() {
 			workspaces,
 			projects,
 			getCurrentWorkspaceIdFromRoute,
+			worktreePathByWorkspaceId,
 		],
 	);
 

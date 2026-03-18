@@ -7,7 +7,9 @@ import {
 	projects,
 	type SelectProject,
 	settings,
+	workspaceSections,
 	workspaces,
+	worktrees,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
@@ -27,6 +29,7 @@ import { resolveDefaultEditor } from "../external";
 import {
 	activateProject,
 	getBranchWorkspace,
+	selectNextActiveWorkspace,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
@@ -40,6 +43,7 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -96,6 +100,7 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	return { defaultBranch };
 }
 
+/** Insert or update a project record in the local database, returning the persisted row. */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
 
@@ -212,7 +217,9 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
 const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
+const BRANCH_SEARCH_LIMIT = 5000;
 
+/** Extract the repository name from a git URL (HTTPS, SSH, or git:// protocol). */
 function extractRepoName(urlInput: string): string | null {
 	let normalized = urlInput.trim().replace(/\/+$/, "");
 
@@ -256,6 +263,7 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
+/** Create the tRPC router for project CRUD, branch listing, and git operations. */
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
@@ -291,6 +299,66 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				.orderBy(desc(projects.lastOpenedAt))
 				.all();
 		}),
+
+		listPullRequests: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) return [];
+
+				try {
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						[
+							"pr",
+							"list",
+							"--state",
+							"open",
+							"--limit",
+							"30",
+							"--json",
+							"number,title,url,state,isDraft",
+						],
+						{ cwd: project.mainRepoPath },
+					);
+					const raw: unknown = JSON.parse(stdout.trim() || "[]");
+					if (!Array.isArray(raw)) return [];
+					return raw
+						.filter(
+							(
+								item: unknown,
+							): item is {
+								number: number;
+								title: string;
+								url: string;
+								state: string;
+								isDraft: boolean;
+							} =>
+								typeof item === "object" &&
+								item !== null &&
+								"number" in item &&
+								"title" in item &&
+								"url" in item,
+						)
+						.map((pr) => ({
+							prNumber: pr.number,
+							title: pr.title,
+							url: pr.url,
+							state: pr.isDraft
+								? "draft"
+								: pr.state === "OPEN"
+									? "open"
+									: pr.state.toLowerCase(),
+						}));
+				} catch (err) {
+					console.warn("[listPullRequests] Failed to list PRs:", err);
+					return [];
+				}
+			}),
 
 		selectDirectory: publicProcedure
 			.input(
@@ -374,6 +442,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							for (const line of remoteBranchInfo.trim().split("\n")) {
 								if (!line) continue;
 								const lastSpaceIdx = line.lastIndexOf(" ");
+								if (lastSpaceIdx <= 0) continue;
 								let branch = line.substring(0, lastSpaceIdx);
 								const timestamp = Number.parseInt(
 									line.substring(lastSpaceIdx + 1),
@@ -384,7 +453,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 									branch = branch.replace("origin/", "");
 								}
 
-								if (branch === "HEAD") continue;
+								if (!branch || branch === "HEAD") continue;
 
 								branchMap.set(branch, {
 									lastCommitDate: timestamp * 1000,
@@ -414,13 +483,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						for (const line of localBranchInfo.trim().split("\n")) {
 							if (!line) continue;
 							const lastSpaceIdx = line.lastIndexOf(" ");
+							if (lastSpaceIdx <= 0) continue;
 							const branch = line.substring(0, lastSpaceIdx);
 							const timestamp = Number.parseInt(
 								line.substring(lastSpaceIdx + 1),
 								10,
 							);
 
-							if (branch === "HEAD") continue;
+							if (!branch || branch === "HEAD") continue;
 
 							if (!branchMap.has(branch)) {
 								branchMap.set(branch, {
@@ -538,6 +608,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							for (const line of remoteBranchInfo.trim().split("\n")) {
 								if (!line) continue;
 								const lastSpaceIdx = line.lastIndexOf(" ");
+								if (lastSpaceIdx <= 0) continue;
 								let branch = line.substring(0, lastSpaceIdx);
 								const timestamp = Number.parseInt(
 									line.substring(lastSpaceIdx + 1),
@@ -549,7 +620,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 									branch = branch.replace("origin/", "");
 								}
 
-								if (branch === "HEAD") continue;
+								if (!branch || branch === "HEAD") continue;
 
 								branchMap.set(branch, {
 									lastCommitDate: timestamp * 1000,
@@ -579,13 +650,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						for (const line of localBranchInfo.trim().split("\n")) {
 							if (!line) continue;
 							const lastSpaceIdx = line.lastIndexOf(" ");
+							if (lastSpaceIdx <= 0) continue;
 							const branch = line.substring(0, lastSpaceIdx);
 							const timestamp = Number.parseInt(
 								line.substring(lastSpaceIdx + 1),
 								10,
 							);
 
-							if (branch === "HEAD") continue;
+							if (!branch || branch === "HEAD") continue;
 
 							// Only add if not already in map (remote takes precedence for date)
 							if (!branchMap.has(branch)) {
@@ -648,6 +720,154 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					});
 
 					return { branches, defaultBranch };
+				},
+			),
+
+		// Paginated, server-side searched branch listing
+		searchBranches: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					search: z.string().default(""),
+					limit: z.number().min(1).max(BRANCH_SEARCH_LIMIT).default(50),
+					offset: z.number().min(0).default(0),
+				}),
+			)
+			.query(
+				async ({
+					input,
+				}): Promise<{
+					branches: Array<{
+						name: string;
+						lastCommitDate: number;
+						isLocal: boolean;
+						isRemote: boolean;
+					}>;
+					defaultBranch: string;
+					totalCount: number;
+					hasMore: boolean;
+				}> => {
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
+					if (!project) {
+						throw new Error(`Project ${input.projectId} not found`);
+					}
+
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const search = input.search.trim();
+					const searchLower = search.toLowerCase();
+
+					// Always list all refs — git glob `*` doesn't cross `/` and is
+					// case-sensitive, so we filter in JS for reliable substring search.
+					const localPattern = "refs/heads/";
+					const remotePattern = "refs/remotes/origin/";
+
+					const branchMap = new Map<
+						string,
+						{ lastCommitDate: number; isLocal: boolean; isRemote: boolean }
+					>();
+
+					// Fetch remote refs
+					try {
+						const remoteOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							remotePattern,
+						]);
+
+						for (const line of remoteOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							let branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch.startsWith("origin/")) {
+								branch = branch.replace("origin/", "");
+							}
+							if (branch === "HEAD") continue;
+
+							branchMap.set(branch, {
+								lastCommitDate: timestamp * 1000,
+								isLocal: false,
+								isRemote: true,
+							});
+						}
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list remote refs:", err);
+					}
+
+					// Fetch local refs
+					try {
+						const localOutput = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							localPattern,
+						]);
+
+						for (const line of localOutput.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							const branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							if (branch === "HEAD") continue;
+
+							const existing = branchMap.get(branch);
+							if (existing) {
+								existing.isLocal = true;
+							} else {
+								branchMap.set(branch, {
+									lastCommitDate: timestamp * 1000,
+									isLocal: true,
+									isRemote: false,
+								});
+							}
+						}
+					} catch (err) {
+						console.warn("[searchBranches] Failed to list local refs:", err);
+					}
+
+					const defaultBranch =
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					// Sort: default branch first, then local before remote, then by date
+					const allBranches = Array.from(branchMap.entries())
+						.filter(
+							([name]) =>
+								!searchLower || name.toLowerCase().includes(searchLower),
+						)
+						.map(([name, data]) => ({ name, ...data }))
+						.sort((a, b) => {
+							if (a.name === defaultBranch) return -1;
+							if (b.name === defaultBranch) return 1;
+							if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
+							return b.lastCommitDate - a.lastCommitDate;
+						});
+
+					const totalCount = allBranches.length;
+					const branches = allBranches.slice(
+						input.offset,
+						input.offset + input.limit,
+					);
+
+					return {
+						branches,
+						defaultBranch,
+						totalCount,
+						hasMore: input.offset + input.limit < totalCount,
+					};
 				},
 			),
 
@@ -1181,12 +1401,19 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.run();
 				}
 
-				// Hide the project by setting tabOrder to null
 				localDb
-					.update(projects)
-					.set({ tabOrder: null })
-					.where(eq(projects.id, input.id))
+					.delete(worktrees)
+					.where(eq(worktrees.projectId, input.id))
 					.run();
+
+				localDb
+					.delete(workspaceSections)
+					.where(eq(workspaceSections.projectId, input.id))
+					.run();
+
+				deleteProjectIcon(input.id);
+
+				localDb.delete(projects).where(eq(projects.id, input.id)).run();
 
 				// Update active workspace if it was in this project
 				const currentSettings = localDb.select().from(settings).get();
@@ -1194,19 +1421,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					currentSettings?.lastActiveWorkspaceId &&
 					closedWorkspaceIds.includes(currentSettings.lastActiveWorkspaceId)
 				) {
-					const remainingWorkspaces = localDb
-						.select()
-						.from(workspaces)
-						.orderBy(desc(workspaces.lastOpenedAt))
-						.all();
-
-					localDb
-						.update(settings)
-						.set({
-							lastActiveWorkspaceId: remainingWorkspaces[0]?.id ?? null,
-						})
-						.where(eq(settings.id, 1))
-						.run();
+					setLastActiveWorkspace(selectNextActiveWorkspace());
 				}
 
 				const terminalWarning =

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
-import type { WorkspaceFsWatchEvent } from "./types";
+import type { InternalWatchEvent } from "./watch";
 import { coalesceWatchEvents, reconcileRenameEvents } from "./watch";
 
 function createEvent(
@@ -52,104 +52,82 @@ describe("coalesceWatchEvents", () => {
 	});
 });
 
-function createWorkspaceEvent(
-	event: WorkspaceFsWatchEvent,
-): WorkspaceFsWatchEvent {
+function createInternalEvent(event: InternalWatchEvent): InternalWatchEvent {
 	return event;
 }
 
 describe("reconcileRenameEvents", () => {
 	it("converts a same-parent delete/create pair into a rename", () => {
 		const events = reconcileRenameEvents([
-			createWorkspaceEvent({
-				type: "delete",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "delete",
 				absolutePath: "/workspace/src/old.ts",
 				isDirectory: false,
-				revision: 1,
 			}),
-			createWorkspaceEvent({
-				type: "create",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "create",
 				absolutePath: "/workspace/src/new.ts",
 				isDirectory: false,
-				revision: 2,
 			}),
 		]);
 
 		expect(events).toEqual([
 			{
-				type: "rename",
-				workspaceId: "ws",
+				kind: "rename",
 				oldAbsolutePath: "/workspace/src/old.ts",
 				absolutePath: "/workspace/src/new.ts",
 				isDirectory: false,
-				revision: 2,
 			},
 		]);
 	});
 
 	it("converts a same-basename move pair into a rename", () => {
 		const events = reconcileRenameEvents([
-			createWorkspaceEvent({
-				type: "delete",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "delete",
 				absolutePath: "/workspace/src/file.ts",
 				isDirectory: false,
-				revision: 1,
 			}),
-			createWorkspaceEvent({
-				type: "create",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "create",
 				absolutePath: "/workspace/lib/file.ts",
 				isDirectory: false,
-				revision: 2,
 			}),
 		]);
 
 		expect(events[0]).toEqual({
-			type: "rename",
-			workspaceId: "ws",
+			kind: "rename",
 			oldAbsolutePath: "/workspace/src/file.ts",
 			absolutePath: "/workspace/lib/file.ts",
 			isDirectory: false,
-			revision: 2,
 		});
 	});
 
 	it("leaves ambiguous churn as separate events", () => {
 		const events = reconcileRenameEvents([
-			createWorkspaceEvent({
-				type: "delete",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "delete",
 				absolutePath: "/workspace/src/one.ts",
 				isDirectory: false,
-				revision: 1,
 			}),
-			createWorkspaceEvent({
-				type: "delete",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "delete",
 				absolutePath: "/workspace/src/two.ts",
 				isDirectory: false,
-				revision: 2,
 			}),
-			createWorkspaceEvent({
-				type: "create",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "create",
 				absolutePath: "/workspace/src/three.ts",
 				isDirectory: false,
-				revision: 3,
 			}),
-			createWorkspaceEvent({
-				type: "create",
-				workspaceId: "ws",
+			createInternalEvent({
+				kind: "create",
 				absolutePath: "/workspace/src/four.ts",
 				isDirectory: false,
-				revision: 4,
 			}),
 		]);
 
 		expect(events).toHaveLength(4);
-		expect(events.every((event) => event.type !== "rename")).toEqual(true);
+		expect(events.every((event) => event.kind !== "rename")).toEqual(true);
 	});
 });

@@ -269,6 +269,16 @@ export function PresetsSection({
 		[setPresetAutoApply],
 	);
 
+	const handleTogglePin = useCallback(
+		(presetId: string, pinned: boolean) => {
+			updatePreset.mutate({
+				id: presetId,
+				patch: { pinnedToBar: pinned },
+			});
+		},
+		[updatePreset],
+	);
+
 	const handleLocalReorder = useCallback(
 		(fromIndex: number, toIndex: number) => {
 			setLocalPresets((prev) => {
@@ -328,6 +338,24 @@ export function PresetsSection({
 			handleCellBlur(editingRowIndex, column);
 		},
 		[editingRowIndex, handleCellBlur],
+	);
+
+	const handleEditorDirectorySelect = useCallback(
+		(value: string) => {
+			if (!editingPreset || editingRowIndex < 0) return;
+
+			setLocalPresets((prev) =>
+				prev.map((preset, index) =>
+					index === editingRowIndex ? { ...preset, cwd: value } : preset,
+				),
+			);
+
+			updatePreset.mutate({
+				id: editingPreset.id,
+				patch: { cwd: value },
+			});
+		},
+		[editingPreset, editingRowIndex, updatePreset],
 	);
 
 	const handleEditorCommandsChange = useCallback(
@@ -401,6 +429,7 @@ export function PresetsSection({
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
+						onTogglePin={handleTogglePin}
 					/>
 					<p className="text-xs text-muted-foreground">
 						Click a preset row to edit details.
@@ -415,6 +444,7 @@ export function PresetsSection({
 				onDeletePreset={handleDeleteEditingPreset}
 				onFieldChange={handleEditorFieldChange}
 				onFieldBlur={handleEditorFieldBlur}
+				onDirectorySelect={handleEditorDirectorySelect}
 				onCommandsChange={handleEditorCommandsChange}
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}

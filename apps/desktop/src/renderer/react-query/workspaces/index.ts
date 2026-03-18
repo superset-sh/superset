@@ -10,6 +10,7 @@ export { useMoveWorkspacesToSection } from "./useMoveWorkspacesToSection";
 export { useMoveWorkspaceToSection } from "./useMoveWorkspaceToSection";
 export { useOpenExternalWorktree } from "./useOpenExternalWorktree";
 export { useOpenMainRepoWorkspace } from "./useOpenMainRepoWorkspace";
+export { useOpenTrackedWorktree } from "./useOpenTrackedWorktree";
 export { useReorderProjectChildren } from "./useReorderProjectChildren";
 export { useReorderSections } from "./useReorderSections";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";

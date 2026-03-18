@@ -645,7 +645,16 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.historyManager.closeHistoryWriter(paneId, 0);
 		}
 
-		await this.client.kill({ sessionId: paneId, deleteHistory });
+		try {
+			await this.client.kill({ sessionId: paneId, deleteHistory });
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : String(error);
+			if (message.toLowerCase().includes("not found")) {
+				return;
+			}
+			throw error;
+		}
 	}
 
 	detach(params: { paneId: string }): void {

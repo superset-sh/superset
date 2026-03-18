@@ -1,6 +1,8 @@
-import { join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { publicProcedure, router } from "../../index";
@@ -41,8 +43,10 @@ export const workspaceRouter = router({
 				const homeDir = process.env.HOME || process.env.USERPROFILE || "/tmp";
 				const repoPath = join(homeDir, ".superset", "repos", input.projectId);
 
-				const git = await ctx.git(repoPath);
-				await git.clone(cloudProject.repoCloneUrl, repoPath);
+				if (!existsSync(repoPath)) {
+					mkdirSync(dirname(repoPath), { recursive: true });
+					await simpleGit().clone(cloudProject.repoCloneUrl, repoPath);
+				}
 
 				const inserted = ctx.db
 					.insert(projects)
@@ -65,15 +69,31 @@ export const workspaceRouter = router({
 				".worktrees",
 				input.branch,
 			);
+			if (!ctx.deviceClientId || !ctx.deviceName) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Host device metadata not configured",
+				});
+			}
 
 			const git = await ctx.git(localProject.repoPath);
-			await git.raw(["worktree", "add", worktreePath, input.branch]);
+			try {
+				await git.raw(["worktree", "add", worktreePath, input.branch]);
+			} catch {
+				await git.raw(["worktree", "add", "-b", input.branch, worktreePath]);
+			}
+
+			const device = await ctx.api.device.ensureV2Host.mutate({
+				clientId: ctx.deviceClientId,
+				name: ctx.deviceName,
+			});
 
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
+					deviceId: device.id,
 				})
 				.catch(async (err) => {
 					try {
@@ -100,6 +120,35 @@ export const workspaceRouter = router({
 			}
 
 			return cloudRow;
+		}),
+
+	gitStatus: publicProcedure
+		.input(z.object({ id: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const localWorkspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.id) })
+				.sync();
+
+			if (!localWorkspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			const git = await ctx.git(localWorkspace.worktreePath);
+			const status = await git.status();
+
+			return {
+				workspaceId: input.id,
+				branch: status.current,
+				files: status.files.map((f) => ({
+					path: f.path,
+					index: f.index,
+					workingDir: f.working_dir,
+				})),
+				isClean: status.isClean(),
+			};
 		}),
 
 	delete: publicProcedure

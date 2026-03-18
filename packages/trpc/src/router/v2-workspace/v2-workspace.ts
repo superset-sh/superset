@@ -14,7 +14,7 @@ export const v2WorkspaceRouter = {
 				projectId: z.string().uuid(),
 				name: z.string().min(1),
 				branch: z.string().min(1),
-				deviceId: z.string().uuid().optional(),
+				deviceId: z.string().uuid(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -40,19 +40,17 @@ export const v2WorkspaceRouter = {
 				});
 			}
 
-			if (input.deviceId) {
-				const device = await dbWs.query.v2Devices.findFirst({
-					where: and(
-						eq(v2Devices.id, input.deviceId),
-						eq(v2Devices.organizationId, organizationId),
-					),
+			const device = await dbWs.query.v2Devices.findFirst({
+				where: and(
+					eq(v2Devices.id, input.deviceId),
+					eq(v2Devices.organizationId, organizationId),
+				),
+			});
+			if (!device) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Device not found in this organization",
 				});
-				if (!device) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Device not found in this organization",
-					});
-				}
 			}
 
 			const [workspace] = await dbWs
@@ -75,7 +73,7 @@ export const v2WorkspaceRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
-				deviceId: z.string().uuid().nullish(),
+				deviceId: z.string().uuid().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -88,7 +86,7 @@ export const v2WorkspaceRouter = {
 			}
 			await verifyOrgMembership(ctx.session.user.id, organizationId);
 
-			if (input.deviceId) {
+			if (input.deviceId !== undefined) {
 				const device = await dbWs.query.v2Devices.findFirst({
 					where: and(
 						eq(v2Devices.id, input.deviceId),

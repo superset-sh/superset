@@ -18,7 +18,6 @@ Bun + Turbo monorepo with:
     - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
   - `packages/db` - Drizzle ORM database schema
   - `packages/auth` - Authentication
-  - `packages/agent` - Agent logic
   - `packages/trpc` - Shared tRPC definitions
   - `packages/shared` - Shared utilities
   - `packages/mcp` - MCP integration
@@ -73,7 +72,7 @@ bun run clean:workspaces   # Clean all workspace node_modules
 3. **Shared command source** - keep command definitions in `.agents/commands/` only. `.claude/commands` and `.cursor/commands` should be symlinks to `../.agents/commands`. (`packages/chat` discovers slash commands from `.claude/commands`.)
 4. **Workspace MCP config** - keep shared MCP servers in `.mcp.json`; `.cursor/mcp.json` should link to `../.mcp.json`. Codex uses `.codex/config.toml` (run with `CODEX_HOME=.codex codex ...`). OpenCode uses `opencode.json` and should mirror the same MCP set using OpenCode's `remote`/`local` schema.
 5. **Mastracode fork workflow** - for Superset's internal `mastracode` fork bundle and release process, follow `docs/mastracode-fork-workflow.md`.
-6. **Desktop git env** - in `apps/desktop`, do not import `simple-git` directly for runtime use or call raw `execFile("git", ...)`. Use the helpers in `apps/desktop/src/lib/trpc/routers/workspaces/utils/git-client.ts` so git resolves with shell-derived env/PATH.
+
 
 ---
 

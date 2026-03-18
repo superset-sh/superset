@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { deleteRegisteredWorktreePaths } from "../workspace-fs-service";
+import { getServiceForRootPath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
 	gitCheckoutFile,
@@ -41,14 +41,14 @@ async function deleteFiles(
 	worktreePath: string,
 	filePaths: string[],
 ): Promise<void> {
+	const service = getServiceForRootPath(worktreePath);
 	await Promise.all(
-		filePaths.map(async (filePath) => {
-			await deleteRegisteredWorktreePaths({
-				worktreePath,
-				absolutePaths: [resolve(worktreePath, filePath)],
+		filePaths.map((filePath) =>
+			service.deletePath({
+				absolutePath: resolve(worktreePath, filePath),
 				permanent: true,
-			});
-		}),
+			}),
+		),
 	);
 }
 
@@ -143,9 +143,9 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await deleteRegisteredWorktreePaths({
-					worktreePath: input.worktreePath,
-					absolutePaths: [resolve(input.worktreePath, input.filePath)],
+				const service = getServiceForRootPath(input.worktreePath);
+				await service.deletePath({
+					absolutePath: resolve(input.worktreePath, input.filePath),
 					permanent: true,
 				});
 				clearStatusCacheForWorktree(input.worktreePath);

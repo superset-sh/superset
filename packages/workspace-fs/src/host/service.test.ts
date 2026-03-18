@@ -2,15 +2,16 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { WorkspaceFsWatchEvent } from "../types";
-import { createWorkspaceFsHostService } from "./service";
+import type { FsWatchEvent } from "../types";
+import { createFsHostService } from "./service";
 
 const tempRoots: string[] = [];
 
 async function createTempRoot(): Promise<string> {
-	const rootPath = await fs.mkdtemp(
+	const tempPath = await fs.mkdtemp(
 		path.join(os.tmpdir(), "workspace-fs-host-service-"),
 	);
+	const rootPath = await fs.realpath(tempPath);
 	tempRoots.push(rootPath);
 	return rootPath;
 }
@@ -23,46 +24,41 @@ afterEach(async () => {
 	);
 });
 
-describe("createWorkspaceFsHostService", () => {
-	it("resolves workspace roots for create and list operations", async () => {
+describe("createFsHostService", () => {
+	it("creates a file via writeFile and lists it", async () => {
 		const rootPath = await createTempRoot();
-		const service = createWorkspaceFsHostService({
-			resolveRootPath: (workspaceId) => {
-				expect(workspaceId).toEqual("workspace-1");
-				return rootPath;
-			},
-		});
+		const service = createFsHostService({ rootPath });
 
 		const filePath = path.join(rootPath, "notes.md");
-		await service.createFile({
-			workspaceId: "workspace-1",
+		const writeResult = await service.writeFile({
 			absolutePath: filePath,
 			content: "# notes\n",
+			encoding: "utf-8",
+			options: { create: true, overwrite: false },
 		});
 
-		const entries = await service.listDirectory({
-			workspaceId: "workspace-1",
+		expect(writeResult.ok).toEqual(true);
+
+		const { entries } = await service.listDirectory({
 			absolutePath: rootPath,
 		});
 
 		expect(entries).toHaveLength(1);
 		expect(entries[0]).toEqual({
 			absolutePath: filePath,
-			id: filePath,
-			isDirectory: false,
 			name: "notes.md",
-			relativePath: "notes.md",
+			kind: "file",
 		});
 
 		await service.close();
 	});
 
 	it("streams watcher events through the host service contract", async () => {
-		const listeners: Array<(event: WorkspaceFsWatchEvent) => void> = [];
+		const listeners: Array<(batch: { events: FsWatchEvent[] }) => void> = [];
 		let unsubscribed = false;
 
-		const service = createWorkspaceFsHostService({
-			resolveRootPath: () => "/tmp/workspace",
+		const service = createFsHostService({
+			rootPath: "/tmp/workspace",
 			watcherManager: {
 				async subscribe(_options, next) {
 					listeners.push(next);
@@ -75,8 +71,9 @@ describe("createWorkspaceFsHostService", () => {
 		});
 
 		const iterator = service
-			.watchWorkspace({
-				workspaceId: "workspace-1",
+			.watchPath({
+				absolutePath: "/tmp/workspace",
+				recursive: true,
 			})
 			[Symbol.asyncIterator]();
 
@@ -86,54 +83,28 @@ describe("createWorkspaceFsHostService", () => {
 		}
 
 		nextListener({
-			type: "update",
-			workspaceId: "workspace-1",
-			absolutePath: "/tmp/workspace/file.ts",
-			isDirectory: false,
-			revision: 3,
+			events: [
+				{
+					kind: "update",
+					absolutePath: "/tmp/workspace/file.ts",
+				},
+			],
 		});
 
 		const nextValue = await iterator.next();
 		expect(nextValue).toEqual({
 			value: {
-				type: "update",
-				workspaceId: "workspace-1",
-				absolutePath: "/tmp/workspace/file.ts",
-				isDirectory: false,
-				revision: 3,
+				events: [
+					{
+						kind: "update",
+						absolutePath: "/tmp/workspace/file.ts",
+					},
+				],
 			},
 			done: false,
 		});
 
 		await iterator.return?.();
 		expect(unsubscribed).toEqual(true);
-	});
-
-	it("exposes service info with capabilities derived from host options", async () => {
-		const service = createWorkspaceFsHostService({
-			resolveRootPath: () => "/tmp/workspace",
-			watcherManager: {
-				async subscribe() {
-					return async () => {};
-				},
-				async close() {},
-			},
-		});
-
-		const serviceInfo = await service.getServiceInfo();
-		expect(serviceInfo).toEqual({
-			hostKind: "local",
-			resourceScheme: "workspace-fs",
-			pathIdentity: "absolute-path",
-			capabilities: {
-				read: true,
-				write: true,
-				watch: true,
-				searchFiles: true,
-				searchKeyword: true,
-				trash: false,
-				resourceUris: true,
-			},
-		});
 	});
 });

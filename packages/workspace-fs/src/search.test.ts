@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { SearchPatchEvent } from "./search";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
 	searchFiles,
 } from "./search";
-import type { WorkspaceFsWatchEvent } from "./types";
 
 const tempRoots: string[] = [];
 
@@ -28,16 +28,8 @@ async function createTempRoot(): Promise<string> {
 	return rootPath;
 }
 
-function createFileEvent(
-	event: Omit<
-		Extract<WorkspaceFsWatchEvent, { type: "create" | "update" | "delete" }>,
-		"workspaceId"
-	>,
-): Extract<WorkspaceFsWatchEvent, { type: "create" | "update" | "delete" }> {
-	return {
-		workspaceId: "workspace-test",
-		...event,
-	};
+function createPatchEvent(event: SearchPatchEvent): SearchPatchEvent {
+	return event;
 }
 
 describe("patchSearchIndexesForRoot", () => {
@@ -57,11 +49,10 @@ describe("patchSearchIndexesForRoot", () => {
 		await fs.writeFile(betaPath, "export const beta = 2;\n");
 
 		patchSearchIndexesForRoot(rootPath, [
-			createFileEvent({
-				type: "create",
+			createPatchEvent({
+				kind: "create",
 				absolutePath: betaPath,
 				isDirectory: false,
-				revision: 1,
 			}),
 		]);
 
@@ -86,11 +77,10 @@ describe("patchSearchIndexesForRoot", () => {
 		await fs.rm(alphaPath);
 
 		patchSearchIndexesForRoot(rootPath, [
-			createFileEvent({
-				type: "delete",
+			createPatchEvent({
+				kind: "delete",
 				absolutePath: alphaPath,
 				isDirectory: false,
-				revision: 1,
 			}),
 		]);
 
@@ -118,11 +108,10 @@ describe("patchSearchIndexesForRoot", () => {
 		await fs.writeFile(hiddenPath, "SECRET_TOKEN=1\n");
 
 		patchSearchIndexesForRoot(rootPath, [
-			createFileEvent({
-				type: "create",
+			createPatchEvent({
+				kind: "create",
 				absolutePath: hiddenPath,
 				isDirectory: false,
-				revision: 1,
 			}),
 		]);
 

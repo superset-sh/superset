@@ -386,10 +386,9 @@ export const v2Projects = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
 		slug: text().notNull(),
-		githubRepositoryId: uuid("github_repository_id").references(
-			() => githubRepositories.id,
-			{ onDelete: "set null" },
-		),
+		githubRepositoryId: uuid("github_repository_id")
+			.notNull()
+			.references(() => githubRepositories.id, { onDelete: "restrict" }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -515,9 +514,9 @@ export const v2Workspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		deviceId: uuid("device_id").references(() => v2Devices.id, {
-			onDelete: "set null",
-		}),
+		deviceId: uuid("device_id")
+			.notNull()
+			.references(() => v2Devices.id),
 		name: text().notNull(),
 		branch: text().notNull(),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {

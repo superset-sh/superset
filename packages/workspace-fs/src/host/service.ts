@@ -1,51 +1,28 @@
+import type { FsService } from "../core/service";
 import {
-	DEFAULT_WORKSPACE_FS_SERVICE_INFO,
-	type WorkspaceFsCapabilities,
-	type WorkspaceFsMoveCopyInput,
-	type WorkspaceFsService,
-	type WorkspaceFsServiceInfo,
-	type WorkspaceFsWatchInput,
-} from "../core/service";
-import {
-	copyPaths,
-	createDirectoryAtPath,
-	createFileAtPath,
-	deletePaths,
-	guardedWriteTextFile,
+	copyPath,
+	createDirectory,
+	deletePath,
+	getMetadata,
 	listDirectory,
-	movePaths,
-	pathExists,
-	readFileBuffer,
-	readFileBufferUpTo,
-	readTextFile,
-	renamePath,
-	statFile,
-	writeTextFile,
+	movePath,
+	readFile,
+	writeFile,
 } from "../fs";
-import type { SearchFilesOptions, SearchKeywordOptions } from "../search";
-import { searchFiles, searchKeyword } from "../search";
-import type { WorkspaceFsStat, WorkspaceFsWatchEvent } from "../types";
-import type {
-	WorkspaceFsWatcherManager,
-	WorkspaceWatchSubscriptionOptions,
-} from "../watch";
+import type { SearchContentOptions } from "../search";
+import { searchContent, searchFiles } from "../search";
+import type { FsWatchEvent } from "../types";
+import type { FsWatcherManager, WatchPathOptions } from "../watch";
 
-export interface WorkspaceFsHostService extends WorkspaceFsService {
-	getServiceInfo(): Promise<WorkspaceFsServiceInfo>;
+export interface FsHostService extends FsService {
 	close(): Promise<void>;
 }
 
-export interface WorkspaceFsServiceInfoOverrides
-	extends Omit<Partial<WorkspaceFsServiceInfo>, "capabilities"> {
-	capabilities?: Partial<WorkspaceFsCapabilities>;
-}
-
-export interface WorkspaceFsHostServiceOptions {
-	resolveRootPath: (workspaceId: string) => string;
-	watcherManager?: Pick<WorkspaceFsWatcherManager, "subscribe" | "close">;
+export interface FsHostServiceOptions {
+	rootPath: string;
+	watcherManager?: Pick<FsWatcherManager, "subscribe" | "close">;
 	trashItem?: (absolutePath: string) => Promise<void>;
-	runRipgrep?: SearchKeywordOptions["runRipgrep"];
-	serviceInfo?: WorkspaceFsServiceInfoOverrides;
+	runRipgrep?: SearchContentOptions["runRipgrep"];
 }
 
 interface AsyncQueueState<T> {
@@ -153,195 +130,119 @@ function createAsyncQueue<T>(
 	};
 }
 
-function toWorkspaceFsStat(
-	stats: Awaited<ReturnType<typeof statFile>>,
-): WorkspaceFsStat {
-	return {
-		size: stats.size,
-		isDirectory: stats.isDirectory(),
-		isFile: stats.isFile(),
-		isSymbolicLink: stats.isSymbolicLink(),
-		createdAt: stats.birthtime.toISOString(),
-		modifiedAt: stats.mtime.toISOString(),
-		accessedAt: stats.atime.toISOString(),
-	};
-}
-
-export function createWorkspaceFsHostService(
-	options: WorkspaceFsHostServiceOptions,
-): WorkspaceFsHostService {
-	const resolveRootPath = (workspaceId: string) =>
-		options.resolveRootPath(workspaceId);
-	const serviceInfo: WorkspaceFsServiceInfo = {
-		...DEFAULT_WORKSPACE_FS_SERVICE_INFO,
-		...options.serviceInfo,
-		capabilities: {
-			...DEFAULT_WORKSPACE_FS_SERVICE_INFO.capabilities,
-			...options.serviceInfo?.capabilities,
-			watch:
-				options.serviceInfo?.capabilities?.watch ??
-				Boolean(options.watcherManager),
-			trash:
-				options.serviceInfo?.capabilities?.trash ?? Boolean(options.trashItem),
-		},
-	};
-
-	const withRootPath = <T extends { workspaceId: string }>(input: T) => ({
-		rootPath: resolveRootPath(input.workspaceId),
-	});
-
-	const withMoveCopyRootPath = (input: WorkspaceFsMoveCopyInput) => ({
-		rootPath: resolveRootPath(input.workspaceId),
-		absolutePaths: input.absolutePaths,
-		destinationAbsolutePath: input.destinationAbsolutePath,
-	});
+export function createFsHostService(
+	options: FsHostServiceOptions,
+): FsHostService {
+	const { rootPath } = options;
 
 	return {
-		async getServiceInfo() {
-			return serviceInfo;
-		},
-
 		async listDirectory(input) {
-			return await listDirectory({
-				...withRootPath(input),
+			const entries = await listDirectory({
+				rootPath,
 				absolutePath: input.absolutePath,
 			});
+			return { entries };
 		},
 
-		async readTextFile(input) {
-			return await readTextFile({
-				...withRootPath(input),
+		async readFile(input) {
+			return await readFile({
+				rootPath,
 				absolutePath: input.absolutePath,
-			});
-		},
-
-		async readFileBuffer(input) {
-			return await readFileBuffer({
-				...withRootPath(input),
-				absolutePath: input.absolutePath,
-			});
-		},
-
-		async readFileBufferUpTo(input) {
-			return await readFileBufferUpTo({
-				...withRootPath(input),
-				absolutePath: input.absolutePath,
+				offset: input.offset,
 				maxBytes: input.maxBytes,
+				encoding: input.encoding,
 			});
 		},
 
-		async stat(input) {
-			const stats = await statFile({
-				...withRootPath(input),
-				absolutePath: input.absolutePath,
-			});
-			return toWorkspaceFsStat(stats);
-		},
-
-		async exists(input) {
-			return await pathExists({
-				...withRootPath(input),
+		async getMetadata(input) {
+			return await getMetadata({
+				rootPath,
 				absolutePath: input.absolutePath,
 			});
 		},
 
-		async writeTextFile(input) {
-			await writeTextFile({
-				...withRootPath(input),
+		async writeFile(input) {
+			return await writeFile({
+				rootPath,
 				absolutePath: input.absolutePath,
 				content: input.content,
-			});
-		},
-
-		async guardedWriteTextFile(input) {
-			return await guardedWriteTextFile({
-				...withRootPath(input),
-				absolutePath: input.absolutePath,
-				content: input.content,
-				expectedContent: input.expectedContent,
-			});
-		},
-
-		async createFile(input) {
-			return await createFileAtPath({
-				...withRootPath(input),
-				absolutePath: input.absolutePath,
-				content: input.content,
+				encoding: input.encoding,
+				options: input.options,
+				precondition: input.precondition,
 			});
 		},
 
 		async createDirectory(input) {
-			return await createDirectoryAtPath({
-				...withRootPath(input),
+			return await createDirectory({
+				rootPath,
 				absolutePath: input.absolutePath,
+				recursive: input.recursive,
 			});
 		},
 
-		async rename(input) {
-			return await renamePath({
-				...withRootPath(input),
+		async deletePath(input) {
+			return await deletePath({
+				rootPath,
 				absolutePath: input.absolutePath,
-				newName: input.newName,
-			});
-		},
-
-		async deletePaths(input) {
-			return await deletePaths({
-				rootPath: resolveRootPath(input.workspaceId),
-				absolutePaths: input.absolutePaths,
 				permanent: input.permanent,
 				trashItem: options.trashItem,
 			});
 		},
 
-		async movePaths(input) {
-			return await movePaths(withMoveCopyRootPath(input));
+		async movePath(input) {
+			return await movePath({
+				rootPath,
+				sourceAbsolutePath: input.sourceAbsolutePath,
+				destinationAbsolutePath: input.destinationAbsolutePath,
+			});
 		},
 
-		async copyPaths(input) {
-			return await copyPaths(withMoveCopyRootPath(input));
+		async copyPath(input) {
+			return await copyPath({
+				rootPath,
+				sourceAbsolutePath: input.sourceAbsolutePath,
+				destinationAbsolutePath: input.destinationAbsolutePath,
+			});
 		},
 
 		async searchFiles(input) {
-			const optionsForSearch: SearchFilesOptions = {
-				rootPath: resolveRootPath(input.workspaceId),
+			const matches = await searchFiles({
+				rootPath,
 				query: input.query,
 				includeHidden: input.includeHidden,
 				includePattern: input.includePattern,
 				excludePattern: input.excludePattern,
 				limit: input.limit,
-			};
-			return await searchFiles(optionsForSearch);
+			});
+			return { matches };
 		},
 
-		async searchKeyword(input) {
-			const optionsForSearch: SearchKeywordOptions = {
-				rootPath: resolveRootPath(input.workspaceId),
+		async searchContent(input) {
+			const matches = await searchContent({
+				rootPath,
 				query: input.query,
 				includeHidden: input.includeHidden,
 				includePattern: input.includePattern,
 				excludePattern: input.excludePattern,
 				limit: input.limit,
 				runRipgrep: options.runRipgrep,
-			};
-			return await searchKeyword(optionsForSearch);
+			});
+			return { matches };
 		},
 
-		watchWorkspace(
-			input: WorkspaceFsWatchInput,
-		): AsyncIterable<WorkspaceFsWatchEvent> {
+		watchPath(
+			input: WatchPathOptions,
+		): AsyncIterable<{ events: FsWatchEvent[] }> {
 			const watcherManager = options.watcherManager;
 			if (!watcherManager) {
-				throw new Error("watchWorkspace requires a watcher manager");
+				throw new Error("watchPath requires a watcher manager");
 			}
 
-			const rootPath = resolveRootPath(input.workspaceId);
-			return createAsyncQueue<WorkspaceFsWatchEvent>(async (push) => {
-				const watchOptions: WorkspaceWatchSubscriptionOptions = {
-					workspaceId: input.workspaceId,
-					rootPath,
-				};
-				return await watcherManager.subscribe(watchOptions, push);
+			return createAsyncQueue<{ events: FsWatchEvent[] }>(async (push) => {
+				return await watcherManager.subscribe(
+					{ absolutePath: input.absolutePath, recursive: input.recursive },
+					push,
+				);
 			});
 		},
 

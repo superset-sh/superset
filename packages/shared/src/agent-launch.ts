@@ -1,14 +1,22 @@
 import { z } from "zod";
-import { AGENT_LABELS, AGENT_TYPES, type AgentType } from "./agent-command";
+import { BUILTIN_AGENT_IDS, BUILTIN_AGENT_LABELS } from "./agent-catalog";
+import {
+	AGENT_TYPES,
+	type AgentType,
+	buildAgentFileCommand,
+	type TaskInput,
+} from "./agent-command";
+import {
+	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+	renderTaskPromptTemplate,
+} from "./agent-prompt-template";
 
-export const STARTABLE_AGENT_TYPES = [...AGENT_TYPES, "superset-chat"] as const;
+export const STARTABLE_AGENT_TYPES = BUILTIN_AGENT_IDS;
 
 export type StartableAgentType = (typeof STARTABLE_AGENT_TYPES)[number];
 
-export const STARTABLE_AGENT_LABELS: Record<StartableAgentType, string> = {
-	...AGENT_LABELS,
-	"superset-chat": "Superset Chat",
-};
+export const STARTABLE_AGENT_LABELS = BUILTIN_AGENT_LABELS;
 
 export const AGENT_LAUNCH_STATUS = [
 	"queued",
@@ -35,7 +43,7 @@ const launchSourceSchema = z.enum(AGENT_LAUNCH_SOURCE);
 const baseAgentLaunchSchema = z.object({
 	workspaceId: z.string().min(1),
 	idempotencyKey: z.string().min(1).optional(),
-	agentType: z.enum(STARTABLE_AGENT_TYPES).optional(),
+	agentType: z.string().min(1).optional(),
 	source: launchSourceSchema.optional(),
 });
 
@@ -46,12 +54,30 @@ export const terminalLaunchConfigSchema = z.object({
 	taskPromptContent: z.string().min(1).optional(),
 	taskPromptFileName: z.string().min(1).optional(),
 	autoExecute: z.boolean().optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
 });
 
 export const chatLaunchConfigSchema = z.object({
 	paneId: z.string().min(1).optional(),
 	sessionId: z.string().uuid().optional(),
 	initialPrompt: z.string().min(1).optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
 	model: z.string().min(1).optional(),
 	retryCount: z.number().int().min(0).max(10).optional(),
 	autoExecute: z.boolean().optional(),
@@ -60,13 +86,11 @@ export const chatLaunchConfigSchema = z.object({
 
 export const terminalAgentLaunchRequestSchema = baseAgentLaunchSchema.extend({
 	kind: z.literal("terminal"),
-	agentType: z.enum(AGENT_TYPES).optional(),
 	terminal: terminalLaunchConfigSchema,
 });
 
 export const chatAgentLaunchRequestSchema = baseAgentLaunchSchema.extend({
 	kind: z.literal("chat"),
-	agentType: z.literal("superset-chat").optional(),
 	chat: chatLaunchConfigSchema,
 });
 
@@ -96,7 +120,7 @@ const legacyAgentLaunchRequestSchema = z.object({
 	openChatPane: z.boolean().optional(),
 	chatLaunchConfig: chatLaunchConfigSchema.partial().optional(),
 	idempotencyKey: z.string().min(1).optional(),
-	agentType: z.enum(STARTABLE_AGENT_TYPES).optional(),
+	agentType: z.string().min(1).optional(),
 	source: launchSourceSchema.optional(),
 });
 
@@ -104,10 +128,8 @@ export type LegacyAgentLaunchRequest = z.infer<
 	typeof legacyAgentLaunchRequestSchema
 >;
 
-export function isTerminalAgentType(
-	agent: StartableAgentType,
-): agent is AgentType {
-	return agent !== "superset-chat";
+export function isTerminalAgentType(agent: string): agent is AgentType {
+	return (AGENT_TYPES as readonly string[]).includes(agent);
 }
 
 function normalizeLegacyLaunchRequest(
@@ -146,10 +168,7 @@ function normalizeLegacyLaunchRequest(
 		kind: "terminal",
 		workspaceId: legacy.workspaceId,
 		idempotencyKey: legacy.idempotencyKey,
-		agentType:
-			legacy.agentType && isTerminalAgentType(legacy.agentType)
-				? legacy.agentType
-				: undefined,
+		agentType: legacy.agentType,
 		source: legacy.source,
 		terminal: {
 			command: legacy.command,
@@ -173,4 +192,62 @@ export function normalizeAgentLaunchRequest(
 
 	const legacy = legacyAgentLaunchRequestSchema.parse(request);
 	return agentLaunchRequestSchema.parse(normalizeLegacyLaunchRequest(legacy));
+}
+
+/**
+ * Builds an AgentLaunchRequest for a task, used when creating workspaces
+ * from the issues tab, task sidebar, or batch run popover.
+ */
+export function buildTaskLaunchRequest({
+	task,
+	workspaceId,
+	agentType,
+	source,
+	autoExecute,
+}: {
+	task: TaskInput;
+	workspaceId: string;
+	agentType: StartableAgentType;
+	source: AgentLaunchSource;
+	autoExecute?: boolean;
+}): AgentLaunchRequest {
+	if (agentType === "superset-chat") {
+		return {
+			kind: "chat",
+			workspaceId,
+			agentType: "superset-chat",
+			source,
+			chat: {
+				initialPrompt: renderTaskPromptTemplate(
+					DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+					task,
+				),
+				retryCount: 1,
+				autoExecute,
+				taskSlug: task.slug,
+			},
+		};
+	}
+
+	const prompt = renderTaskPromptTemplate(
+		DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+		task,
+	);
+	const taskPromptFileName = `task-${task.slug}.md`;
+	return {
+		kind: "terminal",
+		workspaceId,
+		agentType,
+		source,
+		terminal: {
+			command: buildAgentFileCommand({
+				filePath: `.superset/${taskPromptFileName}`,
+				agent: agentType,
+			}),
+			name: task.slug,
+			taskPromptContent: prompt,
+			taskPromptFileName,
+			autoExecute,
+		},
+	};
 }

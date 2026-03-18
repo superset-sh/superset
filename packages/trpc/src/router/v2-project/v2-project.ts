@@ -44,7 +44,7 @@ export const v2ProjectRouter = {
 			z.object({
 				name: z.string().min(1),
 				slug: z.string().min(1),
-				githubRepositoryId: z.string().uuid().optional(),
+				githubRepositoryId: z.string().uuid(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -57,19 +57,17 @@ export const v2ProjectRouter = {
 			}
 			await verifyOrgMembership(ctx.session.user.id, organizationId);
 
-			if (input.githubRepositoryId) {
-				const repo = await dbWs.query.githubRepositories.findFirst({
-					where: and(
-						eq(githubRepositories.id, input.githubRepositoryId),
-						eq(githubRepositories.organizationId, organizationId),
-					),
+			const repo = await dbWs.query.githubRepositories.findFirst({
+				where: and(
+					eq(githubRepositories.id, input.githubRepositoryId),
+					eq(githubRepositories.organizationId, organizationId),
+				),
+			});
+			if (!repo) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "GitHub repository not found in this organization",
 				});
-				if (!repo) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "GitHub repository not found in this organization",
-					});
-				}
 			}
 
 			const [project] = await dbWs
@@ -96,7 +94,7 @@ export const v2ProjectRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				slug: z.string().min(1).optional(),
-				githubRepositoryId: z.string().uuid().nullish(),
+				githubRepositoryId: z.string().uuid().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {

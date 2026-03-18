@@ -17,7 +17,10 @@ import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { retargetAbsolutePath } from "shared/absolute-paths";
+import {
+	retargetAbsolutePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
@@ -45,6 +48,11 @@ interface FileTreeController {
 	getItemInstance(
 		itemId: string,
 	): ItemInstance<DirectoryEntry> | null | undefined;
+}
+
+function getEntryRelativePath(rootPath: string, absolutePath: string): string {
+	const relativePath = toRelativeWorkspacePath(rootPath, absolutePath);
+	return relativePath === "." ? "" : relativePath;
 }
 
 function getPathSegmentSeparator(absolutePath: string): string {
@@ -203,14 +211,21 @@ export function FilesView() {
 				if (!dirPath) return [];
 
 				try {
-					const entries = await trpcUtils.filesystem.readDirectory.fetch({
+					const { entries } = await trpcUtils.filesystem.listDirectory.fetch({
 						workspaceId: workspaceId ?? "",
 						absolutePath: dirPath,
 					});
-					for (const entry of entries) {
+					const nextEntries = entries.map((entry) => ({
+						id: entry.absolutePath,
+						name: entry.name,
+						path: entry.absolutePath,
+						relativePath: getEntryRelativePath(currentPath, entry.absolutePath),
+						isDirectory: entry.kind === "directory",
+					}));
+					for (const entry of nextEntries) {
 						entryCacheRef.current.set(entry.path, entry);
 					}
-					return entries.map((entry) => entry.path);
+					return nextEntries.map((entry) => entry.path);
 				} catch (error) {
 					console.error("[FilesView] Failed to load children:", error);
 					return [];

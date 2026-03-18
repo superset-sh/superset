@@ -52,6 +52,7 @@ import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 } from "../../../../utils/settings-search";
+import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
@@ -142,7 +143,9 @@ export function ProjectSettings({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleIconUpload = useCallback(() => {
-		fileInputRef.current?.click();
+		if (!fileInputRef.current) return;
+		fileInputRef.current.value = "";
+		fileInputRef.current.click();
 	}, []);
 
 	const handleFileChange = useCallback(
@@ -291,10 +294,9 @@ export function ProjectSettings({
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">{project.name}</h2>
+			<ProjectSettingsHeader title={project.name}>
 				<ClickablePath path={project.mainRepoPath} />
-			</div>
+			</ProjectSettingsHeader>
 
 			<div className="space-y-4">
 				<SettingsSection

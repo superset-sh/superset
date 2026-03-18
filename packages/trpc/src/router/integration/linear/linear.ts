@@ -1,5 +1,11 @@
-import { db } from "@superset/db/client";
-import { integrationConnections, type LinearConfig } from "@superset/db/schema";
+import { db, dbWs } from "@superset/db/client";
+import {
+	integrationConnections,
+	type LinearConfig,
+	taskStatuses,
+	tasks,
+} from "@superset/db/schema";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -28,15 +34,82 @@ export const linearRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			const result = await db
-				.delete(integrationConnections)
-				.where(
-					and(
-						eq(integrationConnections.organizationId, input.organizationId),
-						eq(integrationConnections.provider, "linear"),
-					),
-				)
-				.returning({ id: integrationConnections.id });
+			const client = await getLinearClient(input.organizationId);
+			if (client) {
+				try {
+					await client.logout();
+				} catch {}
+			}
+
+			const result = await dbWs.transaction(async (tx) => {
+				// 1. Delete Linear-synced tasks
+				await tx
+					.delete(tasks)
+					.where(
+						and(
+							eq(tasks.organizationId, input.organizationId),
+							eq(tasks.externalProvider, "linear"),
+						),
+					);
+
+				// 2. Seed default statuses inside the transaction
+				const backlogStatusId = await seedDefaultStatuses(
+					input.organizationId,
+					tx,
+				);
+
+				// 3. Remap remaining local tasks from Linear statuses to default statuses
+				const allStatuses = await tx.query.taskStatuses.findMany({
+					where: eq(taskStatuses.organizationId, input.organizationId),
+				});
+
+				const defaultStatusByType = new Map<string, string>();
+				for (const status of allStatuses) {
+					if (!status.externalProvider && status.type) {
+						if (!defaultStatusByType.has(status.type)) {
+							defaultStatusByType.set(status.type, status.id);
+						}
+					}
+				}
+
+				for (const status of allStatuses) {
+					if (status.externalProvider === "linear") {
+						const defaultStatusId =
+							(status.type && defaultStatusByType.get(status.type)) ||
+							backlogStatusId;
+						await tx
+							.update(tasks)
+							.set({ statusId: defaultStatusId })
+							.where(
+								and(
+									eq(tasks.organizationId, input.organizationId),
+									eq(tasks.statusId, status.id),
+								),
+							);
+					}
+				}
+
+				// 4. Delete Linear task statuses
+				await tx
+					.delete(taskStatuses)
+					.where(
+						and(
+							eq(taskStatuses.organizationId, input.organizationId),
+							eq(taskStatuses.externalProvider, "linear"),
+						),
+					);
+
+				// 5. Delete the integration connection
+				return tx
+					.delete(integrationConnections)
+					.where(
+						and(
+							eq(integrationConnections.organizationId, input.organizationId),
+							eq(integrationConnections.provider, "linear"),
+						),
+					)
+					.returning({ id: integrationConnections.id });
+			});
 
 			if (result.length === 0) {
 				return { success: false, error: "No connection found" };

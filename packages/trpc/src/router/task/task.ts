@@ -124,16 +124,24 @@ export const taskRouter = {
 		.input(z.string().uuid())
 		.mutation(async ({ input }) => {
 			const result = await dbWs.transaction(async (tx) => {
-				await tx
+				const [deleted] = await tx
 					.update(tasks)
 					.set({ deletedAt: new Date() })
-					.where(eq(tasks.id, input));
+					.where(eq(tasks.id, input))
+					.returning({
+						externalProvider: tasks.externalProvider,
+						externalId: tasks.externalId,
+					});
 
 				const txid = await getCurrentTxid(tx);
 
-				return { txid };
+				return { txid, deleted };
 			});
 
-			return result;
+			if (result.deleted?.externalProvider && result.deleted?.externalId) {
+				syncTask(input);
+			}
+
+			return { txid: result.txid };
 		}),
 } satisfies TRPCRouterRecord;

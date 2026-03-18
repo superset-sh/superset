@@ -1,0 +1,97 @@
+import { alert } from "@superset/ui/atoms/Alert";
+import { toast } from "@superset/ui/sonner";
+import { useState } from "react";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import type { DashboardSidebarProject } from "../../../../types";
+
+interface UseDashboardSidebarProjectSectionActionsOptions {
+	project: DashboardSidebarProject;
+}
+
+export function useDashboardSidebarProjectSectionActions({
+	project,
+}: UseDashboardSidebarProjectSectionActionsOptions) {
+	const openModal = useOpenNewWorkspaceModal();
+	const {
+		createSection,
+		deleteSection,
+		removeProjectFromSidebar,
+		renameSection,
+		toggleSectionCollapsed,
+	} = useDashboardSidebarState();
+
+	const [isRenaming, setIsRenaming] = useState(false);
+	const [renameValue, setRenameValue] = useState(project.name);
+
+	const startRename = () => {
+		setRenameValue(project.name);
+		setIsRenaming(true);
+	};
+
+	const cancelRename = () => {
+		setIsRenaming(false);
+		setRenameValue(project.name);
+	};
+
+	const submitRename = async () => {
+		setIsRenaming(false);
+		const trimmed = renameValue.trim();
+		if (!trimmed || trimmed === project.name) return;
+		try {
+			await apiTrpcClient.v2Project.update.mutate({
+				id: project.id,
+				name: trimmed,
+				slug: trimmed.toLowerCase().replace(/\s+/g, "-"),
+			});
+		} catch (error) {
+			toast.error(
+				`Failed to rename: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
+	const handleOpenInFinder = () => {
+		toast.info("Open in Finder is coming soon");
+	};
+
+	const handleOpenSettings = () => {
+		toast.info("Project settings are coming soon");
+	};
+
+	const confirmRemoveFromSidebar = () => {
+		alert.destructive({
+			title: "Remove project from sidebar?",
+			description:
+				"This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted.",
+			confirmText: "Remove",
+			onConfirm: () => removeProjectFromSidebar(project.id),
+		});
+	};
+
+	const handleNewWorkspace = () => {
+		openModal(project.id);
+	};
+
+	const handleNewSection = () => {
+		createSection(project.id);
+	};
+
+	return {
+		cancelRename,
+		confirmRemoveFromSidebar,
+		deleteSection,
+		handleNewSection,
+		handleNewWorkspace,
+		handleOpenInFinder,
+		handleOpenSettings,
+		isRenaming,
+		renameSection,
+		renameValue,
+		setRenameValue,
+		startRename,
+		submitRename,
+		toggleSectionCollapsed,
+	};
+}

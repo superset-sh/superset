@@ -1,0 +1,1 @@
+export { useDashboardSidebarShortcuts } from "./useDashboardSidebarShortcuts";

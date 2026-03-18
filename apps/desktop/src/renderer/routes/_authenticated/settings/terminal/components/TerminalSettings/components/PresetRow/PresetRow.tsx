@@ -2,7 +2,7 @@ import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { LuGripVertical } from "react-icons/lu";
+import { LuGripVertical, LuPin } from "react-icons/lu";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 
 const PRESET_TYPE = "TERMINAL_PRESET";
@@ -14,6 +14,7 @@ interface PresetRowProps {
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
+	onTogglePin: (presetId: string, pinned: boolean) => void;
 }
 
 export function PresetRow({
@@ -23,8 +24,9 @@ export function PresetRow({
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
+	onTogglePin,
 }: PresetRowProps) {
-	const rowRef = useRef<HTMLButtonElement>(null);
+	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLDivElement>(null);
 
 	const [{ isDragging }, drag, preview] = useDrag(
@@ -82,10 +84,19 @@ export function PresetRow({
 	const commandsToShow = preset.commands.length > 0 ? preset.commands : [""];
 
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/useSemanticElements: div needed to avoid invalid nested <button> elements
+		<div
+			role="button"
+			tabIndex={0}
 			ref={rowRef}
 			onClick={() => onEdit(preset.id)}
+			onKeyDown={(e) => {
+				if (e.target !== e.currentTarget) return;
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onEdit(preset.id);
+				}
+			}}
 			className={`w-full flex items-start gap-4 py-3 px-4 text-left cursor-pointer hover:bg-accent/30 transition-colors ${
 				isEven ? "bg-accent/20" : ""
 			} ${isDragging ? "opacity-30" : ""}`}
@@ -135,6 +146,31 @@ export function PresetRow({
 					</Badge>
 				) : null}
 			</div>
-		</button>
+
+			<div className="w-16 shrink-0 flex items-center justify-center">
+				<button
+					type="button"
+					className="p-1 rounded hover:bg-accent/50 transition-colors"
+					onClick={(e) => {
+						e.stopPropagation();
+						const isPinned = preset.pinnedToBar !== false;
+						onTogglePin(preset.id, !isPinned);
+					}}
+					title={preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"}
+					aria-label={
+						preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"
+					}
+					aria-pressed={preset.pinnedToBar !== false}
+				>
+					<LuPin
+						className={`size-3.5 ${
+							preset.pinnedToBar !== false
+								? "text-foreground"
+								: "text-muted-foreground/40"
+						}`}
+					/>
+				</button>
+			</div>
+		</div>
 	);
 }

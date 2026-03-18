@@ -12,12 +12,14 @@ import type { DragItem } from "../types";
 interface UseSectionDropZoneOptions {
 	canAccept: (item: DragItem) => boolean;
 	targetSectionId: string | null;
+	targetRootPlacement?: "top" | "bottom";
 	onAutoExpand?: () => void;
 }
 
 export function useSectionDropZone({
 	canAccept,
 	targetSectionId,
+	targetRootPlacement,
 	onAutoExpand,
 }: UseSectionDropZoneOptions) {
 	const [isDragOver, setIsDragOver] = useState(false);
@@ -59,11 +61,17 @@ export function useSectionDropZone({
 					bulkMoveToSection.mutate({
 						workspaceIds: item.selectedIds,
 						sectionId: targetSectionId,
+						...(targetSectionId === null && targetRootPlacement
+							? { rootPlacement: targetRootPlacement }
+							: {}),
 					});
 				} else {
 					moveToSection.mutate({
 						workspaceId: item.id,
 						sectionId: targetSectionId,
+						...(targetSectionId === null && targetRootPlacement
+							? { rootPlacement: targetRootPlacement }
+							: {}),
 					});
 				}
 				item.handled = true;
@@ -71,7 +79,13 @@ export function useSectionDropZone({
 			dragEnterCount.current = 0;
 			setIsDragOver(false);
 		},
-		[canAccept, targetSectionId, moveToSection, bulkMoveToSection],
+		[
+			canAccept,
+			targetSectionId,
+			targetRootPlacement,
+			moveToSection,
+			bulkMoveToSection,
+		],
 	);
 
 	const handleDragEnter = useCallback(

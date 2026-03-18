@@ -1,13 +1,15 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import * as childProcess from "node:child_process";
 import path from "node:path";
 import { app } from "electron";
-import { getProcessEnvWithShellPath } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
+import { getDeviceName, getHashedDeviceId } from "./device-info";
 
 type HostServiceStatus = "starting" | "running" | "crashed";
 
 interface HostServiceProcess {
-	process: ChildProcess;
+	process: ChildProcess | null;
 	port: number | null;
 	status: HostServiceStatus;
 	restartCount: number;
@@ -15,11 +17,35 @@ interface HostServiceProcess {
 	organizationId: string;
 }
 
+interface PendingStart {
+	promise: Promise<number>;
+	resolve: (port: number) => void;
+	reject: (error: Error) => void;
+	startupTimeout?: ReturnType<typeof setTimeout>;
+	onStdoutData?: (data: Buffer) => void;
+}
+
 const MAX_RESTART_DELAY = 30_000;
 const BASE_RESTART_DELAY = 1_000;
 
-class HostServiceManager {
+function createPortDeferred(): {
+	promise: Promise<number>;
+	resolve: (port: number) => void;
+	reject: (error: Error) => void;
+} {
+	let resolve!: (port: number) => void;
+	let reject!: (error: Error) => void;
+	const promise = new Promise<number>((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+
+	return { promise, resolve, reject };
+}
+
+export class HostServiceManager {
 	private instances = new Map<string, HostServiceProcess>();
+	private pendingStarts = new Map<string, PendingStart>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private authToken: string | null = null;
 	private cloudApiUrl: string | null = null;
@@ -37,8 +63,9 @@ class HostServiceManager {
 		if (existing?.status === "running" && existing.port !== null) {
 			return existing.port;
 		}
-		if (existing?.status === "starting") {
-			return this.waitForPort(organizationId);
+		const pendingStart = this.pendingStarts.get(organizationId);
+		if (pendingStart) {
+			return pendingStart.promise;
 		}
 
 		return this.spawn(organizationId);
@@ -49,7 +76,8 @@ class HostServiceManager {
 		if (!instance) return;
 
 		instance.status = "crashed"; // prevent restart
-		instance.process.kill("SIGTERM");
+		this.cancelPendingStart(organizationId, new Error("Host service stopped"));
+		instance.process?.kill("SIGTERM");
 		this.instances.delete(organizationId);
 	}
 
@@ -64,40 +92,90 @@ class HostServiceManager {
 	}
 
 	getStatus(organizationId: string): HostServiceStatus | null {
+		if (this.pendingStarts.has(organizationId)) {
+			return "starting";
+		}
 		return this.instances.get(organizationId)?.status ?? null;
 	}
 
 	private async spawn(organizationId: string): Promise<number> {
-		const env = await getProcessEnvWithShellPath({
-			...process.env,
-			ELECTRON_RUN_AS_NODE: "1",
-			ORGANIZATION_ID: organizationId,
-			HOST_DB_PATH: path.join(SUPERSET_HOME_DIR, "host.db"),
-			HOST_MIGRATIONS_PATH: app.isPackaged
-				? path.join(process.resourcesPath, "resources/host-migrations")
-				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
-		});
-		if (this.authToken) {
-			env.AUTH_TOKEN = this.authToken;
-		}
-		if (this.cloudApiUrl) {
-			env.CLOUD_API_URL = this.cloudApiUrl;
-		}
-
-		const child = spawn(process.execPath, [this.scriptPath], {
-			stdio: ["ignore", "pipe", "pipe"],
-			env,
-		});
-
+		const pendingStart = createPortDeferred();
 		const instance: HostServiceProcess = {
-			process: child,
+			process: null,
 			port: null,
 			status: "starting",
 			restartCount: 0,
 			organizationId,
 		};
-
 		this.instances.set(organizationId, instance);
+		this.pendingStarts.set(organizationId, pendingStart);
+
+		try {
+			const env = await this.buildHostServiceEnv(organizationId);
+			if (this.authToken) {
+				env.AUTH_TOKEN = this.authToken;
+			}
+			if (this.cloudApiUrl) {
+				env.CLOUD_API_URL = this.cloudApiUrl;
+			}
+
+			if (
+				this.instances.get(organizationId) !== instance ||
+				this.pendingStarts.get(organizationId) !== pendingStart
+			) {
+				throw new Error("Host service start cancelled");
+			}
+
+			const child = childProcess.spawn(process.execPath, [this.scriptPath], {
+				stdio: ["ignore", "pipe", "pipe"],
+				env,
+			});
+			instance.process = child;
+
+			this.attachProcessHandlers(instance, child);
+			this.attachStartupPortListener(instance, pendingStart);
+			return pendingStart.promise;
+		} catch (error) {
+			if (
+				this.instances.get(organizationId) === instance &&
+				instance.port === null
+			) {
+				this.instances.delete(organizationId);
+			}
+			this.clearPendingStart(organizationId, pendingStart);
+			pendingStart.reject(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+			throw error;
+		}
+	}
+
+	private async buildHostServiceEnv(
+		organizationId: string,
+	): Promise<Record<string, string>> {
+		return getProcessEnvWithShellPath({
+			...(process.env as Record<string, string>),
+			ELECTRON_RUN_AS_NODE: "1",
+			ORGANIZATION_ID: organizationId,
+			DEVICE_CLIENT_ID: getHashedDeviceId(),
+			DEVICE_NAME: getDeviceName(),
+			HOST_DB_PATH: path.join(
+				SUPERSET_HOME_DIR,
+				"host",
+				organizationId,
+				"host.db",
+			),
+			HOST_MIGRATIONS_PATH: app.isPackaged
+				? path.join(process.resourcesPath, "resources/host-migrations")
+				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
+		});
+	}
+
+	private attachProcessHandlers(
+		instance: HostServiceProcess,
+		child: ChildProcess,
+	): void {
+		const { organizationId } = instance;
 
 		child.stderr?.on("data", (data: Buffer) => {
 			console.error(
@@ -109,62 +187,104 @@ class HostServiceManager {
 			console.log(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
 			if (
-				current &&
-				current.process === child &&
-				current.status !== "crashed"
+				!current ||
+				current.process !== child ||
+				current.status === "crashed"
 			) {
-				current.status = "crashed";
-				current.lastCrash = Date.now();
-				this.scheduleRestart(organizationId);
+				return;
 			}
-		});
 
-		return this.waitForPort(organizationId);
+			if (current.port === null) {
+				this.cancelPendingStart(
+					organizationId,
+					new Error("Host service exited before reporting port"),
+				);
+			}
+			current.status = "crashed";
+			current.lastCrash = Date.now();
+			this.scheduleRestart(organizationId);
+		});
 	}
 
-	private waitForPort(organizationId: string): Promise<number> {
-		return new Promise((resolve, reject) => {
-			const instance = this.instances.get(organizationId);
-			if (!instance) {
-				reject(new Error("Instance not found"));
-				return;
+	private failStartup(
+		instance: HostServiceProcess,
+		pendingStart: PendingStart,
+		error: Error,
+	): void {
+		this.clearPendingStart(instance.organizationId, pendingStart);
+		instance.status = "crashed";
+		pendingStart.reject(error);
+		instance.process?.kill("SIGTERM");
+		instance.lastCrash = Date.now();
+		this.scheduleRestart(instance.organizationId);
+	}
+
+	private attachStartupPortListener(
+		instance: HostServiceProcess,
+		pendingStart: PendingStart,
+	): void {
+		let buffer = "";
+		const onData = (data: Buffer) => {
+			buffer += data.toString();
+			const newlineIdx = buffer.indexOf("\n");
+			if (newlineIdx === -1) return;
+
+			const line = buffer.slice(0, newlineIdx);
+			this.clearPendingStart(instance.organizationId, pendingStart);
+
+			try {
+				const parsed = JSON.parse(line) as { port: number };
+				instance.port = parsed.port;
+				instance.status = "running";
+				console.log(
+					`[host-service:${instance.organizationId}] listening on port ${parsed.port}`,
+				);
+				pendingStart.resolve(parsed.port);
+			} catch {
+				this.failStartup(
+					instance,
+					pendingStart,
+					new Error(`Failed to parse port from host-service: ${line}`),
+				);
 			}
+		};
 
-			if (instance.port !== null) {
-				resolve(instance.port);
-				return;
-			}
+		pendingStart.onStdoutData = onData;
+		instance.process?.stdout?.on("data", onData);
+		pendingStart.startupTimeout = setTimeout(() => {
+			this.failStartup(
+				instance,
+				pendingStart,
+				new Error("Timeout waiting for host-service port"),
+			);
+		}, 10_000);
+	}
 
-			let buffer = "";
-			const onData = (data: Buffer) => {
-				buffer += data.toString();
-				const newlineIdx = buffer.indexOf("\n");
-				if (newlineIdx === -1) return;
+	private cancelPendingStart(organizationId: string, error: Error): void {
+		const pendingStart = this.pendingStarts.get(organizationId);
+		if (!pendingStart) return;
 
-				const line = buffer.slice(0, newlineIdx);
-				instance.process.stdout?.off("data", onData);
+		this.clearPendingStart(organizationId, pendingStart);
+		pendingStart.reject(error);
+	}
 
-				try {
-					const parsed = JSON.parse(line) as { port: number };
-					instance.port = parsed.port;
-					instance.status = "running";
-					console.log(
-						`[host-service:${organizationId}] listening on port ${parsed.port}`,
-					);
-					resolve(parsed.port);
-				} catch {
-					reject(new Error(`Failed to parse port from host-service: ${line}`));
-				}
-			};
+	private clearPendingStart(
+		organizationId: string,
+		pendingStart: PendingStart,
+	): void {
+		const instance = this.instances.get(organizationId);
 
-			instance.process.stdout?.on("data", onData);
-
-			// Timeout after 10s
-			setTimeout(() => {
-				instance.process.stdout?.off("data", onData);
-				reject(new Error("Timeout waiting for host-service port"));
-			}, 10_000);
-		});
+		if (pendingStart.onStdoutData) {
+			instance?.process?.stdout?.off("data", pendingStart.onStdoutData);
+			pendingStart.onStdoutData = undefined;
+		}
+		if (pendingStart.startupTimeout) {
+			clearTimeout(pendingStart.startupTimeout);
+			pendingStart.startupTimeout = undefined;
+		}
+		if (this.pendingStarts.get(organizationId) === pendingStart) {
+			this.pendingStarts.delete(organizationId);
+		}
 	}
 
 	private scheduleRestart(organizationId: string): void {
