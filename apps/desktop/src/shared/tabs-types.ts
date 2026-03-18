@@ -121,6 +121,8 @@ export interface FileViewerState {
 	initialColumn?: number;
 	/** Optional user-facing name override for remote URLs/attachments */
 	displayName?: string;
+	/** Unsaved editor content preserved across tab switches (transient, not persisted to disk on restart) */
+	draftContent?: string;
 }
 
 /**

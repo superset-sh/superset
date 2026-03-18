@@ -85,6 +85,23 @@ export function useFileSave({
 			setIsDirty(hasUnsavedChanges);
 			if (savingFromRawRef.current && !hasUnsavedChanges) {
 				draftContentRef.current = null;
+				// Clear draft from store after save
+				const panes = useTabsStore.getState().panes;
+				const currentPane = panes[paneId];
+				if (currentPane?.fileViewer?.draftContent !== undefined) {
+					useTabsStore.setState({
+						panes: {
+							...panes,
+							[paneId]: {
+								...currentPane,
+								fileViewer: {
+									...currentPane.fileViewer,
+									draftContent: undefined,
+								},
+							},
+						},
+					});
+				}
 			} else if (hasUnsavedChanges) {
 				draftContentRef.current = currentEditorValue;
 			}
