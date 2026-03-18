@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const streamdownCalls: Array<Record<string, unknown>> = [];
 
@@ -21,7 +21,7 @@ describe("MessageResponse", () => {
 	it("preserves assistant soft line breaks in markdown paragraphs", () => {
 		streamdownCalls.length = 0;
 
-		renderToStaticMarkup(<MessageResponse>foo{"\n"}bar</MessageResponse>);
+		renderToStaticMarkup(<MessageResponse>{"foo\nbar"}</MessageResponse>);
 
 		const call = streamdownCalls.at(-1);
 		expect(call).toBeDefined();
