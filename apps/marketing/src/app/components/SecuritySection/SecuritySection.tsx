@@ -50,7 +50,8 @@ export function SecuritySection() {
 							Private by default
 						</h2>
 						<h2 className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							Your code never leaves your machine.
+							Your code stays local by default, with explicit control over
+							connected services.
 						</h2>
 					</div>
 				</motion.div>
