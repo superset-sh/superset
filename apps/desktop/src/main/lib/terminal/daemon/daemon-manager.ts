@@ -648,8 +648,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		try {
 			await this.client.kill({ sessionId: paneId, deleteHistory });
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : String(error);
+			const message = error instanceof Error ? error.message : String(error);
 			if (message.toLowerCase().includes("not found")) {
 				return;
 			}
