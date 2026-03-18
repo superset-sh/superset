@@ -81,14 +81,39 @@ export function buildPromptAgentLaunchRequest({
 	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
 	let enhancedPrompt = prompt;
 	if (initialFiles?.length && prompt) {
+		// Track seen filenames to handle duplicates
+		const seenFilenames = new Map<string, number>();
+
 		const fileList = initialFiles
 			.map((file, index) => {
+				let filename: string;
+
 				if (!file.filename) {
-					return `- .superset/attachments/attachment_${index + 1}`;
+					filename = `attachment_${index + 1}`;
+				} else {
+					// Sanitize filename
+					const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+					// Handle duplicates by appending _1, _2, etc.
+					if (seenFilenames.has(sanitized)) {
+						const count = seenFilenames.get(sanitized)! + 1;
+						seenFilenames.set(sanitized, count);
+
+						// Insert counter before extension
+						const parts = sanitized.split(".");
+						if (parts.length > 1) {
+							const ext = parts.pop();
+							filename = `${parts.join(".")}_${count}.${ext}`;
+						} else {
+							filename = `${sanitized}_${count}`;
+						}
+					} else {
+						seenFilenames.set(sanitized, 0);
+						filename = sanitized;
+					}
 				}
-				// Sanitize filename (same logic as terminal adapter)
-				const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-				return `- .superset/attachments/${sanitized}`;
+
+				return `- .superset/attachments/${filename}`;
 			})
 			.join("\n");
 		enhancedPrompt = `${prompt}\n\nAttached files (available in workspace):\n${fileList}`;

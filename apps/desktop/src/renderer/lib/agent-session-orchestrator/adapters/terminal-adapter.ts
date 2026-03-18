@@ -64,15 +64,41 @@ async function writeAttachmentFiles(
 		absolutePath: attachmentsDirectory,
 	});
 
+	// Track seen filenames to handle duplicates (same logic as agent-launch-request.ts)
+	const seenFilenames = new Map<string, number>();
 	const writtenPaths: string[] = [];
+
 	for (let i = 0; i < files.length; i++) {
 		const file = files[i];
 		if (!file) continue;
 
 		// Generate filename using same logic as agent-launch-request.ts to ensure paths match
-		const fileName = file.filename
-			? file.filename.replace(/[^a-zA-Z0-9._-]/g, "_")
-			: `attachment_${i + 1}`;
+		let fileName: string;
+
+		if (!file.filename) {
+			fileName = `attachment_${i + 1}`;
+		} else {
+			// Sanitize filename
+			const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+			// Handle duplicates by appending _1, _2, etc.
+			if (seenFilenames.has(sanitized)) {
+				const count = seenFilenames.get(sanitized)! + 1;
+				seenFilenames.set(sanitized, count);
+
+				// Insert counter before extension
+				const parts = sanitized.split(".");
+				if (parts.length > 1) {
+					const ext = parts.pop();
+					fileName = `${parts.join(".")}_${count}.${ext}`;
+				} else {
+					fileName = `${sanitized}_${count}`;
+				}
+			} else {
+				seenFilenames.set(sanitized, 0);
+				fileName = sanitized;
+			}
+		}
 
 		// Extract base64 data from data URL (format: data:mime/type;base64,DATA)
 		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
