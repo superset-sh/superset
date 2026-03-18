@@ -1,4 +1,4 @@
-import type { AuthProvider } from "../../types";
+import type { AuthProvider } from "../types";
 
 export class DeviceKeyAuthProvider implements AuthProvider {
 	private apiKey: string;

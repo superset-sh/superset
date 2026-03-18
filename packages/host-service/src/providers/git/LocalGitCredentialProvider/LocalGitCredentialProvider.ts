@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
-import type { CredentialProvider } from "../../types";
+import type { GitCredentialProvider } from "../../../runtime/git/types";
 
-const TOKEN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
 
-export class LocalCredentialProvider implements CredentialProvider {
+export class LocalGitCredentialProvider implements GitCredentialProvider {
 	private envResolver: () => Promise<Record<string, string>>;
 	private cachedToken: { token: string; expiresAt: number } | null = null;
 	private inflight: Promise<string | null> | null = null;
@@ -29,7 +29,6 @@ export class LocalCredentialProvider implements CredentialProvider {
 			return this.cachedToken.token;
 		}
 
-		// Deduplicate concurrent requests
 		if (this.inflight) return this.inflight;
 
 		const promise = this.fetchTokenViaGitCredential(host).finally(() => {

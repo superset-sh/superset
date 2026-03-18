@@ -1,4 +1,4 @@
-import type { AuthProvider } from "../../types";
+import type { AuthProvider } from "../types";
 
 export class JwtAuthProvider implements AuthProvider {
 	private token: string;

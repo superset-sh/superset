@@ -1,5 +1,5 @@
 import { unlink } from "node:fs/promises";
-import type { CredentialProvider } from "../../types";
+import type { GitCredentialProvider } from "../../../runtime/git/types";
 import { writeTempAskpass } from "./askpass";
 
 interface CachedCredential {
@@ -7,7 +7,7 @@ interface CachedCredential {
 	askpassPath: string;
 }
 
-export class CloudCredentialProvider implements CredentialProvider {
+export class CloudGitCredentialProvider implements GitCredentialProvider {
 	private tokenFetcher: (
 		remoteUrl: string,
 	) => Promise<{ token: string; expiresAt: number }>;
@@ -38,7 +38,6 @@ export class CloudCredentialProvider implements CredentialProvider {
 			};
 		}
 
-		// Clean up old askpass file before writing a new one
 		if (this.cachedCredential?.askpassPath) {
 			unlink(this.cachedCredential.askpassPath).catch(() => {});
 		}
