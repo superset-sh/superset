@@ -1024,9 +1024,14 @@ export async function hasUnpushedCommits(
 				// All patches are already in the default branch
 				return false;
 			}
-		} catch {
-			// Could not determine default branch or run cherry-pick check;
-			// fall through to the broad remotes check.
+		} catch (error) {
+			console.warn(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				{
+					worktreePath,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			);
 		}
 
 		try {

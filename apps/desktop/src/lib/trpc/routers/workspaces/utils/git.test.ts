@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -706,6 +706,27 @@ describe("hasUnpushedCommits", () => {
 		// Should still return true — commits are genuinely not merged
 		expect(await hasUnpushedCommits(localPath)).toBe(true);
 	}, 15_000);
+
+	test("warns when cherry-pick fallback fails and continues to remotes fallback", async () => {
+		const repoPath = createTestRepo("no-remote-warning");
+		seedCommit(repoPath);
+
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			expect(await hasUnpushedCommits(repoPath)).toBe(true);
+			expect(warnSpy).toHaveBeenCalledTimes(1);
+			expect(warnSpy).toHaveBeenCalledWith(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				expect.objectContaining({
+					worktreePath: repoPath,
+					error: expect.any(String),
+				}),
+			);
+		} finally {
+			warnSpy.mockRestore();
+		}
+	});
 });
 
 describe("parsePrUrl", () => {
