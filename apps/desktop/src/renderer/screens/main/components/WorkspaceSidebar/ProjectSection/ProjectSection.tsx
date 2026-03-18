@@ -129,6 +129,7 @@ export function ProjectSection({
 		canAccept: (item) =>
 			item.sectionId !== null && item.projectId === projectId,
 		targetSectionId: null,
+		getTargetIndex: () => topLevelChildren.length,
 	});
 
 	const handleNewWorkspace = () => {
@@ -312,19 +313,21 @@ export function ProjectSection({
 						className="overflow-hidden"
 					>
 						<div className="pb-1">
-							{topLevelChildren.length === 0 && (
-								<div
-									{...ungroupedDropZone.handlers}
-									className={cn(
-										"transition-colors rounded-sm min-h-8",
-										ungroupedDropZone.isDropTarget &&
-											!ungroupedDropZone.isDragOver &&
-											"border border-dashed border-primary/20",
-										ungroupedDropZone.isDragOver &&
-											"bg-primary/5 border-solid border-primary/30",
-									)}
-								/>
-							)}
+							<div
+								{...ungroupedDropZone.handlers}
+								className={cn(
+									"transition-colors rounded-sm",
+									(topLevelChildren.length === 0 ||
+										ungroupedDropZone.isDropTarget ||
+										ungroupedDropZone.isDragOver) &&
+										"min-h-8",
+									ungroupedDropZone.isDropTarget &&
+										!ungroupedDropZone.isDragOver &&
+										"border border-dashed border-primary/20",
+									ungroupedDropZone.isDragOver &&
+										"bg-primary/5 border-solid border-primary/30",
+								)}
+							/>
 							{topLevelChildren.map((item) =>
 								item.kind === "workspace" ? (
 									<WorkspaceListItem

@@ -72,6 +72,7 @@ export function WorkspaceSection({
 		canAccept: (item) =>
 			item.projectId === projectId && item.sectionId !== sectionId,
 		targetSectionId: sectionId,
+		getTargetIndex: () => workspaces.length,
 		onAutoExpand: isCollapsed ? () => mutations.toggle() : undefined,
 	});
 

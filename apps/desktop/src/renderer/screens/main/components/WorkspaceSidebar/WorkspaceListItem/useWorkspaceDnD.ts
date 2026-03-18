@@ -1,10 +1,10 @@
 import { toast } from "@superset/ui/sonner";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useMoveWorkspacesToSection,
-	useMoveWorkspaceToSection,
+	useMoveWorkspaceToSectionAtIndex,
 	useReorderProjectChildren,
 	useReorderWorkspacesInSection,
 } from "renderer/react-query/workspaces";
@@ -23,6 +23,23 @@ interface UseWorkspaceDnDOptions {
 	index: number;
 }
 
+function getTargetIndexFromPointer(
+	node: HTMLElement | null,
+	index: number,
+	monitor: { getClientOffset: () => { x: number; y: number } | null },
+): number {
+	if (!node) return index;
+
+	const clientOffset = monitor.getClientOffset();
+	if (!clientOffset) return index;
+
+	const hoverBoundingRect = node.getBoundingClientRect();
+	const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+	const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+	return hoverClientY < hoverMiddleY ? index : index + 1;
+}
+
 export function useWorkspaceDnD({
 	id,
 	projectId,
@@ -32,9 +49,10 @@ export function useWorkspaceDnD({
 	const utils = electronTrpc.useUtils();
 	const reorderProjectChildren = useReorderProjectChildren();
 	const reorderWorkspacesInSection = useReorderWorkspacesInSection();
-	const moveToSection = useMoveWorkspaceToSection();
+	const moveToSectionAtIndex = useMoveWorkspaceToSectionAtIndex();
 	const bulkMoveToSection = useMoveWorkspacesToSection();
 	const selectionStore = useWorkspaceSelectionStore;
+	const dropRef = useRef<HTMLElement | null>(null);
 
 	const handleReorder = useCallback(
 		(item: DragItem) => {
@@ -155,7 +173,7 @@ export function useWorkspaceDnD({
 			}
 			item.index = index;
 		},
-		drop: (item: DragItem | SectionDragItem) => {
+		drop: (item: DragItem | SectionDragItem, monitor) => {
 			if (item.kind === "section") {
 				if (sectionId !== null || item.projectId !== projectId) return;
 				reorderProjectChildren.mutate(
@@ -185,9 +203,14 @@ export function useWorkspaceDnD({
 						sectionId,
 					});
 				} else {
-					moveToSection.mutate({
+					moveToSectionAtIndex.mutate({
 						workspaceId: item.id,
 						sectionId,
+						targetIndex: getTargetIndexFromPointer(
+							dropRef.current,
+							index,
+							monitor,
+						),
 					});
 				}
 				item.handled = true;
@@ -196,5 +219,13 @@ export function useWorkspaceDnD({
 		},
 	});
 
-	return { isDragging, drag, drop };
+	const setNodeRef = useCallback(
+		(node: HTMLElement | null) => {
+			dropRef.current = node;
+			drag(drop(node));
+		},
+		[drag, drop],
+	);
+
+	return { isDragging, setNodeRef };
 }

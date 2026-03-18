@@ -8,6 +8,7 @@ export { useHandleOpenedWorktree } from "./useHandleOpenedWorktree";
 export { useImportAllWorktrees } from "./useImportAllWorktrees";
 export { useMoveWorkspacesToSection } from "./useMoveWorkspacesToSection";
 export { useMoveWorkspaceToSection } from "./useMoveWorkspaceToSection";
+export { useMoveWorkspaceToSectionAtIndex } from "./useMoveWorkspaceToSectionAtIndex";
 export { useOpenExternalWorktree } from "./useOpenExternalWorktree";
 export { useOpenMainRepoWorkspace } from "./useOpenMainRepoWorkspace";
 export { useOpenTrackedWorktree } from "./useOpenTrackedWorktree";

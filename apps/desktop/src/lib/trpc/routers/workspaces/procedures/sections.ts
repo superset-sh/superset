@@ -1,5 +1,5 @@
 import { workspaceSections, workspaces } from "@superset/local-db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import {
 	PROJECT_COLOR_DEFAULT,
@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getMaxProjectChildTabOrder } from "../utils/db-helpers";
+import { getProjectChildItems } from "../utils/project-children-order";
 import { reorderItems } from "../utils/reorder";
 
 const SECTION_COLORS = PROJECT_COLORS.filter(
@@ -17,6 +18,150 @@ const SECTION_COLORS = PROJECT_COLORS.filter(
 function randomSectionColor(): string {
 	return SECTION_COLORS[Math.floor(Math.random() * SECTION_COLORS.length)]
 		.value;
+}
+
+function normalizeSectionWorkspaceOrder(sectionId: string): void {
+	const sectionWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.sectionId, sectionId))
+		.all()
+		.sort((a, b) => a.tabOrder - b.tabOrder);
+
+	for (const [index, workspace] of sectionWorkspaces.entries()) {
+		localDb
+			.update(workspaces)
+			.set({ tabOrder: index })
+			.where(eq(workspaces.id, workspace.id))
+			.run();
+	}
+}
+
+function persistProjectChildOrder(
+	items: ReturnType<typeof getProjectChildItems>,
+): void {
+	for (const item of items) {
+		if (item.kind === "workspace") {
+			localDb
+				.update(workspaces)
+				.set({ tabOrder: item.tabOrder })
+				.where(eq(workspaces.id, item.id))
+				.run();
+			continue;
+		}
+
+		localDb
+			.update(workspaceSections)
+			.set({ tabOrder: item.tabOrder })
+			.where(eq(workspaceSections.id, item.id))
+			.run();
+	}
+}
+
+function normalizeProjectChildOrder(projectId: string): void {
+	const projectWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
+		.all();
+	const projectSections = localDb
+		.select()
+		.from(workspaceSections)
+		.where(eq(workspaceSections.projectId, projectId))
+		.all();
+	const items = getProjectChildItems(
+		projectId,
+		projectWorkspaces,
+		projectSections,
+	);
+
+	for (const [index, item] of items.entries()) {
+		item.tabOrder = index;
+	}
+
+	persistProjectChildOrder(items);
+}
+
+function reorderProjectChildOrderWithWorkspace(
+	projectId: string,
+	workspaceId: string,
+	targetIndex: number,
+): void {
+	const projectWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
+		.all();
+	const projectSections = localDb
+		.select()
+		.from(workspaceSections)
+		.where(eq(workspaceSections.projectId, projectId))
+		.all();
+	const items = getProjectChildItems(
+		projectId,
+		projectWorkspaces,
+		projectSections,
+	);
+	const currentIndex = items.findIndex(
+		(item) => item.kind === "workspace" && item.id === workspaceId,
+	);
+
+	if (currentIndex === -1) {
+		throw new Error(
+			`Workspace ${workspaceId} not found in project ${projectId}`,
+		);
+	}
+
+	const [moved] = items.splice(currentIndex, 1);
+	const clampedTargetIndex = Math.max(0, Math.min(targetIndex, items.length));
+	items.splice(clampedTargetIndex, 0, moved);
+
+	for (const [index, item] of items.entries()) {
+		item.tabOrder = index;
+	}
+
+	persistProjectChildOrder(items);
+}
+
+function reorderSectionWithWorkspace(
+	sectionId: string,
+	workspaceId: string,
+	targetIndex: number,
+): void {
+	const sectionWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.sectionId, sectionId))
+		.all()
+		.sort((a, b) => a.tabOrder - b.tabOrder);
+	const currentIndex = sectionWorkspaces.findIndex(
+		(workspace) => workspace.id === workspaceId,
+	);
+
+	if (currentIndex === -1) {
+		throw new Error(
+			`Workspace ${workspaceId} not found in section ${sectionId}`,
+		);
+	}
+
+	const [moved] = sectionWorkspaces.splice(currentIndex, 1);
+	const clampedTargetIndex = Math.max(
+		0,
+		Math.min(targetIndex, sectionWorkspaces.length),
+	);
+	sectionWorkspaces.splice(clampedTargetIndex, 0, moved);
+
+	for (const [index, workspace] of sectionWorkspaces.entries()) {
+		localDb
+			.update(workspaces)
+			.set({ tabOrder: index })
+			.where(eq(workspaces.id, workspace.id))
+			.run();
+	}
 }
 
 export const createSectionsProcedures = () => {
@@ -264,6 +409,94 @@ export const createSectionsProcedures = () => {
 					.set({ sectionId: input.sectionId })
 					.where(eq(workspaces.id, input.workspaceId))
 					.run();
+
+				return { success: true };
+			}),
+
+		moveWorkspaceToSectionAtIndex: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					sectionId: z.string().nullable(),
+					targetIndex: z.number().int().nonnegative(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+
+				if (!workspace) {
+					throw new Error(`Workspace ${input.workspaceId} not found`);
+				}
+
+				if (input.sectionId) {
+					const section = localDb
+						.select()
+						.from(workspaceSections)
+						.where(eq(workspaceSections.id, input.sectionId))
+						.get();
+
+					if (!section) {
+						throw new Error(`Section ${input.sectionId} not found`);
+					}
+
+					if (section.projectId !== workspace.projectId) {
+						throw new Error(
+							"Cannot move workspace to a section in a different project",
+						);
+					}
+				}
+
+				const sourceSectionId = workspace.sectionId ?? null;
+
+				if (sourceSectionId === input.sectionId) {
+					if (input.sectionId === null) {
+						reorderProjectChildOrderWithWorkspace(
+							workspace.projectId,
+							workspace.id,
+							input.targetIndex,
+						);
+					} else {
+						reorderSectionWithWorkspace(
+							input.sectionId,
+							workspace.id,
+							input.targetIndex,
+						);
+					}
+
+					return { success: true };
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ sectionId: input.sectionId })
+					.where(eq(workspaces.id, input.workspaceId))
+					.run();
+
+				if (sourceSectionId === null && input.sectionId !== null) {
+					normalizeProjectChildOrder(workspace.projectId);
+				}
+
+				if (sourceSectionId !== null && sourceSectionId !== input.sectionId) {
+					normalizeSectionWorkspaceOrder(sourceSectionId);
+				}
+
+				if (input.sectionId === null) {
+					reorderProjectChildOrderWithWorkspace(
+						workspace.projectId,
+						workspace.id,
+						input.targetIndex,
+					);
+				} else {
+					reorderSectionWithWorkspace(
+						input.sectionId,
+						workspace.id,
+						input.targetIndex,
+					);
+				}
 
 				return { success: true };
 			}),

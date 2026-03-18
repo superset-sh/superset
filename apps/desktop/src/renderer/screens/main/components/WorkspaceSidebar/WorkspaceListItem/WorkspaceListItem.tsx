@@ -101,7 +101,7 @@ export function WorkspaceListItem({
 		}
 	}, [isActive]);
 
-	const { isDragging, drag, drop } = useWorkspaceDnD({
+	const { isDragging, setNodeRef } = useWorkspaceDnD({
 		id,
 		projectId,
 		sectionId,
@@ -254,7 +254,7 @@ export function WorkspaceListItem({
 			tabIndex={0}
 			ref={(node) => {
 				itemRef.current = node;
-				drag(drop(node));
+				setNodeRef(node);
 			}}
 			onClick={handleClick}
 			onKeyDown={(e) => {
