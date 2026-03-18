@@ -1,6 +1,7 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 
 type Priority = "urgent" | "high" | "medium" | "low" | "none";
@@ -49,5 +50,7 @@ export async function getLinearClient(
 		return null;
 	}
 
-	return new LinearClient({ accessToken: connection.accessToken });
+	return new LinearClient({
+		accessToken: decryptOAuthToken(connection.accessToken),
+	});
 }

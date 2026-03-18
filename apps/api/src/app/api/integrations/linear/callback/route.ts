@@ -1,6 +1,7 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections, members } from "@superset/db/schema";
+import { encryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 
@@ -73,8 +74,15 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const tokenData: { access_token: string; expires_in?: number } =
-		await tokenResponse.json();
+	const tokenData: {
+		access_token: string;
+		refresh_token?: string;
+		expires_in?: number;
+	} = await tokenResponse.json();
+	const accessToken = encryptOAuthToken(tokenData.access_token);
+	const refreshToken = tokenData.refresh_token
+		? encryptOAuthToken(tokenData.refresh_token)
+		: null;
 
 	const linearClient = new LinearClient({
 		accessToken: tokenData.access_token,
@@ -88,25 +96,27 @@ export async function GET(request: Request) {
 
 	await db
 		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "linear",
-			accessToken: tokenData.access_token,
-			tokenExpiresAt,
-			externalOrgId: linearOrg.id,
-			externalOrgName: linearOrg.name,
-		})
-		.onConflictDoUpdate({
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-			],
-			set: {
-				accessToken: tokenData.access_token,
+			.values({
+				organizationId,
+				connectedByUserId: userId,
+				provider: "linear",
+				accessToken,
+				refreshToken,
 				tokenExpiresAt,
 				externalOrgId: linearOrg.id,
 				externalOrgName: linearOrg.name,
+		})
+		.onConflictDoUpdate({
+				target: [
+					integrationConnections.organizationId,
+					integrationConnections.provider,
+				],
+				set: {
+					accessToken,
+					refreshToken,
+					tokenExpiresAt,
+					externalOrgId: linearOrg.id,
+					externalOrgName: linearOrg.name,
 				connectedByUserId: userId,
 				updatedAt: new Date(),
 			},
