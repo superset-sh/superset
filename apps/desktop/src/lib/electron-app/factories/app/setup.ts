@@ -70,7 +70,15 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-// Enable CDP for browser DevTools and desktop automation MCP
-const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 41729);
-app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-app.commandLine.appendSwitch("remote-allow-origins", "*");
+// CDP for desktop automation MCP — only enabled when explicitly requested.
+// Uses an ephemeral port (0) by default so the port is not predictable.
+// Scoped to localhost origins only (no wildcard).
+// See: https://github.com/anthropics/superset/issues/2568
+if (process.env.DESKTOP_AUTOMATION_ENABLED === "true") {
+	const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 0);
+	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
+	app.commandLine.appendSwitch(
+		"remote-allow-origins",
+		"http://127.0.0.1,http://localhost",
+	);
+}

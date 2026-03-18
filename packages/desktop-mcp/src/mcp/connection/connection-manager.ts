@@ -2,7 +2,24 @@ import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { ConsoleCapture } from "../console-capture/index.js";
 import { FocusLock } from "../focus-lock/index.js";
 
-const CDP_PORT = Number(process.env.DESKTOP_AUTOMATION_PORT) || 41729;
+/**
+ * Resolves the CDP endpoint to connect to.
+ *
+ * When DESKTOP_AUTOMATION_PORT is set, connects directly to that port.
+ * Otherwise, throws — the desktop app must have CDP explicitly enabled
+ * via DESKTOP_AUTOMATION_ENABLED=true (which sets the port).
+ */
+function getCdpPort(): number {
+	const port = Number(process.env.DESKTOP_AUTOMATION_PORT);
+	if (!port || Number.isNaN(port)) {
+		throw new Error(
+			"[desktop-mcp] DESKTOP_AUTOMATION_PORT is not set. " +
+				"Launch the desktop app with DESKTOP_AUTOMATION_ENABLED=true " +
+				"and DESKTOP_AUTOMATION_PORT=<port> to enable CDP.",
+		);
+	}
+	return port;
+}
 
 /**
  * Manages a CDP connection to the Electron renderer via puppeteer-core.
@@ -27,8 +44,9 @@ export class ConnectionManager {
 	}
 
 	private async connect(): Promise<Page> {
+		const cdpPort = getCdpPort();
 		this.browser = await puppeteer.connect({
-			browserURL: `http://127.0.0.1:${CDP_PORT}`,
+			browserURL: `http://127.0.0.1:${cdpPort}`,
 			protocolTimeout: 60_000,
 			defaultViewport: null,
 		});
