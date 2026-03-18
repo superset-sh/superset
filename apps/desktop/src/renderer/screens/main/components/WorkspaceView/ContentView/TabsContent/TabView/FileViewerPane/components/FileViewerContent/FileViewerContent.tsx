@@ -96,7 +96,6 @@ interface FileViewerContentProps {
 	diffData: DiffData | undefined;
 	editorRef: MutableRefObject<CodeEditorAdapter | null>;
 	markdownEditorRef: MutableRefObject<MarkdownEditorAdapter | null>;
-	originalContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
 	renderedContent: string;
 	initialLine?: number;
@@ -105,7 +104,6 @@ interface FileViewerContentProps {
 	hideUnchangedRegions: boolean;
 	onSaveFile: () => Promise<unknown> | undefined;
 	onContentChange: (value: string | undefined) => void;
-	setIsDirty: (dirty: boolean) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
@@ -143,7 +141,6 @@ export function FileViewerContent({
 	diffData,
 	editorRef,
 	markdownEditorRef,
-	originalContentRef,
 	draftContentRef,
 	renderedContent,
 	initialLine,
@@ -152,7 +149,6 @@ export function FileViewerContent({
 	hideUnchangedRegions,
 	onSaveFile,
 	onContentChange,
-	setIsDirty,
 	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
@@ -243,23 +239,6 @@ export function FileViewerContent({
 
 		onSwitchToRawAtLocation(position.lineNumber, position.column);
 	};
-
-	useEffect(() => {
-		if (viewMode !== "raw") return;
-		if (isLoadingRaw) return;
-		if (!rawFileData?.ok) return;
-		if (draftContentRef.current !== null) return;
-
-		originalContentRef.current = rawFileData.content;
-		setIsDirty(false);
-	}, [
-		viewMode,
-		isLoadingRaw,
-		rawFileData,
-		draftContentRef,
-		originalContentRef,
-		setIsDirty,
-	]);
 
 	useEffect(() => {
 		if (

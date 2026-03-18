@@ -11,6 +11,7 @@ interface UseFileSaveParams {
 	paneId: string;
 	diffCategory?: ChangeCategory;
 	getCurrentContent: () => string;
+	hasLoadedOriginalContentRef: MutableRefObject<boolean>;
 	originalContentRef: MutableRefObject<string>;
 	originalDiffContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
@@ -24,6 +25,7 @@ export function useFileSave({
 	paneId,
 	diffCategory,
 	getCurrentContent,
+	hasLoadedOriginalContentRef,
 	originalContentRef,
 	originalDiffContentRef,
 	draftContentRef,
@@ -81,6 +83,7 @@ export function useFileSave({
 			const hasUnsavedChanges = currentContent !== content;
 
 			originalContentRef.current = content;
+			hasLoadedOriginalContentRef.current = true;
 			setIsDirty(hasUnsavedChanges);
 			if (savingFromEditorRef.current && !hasUnsavedChanges) {
 				draftContentRef.current = null;
@@ -123,6 +126,7 @@ export function useFileSave({
 			draftContentRef,
 			filePath,
 			getCurrentContent,
+			hasLoadedOriginalContentRef,
 			originalContentRef,
 			originalDiffContentRef,
 			paneId,

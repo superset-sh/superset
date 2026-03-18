@@ -86,6 +86,7 @@ export function FileViewerPane({
 	const markdownContainerRef = useRef<HTMLDivElement>(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
+	const hasLoadedOriginalContentRef = useRef(false);
 	const draftContentRef = useRef<string | null>(null);
 	const originalDiffContentRef = useRef<string>("");
 	const revisionRef = useRef<string>("");
@@ -138,6 +139,7 @@ export function FileViewerPane({
 		paneId,
 		diffCategory,
 		getCurrentContent,
+		hasLoadedOriginalContentRef,
 		originalContentRef,
 		originalDiffContentRef,
 		draftContentRef,
@@ -165,6 +167,25 @@ export function FileViewerPane({
 		originalDiffContentRef,
 		revisionRef,
 	});
+
+	useEffect(() => {
+		if (viewMode === "diff") {
+			return;
+		}
+
+		if (isLoadingRaw || !rawFileData?.ok) {
+			return;
+		}
+
+		if (draftContentRef.current !== null) {
+			return;
+		}
+
+		originalContentRef.current = rawFileData.content;
+		hasLoadedOriginalContentRef.current = true;
+		setIsDirty(false);
+	}, [isLoadingRaw, rawFileData, viewMode]);
+
 	const absoluteFilePath = useMemo(
 		() => toAbsoluteWorkspacePath(worktreePath, filePath),
 		[worktreePath, filePath],
@@ -225,8 +246,10 @@ export function FileViewerPane({
 	const handleContentChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
 		draftContentRef.current = value;
-		if (originalContentRef.current === "") {
+		if (!hasLoadedOriginalContentRef.current) {
 			originalContentRef.current = value;
+			hasLoadedOriginalContentRef.current = true;
+			setIsDirty(false);
 			return;
 		}
 		setIsDirty(value !== originalContentRef.current);
@@ -244,6 +267,7 @@ export function FileViewerPane({
 		pendingRenamePathRef.current = null;
 		setIsDirty(false);
 		originalContentRef.current = "";
+		hasLoadedOriginalContentRef.current = false;
 		originalDiffContentRef.current = "";
 		draftContentRef.current = null;
 		setSaveConflict(null);
@@ -303,6 +327,24 @@ export function FileViewerPane({
 	const handlePin = () => {
 		pinPane(paneId);
 	};
+
+	const syncEditorContent = useCallback((nextContent: string) => {
+		editorRef.current?.setValue(nextContent);
+		markdownEditorRef.current?.setValue(nextContent);
+	}, []);
+
+	const markContentClean = useCallback(
+		(nextContent: string) => {
+			syncEditorContent(nextContent);
+			originalContentRef.current = nextContent;
+			hasLoadedOriginalContentRef.current = true;
+			originalDiffContentRef.current = "";
+			draftContentRef.current = null;
+			setIsDirty(false);
+			setSaveConflict(null);
+		},
+		[syncEditorContent],
+	);
 
 	const switchToMode = useCallback(
 		(
@@ -389,37 +431,16 @@ export function FileViewerPane({
 	const handleDiscardAndSwitch = () => {
 		if (!pendingModeRef.current) return;
 
-		if (viewMode === "raw" && editorRef.current) {
-			editorRef.current.setValue(originalContentRef.current);
-		}
-		if (viewMode === "rendered" && markdownEditorRef.current) {
-			markdownEditorRef.current.setValue(originalContentRef.current);
-		}
-
-		setIsDirty(false);
-		draftContentRef.current = null;
-		setSaveConflict(null);
-
+		markContentClean(originalContentRef.current);
 		completePendingModeSwitch();
 	};
 
 	const handleReloadFromDisk = useCallback(() => {
 		const nextDiskContent =
 			saveConflict?.diskContent ??
-			(rawFileData?.ok === true ? rawFileData.content : null);
+			(rawFileData?.ok === true ? rawFileData.content : "");
 
-		if (editorRef.current) {
-			editorRef.current.setValue(nextDiskContent ?? "");
-		}
-		if (markdownEditorRef.current) {
-			markdownEditorRef.current.setValue(nextDiskContent ?? "");
-		}
-
-		originalContentRef.current = nextDiskContent ?? "";
-		originalDiffContentRef.current = "";
-		draftContentRef.current = null;
-		setIsDirty(false);
-		setSaveConflict(null);
+		markContentClean(nextDiskContent);
 		invalidateCurrentFile();
 
 		if (pendingModeRef.current) {
@@ -428,6 +449,7 @@ export function FileViewerPane({
 	}, [
 		completePendingModeSwitch,
 		invalidateCurrentFile,
+		markContentClean,
 		rawFileData,
 		saveConflict,
 	]);
@@ -548,7 +570,6 @@ export function FileViewerPane({
 							diffData={diffData}
 							editorRef={editorRef}
 							markdownEditorRef={markdownEditorRef}
-							originalContentRef={originalContentRef}
 							draftContentRef={draftContentRef}
 							renderedContent={renderedContent}
 							initialLine={initialLine}
@@ -557,7 +578,6 @@ export function FileViewerPane({
 							hideUnchangedRegions={hideUnchangedRegions}
 							onSaveFile={handleSaveFile}
 							onContentChange={handleContentChange}
-							setIsDirty={setIsDirty}
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							// Context menu props
 							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
