@@ -21,6 +21,7 @@ import type { CodeEditorAdapter } from "../../../components";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
 import { FileViewerToolbar } from "./components/FileViewerToolbar";
+import { useDiffSearch } from "./hooks/useDiffSearch";
 import { useFileContent } from "./hooks/useFileContent";
 import { type FileSaveResult, useFileSave } from "./hooks/useFileSave";
 import { useMarkdownSearch } from "./hooks/useMarkdownSearch";
@@ -84,6 +85,7 @@ export function FileViewerPane({
 	const editorRef = useRef<CodeEditorAdapter | null>(null);
 	const markdownEditorRef = useRef<MarkdownEditorAdapter | null>(null);
 	const markdownContainerRef = useRef<HTMLDivElement>(null);
+	const diffContainerRef = useRef<HTMLDivElement>(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
 	const hasLoadedOriginalContentRef = useRef(false);
@@ -130,6 +132,13 @@ export function FileViewerPane({
 		containerRef: markdownContainerRef,
 		isFocused,
 		isRenderedMode: viewMode === "rendered",
+		filePath,
+	});
+
+	const diffSearch = useDiffSearch({
+		containerRef: diffContainerRef,
+		isFocused,
+		isDiffMode: viewMode === "diff",
 		filePath,
 	});
 
@@ -624,6 +633,9 @@ export function FileViewerPane({
 							availableTabs={availableTabs}
 							onMoveToTab={onMoveToTab}
 							onMoveToNewTab={onMoveToNewTab}
+							// Diff search props
+							diffContainerRef={diffContainerRef}
+							diffSearch={diffSearch}
 							// Markdown search props
 							markdownContainerRef={markdownContainerRef}
 							markdownSearch={markdownSearch}
