@@ -22,9 +22,11 @@ const sendMessagePayloadSchema = z.object({
 });
 
 export const chatRouter = router({
-	getDisplayState: publicProcedure.input(sessionInput).query(({ ctx, input }) => {
-		return ctx.runtime.chat.getDisplayState(input);
-	}),
+	getDisplayState: publicProcedure
+		.input(sessionInput)
+		.query(({ ctx, input }) => {
+			return ctx.runtime.chat.getDisplayState(input);
+		}),
 
 	listMessages: publicProcedure.input(sessionInput).query(({ ctx, input }) => {
 		return ctx.runtime.chat.listMessages(input);
@@ -108,9 +110,11 @@ export const chatRouter = router({
 			return ctx.runtime.chat.respondToPlan(input);
 		}),
 
-	getSlashCommands: publicProcedure.input(sessionInput).query(({ ctx, input }) => {
-		return ctx.runtime.chat.getSlashCommands(input);
-	}),
+	getSlashCommands: publicProcedure
+		.input(sessionInput)
+		.query(({ ctx, input }) => {
+			return ctx.runtime.chat.getSlashCommands(input);
+		}),
 
 	resolveSlashCommand: publicProcedure
 		.input(
@@ -132,7 +136,9 @@ export const chatRouter = router({
 			return ctx.runtime.chat.previewSlashCommand(input);
 		}),
 
-	getMcpOverview: publicProcedure.input(sessionInput).query(({ ctx, input }) => {
-		return ctx.runtime.chat.getMcpOverview(input);
-	}),
+	getMcpOverview: publicProcedure
+		.input(sessionInput)
+		.query(({ ctx, input }) => {
+			return ctx.runtime.chat.getMcpOverview(input);
+		}),
 });

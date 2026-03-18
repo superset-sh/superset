@@ -1,8 +1,8 @@
 export {
+	type AnthropicEnvVariables,
 	buildAnthropicRuntimeEnv,
 	getAnthropicEnvConfig,
 	getAnthropicEnvConfigPath,
 	parseAnthropicEnvText,
 	stripAnthropicCredentialEnvVariables,
-	type AnthropicEnvVariables,
 } from "./anthropic-runtime-env";

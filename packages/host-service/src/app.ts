@@ -6,16 +6,16 @@ import { Octokit } from "@octokit/rest";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
+import { createDb } from "./db";
+import type { AuthProvider } from "./providers/auth";
+import { LocalGitCredentialProvider } from "./providers/git";
 import {
 	LocalModelProvider,
 	type ModelProviderRuntimeResolver,
 } from "./providers/model-providers";
-import type { AuthProvider } from "./providers/auth";
-import { LocalGitCredentialProvider } from "./providers/git";
-import { createDb } from "./db";
 import { ChatRuntimeManager } from "./runtime/chat";
-import { createGitFactory } from "./runtime/git";
 import type { GitCredentialProvider } from "./runtime/git";
+import { createGitFactory } from "./runtime/git";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { appRouter } from "./trpc/router";
@@ -47,8 +47,7 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 	const db = createDb(dbPath);
 	const git = createGitFactory(credentials);
 	const modelProviderRuntimeResolver =
-		options?.modelProviderRuntimeResolver ??
-		new LocalModelProvider();
+		options?.modelProviderRuntimeResolver ?? new LocalModelProvider();
 	const github = async () => {
 		const token = await credentials.getToken("github.com");
 		if (!token) {

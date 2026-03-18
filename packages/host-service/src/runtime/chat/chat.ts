@@ -1,7 +1,7 @@
-import { createMastraCode } from "mastracode";
 import { eq } from "drizzle-orm";
-import { workspaces } from "../../db/schema";
+import { createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
+import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
 
 type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
@@ -427,12 +427,10 @@ export class ChatRuntimeManager {
 			input.workspaceId,
 		);
 		const displayState = runtime.harness.getDisplayState();
-		const currentMessage = displayState.currentMessage as
-			| {
-					role?: string;
-					errorMessage?: string;
-			  }
-			| null;
+		const currentMessage = displayState.currentMessage as {
+			role?: string;
+			errorMessage?: string;
+		} | null;
 		const currentMessageError =
 			currentMessage?.role === "assistant" &&
 			typeof currentMessage.errorMessage === "string" &&
@@ -459,7 +457,7 @@ export class ChatRuntimeManager {
 								},
 							],
 						}
-							: null),
+					: null),
 			errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 		};
 	}
@@ -475,7 +473,9 @@ export class ChatRuntimeManager {
 		return runtime.harness.listMessages();
 	}
 
-	async sendMessage(input: ChatSendMessageInput): Promise<RuntimeSendMessageResult> {
+	async sendMessage(
+		input: ChatSendMessageInput,
+	): Promise<RuntimeSendMessageResult> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -537,7 +537,9 @@ export class ChatRuntimeManager {
 			input.workspaceId,
 		);
 
-		if (runtime.pendingSandboxQuestion?.questionId === input.payload.questionId) {
+		if (
+			runtime.pendingSandboxQuestion?.questionId === input.payload.questionId
+		) {
 			runtime.pendingSandboxQuestion = null;
 		}
 

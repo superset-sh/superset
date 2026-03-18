@@ -128,7 +128,9 @@ export function parseAnthropicEnvText(envText: string): AnthropicEnvVariables {
 	return variables;
 }
 
-export function getAnthropicEnvConfig(options?: AnthropicEnvConfigDiskOptions): {
+export function getAnthropicEnvConfig(
+	options?: AnthropicEnvConfigDiskOptions,
+): {
 	envText: string;
 	variables: AnthropicEnvVariables;
 } {

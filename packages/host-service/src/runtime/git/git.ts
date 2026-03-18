@@ -3,9 +3,7 @@ import simpleGit from "simple-git";
 import type { GitCredentialProvider, GitFactory } from "./types";
 import { getRemoteUrl } from "./utils";
 
-export function createGitFactory(
-	provider: GitCredentialProvider,
-): GitFactory {
+export function createGitFactory(provider: GitCredentialProvider): GitFactory {
 	return async (repoPath: string) => {
 		const initialCredentials = await provider.getCredentials(null);
 		const git = simpleGit(repoPath).env(initialCredentials.env);

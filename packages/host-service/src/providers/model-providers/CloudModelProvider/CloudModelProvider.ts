@@ -29,7 +29,9 @@ function trimEnvValue(value: string | undefined): string | null {
 }
 
 export class CloudModelProvider implements ModelProviderRuntimeResolver {
-	private readonly envResolver: () => Promise<Record<string, string | undefined>>;
+	private readonly envResolver: () => Promise<
+		Record<string, string | undefined>
+	>;
 	private currentRuntimeEnv: Record<string, string> = {};
 
 	constructor(options?: CloudModelProviderOptions) {

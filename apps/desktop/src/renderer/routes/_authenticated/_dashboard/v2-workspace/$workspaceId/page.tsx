@@ -1,6 +1,6 @@
+import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useState } from "react";
 import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -94,7 +94,10 @@ function V2WorkspaceContent({
 			</div>
 
 			{activeView === "chat" ? (
-				<WorkspaceChat workspaceId={workspaceId} workspaceName={workspaceName} />
+				<WorkspaceChat
+					workspaceId={workspaceId}
+					workspaceName={workspaceName}
+				/>
 			) : (
 				<div className="flex h-full w-full flex-col gap-6 overflow-y-auto p-6">
 					<WorkspaceTerminal workspaceId={workspaceId} />
