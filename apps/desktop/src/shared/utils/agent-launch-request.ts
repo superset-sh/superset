@@ -78,12 +78,17 @@ export function buildPromptAgentLaunchRequest({
 	}
 
 	// For terminal agents with files, append file information to the prompt
+	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
 	let enhancedPrompt = prompt;
 	if (initialFiles?.length && prompt) {
 		const fileList = initialFiles
 			.map((file, index) => {
-				const filename = file.filename || `attachment_${index + 1}`;
-				return `- .superset/attachments/${filename}`;
+				if (!file.filename) {
+					return `- .superset/attachments/attachment_${index + 1}`;
+				}
+				// Sanitize filename (same logic as terminal adapter)
+				const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+				return `- .superset/attachments/${sanitized}`;
 			})
 			.join("\n");
 		enhancedPrompt = `${prompt}\n\nAttached files (available in workspace):\n${fileList}`;

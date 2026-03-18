@@ -69,16 +69,10 @@ async function writeAttachmentFiles(
 		const file = files[i];
 		if (!file) continue;
 
-		// Generate a safe filename
-		const timestamp = Date.now();
-		const index = i + 1;
-		const extension = file.filename?.split(".").pop() ?? "dat";
-		const sanitizedFilename =
-			file.filename?.replace(/[^a-zA-Z0-9._-]/g, "_") ??
-			`attachment_${timestamp}_${index}`;
-		const fileName = sanitizedFilename.endsWith(`.${extension}`)
-			? sanitizedFilename
-			: `${sanitizedFilename}.${extension}`;
+		// Generate filename using same logic as agent-launch-request.ts to ensure paths match
+		const fileName = file.filename
+			? file.filename.replace(/[^a-zA-Z0-9._-]/g, "_")
+			: `attachment_${i + 1}`;
 
 		// Extract base64 data from data URL (format: data:mime/type;base64,DATA)
 		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
