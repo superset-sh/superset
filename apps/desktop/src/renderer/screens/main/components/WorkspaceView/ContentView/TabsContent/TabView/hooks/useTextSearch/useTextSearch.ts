@@ -1,5 +1,9 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	findTextRanges,
+	getHighlightStyleContainers,
+} from "./utils/textSearchDom";
 
 const SEARCH_DEBOUNCE_MS = 150;
 let nextHighlightInstanceId = 0;
@@ -91,20 +95,10 @@ export function useTextSearch({
 		(searchRoots: Array<Node & ParentNode>) => {
 			if (typeof document === "undefined") return;
 
-			const styleContainers = new Set<HTMLHeadElement | ShadowRoot>();
-			for (const root of searchRoots) {
-				const rootNode = root.getRootNode();
-				if (rootNode instanceof ShadowRoot) {
-					styleContainers.add(rootNode);
-					continue;
-				}
-
-				if (document.head) {
-					styleContainers.add(document.head);
-				}
-			}
-
-			for (const styleContainer of styleContainers) {
+			for (const styleContainer of getHighlightStyleContainers(
+				searchRoots,
+				document,
+			)) {
 				if (highlightStyleElementsRef.current.has(styleContainer)) {
 					continue;
 				}
@@ -146,84 +140,11 @@ export function useTextSearch({
 
 			ensureHighlightStyles(searchRoots);
 
-			const normalizedQuery = isCaseSensitive
-				? searchQuery
-				: searchQuery.toLowerCase();
-
-			const ranges: Range[] = [];
-			for (const searchRoot of searchRoots) {
-				const walker = document.createTreeWalker(
-					searchRoot,
-					NodeFilter.SHOW_TEXT,
-				);
-				const textNodes: Text[] = [];
-				const offsets: number[] = [];
-				let fullText = "";
-
-				for (
-					let node = walker.nextNode() as Text | null;
-					node !== null;
-					node = walker.nextNode() as Text | null
-				) {
-					const textContent = node.textContent;
-					if (!textContent) continue;
-
-					offsets.push(fullText.length);
-					textNodes.push(node);
-					fullText += textContent;
-				}
-
-				if (textNodes.length === 0) {
-					continue;
-				}
-
-				const searchableText = isCaseSensitive
-					? fullText
-					: fullText.toLowerCase();
-				let startIdx = 0;
-
-				while (startIdx < searchableText.length) {
-					const idx = searchableText.indexOf(normalizedQuery, startIdx);
-					if (idx === -1) break;
-
-					const matchEnd = idx + searchQuery.length;
-					let startNodeIndex = -1;
-					let endNodeIndex = -1;
-
-					for (let index = 0; index < textNodes.length; index += 1) {
-						const nodeStart = offsets[index];
-						const nodeEnd =
-							nodeStart + (textNodes[index]?.textContent?.length ?? 0);
-
-						if (startNodeIndex === -1 && idx < nodeEnd) {
-							startNodeIndex = index;
-						}
-
-						if (matchEnd <= nodeEnd) {
-							endNodeIndex = index;
-							break;
-						}
-					}
-
-					if (startNodeIndex === -1 || endNodeIndex === -1) {
-						startIdx = idx + 1;
-						continue;
-					}
-
-					const startNode = textNodes[startNodeIndex];
-					const endNode = textNodes[endNodeIndex];
-					if (!startNode || !endNode) {
-						startIdx = idx + 1;
-						continue;
-					}
-
-					const range = new Range();
-					range.setStart(startNode, idx - offsets[startNodeIndex]);
-					range.setEnd(endNode, matchEnd - offsets[endNodeIndex]);
-					ranges.push(range);
-					startIdx = idx + 1;
-				}
-			}
+			const ranges = findTextRanges({
+				searchRoots,
+				searchQuery,
+				caseSensitive: isCaseSensitive,
+			});
 
 			rangesRef.current = ranges;
 			setMatchCount(ranges.length);

@@ -1,4 +1,3 @@
-import { DIFFS_TAG_NAME } from "@pierre/diffs";
 import {
 	type RefObject,
 	useCallback,
@@ -9,6 +8,7 @@ import {
 import { useResolvedTheme } from "renderer/stores/theme";
 import { getEditorTheme } from "shared/themes";
 import { withAlpha } from "shared/themes/utils";
+import { getDiffShadowRoots } from "../../utils/diffRendererRoots";
 
 interface DiffRegion {
 	type: "addition" | "deletion" | "modification";
@@ -26,12 +26,6 @@ interface MeasuredRegion {
 	type: DiffRegion["type"];
 	top: number;
 	bottom: number;
-}
-
-function getDiffShadowRoots(container: HTMLDivElement): ShadowRoot[] {
-	return Array.from(container.querySelectorAll<HTMLElement>(DIFFS_TAG_NAME))
-		.map((diffContainer) => diffContainer.shadowRoot)
-		.filter((shadowRoot): shadowRoot is ShadowRoot => shadowRoot !== null);
 }
 
 function measureDiffRegions(container: HTMLDivElement): DiffRegion[] {

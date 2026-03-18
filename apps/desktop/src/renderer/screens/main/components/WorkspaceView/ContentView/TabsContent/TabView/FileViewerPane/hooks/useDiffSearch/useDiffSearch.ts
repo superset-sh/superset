@@ -1,8 +1,8 @@
-import { DIFFS_TAG_NAME } from "@pierre/diffs";
 import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
 import { useTextSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import { getDiffSearchRoots } from "../../utils/diffRendererRoots";
 
 interface UseDiffSearchOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -30,32 +30,10 @@ export function useDiffSearch({
 	isDiffMode,
 	filePath,
 }: UseDiffSearchOptions): UseDiffSearchReturn {
-	const getSearchRoots = useCallback((container: HTMLDivElement) => {
-		const diffContainers = Array.from(
-			container.querySelectorAll<HTMLElement>(DIFFS_TAG_NAME),
-		);
-		const searchRoots: Array<Node & ParentNode> = [];
-
-		for (const diffContainer of diffContainers) {
-			const shadowRoot = diffContainer.shadowRoot;
-			if (!shadowRoot) {
-				continue;
-			}
-
-			const contentColumns = Array.from(
-				shadowRoot.querySelectorAll<HTMLElement>("[data-column-content]"),
-			);
-
-			if (contentColumns.length === 0) {
-				searchRoots.push(shadowRoot);
-				continue;
-			}
-
-			searchRoots.push(...contentColumns);
-		}
-
-		return searchRoots;
-	}, []);
+	const getSearchRoots = useCallback(
+		(container: HTMLDivElement) => getDiffSearchRoots(container),
+		[],
+	);
 
 	const textSearch = useTextSearch({
 		containerRef,
