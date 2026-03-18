@@ -154,12 +154,72 @@ describe("NotificationManager", () => {
 				paneId: "p1",
 				tabId: "t1",
 				workspaceId: "w1",
+				sessionId: "s1",
 			});
 			manager.handleAgentLifecycle(event);
 			lastNotification(deps).trigger("click");
 			expect(deps.clickedIds).toEqual([
-				{ paneId: "p1", tabId: "t1", workspaceId: "w1" },
+				{ paneId: "p1", tabId: "t1", workspaceId: "w1", sessionId: "s1" },
 			]);
+		});
+
+		it("replaces notification for the same session when paneId is missing", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ paneId: undefined, sessionId: "session-1" }),
+			);
+			const first = lastNotification(deps);
+			expect(manager.activeCount).toBe(1);
+
+			manager.handleAgentLifecycle(
+				makeEvent({ paneId: undefined, sessionId: "session-1" }),
+			);
+			expect(manager.activeCount).toBe(1);
+			expect(first.close).toHaveBeenCalled();
+		});
+
+		it("replaces a pane-less notification when the same session later resolves a pane", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({
+					eventType: "PermissionRequest",
+					paneId: undefined,
+					tabId: undefined,
+					workspaceId: undefined,
+					sessionId: "session-1",
+				}),
+			);
+			const first = lastNotification(deps);
+
+			manager.handleAgentLifecycle(
+				makeEvent({
+					eventType: "Stop",
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "ws-1",
+					sessionId: "session-1",
+				}),
+			);
+
+			expect(manager.activeCount).toBe(1);
+			expect(first.close).toHaveBeenCalled();
+		});
+
+		it("ignores stale close events from the replaced notification", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ paneId: undefined, sessionId: "session-1" }),
+			);
+			const first = lastNotification(deps);
+
+			manager.handleAgentLifecycle(
+				makeEvent({
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "ws-1",
+					sessionId: "session-1",
+				}),
+			);
+			first.trigger("close");
+
+			expect(manager.activeCount).toBe(1);
 		});
 
 		it("assigns unique keys when paneId is missing", () => {

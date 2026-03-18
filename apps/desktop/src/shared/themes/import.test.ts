@@ -90,11 +90,12 @@ describe("parseThemeConfigFile", () => {
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
 
-		expect(result.themes[0]?.editor?.colors.background).toBe("#101418");
-		expect(result.themes[0]?.editor?.syntax.keyword).toBe("#ff79c6");
-		expect(result.themes[0]?.editor?.colors.searchActive).toBe(
-			"rgba(0, 200, 255, 0.4)",
+		expect(result.themes[0]?.editor?.colors?.background).toBe("#101418");
+		expect(result.themes[0]?.editor?.syntax?.keyword).toBe("#ff79c6");
+		expect(result.themes[0]?.editor?.colors?.searchActive).toBe(
+			result.themes[0]?.ui.highlightActive,
 		);
+		expect(result.themes[0]?.editor?.syntax?.comment).toBeDefined();
 	});
 
 	it("keeps terminal undefined for ui-only imported themes", () => {

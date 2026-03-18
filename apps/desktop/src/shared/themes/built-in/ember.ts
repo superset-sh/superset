@@ -98,4 +98,10 @@ export const darkTheme: Theme = {
 		brightCyan: "#73c7d3",
 		brightWhite: "#ffffff",
 	},
+
+	editor: {
+		syntax: {
+			comment: "#a8a5a3",
+		},
+	},
 };

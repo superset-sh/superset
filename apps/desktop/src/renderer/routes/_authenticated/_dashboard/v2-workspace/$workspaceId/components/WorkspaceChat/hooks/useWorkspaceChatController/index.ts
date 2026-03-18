@@ -1,0 +1,1 @@
+export { useWorkspaceChatController } from "./useWorkspaceChatController";

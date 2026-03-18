@@ -27,8 +27,8 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
-	createChatMastraPane,
-	createChatMastraTabWithPane,
+	createChatPane,
+	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
@@ -194,13 +194,10 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
-				addChatMastraTab: (workspaceId: string, options) => {
+				addChatTab: (workspaceId: string, options) => {
 					const state = get();
 
-					const { tab, pane } = createChatMastraTabWithPane(
-						workspaceId,
-						options,
-					);
+					const { tab, pane } = createChatTabWithPane(workspaceId, options);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -579,12 +576,12 @@ export const useTabsStore = create<TabsStore>()(
 
 					return newPane.id;
 				},
-				addChatMastraPane: (tabId, options) => {
+				addChatPane: (tabId, options) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
-					const newPane = createChatMastraPane(tabId, options);
+					const newPane = createChatPane(tabId, options);
 
 					const newLayout: MosaicNode<string> = {
 						direction: "row",
@@ -1274,13 +1271,13 @@ export const useTabsStore = create<TabsStore>()(
 
 					const paneType = options?.paneType ?? "terminal";
 					const newPane =
-						paneType === "chat-mastra"
-							? createChatMastraPane(tabId)
+						paneType === "chat"
+							? createChatPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
 								: createPane(tabId, "terminal", options);
 					const panelType =
-						paneType === "chat-mastra"
+						paneType === "chat"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
@@ -1343,13 +1340,13 @@ export const useTabsStore = create<TabsStore>()(
 
 					const paneType = options?.paneType ?? "terminal";
 					const newPane =
-						paneType === "chat-mastra"
-							? createChatMastraPane(tabId)
+						paneType === "chat"
+							? createChatPane(tabId)
 							: paneType === "webview"
 								? createBrowserPane(tabId)
 								: createPane(tabId, "terminal", options);
 					const panelType =
-						paneType === "chat-mastra"
+						paneType === "chat"
 							? "chat"
 							: paneType === "webview"
 								? "browser"
@@ -1946,35 +1943,35 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Chat operations
-				switchChatMastraSession: (paneId, sessionId) => {
+				switchChatSession: (paneId, sessionId) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane || pane.type !== "chat-mastra") return;
+					if (!pane || pane.type !== "chat") return;
 
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: {
-									...pane.chatMastra,
+								chat: {
+									...pane.chat,
 									sessionId,
 								},
 							},
 						},
 					});
 				},
-				setChatMastraLaunchConfig: (paneId, launchConfig) => {
+				setChatLaunchConfig: (paneId, launchConfig) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane || pane.type !== "chat-mastra") return;
-					const sessionId = pane.chatMastra?.sessionId ?? null;
+					if (!pane || pane.type !== "chat") return;
+					const sessionId = pane.chat?.sessionId ?? null;
 					set({
 						panes: {
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: {
+								chat: {
 									sessionId,
 									launchConfig: launchConfig ?? null,
 								},
@@ -2014,7 +2011,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 7,
+				version: 8,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -2043,8 +2040,8 @@ export const useTabsStore = create<TabsStore>()(
 					}
 					if (version < 5 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							if (pane.chatMastra) {
-								pane.chatMastra.sessionId = null;
+							if (pane.chat) {
+								pane.chat.sessionId = null;
 							}
 						}
 					}
@@ -2053,9 +2050,23 @@ export const useTabsStore = create<TabsStore>()(
 							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
 							const legacyPane = pane as any;
 							if (legacyPane.type === "chat") {
-								legacyPane.type = "chat-mastra";
-								legacyPane.chatMastra = {
+								legacyPane.type = "chat";
+								legacyPane.chat = {
 									sessionId: legacyPane.chat?.sessionId ?? null,
+								};
+								delete legacyPane.chat;
+							}
+						}
+					}
+					if (version < 8 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
+							const legacyPane = pane as any;
+							if (legacyPane.type === "chat") {
+								legacyPane.type = "chat";
+								legacyPane.chat = {
+									sessionId: legacyPane.chat?.sessionId ?? null,
+									launchConfig: legacyPane.chat?.launchConfig ?? null,
 								};
 								delete legacyPane.chat;
 							}

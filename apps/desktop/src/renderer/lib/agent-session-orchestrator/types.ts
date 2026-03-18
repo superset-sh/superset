@@ -4,15 +4,15 @@ import type {
 	AgentLaunchResult,
 	AgentLaunchSource,
 } from "@superset/shared/agent-launch";
-import type { ChatMastraLaunchConfig } from "shared/tabs-types";
+import type { ChatLaunchConfig } from "shared/tabs-types";
 
 export interface AgentLaunchPane {
 	id: string;
 	tabId: string;
 	type: string;
-	chatMastra?: {
+	chat?: {
 		sessionId: string | null;
-		launchConfig?: ChatMastraLaunchConfig | null;
+		launchConfig?: ChatLaunchConfig | null;
 	};
 }
 
@@ -30,16 +30,16 @@ export interface AgentLaunchTabsAdapter {
 	setTabAutoTitle: (tabId: string, title: string) => void;
 	addChatTab: (
 		workspaceId: string,
-		options?: { launchConfig?: ChatMastraLaunchConfig | null },
+		options?: { launchConfig?: ChatLaunchConfig | null },
 	) => { tabId: string; paneId: string };
 	addChatPane: (
 		tabId: string,
-		options?: { launchConfig?: ChatMastraLaunchConfig | null },
+		options?: { launchConfig?: ChatLaunchConfig | null },
 	) => string;
 	switchChatSession: (paneId: string, sessionId: string | null) => void;
 	setChatLaunchConfig: (
 		paneId: string,
-		launchConfig: ChatMastraLaunchConfig | null,
+		launchConfig: ChatLaunchConfig | null,
 	) => void;
 }
 

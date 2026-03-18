@@ -55,6 +55,7 @@ Superset works with any CLI-based coding agent, including:
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
 | [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | Any CLI agent | Will work |
 
 If it runs in a terminal, it runs on Superset
@@ -250,4 +251,4 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
+Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.

@@ -82,8 +82,11 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/postcss": "^4.0.9",
+		"@types/bun": "^1.2.17",
 		"@types/react": "~19.2.2",
+		"@types/react-dom": "^19.2.3",
 		"react": "19.2.0",
+		"react-dom": "19.2.0",
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5.9.3"
 	},

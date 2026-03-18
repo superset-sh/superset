@@ -7,8 +7,8 @@ import {
 } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { V2WorkspaceSidebar } from "renderer/screens/main/components/V2WorkspaceSidebar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -112,7 +112,7 @@ function DashboardLayout() {
 						}
 					>
 						{isV2CloudEnabled ? (
-							<V2WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+							<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
 						) : (
 							<WorkspaceSidebar
 								isCollapsed={isWorkspaceSidebarCollapsed()}

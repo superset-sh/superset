@@ -39,7 +39,7 @@ export function EmptyTabView({
 		from: "/_authenticated/_dashboard/workspace/$workspaceId/",
 	});
 	const { addTab } = useTabsWithPresets();
-	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const activeTheme = useTheme();
 
@@ -60,8 +60,8 @@ export function EmptyTabView({
 	}, [addTab, workspaceId]);
 
 	const handleNewAgent = useCallback(() => {
-		addChatMastraTab(workspaceId);
-	}, [addChatMastraTab, workspaceId]);
+		addChatTab(workspaceId);
+	}, [addChatTab, workspaceId]);
 
 	const handleOpenBrowser = useCallback(() => {
 		addBrowserTab(workspaceId);

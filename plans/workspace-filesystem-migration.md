@@ -102,7 +102,7 @@ Search/indexing logic exists in multiple places:
 
 - `apps/desktop/src/lib/trpc/routers/filesystem/index.ts`
 - `packages/chat/src/host/router/file-search/file-search.ts`
-- `packages/chat-mastra/src/server/trpc/utils/file-search/file-search.ts`
+- `packages/chat/src/server/trpc/utils/file-search/file-search.ts`
 
 ### Existing watcher logic is special-case only
 

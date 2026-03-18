@@ -1,0 +1,1 @@
+export { DashboardSidebarExpandedProjectContent } from "./DashboardSidebarExpandedProjectContent";

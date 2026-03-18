@@ -3,7 +3,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import type { Tab } from "./types";
 import {
 	buildMultiPaneLayout,
-	createChatMastraPane,
+	createChatPane,
 	findPanePath,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
@@ -521,18 +521,18 @@ describe("resolveFileViewerMode", () => {
 	});
 });
 
-describe("createChatMastraPane", () => {
+describe("createChatPane", () => {
 	it("seeds a session id when the pane is created", () => {
-		const pane = createChatMastraPane("tab-1");
+		const pane = createChatPane("tab-1");
 
-		expect(pane.type).toBe("chat-mastra");
-		expect(typeof pane.chatMastra?.sessionId).toBe("string");
-		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
-		expect(pane.chatMastra?.launchConfig ?? null).toBeNull();
+		expect(pane.type).toBe("chat");
+		expect(typeof pane.chat?.sessionId).toBe("string");
+		expect((pane.chat?.sessionId ?? "").length).toBeGreaterThan(0);
+		expect(pane.chat?.launchConfig ?? null).toBeNull();
 	});
 
 	it("stores launch config when provided", () => {
-		const pane = createChatMastraPane("tab-1", {
+		const pane = createChatPane("tab-1", {
 			launchConfig: {
 				initialPrompt: "hello",
 				metadata: { model: "gpt-5" },
@@ -540,7 +540,7 @@ describe("createChatMastraPane", () => {
 			},
 		});
 
-		expect(pane.chatMastra?.launchConfig).toEqual({
+		expect(pane.chat?.launchConfig).toEqual({
 			initialPrompt: "hello",
 			metadata: { model: "gpt-5" },
 			retryCount: 2,

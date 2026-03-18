@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import superjson from "superjson";
 
@@ -19,6 +19,7 @@ type WorkspaceClients = {
 };
 
 const workspaceClientsCache = new Map<string, WorkspaceClients>();
+const WorkspaceHostUrlContext = createContext<string | null>(null);
 
 function getWorkspaceClients(
 	cacheKey: string,
@@ -63,8 +64,22 @@ export function WorkspaceTrpcProvider({
 	const { queryClient, trpcClient } = getWorkspaceClients(cacheKey, hostUrl);
 
 	return (
-		<workspaceTrpc.Provider client={trpcClient} queryClient={queryClient}>
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-		</workspaceTrpc.Provider>
+		<WorkspaceHostUrlContext.Provider value={hostUrl}>
+			<workspaceTrpc.Provider client={trpcClient} queryClient={queryClient}>
+				<QueryClientProvider client={queryClient}>
+					{children}
+				</QueryClientProvider>
+			</workspaceTrpc.Provider>
+		</WorkspaceHostUrlContext.Provider>
 	);
+}
+
+export function useWorkspaceHostUrl() {
+	const hostUrl = useContext(WorkspaceHostUrlContext);
+	if (!hostUrl) {
+		throw new Error(
+			"useWorkspaceHostUrl must be used within WorkspaceTrpcProvider",
+		);
+	}
+	return hostUrl;
 }

@@ -1,8 +1,10 @@
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
@@ -22,6 +24,7 @@ function V2WorkspaceLayout() {
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
 	const { services } = useHostService();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const { data: deviceInfo, isPending: isDeviceInfoPending } =
 		electronTrpc.auth.getDeviceInfo.useQuery();
 
@@ -56,6 +59,14 @@ function V2WorkspaceLayout() {
 			: workspace.deviceId === currentDevice?.id
 				? localHostUrl
 				: getWorkspaceHostUrlForWorkspace(workspace.id);
+	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (!workspace || lastEnsuredWorkspaceIdRef.current === workspace.id)
+			return;
+		lastEnsuredWorkspaceIdRef.current = workspace.id;
+		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
+	}, [ensureWorkspaceInSidebar, workspace]);
 
 	if (!workspaceId || !workspace) {
 		return <Outlet />;

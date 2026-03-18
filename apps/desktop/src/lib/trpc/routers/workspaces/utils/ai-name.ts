@@ -1,7 +1,7 @@
 import {
 	generateTitleFromMessage,
 	generateTitleFromMessageWithStreamingModel,
-} from "@superset/chat/host";
+} from "@superset/chat/server/desktop";
 import { workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import {

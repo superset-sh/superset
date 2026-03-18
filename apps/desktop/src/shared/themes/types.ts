@@ -245,6 +245,14 @@ export interface EditorTheme {
 }
 
 /**
+ * Partial editor overrides used by built-in and imported themes.
+ */
+export interface EditorThemeOverrides {
+	colors?: Partial<EditorColors>;
+	syntax?: Partial<EditorSyntaxColors>;
+}
+
+/**
  * Complete theme definition
  */
 export interface Theme {
@@ -266,7 +274,7 @@ export interface Theme {
 	/** Terminal ANSI colors (optional, falls back to xterm defaults based on theme type) */
 	terminal?: TerminalColors;
 	/** Code editor and diff colors (optional, otherwise derived from UI + terminal tokens) */
-	editor?: EditorTheme;
+	editor?: EditorThemeOverrides;
 
 	/** Whether this is a built-in theme */
 	isBuiltIn?: boolean;

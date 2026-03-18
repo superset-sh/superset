@@ -8,6 +8,23 @@ import { projects, workspaces } from "../../../db/schema";
 import { publicProcedure, router } from "../../index";
 
 export const workspaceRouter = router({
+	get: publicProcedure
+		.input(z.object({ id: z.string() }))
+		.query(({ ctx, input }) => {
+			const localWorkspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.id) })
+				.sync();
+
+			if (!localWorkspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			return localWorkspace;
+		}),
+
 	create: publicProcedure
 		.input(
 			z.object({

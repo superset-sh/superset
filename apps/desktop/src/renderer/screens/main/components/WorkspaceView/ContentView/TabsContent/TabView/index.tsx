@@ -19,7 +19,7 @@ import {
 } from "renderer/stores/tabs/utils";
 import { useTheme } from "renderer/stores/theme";
 import { BrowserPane } from "./BrowserPane";
-import { ChatMastraPane } from "./ChatMastraPane";
+import { ChatPane } from "./ChatPane";
 import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
@@ -192,10 +192,10 @@ export function TabView({ tab }: TabViewProps) {
 				);
 			}
 
-			// Route chat panes to ChatMastraPane component
-			if (paneInfo.type === "chat-mastra") {
+			// Route chat panes to ChatPane component
+			if (paneInfo.type === "chat") {
 				return (
-					<ChatMastraPane
+					<ChatPane
 						paneId={paneId}
 						path={path}
 						tabId={tab.id}

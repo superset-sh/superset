@@ -77,9 +77,66 @@ export function buildPromptAgentLaunchRequest({
 		};
 	}
 
-	const command = prompt
+	// For terminal agents with files, append file information to the prompt
+	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
+	let enhancedPrompt = prompt;
+	if (initialFiles?.length) {
+		// Track all used filenames to prevent collisions (same logic as terminal-adapter.ts)
+		const usedFilenames = new Set<string>();
+
+		const fileList = initialFiles
+			.map((file, index) => {
+				let filename: string;
+
+				if (!file.filename) {
+					// Generated names: find next available attachment_N
+					let counter = index + 1;
+					do {
+						filename = `attachment_${counter}`;
+						counter++;
+					} while (usedFilenames.has(filename));
+				} else {
+					// Sanitize filename
+					const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+					// Handle empty sanitized filename (e.g., "!!!" becomes "")
+					if (!sanitized.trim()) {
+						let counter = index + 1;
+						do {
+							filename = `attachment_${counter}`;
+							counter++;
+						} while (usedFilenames.has(filename));
+					} else if (usedFilenames.has(sanitized)) {
+						// Find unique name by appending _1, _2, etc. if needed
+						const parts = sanitized.split(".");
+						const ext = parts.length > 1 ? parts.pop() : undefined;
+						const base = parts.join(".");
+
+						let counter = 1;
+						do {
+							filename = ext
+								? `${base}_${counter}.${ext}`
+								: `${sanitized}_${counter}`;
+							counter++;
+						} while (usedFilenames.has(filename));
+					} else {
+						filename = sanitized;
+					}
+				}
+
+				usedFilenames.add(filename);
+				return `- .superset/attachments/${filename}`;
+			})
+			.join("\n");
+		// If prompt exists, prepend it; otherwise just use file list
+		enhancedPrompt = prompt
+			? `${prompt}\n\nAttached files (available in workspace):\n${fileList}`
+			: `Attached files (available in workspace):\n${fileList}`;
+	}
+
+	const command = enhancedPrompt
 		? buildPromptCommandFromAgentConfig({
-				prompt,
+				prompt: enhancedPrompt,
 				randomId: crypto.randomUUID(),
 				config,
 			})
@@ -95,6 +152,7 @@ export function buildPromptAgentLaunchRequest({
 		terminal: {
 			command,
 			name: config.label,
+			initialFiles: initialFiles?.length ? initialFiles : undefined,
 		},
 	};
 }

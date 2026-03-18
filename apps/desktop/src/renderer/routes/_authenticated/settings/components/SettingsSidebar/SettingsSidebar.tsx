@@ -58,7 +58,7 @@ export function SettingsSidebar() {
 
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
-				<ProjectsSettings searchQuery={searchQuery} />
+				<ProjectsSettings searchQuery={searchQuery} matchCounts={matchCounts} />
 			</div>
 
 			<div className="pt-3 mt-3 border-t border-border">

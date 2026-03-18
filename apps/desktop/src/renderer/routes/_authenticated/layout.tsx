@@ -15,7 +15,6 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
-import { V2NewWorkspaceModal } from "renderer/components/V2NewWorkspaceModal";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -23,6 +22,7 @@ import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -156,7 +156,11 @@ function AuthenticatedLayout() {
 					<AgentHooks />
 					<Outlet />
 					<WorkspaceInitEffects />
-					{isV2CloudEnabled ? <V2NewWorkspaceModal /> : <NewWorkspaceModal />}
+					{isV2CloudEnabled ? (
+						<DashboardNewWorkspaceModal />
+					) : (
+						<NewWorkspaceModal />
+					)}
 					<InitGitDialog />
 					<TeardownLogsDialog />
 					<Paywall />

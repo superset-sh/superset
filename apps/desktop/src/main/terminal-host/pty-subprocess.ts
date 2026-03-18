@@ -57,7 +57,6 @@ const INPUT_QUEUE_HARD_LIMIT_BYTES = 64 * 1024 * 1024; // 64MB
 let outputChunks: string[] = [];
 let outputBytesQueued = 0;
 let outputFlushScheduled = false;
-const OUTPUT_FLUSH_INTERVAL_MS = 32; // ~30 fps max
 const MAX_OUTPUT_BATCH_SIZE_BYTES = 128 * 1024; // 128KB max per flush
 
 // Backpressure - track if stdout is draining
@@ -108,7 +107,9 @@ function queueOutput(data: string): void {
 
 	if (!outputFlushScheduled) {
 		outputFlushScheduled = true;
-		setTimeout(flushOutput, OUTPUT_FLUSH_INTERVAL_MS);
+		// Flush on the next event-loop turn so interactive echo feels immediate,
+		// while still coalescing bursts that arrive in the same PTY callback cycle.
+		setImmediate(flushOutput);
 	}
 }
 

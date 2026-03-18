@@ -317,7 +317,7 @@ export const MessageResponse = memo(
 		<Streamdown
 			animated={animated ?? defaultMessageAnimation}
 			className={cn(
-				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ol]:list-outside [&_ol]:pl-6 [&_ul]:list-outside [&_ul]:pl-6 [&_:not(pre)>code]:break-all",
+				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ol]:list-outside [&_ol]:pl-6 [&_ul]:list-outside [&_ul]:pl-6 [&_li]:break-words [&_li]:whitespace-pre-wrap [&_p]:break-words [&_p]:whitespace-pre-wrap [&_table]:min-w-full [&_table]:w-max [&_:not(pre)>code]:break-all",
 				className,
 			)}
 			isAnimating={isAnimating}

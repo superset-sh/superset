@@ -1,5 +1,5 @@
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
-import { branchExistsOnRemote } from "../git";
+import { branchExistsOnRemote, getTrackingRemoteNameForWorktree } from "../git";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
 import {
@@ -32,19 +32,19 @@ export async function fetchGitHubPRStatus(
 			return null;
 		}
 
-		const [{ stdout: branchOutput }, { stdout: shaOutput }] = await Promise.all(
-			[
+		const [{ stdout: branchOutput }, { stdout: shaOutput }, trackingRemote] =
+			await Promise.all([
 				execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
 					cwd: worktreePath,
 				}),
 				execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
-			],
-		);
+				getTrackingRemoteNameForWorktree(worktreePath),
+			]);
 		const branchName = branchOutput.trim();
 		const headSha = shaOutput.trim();
 
 		const [branchCheck, prInfo, previewUrl] = await Promise.all([
-			branchExistsOnRemote(worktreePath, branchName),
+			branchExistsOnRemote(worktreePath, branchName, trackingRemote),
 			getPRForBranch(worktreePath, branchName, repoContext, headSha),
 			fetchPreviewDeploymentUrl(worktreePath, headSha, branchName, repoContext),
 		]);

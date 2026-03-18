@@ -27,6 +27,8 @@ export type ProjectChildItem =
 			tabOrder: number;
 	  };
 
+export type ProjectChildBoundaryPlacement = "top" | "bottom";
+
 function isTopLevelWorkspace(
 	workspace: WorkspaceLike,
 	projectSectionIds: Set<string>,
@@ -84,4 +86,34 @@ export function reorderProjectChildItems(
 	toIndex: number,
 ): ProjectChildItem[] {
 	return reorderItems(items, fromIndex, toIndex);
+}
+
+export function placeWorkspacesAtProjectChildBoundary(
+	projectId: string,
+	workspaces: WorkspaceLike[],
+	sections: SectionLike[],
+	orderedWorkspaceIds: string[],
+	placement: ProjectChildBoundaryPlacement,
+): ProjectChildItem[] {
+	const movingWorkspaceIds = new Set(orderedWorkspaceIds);
+	const existingItems = getProjectChildItems(
+		projectId,
+		workspaces.filter((workspace) => !movingWorkspaceIds.has(workspace.id)),
+		sections,
+	);
+	const movingItems = orderedWorkspaceIds.map((id) => ({
+		id,
+		kind: "workspace" as const,
+		projectId,
+		tabOrder: 0,
+	}));
+	const nextItems =
+		placement === "top"
+			? [...movingItems, ...existingItems]
+			: [...existingItems, ...movingItems];
+
+	return nextItems.map((item, index) => ({
+		...item,
+		tabOrder: index,
+	}));
 }

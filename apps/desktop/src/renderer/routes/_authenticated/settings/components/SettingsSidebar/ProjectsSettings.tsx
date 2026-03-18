@@ -1,31 +1,24 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useMemo } from "react";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
+import { HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getMatchCountBySection } from "../../utils/settings-search";
+import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface ProjectsSettingsProps {
 	searchQuery: string;
+	matchCounts: Partial<Record<SettingsSection, number>> | null;
 }
 
-export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
+export function ProjectsSettings({
+	searchQuery,
+	matchCounts,
+}: ProjectsSettingsProps) {
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const matchRoute = useMatchRoute();
 	const hasCloudAccess = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_ACCESS);
-
-	const matchCounts = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchCountBySection(searchQuery);
-	}, [searchQuery]);
 
 	const hasProjectMatches = (matchCounts?.project ?? 0) > 0;
 
@@ -37,105 +30,47 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 		return null;
 	}
 
+	// Check if we're on the projects list or any project settings page
+	const isProjectsListActive = matchRoute({ to: "/settings/projects" });
+	const isAnyProjectActive = groups.some(
+		(group) =>
+			matchRoute({
+				to: "/settings/project/$projectId/general",
+				params: { projectId: group.project.id },
+			}) ||
+			(hasCloudAccess &&
+				matchRoute({
+					to: "/settings/project/$projectId/cloud/secrets",
+					params: { projectId: group.project.id },
+				})),
+	);
+	const isActive = !!isProjectsListActive || isAnyProjectActive;
+
+	const count = matchCounts?.project;
+
 	return (
-		<div className="mt-4 mb-4">
+		<div className="mt-4">
 			<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
 				Projects
-				{searchQuery && hasProjectMatches && (
-					<span className="ml-2 text-xs bg-accent/50 px-1.5 py-0.5 rounded">
-						{matchCounts?.project ?? 0}
-					</span>
-				)}
 			</h2>
-			<nav className="flex flex-col gap-0.5">
-				{groups.map((group) => {
-					const isGeneralActive = matchRoute({
-						to: "/settings/project/$projectId/general",
-						params: { projectId: group.project.id },
-					});
-					const isCloudSecretsActive = hasCloudAccess
-						? matchRoute({
-								to: "/settings/project/$projectId/cloud/secrets",
-								params: { projectId: group.project.id },
-							})
-						: false;
-					const isCloudActive = !!isCloudSecretsActive;
-					const isProjectActive = !!isGeneralActive || isCloudActive;
-
-					return (
-						<Collapsible key={group.project.id} defaultOpen>
-							{/* Project header — expand/collapse only, no navigation */}
-							<CollapsibleTrigger
-								className={cn(
-									"group flex items-center gap-2 w-full h-8 px-3 rounded-md transition-colors text-sm text-left font-medium",
-									isProjectActive
-										? "bg-accent text-accent-foreground"
-										: "hover:bg-accent/50",
-								)}
-							>
-								<div
-									className="w-2 h-2 rounded-full shrink-0"
-									style={{ backgroundColor: group.project.color }}
-								/>
-								<span className="flex-1 truncate">{group.project.name}</span>
-								<HiChevronRight className="h-3.5 w-3.5 text-muted-foreground group-data-[state=open]:hidden" />
-								<HiChevronDown className="h-3.5 w-3.5 text-muted-foreground group-data-[state=closed]:hidden" />
-							</CollapsibleTrigger>
-
-							{/* Sub-items: General + Cloud */}
-							<CollapsibleContent>
-								<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
-									<Link
-										to="/settings/project/$projectId/general"
-										params={{ projectId: group.project.id }}
-										className={cn(
-											"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-											isGeneralActive
-												? "bg-accent text-accent-foreground"
-												: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-										)}
-									>
-										<span className="truncate">General</span>
-									</Link>
-									{hasCloudAccess && (
-										<Collapsible defaultOpen>
-											<CollapsibleTrigger
-												className={cn(
-													"group flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-													isCloudActive
-														? "text-accent-foreground"
-														: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-												)}
-											>
-												<span className="flex-1 truncate">Cloud</span>
-												<HiChevronRight className="h-3 w-3 text-muted-foreground group-data-[state=open]:hidden" />
-												<HiChevronDown className="h-3 w-3 text-muted-foreground group-data-[state=closed]:hidden" />
-											</CollapsibleTrigger>
-											<CollapsibleContent>
-												<div className="ml-3 border-l border-border pl-2 mt-0.5 mb-1">
-													<Link
-														to="/settings/project/$projectId/cloud/secrets"
-														params={{ projectId: group.project.id }}
-														className={cn(
-															"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-															isCloudSecretsActive
-																? "bg-accent text-accent-foreground"
-																: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-														)}
-													>
-														<span className="truncate">
-															Environment Variables
-														</span>
-													</Link>
-												</div>
-											</CollapsibleContent>
-										</Collapsible>
-									)}
-								</div>
-							</CollapsibleContent>
-						</Collapsible>
-					);
-				})}
+			<nav className="flex flex-col">
+				<Link
+					to="/settings/projects"
+					className={cn(
+						"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
+						isActive
+							? "bg-accent text-accent-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+					)}
+				>
+					<HiOutlineFolder className="h-4 w-4" />
+					<span className="flex-1">Projects</span>
+					{count !== undefined && count > 0 && (
+						<span className="text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded">
+							{count}
+						</span>
+					)}
+				</Link>
 			</nav>
 		</div>
 	);

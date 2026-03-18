@@ -13,7 +13,7 @@ import type {
 	FileViewerMode,
 	FileViewerState,
 } from "shared/tabs-types";
-import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
+import type { AddChatTabOptions, Pane, PaneType, Tab } from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -229,9 +229,9 @@ export const createFileViewerPane = (
 	};
 };
 
-export const createChatMastraPane = (
+export const createChatPane = (
 	tabId: string,
-	options?: AddChatMastraTabOptions,
+	options?: AddChatTabOptions,
 ): Pane => {
 	const id = generateId("pane");
 	const sessionId = crypto.randomUUID();
@@ -239,9 +239,9 @@ export const createChatMastraPane = (
 	return {
 		id,
 		tabId,
-		type: "chat-mastra",
+		type: "chat",
 		name: "New Chat",
-		chatMastra: {
+		chat: {
 			sessionId,
 			launchConfig: options?.launchConfig ?? null,
 		},
@@ -327,12 +327,12 @@ export const createBrowserTabWithPane = (
 	return { tab, pane };
 };
 
-export const createChatMastraTabWithPane = (
+export const createChatTabWithPane = (
 	workspaceId: string,
-	options?: AddChatMastraTabOptions,
+	options?: AddChatTabOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createChatMastraPane(tabId, options);
+	const pane = createChatPane(tabId, options);
 
 	const tab: Tab = {
 		id: tabId,

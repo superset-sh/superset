@@ -56,15 +56,15 @@ Expected remotes in that worktree:
 
 ## Superset runtime wiring
 
-`@superset/chat-mastra` uses Mastra's built-in tool set from `createMastraCode()`.
+`@superset/chat` uses Mastra's built-in tool set from `createMastraCode()`.
 
 Desktop pass-through lives at:
 
-- `apps/desktop/src/lib/trpc/routers/chat-mastra-service/index.ts`
+- `apps/desktop/src/lib/trpc/routers/chat-runtime-service/index.ts`
 
 Core runtime creation and tool diagnostics live at:
 
-- `packages/chat-mastra/src/server/trpc/utils/runtime/runtime.ts`
+- `packages/chat/src/server/trpc/utils/runtime/runtime.ts`
 
 ## Debugging tool registration
 

@@ -83,6 +83,27 @@
 	overflow-x: auto;
 }
 
+.default-markdown table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+	margin: 1rem 0;
+}
+
+.default-markdown th {
+	text-align: left;
+	padding: 0.5rem 1rem;
+	background: var(--muted);
+	font-weight: 600;
+	vertical-align: top;
+}
+
+.default-markdown td {
+	padding: 0.5rem 1rem;
+	border-top: 1px solid var(--border);
+	vertical-align: top;
+}
+
 .default-markdown strong {
 	font-weight: 600;
 }

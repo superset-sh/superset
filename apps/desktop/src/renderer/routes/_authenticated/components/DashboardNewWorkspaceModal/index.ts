@@ -1,0 +1,1 @@
+export { DashboardNewWorkspaceModal } from "./DashboardNewWorkspaceModal";

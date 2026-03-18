@@ -1,7 +1,7 @@
-export interface ParsedUpstreamRef {
-	remoteName: string;
-	branchName: string;
-}
+export {
+	type ParsedUpstreamRef,
+	parseUpstreamRef,
+} from "../../workspaces/utils/upstream-ref";
 
 export interface PullRequestCompareUrlInput {
 	baseRepoUrl: string;
@@ -25,20 +25,6 @@ export function normalizeGitHubRepoUrl(remoteUrl: string): string | null {
 	}
 
 	return `https://github.com/${match.groups.owner}/${match.groups.repo}`;
-}
-
-export function parseUpstreamRef(
-	upstreamRef: string,
-): ParsedUpstreamRef | null {
-	const separatorIndex = upstreamRef.indexOf("/");
-	if (separatorIndex <= 0 || separatorIndex === upstreamRef.length - 1) {
-		return null;
-	}
-
-	return {
-		remoteName: upstreamRef.slice(0, separatorIndex),
-		branchName: upstreamRef.slice(separatorIndex + 1),
-	};
 }
 
 export function buildPullRequestCompareUrl({
