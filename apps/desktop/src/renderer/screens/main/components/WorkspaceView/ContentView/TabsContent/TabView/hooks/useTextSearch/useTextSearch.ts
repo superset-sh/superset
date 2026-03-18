@@ -7,6 +7,7 @@ let nextHighlightInstanceId = 0;
 export interface UseTextSearchOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
 	highlightPrefix: string;
+	getSearchRoots?: (container: HTMLDivElement) => Array<Node & ParentNode>;
 }
 
 export interface UseTextSearchReturn {
@@ -34,6 +35,7 @@ function supportsCustomHighlights(): boolean {
 export function useTextSearch({
 	containerRef,
 	highlightPrefix,
+	getSearchRoots,
 }: UseTextSearchOptions): UseTextSearchReturn {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [query, setQuery] = useState("");
@@ -47,6 +49,9 @@ export function useTextSearch({
 	const wasSearchOpenRef = useRef(false);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const highlightInstanceIdRef = useRef<number | null>(null);
+	const highlightStyleElementsRef = useRef(
+		new Map<HTMLHeadElement | ShadowRoot, HTMLStyleElement>(),
+	);
 
 	if (highlightInstanceIdRef.current === null) {
 		highlightInstanceIdRef.current = nextHighlightInstanceId;
@@ -61,25 +66,57 @@ export function useTextSearch({
 		};
 	}, [highlightPrefix]);
 
-	useEffect(() => {
-		if (typeof document === "undefined") return;
-
-		// Scoped highlight names avoid collisions across concurrently mounted panes.
-		const styleElement = document.createElement("style");
-		styleElement.textContent = `
+	const highlightStyles = useMemo(
+		() => `
 ::highlight(${highlightKeys.matches}) {
 	background-color: var(--highlight-match);
 }
 ::highlight(${highlightKeys.active}) {
 	background-color: var(--highlight-active);
 }
-`;
-		document.head.appendChild(styleElement);
+`,
+		[highlightKeys.active, highlightKeys.matches],
+	);
 
-		return () => {
-			styleElement.remove();
-		};
-	}, [highlightKeys.active, highlightKeys.matches]);
+	const getResolvedSearchRoots = useCallback(() => {
+		const container = containerRef.current;
+		if (!container) {
+			return [] as Array<Node & ParentNode>;
+		}
+
+		return getSearchRoots?.(container) ?? [container];
+	}, [containerRef, getSearchRoots]);
+
+	const ensureHighlightStyles = useCallback(
+		(searchRoots: Array<Node & ParentNode>) => {
+			if (typeof document === "undefined") return;
+
+			const styleContainers = new Set<HTMLHeadElement | ShadowRoot>();
+			for (const root of searchRoots) {
+				const rootNode = root.getRootNode();
+				if (rootNode instanceof ShadowRoot) {
+					styleContainers.add(rootNode);
+					continue;
+				}
+
+				if (document.head) {
+					styleContainers.add(document.head);
+				}
+			}
+
+			for (const styleContainer of styleContainers) {
+				if (highlightStyleElementsRef.current.has(styleContainer)) {
+					continue;
+				}
+
+				const styleElement = document.createElement("style");
+				styleElement.textContent = highlightStyles;
+				styleContainer.appendChild(styleElement);
+				highlightStyleElementsRef.current.set(styleContainer, styleElement);
+			}
+		},
+		[highlightStyles],
+	);
 
 	const clearHighlights = useCallback(() => {
 		if (supportsCustomHighlights()) {
@@ -100,38 +137,89 @@ export function useTextSearch({
 		(searchQuery: string, isCaseSensitive: boolean) => {
 			clearHighlights();
 
-			const container = containerRef.current;
-			if (!container || !searchQuery) {
+			const searchRoots = getResolvedSearchRoots();
+			if (searchRoots.length === 0 || !searchQuery) {
 				setMatchCount(0);
 				setActiveMatchIndex(0);
 				return;
 			}
+
+			ensureHighlightStyles(searchRoots);
 
 			const normalizedQuery = isCaseSensitive
 				? searchQuery
 				: searchQuery.toLowerCase();
 
 			const ranges: Range[] = [];
-			const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+			for (const searchRoot of searchRoots) {
+				const walker = document.createTreeWalker(
+					searchRoot,
+					NodeFilter.SHOW_TEXT,
+				);
+				const textNodes: Text[] = [];
+				const offsets: number[] = [];
+				let fullText = "";
 
-			for (
-				let node = walker.nextNode() as Text | null;
-				node !== null;
-				node = walker.nextNode() as Text | null
-			) {
-				const text = isCaseSensitive
-					? node.textContent
-					: node.textContent?.toLowerCase();
-				if (!text) continue;
+				for (
+					let node = walker.nextNode() as Text | null;
+					node !== null;
+					node = walker.nextNode() as Text | null
+				) {
+					const textContent = node.textContent;
+					if (!textContent) continue;
 
+					offsets.push(fullText.length);
+					textNodes.push(node);
+					fullText += textContent;
+				}
+
+				if (textNodes.length === 0) {
+					continue;
+				}
+
+				const searchableText = isCaseSensitive
+					? fullText
+					: fullText.toLowerCase();
 				let startIdx = 0;
-				while (startIdx < text.length) {
-					const idx = text.indexOf(normalizedQuery, startIdx);
+
+				while (startIdx < searchableText.length) {
+					const idx = searchableText.indexOf(normalizedQuery, startIdx);
 					if (idx === -1) break;
 
+					const matchEnd = idx + searchQuery.length;
+					let startNodeIndex = -1;
+					let endNodeIndex = -1;
+
+					for (let index = 0; index < textNodes.length; index += 1) {
+						const nodeStart = offsets[index];
+						const nodeEnd =
+							nodeStart + (textNodes[index]?.textContent?.length ?? 0);
+
+						if (startNodeIndex === -1 && idx < nodeEnd) {
+							startNodeIndex = index;
+						}
+
+						if (matchEnd <= nodeEnd) {
+							endNodeIndex = index;
+							break;
+						}
+					}
+
+					if (startNodeIndex === -1 || endNodeIndex === -1) {
+						startIdx = idx + 1;
+						continue;
+					}
+
+					const startNode = textNodes[startNodeIndex];
+					const endNode = textNodes[endNodeIndex];
+					if (!startNode || !endNode) {
+						startIdx = idx + 1;
+						continue;
+					}
+
 					const range = new Range();
-					range.setStart(node, idx);
-					range.setEnd(node, idx + searchQuery.length);
+					range.setStart(startNode, idx - offsets[startNodeIndex]);
+					range.setEnd(endNode, matchEnd - offsets[endNodeIndex]);
 					ranges.push(range);
 					startIdx = idx + 1;
 				}
@@ -157,7 +245,8 @@ export function useTextSearch({
 		},
 		[
 			clearHighlights,
-			containerRef,
+			ensureHighlightStyles,
+			getResolvedSearchRoots,
 			highlightKeys.active,
 			highlightKeys.matches,
 			scrollRangeIntoView,
@@ -252,6 +341,10 @@ export function useTextSearch({
 			if (searchTimerRef.current) {
 				clearTimeout(searchTimerRef.current);
 			}
+			for (const styleElement of highlightStyleElementsRef.current.values()) {
+				styleElement.remove();
+			}
+			highlightStyleElementsRef.current.clear();
 		};
 	}, [clearHighlights]);
 
