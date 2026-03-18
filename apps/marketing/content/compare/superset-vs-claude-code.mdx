@@ -29,13 +29,13 @@ Claude Code is Anthropic's terminal-based AI coding agent. Superset is an orches
 | **Parallelism** | Core feature — many agents on separate branches simultaneously | Single session; requires separate terminal tabs for parallelism |
 | **Isolation** | Automatic Git worktree per task — agents cannot conflict | Shares your working directory — manual worktree setup needed |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $20/mo via Anthropic Max or API usage |
-| **Open source** | Yes (Apache 2.0) | Source-available (not open source) |
+| **License** | Source-available (ELv2) | Source-available (not open source) |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents — Claude Code, Codex, Aider, OpenCode — in parallel across isolated Git worktrees. Each agent gets its own branch and working directory. A persistent daemon manages sessions via Unix domain sockets, so they survive app restarts and crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Open source under Apache 2.0.
+Superset is a desktop terminal that orchestrates CLI-based coding agents — Claude Code, Codex, Aider, OpenCode — in parallel across isolated Git worktrees. Each agent gets its own branch and working directory. A persistent daemon manages sessions via Unix domain sockets, so they survive app restarts and crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -114,4 +114,4 @@ No. Claude Code runs exactly as it would in any terminal. Superset just provides
 
 ### Is Superset open source?
 
-Yes. Superset is open source under Apache 2.0. The full codebase is on GitHub. Claude Code is source-available but not open source.
+No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2). Claude Code is also source-available rather than open source.

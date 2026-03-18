@@ -15,9 +15,9 @@ const SECURITY_FEATURES: {
 }[] = [
 	{
 		icon: <HiOutlineCodeBracket className="w-5 h-5 text-foreground/70" />,
-		title: "Open Source",
+		title: "Source Available",
 		description:
-			"Fully open source codebase. Inspect, audit, and contribute to the code. No black boxes, no hidden functionality.",
+			"Full source available on GitHub under Elastic License 2.0 (ELv2). Inspect, audit, and contribute to the code. No black boxes, no hidden functionality.",
 	},
 	{
 		icon: <HiOutlineServerStack className="w-5 h-5 text-foreground/70" />,

@@ -29,13 +29,13 @@ GitHub Copilot is an AI pair programmer that lives inside your editor, offering 
 | **Parallelism** | Core feature — many agents on separate branches simultaneously | Single-threaded; Copilot Coding Agent runs one task at a time in cloud |
 | **Editor** | Works alongside any editor | VS Code, JetBrains, Neovim (extension) |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $10/mo, Business $19/user/mo, Enterprise $39/user/mo |
-| **Open source** | Yes (Apache 2.0) | No (closed source) |
+| **License** | Source-available (ELv2) | Closed source |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Open source under Apache 2.0.
+Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -65,7 +65,7 @@ Copilot supports multiple models (GPT-4o, Claude, Gemini) through GitHub's infra
 
 ### Privacy
 
-Superset runs agents locally in Git worktrees, and its open-source codebase is fully auditable. Copilot sends code context to GitHub/Microsoft servers for processing. Copilot Business and Enterprise offer data retention controls, but code still transits external servers.
+Superset runs agents locally in Git worktrees, and its source-available codebase is fully auditable. Copilot sends code context to GitHub/Microsoft servers for processing. Copilot Business and Enterprise offer data retention controls, but code still transits external servers.
 
 ---
 
@@ -110,4 +110,4 @@ Yes. When you open a Superset worktree in VS Code, Copilot works normally — it
 
 ### Is Superset open source?
 
-Yes. Superset is open source under Apache 2.0. GitHub Copilot is closed source.
+No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2). GitHub Copilot is closed source.

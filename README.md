@@ -250,4 +250,4 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
+Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.
