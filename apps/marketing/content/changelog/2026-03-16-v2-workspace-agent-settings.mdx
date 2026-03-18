@@ -1,5 +1,5 @@
 ---
-title: Configurable agent settings, new workspace modal, and tab and pane enhancements
+title: Configurable agent settings, streamlined workspace modal, and tab and pane enhancements
 date: 2026-03-16
 image: /changelog/agents-customization.png
 ---
@@ -12,16 +12,17 @@ Agent behavior is now configurable from the desktop settings UI. You can overrid
 - Changes save immediately and can be reset back to defaults
 - The same shared agent presets now power workspace creation and task launch flows
 
-## New Workspace Modal <PRBadge url="https://github.com/superset-sh/superset/pull/2391" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2506" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2500" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2513" />
+## Streamlined Workspace Modal <PRBadge url="https://github.com/superset-sh/superset/pull/2391" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2506" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2500" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2513" />
 
-The new workspace flow is now centered around the modal. It now handles project selection directly, preserves more of your draft state, and smooths out branch and PR workflows.
+The workspace creation flow is now more streamlined. You can pick the project, write the prompt, attach images, and link pull requests or issues in one place before you create the workspace, which reduces context switching and makes it easier to hand off complete intent to the agent from the start.
 
 ![New workspace modal](/changelog/new-workspace-modal-2026-03-16.png)
 
-- Prompt-first creation flow with project selection built directly into the modal
+- Prompt-first creation flow with project selection built directly into the modal, so setup and intent stay in one step
 - Project avatars, GitHub owner details, and inline `Add from GitHub` in the selector
-- Prompt text, attachments, and selected agent persist when you close and reopen the modal
-- Branch prefix previews, better long-name truncation, and PR lookup by pasted GitHub URL
+- Prompt text, image attachments, linked PRs, linked issues, and selected agent all live in the same streamlined flow
+- Prompt text, attachments, and selected agent persist when you close and reopen the modal, so you can refine the request without losing work
+- Branch prefix previews, better long-name truncation, and PR lookup by pasted GitHub URL keep workspace setup fast even in larger repos
 
 ## Tab and Pane Enhancements <PRBadge url="https://github.com/superset-sh/superset/pull/2488" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2487" />
 
