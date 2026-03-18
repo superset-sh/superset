@@ -5,7 +5,7 @@ import {
 	useRef,
 } from "react";
 import { LuLoader } from "react-icons/lu";
-import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import { TipTapMarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
@@ -441,7 +441,7 @@ export function FileViewerContent({
 					onClose={markdownSearch.closeSearch}
 				/>
 				<div ref={markdownContainerRef} className="h-full overflow-auto p-4">
-					<MarkdownRenderer content={rawFileData.content} />
+					<TipTapMarkdownRenderer content={rawFileData.content} />
 				</div>
 			</div>
 		);
