@@ -99,8 +99,15 @@ export function buildPromptAgentLaunchRequest({
 					// Sanitize filename
 					const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-					// Find unique name by appending _1, _2, etc. if needed
-					if (usedFilenames.has(sanitized)) {
+					// Handle empty sanitized filename (e.g., "!!!" becomes "")
+					if (!sanitized.trim()) {
+						let counter = index + 1;
+						do {
+							filename = `attachment_${counter}`;
+							counter++;
+						} while (usedFilenames.has(filename));
+					} else if (usedFilenames.has(sanitized)) {
+						// Find unique name by appending _1, _2, etc. if needed
 						const parts = sanitized.split(".");
 						const ext = parts.length > 1 ? parts.pop() : undefined;
 						const base = parts.join(".");

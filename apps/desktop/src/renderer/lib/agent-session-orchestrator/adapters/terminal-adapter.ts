@@ -59,8 +59,15 @@ async function writeAttachmentFiles(
 		);
 	}
 
-	// Validate sizes before any processing
+	// Validate and parse files in a single pass (cache base64 data for processing)
+	type ParsedFile = {
+		file: (typeof files)[number];
+		base64Data: string;
+		decodedBytes: number;
+	};
+	const parsedFiles: ParsedFile[] = [];
 	let totalBytes = 0;
+
 	for (const file of files) {
 		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
 		if (!base64Match?.[1]) {
@@ -79,6 +86,11 @@ async function writeAttachmentFiles(
 		}
 
 		totalBytes += decodedBytes;
+		parsedFiles.push({
+			file,
+			base64Data: base64Match[1],
+			decodedBytes,
+		});
 	}
 
 	if (totalBytes > MAX_TOTAL_BYTES) {
@@ -108,8 +120,8 @@ async function writeAttachmentFiles(
 	const usedFilenames = new Set<string>();
 	const writtenPaths: string[] = [];
 
-	for (let i = 0; i < files.length; i++) {
-		const file = files[i];
+	for (let i = 0; i < parsedFiles.length; i++) {
+		const { file, base64Data } = parsedFiles[i];
 		if (!file) continue;
 
 		// Generate unique filename
@@ -126,8 +138,15 @@ async function writeAttachmentFiles(
 			// Sanitize filename
 			const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-			// Find unique name by appending _1, _2, etc. if needed
-			if (usedFilenames.has(sanitized)) {
+			// Handle empty sanitized filename (e.g., "!!!" becomes "")
+			if (!sanitized.trim()) {
+				let index = i + 1;
+				do {
+					fileName = `attachment_${index}`;
+					index++;
+				} while (usedFilenames.has(fileName));
+			} else if (usedFilenames.has(sanitized)) {
+				// Find unique name by appending _1, _2, etc. if needed
 				const parts = sanitized.split(".");
 				const ext = parts.length > 1 ? parts.pop() : undefined;
 				const base = parts.join(".");
@@ -146,17 +165,11 @@ async function writeAttachmentFiles(
 
 		usedFilenames.add(fileName);
 
-		// Extract base64 data from data URL (format: data:mime/type;base64,DATA)
-		const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
-		if (!base64Match?.[1]) {
-			throw new Error(`Invalid data URL format for file: ${fileName}`);
-		}
-
 		const absolutePath = joinAbsolutePath(attachmentsDirectory, fileName);
 		await electronTrpcClient.filesystem.writeFile.mutate({
 			workspaceId,
 			absolutePath,
-			content: { kind: "base64", data: base64Match[1] },
+			content: { kind: "base64", data: base64Data },
 		});
 
 		// Return relative path from workspace root
