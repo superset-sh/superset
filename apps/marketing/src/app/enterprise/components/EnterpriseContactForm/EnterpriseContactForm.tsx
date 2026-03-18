@@ -23,13 +23,18 @@ export function EnterpriseContactForm() {
 		setStatus("submitting");
 		setErrorMessage("");
 
-		const result = await submitEnterpriseInquiry(formState);
+		try {
+			const result = await submitEnterpriseInquiry(formState);
 
-		if (result.success) {
-			setStatus("success");
-		} else {
+			if (result.success) {
+				setStatus("success");
+			} else {
+				setStatus("error");
+				setErrorMessage(result.error ?? "Something went wrong.");
+			}
+		} catch (error) {
 			setStatus("error");
-			setErrorMessage(result.error ?? "Something went wrong.");
+			setErrorMessage("Something went wrong. Please try again.");
 		}
 	};
 

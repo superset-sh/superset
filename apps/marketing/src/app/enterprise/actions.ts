@@ -22,25 +22,30 @@ export async function submitEnterpriseInquiry(data: EnterpriseFormData) {
 		return { success: false, error: "Missing required fields." };
 	}
 
-	const { error } = await resend.emails.send({
-		from: "Superset <noreply@superset.sh>",
-		to: "founders@superset.sh",
-		replyTo: email,
-		subject: `Enterprise inquiry from ${name} (${company})`,
-		react: EnterpriseInquiryEmail({
-			name,
-			role,
-			company,
-			email,
-			phone,
-			message,
-		}),
-	});
+	try {
+		const { error } = await resend.emails.send({
+			from: "Superset <noreply@superset.sh>",
+			to: "founders@superset.sh",
+			replyTo: email,
+			subject: `Enterprise inquiry from ${name} (${company})`,
+			react: EnterpriseInquiryEmail({
+				name,
+				role,
+				company,
+				email,
+				phone,
+				message,
+			}),
+		});
 
-	if (error) {
+		if (error) {
+			console.error("Failed to send enterprise inquiry email:", error);
+			return { success: false, error: "Something went wrong. Please try again." };
+		}
+
+		return { success: true };
+	} catch (error) {
 		console.error("Failed to send enterprise inquiry email:", error);
 		return { success: false, error: "Something went wrong. Please try again." };
 	}
-
-	return { success: true };
 }
