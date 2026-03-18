@@ -19,8 +19,8 @@ import {
 import {
 	builtInThemes,
 	darkTheme as defaultDarkTheme,
-	getTerminalColors,
 	lightTheme as defaultLightTheme,
+	getTerminalColors,
 	parseThemeConfigFile,
 } from "shared/themes";
 import { SystemThemeCard } from "../SystemThemeCard";
