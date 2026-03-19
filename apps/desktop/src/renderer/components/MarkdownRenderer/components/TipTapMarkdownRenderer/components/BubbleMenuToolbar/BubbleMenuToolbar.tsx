@@ -1,5 +1,5 @@
 import type { Editor } from "@tiptap/core";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiOutlineBold,
 	HiOutlineCodeBracket,
@@ -48,6 +48,20 @@ function ToolbarButton({
 function HeadingDropdown({ editor }: { editor: Editor }) {
 	const [open, setOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(e.target as Node)
+			) {
+				setOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [open]);
 
 	const currentLevel = editor.isActive("heading", { level: 1 })
 		? 1
@@ -145,6 +159,21 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 
 function ListDropdown({ editor }: { editor: Editor }) {
 	const [open, setOpen] = useState(false);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(e.target as Node)
+			) {
+				setOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [open]);
 
 	const isAnyListActive =
 		editor.isActive("bulletList") ||
@@ -167,7 +196,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 	);
 
 	return (
-		<div className="relative">
+		<div ref={containerRef} className="relative">
 			<button
 				type="button"
 				title="List"

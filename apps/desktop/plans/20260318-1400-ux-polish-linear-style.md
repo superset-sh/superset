@@ -343,11 +343,11 @@ All steps are safe to repeat. File writes are idempotent — writing the same co
 
 The BubbleMenu from `@tiptap/react` wraps a div and positions it near the text selection:
 
-    import { BubbleMenu } from "@tiptap/react";
+    import { BubbleMenu } from "@tiptap/react/menus";
 
     <BubbleMenu
       editor={editor}
-      tippyOptions={{ duration: 100 }}
+      options={{ placement: "top", offset: { mainAxis: 8 } }}
       shouldShow={({ editor }) => !editor.isActive("codeBlock")}
     >
       <BubbleMenuToolbar editor={editor} />
