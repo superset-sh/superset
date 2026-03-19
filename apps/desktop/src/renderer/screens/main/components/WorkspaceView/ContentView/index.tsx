@@ -1,6 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { PanelToggleButtons } from "../../PanelToggleButtons";
 import { ContentHeader } from "./ContentHeader";
 import { PresetsBar } from "./components/PresetsBar";
 import { TabsContent } from "./TabsContent";
@@ -22,7 +21,7 @@ export function ContentView({
 
 	return (
 		<div className="h-full flex flex-col overflow-hidden">
-			<ContentHeader trailingAction={<PanelToggleButtons />}>
+			<ContentHeader>
 				<GroupStrip />
 			</ContentHeader>
 			{showPresetsBar && <PresetsBar />}
