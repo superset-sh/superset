@@ -1,10 +1,14 @@
-import { projects } from "@superset/local-db";
+import { projects, settings } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { generateBranchNameFromPrompt } from "../utils/ai-branch-name";
-import { listBranches } from "../utils/git";
+import {
+	getBranchPrefix,
+	listBranches,
+	sanitizeAuthorPrefix,
+} from "../utils/git";
 
 export const createGenerateBranchNameProcedures = () => {
 	return router({
@@ -45,9 +49,45 @@ export const createGenerateBranchNameProcedures = () => {
 					existingBranches = [];
 				}
 
+				// Calculate branch prefix (same logic as create.ts) to check conflicts correctly
+				let branchPrefix: string | undefined;
+				try {
+					const globalSettings = localDb.select().from(settings).get();
+					const projectOverrides = project.branchPrefixMode != null;
+					const prefixMode = projectOverrides
+						? project.branchPrefixMode
+						: (globalSettings?.branchPrefixMode ?? "none");
+					const customPrefix = projectOverrides
+						? project.branchPrefixCustom
+						: globalSettings?.branchPrefixCustom;
+
+					const rawPrefix = await getBranchPrefix({
+						repoPath: project.mainRepoPath,
+						mode: prefixMode,
+						customPrefix,
+					});
+					const sanitizedPrefix = rawPrefix
+						? sanitizeAuthorPrefix(rawPrefix)
+						: undefined;
+
+					const existingSet = new Set(
+						existingBranches.map((b) => b.toLowerCase()),
+					);
+					const prefixWouldCollide =
+						sanitizedPrefix && existingSet.has(sanitizedPrefix.toLowerCase());
+					branchPrefix = prefixWouldCollide ? undefined : sanitizedPrefix;
+				} catch (error) {
+					console.warn(
+						"[generateBranchName] Failed to get branch prefix:",
+						error,
+					);
+					branchPrefix = undefined;
+				}
+
 				const branchName = await generateBranchNameFromPrompt(
 					trimmedPrompt,
 					existingBranches,
+					branchPrefix,
 				);
 				return { branchName };
 			}),
