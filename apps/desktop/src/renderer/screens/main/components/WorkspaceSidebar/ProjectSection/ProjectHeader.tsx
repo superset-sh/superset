@@ -403,8 +403,8 @@ export function ProjectHeader({
 									</div>
 									<span className="truncate">{projectName}</span>
 									{!isBranchOnly && (
-										<span className="text-xs text-muted-foreground tabular-nums font-normal">
-											({workspaceCount})
+										<span className="flex h-5 shrink-0 items-center rounded px-1.5 text-[10px] font-mono tabular-nums bg-muted/50 text-muted-foreground">
+											{workspaceCount}
 										</span>
 									)}
 									{isBranchOnly && (
