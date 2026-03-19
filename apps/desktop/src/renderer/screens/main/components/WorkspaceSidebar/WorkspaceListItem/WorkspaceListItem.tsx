@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
@@ -112,8 +111,7 @@ export function WorkspaceListItem({
 	});
 
 	useEffect(() => {
-		preview(getEmptyImage(), { captureDraggingState: true });
-		drop(rowRef);
+		preview(drop(rowRef));
 		drag(dragHandleRef);
 	}, [preview, drop, drag]);
 
