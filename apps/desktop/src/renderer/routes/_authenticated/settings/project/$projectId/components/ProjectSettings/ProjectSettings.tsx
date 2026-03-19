@@ -486,25 +486,27 @@ export function ProjectSettings({
 										className="hidden"
 										onChange={handleFileChange}
 									/>
-									<button
-										type="button"
-										onClick={handleRefreshIcon}
-										disabled={
-											discoverIcon.isPending || setProjectIcon.isPending
-										}
-										className={cn(
-											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-											"hover:bg-muted transition-colors",
-										)}
-									>
-										<LuRefreshCw
+									{!iconManuallyUploaded && (
+										<button
+											type="button"
+											onClick={handleRefreshIcon}
+											disabled={
+												discoverIcon.isPending || setProjectIcon.isPending
+											}
 											className={cn(
-												"size-4",
-												discoverIcon.isPending && "animate-spin",
+												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+												"hover:bg-muted transition-colors",
 											)}
-										/>
-										Detect
-									</button>
+										>
+											<LuRefreshCw
+												className={cn(
+													"size-4",
+													discoverIcon.isPending && "animate-spin",
+												)}
+											/>
+											Detect
+										</button>
+									)}
 									<button
 										type="button"
 										onClick={handleIconUpload}
