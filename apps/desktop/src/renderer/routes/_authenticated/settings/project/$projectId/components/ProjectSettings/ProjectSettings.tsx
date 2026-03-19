@@ -30,12 +30,7 @@ import {
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
-import {
-	LuFolderOpen,
-	LuImagePlus,
-	LuRefreshCw,
-	LuTrash2,
-} from "react-icons/lu";
+import { LuFolderOpen, LuImagePlus, LuRefreshCw } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useImportAllWorktrees,
@@ -196,10 +191,6 @@ export function ProjectSettings({
 		},
 		[projectId, setProjectIcon],
 	);
-
-	const handleRemoveIcon = useCallback(() => {
-		setProjectIcon.mutate({ id: projectId, icon: null });
-	}, [projectId, setProjectIcon]);
 
 	const handleBranchPrefixModeChange = (value: string) => {
 		if (value === "default") {
@@ -521,22 +512,8 @@ export function ProjectSettings({
 										)}
 									>
 										<LuImagePlus className="size-4" />
-										{project.iconUrl ? "Replace" : "Upload"}
+										Upload
 									</button>
-									{project.iconUrl && (
-										<button
-											type="button"
-											onClick={handleRemoveIcon}
-											disabled={setProjectIcon.isPending}
-											className={cn(
-												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-												"hover:bg-destructive/10 text-destructive transition-colors",
-											)}
-										>
-											<LuTrash2 className="size-4" />
-											Remove
-										</button>
-									)}
 								</div>
 							</div>
 						</SettingsSection>
