@@ -5,6 +5,7 @@ import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSide
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { DashboardSidebarWorkspaceHoverCardContent } from "./components/DashboardSidebarWorkspaceHoverCardContent";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
+import { useWorkspaceStatus } from "./hooks/useWorkspaceStatus";
 import { getWorkspaceRowMocks } from "./utils";
 
 interface DashboardSidebarWorkspaceItemProps {
@@ -29,6 +30,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 	} = workspace;
 	const mockData = getWorkspaceRowMocks(id);
+	const workspaceStatus = useWorkspaceStatus(id);
 	const {
 		cancelRename,
 		handleClick,
@@ -90,7 +92,7 @@ export function DashboardSidebarWorkspaceItem({
 							hostType={hostType}
 							isActive={isActive}
 							onClick={handleClick}
-							workspaceStatus={mockData.workspaceStatus}
+							workspaceStatus={workspaceStatus}
 						/>
 					</div>
 				</DashboardSidebarWorkspaceContextMenu>
@@ -137,6 +139,7 @@ export function DashboardSidebarWorkspaceItem({
 					renameValue={renameValue}
 					shortcutLabel={shortcutLabel}
 					mockData={mockData}
+					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
 					onDoubleClick={startRename}
 					onDeleteClick={() => setIsDeleteDialogOpen(true)}

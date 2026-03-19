@@ -3,6 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { ActivePaneStatus } from "shared/tabs-types";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import type { WorkspaceRowMockData } from "../../utils";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
@@ -17,6 +18,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	renameValue: string;
 	shortcutLabel?: string;
 	mockData: WorkspaceRowMockData;
+	workspaceStatus?: ActivePaneStatus | null;
 	onClick: () => void;
 	onDoubleClick?: () => void;
 	onDeleteClick: () => void;
@@ -37,6 +39,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			renameValue,
 			shortcutLabel,
 			mockData,
+			workspaceStatus = null,
 			onClick,
 			onDoubleClick,
 			onDeleteClick,
@@ -96,7 +99,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								hostType={hostType}
 								isActive={isActive}
 								variant="expanded"
-								workspaceStatus={mockData.workspaceStatus}
+								workspaceStatus={workspaceStatus}
 							/>
 						</div>
 					</TooltipTrigger>
