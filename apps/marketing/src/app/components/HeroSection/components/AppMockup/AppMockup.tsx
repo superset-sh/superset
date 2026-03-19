@@ -143,12 +143,12 @@ function WorkspaceItem({
 }) {
 	return (
 		<div
-			className={`flex items-start gap-2.5 px-2.5 py-1.5 text-xs ${isActive ? "bg-white/10" : "hover:bg-white/5"} cursor-pointer relative`}
+			className={`relative flex cursor-pointer items-start gap-2.5 px-2.5 py-1.5 text-xs ${isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.03]"}`}
 		>
 			{isActive && (
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-cyan-500 rounded-r" />
 			)}
-			<div className="mt-0.5 text-muted-foreground/50 relative">
+			<div className="relative mt-0.5 text-muted-foreground/30">
 				{status === "working" ? (
 					<AsciiSpinner className="text-xs" />
 				) : (
@@ -163,7 +163,7 @@ function WorkspaceItem({
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center justify-between gap-1">
 					<span
-						className={`truncate ${isActive ? "text-foreground font-medium" : "text-foreground/80"}`}
+						className={`truncate ${isActive ? "text-foreground font-medium" : "text-foreground/60"}`}
 					>
 						{name}
 					</span>
@@ -171,9 +171,9 @@ function WorkspaceItem({
 						<div className="flex items-center gap-1 shrink-0">
 							{add !== undefined && (
 								<span className="text-[11px]">
-									<span className="text-emerald-400">+{add}</span>
+									<span className="text-emerald-400/80">+{add}</span>
 									{del !== undefined && del > 0 && (
-										<span className="text-red-400 ml-0.5">-{del}</span>
+										<span className="ml-0.5 text-red-400/80">-{del}</span>
 									)}
 								</span>
 							)}
@@ -181,11 +181,11 @@ function WorkspaceItem({
 					)}
 				</div>
 				<div className="flex items-center justify-between">
-					<span className="text-muted-foreground/50 truncate text-[11px] font-mono">
+					<span className="truncate font-mono text-[11px] text-muted-foreground/30">
 						{branch}
 					</span>
 					{pr && (
-						<span className="text-muted-foreground/40 text-[11px] flex items-center gap-0.5">
+						<span className="flex items-center gap-0.5 text-[11px] text-muted-foreground/20">
 							<LuGitPullRequest className="size-3" />
 							{pr}
 						</span>
@@ -219,30 +219,30 @@ function FileChangeItem({
 					: LuFile;
 	const iconColor =
 		type === "add"
-			? "text-emerald-400"
+			? "text-emerald-400/75"
 			: type === "edit"
-				? "text-amber-400"
-				: "text-muted-foreground/50";
+				? "text-amber-400/70"
+				: "text-muted-foreground/30";
 
 	const isFolder = type === "folder";
 
 	return (
 		<div
-			className={`flex items-center justify-between gap-2 hover:bg-white/5 px-3 ${isFolder ? "py-1.5 mt-1" : "py-1"}`}
+			className={`flex items-center justify-between gap-2 px-3 hover:bg-white/[0.03] ${isFolder ? "mt-1 py-1.5" : "py-1"}`}
 			style={{ paddingLeft: `${12 + (indent || 0) * 16}px` }}
 		>
 			<div className="flex items-center gap-2 min-w-0">
 				<Icon className={`size-3.5 shrink-0 ${iconColor}`} />
 				<span
-					className={`truncate ${isFolder ? "text-muted-foreground/60 text-[11px]" : "text-muted-foreground/80 text-xs"}`}
+					className={`truncate ${isFolder ? "text-[11px] text-muted-foreground/40" : "text-xs text-muted-foreground/60"}`}
 				>
 					{path}
 				</span>
 			</div>
 			{!isFolder && (add > 0 || del > 0) && (
 				<span className="shrink-0 tabular-nums text-[11px]">
-					{add > 0 && <span className="text-emerald-400">+{add}</span>}
-					{del > 0 && <span className="text-red-400 ml-1">-{del}</span>}
+					{add > 0 && <span className="text-emerald-400/80">+{add}</span>}
+					{del > 0 && <span className="ml-1 text-red-400/80">-{del}</span>}
 				</span>
 			)}
 		</div>
@@ -283,7 +283,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					<div className="border-b border-white/[0.05] px-2.5 py-2.5">
 						<button
 							type="button"
-							className="flex items-center gap-2 text-xs text-muted-foreground/60 hover:text-muted-foreground cursor-pointer w-full px-2 py-1 hover:bg-white/[0.04] rounded"
+							className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs text-muted-foreground/40 hover:bg-white/[0.025] hover:text-muted-foreground/60"
 						>
 							<LuPlus className="size-4" />
 							<span>New Workspace</span>
@@ -291,12 +291,12 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 
 					{/* Repository section */}
-					<div className="flex cursor-pointer items-center justify-between border-b border-white/[0.05] px-2.5 py-2 hover:bg-white/[0.03]">
+					<div className="flex cursor-pointer items-center justify-between border-b border-white/[0.05] px-2.5 py-2 hover:bg-white/[0.02]">
 						<div className="flex items-center gap-2">
-							<span className="text-[13px] text-foreground/90">superset</span>
-							<span className="text-xs text-muted-foreground/50">(5)</span>
+							<span className="text-[13px] text-foreground/70">superset</span>
+							<span className="text-xs text-muted-foreground/30">(5)</span>
 						</div>
-						<div className="flex items-center gap-1 text-muted-foreground/50">
+						<div className="flex items-center gap-1 text-muted-foreground/30">
 							<LuPlus className="size-3.5" />
 							<LuChevronDown className="size-3.5" />
 						</div>
@@ -361,16 +361,16 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						{PORTS.map((port) => (
 							<div key={port.workspace} className="px-2.5 py-1">
 								<div className="flex items-center justify-between text-[11px]">
-									<span className="text-muted-foreground/50 truncate">
+									<span className="truncate text-muted-foreground/30">
 										{port.workspace}
 									</span>
-									<LuX className="size-3 text-muted-foreground/30" />
+									<LuX className="size-3 text-muted-foreground/20" />
 								</div>
 								<div className="flex flex-wrap gap-1 mt-0.5">
 									{port.ports.map((p) => (
 										<span
 											key={p}
-											className="px-1.5 py-0.5 bg-white/[0.04] rounded text-[11px] text-muted-foreground/60 tabular-nums"
+											className="rounded bg-white/[0.03] px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground/40"
 										>
 											{p}
 										</span>
@@ -386,7 +386,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					{/* Tab bar */}
 					<div className="flex items-center gap-0.5 border-b border-white/[0.05] bg-[#101012] px-2 py-1.5">
 						{/* Claude tab - always visible, active */}
-						<div className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.06] backdrop-blur-sm rounded-t text-xs text-foreground/90 border-b-2 border-cyan-500/70">
+						<div className="flex items-center gap-1.5 rounded-t border-b-2 border-cyan-500/70 bg-white/[0.05] px-3 py-1 text-xs text-foreground/90">
 							{activeDemo === "Create Parallel Branches" ? (
 								<>
 									<LuTerminal className="size-3.5 text-muted-foreground/70" />
@@ -403,11 +403,11 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 									<span>claude</span>
 								</>
 							)}
-							<LuX className="size-3.5 text-muted-foreground/50 hover:text-muted-foreground" />
+							<LuX className="size-3.5 text-muted-foreground/30 hover:text-muted-foreground/50" />
 						</div>
 						{/* Other agent tabs - shown when "Use Any Agents" is active */}
 						<motion.div
-							className="flex items-center gap-1.5 py-1 text-xs text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							className="flex items-center gap-1.5 overflow-hidden rounded-t py-1 text-xs text-muted-foreground/40 hover:bg-white/[0.03]"
 							initial={{
 								opacity: 0,
 								width: 0,
@@ -433,10 +433,10 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								height={14}
 							/>
 							<span>codex</span>
-							<LuX className="size-3.5 text-muted-foreground/30" />
+							<LuX className="size-3.5 text-muted-foreground/20" />
 						</motion.div>
 						<motion.div
-							className="flex items-center gap-1.5 py-1 text-xs text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							className="flex items-center gap-1.5 overflow-hidden rounded-t py-1 text-xs text-muted-foreground/40 hover:bg-white/[0.03]"
 							initial={{
 								opacity: 0,
 								width: 0,
@@ -462,10 +462,10 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								height={14}
 							/>
 							<span>gemini</span>
-							<LuX className="size-3.5 text-muted-foreground/30" />
+							<LuX className="size-3.5 text-muted-foreground/20" />
 						</motion.div>
 						<motion.div
-							className="flex items-center gap-1.5 py-1 text-xs text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							className="flex items-center gap-1.5 overflow-hidden rounded-t py-1 text-xs text-muted-foreground/40 hover:bg-white/[0.03]"
 							initial={{
 								opacity: 0,
 								width: 0,
@@ -491,9 +491,9 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								height={14}
 							/>
 							<span>cursor</span>
-							<LuX className="size-3.5 text-muted-foreground/30" />
+							<LuX className="size-3.5 text-muted-foreground/20" />
 						</motion.div>
-						<div className="flex items-center px-2 py-1 text-muted-foreground/40 hover:text-muted-foreground/60 cursor-pointer">
+						<div className="flex cursor-pointer items-center px-2 py-1 text-muted-foreground/20 hover:text-muted-foreground/40">
 							<LuPlus className="size-4" />
 							<LuChevronDown className="size-3.5 ml-0.5" />
 						</div>
@@ -502,7 +502,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					{/* Terminal header */}
 					<div className="flex items-center gap-2 border-b border-white/[0.04] bg-[#0e0e10] px-4 py-2">
 						<span className="text-muted-foreground/40 text-xs">⬛</span>
-						<span className="text-xs text-muted-foreground/60">Terminal</span>
+						<span className="text-xs text-muted-foreground/40">Terminal</span>
 						<div className="flex-1" />
 						<span className="text-muted-foreground/20 text-xs">□</span>
 						<LuX className="size-3.5 text-muted-foreground/20" />
@@ -666,10 +666,10 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					>
 						{/* Header */}
 						<div className="flex items-center justify-between border-b border-white/[0.05] px-3 py-2.5">
-							<span className="text-xs text-foreground/70">Review Changes</span>
+							<span className="text-xs text-foreground/60">Review Changes</span>
 							<div className="flex items-center gap-1 text-xs">
 								<LuGitPullRequest className="size-4 text-cyan-400/70" />
-								<span className="text-muted-foreground/60">#827</span>
+								<span className="text-muted-foreground/40">#827</span>
 							</div>
 						</div>
 
@@ -680,11 +680,11 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							</div>
 							<button
 								type="button"
-								className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] rounded text-foreground/80"
+								className="flex w-full items-center justify-center gap-2 rounded bg-white/[0.04] px-3 py-1.5 text-xs text-foreground/70 hover:bg-white/[0.07]"
 							>
 								<span>↑</span>
 								<span>Push</span>
-								<span className="text-muted-foreground/50">26</span>
+								<span className="text-muted-foreground/30">26</span>
 							</button>
 						</div>
 
@@ -730,7 +730,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						<div className="flex items-center justify-between border-b border-white/[0.05] px-3 py-2.5">
 							<div className="flex items-center gap-2">
 								<LuGitPullRequest className="size-4.5 text-emerald-400/80" />
-								<span className="text-sm text-foreground/80 font-medium">
+								<span className="text-sm font-medium text-foreground/70">
 									Review PR #827
 								</span>
 							</div>
@@ -741,13 +741,13 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 						{/* File tabs */}
 						<div className="flex items-center gap-1 border-b border-white/[0.05] px-3 py-2 text-xs">
-							<span className="px-2 py-1 bg-white/[0.06] rounded text-foreground/70">
+							<span className="rounded bg-white/[0.04] px-2 py-1 text-foreground/60">
 								cloud-workspace.ts
 							</span>
-							<span className="px-2 py-1 text-muted-foreground/50">
+							<span className="px-2 py-1 text-muted-foreground/30">
 								enums.ts
 							</span>
-							<span className="px-2 py-1 text-muted-foreground/50">
+							<span className="px-2 py-1 text-muted-foreground/30">
 								+4 more
 							</span>
 						</div>
@@ -817,7 +817,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							</button>
 							<button
 								type="button"
-								className="px-3 py-1.5 text-xs bg-white/[0.06] text-foreground/60 rounded hover:bg-white/[0.1]"
+								className="rounded bg-white/[0.04] px-3 py-1.5 text-xs text-foreground/50 hover:bg-white/[0.07]"
 							>
 								Comment
 							</button>
@@ -845,14 +845,14 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
 						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
 					</div>
-					<span className="text-sm text-muted-foreground/60">External IDE</span>
+					<span className="text-sm text-muted-foreground/40">External IDE</span>
 					<div className="w-12" />
 				</div>
 
 				<div className="flex h-[calc(100%-36px)]">
 					{/* File tree */}
 					<div className="w-[110px] border-r border-white/[0.05] bg-[#101012] p-3 text-sm">
-						<div className="flex items-center gap-2 text-muted-foreground/60 mb-2">
+						<div className="mb-2 flex items-center gap-2 text-muted-foreground/40">
 							<LuFolder className="size-4" />
 							<span>src</span>
 						</div>
@@ -861,11 +861,11 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								<LuFile className="size-4" />
 								<span>index.ts</span>
 							</div>
-							<div className="flex items-center gap-2 text-muted-foreground/50">
+							<div className="flex items-center gap-2 text-muted-foreground/30">
 								<LuFile className="size-4" />
 								<span>utils.ts</span>
 							</div>
-							<div className="flex items-center gap-2 text-muted-foreground/50">
+							<div className="flex items-center gap-2 text-muted-foreground/30">
 								<LuFile className="size-4" />
 								<span>types.ts</span>
 							</div>
