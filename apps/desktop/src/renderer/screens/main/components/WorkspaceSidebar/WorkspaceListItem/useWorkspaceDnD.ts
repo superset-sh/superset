@@ -69,7 +69,7 @@ export function useWorkspaceDnD({
 		[reorderProjectChildren, reorderWorkspacesInSection, utils],
 	);
 
-	const [{ isDragging }, drag, preview] = useDrag(
+	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_DND_TYPE,
 			item: () => {
@@ -196,5 +196,5 @@ export function useWorkspaceDnD({
 		},
 	});
 
-	return { isDragging, drag, drop, preview };
+	return { isDragging, drag, drop };
 }
