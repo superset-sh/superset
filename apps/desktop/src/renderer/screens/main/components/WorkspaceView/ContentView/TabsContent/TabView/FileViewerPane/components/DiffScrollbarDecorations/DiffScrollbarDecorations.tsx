@@ -3,6 +3,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { useResolvedTheme } from "renderer/stores/theme";
@@ -28,15 +29,42 @@ interface MeasuredRegion {
 	bottom: number;
 }
 
-function measureDiffRegions(container: HTMLDivElement): DiffRegion[] {
-	const lineElements = getDiffShadowRoots(container).flatMap((shadowRoot) =>
+function collectDiffLineElements(container: HTMLDivElement): HTMLElement[] {
+	return getDiffShadowRoots(container).flatMap((shadowRoot) =>
 		Array.from(
 			shadowRoot.querySelectorAll<HTMLElement>(
 				"[data-line-type='change-addition'], [data-line-type='change-deletion']",
 			),
 		),
 	);
+}
 
+function getDiffStructureSignature(
+	container: HTMLDivElement,
+	lineElements: HTMLElement[],
+): string {
+	let hash = 0;
+
+	for (const element of lineElements) {
+		const token = `${element.dataset.lineIndex ?? ""}:${element.dataset.lineType ?? ""}:${element.textContent?.length ?? 0}`;
+		for (let index = 0; index < token.length; index += 1) {
+			hash = (hash << 5) - hash + token.charCodeAt(index);
+			hash |= 0;
+		}
+	}
+
+	return [
+		container.clientWidth,
+		container.scrollHeight,
+		lineElements.length,
+		hash,
+	].join(":");
+}
+
+function measureDiffRegions(
+	container: HTMLDivElement,
+	lineElements: HTMLElement[],
+): DiffRegion[] {
 	if (lineElements.length === 0 || container.scrollHeight === 0) {
 		return [];
 	}
@@ -123,6 +151,7 @@ export function DiffScrollbarDecorations({
 	scrollContainerRef,
 }: DiffScrollbarDecorationsProps) {
 	const activeTheme = useResolvedTheme();
+	const structureSignatureRef = useRef<string | null>(null);
 	const [viewportRatio, setViewportRatio] = useState<{
 		top: number;
 		height: number;
@@ -162,11 +191,22 @@ export function DiffScrollbarDecorations({
 	const updateRegions = useCallback(() => {
 		const container = scrollContainerRef.current;
 		if (!container) {
+			structureSignatureRef.current = null;
 			setRegions([]);
 			return;
 		}
 
-		setRegions(measureDiffRegions(container));
+		const lineElements = collectDiffLineElements(container);
+		const structureSignature = getDiffStructureSignature(
+			container,
+			lineElements,
+		);
+		if (structureSignatureRef.current === structureSignature) {
+			return;
+		}
+
+		structureSignatureRef.current = structureSignature;
+		setRegions(measureDiffRegions(container, lineElements));
 	}, [scrollContainerRef]);
 
 	useEffect(() => {

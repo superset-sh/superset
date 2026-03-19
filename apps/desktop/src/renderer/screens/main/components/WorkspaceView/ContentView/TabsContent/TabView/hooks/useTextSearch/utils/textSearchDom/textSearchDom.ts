@@ -4,21 +4,25 @@ interface SearchTextNode {
 	end: number;
 }
 
-interface SearchRootText {
+export interface SearchRootIndex {
 	text: string;
+	lowerText: string;
 	textNodes: SearchTextNode[];
 }
 
+export type SearchRootIndexCache = WeakMap<Node & ParentNode, SearchRootIndex>;
+
 interface FindTextRangesOptions {
+	indexCache: SearchRootIndexCache;
 	searchRoots: Array<Node & ParentNode>;
 	searchQuery: string;
 	caseSensitive: boolean;
 }
 
-function collectSearchRootText(searchRoot: Node & ParentNode): SearchRootText {
+function collectSearchRootText(searchRoot: Node & ParentNode): SearchRootIndex {
 	const ownerDocument = searchRoot.ownerDocument;
 	if (!ownerDocument) {
-		return { text: "", textNodes: [] };
+		return { text: "", lowerText: "", textNodes: [] };
 	}
 
 	const walker = ownerDocument.createTreeWalker(
@@ -47,7 +51,21 @@ function collectSearchRootText(searchRoot: Node & ParentNode): SearchRootText {
 		});
 	}
 
-	return { text, textNodes };
+	return { text, lowerText: text.toLowerCase(), textNodes };
+}
+
+function getSearchRootIndex(
+	searchRoot: Node & ParentNode,
+	indexCache: SearchRootIndexCache,
+): SearchRootIndex {
+	const cachedIndex = indexCache.get(searchRoot);
+	if (cachedIndex) {
+		return cachedIndex;
+	}
+
+	const index = collectSearchRootText(searchRoot);
+	indexCache.set(searchRoot, index);
+	return index;
 }
 
 function findTextNodeIndexForOffset(
@@ -64,6 +82,7 @@ function findTextNodeIndexForOffset(
 }
 
 export function findTextRanges({
+	indexCache,
 	searchRoots,
 	searchQuery,
 	caseSensitive,
@@ -74,12 +93,15 @@ export function findTextRanges({
 	const ranges: Range[] = [];
 
 	for (const searchRoot of searchRoots) {
-		const { text, textNodes } = collectSearchRootText(searchRoot);
+		const { text, lowerText, textNodes } = getSearchRootIndex(
+			searchRoot,
+			indexCache,
+		);
 		if (textNodes.length === 0) {
 			continue;
 		}
 
-		const searchableText = caseSensitive ? text : text.toLowerCase();
+		const searchableText = caseSensitive ? text : lowerText;
 		let startIdx = 0;
 
 		while (startIdx < searchableText.length) {

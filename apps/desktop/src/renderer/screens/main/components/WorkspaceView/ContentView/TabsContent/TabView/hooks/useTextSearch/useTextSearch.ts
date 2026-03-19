@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	findTextRanges,
 	getHighlightStyleContainers,
+	type SearchRootIndexCache,
 } from "./utils/textSearchDom";
 
 const SEARCH_DEBOUNCE_MS = 150;
@@ -50,12 +51,17 @@ export function useTextSearch({
 	const rangesRef = useRef<Range[]>([]);
 	const activeMatchIndexRef = useRef(0);
 	activeMatchIndexRef.current = activeMatchIndex;
+	const queryRef = useRef(query);
+	queryRef.current = query;
+	const caseSensitiveRef = useRef(caseSensitive);
+	caseSensitiveRef.current = caseSensitive;
 	const wasSearchOpenRef = useRef(false);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const highlightInstanceIdRef = useRef<number | null>(null);
 	const highlightStyleElementsRef = useRef(
 		new Map<HTMLHeadElement | ShadowRoot, HTMLStyleElement>(),
 	);
+	const searchIndexCacheRef = useRef<SearchRootIndexCache>(new WeakMap());
 
 	if (highlightInstanceIdRef.current === null) {
 		highlightInstanceIdRef.current = nextHighlightInstanceId;
@@ -120,6 +126,10 @@ export function useTextSearch({
 		rangesRef.current = [];
 	}, [highlightKeys.active, highlightKeys.matches]);
 
+	const clearSearchIndexCache = useCallback(() => {
+		searchIndexCacheRef.current = new WeakMap();
+	}, []);
+
 	const scrollRangeIntoView = useCallback((range: Range) => {
 		range.startContainer.parentElement?.scrollIntoView({
 			behavior: "smooth",
@@ -141,6 +151,7 @@ export function useTextSearch({
 			ensureHighlightStyles(searchRoots);
 
 			const ranges = findTextRanges({
+				indexCache: searchIndexCacheRef.current,
 				searchRoots,
 				searchQuery,
 				caseSensitive: isCaseSensitive,
@@ -172,6 +183,22 @@ export function useTextSearch({
 			highlightKeys.matches,
 			scrollRangeIntoView,
 		],
+	);
+
+	const scheduleSearch = useCallback(
+		(
+			searchQuery = queryRef.current,
+			isCaseSensitive = caseSensitiveRef.current,
+		) => {
+			if (searchTimerRef.current) {
+				clearTimeout(searchTimerRef.current);
+			}
+
+			searchTimerRef.current = setTimeout(() => {
+				performSearch(searchQuery, isCaseSensitive);
+			}, SEARCH_DEBOUNCE_MS);
+		},
+		[performSearch],
 	);
 
 	const setActiveMatch = useCallback(
@@ -217,25 +244,72 @@ export function useTextSearch({
 		setMatchCount(0);
 		setActiveMatchIndex(0);
 		clearHighlights();
-	}, [clearHighlights]);
+		clearSearchIndexCache();
+	}, [clearHighlights, clearSearchIndexCache]);
 
 	useEffect(() => {
 		if (!isSearchOpen) return;
 
-		if (searchTimerRef.current) {
-			clearTimeout(searchTimerRef.current);
-		}
-
-		searchTimerRef.current = setTimeout(() => {
-			performSearch(query, caseSensitive);
-		}, SEARCH_DEBOUNCE_MS);
+		scheduleSearch(query, caseSensitive);
 
 		return () => {
 			if (searchTimerRef.current) {
 				clearTimeout(searchTimerRef.current);
 			}
 		};
-	}, [caseSensitive, isSearchOpen, performSearch, query]);
+	}, [caseSensitive, isSearchOpen, query, scheduleSearch]);
+
+	useEffect(() => {
+		if (!isSearchOpen) return;
+
+		const container = containerRef.current;
+		if (!container) return;
+
+		let frameId = 0;
+		const observedTargets = new Set<Node>();
+		const observer = new MutationObserver(() => {
+			cancelAnimationFrame(frameId);
+			frameId = requestAnimationFrame(() => {
+				clearSearchIndexCache();
+				observeTargets();
+				scheduleSearch();
+			});
+		});
+		const observeTargets = () => {
+			const targets = new Set<Node>([container]);
+
+			for (const searchRoot of getResolvedSearchRoots()) {
+				const rootNode = searchRoot.getRootNode();
+				targets.add(rootNode instanceof ShadowRoot ? rootNode : searchRoot);
+			}
+
+			for (const target of targets) {
+				if (observedTargets.has(target)) {
+					continue;
+				}
+
+				observer.observe(target, {
+					characterData: true,
+					childList: true,
+					subtree: true,
+				});
+				observedTargets.add(target);
+			}
+		};
+
+		observeTargets();
+
+		return () => {
+			cancelAnimationFrame(frameId);
+			observer.disconnect();
+		};
+	}, [
+		clearSearchIndexCache,
+		containerRef,
+		getResolvedSearchRoots,
+		isSearchOpen,
+		scheduleSearch,
+	]);
 
 	useEffect(() => {
 		if (isSearchOpen) {
@@ -254,11 +328,13 @@ export function useTextSearch({
 		setMatchCount(0);
 		setActiveMatchIndex(0);
 		clearHighlights();
-	}, [isSearchOpen, clearHighlights]);
+		clearSearchIndexCache();
+	}, [isSearchOpen, clearHighlights, clearSearchIndexCache]);
 
 	useEffect(() => {
 		return () => {
 			clearHighlights();
+			clearSearchIndexCache();
 			if (searchTimerRef.current) {
 				clearTimeout(searchTimerRef.current);
 			}
@@ -267,7 +343,7 @@ export function useTextSearch({
 			}
 			highlightStyleElementsRef.current.clear();
 		};
-	}, [clearHighlights]);
+	}, [clearHighlights, clearSearchIndexCache]);
 
 	return {
 		isSearchOpen,
