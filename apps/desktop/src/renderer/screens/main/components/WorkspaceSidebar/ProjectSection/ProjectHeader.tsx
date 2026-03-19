@@ -383,7 +383,7 @@ export function ProjectHeader({
 								<div className="flex items-center gap-2 min-w-0 w-full">
 									<div
 										className={cn(
-											"relative rounded-md shrink-0",
+											"relative rounded shrink-0",
 											branchOnlyStatus === "working" &&
 												"ring-2 ring-amber-500/70 animate-pulse",
 											branchOnlyStatus === "permission" &&
