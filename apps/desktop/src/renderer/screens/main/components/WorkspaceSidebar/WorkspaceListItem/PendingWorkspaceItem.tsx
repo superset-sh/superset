@@ -17,7 +17,9 @@ export function PendingWorkspaceItem() {
 			<div className="flex items-center gap-1 text-muted-foreground shrink-0">
 				<Loader2Icon className="size-3 animate-spin" />
 				<span className="text-xs">
-					{pendingWorkspace.isGeneratingBranchName ? "Generating..." : "Creating..."}
+					{pendingWorkspace.isGeneratingBranchName
+						? "Generating..."
+						: "Creating..."}
 				</span>
 			</div>
 		</div>

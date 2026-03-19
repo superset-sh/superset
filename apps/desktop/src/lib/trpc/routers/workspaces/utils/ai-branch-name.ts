@@ -13,7 +13,10 @@ const INITIAL_CONFLICT_SUFFIX = 2; // Start at -2 since -1 is implicit (no suffi
 /**
  * Checks if a branch name conflicts with existing branches (case-insensitive)
  */
-function hasConflict(branchName: string, existingBranchesSet: Set<string>): boolean {
+function hasConflict(
+	branchName: string,
+	existingBranchesSet: Set<string>,
+): boolean {
 	return existingBranchesSet.has(branchName.toLowerCase());
 }
 

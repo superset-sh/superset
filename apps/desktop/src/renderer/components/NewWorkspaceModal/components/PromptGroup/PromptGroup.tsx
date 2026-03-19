@@ -562,7 +562,8 @@ function PromptGroupInner({
 				? workspaceName.trim()
 				: trimmedPrompt || "New workspace";
 
-		const willGenerateAIName = !branchNameEdited && !!trimmedPrompt && !linkedPR;
+		const willGenerateAIName =
+			!branchNameEdited && !!trimmedPrompt && !linkedPR;
 
 		setPendingWorkspace({
 			projectId,

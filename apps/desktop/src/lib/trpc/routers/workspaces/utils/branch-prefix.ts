@@ -4,7 +4,6 @@ import { localDb } from "main/lib/local-db";
 import { getBranchPrefix, sanitizeAuthorPrefix } from "./git";
 
 type Project = typeof projects.$inferSelect;
-type Settings = typeof settings.$inferSelect | undefined;
 
 /**
  * Resolves the branch prefix for a project, considering:
