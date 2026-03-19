@@ -26,6 +26,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_TELEMETRY_ENABLED,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
@@ -799,14 +800,23 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		// TODO: remove telemetry procedures once telemetry_enabled column is dropped
 		getTelemetryEnabled: publicProcedure.query(() => {
-			return true;
+			const row = getSettings();
+			return row.telemetryEnabled ?? DEFAULT_TELEMETRY_ENABLED;
 		}),
 
 		setTelemetryEnabled: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
-			.mutation(() => {
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, telemetryEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { telemetryEnabled: input.enabled },
+					})
+					.run();
+
 				return { success: true };
 			}),
 	});

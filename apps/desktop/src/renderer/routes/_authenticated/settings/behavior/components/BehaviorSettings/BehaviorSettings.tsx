@@ -262,7 +262,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					</div>
 				)}
 
-				{false && showTelemetry && (
+				{showTelemetry && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="telemetry" className="text-sm font-medium">
@@ -274,7 +274,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						</div>
 						<Switch
 							id="telemetry"
-							checked={telemetryEnabled ?? true}
+							checked={telemetryEnabled ?? false}
 							onCheckedChange={handleTelemetryToggle}
 							disabled={isTelemetryLoading || setTelemetryEnabled.isPending}
 						/>

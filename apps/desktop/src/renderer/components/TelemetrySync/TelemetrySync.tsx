@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { setTelemetryEnabled } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { outlit } from "renderer/lib/outlit";
 import { posthog } from "renderer/lib/posthog";
@@ -9,6 +10,8 @@ export function TelemetrySync() {
 
 	useEffect(() => {
 		if (telemetryEnabled === undefined) return;
+
+		setTelemetryEnabled(telemetryEnabled);
 
 		if (telemetryEnabled) {
 			if (typeof posthog?.opt_in_capturing === "function") {

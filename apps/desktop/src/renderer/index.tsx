@@ -5,6 +5,7 @@ initSentry();
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
 import { BootErrorBoundary } from "./components/BootErrorBoundary";
+import { track } from "./lib/analytics";
 import {
 	cleanupBootErrorHandling,
 	initBootErrorHandling,
@@ -12,9 +13,7 @@ import {
 	markBootMounted,
 	reportBootError,
 } from "./lib/boot-errors";
-import { outlit } from "./lib/outlit";
 import { persistentHistory } from "./lib/persistent-hash-history";
-import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
@@ -34,11 +33,8 @@ const router = createRouter({
 });
 
 const unsubscribe = router.subscribe("onResolved", (event) => {
-	posthog.capture("$pageview", {
+	track("$pageview", {
 		$current_url: event.toLocation.pathname,
-	});
-	outlit.track("pageview", {
-		url: event.toLocation.pathname,
 	});
 });
 
