@@ -1,10 +1,17 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
+import { cn } from "@superset/ui/utils";
 import { useRef } from "react";
-import { HiOutlineMagnifyingGlass, HiXMark } from "react-icons/hi2";
+import {
+	HiOutlineMagnifyingGlass,
+	HiOutlineQueueList,
+	HiOutlineViewColumns,
+	HiXMark,
+} from "react-icons/hi2";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import type { TaskWithStatus } from "../../hooks/useTasksTable";
+import type { ViewMode } from "../../../../stores/tasks-filter-state";
+import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
 import { BacklogIcon } from "../shared/icons/BacklogIcon";
@@ -22,6 +29,8 @@ interface TasksTopBarProps {
 	onAssigneeFilterChange: (value: string | null) => void;
 	selectedTasks?: TaskWithStatus[];
 	onClearSelection?: () => void;
+	viewMode: ViewMode;
+	onViewModeChange: (mode: ViewMode) => void;
 }
 
 const TABS = [
@@ -51,6 +60,8 @@ export function TasksTopBar({
 	onAssigneeFilterChange,
 	selectedTasks = [],
 	onClearSelection,
+	viewMode,
+	onViewModeChange,
 }: TasksTopBarProps) {
 	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
@@ -67,9 +78,9 @@ export function TasksTopBar({
 	const hasSelection = selectedCount > 0;
 
 	return (
-		<div className="flex items-center justify-between border-b border-border px-4 h-11">
+		<div className="flex items-center justify-between border-b border-border px-4 h-11 min-w-0 shrink-0">
 			{/* Left side: tabs/filters or selection actions */}
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2 min-w-0">
 				{hasSelection ? (
 					<>
 						<Button
@@ -122,23 +133,54 @@ export function TasksTopBar({
 				)}
 			</div>
 
-			{/* Search on the right */}
-			<div className="relative w-64">
-				<HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-				<Input
-					ref={searchInputRef}
-					type="text"
-					placeholder="Search tasks..."
-					value={searchQuery}
-					onChange={(e) => onSearchChange(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Escape") {
-							onSearchChange("");
-							searchInputRef.current?.blur();
-						}
-					}}
-					className="h-8 pl-9 pr-3 text-sm bg-muted/50 border-0 focus-visible:ring-1"
-				/>
+			{/* Right side: view toggle + search */}
+			<div className="flex items-center gap-2">
+				<div className="flex items-center rounded-md border bg-muted/30 p-0.5">
+					<button
+						type="button"
+						title="Table view"
+						className={cn(
+							"flex items-center justify-center size-6 rounded-sm transition-colors",
+							viewMode === "table"
+								? "bg-background shadow-sm text-foreground"
+								: "text-muted-foreground hover:text-foreground",
+						)}
+						onClick={() => onViewModeChange("table")}
+					>
+						<HiOutlineQueueList className="size-3.5" />
+					</button>
+					<button
+						type="button"
+						title="Board view"
+						className={cn(
+							"flex items-center justify-center size-6 rounded-sm transition-colors",
+							viewMode === "board"
+								? "bg-background shadow-sm text-foreground"
+								: "text-muted-foreground hover:text-foreground",
+						)}
+						onClick={() => onViewModeChange("board")}
+					>
+						<HiOutlineViewColumns className="size-3.5" />
+					</button>
+				</div>
+
+				<div className="relative w-64">
+					<HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+					<Input
+						ref={searchInputRef}
+						type="text"
+						placeholder="Search tasks..."
+						value={searchQuery}
+						onChange={(e) => onSearchChange(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Escape") {
+								onSearchChange("");
+								searchInputRef.current?.blur();
+							}
+						}}
+						className="h-8 pl-9 pr-3 text-sm bg-muted/50 border-0 focus-visible:ring-1"
+					/>
+				</div>
 			</div>
 		</div>
 	);

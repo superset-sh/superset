@@ -9,6 +9,7 @@ export {
 	createOpenCodeWrapper,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeGlobalSettingsJsonPath,
+	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
 	getCodexGlobalHooksJsonPath,
 	getOpenCodeGlobalPluginPath,

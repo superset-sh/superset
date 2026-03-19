@@ -14,6 +14,7 @@ import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
+import { resolveTrackingRemoteName } from "./upstream-ref";
 
 const execFileAsync = promisify(execFile);
 
@@ -1005,6 +1006,34 @@ export async function hasUnpushedCommits(
 		]);
 		return Number.parseInt(aheadCount.trim(), 10) > 0;
 	} catch {
+		// Upstream ref is gone (e.g. remote branch deleted after merge).
+		// Before falling back to the broad --remotes check, see whether the
+		// branch's patches are already present in the default branch via
+		// cherry-pick detection (handles squash & rebase merges).
+		try {
+			const defaultBranch = await getDefaultBranch(worktreePath);
+			const unmergedPatches = await git.raw([
+				"log",
+				"--cherry-pick",
+				"--right-only",
+				"--no-merges",
+				"--oneline",
+				`origin/${defaultBranch}...HEAD`,
+			]);
+			if (unmergedPatches.trim() === "") {
+				// All patches are already in the default branch
+				return false;
+			}
+		} catch (error) {
+			console.warn(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				{
+					worktreePath,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			);
+		}
+
 		try {
 			const localCommits = await git.raw([
 				"rev-list",
@@ -1064,11 +1093,15 @@ const GIT_ERROR_PATTERNS = {
 		"does not appear to be a git repository",
 		"no such remote",
 		"repository not found",
+		"remote not found",
 		"remote origin not found",
 	],
 } as const;
 
-function categorizeGitError(errorMessage: string): BranchExistsResult {
+function categorizeGitError(
+	errorMessage: string,
+	remoteName: string,
+): BranchExistsResult {
 	const lowerMessage = errorMessage.toLowerCase();
 
 	if (GIT_ERROR_PATTERNS.network.some((p) => lowerMessage.includes(p))) {
@@ -1090,8 +1123,7 @@ function categorizeGitError(errorMessage: string): BranchExistsResult {
 	) {
 		return {
 			status: "error",
-			message:
-				"Remote 'origin' is not configured or the repository was not found.",
+			message: `Remote '${remoteName}' is not configured or the repository was not found.`,
 		};
 	}
 
@@ -1104,6 +1136,7 @@ function categorizeGitError(errorMessage: string): BranchExistsResult {
 export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,
+	remoteName = "origin",
 ): Promise<BranchExistsResult> {
 	const env = await getGitEnv();
 
@@ -1117,7 +1150,7 @@ export async function branchExistsOnRemote(
 				"ls-remote",
 				"--exit-code",
 				"--heads",
-				"origin",
+				remoteName,
 				branchName,
 			],
 			{ env, timeout: 30_000 },
@@ -1170,7 +1203,21 @@ export async function branchExistsOnRemote(
 		// For fatal errors (128) or other codes, categorize using stderr (preferred) or message
 		// stderr contains the actual git error; message may include wrapper text
 		const errorText = error.stderr || error.message || "";
-		return categorizeGitError(errorText);
+		return categorizeGitError(errorText, remoteName);
+	}
+}
+
+export async function getTrackingRemoteNameForWorktree(
+	worktreePath: string,
+): Promise<string> {
+	try {
+		const { stdout } = await execGitWithShellPath(
+			["rev-parse", "--abbrev-ref", "@{upstream}"],
+			{ cwd: worktreePath },
+		);
+		return resolveTrackingRemoteName(stdout);
+	} catch {
+		return "origin";
 	}
 }
 

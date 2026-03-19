@@ -174,7 +174,7 @@ Desktop main process routes `workspace.searchFiles` based on workspace type:
 ```
 packages/chat-service/
   package.json                               deps: fast-glob, fuse.js, @electric-sql/client,
-  tsconfig.json                                    @superset/db, @superset/agent, @superset/durable-session
+  tsconfig.json                                    @superset/db, @superset/durable-session
   src/                                             peerDeps: react, @trpc/react-query
     index.ts                                 barrel: server-side exports
     router/

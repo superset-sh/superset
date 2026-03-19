@@ -2,9 +2,11 @@ import type { SelectProject, SelectWorkspace } from "@superset/local-db";
 import type { electronTrpc } from "renderer/lib/electron-trpc";
 import type { z } from "zod";
 
-export interface CommandResult {
+export interface CommandResult<
+	TData extends Record<string, unknown> = Record<string, unknown>,
+> {
 	success: boolean;
-	data?: Record<string, unknown>;
+	data?: TData;
 	error?: string;
 }
 
@@ -26,7 +28,7 @@ export function buildBulkResult<T>({
 	itemKey: string;
 	allFailedMessage: string;
 	total: number;
-}): CommandResult {
+}): CommandResult<Record<string, unknown>> {
 	const data: Record<string, unknown> = {
 		[itemKey]: items,
 		summary: { total, succeeded: items.length, failed: errors.length },
@@ -59,11 +61,18 @@ export interface ToolContext {
 	getWorkspaces: () => SelectWorkspace[] | undefined;
 	getProjects: () => SelectProject[] | undefined;
 	getActiveWorkspaceId: () => string | null;
+	getWorktreePathByWorkspaceId: (workspaceId: string) => string | undefined;
 }
 
 // Tool definition with schema and execute function
-export interface ToolDefinition<T extends z.ZodType> {
+export interface ToolDefinition<
+	T extends z.ZodType,
+	TResult extends Record<string, unknown> = Record<string, unknown>,
+> {
 	name: string;
 	schema: T;
-	execute: (params: z.infer<T>, ctx: ToolContext) => Promise<CommandResult>;
+	execute: (
+		params: z.infer<T>,
+		ctx: ToolContext,
+	) => Promise<CommandResult<TResult>>;
 }
