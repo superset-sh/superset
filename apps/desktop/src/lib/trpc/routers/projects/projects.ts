@@ -117,6 +117,27 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 			.set({ lastOpenedAt: Date.now(), defaultBranch })
 			.where(eq(projects.id, existing.id))
 			.run();
+
+		// Discover favicon if no icon is set yet (fire-and-forget)
+		if (!existing.iconUrl) {
+			discoverAndSaveProjectIcon({
+				projectId: existing.id,
+				repoPath: mainRepoPath,
+			})
+				.then((iconUrl) => {
+					if (iconUrl) {
+						localDb
+							.update(projects)
+							.set({ iconUrl })
+							.where(eq(projects.id, existing.id))
+							.run();
+					}
+				})
+				.catch((err) => {
+					console.error("[upsertProject] Favicon discovery failed:", err);
+				});
+		}
+
 		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
 	}
 
@@ -130,6 +151,24 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		})
 		.returning()
 		.get();
+
+	// Discover favicon for new project (fire-and-forget)
+	discoverAndSaveProjectIcon({
+		projectId: project.id,
+		repoPath: mainRepoPath,
+	})
+		.then((iconUrl) => {
+			if (iconUrl) {
+				localDb
+					.update(projects)
+					.set({ iconUrl })
+					.where(eq(projects.id, project.id))
+					.run();
+			}
+		})
+		.catch((err) => {
+			console.error("[upsertProject] Favicon discovery failed:", err);
+		});
 
 	return project;
 }
