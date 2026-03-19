@@ -1,18 +1,25 @@
 import { Button } from "@superset/ui/button";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import {
-	LuExpand,
 	LuFile,
 	LuGitCompareArrows,
-	LuShrink,
+	LuPanelLeft,
+	LuPanelRight,
 	LuX,
 } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
+	type PanelSide,
 	RightSidebarTab,
 	SidebarMode,
 	useSidebarStore,
@@ -78,7 +85,11 @@ function TabButton({
 	);
 }
 
-export function RightSidebar() {
+interface RightSidebarProps {
+	side?: PanelSide;
+}
+
+export function RightSidebar({ side = "right" }: RightSidebarProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -90,13 +101,42 @@ export function RightSidebar() {
 	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const setMode = useSidebarStore((s) => s.setMode);
+	const setTabPosition = useSidebarStore((s) => s.setTabPosition);
+	const tabPositions = useSidebarStore((s) => s.tabPositions);
 	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
+	const leftPanelWidth = useSidebarStore((s) => s.leftPanelWidth);
 	const isExpanded = currentMode === SidebarMode.Changes;
-	const compactTabs = sidebarWidth < 250;
-	const showChangesTab = !!worktreePath;
+	const panelWidth = side === "left" ? leftPanelWidth : sidebarWidth;
+	const compactTabs = panelWidth < 250;
+	const showChangesTab =
+		!!worktreePath && tabPositions[RightSidebarTab.Changes] === side;
+	const showFilesTab = tabPositions[RightSidebarTab.Files] === side;
+	const oppositeSide: PanelSide = side === "left" ? "right" : "left";
 
 	const handleExpandToggle = () => {
 		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+	};
+
+	const handleClosePanel = () => {
+		if (side === "right") {
+			// Move any lone tab back to right before closing
+			const tabsOnRight = Object.entries(tabPositions).filter(
+				([, s]) => s === "right",
+			);
+			if (tabsOnRight.length <= 1) {
+				// Reset all tabs to right so nothing is stranded
+				setTabPosition(RightSidebarTab.Changes, "right");
+				setTabPosition(RightSidebarTab.Files, "right");
+			}
+			toggleSidebar();
+		} else {
+			// Left panel: move all tabs on the left back to right, panel disappears
+			for (const [tab, tabSide] of Object.entries(tabPositions)) {
+				if (tabSide === "left") {
+					setTabPosition(tab as RightSidebarTab, "right");
+				}
+			}
+		}
 	};
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
@@ -169,21 +209,63 @@ export function RightSidebar() {
 			<div className="flex items-center bg-background shrink-0 h-10 border-b">
 				<div className="flex items-center h-full">
 					{showChangesTab && (
-						<TabButton
-							isActive={rightSidebarTab === RightSidebarTab.Changes}
-							onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
-							icon={<LuGitCompareArrows className="size-3.5" />}
-							label="Changes"
-							compact={compactTabs}
-						/>
+						<ContextMenu>
+							<ContextMenuTrigger asChild>
+								<div className="h-full">
+									<TabButton
+										isActive={rightSidebarTab === RightSidebarTab.Changes}
+										onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
+										icon={<LuGitCompareArrows className="size-3.5" />}
+										label="Changes"
+										compact={compactTabs}
+									/>
+								</div>
+							</ContextMenuTrigger>
+							<ContextMenuContent>
+								<ContextMenuItem
+									onSelect={() =>
+										setTabPosition(RightSidebarTab.Changes, oppositeSide)
+									}
+								>
+									{oppositeSide === "left" ? (
+										<LuPanelLeft className="size-4 mr-2" />
+									) : (
+										<LuPanelRight className="size-4 mr-2" />
+									)}
+									Move to {oppositeSide === "left" ? "Left" : "Right"}
+								</ContextMenuItem>
+							</ContextMenuContent>
+						</ContextMenu>
 					)}
-					<TabButton
-						isActive={rightSidebarTab === RightSidebarTab.Files}
-						onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
-						icon={<LuFile className="size-3.5" />}
-						label="Files"
-						compact={compactTabs}
-					/>
+					{showFilesTab && (
+						<ContextMenu>
+							<ContextMenuTrigger asChild>
+								<div className="h-full">
+									<TabButton
+										isActive={rightSidebarTab === RightSidebarTab.Files}
+										onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
+										icon={<LuFile className="size-3.5" />}
+										label="Files"
+										compact={compactTabs}
+									/>
+								</div>
+							</ContextMenuTrigger>
+							<ContextMenuContent>
+								<ContextMenuItem
+									onSelect={() =>
+										setTabPosition(RightSidebarTab.Files, oppositeSide)
+									}
+								>
+									{oppositeSide === "left" ? (
+										<LuPanelLeft className="size-4 mr-2" />
+									) : (
+										<LuPanelRight className="size-4 mr-2" />
+									)}
+									Move to {oppositeSide === "left" ? "Left" : "Right"}
+								</ContextMenuItem>
+							</ContextMenuContent>
+						</ContextMenu>
+					)}
 				</div>
 				<div className="flex-1" />
 				<div className="flex items-center h-10 pr-2 gap-0.5">
@@ -192,29 +274,7 @@ export function RightSidebar() {
 							<Button
 								variant="ghost"
 								size="icon"
-								onClick={handleExpandToggle}
-								className="size-6 p-0"
-							>
-								{isExpanded ? (
-									<LuShrink className="size-3.5" />
-								) : (
-									<LuExpand className="size-3.5" />
-								)}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyTooltipContent
-								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-								hotkeyId="TOGGLE_EXPAND_SIDEBAR"
-							/>
-						</TooltipContent>
-					</Tooltip>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={toggleSidebar}
+								onClick={handleClosePanel}
 								className="size-6 p-0"
 							>
 								<LuX className="size-3.5" />
@@ -222,7 +282,7 @@ export function RightSidebar() {
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
 							<HotkeyTooltipContent
-								label="Close sidebar"
+								label={side === "left" ? "Close left panel" : "Close sidebar"}
 								hotkeyId="TOGGLE_SIDEBAR"
 							/>
 						</TooltipContent>
@@ -241,18 +301,22 @@ export function RightSidebar() {
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
 						isActive={rightSidebarTab === RightSidebarTab.Changes}
+						isExpanded={isExpanded}
+						onExpandToggle={handleExpandToggle}
 					/>
 				</div>
 			)}
-			<div
-				className={
-					rightSidebarTab === RightSidebarTab.Changes && showChangesTab
-						? "hidden"
-						: "flex-1 min-h-0 flex flex-col overflow-hidden"
-				}
-			>
-				<FilesView />
-			</div>
+			{showFilesTab && (
+				<div
+					className={
+						rightSidebarTab === RightSidebarTab.Changes && showChangesTab
+							? "hidden"
+							: "flex-1 min-h-0 flex flex-col overflow-hidden"
+					}
+				>
+					<FilesView />
+				</div>
+			)}
 		</aside>
 	);
 }

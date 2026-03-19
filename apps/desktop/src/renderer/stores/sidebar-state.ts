@@ -15,6 +15,8 @@ export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const MIN_SIDEBAR_WIDTH = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
 
+export type PanelSide = "left" | "right";
+
 interface SidebarState {
 	isSidebarOpen: boolean;
 	sidebarWidth: number;
@@ -23,12 +25,18 @@ interface SidebarState {
 	lastMode: SidebarMode;
 	isResizing: boolean;
 	rightSidebarTab: RightSidebarTab;
+	/** Which side each tab is docked on */
+	tabPositions: Record<RightSidebarTab, PanelSide>;
+	/** Width of the left panel (when tabs are docked left) */
+	leftPanelWidth: number;
 	toggleSidebar: () => void;
 	setSidebarOpen: (open: boolean) => void;
 	setSidebarWidth: (width: number) => void;
 	setMode: (mode: SidebarMode) => void;
 	setIsResizing: (isResizing: boolean) => void;
 	setRightSidebarTab: (tab: RightSidebarTab) => void;
+	setTabPosition: (tab: RightSidebarTab, side: PanelSide) => void;
+	setLeftPanelWidth: (width: number) => void;
 }
 
 export const useSidebarStore = create<SidebarState>()(
@@ -42,6 +50,11 @@ export const useSidebarStore = create<SidebarState>()(
 				lastMode: SidebarMode.Tabs,
 				isResizing: false,
 				rightSidebarTab: RightSidebarTab.Changes,
+				tabPositions: {
+					[RightSidebarTab.Changes]: "right",
+					[RightSidebarTab.Files]: "right",
+				},
+				leftPanelWidth: DEFAULT_SIDEBAR_WIDTH,
 
 				toggleSidebar: () => {
 					const { isSidebarOpen, lastOpenSidebarWidth, currentMode, lastMode } =
@@ -121,6 +134,21 @@ export const useSidebarStore = create<SidebarState>()(
 
 				setRightSidebarTab: (tab) => {
 					set({ rightSidebarTab: tab });
+				},
+
+				setTabPosition: (tab, side) => {
+					const { tabPositions } = get();
+					set({
+						tabPositions: { ...tabPositions, [tab]: side },
+					});
+				},
+
+				setLeftPanelWidth: (width) => {
+					const clamped = Math.max(
+						MIN_SIDEBAR_WIDTH,
+						Math.min(MAX_SIDEBAR_WIDTH, width),
+					);
+					set({ leftPanelWidth: clamped });
 				},
 			}),
 			{

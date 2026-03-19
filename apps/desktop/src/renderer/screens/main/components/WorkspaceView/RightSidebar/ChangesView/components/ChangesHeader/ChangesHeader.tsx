@@ -17,6 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LuExpand, LuShrink } from "react-icons/lu";
 import {
 	VscCheck,
 	VscGitStash,
@@ -44,6 +45,8 @@ interface ChangesHeaderProps {
 	onStashIncludeUntracked: () => void;
 	onStashPop: () => void;
 	isStashPending: boolean;
+	isExpanded?: boolean;
+	onExpandToggle?: () => void;
 }
 
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
@@ -288,6 +291,8 @@ export function ChangesHeader({
 	onStashIncludeUntracked,
 	onStashPop,
 	isStashPending,
+	isExpanded,
+	onExpandToggle,
 }: ChangesHeaderProps) {
 	return (
 		<div className="flex items-center gap-0.5 px-2 py-1.5">
@@ -300,6 +305,27 @@ export function ChangesHeader({
 			/>
 			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
 			<RefreshButton onRefresh={onRefresh} />
+			{onExpandToggle && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={onExpandToggle}
+							className="size-6 p-0"
+						>
+							{isExpanded ? (
+								<LuShrink className="size-3.5" />
+							) : (
+								<LuExpand className="size-3.5" />
+							)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="top" showArrow={false}>
+						{isExpanded ? "Collapse" : "Expand"}
+					</TooltipContent>
+				</Tooltip>
+			)}
 			{pr && pr.state === "open" && (
 				<ReviewTag
 					status={pr.reviewDecision}
