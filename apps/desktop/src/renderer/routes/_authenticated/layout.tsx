@@ -15,6 +15,7 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { ConnectedWorktreeChoiceDialog } from "renderer/components/WorktreeChoiceDialog/ConnectedWorktreeChoiceDialog";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -162,6 +163,7 @@ function AuthenticatedLayout() {
 						<NewWorkspaceModal />
 					)}
 					<InitGitDialog />
+					<ConnectedWorktreeChoiceDialog />
 					<TeardownLogsDialog />
 					<Paywall />
 				</HostServiceProvider>

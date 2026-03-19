@@ -1,10 +1,12 @@
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSectionDropZone } from "../hooks";
@@ -37,6 +39,7 @@ interface ProjectSectionProps {
 	mainRepoPath: string;
 	hideImage: boolean;
 	iconUrl: string | null;
+	worktreeMode: string | null;
 	workspaces: SidebarWorkspace[];
 	sections: SidebarSection[];
 	topLevelItems: {
@@ -44,11 +47,8 @@ interface ProjectSectionProps {
 		kind: "workspace" | "section";
 		tabOrder: number;
 	}[];
-	/** Base index for keyboard shortcuts (0-based) */
 	shortcutBaseIndex: number;
-	/** Index for drag-and-drop reordering */
 	index: number;
-	/** Whether the sidebar is in collapsed mode */
 	isCollapsed?: boolean;
 }
 
@@ -60,6 +60,7 @@ export function ProjectSection({
 	mainRepoPath,
 	hideImage,
 	iconUrl,
+	worktreeMode,
 	workspaces,
 	sections,
 	topLevelItems,
@@ -70,6 +71,7 @@ export function ProjectSection({
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
 	const openModal = useOpenNewWorkspaceModal();
+	const navigate = useNavigate();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 
@@ -77,6 +79,24 @@ export function ProjectSection({
 	const totalWorkspaceCount =
 		workspaces.length +
 		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
+
+	const isBranchOnly = worktreeMode === "disabled";
+	const hasWorktrees = !isBranchOnly;
+
+	const matchRoute = useMatchRoute();
+	const isBranchOnlyActive =
+		isBranchOnly &&
+		workspaces.length > 0 &&
+		!!matchRoute({
+			to: "/workspace/$workspaceId",
+			params: { workspaceId: workspaces[0].id },
+		});
+
+	const handleNavigateToWorkspace = () => {
+		if (isBranchOnly && workspaces.length > 0) {
+			navigateToWorkspace(workspaces[0].id, navigate);
+		}
+	};
 
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
 		const topLevelWorkspacesById = new Map(
@@ -197,6 +217,9 @@ export function ProjectSection({
 		},
 	});
 
+	// For branch-only projects, always show workspace (no collapse needed)
+	const showWorkspaces = isBranchOnly || !isCollapsed;
+
 	if (isSidebarCollapsed) {
 		return (
 			<div
@@ -222,9 +245,13 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
+					hasWorktrees={hasWorktrees}
+					isBranchOnly={isBranchOnly}
+					isActive={isBranchOnlyActive}
+					onNavigateToWorkspace={handleNavigateToWorkspace}
 				/>
 				<AnimatePresence initial={false}>
-					{!isCollapsed && (
+					{showWorkspaces && (
 						<motion.div
 							initial={{ height: 0, opacity: 0 }}
 							animate={{ height: "auto", opacity: 1 }}
@@ -300,68 +327,84 @@ export function ProjectSection({
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 				workspaceCount={totalWorkspaceCount}
 				onNewWorkspace={handleNewWorkspace}
+				hasWorktrees={hasWorktrees}
+				isBranchOnly={isBranchOnly}
+				branchOnlyBranch={
+					isBranchOnly && workspaces.length > 0
+						? workspaces[0].branch
+						: undefined
+				}
+				branchOnlyWorktreePath={
+					isBranchOnly && workspaces.length > 0
+						? workspaces[0].worktreePath
+						: undefined
+				}
+				isActive={isBranchOnlyActive}
+				onNavigateToWorkspace={handleNavigateToWorkspace}
 			/>
 
-			<AnimatePresence initial={false}>
-				{!isCollapsed && (
-					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: "auto", opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.15, ease: "easeOut" }}
-						className="overflow-hidden"
-					>
-						<div className="pb-1">
-							{topLevelChildren.length === 0 && (
-								<div
-									{...ungroupedDropZone.handlers}
-									className={cn(
-										"transition-colors rounded-sm min-h-8",
-										ungroupedDropZone.isDropTarget &&
-											!ungroupedDropZone.isDragOver &&
-											"border border-dashed border-primary/20",
-										ungroupedDropZone.isDragOver &&
-											"bg-primary/5 border-solid border-primary/30",
-									)}
-								/>
-							)}
-							{topLevelChildren.map((item) =>
-								item.kind === "workspace" ? (
-									<WorkspaceListItem
-										key={item.workspace.id}
-										id={item.workspace.id}
-										projectId={item.workspace.projectId}
-										worktreePath={item.workspace.worktreePath}
-										name={item.workspace.name}
-										branch={item.workspace.branch}
-										type={item.workspace.type}
-										isUnread={item.workspace.isUnread}
-										index={item.topLevelIndex}
-										shortcutIndex={item.shortcutIndex}
-										sectionId={null}
-										sections={sections}
-										orderedWorkspaceIds={orderedWorkspaceIds}
+			{!isBranchOnly && (
+				<AnimatePresence initial={false}>
+					{showWorkspaces && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							exit={{ height: 0, opacity: 0 }}
+							transition={{ duration: 0.15, ease: "easeOut" }}
+							className="overflow-hidden"
+						>
+							<div className="pb-1">
+								{!isBranchOnly && topLevelChildren.length === 0 && (
+									<div
+										{...ungroupedDropZone.handlers}
+										className={cn(
+											"transition-colors rounded-sm min-h-8",
+											ungroupedDropZone.isDropTarget &&
+												!ungroupedDropZone.isDragOver &&
+												"border border-dashed border-primary/20",
+											ungroupedDropZone.isDragOver &&
+												"bg-primary/5 border-solid border-primary/30",
+										)}
 									/>
-								) : (
-									<WorkspaceSection
-										key={item.section.id}
-										sectionId={item.section.id}
-										projectId={projectId}
-										index={item.topLevelIndex}
-										name={item.section.name}
-										isCollapsed={item.section.isCollapsed}
-										color={item.section.color}
-										workspaces={item.section.workspaces}
-										shortcutBaseIndex={item.shortcutBaseIndex}
-										allSections={sections}
-										orderedWorkspaceIds={orderedWorkspaceIds}
-									/>
-								),
-							)}
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
+								)}
+								{topLevelChildren.map((item) =>
+									item.kind === "workspace" ? (
+										<WorkspaceListItem
+											key={item.workspace.id}
+											id={item.workspace.id}
+											projectId={item.workspace.projectId}
+											worktreePath={item.workspace.worktreePath}
+											name={item.workspace.name}
+											branch={item.workspace.branch}
+											type={item.workspace.type}
+											isUnread={item.workspace.isUnread}
+											index={item.topLevelIndex}
+											shortcutIndex={item.shortcutIndex}
+											sectionId={null}
+											sections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									) : (
+										<WorkspaceSection
+											key={item.section.id}
+											sectionId={item.section.id}
+											projectId={projectId}
+											index={item.topLevelIndex}
+											name={item.section.name}
+											isCollapsed={item.section.isCollapsed}
+											color={item.section.color}
+											workspaces={item.section.workspaces}
+											shortcutBaseIndex={item.shortcutBaseIndex}
+											allSections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									),
+								)}
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			)}
 		</div>
 	);
 }

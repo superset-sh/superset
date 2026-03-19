@@ -8,44 +8,40 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 
-interface CloseProjectDialogProps {
-	projectName: string;
-	workspaceCount: number;
-	hasWorktrees: boolean;
+interface CloseWorkspaceDialogProps {
+	workspaceName: string;
+	isWorktree: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onConfirm: (options: { deleteWorktrees: boolean }) => void;
+	onConfirm: (options: { moveToTrash: boolean }) => void;
 }
 
-export function CloseProjectDialog({
-	projectName,
-	workspaceCount,
-	hasWorktrees,
+export function CloseWorkspaceDialog({
+	workspaceName,
+	isWorktree,
 	open,
 	onOpenChange,
 	onConfirm,
-}: CloseProjectDialogProps) {
+}: CloseWorkspaceDialogProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className="max-w-[420px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-3">
 					<AlertDialogTitle className="font-medium">
-						Close project "{projectName}"?
+						Close workspace "{workspaceName}"?
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="text-muted-foreground space-y-1.5">
 							<span className="block">
-								This will close {workspaceCount} workspace
-								{workspaceCount !== 1 ? "s" : ""} and kill all active terminals
-								in this project.
+								This will kill all active terminals in this workspace.
 							</span>
-							{hasWorktrees && (
+							{isWorktree && (
 								<span className="block text-xs">
-									<strong>Close Project</strong> removes the project from the
-									sidebar. Worktree files stay on disk.
+									<strong>Close Workspace</strong> removes the workspace from
+									the sidebar. Worktree files stay on disk.
 									<br />
-									<strong>Recycle Worktrees</strong> closes the project and moves
-									all worktree folders to Trash.
+									<strong>Recycle Worktree</strong> closes the workspace and
+									moves the worktree folder to Trash.
 								</span>
 							)}
 						</div>
@@ -67,22 +63,22 @@ export function CloseProjectDialog({
 						className="h-7 px-3 text-xs"
 						onClick={() => {
 							onOpenChange(false);
-							onConfirm({ deleteWorktrees: false });
+							onConfirm({ moveToTrash: false });
 						}}
 					>
-						Close Project
+						Close Workspace
 					</Button>
-					{hasWorktrees && (
+					{isWorktree && (
 						<Button
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
 							onClick={() => {
 								onOpenChange(false);
-								onConfirm({ deleteWorktrees: true });
+								onConfirm({ moveToTrash: true });
 							}}
 						>
-							Recycle Worktrees
+							Recycle Worktree
 						</Button>
 					)}
 				</AlertDialogFooter>
