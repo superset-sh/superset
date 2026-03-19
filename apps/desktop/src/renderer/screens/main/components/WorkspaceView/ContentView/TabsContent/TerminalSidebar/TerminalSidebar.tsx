@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { LuPlus } from "react-icons/lu";
@@ -9,7 +10,15 @@ import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { pickHigherStatus } from "shared/tabs-types";
 import { TerminalSidebarItem } from "./components/TerminalSidebarItem";
 
-export function TerminalSidebar() {
+interface TerminalSidebarProps {
+	className?: string;
+	embedded?: boolean;
+}
+
+export function TerminalSidebar({
+	className,
+	embedded = false,
+}: TerminalSidebarProps = {}) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const tabs = useTabsStore((state) => state.tabs);
 	const panes = useTabsStore((state) => state.panes);
@@ -66,7 +75,13 @@ export function TerminalSidebar() {
 	}
 
 	return (
-		<aside className="flex h-full w-72 shrink-0 flex-col border-r bg-background/80">
+		<aside
+			className={cn(
+				"flex h-full min-h-0 flex-col bg-background/80",
+				embedded ? "w-full" : "w-72 shrink-0 border-r",
+				className,
+			)}
+		>
 			<div className="flex items-center justify-between gap-2 border-b px-3 py-2">
 				<div className="min-w-0">
 					<div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

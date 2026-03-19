@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
-import { TerminalSidebar } from "./TerminalSidebar";
 import { TabView } from "./TabView";
 
 interface TabsContentProps {
@@ -47,12 +46,9 @@ export function TabsContent({
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
 			{tabToRender ? (
-				<>
-					<TerminalSidebar />
-					<div className="min-w-0 flex-1">
-						<TabView tab={tabToRender} />
-					</div>
-				</>
+				<div className="min-w-0 flex-1">
+					<TabView tab={tabToRender} />
+				</div>
 			) : (
 				<EmptyTabView
 					defaultExternalApp={defaultExternalApp}
