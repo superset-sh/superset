@@ -109,6 +109,11 @@ function AuthenticatedLayout() {
 		},
 	});
 
+	// Terminal zoom via menu/hotkeys
+	const setFontSettings = electronTrpc.settings.setFontSettings.useMutation({
+		onSuccess: () => utils.settings.getFontSettings.invalidate(),
+	});
+
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -117,6 +122,26 @@ function AuthenticatedLayout() {
 				navigate({ to: `/settings/${section}` as "/settings/account" });
 			} else if (event.type === "open-workspace") {
 				navigate({ to: `/workspace/${event.data.workspaceId}` });
+			} else if (
+				event.type === "terminal-zoom-in" ||
+				event.type === "terminal-zoom-out"
+			) {
+				const delta = event.type === "terminal-zoom-in" ? 1 : -1;
+				utils.settings.getFontSettings
+					.fetch()
+					.then((fontSettings) => {
+						const current = fontSettings?.terminalFontSize ?? 14;
+						const next = Math.max(10, Math.min(24, current + delta));
+						if (next !== current) {
+							setFontSettings.mutate({ terminalFontSize: next });
+						}
+					})
+					.catch((error: unknown) => {
+						console.error(
+							"[terminal-zoom] Failed to fetch font settings:",
+							error,
+						);
+					});
 			}
 		},
 	});
