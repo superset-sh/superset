@@ -30,7 +30,7 @@ interface FileTreeItemProps {
 	indent: number;
 	worktreePath: string;
 	projectId?: string;
-	onActivate: (entry: DirectoryEntry) => void;
+	onActivate: (entry: DirectoryEntry, openInNewTab?: boolean) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
 	onNewFolder: (parentPath: string) => void;
@@ -79,7 +79,7 @@ export function FileTreeItem({
 				item.expand();
 			}
 		} else {
-			onActivate(entry);
+			onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 		}
 	};
 
@@ -98,7 +98,7 @@ export function FileTreeItem({
 					item.expand();
 				}
 			} else {
-				onActivate(entry);
+				onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 			}
 		}
 	};

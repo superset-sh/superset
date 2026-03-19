@@ -1,0 +1,1 @@
+export { DiffScrollbarDecorations } from "./DiffScrollbarDecorations";

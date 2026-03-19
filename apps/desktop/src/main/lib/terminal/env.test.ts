@@ -583,6 +583,7 @@ describe("env", () => {
 			"DATABASE_URL",
 			"CLERK_SECRET_KEY",
 			"SSL_CERT_FILE",
+			"SUPERSET_HOME_DIR",
 		];
 
 		beforeEach(() => {
@@ -696,6 +697,12 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 				expect(result.SUPERSET_PORT).toBeDefined();
 				expect(typeof result.SUPERSET_PORT).toBe("string");
+			});
+
+			it("should preserve SUPERSET_HOME_DIR for app-launched hooks", () => {
+				process.env.SUPERSET_HOME_DIR = "/tmp/superset-home";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_HOME_DIR).toBe("/tmp/superset-home");
 			});
 		});
 

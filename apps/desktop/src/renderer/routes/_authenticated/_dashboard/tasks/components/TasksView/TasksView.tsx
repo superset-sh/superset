@@ -1,14 +1,14 @@
 import { Spinner } from "@superset/ui/spinner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HiCheckCircle } from "react-icons/hi2";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
+import { BoardContent } from "./components/BoardContent";
 import { LinearCTA } from "./components/LinearCTA";
-import { TasksTableView } from "./components/TasksTableView";
+import { TableContent } from "./components/TableContent";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
-import { type TaskWithStatus, useTasksTable } from "./hooks/useTasksTable";
+import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
 	initialTab?: "all" | "active" | "backlog";
@@ -31,6 +31,8 @@ export function TasksView({
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
+		viewMode,
+		setViewMode,
 	} = useTasksFilterStore();
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -89,32 +91,12 @@ export function TasksView({
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
-	const { table, isLoading, slugColumnWidth, rowSelection, setRowSelection } =
-		useTasksTable({
-			filterTab: currentTab,
-			searchQuery,
-			assigneeFilter,
-		});
-
-	const selectedTasks = useMemo(() => {
-		if (!Object.values(rowSelection).some(Boolean)) return [];
-
-		return table
-			.getRowModel()
-			.rows.filter((row) => row.getIsSelected() && !row.getIsGrouped())
-			.map((row) => row.original);
-	}, [rowSelection, table]);
-
 	const handleTabChange = (tab: TabValue) => {
 		const search: Record<string, string> = {};
 		if (tab !== "all") search.tab = tab;
 		if (assigneeFilter) search.assignee = assigneeFilter;
 		if (searchQuery) search.search = searchQuery;
-		navigate({
-			to: "/tasks",
-			search,
-			replace: true,
-		});
+		navigate({ to: "/tasks", search, replace: true });
 	};
 
 	const handleAssigneeFilterChange = (assignee: string | null) => {
@@ -122,11 +104,7 @@ export function TasksView({
 		if (currentTab !== "all") search.tab = currentTab;
 		if (assignee) search.assignee = assignee;
 		if (searchQuery) search.search = searchQuery;
-		navigate({
-			to: "/tasks",
-			search,
-			replace: true,
-		});
+		navigate({ to: "/tasks", search, replace: true });
 	};
 
 	const handleTaskClick = (task: TaskWithStatus) => {
@@ -141,19 +119,10 @@ export function TasksView({
 		});
 	};
 
-	const handleClearSelection = () => {
-		setRowSelection({});
-	};
-
-	const showLoading = isLoading || isCheckingLinear;
-	const showLinearCTA = !showLoading && !isLinearConnected;
-	const showEmptyState =
-		!showLoading && isLinearConnected && table.getRowModel().rows.length === 0;
-	const showTable =
-		!showLoading && isLinearConnected && table.getRowModel().rows.length > 0;
+	const showLinearCTA = !isCheckingLinear && !isLinearConnected;
 
 	return (
-		<div className="flex-1 flex flex-col min-h-0">
+		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
 			{!showLinearCTA && (
 				<TasksTopBar
 					currentTab={currentTab}
@@ -162,31 +131,32 @@ export function TasksView({
 					onSearchChange={handleSearchChange}
 					assigneeFilter={assigneeFilter}
 					onAssigneeFilterChange={handleAssigneeFilterChange}
-					selectedTasks={selectedTasks}
-					onClearSelection={handleClearSelection}
+					viewMode={viewMode}
+					onViewModeChange={setViewMode}
 				/>
 			)}
 
-			{showLoading ? (
+			{isCheckingLinear ? (
 				<div className="flex-1 flex items-center justify-center">
 					<Spinner className="size-5" />
 				</div>
 			) : showLinearCTA ? (
 				<LinearCTA />
-			) : showEmptyState ? (
-				<div className="flex-1 flex items-center justify-center">
-					<div className="flex flex-col items-center gap-2 text-muted-foreground">
-						<HiCheckCircle className="h-8 w-8" />
-						<span className="text-sm">No tasks found</span>
-					</div>
-				</div>
-			) : showTable ? (
-				<TasksTableView
-					table={table}
-					slugColumnWidth={slugColumnWidth}
+			) : viewMode === "board" ? (
+				<BoardContent
+					filterTab={currentTab}
+					searchQuery={searchQuery}
+					assigneeFilter={assigneeFilter}
 					onTaskClick={handleTaskClick}
 				/>
-			) : null}
+			) : (
+				<TableContent
+					filterTab={currentTab}
+					searchQuery={searchQuery}
+					assigneeFilter={assigneeFilter}
+					onTaskClick={handleTaskClick}
+				/>
+			)}
 		</div>
 	);
 }

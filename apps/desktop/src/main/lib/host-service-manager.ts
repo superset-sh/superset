@@ -22,7 +22,7 @@ interface PendingStart {
 	resolve: (port: number) => void;
 	reject: (error: Error) => void;
 	startupTimeout?: ReturnType<typeof setTimeout>;
-	onStdoutData?: (data: Buffer) => void;
+	onMessage?: (message: unknown) => void;
 }
 
 const MAX_RESTART_DELAY = 30_000;
@@ -127,13 +127,13 @@ export class HostServiceManager {
 			}
 
 			const child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				stdio: ["ignore", "pipe", "pipe"],
+				stdio: ["ignore", "pipe", "pipe", "ipc"],
 				env,
 			});
 			instance.process = child;
 
 			this.attachProcessHandlers(instance, child);
-			this.attachStartupPortListener(instance, pendingStart);
+			this.attachStartupReadyListener(instance, pendingStart);
 			return pendingStart.promise;
 		} catch (error) {
 			if (
@@ -177,6 +177,10 @@ export class HostServiceManager {
 	): void {
 		const { organizationId } = instance;
 
+		child.stdout?.on("data", (data: Buffer) => {
+			console.log(`[host-service:${organizationId}] ${data.toString().trim()}`);
+		});
+
 		child.stderr?.on("data", (data: Buffer) => {
 			console.error(
 				`[host-service:${organizationId}] ${data.toString().trim()}`,
@@ -219,38 +223,33 @@ export class HostServiceManager {
 		this.scheduleRestart(instance.organizationId);
 	}
 
-	private attachStartupPortListener(
+	private attachStartupReadyListener(
 		instance: HostServiceProcess,
 		pendingStart: PendingStart,
 	): void {
-		let buffer = "";
-		const onData = (data: Buffer) => {
-			buffer += data.toString();
-			const newlineIdx = buffer.indexOf("\n");
-			if (newlineIdx === -1) return;
-
-			const line = buffer.slice(0, newlineIdx);
-			this.clearPendingStart(instance.organizationId, pendingStart);
-
-			try {
-				const parsed = JSON.parse(line) as { port: number };
-				instance.port = parsed.port;
-				instance.status = "running";
-				console.log(
-					`[host-service:${instance.organizationId}] listening on port ${parsed.port}`,
-				);
-				pendingStart.resolve(parsed.port);
-			} catch {
-				this.failStartup(
-					instance,
-					pendingStart,
-					new Error(`Failed to parse port from host-service: ${line}`),
-				);
+		const onMessage = (message: unknown) => {
+			if (
+				typeof message !== "object" ||
+				message === null ||
+				!("type" in message) ||
+				!("port" in message) ||
+				message.type !== "ready" ||
+				typeof message.port !== "number"
+			) {
+				return;
 			}
+
+			this.clearPendingStart(instance.organizationId, pendingStart);
+			instance.port = message.port;
+			instance.status = "running";
+			console.log(
+				`[host-service:${instance.organizationId}] listening on port ${message.port}`,
+			);
+			pendingStart.resolve(message.port);
 		};
 
-		pendingStart.onStdoutData = onData;
-		instance.process?.stdout?.on("data", onData);
+		pendingStart.onMessage = onMessage;
+		instance.process?.on("message", onMessage);
 		pendingStart.startupTimeout = setTimeout(() => {
 			this.failStartup(
 				instance,
@@ -274,9 +273,9 @@ export class HostServiceManager {
 	): void {
 		const instance = this.instances.get(organizationId);
 
-		if (pendingStart.onStdoutData) {
-			instance?.process?.stdout?.off("data", pendingStart.onStdoutData);
-			pendingStart.onStdoutData = undefined;
+		if (pendingStart.onMessage) {
+			instance?.process?.off("message", pendingStart.onMessage);
+			pendingStart.onMessage = undefined;
 		}
 		if (pendingStart.startupTimeout) {
 			clearTimeout(pendingStart.startupTimeout);

@@ -1,30 +1,34 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createTRPCReact } from "@trpc/react-query";
 import { createContext, type ReactNode } from "react";
-import type { ChatServiceRouter } from "../../host/router/router";
+import type { ChatRuntimeServiceRouter } from "../../server/trpc";
 
-const chatServiceTrpcContext = createContext<unknown>(null);
+const chatTrpcContext = createContext<unknown>(null);
 
-export const chatServiceTrpc = createTRPCReact<ChatServiceRouter>({
-	context: chatServiceTrpcContext,
-});
+export const chatRuntimeServiceTrpc = createTRPCReact<ChatRuntimeServiceRouter>(
+	{
+		context: chatTrpcContext,
+	},
+);
 
-type ChatServiceClient = ReturnType<typeof chatServiceTrpc.createClient>;
+export type ChatRuntimeServiceClient = ReturnType<
+	typeof chatRuntimeServiceTrpc.createClient
+>;
 
-interface ChatServiceProviderProps {
-	client: ChatServiceClient;
+interface ChatRuntimeServiceProviderProps {
+	client: ChatRuntimeServiceClient;
 	queryClient: QueryClient;
 	children: ReactNode;
 }
 
-export function ChatServiceProvider({
+export function ChatRuntimeServiceProvider({
 	client,
 	queryClient,
 	children,
-}: ChatServiceProviderProps) {
+}: ChatRuntimeServiceProviderProps) {
 	return (
-		<chatServiceTrpc.Provider client={client} queryClient={queryClient}>
+		<chatRuntimeServiceTrpc.Provider client={client} queryClient={queryClient}>
 			{children}
-		</chatServiceTrpc.Provider>
+		</chatRuntimeServiceTrpc.Provider>
 	);
 }

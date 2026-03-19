@@ -1,8 +1,0 @@
-{
-	"extends": "@superset/typescript/internal-package.json",
-	"compilerOptions": {
-		"types": ["bun-types"]
-	},
-	"include": ["src"],
-	"exclude": ["node_modules", "dist"]
-}

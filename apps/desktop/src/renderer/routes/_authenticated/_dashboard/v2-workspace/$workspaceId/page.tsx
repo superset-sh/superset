@@ -1,7 +1,10 @@
+import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { WorkspaceChat } from "./components/WorkspaceChat";
 import { WorkspaceTerminal } from "./components/WorkspaceTerminal";
 
 export const Route = createFileRoute(
@@ -44,6 +47,7 @@ function V2WorkspacePage() {
 
 	return (
 		<V2WorkspaceContent
+			workspaceId={workspace.id}
 			workspaceName={workspace.name}
 			workspaceBranch={workspace.branch}
 			projectName={project?.name ?? "Unknown project"}
@@ -55,12 +59,14 @@ function V2WorkspaceContent({
 	workspaceName,
 	workspaceBranch,
 	projectName,
+	workspaceId,
 }: {
 	workspaceName: string;
 	workspaceBranch: string;
 	projectName: string;
+	workspaceId: string;
 }) {
-	const { workspaceId } = Route.useParams();
+	const [activeView, setActiveView] = useState<"overview" | "chat">("overview");
 	const healthQuery = workspaceTrpc.health.info.useQuery();
 	const githubUserQuery = workspaceTrpc.github.getUser.useQuery();
 	const gitStatusQuery = workspaceTrpc.workspace.gitStatus.useQuery({
@@ -68,21 +74,41 @@ function V2WorkspaceContent({
 	});
 
 	return (
-		<div className="flex h-full w-full flex-col gap-6 overflow-y-auto p-6">
-			<div>
-				<h1 className="text-xl font-semibold">{workspaceName}</h1>
-				<p className="text-sm text-muted-foreground">
-					{projectName} &middot; {workspaceBranch}
-				</p>
+		<div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+			<div className="border-b border-border px-6 py-4">
+				<div className="mb-3">
+					<h1 className="text-xl font-semibold">{workspaceName}</h1>
+					<p className="text-sm text-muted-foreground">
+						{projectName} &middot; {workspaceBranch}
+					</p>
+				</div>
+				<Tabs
+					onValueChange={(value) => setActiveView(value as "overview" | "chat")}
+					value={activeView}
+				>
+					<TabsList className="grid w-fit grid-cols-2">
+						<TabsTrigger value="overview">Overview</TabsTrigger>
+						<TabsTrigger value="chat">Chat</TabsTrigger>
+					</TabsList>
+				</Tabs>
 			</div>
 
-			<WorkspaceTerminal workspaceId={workspaceId} />
+			{activeView === "chat" ? (
+				<WorkspaceChat
+					workspaceId={workspaceId}
+					workspaceName={workspaceName}
+				/>
+			) : (
+				<div className="flex h-full w-full flex-col gap-6 overflow-y-auto p-6">
+					<WorkspaceTerminal workspaceId={workspaceId} />
 
-			<div className="space-y-4">
-				<Section title="health.info" query={healthQuery} />
-				<Section title="github.getUser" query={githubUserQuery} />
-				<Section title="workspace.gitStatus" query={gitStatusQuery} />
-			</div>
+					<div className="space-y-4">
+						<Section title="health.info" query={healthQuery} />
+						<Section title="github.getUser" query={githubUserQuery} />
+						<Section title="workspace.gitStatus" query={gitStatusQuery} />
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
