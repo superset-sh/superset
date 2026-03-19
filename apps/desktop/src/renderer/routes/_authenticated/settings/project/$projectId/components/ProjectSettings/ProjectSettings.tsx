@@ -514,6 +514,21 @@ export function ProjectSettings({
 										<LuImagePlus className="size-4" />
 										Upload
 									</button>
+									{project.iconUrl && (
+										<button
+											type="button"
+											onClick={() =>
+												setProjectIcon.mutate({ id: projectId, icon: null })
+											}
+											disabled={setProjectIcon.isPending}
+											className={cn(
+												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+												"hover:bg-destructive/10 text-destructive transition-colors",
+											)}
+										>
+											Remove
+										</button>
+									)}
 								</div>
 							</div>
 						</SettingsSection>
