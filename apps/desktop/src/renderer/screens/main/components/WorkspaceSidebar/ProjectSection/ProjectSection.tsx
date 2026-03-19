@@ -340,6 +340,9 @@ export function ProjectSection({
 						: undefined
 				}
 				shortcutIndex={isBranchOnly ? shortcutBaseIndex : undefined}
+				branchOnlyWorkspaceId={
+					isBranchOnly && workspaces.length > 0 ? workspaces[0].id : undefined
+				}
 				isActive={isBranchOnlyActive}
 				onNavigateToWorkspace={handleNavigateToWorkspace}
 			/>

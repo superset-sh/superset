@@ -28,10 +28,13 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
+import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
 import { CloseProjectDialog } from "./CloseProjectDialog";
@@ -62,6 +65,8 @@ interface ProjectHeaderProps {
 	branchOnlyWorktreePath?: string;
 	/** Keyboard shortcut index for branch-only projects */
 	shortcutIndex?: number;
+	/** Workspace ID for branch-only status tracking */
+	branchOnlyWorkspaceId?: string;
 	/** Whether this branch-only project's workspace is currently active */
 	isActive?: boolean;
 	/** Called when clicking a branch-only project to navigate directly */
@@ -86,6 +91,7 @@ export function ProjectHeader({
 	branchOnlyBranch,
 	branchOnlyWorktreePath,
 	shortcutIndex,
+	branchOnlyWorkspaceId,
 	isActive = false,
 	onNavigateToWorkspace,
 }: ProjectHeaderProps) {
@@ -94,6 +100,20 @@ export function ProjectHeader({
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
 	const rename = useProjectRename(projectId, projectName);
+
+	// Agent status for branch-only projects (pulsing ring around thumbnail)
+	const branchOnlyStatus = useTabsStore((state) => {
+		if (!branchOnlyWorkspaceId) return null;
+		function* paneStatuses() {
+			for (const tab of state.tabs) {
+				if (tab.workspaceId !== branchOnlyWorkspaceId) continue;
+				for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+					yield state.panes[paneId]?.status;
+				}
+			}
+		}
+		return getHighestPriorityStatus(paneStatuses());
+	});
 
 	// Diff stats for branch-only inline display
 	const { data: branchOnlyChanges } = electronTrpc.changes.getStatus.useQuery(
@@ -361,14 +381,26 @@ export function ProjectHeader({
 								)}
 							>
 								<div className="flex items-center gap-2 min-w-0 w-full">
-									<ProjectThumbnail
-										projectId={projectId}
-										projectName={projectName}
-										projectColor={projectColor}
-										githubOwner={githubOwner}
-										hideImage={hideImage}
-										iconUrl={iconUrl}
-									/>
+									<div
+										className={cn(
+											"relative rounded-md shrink-0",
+											branchOnlyStatus === "working" &&
+												"ring-2 ring-amber-500/70 animate-pulse",
+											branchOnlyStatus === "permission" &&
+												"ring-2 ring-red-500/70 animate-pulse",
+											branchOnlyStatus === "review" &&
+												"ring-2 ring-green-500/70",
+										)}
+									>
+										<ProjectThumbnail
+											projectId={projectId}
+											projectName={projectName}
+											projectColor={projectColor}
+											githubOwner={githubOwner}
+											hideImage={hideImage}
+											iconUrl={iconUrl}
+										/>
+									</div>
 									<span className="truncate">{projectName}</span>
 									{!isBranchOnly && (
 										<span className="text-xs text-muted-foreground tabular-nums font-normal">
