@@ -4,6 +4,7 @@ import type { SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
+	restartDaemonCalls = 0;
 
 	async kill(params: { sessionId: string; deleteHistory?: boolean }) {
 		this.killCalls.push(params);
@@ -11,6 +12,10 @@ class MockTerminalHostClient extends EventEmitter {
 
 	async listSessions() {
 		return { sessions: [] };
+	}
+
+	async restartDaemon() {
+		this.restartDaemonCalls++;
 	}
 
 	writeNoAck() {}
@@ -59,6 +64,18 @@ mock.module("@superset/local-db", () => ({
 }));
 
 const { DaemonTerminalManager } = await import("./daemon-manager");
+
+describe("DaemonTerminalManager.reconcileOnStartup", () => {
+	beforeEach(() => {
+		mockClient = new MockTerminalHostClient();
+	});
+
+	it("restarts the daemon to inherit current security session context", async () => {
+		const manager = new DaemonTerminalManager();
+		await manager.reconcileOnStartup();
+		expect(mockClient.restartDaemonCalls).toBe(1);
+	});
+});
 
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {

@@ -78,6 +78,13 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	async reconcileOnStartup(): Promise<void> {
 		try {
+			// Always restart the daemon on app startup to ensure it inherits
+			// the current user's security session context. This is critical on
+			// macOS where Fast User Switching can leave a stale daemon with a
+			// degraded security context (causing TLS/Keychain failures).
+			// Sessions are recovered via cold restore from disk history.
+			await this.client.restartDaemon();
+
 			const response = await this.client.listSessions();
 			if (response.sessions.length === 0) {
 				this.daemonAliveSessionIds.clear();

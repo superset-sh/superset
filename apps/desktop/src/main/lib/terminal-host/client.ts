@@ -1412,6 +1412,65 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	/**
+	 * Restart the daemon by shutting down any existing instance and spawning a fresh one.
+	 * This ensures the new daemon inherits the current user's security session context,
+	 * which is critical on macOS when Fast User Switching changes the console owner.
+	 *
+	 * Sessions in the old daemon are lost, but the cold restore mechanism recovers
+	 * terminal scrollback from disk history.
+	 */
+	async restartDaemon(): Promise<void> {
+		// Disconnect any existing sockets first
+		this.resetConnectionState({ emitDisconnected: false });
+
+		// Try graceful shutdown first
+		const connected = await this.tryConnectControl();
+		if (connected) {
+			try {
+				const token = this.readAuthToken();
+				try {
+					await this.authenticateControl({ token });
+					await this.sendRequest<EmptyResponse>("shutdown", {
+						killSessions: false,
+					});
+				} catch (error) {
+					if (this.isProtocolMismatchError(error)) {
+						this.resetConnectionState({ emitDisconnected: false });
+						await this.shutdownLegacyDaemon({ killSessions: false });
+					} else {
+						// Auth or send failed - fall back to SIGTERM
+						this.killDaemonFromPidFile();
+					}
+				}
+			} catch {
+				// Token missing - fall back to SIGTERM
+				this.killDaemonFromPidFile();
+			} finally {
+				this.resetConnectionState({ emitDisconnected: false });
+			}
+		} else {
+			// Socket not connectable but may still exist - try SIGTERM
+			this.killDaemonFromPidFile();
+		}
+
+		await this.waitForDaemonShutdown();
+
+		// Clean up stale files
+		for (const path of [SOCKET_PATH, PID_PATH, TOKEN_PATH]) {
+			try {
+				if (existsSync(path)) unlinkSync(path);
+			} catch {
+				// Best effort
+			}
+		}
+
+		// Spawn fresh daemon and connect
+		await this.connectAndAuthenticate();
+		this.connectionState = ConnectionState.CONNECTED;
+		this.emit("connected");
+	}
+
+	/**
 	 * Shutdown the daemon if it's currently running, without spawning a new one.
 	 * Returns true if daemon was running and shutdown was sent, false if no daemon was running.
 	 * This is useful for cleanup operations that should only affect existing daemons.
