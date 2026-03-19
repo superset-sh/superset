@@ -839,7 +839,7 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args).toEqual([
 				"-l",
 				"--init-command",
-				`set -l _superset_bin "${TEST_BIN_DIR}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+				`set -l _superset_bin "${TEST_BIN_DIR}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH; function _superset_shell_ready --on-event fish_prompt; printf '\\033]777;superset-shell-ready\\007'; functions -e _superset_shell_ready; end`,
 			]);
 		});
 
@@ -853,7 +853,7 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args).toEqual([
 				"-l",
 				"--init-command",
-				`set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+				`set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH; function _superset_shell_ready --on-event fish_prompt; printf '\\033]777;superset-shell-ready\\007'; functions -e _superset_shell_ready; end`,
 			]);
 		});
 	});

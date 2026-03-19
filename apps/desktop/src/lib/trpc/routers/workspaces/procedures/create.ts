@@ -326,6 +326,11 @@ export const createCreateProcedures = () => {
 						throw new Error("Could not determine current branch");
 					}
 
+					// Checkout the target branch so the main repo matches the workspace
+					if (input.branchName?.trim()) {
+						await safeCheckoutBranch(project.mainRepoPath, branch);
+					}
+
 					const existing = getBranchWorkspace(input.projectId);
 
 					if (existing) {

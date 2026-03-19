@@ -66,6 +66,7 @@ const {
 	createDroidWrapper,
 	createMastraWrapper,
 	getClaudeGlobalSettingsJsonContent,
+	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
@@ -74,6 +75,8 @@ const {
 	getMastraHooksJsonContent,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+
+const managedClaudeHookCommand = getClaudeManagedHookCommand();
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -625,7 +628,7 @@ describe("agent-wrappers claude settings.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === notifyPath),
+					def.hooks.some((hook) => hook.command === managedClaudeHookCommand),
 				),
 			).toBe(true);
 		}
@@ -686,7 +689,8 @@ describe("agent-wrappers claude settings.json", () => {
 			parsed.hooks.UserPromptSubmit.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
-						(hook: { command: string }) => hook.command === notifyPath,
+						(hook: { command: string }) =>
+							hook.command === managedClaudeHookCommand,
 					),
 			),
 		).toBe(true);
@@ -762,7 +766,7 @@ describe("agent-wrappers claude settings.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === currentHookPath),
+					def.hooks.some((hook) => hook.command === managedClaudeHookCommand),
 				),
 			).toBe(true);
 			expect(
@@ -914,6 +918,25 @@ describe("agent-wrappers codex hooks.json", () => {
 					),
 			),
 		).toBe(true);
+	});
+
+	it("does not add UserPromptSubmit to the Codex fallback hooks.json merge", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getCodexGlobalHooksJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		expect(parsed.hooks.UserPromptSubmit).toBeUndefined();
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {

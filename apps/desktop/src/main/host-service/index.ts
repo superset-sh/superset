@@ -4,14 +4,14 @@
  * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/host-service.js
  *
  * Starts the host-service HTTP server on a random local port.
- * The parent Electron process reads the port from stdout.
+ * The parent Electron process reads the port from the IPC channel.
  */
 
 import { serve } from "@hono/node-server";
 import {
 	createApp,
 	JwtAuthProvider,
-	LocalCredentialProvider,
+	LocalGitCredentialProvider,
 } from "@superset/host-service";
 
 const authToken = process.env.AUTH_TOKEN;
@@ -24,7 +24,7 @@ const auth =
 	authToken && cloudApiUrl ? new JwtAuthProvider(authToken) : undefined;
 
 const { app, injectWebSocket } = createApp({
-	credentials: new LocalCredentialProvider(),
+	credentials: new LocalGitCredentialProvider(),
 	auth,
 	cloudApiUrl,
 	dbPath,
@@ -35,7 +35,7 @@ const { app, injectWebSocket } = createApp({
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
 	(info: { port: number }) => {
-		process.stdout.write(`${JSON.stringify({ port: info.port })}\n`);
+		process.send?.({ type: "ready", port: info.port });
 	},
 );
 injectWebSocket(server);

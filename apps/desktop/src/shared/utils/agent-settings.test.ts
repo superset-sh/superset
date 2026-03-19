@@ -47,6 +47,19 @@ describe("resolveAgentConfigs", () => {
 			taskPromptTemplate: "Chat {{slug}}",
 		});
 	});
+
+	test("includes pi as a built-in terminal config", () => {
+		const pi = resolveAgentConfigs({}).find((preset) => preset.id === "pi");
+
+		expect(pi).toMatchObject({
+			id: "pi",
+			kind: "terminal",
+			label: "Pi",
+			command: "pi",
+			promptCommand: "pi",
+			enabled: true,
+		});
+	});
 });
 
 describe("createOverrideEnvelopeWithPatch", () => {

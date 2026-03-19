@@ -26,13 +26,13 @@ Cursor replaces your editor with an AI-native IDE. Superset sits outside your ed
 | **Parallelism** | Core feature — 10+ agents across isolated worktrees | Sequential by default; cloud-based Background Agents added recently |
 | **Editor** | Works alongside any editor (VS Code, Cursor, JetBrains, Xcode) | You must use Cursor's IDE |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $20/mo, Ultra $200/mo |
-| **Privacy** | Fully local — no telemetry, code never leaves your machine | Code sent to Cursor servers and third-party AI providers |
+| **Privacy** | Local Git worktrees; you control agent and provider choices | Code sent to Cursor servers and third-party AI providers |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents — Claude Code, Codex, Aider — in parallel across isolated Git worktrees. Each agent gets its own branch and working directory. When one finishes, you review the diff and merge. Open source, fully local, no telemetry.
+Superset is a desktop terminal that orchestrates CLI-based coding agents — Claude Code, Codex, Aider — in parallel across isolated Git worktrees. Each agent gets its own branch and working directory. When one finishes, you review the diff and merge. Source-available under Elastic License 2.0 (ELv2) and built around local Git worktrees.
 
 ---
 
@@ -58,7 +58,7 @@ Cursor routes all requests through its servers, subject to its credit system and
 
 ### Privacy
 
-Superset runs entirely locally — no telemetry, no data collection, fully auditable source code. Cursor sends code to its servers and third-party providers. Privacy Mode offers zero-data-retention, but code still transits external servers, and Background Agents require Privacy Mode disabled entirely.
+Superset runs agents locally in Git worktrees and has a fully auditable source codebase. Cursor sends code to its servers and third-party providers. Privacy Mode offers zero-data-retention, but code still transits external servers, and Background Agents require Privacy Mode disabled entirely.
 
 ---
 
@@ -81,7 +81,7 @@ Cursor offers a limited free tier (50 requests/month), Pro at $20/month, Pro+ at
 **Choose Superset if you:**
 - Run CLI-based coding agents and want to parallelize across 10+ tasks
 - Use JetBrains, Xcode, Neovim, or any non-VS Code editor
-- Need code to stay on your machine with no telemetry
+- Need local worktrees and direct control over providers
 - Want agent and model flexibility with no vendor lock-in
 
 Both tools work together. Use Cursor for inline AI editing, Superset alongside it to dispatch parallel agents for test generation, refactors, and migrations. Cursor is where you write code interactively; Superset is where you orchestrate autonomous work at scale.

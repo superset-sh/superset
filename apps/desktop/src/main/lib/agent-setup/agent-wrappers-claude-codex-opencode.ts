@@ -27,6 +27,9 @@ const CODEX_WRAPPER_EXEC_TEMPLATE_PATH = path.join(
 	"codex-wrapper-exec.template.sh",
 );
 
+/**
+ * Returns the environment-scoped OpenCode plugin path under Superset home.
+ */
 export function getOpenCodePluginPath(): string {
 	return path.join(OPENCODE_PLUGIN_DIR, OPENCODE_PLUGIN_FILE);
 }
@@ -62,8 +65,20 @@ interface ClaudeSettingsJson {
 	[key: string]: unknown;
 }
 
+const CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
+const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Returns the shell command written into Claude's global hook config.
+ * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
+ * shared ~/.claude/settings.json works for both dev and prod installs.
+ */
+export function getClaudeManagedHookCommand(): string {
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
 }
 
 function isManagedClaudeHookCommand(
@@ -72,6 +87,7 @@ function isManagedClaudeHookCommand(
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
+		command?.includes(CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -127,6 +143,9 @@ function removeManagedClaudeHooksFromDefinition(
 	};
 }
 
+/**
+ * Returns the global Claude settings path used for native hook registration.
+ */
 export function getClaudeGlobalSettingsJsonPath(): string {
 	return path.join(os.homedir(), ".claude", "settings.json");
 }
@@ -145,6 +164,7 @@ export function getClaudeGlobalSettingsJsonContent(
 	const globalPath = getClaudeGlobalSettingsJsonPath();
 	const existing = readExistingClaudeSettings(globalPath);
 	if (!existing) return null;
+	const managedHookCommand = getClaudeManagedHookCommand();
 
 	if (!existing.hooks || typeof existing.hooks !== "object") {
 		existing.hooks = {};
@@ -162,34 +182,34 @@ export function getClaudeGlobalSettingsJsonContent(
 		{
 			eventName: "UserPromptSubmit",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "Stop",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "PostToolUse",
 			definition: {
 				matcher: "*",
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "PostToolUseFailure",
 			definition: {
 				matcher: "*",
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "PermissionRequest",
 			definition: {
 				matcher: "*",
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 	];
@@ -233,6 +253,9 @@ export function createClaudeSettingsJson(): void {
 	);
 }
 
+/**
+ * Renders the OpenCode plugin file content with the current notify script path.
+ */
 export function getOpenCodePluginContent(notifyPath: string): string {
 	const template = fs.readFileSync(OPENCODE_PLUGIN_TEMPLATE_PATH, "utf-8");
 	return template
@@ -240,6 +263,9 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		.replace("{{NOTIFY_PATH}}", notifyPath);
 }
 
+/**
+ * Creates the Claude wrapper that forwards SUPERSET_* env vars into the agent.
+ */
 export function createClaudeWrapper(): void {
 	// Hooks are now written directly to ~/.claude/settings.json via
 	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
@@ -249,6 +275,9 @@ export function createClaudeWrapper(): void {
 	createWrapper("claude", script);
 }
 
+/**
+ * Creates the Codex wrapper that injects Superset's notify/session-log logic.
+ */
 export function createCodexWrapper(): void {
 	const notifyPath = getNotifyScriptPath();
 	const script = buildWrapperScript(
@@ -258,6 +287,9 @@ export function createCodexWrapper(): void {
 	createWrapper("codex", script);
 }
 
+/**
+ * Builds the Codex wrapper exec block from the shell template.
+ */
 export function buildCodexWrapperExecLine(notifyPath: string): string {
 	const template = fs.readFileSync(CODEX_WRAPPER_EXEC_TEMPLATE_PATH, "utf-8");
 	return template.replaceAll("{{NOTIFY_PATH}}", notifyPath);
@@ -293,6 +325,9 @@ function readExistingCodexHooks(globalPath: string): CodexHooksJson | null {
 	}
 }
 
+/**
+ * Returns the global Codex hooks.json path used for fallback hook registration.
+ */
 export function getCodexGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".codex", "hooks.json");
 }
@@ -304,9 +339,14 @@ export function getCodexGlobalHooksJsonPath(): string {
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  *
- * Currently Codex supports SessionStart and Stop events (experimental,
- * added in Codex CLI v0.111.0). We also register the notify command
- * for these events so notifications work even without the wrapper.
+ * Superset intentionally keeps this native Codex hook registration narrow.
+ * The primary integration path is still the wrapper + notify/session-log
+ * watcher, which works inside Superset-managed terminal sessions and covers
+ * richer lifecycle events like per-turn Start and PermissionRequest.
+ *
+ * This hooks.json merge is only a fallback for cases where the wrapper is
+ * bypassed, so we only register the minimal SessionStart + Stop notifications
+ * here rather than trying to mirror Codex's full native hook surface.
  */
 export function getCodexGlobalHooksJsonContent(
 	notifyScriptPath: string,
@@ -363,9 +403,10 @@ export function getCodexGlobalHooksJsonContent(
  * binary wrapper is not in PATH (e.g. user runs codex from outside
  * a Superset terminal).
  *
- * The wrapper is still created for richer event support (task_started,
- * approval_request, exec_command_begin via session log watching) that
- * Codex's native hooks don't yet cover.
+ * The wrapper remains the primary integration path for Superset-managed
+ * terminals because it can synthesize richer lifecycle events from Codex's
+ * notify callback and session log (task_started, approval_request,
+ * exec_command_begin) without mutating project-local CODEX_HOME state.
  */
 export function createCodexHooksJson(): void {
 	const notifyScriptPath = getNotifyScriptPath();
@@ -419,6 +460,9 @@ export function cleanupGlobalOpenCodePlugin(): void {
 	}
 }
 
+/**
+ * Creates the OpenCode wrapper with an environment-scoped config directory.
+ */
 export function createOpenCodeWrapper(): void {
 	const script = buildWrapperScript(
 		"opencode",

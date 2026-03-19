@@ -151,11 +151,31 @@ export function ProjectSection({
 		};
 	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
 
-	const ungroupedDropZone = useSectionDropZone({
+	const topUngroupedDropZone = useSectionDropZone({
 		canAccept: (item) =>
 			item.sectionId !== null && item.projectId === projectId,
 		targetSectionId: null,
+		targetRootPlacement: "top",
 	});
+
+	const bottomUngroupedDropZone = useSectionDropZone({
+		canAccept: (item) =>
+			item.sectionId !== null && item.projectId === projectId,
+		targetSectionId: null,
+		targetRootPlacement: "bottom",
+	});
+	const showRootDropZones =
+		topUngroupedDropZone.isDropTarget || bottomUngroupedDropZone.isDropTarget;
+
+	const getRootDropZoneClassName = (
+		isDropTarget: boolean,
+		isDragOver: boolean,
+	) =>
+		cn(
+			"transition-colors rounded-sm",
+			isDropTarget && !isDragOver && "border border-dashed border-primary/20",
+			isDragOver && "bg-primary/5 border border-solid border-primary/30",
+		);
 
 	const handleNewWorkspace = () => {
 		openModal(projectId);
@@ -266,6 +286,18 @@ export function ProjectSection({
 							className="overflow-hidden w-full"
 						>
 							<div className="flex flex-col items-center gap-1 pt-1">
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...topUngroupedDropZone.handlers}
+										className={cn(
+											"w-full h-5",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
+								)}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
@@ -300,6 +332,18 @@ export function ProjectSection({
 											orderedWorkspaceIds={orderedWorkspaceIds}
 										/>
 									),
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...bottomUngroupedDropZone.handlers}
+										className={cn(
+											"w-full h-5",
+											getRootDropZoneClassName(
+												bottomUngroupedDropZone.isDropTarget,
+												bottomUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
 								)}
 							</div>
 						</motion.div>
@@ -364,16 +408,27 @@ export function ProjectSection({
 							className="overflow-hidden"
 						>
 							<div className="pb-1">
-								{!isBranchOnly && topLevelChildren.length === 0 && (
+								{showRootDropZones && topLevelChildren.length === 0 && (
 									<div
-										{...ungroupedDropZone.handlers}
+										{...topUngroupedDropZone.handlers}
 										className={cn(
 											"transition-colors rounded-sm min-h-8",
-											ungroupedDropZone.isDropTarget &&
-												!ungroupedDropZone.isDragOver &&
-												"border border-dashed border-primary/20",
-											ungroupedDropZone.isDragOver &&
-												"bg-primary/5 border-solid border-primary/30",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...topUngroupedDropZone.handlers}
+										className={cn(
+											"h-5",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
 										)}
 									/>
 								)}
@@ -409,6 +464,18 @@ export function ProjectSection({
 											orderedWorkspaceIds={orderedWorkspaceIds}
 										/>
 									),
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...bottomUngroupedDropZone.handlers}
+										className={cn(
+											"h-5",
+											getRootDropZoneClassName(
+												bottomUngroupedDropZone.isDropTarget,
+												bottomUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
 								)}
 							</div>
 						</motion.div>

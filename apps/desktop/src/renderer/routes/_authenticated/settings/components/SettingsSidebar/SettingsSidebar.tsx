@@ -13,6 +13,7 @@ import {
 } from "renderer/stores/settings-state";
 import { getMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
+import { ProjectsSettings } from "./ProjectsSettings";
 
 export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
@@ -57,6 +58,7 @@ export function SettingsSidebar() {
 
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
+				<ProjectsSettings searchQuery={searchQuery} matchCounts={matchCounts} />
 			</div>
 
 			<div className="pt-3 mt-3 border-t border-border">
