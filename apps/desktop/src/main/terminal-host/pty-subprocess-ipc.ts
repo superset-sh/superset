@@ -127,3 +127,15 @@ export class PtySubprocessFrameDecoder {
 		return frames;
 	}
 }
+
+/**
+ * OSC 777 escape sequence emitted once by shell prompt hooks (precmd in
+ * zsh, PROMPT_COMMAND in bash, fish_prompt in fish) right before the
+ * first interactive prompt is displayed. {@link Session} scans PTY
+ * output for this marker to know when the shell is ready for stdin,
+ * then strips it so it never reaches the terminal renderer.
+ *
+ * Uses the private-use OSC 777 code to avoid conflicts with VS Code
+ * (OSC 133), iTerm2 (OSC 1337), or Warp (OSC 9001).
+ */
+export const SHELL_READY_MARKER = "\x1b]777;superset-shell-ready\x07";

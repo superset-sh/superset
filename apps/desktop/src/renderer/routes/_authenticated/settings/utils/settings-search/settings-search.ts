@@ -521,6 +521,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"superset chat",
 			"claude",
 			"codex",
+			"pi",
 		],
 	},
 	{
@@ -537,6 +538,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"codex",
 			"gemini",
 			"opencode",
+			"pi",
 			"copilot",
 			"cursor",
 		],
@@ -591,6 +593,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"gemini",
 			"cursor",
 			"opencode",
+			"pi",
 			"ai",
 			"assistant",
 		],

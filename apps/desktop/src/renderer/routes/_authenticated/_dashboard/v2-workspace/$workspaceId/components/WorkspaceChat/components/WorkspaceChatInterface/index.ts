@@ -1,0 +1,1 @@
+export { ChatPaneInterface } from "./ChatPaneInterface";

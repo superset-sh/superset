@@ -5,7 +5,10 @@ import {
 	useRef,
 } from "react";
 import { LuLoader } from "react-icons/lu";
-import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import {
+	type MarkdownEditorAdapter,
+	TipTapMarkdownRenderer,
+} from "renderer/components/MarkdownRenderer";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
@@ -14,6 +17,7 @@ import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
+import { DiffScrollbarDecorations } from "../DiffScrollbarDecorations";
 import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
@@ -82,6 +86,19 @@ function hasActiveSelectionWithinElement(
 	return false;
 }
 
+interface TextSearchState {
+	isSearchOpen: boolean;
+	query: string;
+	caseSensitive: boolean;
+	matchCount: number;
+	activeMatchIndex: number;
+	setQuery: (query: string) => void;
+	setCaseSensitive: (caseSensitive: boolean) => void;
+	findNext: () => void;
+	findPrevious: () => void;
+	closeSearch: () => void;
+}
+
 interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
@@ -92,15 +109,15 @@ interface FileViewerContentProps {
 	imageData?: ImageResult;
 	diffData: DiffData | undefined;
 	editorRef: MutableRefObject<CodeEditorAdapter | null>;
-	originalContentRef: MutableRefObject<string>;
+	markdownEditorRef: MutableRefObject<MarkdownEditorAdapter | null>;
 	draftContentRef: MutableRefObject<string | null>;
+	renderedContent: string;
 	initialLine?: number;
 	initialColumn?: number;
 	diffViewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
-	onSaveRaw: () => Promise<unknown> | undefined;
-	onEditorChange: (value: string | undefined) => void;
-	setIsDirty: (dirty: boolean) => void;
+	onSaveFile: () => void;
+	onContentChange: (value: string | undefined) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
@@ -112,19 +129,10 @@ interface FileViewerContentProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	diffContainerRef: RefObject<HTMLDivElement | null>;
+	diffSearch: TextSearchState;
 	markdownContainerRef: RefObject<HTMLDivElement | null>;
-	markdownSearch: {
-		isSearchOpen: boolean;
-		query: string;
-		caseSensitive: boolean;
-		matchCount: number;
-		activeMatchIndex: number;
-		setQuery: (query: string) => void;
-		setCaseSensitive: (caseSensitive: boolean) => void;
-		findNext: () => void;
-		findPrevious: () => void;
-		closeSearch: () => void;
-	};
+	markdownSearch: TextSearchState;
 }
 
 export function FileViewerContent({
@@ -137,15 +145,15 @@ export function FileViewerContent({
 	imageData,
 	diffData,
 	editorRef,
-	originalContentRef,
+	markdownEditorRef,
 	draftContentRef,
+	renderedContent,
 	initialLine,
 	initialColumn,
 	diffViewMode,
 	hideUnchangedRegions,
-	onSaveRaw,
-	onEditorChange,
-	setIsDirty,
+	onSaveFile,
+	onContentChange,
 	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
@@ -157,12 +165,13 @@ export function FileViewerContent({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	diffContainerRef,
+	diffSearch,
 	markdownContainerRef,
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
 	const hasAppliedInitialLocationRef = useRef(false);
-	const diffContainerRef = useRef<HTMLDivElement | null>(null);
 	const lastDiffLocationRef = useRef<
 		| (DiffDomLocation & {
 				column?: number;
@@ -238,23 +247,6 @@ export function FileViewerContent({
 	};
 
 	useEffect(() => {
-		if (viewMode !== "raw") return;
-		if (isLoadingRaw) return;
-		if (!rawFileData?.ok) return;
-		if (draftContentRef.current !== null) return;
-
-		originalContentRef.current = rawFileData.content;
-		setIsDirty(false);
-	}, [
-		viewMode,
-		isLoadingRaw,
-		rawFileData,
-		draftContentRef,
-		originalContentRef,
-		setIsDirty,
-	]);
-
-	useEffect(() => {
 		if (
 			viewMode !== "raw" ||
 			!editorRef.current ||
@@ -321,41 +313,56 @@ export function FileViewerContent({
 					});
 				}}
 			>
-				<div
-					ref={diffContainerRef}
-					className="h-full min-h-0 overflow-auto bg-background select-text"
-					onClickCapture={(event) => {
-						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
-							event.stopPropagation();
-						}
-					}}
-					onContextMenuCapture={(event) => {
-						const location = getDiffLocationFromEvent(event.nativeEvent);
-						if (!location) {
-							return;
-						}
-
-						const column = getColumnFromDiffPoint({
-							lineElement: location.lineElement,
-							numberColumn: location.numberColumn,
-							clientX: event.clientX,
-							clientY: event.clientY,
-						});
-
-						lastDiffLocationRef.current = {
-							...location,
-							column,
-						};
-					}}
-				>
-					<LightDiffViewer
-						key={filePath}
-						contents={diffData}
-						viewMode={diffViewMode}
-						hideUnchangedRegions={hideUnchangedRegions}
-						filePath={filePath}
-						className="min-h-full"
+				<div className="relative h-full">
+					<MarkdownSearch
+						isOpen={diffSearch.isSearchOpen}
+						query={diffSearch.query}
+						caseSensitive={diffSearch.caseSensitive}
+						matchCount={diffSearch.matchCount}
+						activeMatchIndex={diffSearch.activeMatchIndex}
+						onQueryChange={diffSearch.setQuery}
+						onCaseSensitiveChange={diffSearch.setCaseSensitive}
+						onFindNext={diffSearch.findNext}
+						onFindPrevious={diffSearch.findPrevious}
+						onClose={diffSearch.closeSearch}
 					/>
+					<div
+						ref={diffContainerRef}
+						className="h-full min-h-0 overflow-auto bg-background select-text"
+						onClickCapture={(event) => {
+							if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+								event.stopPropagation();
+							}
+						}}
+						onContextMenuCapture={(event) => {
+							const location = getDiffLocationFromEvent(event.nativeEvent);
+							if (!location) {
+								return;
+							}
+
+							const column = getColumnFromDiffPoint({
+								lineElement: location.lineElement,
+								numberColumn: location.numberColumn,
+								clientX: event.clientX,
+								clientY: event.clientY,
+							});
+
+							lastDiffLocationRef.current = {
+								...location,
+								column,
+							};
+						}}
+					>
+						<LightDiffViewer
+							key={filePath}
+							contents={diffData}
+							viewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
+							filePath={filePath}
+							className="min-h-full"
+						/>
+					</div>
+					<DiffScrollbarDecorations scrollContainerRef={diffContainerRef} />
 				</div>
 			</DiffViewerContextMenu>
 		);
@@ -441,7 +448,13 @@ export function FileViewerContent({
 					onClose={markdownSearch.closeSearch}
 				/>
 				<div ref={markdownContainerRef} className="h-full overflow-auto p-4">
-					<MarkdownRenderer content={rawFileData.content} />
+					<TipTapMarkdownRenderer
+						value={renderedContent}
+						editable
+						editorRef={markdownEditorRef}
+						onChange={onContentChange}
+						onSave={onSaveFile}
+					/>
 				</div>
 			</div>
 		);
@@ -467,10 +480,8 @@ export function FileViewerContent({
 					key={filePath}
 					language={detectLanguage(filePath)}
 					value={draftContentRef.current ?? rawFileData.content}
-					onChange={onEditorChange}
-					onSave={() => {
-						void onSaveRaw();
-					}}
+					onChange={onContentChange}
+					onSave={onSaveFile}
 					editorRef={editorRef}
 					fillHeight
 				/>

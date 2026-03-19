@@ -22,6 +22,14 @@ describe("getEditorTheme", () => {
 		}
 		expect(editorTheme.colors.addition).toBe(brightGreen);
 		expect(editorTheme.colors.deletion).toBe(brightRed);
+		const explicitComment = darkTheme.editor?.syntax?.comment;
+		expect(explicitComment).toBeDefined();
+		if (!explicitComment) {
+			throw new Error(
+				"Dark theme should define an explicit editor comment color",
+			);
+		}
+		expect(editorTheme.syntax.comment).toBe(explicitComment);
 		expect(editorTheme.syntax.keyword).toBe(
 			darkTheme.terminal?.magenta ?? darkTheme.ui.foreground,
 		);
@@ -52,6 +60,7 @@ describe("getEditorTheme", () => {
 		const editorTheme = getEditorTheme({
 			...darkTheme,
 			terminal: undefined,
+			editor: undefined,
 			ui: {
 				...darkTheme.ui,
 				background: "#101820",

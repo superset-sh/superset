@@ -26,4 +26,15 @@ describe("buildAgentPromptCommand", () => {
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
 	});
+
+	it("uses pi interactive mode for prompt launches", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "pi-1234",
+			agent: "pi",
+		});
+
+		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).not.toContain("pi -p");
+	});
 });

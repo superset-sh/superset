@@ -8,27 +8,10 @@ import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineClipboard } from "react-icons/hi2";
-
-const LANGUAGES = [
-	{ value: "plaintext", label: "Plaintext" },
-	{ value: "javascript", label: "JavaScript" },
-	{ value: "typescript", label: "TypeScript" },
-	{ value: "python", label: "Python" },
-	{ value: "html", label: "HTML" },
-	{ value: "css", label: "CSS" },
-	{ value: "json", label: "JSON" },
-	{ value: "bash", label: "Bash" },
-	{ value: "sql", label: "SQL" },
-	{ value: "go", label: "Go" },
-	{ value: "rust", label: "Rust" },
-	{ value: "java", label: "Java" },
-	{ value: "c", label: "C" },
-	{ value: "cpp", label: "C++" },
-	{ value: "ruby", label: "Ruby" },
-	{ value: "php", label: "PHP" },
-	{ value: "yaml", label: "YAML" },
-	{ value: "markdown", label: "Markdown" },
-];
+import {
+	COMMON_CODE_BLOCK_LANGUAGES,
+	getCodeBlockLanguageLabel,
+} from "renderer/lib/tiptap/code-block-languages";
 
 export function CodeBlockView({
 	node,
@@ -42,8 +25,10 @@ export function CodeBlockView({
 	const htmlAttrs = extension.options.HTMLAttributes as { class?: string };
 
 	const currentLanguage = attrs.language || "plaintext";
-	const currentLabel =
-		LANGUAGES.find((l) => l.value === currentLanguage)?.label || "Plaintext";
+	const currentLabel = getCodeBlockLanguageLabel(
+		COMMON_CODE_BLOCK_LANGUAGES,
+		currentLanguage,
+	);
 
 	const handleCopy = async () => {
 		await navigator.clipboard.writeText(node.textContent);
@@ -75,7 +60,7 @@ export function CodeBlockView({
 						align="end"
 						className="max-h-64 overflow-y-auto w-40"
 					>
-						{LANGUAGES.map((lang) => (
+						{COMMON_CODE_BLOCK_LANGUAGES.map((lang) => (
 							<DropdownMenuItem
 								key={lang.value}
 								onSelect={() => handleLanguageChange(lang.value)}

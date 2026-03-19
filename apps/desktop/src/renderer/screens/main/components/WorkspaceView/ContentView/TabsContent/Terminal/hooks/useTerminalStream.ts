@@ -44,6 +44,7 @@ export function useTerminalStream({
 	updateCwdFromData,
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
+	const removePane = useTabsStore((s) => s.removePane);
 	const firstStreamDataReceivedRef = useRef(false);
 
 	// Refs to use latest values in callbacks
@@ -64,6 +65,10 @@ export function useTerminalStream({
 			if (wasKilledByUser) {
 				xterm.writeln("\r\n\r\n[Session killed]");
 				xterm.writeln("[Restart to start a new session]");
+			} else if (exitCode === 0) {
+				// Clean exit (e.g. typing "exit") — close the pane/tab
+				removePane(paneId);
+				return;
 			} else {
 				xterm.writeln(`\r\n\r\n[Process exited with code ${exitCode}]`);
 				xterm.writeln("[Press any key to restart]");
@@ -85,6 +90,7 @@ export function useTerminalStream({
 			wasKilledByUserRef,
 			setExitStatus,
 			setPaneStatus,
+			removePane,
 		],
 	);
 

@@ -27,7 +27,7 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
-const chatMastraLaunchConfigSchema = z.object({
+const chatLaunchConfigSchema = z.object({
 	initialPrompt: z.string().optional(),
 	metadata: z
 		.object({
@@ -43,13 +43,7 @@ const chatMastraLaunchConfigSchema = z.object({
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum([
-		"terminal",
-		"webview",
-		"file-viewer",
-		"chat-mastra",
-		"devtools",
-	]),
+	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -58,10 +52,10 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chatMastra: z
+	chat: z
 		.object({
 			sessionId: z.string().nullable(),
-			launchConfig: chatMastraLaunchConfigSchema.nullable().optional(),
+			launchConfig: chatLaunchConfigSchema.nullable().optional(),
 		})
 		.optional(),
 	browser: z

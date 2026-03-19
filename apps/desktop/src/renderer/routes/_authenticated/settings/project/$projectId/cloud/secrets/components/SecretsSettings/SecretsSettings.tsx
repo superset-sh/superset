@@ -7,6 +7,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { SettingsSection } from "../../../../components/ProjectSettings";
+import { ProjectSettingsHeader } from "../../../../components/ProjectSettingsHeader";
 import { AddSecretSheet } from "./components/AddSecretSheet";
 import { EditSecretDialog } from "./components/EditSecretDialog";
 import { EnvironmentVariablesList } from "./components/EnvironmentVariablesList";
@@ -117,9 +118,7 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Environment Variables</h2>
-			</div>
+			<ProjectSettingsHeader title="Environment Variables" />
 
 			<div className="space-y-6">
 				{isConnected && organizationId && project.neonProjectId ? (

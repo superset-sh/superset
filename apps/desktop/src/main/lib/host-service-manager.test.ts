@@ -1,4 +1,13 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	spyOn,
+} from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 
@@ -23,29 +32,42 @@ const getProcessEnvWithShellPathMock = mock(
 	async (env: Record<string, string>) => env,
 );
 let lastChild: MockChildProcess | null = null;
-const spawnMock = mock(() => {
+const spawnMock = mock((..._args: unknown[]) => {
 	lastChild = new MockChildProcess();
 	return lastChild as unknown as ChildProcess;
 });
-
-mock.module("electron", () => ({
-	app: {
-		isPackaged: false,
-		getAppPath: () => "/tmp/app",
-	},
-}));
-
-mock.module("../../lib/trpc/routers/workspaces/utils/shell-env", () => ({
-	getProcessEnvWithShellPath: getProcessEnvWithShellPathMock,
-}));
-
-mock.module("node:child_process", () => ({
-	spawn: spawnMock,
-}));
-
-const { HostServiceManager } = await import("./host-service-manager");
+let HostServiceManager: typeof import("./host-service-manager").HostServiceManager;
 
 describe("HostServiceManager", () => {
+	beforeAll(async () => {
+		const childProcessModule = await import("node:child_process");
+		const shellEnvModule = await import(
+			"../../lib/trpc/routers/workspaces/utils/shell-env"
+		);
+
+		spyOn(childProcessModule, "spawn").mockImplementation(((..._args) =>
+			spawnMock(..._args)) as typeof childProcessModule.spawn);
+		spyOn(shellEnvModule, "getProcessEnvWithShellPath").mockImplementation(((
+			baseEnv: NodeJS.ProcessEnv = process.env,
+		) =>
+			getProcessEnvWithShellPathMock(
+				baseEnv as Record<string, string>,
+			)) as typeof shellEnvModule.getProcessEnvWithShellPath);
+
+		mock.module("electron", () => ({
+			app: {
+				isPackaged: false,
+				getAppPath: () => "/tmp/app",
+			},
+		}));
+
+		({ HostServiceManager } = await import("./host-service-manager"));
+	});
+
+	afterAll(() => {
+		mock.restore();
+	});
+
 	beforeEach(() => {
 		getProcessEnvWithShellPathMock.mockReset();
 		getProcessEnvWithShellPathMock.mockImplementation(
@@ -75,8 +97,11 @@ describe("HostServiceManager", () => {
 
 		expect(spawnMock.mock.calls).toHaveLength(1);
 		expect(lastChild).not.toBeNull();
+		expect(spawnMock.mock.calls[0]?.[2]).toMatchObject({
+			stdio: ["ignore", "pipe", "pipe", "ipc"],
+		});
 
-		lastChild?.stdout.emit("data", Buffer.from('{"port":4242}\n'));
+		lastChild?.emit("message", { type: "ready", port: 4242 });
 
 		expect(await firstStart).toBe(4242);
 		expect(await secondStart).toBe(4242);
