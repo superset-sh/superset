@@ -58,16 +58,17 @@ import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import {
+	useSetIsGeneratingBranchName,
+	useSetPendingWorkspace,
+} from "renderer/stores/new-workspace-modal";
 import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
 import {
 	type AgentDefinitionId,
 	getEnabledAgentConfigs,
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
-import {
-	resolveBranchPrefix,
-	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { LinkedPRPill } from "./components/LinkedPRPill";
@@ -402,6 +403,8 @@ function PromptGroupInner({
 		updateDraft,
 	} = useNewWorkspaceModalDraft();
 	const attachments = useProviderAttachments();
+	const setPendingWorkspace = useSetPendingWorkspace();
+	const setIsGeneratingBranchNameGlobal = useSetIsGeneratingBranchName();
 	const {
 		baseBranch,
 		prompt,
@@ -443,6 +446,11 @@ function PromptGroupInner({
 	const trimmedPrompt = prompt.trim();
 	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
+	// AI branch name generation (on submit only)
+	const generateBranchNameMutation =
+		electronTrpc.workspaces.generateBranchName.useMutation();
+	const [isGeneratingBranchName, setIsGeneratingBranchName] = useState(false);
+
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
@@ -463,28 +471,6 @@ function PromptGroupInner({
 	const branchData = remoteBranchData ?? localBranchData;
 	// Only show loading while waiting for the fast local query
 	const isBranchesLoading = isLocalBranchesLoading && !branchData;
-
-	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
-		{ id: projectId ?? "" },
-		{ enabled: !!projectId },
-	);
-	const { data: globalBranchPrefix } =
-		electronTrpc.settings.getBranchPrefix.useQuery();
-	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
-
-	const resolvedPrefix = useMemo(() => {
-		const projectOverrides = project?.branchPrefixMode != null;
-		return resolveBranchPrefix({
-			mode: projectOverrides
-				? project?.branchPrefixMode
-				: (globalBranchPrefix?.mode ?? "none"),
-			customPrefix: projectOverrides
-				? project?.branchPrefixCustom
-				: globalBranchPrefix?.customPrefix,
-			authorPrefix: gitAuthor?.prefix,
-			githubUsername: gitInfo?.githubUsername,
-		});
-	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
 
 	const { data: externalWorktrees = [] } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery(
@@ -511,19 +497,6 @@ function PromptGroupInner({
 		defaultBranch: branchData?.defaultBranch,
 		branches: branchData?.branches,
 	});
-
-	const branchSlug = sanitizeBranchNameWithMaxLength(
-		trimmedPrompt ||
-			firstIssueSlug ||
-			(linkedPR ? `pr-${linkedPR.prNumber}` : "") ||
-			"",
-		18,
-	);
-
-	const branchPreview =
-		branchSlug && !branchNameEdited && resolvedPrefix
-			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
-			: branchSlug;
 
 	const previousProjectIdRef = useRef(projectId);
 
@@ -575,6 +548,38 @@ function PromptGroupInner({
 			return;
 		}
 
+		// Set pending workspace immediately for suspense UI
+		const displayName =
+			workspaceNameEdited && workspaceName.trim()
+				? workspaceName.trim()
+				: trimmedPrompt || "New workspace";
+
+		setPendingWorkspace({
+			projectId,
+			name: displayName,
+			isGeneratingBranchName: false,
+		});
+
+		// Generate AI branch name if needed (before creating workspace)
+		let aiBranchName: string | null = null;
+		if (!branchNameEdited && trimmedPrompt && !linkedPR) {
+			setIsGeneratingBranchName(true);
+			setIsGeneratingBranchNameGlobal(true);
+			try {
+				const result = await generateBranchNameMutation.mutateAsync({
+					prompt: trimmedPrompt,
+					projectId,
+				});
+				aiBranchName = result.branchName;
+			} catch (error) {
+				console.warn("[PromptGroup] AI branch name generation failed:", error);
+				// Continue with workspace creation - backend will use random name
+			} finally {
+				setIsGeneratingBranchName(false);
+				setIsGeneratingBranchNameGlobal(false);
+			}
+		}
+
 		let convertedFiles: ConvertedFile[] | undefined;
 		if (attachments.files.length > 0) {
 			try {
@@ -619,7 +624,9 @@ function PromptGroupInner({
 							? err.message
 							: "Failed to create workspace from PR",
 				},
-			);
+			).finally(() => {
+				setPendingWorkspace(null);
+			});
 			return;
 		}
 
@@ -635,7 +642,7 @@ function PromptGroupInner({
 					branchName:
 						(branchNameEdited && branchName.trim()
 							? sanitizeBranchNameWithMaxLength(branchName.trim())
-							: branchSlug) || undefined,
+							: aiBranchName) || undefined,
 					baseBranch: baseBranch || undefined,
 				},
 				{
@@ -645,28 +652,35 @@ function PromptGroupInner({
 				},
 			),
 			{
-				loading: "Creating workspace...",
+				loading: isGeneratingBranchName
+					? "Generating branch name..."
+					: "Creating workspace...",
 				success: "Workspace created",
 				error: (err) =>
 					err instanceof Error ? err.message : "Failed to create workspace",
 			},
-		);
+		).finally(() => {
+			setPendingWorkspace(null);
+		});
 	}, [
 		attachments.files,
 		baseBranch,
 		branchName,
 		branchNameEdited,
-		branchSlug,
 		buildLaunchRequest,
 		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
+		generateBranchNameMutation,
+		isGeneratingBranchName,
 		linkedPR,
 		projectId,
 		runAsyncAction,
+		setPendingWorkspace,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,
+		setIsGeneratingBranchNameGlobal,
 	]);
 
 	const handlePromptSubmit = useCallback(() => {
@@ -717,9 +731,14 @@ function PromptGroupInner({
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
-						className="border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis"
-						placeholder="branch-name"
-						value={branchNameEdited ? branchName : branchPreview || ""}
+						className={cn(
+							"border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							isGeneratingBranchName &&
+								!branchNameEdited &&
+								"animate-pulse placeholder:animate-pulse",
+						)}
+						placeholder="branch name"
+						value={branchName}
 						onChange={(e) =>
 							updateDraft({
 								branchName: e.target.value.replace(/\s+/g, "-"),

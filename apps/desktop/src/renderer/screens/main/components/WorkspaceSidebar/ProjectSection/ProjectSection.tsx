@@ -6,10 +6,14 @@ import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import {
+	useOpenNewWorkspaceModal,
+	usePendingWorkspace,
+} from "renderer/stores/new-workspace-modal";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
+import { PendingWorkspaceItem } from "../WorkspaceListItem/PendingWorkspaceItem";
 import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
@@ -72,6 +76,7 @@ export function ProjectSection({
 	const openModal = useOpenNewWorkspaceModal();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
+	const pendingWorkspace = usePendingWorkspace();
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
@@ -265,6 +270,12 @@ export function ProjectSection({
 										)}
 									/>
 								)}
+								{pendingWorkspace &&
+									pendingWorkspace.projectId === projectId && (
+										<div className="w-full px-1">
+											<PendingWorkspaceItem />
+										</div>
+									)}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
@@ -379,6 +390,11 @@ export function ProjectSection({
 										),
 									)}
 								/>
+							)}
+							{pendingWorkspace && pendingWorkspace.projectId === projectId && (
+								<div className="px-1 pb-0.5">
+									<PendingWorkspaceItem />
+								</div>
 							)}
 							{topLevelChildren.map((item) =>
 								item.kind === "workspace" ? (
