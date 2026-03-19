@@ -26,14 +26,11 @@ export function useScrollToFirstDiffChange({
 }: UseScrollToFirstDiffChangeOptions): void {
 	const hasScrolledRef = useRef(false);
 
-	// Reset when the file or diff content changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset on content identity
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filePath and diffData deps are not read inside the effect but intentionally included to re-trigger scroll on file/content change
 	useEffect(() => {
 		hasScrolledRef.current = false;
-	}, [filePath, diffData?.original, diffData?.modified]);
 
-	useEffect(() => {
-		if (!enabled || hasScrolledRef.current) {
+		if (!enabled) {
 			return;
 		}
 
@@ -125,5 +122,5 @@ export function useScrollToFirstDiffChange({
 			clearTimeout(timeoutId);
 			mutationObserver.disconnect();
 		};
-	}, [containerRef, enabled]);
+	}, [containerRef, enabled, filePath, diffData?.original, diffData?.modified]);
 }
