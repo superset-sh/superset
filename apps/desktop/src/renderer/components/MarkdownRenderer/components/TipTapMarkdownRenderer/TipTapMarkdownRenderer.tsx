@@ -2,11 +2,13 @@ import "highlight.js/styles/github-dark.css";
 
 import { cn } from "@superset/ui/utils";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { useMarkdownStyle } from "renderer/stores";
 import { defaultConfig } from "../../styles/default/config";
 import { tufteConfig } from "../../styles/tufte/config";
 import { SelectionContextMenu } from "../SelectionContextMenu";
+import { BubbleMenuToolbar } from "./components/BubbleMenuToolbar";
 import { createMarkdownExtensions } from "./createMarkdownExtensions";
 
 const styleConfigs = {
@@ -142,6 +144,22 @@ export function TipTapMarkdownRenderer({
 				className,
 			)}
 		>
+			{editable && editor && (
+				<BubbleMenu
+					editor={editor}
+					options={{
+						placement: "top",
+						offset: { mainAxis: 8 },
+					}}
+					shouldShow={({ editor: e, from, to }) => {
+						if (from === to) return false;
+						if (e.isActive("codeBlock")) return false;
+						return true;
+					}}
+				>
+					<BubbleMenuToolbar editor={editor} />
+				</BubbleMenu>
+			)}
 			<article ref={articleRef} className={config.articleClass}>
 				<EditorContent editor={editor} />
 			</article>

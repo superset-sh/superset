@@ -27,10 +27,9 @@ import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
+import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import { env } from "renderer/env.renderer";
 import { Markdown } from "tiptap-markdown";
-
-import { BubbleMenuToolbar } from "./components/BubbleMenuToolbar";
 import { CodeBlockView } from "./components/CodeBlockView";
 import { SlashCommand } from "./components/SlashCommand";
 
