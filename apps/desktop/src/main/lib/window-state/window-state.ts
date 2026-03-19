@@ -14,6 +14,7 @@ export interface WindowState {
 	width: number;
 	height: number;
 	isMaximized: boolean;
+	isFullScreen?: boolean;
 	zoomLevel?: number;
 }
 
@@ -70,6 +71,7 @@ export function isValidWindowState(value: unknown): value is WindowState {
 		Number.isFinite(v.height) &&
 		(v.height as number) > 0 &&
 		typeof v.isMaximized === "boolean" &&
+		(v.isFullScreen === undefined || typeof v.isFullScreen === "boolean") &&
 		(v.zoomLevel === undefined || Number.isFinite(v.zoomLevel))
 	);
 }
