@@ -554,25 +554,39 @@ function PromptGroupInner({
 				? workspaceName.trim()
 				: trimmedPrompt || "New workspace";
 
+		const willGenerateAIName = !branchNameEdited && !!trimmedPrompt && !linkedPR;
+
 		setPendingWorkspace({
 			projectId,
 			name: displayName,
-			isGeneratingBranchName: false,
+			isGeneratingBranchName: willGenerateAIName,
 		});
 
 		// Generate AI branch name if needed (before creating workspace)
 		let aiBranchName: string | null = null;
-		if (!branchNameEdited && trimmedPrompt && !linkedPR) {
+		if (willGenerateAIName) {
 			setIsGeneratingBranchName(true);
-			setIsGeneratingBranchNameGlobal(true);
 			try {
-				const result = await generateBranchNameMutation.mutateAsync({
-					prompt: trimmedPrompt,
-					projectId,
-				});
+				// Add timeout to prevent hanging indefinitely
+				const AI_GENERATION_TIMEOUT_MS = 30000; // 30 seconds
+				const timeoutPromise = new Promise<never>((_, reject) =>
+					setTimeout(
+						() => reject(new Error("AI generation timeout")),
+						AI_GENERATION_TIMEOUT_MS,
+					),
+				);
+
+				const result = await Promise.race([
+					generateBranchNameMutation.mutateAsync({
+						prompt: trimmedPrompt,
+						projectId,
+					}),
+					timeoutPromise,
+				]);
 				aiBranchName = result.branchName;
 			} catch (error) {
 				console.warn("[PromptGroup] AI branch name generation failed:", error);
+				toast.info("Using random branch name (AI generation unavailable)");
 				// Continue with workspace creation - backend will use random name
 			} finally {
 				setIsGeneratingBranchName(false);

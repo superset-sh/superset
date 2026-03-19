@@ -15,17 +15,10 @@ export function PendingWorkspaceItem() {
 				</span>
 			</div>
 			<div className="flex items-center gap-1 text-muted-foreground shrink-0">
-				{pendingWorkspace.isGeneratingBranchName ? (
-					<>
-						<Loader2Icon className="size-3 animate-spin" />
-						<span className="text-xs">Generating...</span>
-					</>
-				) : (
-					<>
-						<Loader2Icon className="size-3 animate-spin" />
-						<span className="text-xs">Creating...</span>
-					</>
-				)}
+				<Loader2Icon className="size-3 animate-spin" />
+				<span className="text-xs">
+					{pendingWorkspace.isGeneratingBranchName ? "Generating..." : "Creating..."}
+				</span>
 			</div>
 		</div>
 	);

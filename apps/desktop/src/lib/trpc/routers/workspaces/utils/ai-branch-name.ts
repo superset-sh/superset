@@ -5,12 +5,15 @@ import {
 import { callSmallModel } from "lib/ai/call-small-model";
 import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 
+const BRANCH_NAME_INSTRUCTIONS =
+	"Generate a concise git branch name (2-4 words, kebab-case, descriptive). Return ONLY the branch name, nothing else.";
+const MAX_CONFLICT_RESOLUTION_ATTEMPTS = 1000;
+
 /**
  * Checks if a branch name conflicts with existing branches (case-insensitive)
  */
-function hasConflict(branchName: string, existingBranches: string[]): boolean {
-	const lowerName = branchName.toLowerCase();
-	return existingBranches.some((b) => b.toLowerCase() === lowerName);
+function hasConflict(branchName: string, existingBranchesSet: Set<string>): boolean {
+	return existingBranchesSet.has(branchName.toLowerCase());
 }
 
 /**
@@ -20,24 +23,40 @@ function resolveConflict(
 	baseName: string,
 	existingBranches: string[],
 ): string {
-	if (!hasConflict(baseName, existingBranches)) {
+	// Convert to Set for O(1) lookups instead of O(n)
+	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
+
+	if (!hasConflict(baseName, existingSet)) {
 		return baseName;
 	}
 
 	let counter = 2;
 	let candidate = `${baseName}-${counter}`;
 
-	while (hasConflict(candidate, existingBranches)) {
+	while (hasConflict(candidate, existingSet)) {
 		counter++;
+		if (counter >= MAX_CONFLICT_RESOLUTION_ATTEMPTS) {
+			throw new Error(
+				`Could not find unique branch name after ${MAX_CONFLICT_RESOLUTION_ATTEMPTS} attempts`,
+			);
+		}
 		candidate = `${baseName}-${counter}`;
 	}
 
 	return candidate;
 }
 
+/**
+ * Generates an AI-powered branch name from a user prompt with automatic conflict resolution.
+ *
+ * @param prompt - User's workspace description
+ * @param existingBranches - List of existing branch names to check for conflicts
+ * @returns Generated branch name or null if generation fails
+ * @throws Error if conflict resolution exceeds max attempts
+ */
 export async function generateBranchNameFromPrompt(
 	prompt: string,
-	existingBranches: string[] = [],
+	existingBranches: string[],
 ): Promise<string | null> {
 	const { result } = await callSmallModel<string>({
 		invoke: async ({ credentials, providerId, providerName, model }) => {
@@ -45,8 +64,7 @@ export async function generateBranchNameFromPrompt(
 				return generateTitleFromMessageWithStreamingModel({
 					message: prompt,
 					model: model as never,
-					instructions:
-						"Generate a concise git branch name (2-4 words, kebab-case, descriptive). Return ONLY the branch name, nothing else.",
+					instructions: BRANCH_NAME_INSTRUCTIONS,
 				});
 			}
 
@@ -55,8 +73,7 @@ export async function generateBranchNameFromPrompt(
 				agentModel: model,
 				agentId: `branch-namer-${providerId}`,
 				agentName: "Branch Namer",
-				instructions:
-					"Generate a concise git branch name (2-4 words, kebab-case, descriptive). Return ONLY the branch name, nothing else.",
+				instructions: BRANCH_NAME_INSTRUCTIONS,
 				tracingContext: {
 					surface: "workspace-branch-name",
 					provider: providerName,

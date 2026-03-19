@@ -32,8 +32,18 @@ export const createGenerateBranchNameProcedures = () => {
 				}
 
 				// Get existing branches to check for conflicts
-				const { local, remote } = await listBranches(project.mainRepoPath);
-				const existingBranches = [...local, ...remote];
+				let existingBranches: string[];
+				try {
+					const { local, remote } = await listBranches(project.mainRepoPath);
+					existingBranches = local.concat(remote);
+				} catch (error) {
+					console.warn(
+						"[generateBranchName] Failed to list branches, proceeding without conflict checking:",
+						error,
+					);
+					// Fall back to no conflict checking if listing branches fails
+					existingBranches = [];
+				}
 
 				const branchName = await generateBranchNameFromPrompt(
 					trimmedPrompt,
