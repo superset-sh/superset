@@ -304,10 +304,9 @@ export function getCodexGlobalHooksJsonPath(): string {
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  *
- * Latest Codex supports SessionStart, UserPromptSubmit, and Stop hooks behind
- * the `codex_hooks` feature flag. We register our notify command for all three
- * so native hook execution can still update Superset state when hooks are
- * enabled.
+ * Currently Codex supports SessionStart and Stop events (experimental,
+ * added in Codex CLI v0.111.0). We also register the notify command
+ * for these events so notifications work even without the wrapper.
  */
 export function getCodexGlobalHooksJsonContent(
 	notifyScriptPath: string,
@@ -321,17 +320,11 @@ export function getCodexGlobalHooksJsonContent(
 	}
 
 	const managedEvents: Array<{
-		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
+		eventName: "SessionStart" | "Stop";
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
 			eventName: "SessionStart",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
-		},
-		{
-			eventName: "UserPromptSubmit",
 			definition: {
 				hooks: [{ type: "command", command: notifyScriptPath }],
 			},

@@ -6,7 +6,6 @@ export function mapEventType(
 	}
 	if (
 		eventType === "Start" ||
-		eventType === "SessionStart" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||

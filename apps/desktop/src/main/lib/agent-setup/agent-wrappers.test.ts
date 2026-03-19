@@ -832,7 +832,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("creates Codex hooks.json with SessionStart, UserPromptSubmit, and Stop when no file exists", () => {
+	it("creates Codex hooks.json with SessionStart and Stop when no file exists", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getCodexGlobalHooksJsonContent(notifyPath);
 		expect(content).not.toBeNull();
@@ -848,11 +848,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of [
-			"SessionStart",
-			"UserPromptSubmit",
-			"Stop",
-		] as const) {
+		for (const eventName of ["SessionStart", "Stop"] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
@@ -909,17 +905,9 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		// Also creates SessionStart and UserPromptSubmit
+		// Also creates SessionStart
 		expect(
 			parsed.hooks.SessionStart.some(
-				(def: { hooks: Array<{ command: string }> }) =>
-					def.hooks.some(
-						(hook: { command: string }) => hook.command === notifyPath,
-					),
-			),
-		).toBe(true);
-		expect(
-			parsed.hooks.UserPromptSubmit.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
 						(hook: { command: string }) => hook.command === notifyPath,
@@ -940,11 +928,6 @@ describe("agent-wrappers codex hooks.json", () => {
 				{
 					hooks: {
 						SessionStart: [
-							{
-								hooks: [{ type: "command", command: staleHookPath }],
-							},
-						],
-						UserPromptSubmit: [
 							{
 								hooks: [{ type: "command", command: staleHookPath }],
 							},
@@ -982,11 +965,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of [
-			"SessionStart",
-			"UserPromptSubmit",
-			"Stop",
-		] as const) {
+		for (const eventName of ["SessionStart", "Stop"] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
