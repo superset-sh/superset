@@ -14,6 +14,7 @@ import {
 	copyResourcesPlugin,
 	defineEnv,
 	devPath,
+	getMonorepoRoot,
 	htmlEnvTransformPlugin,
 } from "./vite/helpers";
 
@@ -211,6 +212,9 @@ export default defineConfig({
 		server: {
 			port: DEV_SERVER_PORT,
 			strictPort: false,
+			fs: {
+				allow: [getMonorepoRoot()],
+			},
 		},
 
 		plugins: [

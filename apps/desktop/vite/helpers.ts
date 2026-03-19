@@ -6,6 +6,19 @@ import { main, resources } from "../package.json";
 
 export const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
 
+/**
+ * Returns the monorepo root directory (two levels above apps/desktop).
+ *
+ * When the desktop app runs from a git worktree located inside `.git/`,
+ * Vite's automatic workspace-root detection fails because the path traverses
+ * `.git/`. Explicitly providing this path to `server.fs.allow` ensures Vite
+ * can serve renderer files regardless of worktree location.
+ */
+export function getMonorepoRoot(baseDir: string = __dirname): string {
+	// baseDir is apps/desktop/vite → go up three levels to reach monorepo root
+	return resolve(baseDir, "../../..");
+}
+
 function copyDir({ src, dest }: { src: string; dest: string }): void {
 	if (!existsSync(src)) return;
 
