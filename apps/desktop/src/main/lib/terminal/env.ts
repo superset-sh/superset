@@ -164,6 +164,9 @@ const ALLOWED_ENV_VARS = new Set([
 	"ZDOTDIR", // zsh config directory - used to source our wrapper
 	"BASH_ENV", // bash startup file - used for non-interactive shells
 
+	// Shell history (user expects history from before Superset)
+	"HISTFILE", // custom history file path
+
 	// Terminal/display
 	"DISPLAY",
 	"COLORTERM",

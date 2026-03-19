@@ -818,6 +818,97 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 		});
 	});
 
+	describe("zsh HISTFILE fix for ZDOTDIR redirect", () => {
+		it("zsh wrapper corrects HISTFILE to user home when user .zshenv does not set it", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zsh-histfile-default");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+
+			// User has no .zshenv that sets HISTFILE
+			writeFileSync(path.join(homeDir, ".zshenv"), "\n");
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync("zsh", ["-lic", 'echo "$HISTFILE"'], {
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: "/usr/bin:/bin",
+					SUPERSET_ORIG_ZDOTDIR: homeDir,
+					ZDOTDIR: integrationZshDir,
+				},
+			}).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			const histfile = lines[lines.length - 1] ?? "";
+			// HISTFILE should point to user's home, not the wrapper directory
+			expect(histfile).toBe(path.join(homeDir, ".zsh_history"));
+			expect(histfile).not.toContain(integrationZshDir);
+		});
+
+		it("zsh wrapper preserves custom HISTFILE set in user .zshenv", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zsh-histfile-custom");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+			const customHistDir = path.join(homeDir, ".local", "share", "zsh");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(customHistDir, { recursive: true });
+
+			// User explicitly sets a custom HISTFILE in their .zshenv
+			writeFileSync(
+				path.join(homeDir, ".zshenv"),
+				`export HISTFILE="${customHistDir}/history"\n`,
+			);
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync("zsh", ["-lic", 'echo "$HISTFILE"'], {
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: "/usr/bin:/bin",
+					SUPERSET_ORIG_ZDOTDIR: homeDir,
+					ZDOTDIR: integrationZshDir,
+				},
+			}).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			const histfile = lines[lines.length - 1] ?? "";
+			// User's custom HISTFILE should be preserved
+			expect(histfile).toBe(path.join(customHistDir, "history"));
+		});
+	});
+
 	describe("fish shell", () => {
 		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
 			const args = getCommandShellArgs(
