@@ -29,6 +29,10 @@ interface SidebarState {
 	tabPositions: Record<RightSidebarTab, PanelSide>;
 	/** Width of the left panel (when tabs are docked left) */
 	leftPanelWidth: number;
+	/** Which side the project focus bar is docked on (focus windows only) */
+	projectFocusPosition: PanelSide;
+	/** Height of the project focus section in the sidebar (0 = auto/content height) */
+	projectFocusHeight: number;
 	toggleSidebar: () => void;
 	setSidebarOpen: (open: boolean) => void;
 	setSidebarWidth: (width: number) => void;
@@ -37,6 +41,8 @@ interface SidebarState {
 	setRightSidebarTab: (tab: RightSidebarTab) => void;
 	setTabPosition: (tab: RightSidebarTab, side: PanelSide) => void;
 	setLeftPanelWidth: (width: number) => void;
+	setProjectFocusPosition: (side: PanelSide) => void;
+	setProjectFocusHeight: (height: number) => void;
 }
 
 export const useSidebarStore = create<SidebarState>()(
@@ -55,6 +61,8 @@ export const useSidebarStore = create<SidebarState>()(
 					[RightSidebarTab.Files]: "right",
 				},
 				leftPanelWidth: DEFAULT_SIDEBAR_WIDTH,
+				projectFocusPosition: "right" as PanelSide,
+				projectFocusHeight: 0,
 
 				toggleSidebar: () => {
 					const { isSidebarOpen, lastOpenSidebarWidth, currentMode, lastMode } =
@@ -149,6 +157,14 @@ export const useSidebarStore = create<SidebarState>()(
 						Math.min(MAX_SIDEBAR_WIDTH, width),
 					);
 					set({ leftPanelWidth: clamped });
+				},
+
+				setProjectFocusPosition: (side) => {
+					set({ projectFocusPosition: side });
+				},
+
+				setProjectFocusHeight: (height) => {
+					set({ projectFocusHeight: Math.max(0, height) });
 				},
 			}),
 			{

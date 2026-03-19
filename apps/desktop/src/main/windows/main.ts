@@ -116,6 +116,7 @@ export async function MainWindow() {
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
+		restorable: false,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
 		frame: false,

@@ -1,3 +1,6 @@
+// Must be the first import — captures projectFocus before the router replaces the hash
+import "./lib/project-focus";
+
 import { initSentry } from "./lib/sentry";
 
 initSentry();

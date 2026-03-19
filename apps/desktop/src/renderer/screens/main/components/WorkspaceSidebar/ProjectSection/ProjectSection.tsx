@@ -51,6 +51,10 @@ interface ProjectSectionProps {
 	shortcutBaseIndex: number;
 	index: number;
 	isCollapsed?: boolean;
+	/** Extra context menu items rendered at the top of the project header menu */
+	extraContextMenuItems?: React.ReactNode;
+	/** Hide the "Open in Focus Window" context menu item */
+	hideOpenInFocusWindow?: boolean;
 }
 
 export function ProjectSection({
@@ -68,6 +72,8 @@ export function ProjectSection({
 	shortcutBaseIndex,
 	index,
 	isCollapsed: isSidebarCollapsed = false,
+	extraContextMenuItems,
+	hideOpenInFocusWindow,
 }: ProjectSectionProps) {
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
@@ -255,6 +261,8 @@ export function ProjectSection({
 					isBranchOnly={isBranchOnly}
 					isActive={isBranchOnlyActive}
 					onNavigateToWorkspace={handleNavigateToWorkspace}
+					extraContextMenuItems={extraContextMenuItems}
+					hideOpenInFocusWindow={hideOpenInFocusWindow}
 				/>
 				<AnimatePresence initial={false}>
 					{showWorkspaces && (
@@ -351,6 +359,8 @@ export function ProjectSection({
 				}
 				isActive={isBranchOnlyActive}
 				onNavigateToWorkspace={handleNavigateToWorkspace}
+				extraContextMenuItems={extraContextMenuItems}
+				hideOpenInFocusWindow={hideOpenInFocusWindow}
 			/>
 
 			{!isBranchOnly && (

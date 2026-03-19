@@ -38,6 +38,7 @@ export function registerMenuHotkeyUpdates() {
 
 export function createApplicationMenu() {
 	const closeAccelerator = getMenuAccelerator("CLOSE_WINDOW");
+	const newWindowAccelerator = getMenuAccelerator("NEW_WINDOW");
 	const showHotkeysAccelerator = getMenuAccelerator("SHOW_HOTKEYS");
 	const openSettingsAccelerator = getMenuAccelerator("OPEN_SETTINGS");
 
@@ -57,6 +58,17 @@ export function createApplicationMenu() {
 		{
 			label: "View",
 			submenu: [
+				{
+					label: "New Window",
+					accelerator: newWindowAccelerator,
+					click: () => {
+						// Dynamic import to avoid circular dependency (menu ↔ main window)
+						import("main/windows/main").then(({ MainWindow }) => {
+							MainWindow();
+						});
+					},
+				},
+				{ type: "separator" },
 				{ role: "reload" },
 				{ role: "forceReload" },
 				{ role: "toggleDevTools" },

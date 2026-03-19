@@ -22,7 +22,7 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
-import { initAppState } from "./lib/app-state";
+import { appState, initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
@@ -40,6 +40,7 @@ import {
 import { disposeTray, initTray } from "./lib/tray";
 import { windowManager } from "./lib/window-manager";
 import { MainWindow } from "./windows/main";
+import { ProjectWindow } from "./windows/project";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -198,6 +199,12 @@ app.on("before-quit", async (event) => {
 	// Quit confirmed or no confirmation needed - exit immediately
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
+
+	// Persist open focus window project IDs for restoration on next launch
+	appState.data.openFocusWindowProjectIds =
+		windowManager.getOpenProjectIds();
+	await appState.write();
+
 	windowManager.closeAllProjectWindows();
 	await outlit.shutdown();
 	getHostServiceManager().stopAll();
@@ -349,6 +356,22 @@ if (!gotTheLock) {
 		}
 
 		await makeAppSetup(() => MainWindow());
+
+		// Restore focus windows from previous session
+		const focusProjectIds = appState.data.openFocusWindowProjectIds ?? [];
+		if (focusProjectIds.length > 0) {
+			appState.data.openFocusWindowProjectIds = [];
+			await appState.write();
+			for (const projectId of focusProjectIds) {
+				ProjectWindow(projectId).catch((error) => {
+					console.error(
+						`[main] Failed to restore focus window for project ${projectId}:`,
+						error,
+					);
+				});
+			}
+		}
+
 		setupAutoUpdater();
 		initTray();
 

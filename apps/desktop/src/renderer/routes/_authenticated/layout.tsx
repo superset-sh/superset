@@ -28,6 +28,7 @@ import { WorkspaceInitEffects } from "renderer/screens/main/components/Workspace
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useTabsSync } from "renderer/stores/tabs/useTabsSync";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
@@ -64,6 +65,7 @@ function AuthenticatedLayout() {
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
+	useTabsSync();
 
 	useEffect(() => {
 		if (!location.pathname.startsWith("/settings")) {

@@ -48,7 +48,7 @@ export function DashboardSidebarProjectContextMenu({
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onOpenInNewWindow}>
 					<LuSquareArrowOutUpRight className="size-4 mr-2" />
-					Open in New Window
+					Open in Focus Window
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onOpenSettings}>
 					<LuSettings className="size-4 mr-2" />

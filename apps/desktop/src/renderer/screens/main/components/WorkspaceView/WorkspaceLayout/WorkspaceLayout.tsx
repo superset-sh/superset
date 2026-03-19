@@ -1,4 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
+import { useProjectFocus } from "renderer/hooks/useProjectFocus";
 import {
 	DEFAULT_SIDEBAR_WIDTH,
 	MAX_SIDEBAR_WIDTH,
@@ -34,6 +35,8 @@ export function WorkspaceLayout({
 	const setIsResizing = useSidebarStore((s) => s.setIsResizing);
 	const currentMode = useSidebarStore((s) => s.currentMode);
 	const tabPositions = useSidebarStore((s) => s.tabPositions);
+	const projectFocusPosition = useSidebarStore((s) => s.projectFocusPosition);
+	const projectFocusId = useProjectFocus();
 
 	const isExpanded = currentMode === SidebarMode.Changes;
 
@@ -45,8 +48,15 @@ export function WorkspaceLayout({
 		tabPositions[RightSidebarTab.Changes] === "right" ||
 		tabPositions[RightSidebarTab.Files] === "right";
 
-	const showLeftPanel = isSidebarOpen && hasLeftTabs;
-	const showRightPanel = isSidebarOpen && hasRightTabs;
+	// Project focus bar can keep a panel visible when tabs are docked elsewhere,
+	// but only if the sidebar hasn't been explicitly closed by the user.
+	const hasLeftFocus =
+		!!projectFocusId && projectFocusPosition === "left" && isSidebarOpen;
+	const hasRightFocus =
+		!!projectFocusId && projectFocusPosition === "right" && isSidebarOpen;
+
+	const showLeftPanel = (isSidebarOpen && hasLeftTabs) || hasLeftFocus;
+	const showRightPanel = (isSidebarOpen && hasRightTabs) || hasRightFocus;
 
 	return (
 		<ScrollProvider>

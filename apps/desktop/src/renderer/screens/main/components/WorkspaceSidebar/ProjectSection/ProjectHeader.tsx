@@ -72,6 +72,10 @@ interface ProjectHeaderProps {
 	isActive?: boolean;
 	/** Called when clicking a branch-only project to navigate directly */
 	onNavigateToWorkspace?: () => void;
+	/** Extra context menu items rendered at the top of the menu */
+	extraContextMenuItems?: React.ReactNode;
+	/** Hide the "Open in Focus Window" context menu item */
+	hideOpenInFocusWindow?: boolean;
 }
 
 export function ProjectHeader({
@@ -95,6 +99,8 @@ export function ProjectHeader({
 	branchOnlyWorkspaceId,
 	isActive = false,
 	onNavigateToWorkspace,
+	extraContextMenuItems,
+	hideOpenInFocusWindow,
 }: ProjectHeaderProps) {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
@@ -298,6 +304,8 @@ export function ProjectHeader({
 						</TooltipContent>
 					</Tooltip>
 					<ContextMenuContent>
+						{extraContextMenuItems}
+						{extraContextMenuItems && <ContextMenuSeparator />}
 						<ContextMenuItem onSelect={rename.startRename}>
 							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Rename
@@ -310,15 +318,17 @@ export function ProjectHeader({
 							/>
 							Open in Finder
 						</ContextMenuItem>
-						<ContextMenuItem
-							onSelect={() => openInNewWindow.mutate({ projectId })}
-						>
-							<LuSquareArrowOutUpRight
-								className="size-4 mr-2"
-								strokeWidth={STROKE_WIDTH}
-							/>
-							Open in New Window
-						</ContextMenuItem>
+						{!hideOpenInFocusWindow && (
+							<ContextMenuItem
+								onSelect={() => openInNewWindow.mutate({ projectId })}
+							>
+								<LuSquareArrowOutUpRight
+									className="size-4 mr-2"
+									strokeWidth={STROKE_WIDTH}
+								/>
+								Open in Focus Window
+							</ContextMenuItem>
+						)}
 						<ContextMenuItem onSelect={handleOpenSettings}>
 							<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Project Settings
@@ -500,6 +510,8 @@ export function ProjectHeader({
 					</div>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
+					{extraContextMenuItems}
+					{extraContextMenuItems && <ContextMenuSeparator />}
 					<ContextMenuItem onSelect={rename.startRename}>
 						<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Rename
@@ -509,15 +521,17 @@ export function ProjectHeader({
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
 					</ContextMenuItem>
-					<ContextMenuItem
-						onSelect={() => openInNewWindow.mutate({ projectId })}
-					>
-						<LuSquareArrowOutUpRight
-							className="size-4 mr-2"
-							strokeWidth={STROKE_WIDTH}
-						/>
-						Open in New Window
-					</ContextMenuItem>
+					{!hideOpenInFocusWindow && (
+						<ContextMenuItem
+							onSelect={() => openInNewWindow.mutate({ projectId })}
+						>
+							<LuSquareArrowOutUpRight
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
+							Open in Focus Window
+						</ContextMenuItem>
+					)}
 					<ContextMenuItem onSelect={handleOpenSettings}>
 						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Project Settings

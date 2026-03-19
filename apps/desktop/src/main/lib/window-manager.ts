@@ -58,6 +58,19 @@ class WindowManager {
 		return windows;
 	}
 
+	/** Returns the project IDs that currently have open focus windows. */
+	getOpenProjectIds(): string[] {
+		const ids: string[] = [];
+		for (const [id, win] of this.projectWindows) {
+			if (win.isDestroyed()) {
+				this.projectWindows.delete(id);
+			} else {
+				ids.push(id);
+			}
+		}
+		return ids;
+	}
+
 	closeAllProjectWindows(): void {
 		for (const [id, win] of this.projectWindows) {
 			if (!win.isDestroyed()) win.close();
