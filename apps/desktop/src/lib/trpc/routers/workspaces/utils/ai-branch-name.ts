@@ -8,6 +8,7 @@ import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 const BRANCH_NAME_INSTRUCTIONS =
 	"Generate a concise git branch name (2-4 words, kebab-case, descriptive). Return ONLY the branch name, nothing else.";
 const MAX_CONFLICT_RESOLUTION_ATTEMPTS = 1000;
+const INITIAL_CONFLICT_SUFFIX = 2; // Start at -2 since -1 is implicit (no suffix)
 
 /**
  * Checks if a branch name conflicts with existing branches (case-insensitive)
@@ -23,14 +24,20 @@ function resolveConflict(
 	baseName: string,
 	existingBranches: string[],
 ): string {
-	// Convert to Set for O(1) lookups instead of O(n)
-	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
+	// Quick check without creating Set (covers 90% of cases where no conflict exists)
+	const lowerBase = baseName.toLowerCase();
+	const hasInitialConflict = existingBranches.some(
+		(b) => b.toLowerCase() === lowerBase,
+	);
 
-	if (!hasConflict(baseName, existingSet)) {
+	if (!hasInitialConflict) {
 		return baseName;
 	}
 
-	let counter = 2;
+	// Only create Set if we need to loop through conflicts
+	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
+
+	let counter = INITIAL_CONFLICT_SUFFIX;
 	let candidate = `${baseName}-${counter}`;
 
 	while (hasConflict(candidate, existingSet)) {

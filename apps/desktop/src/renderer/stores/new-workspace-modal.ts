@@ -37,16 +37,17 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 			},
 
 			setIsGeneratingBranchName: (isGenerating: boolean) => {
-				set((state) =>
-					state.pendingWorkspace
-						? {
-								pendingWorkspace: {
-									...state.pendingWorkspace,
-									isGeneratingBranchName: isGenerating,
-								},
-							}
-						: {},
-				);
+				set((state) => {
+					if (!state.pendingWorkspace) {
+						return {};
+					}
+					return {
+						pendingWorkspace: {
+							...state.pendingWorkspace,
+							isGeneratingBranchName: isGenerating,
+						},
+					};
+				});
 			},
 		}),
 		{ name: "NewWorkspaceModalStore" },

@@ -83,6 +83,14 @@ export function ProjectSection({
 		workspaces.length +
 		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
 
+	// Extract pending workspace item to avoid duplication
+	const pendingWorkspaceItem =
+		pendingWorkspace && pendingWorkspace.projectId === projectId ? (
+			<div className={cn(isSidebarCollapsed ? "w-full px-1" : "px-1 pb-0.5")}>
+				<PendingWorkspaceItem />
+			</div>
+		) : null;
+
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
 		const topLevelWorkspacesById = new Map(
 			workspaces.map((workspace) => [workspace.id, workspace]),
@@ -270,12 +278,7 @@ export function ProjectSection({
 										)}
 									/>
 								)}
-								{pendingWorkspace &&
-									pendingWorkspace.projectId === projectId && (
-										<div className="w-full px-1">
-											<PendingWorkspaceItem />
-										</div>
-									)}
+								{pendingWorkspaceItem}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
@@ -391,11 +394,7 @@ export function ProjectSection({
 									)}
 								/>
 							)}
-							{pendingWorkspace && pendingWorkspace.projectId === projectId && (
-								<div className="px-1 pb-0.5">
-									<PendingWorkspaceItem />
-								</div>
-							)}
+							{pendingWorkspaceItem}
 							{topLevelChildren.map((item) =>
 								item.kind === "workspace" ? (
 									<WorkspaceListItem

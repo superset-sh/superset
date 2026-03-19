@@ -451,6 +451,14 @@ function PromptGroupInner({
 		electronTrpc.workspaces.generateBranchName.useMutation();
 	const [isGeneratingBranchName, setIsGeneratingBranchName] = useState(false);
 
+	// Track component mount state for cleanup
+	const isMountedRef = useRef(true);
+	useEffect(() => {
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
+
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
@@ -566,15 +574,16 @@ function PromptGroupInner({
 		let aiBranchName: string | null = null;
 		if (willGenerateAIName) {
 			setIsGeneratingBranchName(true);
+			let timeoutId: NodeJS.Timeout | null = null;
 			try {
 				// Add timeout to prevent hanging indefinitely
 				const AI_GENERATION_TIMEOUT_MS = 30000; // 30 seconds
-				const timeoutPromise = new Promise<never>((_, reject) =>
-					setTimeout(
+				const timeoutPromise = new Promise<never>((_, reject) => {
+					timeoutId = setTimeout(
 						() => reject(new Error("AI generation timeout")),
 						AI_GENERATION_TIMEOUT_MS,
-					),
-				);
+					);
+				});
 
 				const result = await Promise.race([
 					generateBranchNameMutation.mutateAsync({
@@ -583,14 +592,22 @@ function PromptGroupInner({
 					}),
 					timeoutPromise,
 				]);
+
+				// Clear timeout on successful completion
+				if (timeoutId) clearTimeout(timeoutId);
 				aiBranchName = result.branchName;
 			} catch (error) {
+				// Clear timeout on error
+				if (timeoutId) clearTimeout(timeoutId);
 				console.warn("[PromptGroup] AI branch name generation failed:", error);
 				toast.info("Using random branch name (AI generation unavailable)");
 				// Continue with workspace creation - backend will use random name
 			} finally {
-				setIsGeneratingBranchName(false);
-				setIsGeneratingBranchNameGlobal(false);
+				// Only update state if component is still mounted
+				if (isMountedRef.current) {
+					setIsGeneratingBranchName(false);
+					setIsGeneratingBranchNameGlobal(false);
+				}
 			}
 		}
 
