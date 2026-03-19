@@ -1,8 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useProjectGroupsStore } from "renderer/stores/project-groups-state";
+import { groupProjectsBySidebarGroups } from "renderer/screens/main/components/WorkspaceSidebar/utils/groupProjectsBySidebarGroups";
 
 /**
  * Shared hook for workspace keyboard shortcuts.
@@ -10,12 +12,26 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
  *
  * Handles ⌘1-9 workspace switching shortcuts (global).
  */
-export function useWorkspaceShortcuts() {
+	export function useWorkspaceShortcuts() {
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const projectGroups = useProjectGroupsStore((state) => state.groups);
+	const projectAssignments = useProjectGroupsStore(
+		(state) => state.projectAssignments,
+	);
 	const navigate = useNavigate();
 
-	const allWorkspaces = groups.flatMap((group) => {
+	const orderedProjects = useMemo(
+		() =>
+			groupProjectsBySidebarGroups({
+				projectGroups,
+				projectAssignments,
+				projects: groups,
+			}).flatMap((bucket) => bucket.projects),
+		[groups, projectAssignments, projectGroups],
+	);
+
+	const allWorkspaces = orderedProjects.flatMap((group) => {
 		const topLevelWorkspacesById = new Map(
 			group.workspaces.map((workspace) => [workspace.id, workspace]),
 		);
@@ -72,7 +88,7 @@ export function useWorkspaceShortcuts() {
 	]);
 
 	return {
-		groups,
+		groups: orderedProjects,
 		allWorkspaces,
 	};
 }

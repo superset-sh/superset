@@ -30,6 +30,7 @@ type TopLevelChild =
 	  };
 
 interface ProjectSectionProps {
+	projectGroupId: string;
 	projectId: string;
 	projectName: string;
 	projectColor: string;
@@ -50,9 +51,11 @@ interface ProjectSectionProps {
 	index: number;
 	/** Whether the sidebar is in collapsed mode */
 	isCollapsed?: boolean;
+	onMoveToProjectGroup?: (projectId: string, groupId: string) => void;
 }
 
 export function ProjectSection({
+	projectGroupId,
 	projectId,
 	projectName,
 	projectColor,
@@ -66,6 +69,7 @@ export function ProjectSection({
 	shortcutBaseIndex,
 	index,
 	isCollapsed: isSidebarCollapsed = false,
+	onMoveToProjectGroup,
 }: ProjectSectionProps) {
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
@@ -158,9 +162,10 @@ export function ProjectSection({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: PROJECT_TYPE,
-			item: { projectId, index, originalIndex: index },
+			item: { projectId, index, originalIndex: index, groupId: projectGroupId },
 			end: (item, monitor) => {
 				if (!item) return;
+				if (item.groupId !== projectGroupId) return;
 				if (monitor.didDrop()) return;
 				if (item.originalIndex !== item.index) {
 					reorderProjects.mutate(
@@ -186,7 +191,11 @@ export function ProjectSection({
 			projectId: string;
 			index: number;
 			originalIndex: number;
+			groupId: string;
 		}) => {
+			if (item.groupId !== projectGroupId) {
+				return;
+			}
 			if (item.index !== index) {
 				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
 					if (!oldData) return oldData;
@@ -202,7 +211,13 @@ export function ProjectSection({
 			projectId: string;
 			index: number;
 			originalIndex: number;
+			groupId: string;
 		}) => {
+			if (item.groupId !== projectGroupId) {
+				onMoveToProjectGroup?.(item.projectId, projectGroupId);
+				item.groupId = projectGroupId;
+				return { movedGroup: true };
+			}
 			if (item.originalIndex !== item.index) {
 				reorderProjects.mutate(
 					{ fromIndex: item.originalIndex, toIndex: item.index },
