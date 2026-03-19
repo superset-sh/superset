@@ -1,4 +1,5 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -79,6 +80,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
+	const displayId = getTaskDisplayId(task);
 
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
@@ -96,7 +98,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		buildTaskAgentLaunchRequest({
 			task: {
 				id: task.id,
-				slug: task.slug,
+				slug: displayId,
 				title: task.title,
 				description: task.description,
 				priority: task.priority,
@@ -112,7 +114,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 
 	const handleSelectProject = async (projectId: string) => {
 		const branchName = deriveBranchName({
-			slug: task.slug,
+			slug: displayId,
 			title: task.title,
 		});
 
@@ -121,7 +123,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
-					name: task.slug,
+					name: displayId,
 					branchName,
 				},
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },

@@ -1,3 +1,4 @@
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import {
 	Command,
 	CommandDialog,
@@ -40,6 +41,7 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 			q.from({ t: collections.tasks }).select(({ t }) => ({
 				id: t.id,
 				slug: t.slug,
+				externalKey: t.externalKey,
 				title: t.title,
 				statusId: t.statusId,
 				priority: t.priority,
@@ -148,7 +150,7 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 										<span className="size-3.5 shrink-0 rounded-full border border-muted-foreground/40" />
 									)}
 									<span className="max-w-24 shrink-0 truncate font-mono text-xs text-muted-foreground">
-										{task.slug}
+										{getTaskDisplayId(task)}
 									</span>
 									<span className="min-w-0 flex-1 truncate text-xs">
 										{task.title}

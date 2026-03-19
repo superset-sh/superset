@@ -1,3 +1,4 @@
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
@@ -101,7 +102,9 @@ function TaskDetailPage() {
 					>
 						<HiArrowLeft className="w-4 h-4" />
 					</Button>
-					<span className="text-sm text-muted-foreground">{task.slug}</span>
+					<span className="text-sm text-muted-foreground">
+						{getTaskDisplayId(task)}
+					</span>
 					{task.externalUrl && (
 						<a
 							href={task.externalUrl}

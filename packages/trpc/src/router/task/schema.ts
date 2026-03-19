@@ -2,7 +2,7 @@ import { taskPriorityValues } from "@superset/db/enums";
 import { z } from "zod";
 
 export const createTaskSchema = z.object({
-	slug: z.string().min(1),
+	slug: z.string().min(1).nullish(),
 	title: z.string().min(1),
 	description: z.string().nullish(),
 	statusId: z.string().uuid(),

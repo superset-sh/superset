@@ -36,6 +36,10 @@
 			"types": "./src/agent-prompt-template.ts",
 			"default": "./src/agent-prompt-template.ts"
 		},
+		"./task-display": {
+			"types": "./src/task-display.ts",
+			"default": "./src/task-display.ts"
+		},
 		"./claude-command": {
 			"types": "./src/claude-command.ts",
 			"default": "./src/claude-command.ts"

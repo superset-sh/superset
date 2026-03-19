@@ -1,4 +1,5 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -116,7 +117,7 @@ export function RunInWorkspacePopover({
 		buildTaskAgentLaunchRequest({
 			task: {
 				id: task.id,
-				slug: task.slug,
+				slug: getTaskDisplayId(task),
 				title: task.title,
 				description: task.description,
 				priority: task.priority,
@@ -161,9 +162,10 @@ export function RunInWorkspacePopover({
 				return next;
 			});
 
+			const taskDisplayId = getTaskDisplayId(task);
 			try {
 				const branchName = deriveBranchName({
-					slug: task.slug,
+					slug: taskDisplayId,
 					title: task.title,
 				});
 				const launchRequestTemplate = buildLaunchRequest(
@@ -174,7 +176,7 @@ export function RunInWorkspacePopover({
 				const result = await createWorkspace.mutateAsyncWithPendingSetup(
 					{
 						projectId: effectiveProjectId,
-						name: task.slug,
+						name: taskDisplayId,
 						branchName,
 					},
 					{ agentLaunchRequest: launchRequestTemplate ?? undefined },
@@ -206,7 +208,7 @@ export function RunInWorkspacePopover({
 				successCount++;
 			} catch (err) {
 				console.error(
-					`[RunInWorkspacePopover] Failed to create workspace for task ${task.slug}:`,
+					`[RunInWorkspacePopover] Failed to create workspace for task ${taskDisplayId}:`,
 					err,
 				);
 				setTaskStatuses((prev) => {
@@ -366,7 +368,7 @@ export function RunInWorkspacePopover({
 									<BatchStatusIcon
 										status={taskStatuses.get(task.id) ?? "pending"}
 									/>
-									<span className="truncate">{task.slug}</span>
+									<span className="truncate">{getTaskDisplayId(task)}</span>
 								</div>
 							))}
 						</div>

@@ -1,3 +1,4 @@
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { CommandEmpty, CommandGroup, CommandItem } from "@superset/ui/command";
@@ -106,7 +107,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 	}, [debouncedQuery, sortedTasks, search]);
 
 	const slugWidth = useMemo(
-		() => getSlugColumnWidth(visibleTasks.map((t) => t.slug)),
+		() => getSlugColumnWidth(visibleTasks.map((t) => getTaskDisplayId(t))),
 		[visibleTasks],
 	);
 
@@ -147,7 +148,10 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 							toast.error("Select a project first");
 							return;
 						}
-						const existingId = workspaceByBranch.get(task.slug.toLowerCase());
+						const taskDisplayId = getTaskDisplayId(task);
+						const existingId = workspaceByBranch.get(
+							taskDisplayId.toLowerCase(),
+						);
 						if (existingId) {
 							closeAndResetDraft();
 							navigateToV2Workspace(existingId, navigate);
@@ -157,7 +161,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 							createWorkspace({
 								projectId,
 								name: task.title,
-								branch: task.slug.toLowerCase(),
+								branch: taskDisplayId.toLowerCase(),
 								hostTarget,
 							}),
 							{
@@ -172,7 +176,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 					}}
 					className="group h-12"
 				>
-					{workspaceByBranch.has(task.slug.toLowerCase()) ? (
+					{workspaceByBranch.has(getTaskDisplayId(task).toLowerCase()) ? (
 						<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
 					) : (
 						<StatusIcon
@@ -186,7 +190,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 						className="text-muted-foreground shrink-0 text-xs tabular-nums truncate"
 						style={{ width: slugWidth }}
 					>
-						{task.slug}
+						{getTaskDisplayId(task)}
 					</span>
 					<span className="truncate flex-1">{task.title}</span>
 					<span className="shrink-0 group-data-[selected=true]:hidden">
@@ -201,7 +205,9 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 						)}
 					</span>
 					<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
-						{workspaceByBranch.has(task.slug.toLowerCase()) ? "Open" : "Create"}{" "}
+						{workspaceByBranch.has(getTaskDisplayId(task).toLowerCase())
+							? "Open"
+							: "Create"}{" "}
 						↵
 					</span>
 				</CommandItem>

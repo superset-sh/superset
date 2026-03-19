@@ -67,14 +67,6 @@ function enqueueTaskSync(taskId: string) {
 	});
 }
 
-function generateBaseSlug(title: string): string {
-	return title
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}
-
 function generateUniqueSlug(
 	baseSlug: string,
 	existingSlugs: Set<string>,
@@ -137,10 +129,17 @@ export async function createTasks({
 		defaultStatusId = await seedDefaultStatuses(organizationId);
 	}
 
-	const baseSlugs = inputs.map(
-		(input) => input.slug?.trim() || generateBaseSlug(input.title),
-	);
-	const uniqueBaseSlugs = [...new Set(baseSlugs)];
+	const preparedInputs = inputs.map((input) => {
+		const id = crypto.randomUUID();
+		return {
+			id,
+			input,
+			baseSlug: input.slug?.trim() || id.slice(0, 8),
+		};
+	});
+	const uniqueBaseSlugs = [
+		...new Set(preparedInputs.map((item) => item.baseSlug)),
+	];
 	const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
 		ilike(tasks.slug, `${baseSlug}%`),
 	);
@@ -159,12 +158,12 @@ export async function createTasks({
 			: [];
 
 	const usedSlugs = new Set(existingTasks.map((task) => task.slug));
-	const values = inputs.map((input, index) => {
-		const baseSlug = baseSlugs[index] ?? "";
+	const values = preparedInputs.map(({ id, input, baseSlug }) => {
 		const slug = generateUniqueSlug(baseSlug, usedSlugs);
 		usedSlugs.add(slug);
 
 		return {
+			id,
 			slug,
 			title: input.title,
 			description: input.description ?? null,
