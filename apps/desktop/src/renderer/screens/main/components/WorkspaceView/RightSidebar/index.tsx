@@ -101,7 +101,8 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 	const currentMode = useSidebarStore((s) => s.currentMode);
 	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
 	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
-	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const toggleLeftPanel = useSidebarStore((s) => s.toggleLeftPanel);
+	const toggleRightPanel = useSidebarStore((s) => s.toggleRightPanel);
 	const setMode = useSidebarStore((s) => s.setMode);
 	const setTabPosition = useSidebarStore((s) => s.setTabPosition);
 	const tabPositions = useSidebarStore((s) => s.tabPositions);
@@ -200,35 +201,9 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 
 	const handleClosePanel = () => {
 		if (side === "right") {
-			const leftHasFocus = !!projectFocusId && projectFocusPosition === "left";
-
-			if (leftHasFocus) {
-				// Left panel has the ProjectFocusBar — keep it open.
-				// Move right tabs to left so they join the focus bar panel.
-				for (const [tab, tabSide] of Object.entries(tabPositions)) {
-					if (tabSide === "right") {
-						setTabPosition(tab as RightSidebarTab, "left");
-					}
-				}
-			} else {
-				// No left focus bar — normal close behavior
-				const tabsOnRight = Object.entries(tabPositions).filter(
-					([, s]) => s === "right",
-				);
-				if (tabsOnRight.length <= 1) {
-					setTabPosition(RightSidebarTab.Changes, "right");
-					setTabPosition(RightSidebarTab.Files, "right");
-				}
-				toggleSidebar();
-			}
+			toggleRightPanel();
 		} else {
-			// Left panel: move all tabs on the left back to right, panel disappears.
-			// Project focus bar stays put — it'll reappear when the sidebar is reopened.
-			for (const [tab, tabSide] of Object.entries(tabPositions)) {
-				if (tabSide === "left") {
-					setTabPosition(tab as RightSidebarTab, "right");
-				}
-			}
+			toggleLeftPanel();
 		}
 	};
 

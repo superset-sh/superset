@@ -26,7 +26,8 @@ export function WorkspaceLayout({
 	onOpenQuickOpen,
 }: WorkspaceLayoutProps) {
 	useBrowserLifecycle();
-	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const isLeftPanelOpen = useSidebarStore((s) => s.isLeftPanelOpen);
+	const isRightPanelOpen = useSidebarStore((s) => s.isRightPanelOpen);
 	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
 	const setSidebarWidth = useSidebarStore((s) => s.setSidebarWidth);
 	const leftPanelWidth = useSidebarStore((s) => s.leftPanelWidth);
@@ -48,15 +49,12 @@ export function WorkspaceLayout({
 		tabPositions[RightSidebarTab.Changes] === "right" ||
 		tabPositions[RightSidebarTab.Files] === "right";
 
-	// Project focus bar can keep a panel visible when tabs are docked elsewhere,
-	// but only if the sidebar hasn't been explicitly closed by the user.
-	const hasLeftFocus =
-		!!projectFocusId && projectFocusPosition === "left" && isSidebarOpen;
-	const hasRightFocus =
-		!!projectFocusId && projectFocusPosition === "right" && isSidebarOpen;
+	// Project focus bar can keep a panel visible even without tabs
+	const hasLeftFocus = !!projectFocusId && projectFocusPosition === "left";
+	const hasRightFocus = !!projectFocusId && projectFocusPosition === "right";
 
-	const showLeftPanel = (isSidebarOpen && hasLeftTabs) || hasLeftFocus;
-	const showRightPanel = (isSidebarOpen && hasRightTabs) || hasRightFocus;
+	const showLeftPanel = isLeftPanelOpen && (hasLeftTabs || hasLeftFocus);
+	const showRightPanel = isRightPanelOpen && (hasRightTabs || hasRightFocus);
 
 	return (
 		<ScrollProvider>
