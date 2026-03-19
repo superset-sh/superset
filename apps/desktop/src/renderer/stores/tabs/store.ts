@@ -99,9 +99,7 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
-const normalizePersistedChatPane = (
-	pane: TabsState["panes"][string],
-): void => {
+const normalizePersistedChatPane = (pane: TabsState["panes"][string]): void => {
 	// biome-ignore lint/suspicious/noExplicitAny: persisted chat panes may use legacy keys/shapes
 	const legacyPane = pane as any;
 	const legacyChatState = legacyPane.chat ?? legacyPane.chatMastra;
