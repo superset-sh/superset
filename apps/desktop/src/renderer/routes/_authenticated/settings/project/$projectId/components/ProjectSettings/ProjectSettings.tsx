@@ -156,6 +156,7 @@ export function ProjectSettings({
 
 	const handleRefreshIcon = useCallback(() => {
 		// Clear existing icon first so discovery runs fresh
+		setIconManuallyUploaded(false);
 		setProjectIcon.mutate(
 			{ id: projectId, icon: null },
 			{
@@ -166,6 +167,7 @@ export function ProjectSettings({
 		);
 	}, [projectId, setProjectIcon, discoverIcon]);
 
+	const [iconManuallyUploaded, setIconManuallyUploaded] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleIconUpload = useCallback(() => {
@@ -183,6 +185,7 @@ export function ProjectSettings({
 			reader.onload = () => {
 				const dataUrl = reader.result as string;
 				setProjectIcon.mutate({ id: projectId, icon: dataUrl });
+				setIconManuallyUploaded(true);
 			};
 			reader.readAsDataURL(file);
 
@@ -514,12 +517,13 @@ export function ProjectSettings({
 										<LuImagePlus className="size-4" />
 										Upload
 									</button>
-									{project.iconUrl && (
+									{project.iconUrl && iconManuallyUploaded && (
 										<button
 											type="button"
-											onClick={() =>
-												setProjectIcon.mutate({ id: projectId, icon: null })
-											}
+											onClick={() => {
+												setProjectIcon.mutate({ id: projectId, icon: null });
+												setIconManuallyUploaded(false);
+											}}
 											disabled={setProjectIcon.isPending}
 											className={cn(
 												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
