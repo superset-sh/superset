@@ -33,6 +33,7 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
 	ArrowUpIcon,
+	ExternalLinkIcon,
 	Loader2Icon,
 	PaperclipIcon,
 	PlusIcon,
@@ -72,6 +73,8 @@ import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
+import type { OpenableWorktreeAction } from "./utils/resolveOpenableWorktrees";
+import { resolveOpenableWorktrees } from "./utils/resolveOpenableWorktrees";
 
 type WorkspaceCreateAgent = AgentDefinitionId | "none";
 
@@ -246,7 +249,9 @@ function BaseBranchPickerInline({
 	isBranchesError,
 	branches,
 	worktreeBranches,
+	openableWorktrees,
 	onSelectBaseBranch,
+	onOpenWorktree,
 }: {
 	effectiveBaseBranch: string | null;
 	defaultBranch?: string;
@@ -254,7 +259,9 @@ function BaseBranchPickerInline({
 	isBranchesError: boolean;
 	branches: Array<{ name: string; lastCommitDate: number }>;
 	worktreeBranches: Set<string>;
+	openableWorktrees: Map<string, OpenableWorktreeAction>;
 	onSelectBaseBranch: (branchName: string) => void;
+	onOpenWorktree: (action: OpenableWorktreeAction) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
@@ -345,37 +352,49 @@ function BaseBranchPickerInline({
 					/>
 					<CommandList className="max-h-[200px]">
 						<CommandEmpty>No branches found</CommandEmpty>
-						{displayBranches.map((branch) => (
-							<CommandItem
-								key={branch.name}
-								value={branch.name}
-								onSelect={() => {
-									onSelectBaseBranch(branch.name);
-									setOpen(false);
-								}}
-								className="flex items-center justify-between"
-							>
-								<span className="flex items-center gap-2 truncate">
-									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-									<span className="truncate">{branch.name}</span>
-									{branch.name === defaultBranch && (
-										<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-											default
-										</span>
-									)}
-								</span>
-								<span className="flex items-center gap-2 shrink-0">
-									{branch.lastCommitDate > 0 && (
-										<span className="text-xs text-muted-foreground">
-											{formatRelativeTime(branch.lastCommitDate)}
-										</span>
-									)}
-									{effectiveBaseBranch === branch.name && (
-										<HiCheck className="size-4 text-primary" />
-									)}
-								</span>
-							</CommandItem>
-						))}
+						{displayBranches.map((branch) => {
+							const openAction = openableWorktrees.get(branch.name);
+							return (
+								<CommandItem
+									key={branch.name}
+									value={branch.name}
+									onSelect={() => {
+										if (openAction) {
+											onOpenWorktree(openAction);
+										} else {
+											onSelectBaseBranch(branch.name);
+										}
+										setOpen(false);
+									}}
+									className="flex items-center justify-between"
+								>
+									<span className="flex items-center gap-2 truncate">
+										<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+										<span className="truncate">{branch.name}</span>
+										{branch.name === defaultBranch && (
+											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+												default
+											</span>
+										)}
+									</span>
+									<span className="flex items-center gap-2 shrink-0">
+										{branch.lastCommitDate > 0 && (
+											<span className="text-xs text-muted-foreground">
+												{formatRelativeTime(branch.lastCommitDate)}
+											</span>
+										)}
+										{openAction ? (
+											<span className="flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+												<ExternalLinkIcon className="size-3" />
+												Open
+											</span>
+										) : effectiveBaseBranch === branch.name ? (
+											<HiCheck className="size-4 text-primary" />
+										) : null}
+									</span>
+								</CommandItem>
+							);
+						})}
 					</CommandList>
 				</Command>
 			</PopoverContent>
@@ -397,6 +416,8 @@ function PromptGroupInner({
 		closeModal,
 		createWorkspace,
 		createFromPr,
+		openTrackedWorktree,
+		openExternalWorktree,
 		draft,
 		runAsyncAction,
 		updateDraft,
@@ -504,6 +525,45 @@ function PromptGroupInner({
 		for (const wt of trackedWorktrees) set.add(wt.branch);
 		return set;
 	}, [externalWorktrees, trackedWorktrees]);
+
+	const openableWorktrees = useMemo(
+		() => resolveOpenableWorktrees(trackedWorktrees, externalWorktrees),
+		[trackedWorktrees, externalWorktrees],
+	);
+
+	const handleOpenWorktree = useCallback(
+		(action: OpenableWorktreeAction) => {
+			if (!projectId) return;
+			if (action.type === "tracked") {
+				void runAsyncAction(
+					openTrackedWorktree.mutateAsync({
+						worktreeId: action.worktreeId,
+					}),
+					{
+						loading: "Opening worktree...",
+						success: "Worktree opened",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to open worktree",
+					},
+				);
+			} else {
+				void runAsyncAction(
+					openExternalWorktree.mutateAsync({
+						projectId,
+						worktreePath: action.worktreePath,
+						branch: action.branch,
+					}),
+					{
+						loading: "Opening worktree...",
+						success: "Worktree opened",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to open worktree",
+					},
+				);
+			}
+		},
+		[openExternalWorktree, openTrackedWorktree, projectId, runAsyncAction],
+	);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -897,7 +957,9 @@ function PromptGroupInner({
 									isBranchesError={isBranchesError}
 									branches={branchData?.branches ?? []}
 									worktreeBranches={worktreeBranches}
+									openableWorktrees={openableWorktrees}
 									onSelectBaseBranch={handleBaseBranchSelect}
+									onOpenWorktree={handleOpenWorktree}
 								/>
 							</motion.div>
 						)}
