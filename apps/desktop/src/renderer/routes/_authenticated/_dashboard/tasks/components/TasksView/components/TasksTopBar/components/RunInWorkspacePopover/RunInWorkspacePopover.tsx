@@ -20,6 +20,7 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getTaskBranchCandidates } from "renderer/lib/task-identifiers";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
@@ -29,7 +30,6 @@ import {
 	getFallbackAgentId,
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 type TaskStatus = "pending" | "creating" | "done" | "failed";
@@ -164,10 +164,8 @@ export function RunInWorkspacePopover({
 
 			const taskDisplayId = getTaskDisplayId(task);
 			try {
-				const branchName = deriveBranchName({
-					slug: taskDisplayId,
-					title: task.title,
-				});
+				const [branchName, ...existingBranchAliases] =
+					getTaskBranchCandidates(task);
 				const launchRequestTemplate = buildLaunchRequest(
 					task,
 					"pending-workspace",
@@ -178,6 +176,7 @@ export function RunInWorkspacePopover({
 						projectId: effectiveProjectId,
 						name: taskDisplayId,
 						branchName,
+						existingBranchAliases,
 					},
 					{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 				);

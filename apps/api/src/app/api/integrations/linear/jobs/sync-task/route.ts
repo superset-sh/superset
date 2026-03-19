@@ -16,7 +16,7 @@ import { Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
-import { resolveLinearTaskSlug } from "../../utils/task-sync";
+import { writeLinearTaskWithSlugRetry } from "../../utils/task-sync";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -162,22 +162,23 @@ async function syncTaskToLinear(
 				return { success: false, error: "Issue not returned" };
 			}
 
-			const slug = await resolveLinearTaskSlug({
-				organizationId: task.organizationId,
-				preferredSlug: issue.identifier,
-				currentTaskId: task.id,
-			});
-
 			await db
 				.update(tasks)
 				.set({
-					slug,
 					externalKey: issue.identifier,
 					externalUrl: issue.url,
 					lastSyncedAt: new Date(),
 					syncError: null,
 				})
 				.where(eq(tasks.id, task.id));
+
+			await writeLinearTaskWithSlugRetry({
+				organizationId: task.organizationId,
+				preferredSlug: issue.identifier,
+				currentTaskId: task.id,
+				write: (nextSlug) =>
+					db.update(tasks).set({ slug: nextSlug }).where(eq(tasks.id, task.id)),
+			});
 
 			return {
 				success: true,
@@ -221,16 +222,9 @@ async function syncTaskToLinear(
 			return { success: false, error: "Issue not returned" };
 		}
 
-		const slug = await resolveLinearTaskSlug({
-			organizationId: task.organizationId,
-			preferredSlug: issue.identifier,
-			currentTaskId: task.id,
-		});
-
 		await db
 			.update(tasks)
 			.set({
-				slug,
 				externalProvider: "linear",
 				externalId: issue.id,
 				externalKey: issue.identifier,
@@ -239,6 +233,14 @@ async function syncTaskToLinear(
 				syncError: null,
 			})
 			.where(eq(tasks.id, task.id));
+
+		await writeLinearTaskWithSlugRetry({
+			organizationId: task.organizationId,
+			preferredSlug: issue.identifier,
+			currentTaskId: task.id,
+			write: (nextSlug) =>
+				db.update(tasks).set({ slug: nextSlug }).where(eq(tasks.id, task.id)),
+		});
 
 		return {
 			success: true,

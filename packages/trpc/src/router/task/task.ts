@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { tasks, users } from "@superset/db/schema";
-import type { TRPCRouterRecord } from "@trpc/server";
+import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -65,8 +65,16 @@ export const taskRouter = {
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No active organization",
+				});
+			}
+
 			const result = await createTasks({
-				organizationId: input.organizationId,
+				organizationId,
 				creatorId: ctx.session.user.id,
 				inputs: [input],
 			});
@@ -79,8 +87,19 @@ export const taskRouter = {
 
 	update: protectedProcedure
 		.input(updateTaskSchema)
-		.mutation(async ({ input }) => {
-			const result = await updateTasks({ inputs: [input] });
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No active organization",
+				});
+			}
+
+			const result = await updateTasks({
+				organizationId,
+				inputs: [input],
+			});
 
 			return {
 				task: result.tasks[0] ?? null,
@@ -90,8 +109,19 @@ export const taskRouter = {
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
-		.mutation(async ({ input }) => {
-			const result = await deleteTasks({ taskIds: [input] });
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No active organization",
+				});
+			}
+
+			const result = await deleteTasks({
+				organizationId,
+				taskIds: [input],
+			});
 
 			return { txid: result.txid };
 		}),

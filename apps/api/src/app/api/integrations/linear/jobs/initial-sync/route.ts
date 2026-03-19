@@ -12,7 +12,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
-import { resolveLinearTaskSlug } from "../../utils/task-sync";
+import { writeLinearTaskWithSlugRetry } from "../../utils/task-sync";
 import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
@@ -170,68 +170,76 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	const taskValues = await Promise.all(
-		issues.map(async (issue) => {
-			const existingTask = await db.query.tasks.findFirst({
-				where: and(
-					eq(tasks.organizationId, organizationId),
-					eq(tasks.externalProvider, "linear"),
-					eq(tasks.externalId, issue.id),
-				),
-				columns: { id: true },
-			});
+	for (const issueBatch of chunk(issues, BATCH_SIZE)) {
+		const existingBatchTasks =
+			issueBatch.length > 0
+				? await db
+						.select({ id: tasks.id, externalId: tasks.externalId })
+						.from(tasks)
+						.where(
+							and(
+								eq(tasks.organizationId, organizationId),
+								eq(tasks.externalProvider, "linear"),
+								inArray(
+									tasks.externalId,
+									issueBatch.map((issue) => issue.id),
+								),
+							),
+						)
+				: [];
+		const existingTaskIdByExternalId = new Map(
+			existingBatchTasks.map((task) => [task.externalId, task.id]),
+		);
 
-			const slug = await resolveLinearTaskSlug({
+		for (const issue of issueBatch) {
+			await writeLinearTaskWithSlugRetry({
 				organizationId,
 				preferredSlug: issue.identifier,
-				currentTaskId: existingTask?.id,
-			});
+				currentTaskId: existingTaskIdByExternalId.get(issue.id),
+				write: async (slug) => {
+					const taskValue = mapIssueToTask(
+						issue,
+						organizationId,
+						creatorUserId,
+						userByEmail,
+						statusByExternalId,
+						slug,
+					);
 
-			return mapIssueToTask(
-				issue,
-				organizationId,
-				creatorUserId,
-				userByEmail,
-				statusByExternalId,
-				slug,
-			);
-		}),
-	);
-
-	const batches = chunk(taskValues, BATCH_SIZE);
-
-	for (const batch of batches) {
-		await db
-			.insert(tasks)
-			.values(batch)
-			.onConflictDoUpdate({
-				target: [
-					tasks.organizationId,
-					tasks.externalProvider,
-					tasks.externalId,
-				],
-				set: {
-					...buildConflictUpdateColumns(tasks, [
-						"slug",
-						"title",
-						"description",
-						"statusId",
-						"priority",
-						"assigneeId",
-						"assigneeExternalId",
-						"assigneeDisplayName",
-						"assigneeAvatarUrl",
-						"estimate",
-						"dueDate",
-						"labels",
-						"startedAt",
-						"completedAt",
-						"externalKey",
-						"externalUrl",
-						"lastSyncedAt",
-					]),
-					syncError: null,
+					return db
+						.insert(tasks)
+						.values(taskValue)
+						.onConflictDoUpdate({
+							target: [
+								tasks.organizationId,
+								tasks.externalProvider,
+								tasks.externalId,
+							],
+							set: {
+								...buildConflictUpdateColumns(tasks, [
+									"slug",
+									"title",
+									"description",
+									"statusId",
+									"priority",
+									"assigneeId",
+									"assigneeExternalId",
+									"assigneeDisplayName",
+									"assigneeAvatarUrl",
+									"estimate",
+									"dueDate",
+									"labels",
+									"startedAt",
+									"completedAt",
+									"externalKey",
+									"externalUrl",
+									"lastSyncedAt",
+								]),
+								syncError: null,
+							},
+						});
 				},
 			});
+		}
 	}
 }

@@ -16,6 +16,7 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getTaskBranchCandidates } from "renderer/lib/task-identifiers";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
@@ -26,7 +27,6 @@ import {
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 type TaskLaunchAgent = AgentDefinitionId | "none";
 
@@ -113,10 +113,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		});
 
 	const handleSelectProject = async (projectId: string) => {
-		const branchName = deriveBranchName({
-			slug: displayId,
-			title: task.title,
-		});
+		const [branchName, ...existingBranchAliases] =
+			getTaskBranchCandidates(task);
 
 		try {
 			const launchRequestTemplate = buildLaunchRequest("pending-workspace");
@@ -125,6 +123,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					projectId,
 					name: displayId,
 					branchName,
+					existingBranchAliases,
 				},
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);

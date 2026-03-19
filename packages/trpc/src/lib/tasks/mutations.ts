@@ -7,6 +7,7 @@ import type {
 import { tasks } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
+import type { SQL } from "drizzle-orm";
 import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { syncTask } from "../integrations/sync";
 
@@ -94,23 +95,37 @@ export async function resolveTaskReference({
 			taskRef,
 		);
 
-	const [task] = await db
-		.select({
-			id: tasks.id,
-			externalProvider: tasks.externalProvider,
-			externalId: tasks.externalId,
-		})
-		.from(tasks)
-		.where(
-			and(
-				isUuid ? eq(tasks.id, taskRef) : eq(tasks.slug, taskRef),
-				eq(tasks.organizationId, organizationId),
-				isNull(tasks.deletedAt),
-			),
-		)
-		.limit(1);
+	const findTask = async (condition: SQL<unknown>) =>
+		db
+			.select({
+				id: tasks.id,
+				externalProvider: tasks.externalProvider,
+				externalId: tasks.externalId,
+			})
+			.from(tasks)
+			.where(
+				and(
+					condition,
+					eq(tasks.organizationId, organizationId),
+					isNull(tasks.deletedAt),
+				),
+			)
+			.limit(1)
+			.then((rows) => rows[0] ?? null);
 
-	return task ?? null;
+	if (isUuid) {
+		const taskById = await findTask(eq(tasks.id, taskRef));
+		if (taskById) {
+			return taskById;
+		}
+	}
+
+	const taskByExternalKey = await findTask(eq(tasks.externalKey, taskRef));
+	if (taskByExternalKey) {
+		return taskByExternalKey;
+	}
+
+	return findTask(eq(tasks.slug, taskRef));
 }
 
 export async function createTasks({
@@ -220,8 +235,10 @@ function buildTaskUpdateData(input: Omit<UpdateTaskMutationInput, "id">) {
 }
 
 export async function updateTasks({
+	organizationId,
 	inputs,
 }: {
+	organizationId: string;
 	inputs: UpdateTaskMutationInput[];
 }): Promise<UpdateTasksResult> {
 	const result = await dbWs.transaction(async (tx) => {
@@ -238,7 +255,13 @@ export async function updateTasks({
 			const [task] = await tx
 				.update(tasks)
 				.set(updateData)
-				.where(eq(tasks.id, id))
+				.where(
+					and(
+						eq(tasks.id, id),
+						eq(tasks.organizationId, organizationId),
+						isNull(tasks.deletedAt),
+					),
+				)
 				.returning();
 
 			if (task) {
@@ -259,15 +282,23 @@ export async function updateTasks({
 }
 
 export async function deleteTasks({
+	organizationId,
 	taskIds,
 }: {
+	organizationId: string;
 	taskIds: string[];
 }): Promise<DeleteTasksResult> {
 	const result = await dbWs.transaction(async (tx) => {
 		const deletedTasks = await tx
 			.update(tasks)
 			.set({ deletedAt: new Date() })
-			.where(inArray(tasks.id, taskIds))
+			.where(
+				and(
+					inArray(tasks.id, taskIds),
+					eq(tasks.organizationId, organizationId),
+					isNull(tasks.deletedAt),
+				),
+			)
 			.returning({
 				id: tasks.id,
 				externalProvider: tasks.externalProvider,

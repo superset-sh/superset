@@ -13,6 +13,7 @@ import { SiLinear } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
+import { getTaskBranchCandidates } from "renderer/lib/task-identifiers";
 import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
 import {
 	StatusIcon,
@@ -85,7 +86,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 	const workspaceByBranch = useMemo(() => {
 		const map = new Map<string, string>();
 		for (const w of v2WorkspacesData ?? []) {
-			map.set(w.branch, w.id);
+			map.set(w.branch.toLowerCase(), w.id);
 		}
 		return map;
 	}, [v2WorkspacesData]);
@@ -149,9 +150,10 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 							return;
 						}
 						const taskDisplayId = getTaskDisplayId(task);
-						const existingId = workspaceByBranch.get(
-							taskDisplayId.toLowerCase(),
-						);
+						const branchCandidates = getTaskBranchCandidates(task);
+						const existingId = branchCandidates
+							.map((candidate) => workspaceByBranch.get(candidate))
+							.find((candidate): candidate is string => Boolean(candidate));
 						if (existingId) {
 							closeAndResetDraft();
 							navigateToV2Workspace(existingId, navigate);
@@ -161,7 +163,7 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 							createWorkspace({
 								projectId,
 								name: task.title,
-								branch: taskDisplayId.toLowerCase(),
+								branch: branchCandidates[0] ?? taskDisplayId.toLowerCase(),
 								hostTarget,
 							}),
 							{
@@ -176,7 +178,9 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 					}}
 					className="group h-12"
 				>
-					{workspaceByBranch.has(getTaskDisplayId(task).toLowerCase()) ? (
+					{getTaskBranchCandidates(task).some((candidate) =>
+						workspaceByBranch.has(candidate),
+					) ? (
 						<GoArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
 					) : (
 						<StatusIcon
@@ -205,7 +209,9 @@ export function IssuesGroup({ projectId, hostTarget }: IssuesGroupProps) {
 						)}
 					</span>
 					<span className="text-xs text-muted-foreground shrink-0 hidden group-data-[selected=true]:inline">
-						{workspaceByBranch.has(getTaskDisplayId(task).toLowerCase())
+						{getTaskBranchCandidates(task).some((candidate) =>
+							workspaceByBranch.has(candidate),
+						)
 							? "Open"
 							: "Create"}{" "}
 						↵

@@ -42,7 +42,10 @@ export function register(server: McpServer) {
 				resolvedTaskIds.push(task.id);
 			}
 
-			const result = await deleteTasks({ taskIds: resolvedTaskIds });
+			const result = await deleteTasks({
+				organizationId: ctx.organizationId,
+				taskIds: resolvedTaskIds,
+			});
 			const data = { deleted: result.taskIds };
 
 			return {

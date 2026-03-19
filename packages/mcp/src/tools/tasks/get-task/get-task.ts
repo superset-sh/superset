@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
 import { taskStatuses, tasks, users } from "@superset/db/schema";
+import { resolveTaskReference } from "@superset/trpc/tasks";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -43,14 +44,24 @@ export function register(server: McpServer) {
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
-			const taskId = args.taskId as string;
-			const isUuid = z.string().uuid().safeParse(taskId).success;
+			const taskRef = args.taskId as string;
+			const task = await resolveTaskReference({
+				organizationId: ctx.organizationId,
+				taskRef,
+			});
+
+			if (!task) {
+				return {
+					content: [{ type: "text", text: "Error: Task not found" }],
+					isError: true,
+				};
+			}
 
 			const assignee = alias(users, "assignee");
 			const creator = alias(users, "creator");
 			const status = alias(taskStatuses, "status");
 
-			const [task] = await db
+			const [taskDetails] = await db
 				.select({
 					id: tasks.id,
 					slug: tasks.slug,
@@ -83,14 +94,14 @@ export function register(server: McpServer) {
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(
 					and(
-						isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
+						eq(tasks.id, task.id),
 						eq(tasks.organizationId, ctx.organizationId),
 						isNull(tasks.deletedAt),
 					),
 				)
 				.limit(1);
 
-			if (!task) {
+			if (!taskDetails) {
 				return {
 					content: [{ type: "text", text: "Error: Task not found" }],
 					isError: true,
@@ -98,8 +109,8 @@ export function register(server: McpServer) {
 			}
 
 			const serializedTask = {
-				...task,
-				dueDate: task.dueDate?.toISOString() ?? null,
+				...taskDetails,
+				dueDate: taskDetails.dueDate?.toISOString() ?? null,
 			};
 			return {
 				structuredContent: { task: serializedTask },

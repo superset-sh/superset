@@ -17,8 +17,9 @@ import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, eq, sql } from "drizzle-orm";
 import { env } from "@/env";
 import {
+	buildLegacyLinearWebhookEventId,
 	buildLinearWebhookEventId,
-	resolveLinearTaskSlug,
+	writeLinearTaskWithSlugRetry,
 } from "../utils/task-sync";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
@@ -35,26 +36,70 @@ export async function POST(request: Request) {
 
 	// Store event with idempotent handling
 	const eventId = buildLinearWebhookEventId(body);
+	const legacyEventId = buildLegacyLinearWebhookEventId({
+		organizationId: payload.organizationId,
+		webhookTimestamp: payload.webhookTimestamp,
+	});
+	const reprocessState = {
+		// Reset for reprocessing only if previously failed
+		status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
+		retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
+		error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
+	};
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "linear",
-			eventId,
-			eventType: `${payload.type}.${payload.action}`,
-			payload,
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				// Reset for reprocessing only if previously failed
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const existingEvent = await db.query.webhookEvents.findFirst({
+		where: and(
+			eq(webhookEvents.provider, "linear"),
+			eq(webhookEvents.eventId, eventId),
+		),
+	});
+	const legacyEvent =
+		legacyEventId !== eventId
+			? await db.query.webhookEvents.findFirst({
+					where: and(
+						eq(webhookEvents.provider, "linear"),
+						eq(webhookEvents.eventId, legacyEventId),
+					),
+				})
+			: null;
+
+	let webhookEvent = null;
+
+	if (existingEvent) {
+		[webhookEvent] = await db
+			.update(webhookEvents)
+			.set(reprocessState)
+			.where(eq(webhookEvents.id, existingEvent.id))
+			.returning();
+	} else if (legacyEvent) {
+		[webhookEvent] = await db
+			.update(webhookEvents)
+			.set({
+				eventId,
+				eventType: `${payload.type}.${payload.action}`,
+				payload,
+				...reprocessState,
+			})
+			.where(eq(webhookEvents.id, legacyEvent.id))
+			.returning();
+	}
+
+	if (!webhookEvent) {
+		[webhookEvent] = await db
+			.insert(webhookEvents)
+			.values({
+				provider: "linear",
+				eventId,
+				eventType: `${payload.type}.${payload.action}`,
+				payload,
+				status: "pending",
+			})
+			.onConflictDoUpdate({
+				target: [webhookEvents.provider, webhookEvents.eventId],
+				set: reprocessState,
+			})
+			.returning();
+	}
 
 	if (!webhookEvent) {
 		return Response.json({ error: "Failed to store event" }, { status: 500 });
@@ -182,50 +227,51 @@ async function processIssueEvent(
 			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
-		const slug = await resolveLinearTaskSlug({
+		await writeLinearTaskWithSlugRetry({
 			organizationId: connection.organizationId,
 			preferredSlug: issue.identifier,
 			currentTaskId: existingTask?.id,
+			write: async (slug) => {
+				const taskData = {
+					slug,
+					title: issue.title,
+					description: issue.description ?? null,
+					statusId: taskStatus.id,
+					priority: mapPriorityFromLinear(issue.priority),
+					assigneeId,
+					assigneeExternalId,
+					assigneeDisplayName,
+					assigneeAvatarUrl,
+					estimate: issue.estimate ?? null,
+					dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
+					labels: issue.labels.map((l) => l.name),
+					startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
+					completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
+					externalProvider: "linear" as const,
+					externalId: issue.id,
+					externalKey: issue.identifier,
+					externalUrl: issue.url,
+					lastSyncedAt: new Date(),
+				};
+
+				return db
+					.insert(tasks)
+					.values({
+						...taskData,
+						organizationId: connection.organizationId,
+						creatorId: connection.connectedByUserId,
+						createdAt: new Date(issue.createdAt),
+					})
+					.onConflictDoUpdate({
+						target: [
+							tasks.organizationId,
+							tasks.externalProvider,
+							tasks.externalId,
+						],
+						set: { ...taskData, syncError: null },
+					});
+			},
 		});
-
-		const taskData = {
-			slug,
-			title: issue.title,
-			description: issue.description ?? null,
-			statusId: taskStatus.id,
-			priority: mapPriorityFromLinear(issue.priority),
-			assigneeId,
-			assigneeExternalId,
-			assigneeDisplayName,
-			assigneeAvatarUrl,
-			estimate: issue.estimate ?? null,
-			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
-			labels: issue.labels.map((l) => l.name),
-			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
-			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear" as const,
-			externalId: issue.id,
-			externalKey: issue.identifier,
-			externalUrl: issue.url,
-			lastSyncedAt: new Date(),
-		};
-
-		await db
-			.insert(tasks)
-			.values({
-				...taskData,
-				organizationId: connection.organizationId,
-				creatorId: connection.connectedByUserId,
-				createdAt: new Date(issue.createdAt),
-			})
-			.onConflictDoUpdate({
-				target: [
-					tasks.organizationId,
-					tasks.externalProvider,
-					tasks.externalId,
-				],
-				set: { ...taskData, syncError: null },
-			});
 	} else if (payload.action === "remove") {
 		await db
 			.update(tasks)

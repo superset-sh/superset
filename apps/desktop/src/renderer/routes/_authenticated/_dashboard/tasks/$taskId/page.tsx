@@ -39,7 +39,7 @@ function TaskDetailPage() {
 	}, [tab, assignee, search]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
-	// Support both UUID and slug lookups
+	// Support UUID, stored slug, and displayed external identifier lookups.
 	const { data: taskData } = useLiveQuery(
 		(q) =>
 			q
@@ -55,7 +55,13 @@ function TaskDetailPage() {
 					status,
 					assignee: assignee ?? null,
 				}))
-				.where(({ tasks }) => or(eq(tasks.id, taskId), eq(tasks.slug, taskId))),
+				.where(({ tasks }) =>
+					or(
+						eq(tasks.id, taskId),
+						eq(tasks.slug, taskId),
+						eq(tasks.externalKey, taskId),
+					),
+				),
 		[collections, taskId],
 	);
 

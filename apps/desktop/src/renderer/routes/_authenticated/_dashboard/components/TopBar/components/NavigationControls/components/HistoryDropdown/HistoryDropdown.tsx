@@ -96,7 +96,10 @@ function TaskRow({
 	onSelect: () => void;
 }) {
 	const task = taskData.find(
-		(t) => t.id === entry.entityId || t.slug === entry.entityId,
+		(t) =>
+			t.id === entry.entityId ||
+			t.slug === entry.entityId ||
+			t.externalKey === entry.entityId,
 	);
 
 	return (
@@ -175,7 +178,10 @@ export function HistoryDropdown() {
 			return workspaceData.some((w) => w.id === entry.entityId);
 		}
 		return (taskData ?? []).some(
-			(t) => t.id === entry.entityId || t.slug === entry.entityId,
+			(t) =>
+				t.id === entry.entityId ||
+				t.slug === entry.entityId ||
+				t.externalKey === entry.entityId,
 		);
 	});
 

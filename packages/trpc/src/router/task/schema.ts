@@ -8,7 +8,6 @@ export const createTaskSchema = z.object({
 	statusId: z.string().uuid(),
 	priority: z.enum(taskPriorityValues).default("none"),
 
-	organizationId: z.string().uuid(),
 	assigneeId: z.string().uuid().nullish(),
 	branch: z.string().nullish(),
 	estimate: z.number().int().positive().nullish(),

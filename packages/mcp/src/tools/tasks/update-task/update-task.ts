@@ -100,6 +100,7 @@ export function register(server: McpServer) {
 			}
 
 			const result = await updateTasks({
+				organizationId: ctx.organizationId,
 				inputs: resolvedUpdates.map(({ taskId, ...input }) => ({
 					id: taskId,
 					title: input.title,
