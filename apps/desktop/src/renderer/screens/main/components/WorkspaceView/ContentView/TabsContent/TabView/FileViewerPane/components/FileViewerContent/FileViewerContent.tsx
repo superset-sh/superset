@@ -17,6 +17,7 @@ import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
+import { DiffScrollbarDecorations } from "../DiffScrollbarDecorations";
 import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
@@ -85,6 +86,19 @@ function hasActiveSelectionWithinElement(
 	return false;
 }
 
+interface TextSearchState {
+	isSearchOpen: boolean;
+	query: string;
+	caseSensitive: boolean;
+	matchCount: number;
+	activeMatchIndex: number;
+	setQuery: (query: string) => void;
+	setCaseSensitive: (caseSensitive: boolean) => void;
+	findNext: () => void;
+	findPrevious: () => void;
+	closeSearch: () => void;
+}
+
 interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
@@ -115,19 +129,10 @@ interface FileViewerContentProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	diffContainerRef: RefObject<HTMLDivElement | null>;
+	diffSearch: TextSearchState;
 	markdownContainerRef: RefObject<HTMLDivElement | null>;
-	markdownSearch: {
-		isSearchOpen: boolean;
-		query: string;
-		caseSensitive: boolean;
-		matchCount: number;
-		activeMatchIndex: number;
-		setQuery: (query: string) => void;
-		setCaseSensitive: (caseSensitive: boolean) => void;
-		findNext: () => void;
-		findPrevious: () => void;
-		closeSearch: () => void;
-	};
+	markdownSearch: TextSearchState;
 }
 
 export function FileViewerContent({
@@ -160,12 +165,13 @@ export function FileViewerContent({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	diffContainerRef,
+	diffSearch,
 	markdownContainerRef,
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
 	const hasAppliedInitialLocationRef = useRef(false);
-	const diffContainerRef = useRef<HTMLDivElement | null>(null);
 	const lastDiffLocationRef = useRef<
 		| (DiffDomLocation & {
 				column?: number;
@@ -307,41 +313,56 @@ export function FileViewerContent({
 					});
 				}}
 			>
-				<div
-					ref={diffContainerRef}
-					className="h-full min-h-0 overflow-auto bg-background select-text"
-					onClickCapture={(event) => {
-						if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
-							event.stopPropagation();
-						}
-					}}
-					onContextMenuCapture={(event) => {
-						const location = getDiffLocationFromEvent(event.nativeEvent);
-						if (!location) {
-							return;
-						}
-
-						const column = getColumnFromDiffPoint({
-							lineElement: location.lineElement,
-							numberColumn: location.numberColumn,
-							clientX: event.clientX,
-							clientY: event.clientY,
-						});
-
-						lastDiffLocationRef.current = {
-							...location,
-							column,
-						};
-					}}
-				>
-					<LightDiffViewer
-						key={filePath}
-						contents={diffData}
-						viewMode={diffViewMode}
-						hideUnchangedRegions={hideUnchangedRegions}
-						filePath={filePath}
-						className="min-h-full"
+				<div className="relative h-full">
+					<MarkdownSearch
+						isOpen={diffSearch.isSearchOpen}
+						query={diffSearch.query}
+						caseSensitive={diffSearch.caseSensitive}
+						matchCount={diffSearch.matchCount}
+						activeMatchIndex={diffSearch.activeMatchIndex}
+						onQueryChange={diffSearch.setQuery}
+						onCaseSensitiveChange={diffSearch.setCaseSensitive}
+						onFindNext={diffSearch.findNext}
+						onFindPrevious={diffSearch.findPrevious}
+						onClose={diffSearch.closeSearch}
 					/>
+					<div
+						ref={diffContainerRef}
+						className="h-full min-h-0 overflow-auto bg-background select-text"
+						onClickCapture={(event) => {
+							if (hasActiveSelectionWithinElement(diffContainerRef.current)) {
+								event.stopPropagation();
+							}
+						}}
+						onContextMenuCapture={(event) => {
+							const location = getDiffLocationFromEvent(event.nativeEvent);
+							if (!location) {
+								return;
+							}
+
+							const column = getColumnFromDiffPoint({
+								lineElement: location.lineElement,
+								numberColumn: location.numberColumn,
+								clientX: event.clientX,
+								clientY: event.clientY,
+							});
+
+							lastDiffLocationRef.current = {
+								...location,
+								column,
+							};
+						}}
+					>
+						<LightDiffViewer
+							key={filePath}
+							contents={diffData}
+							viewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
+							filePath={filePath}
+							className="min-h-full"
+						/>
+					</div>
+					<DiffScrollbarDecorations scrollContainerRef={diffContainerRef} />
 				</div>
 			</DiffViewerContextMenu>
 		);

@@ -40,7 +40,14 @@ its hook entries into these files while preserving user-defined entries:
 
 | File | Purpose |
 |------|---------|
+| `~/.claude/settings.json` | Claude Code hook registration merge |
+| `~/.codex/hooks.json` | Codex fallback hook registration merge (`SessionStart`, `Stop`) |
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
+
+For Codex specifically, this global `hooks.json` is a fallback path only. The
+primary Superset integration is the wrapper in `~/.superset[-{workspace}]/bin/codex`,
+which injects `notify` and watches the Codex session log for richer lifecycle
+events without mutating project-local `.codex/` state.
 
 ### `zsh/` and `bash/` - Shell Integration
 

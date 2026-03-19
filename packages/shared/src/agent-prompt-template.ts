@@ -13,41 +13,23 @@ export const AGENT_TASK_PROMPT_VARIABLES = [
 export type AgentTaskPromptVariable =
 	(typeof AGENT_TASK_PROMPT_VARIABLES)[number];
 
-export const DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE = `You are working on task "{{title}}" ({{slug}}).
-
+export const DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE = `Task: "{{title}}" ({{slug}})
 Priority: {{priority}}
 Status: {{statusName}}
 Labels: {{labels}}
 
-## Task Description
-
 {{description}}
 
-## Instructions
+Work in the current workspace. Inspect the relevant code, make the needed changes, verify them when practical, and update task "{{id}}" with a short summary when done.`;
 
-You are running fully autonomously. Do not ask questions or wait for user feedback — make all decisions independently based on the codebase and task description.
-
-1. Explore the codebase to understand the relevant code and architecture
-2. Create a detailed execution plan for this task including:
-   - Purpose and scope of the changes
-   - Key assumptions
-   - Concrete implementation steps with specific files to modify
-   - How to validate the changes work correctly
-3. Implement the plan
-4. Verify your changes work correctly (run relevant tests, typecheck, lint)
-5. When done, use the Superset MCP \`update_task\` tool to update task "{{id}}" with a summary of what was done`;
-
-export const DEFAULT_CHAT_TASK_PROMPT_TEMPLATE = `You are helping with task "{{title}}" ({{slug}}).
-
+export const DEFAULT_CHAT_TASK_PROMPT_TEMPLATE = `Task: "{{title}}" ({{slug}})
 Priority: {{priority}}
 Status: {{statusName}}
 Labels: {{labels}}
 
-## Task Description
-
 {{description}}
 
-Help with this task in the current workspace. Start by summarizing the goal, then take the next concrete step.`;
+Help with this task in the current workspace and take the next concrete step.`;
 
 type TaskPromptVariables = Record<AgentTaskPromptVariable, string>;
 

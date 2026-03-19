@@ -99,6 +99,27 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
+const normalizePersistedChatPane = (pane: TabsState["panes"][string]): void => {
+	// biome-ignore lint/suspicious/noExplicitAny: persisted chat panes may use legacy keys/shapes
+	const legacyPane = pane as any;
+	const legacyChatState = legacyPane.chat ?? legacyPane.chatMastra;
+
+	if (
+		legacyPane.type !== "chat" &&
+		legacyPane.type !== "chat-mastra" &&
+		!legacyChatState
+	) {
+		return;
+	}
+
+	legacyPane.type = "chat";
+	legacyPane.chat = {
+		sessionId: legacyChatState?.sessionId ?? null,
+		launchConfig: legacyChatState?.launchConfig ?? null,
+	};
+	delete legacyPane.chatMastra;
+};
+
 const deriveTabName = (
 	panes: Record<string, { tabId: string; name: string }>,
 	tabId: string,
@@ -739,7 +760,8 @@ export const useTabsStore = create<TabsStore>()(
 						);
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
-					if (fileViewerPanes.length > 0) {
+					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
+					if (fileViewerPanes.length > 0 && !options.openInNewTab) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
 						if (!existingFileViewer) {
@@ -837,7 +859,10 @@ export const useTabsStore = create<TabsStore>()(
 					if (options.openInNewTab) {
 						const workspaceId = activeTab.workspaceId;
 						const newTabId = generateId("tab");
-						const newPane = createFileViewerPane(newTabId, options);
+						const newPane = createFileViewerPane(newTabId, {
+							...options,
+							isPinned: true,
+						});
 
 						const newTab = {
 							id: newTabId,
@@ -2011,7 +2036,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 8,
+				version: 9,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -2040,36 +2065,19 @@ export const useTabsStore = create<TabsStore>()(
 					}
 					if (version < 5 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							if (pane.chat) {
-								pane.chat.sessionId = null;
+							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
+							const legacyPane = pane as any;
+							if (legacyPane.chat) {
+								legacyPane.chat.sessionId = null;
+							}
+							if (legacyPane.chatMastra) {
+								legacyPane.chatMastra.sessionId = null;
 							}
 						}
 					}
-					if (version < 7 && state.panes) {
+					if (version < 9 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
-							const legacyPane = pane as any;
-							if (legacyPane.type === "chat") {
-								legacyPane.type = "chat";
-								legacyPane.chat = {
-									sessionId: legacyPane.chat?.sessionId ?? null,
-								};
-								delete legacyPane.chat;
-							}
-						}
-					}
-					if (version < 8 && state.panes) {
-						for (const pane of Object.values(state.panes)) {
-							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
-							const legacyPane = pane as any;
-							if (legacyPane.type === "chat") {
-								legacyPane.type = "chat";
-								legacyPane.chat = {
-									sessionId: legacyPane.chat?.sessionId ?? null,
-									launchConfig: legacyPane.chat?.launchConfig ?? null,
-								};
-								delete legacyPane.chat;
-							}
+							normalizePersistedChatPane(pane);
 						}
 					}
 					return state;

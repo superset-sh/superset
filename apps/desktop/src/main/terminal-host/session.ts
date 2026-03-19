@@ -29,6 +29,7 @@ import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
+	SHELL_READY_MARKER,
 } from "./pty-subprocess-ipc";
 
 // =============================================================================
@@ -47,6 +48,25 @@ const ATTACH_FLUSH_TIMEOUT_MS = 500;
  * 2MB is generous - typical large paste is ~50KB.
  */
 const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
+
+/**
+ * How long to wait for the shell-ready marker before unblocking writes.
+ * 15s covers heavy setups like Nix-based devenv via direnv. On timeout,
+ * buffered writes flush immediately (same behavior as before this feature).
+ */
+const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/** Shells whose wrapper files inject a {@link SHELL_READY_MARKER}. */
+const SHELLS_WITH_READY_MARKER = new Set(["zsh", "bash", "fish"]);
+
+/**
+ * Shell readiness lifecycle:
+ * - `pending`     — shell is initializing; user writes are buffered, escape sequences dropped
+ * - `ready`       — marker detected; buffered writes have been flushed
+ * - `timed_out`   — marker never arrived within timeout; writes unblocked
+ * - `unsupported` — shell has no marker (sh, ksh); writes pass through from the start
+ */
+type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
 type SpawnProcess = (
 	command: string,
@@ -113,6 +133,19 @@ export class Session {
 	private ptyReadyPromise: Promise<void>;
 	private ptyReadyResolve: (() => void) | null = null;
 
+	// Shell readiness — gates write() until the shell's first prompt.
+	// See ShellReadyState for lifecycle docs.
+	private shellReadyState: ShellReadyState;
+	private shellReadyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	private preReadyStdinQueue: string[] = [];
+	// Marker scanner — tracks how many characters of SHELL_READY_MARKER
+	// we've matched so far. Held bytes are withheld from terminal output
+	// until we confirm a full match (discard them) or a mismatch (flush
+	// them as regular output). This prevents partial OSC sequences from
+	// ever reaching the renderer, even when the marker spans two Data frames.
+	private markerMatchPos = 0;
+	private markerHeldBytes = "";
+
 	private emulatorWriteQueue: string[] = [];
 	private emulatorWriteQueuedBytes = 0;
 	private emulatorWriteScheduled = false;
@@ -149,6 +182,13 @@ export class Session {
 			this.ptyReadyResolve = resolve;
 		});
 
+		// zsh/bash/fish get shell-ready markers via our wrappers in
+		// shell-wrappers.ts. Other shells skip the gating entirely.
+		const shellName = this.shell.split("/").pop() || this.shell;
+		this.shellReadyState = SHELLS_WITH_READY_MARKER.has(shellName)
+			? "pending"
+			: "unsupported";
+
 		// Create headless emulator
 		this.emulator = new HeadlessEmulator({
 			cols: options.cols,
@@ -159,14 +199,18 @@ export class Session {
 		// Set initial CWD
 		this.emulator.setCwd(options.cwd);
 
-		// Listen for emulator output (query responses)
+		// The headless emulator responds to terminal queries (e.g. DA)
+		// when no renderer client is attached. During shell init we drop
+		// these — they'd land in the pre-ready stdin queue and appear as
+		// typed text like "?62;4;9;22c" once flushed. After a client
+		// attaches the renderer's xterm handles all terminal queries.
 		this.emulator.onData((data) => {
-			// If no clients attached, send responses back to PTY
 			if (
 				this.attachedClients.size === 0 &&
 				this.subprocess &&
 				this.subprocessReady
 			) {
+				if (this.shellReadyState === "pending") return;
 				this.sendWriteToSubprocess(data);
 			}
 		});
@@ -234,6 +278,14 @@ export class Session {
 			this.handleSubprocessExit(-1);
 		});
 
+		// If the marker never arrives (broken wrapper, unsupported config),
+		// the timeout unblocks writes so the session degrades gracefully.
+		if (this.shellReadyState === "pending") {
+			this.shellReadyTimeoutId = setTimeout(() => {
+				this.resolveShellReady("timed_out");
+			}, SHELL_READY_TIMEOUT_MS);
+		}
+
 		// Store pending spawn config
 		this.pendingSpawn = {
 			shell: this.shell,
@@ -281,7 +333,37 @@ export class Session {
 
 			case PtySubprocessIpcType.Data: {
 				if (payload.length === 0) break;
-				const data = payload.toString("utf8");
+				let data = payload.toString("utf8");
+
+				// Scan for SHELL_READY_MARKER one character at a time.
+				// Matching bytes are held back from output; on full match
+				// they're discarded and readiness resolves. On mismatch
+				// they're flushed as regular terminal output.
+				if (this.shellReadyState === "pending") {
+					let output = "";
+					for (let i = 0; i < data.length; i++) {
+						if (data[i] === SHELL_READY_MARKER[this.markerMatchPos]) {
+							this.markerHeldBytes += data[i];
+							this.markerMatchPos++;
+							if (this.markerMatchPos === SHELL_READY_MARKER.length) {
+								// Full match — discard held bytes, resolve
+								this.markerHeldBytes = "";
+								this.markerMatchPos = 0;
+								this.resolveShellReady("ready");
+								output += data.slice(i + 1);
+								break;
+							}
+						} else {
+							// Mismatch — flush held bytes as regular output
+							output += this.markerHeldBytes + data[i];
+							this.markerHeldBytes = "";
+							this.markerMatchPos = 0;
+						}
+					}
+					data = output;
+				}
+
+				if (data.length === 0) break;
 
 				this.enqueueEmulatorWrite(data);
 
@@ -355,6 +437,7 @@ export class Session {
 			this.ptyReadyResolve();
 			this.ptyReadyResolve = null;
 		}
+		this.resolveShellReady("timed_out");
 
 		this.resetProcessState();
 	}
@@ -710,11 +793,24 @@ export class Session {
 	}
 
 	/**
-	 * Write data to PTY (non-blocking - sent to subprocess)
+	 * Write data to the PTY's stdin.
+	 *
+	 * While the shell is initializing (`pending` state), writes are triaged:
+	 * - **Escape sequences** (`\x1b`-prefixed) are dropped. These are stale
+	 *   responses from the renderer's xterm to terminal queries the shell
+	 *   sent during startup (DA, DSR). If queued and flushed later they
+	 *   appear as typed text like `?62;4;9;22c`.
+	 * - **Everything else** (preset commands, user input) is buffered and
+	 *   flushed in FIFO order once readiness resolves.
 	 */
 	write(data: string): void {
 		if (!this.subprocess || !this.subprocessReady) {
 			throw new Error("PTY not spawned");
+		}
+		if (this.shellReadyState === "pending") {
+			if (data.startsWith("\x1b")) return;
+			this.preReadyStdinQueue.push(data);
+			return;
 		}
 		this.sendWriteToSubprocess(data);
 	}
@@ -839,6 +935,17 @@ export class Session {
 		this.subprocess = null;
 		this.subprocessReady = false;
 		this.subprocessDecoder = null;
+		const shellName = this.shell.split("/").pop() || this.shell;
+		this.shellReadyState = SHELLS_WITH_READY_MARKER.has(shellName)
+			? "pending"
+			: "unsupported";
+		if (this.shellReadyTimeoutId) {
+			clearTimeout(this.shellReadyTimeoutId);
+			this.shellReadyTimeoutId = null;
+		}
+		this.preReadyStdinQueue = [];
+		this.markerMatchPos = 0;
+		this.markerHeldBytes = "";
 		this.subprocessStdinQueue = [];
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
@@ -867,6 +974,36 @@ export class Session {
 	// ===========================================================================
 	// Private Methods
 	// ===========================================================================
+
+	/**
+	 * Transition out of `pending`. Flushes any partially-matched marker
+	 * bytes as terminal output (they weren't a real marker), then sends
+	 * all buffered stdin writes to the PTY in order. Idempotent.
+	 */
+	private resolveShellReady(state: "ready" | "timed_out"): void {
+		if (this.shellReadyState !== "pending") return;
+		this.shellReadyState = state;
+		if (this.shellReadyTimeoutId) {
+			clearTimeout(this.shellReadyTimeoutId);
+			this.shellReadyTimeoutId = null;
+		}
+		// Flush held marker bytes — they weren't part of a full marker
+		if (this.markerHeldBytes.length > 0) {
+			this.enqueueEmulatorWrite(this.markerHeldBytes);
+			this.broadcastEvent("data", {
+				type: "data",
+				data: this.markerHeldBytes,
+			} satisfies TerminalDataEvent);
+			this.markerHeldBytes = "";
+		}
+		this.markerMatchPos = 0;
+		// Flush queued writes in FIFO order
+		const queue = this.preReadyStdinQueue;
+		this.preReadyStdinQueue = [];
+		for (const data of queue) {
+			this.sendWriteToSubprocess(data);
+		}
+	}
 
 	/**
 	 * Broadcast an event to all attached clients with backpressure awareness.

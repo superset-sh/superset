@@ -2,7 +2,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
@@ -11,13 +11,27 @@ import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWor
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
 import { executeTool, type ToolContext } from "./tools";
 
-/** Tracks command IDs that have been or are being processed to prevent duplicate execution. */
-const handledCommands = new Set<string>();
+const COMMAND_PERSIST_RETRY_MS = 1_000;
+
+interface ResolvedCommandState {
+	status: "completed" | "failed" | "timeout";
+	result?: Record<string, unknown>;
+	error?: string;
+	executedAt?: Date;
+}
 
 export function useCommandWatcher() {
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const isMountedRef = useRef(true);
+	const handledCommandsRef = useRef(new Set<string>());
+	const processingCommandsRef = useRef(new Set<string>());
+	const persistingCommandsRef = useRef(new Set<string>());
+	const pendingPersistenceRef = useRef(new Map<string, ResolvedCommandState>());
+	const persistenceRetryTimersRef = useRef(
+		new Map<string, ReturnType<typeof setTimeout>>(),
+	);
 
 	const organizationId = session?.session?.activeOrganizationId;
 	const remoteAgentDisabled = useFeatureFlagEnabled(
@@ -102,26 +116,93 @@ export function useCommandWatcher() {
 		[collections.agentCommands],
 	);
 
+	const persistResolvedCommand = useCallback(
+		async (commandId: string) => {
+			if (!isMountedRef.current) return;
+
+			const resolved = pendingPersistenceRef.current.get(commandId);
+			if (!resolved || persistingCommandsRef.current.has(commandId)) return;
+
+			const existingRetryTimer =
+				persistenceRetryTimersRef.current.get(commandId);
+			if (existingRetryTimer) {
+				clearTimeout(existingRetryTimer);
+				persistenceRetryTimersRef.current.delete(commandId);
+			}
+
+			persistingCommandsRef.current.add(commandId);
+
+			try {
+				const tx = collections.agentCommands.update(commandId, (draft) => {
+					draft.status = resolved.status;
+					draft.result = resolved.result ?? null;
+					draft.error = resolved.error ?? null;
+					draft.executedAt = resolved.executedAt ?? null;
+				});
+				await tx.isPersisted.promise;
+				pendingPersistenceRef.current.delete(commandId);
+			} catch (error) {
+				console.error(
+					`[command-watcher] Failed to persist ${resolved.status}: ${commandId}`,
+					error,
+				);
+
+				if (
+					isMountedRef.current &&
+					!persistenceRetryTimersRef.current.has(commandId)
+				) {
+					const retryTimer = setTimeout(() => {
+						persistenceRetryTimersRef.current.delete(commandId);
+						void persistResolvedCommand(commandId);
+					}, COMMAND_PERSIST_RETRY_MS);
+					persistenceRetryTimersRef.current.set(commandId, retryTimer);
+				}
+			} finally {
+				persistingCommandsRef.current.delete(commandId);
+			}
+		},
+		[collections.agentCommands],
+	);
+
+	useEffect(() => {
+		return () => {
+			isMountedRef.current = false;
+			for (const timer of persistenceRetryTimersRef.current.values()) {
+				clearTimeout(timer);
+			}
+			persistenceRetryTimersRef.current.clear();
+		};
+	}, []);
+
 	const processCommand = useCallback(
 		async (
 			commandId: string,
 			tool: string,
 			params: Record<string, unknown> | null,
 		) => {
-			if (handledCommands.has(commandId)) return;
+			if (
+				handledCommandsRef.current.has(commandId) ||
+				processingCommandsRef.current.has(commandId)
+			) {
+				if (pendingPersistenceRef.current.has(commandId)) {
+					void persistResolvedCommand(commandId);
+				}
+				return;
+			}
 
-			handledCommands.add(commandId);
+			processingCommandsRef.current.add(commandId);
 			console.log(`[command-watcher] Processing: ${commandId} (${tool})`);
 
+			let resolvedState: ResolvedCommandState;
 			try {
 				const result = await executeTool(tool, params, toolContext);
 
 				if (result.success) {
-					collections.agentCommands.update(commandId, (draft) => {
-						draft.status = "completed";
-						draft.result = result.data ?? {};
-						draft.executedAt = new Date();
-					});
+					resolvedState = {
+						status: "completed",
+						result: result.data ?? {},
+						executedAt: new Date(),
+					};
 				} else {
 					const itemErrors = (
 						result.data?.errors as Array<{ error: string }> | undefined
@@ -132,11 +213,11 @@ export function useCommandWatcher() {
 						? `${result.error ?? "Unknown error"}: ${itemErrors}`
 						: (result.error ?? "Unknown error");
 
-					collections.agentCommands.update(commandId, (draft) => {
-						draft.status = "failed";
-						draft.error = fullError;
-						draft.executedAt = new Date();
-					});
+					resolvedState = {
+						status: "failed",
+						error: fullError,
+						executedAt: new Date(),
+					};
 					console.error(
 						`[command-watcher] Failed: ${commandId}`,
 						fullError,
@@ -147,14 +228,20 @@ export function useCommandWatcher() {
 				console.error(`[command-watcher] Error: ${commandId}`, error);
 				const errorMsg =
 					error instanceof Error ? error.message : "Execution error";
-				collections.agentCommands.update(commandId, (draft) => {
-					draft.status = "failed";
-					draft.error = errorMsg;
-					draft.executedAt = new Date();
-				});
+				resolvedState = {
+					status: "failed",
+					error: errorMsg,
+					executedAt: new Date(),
+				};
+			} finally {
+				processingCommandsRef.current.delete(commandId);
 			}
+
+			handledCommandsRef.current.add(commandId);
+			pendingPersistenceRef.current.set(commandId, resolvedState);
+			void persistResolvedCommand(commandId);
 		},
-		[collections.agentCommands, toolContext],
+		[persistResolvedCommand, toolContext],
 	);
 
 	useEffect(() => {
@@ -168,24 +255,39 @@ export function useCommandWatcher() {
 		}
 
 		const now = new Date();
+		const handledCommands = handledCommandsRef.current;
+		const processingCommands = processingCommandsRef.current;
 
 		// Expire timed-out commands before filtering for execution
 		for (const cmd of pendingCommands) {
 			if (cmd.targetDeviceId !== deviceInfo.deviceId) continue;
 			if (cmd.organizationId !== organizationId) continue;
-			if (handledCommands.has(cmd.id)) continue;
+			if (processingCommands.has(cmd.id)) continue;
+			if (handledCommands.has(cmd.id)) {
+				if (pendingPersistenceRef.current.has(cmd.id)) {
+					void persistResolvedCommand(cmd.id);
+				}
+				continue;
+			}
 			if (cmd.timeoutAt && new Date(cmd.timeoutAt) < now) {
-				collections.agentCommands.update(cmd.id, (draft) => {
-					draft.status = "timeout";
-					draft.error = "Command expired before execution";
-				});
 				handledCommands.add(cmd.id);
+				pendingPersistenceRef.current.set(cmd.id, {
+					status: "timeout",
+					error: "Command expired before execution",
+				});
+				void persistResolvedCommand(cmd.id);
 			}
 		}
 
 		const commandsForThisDevice = pendingCommands.filter((cmd) => {
 			if (cmd.targetDeviceId !== deviceInfo.deviceId) return false;
-			if (handledCommands.has(cmd.id)) return false;
+			if (processingCommands.has(cmd.id)) return false;
+			if (handledCommands.has(cmd.id)) {
+				if (pendingPersistenceRef.current.has(cmd.id)) {
+					void persistResolvedCommand(cmd.id);
+				}
+				return false;
+			}
 
 			// Security: verify org matches (don't trust Electric filtering alone)
 			if (cmd.organizationId !== organizationId) {
@@ -205,7 +307,7 @@ export function useCommandWatcher() {
 		organizationId,
 		pendingCommands,
 		processCommand,
-		collections.agentCommands,
+		persistResolvedCommand,
 	]);
 
 	return {

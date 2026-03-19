@@ -25,10 +25,11 @@ import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
 import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
+import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import { env } from "renderer/env.renderer";
 import { Markdown } from "tiptap-markdown";
-
 import { CodeBlockView } from "./components/CodeBlockView";
 import { SlashCommand } from "./components/SlashCommand";
 
@@ -231,6 +232,22 @@ export function TaskMarkdownRenderer({
 
 	return (
 		<div className="w-full">
+			{editor && (
+				<BubbleMenu
+					editor={editor}
+					options={{
+						placement: "top",
+						offset: { mainAxis: 8 },
+					}}
+					shouldShow={({ editor: e, from, to }) => {
+						if (from === to) return false;
+						if (e.isActive("codeBlock")) return false;
+						return true;
+					}}
+				>
+					<BubbleMenuToolbar editor={editor} />
+				</BubbleMenu>
+			)}
 			<EditorContent editor={editor} className="w-full" />
 		</div>
 	);
