@@ -24,6 +24,7 @@ export function useCommandWatcher() {
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const isMountedRef = useRef(true);
 	const handledCommandsRef = useRef(new Set<string>());
 	const processingCommandsRef = useRef(new Set<string>());
 	const persistingCommandsRef = useRef(new Set<string>());
@@ -117,6 +118,8 @@ export function useCommandWatcher() {
 
 	const persistResolvedCommand = useCallback(
 		async (commandId: string) => {
+			if (!isMountedRef.current) return;
+
 			const resolved = pendingPersistenceRef.current.get(commandId);
 			if (!resolved || persistingCommandsRef.current.has(commandId)) return;
 
@@ -144,7 +147,10 @@ export function useCommandWatcher() {
 					error,
 				);
 
-				if (!persistenceRetryTimersRef.current.has(commandId)) {
+				if (
+					isMountedRef.current &&
+					!persistenceRetryTimersRef.current.has(commandId)
+				) {
 					const retryTimer = setTimeout(() => {
 						persistenceRetryTimersRef.current.delete(commandId);
 						void persistResolvedCommand(commandId);
@@ -160,6 +166,7 @@ export function useCommandWatcher() {
 
 	useEffect(() => {
 		return () => {
+			isMountedRef.current = false;
 			for (const timer of persistenceRetryTimersRef.current.values()) {
 				clearTimeout(timer);
 			}
