@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { LuFolderOpen, LuGitBranch } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { ProjectSettings } from "../project/$projectId/components/ProjectSettings";
 
 export const Route = createFileRoute("/_authenticated/settings/projects/")({
@@ -55,11 +56,13 @@ function ProjectsPage() {
 											: "hover:bg-accent/50",
 									)}
 								>
-									<div
-										className="w-2.5 h-2.5 rounded-full shrink-0"
-										style={{
-											backgroundColor: group.project.color,
-										}}
+									<ProjectThumbnail
+										projectId={group.project.id}
+										projectName={group.project.name}
+										projectColor={group.project.color}
+										githubOwner={group.project.githubOwner}
+										hideImage={group.project.hideImage}
+										iconUrl={group.project.iconUrl}
 									/>
 									<span className="truncate font-medium">
 										{group.project.name}

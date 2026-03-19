@@ -30,7 +30,12 @@ import {
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
-import { LuFolderOpen, LuImagePlus, LuTrash2 } from "react-icons/lu";
+import {
+	LuFolderOpen,
+	LuImagePlus,
+	LuRefreshCw,
+	LuTrash2,
+} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useImportAllWorktrees,
@@ -145,6 +150,26 @@ export function ProjectSettings({
 			utils.workspaces.getAllGrouped.invalidate();
 		},
 	});
+
+	const discoverIcon =
+		electronTrpc.projects.triggerFaviconDiscovery.useMutation({
+			onSettled: () => {
+				utils.projects.get.invalidate({ id: projectId });
+				utils.workspaces.getAllGrouped.invalidate();
+			},
+		});
+
+	const handleRefreshIcon = useCallback(() => {
+		// Clear existing icon first so discovery runs fresh
+		setProjectIcon.mutate(
+			{ id: projectId, icon: null },
+			{
+				onSuccess: () => {
+					discoverIcon.mutate({ id: projectId });
+				},
+			},
+		);
+	}, [projectId, setProjectIcon, discoverIcon]);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -467,6 +492,25 @@ export function ProjectSettings({
 										className="hidden"
 										onChange={handleFileChange}
 									/>
+									<button
+										type="button"
+										onClick={handleRefreshIcon}
+										disabled={
+											discoverIcon.isPending || setProjectIcon.isPending
+										}
+										className={cn(
+											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+											"hover:bg-muted transition-colors",
+										)}
+									>
+										<LuRefreshCw
+											className={cn(
+												"size-4",
+												discoverIcon.isPending && "animate-spin",
+											)}
+										/>
+										Detect
+									</button>
 									<button
 										type="button"
 										onClick={handleIconUpload}
