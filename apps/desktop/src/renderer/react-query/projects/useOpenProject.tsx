@@ -220,7 +220,10 @@ export function useOpenProject() {
 								showDialog({
 									paths: [result.selectedPath],
 									immediateSuccesses: [],
-									resolve: (projects) => resolve(projects[0] ?? null),
+									resolve: async (projects) => {
+										await maybePromptWorktreeChoice(projects);
+										resolve(projects[0] ?? null);
+									},
 								});
 								return;
 							}
@@ -231,7 +234,9 @@ export function useOpenProject() {
 							}
 
 							if ("project" in result) {
-								resolve(result.project);
+								maybePromptWorktreeChoice([result.project]).then(() => {
+									resolve(result.project);
+								});
 								return;
 							}
 
@@ -244,7 +249,7 @@ export function useOpenProject() {
 				);
 			});
 		},
-		[openFromPathMutation, showDialog],
+		[maybePromptWorktreeChoice, openFromPathMutation, showDialog],
 	);
 
 	return {
