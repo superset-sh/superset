@@ -30,7 +30,7 @@ import {
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
-import { LuImagePlus, LuTrash2 } from "react-icons/lu";
+import { LuFolderOpen, LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useImportAllWorktrees,
@@ -96,6 +96,10 @@ export function ProjectSettings({
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
+	const { data: allGroups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const projectGroup = allGroups.find((g) => g.project.id === projectId);
+	const projectWorkspaces = projectGroup?.workspaces ?? [];
 	const { data: branchData, isLoading: isBranchDataLoading } =
 		electronTrpc.projects.getBranches.useQuery(
 			{ projectId },
@@ -497,6 +501,42 @@ export function ProjectSettings({
 								</div>
 							</div>
 						</SettingsSection>
+					</div>
+				</div>
+
+				{/* ── Workspaces ── */}
+				<div>
+					<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+						Workspaces
+					</h3>
+					<div className="pl-4 border-l-2 border-border/50">
+						{projectWorkspaces.length === 0 ? (
+							<p className="text-sm text-muted-foreground py-2">
+								No workspaces yet.
+							</p>
+						) : (
+							<div className="space-y-1">
+								{projectWorkspaces.map((ws) => (
+									<div
+										key={ws.id}
+										className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+									>
+										<LuFolderOpen className="size-4 text-muted-foreground shrink-0" />
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium truncate">
+												{ws.type === "branch" ? "local" : ws.name || ws.branch}
+											</p>
+											<p className="text-xs text-muted-foreground font-mono truncate">
+												{ws.branch}
+											</p>
+										</div>
+										<span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+											{ws.type}
+										</span>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 				</div>
 
