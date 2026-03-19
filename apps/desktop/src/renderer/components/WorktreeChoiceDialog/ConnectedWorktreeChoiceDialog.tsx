@@ -12,9 +12,14 @@ export function ConnectedWorktreeChoiceDialog() {
 			onOpenChange={(open) => {
 				if (!open) close();
 			}}
-			onChoice={(enableWorktrees) => {
-				onChoice?.(enableWorktrees);
-				close();
+			onChoice={async (enableWorktrees) => {
+				try {
+					await onChoice?.(enableWorktrees);
+				} catch (error) {
+					console.error("[WorktreeChoiceDialog] onChoice failed:", error);
+				} finally {
+					close();
+				}
 			}}
 		/>
 	);
