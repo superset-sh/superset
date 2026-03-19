@@ -22,7 +22,6 @@ import {
 	apiKey,
 	bearer,
 	customSession,
-	multiSession,
 	organization,
 } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
@@ -540,7 +539,6 @@ export const auth = betterAuth({
 			},
 		}),
 		bearer(),
-		multiSession(),
 		customSession(async ({ user, session: baseSession }) => {
 			const session = baseSession as typeof sessions.$inferSelect;
 

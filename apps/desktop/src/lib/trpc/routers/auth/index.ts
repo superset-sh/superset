@@ -12,14 +12,10 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	authEvents,
-	loadAllAccounts,
 	loadToken,
-	removeAccount,
 	saveToken,
-	setActiveAccount,
 	stateStore,
 	TOKEN_FILE,
-	updateAccountMeta,
 } from "./utils/auth-functions";
 
 export const createAuthRouter = () => {
@@ -36,71 +32,10 @@ export const createAuthRouter = () => {
 				z.object({
 					token: z.string(),
 					expiresAt: z.string(),
-					userId: z.string().optional(),
-					email: z.string().optional(),
-					name: z.string().optional(),
-					image: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await saveToken(input);
-				return { success: true };
-			}),
-
-		/**
-		 * Get all stored accounts (multi-account support).
-		 * Returns an array of { userId, email, name, image } for each stored account.
-		 * The first entry is the active account.
-		 */
-		getAllAccounts: publicProcedure.query(async () => {
-			const accounts = await loadAllAccounts();
-			return accounts.map((a) => ({
-				userId: a.userId,
-				email: a.email ?? null,
-				name: a.name ?? null,
-				image: a.image ?? null,
-				isActive: a === accounts[0],
-			}));
-		}),
-
-		/**
-		 * Switch to a different stored account.
-		 */
-		switchAccount: publicProcedure
-			.input(z.object({ userId: z.string() }))
-			.mutation(async ({ input }) => {
-				const result = await setActiveAccount(input.userId);
-				if (!result) {
-					return { success: false, error: "Account not found" };
-				}
-				return { success: true };
-			}),
-
-		/**
-		 * Remove a specific account from storage.
-		 * If it was the active account, switches to the next one.
-		 */
-		removeAccount: publicProcedure
-			.input(z.object({ userId: z.string() }))
-			.mutation(async ({ input }) => {
-				const removed = await removeAccount(input.userId);
-				return { success: removed };
-			}),
-
-		/**
-		 * Update account metadata (called after session fetch to populate email/name/image).
-		 */
-		updateAccountMeta: publicProcedure
-			.input(
-				z.object({
-					userId: z.string(),
-					email: z.string().optional(),
-					name: z.string().optional(),
-					image: z.string().optional(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await updateAccountMeta(input);
 				return { success: true };
 			}),
 
@@ -173,30 +108,12 @@ export const createAuthRouter = () => {
 				}
 			}),
 
-		/**
-		 * Sign out the active account or all accounts.
-		 */
-		signOut: publicProcedure
-			.input(z.object({ all: z.boolean().optional() }).optional())
-			.mutation(async ({ input }) => {
-				const signOutAll = input?.all ?? true;
-
-				if (signOutAll) {
-					getHostServiceManager().stopAll();
-					await fs.unlink(TOKEN_FILE).catch(() => {});
-					authEvents.emit("token-cleared");
-				} else {
-					// Sign out active account only
-					const accounts = await loadAllAccounts();
-					if (accounts.length > 0) {
-						await removeAccount(accounts[0].userId);
-						if (accounts.length <= 1) {
-							getHostServiceManager().stopAll();
-						}
-					}
-				}
-				return { success: true };
-			}),
+		signOut: publicProcedure.mutation(async () => {
+			getHostServiceManager().stopAll();
+			await fs.unlink(TOKEN_FILE).catch(() => {});
+			authEvents.emit("token-cleared");
+			return { success: true };
+		}),
 	});
 };
 

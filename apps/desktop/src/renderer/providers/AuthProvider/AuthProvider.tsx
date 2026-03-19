@@ -5,10 +5,7 @@ import { electronTrpc } from "../../lib/electron-trpc";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
-	const { data: sessionData, refetch: refetchSession } =
-		authClient.useSession();
-	const updateAccountMetaMutation =
-		electronTrpc.auth.updateAccountMeta.useMutation();
+	const { refetch: refetchSession } = authClient.useSession();
 
 	const { data: storedToken, isSuccess } =
 		electronTrpc.auth.getStoredToken.useQuery(undefined, {
@@ -57,23 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			cancelled = true;
 		};
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
-
-	// Populate account metadata in token storage for account switcher display
-	useEffect(() => {
-		if (!isHydrated || !sessionData?.user) return;
-		const user = sessionData.user;
-		updateAccountMetaMutation.mutate({
-			userId: user.id,
-			email: user.email,
-			name: user.name,
-			image: user.image ?? undefined,
-		});
-	}, [
-		isHydrated,
-		sessionData?.user?.id,
-		sessionData?.user,
-		updateAccountMetaMutation.mutate,
-	]);
 
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
