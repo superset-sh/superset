@@ -11,6 +11,10 @@ describe("notifications/server", () => {
 			expect(mapEventType("UserPromptSubmit")).toBe("Start");
 		});
 
+		it("should map 'SessionStart' to 'Start'", () => {
+			expect(mapEventType("SessionStart")).toBe("Start");
+		});
+
 		it("should map 'Stop' to 'Stop'", () => {
 			expect(mapEventType("Stop")).toBe("Stop");
 		});
