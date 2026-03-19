@@ -9,6 +9,7 @@ import { useReorderProjects } from "renderer/react-query/projects";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
@@ -92,8 +93,13 @@ export function ProjectSection({
 			params: { workspaceId: workspaces[0].id },
 		});
 
+	const clearWorkspaceAttentionStatus = useTabsStore(
+		(s) => s.clearWorkspaceAttentionStatus,
+	);
+
 	const handleNavigateToWorkspace = () => {
 		if (isBranchOnly && workspaces.length > 0) {
+			clearWorkspaceAttentionStatus(workspaces[0].id);
 			navigateToWorkspace(workspaces[0].id, navigate);
 		}
 	};
