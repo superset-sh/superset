@@ -90,8 +90,9 @@ export function useOpenProject() {
 									id: project.id,
 									patch: { worktreeMode: "disabled" },
 								});
-								await utils.workspaces.getAllGrouped.invalidate();
 							}
+							await utils.workspaces.getAllGrouped.invalidate();
+							await utils.projects.getRecents.invalidate();
 							resolveChoice();
 						},
 					});

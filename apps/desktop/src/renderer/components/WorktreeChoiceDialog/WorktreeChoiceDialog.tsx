@@ -26,18 +26,18 @@ export function WorktreeChoiceDialog({
 			<AlertDialogContent className="max-w-[420px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-3">
 					<AlertDialogTitle className="font-medium">
-						Enable worktrees for "{projectName}"?
+						Enable Worktrees for "{projectName}"?
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="text-muted-foreground space-y-1.5">
 							<span className="block text-xs">
-								<strong>With Worktrees</strong> — each workspace gets its own
-								isolated copy of the repo. You can run multiple agents in
-								parallel without conflicts.
+								<strong>Enable</strong> — each workspace gets its own isolated
+								copy of the repo. You can run multiple agents in parallel
+								without conflicts.
 							</span>
 							<span className="block text-xs">
-								<strong>Without Worktrees</strong> — work directly in the
-								project folder. One workspace, no copies.
+								<strong>Disable</strong> — work directly in the project folder.
+								One workspace, no copies.
 							</span>
 						</div>
 					</AlertDialogDescription>
@@ -53,7 +53,7 @@ export function WorktreeChoiceDialog({
 							onChoice(false);
 						}}
 					>
-						Without Worktrees
+						Disable
 					</Button>
 					<Button
 						size="sm"
@@ -63,7 +63,7 @@ export function WorktreeChoiceDialog({
 							onChoice(true);
 						}}
 					>
-						With Worktrees
+						Enable
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

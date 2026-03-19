@@ -135,7 +135,7 @@ export function WorkspaceListItem({
 
 	const handleCloseConfirm = (options: { moveToTrash: boolean }) => {
 		if (options.moveToTrash) {
-			deleteWorkspace.mutate({ id });
+			deleteWorkspace.mutate({ id, trash: true });
 		} else {
 			closeWorkspace.mutate({ id });
 		}

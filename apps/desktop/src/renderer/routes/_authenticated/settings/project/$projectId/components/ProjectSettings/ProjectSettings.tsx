@@ -213,12 +213,57 @@ export function ProjectSettings({
 	const { data: globalWorktreeMode } =
 		electronTrpc.settings.getWorktreeMode.useQuery();
 
+	const [showDisableWorktreeDialog, setShowDisableWorktreeDialog] =
+		useState(false);
+
+	const deleteWorkspace = electronTrpc.workspaces.delete.useMutation({
+		onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+	});
+	const closeWorkspaceMutation = electronTrpc.workspaces.close.useMutation({
+		onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+	});
+
+	// Get worktree workspaces for this project
+	const { data: allGroups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const projectGroup = allGroups.find((g) => g.project.id === projectId);
+	const worktreeWorkspaces = (projectGroup?.workspaces ?? []).filter(
+		(w) => w.type === "worktree",
+	);
+
 	const handleWorktreeModeChange = (value: string) => {
+		if (value === "disabled" && worktreeWorkspaces.length > 0) {
+			setShowDisableWorktreeDialog(true);
+			return;
+		}
 		updateProject.mutate({
 			id: projectId,
 			patch: {
 				worktreeMode: value === "default" ? null : (value as WorktreeMode),
 			},
+		});
+	};
+
+	const handleDisableWorktrees = async (recycleWorktrees: boolean) => {
+		// Close/delete all worktree workspaces
+		for (const ws of worktreeWorkspaces) {
+			try {
+				if (recycleWorktrees) {
+					await deleteWorkspace.mutateAsync({ id: ws.id, trash: true });
+				} else {
+					await closeWorkspaceMutation.mutateAsync({ id: ws.id });
+				}
+			} catch (error) {
+				console.error(
+					`[ProjectSettings] Failed to close worktree workspace ${ws.id}:`,
+					error,
+				);
+			}
+		}
+		// Now disable worktrees on the project
+		updateProject.mutate({
+			id: projectId,
+			patch: { worktreeMode: "disabled" },
 		});
 	};
 
@@ -703,6 +748,67 @@ export function ProjectSettings({
 					<ScriptsEditor projectId={project.id} />
 				</div>
 			</div>
+
+			{/* Disable worktrees confirmation dialog */}
+			<AlertDialog
+				open={showDisableWorktreeDialog}
+				onOpenChange={setShowDisableWorktreeDialog}
+			>
+				<AlertDialogContent className="max-w-[420px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-3">
+						<AlertDialogTitle className="font-medium">
+							Disable Worktrees for "{project.name}"?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									This project has {worktreeWorkspaces.length} worktree
+									workspace{worktreeWorkspaces.length !== 1 ? "s" : ""}.
+								</span>
+								<span className="block text-xs">
+									<strong>Disable</strong> removes worktree workspaces from the
+									sidebar. Files stay on disk.
+									<br />
+									<strong>Disable & Recycle</strong> also moves worktree folders
+									to Trash.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => setShowDisableWorktreeDialog(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDisableWorktreeDialog(false);
+								handleDisableWorktrees(false);
+							}}
+						>
+							Disable
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDisableWorktreeDialog(false);
+								handleDisableWorktrees(true);
+							}}
+						>
+							Disable & Recycle
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
