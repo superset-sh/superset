@@ -58,17 +58,19 @@ export function FileTreePane({
 
 	const renderToolbar = useCallback(
 		(handlers: PaneHandlers) => (
-			<PaneToolbarActions
-				splitOrientation={handlers.splitOrientation}
-				onSplitPane={handlers.onSplitPane}
-				onClosePane={handlers.onClosePane}
-				leadingActions={
-					<div className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground font-medium">
-						<LuFolderTree className="size-3.5" />
-						Files
-					</div>
-				}
-			/>
+			<div className="flex h-full w-full items-center">
+				<PaneToolbarActions
+					splitOrientation={handlers.splitOrientation}
+					onSplitPane={handlers.onSplitPane}
+					onClosePane={handlers.onClosePane}
+					leadingActions={
+						<div className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground font-medium">
+							<LuFolderTree className="size-3.5" />
+							Files
+						</div>
+					}
+				/>
+			</div>
 		),
 		[],
 	);
