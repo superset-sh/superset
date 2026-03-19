@@ -5,16 +5,16 @@ import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
-import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
-import { resolvePaneIdFromTabsState } from "./resolve-pane-id";
+import { resolvePaneId } from "./resolve-pane-id";
 
 // Re-export types for backwards compatibility
 export type {
 	AgentLifecycleEvent,
 	NotificationIds,
 } from "shared/notification-types";
+export { resolvePaneId } from "./resolve-pane-id";
 
 /**
  * The environment this server is running in.
@@ -47,36 +47,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
-/**
- * Resolves pane IDs using main-process persisted tabs state when possible.
- * Explicit pane IDs are trusted to avoid dropping early hook events while
- * tabsState persistence is still catching up.
- */
-export function resolvePaneId(
-	paneId: string | undefined,
-	tabId: string | undefined,
-	workspaceId: string | undefined,
-	sessionId: string | undefined,
-): string | undefined {
-	if (paneId) {
-		return paneId;
-	}
-
-	try {
-		return resolvePaneIdFromTabsState(
-			appState.data.tabsState,
-			undefined,
-			tabId,
-			workspaceId,
-			sessionId,
-		);
-	} catch {
-		// App state not initialized yet, ignore
-	}
-
-	return undefined;
-}
 
 // Agent lifecycle hook
 app.get("/hook/complete", (req, res) => {
