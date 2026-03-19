@@ -24,6 +24,8 @@ import {
 	HiOutlineChatBubbleLeftRight,
 	HiOutlineCog6Tooth,
 	HiOutlineEnvelope,
+	HiOutlinePlusCircle,
+	HiOutlineUserCircle,
 } from "react-icons/hi2";
 import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard } from "react-icons/lu";
@@ -53,9 +55,35 @@ export function OrganizationDropdown() {
 
 	const userEmail = session?.user?.email;
 
+	// Multi-account support
+	const { data: accounts } = electronTrpc.auth.getAllAccounts.useQuery(
+		undefined,
+		{ refetchOnWindowFocus: false },
+	);
+	const switchAccountMutation = electronTrpc.auth.switchAccount.useMutation();
+	const removeAccountMutation = electronTrpc.auth.removeAccount.useMutation();
+	const signInMutation = electronTrpc.auth.signIn.useMutation();
+	const utils = electronTrpc.useUtils();
+
+	const hasMultipleAccounts = (accounts?.length ?? 0) > 1;
+
 	async function handleSignOut(): Promise<void> {
 		await authClient.signOut();
 		signOutMutation.mutate();
+	}
+
+	async function handleSwitchAccount(userId: string): Promise<void> {
+		await switchAccountMutation.mutateAsync({ userId });
+		await utils.auth.getAllAccounts.invalidate();
+	}
+
+	async function _handleRemoveAccount(userId: string): Promise<void> {
+		await removeAccountMutation.mutateAsync({ userId });
+		await utils.auth.getAllAccounts.invalidate();
+	}
+
+	async function handleAddAccount(): Promise<void> {
+		await signInMutation.mutateAsync({ provider: "google" });
 	}
 
 	function openExternal(url: string): void {
@@ -135,6 +163,61 @@ export function OrganizationDropdown() {
 							))}
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
+				)}
+
+				{/* Multi-Account Switcher */}
+				{hasMultipleAccounts && (
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className="gap-2">
+							<HiOutlineUserCircle className="h-4 w-4" />
+							<span>Switch account</span>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent sideOffset={8} className="w-64">
+							{accounts?.map((account) => (
+								<DropdownMenuItem
+									key={account.userId}
+									onSelect={() => {
+										if (!account.isActive) {
+											handleSwitchAccount(account.userId);
+										}
+									}}
+									className="gap-2"
+								>
+									<Avatar
+										size="xs"
+										fullName={account.name ?? undefined}
+										image={account.image ?? undefined}
+										className="rounded-full"
+									/>
+									<div className="flex-1 min-w-0">
+										<div className="text-sm font-medium truncate">
+											{account.name ?? "Unknown"}
+										</div>
+										{account.email && (
+											<div className="text-xs text-muted-foreground truncate">
+												{account.email}
+											</div>
+										)}
+									</div>
+									{account.isActive && (
+										<HiCheck className="h-4 w-4 text-primary shrink-0" />
+									)}
+								</DropdownMenuItem>
+							))}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onSelect={handleAddAccount} className="gap-2">
+								<HiOutlinePlusCircle className="h-4 w-4" />
+								<span>Add account</span>
+							</DropdownMenuItem>
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+				)}
+
+				{!hasMultipleAccounts && (
+					<DropdownMenuItem onSelect={handleAddAccount} className="gap-2">
+						<HiOutlinePlusCircle className="h-4 w-4" />
+						<span>Add account</span>
+					</DropdownMenuItem>
 				)}
 
 				<DropdownMenuSeparator />

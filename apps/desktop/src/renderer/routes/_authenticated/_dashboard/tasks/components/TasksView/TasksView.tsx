@@ -6,9 +6,12 @@ import { HiCheckCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
 import { LinearCTA } from "./components/LinearCTA";
+import { TasksBoardView } from "./components/TasksBoardView";
 import { TasksTableView } from "./components/TasksTableView";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
-import { type TaskWithStatus, useTasksTable } from "./hooks/useTasksTable";
+import type { TaskWithStatus } from "./hooks/useTasksData";
+import { useTasksData } from "./hooks/useTasksData";
+import { useTasksTable } from "./hooks/useTasksTable";
 
 interface TasksViewProps {
 	initialTab?: "all" | "active" | "backlog";
@@ -31,6 +34,8 @@ export function TasksView({
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
+		viewMode,
+		setViewMode,
 	} = useTasksFilterStore();
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -89,6 +94,18 @@ export function TasksView({
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
+	// Data for board view
+	const {
+		data: tasksData,
+		allStatuses,
+		isLoading: isDataLoading,
+	} = useTasksData({
+		filterTab: currentTab,
+		searchQuery,
+		assigneeFilter,
+	});
+
+	// Table config (only used in table view, but always computed for row count/selection)
 	const { table, isLoading, slugColumnWidth, rowSelection, setRowSelection } =
 		useTasksTable({
 			filterTab: currentTab,
@@ -145,15 +162,18 @@ export function TasksView({
 		setRowSelection({});
 	};
 
-	const showLoading = isLoading || isCheckingLinear;
-	const showLinearCTA = !showLoading && !isLinearConnected;
-	const showEmptyState =
-		!showLoading && isLinearConnected && table.getRowModel().rows.length === 0;
-	const showTable =
-		!showLoading && isLinearConnected && table.getRowModel().rows.length > 0;
+	const combinedLoading = isLoading || isDataLoading || isCheckingLinear;
+	const showLinearCTA = !combinedLoading && !isLinearConnected;
+	// Board view always shows columns (even empty ones serve as drop targets)
+	const hasData =
+		viewMode === "board"
+			? allStatuses.length > 0
+			: table.getRowModel().rows.length > 0;
+	const showEmptyState = !combinedLoading && isLinearConnected && !hasData;
+	const showContent = !combinedLoading && isLinearConnected && hasData;
 
 	return (
-		<div className="flex-1 flex flex-col min-h-0">
+		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
 			{!showLinearCTA && (
 				<TasksTopBar
 					currentTab={currentTab}
@@ -164,10 +184,12 @@ export function TasksView({
 					onAssigneeFilterChange={handleAssigneeFilterChange}
 					selectedTasks={selectedTasks}
 					onClearSelection={handleClearSelection}
+					viewMode={viewMode}
+					onViewModeChange={setViewMode}
 				/>
 			)}
 
-			{showLoading ? (
+			{combinedLoading ? (
 				<div className="flex-1 flex items-center justify-center">
 					<Spinner className="size-5" />
 				</div>
@@ -180,12 +202,20 @@ export function TasksView({
 						<span className="text-sm">No tasks found</span>
 					</div>
 				</div>
-			) : showTable ? (
-				<TasksTableView
-					table={table}
-					slugColumnWidth={slugColumnWidth}
-					onTaskClick={handleTaskClick}
-				/>
+			) : showContent ? (
+				viewMode === "board" ? (
+					<TasksBoardView
+						data={tasksData}
+						allStatuses={allStatuses}
+						onTaskClick={handleTaskClick}
+					/>
+				) : (
+					<TasksTableView
+						table={table}
+						slugColumnWidth={slugColumnWidth}
+						onTaskClick={handleTaskClick}
+					/>
+				)
 			) : null}
 		</div>
 	);
