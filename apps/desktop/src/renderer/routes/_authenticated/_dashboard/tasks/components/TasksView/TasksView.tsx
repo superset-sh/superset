@@ -2,16 +2,13 @@ import { Spinner } from "@superset/ui/spinner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiCheckCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
+import { BoardContent } from "./components/BoardContent";
 import { LinearCTA } from "./components/LinearCTA";
-import { TasksBoardView } from "./components/TasksBoardView";
-import { TasksTableView } from "./components/TasksTableView";
+import { TableContent } from "./components/TableContent";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
 import type { TaskWithStatus } from "./hooks/useTasksData";
-import { useTasksData } from "./hooks/useTasksData";
-import { useTasksTable } from "./hooks/useTasksTable";
 
 interface TasksViewProps {
 	initialTab?: "all" | "active" | "backlog";
@@ -161,95 +158,5 @@ export function TasksView({
 				/>
 			)}
 		</div>
-	);
-}
-
-function BoardContent({
-	filterTab,
-	searchQuery,
-	assigneeFilter,
-	onTaskClick,
-}: {
-	filterTab: TabValue;
-	searchQuery: string;
-	assigneeFilter: string | null;
-	onTaskClick: (task: TaskWithStatus) => void;
-}) {
-	const { data, allStatuses, isLoading } = useTasksData({
-		filterTab,
-		searchQuery,
-		assigneeFilter,
-	});
-
-	if (isLoading) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<Spinner className="size-5" />
-			</div>
-		);
-	}
-
-	if (allStatuses.length === 0) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<div className="flex flex-col items-center gap-2 text-muted-foreground">
-					<HiCheckCircle className="h-8 w-8" />
-					<span className="text-sm">No tasks found</span>
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<TasksBoardView
-			data={data}
-			allStatuses={allStatuses}
-			onTaskClick={onTaskClick}
-		/>
-	);
-}
-
-function TableContent({
-	filterTab,
-	searchQuery,
-	assigneeFilter,
-	onTaskClick,
-}: {
-	filterTab: TabValue;
-	searchQuery: string;
-	assigneeFilter: string | null;
-	onTaskClick: (task: TaskWithStatus) => void;
-}) {
-	const { table, isLoading, slugColumnWidth } = useTasksTable({
-		filterTab,
-		searchQuery,
-		assigneeFilter,
-	});
-
-	if (isLoading) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<Spinner className="size-5" />
-			</div>
-		);
-	}
-
-	if (table.getRowModel().rows.length === 0) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<div className="flex flex-col items-center gap-2 text-muted-foreground">
-					<HiCheckCircle className="h-8 w-8" />
-					<span className="text-sm">No tasks found</span>
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<TasksTableView
-			table={table}
-			slugColumnWidth={slugColumnWidth}
-			onTaskClick={onTaskClick}
-		/>
 	);
 }

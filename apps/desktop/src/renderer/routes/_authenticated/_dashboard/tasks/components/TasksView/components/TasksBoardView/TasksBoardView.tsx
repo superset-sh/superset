@@ -102,11 +102,16 @@ export function TasksBoardView({
 		[data, collections],
 	);
 
+	const handleDragCancel = useCallback(() => {
+		setActiveTask(null);
+	}, []);
+
 	return (
 		<DndContext
 			sensors={sensors}
 			onDragStart={handleDragStart}
 			onDragEnd={handleDragEnd}
+			onDragCancel={handleDragCancel}
 		>
 			<div className="flex-1 flex gap-2 overflow-x-auto overflow-y-hidden px-4 py-3 min-h-0 min-w-0">
 				{sortedStatuses.map((status) => (
