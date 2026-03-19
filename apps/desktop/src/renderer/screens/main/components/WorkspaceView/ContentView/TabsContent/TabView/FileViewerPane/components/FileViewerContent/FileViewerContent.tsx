@@ -21,6 +21,7 @@ import { DiffScrollbarDecorations } from "../DiffScrollbarDecorations";
 import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 import { MarkdownSearch } from "../MarkdownSearch";
+import { useScrollToFirstDiffChange } from "../../hooks/useScrollToFirstDiffChange";
 import {
 	type DiffDomLocation,
 	getColumnFromDiffPoint,
@@ -171,6 +172,14 @@ export function FileViewerContent({
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
+
+	useScrollToFirstDiffChange({
+		containerRef: diffContainerRef,
+		filePath,
+		diffData,
+		enabled: viewMode === "diff" && !isLoadingDiff && !!diffData,
+	});
+
 	const hasAppliedInitialLocationRef = useRef(false);
 	const lastDiffLocationRef = useRef<
 		| (DiffDomLocation & {
