@@ -16,6 +16,10 @@ import {
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, eq, sql } from "drizzle-orm";
 import { env } from "@/env";
+import {
+	buildLinearWebhookEventId,
+	resolveLinearTaskSlug,
+} from "../utils/task-sync";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
 	const payload = webhookClient.parseData(Buffer.from(body), signature);
 
 	// Store event with idempotent handling
-	const eventId = `${payload.organizationId}-${payload.webhookTimestamp}`;
+	const eventId = buildLinearWebhookEventId(body);
 
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
@@ -124,6 +128,15 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
+		const existingTask = await db.query.tasks.findFirst({
+			where: and(
+				eq(tasks.organizationId, connection.organizationId),
+				eq(tasks.externalProvider, "linear"),
+				eq(tasks.externalId, issue.id),
+			),
+			columns: { id: true },
+		});
+
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: and(
 				eq(taskStatuses.organizationId, connection.organizationId),
@@ -169,8 +182,14 @@ async function processIssueEvent(
 			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
+		const slug = await resolveLinearTaskSlug({
+			organizationId: connection.organizationId,
+			preferredSlug: issue.identifier,
+			currentTaskId: existingTask?.id,
+		});
+
 		const taskData = {
-			slug: issue.identifier,
+			slug,
 			title: issue.title,
 			description: issue.description ?? null,
 			statusId: taskStatus.id,

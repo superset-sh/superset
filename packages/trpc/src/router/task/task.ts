@@ -1,11 +1,10 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { tasks, users } from "@superset/db/schema";
-import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { syncTask } from "../../lib/integrations/sync";
+import { createTasks, deleteTasks, updateTasks } from "../../lib/tasks";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 import { createTaskSchema, updateTaskSchema } from "./schema";
 
@@ -66,81 +65,33 @@ export const taskRouter = {
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
-			const result = await dbWs.transaction(async (tx) => {
-				const [task] = await tx
-					.insert(tasks)
-					.values({
-						...input,
-						creatorId: ctx.session.user.id,
-						labels: input.labels ?? [],
-					})
-					.returning();
-
-				const txid = await getCurrentTxid(tx);
-
-				return { task, txid };
+			const result = await createTasks({
+				organizationId: input.organizationId,
+				creatorId: ctx.session.user.id,
+				inputs: [input],
 			});
 
-			if (result.task) {
-				syncTask(result.task.id);
-			}
-
-			return result;
+			return {
+				task: result.tasks[0] ?? null,
+				txid: result.txid,
+			};
 		}),
 
 	update: protectedProcedure
 		.input(updateTaskSchema)
 		.mutation(async ({ input }) => {
-			const { id, ...data } = input;
+			const result = await updateTasks({ inputs: [input] });
 
-			// Enforce assignee invariant: setting internal assignee clears external snapshot
-			const updateData: Record<string, unknown> = { ...data };
-			if ("assigneeId" in data) {
-				updateData.assigneeExternalId = null;
-				updateData.assigneeDisplayName = null;
-				updateData.assigneeAvatarUrl = null;
-			}
-
-			const result = await dbWs.transaction(async (tx) => {
-				const [task] = await tx
-					.update(tasks)
-					.set(updateData)
-					.where(eq(tasks.id, id))
-					.returning();
-
-				const txid = await getCurrentTxid(tx);
-
-				return { task, txid };
-			});
-
-			if (result.task) {
-				syncTask(result.task.id);
-			}
-
-			return result;
+			return {
+				task: result.tasks[0] ?? null,
+				txid: result.txid,
+			};
 		}),
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ input }) => {
-			const result = await dbWs.transaction(async (tx) => {
-				const [deleted] = await tx
-					.update(tasks)
-					.set({ deletedAt: new Date() })
-					.where(eq(tasks.id, input))
-					.returning({
-						externalProvider: tasks.externalProvider,
-						externalId: tasks.externalId,
-					});
-
-				const txid = await getCurrentTxid(tx);
-
-				return { txid, deleted };
-			});
-
-			if (result.deleted?.externalProvider && result.deleted?.externalId) {
-				syncTask(input);
-			}
+			const result = await deleteTasks({ taskIds: [input] });
 
 			return { txid: result.txid };
 		}),

@@ -12,6 +12,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
+import { resolveLinearTaskSlug } from "../../utils/task-sync";
 import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
@@ -169,14 +170,32 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	const taskValues = issues.map((issue) =>
-		mapIssueToTask(
-			issue,
-			organizationId,
-			creatorUserId,
-			userByEmail,
-			statusByExternalId,
-		),
+	const taskValues = await Promise.all(
+		issues.map(async (issue) => {
+			const existingTask = await db.query.tasks.findFirst({
+				where: and(
+					eq(tasks.organizationId, organizationId),
+					eq(tasks.externalProvider, "linear"),
+					eq(tasks.externalId, issue.id),
+				),
+				columns: { id: true },
+			});
+
+			const slug = await resolveLinearTaskSlug({
+				organizationId,
+				preferredSlug: issue.identifier,
+				currentTaskId: existingTask?.id,
+			});
+
+			return mapIssueToTask(
+				issue,
+				organizationId,
+				creatorUserId,
+				userByEmail,
+				statusByExternalId,
+				slug,
+			);
+		}),
 	);
 
 	const batches = chunk(taskValues, BATCH_SIZE);

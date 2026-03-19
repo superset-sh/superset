@@ -1,7 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { db, dbWs } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { deleteTasks, resolveTaskReference } from "@superset/trpc/tasks";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
@@ -24,25 +22,15 @@ export function register(server: McpServer) {
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const taskIds = args.taskIds as string[];
-
-			const resolvedTasks: { id: string; identifier: string }[] = [];
+			const resolvedTaskIds: string[] = [];
 
 			for (const taskId of taskIds) {
-				const isUuid = z.string().uuid().safeParse(taskId).success;
+				const task = await resolveTaskReference({
+					organizationId: ctx.organizationId,
+					taskRef: taskId,
+				});
 
-				const [existingTask] = await db
-					.select({ id: tasks.id })
-					.from(tasks)
-					.where(
-						and(
-							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
-							eq(tasks.organizationId, ctx.organizationId),
-							isNull(tasks.deletedAt),
-						),
-					)
-					.limit(1);
-
-				if (!existingTask) {
+				if (!task) {
 					return {
 						content: [
 							{ type: "text", text: `Error: Task not found: ${taskId}` },
@@ -51,18 +39,12 @@ export function register(server: McpServer) {
 					};
 				}
 
-				resolvedTasks.push({ id: existingTask.id, identifier: taskId });
+				resolvedTaskIds.push(task.id);
 			}
 
-			const taskIdsToDelete = resolvedTasks.map((t) => t.id);
-			const deletedAt = new Date();
+			const result = await deleteTasks({ taskIds: resolvedTaskIds });
+			const data = { deleted: result.taskIds };
 
-			await dbWs
-				.update(tasks)
-				.set({ deletedAt })
-				.where(inArray(tasks.id, taskIdsToDelete));
-
-			const data = { deleted: taskIdsToDelete };
 			return {
 				structuredContent: data,
 				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],

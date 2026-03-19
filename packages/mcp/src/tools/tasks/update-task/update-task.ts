@@ -1,7 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { db, dbWs } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { resolveTaskReference, updateTasks } from "@superset/trpc/tasks";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
@@ -54,94 +52,80 @@ export function register(server: McpServer) {
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const updates = args.updates as UpdateInput[];
+			const resolvedUpdates: UpdateInput[] = [];
 
-			const resolvedUpdates: {
-				taskId: string;
-				updateData: Record<string, unknown>;
-			}[] = [];
+			for (const [index, update] of updates.entries()) {
+				const task = await resolveTaskReference({
+					organizationId: ctx.organizationId,
+					taskRef: update.taskId,
+				});
 
-			for (const [i, update] of updates.entries()) {
-				const taskId = update.taskId;
-				const isUuid = z.string().uuid().safeParse(taskId).success;
-
-				const [existingTask] = await db
-					.select({ id: tasks.id })
-					.from(tasks)
-					.where(
-						and(
-							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
-							eq(tasks.organizationId, ctx.organizationId),
-							isNull(tasks.deletedAt),
-						),
-					)
-					.limit(1);
-
-				if (!existingTask) {
+				if (!task) {
 					return {
 						content: [
 							{
 								type: "text",
-								text: `Error: Task not found: ${taskId} (index ${i})`,
+								text: `Error: Task not found: ${update.taskId} (index ${index})`,
 							},
 						],
 						isError: true,
 					};
 				}
 
-				const updateData: Record<string, unknown> = {};
-				if (update.title !== undefined) updateData.title = update.title;
-				if (update.description !== undefined)
-					updateData.description = update.description;
-				if (update.priority !== undefined)
-					updateData.priority = update.priority;
-				if (update.assigneeId !== undefined) {
-					updateData.assigneeId = update.assigneeId;
-					updateData.assigneeExternalId = null;
-					updateData.assigneeDisplayName = null;
-					updateData.assigneeAvatarUrl = null;
-				}
-				if (update.statusId !== undefined)
-					updateData.statusId = update.statusId;
-				if (update.labels !== undefined) updateData.labels = update.labels;
-				if (update.dueDate !== undefined)
-					updateData.dueDate = update.dueDate ? new Date(update.dueDate) : null;
-				if (update.estimate !== undefined)
-					updateData.estimate = update.estimate;
-
-				if (Object.keys(updateData).length === 0) {
+				const hasUpdates =
+					update.title !== undefined ||
+					update.description !== undefined ||
+					update.priority !== undefined ||
+					update.assigneeId !== undefined ||
+					update.statusId !== undefined ||
+					update.labels !== undefined ||
+					update.dueDate !== undefined ||
+					update.estimate !== undefined;
+				if (!hasUpdates) {
 					return {
 						content: [
 							{
 								type: "text",
-								text: `Error: No updatable fields provided for task: ${taskId} (index ${i})`,
+								text: `Error: No updatable fields provided for task: ${update.taskId} (index ${index})`,
 							},
 						],
 						isError: true,
 					};
 				}
 
-				resolvedUpdates.push({ taskId: existingTask.id, updateData });
+				resolvedUpdates.push({
+					...update,
+					taskId: task.id,
+				});
 			}
 
-			const updatedTasks: { id: string; slug: string; title: string }[] = [];
+			const result = await updateTasks({
+				inputs: resolvedUpdates.map(({ taskId, ...input }) => ({
+					id: taskId,
+					title: input.title,
+					description: input.description,
+					priority: input.priority,
+					assigneeId: input.assigneeId,
+					statusId: input.statusId,
+					labels: input.labels,
+					dueDate:
+						input.dueDate === undefined
+							? undefined
+							: input.dueDate
+								? new Date(input.dueDate)
+								: null,
+					estimate: input.estimate,
+				})),
+			});
 
-			for (const { taskId, updateData } of resolvedUpdates) {
-				const [task] = await dbWs
-					.update(tasks)
-					.set(updateData)
-					.where(eq(tasks.id, taskId))
-					.returning({
-						id: tasks.id,
-						slug: tasks.slug,
-						title: tasks.title,
-					});
+			const data = {
+				updated: result.tasks.map((task) => ({
+					id: task.id,
+					slug: task.slug,
+					title: task.title,
+				})),
+			};
 
-				if (task) {
-					updatedTasks.push(task);
-				}
-			}
-
-			const data = { updated: updatedTasks };
 			return {
 				structuredContent: data,
 				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],

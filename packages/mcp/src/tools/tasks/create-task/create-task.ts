@@ -1,17 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { db, dbWs } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
-import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
-import { and, eq, ilike, or } from "drizzle-orm";
+import { createTasks } from "@superset/trpc/tasks";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
-
-const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
-type TaskPriority = (typeof PRIORITIES)[number];
-
-function isPriority(value: unknown): value is TaskPriority {
-	return PRIORITIES.includes(value as TaskPriority);
-}
 
 const taskInputSchema = z.object({
 	title: z.string().min(1).describe("Task title"),
@@ -37,28 +27,6 @@ const taskInputSchema = z.object({
 });
 
 type TaskInput = z.infer<typeof taskInputSchema>;
-
-function generateBaseSlug(title: string): string {
-	return title
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}
-
-function generateUniqueSlug(
-	baseSlug: string,
-	existingSlugs: Set<string>,
-): string {
-	let slug = baseSlug;
-	if (existingSlugs.has(slug)) {
-		let counter = 1;
-		while (existingSlugs.has(slug)) {
-			slug = `${baseSlug}-${counter++}`;
-		}
-	}
-	return slug;
-}
 
 export function register(server: McpServer) {
 	server.registerTool(
@@ -86,84 +54,26 @@ export function register(server: McpServer) {
 			const ctx = getMcpContext(extra);
 			const taskInputs = args.tasks as TaskInput[];
 
-			let defaultStatusId: string | undefined;
-			const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
-
-			if (needsDefaultStatus) {
-				defaultStatusId = await seedDefaultStatuses(ctx.organizationId);
-			}
-
-			const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
-			const uniqueBaseSlugs = [...new Set(baseSlugs)];
-
-			const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
-				ilike(tasks.slug, `${baseSlug}%`),
-			);
-
-			const existingTasks = await db
-				.select({ slug: tasks.slug })
-				.from(tasks)
-				.where(
-					and(
-						eq(tasks.organizationId, ctx.organizationId),
-						or(...slugConditions),
-					),
-				);
-
-			const usedSlugs = new Set(existingTasks.map((t) => t.slug));
-
-			const taskValues: Array<{
-				slug: string;
-				title: string;
-				description: string | null;
-				priority: TaskPriority;
-				statusId: string;
-				organizationId: string;
-				creatorId: string;
-				assigneeId: string | null;
-				assigneeExternalId: string | null;
-				assigneeDisplayName: string | null;
-				assigneeAvatarUrl: string | null;
-				labels: string[];
-				dueDate: Date | null;
-				estimate: number | null;
-			}> = [];
-
-			for (const [i, input] of taskInputs.entries()) {
-				const baseSlug = baseSlugs[i] ?? "";
-				const slug = generateUniqueSlug(baseSlug, usedSlugs);
-				usedSlugs.add(slug);
-
-				const priority: TaskPriority = isPriority(input.priority)
-					? input.priority
-					: "none";
-
-				const statusId = input.statusId ?? (defaultStatusId as string);
-
-				taskValues.push({
-					slug,
+			const result = await createTasks({
+				organizationId: ctx.organizationId,
+				creatorId: ctx.userId,
+				inputs: taskInputs.map((input) => ({
 					title: input.title,
 					description: input.description ?? null,
-					priority,
-					statusId,
-					organizationId: ctx.organizationId,
-					creatorId: ctx.userId,
+					priority: input.priority ?? "none",
 					assigneeId: input.assigneeId ?? null,
-					assigneeExternalId: null,
-					assigneeDisplayName: null,
-					assigneeAvatarUrl: null,
+					statusId: input.statusId,
 					labels: input.labels ?? [],
 					dueDate: input.dueDate ? new Date(input.dueDate) : null,
 					estimate: input.estimate ?? null,
-				});
-			}
-
-			const createdTasks = await dbWs.transaction(async (tx) => {
-				return tx
-					.insert(tasks)
-					.values(taskValues)
-					.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
+				})),
 			});
+
+			const createdTasks = result.tasks.map((task) => ({
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+			}));
 
 			return {
 				structuredContent: { created: createdTasks },

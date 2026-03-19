@@ -157,6 +157,7 @@ export function mapIssueToTask(
 	creatorId: string,
 	userByEmail: Map<string, string>,
 	statusByExternalId: Map<string, string>,
+	slug: string,
 ) {
 	const assigneeId = issue.assignee?.email
 		? (userByEmail.get(issue.assignee.email) ?? null)
@@ -180,7 +181,7 @@ export function mapIssueToTask(
 	return {
 		organizationId,
 		creatorId,
-		slug: issue.identifier,
+		slug,
 		title: issue.title,
 		description: issue.description,
 		statusId,
