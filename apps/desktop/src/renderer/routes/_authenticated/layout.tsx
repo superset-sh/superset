@@ -101,6 +101,14 @@ function AuthenticatedLayout() {
 		},
 	});
 
+	// Cross-window project data sync (worktree mode, name, color, etc.)
+	electronTrpc.projects.onProjectChanged.useSubscription(undefined, {
+		onData: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.projects.getRecents.invalidate();
+		},
+	});
+
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {

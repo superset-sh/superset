@@ -13,10 +13,12 @@ import {
 	worktrees,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
+import { dataEmitter } from "main/lib/data-events";
 import { localDb } from "main/lib/local-db";
 import {
 	deleteProjectIcon,
@@ -1318,6 +1320,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					.where(eq(projects.id, input.id))
 					.run();
 
+				dataEmitter.emit("projectChanged", {
+					projectId: input.id,
+					updatedAt: new Date().toISOString(),
+				});
+
 				return { success: true };
 			}),
 
@@ -1708,6 +1715,18 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				return { iconUrl };
 			}),
+
+		onProjectChanged: publicProcedure.subscription(() => {
+			return observable<{ projectId: string; updatedAt: string }>((emit) => {
+				const onChange = (data: { projectId: string; updatedAt: string }) => {
+					emit.next(data);
+				};
+				dataEmitter.on("projectChanged", onChange);
+				return () => {
+					dataEmitter.off("projectChanged", onChange);
+				};
+			});
+		}),
 	});
 };
 
