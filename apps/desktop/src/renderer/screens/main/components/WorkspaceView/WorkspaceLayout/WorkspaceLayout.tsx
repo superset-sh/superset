@@ -25,7 +25,8 @@ export function WorkspaceLayout({
 	onOpenQuickOpen,
 }: WorkspaceLayoutProps) {
 	useBrowserLifecycle();
-	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const isLeftPanelOpen = useSidebarStore((s) => s.isLeftPanelOpen);
+	const isRightPanelOpen = useSidebarStore((s) => s.isRightPanelOpen);
 	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
 	const setSidebarWidth = useSidebarStore((s) => s.setSidebarWidth);
 	const leftPanelWidth = useSidebarStore((s) => s.leftPanelWidth);
@@ -45,8 +46,8 @@ export function WorkspaceLayout({
 		tabPositions[RightSidebarTab.Changes] === "right" ||
 		tabPositions[RightSidebarTab.Files] === "right";
 
-	const showLeftPanel = isSidebarOpen && hasLeftTabs;
-	const showRightPanel = isSidebarOpen && hasRightTabs;
+	const showLeftPanel = isLeftPanelOpen && hasLeftTabs;
+	const showRightPanel = isRightPanelOpen && hasRightTabs;
 
 	return (
 		<ScrollProvider>

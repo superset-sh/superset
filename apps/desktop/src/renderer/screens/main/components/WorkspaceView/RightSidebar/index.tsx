@@ -99,7 +99,8 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 	const currentMode = useSidebarStore((s) => s.currentMode);
 	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
 	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
-	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const toggleLeftPanel = useSidebarStore((s) => s.toggleLeftPanel);
+	const toggleRightPanel = useSidebarStore((s) => s.toggleRightPanel);
 	const setMode = useSidebarStore((s) => s.setMode);
 	const setTabPosition = useSidebarStore((s) => s.setTabPosition);
 	const tabPositions = useSidebarStore((s) => s.tabPositions);
@@ -119,23 +120,9 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 
 	const handleClosePanel = () => {
 		if (side === "right") {
-			// Move any lone tab back to right before closing
-			const tabsOnRight = Object.entries(tabPositions).filter(
-				([, s]) => s === "right",
-			);
-			if (tabsOnRight.length <= 1) {
-				// Reset all tabs to right so nothing is stranded
-				setTabPosition(RightSidebarTab.Changes, "right");
-				setTabPosition(RightSidebarTab.Files, "right");
-			}
-			toggleSidebar();
+			toggleRightPanel();
 		} else {
-			// Left panel: move all tabs on the left back to right, panel disappears
-			for (const [tab, tabSide] of Object.entries(tabPositions)) {
-				if (tabSide === "left") {
-					setTabPosition(tab as RightSidebarTab, "right");
-				}
-			}
+			toggleLeftPanel();
 		}
 	};
 

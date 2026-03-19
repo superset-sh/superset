@@ -10,7 +10,7 @@ import { InfiniteScrollView } from "./components/InfiniteScrollView";
 export function ChangesContent() {
 	const { workspaceId } = useParams({ strict: false });
 	const isChangesSidebarVisible = useSidebarStore(
-		(s) => s.isSidebarOpen && s.rightSidebarTab === RightSidebarTab.Changes,
+		(s) => s.isRightPanelOpen && s.rightSidebarTab === RightSidebarTab.Changes,
 	);
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
