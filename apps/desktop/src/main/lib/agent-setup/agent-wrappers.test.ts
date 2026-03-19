@@ -916,6 +916,25 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 	});
 
+	it("does not add UserPromptSubmit to the Codex fallback hooks.json merge", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getCodexGlobalHooksJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		expect(parsed.hooks.UserPromptSubmit).toBeUndefined();
+	});
+
 	it("replaces stale Codex hook commands from old superset paths", () => {
 		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";

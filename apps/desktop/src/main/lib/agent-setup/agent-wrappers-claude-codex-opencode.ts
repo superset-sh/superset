@@ -304,9 +304,14 @@ export function getCodexGlobalHooksJsonPath(): string {
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  *
- * Currently Codex supports SessionStart and Stop events (experimental,
- * added in Codex CLI v0.111.0). We also register the notify command
- * for these events so notifications work even without the wrapper.
+ * Superset intentionally keeps this native Codex hook registration narrow.
+ * The primary integration path is still the wrapper + notify/session-log
+ * watcher, which works inside Superset-managed terminal sessions and covers
+ * richer lifecycle events like per-turn Start and PermissionRequest.
+ *
+ * This hooks.json merge is only a fallback for cases where the wrapper is
+ * bypassed, so we only register the minimal SessionStart + Stop notifications
+ * here rather than trying to mirror Codex's full native hook surface.
  */
 export function getCodexGlobalHooksJsonContent(
 	notifyScriptPath: string,
@@ -363,9 +368,10 @@ export function getCodexGlobalHooksJsonContent(
  * binary wrapper is not in PATH (e.g. user runs codex from outside
  * a Superset terminal).
  *
- * The wrapper is still created for richer event support (task_started,
- * approval_request, exec_command_begin via session log watching) that
- * Codex's native hooks don't yet cover.
+ * The wrapper remains the primary integration path for Superset-managed
+ * terminals because it can synthesize richer lifecycle events from Codex's
+ * notify callback and session log (task_started, approval_request,
+ * exec_command_begin) without mutating project-local CODEX_HOME state.
  */
 export function createCodexHooksJson(): void {
 	const notifyScriptPath = getNotifyScriptPath();
