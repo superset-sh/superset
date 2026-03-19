@@ -259,33 +259,84 @@ export function DiffScrollbarDecorations({
 		};
 	}, [scrollContainerRef, updateRegions, updateViewport]);
 
-	const handleClick = useCallback(
-		(e: React.MouseEvent<HTMLDivElement>) => {
+	const scrollToRatio = useCallback(
+		(ratio: number) => {
 			const container = scrollContainerRef.current;
 			if (!container) return;
 
-			const rect = e.currentTarget.getBoundingClientRect();
-			const ratio = (e.clientY - rect.top) / rect.height;
+			const boundedRatio = Math.min(Math.max(ratio, 0), 1);
 			const targetScroll =
-				ratio * container.scrollHeight - container.clientHeight / 2;
+				boundedRatio * container.scrollHeight - container.clientHeight / 2;
 			container.scrollTo({ top: targetScroll, behavior: "smooth" });
 		},
 		[scrollContainerRef],
 	);
 
+	const handleClick = useCallback(
+		(e: React.MouseEvent<HTMLButtonElement>) => {
+			const rect = e.currentTarget.getBoundingClientRect();
+			if (rect.height === 0) {
+				return;
+			}
+			scrollToRatio((e.clientY - rect.top) / rect.height);
+		},
+		[scrollToRatio],
+	);
+
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLButtonElement>) => {
+			const container = scrollContainerRef.current;
+			if (!container) return;
+
+			switch (e.key) {
+				case "Enter":
+				case " ":
+					e.preventDefault();
+					scrollToRatio(0.5);
+					break;
+				case "Home":
+					e.preventDefault();
+					container.scrollTo({ top: 0, behavior: "smooth" });
+					break;
+				case "End":
+					e.preventDefault();
+					container.scrollTo({
+						top: container.scrollHeight,
+						behavior: "smooth",
+					});
+					break;
+				case "PageDown":
+				case "ArrowDown":
+					e.preventDefault();
+					container.scrollBy({
+						top: container.clientHeight * 0.8,
+						behavior: "smooth",
+					});
+					break;
+				case "PageUp":
+				case "ArrowUp":
+					e.preventDefault();
+					container.scrollBy({
+						top: -container.clientHeight * 0.8,
+						behavior: "smooth",
+					});
+					break;
+				default:
+					break;
+			}
+		},
+		[scrollContainerRef, scrollToRatio],
+	);
+
 	if (regions.length === 0) return null;
 
 	return (
-		<div
-			role="toolbar"
-			tabIndex={-1}
-			className="absolute top-0 right-0 bottom-0 w-2 cursor-pointer"
+		<button
+			type="button"
+			aria-label="Diff change overview"
+			className="absolute top-0 right-0 bottom-0 w-2 cursor-pointer border-0 bg-transparent p-0"
 			onClick={handleClick}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
-				}
-			}}
+			onKeyDown={handleKeyDown}
 		>
 			{/* Viewport indicator */}
 			{viewportRatio && (
@@ -315,6 +366,6 @@ export function DiffScrollbarDecorations({
 					}}
 				/>
 			))}
-		</div>
+		</button>
 	);
 }

@@ -101,10 +101,23 @@ export function useTextSearch({
 		(searchRoots: Array<Node & ParentNode>) => {
 			if (typeof document === "undefined") return;
 
-			for (const styleContainer of getHighlightStyleContainers(
-				searchRoots,
-				document,
-			)) {
+			const styleContainers = new Set(
+				getHighlightStyleContainers(searchRoots, document),
+			);
+
+			for (const [
+				styleContainer,
+				styleElement,
+			] of highlightStyleElementsRef.current) {
+				if (styleContainers.has(styleContainer)) {
+					continue;
+				}
+
+				styleElement.remove();
+				highlightStyleElementsRef.current.delete(styleContainer);
+			}
+
+			for (const styleContainer of styleContainers) {
 				if (highlightStyleElementsRef.current.has(styleContainer)) {
 					continue;
 				}
