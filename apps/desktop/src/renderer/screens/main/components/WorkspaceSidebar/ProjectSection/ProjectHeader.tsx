@@ -60,6 +60,8 @@ interface ProjectHeaderProps {
 	branchOnlyBranch?: string;
 	/** Worktree path for diff stats on branch-only projects */
 	branchOnlyWorktreePath?: string;
+	/** Keyboard shortcut index for branch-only projects */
+	shortcutIndex?: number;
 	/** Whether this branch-only project's workspace is currently active */
 	isActive?: boolean;
 	/** Called when clicking a branch-only project to navigate directly */
@@ -83,6 +85,7 @@ export function ProjectHeader({
 	isBranchOnly = false,
 	branchOnlyBranch,
 	branchOnlyWorktreePath,
+	shortcutIndex,
 	isActive = false,
 	onNavigateToWorkspace,
 }: ProjectHeaderProps) {
@@ -322,7 +325,7 @@ export function ProjectHeader({
 				<ContextMenuTrigger asChild>
 					<div
 						className={cn(
-							"flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
+							"group flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
 							"hover:bg-muted/50 transition-colors",
 							isBranchOnly && isActive && "bg-muted",
 						)}
@@ -372,15 +375,31 @@ export function ProjectHeader({
 											({workspaceCount})
 										</span>
 									)}
-									{isBranchOnly && branchOnlyDiffStats && (
-										<div className="flex h-5 shrink-0 items-center rounded px-1.5 text-[10px] font-mono tabular-nums bg-muted/50 ml-auto">
-											<div className="flex items-center gap-1.5 leading-none">
-												<span className="text-emerald-500/90">
-													+{branchOnlyDiffStats.additions}
-												</span>
-												<span className="text-red-400/90">
-													-{branchOnlyDiffStats.deletions}
-												</span>
+									{isBranchOnly && (
+										<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center ml-auto">
+											{branchOnlyDiffStats && (
+												<div
+													className={cn(
+														"flex h-5 items-center rounded px-1.5 text-[10px] font-mono tabular-nums transition-[opacity,visibility] group-hover:opacity-0 group-hover:invisible",
+														isActive ? "bg-foreground/10" : "bg-muted/50",
+													)}
+												>
+													<div className="flex items-center gap-1.5 leading-none">
+														<span className="text-emerald-500/90">
+															+{branchOnlyDiffStats.additions}
+														</span>
+														<span className="text-red-400/90">
+															-{branchOnlyDiffStats.deletions}
+														</span>
+													</div>
+												</div>
+											)}
+											<div className="flex items-center justify-end opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility]">
+												{shortcutIndex !== undefined && shortcutIndex < 9 && (
+													<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
+														⌘{shortcutIndex + 1}
+													</span>
+												)}
 											</div>
 										</div>
 									)}

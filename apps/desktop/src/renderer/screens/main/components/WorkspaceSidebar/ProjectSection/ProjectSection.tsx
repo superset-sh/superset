@@ -339,6 +339,7 @@ export function ProjectSection({
 						? workspaces[0].worktreePath
 						: undefined
 				}
+				shortcutIndex={isBranchOnly ? shortcutBaseIndex : undefined}
 				isActive={isBranchOnlyActive}
 				onNavigateToWorkspace={handleNavigateToWorkspace}
 			/>
