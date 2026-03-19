@@ -1,0 +1,6 @@
+<svg width="300" height="60" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="4" y="8" width="52" height="44" rx="3" stroke="white" stroke-width="3"/>
+<path d="M13 46L25 14H35L23 46H13Z" fill="white"/>
+<path d="M31 46L43 14H47L35 46H31Z" fill="white"/>
+<text x="72" y="40" fill="white" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="1.5">RUNWAY</text>
+</svg>
