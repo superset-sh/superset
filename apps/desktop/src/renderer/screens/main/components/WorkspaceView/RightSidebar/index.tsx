@@ -118,6 +118,8 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 		!!worktreePath && tabPositions[RightSidebarTab.Changes] === side;
 	const showFilesTab = tabPositions[RightSidebarTab.Files] === side;
 	const oppositeSide: PanelSide = side === "left" ? "right" : "left";
+	// When only one tab is on this side, it's always active — no need to check rightSidebarTab
+	const isOnlyTabOnSide = Number(showChangesTab) + Number(showFilesTab) === 1;
 
 	// Project focus bar — render in the sidebar that matches its position
 	const projectFocusId = useProjectFocus();
@@ -362,7 +364,10 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 							<ContextMenuTrigger asChild>
 								<div className="h-full">
 									<TabButton
-										isActive={rightSidebarTab === RightSidebarTab.Changes}
+										isActive={
+											isOnlyTabOnSide ||
+											rightSidebarTab === RightSidebarTab.Changes
+										}
 										onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
 										icon={<LuGitCompareArrows className="size-3.5" />}
 										label="Changes"
@@ -391,7 +396,10 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 							<ContextMenuTrigger asChild>
 								<div className="h-full">
 									<TabButton
-										isActive={rightSidebarTab === RightSidebarTab.Files}
+										isActive={
+											isOnlyTabOnSide ||
+											rightSidebarTab === RightSidebarTab.Files
+										}
 										onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
 										icon={<LuFile className="size-3.5" />}
 										label="Files"
@@ -441,7 +449,7 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 			{showChangesTab && (
 				<div
 					className={
-						rightSidebarTab === RightSidebarTab.Changes
+						isOnlyTabOnSide || rightSidebarTab === RightSidebarTab.Changes
 							? "flex-1 min-h-0 flex flex-col overflow-hidden"
 							: "hidden"
 					}
@@ -449,7 +457,9 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 					<ChangesView
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
-						isActive={rightSidebarTab === RightSidebarTab.Changes}
+						isActive={
+							isOnlyTabOnSide || rightSidebarTab === RightSidebarTab.Changes
+						}
 						isExpanded={isExpanded}
 						onExpandToggle={handleExpandToggle}
 					/>
@@ -458,7 +468,9 @@ export function RightSidebar({ side = "right" }: RightSidebarProps) {
 			{showFilesTab && (
 				<div
 					className={
-						rightSidebarTab === RightSidebarTab.Changes && showChangesTab
+						!isOnlyTabOnSide &&
+						rightSidebarTab === RightSidebarTab.Changes &&
+						showChangesTab
 							? "hidden"
 							: "flex-1 min-h-0 flex flex-col overflow-hidden"
 					}
