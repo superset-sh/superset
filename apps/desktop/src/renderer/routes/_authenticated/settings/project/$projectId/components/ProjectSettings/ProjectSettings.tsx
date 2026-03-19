@@ -100,6 +100,9 @@ export function ProjectSettings({
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const projectGroup = allGroups.find((g) => g.project.id === projectId);
 	const projectWorkspaces = projectGroup?.workspaces ?? [];
+	const worktreeWorkspaces = projectWorkspaces.filter(
+		(w) => w.type === "worktree",
+	);
 	const { data: branchData, isLoading: isBranchDataLoading } =
 		electronTrpc.projects.getBranches.useQuery(
 			{ projectId },
@@ -226,14 +229,6 @@ export function ProjectSettings({
 	const closeWorkspaceMutation = electronTrpc.workspaces.close.useMutation({
 		onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
 	});
-
-	// Get worktree workspaces for this project
-	const { data: allGroups = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
-	const projectGroup = allGroups.find((g) => g.project.id === projectId);
-	const worktreeWorkspaces = (projectGroup?.workspaces ?? []).filter(
-		(w) => w.type === "worktree",
-	);
 
 	const handleWorktreeModeChange = (value: string) => {
 		if (value === "disabled" && worktreeWorkspaces.length > 0) {
