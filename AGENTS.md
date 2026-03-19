@@ -18,7 +18,6 @@ Bun + Turbo monorepo with:
     - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
   - `packages/db` - Drizzle ORM database schema
   - `packages/auth` - Authentication
-  - `packages/agent` - Agent logic
   - `packages/trpc` - Shared tRPC definitions
   - `packages/shared` - Shared utilities
   - `packages/mcp` - MCP integration

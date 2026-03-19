@@ -85,15 +85,18 @@ export function useOpenProject() {
 					useWorktreeChoiceDialogStore.getState().open({
 						projectName: project.name,
 						onChoice: async (enableWorktrees) => {
-							if (!enableWorktrees) {
-								await updateProject.mutateAsync({
-									id: project.id,
-									patch: { worktreeMode: "disabled" },
-								});
+							try {
+								if (!enableWorktrees) {
+									await updateProject.mutateAsync({
+										id: project.id,
+										patch: { worktreeMode: "disabled" },
+									});
+								}
+								await utils.workspaces.getAllGrouped.invalidate();
+								await utils.projects.getRecents.invalidate();
+							} finally {
+								resolveChoice();
 							}
-							await utils.workspaces.getAllGrouped.invalidate();
-							await utils.projects.getRecents.invalidate();
-							resolveChoice();
 						},
 					});
 				});

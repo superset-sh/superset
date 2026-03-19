@@ -22,7 +22,7 @@ export const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is Superset free to use?",
 		answer:
-			"Yes, Superset is completely free and open source. You can self-host it, modify it, and use it however you like. The source code is available on GitHub under a permissive license.",
+			"Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms.",
 	},
 	{
 		question: "Can I use my own API keys?",

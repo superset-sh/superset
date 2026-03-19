@@ -12,7 +12,7 @@ interface ResolvedTarget extends NotificationIds {
 
 /**
  * Resolves notification target IDs by looking up missing values from state.
- * Priority: event data > pane's tab > tab's workspace
+ * Priority: valid paneId > sessionId > pane's tab > event tabId > tab's workspace
  */
 export function resolveNotificationTarget(
 	ids: NotificationIds | undefined,
@@ -20,9 +20,19 @@ export function resolveNotificationTarget(
 ): ResolvedTarget | null {
 	if (!ids) return null;
 
-	const { paneId, tabId, workspaceId } = ids;
+	const { paneId, sessionId, tabId, workspaceId } = ids;
 
-	const pane = paneId ? state.panes[paneId] : undefined;
+	const paneIdFromSession = sessionId
+		? Object.entries(state.panes).find(
+				([_paneId, pane]) => pane.chat?.sessionId === sessionId,
+			)?.[0]
+		: undefined;
+	const resolvedPaneId =
+		(paneId && state.panes[paneId] ? paneId : undefined) ??
+		(paneIdFromSession && state.panes[paneIdFromSession]
+			? paneIdFromSession
+			: undefined);
+	const pane = resolvedPaneId ? state.panes[resolvedPaneId] : undefined;
 
 	// Resolve tabId: prefer pane's tabId, fallback to event tabId
 	const resolvedTabId = pane?.tabId ?? tabId;
@@ -37,7 +47,7 @@ export function resolveNotificationTarget(
 	if (!resolvedWorkspaceId) return null;
 
 	return {
-		paneId,
+		paneId: resolvedPaneId,
 		tabId: resolvedTabId,
 		workspaceId: resolvedWorkspaceId,
 	};
