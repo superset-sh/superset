@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
@@ -95,18 +96,26 @@ export function WorkspaceListItem({
 	});
 
 	const itemRef = useRef<HTMLElement | null>(null);
+	const rowRef = useRef<HTMLDivElement | null>(null);
+	const dragHotspotRef = useRef<HTMLDivElement | null>(null);
 	useEffect(() => {
 		if (isActive) {
 			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		}
 	}, [isActive]);
 
-	const { isDragging, drag, drop } = useWorkspaceDnD({
+	const { isDragging, drag, drop, preview } = useWorkspaceDnD({
 		id,
 		projectId,
 		sectionId,
 		index,
 	});
+
+	useEffect(() => {
+		preview(getEmptyImage(), { captureDraggingState: true });
+		drop(rowRef);
+		drag(dragHotspotRef);
+	}, [preview, drop, drag]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -253,8 +262,8 @@ export function WorkspaceListItem({
 			role="button"
 			tabIndex={0}
 			ref={(node) => {
+				rowRef.current = node;
 				itemRef.current = node;
-				drag(drop(node));
 			}}
 			onClick={handleClick}
 			onKeyDown={(e) => {
@@ -282,6 +291,12 @@ export function WorkspaceListItem({
 			)}
 			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 		>
+			<div
+				ref={dragHotspotRef}
+				aria-hidden="true"
+				className="absolute inset-y-0 left-0 w-4 cursor-grab active:cursor-grabbing"
+			/>
+
 			{isActive && (
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
 			)}
