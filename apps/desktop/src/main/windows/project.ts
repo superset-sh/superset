@@ -60,7 +60,6 @@ export async function ProjectWindow(projectId: string): Promise<BrowserWindow> {
 		backgroundColor: nativeTheme.shouldUseDarkColors ? "#252525" : "#ffffff",
 		movable: true,
 		resizable: true,
-		restorable: false,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
 		frame: false,

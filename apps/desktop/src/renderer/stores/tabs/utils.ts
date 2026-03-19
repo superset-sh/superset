@@ -261,6 +261,16 @@ export const createChatMastraPane = (
 	};
 };
 
+/** Alias kept for backward compatibility with existing call sites */
+export const createChatPane = (
+	tabId: string,
+	options?: AddChatTabOptions,
+): Pane => {
+	const pane = createChatMastraPane(tabId, options);
+	// Existing callers expect type "chat" — keep that until full migration
+	return { ...pane, type: "chat" };
+};
+
 /**
  * Options for creating a browser pane
  */
