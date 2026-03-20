@@ -8,6 +8,7 @@ import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineClipboard } from "react-icons/hi2";
+import { CodeBlock } from "renderer/components/MarkdownRenderer/components/CodeBlock/CodeBlock";
 import {
 	FILE_VIEW_CODE_BLOCK_LANGUAGES,
 	getCodeBlockLanguageLabel,
@@ -47,6 +48,14 @@ export function EditableCodeBlockView({
 		updateAttributes({ language });
 		setMenuOpen(false);
 	};
+
+	if (currentLanguage === "mermaid") {
+		return (
+			<NodeViewWrapper as="div" className="my-4">
+				<CodeBlock className="language-mermaid">{node.textContent}</CodeBlock>
+			</NodeViewWrapper>
+		);
+	}
 
 	return (
 		<NodeViewWrapper as="pre" className={`${htmlAttrs.class} relative group`}>
