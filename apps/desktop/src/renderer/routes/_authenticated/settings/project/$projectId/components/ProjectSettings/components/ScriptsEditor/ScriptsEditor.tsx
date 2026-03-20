@@ -1,7 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiArrowTopRightOnSquare, HiDocumentArrowUp } from "react-icons/hi2";
+import {
+	HiArrowTopRightOnSquare,
+	HiCheckCircle,
+	HiDocumentArrowUp,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
 import { EXTERNAL_LINKS } from "shared/constants";
@@ -163,6 +167,8 @@ function ScriptTextarea({
 	);
 }
 
+type SaveStatus = "idle" | "saving" | "saved";
+
 export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const utils = electronTrpc.useUtils();
 
@@ -175,6 +181,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const [setupContent, setSetupContent] = useState("");
 	const [teardownContent, setTeardownContent] = useState("");
 	const [runContent, setRunContent] = useState("");
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 	const latestContentRef = useRef({
 		setup: "",
 		teardown: "",
@@ -183,6 +190,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const lastSavedPayloadRef = useRef('{"setup":[],"teardown":[],"run":[]}');
 	const saveInFlightRef = useRef(false);
 	const saveQueuedRef = useRef(false);
+	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 	latestContentRef.current = {
 		setup: setupContent,
@@ -222,18 +230,6 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 
 	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation();
 
-	const handleSetupChange = useCallback((value: string) => {
-		setSetupContent(value);
-	}, []);
-
-	const handleTeardownChange = useCallback((value: string) => {
-		setTeardownContent(value);
-	}, []);
-
-	const handleRunChange = useCallback((value: string) => {
-		setRunContent(value);
-	}, []);
-
 	const handleSave = useCallback(async () => {
 		if (saveInFlightRef.current) {
 			saveQueuedRef.current = true;
@@ -241,6 +237,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		}
 
 		saveInFlightRef.current = true;
+		setSaveStatus("saving");
 		try {
 			do {
 				saveQueuedRef.current = false;
@@ -255,10 +252,61 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				lastSavedPayloadRef.current = serializedPayload;
 				await invalidateProjectScriptQueries(utils, projectId);
 			} while (saveQueuedRef.current);
+			setSaveStatus("saved");
+			// Reset to idle after showing "saved" for 2 seconds
+			setTimeout(() => setSaveStatus("idle"), 2000);
+		} catch (error) {
+			console.error("[scripts/save] Failed to save:", error);
+			setSaveStatus("idle");
 		} finally {
 			saveInFlightRef.current = false;
 		}
 	}, [buildPayload, updateConfigMutation, projectId, serializePayload, utils]);
+
+	const debouncedSave = useCallback(() => {
+		// Clear any existing timer
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+		}
+
+		// Set new timer to save after 500ms of no changes
+		debounceTimerRef.current = setTimeout(() => {
+			void handleSave();
+		}, 500);
+	}, [handleSave]);
+
+	// Cleanup debounce timer on unmount
+	useEffect(() => {
+		return () => {
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+			}
+		};
+	}, []);
+
+	const handleSetupChange = useCallback(
+		(value: string) => {
+			setSetupContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
+
+	const handleTeardownChange = useCallback(
+		(value: string) => {
+			setTeardownContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
+
+	const handleRunChange = useCallback(
+		(value: string) => {
+			setRunContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
 
 	if (isLoading) {
 		return (
@@ -272,7 +320,21 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		<div className={cn("space-y-5", className)}>
 			<div className="flex items-start justify-between">
 				<div className="space-y-1">
-					<h3 className="text-base font-semibold text-foreground">Scripts</h3>
+					<div className="flex items-center gap-2">
+						<h3 className="text-base font-semibold text-foreground">Scripts</h3>
+						{saveStatus === "saving" && (
+							<span className="text-xs text-muted-foreground flex items-center gap-1">
+								<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+								Saving...
+							</span>
+						)}
+						{saveStatus === "saved" && (
+							<span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+								<HiCheckCircle className="h-3.5 w-3.5" />
+								Saved
+							</span>
+						)}
+					</div>
 					<p className="text-sm text-muted-foreground">
 						Automate your workspace lifecycle with setup and teardown scripts.
 						Changes are saved automatically.
