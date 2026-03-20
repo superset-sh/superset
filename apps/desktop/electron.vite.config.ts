@@ -117,7 +117,9 @@ export default defineConfig({
 				},
 				output: {
 					dir: resolve(devPath, "main"),
+					banner: `(function(){try{if(typeof require==='function'){var s=require('node:stream')||require('stream');if(s&&!s.getDefaultHighWaterMark){s.getDefaultHighWaterMark=function(isObjectMode){return isObjectMode?16:16*1024;};console.info('[patch-node-stream] polyfilled');}}}catch(e){}})();`,
 				},
+
 				external: ["electron", ...mainExternalizedDependencies],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
