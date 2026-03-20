@@ -1,7 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiArrowTopRightOnSquare, HiDocumentArrowUp } from "react-icons/hi2";
+import {
+	HiArrowTopRightOnSquare,
+	HiCheckCircle,
+	HiDocumentArrowUp,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
 import { EXTERNAL_LINKS } from "shared/constants";
@@ -163,6 +167,8 @@ function ScriptTextarea({
 	);
 }
 
+type SaveStatus = "idle" | "saving" | "saved";
+
 export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const utils = electronTrpc.useUtils();
 
@@ -175,7 +181,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const [setupContent, setSetupContent] = useState("");
 	const [teardownContent, setTeardownContent] = useState("");
 	const [runContent, setRunContent] = useState("");
-	const [hasChanges, setHasChanges] = useState(false);
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 	const latestContentRef = useRef({
 		setup: "",
 		teardown: "",
@@ -184,6 +190,8 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const lastSavedPayloadRef = useRef('{"setup":[],"teardown":[],"run":[]}');
 	const saveInFlightRef = useRef(false);
 	const saveQueuedRef = useRef(false);
+	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 	latestContentRef.current = {
 		setup: setupContent,
@@ -208,11 +216,16 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	);
 
 	useEffect(() => {
+		// Don't overwrite local state if there are pending unsaved changes
+		// This prevents race conditions where server data overwrites user edits
+		if (debounceTimerRef.current || saveInFlightRef.current) {
+			return;
+		}
+
 		const parsed = parseContentFromConfig(configData?.content ?? null);
 		setSetupContent(parsed.setup);
 		setTeardownContent(parsed.teardown);
 		setRunContent(parsed.run);
-		setHasChanges(false);
 		lastSavedPayloadRef.current = serializePayload(
 			buildPayload({
 				setup: parsed.setup,
@@ -224,28 +237,20 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 
 	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation();
 
-	const handleSetupChange = useCallback((value: string) => {
-		setSetupContent(value);
-		setHasChanges(true);
-	}, []);
-
-	const handleTeardownChange = useCallback((value: string) => {
-		setTeardownContent(value);
-		setHasChanges(true);
-	}, []);
-
-	const handleRunChange = useCallback((value: string) => {
-		setRunContent(value);
-		setHasChanges(true);
-	}, []);
-
 	const handleSave = useCallback(async () => {
 		if (saveInFlightRef.current) {
 			saveQueuedRef.current = true;
 			return;
 		}
 
+		// Clear any existing saved timer before starting a new save
+		if (savedTimerRef.current) {
+			clearTimeout(savedTimerRef.current);
+			savedTimerRef.current = null;
+		}
+
 		saveInFlightRef.current = true;
+		setSaveStatus("saving");
 		try {
 			do {
 				saveQueuedRef.current = false;
@@ -253,23 +258,87 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				const serializedPayload = serializePayload(payload);
 
 				if (serializedPayload === lastSavedPayloadRef.current) {
-					setHasChanges(false);
 					continue;
 				}
 
 				await updateConfigMutation.mutateAsync(payload);
 				lastSavedPayloadRef.current = serializedPayload;
 				await invalidateProjectScriptQueries(utils, projectId);
-
-				const currentPayload = buildPayload(latestContentRef.current);
-				setHasChanges(
-					serializePayload(currentPayload) !== lastSavedPayloadRef.current,
-				);
 			} while (saveQueuedRef.current);
+			setSaveStatus("saved");
+			// Reset to idle after showing "saved" for 2 seconds
+			savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
+		} catch (error) {
+			console.error("[scripts/save] Failed to save:", error);
+			// Clear saved timer on error
+			if (savedTimerRef.current) {
+				clearTimeout(savedTimerRef.current);
+				savedTimerRef.current = null;
+			}
+			setSaveStatus("idle");
 		} finally {
 			saveInFlightRef.current = false;
 		}
 	}, [buildPayload, updateConfigMutation, projectId, serializePayload, utils]);
+
+	const debouncedSave = useCallback(() => {
+		// Clear any existing timer
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = null;
+		}
+
+		// Set new timer to save after 500ms of no changes
+		debounceTimerRef.current = setTimeout(() => {
+			debounceTimerRef.current = null;
+			void handleSave();
+		}, 500);
+	}, [handleSave]);
+
+	const handleBlurSave = useCallback(() => {
+		// Cancel any pending debounce timer to avoid duplicate saves
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = null;
+		}
+		void handleSave();
+	}, [handleSave]);
+
+	// Cleanup timers on unmount
+	useEffect(() => {
+		return () => {
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+			}
+			if (savedTimerRef.current) {
+				clearTimeout(savedTimerRef.current);
+			}
+		};
+	}, []);
+
+	const handleSetupChange = useCallback(
+		(value: string) => {
+			setSetupContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
+
+	const handleTeardownChange = useCallback(
+		(value: string) => {
+			setTeardownContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
+
+	const handleRunChange = useCallback(
+		(value: string) => {
+			setRunContent(value);
+			debouncedSave();
+		},
+		[debouncedSave],
+	);
 
 	if (isLoading) {
 		return (
@@ -283,32 +352,36 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		<div className={cn("space-y-5", className)}>
 			<div className="flex items-start justify-between">
 				<div className="space-y-1">
-					<h3 className="text-base font-semibold text-foreground">Scripts</h3>
+					<div className="flex items-center gap-2">
+						<h3 className="text-base font-semibold text-foreground">Scripts</h3>
+						{saveStatus === "saving" && (
+							<span className="text-xs text-muted-foreground flex items-center gap-1">
+								<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+								Saving...
+							</span>
+						)}
+						{saveStatus === "saved" && (
+							<span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+								<HiCheckCircle className="h-3.5 w-3.5" />
+								Saved
+							</span>
+						)}
+					</div>
 					<p className="text-sm text-muted-foreground">
 						Automate your workspace lifecycle with setup and teardown scripts.
+						Changes are saved automatically.
 					</p>
 				</div>
-				<div className="flex gap-2 shrink-0">
-					<Button variant="outline" size="sm" asChild>
-						<a
-							href={EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Get started with setup scripts
-							<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
-						</a>
-					</Button>
-					{hasChanges && (
-						<Button
-							size="sm"
-							onClick={handleSave}
-							disabled={updateConfigMutation.isPending}
-						>
-							{updateConfigMutation.isPending ? "Saving..." : "Save"}
-						</Button>
-					)}
-				</div>
+				<Button variant="outline" size="sm" asChild>
+					<a
+						href={EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS}
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						Get started with setup scripts
+						<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
+					</a>
+				</Button>
 			</div>
 
 			<ScriptTextarea
@@ -317,7 +390,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun install && bun run dev"
 				value={setupContent}
 				onChange={handleSetupChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 
 			<ScriptTextarea
@@ -326,7 +399,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. docker compose down"
 				value={teardownContent}
 				onChange={handleTeardownChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 
 			<ScriptTextarea
@@ -335,7 +408,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun run dev"
 				value={runContent}
 				onChange={handleRunChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 		</div>
 	);

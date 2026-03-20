@@ -139,6 +139,7 @@ export interface TabsStore extends TabsState {
 		workspaceRun: {
 			workspaceId: string;
 			state: "running" | "stopped-by-user" | "stopped-by-exit";
+			command?: string;
 		} | null,
 	) => void;
 	setPaneAutoTitle: (paneId: string, title: string) => void;

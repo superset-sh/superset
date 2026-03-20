@@ -1084,12 +1084,18 @@ export const useTabsStore = create<TabsStore>()(
 					set((state) => {
 						const pane = state.panes[paneId];
 						if (!pane) return state;
+						const nextWorkspaceRun = workspaceRun
+							? {
+									...pane.workspaceRun,
+									...workspaceRun,
+								}
+							: undefined;
 						return {
 							panes: {
 								...state.panes,
 								[paneId]: {
 									...pane,
-									workspaceRun: workspaceRun ?? undefined,
+									workspaceRun: nextWorkspaceRun,
 								},
 							},
 						};

@@ -147,6 +147,7 @@ export interface Pane {
 	workspaceRun?: {
 		workspaceId: string;
 		state: "running" | "stopped-by-user" | "stopped-by-exit";
+		command?: string;
 	};
 }
 

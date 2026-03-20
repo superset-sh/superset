@@ -607,7 +607,6 @@ export function FileViewerPane({
 							diffData={diffData}
 							editorRef={editorRef}
 							markdownEditorRef={markdownEditorRef}
-							draftContentRef={draftContentRef}
 							renderedContent={renderedContent}
 							initialLine={initialLine}
 							initialColumn={initialColumn}
