@@ -2,7 +2,7 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Terminal for Coding Agents
+### Superset: The Terminal for Coding Agents
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
