@@ -229,7 +229,20 @@ export const createFileViewerPane = (
 	};
 };
 
-export const createChatPane = (
+/**
+ * Creates a new file-tree pane
+ */
+export const createFileTreePane = (tabId: string): Pane => {
+	const id = generateId("pane");
+	return {
+		id,
+		tabId,
+		type: "file-tree",
+		name: "File Tree",
+	};
+};
+
+export const createChatMastraPane = (
 	tabId: string,
 	options?: AddChatTabOptions,
 ): Pane => {
@@ -239,7 +252,7 @@ export const createChatPane = (
 	return {
 		id,
 		tabId,
-		type: "chat",
+		type: "chat-mastra",
 		name: "New Chat",
 		chat: {
 			sessionId,
@@ -332,7 +345,7 @@ export const createChatTabWithPane = (
 	options?: AddChatTabOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createChatPane(tabId, options);
+	const pane = createChatMastraPane(tabId, options);
 
 	const tab: Tab = {
 		id: tabId,

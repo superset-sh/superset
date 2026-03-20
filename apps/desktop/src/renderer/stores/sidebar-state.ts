@@ -15,7 +15,14 @@ export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const MIN_SIDEBAR_WIDTH = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
 
+export type PanelSide = "left" | "right";
+
 interface SidebarState {
+	/** Whether the left panel is open */
+	isLeftPanelOpen: boolean;
+	/** Whether the right panel is open */
+	isRightPanelOpen: boolean;
+	/** @deprecated Use isRightPanelOpen — kept for backward compat */
 	isSidebarOpen: boolean;
 	sidebarWidth: number;
 	lastOpenSidebarWidth: number;
@@ -23,18 +30,29 @@ interface SidebarState {
 	lastMode: SidebarMode;
 	isResizing: boolean;
 	rightSidebarTab: RightSidebarTab;
+	/** Which side each tab is docked on */
+	tabPositions: Record<RightSidebarTab, PanelSide>;
+	/** Width of the left panel (when tabs are docked left) */
+	leftPanelWidth: number;
+	toggleLeftPanel: () => void;
+	toggleRightPanel: () => void;
+	/** @deprecated Use toggleRightPanel — toggles the right panel for hotkey compat */
 	toggleSidebar: () => void;
 	setSidebarOpen: (open: boolean) => void;
 	setSidebarWidth: (width: number) => void;
 	setMode: (mode: SidebarMode) => void;
 	setIsResizing: (isResizing: boolean) => void;
 	setRightSidebarTab: (tab: RightSidebarTab) => void;
+	setTabPosition: (tab: RightSidebarTab, side: PanelSide) => void;
+	setLeftPanelWidth: (width: number) => void;
 }
 
 export const useSidebarStore = create<SidebarState>()(
 	devtools(
 		persist(
 			(set, get) => ({
+				isLeftPanelOpen: false,
+				isRightPanelOpen: true,
 				isSidebarOpen: true,
 				sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
 				lastOpenSidebarWidth: DEFAULT_SIDEBAR_WIDTH,
@@ -42,12 +60,26 @@ export const useSidebarStore = create<SidebarState>()(
 				lastMode: SidebarMode.Tabs,
 				isResizing: false,
 				rightSidebarTab: RightSidebarTab.Changes,
+				tabPositions: {
+					[RightSidebarTab.Changes]: "right",
+					[RightSidebarTab.Files]: "right",
+				},
+				leftPanelWidth: DEFAULT_SIDEBAR_WIDTH,
 
-				toggleSidebar: () => {
-					const { isSidebarOpen, lastOpenSidebarWidth, currentMode, lastMode } =
-						get();
-					if (isSidebarOpen) {
+				toggleLeftPanel: () => {
+					set((s) => ({ isLeftPanelOpen: !s.isLeftPanelOpen }));
+				},
+
+				toggleRightPanel: () => {
+					const {
+						isRightPanelOpen,
+						lastOpenSidebarWidth,
+						currentMode,
+						lastMode,
+					} = get();
+					if (isRightPanelOpen) {
 						set({
+							isRightPanelOpen: false,
 							isSidebarOpen: false,
 							sidebarWidth: 0,
 							lastMode: currentMode,
@@ -55,6 +87,7 @@ export const useSidebarStore = create<SidebarState>()(
 						});
 					} else {
 						set({
+							isRightPanelOpen: true,
 							isSidebarOpen: true,
 							sidebarWidth: lastOpenSidebarWidth,
 							currentMode: lastMode,
@@ -62,16 +95,23 @@ export const useSidebarStore = create<SidebarState>()(
 					}
 				},
 
+				toggleSidebar: () => {
+					// Backward compat — toggles right panel
+					get().toggleRightPanel();
+				},
+
 				setSidebarOpen: (open) => {
 					const { lastOpenSidebarWidth, currentMode, lastMode } = get();
 					if (open) {
 						set({
+							isRightPanelOpen: true,
 							isSidebarOpen: true,
 							sidebarWidth: lastOpenSidebarWidth,
 							currentMode: lastMode,
 						});
 					} else {
 						set({
+							isRightPanelOpen: false,
 							isSidebarOpen: false,
 							sidebarWidth: 0,
 							lastMode: currentMode,
@@ -87,23 +127,26 @@ export const useSidebarStore = create<SidebarState>()(
 					);
 
 					if (width > 0) {
-						const { sidebarWidth, lastOpenSidebarWidth, isSidebarOpen } = get();
+						const { sidebarWidth, lastOpenSidebarWidth, isRightPanelOpen } =
+							get();
 						if (
 							sidebarWidth === clampedWidth &&
 							lastOpenSidebarWidth === clampedWidth &&
-							isSidebarOpen
+							isRightPanelOpen
 						) {
 							return;
 						}
 						set({
 							sidebarWidth: clampedWidth,
 							lastOpenSidebarWidth: clampedWidth,
+							isRightPanelOpen: true,
 							isSidebarOpen: true,
 						});
 					} else {
 						const { currentMode } = get();
 						set({
 							sidebarWidth: 0,
+							isRightPanelOpen: false,
 							isSidebarOpen: false,
 							lastMode: currentMode,
 							currentMode: SidebarMode.Tabs,
@@ -122,19 +165,40 @@ export const useSidebarStore = create<SidebarState>()(
 				setRightSidebarTab: (tab) => {
 					set({ rightSidebarTab: tab });
 				},
+
+				setTabPosition: (tab, side) => {
+					const { tabPositions } = get();
+					set({
+						tabPositions: { ...tabPositions, [tab]: side },
+					});
+				},
+
+				setLeftPanelWidth: (width) => {
+					const clamped = Math.max(
+						MIN_SIDEBAR_WIDTH,
+						Math.min(MAX_SIDEBAR_WIDTH, width),
+					);
+					set({ leftPanelWidth: clamped });
+				},
 			}),
 			{
 				name: "sidebar-store",
-				migrate: (persistedState: unknown, _version: number) => {
+				migrate: (persistedState: unknown, version: number) => {
 					const state = persistedState as Partial<SidebarState>;
-					// Convert old percentage-based values (<100) to pixel widths
+					// v0→v1: Convert old percentage-based values (<100) to pixel widths
 					if (state.sidebarWidth !== undefined && state.sidebarWidth < 100) {
 						state.sidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 						state.lastOpenSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 					}
+					// v1→v2: Initialize independent panel open states from legacy isSidebarOpen
+					if (version < 2) {
+						const wasOpen = state.isSidebarOpen ?? true;
+						state.isRightPanelOpen = wasOpen;
+						state.isLeftPanelOpen = false;
+					}
 					return state as SidebarState;
 				},
-				version: 1,
+				version: 2,
 			},
 		),
 		{ name: "SidebarStore" },
