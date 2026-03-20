@@ -6,6 +6,7 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useProjectFocus } from "renderer/hooks/useProjectFocus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const projectFocusId = useProjectFocus();
 	const isV2CloudEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
 	// Get current workspace from route to pre-select project in new workspace modal
@@ -97,7 +99,7 @@ function DashboardLayout() {
 		<div className="flex flex-col h-full w-full">
 			<TopBar />
 			<div className="flex flex-1 overflow-hidden">
-				{isWorkspaceSidebarOpen && (
+				{isWorkspaceSidebarOpen && !projectFocusId && (
 					<ResizablePanel
 						width={workspaceSidebarWidth}
 						onWidthChange={setWorkspaceSidebarWidth}

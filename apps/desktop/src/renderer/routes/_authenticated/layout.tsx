@@ -15,6 +15,7 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { ConnectedWorktreeChoiceDialog } from "renderer/components/WorktreeChoiceDialog/ConnectedWorktreeChoiceDialog";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -28,6 +29,7 @@ import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useTabsSync } from "renderer/stores/tabs/useTabsSync";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
@@ -64,6 +66,7 @@ function AuthenticatedLayout() {
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
+	useTabsSync();
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -119,6 +122,14 @@ function AuthenticatedLayout() {
 		},
 		onError: (error) => {
 			console.error("[workspace-init-subscription] Subscription error:", error);
+		},
+	});
+
+	// Cross-window project data sync (worktree mode, name, color, etc.)
+	electronTrpc.projects.onProjectChanged.useSubscription(undefined, {
+		onData: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.projects.getRecents.invalidate();
 		},
 	});
 
@@ -186,6 +197,7 @@ function AuthenticatedLayout() {
 						<NewWorkspaceModal />
 					)}
 					<InitGitDialog />
+					<ConnectedWorktreeChoiceDialog />
 					<TeardownLogsDialog />
 					<Paywall />
 				</HostServiceProvider>

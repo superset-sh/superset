@@ -17,6 +17,8 @@ export interface AppState {
 	tabsState: BaseTabsState;
 	themeState: ThemeState;
 	hotkeysState: HotkeysState;
+	/** Project IDs that had focus windows open at last quit (for restore on launch) */
+	openFocusWindowProjectIds: string[];
 }
 
 export const defaultAppState: AppState = {
@@ -32,4 +34,5 @@ export const defaultAppState: AppState = {
 		customThemes: [],
 	},
 	hotkeysState: createDefaultHotkeysState(),
+	openFocusWindowProjectIds: [],
 };

@@ -1,8 +1,7 @@
 import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
-import type { BrowserWindow } from "electron";
-import { app, Notification, nativeTheme } from "electron";
+import { app, BrowserWindow, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -28,6 +27,7 @@ import {
 	getNotificationTitle,
 	getWorkspaceName,
 } from "../lib/notifications/utils";
+import { windowManager } from "../lib/window-manager";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -37,6 +37,11 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+
+/** Expose the singleton IPC handler so project windows can attach/detach. */
+export function getIpcHandler() {
+	return ipcHandler;
+}
 
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	if (!workspaceId) return "Workspace";
@@ -111,6 +116,7 @@ export async function MainWindow() {
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
+		restorable: false,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
 		frame: false,
@@ -129,6 +135,7 @@ export async function MainWindow() {
 	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
+	windowManager.setMainWindow(window);
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -141,6 +148,9 @@ export async function MainWindow() {
 		ipcHandler = createIPCHandler({
 			router: createAppRouter(getWindow),
 			windows: [window],
+			createContext: async ({ event }) => ({
+				callingWindow: BrowserWindow.fromWebContents(event.sender),
+			}),
 		});
 	}
 
@@ -305,6 +315,7 @@ export async function MainWindow() {
 		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
 		currentWindow = null;
+		windowManager.setMainWindow(null);
 	});
 
 	return window;

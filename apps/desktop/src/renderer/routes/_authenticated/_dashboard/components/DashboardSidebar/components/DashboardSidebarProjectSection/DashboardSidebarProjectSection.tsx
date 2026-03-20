@@ -43,6 +43,7 @@ export function DashboardSidebarProjectSection({
 		handleNewSection,
 		handleNewWorkspace,
 		handleOpenInFinder,
+		handleOpenInNewWindow,
 		handleOpenSettings,
 		isRenaming,
 		renameSection,
@@ -62,6 +63,7 @@ export function DashboardSidebarProjectSection({
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
+				onOpenInNewWindow={handleOpenInNewWindow}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}
@@ -87,6 +89,7 @@ export function DashboardSidebarProjectSection({
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
+				onOpenInNewWindow={handleOpenInNewWindow}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}

@@ -1,14 +1,19 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { initTRPC } from "@trpc/server";
+import type { BrowserWindow } from "electron";
 import superjson from "superjson";
 import type { AppRouter } from "./routers";
 import { NotGitRepoError } from "./routers/workspaces/utils/git";
+
+export interface TRPCContext {
+	callingWindow: BrowserWindow | null;
+}
 
 /**
  * Core tRPC initialization
  * This provides the base router and procedure builders used by all routers
  */
-const t = initTRPC.create({
+const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,
 	isServer: true,
 });

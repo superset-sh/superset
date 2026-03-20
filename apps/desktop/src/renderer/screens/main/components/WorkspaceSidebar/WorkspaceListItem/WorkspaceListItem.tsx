@@ -19,6 +19,7 @@ import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection"
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog } from "./components";
+import { CloseWorkspaceDialog } from "./components/CloseWorkspaceDialog";
 import {
 	GITHUB_STATUS_STALE_TIME,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
@@ -128,6 +129,26 @@ export function WorkspaceListItem({
 
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+
+	const [showCloseDialog, setShowCloseDialog] = useState(false);
+	const closeWorkspace = electronTrpc.workspaces.close.useMutation({
+		onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
+		onError: (error) =>
+			toast.error(`Failed to close workspace: ${error.message}`),
+	});
+	const deleteWorkspace = electronTrpc.workspaces.delete.useMutation({
+		onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
+		onError: (error) =>
+			toast.error(`Failed to close workspace: ${error.message}`),
+	});
+
+	const handleCloseConfirm = (options: { moveToTrash: boolean }) => {
+		if (options.moveToTrash) {
+			deleteWorkspace.mutate({ id, trash: true });
+		} else {
+			closeWorkspace.mutate({ id });
+		}
+	};
 
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
@@ -395,7 +416,7 @@ export function WorkspaceListItem({
 													type="button"
 													onClick={(e) => {
 														e.stopPropagation();
-														handleDeleteClick();
+														setShowCloseDialog(true);
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label="Close workspace"
@@ -450,6 +471,7 @@ export function WorkspaceListItem({
 				onCopyPath={handleCopyPath}
 				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
 				onResetStatus={() => resetWorkspaceStatus(id)}
+				onClose={() => setShowCloseDialog(true)}
 			>
 				{content}
 			</WorkspaceContextMenu>
@@ -459,6 +481,13 @@ export function WorkspaceListItem({
 				workspaceType={type}
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
+			/>
+			<CloseWorkspaceDialog
+				workspaceName={name}
+				isWorktree={type === "worktree"}
+				open={showCloseDialog}
+				onOpenChange={setShowCloseDialog}
+				onConfirm={handleCloseConfirm}
 			/>
 		</>
 	);

@@ -6,8 +6,9 @@ import {
 	saveProjectIconFromFile,
 } from "main/lib/project-icons";
 
-/** Common favicon file names to search for in project roots */
+/** Common favicon file names to search for in project roots and subdirectories */
 const FAVICON_PATTERNS = [
+	// Root level
 	"favicon.ico",
 	"favicon.png",
 	"favicon.svg",
@@ -17,6 +18,7 @@ const FAVICON_PATTERNS = [
 	"icon.svg",
 	".github/logo.png",
 	".github/logo.svg",
+	// Common static/public directories
 	"public/favicon.ico",
 	"public/favicon.png",
 	"public/favicon.svg",
@@ -28,6 +30,19 @@ const FAVICON_PATTERNS = [
 	"assets/favicon.ico",
 	"assets/favicon.png",
 	"assets/icon.png",
+	// Next.js / app directory patterns (up to 2 levels deep)
+	"app/favicon.ico",
+	"app/icon.png",
+	"app/icon.svg",
+	"**/app/favicon.ico",
+	"**/app/icon.png",
+	"**/app/icon.svg",
+	// Deeper public directories in monorepos/nested projects
+	"**/public/favicon.ico",
+	"**/public/favicon.png",
+	"**/public/favicon.svg",
+	"**/public/logo.png",
+	"**/public/logo.svg",
 ];
 
 /** Max file size for discovered favicons: 256KB */
@@ -48,6 +63,7 @@ export async function discoverAndSaveProjectIcon({
 		const matches = await fg(FAVICON_PATTERNS, {
 			cwd: repoPath,
 			absolute: true,
+			deep: 4,
 			ignore: ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/build/**"],
 			onlyFiles: true,
 		});

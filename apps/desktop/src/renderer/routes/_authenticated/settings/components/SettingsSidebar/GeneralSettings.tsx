@@ -7,6 +7,7 @@ import {
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
 	HiOutlineDevicePhoneMobile,
+	HiOutlineFolder,
 	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
@@ -30,6 +31,7 @@ type SettingsRoute =
 	| "/settings/keyboard"
 	| "/settings/behavior"
 	| "/settings/git"
+	| "/settings/projects"
 	| "/settings/agents"
 	| "/settings/terminal"
 	| "/settings/models"
@@ -96,6 +98,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "git",
 				label: "Git & Worktrees",
 				icon: <LuGitBranch className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/projects",
+				section: "project",
+				label: "Projects",
+				icon: <HiOutlineFolder className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/agents",

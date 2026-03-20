@@ -749,10 +749,9 @@ export const HOTKEYS = {
 
 	// Window
 	NEW_WINDOW: defineHotkey({
-		keys: null,
+		keys: "meta+shift+n",
 		label: "New Window",
 		category: "Window",
-		isHidden: true,
 	}),
 	CLOSE_WINDOW: defineHotkey({
 		keys: "meta+shift+q",

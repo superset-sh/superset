@@ -10,12 +10,14 @@ import {
 	LuFolderPlus,
 	LuPencil,
 	LuSettings,
+	LuSquareArrowOutUpRight,
 	LuX,
 } from "react-icons/lu";
 
 interface DashboardSidebarProjectContextMenuProps {
 	onCreateSection: () => void;
 	onOpenInFinder: () => void;
+	onOpenInNewWindow: () => void;
 	onOpenSettings: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
@@ -25,6 +27,7 @@ interface DashboardSidebarProjectContextMenuProps {
 export function DashboardSidebarProjectContextMenu({
 	onCreateSection,
 	onOpenInFinder,
+	onOpenInNewWindow,
 	onOpenSettings,
 	onRemoveFromSidebar,
 	onRename,
@@ -42,6 +45,10 @@ export function DashboardSidebarProjectContextMenu({
 				<ContextMenuItem onSelect={onOpenInFinder}>
 					<LuFolderOpen className="size-4 mr-2" />
 					Open in Finder
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onOpenInNewWindow}>
+					<LuSquareArrowOutUpRight className="size-4 mr-2" />
+					Open in Focus Window
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onOpenSettings}>
 					<LuSettings className="size-4 mr-2" />

@@ -221,3 +221,10 @@ export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];
+
+/**
+ * Worktree mode options for workspace creation
+ */
+export const WORKTREE_MODES = ["always", "optional", "disabled"] as const;
+
+export type WorktreeMode = (typeof WORKTREE_MODES)[number];

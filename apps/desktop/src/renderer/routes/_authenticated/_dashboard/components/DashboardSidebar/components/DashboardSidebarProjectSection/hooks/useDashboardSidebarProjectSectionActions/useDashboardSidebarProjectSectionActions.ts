@@ -2,6 +2,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
@@ -60,6 +61,16 @@ export function useDashboardSidebarProjectSectionActions({
 		toast.info("Project settings are coming soon");
 	};
 
+	const openInNewWindow =
+		electronTrpc.window.openProjectInNewWindow.useMutation({
+			onError: (error) =>
+				toast.error(`Failed to open in new window: ${error.message}`),
+		});
+
+	const handleOpenInNewWindow = () => {
+		openInNewWindow.mutate({ projectId: project.id });
+	};
+
 	const confirmRemoveFromSidebar = () => {
 		alert.destructive({
 			title: "Remove project from sidebar?",
@@ -85,6 +96,7 @@ export function useDashboardSidebarProjectSectionActions({
 		handleNewSection,
 		handleNewWorkspace,
 		handleOpenInFinder,
+		handleOpenInNewWindow,
 		handleOpenSettings,
 		isRenaming,
 		renameSection,

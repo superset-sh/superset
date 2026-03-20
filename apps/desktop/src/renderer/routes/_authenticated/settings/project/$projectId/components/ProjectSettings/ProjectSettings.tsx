@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, WorktreeMode } from "@superset/local-db";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -30,7 +30,7 @@ import {
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
-import { LuImagePlus, LuTrash2 } from "react-icons/lu";
+import { LuFolderOpen, LuImagePlus, LuRefreshCw } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useImportAllWorktrees,
@@ -97,6 +97,13 @@ export function ProjectSettings({
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
+	const { data: allGroups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const projectGroup = allGroups.find((g) => g.project.id === projectId);
+	const projectWorkspaces = projectGroup?.workspaces ?? [];
+	const worktreeWorkspaces = projectWorkspaces.filter(
+		(w) => w.type === "worktree",
+	);
 	const { data: branchData, isLoading: isBranchDataLoading } =
 		electronTrpc.projects.getBranches.useQuery(
 			{ projectId },
@@ -140,6 +147,28 @@ export function ProjectSettings({
 		},
 	});
 
+	const discoverIcon =
+		electronTrpc.projects.triggerFaviconDiscovery.useMutation({
+			onSettled: () => {
+				utils.projects.get.invalidate({ id: projectId });
+				utils.workspaces.getAllGrouped.invalidate();
+			},
+		});
+
+	const handleRefreshIcon = useCallback(() => {
+		// Clear existing icon first so discovery runs fresh
+		setIconManuallyUploaded(false);
+		setProjectIcon.mutate(
+			{ id: projectId, icon: null },
+			{
+				onSuccess: () => {
+					discoverIcon.mutate({ id: projectId });
+				},
+			},
+		);
+	}, [projectId, setProjectIcon, discoverIcon]);
+
+	const [iconManuallyUploaded, setIconManuallyUploaded] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleIconUpload = useCallback(() => {
@@ -157,6 +186,7 @@ export function ProjectSettings({
 			reader.onload = () => {
 				const dataUrl = reader.result as string;
 				setProjectIcon.mutate({ id: projectId, icon: dataUrl });
+				setIconManuallyUploaded(true);
 			};
 			reader.readAsDataURL(file);
 
@@ -165,10 +195,6 @@ export function ProjectSettings({
 		},
 		[projectId, setProjectIcon],
 	);
-
-	const handleRemoveIcon = useCallback(() => {
-		setProjectIcon.mutate({ id: projectId, icon: null });
-	}, [projectId, setProjectIcon]);
 
 	const handleBranchPrefixModeChange = (value: string) => {
 		if (value === "default") {
@@ -210,6 +236,59 @@ export function ProjectSettings({
 			},
 		});
 	};
+
+	const { data: globalWorktreeMode } =
+		electronTrpc.settings.getWorktreeMode.useQuery();
+
+	const [showDisableWorktreeDialog, setShowDisableWorktreeDialog] =
+		useState(false);
+
+	const deleteWorkspace = electronTrpc.workspaces.delete.useMutation({
+		onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+	});
+	const closeWorkspaceMutation = electronTrpc.workspaces.close.useMutation({
+		onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+	});
+
+	const handleWorktreeModeChange = (value: string) => {
+		if (value === "disabled" && worktreeWorkspaces.length > 0) {
+			setShowDisableWorktreeDialog(true);
+			return;
+		}
+		updateProject.mutate({
+			id: projectId,
+			patch: {
+				worktreeMode: value === "default" ? null : (value as WorktreeMode),
+			},
+		});
+	};
+
+	const handleDisableWorktrees = async (recycleWorktrees: boolean) => {
+		// Close/delete all worktree workspaces
+		for (const ws of worktreeWorkspaces) {
+			try {
+				if (recycleWorktrees) {
+					await deleteWorkspace.mutateAsync({ id: ws.id, trash: true });
+				} else {
+					await closeWorkspaceMutation.mutateAsync({ id: ws.id });
+				}
+			} catch (error) {
+				console.error(
+					`[ProjectSettings] Failed to close worktree workspace ${ws.id}:`,
+					error,
+				);
+			}
+		}
+		// Now disable worktrees on the project
+		updateProject.mutate({
+			id: projectId,
+			patch: { worktreeMode: "disabled" },
+		});
+	};
+
+	const effectiveWorktreeMode =
+		project?.worktreeMode ?? globalWorktreeMode ?? "always";
+	const isWorktreeDisabled = effectiveWorktreeMode === "disabled";
 
 	const { data: globalWorktreeBaseDir } =
 		electronTrpc.settings.getWorktreeBaseDir.useQuery();
@@ -298,342 +377,515 @@ export function ProjectSettings({
 				<ClickablePath path={project.mainRepoPath} />
 			</ProjectSettingsHeader>
 
-			<div className="space-y-4">
-				<SettingsSection
-					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
-					title="Branch Prefix"
-					description="Override the default prefix for new workspaces."
-				>
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch Prefix</Label>
-							<p className="text-xs text-muted-foreground">
-								Preview:{" "}
-								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-									{previewPrefix
-										? `${previewPrefix}/branch-name`
-										: "branch-name"}
-								</code>
-							</p>
-						</div>
-						<div className="flex items-center gap-2">
-							<Select
-								value={currentMode}
-								onValueChange={handleBranchPrefixModeChange}
-								disabled={updateProject.isPending}
-							>
-								<SelectTrigger className="w-[180px]">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{(
-										Object.entries(BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT) as [
-											BranchPrefixMode | "default",
-											string,
-										][]
-									).map(([value, label]) => (
-										<SelectItem key={value} value={value}>
-											{label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							{currentMode === "custom" && (
-								<Input
-									placeholder="Prefix"
-									value={customPrefixInput}
-									onChange={(e) => setCustomPrefixInput(e.target.value)}
-									onBlur={handleCustomPrefixBlur}
-									className="w-[120px]"
-									disabled={updateProject.isPending}
-								/>
-							)}
-						</div>
-					</div>
-				</SettingsSection>
-
-				<SettingsSection
-					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
-					title="Workspace Base Branch"
-					description="Set the default base branch for new workspaces in this repository."
-				>
-					<div className="flex items-center justify-between gap-4">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Default Base Branch</Label>
-							<p className="text-xs text-muted-foreground">
-								Used when creating a workspace unless you choose a one-off base
-								branch.
-							</p>
-						</div>
-						<Select
-							value={workspaceBaseBranchValue}
-							onValueChange={handleWorkspaceBaseBranchChange}
-							disabled={updateProject.isPending || isBranchDataLoading}
+			<div className="space-y-6">
+				{/* ── Project Settings ── */}
+				<div>
+					<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+						Project
+					</h3>
+					<div className="pl-4 border-l-2 border-border/50 space-y-4">
+						<SettingsSection
+							icon={<HiOutlineFolderOpen className="h-4 w-4" />}
+							title="Worktrees"
+							description="Manage worktree location and import existing worktrees."
 						>
-							<SelectTrigger className="w-[260px]">
-								{isBranchDataLoading ? (
-									<span className="text-muted-foreground">Loading...</span>
-								) : (
-									<SelectValue />
-								)}
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value={REPO_DEFAULT_BASE_BRANCH}>
-									Use repository default ({repoDefaultBranch})
-								</SelectItem>
-								{workspaceBaseBranchMissing && project.workspaceBaseBranch && (
-									<SelectItem value={project.workspaceBaseBranch}>
-										{project.workspaceBaseBranch} (missing)
-									</SelectItem>
-								)}
-								{(branchData?.branches ?? []).map((branch) => (
-									<SelectItem key={branch.name} value={branch.name}>
-										{branch.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					{workspaceBaseBranchMissing && (
-						<p className="text-xs text-destructive">
-							Branch "{project.workspaceBaseBranch}" no longer exists. New
-							workspaces will fall back to "{repoDefaultBranch}".
-						</p>
-					)}
-				</SettingsSection>
-
-				<SettingsSection
-					icon={<HiOutlineFolderOpen className="h-4 w-4" />}
-					title="Worktrees"
-					description="Manage worktree location and import existing worktrees."
-				>
-					<WorktreeLocationPicker
-						currentPath={project.worktreeBaseDir}
-						defaultPathLabel={`Using global default: ${globalPath}`}
-						dialogTitle="Select worktree location for this project"
-						defaultBrowsePath={project.worktreeBaseDir ?? globalWorktreeBaseDir}
-						disabled={updateProject.isPending}
-						onSelect={(path) =>
-							updateProject.mutate({
-								id: projectId,
-								patch: { worktreeBaseDir: path },
-							})
-						}
-						onReset={() =>
-							updateProject.mutate({
-								id: projectId,
-								patch: { worktreeBaseDir: null },
-							})
-						}
-					/>
-
-					{!isExternalLoading &&
-						externalWorktrees.length > 0 &&
-						isItemVisible(
-							SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
-							visibleItems,
-						) && (
 							<div className="flex items-center justify-between">
 								<div className="space-y-0.5">
 									<Label className="text-sm font-medium">
-										Import Worktrees
+										Enable Worktrees
 									</Label>
 									<p className="text-xs text-muted-foreground">
-										{externalWorktrees.length} external worktree
-										{externalWorktrees.length === 1 ? "" : "s"} found on disk.
+										{isWorktreeDisabled
+											? "Workspaces open directly in the main repository folder"
+											: "Each workspace gets its own isolated worktree and branch"}
+									</p>
+								</div>
+								<Switch
+									checked={!isWorktreeDisabled}
+									onCheckedChange={(checked) =>
+										handleWorktreeModeChange(checked ? "default" : "disabled")
+									}
+									disabled={updateProject.isPending}
+								/>
+							</div>
+						</SettingsSection>
+
+						<SettingsSection
+							icon={<HiOutlinePaintBrush className="h-4 w-4" />}
+							title="Appearance"
+							description="Customize this project's sidebar look."
+						>
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									{PROJECT_COLORS.map((color) => {
+										const isDefault = color.value === PROJECT_COLOR_DEFAULT;
+										const isSelected = project.color === color.value;
+										return (
+											<button
+												key={color.value}
+												type="button"
+												title={color.name}
+												onClick={() =>
+													updateProject.mutate({
+														id: projectId,
+														patch: { color: color.value },
+													})
+												}
+												className={cn(
+													"size-6 rounded-full border-2 transition-transform hover:scale-110",
+													isSelected
+														? "border-foreground scale-110"
+														: "border-transparent",
+													isDefault && "bg-muted",
+												)}
+												style={
+													isDefault
+														? undefined
+														: { backgroundColor: color.value }
+												}
+											/>
+										);
+									})}
+								</div>
+								<div className="flex items-center gap-2">
+									<Label className="text-sm text-muted-foreground">
+										Hide Image
+									</Label>
+									<Switch
+										checked={project.hideImage ?? false}
+										onCheckedChange={(checked) =>
+											updateProject.mutate({
+												id: projectId,
+												patch: { hideImage: checked },
+											})
+										}
+									/>
+								</div>
+							</div>
+
+							{/* Project Icon */}
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label className="text-sm font-medium">Project Icon</Label>
+									<p className="text-xs text-muted-foreground">
+										Upload a custom icon for the sidebar.
 									</p>
 								</div>
 								<div className="flex items-center gap-2">
-									<Select
-										value={selectedWorktreePath ?? "__all__"}
-										onValueChange={(value) =>
-											setSelectedWorktreePath(
-												value === "__all__" ? null : value,
-											)
-										}
+									{project.iconUrl && (
+										<img
+											src={project.iconUrl}
+											alt="Project icon"
+											className="size-8 rounded object-cover border"
+										/>
+									)}
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/png,image/jpeg,image/svg+xml,image/x-icon"
+										className="hidden"
+										onChange={handleFileChange}
+									/>
+									{!iconManuallyUploaded && (
+										<button
+											type="button"
+											onClick={handleRefreshIcon}
+											disabled={
+												discoverIcon.isPending || setProjectIcon.isPending
+											}
+											className={cn(
+												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+												"hover:bg-muted transition-colors",
+											)}
+										>
+											<LuRefreshCw
+												className={cn(
+													"size-4",
+													discoverIcon.isPending && "animate-spin",
+												)}
+											/>
+											Detect
+										</button>
+									)}
+									<button
+										type="button"
+										onClick={handleIconUpload}
+										disabled={setProjectIcon.isPending}
+										className={cn(
+											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+											"hover:bg-muted transition-colors",
+										)}
 									>
-										<SelectTrigger className="w-[220px]">
-											<SelectValue />
+										<LuImagePlus className="size-4" />
+										Upload
+									</button>
+									{project.iconUrl && iconManuallyUploaded && (
+										<button
+											type="button"
+											onClick={() => {
+												setProjectIcon.mutate({ id: projectId, icon: null });
+												setIconManuallyUploaded(false);
+											}}
+											disabled={setProjectIcon.isPending}
+											className={cn(
+												"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+												"hover:bg-destructive/10 text-destructive transition-colors",
+											)}
+										>
+											Remove
+										</button>
+									)}
+								</div>
+							</div>
+						</SettingsSection>
+					</div>
+				</div>
+
+				{/* ── Workspaces ── */}
+				<div>
+					<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+						Workspaces
+					</h3>
+					<div className="pl-4 border-l-2 border-border/50">
+						{projectWorkspaces.length === 0 ? (
+							<p className="text-sm text-muted-foreground py-2">
+								No workspaces yet.
+							</p>
+						) : (
+							<div className="space-y-1">
+								{projectWorkspaces.map((ws) => (
+									<div
+										key={ws.id}
+										className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+									>
+										<LuFolderOpen className="size-4 text-muted-foreground shrink-0" />
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium truncate">
+												{ws.type === "branch" ? "local" : ws.name || ws.branch}
+											</p>
+											<p className="text-xs text-muted-foreground font-mono truncate">
+												{ws.branch}
+											</p>
+										</div>
+										<span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+											{ws.type}
+										</span>
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* ── Workspace Settings ── */}
+				{!isWorktreeDisabled && (
+					<div>
+						<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+							Workspace Defaults
+						</h3>
+						<div className="pl-4 border-l-2 border-border/50 space-y-4">
+							<SettingsSection
+								icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
+								title="Branch Prefix"
+								description="Override the default prefix for new workspaces."
+							>
+								<div className="flex items-center justify-between">
+									<div className="space-y-0.5">
+										<Label className="text-sm font-medium">Branch Prefix</Label>
+										<p className="text-xs text-muted-foreground">
+											Preview:{" "}
+											<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+												{previewPrefix
+													? `${previewPrefix}/branch-name`
+													: "branch-name"}
+											</code>
+										</p>
+									</div>
+									<div className="flex items-center gap-2">
+										<Select
+											value={currentMode}
+											onValueChange={handleBranchPrefixModeChange}
+											disabled={updateProject.isPending}
+										>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{(
+													Object.entries(
+														BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT,
+													) as [BranchPrefixMode | "default", string][]
+												).map(([value, label]) => (
+													<SelectItem key={value} value={value}>
+														{label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										{currentMode === "custom" && (
+											<Input
+												placeholder="Prefix"
+												value={customPrefixInput}
+												onChange={(e) => setCustomPrefixInput(e.target.value)}
+												onBlur={handleCustomPrefixBlur}
+												className="w-[120px]"
+												disabled={updateProject.isPending}
+											/>
+										)}
+									</div>
+								</div>
+							</SettingsSection>
+
+							<SettingsSection
+								icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
+								title="Workspace Base Branch"
+								description="Set the default base branch for new workspaces in this repository."
+							>
+								<div className="flex items-center justify-between gap-4">
+									<div className="space-y-0.5">
+										<Label className="text-sm font-medium">
+											Default Base Branch
+										</Label>
+										<p className="text-xs text-muted-foreground">
+											Used when creating a workspace unless you choose a one-off
+											base branch.
+										</p>
+									</div>
+									<Select
+										value={workspaceBaseBranchValue}
+										onValueChange={handleWorkspaceBaseBranchChange}
+										disabled={updateProject.isPending || isBranchDataLoading}
+									>
+										<SelectTrigger className="w-[260px]">
+											{isBranchDataLoading ? (
+												<span className="text-muted-foreground">
+													Loading...
+												</span>
+											) : (
+												<SelectValue />
+											)}
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="__all__">
-												All worktrees ({externalWorktrees.length})
+											<SelectItem value={REPO_DEFAULT_BASE_BRANCH}>
+												Use repository default ({repoDefaultBranch})
 											</SelectItem>
-											{externalWorktrees.map((wt) => (
-												<SelectItem key={wt.path} value={wt.path}>
-													{wt.branch}
+											{workspaceBaseBranchMissing &&
+												project.workspaceBaseBranch && (
+													<SelectItem value={project.workspaceBaseBranch}>
+														{project.workspaceBaseBranch} (missing)
+													</SelectItem>
+												)}
+											{(branchData?.branches ?? []).map((branch) => (
+												<SelectItem key={branch.name} value={branch.name}>
+													{branch.name}
 												</SelectItem>
 											))}
 										</SelectContent>
 									</Select>
-									{selectedWorktreePath ? (
-										<Button
-											size="sm"
-											className="w-22"
-											disabled={openExternalWorktree.isPending}
-											onClick={() => {
-												const wt = externalWorktrees.find(
-													(w) => w.path === selectedWorktreePath,
-												);
-												if (wt) {
-													handleImportWorktree(wt.path, wt.branch);
-													setSelectedWorktreePath(null);
-												}
-											}}
-										>
-											{openExternalWorktree.isPending
-												? "Importing..."
-												: "Import"}
-										</Button>
-									) : (
-										<AlertDialog>
-											<AlertDialogTrigger asChild>
-												<Button
-													size="sm"
-													className="w-22"
-													disabled={importAllWorktrees.isPending}
-												>
-													{importAllWorktrees.isPending
-														? "Importing..."
-														: "Import all"}
-												</Button>
-											</AlertDialogTrigger>
-											<AlertDialogContent>
-												<AlertDialogHeader>
-													<AlertDialogTitle>
-														Import all worktrees
-													</AlertDialogTitle>
-													<AlertDialogDescription>
-														This will import {externalWorktrees.length} external
-														worktree
-														{externalWorktrees.length === 1 ? "" : "s"} into
-														Superset as workspaces. Each worktree on disk will
-														be tracked and appear in your sidebar. No files will
-														be modified.
-													</AlertDialogDescription>
-												</AlertDialogHeader>
-												<AlertDialogFooter>
-													<AlertDialogCancel>Cancel</AlertDialogCancel>
-													<AlertDialogAction onClick={handleImportAll}>
-														Import all
-													</AlertDialogAction>
-												</AlertDialogFooter>
-											</AlertDialogContent>
-										</AlertDialog>
-									)}
 								</div>
-							</div>
-						)}
-				</SettingsSection>
+								{workspaceBaseBranchMissing && (
+									<p className="text-xs text-destructive">
+										Branch "{project.workspaceBaseBranch}" no longer exists. New
+										workspaces will fall back to "{repoDefaultBranch}".
+									</p>
+								)}
+							</SettingsSection>
+
+							<SettingsSection
+								icon={<HiOutlineFolderOpen className="h-4 w-4" />}
+								title="Worktree Location"
+								description="Configure where worktrees are stored and import existing ones."
+							>
+								<WorktreeLocationPicker
+									currentPath={project.worktreeBaseDir}
+									defaultPathLabel={`Using global default: ${globalPath}`}
+									dialogTitle="Select worktree location for this project"
+									defaultBrowsePath={
+										project.worktreeBaseDir ?? globalWorktreeBaseDir
+									}
+									disabled={updateProject.isPending}
+									onSelect={(path) =>
+										updateProject.mutate({
+											id: projectId,
+											patch: { worktreeBaseDir: path },
+										})
+									}
+									onReset={() =>
+										updateProject.mutate({
+											id: projectId,
+											patch: { worktreeBaseDir: null },
+										})
+									}
+								/>
+
+								{!isExternalLoading &&
+									externalWorktrees.length > 0 &&
+									isItemVisible(
+										SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+										visibleItems,
+									) && (
+										<div className="flex items-center justify-between">
+											<div className="space-y-0.5">
+												<Label className="text-sm font-medium">
+													Import Worktrees
+												</Label>
+												<p className="text-xs text-muted-foreground">
+													{externalWorktrees.length} external worktree
+													{externalWorktrees.length === 1 ? "" : "s"} found on
+													disk.
+												</p>
+											</div>
+											<div className="flex items-center gap-2">
+												<Select
+													value={selectedWorktreePath ?? "__all__"}
+													onValueChange={(value) =>
+														setSelectedWorktreePath(
+															value === "__all__" ? null : value,
+														)
+													}
+												>
+													<SelectTrigger className="w-[220px]">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="__all__">
+															All worktrees ({externalWorktrees.length})
+														</SelectItem>
+														{externalWorktrees.map((wt) => (
+															<SelectItem key={wt.path} value={wt.path}>
+																{wt.branch}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												{selectedWorktreePath ? (
+													<Button
+														size="sm"
+														className="w-22"
+														disabled={openExternalWorktree.isPending}
+														onClick={() => {
+															const wt = externalWorktrees.find(
+																(w) => w.path === selectedWorktreePath,
+															);
+															if (wt) {
+																handleImportWorktree(wt.path, wt.branch);
+																setSelectedWorktreePath(null);
+															}
+														}}
+													>
+														{openExternalWorktree.isPending
+															? "Importing..."
+															: "Import"}
+													</Button>
+												) : (
+													<AlertDialog>
+														<AlertDialogTrigger asChild>
+															<Button
+																size="sm"
+																className="w-22"
+																disabled={importAllWorktrees.isPending}
+															>
+																{importAllWorktrees.isPending
+																	? "Importing..."
+																	: "Import all"}
+															</Button>
+														</AlertDialogTrigger>
+														<AlertDialogContent>
+															<AlertDialogHeader>
+																<AlertDialogTitle>
+																	Import all worktrees
+																</AlertDialogTitle>
+																<AlertDialogDescription>
+																	This will import {externalWorktrees.length}{" "}
+																	external worktree
+																	{externalWorktrees.length === 1 ? "" : "s"}{" "}
+																	into Superset as workspaces. Each worktree on
+																	disk will be tracked and appear in your
+																	sidebar. No files will be modified.
+																</AlertDialogDescription>
+															</AlertDialogHeader>
+															<AlertDialogFooter>
+																<AlertDialogCancel>Cancel</AlertDialogCancel>
+																<AlertDialogAction onClick={handleImportAll}>
+																	Import all
+																</AlertDialogAction>
+															</AlertDialogFooter>
+														</AlertDialogContent>
+													</AlertDialog>
+												)}
+											</div>
+										</div>
+									)}
+							</SettingsSection>
+						</div>
+					</div>
+				)}
 
 				<div className="pt-3 border-t">
 					<ScriptsEditor projectId={project.id} />
 				</div>
-
-				<SettingsSection
-					icon={<HiOutlinePaintBrush className="h-4 w-4" />}
-					title="Appearance"
-					description="Customize this project's sidebar look."
-				>
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2">
-							{PROJECT_COLORS.map((color) => {
-								const isDefault = color.value === PROJECT_COLOR_DEFAULT;
-								const isSelected = project.color === color.value;
-								return (
-									<button
-										key={color.value}
-										type="button"
-										title={color.name}
-										onClick={() =>
-											updateProject.mutate({
-												id: projectId,
-												patch: { color: color.value },
-											})
-										}
-										className={cn(
-											"size-6 rounded-full border-2 transition-transform hover:scale-110",
-											isSelected
-												? "border-foreground scale-110"
-												: "border-transparent",
-											isDefault && "bg-muted",
-										)}
-										style={
-											isDefault ? undefined : { backgroundColor: color.value }
-										}
-									/>
-								);
-							})}
-						</div>
-						<div className="flex items-center gap-2">
-							<Label className="text-sm text-muted-foreground">
-								Hide Image
-							</Label>
-							<Switch
-								checked={project.hideImage ?? false}
-								onCheckedChange={(checked) =>
-									updateProject.mutate({
-										id: projectId,
-										patch: { hideImage: checked },
-									})
-								}
-							/>
-						</div>
-					</div>
-
-					{/* Project Icon */}
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Project Icon</Label>
-							<p className="text-xs text-muted-foreground">
-								Upload a custom icon for the sidebar.
-							</p>
-						</div>
-						<div className="flex items-center gap-2">
-							{project.iconUrl && (
-								<img
-									src={project.iconUrl}
-									alt="Project icon"
-									className="size-8 rounded object-cover border"
-								/>
-							)}
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/png,image/jpeg,image/svg+xml,image/x-icon"
-								className="hidden"
-								onChange={handleFileChange}
-							/>
-							<button
-								type="button"
-								onClick={handleIconUpload}
-								disabled={setProjectIcon.isPending}
-								className={cn(
-									"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-									"hover:bg-muted transition-colors",
-								)}
-							>
-								<LuImagePlus className="size-4" />
-								{project.iconUrl ? "Replace" : "Upload"}
-							</button>
-							{project.iconUrl && (
-								<button
-									type="button"
-									onClick={handleRemoveIcon}
-									disabled={setProjectIcon.isPending}
-									className={cn(
-										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-										"hover:bg-destructive/10 text-destructive transition-colors",
-									)}
-								>
-									<LuTrash2 className="size-4" />
-									Remove
-								</button>
-							)}
-						</div>
-					</div>
-				</SettingsSection>
 			</div>
+
+			{/* Disable worktrees confirmation dialog */}
+			<AlertDialog
+				open={showDisableWorktreeDialog}
+				onOpenChange={setShowDisableWorktreeDialog}
+			>
+				<AlertDialogContent className="max-w-[420px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-3">
+						<AlertDialogTitle className="font-medium">
+							Disable Worktrees for "{project.name}"?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									This project has {worktreeWorkspaces.length} worktree
+									workspace{worktreeWorkspaces.length !== 1 ? "s" : ""}.
+								</span>
+								<span className="block text-xs">
+									<strong>Disable</strong> removes worktree workspaces from the
+									sidebar. Files stay on disk.
+									<br />
+									<strong>Disable & Recycle</strong> also moves worktree folders
+									to Trash.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => setShowDisableWorktreeDialog(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDisableWorktreeDialog(false);
+								handleDisableWorktrees(false);
+							}}
+						>
+							Disable
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDisableWorktreeDialog(false);
+								handleDisableWorktrees(true);
+							}}
+						>
+							Disable & Recycle
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

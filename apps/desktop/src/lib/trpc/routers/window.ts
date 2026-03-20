@@ -3,6 +3,8 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { windowManager } from "main/lib/window-manager";
+import { ProjectWindow } from "main/windows/project";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
@@ -126,6 +128,18 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 			return { canceled: false, dataUrl };
 		}),
+
+		openProjectInNewWindow: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.mutation(async ({ input }) => {
+				// If already open, just focus the existing window
+				if (windowManager.focusProjectWindow(input.projectId)) {
+					return { focused: true, opened: false };
+				}
+				// Create a new project-focused window
+				await ProjectWindow(input.projectId);
+				return { focused: false, opened: true };
+			}),
 	});
 };
 
