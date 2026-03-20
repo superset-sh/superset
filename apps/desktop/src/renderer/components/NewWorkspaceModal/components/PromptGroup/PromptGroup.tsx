@@ -50,24 +50,25 @@ import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
+import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
+import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { LinkedIssuePill } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
-import { IssueLinkCommand } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatPane/ChatInterface/components/IssueLinkCommand";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
+import {
+	useSetIsGeneratingBranchName,
+	useSetPendingWorkspace,
+} from "renderer/stores/new-workspace-modal";
 import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
 import {
 	type AgentDefinitionId,
 	getEnabledAgentConfigs,
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
-import {
-	resolveBranchPrefix,
-	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { LinkedPRPill } from "./components/LinkedPRPill";
@@ -402,6 +403,8 @@ function PromptGroupInner({
 		updateDraft,
 	} = useNewWorkspaceModalDraft();
 	const attachments = useProviderAttachments();
+	const setPendingWorkspace = useSetPendingWorkspace();
+	const setIsGeneratingBranchNameGlobal = useSetIsGeneratingBranchName();
 	const {
 		baseBranch,
 		prompt,
@@ -443,6 +446,19 @@ function PromptGroupInner({
 	const trimmedPrompt = prompt.trim();
 	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
+	// AI branch name generation (on submit only)
+	const generateBranchNameMutation =
+		electronTrpc.workspaces.generateBranchName.useMutation();
+	const [isGeneratingBranchName, setIsGeneratingBranchName] = useState(false);
+
+	// Track component mount state for cleanup
+	const isMountedRef = useRef(true);
+	useEffect(() => {
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
+
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
@@ -463,28 +479,6 @@ function PromptGroupInner({
 	const branchData = remoteBranchData ?? localBranchData;
 	// Only show loading while waiting for the fast local query
 	const isBranchesLoading = isLocalBranchesLoading && !branchData;
-
-	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
-		{ id: projectId ?? "" },
-		{ enabled: !!projectId },
-	);
-	const { data: globalBranchPrefix } =
-		electronTrpc.settings.getBranchPrefix.useQuery();
-	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
-
-	const resolvedPrefix = useMemo(() => {
-		const projectOverrides = project?.branchPrefixMode != null;
-		return resolveBranchPrefix({
-			mode: projectOverrides
-				? project?.branchPrefixMode
-				: (globalBranchPrefix?.mode ?? "none"),
-			customPrefix: projectOverrides
-				? project?.branchPrefixCustom
-				: globalBranchPrefix?.customPrefix,
-			authorPrefix: gitAuthor?.prefix,
-			githubUsername: gitInfo?.githubUsername,
-		});
-	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
 
 	const { data: externalWorktrees = [] } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery(
@@ -511,19 +505,6 @@ function PromptGroupInner({
 		defaultBranch: branchData?.defaultBranch,
 		branches: branchData?.branches,
 	});
-
-	const branchSlug = sanitizeBranchNameWithMaxLength(
-		trimmedPrompt ||
-			firstIssueSlug ||
-			(linkedPR ? `pr-${linkedPR.prNumber}` : "") ||
-			"",
-		18,
-	);
-
-	const branchPreview =
-		branchSlug && !branchNameEdited && resolvedPrefix
-			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
-			: branchSlug;
 
 	const previousProjectIdRef = useRef(projectId);
 
@@ -575,6 +556,93 @@ function PromptGroupInner({
 			return;
 		}
 
+		// Prevent re-entry while generation/creation is in flight
+		if (
+			isGeneratingBranchName ||
+			generateBranchNameMutation.isPending ||
+			createWorkspace.isPending ||
+			createFromPr.isPending
+		) {
+			return;
+		}
+
+		// Set pending workspace immediately for suspense UI
+		const displayName =
+			workspaceNameEdited && workspaceName.trim()
+				? workspaceName.trim()
+				: trimmedPrompt || "New workspace";
+
+		const willGenerateAIName =
+			!branchNameEdited && !!trimmedPrompt && !linkedPR;
+
+		setPendingWorkspace({
+			projectId,
+			name: displayName,
+			isGeneratingBranchName: willGenerateAIName,
+		});
+
+		// Generate AI branch name if needed (before creating workspace)
+		let aiBranchName: string | null = null;
+		if (willGenerateAIName) {
+			setIsGeneratingBranchName(true);
+			let timeoutId: NodeJS.Timeout | null = null;
+			try {
+				// Add timeout to prevent hanging indefinitely
+				const AI_GENERATION_TIMEOUT_MS = 30000; // 30 seconds
+				const timeoutPromise = new Promise<never>((_, reject) => {
+					timeoutId = setTimeout(
+						() => reject(new Error("AI generation timeout")),
+						AI_GENERATION_TIMEOUT_MS,
+					);
+				});
+
+				const result = await Promise.race([
+					generateBranchNameMutation.mutateAsync({
+						prompt: trimmedPrompt,
+						projectId,
+					}),
+					timeoutPromise,
+				]);
+
+				// Clear timeout on successful completion
+				if (timeoutId) clearTimeout(timeoutId);
+				aiBranchName = result.branchName;
+			} catch (error) {
+				// Clear timeout on error
+				if (timeoutId) clearTimeout(timeoutId);
+
+				// Distinguish error types for better user feedback
+				const errorMessage =
+					error instanceof Error ? error.message : String(error);
+				if (errorMessage.includes("timeout")) {
+					console.warn("[PromptGroup] AI generation timeout");
+					toast.info("Using random branch name (AI generation timed out)");
+				} else if (
+					errorMessage.toLowerCase().includes("auth") ||
+					errorMessage.includes("401") ||
+					errorMessage.includes("403")
+				) {
+					console.error("[PromptGroup] AI auth error:", error);
+					toast.error(
+						"AI authentication failed. Please check your AI settings.",
+					);
+					setPendingWorkspace(null);
+					return; // Don't continue with workspace creation on auth errors
+				} else {
+					console.warn("[PromptGroup] AI generation failed:", error);
+					toast.info("Using random branch name (AI generation unavailable)");
+				}
+				// Continue with workspace creation - backend will use random name
+			} finally {
+				// Always clear global state to prevent stuck "Generating..." in sidebar
+				setIsGeneratingBranchNameGlobal(false);
+				// Only update local state if component is still mounted
+				if (isMountedRef.current) {
+					setIsGeneratingBranchName(false);
+				}
+			}
+		}
+
 		let convertedFiles: ConvertedFile[] | undefined;
 		if (attachments.files.length > 0) {
 			try {
@@ -586,6 +654,7 @@ function PromptGroupInner({
 					})),
 				);
 			} catch (err) {
+				setPendingWorkspace(null);
 				toast.error(
 					err instanceof Error ? err.message : "Failed to process attachments",
 				);
@@ -597,6 +666,7 @@ function PromptGroupInner({
 		try {
 			launchRequest = buildLaunchRequest(trimmedPrompt, convertedFiles);
 		} catch (error) {
+			setPendingWorkspace(null);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -619,7 +689,9 @@ function PromptGroupInner({
 							? err.message
 							: "Failed to create workspace from PR",
 				},
-			);
+			).finally(() => {
+				setPendingWorkspace(null);
+			});
 			return;
 		}
 
@@ -634,8 +706,10 @@ function PromptGroupInner({
 					prompt: trimmedPrompt || undefined,
 					branchName:
 						(branchNameEdited && branchName.trim()
-							? sanitizeBranchNameWithMaxLength(branchName.trim())
-							: branchSlug) || undefined,
+							? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
+									preserveCase: true,
+								})
+							: aiBranchName) || undefined,
 					baseBranch: baseBranch || undefined,
 				},
 				{
@@ -645,28 +719,35 @@ function PromptGroupInner({
 				},
 			),
 			{
-				loading: "Creating workspace...",
+				loading: isGeneratingBranchName
+					? "Generating branch name..."
+					: "Creating workspace...",
 				success: "Workspace created",
 				error: (err) =>
 					err instanceof Error ? err.message : "Failed to create workspace",
 			},
-		);
+		).finally(() => {
+			setPendingWorkspace(null);
+		});
 	}, [
 		attachments.files,
 		baseBranch,
 		branchName,
 		branchNameEdited,
-		branchSlug,
 		buildLaunchRequest,
 		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
+		generateBranchNameMutation,
+		isGeneratingBranchName,
 		linkedPR,
 		projectId,
 		runAsyncAction,
+		setPendingWorkspace,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,
+		setIsGeneratingBranchNameGlobal,
 	]);
 
 	const handlePromptSubmit = useCallback(() => {
@@ -717,9 +798,14 @@ function PromptGroupInner({
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
-						className="border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis"
-						placeholder="branch-name"
-						value={branchNameEdited ? branchName : branchPreview || ""}
+						className={cn(
+							"border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							isGeneratingBranchName &&
+								!branchNameEdited &&
+								"animate-pulse placeholder:animate-pulse",
+						)}
+						placeholder="branch name"
+						value={branchName}
 						onChange={(e) =>
 							updateDraft({
 								branchName: e.target.value.replace(/\s+/g, "-"),
@@ -729,6 +815,8 @@ function PromptGroupInner({
 						onBlur={() => {
 							const sanitized = sanitizeBranchNameWithMaxLength(
 								branchName.trim(),
+								undefined,
+								{ preserveCase: true },
 							);
 							if (!sanitized) {
 								updateDraft({ branchName: "", branchNameEdited: false });

@@ -30,6 +30,7 @@ import {
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -142,8 +143,7 @@ function ProjectPage() {
 	const utils = electronTrpc.useUtils();
 	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation({
 		onSuccess: async () => {
-			await utils.config.getConfigContent.invalidate({ projectId });
-			await utils.config.shouldShowSetupCard.invalidate({ projectId });
+			await invalidateProjectScriptQueries(utils, projectId);
 		},
 	});
 

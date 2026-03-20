@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -14,6 +14,7 @@ import {
 	branchExistsOnRemote,
 	createWorktree,
 	getCurrentBranch,
+	hasUnpushedCommits,
 	parsePrUrl,
 } from "./git";
 
@@ -540,6 +541,191 @@ describe("branchExistsOnRemote", () => {
 				"contributor",
 			),
 		).resolves.toEqual({ status: "exists" });
+	});
+});
+
+describe("hasUnpushedCommits", () => {
+	/**
+	 * Helper: create a "remote" bare repo, a local clone, and push an initial
+	 * commit so we have a realistic origin/main setup.
+	 */
+	function setupRemoteAndClone(testName: string) {
+		const remotePath = join(TEST_DIR, `${testName}-remote.git`);
+		const localPath = join(TEST_DIR, `${testName}-local`);
+
+		// Create bare remote
+		mkdirSync(remotePath, { recursive: true });
+		execSync("git init --bare", { cwd: remotePath, stdio: "ignore" });
+
+		// Clone it
+		execSync(`git clone "${remotePath}" "${localPath}"`, { stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Seed commit on main
+		writeFileSync(join(localPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init' && git push", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		return { remotePath, localPath };
+	}
+
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("returns false when branch has no commits ahead of upstream", async () => {
+		const { localPath } = setupRemoteAndClone("no-ahead");
+
+		// Create a feature branch, push it (no extra commits)
+		execSync(
+			"git checkout -b feature/no-change && git push -u origin feature/no-change",
+			{
+				cwd: localPath,
+				stdio: "ignore",
+			},
+		);
+
+		expect(await hasUnpushedCommits(localPath)).toBe(false);
+	}, 10_000);
+
+	test("returns true when branch has commits ahead of upstream", async () => {
+		const { localPath } = setupRemoteAndClone("ahead");
+
+		execSync(
+			"git checkout -b feature/ahead && git push -u origin feature/ahead",
+			{
+				cwd: localPath,
+				stdio: "ignore",
+			},
+		);
+
+		// Add an unpushed commit
+		writeFileSync(join(localPath, "new.txt"), "new");
+		execSync("git add . && git commit -m 'unpushed'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		expect(await hasUnpushedCommits(localPath)).toBe(true);
+	}, 10_000);
+
+	test("returns false after squash-merge when upstream branch is deleted (bug #2545)", async () => {
+		const { remotePath, localPath } = setupRemoteAndClone("squash-merge");
+
+		// Create feature branch with a commit and push it
+		execSync("git checkout -b feature/squash-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(localPath, "feature.txt"), "feature work");
+		execSync("git add . && git commit -m 'add feature'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git push -u origin feature/squash-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Simulate squash-merge on remote: apply the same change to main with
+		// a different commit (different SHA, same patch)
+		const squashClone = join(TEST_DIR, "squash-merge-squasher");
+		execSync(`git clone "${remotePath}" "${squashClone}"`, { stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+		writeFileSync(join(squashClone, "feature.txt"), "feature work");
+		execSync("git add . && git commit -m 'squash: add feature' && git push", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+
+		// Delete the remote branch (simulating GitHub's post-merge cleanup)
+		execSync("git push origin --delete feature/squash-test", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+
+		// Back in local: fetch --prune so the upstream tracking ref is gone
+		execSync("git fetch --prune", { cwd: localPath, stdio: "ignore" });
+
+		// BUG: Before the fix, this returned true (false positive warning)
+		// After the fix, it should return false since the patch is in origin/main
+		expect(await hasUnpushedCommits(localPath)).toBe(false);
+	}, 15_000);
+
+	test("returns true after upstream branch deleted with truly unmerged commits", async () => {
+		const { remotePath, localPath } = setupRemoteAndClone("unmerged");
+
+		// Create feature branch with a commit and push it
+		execSync("git checkout -b feature/unmerged-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(localPath, "unique.txt"), "unique work not on main");
+		execSync("git add . && git commit -m 'unique work'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git push -u origin feature/unmerged-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Delete the remote branch WITHOUT merging
+		const helperClone = join(TEST_DIR, "unmerged-helper");
+		execSync(`git clone "${remotePath}" "${helperClone}"`, { stdio: "ignore" });
+		execSync("git push origin --delete feature/unmerged-test", {
+			cwd: helperClone,
+			stdio: "ignore",
+		});
+
+		// Prune locally
+		execSync("git fetch --prune", { cwd: localPath, stdio: "ignore" });
+
+		// Should still return true — commits are genuinely not merged
+		expect(await hasUnpushedCommits(localPath)).toBe(true);
+	}, 15_000);
+
+	test("warns when cherry-pick fallback fails and continues to remotes fallback", async () => {
+		const repoPath = createTestRepo("no-remote-warning");
+		seedCommit(repoPath);
+
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			expect(await hasUnpushedCommits(repoPath)).toBe(true);
+			expect(warnSpy).toHaveBeenCalledTimes(1);
+			expect(warnSpy).toHaveBeenCalledWith(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				expect.objectContaining({
+					worktreePath: repoPath,
+					error: expect.any(String),
+				}),
+			);
+		} finally {
+			warnSpy.mockRestore();
+		}
 	});
 });
 

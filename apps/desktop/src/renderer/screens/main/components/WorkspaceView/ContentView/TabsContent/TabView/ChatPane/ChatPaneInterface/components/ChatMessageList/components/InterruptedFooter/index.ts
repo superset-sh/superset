@@ -1,0 +1,1 @@
+export { InterruptedFooter } from "./InterruptedFooter";

@@ -8,6 +8,7 @@ import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { NotFound } from "renderer/routes/not-found";
 import {
 	CommandPalette,
@@ -145,7 +146,7 @@ function WorkspacePage() {
 		splitPaneHorizontal,
 		openPreset,
 	} = useTabsWithPresets();
-	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -181,6 +182,11 @@ function WorkspacePage() {
 		activeTabId ? (s.focusedPaneIds[activeTabId] ?? null) : null,
 	);
 
+	const { toggleWorkspaceRun } = useWorkspaceRunCommand({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+
 	const { presets } = usePresets();
 
 	const openTabWithPreset = useCallback(
@@ -199,25 +205,29 @@ function WorkspacePage() {
 		workspaceId,
 		addTab,
 	]);
-	useAppHotkey("NEW_CHAT", () => addChatMastraTab(workspaceId), undefined, [
+	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
 		workspaceId,
-		addChatMastraTab,
+		addChatTab,
 	]);
 	useAppHotkey(
 		"REOPEN_TAB",
 		() => {
 			if (!reopenClosedTab(workspaceId)) {
-				addChatMastraTab(workspaceId);
+				addChatTab(workspaceId);
 			}
 		},
 		undefined,
-		[workspaceId, reopenClosedTab, addChatMastraTab],
+		[workspaceId, reopenClosedTab, addChatTab],
 	);
 	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
 		workspaceId,
 		addBrowserTab,
 	]);
 	usePresetHotkeys(openTabWithPreset);
+
+	useAppHotkey("RUN_WORKSPACE_COMMAND", () => toggleWorkspaceRun(), undefined, [
+		toggleWorkspaceRun,
+	]);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
@@ -526,7 +536,7 @@ function WorkspacePage() {
 				);
 				if (!target) return;
 				splitPaneVertical(activeTabId, target.paneId, target.path, {
-					paneType: "chat-mastra",
+					paneType: "chat",
 				});
 			}
 		},

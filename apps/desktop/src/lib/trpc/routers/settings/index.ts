@@ -139,6 +139,7 @@ const DEFAULT_PRESET_AGENTS = [
 	"codex",
 	"copilot",
 	"opencode",
+	"pi",
 	"gemini",
 ] as const;
 

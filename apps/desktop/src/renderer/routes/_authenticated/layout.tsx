@@ -26,9 +26,11 @@ import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/compo
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSettingsStore } from "renderer/stores/settings-state";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
-import { MOCK_ORG_ID } from "shared/constants";
+import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
@@ -63,6 +65,26 @@ function AuthenticatedLayout() {
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
+
+	// Update workspace-run pane state on terminal exit
+	electronTrpc.notifications.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (
+				event.type !== NOTIFICATION_EVENTS.TERMINAL_EXIT ||
+				!event.data?.paneId
+			) {
+				return;
+			}
+			const pane = useTabsStore.getState().panes[event.data.paneId];
+			if (pane?.workspaceRun?.state === "running") {
+				const nextState =
+					event.data.reason === "killed"
+						? "stopped-by-user"
+						: "stopped-by-exit";
+				setPaneWorkspaceRunState(event.data.paneId, nextState);
+			}
+		},
+	});
 
 	useEffect(() => {
 		if (!location.pathname.startsWith("/settings")) {

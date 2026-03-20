@@ -125,3 +125,40 @@
 	border: 1px solid rgba(59, 130, 246, 0.3);
 	opacity: 1;
 }
+
+/* Workspace run pane state colors — border + toolbar tint */
+.workspace-run-pane-running {
+	--ws-run-color: #10b981;
+}
+.workspace-run-pane-stopped-by-user {
+	--ws-run-color: #f59e0b;
+}
+.workspace-run-pane-stopped-by-exit {
+	--ws-run-color: #ef4444;
+}
+
+:is(.mosaic-theme-dark, .mosaic-theme-light) [class*="workspace-run-pane-"] {
+	border-color: color-mix(
+		in srgb,
+		var(--ws-run-color) 25%,
+		var(--color-border)
+	);
+}
+:is(.mosaic-theme-dark, .mosaic-theme-light)
+	[class*="workspace-run-pane-"]
+	.mosaic-window-toolbar {
+	background: color-mix(
+		in srgb,
+		var(--ws-run-color) 12%,
+		var(--color-tertiary)
+	);
+}
+:is(.mosaic-theme-dark, .mosaic-theme-light)
+	[class*="workspace-run-pane-"].mosaic-window-focused
+	.mosaic-window-toolbar {
+	background: color-mix(
+		in srgb,
+		var(--ws-run-color) 12%,
+		var(--color-secondary)
+	);
+}

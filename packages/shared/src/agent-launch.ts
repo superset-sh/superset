@@ -54,6 +54,15 @@ export const terminalLaunchConfigSchema = z.object({
 	taskPromptContent: z.string().min(1).optional(),
 	taskPromptFileName: z.string().min(1).optional(),
 	autoExecute: z.boolean().optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
 });
 
 export const chatLaunchConfigSchema = z.object({

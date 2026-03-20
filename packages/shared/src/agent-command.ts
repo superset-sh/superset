@@ -8,6 +8,7 @@ export const AGENT_TYPES = [
 	"codex",
 	"gemini",
 	"opencode",
+	"pi",
 	"copilot",
 	"cursor-agent",
 ] as const;
@@ -19,6 +20,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 	codex: "Codex",
 	gemini: "Gemini",
 	opencode: "OpenCode",
+	pi: "Pi",
 	copilot: "Copilot",
 	"cursor-agent": "Cursor Agent",
 };
@@ -30,6 +32,7 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
+	pi: ["pi"],
 	copilot: ["copilot --allow-all"],
 	"cursor-agent": ["cursor-agent"],
 };
@@ -42,6 +45,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	gemini:
 		"Google's open-source terminal agent for coding, problem-solving, and task work.",
 	opencode: "Open-source coding agent for the terminal, IDE, and desktop.",
+	pi: "Minimal terminal coding harness for flexible coding workflows.",
 	copilot:
 		"GitHub's coding agent for planning, editing, and building in your repo.",
 	"cursor-agent":
@@ -69,6 +73,9 @@ export const AGENT_PROMPT_COMMANDS: Record<
 	},
 	opencode: {
 		command: "opencode --prompt",
+	},
+	pi: {
+		command: AGENT_PRESET_COMMANDS.pi[0] ?? "pi",
 	},
 	copilot: {
 		command: "copilot -i --allow-all",

@@ -4,7 +4,7 @@ import type {
 	BaseTab,
 	BaseTabsState,
 	BrowserLoadError,
-	ChatMastraLaunchConfig,
+	ChatLaunchConfig,
 	FileViewerMode,
 	Pane,
 	PaneStatus,
@@ -50,11 +50,11 @@ export interface AddTabOptions {
 
 export interface SplitPaneOptions {
 	initialCwd?: string;
-	paneType?: "terminal" | "chat-mastra" | "webview";
+	paneType?: "terminal" | "chat" | "webview";
 }
 
-export interface AddChatMastraTabOptions {
-	launchConfig?: ChatMastraLaunchConfig | null;
+export interface AddChatTabOptions {
+	launchConfig?: ChatLaunchConfig | null;
 }
 
 export interface AddTabWithMultiplePanesOptions {
@@ -98,9 +98,9 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
-	addChatMastraTab: (
+	addChatTab: (
 		workspaceId: string,
-		options?: AddChatMastraTabOptions,
+		options?: AddChatTabOptions,
 	) => { tabId: string; paneId: string };
 	addTabWithMultiplePanes: (
 		workspaceId: string,
@@ -120,10 +120,7 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
-	addChatMastraPane: (
-		tabId: string,
-		options?: AddChatMastraTabOptions,
-	) => string;
+	addChatPane: (tabId: string, options?: AddChatTabOptions) => string;
 	addPanesToTab: (
 		tabId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -137,6 +134,14 @@ export interface TabsStore extends TabsState {
 	markPaneAsUsed: (paneId: string) => void;
 	setPaneStatus: (paneId: string, status: PaneStatus) => void;
 	setPaneName: (paneId: string, name: string) => void;
+	setPaneWorkspaceRun: (
+		paneId: string,
+		workspaceRun: {
+			workspaceId: string;
+			state: "running" | "stopped-by-user" | "stopped-by-exit";
+			command?: string;
+		} | null,
+	) => void;
 	setPaneAutoTitle: (paneId: string, title: string) => void;
 	clearWorkspaceAttentionStatus: (workspaceId: string) => void;
 	resetWorkspaceStatus: (workspaceId: string) => void;
@@ -219,11 +224,11 @@ export interface TabsStore extends TabsState {
 	reopenClosedTab: (workspaceId: string) => boolean;
 
 	// Chat operations
-	/** Switch a Mastra chat pane to a different session */
-	switchChatMastraSession: (paneId: string, sessionId: string | null) => void;
-	setChatMastraLaunchConfig: (
+	/** Switch a chat pane to a different session */
+	switchChatSession: (paneId: string, sessionId: string | null) => void;
+	setChatLaunchConfig: (
 		paneId: string,
-		launchConfig: AddChatMastraTabOptions["launchConfig"],
+		launchConfig: AddChatTabOptions["launchConfig"],
 	) => void;
 
 	// Query helpers

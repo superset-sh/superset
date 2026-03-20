@@ -214,6 +214,7 @@ async function syncTaskToLinear(
 		await db
 			.update(tasks)
 			.set({
+				slug: issue.identifier,
 				externalProvider: "linear",
 				externalId: issue.id,
 				externalKey: issue.identifier,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
@@ -58,6 +59,7 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const workspaceRun = useTabsStore((s) => s.panes[paneId]?.workspaceRun);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
@@ -101,6 +103,12 @@ export function TabPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
+						{workspaceRun && (
+							<WorkspaceRunIndicator
+								state={workspaceRun.state}
+								variant="toolbar"
+							/>
+						)}
 						<PaneTitle
 							name={paneName ?? ""}
 							fallback="Terminal"
@@ -123,7 +131,7 @@ export function TabPane({
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
 				onSplitWithNewChat={() =>
-					splitPaneVertical(tabId, paneId, path, { paneType: "chat-mastra" })
+					splitPaneVertical(tabId, paneId, path, { paneType: "chat" })
 				}
 				onSplitWithNewBrowser={() =>
 					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })

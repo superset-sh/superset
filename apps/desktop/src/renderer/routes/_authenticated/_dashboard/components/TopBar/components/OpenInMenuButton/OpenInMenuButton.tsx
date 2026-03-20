@@ -11,6 +11,7 @@ import { cn } from "@superset/ui/utils";
 import { memo, useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import {
 	getAppOption,
 	OpenInExternalDropdownItems,
@@ -129,23 +130,14 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
-					<div className="flex flex-col gap-1">
-						<span className="flex items-center gap-1.5">
-							{currentApp
-								? `Open in ${currentApp.displayLabel ?? currentApp.label}`
-								: "Select an editor from the dropdown"}
-							{currentApp && showOpenInShortcut && (
-								<kbd className="px-1 py-0.5 text-[10px] font-mono bg-foreground/10 text-foreground/70 rounded">
-									{openInShortcut}
-								</kbd>
-							)}
-						</span>
-						{branch && (
-							<span className="text-xs text-muted-foreground font-mono">
-								/{branch}
-							</span>
-						)}
-					</div>
+					{currentApp ? (
+						<HotkeyTooltipContent
+							label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
+							hotkeyId="OPEN_IN_APP"
+						/>
+					) : (
+						"Select an editor from the dropdown"
+					)}
 				</TooltipContent>
 			</Tooltip>
 

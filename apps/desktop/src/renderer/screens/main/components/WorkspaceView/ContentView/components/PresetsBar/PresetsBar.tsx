@@ -380,7 +380,8 @@ export function PresetsBar() {
 								key={item.key}
 								className="gap-2"
 								disabled={createPreset.isPending}
-								onClick={() => {
+								onSelect={(event) => {
+									event.preventDefault();
 									if (hasPreset && item.preset) {
 										updatePreset.mutate({
 											id: item.preset.id,

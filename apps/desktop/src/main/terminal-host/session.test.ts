@@ -36,6 +36,23 @@ class FakeChildProcess extends EventEmitter {
 let fakeChildProcess: FakeChildProcess;
 let spawnCalls: Array<{ command: string; args: string[] }> = [];
 
+function getSpawnPayload(fakeChild: FakeChildProcess) {
+	fakeChild.stdout.emit(
+		"data",
+		createFrameHeader(PtySubprocessIpcType.Ready, 0),
+	);
+
+	const decoder = new PtySubprocessFrameDecoder();
+	const frames = fakeChild.stdin.writes.flatMap((chunk) => decoder.push(chunk));
+	const spawnFrame = frames.find(
+		(frame) => frame.type === PtySubprocessIpcType.Spawn,
+	);
+	expect(spawnFrame).toBeDefined();
+	return JSON.parse(spawnFrame?.payload.toString("utf8") ?? "{}") as {
+		args?: string[];
+	};
+}
+
 describe("Terminal Host Session shell args", () => {
 	beforeEach(() => {
 		fakeChildProcess = new FakeChildProcess();
@@ -67,27 +84,46 @@ describe("Terminal Host Session shell args", () => {
 
 		expect(spawnCalls.length).toBe(1);
 
-		fakeChildProcess.stdout.emit(
-			"data",
-			createFrameHeader(PtySubprocessIpcType.Ready, 0),
-		);
-
-		const decoder = new PtySubprocessFrameDecoder();
-		const frames = fakeChildProcess.stdin.writes.flatMap((chunk) =>
-			decoder.push(chunk),
-		);
-		const spawnFrame = frames.find(
-			(frame) => frame.type === PtySubprocessIpcType.Spawn,
-		);
-
-		expect(spawnFrame).toBeDefined();
-		const spawnPayload = JSON.parse(
-			spawnFrame?.payload.toString("utf8") ?? "{}",
-		) as { args?: string[] };
+		const spawnPayload = getSpawnPayload(fakeChildProcess);
 
 		expect(spawnPayload?.args?.[0]).toBe("--rcfile");
 		expect(spawnPayload?.args?.[1]?.endsWith(path.join("bash", "rcfile"))).toBe(
 			true,
 		);
+	});
+
+	it("uses -lc command args when command is provided", () => {
+		const session = new Session({
+			sessionId: "session-command-args",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			command: "echo hello && exit 1",
+			spawnProcess: (command: string, args: readonly string[], _options) => {
+				spawnCalls.push({ command, args: [...args] });
+				return fakeChildProcess as unknown as ChildProcess;
+			},
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		expect(spawnCalls.length).toBe(1);
+
+		const spawnPayload = getSpawnPayload(fakeChildProcess);
+
+		// Should use -c style args (getCommandShellArgs), not --rcfile (getShellArgs)
+		expect(spawnPayload?.args?.[0]).not.toBe("--rcfile");
+		expect(spawnPayload?.args?.[0]).toMatch(/^-[l]?c$/);
+		const argsStr = spawnPayload?.args?.join(" ") ?? "";
+		expect(argsStr).toContain("echo hello && exit 1");
 	});
 });
