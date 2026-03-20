@@ -402,7 +402,7 @@ export function WorkspaceListItem({
 													type="button"
 													onClick={(e) => {
 														e.stopPropagation();
-														handleDeleteClick();
+														setShowCloseDialog(true);
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label="Close workspace"
