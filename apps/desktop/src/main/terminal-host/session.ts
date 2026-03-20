@@ -12,7 +12,10 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
+import {
+	getCommandShellArgs,
+	getShellArgs,
+} from "../lib/agent-setup/shell-wrappers";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -91,6 +94,7 @@ export interface SessionOptions {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
+	command?: string;
 	scrollbackLines?: number;
 	spawnProcess?: SpawnProcess;
 }
@@ -110,6 +114,7 @@ export class Session {
 	readonly paneId: string;
 	readonly tabId: string;
 	readonly shell: string;
+	readonly command?: string;
 	readonly createdAt: Date;
 	private readonly spawnProcess: SpawnProcess;
 
@@ -173,6 +178,7 @@ export class Session {
 		this.paneId = options.paneId;
 		this.tabId = options.tabId;
 		this.shell = options.shell || this.getDefaultShell();
+		this.command = options.command;
 		this.createdAt = new Date();
 		this.lastAttachedAt = new Date();
 		this.spawnProcess = options.spawnProcess ?? spawn;
@@ -237,7 +243,9 @@ export class Session {
 		const processEnv = buildSafeEnv(envSource);
 		processEnv.TERM = "xterm-256color";
 
-		const shellArgs = getShellArgs(this.shell);
+		const shellArgs = this.command
+			? getCommandShellArgs(this.shell, this.command)
+			: getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
@@ -295,6 +303,9 @@ export class Session {
 			rows,
 			env: processEnv,
 		};
+
+		// Command is now passed via shell args (e.g., bash -lc "command"),
+		// so the PTY process exits when the command finishes.
 	}
 
 	private pendingSpawn: {
@@ -1098,5 +1109,6 @@ export function createSession(request: CreateOrAttachRequest): Session {
 		workspaceName: request.workspaceName,
 		workspacePath: request.workspacePath,
 		rootPath: request.rootPath,
+		command: request.command,
 	});
 }

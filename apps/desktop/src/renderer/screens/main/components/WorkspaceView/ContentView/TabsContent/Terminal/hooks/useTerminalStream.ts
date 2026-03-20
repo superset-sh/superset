@@ -62,15 +62,35 @@ export function useTerminalStream({
 			wasKilledByUserRef.current = wasKilledByUser;
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
 
+			const currentPaneForRun = useTabsStore.getState().panes[paneId];
+			const isWorkspaceRunPane = Boolean(currentPaneForRun?.workspaceRun);
+			if (currentPaneForRun?.workspaceRun) {
+				const nextState = wasKilledByUser
+					? "stopped-by-user"
+					: "stopped-by-exit";
+				useTabsStore.getState().setPaneWorkspaceRun(paneId, {
+					workspaceId: currentPaneForRun.workspaceRun.workspaceId,
+					state: nextState,
+				});
+			}
+
 			if (wasKilledByUser) {
 				xterm.writeln("\r\n\r\n[Session killed]");
-				xterm.writeln("[Restart to start a new session]");
-			} else if (exitCode === 0) {
+				xterm.writeln(
+					isWorkspaceRunPane
+						? "[Press any key to restart]"
+						: "[Restart to start a new session]",
+				);
+			} else if (exitCode === 0 && !isWorkspaceRunPane) {
 				// Clean exit (e.g. typing "exit") — close the pane/tab
 				removePane(paneId);
 				return;
 			} else {
-				xterm.writeln(`\r\n\r\n[Process exited with code ${exitCode}]`);
+				xterm.writeln(
+					exitCode === 0
+						? "\r\n\r\n[Process exited]"
+						: `\r\n\r\n[Process exited with code ${exitCode}]`,
+				);
 				xterm.writeln("[Press any key to restart]");
 			}
 
