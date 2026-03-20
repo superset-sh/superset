@@ -265,12 +265,13 @@ export function ProjectSection({
 							transition={{ duration: 0.15, ease: "easeOut" }}
 							className="overflow-hidden w-full"
 						>
-							<div className="flex flex-col items-center gap-1 pt-1">
-								{showRootDropZones && topLevelChildren.length > 0 && (
+							<div className="relative flex flex-col items-center gap-1 pt-1">
+								{topLevelChildren.length > 0 && (
 									<div
 										ref={topUngroupedDropZone.attachDropRef}
 										className={cn(
-											"w-full h-5",
+											"absolute inset-x-0 top-0 z-10 h-5",
+											!showRootDropZones && "pointer-events-none opacity-0",
 											getRootDropZoneClassName(
 												topUngroupedDropZone.isDropTarget,
 												topUngroupedDropZone.isDragOver,
@@ -314,11 +315,12 @@ export function ProjectSection({
 										/>
 									),
 								)}
-								{showRootDropZones && topLevelChildren.length > 0 && (
+								{topLevelChildren.length > 0 && (
 									<div
 										ref={bottomUngroupedDropZone.attachDropRef}
 										className={cn(
-											"w-full h-5",
+											"absolute inset-x-0 bottom-0 z-10 h-5",
+											!showRootDropZones && "pointer-events-none opacity-0",
 											getRootDropZoneClassName(
 												bottomUngroupedDropZone.isDropTarget,
 												bottomUngroupedDropZone.isDragOver,
@@ -369,24 +371,13 @@ export function ProjectSection({
 						transition={{ duration: 0.15, ease: "easeOut" }}
 						className="overflow-hidden"
 					>
-						<div className="pb-1">
-							{showRootDropZones && topLevelChildren.length === 0 && (
+						<div className="relative pb-1">
+							{topLevelChildren.length > 0 && (
 								<div
 									ref={topUngroupedDropZone.attachDropRef}
 									className={cn(
-										"transition-colors rounded-sm min-h-8",
-										getRootDropZoneClassName(
-											topUngroupedDropZone.isDropTarget,
-											topUngroupedDropZone.isDragOver,
-										),
-									)}
-								/>
-							)}
-							{showRootDropZones && topLevelChildren.length > 0 && (
-								<div
-									ref={topUngroupedDropZone.attachDropRef}
-									className={cn(
-										"h-5",
+										"absolute inset-x-0 top-0 z-10 h-5",
+										!showRootDropZones && "pointer-events-none opacity-0",
 										getRootDropZoneClassName(
 											topUngroupedDropZone.isDropTarget,
 											topUngroupedDropZone.isDragOver,
@@ -428,11 +419,12 @@ export function ProjectSection({
 									/>
 								),
 							)}
-							{showRootDropZones && topLevelChildren.length > 0 && (
+							{topLevelChildren.length > 0 && (
 								<div
 									ref={bottomUngroupedDropZone.attachDropRef}
 									className={cn(
-										"h-5",
+										"absolute inset-x-0 bottom-0 z-10 h-5",
+										!showRootDropZones && "pointer-events-none opacity-0",
 										getRootDropZoneClassName(
 											bottomUngroupedDropZone.isDropTarget,
 											bottomUngroupedDropZone.isDragOver,
