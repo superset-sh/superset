@@ -7,6 +7,7 @@ import {
 	tasks,
 	users,
 } from "@superset/db/schema";
+import { getLinearClient } from "@superset/trpc/integrations/linear";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
@@ -69,7 +70,10 @@ export async function POST(request: Request) {
 		return Response.json({ error: "No connection found", skipped: true });
 	}
 
-	const client = new LinearClient({ accessToken: connection.accessToken });
+	const client = await getLinearClient(organizationId);
+	if (!client) {
+		return Response.json({ error: "No connection found", skipped: true });
+	}
 	await performInitialSync(client, organizationId, creatorUserId);
 
 	return Response.json({ success: true });

@@ -65,18 +65,35 @@ export async function resolveLinearTaskSlug({
 }
 
 function isLinearSlugConflictError(error: unknown): boolean {
-	if (!(error instanceof Error)) {
-		return false;
+	const errorsToInspect = [];
+
+	if (error) {
+		errorsToInspect.push(error);
 	}
 
-	const pgError = error as Error & {
-		code?: string;
-		constraint?: string;
-	};
+	if (error instanceof Error && error.cause) {
+		errorsToInspect.push(error.cause);
+	}
 
-	return (
-		pgError.code === "23505" && pgError.constraint === "tasks_org_slug_unique"
-	);
+	for (const candidate of errorsToInspect) {
+		if (!candidate || typeof candidate !== "object") {
+			continue;
+		}
+
+		const pgError = candidate as {
+			code?: string;
+			constraint?: string;
+		};
+
+		if (
+			pgError.code === "23505" &&
+			pgError.constraint === "tasks_org_slug_unique"
+		) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 export async function writeLinearTaskWithSlugRetry<T>({

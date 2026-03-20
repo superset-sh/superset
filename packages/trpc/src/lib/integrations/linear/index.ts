@@ -1,4 +1,5 @@
 export {
+	getLinearConnection,
 	getLinearClient,
 	mapPriorityFromLinear,
 	mapPriorityToLinear,

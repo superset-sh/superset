@@ -95,13 +95,13 @@ async function syncTaskToLinear(
 	externalUrl?: string;
 	error?: string;
 }> {
-	const client = await getLinearClient(task.organizationId);
-
-	if (!client) {
-		return { success: false, error: "No Linear connection found" };
-	}
-
 	try {
+		const client = await getLinearClient(task.organizationId);
+
+		if (!client) {
+			return { success: false, error: "No Linear connection found" };
+		}
+
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: eq(taskStatuses.id, task.statusId),
 		});

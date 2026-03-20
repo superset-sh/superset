@@ -34,7 +34,10 @@ export const linearRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			const client = await getLinearClient(input.organizationId);
+			let client = null;
+			try {
+				client = await getLinearClient(input.organizationId);
+			} catch {}
 			if (client) {
 				try {
 					await client.logout();

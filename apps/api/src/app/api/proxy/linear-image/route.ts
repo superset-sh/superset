@@ -1,7 +1,5 @@
 import { auth } from "@superset/auth/server";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { getLinearConnection } from "@superset/trpc/integrations/linear";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
 const CACHE_MAX_AGE = 31536000; // 1 year (Linear URLs are content-addressed)
@@ -41,13 +39,7 @@ export async function GET(request: Request): Promise<Response> {
 		});
 	}
 
-	// Get the org's Linear access token
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "linear"),
-		),
-	});
+	const connection = await getLinearConnection(organizationId);
 
 	if (!connection) {
 		return new Response("Linear integration not connected", { status: 400 });
