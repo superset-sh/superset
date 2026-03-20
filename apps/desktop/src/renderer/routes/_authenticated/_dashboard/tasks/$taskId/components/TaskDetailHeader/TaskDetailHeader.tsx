@@ -17,7 +17,13 @@ export function TaskDetailHeader({
 }: TaskDetailHeaderProps) {
 	return (
 		<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
-			<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+			<Button
+				variant="ghost"
+				size="icon"
+				className="h-8 w-8"
+				onClick={onBack}
+				aria-label="Back to tasks"
+			>
 				<HiArrowLeft className="w-4 h-4" />
 			</Button>
 			<span className="text-sm text-muted-foreground">{task.slug}</span>

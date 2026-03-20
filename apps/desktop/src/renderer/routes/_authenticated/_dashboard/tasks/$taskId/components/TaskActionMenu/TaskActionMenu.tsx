@@ -24,19 +24,27 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 
-	const handleCopyId = () => {
-		navigator.clipboard.writeText(task.slug);
-		setOpen(false);
-	};
-
-	const handleCopyTitle = () => {
-		navigator.clipboard.writeText(task.title);
-		setOpen(false);
-	};
-
-	const handleDelete = () => {
+	const handleCopyId = async () => {
 		try {
-			collections.tasks.delete(task.id);
+			await navigator.clipboard.writeText(task.slug);
+			setOpen(false);
+		} catch (error) {
+			console.error("[TaskActionMenu] Failed to copy task ID:", error);
+		}
+	};
+
+	const handleCopyTitle = async () => {
+		try {
+			await navigator.clipboard.writeText(task.title);
+			setOpen(false);
+		} catch (error) {
+			console.error("[TaskActionMenu] Failed to copy task title:", error);
+		}
+	};
+
+	const handleDelete = async () => {
+		try {
+			await collections.tasks.delete(task.id);
 			setOpen(false);
 			onDelete?.();
 		} catch (error) {

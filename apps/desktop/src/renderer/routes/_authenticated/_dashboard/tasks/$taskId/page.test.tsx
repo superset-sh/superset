@@ -13,6 +13,9 @@ function readComponent(relativePath: string): string {
 describe("Task detail action menu", () => {
 	test("page renders the task action menu in the header", () => {
 		const source = readComponent("page.tsx");
+		const headerSource = readComponent(
+			"components/TaskDetailHeader/TaskDetailHeader.tsx",
+		);
 
 		expect(source).toContain(
 			'import { TaskDetailHeader } from "./components/TaskDetailHeader";',
@@ -20,6 +23,7 @@ describe("Task detail action menu", () => {
 		expect(source).toContain("<TaskDetailHeader");
 		expect(source).toContain("onBack={handleBack}");
 		expect(source).toContain("onDelete={handleDelete}");
+		expect(headerSource).toContain('aria-label="Back to tasks"');
 	});
 
 	test("task action menu mirrors destructive and copy actions", () => {
@@ -27,9 +31,18 @@ describe("Task detail action menu", () => {
 			"components/TaskActionMenu/TaskActionMenu.tsx",
 		);
 
-		expect(source).toContain("collections.tasks.delete(task.id)");
-		expect(source).toContain("navigator.clipboard.writeText(task.slug)");
-		expect(source).toContain("navigator.clipboard.writeText(task.title)");
+		expect(source).toContain("await collections.tasks.delete(task.id)");
+		expect(source).toContain(
+			'console.error("[TaskActionMenu] Failed to delete task:", error)',
+		);
+		expect(source).toContain("await navigator.clipboard.writeText(task.slug)");
+		expect(source).toContain("await navigator.clipboard.writeText(task.title)");
+		expect(source).toContain(
+			'console.error("[TaskActionMenu] Failed to copy task ID:", error)',
+		);
+		expect(source).toContain(
+			'console.error("[TaskActionMenu] Failed to copy task title:", error)',
+		);
 		expect(source).not.toContain("<span>Status</span>");
 		expect(source).not.toContain("<span>Assignee</span>");
 		expect(source).not.toContain("<span>Priority</span>");
