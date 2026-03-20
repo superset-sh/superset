@@ -23,7 +23,7 @@ interface LaunchCommandInPaneOptions {
 }
 
 function normalizeTerminalCommand(command: string): string {
-	return command.endsWith("\n") ? command : `${command}\n`;
+	return command.endsWith("\r") ? command : `${command}\r`;
 }
 
 interface WriteCommandInPaneOptions {

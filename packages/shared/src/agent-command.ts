@@ -101,6 +101,51 @@ export function buildAgentTaskPrompt(task: TaskInput): string {
 	return renderTaskPromptTemplate(DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE, task);
 }
 
+export type ShellPlatform = "win32" | "unix";
+
+function readFileExpression(
+	filePath: string,
+	platform: ShellPlatform,
+): string {
+	if (platform === "win32") {
+		const escaped = filePath.replaceAll("'", "''");
+		return `(Get-Content '${escaped}' -Raw)`;
+	}
+	const escaped = filePath.replaceAll("'", "'\\''");
+	return `"$(cat '${escaped}')"`;
+}
+
+const AGENT_BASE_COMMANDS: Record<
+	AgentType,
+	{ prefix: string; suffix?: string }
+> = {
+	claude: { prefix: "claude --dangerously-skip-permissions" },
+	codex: {
+		prefix:
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+	},
+	gemini: { prefix: "gemini --yolo" },
+	opencode: { prefix: "opencode --prompt" },
+	copilot: { prefix: "copilot -i", suffix: "--yolo" },
+	"cursor-agent": { prefix: "cursor-agent --yolo" },
+};
+
+export function buildAgentFileCommand({
+	filePath,
+	agent = "claude",
+	platform = "unix",
+}: {
+	filePath: string;
+	agent?: AgentType;
+	platform?: ShellPlatform;
+}): string {
+	const { prefix, suffix } = AGENT_BASE_COMMANDS[agent];
+	const fileExpr = readFileExpression(filePath, platform);
+	return suffix
+		? `${prefix} ${fileExpr} ${suffix}`
+		: `${prefix} ${fileExpr}`;
+}
+
 function buildHeredoc(
 	prompt: string,
 	delimiter: string,
@@ -116,28 +161,13 @@ function buildHeredoc(
 	].join("\n");
 }
 
-function buildFileCommand(
-	filePath: string,
-	command: string,
-	suffix?: string,
+function buildAgentHeredoc(
+	agent: AgentType,
+	prompt: string,
+	delimiter: string,
 ): string {
-	const escapedPath = filePath.replaceAll("'", "'\\''");
-	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
-}
-
-export function buildAgentFileCommand({
-	filePath,
-	agent = "claude",
-}: {
-	filePath: string;
-	agent?: AgentType;
-}): string {
-	const promptCommand = AGENT_PROMPT_COMMANDS[agent];
-	return buildFileCommand(
-		filePath,
-		promptCommand.command,
-		promptCommand.suffix,
-	);
+	const { prefix, suffix } = AGENT_BASE_COMMANDS[agent];
+	return buildHeredoc(prompt, delimiter, prefix, suffix);
 }
 
 export function buildAgentPromptCommand({
@@ -153,13 +183,7 @@ export function buildAgentPromptCommand({
 	while (prompt.includes(delimiter)) {
 		delimiter = `${delimiter}_X`;
 	}
-	const promptCommand = AGENT_PROMPT_COMMANDS[agent];
-	return buildHeredoc(
-		prompt,
-		delimiter,
-		promptCommand.command,
-		promptCommand.suffix,
-	);
+	return buildAgentHeredoc(agent, prompt, delimiter);
 }
 
 export function buildAgentCommand({

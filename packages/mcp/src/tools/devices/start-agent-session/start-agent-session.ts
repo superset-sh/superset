@@ -3,7 +3,6 @@ import { db } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
 import {
 	type AGENT_TYPES,
-	buildAgentCommand,
 	buildAgentTaskPrompt,
 } from "@superset/shared/agent-command";
 import {
@@ -105,18 +104,17 @@ function buildLaunchRequest({
 		};
 	}
 
+	const taskPromptFileName = `task-${task.slug}.md`;
+
 	return {
 		kind: "terminal",
 		workspaceId,
-		agentType: agent,
+		agentType: agent as (typeof AGENT_TYPES)[number],
 		source: "mcp",
 		terminal: {
-			command: buildAgentCommand({
-				task,
-				randomId: crypto.randomUUID(),
-				agent: agent as (typeof AGENT_TYPES)[number],
-			}),
 			name: task.slug,
+			taskPromptContent: buildAgentTaskPrompt(task),
+			taskPromptFileName,
 			...(paneId ? { paneId } : {}),
 		},
 	};
@@ -169,7 +167,6 @@ export function register(server: McpServer) {
 			};
 
 			if (request.kind === "terminal") {
-				params.command = request.terminal.command;
 				params.name = request.terminal.name;
 			} else {
 				params.openChatPane = true;
