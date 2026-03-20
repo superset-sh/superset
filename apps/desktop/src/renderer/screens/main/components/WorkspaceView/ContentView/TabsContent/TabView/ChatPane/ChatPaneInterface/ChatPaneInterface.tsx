@@ -24,8 +24,10 @@ import type {
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatMessageList } from "./components/ChatMessageList";
 import type { UserMessageRestartRequest } from "./components/ChatMessageList/ChatMessageList.types";
+import { DraftSaver } from "./components/DraftSaver";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
@@ -180,6 +182,7 @@ function getLaunchConfigKey(
 }
 
 export function ChatPaneInterface({
+	paneId,
 	sessionId,
 	initialLaunchConfig,
 	workspaceId,
@@ -226,6 +229,8 @@ export function ChatPaneInterface({
 		useState<PendingUserTurn | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
+	const isSendingRef = useRef(false);
+	const sessionInitializedRef = useRef(false);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
 	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
 	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
@@ -450,6 +455,16 @@ export function ChatPaneInterface({
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
+		if (!sessionInitializedRef.current) {
+			sessionInitializedRef.current = true;
+			return;
+		}
+		const { panes, setChatLaunchConfig } = useTabsStore.getState();
+		const currentConfig = panes[paneId]?.chat?.launchConfig ?? null;
+		setChatLaunchConfig(paneId, { ...currentConfig, draftInput: undefined });
+	}, [paneId]);
+
+	useEffect(() => {
 		if (
 			shouldClearPendingUserTurn({
 				messages,
@@ -638,6 +653,14 @@ export function ChatPaneInterface({
 				message_length: content.length,
 				turn_number: (messages?.length ?? 0) + 1,
 			});
+
+			isSendingRef.current = true;
+			const { panes: panesSnap, setChatLaunchConfig: setLaunchConfig } =
+				useTabsStore.getState();
+			setLaunchConfig(paneId, {
+				...(panesSnap[paneId]?.chat?.launchConfig ?? null),
+				draftInput: undefined,
+			});
 		},
 		[
 			activeModel?.id,
@@ -654,6 +677,7 @@ export function ChatPaneInterface({
 			setRuntimeErrorMessage,
 			onUserMessageSubmitted,
 			thinkingLevel,
+			paneId,
 		],
 	);
 
@@ -858,6 +882,14 @@ export function ChatPaneInterface({
 					send_trigger: options?.trigger ?? "resend",
 					restarted_from_message_id: request.messageId,
 				});
+
+				isSendingRef.current = true;
+				const { panes: panesSnap, setChatLaunchConfig: setLaunchConfig } =
+					useTabsStore.getState();
+				setLaunchConfig(paneId, {
+					...(panesSnap[paneId]?.chat?.launchConfig ?? null),
+					draftInput: undefined,
+				});
 			} catch (error) {
 				setPendingUserTurn(null);
 				const sendErrorMessage = toSendFailureMessage(error);
@@ -878,6 +910,7 @@ export function ChatPaneInterface({
 			sessionId,
 			setRuntimeErrorMessage,
 			thinkingLevel,
+			paneId,
 		],
 	);
 	const handleResendUserMessage = useCallback(
@@ -957,6 +990,7 @@ export function ChatPaneInterface({
 
 	return (
 		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
+			<DraftSaver paneId={paneId} isSendingRef={isSendingRef} />
 			<div className="flex h-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
