@@ -84,7 +84,10 @@ export function NewWorkspaceModalContent({
 			<PromptGroup
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
-				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+				recentProjects={recentProjects.filter(
+					(project) =>
+						Boolean(project.id) && project.worktreeMode !== "disabled",
+				)}
 				onSelectProject={(selectedProjectId) =>
 					updateDraft({ selectedProjectId })
 				}

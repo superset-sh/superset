@@ -24,6 +24,7 @@ import {
 	LuFolderPlus,
 	LuMinus,
 	LuPencil,
+	LuX,
 } from "react-icons/lu";
 import {
 	useCreateSectionFromWorkspaces,
@@ -48,6 +49,7 @@ interface WorkspaceContextMenuProps {
 	onCopyPath: () => void;
 	onSetUnread: (isUnread: boolean) => void;
 	onResetStatus: () => void;
+	onClose: () => void;
 	children: React.ReactNode;
 }
 
@@ -64,6 +66,7 @@ export function WorkspaceContextMenu({
 	onCopyPath,
 	onSetUnread,
 	onResetStatus,
+	onClose,
 	children,
 }: WorkspaceContextMenuProps) {
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
@@ -180,7 +183,20 @@ export function WorkspaceContextMenu({
 		return (
 			<ContextMenu onOpenChange={handleContextMenuOpenChange}>
 				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-				<ContextMenuContent>{commonContextMenuItems}</ContextMenuContent>
+				<ContextMenuContent>
+					{commonContextMenuItems}
+					<ContextMenuSeparator />
+					<ContextMenuItem
+						onSelect={onClose}
+						className="text-destructive focus:text-destructive"
+					>
+						<LuX
+							className="size-4 mr-2 text-destructive"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						Close Workspace
+					</ContextMenuItem>
+				</ContextMenuContent>
 			</ContextMenu>
 		);
 	}
@@ -202,6 +218,17 @@ export function WorkspaceContextMenu({
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					{commonContextMenuItems}
+					<ContextMenuSeparator />
+					<ContextMenuItem
+						onSelect={onClose}
+						className="text-destructive focus:text-destructive"
+					>
+						<LuX
+							className="size-4 mr-2 text-destructive"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						Close Workspace
+					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>
 			<HoverCardContent side="right" align="start" className="w-72">

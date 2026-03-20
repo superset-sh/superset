@@ -480,6 +480,11 @@ function PromptGroupInner({
 	// Only show loading while waiting for the fast local query
 	const isBranchesLoading = isLocalBranchesLoading && !branchData;
 
+	const { data: globalWorktreeMode } =
+		electronTrpc.settings.getWorktreeMode.useQuery();
+
+	const effectiveWorktreeMode =
+		project?.worktreeMode ?? globalWorktreeMode ?? "always";
 	const { data: externalWorktrees = [] } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery(
 			{ projectId: projectId ?? "" },
@@ -711,6 +716,9 @@ function PromptGroupInner({
 								})
 							: aiBranchName) || undefined,
 					baseBranch: baseBranch || undefined,
+					...(effectiveWorktreeMode === "disabled" && {
+						useWorktree: false,
+					}),
 				},
 				{
 					agentLaunchRequest: launchRequest ?? undefined,
@@ -738,6 +746,7 @@ function PromptGroupInner({
 		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
+		effectiveWorktreeMode,
 		generateBranchNameMutation,
 		isGeneratingBranchName,
 		linkedPR,
@@ -879,7 +888,7 @@ function PromptGroupInner({
 				)}
 				<PromptInputTextarea
 					autoFocus
-					placeholder="What do you want to do?"
+					placeholder="What do you want to do? (optional)"
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
@@ -991,9 +1000,11 @@ function PromptGroupInner({
 						)}
 					</AnimatePresence>
 				</div>
-				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}+↵ to create
-				</span>
+				<div className="flex items-center gap-2">
+					<span className="text-[11px] text-muted-foreground/50">
+						{modKey}+↵ to create
+					</span>
+				</div>
 			</div>
 		</div>
 	);

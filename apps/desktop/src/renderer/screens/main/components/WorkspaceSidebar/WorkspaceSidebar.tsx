@@ -88,6 +88,7 @@ export function WorkspaceSidebar({
 						mainRepoPath={group.project.mainRepoPath}
 						hideImage={group.project.hideImage}
 						iconUrl={group.project.iconUrl}
+						worktreeMode={group.project.worktreeMode}
 						workspaces={group.workspaces}
 						sections={group.sections ?? []}
 						topLevelItems={group.topLevelItems}

@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, WorktreeMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -23,11 +23,21 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 
+const WORKTREE_MODE_LABELS: Record<WorktreeMode, string> = {
+	always: "Always use worktrees",
+	optional: "Ask each time",
+	disabled: "Never use worktrees",
+};
+
 interface GitSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const showWorktreeMode = isItemVisible(
+		SETTING_ITEM_ID.GIT_WORKTREE_MODE,
+		visibleItems,
+	);
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
 		visibleItems,
@@ -42,6 +52,28 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	);
 
 	const utils = electronTrpc.useUtils();
+
+	const { data: worktreeMode, isLoading: isWorktreeModeLoading } =
+		electronTrpc.settings.getWorktreeMode.useQuery();
+	const setWorktreeMode = electronTrpc.settings.setWorktreeMode.useMutation({
+		onMutate: async ({ mode }) => {
+			await utils.settings.getWorktreeMode.cancel();
+			const previous = utils.settings.getWorktreeMode.getData();
+			utils.settings.getWorktreeMode.setData(undefined, mode);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getWorktreeMode.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getWorktreeMode.invalidate();
+		},
+	});
+
+	const effectiveWorktreeMode = worktreeMode ?? "always";
+	const isWorktreeDisabled = effectiveWorktreeMode === "disabled";
 
 	const { data: deleteLocalBranch, isLoading: isDeleteBranchLoading } =
 		electronTrpc.settings.getDeleteLocalBranch.useQuery();
@@ -154,7 +186,41 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 			</div>
 
 			<div className="space-y-6">
-				{showDeleteLocalBranch && (
+				{showWorktreeMode && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Worktree Mode</Label>
+							<p className="text-xs text-muted-foreground">
+								Control whether new workspaces use git worktrees
+							</p>
+						</div>
+						<Select
+							value={effectiveWorktreeMode}
+							onValueChange={(value) =>
+								setWorktreeMode.mutate({ mode: value as WorktreeMode })
+							}
+							disabled={isWorktreeModeLoading || setWorktreeMode.isPending}
+						>
+							<SelectTrigger className="w-[220px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{(
+									Object.entries(WORKTREE_MODE_LABELS) as [
+										WorktreeMode,
+										string,
+									][]
+								).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				)}
+
+				{showDeleteLocalBranch && !isWorktreeDisabled && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label
@@ -228,7 +294,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 					</div>
 				)}
 
-				{showWorktreeLocation && (
+				{showWorktreeLocation && !isWorktreeDisabled && (
 					<div className="space-y-0.5">
 						<Label className="text-sm font-medium">Worktree location</Label>
 						<p className="text-xs text-muted-foreground">
