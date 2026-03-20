@@ -191,6 +191,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const saveInFlightRef = useRef(false);
 	const saveQueuedRef = useRef(false);
 	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 	latestContentRef.current = {
 		setup: setupContent,
@@ -236,6 +237,12 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 			return;
 		}
 
+		// Clear any existing saved timer before starting a new save
+		if (savedTimerRef.current) {
+			clearTimeout(savedTimerRef.current);
+			savedTimerRef.current = null;
+		}
+
 		saveInFlightRef.current = true;
 		setSaveStatus("saving");
 		try {
@@ -254,9 +261,14 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 			} while (saveQueuedRef.current);
 			setSaveStatus("saved");
 			// Reset to idle after showing "saved" for 2 seconds
-			setTimeout(() => setSaveStatus("idle"), 2000);
+			savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
 		} catch (error) {
 			console.error("[scripts/save] Failed to save:", error);
+			// Clear saved timer on error
+			if (savedTimerRef.current) {
+				clearTimeout(savedTimerRef.current);
+				savedTimerRef.current = null;
+			}
 			setSaveStatus("idle");
 		} finally {
 			saveInFlightRef.current = false;
@@ -267,19 +279,33 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		// Clear any existing timer
 		if (debounceTimerRef.current) {
 			clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = null;
 		}
 
 		// Set new timer to save after 500ms of no changes
 		debounceTimerRef.current = setTimeout(() => {
+			debounceTimerRef.current = null;
 			void handleSave();
 		}, 500);
 	}, [handleSave]);
 
-	// Cleanup debounce timer on unmount
+	const handleBlurSave = useCallback(() => {
+		// Cancel any pending debounce timer to avoid duplicate saves
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = null;
+		}
+		void handleSave();
+	}, [handleSave]);
+
+	// Cleanup timers on unmount
 	useEffect(() => {
 		return () => {
 			if (debounceTimerRef.current) {
 				clearTimeout(debounceTimerRef.current);
+			}
+			if (savedTimerRef.current) {
+				clearTimeout(savedTimerRef.current);
 			}
 		};
 	}, []);
@@ -358,7 +384,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun install && bun run dev"
 				value={setupContent}
 				onChange={handleSetupChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 
 			<ScriptTextarea
@@ -367,7 +393,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. docker compose down"
 				value={teardownContent}
 				onChange={handleTeardownChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 
 			<ScriptTextarea
@@ -376,7 +402,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun run dev"
 				value={runContent}
 				onChange={handleRunChange}
-				onBlur={() => void handleSave()}
+				onBlur={handleBlurSave}
 			/>
 		</div>
 	);
