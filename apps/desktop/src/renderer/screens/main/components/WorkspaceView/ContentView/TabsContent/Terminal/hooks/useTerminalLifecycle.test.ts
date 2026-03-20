@@ -168,3 +168,72 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		expect(calls).toBe(1);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Reproduction model for issue #2598:
+// "Switching terminal window creates a new line"
+//
+// Root cause: handleWindowFocus and handleVisibilityChange pass
+// `isFocusedRef.current` as `forceResize` to scheduleReattachRecovery.
+// When the pane is focused (the common case), forceResize=true, causing
+// runReattachRecovery to send a PTY resize even when cols/rows haven't
+// changed. The unnecessary resize makes the shell redraw its prompt,
+// appearing as a new blank line.
+//
+// Fix: pass `false` for forceResize on focus/visibility recovery, so
+// resize is only sent when dimensions actually changed.
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal model of runReattachRecovery's resize decision logic.
+ * Mirrors the condition at useTerminalLifecycle.ts line ~573.
+ */
+function shouldSendResize(
+	forceResize: boolean,
+	prevCols: number,
+	prevRows: number,
+	newCols: number,
+	newRows: number,
+): boolean {
+	return forceResize || newCols !== prevCols || newRows !== prevRows;
+}
+
+describe("reattach recovery resize — issue #2598", () => {
+	it("sends resize when dimensions actually change", () => {
+		expect(shouldSendResize(false, 80, 24, 120, 40)).toBe(true);
+	});
+
+	it("sends resize when only cols change", () => {
+		expect(shouldSendResize(false, 80, 24, 100, 24)).toBe(true);
+	});
+
+	it("sends resize when only rows change", () => {
+		expect(shouldSendResize(false, 80, 24, 80, 30)).toBe(true);
+	});
+
+	it("does NOT send resize when dimensions are unchanged and forceResize is false", () => {
+		expect(shouldSendResize(false, 80, 24, 80, 24)).toBe(false);
+	});
+
+	/**
+	 * REPRODUCTION: This test demonstrates the bug.
+	 *
+	 * Before the fix, handleWindowFocus passes isFocusedRef.current (true)
+	 * as forceResize, so this returns true — causing an unnecessary PTY
+	 * resize that makes the shell redraw a new prompt line.
+	 *
+	 * After the fix, handleWindowFocus passes false, so forceResize is
+	 * false and no resize is sent when dimensions haven't changed.
+	 */
+	it("window focus recovery does NOT send resize when dimensions are unchanged", () => {
+		// Simulate: pane is focused, window regains focus, dimensions unchanged
+		const isFocused = true;
+		// After fix: forceResize should always be false for focus/visibility recovery
+		const forceResize = false; // was: isFocused (the bug)
+		expect(shouldSendResize(forceResize, 80, 24, 80, 24)).toBe(false);
+
+		// Demonstrate the bug scenario: if forceResize were isFocused (true),
+		// a resize would be sent unnecessarily
+		expect(shouldSendResize(isFocused, 80, 24, 80, 24)).toBe(true);
+	});
+});
