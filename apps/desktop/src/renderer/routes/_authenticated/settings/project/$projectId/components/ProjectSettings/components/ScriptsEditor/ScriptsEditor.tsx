@@ -37,6 +37,7 @@ interface ScriptTextareaProps {
 	placeholder: string;
 	value: string;
 	onChange: (value: string) => void;
+	onBlur?: () => void;
 }
 
 function ScriptTextarea({
@@ -45,6 +46,7 @@ function ScriptTextarea({
 	placeholder,
 	value,
 	onChange,
+	onBlur,
 }: ScriptTextareaProps) {
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +127,7 @@ function ScriptTextarea({
 				<textarea
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
+					onBlur={onBlur}
 					placeholder={placeholder}
 					className="w-full min-h-[80px] p-3 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded-lg"
 					rows={3}
@@ -172,6 +175,36 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const [teardownContent, setTeardownContent] = useState("");
 	const [runContent, setRunContent] = useState("");
 	const [hasChanges, setHasChanges] = useState(false);
+	const latestContentRef = useRef({
+		setup: "",
+		teardown: "",
+		run: "",
+	});
+	const lastSavedPayloadRef = useRef('{"setup":[],"teardown":[],"run":[]}');
+	const saveInFlightRef = useRef(false);
+	const saveQueuedRef = useRef(false);
+
+	latestContentRef.current = {
+		setup: setupContent,
+		teardown: teardownContent,
+		run: runContent,
+	};
+
+	const buildPayload = useCallback(
+		(content: { setup: string; teardown: string; run: string }) => ({
+			projectId,
+			setup: content.setup.trim() ? [content.setup.trim()] : [],
+			teardown: content.teardown.trim() ? [content.teardown.trim()] : [],
+			run: content.run.trim() ? [content.run.trim()] : [],
+		}),
+		[projectId],
+	);
+
+	const serializePayload = useCallback(
+		(payload: { setup: string[]; teardown: string[]; run: string[] }) =>
+			JSON.stringify(payload),
+		[],
+	);
 
 	useEffect(() => {
 		const parsed = parseContentFromConfig(configData?.content ?? null);
@@ -179,15 +212,16 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		setTeardownContent(parsed.teardown);
 		setRunContent(parsed.run);
 		setHasChanges(false);
-	}, [configData?.content]);
+		lastSavedPayloadRef.current = serializePayload(
+			buildPayload({
+				setup: parsed.setup,
+				teardown: parsed.teardown,
+				run: parsed.run,
+			}),
+		);
+	}, [buildPayload, configData?.content, serializePayload]);
 
-	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation({
-		onSuccess: () => {
-			setHasChanges(false);
-			utils.config.getConfigContent.invalidate({ projectId });
-			utils.config.shouldShowSetupCard.invalidate({ projectId });
-		},
-	});
+	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation();
 
 	const handleSetupChange = useCallback((value: string) => {
 		setSetupContent(value);
@@ -204,18 +238,48 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		setHasChanges(true);
 	}, []);
 
-	const handleSave = useCallback(() => {
-		const setup = setupContent.trim() ? [setupContent.trim()] : [];
-		const teardown = teardownContent.trim() ? [teardownContent.trim()] : [];
-		const run = runContent.trim() ? [runContent.trim()] : [];
+	const handleSave = useCallback(async () => {
+		if (saveInFlightRef.current) {
+			saveQueuedRef.current = true;
+			return;
+		}
 
-		updateConfigMutation.mutate({ projectId, setup, teardown, run });
+		saveInFlightRef.current = true;
+		try {
+			do {
+				saveQueuedRef.current = false;
+				const payload = buildPayload(latestContentRef.current);
+				const serializedPayload = serializePayload(payload);
+
+				if (serializedPayload === lastSavedPayloadRef.current) {
+					setHasChanges(false);
+					continue;
+				}
+
+				await updateConfigMutation.mutateAsync(payload);
+				lastSavedPayloadRef.current = serializedPayload;
+				await Promise.all([
+					utils.config.getConfigContent.invalidate({ projectId }),
+					utils.config.shouldShowSetupCard.invalidate({ projectId }),
+					utils.workspaces.getResolvedRunCommands.invalidate(),
+				]);
+
+				const currentPayload = buildPayload(latestContentRef.current);
+				setHasChanges(
+					serializePayload(currentPayload) !== lastSavedPayloadRef.current,
+				);
+			} while (saveQueuedRef.current);
+		} finally {
+			saveInFlightRef.current = false;
+		}
 	}, [
-		projectId,
-		setupContent,
-		teardownContent,
-		runContent,
+		buildPayload,
 		updateConfigMutation,
+		projectId,
+		serializePayload,
+		utils.config.getConfigContent,
+		utils.config.shouldShowSetupCard,
+		utils.workspaces.getResolvedRunCommands,
 	]);
 
 	if (isLoading) {
@@ -264,6 +328,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun install && bun run dev"
 				value={setupContent}
 				onChange={handleSetupChange}
+				onBlur={() => void handleSave()}
 			/>
 
 			<ScriptTextarea
@@ -272,6 +337,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. docker compose down"
 				value={teardownContent}
 				onChange={handleTeardownChange}
+				onBlur={() => void handleSave()}
 			/>
 
 			<ScriptTextarea
@@ -280,6 +346,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun run dev"
 				value={runContent}
 				onChange={handleRunChange}
+				onBlur={() => void handleSave()}
 			/>
 		</div>
 	);

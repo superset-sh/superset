@@ -144,6 +144,7 @@ function ProjectPage() {
 		onSuccess: async () => {
 			await utils.config.getConfigContent.invalidate({ projectId });
 			await utils.config.shouldShowSetupCard.invalidate({ projectId });
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 		},
 	});
 

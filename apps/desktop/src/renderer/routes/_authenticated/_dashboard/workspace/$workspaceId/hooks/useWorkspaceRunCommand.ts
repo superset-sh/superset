@@ -1,6 +1,5 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -15,13 +14,6 @@ export function useWorkspaceRunCommand({
 	workspaceId,
 	worktreePath,
 }: UseWorkspaceRunCommandOptions) {
-	const { data: runConfig, isLoading: isRunConfigLoading } =
-		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
-			{ workspaceId },
-			{ enabled: !!workspaceId },
-		);
-	const terminalKill = electronTrpc.terminal.kill.useMutation();
-	const killAsync = terminalKill.mutateAsync;
 	const isStartingRef = useRef(false);
 
 	const addTab = useTabsStore((s) => s.addTab);
@@ -43,15 +35,14 @@ export function useWorkspaceRunCommand({
 	});
 
 	const isRunning = runPane?.workspaceRun?.state === "running";
-	const isPending = terminalKill.isPending;
 
 	const toggleWorkspaceRun = useCallback(async () => {
-		if (isPending || isStartingRef.current) return;
+		if (isStartingRef.current) return;
 
 		// STOP: if currently running, kill it
 		if (isRunning && runPane) {
 			try {
-				await killAsync({ paneId: runPane.id });
+				await electronTrpcClient.terminal.kill.mutate({ paneId: runPane.id });
 				setPaneWorkspaceRun(runPane.id, {
 					workspaceId,
 					state: "stopped-by-user",
@@ -64,9 +55,13 @@ export function useWorkspaceRunCommand({
 			return;
 		}
 
-		// START: resolve command (silently return if query still loading)
-		if (isRunConfigLoading) return;
-		const command = buildTerminalCommand(runConfig?.commands);
+		// START: always fetch the latest config so run-script detection never
+		// depends on stale cache state or on a query still loading in the view.
+		const runConfig =
+			await electronTrpcClient.workspaces.getResolvedRunCommands.query({
+				workspaceId,
+			});
+		const command = buildTerminalCommand(runConfig.commands);
 		if (!command) {
 			toast.error("No workspace run command configured", {
 				description:
@@ -102,7 +97,9 @@ export function useWorkspaceRunCommand({
 							.query(runPane.id)
 							.catch(() => null);
 						if (existingSession?.isAlive) {
-							await killAsync({ paneId: runPane.id });
+							await electronTrpcClient.terminal.kill.mutate({
+								paneId: runPane.id,
+							});
 						}
 						await electronTrpcClient.terminal.createOrAttach.mutate({
 							paneId: runPane.id,
@@ -147,11 +144,7 @@ export function useWorkspaceRunCommand({
 	}, [
 		addTab,
 		getRestartCallback,
-		isRunConfigLoading,
 		isRunning,
-		isPending,
-		killAsync,
-		runConfig?.commands,
 		runPane,
 		setActiveTab,
 		setFocusedPane,
@@ -163,7 +156,6 @@ export function useWorkspaceRunCommand({
 
 	return {
 		isRunning,
-		isPending,
 		toggleWorkspaceRun,
 	};
 }
