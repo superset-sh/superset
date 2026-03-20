@@ -55,6 +55,20 @@ function run() {
 		defaultFolderOpenIcon: manifest.folderExpanded ?? "folder-open",
 	};
 
+	// material-icon-theme relies on VS Code's languageIds for base extensions.
+	// Since Electron has no languageId system, add them explicitly.
+	const baseExtensionDefaults: Record<string, string> = {
+		ts: "typescript",
+		js: "javascript",
+	};
+
+	for (const [ext, icon] of Object.entries(baseExtensionDefaults)) {
+		if (!condensed.fileExtensions[ext]) {
+			condensed.fileExtensions[ext] = icon;
+			referencedIcons.add(icon);
+		}
+	}
+
 	// Prepare output directory
 	if (existsSync(OUT_DIR)) {
 		rmSync(OUT_DIR, { recursive: true });

@@ -67,6 +67,7 @@ export interface CreateOrAttachInput {
 	skipColdRestore?: boolean;
 	allowKilled?: boolean;
 	themeType?: "dark" | "light";
+	command?: string;
 }
 
 /**

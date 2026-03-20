@@ -24,7 +24,8 @@ export const PORTS_FILE_NAME = "ports.json";
 
 export const CONFIG_TEMPLATE = `{
   "setup": [],
-  "teardown": []
+  "teardown": [],
+  "run": []
 }`;
 
 export const NOTIFICATION_EVENTS = {

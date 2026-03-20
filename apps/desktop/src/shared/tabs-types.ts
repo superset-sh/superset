@@ -142,7 +142,13 @@ export interface Pane {
 	chat?: ChatPaneState; // For chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
+	workspaceRun?: {
+		workspaceId: string;
+		state: "running" | "stopped-by-user" | "stopped-by-exit";
+	};
 }
+
+export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
 
 export interface ChatLaunchConfig {
 	initialPrompt?: string;
