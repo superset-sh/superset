@@ -1,11 +1,20 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+interface PendingWorkspace {
+	projectId: string;
+	name: string;
+	isGeneratingBranchName: boolean;
+}
+
 interface NewWorkspaceModalState {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	pendingWorkspace: PendingWorkspace | null;
 	openModal: (projectId?: string) => void;
 	closeModal: () => void;
+	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
+	setIsGeneratingBranchName: (isGenerating: boolean) => void;
 }
 
 export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
@@ -13,6 +22,7 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 		(set) => ({
 			isOpen: false,
 			preSelectedProjectId: null,
+			pendingWorkspace: null,
 
 			openModal: (projectId?: string) => {
 				set({ isOpen: true, preSelectedProjectId: projectId ?? null });
@@ -20,6 +30,24 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 
 			closeModal: () => {
 				set({ isOpen: false, preSelectedProjectId: null });
+			},
+
+			setPendingWorkspace: (workspace: PendingWorkspace | null) => {
+				set({ pendingWorkspace: workspace });
+			},
+
+			setIsGeneratingBranchName: (isGenerating: boolean) => {
+				set((state) => {
+					if (!state.pendingWorkspace) {
+						return {};
+					}
+					return {
+						pendingWorkspace: {
+							...state.pendingWorkspace,
+							isGeneratingBranchName: isGenerating,
+						},
+					};
+				});
 			},
 		}),
 		{ name: "NewWorkspaceModalStore" },
@@ -34,3 +62,9 @@ export const useCloseNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.closeModal);
 export const usePreSelectedProjectId = () =>
 	useNewWorkspaceModalStore((state) => state.preSelectedProjectId);
+export const usePendingWorkspace = () =>
+	useNewWorkspaceModalStore((state) => state.pendingWorkspace);
+export const useSetPendingWorkspace = () =>
+	useNewWorkspaceModalStore((state) => state.setPendingWorkspace);
+export const useSetIsGeneratingBranchName = () =>
+	useNewWorkspaceModalStore((state) => state.setIsGeneratingBranchName);
