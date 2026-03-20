@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { normalizeUrl } from "../../components/BrowserToolbar/utils";
 
 // ---------------------------------------------------------------------------
 // Module-level singletons
@@ -34,28 +35,6 @@ export function destroyPersistentWebview(paneId: string): void {
 		webviewRegistry.delete(paneId);
 	}
 	registeredWebContentsIds.delete(paneId);
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1"]);
-
-function sanitizeUrl(url: string): string {
-	// Pass through any URL that already has a scheme (https://, http://, file://, about:, data:, etc.)
-	// Guard against localhost:port being misidentified as a scheme.
-	if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
-		const potentialHost = url.split(":")[0];
-		if (!LOCALHOST_HOSTS.has(potentialHost)) return url;
-	}
-	if (url.startsWith("localhost") || url.startsWith("127.0.0.1")) {
-		return `http://${url}`;
-	}
-	if (url.includes(".")) {
-		return `https://${url}`;
-	}
-	return `https://www.google.com/search?q=${encodeURIComponent(url)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,7 +133,7 @@ export function usePersistentWebview({
 			webviewRegistry.set(paneId, webview);
 			container.appendChild(webview);
 
-			const finalUrl = sanitizeUrl(initialUrlRef.current);
+			const finalUrl = normalizeUrl(initialUrlRef.current);
 			webview.src = finalUrl;
 		}
 
@@ -337,7 +316,7 @@ export function usePersistentWebview({
 		if (url) {
 			isHistoryNavigation.current = true;
 			const webview = webviewRegistry.get(paneId);
-			if (webview) webview.loadURL(sanitizeUrl(url));
+			if (webview) webview.loadURL(normalizeUrl(url));
 		}
 	}, [paneId, navigateBrowserHistory]);
 
@@ -346,7 +325,7 @@ export function usePersistentWebview({
 		if (url) {
 			isHistoryNavigation.current = true;
 			const webview = webviewRegistry.get(paneId);
-			if (webview) webview.loadURL(sanitizeUrl(url));
+			if (webview) webview.loadURL(normalizeUrl(url));
 		}
 	}, [paneId, navigateBrowserHistory]);
 
@@ -358,7 +337,7 @@ export function usePersistentWebview({
 	const navigateTo = useCallback(
 		(url: string) => {
 			const webview = webviewRegistry.get(paneId);
-			if (webview) webview.loadURL(sanitizeUrl(url));
+			if (webview) webview.loadURL(normalizeUrl(url));
 		},
 		[paneId],
 	);
