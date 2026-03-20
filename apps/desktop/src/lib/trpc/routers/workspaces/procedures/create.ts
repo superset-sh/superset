@@ -1,4 +1,4 @@
-import { projects, settings, workspaces, worktrees } from "@superset/local-db";
+import { projects, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -8,6 +8,7 @@ import { publicProcedure, router } from "../../..";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
+import { resolveBranchPrefix } from "../utils/branch-prefix";
 import {
 	activateProject,
 	findOrphanedWorktreeByBranch,
@@ -22,7 +23,6 @@ import {
 import {
 	createWorktreeFromPr,
 	generateBranchName,
-	getBranchPrefix,
 	getBranchWorktreePath,
 	getCurrentBranch,
 	getPrInfo,
@@ -32,7 +32,6 @@ import {
 	type PullRequestInfo,
 	parsePrUrl,
 	safeCheckoutBranch,
-	sanitizeAuthorPrefix,
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
@@ -417,31 +416,18 @@ export const createCreateProcedures = () => {
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
+				// Resolve branch prefix using shared utility
 				let branchPrefix: string | undefined;
 				if (input.applyPrefix) {
-					const projectOverrides = project.branchPrefixMode != null;
-					const prefixMode = projectOverrides
-						? project.branchPrefixMode
-						: (globalSettings?.branchPrefixMode ?? "none");
-					const customPrefix = projectOverrides
-						? project.branchPrefixCustom
-						: globalSettings?.branchPrefixCustom;
-
-					const rawPrefix = await getBranchPrefix({
-						repoPath: project.mainRepoPath,
-						mode: prefixMode,
-						customPrefix,
-					});
-					const sanitizedPrefix = rawPrefix
-						? sanitizeAuthorPrefix(rawPrefix)
-						: undefined;
-
-					const existingSet = new Set(
-						existingBranches.map((b) => b.toLowerCase()),
-					);
-					const prefixWouldCollide =
-						sanitizedPrefix && existingSet.has(sanitizedPrefix.toLowerCase());
-					branchPrefix = prefixWouldCollide ? undefined : sanitizedPrefix;
+					try {
+						branchPrefix = await resolveBranchPrefix(project, existingBranches);
+					} catch (error) {
+						console.warn(
+							"[workspace/create] Failed to resolve branch prefix:",
+							error,
+						);
+						branchPrefix = undefined;
+					}
 				}
 
 				const withPrefix = (name: string): string =>
