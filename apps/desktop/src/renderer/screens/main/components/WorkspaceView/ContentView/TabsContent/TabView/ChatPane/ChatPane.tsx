@@ -68,15 +68,18 @@ export function ChatPane({
 }: ChatPaneProps) {
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
-	const isActiveTab = useTabsStore((s) => s.activeTabIds[workspaceId] === tabId);
+	const isActiveTab = useTabsStore(
+		(s) => s.activeTabIds[workspaceId] === tabId,
+	);
 	const prevIsActiveTabRef = useRef(isActiveTab);
 	const chatContainerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		if (isActiveTab && !prevIsActiveTabRef.current && isFocused) {
-			const textarea = chatContainerRef.current?.querySelector<HTMLTextAreaElement>(
-				"[data-slot=input-group-control]",
-			);
+			const textarea =
+				chatContainerRef.current?.querySelector<HTMLTextAreaElement>(
+					"[data-slot=input-group-control]",
+				);
 			textarea?.focus();
 		}
 		prevIsActiveTabRef.current = isActiveTab;
