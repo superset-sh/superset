@@ -1,11 +1,11 @@
 import type { MutableRefObject } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Pane } from "shared/tabs-types";
-
-type PaneWorkspaceRun = NonNullable<Pane["workspaceRun"]>;
-
-type WorkspaceRunState = PaneWorkspaceRun["state"];
+import {
+	getPaneWorkspaceRun,
+	type PaneWorkspaceRun,
+	setPaneWorkspaceRunState,
+	type WorkspaceRunState,
+} from "renderer/stores/tabs/workspace-run";
 
 interface RecoverWorkspaceRunPaneOptions {
 	paneId: string;
@@ -21,31 +21,11 @@ interface RecoverWorkspaceRunPaneOptions {
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 }
 
-export function getPaneWorkspaceRun(paneId: string): PaneWorkspaceRun | null {
-	return useTabsStore.getState().panes[paneId]?.workspaceRun ?? null;
-}
-
-export function hasPaneWorkspaceRun(paneId: string): boolean {
-	return Boolean(getPaneWorkspaceRun(paneId));
-}
-
-export function setPaneWorkspaceRunState(
-	paneId: string,
-	state: WorkspaceRunState,
-): PaneWorkspaceRun | null {
-	const workspaceRun = getPaneWorkspaceRun(paneId);
-	if (!workspaceRun) return null;
-
-	useTabsStore.getState().setPaneWorkspaceRun(paneId, {
-		workspaceId: workspaceRun.workspaceId,
-		state,
-	});
-
-	return {
-		workspaceId: workspaceRun.workspaceId,
-		state,
-	};
-}
+export {
+	getPaneWorkspaceRun,
+	hasPaneWorkspaceRun,
+	setPaneWorkspaceRunState,
+} from "renderer/stores/tabs/workspace-run";
 
 export function resolveWorkspaceRunAttachMode(
 	paneId: string,

@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { DEBUG_TERMINAL } from "../config";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
@@ -68,10 +69,7 @@ export function useTerminalStream({
 				const nextState = wasKilledByUser
 					? "stopped-by-user"
 					: "stopped-by-exit";
-				useTabsStore.getState().setPaneWorkspaceRun(paneId, {
-					workspaceId: currentPaneForRun.workspaceRun.workspaceId,
-					state: nextState,
-				});
+				setPaneWorkspaceRunState(paneId, nextState);
 			}
 
 			if (wasKilledByUser) {

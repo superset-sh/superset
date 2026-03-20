@@ -4,6 +4,10 @@ import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
+import {
+	createWorkspaceRun,
+	setPaneWorkspaceRunState,
+} from "renderer/stores/tabs/workspace-run";
 
 interface UseWorkspaceRunCommandOptions {
 	workspaceId: string;
@@ -45,10 +49,7 @@ export function useWorkspaceRunCommand({
 			setIsPending(true);
 			try {
 				await electronTrpcClient.terminal.kill.mutate({ paneId: runPane.id });
-				setPaneWorkspaceRun(runPane.id, {
-					workspaceId,
-					state: "stopped-by-user",
-				});
+				setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			} catch (error) {
 				toast.error("Failed to stop workspace run command", {
 					description: error instanceof Error ? error.message : "Unknown error",
@@ -88,10 +89,14 @@ export function useWorkspaceRunCommand({
 					setFocusedPane(tab.id, runPane.id);
 				}
 
-				setPaneWorkspaceRun(runPane.id, {
-					workspaceId,
-					state: "running",
-				});
+				setPaneWorkspaceRun(
+					runPane.id,
+					createWorkspaceRun({
+						workspaceId,
+						state: "running",
+						command,
+					}),
+				);
 
 				try {
 					const restartCallback = getRestartCallback(runPane.id);
@@ -115,16 +120,17 @@ export function useWorkspaceRunCommand({
 						});
 						// Re-assert running state — the kill above may have triggered
 						// the exit listener which flipped state to stopped-by-user.
-						setPaneWorkspaceRun(runPane.id, {
-							workspaceId,
-							state: "running",
-						});
+						setPaneWorkspaceRun(
+							runPane.id,
+							createWorkspaceRun({
+								workspaceId,
+								state: "running",
+								command,
+							}),
+						);
 					}
 				} catch (error) {
-					setPaneWorkspaceRun(runPane.id, {
-						workspaceId,
-						state: "stopped-by-exit",
-					});
+					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 					toast.error("Failed to run workspace command", {
 						description:
 							error instanceof Error ? error.message : "Unknown error",
@@ -133,14 +139,21 @@ export function useWorkspaceRunCommand({
 				return;
 			}
 
-			// Create new pane — command is not passed here; instead the terminal
-			// lifecycle detects pane.workspaceRun.state === "running" on mount and
-			// reads the command from defaultRestartCommandRef (resolved via tRPC query).
+			// Create new pane and persist the resolved command on the pane metadata
+			// before mount. Terminal lifecycle then sees the same click-time command
+			// snapshot that presets use, instead of waiting on a follow-up query.
 			const result = addTab(workspaceId, { initialCwd });
 			const { tabId, paneId } = result;
 
 			setPaneName(paneId, "Workspace Run");
-			setPaneWorkspaceRun(paneId, { workspaceId, state: "running" });
+			setPaneWorkspaceRun(
+				paneId,
+				createWorkspaceRun({
+					workspaceId,
+					state: "running",
+					command,
+				}),
+			);
 			setActiveTab(workspaceId, tabId);
 			setFocusedPane(tabId, paneId);
 		} catch (error) {

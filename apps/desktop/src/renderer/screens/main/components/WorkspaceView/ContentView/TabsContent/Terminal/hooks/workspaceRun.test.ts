@@ -9,6 +9,7 @@ const storeState = {
 			workspaceRun?: {
 				workspaceId: string;
 				state: "running" | "stopped-by-user" | "stopped-by-exit";
+				command?: string;
 			};
 		}
 	>,
@@ -18,6 +19,7 @@ const storeState = {
 			workspaceRun: {
 				workspaceId: string;
 				state: "running" | "stopped-by-user" | "stopped-by-exit";
+				command?: string;
 			} | null,
 		) => {
 			if (!storeState.panes[paneId]) {
@@ -44,7 +46,9 @@ mock.module("renderer/stores/tabs/store", () => ({
 	},
 }));
 
-const { recoverWorkspaceRunPane } = await import("./workspaceRun");
+const { recoverWorkspaceRunPane, setPaneWorkspaceRunState } = await import(
+	"./workspaceRun"
+);
 
 describe("recoverWorkspaceRunPane", () => {
 	beforeEach(() => {
@@ -139,5 +143,31 @@ describe("recoverWorkspaceRunPane", () => {
 		expect(xterm.writeln).not.toHaveBeenCalled();
 		expect(done).not.toHaveBeenCalled();
 		expect(setExitStatus).not.toHaveBeenCalled();
+	});
+
+	it("preserves the stored run command when updating workspace-run state", () => {
+		storeState.panes["pane-3"] = {
+			workspaceRun: {
+				workspaceId: "ws-3",
+				state: "running",
+				command: "bun run dev",
+			},
+		};
+
+		const updatedWorkspaceRun = setPaneWorkspaceRunState(
+			"pane-3",
+			"stopped-by-exit",
+		);
+
+		expect(updatedWorkspaceRun).toEqual({
+			workspaceId: "ws-3",
+			state: "stopped-by-exit",
+			command: "bun run dev",
+		});
+		expect(storeState.setPaneWorkspaceRun).toHaveBeenCalledWith("pane-3", {
+			workspaceId: "ws-3",
+			state: "stopped-by-exit",
+			command: "bun run dev",
+		});
 	});
 });
