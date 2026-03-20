@@ -1,13 +1,6 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { mapEventType } from "./map-event-type";
-
-mock.module("electron", () => ({
-	BrowserWindow: {
-		getAllWindows: () => [],
-	},
-}));
-
-const { resolvePaneId } = await import("./server");
+import { resolvePaneId } from "./resolve-pane-id";
 
 describe("notifications/server", () => {
 	describe("resolvePaneId", () => {
