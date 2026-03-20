@@ -113,18 +113,6 @@ export function CreateTaskDialog({
 		setIsCreating(false);
 	}, [defaultStatusId, open]);
 
-	const waitForTaskSync = async (taskId: string) => {
-		for (let attempt = 0; attempt < 20; attempt += 1) {
-			if (collections.tasks.get(taskId)) {
-				return;
-			}
-
-			await new Promise((resolve) => {
-				window.setTimeout(resolve, 100);
-			});
-		}
-	};
-
 	const currentStatusType = useMemo(
 		() => statuses.find((status) => status.id === statusId)?.type,
 		[statusId, statuses],
@@ -149,8 +137,6 @@ export function CreateTaskDialog({
 			if (!result.task) {
 				throw new Error("Task creation returned no task");
 			}
-
-			await waitForTaskSync(result.task.id);
 
 			const nextSearch: Record<string, string> = {};
 			if (currentTab !== "all") nextSearch.tab = currentTab;

@@ -1,9 +1,13 @@
 import { db, dbWs } from "@superset/db/client";
-import { tasks, users } from "@superset/db/schema";
+import { members, taskStatuses, tasks, users } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
+import {
+	generateBaseTaskSlug,
+	generateUniqueTaskSlug,
+} from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -14,47 +18,16 @@ import {
 	updateTaskSchema,
 } from "./schema";
 
-function generateBaseSlug(title: string): string {
-	const slug = title
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
+const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
+const TASK_SLUG_RETRY_LIMIT = 5;
 
-	return slug || "task";
-}
-
-async function generateUniqueTaskSlug(
-	organizationId: string,
-	title: string,
-): Promise<string> {
-	const baseSlug = generateBaseSlug(title);
-
-	const existingTasks = await db
-		.select({ slug: tasks.slug })
-		.from(tasks)
-		.where(
-			and(
-				eq(tasks.organizationId, organizationId),
-				isNull(tasks.deletedAt),
-				or(ilike(tasks.slug, `${baseSlug}%`)),
-			),
-		);
-
-	const usedSlugs = new Set(existingTasks.map((task) => task.slug));
-
-	if (!usedSlugs.has(baseSlug)) {
-		return baseSlug;
+function isConstraintError(error: unknown, constraint: string): boolean {
+	if (!error || typeof error !== "object") {
+		return false;
 	}
 
-	let counter = 1;
-	let slug = `${baseSlug}-${counter}`;
-	while (usedSlugs.has(slug)) {
-		counter += 1;
-		slug = `${baseSlug}-${counter}`;
-	}
-
-	return slug;
+	const maybeError = error as { code?: string; constraint?: string };
+	return maybeError.code === "23505" && maybeError.constraint === constraint;
 }
 
 export const taskRouter = {
@@ -148,39 +121,111 @@ export const taskRouter = {
 				});
 			}
 
-			const slug = await generateUniqueTaskSlug(organizationId, input.title);
+			for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
+				try {
+					const result = await dbWs.transaction(async (tx) => {
+						const statusId = input.statusId
+							? (
+									await tx
+										.select({ id: taskStatuses.id })
+										.from(taskStatuses)
+										.where(
+											and(
+												eq(taskStatuses.id, input.statusId),
+												eq(taskStatuses.organizationId, organizationId),
+											),
+										)
+										.limit(1)
+								)[0]?.id
+							: await seedDefaultStatuses(organizationId, tx);
 
-			const result = await dbWs.transaction(async (tx) => {
-				const statusId =
-					input.statusId ?? (await seedDefaultStatuses(organizationId, tx));
+						if (!statusId) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Status must belong to the active organization",
+							});
+						}
 
-				const [task] = await tx
-					.insert(tasks)
-					.values({
-						slug,
-						title: input.title,
-						description: input.description ?? null,
-						statusId,
-						priority: input.priority ?? "none",
-						organizationId,
-						creatorId: ctx.session.user.id,
-						assigneeId: input.assigneeId ?? null,
-						estimate: input.estimate ?? null,
-						dueDate: input.dueDate ?? null,
-						labels: input.labels ?? [],
-					})
-					.returning();
+						const assigneeId = input.assigneeId
+							? ((
+									await tx
+										.select({ userId: members.userId })
+										.from(members)
+										.where(
+											and(
+												eq(members.organizationId, organizationId),
+												eq(members.userId, input.assigneeId),
+											),
+										)
+										.limit(1)
+								)[0]?.userId ?? null)
+							: null;
 
-				const txid = await getCurrentTxid(tx);
+						if (input.assigneeId && !assigneeId) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Assignee must belong to the active organization",
+							});
+						}
 
-				return { task, txid };
-			});
+						const baseSlug = generateBaseTaskSlug(input.title);
+						const existingSlugs = await tx
+							.select({ slug: tasks.slug })
+							.from(tasks)
+							.where(
+								and(
+									eq(tasks.organizationId, organizationId),
+									ilike(tasks.slug, `${baseSlug}%`),
+								),
+							);
+						const slug = generateUniqueTaskSlug(
+							baseSlug,
+							existingSlugs.map((task) => task.slug),
+						);
 
-			if (result.task) {
-				syncTask(result.task.id);
+						const [task] = await tx
+							.insert(tasks)
+							.values({
+								slug,
+								title: input.title,
+								description: input.description ?? null,
+								statusId,
+								priority: input.priority ?? "none",
+								organizationId,
+								creatorId: ctx.session.user.id,
+								assigneeId,
+								estimate: input.estimate ?? null,
+								dueDate: input.dueDate ?? null,
+								labels: input.labels ?? [],
+							})
+							.returning();
+
+						const txid = await getCurrentTxid(tx);
+
+						return { task, txid };
+					});
+
+					if (result.task) {
+						syncTask(result.task.id);
+					}
+
+					return result;
+				} catch (error) {
+					if (
+						isConstraintError(error, TASK_SLUG_CONSTRAINT) &&
+						attempt < TASK_SLUG_RETRY_LIMIT - 1
+					) {
+						continue;
+					}
+
+					throw error;
+				}
 			}
 
-			return result;
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Failed to generate a unique task slug",
+			});
 		}),
 
 	update: protectedProcedure
