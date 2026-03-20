@@ -106,11 +106,11 @@ jobs:
       - name: Build Electron app
         working-directory: apps/desktop
         env:
-          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ inputs.channel == 'canary' && secrets.CANARY_MAC_CERTIFICATE || secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ inputs.channel == 'canary' && secrets.CANARY_MAC_CERTIFICATE_PASSWORD || secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ inputs.channel == 'canary' && secrets.CANARY_APPLE_ID || secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.channel == 'canary' && secrets.CANARY_APPLE_ID_PASSWORD || secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ inputs.channel == 'canary' && secrets.CANARY_APPLE_TEAM_ID || secrets.APPLE_TEAM_ID }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
 

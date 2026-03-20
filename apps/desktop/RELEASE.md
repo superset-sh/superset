@@ -64,10 +64,17 @@ The workflow creates stable-named copies (without version) so these URLs always 
 
 ## Code Signing
 
-macOS code signing uses these repository secrets:
+macOS code signing uses these GitHub Actions secrets:
 
 - `MAC_CERTIFICATE` / `MAC_CERTIFICATE_PASSWORD`
 - `APPLE_ID` / `APPLE_ID_PASSWORD` / `APPLE_TEAM_ID`
+
+Canary builds can use a different Apple account and signing certificate by defining these optional secrets. If they are not set, canary falls back to the shared secrets above.
+
+- `CANARY_MAC_CERTIFICATE` / `CANARY_MAC_CERTIFICATE_PASSWORD`
+- `CANARY_APPLE_ID` / `CANARY_APPLE_ID_PASSWORD` / `CANARY_APPLE_TEAM_ID`
+
+The reusable desktop build workflow currently reads secrets from the same GitHub Actions context as the stable build, so add the `CANARY_*` secrets anywhere that workflow already gets its existing signing secrets from.
 
 ## Local Testing
 
