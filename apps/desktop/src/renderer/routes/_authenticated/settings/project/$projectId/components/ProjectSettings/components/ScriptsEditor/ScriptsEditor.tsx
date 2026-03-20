@@ -3,6 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiArrowTopRightOnSquare, HiDocumentArrowUp } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
 import { EXTERNAL_LINKS } from "shared/constants";
 
 interface ScriptsEditorProps {
@@ -13,9 +14,10 @@ interface ScriptsEditorProps {
 function parseContentFromConfig(content: string | null): {
 	setup: string;
 	teardown: string;
+	run: string;
 } {
 	if (!content) {
-		return { setup: "", teardown: "" };
+		return { setup: "", teardown: "", run: "" };
 	}
 
 	try {
@@ -23,9 +25,10 @@ function parseContentFromConfig(content: string | null): {
 		return {
 			setup: (parsed.setup ?? []).join("\n"),
 			teardown: (parsed.teardown ?? []).join("\n"),
+			run: (parsed.run ?? []).join("\n"),
 		};
 	} catch {
-		return { setup: "", teardown: "" };
+		return { setup: "", teardown: "", run: "" };
 	}
 }
 
@@ -35,6 +38,7 @@ interface ScriptTextareaProps {
 	placeholder: string;
 	value: string;
 	onChange: (value: string) => void;
+	onBlur?: () => void;
 }
 
 function ScriptTextarea({
@@ -43,6 +47,7 @@ function ScriptTextarea({
 	placeholder,
 	value,
 	onChange,
+	onBlur,
 }: ScriptTextareaProps) {
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +128,7 @@ function ScriptTextarea({
 				<textarea
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
+					onBlur={onBlur}
 					placeholder={placeholder}
 					className="w-full min-h-[80px] p-3 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded-lg"
 					rows={3}
@@ -168,24 +174,55 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 
 	const [setupContent, setSetupContent] = useState("");
 	const [teardownContent, setTeardownContent] = useState("");
+	const [runContent, setRunContent] = useState("");
 	const [hasChanges, setHasChanges] = useState(false);
+	const latestContentRef = useRef({
+		setup: "",
+		teardown: "",
+		run: "",
+	});
+	const lastSavedPayloadRef = useRef('{"setup":[],"teardown":[],"run":[]}');
+	const saveInFlightRef = useRef(false);
+	const saveQueuedRef = useRef(false);
+
+	latestContentRef.current = {
+		setup: setupContent,
+		teardown: teardownContent,
+		run: runContent,
+	};
+
+	const buildPayload = useCallback(
+		(content: { setup: string; teardown: string; run: string }) => ({
+			projectId,
+			setup: content.setup.trim() ? [content.setup.trim()] : [],
+			teardown: content.teardown.trim() ? [content.teardown.trim()] : [],
+			run: content.run.trim() ? [content.run.trim()] : [],
+		}),
+		[projectId],
+	);
+
+	const serializePayload = useCallback(
+		(payload: { setup: string[]; teardown: string[]; run: string[] }) =>
+			JSON.stringify(payload),
+		[],
+	);
 
 	useEffect(() => {
-		if (configData?.content) {
-			const parsed = parseContentFromConfig(configData.content);
-			setSetupContent(parsed.setup);
-			setTeardownContent(parsed.teardown);
-			setHasChanges(false);
-		}
-	}, [configData?.content]);
+		const parsed = parseContentFromConfig(configData?.content ?? null);
+		setSetupContent(parsed.setup);
+		setTeardownContent(parsed.teardown);
+		setRunContent(parsed.run);
+		setHasChanges(false);
+		lastSavedPayloadRef.current = serializePayload(
+			buildPayload({
+				setup: parsed.setup,
+				teardown: parsed.teardown,
+				run: parsed.run,
+			}),
+		);
+	}, [buildPayload, configData?.content, serializePayload]);
 
-	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation({
-		onSuccess: () => {
-			setHasChanges(false);
-			utils.config.getConfigContent.invalidate({ projectId });
-			utils.config.shouldShowSetupCard.invalidate({ projectId });
-		},
-	});
+	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation();
 
 	const handleSetupChange = useCallback((value: string) => {
 		setSetupContent(value);
@@ -197,12 +234,42 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		setHasChanges(true);
 	}, []);
 
-	const handleSave = useCallback(() => {
-		const setup = setupContent.trim() ? [setupContent.trim()] : [];
-		const teardown = teardownContent.trim() ? [teardownContent.trim()] : [];
+	const handleRunChange = useCallback((value: string) => {
+		setRunContent(value);
+		setHasChanges(true);
+	}, []);
 
-		updateConfigMutation.mutate({ projectId, setup, teardown });
-	}, [projectId, setupContent, teardownContent, updateConfigMutation]);
+	const handleSave = useCallback(async () => {
+		if (saveInFlightRef.current) {
+			saveQueuedRef.current = true;
+			return;
+		}
+
+		saveInFlightRef.current = true;
+		try {
+			do {
+				saveQueuedRef.current = false;
+				const payload = buildPayload(latestContentRef.current);
+				const serializedPayload = serializePayload(payload);
+
+				if (serializedPayload === lastSavedPayloadRef.current) {
+					setHasChanges(false);
+					continue;
+				}
+
+				await updateConfigMutation.mutateAsync(payload);
+				lastSavedPayloadRef.current = serializedPayload;
+				await invalidateProjectScriptQueries(utils, projectId);
+
+				const currentPayload = buildPayload(latestContentRef.current);
+				setHasChanges(
+					serializePayload(currentPayload) !== lastSavedPayloadRef.current,
+				);
+			} while (saveQueuedRef.current);
+		} finally {
+			saveInFlightRef.current = false;
+		}
+	}, [buildPayload, updateConfigMutation, projectId, serializePayload, utils]);
 
 	if (isLoading) {
 		return (
@@ -250,6 +317,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. bun install && bun run dev"
 				value={setupContent}
 				onChange={handleSetupChange}
+				onBlur={() => void handleSave()}
 			/>
 
 			<ScriptTextarea
@@ -258,6 +326,16 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				placeholder="e.g. docker compose down"
 				value={teardownContent}
 				onChange={handleTeardownChange}
+				onBlur={() => void handleSave()}
+			/>
+
+			<ScriptTextarea
+				title="Run"
+				description="A command to start your dev server, triggered via keyboard shortcut."
+				placeholder="e.g. bun run dev"
+				value={runContent}
+				onChange={handleRunChange}
+				onBlur={() => void handleSave()}
 			/>
 		</div>
 	);

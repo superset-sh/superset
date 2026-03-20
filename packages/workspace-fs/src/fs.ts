@@ -378,20 +378,35 @@ export async function listDirectory({
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
-	return entries
-		.map((entry) => ({
-			absolutePath: path.join(targetPath, entry.name),
-			name: entry.name,
-			kind: direntToKind(entry),
-		}))
-		.sort((left, right) => {
-			const leftIsDir = left.kind === "directory";
-			const rightIsDir = right.kind === "directory";
-			if (leftIsDir !== rightIsDir) {
-				return leftIsDir ? -1 : 1;
+	const mapped = await Promise.all(
+		entries.map(async (entry) => {
+			let kind = direntToKind(entry);
+			// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
+			if (kind === "symlink") {
+				try {
+					const stats = await fs.stat(path.join(targetPath, entry.name));
+					if (stats.isDirectory()) kind = "directory";
+					else if (stats.isFile()) kind = "file";
+				} catch {
+					// Dangling symlink or permission error — keep as "symlink"
+				}
 			}
-			return left.name.localeCompare(right.name);
-		});
+			return {
+				absolutePath: path.join(targetPath, entry.name),
+				name: entry.name,
+				kind,
+			};
+		}),
+	);
+
+	return mapped.sort((left, right) => {
+		const leftIsDir = left.kind === "directory";
+		const rightIsDir = right.kind === "directory";
+		if (leftIsDir !== rightIsDir) {
+			return leftIsDir ? -1 : 1;
+		}
+		return left.name.localeCompare(right.name);
+	});
 }
 
 export async function readFile({

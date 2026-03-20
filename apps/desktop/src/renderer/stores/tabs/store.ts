@@ -1079,6 +1079,21 @@ export const useTabsStore = create<TabsStore>()(
 						),
 					});
 				},
+				setPaneWorkspaceRun: (paneId, workspaceRun) => {
+					set((state) => {
+						const pane = state.panes[paneId];
+						if (!pane) return state;
+						return {
+							panes: {
+								...state.panes,
+								[paneId]: {
+									...pane,
+									workspaceRun: workspaceRun ?? undefined,
+								},
+							},
+						};
+					});
+				},
 				setPaneAutoTitle: (paneId, title) => {
 					set((state) => {
 						const pane = state.panes[paneId];
@@ -2092,6 +2107,15 @@ export const useTabsStore = create<TabsStore>()(
 						for (const pane of Object.values(persisted.panes)) {
 							if (pane.status === "working" || pane.status === "permission") {
 								pane.status = "idle";
+							}
+							// Workspace-run "running" state can't survive a restart —
+							// the daemon session is gone. Mark as exited so the sidebar
+							// indicator is correct even if the pane never remounts.
+							if (pane.workspaceRun?.state === "running") {
+								pane.workspaceRun = {
+									...pane.workspaceRun,
+									state: "stopped-by-exit",
+								};
 							}
 						}
 					}

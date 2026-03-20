@@ -4,7 +4,9 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
 import {
@@ -38,6 +40,7 @@ const stripLeadingEmoji = (text: string) =>
 
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
+	const isWorkspaceRunPane = Boolean(pane?.workspaceRun?.workspaceId);
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 
@@ -47,6 +50,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	);
 	const isUnnamedRef = useRef(false);
 	isUnnamedRef.current = workspaceData?.isUnnamed ?? false;
+
+	const { data: workspaceRunConfig } =
+		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
+			{ workspaceId },
+			{ enabled: isWorkspaceRunPane },
+		);
+
+	const defaultRestartCommandRef = useRef<string | undefined>(undefined);
+	defaultRestartCommandRef.current = isWorkspaceRunPane
+		? (buildTerminalCommand(workspaceRunConfig?.commands) ?? undefined)
+		: undefined;
 
 	const utils = electronTrpc.useUtils();
 	const updateWorkspace = electronTrpc.workspaces.update.useMutation({
@@ -353,7 +367,24 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		defaultRestartCommandRef,
 	});
+
+	const registerRestartCallback = useTerminalCallbacksStore(
+		(s) => s.registerRestartCallback,
+	);
+	const unregisterRestartCallback = useTerminalCallbacksStore(
+		(s) => s.unregisterRestartCallback,
+	);
+	useEffect(() => {
+		registerRestartCallback(paneId, restartTerminal);
+		return () => unregisterRestartCallback(paneId);
+	}, [
+		paneId,
+		restartTerminal,
+		registerRestartCallback,
+		unregisterRestartCallback,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
@@ -419,9 +450,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 				onClose={() => setIsSearchOpen(false)}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
-			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
-				<SessionKilledOverlay onRestart={restartTerminal} />
-			)}
+			{exitStatus === "killed" &&
+				!connectionError &&
+				!isRestoredMode &&
+				!isWorkspaceRunPane && (
+					<SessionKilledOverlay onRestart={restartTerminal} />
+				)}
 			<div className="h-full w-full p-2">
 				<div ref={terminalRef} className="h-full w-full" />
 			</div>
