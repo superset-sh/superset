@@ -216,6 +216,12 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	);
 
 	useEffect(() => {
+		// Don't overwrite local state if there are pending unsaved changes
+		// This prevents race conditions where server data overwrites user edits
+		if (debounceTimerRef.current || saveInFlightRef.current) {
+			return;
+		}
+
 		const parsed = parseContentFromConfig(configData?.content ?? null);
 		setSetupContent(parsed.setup);
 		setTeardownContent(parsed.teardown);
