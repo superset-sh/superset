@@ -11,40 +11,60 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
 };
 
 export async function syncTask(taskId: string) {
-	const task = await db.query.tasks.findFirst({
-		where: eq(tasks.id, taskId),
-		columns: { organizationId: true, externalProvider: true },
-	});
+	try {
+		const task = await db.query.tasks.findFirst({
+			where: eq(tasks.id, taskId),
+			columns: { organizationId: true, externalProvider: true },
+		});
 
-	if (!task) {
-		throw new Error("Task not found");
-	}
+		if (!task) {
+			console.error("[syncTask] Task not found:", taskId);
+			return [];
+		}
 
-	const connections = await db.query.integrationConnections.findMany({
-		where: eq(integrationConnections.organizationId, task.organizationId),
-		columns: { provider: true },
-	});
+		const connections = await db.query.integrationConnections.findMany({
+			where: eq(integrationConnections.organizationId, task.organizationId),
+			columns: { provider: true },
+		});
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+		if (connections.length === 0) {
+			return [];
+		}
 
-	const results = await Promise.allSettled(
-		connections.map(async (conn) => {
-			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
-			if (!endpoint) {
-				return { provider: conn.provider, skipped: true };
+		const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+
+		const results = await Promise.allSettled(
+			connections.map(async (conn) => {
+				const endpoint = PROVIDER_ENDPOINTS[conn.provider];
+				if (!endpoint) {
+					return { provider: conn.provider, skipped: true };
+				}
+
+				const syncUrl = `${qstashBaseUrl}${endpoint}`;
+
+				await qstash.publishJSON({
+					url: syncUrl,
+					body: { taskId },
+					retries: 3,
+				});
+
+				return { provider: conn.provider, queued: true };
+			}),
+		);
+
+		for (const result of results) {
+			if (result.status === "rejected") {
+				console.error(
+					"[syncTask] Failed to queue sync job for task",
+					taskId,
+					result.reason,
+				);
 			}
+		}
 
-			const syncUrl = `${qstashBaseUrl}${endpoint}`;
-
-			await qstash.publishJSON({
-				url: syncUrl,
-				body: { taskId },
-				retries: 3,
-			});
-
-			return { provider: conn.provider, queued: true };
-		}),
-	);
-
-	return results;
+		return results;
+	} catch (error) {
+		console.error("[syncTask] Unexpected error for task", taskId, error);
+		return [];
+	}
 }

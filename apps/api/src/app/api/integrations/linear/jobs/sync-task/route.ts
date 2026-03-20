@@ -49,13 +49,43 @@ async function findLinearState(
 	client: LinearClient,
 	teamId: string,
 	statusName: string,
+	statusExternalId?: string | null,
+	statusType?: string | null,
 ): Promise<string | undefined> {
 	const team = await client.team(teamId);
 	const states = await team.states();
-	const match = states.nodes.find(
+
+	// 1. Direct ID match (fastest — works when status is from the same team)
+	if (statusExternalId) {
+		const idMatch = states.nodes.find(
+			(s: WorkflowState) => s.id === statusExternalId,
+		);
+		if (idMatch) return idMatch.id;
+	}
+
+	// 2. Name match (handles cross-team scenarios)
+	const nameMatch = states.nodes.find(
 		(s: WorkflowState) => s.name.toLowerCase() === statusName.toLowerCase(),
 	);
-	return match?.id;
+	if (nameMatch) return nameMatch.id;
+
+	// 3. Type match as last resort (finds any state of the same type)
+	if (statusType) {
+		const typeMatch = states.nodes.find(
+			(s: WorkflowState) => s.type === statusType,
+		);
+		if (typeMatch) {
+			console.warn(
+				`[sync-task] Status "${statusName}" not found by name in team ${teamId}, falling back to type match: "${typeMatch.name}"`,
+			);
+			return typeMatch.id;
+		}
+	}
+
+	console.warn(
+		`[sync-task] No matching Linear state found for "${statusName}" (type: ${statusType}) in team ${teamId}`,
+	);
+	return undefined;
 }
 
 async function resolveLinearAssigneeId(
@@ -127,7 +157,15 @@ async function syncTaskToLinear(
 			const resolvedUpdateTeamId = issueTeam?.id;
 
 			const stateId = resolvedUpdateTeamId
-				? await findLinearState(client, resolvedUpdateTeamId, taskStatus.name)
+				? await findLinearState(
+						client,
+						resolvedUpdateTeamId,
+						taskStatus.name,
+						taskStatus.externalProvider === "linear"
+							? taskStatus.externalId
+							: null,
+						taskStatus.type,
+					)
 				: undefined;
 
 			let linearAssigneeId: string | null | undefined;
@@ -181,7 +219,13 @@ async function syncTaskToLinear(
 			return { success: false, error: "No team configured" };
 		}
 
-		const stateId = await findLinearState(client, teamId, taskStatus.name);
+		const stateId = await findLinearState(
+			client,
+			teamId,
+			taskStatus.name,
+			taskStatus.externalProvider === "linear" ? taskStatus.externalId : null,
+			taskStatus.type,
+		);
 
 		const createAssigneeId = task.assigneeId
 			? await resolveLinearAssigneeId(

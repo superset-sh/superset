@@ -1,3 +1,4 @@
+import { LinearClient } from "@linear/sdk";
 import type { EntityWebhookPayloadWithIssueData } from "@linear/sdk/webhooks";
 import {
 	LINEAR_WEBHOOK_SIGNATURE_HEADER,
@@ -16,6 +17,7 @@ import {
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, eq, sql } from "drizzle-orm";
 import { env } from "@/env";
+import { syncWorkflowStates } from "../jobs/initial-sync/syncWorkflowStates";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -124,7 +126,7 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
-		const taskStatus = await db.query.taskStatuses.findFirst({
+		let taskStatus = await db.query.taskStatuses.findFirst({
 			where: and(
 				eq(taskStatuses.organizationId, connection.organizationId),
 				eq(taskStatuses.externalProvider, "linear"),
@@ -133,13 +135,59 @@ async function processIssueEvent(
 		});
 
 		if (!taskStatus) {
-			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
-			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
-			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
-			console.warn(
-				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
+			// SUPER-237: Sync workflow states from Linear and retry when we encounter unknown states
+			console.log(
+				`[webhook] Status not found for state ${issue.state.id}, syncing workflow states...`,
 			);
-			return "skipped";
+			try {
+				const client = new LinearClient({
+					accessToken: connection.accessToken,
+				});
+				await syncWorkflowStates({
+					client,
+					organizationId: connection.organizationId,
+				});
+
+				taskStatus = await db.query.taskStatuses.findFirst({
+					where: and(
+						eq(taskStatuses.organizationId, connection.organizationId),
+						eq(taskStatuses.externalProvider, "linear"),
+						eq(taskStatuses.externalId, issue.state.id),
+					),
+				});
+			} catch (syncError) {
+				console.error("[webhook] Failed to sync workflow states:", syncError);
+			}
+
+			if (!taskStatus) {
+				console.warn(
+					`[webhook] Status still not found for state ${issue.state.id} after workflow sync, skipping`,
+				);
+				return "skipped";
+			}
+		}
+
+		// Skip echo: if the task was recently pushed to Linear, don't overwrite with the echo webhook
+		const ECHO_WINDOW_MS = 10_000;
+		if (payload.action === "update") {
+			const existingTask = await db.query.tasks.findFirst({
+				where: and(
+					eq(tasks.organizationId, connection.organizationId),
+					eq(tasks.externalProvider, "linear"),
+					eq(tasks.externalId, issue.id),
+				),
+				columns: { lastSyncedAt: true },
+			});
+
+			if (existingTask?.lastSyncedAt) {
+				const timeSinceSync = Date.now() - existingTask.lastSyncedAt.getTime();
+				if (timeSinceSync < ECHO_WINDOW_MS) {
+					console.log(
+						`[webhook] Skipping echo for issue ${issue.id} (synced ${timeSinceSync}ms ago)`,
+					);
+					return "processed";
+				}
+			}
 		}
 
 		let assigneeId: string | null = null;
@@ -188,7 +236,6 @@ async function processIssueEvent(
 			externalId: issue.id,
 			externalKey: issue.identifier,
 			externalUrl: issue.url,
-			lastSyncedAt: new Date(),
 		};
 
 		await db
