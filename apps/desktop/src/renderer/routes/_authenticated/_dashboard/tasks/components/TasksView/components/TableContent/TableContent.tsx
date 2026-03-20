@@ -5,6 +5,7 @@ import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksTable } from "../../hooks/useTasksTable";
 import { TasksTableView } from "../TasksTableView";
 import type { TabValue } from "../TasksTopBar";
+import { getSelectedTasks } from "./utils/getSelectedTasks";
 
 interface TableContentProps {
 	filterTab: TabValue;
@@ -32,14 +33,7 @@ export function TableContent({
 		});
 
 	const selectedTasks = useMemo(() => {
-		const selectedIds = Object.keys(rowSelection).filter(
-			(id) => rowSelection[id],
-		);
-		if (selectedIds.length === 0) return [];
-		return table
-			.getRowModel()
-			.flatRows.filter((row) => selectedIds.includes(row.id))
-			.map((row) => row.original);
+		return getSelectedTasks(table.getRowModel().flatRows, rowSelection);
 	}, [rowSelection, table]);
 
 	const clearSelection = useCallback(() => {

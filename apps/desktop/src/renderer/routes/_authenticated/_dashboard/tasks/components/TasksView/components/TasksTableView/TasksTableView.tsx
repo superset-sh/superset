@@ -98,12 +98,7 @@ export function TasksTableView({
 									)}
 								</div>
 							) : (
-								<TaskContextMenu
-									task={row.original}
-									onDelete={() => {
-										console.log("Delete task:", row.original.id);
-									}}
-								>
+								<TaskContextMenu task={row.original}>
 									{/* biome-ignore lint/a11y/useSemanticElements: Grid layout requires div, button cannot use grid styling */}
 									<div
 										role="button"
