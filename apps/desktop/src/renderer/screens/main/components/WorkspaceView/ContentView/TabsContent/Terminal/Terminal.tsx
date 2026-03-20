@@ -12,6 +12,7 @@ import { SessionKilledOverlay } from "./components";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
+	withEmojiFontFallback,
 } from "./config";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
@@ -404,8 +405,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !fontSettings) return;
-		const family =
-			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
+		const family = fontSettings.terminalFontFamily
+			? withEmojiFontFallback(fontSettings.terminalFontFamily)
+			: DEFAULT_TERMINAL_FONT_FAMILY;
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
 		xterm.options.fontFamily = family;
 		xterm.options.fontSize = size;
