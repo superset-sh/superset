@@ -1,4 +1,10 @@
-import "./patch-node-stream";
+import { createRequire } from "node:module";
+try {
+	const require = createRequire(import.meta.url);
+	require("./patch-node-stream");
+} catch (err) {
+	console.error('[patch-node-stream] failed to require patch at runtime', err && (err as Error).message);
+}
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
