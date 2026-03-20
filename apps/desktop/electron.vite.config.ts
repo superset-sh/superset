@@ -102,6 +102,7 @@ export default defineConfig({
 			sourcemap: true,
 			rollupOptions: {
 				input: {
+				"patch-node-stream": resolve("src/main/patch-node-stream.ts"),
 					index: resolve("src/main/entrypoints/main.ts"),
 					// Terminal host daemon process - runs separately for terminal persistence
 					"terminal-host": resolve("src/main/entrypoints/terminal-host.ts"),
