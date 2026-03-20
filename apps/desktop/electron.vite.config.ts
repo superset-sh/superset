@@ -102,9 +102,9 @@ export default defineConfig({
 			sourcemap: true,
 			rollupOptions: {
 				input: {
-					index: resolve("src/main/index.ts"),
+					index: resolve("src/main/entrypoints/main.ts"),
 					// Terminal host daemon process - runs separately for terminal persistence
-					"terminal-host": resolve("src/main/terminal-host/index.ts"),
+					"terminal-host": resolve("src/main/entrypoints/terminal-host.ts"),
 					// PTY subprocess - spawned by terminal-host for each terminal
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 					// Worker-thread entrypoint for heavy git/status computations
