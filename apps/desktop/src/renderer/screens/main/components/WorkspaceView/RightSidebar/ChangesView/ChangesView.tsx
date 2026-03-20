@@ -37,6 +37,8 @@ interface ChangesViewProps {
 	) => void;
 	isExpandedView?: boolean;
 	isActive?: boolean;
+	isExpanded?: boolean;
+	onExpandToggle?: () => void;
 }
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
@@ -76,6 +78,8 @@ export function ChangesView({
 	onFileOpen,
 	isExpandedView,
 	isActive = true,
+	isExpanded,
+	onExpandToggle,
 }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const trpcUtils = electronTrpc.useUtils();
@@ -663,6 +667,8 @@ export function ChangesView({
 					stashIncludeUntrackedMutation.isPending ||
 					stashPopMutation.isPending
 				}
+				isExpanded={isExpanded}
+				onExpandToggle={onExpandToggle}
 			/>
 
 			<div className="border-b border-border">

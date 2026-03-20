@@ -18,14 +18,16 @@ export async function makeAppSetup(
 		await restoreWindows();
 	}
 
-	// If no windows were restored, create a new one
+	// Destroy any windows that macOS auto-restored from the previous session.
+	// We manage our own window lifecycle — these zombie windows would otherwise
+	// trigger will-navigate → shell.openExternal, opening Chrome tabs.
+	// destroy() is used instead of close() to prevent any navigation or events.
 	const existingWindows = BrowserWindow.getAllWindows();
-	let window: BrowserWindow;
-	if (existingWindows.length > 0) {
-		window = existingWindows[0];
-	} else {
-		window = await createWindow();
+	for (const win of existingWindows) {
+		if (!win.isDestroyed()) win.destroy();
 	}
+
+	let window: BrowserWindow = await createWindow();
 
 	app.on("activate", async () => {
 		const windows = BrowserWindow.getAllWindows();

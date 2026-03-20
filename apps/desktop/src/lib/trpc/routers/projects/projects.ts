@@ -7,20 +7,24 @@ import {
 	projects,
 	type SelectProject,
 	settings,
+	WORKTREE_MODES,
 	workspaceSections,
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
+import { dataEmitter } from "main/lib/data-events";
 import { localDb } from "main/lib/local-db";
 import {
 	deleteProjectIcon,
 	saveProjectIconFromDataUrl,
 } from "main/lib/project-icons";
+import { windowManager } from "main/lib/window-manager";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
@@ -116,6 +120,27 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 			.set({ lastOpenedAt: Date.now(), defaultBranch })
 			.where(eq(projects.id, existing.id))
 			.run();
+
+		// Discover favicon if no icon is set yet (fire-and-forget)
+		if (!existing.iconUrl) {
+			discoverAndSaveProjectIcon({
+				projectId: existing.id,
+				repoPath: mainRepoPath,
+			})
+				.then((iconUrl) => {
+					if (iconUrl) {
+						localDb
+							.update(projects)
+							.set({ iconUrl })
+							.where(eq(projects.id, existing.id))
+							.run();
+					}
+				})
+				.catch((err) => {
+					console.error("[upsertProject] Favicon discovery failed:", err);
+				});
+		}
+
 		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
 	}
 
@@ -129,6 +154,24 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		})
 		.returning()
 		.get();
+
+	// Discover favicon for new project (fire-and-forget)
+	discoverAndSaveProjectIcon({
+		projectId: project.id,
+		repoPath: mainRepoPath,
+	})
+		.then((iconUrl) => {
+			if (iconUrl) {
+				localDb
+					.update(projects)
+					.set({ iconUrl })
+					.where(eq(projects.id, project.id))
+					.run();
+			}
+		})
+		.catch((err) => {
+			console.error("[upsertProject] Favicon discovery failed:", err);
+		});
 
 	return project;
 }
@@ -1230,6 +1273,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						worktreeBaseDir: z.string().nullable().optional(),
 						hideImage: z.boolean().optional(),
 						defaultApp: z.enum(EXTERNAL_APPS).nullable().optional(),
+						worktreeMode: z.enum(WORKTREE_MODES).nullable().optional(),
 					}),
 				}),
 			)
@@ -1268,10 +1312,18 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.defaultApp !== undefined && {
 							defaultApp: input.patch.defaultApp,
 						}),
+						...(input.patch.worktreeMode !== undefined && {
+							worktreeMode: input.patch.worktreeMode,
+						}),
 						lastOpenedAt: Date.now(),
 					})
 					.where(eq(projects.id, input.id))
 					.run();
+
+				dataEmitter.emit("projectChanged", {
+					projectId: input.id,
+					updatedAt: new Date().toISOString(),
+				});
 
 				return { success: true };
 			}),
@@ -1366,7 +1418,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}),
 
 		close: publicProcedure
-			.input(z.object({ id: z.string() }))
+			.input(
+				z.object({
+					id: z.string(),
+					deleteWorktrees: z.boolean().optional().default(false),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const project = localDb
 					.select()
@@ -1393,6 +1450,56 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				const closedWorkspaceIds = projectWorkspaces.map((w) => w.id);
+
+				// Optionally move worktree directories to Trash
+				if (input.deleteWorktrees) {
+					const { existsSync } = await import("node:fs");
+					const { shell } = await import("electron");
+
+					// Collect worktree paths from both the worktrees table and workspace records
+					const projectWorktrees = localDb
+						.select()
+						.from(worktrees)
+						.where(eq(worktrees.projectId, input.id))
+						.all();
+
+					const worktreePaths = new Set<string>(
+						projectWorktrees.map((wt) => wt.path),
+					);
+
+					for (const ws of projectWorkspaces) {
+						if (ws.type === "worktree" && ws.worktreeId) {
+							const wt = localDb
+								.select()
+								.from(worktrees)
+								.where(eq(worktrees.id, ws.worktreeId))
+								.get();
+							if (wt?.path) {
+								worktreePaths.add(wt.path);
+							}
+						}
+					}
+
+					for (const wtPath of worktreePaths) {
+						if (!existsSync(wtPath)) continue;
+						try {
+							await shell.trashItem(wtPath);
+						} catch (error) {
+							console.error(
+								`[projects/close] Failed to trash worktree ${wtPath}:`,
+								error,
+							);
+						}
+					}
+
+					// Clean up stale git worktree references
+					try {
+						const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+						await git.raw(["worktree", "prune"]);
+					} catch (error) {
+						console.error("[projects/close] Failed to prune worktrees:", error);
+					}
+				}
 
 				if (closedWorkspaceIds.length > 0) {
 					localDb
@@ -1430,6 +1537,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						: undefined;
 
 				track("project_closed", { project_id: input.id });
+
+				// Close the project's dedicated window if one is open
+				const projectWin = windowManager.getProjectWindow(input.id);
+				if (projectWin && !projectWin.isDestroyed()) {
+					projectWin.close();
+				}
 
 				return { success: true, terminalWarning };
 			}),
@@ -1602,6 +1715,18 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				return { iconUrl };
 			}),
+
+		onProjectChanged: publicProcedure.subscription(() => {
+			return observable<{ projectId: string; updatedAt: string }>((emit) => {
+				const onChange = (data: { projectId: string; updatedAt: string }) => {
+					emit.next(data);
+				};
+				dataEmitter.on("projectChanged", onChange);
+				return () => {
+					dataEmitter.off("projectChanged", onChange);
+				};
+			});
+		}),
 	});
 };
 

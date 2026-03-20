@@ -30,6 +30,9 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 				...(data.hotkeysState?.byPlatform ?? {}),
 			},
 		},
+		openFocusWindowProjectIds:
+			data.openFocusWindowProjectIds ??
+			defaultAppState.openFocusWindowProjectIds,
 	};
 }
 

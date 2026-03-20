@@ -3,6 +3,7 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
+import { PanelToggleButtons } from "renderer/screens/main/components/PanelToggleButtons";
 import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
@@ -61,6 +62,7 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
+				<PanelToggleButtons />
 				{workspaceId && (
 					<WorkspaceRunButton
 						projectId={workspace?.projectId ?? workspace?.project?.id}

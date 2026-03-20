@@ -12,7 +12,9 @@ export type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
+	| "file-tree"
 	| "chat"
+	| "chat-mastra"
 	| "devtools";
 
 /**

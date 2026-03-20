@@ -136,6 +136,9 @@ export function TabPane({
 				onSplitWithNewBrowser={() =>
 					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 				}
+				onSplitWithFileTree={() =>
+					splitPaneVertical(tabId, paneId, path, { paneType: "file-tree" })
+				}
 				onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}

@@ -9,6 +9,7 @@ import {
 import {
 	LuColumns2,
 	LuEqual,
+	LuFolderTree,
 	LuGlobe,
 	LuMessageSquare,
 	LuMoveRight,
@@ -24,6 +25,7 @@ export interface PaneContextMenuActions {
 	onSplitVertical: () => void;
 	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
+	onSplitWithFileTree?: () => void;
 	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
 	currentTabId: string;
@@ -78,6 +80,12 @@ export function PaneContextMenuItems({
 					<LuGlobe className="size-4" />
 					Split with New Browser
 					{renderShortcut(splitWithBrowserShortcut)}
+				</ContextMenuItem>
+			)}
+			{actions.onSplitWithFileTree && (
+				<ContextMenuItem onSelect={actions.onSplitWithFileTree}>
+					<LuFolderTree className="size-4" />
+					Split with File Tree
 				</ContextMenuItem>
 			)}
 			{actions.onEqualizePaneSplits && (

@@ -154,6 +154,7 @@ export const createDeleteProcedures = () => {
 					id: z.string(),
 					deleteLocalBranch: z.boolean().optional(),
 					force: z.boolean().optional(),
+					trash: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -252,13 +253,28 @@ export const createDeleteProcedures = () => {
 					await workspaceInitManager.acquireProjectLock(project.id);
 
 					try {
-						const removeResult = await removeWorktreeFromDisk({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-						});
-						if (!removeResult.success) {
-							clearWorkspaceDeletingStatus(input.id);
-							return removeResult;
+						if (input.trash) {
+							// Move to Trash (recoverable) instead of permanent delete
+							const { existsSync } = await import("node:fs");
+							if (existsSync(worktree.path)) {
+								const { shell } = await import("electron");
+								await shell.trashItem(worktree.path);
+							}
+							// Clean up stale git worktree references
+							const { getSimpleGitWithShellPath } = await import(
+								"../utils/git-client"
+							);
+							const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+							await git.raw(["worktree", "prune"]);
+						} else {
+							const removeResult = await removeWorktreeFromDisk({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: worktree.path,
+							});
+							if (!removeResult.success) {
+								clearWorkspaceDeletingStatus(input.id);
+								return removeResult;
+							}
 						}
 					} finally {
 						workspaceInitManager.releaseProjectLock(project.id);

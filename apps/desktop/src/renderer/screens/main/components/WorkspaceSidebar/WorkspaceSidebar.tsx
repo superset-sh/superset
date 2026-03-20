@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
+import { useProjectFocus } from "renderer/hooks/useProjectFocus";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -20,8 +21,18 @@ export function WorkspaceSidebar({
 	activeProjectId,
 	activeProjectName,
 }: WorkspaceSidebarProps) {
-	const { groups } = useWorkspaceShortcuts();
+	const { groups: allGroups } = useWorkspaceShortcuts();
+	const projectFocusId = useProjectFocus();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
+
+	// In project focus mode, only show the focused project
+	const groups = useMemo(
+		() =>
+			projectFocusId
+				? allGroups.filter((g) => g.project.id === projectFocusId)
+				: allGroups,
+		[allGroups, projectFocusId],
+	);
 
 	const projectShortcutIndices = useMemo(
 		() =>
@@ -88,6 +99,7 @@ export function WorkspaceSidebar({
 						mainRepoPath={group.project.mainRepoPath}
 						hideImage={group.project.hideImage}
 						iconUrl={group.project.iconUrl}
+						worktreeMode={group.project.worktreeMode}
 						workspaces={group.workspaces}
 						sections={group.sections ?? []}
 						topLevelItems={group.topLevelItems}

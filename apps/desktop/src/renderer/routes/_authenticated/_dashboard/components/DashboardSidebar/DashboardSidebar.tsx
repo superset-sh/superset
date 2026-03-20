@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useProjectFocus } from "renderer/hooks/useProjectFocus";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
@@ -10,8 +12,21 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
-	const { groups, refreshWorkspacePullRequest, toggleProjectCollapsed } =
-		useDashboardSidebarData();
+	const {
+		groups: allGroups,
+		refreshWorkspacePullRequest,
+		toggleProjectCollapsed,
+	} = useDashboardSidebarData();
+	const projectFocusId = useProjectFocus();
+
+	// In project focus mode, only show the focused project
+	const groups = useMemo(
+		() =>
+			projectFocusId
+				? allGroups.filter((g) => g.id === projectFocusId)
+				: allGroups,
+		[allGroups, projectFocusId],
+	);
 	const workspaceShortcutLabels = useDashboardSidebarShortcuts(groups);
 
 	return (

@@ -15,6 +15,7 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { ConnectedWorktreeChoiceDialog } from "renderer/components/WorktreeChoiceDialog/ConnectedWorktreeChoiceDialog";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -28,6 +29,7 @@ import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useTabsSync } from "renderer/stores/tabs/useTabsSync";
 import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
@@ -65,6 +67,7 @@ function AuthenticatedLayout() {
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
+	useTabsSync();
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -120,6 +123,19 @@ function AuthenticatedLayout() {
 		},
 	});
 
+	// Cross-window project data sync (worktree mode, name, color, etc.)
+	electronTrpc.projects.onProjectChanged.useSubscription(undefined, {
+		onData: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.projects.getRecents.invalidate();
+		},
+	});
+
+	// Terminal zoom via menu/hotkeys
+	const setFontSettings = electronTrpc.settings.setFontSettings.useMutation({
+		onSuccess: () => utils.settings.getFontSettings.invalidate(),
+	});
+
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -128,6 +144,26 @@ function AuthenticatedLayout() {
 				navigate({ to: `/settings/${section}` as "/settings/account" });
 			} else if (event.type === "open-workspace") {
 				navigate({ to: `/workspace/${event.data.workspaceId}` });
+			} else if (
+				event.type === "terminal-zoom-in" ||
+				event.type === "terminal-zoom-out"
+			) {
+				const delta = event.type === "terminal-zoom-in" ? 1 : -1;
+				utils.settings.getFontSettings
+					.fetch()
+					.then((fontSettings) => {
+						const current = fontSettings?.terminalFontSize ?? 14;
+						const next = Math.max(10, Math.min(24, current + delta));
+						if (next !== current) {
+							setFontSettings.mutate({ terminalFontSize: next });
+						}
+					})
+					.catch((error: unknown) => {
+						console.error(
+							"[terminal-zoom] Failed to fetch font settings:",
+							error,
+						);
+					});
 			}
 		},
 	});
@@ -184,6 +220,7 @@ function AuthenticatedLayout() {
 						<NewWorkspaceModal />
 					)}
 					<InitGitDialog />
+					<ConnectedWorktreeChoiceDialog />
 					<TeardownLogsDialog />
 					<Paywall />
 				</HostServiceProvider>

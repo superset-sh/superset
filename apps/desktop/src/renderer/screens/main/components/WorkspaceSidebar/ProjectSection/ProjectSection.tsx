@@ -1,15 +1,18 @@
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import {
 	useOpenNewWorkspaceModal,
 	usePendingWorkspace,
 } from "renderer/stores/new-workspace-modal";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
@@ -41,6 +44,7 @@ interface ProjectSectionProps {
 	mainRepoPath: string;
 	hideImage: boolean;
 	iconUrl: string | null;
+	worktreeMode: string | null;
 	workspaces: SidebarWorkspace[];
 	sections: SidebarSection[];
 	topLevelItems: {
@@ -48,12 +52,13 @@ interface ProjectSectionProps {
 		kind: "workspace" | "section";
 		tabOrder: number;
 	}[];
-	/** Base index for keyboard shortcuts (0-based) */
 	shortcutBaseIndex: number;
-	/** Index for drag-and-drop reordering */
 	index: number;
-	/** Whether the sidebar is in collapsed mode */
 	isCollapsed?: boolean;
+	/** Extra context menu items rendered at the top of the project header menu */
+	extraContextMenuItems?: React.ReactNode;
+	/** Hide the "Open in Focus Window" context menu item */
+	hideOpenInFocusWindow?: boolean;
 }
 
 export function ProjectSection({
@@ -64,16 +69,20 @@ export function ProjectSection({
 	mainRepoPath,
 	hideImage,
 	iconUrl,
+	worktreeMode,
 	workspaces,
 	sections,
 	topLevelItems,
 	shortcutBaseIndex,
 	index,
 	isCollapsed: isSidebarCollapsed = false,
+	extraContextMenuItems,
+	hideOpenInFocusWindow,
 }: ProjectSectionProps) {
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
 	const openModal = useOpenNewWorkspaceModal();
+	const navigate = useNavigate();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 	const pendingWorkspace = usePendingWorkspace();
@@ -82,6 +91,29 @@ export function ProjectSection({
 	const totalWorkspaceCount =
 		workspaces.length +
 		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
+
+	const isBranchOnly = worktreeMode === "disabled";
+	const hasWorktrees = !isBranchOnly;
+
+	const matchRoute = useMatchRoute();
+	const isBranchOnlyActive =
+		isBranchOnly &&
+		workspaces.length > 0 &&
+		!!matchRoute({
+			to: "/workspace/$workspaceId",
+			params: { workspaceId: workspaces[0].id },
+		});
+
+	const clearWorkspaceAttentionStatus = useTabsStore(
+		(s) => s.clearWorkspaceAttentionStatus,
+	);
+
+	const handleNavigateToWorkspace = () => {
+		if (isBranchOnly && workspaces.length > 0) {
+			clearWorkspaceAttentionStatus(workspaces[0].id);
+			navigateToWorkspace(workspaces[0].id, navigate);
+		}
+	};
 
 	// Extract pending workspace item to avoid duplication
 	const pendingWorkspaceItem =
@@ -230,6 +262,9 @@ export function ProjectSection({
 		},
 	});
 
+	// For branch-only projects, always show workspace (no collapse needed)
+	const showWorkspaces = isBranchOnly || !isCollapsed;
+
 	if (isSidebarCollapsed) {
 		return (
 			<div
@@ -255,9 +290,15 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
+					hasWorktrees={hasWorktrees}
+					isBranchOnly={isBranchOnly}
+					isActive={isBranchOnlyActive}
+					onNavigateToWorkspace={handleNavigateToWorkspace}
+					extraContextMenuItems={extraContextMenuItems}
+					hideOpenInFocusWindow={hideOpenInFocusWindow}
 				/>
 				<AnimatePresence initial={false}>
-					{!isCollapsed && (
+					{showWorkspaces && (
 						<motion.div
 							initial={{ height: 0, opacity: 0 }}
 							animate={{ height: "auto", opacity: 1 }}
@@ -358,92 +399,114 @@ export function ProjectSection({
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 				workspaceCount={totalWorkspaceCount}
 				onNewWorkspace={handleNewWorkspace}
+				hasWorktrees={hasWorktrees}
+				isBranchOnly={isBranchOnly}
+				branchOnlyBranch={
+					isBranchOnly && workspaces.length > 0
+						? workspaces[0].branch
+						: undefined
+				}
+				branchOnlyWorktreePath={
+					isBranchOnly && workspaces.length > 0
+						? workspaces[0].worktreePath
+						: undefined
+				}
+				shortcutIndex={isBranchOnly ? shortcutBaseIndex : undefined}
+				branchOnlyWorkspaceId={
+					isBranchOnly && workspaces.length > 0 ? workspaces[0].id : undefined
+				}
+				isActive={isBranchOnlyActive}
+				onNavigateToWorkspace={handleNavigateToWorkspace}
+				extraContextMenuItems={extraContextMenuItems}
+				hideOpenInFocusWindow={hideOpenInFocusWindow}
 			/>
 
-			<AnimatePresence initial={false}>
-				{!isCollapsed && (
-					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: "auto", opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.15, ease: "easeOut" }}
-						className="overflow-hidden"
-					>
-						<div className="pb-1">
-							{showRootDropZones && topLevelChildren.length === 0 && (
-								<div
-									{...topUngroupedDropZone.handlers}
-									className={cn(
-										"transition-colors rounded-sm min-h-8",
-										getRootDropZoneClassName(
-											topUngroupedDropZone.isDropTarget,
-											topUngroupedDropZone.isDragOver,
-										),
-									)}
-								/>
-							)}
-							{showRootDropZones && topLevelChildren.length > 0 && (
-								<div
-									{...topUngroupedDropZone.handlers}
-									className={cn(
-										"h-5",
-										getRootDropZoneClassName(
-											topUngroupedDropZone.isDropTarget,
-											topUngroupedDropZone.isDragOver,
-										),
-									)}
-								/>
-							)}
-							{pendingWorkspaceItem}
-							{topLevelChildren.map((item) =>
-								item.kind === "workspace" ? (
-									<WorkspaceListItem
-										key={item.workspace.id}
-										id={item.workspace.id}
-										projectId={item.workspace.projectId}
-										worktreePath={item.workspace.worktreePath}
-										name={item.workspace.name}
-										branch={item.workspace.branch}
-										type={item.workspace.type}
-										isUnread={item.workspace.isUnread}
-										index={item.topLevelIndex}
-										shortcutIndex={item.shortcutIndex}
-										sectionId={null}
-										sections={sections}
-										orderedWorkspaceIds={orderedWorkspaceIds}
+			{!isBranchOnly && (
+				<AnimatePresence initial={false}>
+					{showWorkspaces && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							exit={{ height: 0, opacity: 0 }}
+							transition={{ duration: 0.15, ease: "easeOut" }}
+							className="overflow-hidden"
+						>
+							<div className="pb-1">
+								{showRootDropZones && topLevelChildren.length === 0 && (
+									<div
+										{...topUngroupedDropZone.handlers}
+										className={cn(
+											"transition-colors rounded-sm min-h-8",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
+										)}
 									/>
-								) : (
-									<WorkspaceSection
-										key={item.section.id}
-										sectionId={item.section.id}
-										projectId={projectId}
-										index={item.topLevelIndex}
-										name={item.section.name}
-										isCollapsed={item.section.isCollapsed}
-										color={item.section.color}
-										workspaces={item.section.workspaces}
-										shortcutBaseIndex={item.shortcutBaseIndex}
-										allSections={sections}
-										orderedWorkspaceIds={orderedWorkspaceIds}
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...topUngroupedDropZone.handlers}
+										className={cn(
+											"h-5",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
+										)}
 									/>
-								),
-							)}
-							{showRootDropZones && topLevelChildren.length > 0 && (
-								<div
-									{...bottomUngroupedDropZone.handlers}
-									className={cn(
-										"h-5",
-										getRootDropZoneClassName(
-											bottomUngroupedDropZone.isDropTarget,
-											bottomUngroupedDropZone.isDragOver,
-										),
-									)}
-								/>
-							)}
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
+								)}
+								{pendingWorkspaceItem}
+								{topLevelChildren.map((item) =>
+									item.kind === "workspace" ? (
+										<WorkspaceListItem
+											key={item.workspace.id}
+											id={item.workspace.id}
+											projectId={item.workspace.projectId}
+											worktreePath={item.workspace.worktreePath}
+											name={item.workspace.name}
+											branch={item.workspace.branch}
+											type={item.workspace.type}
+											isUnread={item.workspace.isUnread}
+											index={item.topLevelIndex}
+											shortcutIndex={item.shortcutIndex}
+											sectionId={null}
+											sections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									) : (
+										<WorkspaceSection
+											key={item.section.id}
+											sectionId={item.section.id}
+											projectId={projectId}
+											index={item.topLevelIndex}
+											name={item.section.name}
+											isCollapsed={item.section.isCollapsed}
+											color={item.section.color}
+											workspaces={item.section.workspaces}
+											shortcutBaseIndex={item.shortcutBaseIndex}
+											allSections={sections}
+											orderedWorkspaceIds={orderedWorkspaceIds}
+										/>
+									),
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...bottomUngroupedDropZone.handlers}
+										className={cn(
+											"h-5",
+											getRootDropZoneClassName(
+												bottomUngroupedDropZone.isDropTarget,
+												bottomUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
+								)}
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			)}
 		</div>
 	);
 }

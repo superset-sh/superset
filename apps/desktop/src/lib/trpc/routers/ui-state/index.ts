@@ -2,6 +2,7 @@ import { observable } from "@trpc/server/observable";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
 import { hotkeysEmitter } from "main/lib/hotkeys-events";
+import { tabsEmitter } from "main/lib/tabs-events";
 import {
 	buildOverridesFromBindings,
 	HOTKEYS_STATE_VERSION,
@@ -43,7 +44,7 @@ const chatLaunchConfigSchema = z.object({
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
+	type: z.enum(["terminal", "webview", "file-viewer", "file-tree", "chat", "chat-mastra", "devtools"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -259,8 +260,23 @@ export const createUiStateRouter = () => {
 				.mutation(async ({ input }) => {
 					appState.data.tabsState = input;
 					await appState.write();
+					tabsEmitter.emit("change", {
+						updatedAt: new Date().toISOString(),
+					});
 					return { success: true };
 				}),
+
+			subscribe: publicProcedure.subscription(() => {
+				return observable<{ updatedAt: string }>((emit) => {
+					const onChange = (data: { updatedAt: string }) => {
+						emit.next(data);
+					};
+					tabsEmitter.on("change", onChange);
+					return () => {
+						tabsEmitter.off("change", onChange);
+					};
+				});
+			}),
 		}),
 
 		// Theme state procedures

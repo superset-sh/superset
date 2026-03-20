@@ -38,6 +38,7 @@ import {
 	reconcileDaemonSessions,
 } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
+import { windowManager } from "./lib/window-manager";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -96,9 +97,8 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 }
 
 function focusMainWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
+	const mainWindow = windowManager.getMainWindow();
+	if (mainWindow && !mainWindow.isDestroyed()) {
 		if (mainWindow.isMinimized()) {
 			mainWindow.restore();
 		}
@@ -185,7 +185,7 @@ app.on("before-quit", async (event) => {
 				buttons: ["Quit", "Cancel"],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
+				title: "Quit K2SO",
 				message: "Are you sure you want to quit?",
 			});
 
@@ -198,6 +198,7 @@ app.on("before-quit", async (event) => {
 	// Quit confirmed or no confirmation needed - exit immediately
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
+	windowManager.closeAllProjectWindows();
 	await outlit.shutdown();
 	getHostServiceManager().stopAll();
 	disposeTray();

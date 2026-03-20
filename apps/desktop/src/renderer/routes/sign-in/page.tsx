@@ -54,7 +54,7 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							Welcome to Superset
+							Welcome to K2SO
 						</h1>
 						<p className="text-sm text-muted-foreground">
 							{hasLocalToken

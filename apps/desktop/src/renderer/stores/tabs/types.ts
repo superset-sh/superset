@@ -50,7 +50,7 @@ export interface AddTabOptions {
 
 export interface SplitPaneOptions {
 	initialCwd?: string;
-	paneType?: "terminal" | "chat" | "webview";
+	paneType?: "terminal" | "chat" | "chat-mastra" | "webview" | "file-tree";
 }
 
 export interface AddChatTabOptions {

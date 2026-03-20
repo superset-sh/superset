@@ -13,6 +13,16 @@ export function setSkipNextHotkeysPersist(skip: boolean): void {
 }
 
 /**
+ * Flag to skip the next tabs persist operation.
+ * Used when syncing from remote to avoid echo writes.
+ */
+let skipNextTabsPersist = false;
+
+export function setSkipNextTabsPersist(skip: boolean): void {
+	skipNextTabsPersist = skip;
+}
+
+/**
  * Creates a Zustand storage adapter that uses tRPC for persistence.
  * This ensures all state is persisted through the centralized appState lowdb instance.
  */
@@ -239,8 +249,15 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 export const trpcTabsStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
 		get: () => electronTrpcClient.uiState.tabs.get.query(),
-		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
-		set: (input) => electronTrpcClient.uiState.tabs.set.mutate(input as any),
+		set: (input) => {
+			// Skip persistence when syncing from remote to avoid echo writes
+			if (skipNextTabsPersist) {
+				skipNextTabsPersist = false;
+				return Promise.resolve();
+			}
+			// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
+			return electronTrpcClient.uiState.tabs.set.mutate(input as any);
+		},
 		writeDebounceMs: 300,
 	}),
 );

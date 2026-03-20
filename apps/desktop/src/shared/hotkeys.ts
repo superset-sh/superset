@@ -575,6 +575,18 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Close the current tab",
 	}),
+	TERMINAL_ZOOM_IN: defineHotkey({
+		keys: "meta+shift+=",
+		label: "Terminal Zoom In",
+		category: "Terminal",
+		description: "Increase terminal font size",
+	}),
+	TERMINAL_ZOOM_OUT: defineHotkey({
+		keys: "meta+shift+-",
+		label: "Terminal Zoom Out",
+		category: "Terminal",
+		description: "Decrease terminal font size",
+	}),
 	CLEAR_TERMINAL: defineHotkey({
 		keys: "meta+k",
 		label: "Clear Terminal",
@@ -749,10 +761,9 @@ export const HOTKEYS = {
 
 	// Window
 	NEW_WINDOW: defineHotkey({
-		keys: null,
+		keys: "meta+shift+n",
 		label: "New Window",
 		category: "Window",
-		isHidden: true,
 	}),
 	CLOSE_WINDOW: defineHotkey({
 		keys: "meta+shift+q",
