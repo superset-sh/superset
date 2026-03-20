@@ -61,6 +61,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
+      - name: Install desktop native dependencies
+        working-directory: apps/desktop
+        run: bun run install:deps
+
       - name: Set version suffix
         if: inputs.version_suffix != ''
         working-directory: apps/desktop
@@ -181,6 +185,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen
+
+      - name: Install desktop native dependencies
+        working-directory: apps/desktop
+        run: bun run install:deps
 
       - name: Set version suffix
         if: inputs.version_suffix != ''

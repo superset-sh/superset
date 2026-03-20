@@ -131,6 +131,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
+      - name: Install desktop native dependencies
+        working-directory: apps/desktop
+        run: bun run install:deps
+
       - name: Build Desktop
         env:
           NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-placeholder-key' }}
