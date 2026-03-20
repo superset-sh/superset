@@ -329,23 +329,39 @@ export class ChatRuntimeService {
 						return observable<ChatRuntimeSessionEvent>((emit) => {
 							let isClosed = false;
 							let unsubscribe = () => {};
+							const subscribeToRuntime = (runtime: RuntimeSession) => {
+								reloadHookConfig(runtime);
+								unsubscribe = this.addSessionListener(
+									runtime.sessionId,
+									(event) => {
+										emit.next(event);
+									},
+								);
+								emit.next({
+									displayState: resolveSessionDisplayState(runtime),
+									eventType: "initial",
+									messagesChanged: false,
+								});
+							};
+
+							const existingRuntime = this.runtimes.get(input.sessionId);
+							if (
+								existingRuntime &&
+								(!input.cwd || existingRuntime.cwd === input.cwd)
+							) {
+								subscribeToRuntime(existingRuntime);
+								return () => {
+									isClosed = true;
+									unsubscribe();
+								};
+							}
 
 							void this.getOrCreateRuntime(input.sessionId, input.cwd)
 								.then((runtime) => {
 									if (isClosed) {
 										return;
 									}
-									emit.next({
-										displayState: resolveSessionDisplayState(runtime),
-										eventType: "initial",
-										messagesChanged: false,
-									});
-									unsubscribe = this.addSessionListener(
-										runtime.sessionId,
-										(event) => {
-											emit.next(event);
-										},
-									);
+									subscribeToRuntime(runtime);
 								})
 								.catch((error: unknown) => {
 									if (isClosed) {

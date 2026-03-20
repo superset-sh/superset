@@ -149,40 +149,28 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		},
 	);
 
-	const displayState = displayQuery.data ?? null;
-	const runtimeErrorMessage =
-		typeof displayState?.errorMessage === "string" &&
-		displayState.errorMessage.trim()
-			? displayState.errorMessage
-			: null;
-	const currentMessage = displayState?.currentMessage ?? null;
-	const isRunning = displayState?.isRunning ?? false;
 	const isConversationLoading =
 		isQueryEnabled &&
 		messagesQuery.data === undefined &&
 		(messagesQuery.isLoading || messagesQuery.isFetching);
 	const historicalMessages = messagesQuery.data ?? [];
-	const latestAssistantErrorMessage = isRunning
-		? null
-		: findLatestAssistantErrorMessage(historicalMessages);
 	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
 		ListMessagesOutput[number] | null
 	>(null);
 	const optimisticTextRef = useRef<string | null>(null);
 	const optimisticIdRef = useRef<string | null>(null);
 	const fileMessageCountAtSendRef = useRef<number | null>(null);
+	const [liveDisplayState, setLiveDisplayState] =
+		useState<DisplayStateOutput | null>(null);
 
-	const refreshSessionState = useCallback(async () => {
+	const refreshMessages = useCallback(async () => {
 		if (!sessionCommandInput) return;
-		await Promise.all([
-			utils.session.getDisplayState.invalidate(sessionCommandInput),
-			utils.session.listMessages.invalidate(sessionCommandInput),
-		]);
-	}, [
-		sessionCommandInput,
-		utils.session.getDisplayState,
-		utils.session.listMessages,
-	]);
+		await utils.session.listMessages.invalidate(sessionCommandInput);
+	}, [sessionCommandInput, utils.session.listMessages]);
+
+	useEffect(() => {
+		setLiveDisplayState(null);
+	}, [sessionId, cwd]);
 
 	useEffect(() => {
 		if (!optimisticIdRef.current) return;
@@ -219,24 +207,31 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		isQueryEnabled && sessionCommandInput ? sessionCommandInput : skipToken,
 		{
 			onData: (event) => {
-				if (!sessionCommandInput) {
-					return;
-				}
+				setLiveDisplayState(event.displayState);
 
-				utils.session.getDisplayState.setData(
-					sessionCommandInput,
-					event.displayState,
-				);
-
-				if (event.messagesChanged) {
+				if (sessionCommandInput && event.messagesChanged) {
 					void utils.session.listMessages.invalidate(sessionCommandInput);
 				}
 			},
 			onError: () => {
-				void refreshSessionState();
+				setLiveDisplayState(null);
+				void displayQuery.refetch();
+				void refreshMessages();
 			},
 		},
 	);
+
+	const displayState = liveDisplayState ?? displayQuery.data ?? null;
+	const runtimeErrorMessage =
+		typeof displayState?.errorMessage === "string" &&
+		displayState.errorMessage.trim()
+			? displayState.errorMessage
+			: null;
+	const currentMessage = displayState?.currentMessage ?? null;
+	const isRunning = displayState?.isRunning ?? false;
+	const latestAssistantErrorMessage = isRunning
+		? null
+		: findLatestAssistantErrorMessage(historicalMessages);
 
 	const messages = useMemo(() => {
 		const withOptimistic = optimisticUserMessage
@@ -313,7 +308,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						...(cwd ? { cwd } : {}),
 						...input,
 					});
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -330,7 +325,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				try {
 					const result =
 						await utils.client.session.stop.mutate(sessionCommandInput);
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -343,7 +338,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				try {
 					const result =
 						await utils.client.session.abort.mutate(sessionCommandInput);
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -360,7 +355,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						...sessionCommandInput,
 						...input,
 					});
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -377,7 +372,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						...sessionCommandInput,
 						...input,
 					});
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -394,7 +389,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						...sessionCommandInput,
 						...input,
 					});
-					void refreshSessionState();
+					void refreshMessages();
 					return result;
 				} catch (error) {
 					setCommandError(error);
@@ -405,7 +400,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		[
 			cwd,
 			historicalMessages,
-			refreshSessionState,
+			refreshMessages,
 			sessionCommandInput,
 			sessionId,
 			utils,
