@@ -10,14 +10,18 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
-import { Kbd } from "@superset/ui/kbd";
+import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { TaskMarkdownRenderer } from "renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/TaskMarkdownRenderer";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import type { TabValue } from "../../TasksTopBar";
 import { CreateTaskAssigneePicker } from "./components/CreateTaskAssigneePicker";
 import { CreateTaskPriorityPicker } from "./components/CreateTaskPriorityPicker";
 import { CreateTaskStatusPicker } from "./components/CreateTaskStatusPicker";
@@ -25,20 +29,30 @@ import { CreateTaskStatusPicker } from "./components/CreateTaskStatusPicker";
 interface CreateTaskDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	currentTab: TabValue;
+	searchQuery: string;
+	assigneeFilter: string | null;
 }
 
 export function CreateTaskDialog({
 	open,
 	onOpenChange,
+	currentTab,
+	searchQuery,
+	assigneeFilter,
 }: CreateTaskDialogProps) {
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
+	const navigate = useNavigate();
+	const platform = useHotkeysStore((state) => state.platform);
+	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const titleInputRef = useRef<HTMLInputElement>(null);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [statusId, setStatusId] = useState<string | null>(null);
 	const [priority, setPriority] = useState<TaskPriority>("none");
 	const [assigneeId, setAssigneeId] = useState<string | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
 
 	const { data: statusData } = useLiveQuery(
 		(q) =>
@@ -96,15 +110,19 @@ export function CreateTaskDialog({
 		setStatusId(defaultStatusId);
 		setPriority("none");
 		setAssigneeId(null);
+		setIsCreating(false);
 	}, [defaultStatusId, open]);
 
-	const handleCreate = () => {
-		if (!title.trim()) return;
+	const waitForTaskSync = async (taskId: string) => {
+		for (let attempt = 0; attempt < 20; attempt += 1) {
+			if (collections.tasks.get(taskId)) {
+				return;
+			}
 
-		toast.info("Create task persistence is next", {
-			description:
-				"The desktop create surface is in place; submit wiring is not yet connected.",
-		});
+			await new Promise((resolve) => {
+				window.setTimeout(resolve, 100);
+			});
+		}
 	};
 
 	const currentStatusType = useMemo(
@@ -113,6 +131,45 @@ export function CreateTaskDialog({
 	);
 	const handleAttachmentClick = () => {
 		toast.info("Attachments are not wired yet");
+	};
+	const handleCreate = async () => {
+		if (!title.trim() || isCreating) return;
+
+		setIsCreating(true);
+
+		try {
+			const result = await apiTrpcClient.task.createFromUi.mutate({
+				title: title.trim(),
+				description: description.trim() || null,
+				statusId,
+				priority,
+				assigneeId,
+			});
+
+			if (!result.task) {
+				throw new Error("Task creation returned no task");
+			}
+
+			await waitForTaskSync(result.task.id);
+
+			const nextSearch: Record<string, string> = {};
+			if (currentTab !== "all") nextSearch.tab = currentTab;
+			if (assigneeFilter) nextSearch.assignee = assigneeFilter;
+			if (searchQuery) nextSearch.search = searchQuery;
+
+			onOpenChange(false);
+			toast.success(`Created ${result.task.slug}`);
+			navigate({
+				to: "/tasks/$taskId",
+				params: { taskId: result.task.id },
+				search: nextSearch,
+			});
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to create task",
+			);
+			setIsCreating(false);
+		}
 	};
 
 	return (
@@ -144,6 +201,7 @@ export function CreateTaskDialog({
 					<DialogClose asChild>
 						<button
 							type="button"
+							disabled={isCreating}
 							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							aria-label="Close"
 						>
@@ -158,6 +216,12 @@ export function CreateTaskDialog({
 						type="text"
 						value={title}
 						onChange={(event) => setTitle(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+								event.preventDefault();
+								void handleCreate();
+							}
+						}}
 						placeholder="Task title"
 						className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60"
 					/>
@@ -197,24 +261,28 @@ export function CreateTaskDialog({
 						size="icon"
 						className="h-10 w-10 rounded-full text-muted-foreground"
 						onClick={handleAttachmentClick}
+						disabled={isCreating}
 					>
 						<HiOutlinePaperClip className="size-4" />
 					</Button>
 
-					<div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-						<Kbd>Ctrl/⌘</Kbd>
-						<span>+</span>
-						<Kbd>Enter</Kbd>
-						<span>to create</span>
-					</div>
-
 					<div className="ml-auto flex items-center gap-3">
 						<Button
 							onClick={handleCreate}
-							disabled={!title.trim()}
-							className="h-10 rounded-full px-5"
+							disabled={!title.trim() || isCreating}
+							className="h-10 rounded-full px-5 text-sm"
 						>
-							Create task
+							{isCreating ? "Creating..." : "Create task"}
+							{!isCreating && (
+								<KbdGroup className="ml-1.5 opacity-70">
+									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+										{modKey}
+									</Kbd>
+									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+										↵
+									</Kbd>
+								</KbdGroup>
+							)}
 						</Button>
 					</div>
 				</DialogFooter>

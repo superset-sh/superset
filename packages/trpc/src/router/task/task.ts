@@ -1,13 +1,61 @@
 import { db, dbWs } from "@superset/db/client";
 import { tasks, users } from "@superset/db/schema";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
-import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
 import { protectedProcedure, publicProcedure } from "../../trpc";
-import { createTaskSchema, updateTaskSchema } from "./schema";
+import {
+	createTaskFromUiSchema,
+	createTaskSchema,
+	updateTaskSchema,
+} from "./schema";
+
+function generateBaseSlug(title: string): string {
+	const slug = title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 50);
+
+	return slug || "task";
+}
+
+async function generateUniqueTaskSlug(
+	organizationId: string,
+	title: string,
+): Promise<string> {
+	const baseSlug = generateBaseSlug(title);
+
+	const existingTasks = await db
+		.select({ slug: tasks.slug })
+		.from(tasks)
+		.where(
+			and(
+				eq(tasks.organizationId, organizationId),
+				isNull(tasks.deletedAt),
+				or(ilike(tasks.slug, `${baseSlug}%`)),
+			),
+		);
+
+	const usedSlugs = new Set(existingTasks.map((task) => task.slug));
+
+	if (!usedSlugs.has(baseSlug)) {
+		return baseSlug;
+	}
+
+	let counter = 1;
+	let slug = `${baseSlug}-${counter}`;
+	while (usedSlugs.has(slug)) {
+		counter += 1;
+		slug = `${baseSlug}-${counter}`;
+	}
+
+	return slug;
+}
 
 export const taskRouter = {
 	all: publicProcedure.query(() => {
@@ -72,6 +120,53 @@ export const taskRouter = {
 					.values({
 						...input,
 						creatorId: ctx.session.user.id,
+						labels: input.labels ?? [],
+					})
+					.returning();
+
+				const txid = await getCurrentTxid(tx);
+
+				return { task, txid };
+			});
+
+			if (result.task) {
+				syncTask(result.task.id);
+			}
+
+			return result;
+		}),
+
+	createFromUi: protectedProcedure
+		.input(createTaskFromUiSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
+			const slug = await generateUniqueTaskSlug(organizationId, input.title);
+
+			const result = await dbWs.transaction(async (tx) => {
+				const statusId =
+					input.statusId ?? (await seedDefaultStatuses(organizationId, tx));
+
+				const [task] = await tx
+					.insert(tasks)
+					.values({
+						slug,
+						title: input.title,
+						description: input.description ?? null,
+						statusId,
+						priority: input.priority ?? "none",
+						organizationId,
+						creatorId: ctx.session.user.id,
+						assigneeId: input.assigneeId ?? null,
+						estimate: input.estimate ?? null,
+						dueDate: input.dueDate ?? null,
 						labels: input.labels ?? [],
 					})
 					.returning();

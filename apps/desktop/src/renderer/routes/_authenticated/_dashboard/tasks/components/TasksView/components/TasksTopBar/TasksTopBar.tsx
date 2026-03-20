@@ -201,6 +201,9 @@ export function TasksTopBar({
 			<CreateTaskDialog
 				open={isCreateTaskOpen}
 				onOpenChange={setIsCreateTaskOpen}
+				currentTab={currentTab}
+				searchQuery={searchQuery}
+				assigneeFilter={assigneeFilter}
 			/>
 		</>
 	);
