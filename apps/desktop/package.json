@@ -1,6 +1,6 @@
 {
 	"name": "@superset/desktop",
-	"productName": "Superset",
+	"productName": "K2SO",
 	"description": "The last developer tool you'll ever need",
 	"version": "1.2.3",
 	"main": "./dist/main/index.js",
@@ -10,8 +10,8 @@
 		"url": "https://github.com/superset-sh/superset.git"
 	},
 	"author": {
-		"name": "Superset",
-		"email": "hi@superset.sh"
+		"name": "K2SO",
+		"email": "rosson@alakazamlabs.com"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist dist-electron release node_modules",

@@ -185,7 +185,7 @@ app.on("before-quit", async (event) => {
 				buttons: ["Quit", "Cancel"],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
+				title: "Quit K2SO",
 				message: "Are you sure you want to quit?",
 			});
 

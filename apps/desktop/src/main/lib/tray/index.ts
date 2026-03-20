@@ -111,7 +111,7 @@ function openTerminalSettings(): void {
 	menuEmitter.emit("open-settings", "terminal");
 }
 
-function openSessionInSuperset(workspaceId: string): void {
+function openSessionInK2SO(workspaceId: string): void {
 	showWindow();
 	menuEmitter.emit("open-workspace", workspaceId);
 }
@@ -185,8 +185,8 @@ function buildSessionsSubmenu(
 					label: formatSessionLabel(session),
 					submenu: [
 						{
-							label: "Open in Superset",
-							click: () => openSessionInSuperset(session.workspaceId),
+							label: "Open in K2SO",
+							click: () => openSessionInK2SO(session.workspaceId),
 						},
 						{
 							label: "Kill",
@@ -223,8 +223,8 @@ async function quitApp(): Promise<void> {
 		buttons: ["Cancel", "Keep Sessions", "Kill Sessions"],
 		defaultId: 1,
 		cancelId: 0,
-		title: "Quit Superset?",
-		message: "Quit Superset?",
+		title: "Quit K2SO?",
+		message: "Quit K2SO?",
 		detail:
 			"Keep sessions running in the background, or kill all sessions and shut down the daemon?",
 	});
@@ -259,7 +259,7 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{ type: "separator" },
 		{
-			label: "Open Superset",
+			label: "Open K2SO",
 			click: showWindow,
 		},
 		{
@@ -294,7 +294,7 @@ export function initTray(): void {
 		}
 
 		tray = new Tray(icon);
-		tray.setToolTip("Superset");
+		tray.setToolTip("K2SO");
 
 		updateTrayMenu().catch((error) => {
 			console.error("[Tray] Failed to build initial menu:", error);
