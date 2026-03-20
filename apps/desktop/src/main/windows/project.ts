@@ -109,10 +109,12 @@ export async function ProjectWindow(projectId: string): Promise<BrowserWindow> {
 
 	window.on("close", () => {
 		handler?.detachWindow(window);
-		windowManager.unregisterProjectWindow(projectId);
 	});
 
-	window.on("closed", window.destroy);
+	window.on("closed", () => {
+		windowManager.unregisterProjectWindow(projectId);
+		window.destroy();
+	});
 
 	return window;
 }
