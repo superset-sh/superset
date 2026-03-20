@@ -8,11 +8,15 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSidebarStore } from "renderer/stores";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import {
+	useOpenNewWorkspaceModal,
+	usePendingWorkspace,
+} from "renderer/stores/new-workspace-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
+import { PendingWorkspaceItem } from "../WorkspaceListItem/PendingWorkspaceItem";
 import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
@@ -81,6 +85,7 @@ export function ProjectSection({
 	const navigate = useNavigate();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
+	const pendingWorkspace = usePendingWorkspace();
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
@@ -109,6 +114,14 @@ export function ProjectSection({
 			navigateToWorkspace(workspaces[0].id, navigate);
 		}
 	};
+
+	// Extract pending workspace item to avoid duplication
+	const pendingWorkspaceItem =
+		pendingWorkspace && pendingWorkspace.projectId === projectId ? (
+			<div className={cn(isSidebarCollapsed ? "w-full px-1" : "px-1 pb-0.5")}>
+				<PendingWorkspaceItem isCollapsed={isSidebarCollapsed} />
+			</div>
+		) : null;
 
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
 		const topLevelWorkspacesById = new Map(
@@ -306,6 +319,7 @@ export function ProjectSection({
 										)}
 									/>
 								)}
+								{pendingWorkspaceItem}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
@@ -442,6 +456,7 @@ export function ProjectSection({
 										)}
 									/>
 								)}
+								{pendingWorkspaceItem}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem

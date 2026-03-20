@@ -7,6 +7,7 @@ interface SanitizeSegmentOptions {
 
 interface SanitizeBranchNameOptions {
 	preserveFirstSegmentCase?: boolean;
+	preserveCase?: boolean;
 }
 
 export function sanitizeSegment(
@@ -39,13 +40,16 @@ export function sanitizeAuthorPrefix(name: string): string {
 
 export function sanitizeBranchName(
 	name: string,
-	{ preserveFirstSegmentCase = false }: SanitizeBranchNameOptions = {},
+	{
+		preserveFirstSegmentCase = false,
+		preserveCase = false,
+	}: SanitizeBranchNameOptions = {},
 ): string {
 	return name
 		.split("/")
 		.map((segment, index) =>
 			sanitizeSegment(segment, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
-				preserveCase: preserveFirstSegmentCase && index === 0,
+				preserveCase: preserveCase || (preserveFirstSegmentCase && index === 0),
 			}),
 		)
 		.filter(Boolean)
