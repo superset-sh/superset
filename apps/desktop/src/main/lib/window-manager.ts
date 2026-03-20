@@ -72,9 +72,10 @@ class WindowManager {
 	}
 
 	closeAllProjectWindows(): void {
-		for (const [id, win] of this.projectWindows) {
+		// Close windows first — each window's "closed" event will call
+		// unregisterProjectWindow to remove it from the map.
+		for (const win of this.projectWindows.values()) {
 			if (!win.isDestroyed()) win.close();
-			this.projectWindows.delete(id);
 		}
 	}
 }
