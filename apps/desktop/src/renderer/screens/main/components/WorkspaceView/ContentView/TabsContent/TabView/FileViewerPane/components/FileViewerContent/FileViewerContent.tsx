@@ -111,7 +111,6 @@ interface FileViewerContentProps {
 	diffData: DiffData | undefined;
 	editorRef: MutableRefObject<CodeEditorAdapter | null>;
 	markdownEditorRef: MutableRefObject<MarkdownEditorAdapter | null>;
-	draftContentRef: MutableRefObject<string | null>;
 	renderedContent: string;
 	initialLine?: number;
 	initialColumn?: number;
@@ -147,7 +146,6 @@ export function FileViewerContent({
 	diffData,
 	editorRef,
 	markdownEditorRef,
-	draftContentRef,
 	renderedContent,
 	initialLine,
 	initialColumn,
@@ -488,7 +486,7 @@ export function FileViewerContent({
 				<CodeEditor
 					key={filePath}
 					language={detectLanguage(filePath)}
-					value={draftContentRef.current ?? rawFileData.content}
+					value={renderedContent}
 					onChange={onContentChange}
 					onSave={onSaveFile}
 					editorRef={editorRef}

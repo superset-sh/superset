@@ -515,7 +515,11 @@ export function useTerminalLifecycle({
 							},
 							onError: (error) => {
 								if (!isAttachActive()) return;
+								const workspaceRun = getPaneWorkspaceRun(paneId);
 								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+									if (workspaceRun) {
+										setPaneWorkspaceRunState(paneId, "stopped-by-user");
+									}
 									wasKilledByUserRef.current = true;
 									isExitedRef.current = true;
 									isStreamReadyRef.current = false;
@@ -524,6 +528,9 @@ export function useTerminalLifecycle({
 									return;
 								}
 								console.error("[Terminal] Failed to create/attach:", error);
+								if (workspaceRun) {
+									setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+								}
 								setConnectionError(
 									error.message || "Failed to connect to terminal",
 								);

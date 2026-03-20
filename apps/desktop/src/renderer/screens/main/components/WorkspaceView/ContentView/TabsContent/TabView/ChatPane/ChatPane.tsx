@@ -4,7 +4,7 @@ import {
 } from "@superset/chat/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { CopyIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
 import { env } from "renderer/env.renderer";
@@ -68,6 +68,19 @@ export function ChatPane({
 }: ChatPaneProps) {
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
+	const isActiveTab = useTabsStore((s) => s.activeTabIds[workspaceId] === tabId);
+	const prevIsActiveTabRef = useRef(isActiveTab);
+	const chatContainerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (isActiveTab && !prevIsActiveTabRef.current && isFocused) {
+			const textarea = chatContainerRef.current?.querySelector<HTMLTextAreaElement>(
+				"[data-slot=input-group-control]",
+			);
+			textarea?.focus();
+		}
+		prevIsActiveTabRef.current = isActiveTab;
+	}, [isActiveTab, isFocused]);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name ?? "New Chat");
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
@@ -210,7 +223,7 @@ export function ChatPane({
 						onMoveToNewTab={onMoveToNewTab}
 						closeLabel="Close Chat"
 					>
-						<div className="h-full w-full">
+						<div ref={chatContainerRef} className="h-full w-full">
 							<ChatPaneInterface
 								sessionId={sessionId}
 								initialLaunchConfig={launchConfig}

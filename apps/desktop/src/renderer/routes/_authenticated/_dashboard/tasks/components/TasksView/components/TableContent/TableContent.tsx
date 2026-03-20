@@ -1,4 +1,5 @@
 import { Spinner } from "@superset/ui/spinner";
+import { useCallback, useEffect, useMemo } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksTable } from "../../hooks/useTasksTable";
@@ -10,6 +11,10 @@ interface TableContentProps {
 	searchQuery: string;
 	assigneeFilter: string | null;
 	onTaskClick: (task: TaskWithStatus) => void;
+	onSelectionChange?: (
+		selectedTasks: TaskWithStatus[],
+		clearSelection: () => void,
+	) => void;
 }
 
 export function TableContent({
@@ -17,12 +22,33 @@ export function TableContent({
 	searchQuery,
 	assigneeFilter,
 	onTaskClick,
+	onSelectionChange,
 }: TableContentProps) {
-	const { table, isLoading, slugColumnWidth } = useTasksTable({
-		filterTab,
-		searchQuery,
-		assigneeFilter,
-	});
+	const { table, isLoading, slugColumnWidth, rowSelection, setRowSelection } =
+		useTasksTable({
+			filterTab,
+			searchQuery,
+			assigneeFilter,
+		});
+
+	const selectedTasks = useMemo(() => {
+		const selectedIds = Object.keys(rowSelection).filter(
+			(id) => rowSelection[id],
+		);
+		if (selectedIds.length === 0) return [];
+		return table
+			.getRowModel()
+			.flatRows.filter((row) => selectedIds.includes(row.id))
+			.map((row) => row.original);
+	}, [rowSelection, table]);
+
+	const clearSelection = useCallback(() => {
+		setRowSelection({});
+	}, [setRowSelection]);
+
+	useEffect(() => {
+		onSelectionChange?.(selectedTasks, clearSelection);
+	}, [selectedTasks, clearSelection, onSelectionChange]);
 
 	if (isLoading) {
 		return (

@@ -1,4 +1,11 @@
 {
-	"setup": ["./.superset/setup.sh"],
-	"teardown": ["./.superset/teardown.sh"]
+  "setup": [
+    "./.superset/setup.sh"
+  ],
+  "teardown": [
+    "./.superset/teardown.sh"
+  ],
+  "run": [
+    "bun dev"
+  ]
 }
