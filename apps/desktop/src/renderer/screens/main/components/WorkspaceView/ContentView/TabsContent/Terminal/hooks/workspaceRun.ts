@@ -79,6 +79,25 @@ export async function recoverWorkspaceRunPane({
 		return false;
 	}
 
+	const showExitedState = (state: WorkspaceRunState): boolean => {
+		const wasStoppedByUser = state === "stopped-by-user";
+		setPaneWorkspaceRunState(paneId, state);
+		isExitedRef.current = true;
+		wasKilledByUserRef.current = wasStoppedByUser;
+		isStreamReadyRef.current = true;
+		setExitStatus(wasStoppedByUser ? "killed" : "exited");
+		xterm.writeln(
+			wasStoppedByUser ? "\r\n[Session killed]" : "\r\n[Process exited]",
+		);
+		xterm.writeln("[Press any key to restart]");
+		done();
+		return true;
+	};
+
+	if (workspaceRun.state !== "running") {
+		return showExitedState(workspaceRun.state);
+	}
+
 	try {
 		const existingSession =
 			await electronTrpcClient.terminal.getSession.query(paneId);
@@ -90,32 +109,15 @@ export async function recoverWorkspaceRunPane({
 			return true;
 		}
 
-		const wasStoppedByUser = workspaceRun.state === "stopped-by-user";
-		const resolvedState =
-			workspaceRun.state === "running" ? "stopped-by-exit" : workspaceRun.state;
-
-		setPaneWorkspaceRunState(paneId, resolvedState);
-		isExitedRef.current = true;
-		wasKilledByUserRef.current = wasStoppedByUser;
-		isStreamReadyRef.current = true;
-		setExitStatus(wasStoppedByUser ? "killed" : "exited");
-		xterm.writeln(
-			wasStoppedByUser ? "\r\n[Session killed]" : "\r\n[Process exited]",
-		);
-		xterm.writeln("[Press any key to restart]");
-		done();
-		return true;
-	} catch {
+		return showExitedState("stopped-by-exit");
+	} catch (error) {
 		if (shouldAbort()) return true;
 
-		setPaneWorkspaceRunState(paneId, "stopped-by-exit");
-		isExitedRef.current = true;
-		wasKilledByUserRef.current = false;
-		isStreamReadyRef.current = true;
-		setExitStatus("exited");
-		xterm.writeln("\r\n[Process exited]");
-		xterm.writeln("[Press any key to restart]");
-		done();
+		console.warn(
+			`[workspace-run] Failed to inspect session for pane ${paneId}:`,
+			error,
+		);
+		startAttach();
 		return true;
 	}
 }

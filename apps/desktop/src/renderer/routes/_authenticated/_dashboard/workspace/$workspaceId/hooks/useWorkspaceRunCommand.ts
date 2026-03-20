@@ -59,24 +59,24 @@ export function useWorkspaceRunCommand({
 			return;
 		}
 
-		// START: always fetch the latest config so run-script detection never
-		// depends on stale cache state or on a query still loading in the view.
-		const runConfig =
-			await electronTrpcClient.workspaces.getResolvedRunCommands.query({
-				workspaceId,
-			});
-		const command = buildTerminalCommand(runConfig.commands);
-		if (!command) {
-			toast.error("No workspace run command configured", {
-				description:
-					"Add a run script in Project Settings to use the workspace run shortcut.",
-			});
-			return;
-		}
-
 		isStartingRef.current = true;
 		setIsPending(true);
 		try {
+			// START: always fetch the latest config so run-script detection never
+			// depends on stale cache state or on a query still loading in the view.
+			const runConfig =
+				await electronTrpcClient.workspaces.getResolvedRunCommands.query({
+					workspaceId,
+				});
+			const command = buildTerminalCommand(runConfig.commands);
+			if (!command) {
+				toast.error("No workspace run command configured", {
+					description:
+						"Add a run script in Project Settings to use the workspace run shortcut.",
+				});
+				return;
+			}
+
 			const initialCwd = worktreePath?.trim() ? worktreePath : undefined;
 
 			// Reuse existing run pane if available
@@ -143,6 +143,10 @@ export function useWorkspaceRunCommand({
 			setPaneWorkspaceRun(paneId, { workspaceId, state: "running" });
 			setActiveTab(workspaceId, tabId);
 			setFocusedPane(tabId, paneId);
+		} catch (error) {
+			toast.error("Failed to resolve workspace run command", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
 		} finally {
 			isStartingRef.current = false;
 			setIsPending(false);
