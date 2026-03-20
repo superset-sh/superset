@@ -138,21 +138,16 @@ export function NewWorkspaceModalDraftProvider({
 
 	const runAsyncAction = useCallback(
 		<T,>(promise: Promise<T>, messages: NewWorkspaceModalActionMessages) => {
-			const submitDraftVersion = state.draftVersion;
 			onClose();
+			resetDraft();
 			toast.promise(promise, {
 				loading: messages.loading,
 				success: messages.success,
 				error: (err) => messages.error(err),
 			});
-			void promise
-				.then(() => {
-					resetDraftIfVersion(submitDraftVersion);
-				})
-				.catch(() => undefined);
 			return promise;
 		},
-		[onClose, resetDraftIfVersion, state.draftVersion],
+		[onClose, resetDraft],
 	);
 
 	const value = useMemo<NewWorkspaceModalDraftContextValue>(

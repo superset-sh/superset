@@ -31,12 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	ArrowUpIcon,
-	Loader2Icon,
-	PaperclipIcon,
-	PlusIcon,
-} from "lucide-react";
+import { ArrowUpIcon, PaperclipIcon, PlusIcon } from "lucide-react";
 import {
 	forwardRef,
 	useCallback,
@@ -416,8 +411,6 @@ function PromptGroupInner({
 		linkedIssues,
 		linkedPR,
 	} = draft;
-	const runSetupScriptRef = useRef(runSetupScript);
-	runSetupScriptRef.current = runSetupScript;
 	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
 	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
@@ -714,8 +707,9 @@ function PromptGroupInner({
 				},
 				{
 					agentLaunchRequest: launchRequest ?? undefined,
-					resolveInitialCommands: (commands) =>
-						runSetupScriptRef.current ? commands : null,
+					resolveInitialCommands: runSetupScript
+						? (commands) => commands
+						: () => null,
 				},
 			),
 			{
@@ -743,6 +737,7 @@ function PromptGroupInner({
 		linkedPR,
 		projectId,
 		runAsyncAction,
+		runSetupScript,
 		setPendingWorkspace,
 		trimmedPrompt,
 		workspaceName,
@@ -931,17 +926,12 @@ function PromptGroupInner({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={createWorkspace.isPending || createFromPr.isPending}
 							onClick={(e) => {
 								e.preventDefault();
 								void handleCreate();
 							}}
 						>
-							{createWorkspace.isPending || createFromPr.isPending ? (
-								<Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
-							) : (
-								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
-							)}
+							<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 						</PromptInputSubmit>
 					</div>
 				</PromptInputFooter>
