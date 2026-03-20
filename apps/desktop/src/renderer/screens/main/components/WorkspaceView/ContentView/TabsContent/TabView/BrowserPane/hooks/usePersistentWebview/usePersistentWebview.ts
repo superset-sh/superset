@@ -40,9 +40,14 @@ export function destroyPersistentWebview(paneId: string): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
 function sanitizeUrl(url: string): string {
-	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
-		return url;
+	// Pass through any URL that already has a scheme (https://, http://, file://, about:, data:, etc.)
+	// Guard against localhost:port being misidentified as a scheme.
+	if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
+		const potentialHost = url.split(":")[0];
+		if (!LOCALHOST_HOSTS.has(potentialHost)) return url;
 	}
 	if (url.startsWith("localhost") || url.startsWith("127.0.0.1")) {
 		return `http://${url}`;
