@@ -268,7 +268,7 @@ export function ProjectSection({
 							<div className="flex flex-col items-center gap-1 pt-1">
 								{showRootDropZones && topLevelChildren.length > 0 && (
 									<div
-										{...topUngroupedDropZone.handlers}
+										ref={topUngroupedDropZone.attachDropRef}
 										className={cn(
 											"w-full h-5",
 											getRootDropZoneClassName(
@@ -316,7 +316,7 @@ export function ProjectSection({
 								)}
 								{showRootDropZones && topLevelChildren.length > 0 && (
 									<div
-										{...bottomUngroupedDropZone.handlers}
+										ref={bottomUngroupedDropZone.attachDropRef}
 										className={cn(
 											"w-full h-5",
 											getRootDropZoneClassName(
@@ -372,7 +372,7 @@ export function ProjectSection({
 						<div className="pb-1">
 							{showRootDropZones && topLevelChildren.length === 0 && (
 								<div
-									{...topUngroupedDropZone.handlers}
+									ref={topUngroupedDropZone.attachDropRef}
 									className={cn(
 										"transition-colors rounded-sm min-h-8",
 										getRootDropZoneClassName(
@@ -384,7 +384,7 @@ export function ProjectSection({
 							)}
 							{showRootDropZones && topLevelChildren.length > 0 && (
 								<div
-									{...topUngroupedDropZone.handlers}
+									ref={topUngroupedDropZone.attachDropRef}
 									className={cn(
 										"h-5",
 										getRootDropZoneClassName(
@@ -430,7 +430,7 @@ export function ProjectSection({
 							)}
 							{showRootDropZones && topLevelChildren.length > 0 && (
 								<div
-									{...bottomUngroupedDropZone.handlers}
+									ref={bottomUngroupedDropZone.attachDropRef}
 									className={cn(
 										"h-5",
 										getRootDropZoneClassName(

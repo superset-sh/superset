@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { getActiveDragItem, useActiveDragItemStore } from "./active-drag-item";
+import { useActiveDragItemStore } from "./active-drag-item";
 
 const testItem = {
 	kind: "workspace" as const,
@@ -35,20 +35,5 @@ describe("useActiveDragItemStore", () => {
 		const newItem = { ...testItem, id: "ws-2", index: 3 };
 		useActiveDragItemStore.getState().setActiveDragItem(newItem);
 		expect(useActiveDragItemStore.getState().activeDragItem).toEqual(newItem);
-	});
-});
-
-describe("getActiveDragItem", () => {
-	beforeEach(() => {
-		useActiveDragItemStore.getState().clearActiveDragItem();
-	});
-
-	test("returns null when no active item", () => {
-		expect(getActiveDragItem()).toBeNull();
-	});
-
-	test("returns the current active item", () => {
-		useActiveDragItemStore.getState().setActiveDragItem(testItem);
-		expect(getActiveDragItem()).toEqual(testItem);
 	});
 });
