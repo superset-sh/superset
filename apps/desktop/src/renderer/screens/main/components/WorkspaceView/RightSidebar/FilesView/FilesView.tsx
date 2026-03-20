@@ -35,6 +35,7 @@ import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
 import type { NewItemMode } from "./types";
+import { buildUncachedEntry } from "./utils/build-entry";
 
 interface PendingTreeRefresh {
 	fullRefresh: boolean;
@@ -188,20 +189,29 @@ export function FilesView() {
 					return cachedEntry;
 				}
 
-				const currentPath = worktreePathRef.current;
-				const name = itemId.split(/[/\\]/).pop() ?? itemId;
-				const relativePath =
-					currentPath && itemId.startsWith(currentPath)
-						? itemId.slice(currentPath.length).replace(/^[/\\]/, "")
-						: itemId;
+				// Query the filesystem to determine the correct kind
+				// instead of defaulting to false (which causes directories
+				// to appear as files when not yet cached — #2580).
+				let isDirectory = false;
+				if (workspaceId) {
+					try {
+						const metadata = await trpcUtils.filesystem.getMetadata.fetch({
+							workspaceId,
+							absolutePath: itemId,
+						});
+						isDirectory = metadata?.kind === "directory";
+					} catch {
+						// Fall back to false if metadata lookup fails
+					}
+				}
 
-				return {
-					id: itemId,
-					name,
-					path: itemId,
-					relativePath,
-					isDirectory: false,
-				};
+				const entry = buildUncachedEntry(
+					itemId,
+					worktreePathRef.current,
+					isDirectory,
+				);
+				entryCacheRef.current.set(itemId, entry);
+				return entry;
 			},
 			getChildren: async (itemId: string): Promise<string[]> => {
 				const currentPath = worktreePathRef.current;
