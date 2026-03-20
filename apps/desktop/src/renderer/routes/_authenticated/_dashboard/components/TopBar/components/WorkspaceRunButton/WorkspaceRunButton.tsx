@@ -8,7 +8,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { memo, useCallback } from "react";
-import { HiChevronDown, HiMiniCog6Tooth, HiMiniPlay, HiMiniStop } from "react-icons/hi2";
+import {
+	HiChevronDown,
+	HiMiniCog6Tooth,
+	HiMiniPlay,
+	HiMiniStop,
+} from "react-icons/hi2";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
