@@ -11,6 +11,7 @@ import { ResourceConsumption } from "./components/ResourceConsumption";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { WindowControls } from "./components/WindowControls";
+import { WorkspaceRunButton } from "./components/WorkspaceRunButton";
 
 export function TopBar() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
@@ -62,6 +63,13 @@ export function TopBar() {
 					</div>
 				)}
 				<PanelToggleButtons />
+				{workspaceId && (
+					<WorkspaceRunButton
+						projectId={workspace?.projectId ?? workspace?.project?.id}
+						workspaceId={workspaceId}
+						worktreePath={workspace?.worktreePath}
+					/>
+				)}
 				{workspace?.worktreePath && (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}

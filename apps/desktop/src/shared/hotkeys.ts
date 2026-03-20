@@ -722,6 +722,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Quickly create a workspace in the current project",
 	}),
+	RUN_WORKSPACE_COMMAND: defineHotkey({
+		keys: "meta+shift+g",
+		label: "Run Workspace Command",
+		category: "Workspace",
+		description: "Start or stop the workspace run command",
+	}),
 	FOCUS_TASK_SEARCH: defineHotkey({
 		keys: "meta+f",
 		label: "Focus Task Search",
