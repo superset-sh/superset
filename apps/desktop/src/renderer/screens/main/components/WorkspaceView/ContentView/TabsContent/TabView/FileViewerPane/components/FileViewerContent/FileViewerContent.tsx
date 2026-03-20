@@ -488,7 +488,7 @@ export function FileViewerContent({
 				<CodeEditor
 					key={filePath}
 					language={detectLanguage(filePath)}
-					value={draftContentRef.current ?? rawFileData.content}
+					value={renderedContent}
 					onChange={onContentChange}
 					onSave={onSaveFile}
 					editorRef={editorRef}
