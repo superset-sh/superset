@@ -1,4 +1,5 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -19,6 +20,7 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getTaskBranchCandidates } from "renderer/lib/task-identifiers";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
@@ -28,7 +30,6 @@ import {
 	getFallbackAgentId,
 	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 type TaskStatus = "pending" | "creating" | "done" | "failed";
@@ -116,7 +117,7 @@ export function RunInWorkspacePopover({
 		buildTaskAgentLaunchRequest({
 			task: {
 				id: task.id,
-				slug: task.slug,
+				slug: getTaskDisplayId(task),
 				title: task.title,
 				description: task.description,
 				priority: task.priority,
@@ -161,11 +162,10 @@ export function RunInWorkspacePopover({
 				return next;
 			});
 
+			const taskDisplayId = getTaskDisplayId(task);
 			try {
-				const branchName = deriveBranchName({
-					slug: task.slug,
-					title: task.title,
-				});
+				const [branchName, ...existingBranchAliases] =
+					getTaskBranchCandidates(task);
 				const launchRequestTemplate = buildLaunchRequest(
 					task,
 					"pending-workspace",
@@ -174,8 +174,9 @@ export function RunInWorkspacePopover({
 				const result = await createWorkspace.mutateAsyncWithPendingSetup(
 					{
 						projectId: effectiveProjectId,
-						name: task.slug,
+						name: taskDisplayId,
 						branchName,
+						existingBranchAliases,
 					},
 					{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 				);
@@ -206,7 +207,7 @@ export function RunInWorkspacePopover({
 				successCount++;
 			} catch (err) {
 				console.error(
-					`[RunInWorkspacePopover] Failed to create workspace for task ${task.slug}:`,
+					`[RunInWorkspacePopover] Failed to create workspace for task ${taskDisplayId}:`,
 					err,
 				);
 				setTaskStatuses((prev) => {
@@ -366,7 +367,7 @@ export function RunInWorkspacePopover({
 									<BatchStatusIcon
 										status={taskStatuses.get(task.id) ?? "pending"}
 									/>
-									<span className="truncate">{task.slug}</span>
+									<span className="truncate">{getTaskDisplayId(task)}</span>
 								</div>
 							))}
 						</div>

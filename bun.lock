@@ -752,6 +752,7 @@
         "@modelcontextprotocol/sdk": "^1.26.0",
         "@superset/db": "workspace:*",
         "@superset/shared": "workspace:*",
+        "@superset/trpc": "workspace:*",
         "drizzle-orm": "0.45.1",
         "zod": "^4.3.5",
       },

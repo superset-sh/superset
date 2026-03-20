@@ -13,6 +13,8 @@ export const env = createEnv({
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
 		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
+		LINEAR_CLIENT_ID: z.string().min(1),
+		LINEAR_CLIENT_SECRET: z.string().min(1),
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		KV_REST_API_URL: z.string().url().optional(),

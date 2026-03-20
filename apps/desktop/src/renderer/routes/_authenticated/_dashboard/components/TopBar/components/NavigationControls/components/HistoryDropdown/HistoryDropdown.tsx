@@ -1,3 +1,4 @@
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -86,6 +87,7 @@ function TaskRow({
 	taskData: {
 		id: string;
 		slug: string;
+		externalKey?: string | null;
 		title: string;
 		statusColor: string;
 		statusType: string;
@@ -94,7 +96,10 @@ function TaskRow({
 	onSelect: () => void;
 }) {
 	const task = taskData.find(
-		(t) => t.id === entry.entityId || t.slug === entry.entityId,
+		(t) =>
+			t.id === entry.entityId ||
+			t.slug === entry.entityId ||
+			t.externalKey === entry.entityId,
 	);
 
 	return (
@@ -105,7 +110,7 @@ function TaskRow({
 			{task ? (
 				<>
 					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						{task.slug}
+						{getTaskDisplayId(task)}
 					</span>
 					<span className="flex items-center justify-center w-4 shrink-0">
 						<StatusIcon
@@ -159,6 +164,7 @@ export function HistoryDropdown() {
 				.select(({ tasks, status }) => ({
 					id: tasks.id,
 					slug: tasks.slug,
+					externalKey: tasks.externalKey,
 					title: tasks.title,
 					statusColor: status.color,
 					statusType: status.type,
@@ -172,7 +178,10 @@ export function HistoryDropdown() {
 			return workspaceData.some((w) => w.id === entry.entityId);
 		}
 		return (taskData ?? []).some(
-			(t) => t.id === entry.entityId || t.slug === entry.entityId,
+			(t) =>
+				t.id === entry.entityId ||
+				t.slug === entry.entityId ||
+				t.externalKey === entry.entityId,
 		);
 	});
 

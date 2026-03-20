@@ -3,6 +3,7 @@ import type {
 	SelectTaskStatus,
 	SelectUser,
 } from "@superset/db/schema";
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import { Badge } from "@superset/ui/badge";
 import { Checkbox } from "@superset/ui/checkbox";
 import { eq, isNull } from "@tanstack/db";
@@ -145,7 +146,7 @@ export function useTasksTable({
 	}, [filterTab, assigneeFilter, setRowSelection]);
 
 	const slugColumnWidth = useMemo(
-		() => getSlugColumnWidth((data ?? []).map((t) => t.slug)),
+		() => getSlugColumnWidth((data ?? []).map((t) => getTaskDisplayId(t))),
 		[data],
 	);
 
@@ -242,7 +243,7 @@ export function useTasksTable({
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
 						<span className="text-xs text-muted-foreground truncate min-w-0">
-							{info.getValue()}
+							{getTaskDisplayId(info.row.original)}
 						</span>
 					);
 				},

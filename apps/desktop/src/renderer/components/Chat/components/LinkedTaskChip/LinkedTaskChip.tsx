@@ -14,7 +14,13 @@ export function LinkedTaskChip({ slug }: LinkedTaskChipProps) {
 		(q) =>
 			q
 				.from({ tasks: collections.tasks })
-				.where(({ tasks }) => or(eq(tasks.id, slug), eq(tasks.slug, slug))),
+				.where(({ tasks }) =>
+					or(
+						eq(tasks.id, slug),
+						eq(tasks.slug, slug),
+						eq(tasks.externalKey, slug),
+					),
+				),
 		[collections, slug],
 	);
 

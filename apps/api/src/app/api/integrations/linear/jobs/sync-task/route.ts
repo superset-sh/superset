@@ -16,6 +16,7 @@ import { Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import { writeLinearTaskWithSlugRetry } from "../../utils/task-sync";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -94,13 +95,13 @@ async function syncTaskToLinear(
 	externalUrl?: string;
 	error?: string;
 }> {
-	const client = await getLinearClient(task.organizationId);
-
-	if (!client) {
-		return { success: false, error: "No Linear connection found" };
-	}
-
 	try {
+		const client = await getLinearClient(task.organizationId);
+
+		if (!client) {
+			return { success: false, error: "No Linear connection found" };
+		}
+
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: eq(taskStatuses.id, task.statusId),
 		});
@@ -164,10 +165,20 @@ async function syncTaskToLinear(
 			await db
 				.update(tasks)
 				.set({
+					externalKey: issue.identifier,
+					externalUrl: issue.url,
 					lastSyncedAt: new Date(),
 					syncError: null,
 				})
 				.where(eq(tasks.id, task.id));
+
+			await writeLinearTaskWithSlugRetry({
+				organizationId: task.organizationId,
+				preferredSlug: issue.identifier,
+				currentTaskId: task.id,
+				write: (nextSlug) =>
+					db.update(tasks).set({ slug: nextSlug }).where(eq(tasks.id, task.id)),
+			});
 
 			return {
 				success: true,
@@ -222,6 +233,14 @@ async function syncTaskToLinear(
 				syncError: null,
 			})
 			.where(eq(tasks.id, task.id));
+
+		await writeLinearTaskWithSlugRetry({
+			organizationId: task.organizationId,
+			preferredSlug: issue.identifier,
+			currentTaskId: task.id,
+			write: (nextSlug) =>
+				db.update(tasks).set({ slug: nextSlug }).where(eq(tasks.id, task.id)),
+		});
 
 		return {
 			success: true,

@@ -1,3 +1,4 @@
+import { getTaskDisplayId } from "@superset/shared/task-display";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -90,7 +91,7 @@ export function TaskContextMenu({
 	};
 
 	const handleCopyId = () => {
-		navigator.clipboard.writeText(task.slug);
+		navigator.clipboard.writeText(getTaskDisplayId(task));
 	};
 
 	const handleCopyTitle = () => {

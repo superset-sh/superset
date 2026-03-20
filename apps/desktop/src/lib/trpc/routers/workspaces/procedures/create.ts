@@ -291,6 +291,7 @@ export const createCreateProcedures = () => {
 					name: z.string().optional(),
 					prompt: z.string().optional(),
 					branchName: z.string().optional(),
+					existingBranchAliases: z.array(z.string()).optional(),
 					baseBranch: z.string().optional(),
 					useExistingBranch: z.boolean().optional(),
 					applyPrefix: z.boolean().optional().default(true),
@@ -368,65 +369,74 @@ export const createCreateProcedures = () => {
 				}
 
 				if (input.branchName?.trim()) {
-					const existing = findWorktreeWorkspaceByBranch({
-						projectId: input.projectId,
+					const branchCandidates = [
 						branch,
-					});
-					if (existing) {
-						touchWorkspace(existing.workspace.id);
-						setLastActiveWorkspace(existing.workspace.id);
-						activateProject(project);
-						return {
-							workspace: existing.workspace,
-							initialCommands: null,
-							worktreePath: existing.worktree.path,
-							projectId: project.id,
-							isInitializing: false,
-							wasExisting: true,
-						};
-					}
+						...(input.existingBranchAliases ?? [])
+							.map((alias) => alias.trim())
+							.filter((alias) => alias.length > 0 && alias !== branch),
+					];
 
-					const orphanedWorktree = findOrphanedWorktreeByBranch({
-						projectId: input.projectId,
-						branch,
-					});
-					if (orphanedWorktree) {
-						const workspace = createWorkspaceFromWorktree({
+					for (const branchCandidate of branchCandidates) {
+						const existing = findWorktreeWorkspaceByBranch({
 							projectId: input.projectId,
-							worktreeId: orphanedWorktree.id,
-							branch,
-							name: input.name ?? branch,
+							branch: branchCandidate,
 						});
-						let autoRenameWarning: string | undefined;
-						try {
-							const autoRenameResult =
-								await attemptWorkspaceAutoRenameFromPrompt({
-									workspaceId: workspace.id,
-									prompt: input.prompt,
-								});
-							autoRenameWarning = autoRenameResult.warning;
-						} catch (error) {
-							console.warn("[workspaces/create] Auto naming failed", {
-								workspaceId: workspace.id,
-								error: error instanceof Error ? error.message : String(error),
-							});
-							autoRenameWarning = "Couldn't auto-name this workspace.";
+						if (existing) {
+							touchWorkspace(existing.workspace.id);
+							setLastActiveWorkspace(existing.workspace.id);
+							activateProject(project);
+							return {
+								workspace: existing.workspace,
+								initialCommands: null,
+								worktreePath: existing.worktree.path,
+								projectId: project.id,
+								isInitializing: false,
+								wasExisting: true,
+							};
 						}
-						activateProject(project);
-						const setupConfig = loadSetupConfig({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: orphanedWorktree.path,
-							projectId: project.id,
+
+						const orphanedWorktree = findOrphanedWorktreeByBranch({
+							projectId: input.projectId,
+							branch: branchCandidate,
 						});
-						return {
-							workspace,
-							initialCommands: setupConfig?.setup || null,
-							worktreePath: orphanedWorktree.path,
-							projectId: project.id,
-							isInitializing: false,
-							autoRenameWarning,
-							wasExisting: true,
-						};
+						if (orphanedWorktree) {
+							const workspace = createWorkspaceFromWorktree({
+								projectId: input.projectId,
+								worktreeId: orphanedWorktree.id,
+								branch: branchCandidate,
+								name: input.name ?? branch,
+							});
+							let autoRenameWarning: string | undefined;
+							try {
+								const autoRenameResult =
+									await attemptWorkspaceAutoRenameFromPrompt({
+										workspaceId: workspace.id,
+										prompt: input.prompt,
+									});
+								autoRenameWarning = autoRenameResult.warning;
+							} catch (error) {
+								console.warn("[workspaces/create] Auto naming failed", {
+									workspaceId: workspace.id,
+									error: error instanceof Error ? error.message : String(error),
+								});
+								autoRenameWarning = "Couldn't auto-name this workspace.";
+							}
+							activateProject(project);
+							const setupConfig = loadSetupConfig({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: orphanedWorktree.path,
+								projectId: project.id,
+							});
+							return {
+								workspace,
+								initialCommands: setupConfig?.setup || null,
+								worktreePath: orphanedWorktree.path,
+								projectId: project.id,
+								isInitializing: false,
+								autoRenameWarning,
+								wasExisting: true,
+							};
+						}
 					}
 				}
 

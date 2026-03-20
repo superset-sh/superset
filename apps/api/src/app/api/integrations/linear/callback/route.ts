@@ -73,8 +73,11 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const tokenData: { access_token: string; expires_in?: number } =
-		await tokenResponse.json();
+	const tokenData: {
+		access_token: string;
+		expires_in?: number;
+		refresh_token?: string;
+	} = await tokenResponse.json();
 
 	const linearClient = new LinearClient({
 		accessToken: tokenData.access_token,
@@ -93,6 +96,7 @@ export async function GET(request: Request) {
 			connectedByUserId: userId,
 			provider: "linear",
 			accessToken: tokenData.access_token,
+			refreshToken: tokenData.refresh_token ?? null,
 			tokenExpiresAt,
 			externalOrgId: linearOrg.id,
 			externalOrgName: linearOrg.name,
@@ -104,6 +108,7 @@ export async function GET(request: Request) {
 			],
 			set: {
 				accessToken: tokenData.access_token,
+				refreshToken: tokenData.refresh_token ?? null,
 				tokenExpiresAt,
 				externalOrgId: linearOrg.id,
 				externalOrgName: linearOrg.name,

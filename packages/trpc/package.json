@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./tasks": {
+			"types": "./src/lib/tasks/index.ts",
+			"default": "./src/lib/tasks/index.ts"
+		},
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
