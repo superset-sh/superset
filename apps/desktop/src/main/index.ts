@@ -1,3 +1,4 @@
+import "./patch-node-stream";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";

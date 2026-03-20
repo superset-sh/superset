@@ -2,6 +2,7 @@ import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
+import Script from "next/script";
 
 import "./globals.css";
 
@@ -44,6 +45,15 @@ export default function RootLayout({
 }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<head>
+				<Script
+					id="strip-katalon-attrs"
+					strategy="beforeInteractive"
+					dangerouslySetInnerHTML={{
+						__html: "(function(){try{var attrs=document.documentElement.attributes;for(var i=attrs.length-1;i>=0;i--){var name=attrs[i].name;if(name&&name.toLowerCase().indexOf('katalon')!==-1){document.documentElement.removeAttribute(name);}}}catch(e){}})();",
+					}}
+				/>
+			</head>
 			<body
 				className={cn(
 					"bg-background text-foreground min-h-screen font-sans antialiased",

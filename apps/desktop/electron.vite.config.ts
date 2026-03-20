@@ -163,6 +163,14 @@ export default defineConfig({
 	},
 
 	renderer: {
+		// Avoid bundling client-only libs into SSR build; prevents "use client" bundling errors
+		optimizeDeps: {
+			exclude: ["@tanstack/react-query", "@tanstack/query-core"],
+		},
+		ssr: {
+			external: ["@tanstack/react-query", "@tanstack/query-core"],
+		},
+		renderer: {
 		define: {
 			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV),
 			"process.env.SKIP_ENV_VALIDATION": defineEnv(
