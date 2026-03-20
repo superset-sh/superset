@@ -32,6 +32,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
 		visibleItems,
 	);
+	const showLineChangeStats = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_SHOW_LINE_CHANGE_STATS,
+		visibleItems,
+	);
 	const showResourceMonitor = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
 		visibleItems,
@@ -114,6 +118,31 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			utils.settings.getFileOpenMode.invalidate();
 		},
 	});
+
+	const {
+		data: showLineChangeStatsEnabled,
+		isLoading: isShowLineChangeStatsLoading,
+	} = electronTrpc.settings.getShowLineChangeStats.useQuery();
+	const setShowLineChangeStats =
+		electronTrpc.settings.setShowLineChangeStats.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowLineChangeStats.cancel();
+				const previous = utils.settings.getShowLineChangeStats.getData();
+				utils.settings.getShowLineChangeStats.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowLineChangeStats.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowLineChangeStats.invalidate();
+			},
+		});
 
 	const { data: resourceMonitorEnabled, isLoading: isResourceMonitorLoading } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
@@ -232,6 +261,32 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showLineChangeStats && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="show-line-change-stats"
+								className="text-sm font-medium"
+							>
+								Show lines changed
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show +/− line counts in the left and right sidebars
+							</p>
+						</div>
+						<Switch
+							id="show-line-change-stats"
+							checked={showLineChangeStatsEnabled ?? true}
+							onCheckedChange={(enabled) =>
+								setShowLineChangeStats.mutate({ enabled })
+							}
+							disabled={
+								isShowLineChangeStatsLoading || setShowLineChangeStats.isPending
 							}
 						/>
 					</div>

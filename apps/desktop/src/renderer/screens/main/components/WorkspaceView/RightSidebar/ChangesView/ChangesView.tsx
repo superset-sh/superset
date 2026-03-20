@@ -85,6 +85,8 @@ export function ChangesView({
 	);
 	const worktreePath = workspace?.worktreePath;
 	const projectId = workspace?.projectId;
+	const { data: showLineChangeStats } =
+		electronTrpc.settings.getShowLineChangeStats.useQuery();
 
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
@@ -547,6 +549,7 @@ export function ChangesView({
 		expandedSections,
 		toggleSection,
 		fileListViewMode,
+		showLineChangeStats: showLineChangeStats ?? true,
 		selectedFile,
 		selectedCommitHash,
 		worktreePath: worktreePath ?? "",

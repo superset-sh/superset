@@ -1,3 +1,4 @@
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
@@ -29,6 +30,8 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 	} = workspace;
 	const mockData = getWorkspaceRowMocks(id);
+	const { data: showLineChangeStats } =
+		electronTrpc.settings.getShowLineChangeStats.useQuery();
 	const {
 		cancelRename,
 		handleClick,
@@ -137,6 +140,7 @@ export function DashboardSidebarWorkspaceItem({
 					renameValue={renameValue}
 					shortcutLabel={shortcutLabel}
 					mockData={mockData}
+					showLineChangeStats={showLineChangeStats ?? true}
 					onClick={handleClick}
 					onDoubleClick={startRename}
 					onDeleteClick={() => setIsDeleteDialogOpen(true)}

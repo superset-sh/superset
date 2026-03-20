@@ -28,6 +28,7 @@ interface UseOrderedSectionsInput {
 	expandedSections: Record<ChangeCategory, boolean>;
 	toggleSection: (section: ChangeCategory) => void;
 	fileListViewMode: ChangesViewMode;
+	showLineChangeStats: boolean;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
 	worktreePath: string;
@@ -66,6 +67,7 @@ export function useOrderedSections({
 	expandedSections,
 	toggleSection,
 	fileListViewMode,
+	showLineChangeStats,
 	selectedFile,
 	selectedCommitHash,
 	worktreePath,
@@ -113,6 +115,7 @@ export function useOrderedSections({
 					selectedFile={selectedFile}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onAgainstBaseFileSelect}
+					showStats={showLineChangeStats}
 					worktreePath={worktreePath}
 					projectId={projectId}
 					category="against-base"
@@ -138,6 +141,7 @@ export function useOrderedSections({
 							onFileSelect={onCommitFileSelect}
 							viewMode={fileListViewMode}
 							worktreePath={worktreePath}
+							showStats={showLineChangeStats}
 							projectId={projectId}
 							isExpandedView={isExpandedView}
 						/>
@@ -189,6 +193,7 @@ export function useOrderedSections({
 					selectedFile={selectedFile}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onStagedFileSelect}
+					showStats={showLineChangeStats}
 					onUnstage={onUnstageFile}
 					onUnstageFiles={onUnstageFiles}
 					isActioning={isStagedActioning}
@@ -244,6 +249,7 @@ export function useOrderedSections({
 					selectedFile={selectedFile}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onUnstagedFileSelect}
+					showStats={showLineChangeStats}
 					onStage={onStageFile}
 					onStageFiles={onStageFiles}
 					isActioning={isUnstagedActioning}

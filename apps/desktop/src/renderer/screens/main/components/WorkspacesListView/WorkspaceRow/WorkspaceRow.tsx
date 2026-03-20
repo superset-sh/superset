@@ -53,9 +53,14 @@ export function WorkspaceRow({
 				staleTime: GITHUB_STATUS_STALE_TIME,
 			},
 		);
+	const { data: showLineChangeStats } =
+		electronTrpc.settings.getShowLineChangeStats.useQuery();
 
 	const pr = githubStatus?.pr;
-	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
+	const showDiffStats =
+		(showLineChangeStats ?? true) &&
+		pr &&
+		(pr.additions > 0 || pr.deletions > 0);
 
 	const timeText = workspace.isOpen
 		? `Opened ${getRelativeTime(workspace.lastOpenedAt)}`

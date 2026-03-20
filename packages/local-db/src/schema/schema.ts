@@ -205,6 +205,7 @@ export const settings = sqliteTable("settings", {
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
+	showLineChangeStats: integer("show_line_change_stats", { mode: "boolean" }),
 	useCompactTerminalAddButton: integer("use_compact_terminal_add_button", {
 		mode: "boolean",
 	}),
