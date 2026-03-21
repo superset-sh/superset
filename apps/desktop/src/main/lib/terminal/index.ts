@@ -39,8 +39,9 @@ export async function reconcileDaemonSessions(): Promise<void> {
 export async function restartDaemon(): Promise<{ success: boolean }> {
 	console.log("[restartDaemon] Starting daemon restart...");
 
+	const client = getTerminalHostClient();
+
 	try {
-		const client = getTerminalHostClient();
 		const existingSessions = await client.listSessionsIfRunning();
 
 		if (existingSessions) {
@@ -55,7 +56,8 @@ export async function restartDaemon(): Promise<{ success: boolean }> {
 			console.log("[restartDaemon] Daemon was not running");
 		}
 	} catch (error) {
-		console.warn("[restartDaemon] Error during shutdown (continuing):", error);
+		console.warn("[restartDaemon] Failed to restart daemon:", error);
+		throw error;
 	}
 
 	const manager = getDaemonTerminalManager();
@@ -78,7 +80,7 @@ export async function tryListExistingDaemonSessions(): Promise<{
 		return { sessions: result.sessions };
 	} catch (error) {
 		console.warn(
-			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessions):",
+			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessionsIfRunning):",
 			error,
 		);
 		if (DEBUG_TERMINAL) {
