@@ -1,12 +1,17 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
-import { killPaneProcess, useKillPort } from "renderer/hooks/useKillPort";
-import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
+import { getPortsToKillForPane, useKillPort } from "renderer/hooks/useKillPort";
+import {
+	buildTerminalCommand,
+	launchCommandInPane,
+} from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import {
+	clearWorkspaceRunLaunchPending,
 	createWorkspaceRun,
+	markWorkspaceRunLaunchPending,
 	setPaneWorkspaceRunState,
 } from "renderer/stores/tabs/workspace-run";
 
@@ -49,21 +54,23 @@ export function useWorkspaceRunCommand({
 		// STOP: if currently running, kill it
 		if (isRunning && runPane) {
 			setIsPending(true);
-			// Mark the pane as user-stopped before the graceful stop path runs so
-			// terminal exit handling preserves the "killed" state when the session
-			// exits on its own instead of via terminal.kill.
 			setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			try {
-				await killPaneProcess({
-					paneId: runPane.id,
-					getPorts: () => electronTrpcClient.ports.getAll.query(),
-					killPorts,
-					writeToTerminal: (input) =>
-						electronTrpcClient.terminal.write.mutate(input),
-					getSession: (paneId) =>
-						electronTrpcClient.terminal.getSession.query(paneId),
-					killPane: (input) => electronTrpcClient.terminal.kill.mutate(input),
-				});
+				const portsToKill = getPortsToKillForPane(
+					await electronTrpcClient.ports.getAll.query(),
+					runPane.id,
+				);
+				if (portsToKill.length === 0) {
+					throw new Error("No tracked workspace run processes found");
+				}
+
+				const { results, failedCount } = await killPorts(portsToKill);
+				if (failedCount > 0) {
+					const firstFailure = results.find((result) => !result.success);
+					throw new Error(
+						firstFailure?.error ?? `Failed to close ${failedCount} port(s)`,
+					);
+				}
 			} catch (error) {
 				setPaneWorkspaceRunState(runPane.id, "running");
 				toast.error("Failed to stop workspace run command", {
@@ -94,6 +101,28 @@ export function useWorkspaceRunCommand({
 			}
 
 			const initialCwd = worktreePath?.trim() ? worktreePath : undefined;
+			const launchWorkspaceRunInPane = async (
+				paneId: string,
+				tabId: string,
+			) => {
+				markWorkspaceRunLaunchPending(paneId);
+				try {
+					await launchCommandInPane({
+						paneId,
+						tabId,
+						workspaceId,
+						command,
+						cwd: initialCwd,
+						allowKilled: true,
+						createOrAttach: (input) =>
+							electronTrpcClient.terminal.createOrAttach.mutate(input),
+						write: (input) => electronTrpcClient.terminal.write.mutate(input),
+					});
+				} catch (error) {
+					clearWorkspaceRunLaunchPending(paneId);
+					throw error;
+				}
+			};
 
 			// Reuse existing run pane if available
 			if (runPane) {
@@ -118,31 +147,7 @@ export function useWorkspaceRunCommand({
 					if (restartCallback) {
 						await restartCallback({ command });
 					} else {
-						const existingSession = await electronTrpcClient.terminal.getSession
-							.query(runPane.id)
-							.catch(() => null);
-						if (existingSession?.isAlive) {
-							await electronTrpcClient.terminal.kill.mutate({
-								paneId: runPane.id,
-							});
-						}
-						await electronTrpcClient.terminal.createOrAttach.mutate({
-							paneId: runPane.id,
-							tabId: runPane.tabId,
-							workspaceId,
-							allowKilled: true,
-							command,
-						});
-						// Re-assert running state — the kill above may have triggered
-						// the exit listener which flipped state to stopped-by-user.
-						setPaneWorkspaceRun(
-							runPane.id,
-							createWorkspaceRun({
-								workspaceId,
-								state: "running",
-								command,
-							}),
-						);
+						await launchWorkspaceRunInPane(runPane.id, runPane.tabId);
 					}
 				} catch (error) {
 					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
@@ -171,6 +176,14 @@ export function useWorkspaceRunCommand({
 			);
 			setActiveTab(workspaceId, tabId);
 			setFocusedPane(tabId, paneId);
+			try {
+				await launchWorkspaceRunInPane(paneId, tabId);
+			} catch (error) {
+				setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+				toast.error("Failed to run workspace command", {
+					description: error instanceof Error ? error.message : "Unknown error",
+				});
+			}
 		} catch (error) {
 			toast.error("Failed to resolve workspace run command", {
 				description: error instanceof Error ? error.message : "Unknown error",

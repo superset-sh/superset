@@ -46,15 +46,22 @@ mock.module("renderer/stores/tabs/store", () => ({
 	},
 }));
 
-const { recoverWorkspaceRunPane, setPaneWorkspaceRunState } = await import(
-	"./workspaceRun"
-);
+const {
+	clearWorkspaceRunLaunchPending,
+	markWorkspaceRunLaunchPending,
+	recoverWorkspaceRunPane,
+	resolveWorkspaceRunAttachMode,
+	setPaneWorkspaceRunState,
+} = await import("./workspaceRun");
 
 describe("recoverWorkspaceRunPane", () => {
 	beforeEach(() => {
 		mockGetSessionQuery.mockReset();
 		storeState.panes = {};
 		storeState.setPaneWorkspaceRun.mockClear();
+		clearWorkspaceRunLaunchPending("pane-1");
+		clearWorkspaceRunLaunchPending("pane-2");
+		clearWorkspaceRunLaunchPending("pane-3");
 	});
 
 	it("does not query session state for panes already stopped by user", async () => {
@@ -168,6 +175,35 @@ describe("recoverWorkspaceRunPane", () => {
 			workspaceId: "ws-3",
 			state: "stopped-by-exit",
 			command: "bun run dev",
+		});
+	});
+
+	it("treats only pending launches as new workspace-run panes", () => {
+		storeState.panes["pane-1"] = {
+			workspaceRun: {
+				workspaceId: "ws-1",
+				state: "running",
+				command: "bun run dev",
+			},
+		};
+
+		expect(resolveWorkspaceRunAttachMode("pane-1")).toEqual({
+			workspaceRun: storeState.panes["pane-1"]?.workspaceRun ?? null,
+			isNewWorkspaceRun: false,
+		});
+
+		markWorkspaceRunLaunchPending("pane-1");
+
+		expect(resolveWorkspaceRunAttachMode("pane-1")).toEqual({
+			workspaceRun: storeState.panes["pane-1"]?.workspaceRun ?? null,
+			isNewWorkspaceRun: true,
+		});
+
+		clearWorkspaceRunLaunchPending("pane-1");
+
+		expect(resolveWorkspaceRunAttachMode("pane-1")).toEqual({
+			workspaceRun: storeState.panes["pane-1"]?.workspaceRun ?? null,
+			isNewWorkspaceRun: false,
 		});
 	});
 });

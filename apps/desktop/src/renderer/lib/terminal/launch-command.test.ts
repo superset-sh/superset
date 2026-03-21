@@ -53,6 +53,28 @@ describe("launchCommandInPane", () => {
 		});
 	});
 
+	it("forwards allowKilled when launching a command into a reusable session", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			allowKilled: true,
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			allowKilled: true,
+		});
+	});
+
 	it("does not append a second newline when command already has one", async () => {
 		const createOrAttach = mock(async () => ({}));
 		const write = mock(async () => ({}));
