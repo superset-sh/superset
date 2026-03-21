@@ -24,6 +24,19 @@ Superset includes a built-in chat panel for AI interactions without leaving the 
 
 - Use the model picker to choose supported models and connect providers
 - Chat session titles are generated automatically from the conversation
+- Use the thinking level control to set reasoning effort: **Off**, **Low**, **Medium**, **High**, or **Max**
+
+## Agent Settings
+
+Go to **Settings → Agents** to customize launch behavior for each built-in agent.
+
+- **Enabled** - Show or hide the agent in launchers
+- **Command (No Prompt)** - Base command for terminal agents
+- **Command (With Prompt)** - Prompt-aware command for terminal agents
+- **Prompt Command Suffix** - Optional flags appended after the prompt payload
+- **Task Prompt Template** - Template used when launching an agent from a task
+- **Model Override** - Optional model override for Superset Chat
+- **Reset to Defaults** - Restore the shipped configuration for that agent
 
 ## Usage
 
@@ -32,6 +45,15 @@ Run agents directly in the terminal:
 ```bash
 claude "Add error handling to fetchUser"
 ```
+
+## Auto-Run Command
+
+When launching an agent from a task, the **Auto-run command** toggle controls whether it executes immediately.
+
+- **On** - Terminal agents run their command right away, and Superset Chat sends the task prompt immediately
+- **Off** - Terminal agents stage the command without pressing Enter, and Superset Chat opens as a draft instead
+
+The setting is remembered between sessions.
 
 ## Parallel Agents
 

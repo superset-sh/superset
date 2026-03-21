@@ -1,19 +1,32 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import { getPathBaseName } from "shared/absolute-paths";
+import {
+	getPathBaseName,
+	isRemotePath,
+	pathsMatch,
+} from "shared/absolute-paths";
 import {
 	type ChangeCategory,
 	type FileStatus,
 	isNewFile,
 } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
-import type {
-	BrowserPaneState,
-	DevToolsPaneState,
-	DiffLayout,
-	FileViewerMode,
-	FileViewerState,
+import {
+	acknowledgedStatus,
+	type BrowserPaneState,
+	type DevToolsPaneState,
+	type DiffLayout,
+	type FileViewerMode,
+	type FileViewerState,
 } from "shared/tabs-types";
-import type { AddChatTabOptions, Pane, PaneType, Tab } from "./types";
+import type {
+	AddChatTabOptions,
+	AddFileViewerPaneOptions,
+	FileViewerReuseScope,
+	Pane,
+	PaneType,
+	Tab,
+	TabsState,
+} from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -677,4 +690,242 @@ export const updateHistoryStack = (
 	}
 
 	return newStack;
+};
+
+export const fileViewerTargetsMatch = (
+	fileViewer:
+		| Pick<FileViewerState, "filePath" | "diffCategory" | "commitHash">
+		| undefined,
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>,
+): boolean => {
+	if (!fileViewer) {
+		return false;
+	}
+
+	const normalizeRemoteFileTarget = (value: string): string => {
+		return value.endsWith("/") && !value.endsWith("://")
+			? value.slice(0, -1)
+			: value;
+	};
+	const filePathsMatch =
+		isRemotePath(fileViewer.filePath) || isRemotePath(options.filePath)
+			? normalizeRemoteFileTarget(fileViewer.filePath) ===
+				normalizeRemoteFileTarget(options.filePath)
+			: pathsMatch(fileViewer.filePath, options.filePath);
+
+	return (
+		filePathsMatch &&
+		fileViewer.diffCategory === options.diffCategory &&
+		fileViewer.commitHash === options.commitHash
+	);
+};
+
+const getWorkspaceTabIdsByReusePreference = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	tabHistoryStacks,
+	reuseExisting,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+}): string[] => {
+	if (reuseExisting === "none") {
+		return [];
+	}
+
+	const workspaceTabs = tabs.filter((tab) => tab.workspaceId === workspaceId);
+	if (workspaceTabs.length === 0) {
+		return [];
+	}
+
+	if (reuseExisting === "active-tab") {
+		return activeTabId && workspaceTabs.some((tab) => tab.id === activeTabId)
+			? [activeTabId]
+			: [];
+	}
+
+	const orderedTabIds: string[] = [];
+	const seenTabIds = new Set<string>();
+	const addTabId = (tabId: string | null | undefined): void => {
+		if (!tabId || seenTabIds.has(tabId)) {
+			return;
+		}
+		if (!workspaceTabs.some((tab) => tab.id === tabId)) {
+			return;
+		}
+		seenTabIds.add(tabId);
+		orderedTabIds.push(tabId);
+	};
+
+	addTabId(activeTabId);
+	for (const tabId of tabHistoryStacks[workspaceId] ?? []) {
+		addTabId(tabId);
+	}
+	for (const tab of workspaceTabs) {
+		addTabId(tab.id);
+	}
+
+	return orderedTabIds;
+};
+
+export const findReusableFileViewerPane = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	panes,
+	tabHistoryStacks,
+	reuseExisting,
+	options,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>;
+}): Pane | null => {
+	const orderedTabIds = getWorkspaceTabIdsByReusePreference({
+		workspaceId,
+		activeTabId,
+		tabs,
+		tabHistoryStacks,
+		reuseExisting,
+	});
+
+	for (const tabId of orderedTabIds) {
+		const tab = tabs.find((candidate) => candidate.id === tabId);
+		if (!tab) {
+			continue;
+		}
+
+		for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+			const pane = panes[paneId];
+			if (
+				pane?.type === "file-viewer" &&
+				fileViewerTargetsMatch(pane.fileViewer, options)
+			) {
+				return pane;
+			}
+		}
+	}
+
+	return null;
+};
+
+export const applyFileViewerOpenOptionsToPane = (
+	pane: Pane,
+	options: AddFileViewerPaneOptions,
+): Pane => {
+	if (pane.type !== "file-viewer" || !pane.fileViewer) {
+		return pane;
+	}
+
+	const nextFileViewer: FileViewerState = {
+		...pane.fileViewer,
+		viewMode: options.viewMode ?? pane.fileViewer.viewMode,
+		isPinned: pane.fileViewer.isPinned || (options.isPinned ?? false),
+		oldPath: options.oldPath ?? pane.fileViewer.oldPath,
+		initialLine: options.line ?? pane.fileViewer.initialLine,
+		initialColumn: options.column ?? pane.fileViewer.initialColumn,
+		displayName: options.displayName ?? pane.fileViewer.displayName,
+	};
+
+	const nextName = pane.userTitle?.trim()
+		? pane.name
+		: nextFileViewer.displayName || getPathBaseName(nextFileViewer.filePath);
+
+	if (
+		nextName === pane.name &&
+		nextFileViewer.viewMode === pane.fileViewer.viewMode &&
+		nextFileViewer.isPinned === pane.fileViewer.isPinned &&
+		nextFileViewer.oldPath === pane.fileViewer.oldPath &&
+		nextFileViewer.initialLine === pane.fileViewer.initialLine &&
+		nextFileViewer.initialColumn === pane.fileViewer.initialColumn &&
+		nextFileViewer.displayName === pane.fileViewer.displayName
+	) {
+		return pane;
+	}
+
+	return {
+		...pane,
+		name: nextName,
+		fileViewer: nextFileViewer,
+	};
+};
+
+export const activatePaneInWorkspace = ({
+	workspaceId,
+	paneId,
+	tabs,
+	panes,
+	activeTabIds,
+	focusedPaneIds,
+	tabHistoryStacks,
+}: {
+	workspaceId: string;
+	paneId: string;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	activeTabIds: TabsState["activeTabIds"];
+	focusedPaneIds: TabsState["focusedPaneIds"];
+	tabHistoryStacks: TabsState["tabHistoryStacks"];
+}): Pick<
+	TabsState,
+	"activeTabIds" | "focusedPaneIds" | "tabHistoryStacks" | "panes"
+> | null => {
+	const pane = panes[paneId];
+	if (!pane) {
+		return null;
+	}
+
+	const tab = tabs.find((candidate) => candidate.id === pane.tabId);
+	if (!tab || tab.workspaceId !== workspaceId) {
+		return null;
+	}
+
+	const nextPanes = { ...panes };
+	let hasPaneChanges = false;
+	for (const tabPaneId of extractPaneIdsFromLayout(tab.layout)) {
+		const currentPane = nextPanes[tabPaneId];
+		if (!currentPane) {
+			continue;
+		}
+
+		const resolvedStatus = acknowledgedStatus(currentPane.status);
+		if (resolvedStatus !== (currentPane.status ?? "idle")) {
+			nextPanes[tabPaneId] = { ...currentPane, status: resolvedStatus };
+			hasPaneChanges = true;
+		}
+	}
+
+	return {
+		panes: hasPaneChanges ? nextPanes : panes,
+		activeTabIds: {
+			...activeTabIds,
+			[workspaceId]: tab.id,
+		},
+		focusedPaneIds: {
+			...focusedPaneIds,
+			[tab.id]: paneId,
+		},
+		tabHistoryStacks: {
+			...tabHistoryStacks,
+			[workspaceId]: updateHistoryStack(
+				tabHistoryStacks[workspaceId] ?? [],
+				activeTabIds[workspaceId] ?? null,
+				tab.id,
+			),
+		},
+	};
 };

@@ -15,12 +15,10 @@ import { useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiChevronRight } from "react-icons/hi2";
 import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjectChildren } from "renderer/react-query/workspaces";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import { SECTION_DND_TYPE, STROKE_WIDTH } from "../constants";
 import { useSectionDropZone } from "../hooks";
 import { RenameInput } from "../RenameInput";
@@ -261,35 +259,12 @@ export function WorkspaceSection({
 							<LuPalette className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Set Color
 						</ContextMenuSubTrigger>
-						<ContextMenuSubContent className="w-36">
-							{PROJECT_COLORS.map((c) => {
-								const isDefault = c.value === PROJECT_COLOR_DEFAULT;
-								return (
-									<ContextMenuItem
-										key={c.value}
-										onSelect={() => mutations.setColor(c.value)}
-										className="flex items-center gap-2"
-									>
-										<span
-											className={cn(
-												"size-3 rounded-full border",
-												isDefault
-													? "border-border bg-muted"
-													: "border-border/50",
-											)}
-											style={
-												isDefault ? undefined : { backgroundColor: c.value }
-											}
-										/>
-										<span>{c.name}</span>
-										{(isDefault ? !hasColor : color === c.value) && (
-											<span className="ml-auto text-xs text-muted-foreground">
-												✓
-											</span>
-										)}
-									</ContextMenuItem>
-								);
-							})}
+						<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
+							<ColorSelector
+								variant="menu"
+								selectedColor={color}
+								onSelectColor={mutations.setColor}
+							/>
 						</ContextMenuSubContent>
 					</ContextMenuSub>
 					<ContextMenuSeparator />

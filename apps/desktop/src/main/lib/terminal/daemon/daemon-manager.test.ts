@@ -4,13 +4,29 @@ import type { SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
+	killAllCalls = 0;
+	listSessionsIfRunningResult: { sessions: Array<unknown> } | null = {
+		sessions: [],
+	};
+	listSessionsIfRunningError: Error | null = null;
 
 	async kill(params: { sessionId: string; deleteHistory?: boolean }) {
 		this.killCalls.push(params);
 	}
 
+	async killAll() {
+		this.killAllCalls++;
+	}
+
 	async listSessions() {
 		return { sessions: [] };
+	}
+
+	async listSessionsIfRunning() {
+		if (this.listSessionsIfRunningError) {
+			throw this.listSessionsIfRunningError;
+		}
+		return this.listSessionsIfRunningResult;
 	}
 
 	writeNoAck() {}
@@ -120,5 +136,13 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("exited");
+	});
+
+	it("propagates probe failures from forceKillAll instead of silently no-oping", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningError = new Error("probe failed");
+
+		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");
+		expect(mockClient.killAllCalls).toBe(0);
 	});
 });

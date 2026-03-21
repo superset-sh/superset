@@ -90,9 +90,11 @@ export default function Sidebar() {
 															href={item.href}
 															startWith="/docs"
 															title={item.title}
-															className="break-words w-[--fd-sidebar-width] pl-9"
+															className="min-w-0 pl-9 pr-4"
 														>
-															{item.title}
+															<span className="block truncate">
+																{item.title}
+															</span>
 														</AsideLink>
 													))}
 												</div>

@@ -8,6 +8,7 @@ import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineClipboard } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import {
 	FILE_VIEW_CODE_BLOCK_LANGUAGES,
 	getCodeBlockLanguageLabel,
@@ -18,7 +19,6 @@ export function EditableCodeBlockView({
 	updateAttributes,
 	extension,
 }: NodeViewProps) {
-	const [copied, setCopied] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	const attrs = node.attrs as { language?: string };
@@ -30,17 +30,9 @@ export function EditableCodeBlockView({
 		currentLanguage,
 	);
 
-	const handleCopy = async () => {
-		try {
-			await navigator.clipboard.writeText(node.textContent);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		} catch (error) {
-			console.error(
-				"[EditableCodeBlockView] Failed to copy code block:",
-				error,
-			);
-		}
+	const { copyToClipboard, copied } = useCopyToClipboard();
+	const handleCopy = () => {
+		copyToClipboard(node.textContent);
 	};
 
 	const handleLanguageChange = (language: string) => {
