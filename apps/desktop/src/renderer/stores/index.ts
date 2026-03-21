@@ -1,6 +1,7 @@
 export * from "./chat-preferences";
 export * from "./hotkeys";
 export * from "./markdown-preferences";
+export * from "./project-groups-state";
 export * from "./ports";
 export * from "./ringtone";
 export * from "./settings-state";

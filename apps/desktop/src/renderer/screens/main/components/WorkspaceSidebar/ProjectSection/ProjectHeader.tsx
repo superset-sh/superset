@@ -12,13 +12,14 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuFolderOpen,
 	LuImage,
 	LuImageOff,
 	LuListPlus,
+	LuPanelTop,
 	LuPalette,
 	LuPencil,
 	LuSettings,
@@ -28,6 +29,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
+import {
+	CURRENT_PROJECT_GROUP_ID,
+	useProjectGroupsStore,
+} from "renderer/stores/project-groups-state";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
@@ -73,6 +78,18 @@ export function ProjectHeader({
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
 	const rename = useProjectRename(projectId, projectName);
+	const orderedProjectGroups = useProjectGroupsStore((state) => state.groups);
+	const projectAssignments = useProjectGroupsStore(
+		(state) => state.projectAssignments,
+	);
+	const setProjectGroup = useProjectGroupsStore((state) => state.setProjectGroup);
+	const currentProjectGroupId = useMemo(() => {
+		const assigned = projectAssignments[projectId];
+		if (!assigned || assigned === CURRENT_PROJECT_GROUP_ID) return CURRENT_PROJECT_GROUP_ID;
+		return orderedProjectGroups.some((group) => group.id === assigned)
+			? assigned
+			: null;
+	}, [orderedProjectGroups, projectAssignments, projectId]);
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
@@ -162,6 +179,37 @@ export function ProjectHeader({
 		createSection.mutate({ projectId, name: "New Section" });
 	};
 
+	const moveToGroupSubmenu = (
+		<ContextMenuSub>
+			<ContextMenuSubTrigger>
+				<LuPanelTop className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Move to Group
+			</ContextMenuSubTrigger>
+			<ContextMenuSubContent className="w-44">
+				{orderedProjectGroups.map((group) => (
+					<ContextMenuItem
+						key={group.id}
+						onSelect={() => setProjectGroup(projectId, group.id)}
+					>
+						<span>{group.name}</span>
+						{currentProjectGroupId === group.id && (
+							<span className="ml-auto text-xs text-muted-foreground">✓</span>
+						)}
+					</ContextMenuItem>
+				))}
+				<ContextMenuSeparator />
+				<ContextMenuItem
+					onSelect={() => setProjectGroup(projectId, "__ungrouped__")}
+				>
+					<span>Other Projects</span>
+					{projectAssignments[projectId] === "__ungrouped__" && (
+						<span className="ml-auto text-xs text-muted-foreground">✓</span>
+					)}
+				</ContextMenuItem>
+			</ContextMenuSubContent>
+		</ContextMenuSub>
+	);
+
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
 			<ContextMenuSubTrigger>
@@ -245,6 +293,7 @@ export function ProjectHeader({
 							<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Project Settings
 						</ContextMenuItem>
+						{moveToGroupSubmenu}
 						{colorPickerSubmenu}
 						<ContextMenuItem onSelect={handleNewSection}>
 							<LuListPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
@@ -371,11 +420,12 @@ export function ProjectHeader({
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
 					</ContextMenuItem>
-					<ContextMenuItem onSelect={handleOpenSettings}>
-						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-						Project Settings
-					</ContextMenuItem>
-					{colorPickerSubmenu}
+				<ContextMenuItem onSelect={handleOpenSettings}>
+					<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+					Project Settings
+				</ContextMenuItem>
+				{moveToGroupSubmenu}
+				{colorPickerSubmenu}
 					<ContextMenuItem onSelect={handleToggleImage}>
 						{hideImage ? (
 							<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
