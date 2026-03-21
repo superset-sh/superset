@@ -30,6 +30,7 @@ import { RowHoverActions } from "../RowHoverActions";
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
+	/** Called when the file row is clicked. Passes `true` when cmd/ctrl was held (open in new tab). */
 	onClick: (openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	level?: number;

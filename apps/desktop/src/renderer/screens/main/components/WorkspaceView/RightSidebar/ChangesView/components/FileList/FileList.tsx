@@ -14,6 +14,7 @@ interface FileListProps {
 	viewMode: ChangesViewMode;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Called when a file is selected. Passes `openInNewTab` when cmd/ctrl was held. */
 	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;

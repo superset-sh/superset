@@ -18,6 +18,7 @@ interface CommitItemProps {
 	onToggle: () => void;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Called when a file within a commit is selected. Passes `openInNewTab` when cmd/ctrl was held. */
 	onFileSelect: (file: ChangedFile, commitHash: string, openInNewTab?: boolean) => void;
 	viewMode: ChangesViewMode;
 	worktreePath: string;

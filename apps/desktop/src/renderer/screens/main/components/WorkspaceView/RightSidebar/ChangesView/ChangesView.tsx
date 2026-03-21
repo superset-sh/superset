@@ -30,6 +30,7 @@ import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
+	/** Called when a file is selected. Receives `openInNewTab` when cmd/ctrl+click requests a new pinned tab. */
 	onFileOpen?: (
 		file: ChangedFile,
 		category: ChangeCategory,
