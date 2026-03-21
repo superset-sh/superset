@@ -45,6 +45,8 @@ import {
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
+import { hydrateAgentPresetsFromTerminalPresets } from "./agent-backed-agent-presets";
+import { hydrateAgentBackedPresetCommands } from "./agent-backed-presets";
 import {
 	normalizeAgentPresetPatch,
 	updateAgentPresetInputSchema,
@@ -127,10 +129,23 @@ function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
 		.run();
 }
 
-function getResolvedAgentPresets() {
-	return resolveAgentConfigs({
+function getHydratedAgentPresets() {
+	const agentPresets = resolveAgentConfigs({
 		customDefinitions: readRawAgentCustomDefinitions(),
 		overrideEnvelope: readRawAgentPresetOverrides(),
+	});
+	return hydrateAgentPresetsFromTerminalPresets({
+		agentPresets,
+		terminalPresets: getNormalizedTerminalPresets(),
+	});
+}
+
+function getHydratedTerminalPresets(
+	presets: TerminalPreset[],
+): TerminalPreset[] {
+	return hydrateAgentBackedPresetCommands({
+		presets,
+		agentPresets: getHydratedAgentPresets(),
 	});
 }
 
@@ -176,7 +191,7 @@ function initializeDefaultPresets() {
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
 ) {
-	const presets = getNormalizedTerminalPresets();
+	const presets = getHydratedTerminalPresets(getNormalizedTerminalPresets());
 	const tagged = presets.filter((p) => p[field]);
 	if (tagged.length > 0) return tagged;
 	const defaultPreset = presets.find((p) => p.isDefault);
@@ -188,11 +203,11 @@ export const createSettingsRouter = () => {
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {
-				return initializeDefaultPresets();
+				return getHydratedTerminalPresets(initializeDefaultPresets());
 			}
-			return getNormalizedTerminalPresets();
+			return getHydratedTerminalPresets(getNormalizedTerminalPresets());
 		}),
-		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		getAgentPresets: publicProcedure.query(() => getHydratedAgentPresets()),
 		updateAgentPreset: publicProcedure
 			.input(updateAgentPresetInputSchema)
 			.mutation(({ input }) => {
@@ -220,7 +235,7 @@ export const createSettingsRouter = () => {
 
 				saveAgentPresetOverrides(nextOverrides);
 
-				return getResolvedAgentPresets().find(
+				return getHydratedAgentPresets().find(
 					(preset) => preset.id === input.id,
 				);
 			}),
@@ -405,7 +420,9 @@ export const createSettingsRouter = () => {
 			}),
 
 		getDefaultPreset: publicProcedure.query(() => {
-			const presets = getNormalizedTerminalPresets();
+			const presets = getHydratedTerminalPresets(
+				getNormalizedTerminalPresets(),
+			);
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
 

@@ -21,6 +21,10 @@ import {
 	renderTaskPromptTemplate,
 	validateTaskPromptTemplate,
 } from "@superset/shared/agent-prompt-template";
+import {
+	derivePromptCommandFromCommand,
+	isStaleDefaultPromptCommand,
+} from "./terminal-agent-command";
 
 const TERMINAL_OVERRIDE_FIELDS = [
 	"enabled",
@@ -184,6 +188,21 @@ function resolveAgentConfig(
 	override: AgentPresetOverride | undefined,
 ): ResolvedAgentConfig {
 	if (isTerminalAgentDefinition(definition)) {
+		const command = override?.command ?? definition.defaultCommand;
+		const shouldTreatPromptAsStaleDefault = isStaleDefaultPromptCommand({
+			commandOverridden: override?.command !== undefined,
+			promptCommand: override?.promptCommand,
+			defaultPromptCommand: definition.defaultPromptCommand,
+		});
+		const promptCommand =
+			(shouldTreatPromptAsStaleDefault ? undefined : override?.promptCommand) ??
+			derivePromptCommandFromCommand({
+				command,
+				baseCommand: definition.defaultCommand,
+				basePromptCommand: definition.defaultPromptCommand,
+			}) ??
+			definition.defaultPromptCommand;
+
 		return {
 			id: definition.id,
 			source: definition.source,
@@ -191,8 +210,8 @@ function resolveAgentConfig(
 			label: override?.label ?? definition.defaultLabel,
 			description: resolveDescription(definition.defaultDescription, override),
 			enabled: override?.enabled ?? definition.defaultEnabled,
-			command: override?.command ?? definition.defaultCommand,
-			promptCommand: override?.promptCommand ?? definition.defaultPromptCommand,
+			command,
+			promptCommand,
 			promptCommandSuffix: resolvePromptCommandSuffix(
 				definition.defaultPromptCommandSuffix,
 				override,

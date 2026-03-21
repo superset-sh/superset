@@ -2,6 +2,7 @@ import type { AgentDefinition } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
 import type { AgentPresetPatch } from "shared/utils/agent-settings";
 import { validateTaskPromptTemplate } from "shared/utils/agent-settings";
+import { derivePromptCommandFromCommand } from "shared/utils/terminal-agent-command";
 import { z } from "zod";
 
 export const updateAgentPresetInputSchema = z.object({
@@ -80,6 +81,20 @@ export function normalizeAgentPresetPatch({
 		if (patch.promptCommandSuffix !== undefined) {
 			const promptCommandSuffix = patch.promptCommandSuffix?.trim() ?? "";
 			normalized.promptCommandSuffix = promptCommandSuffix || null;
+		}
+		if (
+			patch.command !== undefined &&
+			patch.promptCommand === undefined &&
+			normalized.command
+		) {
+			const derivedPromptCommand = derivePromptCommandFromCommand({
+				command: normalized.command,
+				baseCommand: definition.defaultCommand,
+				basePromptCommand: definition.defaultPromptCommand,
+			});
+			if (derivedPromptCommand) {
+				normalized.promptCommand = derivedPromptCommand;
+			}
 		}
 	} else if (patch.model !== undefined) {
 		const model = patch.model?.trim() ?? "";
