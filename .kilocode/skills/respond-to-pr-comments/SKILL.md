@@ -9,17 +9,17 @@ Address all review comments on the current branch's PR.
 
 ## Step 1: Fetch Comments
 
-1. Get PR info and extract the repo and PR number:
-   ```
+1. Get PR info and resolve variables:
+   ```bash
+   REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+   PR_NUMBER=$(gh pr view --json number --jq .number)
    gh pr view --json number,url,title,state,reviews,comments
    ```
-   Parse the `number` field and the repository `owner/repo` from the `url` field (or use `gh repo view --json nameWithOwner -q .nameWithOwner`).
 
-2. Using the resolved values, get inline review comments:
+2. Get inline review comments using the resolved values:
+   ```bash
+   gh api "repos/$REPO/pulls/$PR_NUMBER/comments"
    ```
-   gh api repos/{owner}/{repo}/pulls/{number}/comments
-   ```
-   Replace `{owner}/{repo}` and `{number}` with the concrete values from step 1.
 
 Stop if no PR exists or it's closed/merged.
 
