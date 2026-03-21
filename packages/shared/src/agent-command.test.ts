@@ -37,4 +37,16 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
 		expect(command).not.toContain("pi -p");
 	});
+
+	it("uses kilo --prompt for prompt launches", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kilo-1234",
+			agent: "kilocode",
+		});
+
+		expect(command).toStartWith(
+			"kilo --prompt \"$(cat <<'SUPERSET_PROMPT_kilo1234'",
+		);
+	});
 });

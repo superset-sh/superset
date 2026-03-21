@@ -44,7 +44,7 @@ export const commonInputSchemaShape = {
 		.enum(STARTABLE_AGENT_TYPES)
 		.optional()
 		.describe(
-			'AI agent to use: "claude", "codex", "gemini", "opencode", "pi", "copilot", "cursor-agent", or "superset-chat". Defaults to "claude".',
+			'AI agent to use: "claude", "codex", "gemini", "opencode", "pi", "copilot", "cursor-agent", "kilocode", or "superset-chat". Defaults to "claude".',
 		),
 };
 
