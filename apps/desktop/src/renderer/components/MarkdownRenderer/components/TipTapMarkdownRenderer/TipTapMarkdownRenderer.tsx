@@ -42,7 +42,10 @@ function getEditorMarkdown(editor: Editor): string {
 	return storage.markdown?.getMarkdown?.() ?? "";
 }
 
-function createMarkdownEditorAdapter(editor: Editor): MarkdownEditorAdapter {
+function createMarkdownEditorAdapter(
+	editor: Editor,
+	normalizedContentRef: MutableRefObject<string | null>,
+): MarkdownEditorAdapter {
 	let disposed = false;
 
 	return {
@@ -54,6 +57,9 @@ function createMarkdownEditorAdapter(editor: Editor): MarkdownEditorAdapter {
 		},
 		setValue(value) {
 			editor.commands.setContent(value, { emitUpdate: false });
+			// Reset baseline so the next onUpdate captures the new normalized state
+			// instead of comparing against a stale baseline
+			normalizedContentRef.current = null;
 		},
 		dispose() {
 			if (disposed) return;
@@ -81,6 +87,12 @@ export function TipTapMarkdownRenderer({
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
 
+	// Tracks TipTap's serialized markdown baseline to distinguish
+	// normalization artifacts from actual user edits. TipTap's markdown
+	// round-trip (parse → serialize) is not lossless, so the serialized
+	// output may differ from the raw input without the user editing anything.
+	const normalizedContentRef = useRef<string | null>(null);
+
 	const editor = useEditor({
 		immediatelyRender: false,
 		editable,
@@ -95,7 +107,16 @@ export function TipTapMarkdownRenderer({
 			},
 		},
 		onUpdate: ({ editor: currentEditor }) => {
-			onChangeRef.current?.(getEditorMarkdown(currentEditor));
+			const markdown = getEditorMarkdown(currentEditor);
+			// First onUpdate after init/content-set: capture baseline, don't report
+			if (normalizedContentRef.current === null) {
+				normalizedContentRef.current = markdown;
+				return;
+			}
+			// Suppress if content matches the baseline (no actual user edit)
+			if (markdown === normalizedContentRef.current) return;
+			normalizedContentRef.current = markdown;
+			onChangeRef.current?.(markdown);
 		},
 	});
 
@@ -105,11 +126,13 @@ export function TipTapMarkdownRenderer({
 		}
 
 		const currentValue = getEditorMarkdown(editor);
+		normalizedContentRef.current = currentValue;
 		if (currentValue === value) {
 			return;
 		}
 
 		editor.commands.setContent(value, { emitUpdate: false });
+		normalizedContentRef.current = getEditorMarkdown(editor);
 	}, [editor, value]);
 
 	useEffect(() => {
@@ -125,7 +148,7 @@ export function TipTapMarkdownRenderer({
 			return;
 		}
 
-		const adapter = createMarkdownEditorAdapter(editor);
+		const adapter = createMarkdownEditorAdapter(editor, normalizedContentRef);
 		editorRef.current = adapter;
 
 		return () => {
