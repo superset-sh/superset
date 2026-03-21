@@ -2,13 +2,18 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Terminal for Coding Agents
+### The Code Editor for AI Agents
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
 [![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
+
+<br />
+
+Orchestrate swarms of Claude Code, Codex, and more in parallel.<br />
+Works with any CLI agent. Built for the AI era.
 
 <br />
 
@@ -19,33 +24,19 @@
 
 </div>
 
-## Why Superset?
+## Code 10x faster with no switching cost
 
-Superset is a turbocharged terminal that allows you to run any CLI coding agents along with the tools to 10x your development workflow. 
-
-- **Run multiple agents simultaneously** without context switching overhead
-- **Isolate each task** in its own git worktree so agents don't interfere with each other
-- **Monitor all your agents** from one place and get notified when they need attention
-- **Review changes quickly** with built-in diff viewer and editor
-
-Wait less, ship more.
+Superset works with your existing tools. We provide parallelization and better UX to enhance your Claude Code, OpenCode, Cursor, and more.
 
 ## Features
 
-| Feature | Description |
-|:--------|:------------|
-| **Parallel Execution** | Run 10+ coding agents simultaneously on your machine |
-| **Worktree Isolation** | Each task gets its own branch and working directory |
-| **Agent Monitoring** | Track agent status and get notified when changes are ready |
-| **Built-in Diff Viewer** | Inspect and edit agent changes without leaving the app |
-| **Workspace Presets** | Automate env setup, dependency installation, and more |
-| **Universal Compatibility** | Works with any CLI agent that runs in a terminal |
-| **Quick Context Switching** | Jump between tasks as they need your attention |
-| **IDE Integration** | Open any workspace in your favorite editor with one click |
+### Parallel Execution
 
-## Supported Agents
+Launch multiple AI coding agents across different tasks. Work on features, fix bugs, and refactor code — all in parallel.
 
-Superset works with any CLI-based coding agent, including:
+### Universal Compatibility
+
+Superset is agent-agnostic. Use Claude Code, OpenCode, Cursor, or any CLI-based coding tool. Switch between agents seamlessly.
 
 | Agent | Status |
 |:------|:-------|
@@ -58,7 +49,13 @@ Superset works with any CLI-based coding agent, including:
 | [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | Any CLI agent | Will work |
 
-If it runs in a terminal, it runs on Superset
+### Isolation
+
+Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.
+
+### Open Anywhere
+
+Jump into your favorite editor with one click. VS Code, Cursor, Xcode, JetBrains IDEs, or any terminal — open worktrees exactly where you need them.
 
 ## Requirements
 
@@ -215,6 +212,12 @@ For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/
   <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white" alt="Neon" /></a>
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
+
+## Private by Default
+
+- **Source Available** — Full source available on GitHub under Elastic License 2.0 (ELv2). Inspect, audit, and contribute to the code.
+- **Offline First** — Your code stays on your machine. All processing happens locally.
+- **Local Control** — Superset runs on your machine and lets you choose which agents and external services to connect.
 
 ## Contributing
 
