@@ -162,6 +162,7 @@ function createBaseProps(
 ): ChatMessageListProps {
 	return {
 		messages: [] as never,
+		queuedMessages: [] as never,
 		isFocused: true,
 		isRunning: false,
 		isConversationLoading: false,

@@ -153,6 +153,16 @@ type InterruptedMessage = {
 	content: ChatMessage["content"];
 };
 
+type QueuedUserTurn = {
+	id: string;
+	message: ChatMessage;
+	sendInput: ChatSendMessageInput;
+	preparedSessionId: string | null;
+	content: string;
+	attachmentCount: number;
+	isSlashCommand: boolean;
+};
+
 type ChatAnalyticsProperties = Record<string, unknown>;
 
 function cloneMessageContent(
@@ -224,11 +234,13 @@ export function ChatPaneInterface({
 	>(null);
 	const [pendingUserTurn, setPendingUserTurn] =
 		useState<PendingUserTurn | null>(null);
+	const [queuedUserTurns, setQueuedUserTurns] = useState<QueuedUserTurn[]>([]);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
 	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
 	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
+	const queueDrainInFlightRef = useRef<string | null>(null);
 	const messagesLengthRef = useRef(0);
 	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
@@ -275,6 +287,11 @@ export function ChatPaneInterface({
 	} = chat;
 	const isAwaitingAssistant =
 		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
+	const isTurnBlocked =
+		isAwaitingAssistant ||
+		Boolean(pendingApproval) ||
+		Boolean(pendingPlanApproval) ||
+		Boolean(pendingQuestion);
 
 	const clearRuntimeError = useCallback(() => {
 		setRuntimeError(null);
@@ -441,6 +458,8 @@ export function ChatPaneInterface({
 		setRuntimeError(null);
 		setInterruptedMessage(null);
 		setPendingUserTurn(null);
+		setQueuedUserTurns([]);
+		queueDrainInFlightRef.current = null;
 		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
@@ -507,6 +526,98 @@ export function ChatPaneInterface({
 		messagesLengthRef.current = messages?.length ?? 0;
 	}, [messages]);
 
+	const sendPreparedTurn = useCallback(
+		async ({
+			sendInput,
+			preparedSessionId,
+			content,
+			attachmentCount,
+			isSlashCommand,
+		}: {
+			sendInput: ChatSendMessageInput;
+			preparedSessionId: string | null;
+			content: string;
+			attachmentCount: number;
+			isSlashCommand: boolean;
+		}) => {
+			setInterruptedMessage(null);
+			setSubmitStatus("submitted");
+			clearRuntimeError();
+
+			const immediateUserMessage =
+				preparedSessionId && !isSessionReady
+					? toOptimisticUserMessage(sendInput)
+					: null;
+			if (immediateUserMessage) {
+				setPendingUserTurn({
+					kind: "append",
+					message: immediateUserMessage,
+				});
+			}
+
+			let targetSessionId = preparedSessionId;
+			try {
+				const sendResult =
+					preparedSessionId && preparedSessionId !== sessionId
+						? {
+								targetSessionId: preparedSessionId,
+								value: await sendMessageToSession(preparedSessionId, sendInput),
+							}
+						: await sendMessageForSession({
+								currentSessionId: preparedSessionId,
+								isSessionReady,
+								ensureSessionReady,
+								onStartFreshSession,
+								sendToCurrentSession: () => commands.sendMessage(sendInput),
+								sendToSession: (nextSessionId) =>
+									sendMessageToSession(nextSessionId, sendInput),
+							});
+				targetSessionId = sendResult.targetSessionId;
+				if (content) {
+					onUserMessageSubmitted?.(content);
+				}
+			} catch (error) {
+				const sendErrorMessage = toSendFailureMessage(error);
+				setSubmitStatus(undefined);
+				setRuntimeErrorMessage(sendErrorMessage);
+				if (immediateUserMessage) {
+					setPendingUserTurn((previousTurn) =>
+						previousTurn?.kind === "append" &&
+						previousTurn.message.id === immediateUserMessage.id
+							? null
+							: previousTurn,
+					);
+				}
+				if (error instanceof Error) throw error;
+				throw new Error(sendErrorMessage);
+			}
+
+			captureChatEvent("chat_message_sent", {
+				session_id: targetSessionId,
+				model_id: activeModel?.id ?? null,
+				mention_count: 0,
+				attachment_count: attachmentCount,
+				is_slash_command: isSlashCommand,
+				message_length: content.length,
+				turn_number: (messages?.length ?? 0) + 1,
+			});
+		},
+		[
+			activeModel?.id,
+			captureChatEvent,
+			clearRuntimeError,
+			commands,
+			ensureSessionReady,
+			isSessionReady,
+			messages?.length,
+			onStartFreshSession,
+			onUserMessageSubmitted,
+			sendMessageToSession,
+			sessionId,
+			setRuntimeErrorMessage,
+		],
+	);
+
 	const handleSend = useCallback(
 		async (payload: { content: string; files?: HarnessFilePayload[] }) => {
 			let content = payload.content.trim();
@@ -523,9 +634,6 @@ export function ChatPaneInterface({
 				setSubmitStatus(undefined);
 				return;
 			}
-			setInterruptedMessage(null);
-			setSubmitStatus("submitted");
-			clearRuntimeError();
 
 			let preparedFiles = payload.files;
 			let effectiveSessionId = sessionId;
@@ -577,84 +685,73 @@ export function ChatPaneInterface({
 					thinkingLevel,
 				},
 			};
-			const immediateUserMessage =
-				effectiveSessionId && !isSessionReady
-					? toOptimisticUserMessage(sendInput)
-					: null;
-			if (immediateUserMessage) {
-				setPendingUserTurn({
-					kind: "append",
-					message: immediateUserMessage,
-				});
+			if (isTurnBlocked) {
+				const queuedMessage = toOptimisticUserMessage(sendInput);
+				if (queuedMessage) {
+					setQueuedUserTurns((existingTurns) => [
+						...existingTurns,
+						{
+							id: `queued-${crypto.randomUUID()}`,
+							message: queuedMessage,
+							sendInput,
+							preparedSessionId: effectiveSessionId,
+							content,
+							attachmentCount: payload.files?.length ?? 0,
+							isSlashCommand,
+						},
+					]);
+				}
+				return;
 			}
 
-			let targetSessionId = effectiveSessionId;
-			try {
-				const sendResult =
-					effectiveSessionId && effectiveSessionId !== sessionId
-						? {
-								targetSessionId: effectiveSessionId,
-								value: await sendMessageToSession(
-									effectiveSessionId,
-									sendInput,
-								),
-							}
-						: await sendMessageForSession({
-								currentSessionId: effectiveSessionId,
-								isSessionReady,
-								ensureSessionReady,
-								onStartFreshSession,
-								sendToCurrentSession: () => commands.sendMessage(sendInput),
-								sendToSession: (nextSessionId) =>
-									sendMessageToSession(nextSessionId, sendInput),
-							});
-				targetSessionId = sendResult.targetSessionId;
-				if (content) {
-					onUserMessageSubmitted?.(content);
-				}
-			} catch (error) {
-				const sendErrorMessage = toSendFailureMessage(error);
-				setSubmitStatus(undefined);
-				setRuntimeErrorMessage(sendErrorMessage);
-				if (immediateUserMessage) {
-					setPendingUserTurn((previousTurn) =>
-						previousTurn?.kind === "append" &&
-						previousTurn.message.id === immediateUserMessage.id
-							? null
-							: previousTurn,
-					);
-				}
-				if (error instanceof Error) throw error;
-				throw new Error(sendErrorMessage);
-			}
-
-			captureChatEvent("chat_message_sent", {
-				session_id: targetSessionId,
-				model_id: activeModel?.id ?? null,
-				mention_count: 0,
-				attachment_count: payload.files?.length ?? 0,
-				is_slash_command: isSlashCommand,
-				message_length: content.length,
-				turn_number: (messages?.length ?? 0) + 1,
+			await sendPreparedTurn({
+				sendInput,
+				preparedSessionId: effectiveSessionId,
+				content,
+				attachmentCount: payload.files?.length ?? 0,
+				isSlashCommand,
 			});
 		},
 		[
 			activeModel?.id,
-			captureChatEvent,
-			clearRuntimeError,
-			commands,
-			isSessionReady,
-			messages?.length,
+			isTurnBlocked,
 			onStartFreshSession,
 			resolveSlashCommandInput,
-			ensureSessionReady,
 			sessionId,
-			sendMessageToSession,
-			setRuntimeErrorMessage,
-			onUserMessageSubmitted,
+			sendPreparedTurn,
 			thinkingLevel,
 		],
 	);
+
+	useEffect(() => {
+		if (isTurnBlocked || queuedUserTurns.length === 0) {
+			return;
+		}
+
+		const nextQueuedTurn = queuedUserTurns[0];
+		if (!nextQueuedTurn) {
+			return;
+		}
+		if (queueDrainInFlightRef.current === nextQueuedTurn.id) {
+			return;
+		}
+
+		queueDrainInFlightRef.current = nextQueuedTurn.id;
+		void sendPreparedTurn({
+			sendInput: nextQueuedTurn.sendInput,
+			preparedSessionId: nextQueuedTurn.preparedSessionId,
+			content: nextQueuedTurn.content,
+			attachmentCount: nextQueuedTurn.attachmentCount,
+			isSlashCommand: nextQueuedTurn.isSlashCommand,
+		}).finally(() => {
+			setQueuedUserTurns((existingTurns) =>
+				existingTurns.filter((turn) => turn.id !== nextQueuedTurn.id),
+			);
+			if (queueDrainInFlightRef.current === nextQueuedTurn.id) {
+				queueDrainInFlightRef.current = null;
+			}
+		});
+	}, [isTurnBlocked, queuedUserTurns, sendPreparedTurn]);
 
 	useEffect(() => {
 		if (!initialLaunchConfig) return;
@@ -959,6 +1056,7 @@ export function ChatPaneInterface({
 			<div className="flex h-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
+					queuedMessages={queuedUserTurns.map(({ message }) => message)}
 					isFocused={isFocused}
 					isRunning={canAbort}
 					isConversationLoading={isConversationLoading}
