@@ -24,7 +24,7 @@ const MAX_RESULTS = 20;
 type IssueLinkCommandProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSelect: (slug: string, title: string) => void;
+	onSelect: (slug: string, title: string, taskId: string, url?: string) => void;
 } & (
 	| { variant?: "dialog" }
 	| { variant: "popover"; anchorRef: RefObject<HTMLElement | null> }
@@ -44,6 +44,7 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 				statusId: t.statusId,
 				priority: t.priority,
 				updatedAt: t.updatedAt,
+				externalUrl: t.externalUrl,
 			})),
 		[collections.tasks],
 	);
@@ -107,8 +108,13 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 		onOpenChange(false);
 	};
 
-	const handleSelect = (slug: string, title: string) => {
-		onSelect(slug, title);
+	const handleSelect = (
+		slug: string,
+		title: string,
+		taskId: string,
+		url?: string,
+	) => {
+		onSelect(slug, title, taskId, url);
 		handleClose();
 	};
 
@@ -135,7 +141,14 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 								<CommandItem
 									key={task.id}
 									value={task.slug}
-									onSelect={() => handleSelect(task.slug, task.title)}
+									onSelect={() =>
+										handleSelect(
+											task.slug,
+											task.title,
+											task.id,
+											task.externalUrl ?? undefined,
+										)
+									}
 									className="group"
 								>
 									{status ? (

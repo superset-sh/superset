@@ -1,22 +1,54 @@
 import { Button } from "@superset/ui/button";
+import { useNavigate } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
 import { LinearIcon } from "renderer/components/icons/LinearIcon";
 
 interface LinkedIssuePillProps {
 	slug: string;
 	title: string;
+	url?: string;
+	taskId?: string;
 	onRemove: () => void;
 }
 
 export function LinkedIssuePill({
 	slug,
 	title,
+	url,
+	taskId,
 	onRemove,
 }: LinkedIssuePillProps) {
+	const navigate = useNavigate();
+
+	const handleClick = () => {
+		if (taskId) {
+			navigate({ to: "/tasks/$taskId", params: { taskId } });
+		} else if (url) {
+			window.open(url, "_blank");
+		}
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (taskId && (e.key === "Enter" || e.key === " ")) {
+			e.preventDefault();
+			navigate({ to: "/tasks/$taskId", params: { taskId } });
+		} else if (url && (e.key === "Enter" || e.key === " ")) {
+			e.preventDefault();
+			window.open(url, "_blank");
+		}
+	};
+
 	return (
 		<div
 			title={title}
+			{...((taskId || url) && {
+				onClick: handleClick,
+				onKeyDown: handleKeyDown,
+				role: "button",
+				tabIndex: 0,
+			})}
 			className="group flex items-center gap-2.5 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-sm transition-all select-none hover:bg-accent hover:ring-1 hover:ring-border dark:hover:bg-accent/50"
+			style={{ cursor: taskId || url ? "pointer" : "default" }}
 		>
 			<div className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/10 p-0.5">
 				<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
