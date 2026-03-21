@@ -1,0 +1,37 @@
+{
+	"mcpServers": {
+		"superset": {
+			"type": "streamableHttp",
+			"url": "https://api.superset.sh/api/agent/mcp"
+		},
+		"expo-mcp": {
+			"type": "streamableHttp",
+			"url": "https://mcp.expo.dev/mcp",
+			"disabled": true
+		},
+		"maestro": {
+			"command": "maestro",
+			"args": ["mcp"]
+		},
+		"neon": {
+			"type": "streamableHttp",
+			"url": "https://mcp.neon.tech/mcp"
+		},
+		"linear": {
+			"type": "streamableHttp",
+			"url": "https://mcp.linear.app/mcp"
+		},
+		"sentry": {
+			"type": "streamableHttp",
+			"url": "https://mcp.sentry.dev/mcp"
+		},
+		"posthog": {
+			"type": "streamableHttp",
+			"url": "https://mcp.posthog.com/mcp"
+		},
+		"desktop-automation": {
+			"command": "bun",
+			"args": ["run", "packages/desktop-mcp/src/bin.ts"]
+		}
+	}
+}

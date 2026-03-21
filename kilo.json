@@ -1,0 +1,37 @@
+{
+	"mcp": {
+		"superset": {
+			"type": "remote",
+			"url": "https://api.superset.sh/api/agent/mcp"
+		},
+		"expo-mcp": {
+			"type": "remote",
+			"url": "https://mcp.expo.dev/mcp",
+			"enabled": false
+		},
+		"maestro": {
+			"type": "local",
+			"command": ["maestro", "mcp"]
+		},
+		"neon": {
+			"type": "remote",
+			"url": "https://mcp.neon.tech/mcp"
+		},
+		"linear": {
+			"type": "remote",
+			"url": "https://mcp.linear.app/mcp"
+		},
+		"sentry": {
+			"type": "remote",
+			"url": "https://mcp.sentry.dev/mcp"
+		},
+		"posthog": {
+			"type": "remote",
+			"url": "https://mcp.posthog.com/mcp"
+		},
+		"desktop-automation": {
+			"type": "local",
+			"command": ["bun", "run", "packages/desktop-mcp/src/bin.ts"]
+		}
+	}
+}
