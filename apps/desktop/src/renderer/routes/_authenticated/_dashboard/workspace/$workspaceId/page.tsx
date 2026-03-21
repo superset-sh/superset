@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
+import { useAttentionWorkspaceShortcuts } from "renderer/hooks/useAttentionWorkspaceShortcuts";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
@@ -90,6 +91,7 @@ function WorkspacePage() {
 		worktreePath: workspace?.worktreePath,
 		enabled: Boolean(workspace?.worktreePath),
 	});
+	useAttentionWorkspaceShortcuts(workspaceId);
 	const navigate = useNavigate();
 	const routeNavigate = Route.useNavigate();
 	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();

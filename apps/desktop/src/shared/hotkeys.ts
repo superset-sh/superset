@@ -459,6 +459,20 @@ export const HOTKEYS = {
 		label: "Next Workspace",
 		category: "Workspace",
 	}),
+	PREV_ATTENTION_WORKSPACE: defineHotkey({
+		keys: "meta+alt+shift+up",
+		label: "Previous Attention Workspace",
+		category: "Workspace",
+		description:
+			"Jump to the previous workspace that needs attention (permission, working, or review)",
+	}),
+	NEXT_ATTENTION_WORKSPACE: defineHotkey({
+		keys: "meta+alt+shift+down",
+		label: "Next Attention Workspace",
+		category: "Workspace",
+		description:
+			"Jump to the next workspace that needs attention (permission, working, or review)",
+	}),
 
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({

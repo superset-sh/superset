@@ -3,8 +3,10 @@ import {
 	canonicalizeHotkey,
 	canonicalizeHotkeyForPlatform,
 	deriveNonMacDefault,
+	HOTKEYS,
 	hotkeyFromKeyboardEvent,
 	isTerminalReservedEvent,
+	matchesHotkeyEvent,
 	toElectronAccelerator,
 } from "./hotkeys";
 
@@ -76,6 +78,69 @@ describe("toElectronAccelerator", () => {
 
 	it("returns null for meta on non-mac", () => {
 		expect(toElectronAccelerator("meta+w", "win32")).toBeNull();
+	});
+});
+
+describe("attention workspace hotkeys", () => {
+	it("defines NEXT_ATTENTION_WORKSPACE with correct darwin default", () => {
+		expect(HOTKEYS.NEXT_ATTENTION_WORKSPACE.defaults.darwin).toBe(
+			"meta+alt+shift+down",
+		);
+	});
+
+	it("defines PREV_ATTENTION_WORKSPACE with correct darwin default", () => {
+		expect(HOTKEYS.PREV_ATTENTION_WORKSPACE.defaults.darwin).toBe(
+			"meta+alt+shift+up",
+		);
+	});
+
+	it("derives non-mac defaults for attention workspace hotkeys", () => {
+		// meta+alt+shift → ctrl+alt+shift (meta→ctrl+shift, but shift already present adds alt)
+		expect(HOTKEYS.NEXT_ATTENTION_WORKSPACE.defaults.win32).toBe(
+			deriveNonMacDefault("meta+alt+shift+down"),
+		);
+		expect(HOTKEYS.PREV_ATTENTION_WORKSPACE.defaults.win32).toBe(
+			deriveNonMacDefault("meta+alt+shift+up"),
+		);
+	});
+
+	it("matches keyboard event for NEXT_ATTENTION_WORKSPACE on mac", () => {
+		const keys = HOTKEYS.NEXT_ATTENTION_WORKSPACE.defaults.darwin ?? "";
+		expect(keys).not.toBe("");
+		expect(
+			matchesHotkeyEvent(
+				{
+					key: "ArrowDown",
+					metaKey: true,
+					altKey: true,
+					shiftKey: true,
+					ctrlKey: false,
+				},
+				keys,
+			),
+		).toBe(true);
+	});
+
+	it("matches keyboard event for PREV_ATTENTION_WORKSPACE on mac", () => {
+		const keys = HOTKEYS.PREV_ATTENTION_WORKSPACE.defaults.darwin ?? "";
+		expect(keys).not.toBe("");
+		expect(
+			matchesHotkeyEvent(
+				{
+					key: "ArrowUp",
+					metaKey: true,
+					altKey: true,
+					shiftKey: true,
+					ctrlKey: false,
+				},
+				keys,
+			),
+		).toBe(true);
+	});
+
+	it("categorizes attention workspace hotkeys under Workspace", () => {
+		expect(HOTKEYS.NEXT_ATTENTION_WORKSPACE.category).toBe("Workspace");
+		expect(HOTKEYS.PREV_ATTENTION_WORKSPACE.category).toBe("Workspace");
 	});
 });
 
