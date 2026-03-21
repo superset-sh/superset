@@ -82,6 +82,32 @@ function useReorderTerminalPresets(
 	});
 }
 
+function useImportTerminalPresets(
+	options?: Parameters<
+		typeof electronTrpc.settings.importTerminalPresets.useMutation
+	>[0],
+) {
+	const utils = electronTrpc.useUtils();
+
+	return electronTrpc.settings.importTerminalPresets.useMutation({
+		...options,
+		onSuccess: async (...args) => {
+			await utils.settings.getTerminalPresets.invalidate();
+			await options?.onSuccess?.(...args);
+		},
+	});
+}
+
+function useExportTerminalPresets(
+	options?: Parameters<
+		typeof electronTrpc.settings.exportTerminalPresets.useMutation
+	>[0],
+) {
+	return electronTrpc.settings.exportTerminalPresets.useMutation({
+		...options,
+	});
+}
+
 export function usePresets() {
 	const { data: presets = [], isLoading } =
 		electronTrpc.settings.getTerminalPresets.useQuery();
@@ -91,6 +117,8 @@ export function usePresets() {
 	const deletePreset = useDeleteTerminalPreset();
 	const setPresetAutoApply = useSetPresetAutoApply();
 	const reorderPresets = useReorderTerminalPresets();
+	const importPresets = useImportTerminalPresets();
+	const exportPresets = useExportTerminalPresets();
 
 	return {
 		presets,
@@ -100,5 +128,7 @@ export function usePresets() {
 		deletePreset,
 		setPresetAutoApply,
 		reorderPresets,
+		importPresets,
+		exportPresets,
 	};
 }
