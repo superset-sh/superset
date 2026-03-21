@@ -171,8 +171,8 @@ export function WorkspaceSection({
 			<div
 				ref={(node) => {
 					sectionDrop(node);
+					dropZone.attachDropRef(node);
 				}}
-				{...dropZone.handlers}
 				className={cn(
 					"relative flex flex-col -ml-0.5",
 					isSectionDragging && "opacity-30",
@@ -199,7 +199,7 @@ export function WorkspaceSection({
 
 	return (
 		<div
-			{...dropZone.handlers}
+			ref={dropZone.attachDropRef}
 			className={cn(isSectionDragging && "opacity-30")}
 			style={sectionBorderStyle}
 		>

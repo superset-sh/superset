@@ -12,8 +12,3 @@ export const useActiveDragItemStore = create<ActiveDragItemState>((set) => ({
 	setActiveDragItem: (item) => set({ activeDragItem: item }),
 	clearActiveDragItem: () => set({ activeDragItem: null }),
 }));
-
-/** Synchronous read for native event handlers (outside React lifecycle) */
-export function getActiveDragItem(): DragItem | null {
-	return useActiveDragItemStore.getState().activeDragItem;
-}
