@@ -24,22 +24,24 @@ export function LinkedIssuePill({
 	const handleClick = () => {
 		// Prefer internal navigation over external URL for better UX
 		if (taskId?.trim()) {
-			try {
-				navigate({ to: "/tasks/$taskId", params: { taskId } });
-			} catch (error) {
+			navigate({ to: "/tasks/$taskId", params: { taskId } }).catch((error) => {
 				console.error("Failed to navigate to task:", error);
 				toast.error("Failed to open task");
 				// Fallback to external URL if available
 				if (url) {
 					window.open(url, "_blank");
 				}
-			}
+			});
 		} else if (url) {
 			window.open(url, "_blank");
 		}
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		// Only handle keyboard events that originate from this element,
+		// not from nested buttons (e.g., the remove button)
+		if (e.currentTarget !== e.target) return;
+
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
 			handleClick();
