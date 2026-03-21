@@ -128,6 +128,13 @@ export function setupTerminalHostSignalHandlers({
 		});
 	});
 	process.on("SIGHUP", () => {
+		// On macOS the daemon runs non-detached (same session as Electron) to
+		// preserve the Mach bootstrap namespace for SystemConfiguration access.
+		// Ignore SIGHUP so the daemon survives when Electron exits/restarts.
+		if (process.platform === "darwin") {
+			log("info", "Received SIGHUP, ignoring (macOS non-detached daemon)");
+			return;
+		}
 		shutdownOnce({
 			exitCode: 0,
 			message: "Received SIGHUP, shutting down...",

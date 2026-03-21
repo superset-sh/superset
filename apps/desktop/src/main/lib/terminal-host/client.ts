@@ -1100,11 +1100,19 @@ export class TerminalHostClient extends EventEmitter {
 				logFd = -1;
 			}
 
-			// Spawn daemon as detached process
+			// Spawn daemon process.
+			// On macOS, do NOT detach (setsid). Detaching creates a new process
+			// session which disconnects the daemon from the per-user Mach bootstrap
+			// namespace. Child processes (PTY shells) then lose access to
+			// SystemConfiguration services — `scutil --dns` returns empty and
+			// SCDynamicStoreCreate() returns NULL, breaking CLIs like Codex.
+			// The daemon survives Electron restarts via SIGHUP ignore + unref().
+			// On Linux, detach so the daemon survives session leader exit.
+			const detached = process.platform !== "darwin";
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
 				child = spawn(process.execPath, [daemonScript], {
-					detached: true,
+					detached,
 					stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
 					env: {
 						...process.env,
