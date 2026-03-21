@@ -33,7 +33,6 @@ import {
 	createTabWithPane,
 	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
-	fileViewerTargetsMatch,
 	findReusableFileViewerPane,
 	generateId,
 	generateTabName,
@@ -726,15 +725,19 @@ export const useTabsStore = create<TabsStore>()(
 
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
 					const reuseExisting = options.reuseExisting ?? "workspace";
-					const existingFileViewerPane = findReusableFileViewerPane({
-						workspaceId,
-						activeTabId: activeTab.id,
-						tabs: state.tabs,
-						panes: state.panes,
-						tabHistoryStacks: state.tabHistoryStacks,
-						reuseExisting,
-						options,
-					});
+					const canReuseExistingPane =
+						!options.openInNewTab && reuseExisting !== "none";
+					const existingFileViewerPane = canReuseExistingPane
+						? findReusableFileViewerPane({
+								workspaceId,
+								activeTabId: activeTab.id,
+								tabs: state.tabs,
+								panes: state.panes,
+								tabHistoryStacks: state.tabHistoryStacks,
+								reuseExisting,
+								options,
+							})
+						: null;
 
 					if (existingFileViewerPane) {
 						const nextPane = applyFileViewerOpenOptionsToPane(
@@ -794,48 +797,11 @@ export const useTabsStore = create<TabsStore>()(
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
 					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
-					if (fileViewerPanes.length > 0 && !options.openInNewTab) {
+					if (fileViewerPanes.length > 0 && canReuseExistingPane) {
 						const paneToReuse = fileViewerPanes[0];
-						const existingFileViewer = paneToReuse.fileViewer;
-						if (!existingFileViewer) {
+						if (!paneToReuse.fileViewer) {
 							// Should not happen due to filter above, but satisfy type checker
 							return "";
-						}
-
-						if (fileViewerTargetsMatch(existingFileViewer, options)) {
-							const nextPane = applyFileViewerOpenOptionsToPane(
-								paneToReuse,
-								options,
-							);
-							const nextPanes =
-								nextPane === paneToReuse
-									? state.panes
-									: {
-											...state.panes,
-											[paneToReuse.id]: nextPane,
-										};
-							const didPaneNameChange = nextPane.name !== paneToReuse.name;
-
-							set({
-								panes: nextPanes,
-								...(didPaneNameChange
-									? {
-											tabs: state.tabs.map((tab) =>
-												tab.id === paneToReuse.tabId
-													? {
-															...tab,
-															name: deriveTabName(nextPanes, tab.id),
-														}
-													: tab,
-											),
-										}
-									: {}),
-								focusedPaneIds: {
-									...state.focusedPaneIds,
-									[activeTab.id]: paneToReuse.id,
-								},
-							});
-							return paneToReuse.id;
 						}
 
 						// Different file - replace the preview pane content

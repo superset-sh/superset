@@ -1,5 +1,9 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import { getPathBaseName, pathsMatch } from "shared/absolute-paths";
+import {
+	getPathBaseName,
+	isRemotePath,
+	pathsMatch,
+} from "shared/absolute-paths";
 import {
 	type ChangeCategory,
 	type FileStatus,
@@ -701,8 +705,19 @@ export const fileViewerTargetsMatch = (
 		return false;
 	}
 
+	const normalizeRemoteFileTarget = (value: string): string => {
+		return value.endsWith("/") && !value.endsWith("://")
+			? value.slice(0, -1)
+			: value;
+	};
+	const filePathsMatch =
+		isRemotePath(fileViewer.filePath) || isRemotePath(options.filePath)
+			? normalizeRemoteFileTarget(fileViewer.filePath) ===
+				normalizeRemoteFileTarget(options.filePath)
+			: pathsMatch(fileViewer.filePath, options.filePath);
+
 	return (
-		pathsMatch(fileViewer.filePath, options.filePath) &&
+		filePathsMatch &&
 		fileViewer.diffCategory === options.diffCategory &&
 		fileViewer.commitHash === options.commitHash
 	);

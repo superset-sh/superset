@@ -6,6 +6,7 @@ import {
 	applyFileViewerOpenOptionsToPane,
 	buildMultiPaneLayout,
 	createChatPane,
+	fileViewerTargetsMatch,
 	findPanePath,
 	findReusableFileViewerPane,
 	getAdjacentPaneId,
@@ -519,6 +520,42 @@ describe("findReusableFileViewerPane", () => {
 		});
 
 		expect(result?.id).toBe("pane-c");
+	});
+});
+
+describe("fileViewerTargetsMatch", () => {
+	it("matches remote urls with only a trailing slash difference", () => {
+		expect(
+			fileViewerTargetsMatch(
+				{
+					filePath: "https://example.com/files/readme.md/",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+				{
+					filePath: "https://example.com/files/readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+			),
+		).toBe(true);
+	});
+
+	it("does not normalize distinct remote urls beyond the trailing slash", () => {
+		expect(
+			fileViewerTargetsMatch(
+				{
+					filePath: "https://example.com/files//readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+				{
+					filePath: "https://example.com/files/readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+			),
+		).toBe(false);
 	});
 });
 

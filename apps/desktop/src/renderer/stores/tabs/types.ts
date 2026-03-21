@@ -88,7 +88,7 @@ export interface AddFileViewerPaneOptions {
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */
 	openInNewTab?: boolean;
-	/** Controls whether an already-open matching file viewer is focused instead of opened again */
+	/** Controls whether file-viewer opens may reuse existing panes instead of always opening a fresh pane/tab */
 	reuseExisting?: FileViewerReuseScope;
 }
 
