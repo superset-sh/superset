@@ -309,7 +309,7 @@ export class TerminalHostClient extends EventEmitter {
 				...session,
 				pid: session.pid ?? null,
 			})),
-			};
+		};
 	}
 
 	private async waitForExistingDaemonProbe(): Promise<boolean> {

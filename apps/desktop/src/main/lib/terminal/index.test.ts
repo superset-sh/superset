@@ -66,7 +66,9 @@ mock.module("./env", () => ({
 	buildTerminalEnv: () => ({}),
 }));
 
-const { restartDaemon, tryListExistingDaemonSessions } = await import("./index");
+const { restartDaemon, tryListExistingDaemonSessions } = await import(
+	"./index"
+);
 
 describe("terminal index", () => {
 	beforeAll(() => {
