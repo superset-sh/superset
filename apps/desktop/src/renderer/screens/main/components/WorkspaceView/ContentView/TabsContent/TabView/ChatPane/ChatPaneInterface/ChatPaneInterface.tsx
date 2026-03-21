@@ -604,6 +604,7 @@ export function ChatPaneInterface({
 				});
 			}
 
+			isSendingRef.current = true;
 			let targetSessionId = effectiveSessionId;
 			try {
 				const sendResult =
@@ -629,6 +630,7 @@ export function ChatPaneInterface({
 					onUserMessageSubmitted?.(content);
 				}
 			} catch (error) {
+				isSendingRef.current = false;
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
@@ -654,7 +656,6 @@ export function ChatPaneInterface({
 				turn_number: (messages?.length ?? 0) + 1,
 			});
 
-			isSendingRef.current = true;
 			const { panes: panesSnap, setChatLaunchConfig: setLaunchConfig } =
 				useTabsStore.getState();
 			setLaunchConfig(paneId, {
@@ -854,6 +855,7 @@ export function ChatPaneInterface({
 				});
 			}
 
+			isSendingRef.current = true;
 			try {
 				await chatRuntimeServiceTrpcUtils.client.session.restartFromMessage.mutate(
 					{
@@ -883,7 +885,6 @@ export function ChatPaneInterface({
 					restarted_from_message_id: request.messageId,
 				});
 
-				isSendingRef.current = true;
 				const { panes: panesSnap, setChatLaunchConfig: setLaunchConfig } =
 					useTabsStore.getState();
 				setLaunchConfig(paneId, {
@@ -891,6 +892,7 @@ export function ChatPaneInterface({
 					draftInput: undefined,
 				});
 			} catch (error) {
+				isSendingRef.current = false;
 				setPendingUserTurn(null);
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
