@@ -164,8 +164,13 @@ export function createZshWrapper(
 ${SUPERSET_ENV_SAVE}
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
+_superset_user_zdotdir=""
 [[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
+# Detect if user .zshenv changed ZDOTDIR (XDG-style configs like ZDOTDIR=~/.config/zsh)
+[[ -n "$ZDOTDIR" && "$ZDOTDIR" != "$_superset_home" ]] && _superset_user_zdotdir="$ZDOTDIR"
 ${SUPERSET_ENV_RESTORE}
+# Propagate user ZDOTDIR so .zshrc/.zprofile/.zlogin source from the right directory
+[[ -n "$_superset_user_zdotdir" ]] && export SUPERSET_ORIG_ZDOTDIR="$_superset_user_zdotdir"
 export ZDOTDIR=${quotedZshDir}
 `;
 	const wroteZshenv = writeFileIfChanged(zshenvPath, zshenvScript, 0o644);

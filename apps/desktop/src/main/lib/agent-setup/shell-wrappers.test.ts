@@ -818,6 +818,146 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 		});
 	});
 
+	describe("ZDOTDIR propagation from user .zshenv (XDG-style config)", () => {
+		it("zshenv wrapper propagates ZDOTDIR changes to SUPERSET_ORIG_ZDOTDIR", () => {
+			createZshWrapper(TEST_PATHS);
+
+			const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
+
+			// After sourcing user .zshenv, the wrapper must detect if ZDOTDIR changed
+			// and propagate it to SUPERSET_ORIG_ZDOTDIR so subsequent wrappers
+			// (.zshrc, .zprofile, .zlogin) source from the correct directory.
+			expect(zshenv).toContain("SUPERSET_ORIG_ZDOTDIR");
+			expect(zshenv).toContain("_superset_user_zdotdir");
+
+			// The ZDOTDIR change detection must happen AFTER sourcing user .zshenv
+			const sourceIdx = zshenv.indexOf('source "$_superset_home/.zshenv"');
+			const detectIdx = zshenv.indexOf('_superset_user_zdotdir="$ZDOTDIR"');
+			expect(sourceIdx).toBeGreaterThan(-1);
+			expect(detectIdx).toBeGreaterThan(sourceIdx);
+
+			// Must propagate to SUPERSET_ORIG_ZDOTDIR after env restore
+			const restoreIdx = zshenv.indexOf(
+				'export SUPERSET_ORIG_ZDOTDIR="$_superset_user_zdotdir"',
+			);
+			expect(restoreIdx).toBeGreaterThan(detectIdx);
+		});
+
+		it("zsh wrapper sources .zshrc from ZDOTDIR set by user .zshenv, not $HOME", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zdotdir-xdg");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+			const xdgZshDir = path.join(homeDir, ".config", "zsh");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+			mkdirSync(xdgZshDir, { recursive: true });
+
+			// User's ~/.zshenv sets ZDOTDIR to XDG location (the pattern that triggers the bug)
+			writeFileSync(path.join(homeDir, ".zshenv"), `ZDOTDIR="${xdgZshDir}"\n`);
+
+			// The real config lives in the XDG location
+			writeFileSync(
+				path.join(xdgZshDir, ".zshrc"),
+				`export ZDOTDIR_TEST_MARKER="xdg-zshrc-sourced"\n`,
+			);
+
+			// A wrong/empty .zshrc at $HOME (should NOT be sourced)
+			writeFileSync(
+				path.join(homeDir, ".zshrc"),
+				`export ZDOTDIR_TEST_MARKER="home-zshrc-sourced"\n`,
+			);
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			// Simulate GUI launch: SUPERSET_ORIG_ZDOTDIR=$HOME (no ZDOTDIR in env)
+			const output = execFileSync(
+				"zsh",
+				["-lic", 'echo "$ZDOTDIR_TEST_MARKER"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("xdg-zshrc-sourced");
+		});
+
+		it("zsh wrapper sources .zprofile from ZDOTDIR set by user .zshenv", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "zdotdir-xdg-zprofile");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+			const xdgZshDir = path.join(homeDir, ".config", "zsh");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+			mkdirSync(xdgZshDir, { recursive: true });
+
+			writeFileSync(path.join(homeDir, ".zshenv"), `ZDOTDIR="${xdgZshDir}"\n`);
+
+			writeFileSync(
+				path.join(xdgZshDir, ".zprofile"),
+				`export ZDOTDIR_PROFILE_MARKER="xdg-zprofile-sourced"\n`,
+			);
+
+			writeFileSync(
+				path.join(homeDir, ".zprofile"),
+				`export ZDOTDIR_PROFILE_MARKER="home-zprofile-sourced"\n`,
+			);
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync(
+				"zsh",
+				["-lic", 'echo "$ZDOTDIR_PROFILE_MARKER"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("xdg-zprofile-sourced");
+		});
+	});
+
 	describe("fish shell", () => {
 		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
 			const args = getCommandShellArgs(
