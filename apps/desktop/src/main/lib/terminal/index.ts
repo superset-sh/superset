@@ -41,10 +41,10 @@ export async function restartDaemon(): Promise<{ success: boolean }> {
 
 	try {
 		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
+		const existingSessions = await client.listSessionsIfRunning();
 
-		if (connected) {
-			const { sessions } = await client.listSessions();
+		if (existingSessions) {
+			const { sessions } = existingSessions;
 			const aliveCount = sessions.filter((s) => s.isAlive).length;
 			console.log(
 				`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
@@ -71,7 +71,10 @@ export async function tryListExistingDaemonSessions(): Promise<{
 }> {
 	try {
 		const client = getTerminalHostClient();
-		const result = await client.listSessions();
+		const result = await client.listSessionsIfRunning();
+		if (!result) {
+			return { sessions: [] };
+		}
 		return { sessions: result.sessions };
 	} catch (error) {
 		console.warn(

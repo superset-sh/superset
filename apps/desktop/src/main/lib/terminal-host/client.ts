@@ -290,30 +290,49 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
+	async listSessionsIfRunning(): Promise<ListSessionsResponse | null> {
+		const connected = await this.tryConnectAndAuthenticate();
+		if (!connected) return null;
+
+		const response = await this.sendRequest<ListSessionsResponse>(
+			"listSessions",
+			undefined,
+		);
+		return {
+			sessions: response.sessions.map((session) => ({
+				...session,
+				pid: session.pid ?? null,
+			})),
+		};
+	}
+
 	/**
 	 * Connect and authenticate both control + stream sockets.
 	 * Handles protocol mismatch by shutting down a legacy daemon and retrying once.
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
 		for (let attempt = 0; attempt < 2; attempt++) {
-			if (attempt === 0 && process.env.NODE_ENV === "development") {
-				if (this.isDaemonScriptStale()) {
-					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Daemon script rebuilt, restarting...",
-						);
-					}
-					this.killDaemonFromPidFile();
-					await this.waitForDaemonShutdown();
+			if (
+				attempt === 0 &&
+				process.env.NODE_ENV === "development" &&
+				this.isDaemonScriptStale()
+			) {
+				if (DEBUG_CLIENT) {
+					console.log("[TerminalHostClient] Daemon script rebuilt, restarting...");
 				}
+				this.resetConnectionState({ emitDisconnected: false });
+				this.killDaemonFromPidFile();
+				await this.waitForDaemonShutdown();
 			}
 
-			let controlConnected = await this.tryConnectControl();
-			if (!controlConnected) {
-				await this.spawnDaemon();
-				controlConnected = await this.tryConnectControl();
+			if (!this.controlSocket) {
+				let controlConnected = await this.tryConnectControl();
 				if (!controlConnected) {
-					throw new Error("Failed to connect control socket after spawn");
+					await this.spawnDaemon();
+					controlConnected = await this.tryConnectControl();
+					if (!controlConnected) {
+						throw new Error("Failed to connect control socket after spawn");
+					}
 				}
 			}
 
@@ -336,30 +355,36 @@ export class TerminalHostClient extends EventEmitter {
 				throw error;
 			}
 
-			try {
-				await this.authenticateControl({ token });
-			} catch (error) {
-				if (attempt === 0 && this.isProtocolMismatchError(error)) {
-					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
-						);
+			if (!this.controlAuthenticated) {
+				try {
+					await this.authenticateControl({ token });
+				} catch (error) {
+					if (attempt === 0 && this.isProtocolMismatchError(error)) {
+						if (DEBUG_CLIENT) {
+							console.log(
+								"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
+							);
+						}
+						this.resetConnectionState({ emitDisconnected: false });
+						await this.shutdownLegacyDaemon();
+						await this.waitForDaemonShutdown();
+						await this.spawnDaemon();
+						continue;
 					}
-					this.resetConnectionState({ emitDisconnected: false });
-					await this.shutdownLegacyDaemon();
-					await this.waitForDaemonShutdown();
-					await this.spawnDaemon();
-					continue;
+					throw error;
 				}
-				throw error;
 			}
 
-			const streamConnected = await this.tryConnectStream();
-			if (!streamConnected) {
-				throw new Error("Failed to connect stream socket");
+			if (!this.streamSocket) {
+				const streamConnected = await this.tryConnectStream();
+				if (!streamConnected) {
+					throw new Error("Failed to connect stream socket");
+				}
 			}
 
-			await this.authenticateStream({ token });
+			if (!this.streamAuthenticated) {
+				await this.authenticateStream({ token });
+			}
 			this.setupStreamSocketHandlers();
 			return;
 		}
@@ -433,6 +458,14 @@ export class TerminalHostClient extends EventEmitter {
 				return;
 			}
 
+			try {
+				this.controlSocket?.destroy();
+			} catch {
+				// Ignore
+			}
+			this.controlSocket = null;
+			this.controlAuthenticated = false;
+
 			const socket = connect(SOCKET_PATH);
 			let resolved = false;
 
@@ -472,6 +505,14 @@ export class TerminalHostClient extends EventEmitter {
 				resolve(false);
 				return;
 			}
+
+			try {
+				this.streamSocket?.destroy();
+			} catch {
+				// Ignore
+			}
+			this.streamSocket = null;
+			this.streamAuthenticated = false;
 
 			const socket = connect(SOCKET_PATH);
 			let resolved = false;
@@ -1382,9 +1423,11 @@ export class TerminalHostClient extends EventEmitter {
 			"listSessions",
 			undefined,
 		);
-		// Version skew: older daemons may not return pid - normalize undefined → null
 		return {
-			sessions: response.sessions.map((s) => ({ ...s, pid: s.pid ?? null })),
+			sessions: response.sessions.map((session) => ({
+				...session,
+				pid: session.pid ?? null,
+			})),
 		};
 	}
 
@@ -1420,22 +1463,26 @@ export class TerminalHostClient extends EventEmitter {
 		request: ShutdownRequest = {},
 	): Promise<{ wasRunning: boolean }> {
 		// Avoid spawning a daemon if none exists.
-		const connected = await this.tryConnectControl();
+		const connected =
+			(this.controlSocket && this.controlAuthenticated) ||
+			(await this.tryConnectControl());
 		if (!connected) return { wasRunning: false };
 
 		try {
-			const token = this.readAuthToken();
-			try {
-				await this.authenticateControl({ token });
-			} catch (error) {
-				if (this.isProtocolMismatchError(error)) {
-					this.resetConnectionState({ emitDisconnected: false });
-					await this.shutdownLegacyDaemon({
-						killSessions: request.killSessions ?? false,
-					});
-					return { wasRunning: true };
+			if (!this.controlAuthenticated) {
+				const token = this.readAuthToken();
+				try {
+					await this.authenticateControl({ token });
+				} catch (error) {
+					if (this.isProtocolMismatchError(error)) {
+						this.resetConnectionState({ emitDisconnected: false });
+						await this.shutdownLegacyDaemon({
+							killSessions: request.killSessions ?? false,
+						});
+						return { wasRunning: true };
+					}
+					throw error;
 				}
-				throw error;
 			}
 
 			await this.sendRequest<EmptyResponse>("shutdown", request);
