@@ -103,9 +103,11 @@ The agent executing your plan can list files, read files, search, run the projec
     bun run lint:fix           # Fix auto-fixable lint issues
     bun run typecheck          # Type check all packages
 
-    # Database
+    # Database (reference only — never run without explicit user approval)
     bun run db:push            # Apply schema changes
     bun run db:migrate         # Run migrations
+
+> **⚠ DB Safety**: These commands mutate the database. Never execute them without explicit user confirmation. Always follow the migration constraints in AGENTS.md (spin up a Neon branch, modify schema files only, never edit generated migration files).
 
 ### Desktop App Rules
 For Electron/desktop work, remember:
