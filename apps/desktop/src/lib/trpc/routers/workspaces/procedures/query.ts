@@ -11,6 +11,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
+import { loadSetupConfig } from "../utils/setup";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -286,6 +287,56 @@ export const createQueryProcedures = () => {
 						? 0
 						: currentIndex + 1;
 				return orderedWorkspaceIds[nextIndex];
+			}),
+
+		getResolvedRunCommands: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+				if (!workspace) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+				if (!project) {
+					return { commands: [] };
+				}
+
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+
+				const worktreePath =
+					workspace.type === "worktree" && worktree?.path
+						? worktree.path
+						: workspace.type === "branch"
+							? project.mainRepoPath
+							: undefined;
+
+				const config = loadSetupConfig({
+					mainRepoPath: project.mainRepoPath,
+					worktreePath,
+					projectId: project.id,
+				});
+
+				return {
+					commands: config?.run ?? [],
+				};
 			}),
 	});
 };

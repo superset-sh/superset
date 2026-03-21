@@ -27,13 +27,13 @@ Superset and Warp both help developers work with AI in the terminal, but they so
 | **AI approach** | Agent-agnostic — works with Claude Code, Codex, Aider, or any CLI agent | Built-in agents (OpenAI, Anthropic, Google); supports BYOK and third-party CLI agents |
 | **Parallelism** | Core feature — every task gets its own worktree and branch | Agents run in terminal panes via Agent Management Panel |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited credits), Build $20/mo, Business $50/mo |
-| **License** | Source-available (ELv2), no telemetry | Closed source |
+| **License** | Source-available (ELv2) | Closed source |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop app for orchestrating AI coding agents. You spin up 10+ agents on separate tasks simultaneously, each in its own Git worktree with a dedicated branch and working directory. When one finishes, you review the diff and merge. Superset ships no AI model — you bring Claude Code, Codex, Aider, or any CLI agent. It handles parallel execution, worktree isolation, terminal persistence, and code review. Fully local, no telemetry, source-available under Elastic License 2.0 (ELv2).
+Superset is a desktop app for orchestrating AI coding agents. You spin up 10+ agents on separate tasks simultaneously, each in its own Git worktree with a dedicated branch and working directory. When one finishes, you review the diff and merge. Superset ships no AI model — you bring Claude Code, Codex, Aider, or any CLI agent. It handles parallel execution, worktree isolation, terminal persistence, and code review. Source-available under Elastic License 2.0 (ELv2) and built around local Git worktrees.
 
 ---
 
@@ -82,7 +82,7 @@ Warp's terminal features are free. AI features require the Build plan ($20/month
 **Choose Superset if you:**
 - Run many coding agents in parallel and need Git-level isolation between them
 - Want full control over which agent and model you use, with no lock-in
-- Require local-only, source-available tooling with zero telemetry
+- Require source-available tooling with local Git worktrees
 - Already have a terminal you like and need an orchestration layer on top
 
 These tools complement each other. Use Warp as your daily terminal and Superset for parallel agent orchestration across worktrees.

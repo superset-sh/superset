@@ -35,7 +35,7 @@ GitHub Copilot is an AI pair programmer that lives inside your editor, offering 
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2) with zero telemetry.
+Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -65,7 +65,7 @@ Copilot supports multiple models (GPT-4o, Claude, Gemini) through GitHub's infra
 
 ### Privacy
 
-Superset runs entirely locally — no telemetry, code stays on your machine. Copilot sends code context to GitHub/Microsoft servers for processing. Copilot Business and Enterprise offer data retention controls, but code still transits external servers. Superset's source-available codebase is fully auditable.
+Superset runs agents locally in Git worktrees, and its source-available codebase is fully auditable. Copilot sends code context to GitHub/Microsoft servers for processing. Copilot Business and Enterprise offer data retention controls, but code still transits external servers.
 
 ---
 
@@ -87,7 +87,7 @@ Superset offers a free tier and Pro at $20/seat/month, plus your agents' API cos
 - Run CLI-based coding agents and want to parallelize across 10+ tasks
 - Need autonomous agents working on separate tasks while you do other work
 - Want agent and model flexibility with no vendor lock-in
-- Need code to stay local with zero telemetry
+- Need local execution and direct control over providers
 - Work on large codebases where parallel execution saves hours
 
 **Use both** for the best of each: Copilot for inline completions while you code, Superset to dispatch parallel agents for larger tasks. They don't overlap — Copilot helps you write code faster, Superset helps you scale agent work wider.
@@ -110,4 +110,4 @@ Yes. When you open a Superset worktree in VS Code, Copilot works normally — it
 
 ### Is Superset open source?
 
-No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2) with zero telemetry. GitHub Copilot is closed source.
+No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2). GitHub Copilot is closed source.

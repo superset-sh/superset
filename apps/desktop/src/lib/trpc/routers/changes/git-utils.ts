@@ -9,3 +9,7 @@ export function isUpstreamMissingError(message: string): boolean {
 		message.includes("cannot be resolved to branch")
 	);
 }
+
+export function isNoPullRequestFoundMessage(message: string): boolean {
+	return message.toLowerCase().includes("no pull request");
+}

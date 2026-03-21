@@ -97,8 +97,11 @@ describe("HostServiceManager", () => {
 
 		expect(spawnMock.mock.calls).toHaveLength(1);
 		expect(lastChild).not.toBeNull();
+		expect(spawnMock.mock.calls[0]?.[2]).toMatchObject({
+			stdio: ["ignore", "pipe", "pipe", "ipc"],
+		});
 
-		lastChild?.stdout.emit("data", Buffer.from('{"port":4242}\n'));
+		lastChild?.emit("message", { type: "ready", port: 4242 });
 
 		expect(await firstStart).toBe(4242);
 		expect(await secondStart).toBe(4242);

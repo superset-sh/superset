@@ -27,9 +27,9 @@ const SECURITY_FEATURES: {
 	},
 	{
 		icon: <HiOutlineSignal className="w-5 h-5 text-foreground/70" />,
-		title: "No Network Required",
+		title: "Local Control",
 		description:
-			"Zero telemetry by default. No data leaves your machine unless you explicitly connect to external services.",
+			"Superset runs on your machine and lets you choose which agents and external services to connect.",
 	},
 ];
 
@@ -50,7 +50,8 @@ export function SecuritySection() {
 							Private by default
 						</h2>
 						<h2 className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							Your code never leaves your machine.
+							Your code stays local by default, with explicit control over
+							connected services.
 						</h2>
 					</div>
 				</motion.div>

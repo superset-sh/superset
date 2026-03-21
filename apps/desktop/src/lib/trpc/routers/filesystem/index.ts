@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@superset/workspace-fs/host";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -18,6 +19,14 @@ const writeFileContentSchema = z.union([
 		data: z.string(),
 	}),
 ]);
+
+type WatchPathEventBatch = {
+	events: Array<{
+		kind: string;
+		absolutePath: string;
+		oldAbsolutePath?: string;
+	}>;
+};
 
 export const createFilesystemRouter = () => {
 	return router({
@@ -241,13 +250,7 @@ export const createFilesystemRouter = () => {
 				}),
 			)
 			.subscription(({ input }) => {
-				return observable<{
-					events: Array<{
-						kind: string;
-						absolutePath: string;
-						oldAbsolutePath?: string;
-					}>;
-				}>((emit) => {
+				return observable<WatchPathEventBatch>((emit) => {
 					const service = getServiceForWorkspace(input.workspaceId);
 					let isDisposed = false;
 					const stream = service.watchPath({
@@ -266,6 +269,20 @@ export const createFilesystemRouter = () => {
 						});
 					};
 
+					const emitIfOpen = (value: WatchPathEventBatch): boolean => {
+						try {
+							emit.next(value);
+							return true;
+						} catch (error) {
+							if (isClosedStreamError(error)) {
+								runCleanup();
+								return false;
+							}
+
+							throw error;
+						}
+					};
+
 					void (async () => {
 						try {
 							while (!isDisposed) {
@@ -274,21 +291,28 @@ export const createFilesystemRouter = () => {
 									return;
 								}
 
-								try {
-									emit.next(next.value);
-								} catch (error) {
-									if (isClosedStreamError(error)) {
-										runCleanup();
-										return;
-									}
-									throw error;
+								if (!emitIfOpen(next.value)) {
+									return;
 								}
 							}
 						} catch (error) {
 							console.error("[filesystem/watchPath] Failed:", {
 								workspaceId: input.workspaceId,
-								error,
+								error: toErrorMessage(error),
 							});
+
+							if (
+								emitIfOpen({
+									events: [
+										{
+											kind: "overflow",
+											absolutePath: input.absolutePath,
+										},
+									],
+								})
+							) {
+								runCleanup();
+							}
 						}
 					})();
 

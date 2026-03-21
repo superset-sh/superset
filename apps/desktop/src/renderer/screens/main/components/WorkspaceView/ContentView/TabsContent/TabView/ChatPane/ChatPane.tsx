@@ -212,6 +212,7 @@ export function ChatPane({
 					>
 						<div className="h-full w-full">
 							<ChatPaneInterface
+								paneId={paneId}
 								sessionId={sessionId}
 								initialLaunchConfig={launchConfig}
 								workspaceId={workspaceId}

@@ -6,25 +6,42 @@ import { notificationsEmitter } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { loadToken } from "../auth/utils/auth-functions";
 
-function resolvePaneIdFromSession(sessionId: string): string | undefined {
+function resolveNotificationIdsFromSession(sessionId: string): {
+	paneId?: string;
+	tabId?: string;
+	workspaceId?: string;
+} {
 	try {
 		const tabsState = appState.data.tabsState;
-		if (!tabsState) return undefined;
-		for (const [paneId, pane] of Object.entries(tabsState.panes ?? {})) {
-			if (pane.chat?.sessionId === sessionId) {
-				return paneId;
-			}
-		}
+		if (!tabsState) return {};
+
+		const paneId = Object.entries(tabsState.panes ?? {}).find(
+			([_paneId, pane]) => pane.chat?.sessionId === sessionId,
+		)?.[0];
+		if (!paneId) return {};
+
+		const pane = tabsState.panes?.[paneId];
+		const tabId = pane?.tabId;
+		const tab = tabId
+			? tabsState.tabs?.find((candidate) => candidate.id === tabId)
+			: undefined;
+
+		return {
+			paneId,
+			tabId,
+			workspaceId: tab?.workspaceId,
+		};
 	} catch {
 		// App state not initialized yet
 	}
-	return undefined;
+	return {};
 }
 
 function handleLifecycleEvent(event: LifecycleEvent): void {
-	const paneId = resolvePaneIdFromSession(event.sessionId);
+	const ids = resolveNotificationIdsFromSession(event.sessionId);
 	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, {
-		paneId,
+		...ids,
+		sessionId: event.sessionId,
 		eventType: event.eventType,
 	});
 }

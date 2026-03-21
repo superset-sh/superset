@@ -416,10 +416,11 @@ export function FilesView() {
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const handleFileActivate = useCallback(
-		(entry: DirectoryEntry) => {
+		(entry: DirectoryEntry, openInNewTab?: boolean) => {
 			if (!workspaceId || !worktreePath || entry.isDirectory) return;
 			addFileViewerPane(workspaceId, {
 				filePath: entry.path,
+				openInNewTab,
 			});
 		},
 		[workspaceId, worktreePath, addFileViewerPane],

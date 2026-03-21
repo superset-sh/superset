@@ -4,16 +4,12 @@ import { SupersetToolCall } from "../SupersetToolCall";
 
 interface StartAgentSessionToolCallProps {
 	part: ToolPart;
+	toolName?: string;
 }
 
 export function StartAgentSessionToolCall({
 	part,
+	toolName = "Start agent session",
 }: StartAgentSessionToolCallProps) {
-	return (
-		<SupersetToolCall
-			part={part}
-			toolName="Start agent session"
-			icon={BotIcon}
-		/>
-	);
+	return <SupersetToolCall part={part} toolName={toolName} icon={BotIcon} />;
 }

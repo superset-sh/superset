@@ -1,0 +1,1 @@
+export { LinkedGitHubIssuePill } from "./LinkedGitHubIssuePill";

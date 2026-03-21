@@ -3,7 +3,7 @@ import type { Octokit } from "@octokit/rest";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
-import type { GitFactory } from "../../git/types";
+import type { GitFactory } from "../git";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
 import { parseGitHubRemote } from "./utils/parse-github-remote";
 import {

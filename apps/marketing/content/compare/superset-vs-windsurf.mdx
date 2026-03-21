@@ -27,14 +27,14 @@ Windsurf is an AI-powered IDE that embeds AI into every part of the editing expe
 | **Parallelism** | Core feature — 10+ agents across isolated worktrees | Sequential by default; Windsurf Flows handles multi-step tasks |
 | **Editor** | Works alongside any editor (VS Code, Cursor, JetBrains, Xcode) | You must use the Windsurf IDE |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $15/mo, Ultra $60/mo, Teams $35/seat/mo |
-| **Privacy** | Fully local — no telemetry, code never leaves your machine | Code sent to Windsurf servers and third-party AI providers |
+| **Privacy** | Local Git worktrees; you control agent and provider choices | Code sent to Windsurf servers and third-party AI providers |
 | **License** | Source-available (ELv2) | Closed source |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2) with zero telemetry.
+Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -60,7 +60,7 @@ Windsurf routes all AI requests through its servers and credit system. You get a
 
 ### Privacy
 
-Superset runs entirely locally — no telemetry, no data collection, code never leaves your machine. The full source is on GitHub under Elastic License 2.0 (ELv2). Windsurf sends code to its servers and third-party AI providers. Windsurf is closed source, so you cannot audit what data is collected or how it's processed.
+Superset runs agents locally in Git worktrees, and the full source is on GitHub under Elastic License 2.0 (ELv2). Windsurf sends code to its servers and third-party AI providers. Windsurf is closed source, so you cannot audit what data is collected or how it's processed.
 
 ### Session Persistence
 
@@ -85,7 +85,7 @@ Superset offers a free tier and Pro at $20/seat/month. You also pay your agents'
 **Choose Superset if you:**
 - Run CLI-based coding agents and want to parallelize across 10+ tasks
 - Use JetBrains, Xcode, Neovim, or any non-VS Code editor
-- Need code to stay on your machine with no telemetry
+- Need local worktrees and direct control over providers
 - Want agent and model flexibility with no vendor lock-in
 - Need sessions that survive crashes and app restarts
 
@@ -105,7 +105,7 @@ Windsurf's Cascade handles multi-step tasks sequentially within a single flow. I
 
 ### Is Superset open source?
 
-No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2) with zero telemetry. Windsurf is closed source from Codeium.
+No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2). Windsurf is closed source from Codeium.
 
 ### Can I use Windsurf as my editor with Superset?
 

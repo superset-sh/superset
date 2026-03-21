@@ -34,7 +34,7 @@ Superset and Conductor both run multiple AI coding agents in parallel using Git 
 
 ## What Is Superset?
 
-Superset is a desktop terminal for orchestrating AI coding agents. It runs any CLI-based agent -- Claude Code, Codex, OpenCode, Aider, or custom scripts -- in its own Git worktree. A persistent daemon manages all sessions via Unix domain sockets, so they survive app restarts and crashes. Each worktree gets a built-in diff viewer and one-click opening in VS Code, Cursor, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2) with zero telemetry.
+Superset is a desktop terminal for orchestrating AI coding agents. It runs any CLI-based agent -- Claude Code, Codex, OpenCode, Aider, or custom scripts -- in its own Git worktree. A persistent daemon manages all sessions via Unix domain sockets, so they survive app restarts and crashes. Each worktree gets a built-in diff viewer and one-click opening in VS Code, Cursor, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -56,7 +56,7 @@ Superset runs a background daemon that owns all PTY sessions independently of th
 
 ### Openness and Privacy
 
-Superset is source-available under ELv2 with no telemetry -- you can audit every line of code. Conductor is closed source. In mid-2025, it faced backlash over its GitHub integration requesting broad read-write access to entire GitHub accounts. They later added fine-grained access, but the incident highlighted the trust cost of closed-source tooling that handles source code.
+Superset is source-available under ELv2, so you can audit every line of code. Conductor is closed source. In mid-2025, it faced backlash over its GitHub integration requesting broad read-write access to entire GitHub accounts. They later added fine-grained access, but the incident highlighted the trust cost of closed-source tooling that handles source code.
 
 ### Workflow Integration
 
@@ -75,7 +75,7 @@ Superset offers a free tier and Pro at $20/seat/month. Conductor is free. Both r
 **Choose Superset if you:**
 - Use multiple CLI agents or want the freedom to adopt new ones instantly
 - Need terminal sessions that survive app restarts and crashes
-- Care about source availability, code auditability, or zero telemetry
+- Care about source availability, code auditability, or local control
 - Prefer reviewing code in your own editor (JetBrains, Xcode, VS Code, Cursor)
 
 **Choose Conductor if you:**

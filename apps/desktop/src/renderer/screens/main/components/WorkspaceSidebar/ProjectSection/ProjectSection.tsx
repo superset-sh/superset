@@ -6,10 +6,14 @@ import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import {
+	useOpenNewWorkspaceModal,
+	usePendingWorkspace,
+} from "renderer/stores/new-workspace-modal";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
+import { PendingWorkspaceItem } from "../WorkspaceListItem/PendingWorkspaceItem";
 import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
@@ -72,11 +76,20 @@ export function ProjectSection({
 	const openModal = useOpenNewWorkspaceModal();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
+	const pendingWorkspace = usePendingWorkspace();
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
 		workspaces.length +
 		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
+
+	// Extract pending workspace item to avoid duplication
+	const pendingWorkspaceItem =
+		pendingWorkspace && pendingWorkspace.projectId === projectId ? (
+			<div className={cn(isSidebarCollapsed ? "w-full px-1" : "px-1 pb-0.5")}>
+				<PendingWorkspaceItem isCollapsed={isSidebarCollapsed} />
+			</div>
+		) : null;
 
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
 		const topLevelWorkspacesById = new Map(
@@ -125,11 +138,31 @@ export function ProjectSection({
 		};
 	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
 
-	const ungroupedDropZone = useSectionDropZone({
+	const topUngroupedDropZone = useSectionDropZone({
 		canAccept: (item) =>
 			item.sectionId !== null && item.projectId === projectId,
 		targetSectionId: null,
+		targetRootPlacement: "top",
 	});
+
+	const bottomUngroupedDropZone = useSectionDropZone({
+		canAccept: (item) =>
+			item.sectionId !== null && item.projectId === projectId,
+		targetSectionId: null,
+		targetRootPlacement: "bottom",
+	});
+	const showRootDropZones =
+		topUngroupedDropZone.isDropTarget || bottomUngroupedDropZone.isDropTarget;
+
+	const getRootDropZoneClassName = (
+		isDropTarget: boolean,
+		isDragOver: boolean,
+	) =>
+		cn(
+			"transition-colors rounded-sm",
+			isDropTarget && !isDragOver && "border border-dashed border-primary/20",
+			isDragOver && "bg-primary/5 border border-solid border-primary/30",
+		);
 
 	const handleNewWorkspace = () => {
 		openModal(projectId);
@@ -233,6 +266,19 @@ export function ProjectSection({
 							className="overflow-hidden w-full"
 						>
 							<div className="flex flex-col items-center gap-1 pt-1">
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...topUngroupedDropZone.handlers}
+										className={cn(
+											"w-full h-5",
+											getRootDropZoneClassName(
+												topUngroupedDropZone.isDropTarget,
+												topUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
+								)}
+								{pendingWorkspaceItem}
 								{topLevelChildren.map((item) =>
 									item.kind === "workspace" ? (
 										<WorkspaceListItem
@@ -267,6 +313,18 @@ export function ProjectSection({
 											orderedWorkspaceIds={orderedWorkspaceIds}
 										/>
 									),
+								)}
+								{showRootDropZones && topLevelChildren.length > 0 && (
+									<div
+										{...bottomUngroupedDropZone.handlers}
+										className={cn(
+											"w-full h-5",
+											getRootDropZoneClassName(
+												bottomUngroupedDropZone.isDropTarget,
+												bottomUngroupedDropZone.isDragOver,
+											),
+										)}
+									/>
 								)}
 							</div>
 						</motion.div>
@@ -312,19 +370,31 @@ export function ProjectSection({
 						className="overflow-hidden"
 					>
 						<div className="pb-1">
-							{topLevelChildren.length === 0 && (
+							{showRootDropZones && topLevelChildren.length === 0 && (
 								<div
-									{...ungroupedDropZone.handlers}
+									{...topUngroupedDropZone.handlers}
 									className={cn(
 										"transition-colors rounded-sm min-h-8",
-										ungroupedDropZone.isDropTarget &&
-											!ungroupedDropZone.isDragOver &&
-											"border border-dashed border-primary/20",
-										ungroupedDropZone.isDragOver &&
-											"bg-primary/5 border-solid border-primary/30",
+										getRootDropZoneClassName(
+											topUngroupedDropZone.isDropTarget,
+											topUngroupedDropZone.isDragOver,
+										),
 									)}
 								/>
 							)}
+							{showRootDropZones && topLevelChildren.length > 0 && (
+								<div
+									{...topUngroupedDropZone.handlers}
+									className={cn(
+										"h-5",
+										getRootDropZoneClassName(
+											topUngroupedDropZone.isDropTarget,
+											topUngroupedDropZone.isDragOver,
+										),
+									)}
+								/>
+							)}
+							{pendingWorkspaceItem}
 							{topLevelChildren.map((item) =>
 								item.kind === "workspace" ? (
 									<WorkspaceListItem
@@ -357,6 +427,18 @@ export function ProjectSection({
 										orderedWorkspaceIds={orderedWorkspaceIds}
 									/>
 								),
+							)}
+							{showRootDropZones && topLevelChildren.length > 0 && (
+								<div
+									{...bottomUngroupedDropZone.handlers}
+									className={cn(
+										"h-5",
+										getRootDropZoneClassName(
+											bottomUngroupedDropZone.isDropTarget,
+											bottomUngroupedDropZone.isDragOver,
+										),
+									)}
+								/>
 							)}
 						</div>
 					</motion.div>

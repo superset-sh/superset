@@ -4,68 +4,99 @@ import Image from "next/image";
 
 const CLIENT_LOGOS = [
 	{
-		name: "amazon",
-		logo: "/logos/amazon.png",
-		height: 24,
-		marginTop: 10,
-	},
-	{
-		name: "google",
-		logo: "/logos/google.svg",
-		height: 24,
-		marginTop: 4,
-	},
-	{
-		name: "doordash",
-		logo: "/logos/doordash.svg",
-		height: 22,
-		text: "DoorDash",
-	},
-	{
-		name: "intercom",
-		logo: "/logos/intercom-white.png",
-		height: 24,
-	},
-	{ name: "vercel", logo: "/logos/vercel.svg", height: 15 },
-	{
-		name: "cloudflare",
-		logo: "/logos/cloudflare-white.png",
-		height: 38,
-		marginTop: -20,
-	},
-	{ name: "webflow", logo: "/logos/webflow.svg", height: 17 },
-	{ name: "oracle", logo: "/logos/oracle.svg", height: 14 },
-	{
-		name: "atlassian",
-		logo: "/logos/atlassian-white.png",
-		height: 28,
-		marginTop: 4,
-	},
-	{
-		name: "servicenow",
-		logo: "/logos/servicenow.svg",
-		height: 15,
-	},
-	{ name: "wix", logo: "/logos/wix.svg", height: 34 },
-	{ name: "ycombinator", logo: "/logos/yc.png", height: 28 },
-	{
-		name: "browseruse",
-		logo: "/logos/browseruse.svg",
+		name: "microsoft",
+		label: "Microsoft",
+		logo: "/logos/microsoft-wordmark.svg",
 		height: 20,
 	},
 	{
-		name: "mastra",
-		logo: "/logos/mastra.svg",
+		name: "openai",
+		label: "OpenAI",
+		logo: "/logos/openai-wordmark.svg",
+		height: 20,
+	},
+	{
+		name: "netflix",
+		label: "Netflix",
+		logo: "/logos/netflix-wordmark.svg",
+		height: 20,
+	},
+	{
+		name: "doordash",
+		label: "DoorDash",
+		logo: "/logos/doordash-wordmark.svg",
+		height: 14,
+	},
+	{
+		name: "salesforce",
+		label: "Salesforce",
+		logo: "/logos/salesforce-wordmark-dark.svg",
+		height: 50,
+		invert: false,
+	},
+	{
+		name: "wix",
+		label: "Wix",
+		logo: "/logos/wix-wordmark.svg",
+		height: 16,
+	},
+	{
+		name: "datadog",
+		label: "Datadog",
+		logo: "/logos/datadog-wordmark.svg",
+		height: 42,
+	},
+	{
+		name: "intercom",
+		label: "Intercom",
+		logo: "/logos/intercom-white.png",
+		height: 26,
+	},
+	{
+		name: "bytedance",
+		label: "ByteDance",
+		logo: "/logos/bytedance-wordmark.svg",
 		height: 18,
-		text: "Mastra",
+	},
+	{
+		name: "ramp",
+		label: "Ramp",
+		logo: "/logos/ramp-wordmark.svg",
+		height: 22,
+	},
+	{
+		name: "google",
+		label: "Google",
+		logo: "/logos/google.svg",
+		height: 24,
+	},
+	{
+		name: "vercel",
+		label: "Vercel",
+		logo: "/logos/vercel-wordmark.svg",
+		height: 38,
+	},
+	{
+		name: "cloudflare",
+		label: "Cloudflare",
+		logo: "/logos/cloudflare-wordmark.svg",
+		height: 48,
+		marginTop: -16,
+	},
+	{
+		name: "amazon",
+		label: "Amazon",
+		logo: "/logos/amazon.png",
+		height: 22,
 	},
 ] as {
 	name: string;
+	label: string;
 	logo: string;
 	height: number;
 	marginTop?: number;
 	borderRadius?: number;
-	text?: string;
+	invert?: boolean;
 }[];
 
 export function TrustedBySection() {
@@ -93,23 +124,18 @@ export function TrustedBySection() {
 						>
 							<Image
 								src={client.logo}
-								alt={client.name}
-								width={160}
+								alt={client.label}
+								width={200}
 								height={client.height}
-								className="object-contain scale-75 sm:scale-90 grayscale brightness-0 invert"
+								className={`object-contain scale-75 sm:scale-90 ${client.invert === false ? "" : "grayscale brightness-0 invert"}`}
 								style={{
 									height: client.height,
 									width: "auto",
-									borderRadius: client?.borderRadius ?? 0,
-									marginTop: client?.marginTop ?? 0,
+									borderRadius: client.borderRadius ?? 0,
+									marginTop: client.marginTop ?? 0,
 								}}
 								unoptimized
 							/>
-							{client.text && (
-								<span className="ml-2 mt-0.5 font-medium text-foreground text-[0.9rem]">
-									{client.text}
-								</span>
-							)}
 						</div>
 					))}
 				</div>
@@ -128,23 +154,18 @@ export function TrustedBySection() {
 								>
 									<Image
 										src={client.logo}
-										alt={client.name}
-										width={160}
+										alt={client.label}
+										width={200}
 										height={client.height}
-										className="object-contain scale-100 grayscale brightness-0 invert"
+										className={`object-contain scale-100 ${client.invert === false ? "" : "grayscale brightness-0 invert"}`}
 										style={{
 											height: client.height,
 											width: "auto",
-											borderRadius: client?.borderRadius ?? 0,
-											marginTop: client?.marginTop ?? 0,
+											borderRadius: client.borderRadius ?? 0,
+											marginTop: client.marginTop ?? 0,
 										}}
 										unoptimized
 									/>
-									{client.text && (
-										<span className="ml-2 mt-0.5 font-medium text-foreground text-[1.1rem]">
-											{client.text}
-										</span>
-									)}
 								</div>
 							))}
 						</div>

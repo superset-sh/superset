@@ -110,7 +110,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.2.0",
+      "version": "1.2.3",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -195,6 +195,10 @@
         "@tiptap/extension-paragraph": "^3.17.1",
         "@tiptap/extension-placeholder": "^3.17.1",
         "@tiptap/extension-strike": "^3.17.1",
+        "@tiptap/extension-table": "3.18.0",
+        "@tiptap/extension-table-cell": "3.18.0",
+        "@tiptap/extension-table-header": "3.18.0",
+        "@tiptap/extension-table-row": "3.18.0",
         "@tiptap/extension-task-item": "^3.17.1",
         "@tiptap/extension-task-list": "^3.17.1",
         "@tiptap/extension-text": "^3.17.1",
@@ -385,6 +389,7 @@
         "@react-three/fiber": "^9.4.0",
         "@sentry/nextjs": "^10.36.0",
         "@superset/auth": "workspace:*",
+        "@superset/email": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/ui": "workspace:*",
         "@t3-oss/env-nextjs": "^0.13.8",
@@ -403,6 +408,7 @@
         "react-icons": "^5.5.0",
         "remark-gfm": "^4.0.1",
         "require-in-the-middle": "8.0.1",
+        "resend": "^4.0.1",
         "shiki": "^3.21.0",
         "simplex-noise": "^4.0.3",
         "stripe-gradient": "^1.0.1",
@@ -700,6 +706,7 @@
         "better-sqlite3": "12.6.2",
         "drizzle-orm": "0.45.1",
         "hono": "^4.8.5",
+        "mastracode": "^0.4.0",
         "node-pty": "1.1.0",
         "simple-git": "^3.30.0",
         "superjson": "^2.2.5",
@@ -749,6 +756,7 @@
       "devDependencies": {
         "@superset/typescript": "workspace:*",
         "@types/node": "^24.9.1",
+        "bun-types": "^1.3.1",
         "typescript": "^5.9.3",
       },
     },
@@ -855,8 +863,11 @@
       "devDependencies": {
         "@superset/typescript": "workspace:*",
         "@tailwindcss/postcss": "^4.0.9",
+        "@types/bun": "^1.2.17",
         "@types/react": "~19.2.2",
+        "@types/react-dom": "^19.2.3",
         "react": "19.2.0",
+        "react-dom": "19.2.0",
         "tailwindcss": "^4.1.18",
         "typescript": "^5.9.3",
       },
@@ -2448,6 +2459,14 @@
     "@tiptap/extension-placeholder": ["@tiptap/extension-placeholder@3.18.0", "", { "peerDependencies": { "@tiptap/extensions": "^3.18.0" } }, "sha512-jhN1Xa+MpfrTcCYZsFSvZYpUuMutPTC20ms0IsH1yN0y9tbAS+T6PHPC+dsvyAinYdA8yKElM6OO+jpyz4X1cw=="],
 
     "@tiptap/extension-strike": ["@tiptap/extension-strike@3.18.0", "", { "peerDependencies": { "@tiptap/core": "^3.18.0" } }, "sha512-kl/fa68LZg8NWUqTkRTfgyCx+IGqozBmzJxQDc1zxurrIU+VFptDV9UuZim587sbM2KGjCi/PNPjPGk1Uu0PVg=="],
+
+    "@tiptap/extension-table": ["@tiptap/extension-table@3.18.0", "", { "peerDependencies": { "@tiptap/core": "^3.18.0", "@tiptap/pm": "^3.18.0" } }, "sha512-04BQYiSKxhy33Pd7UFZchW8UYH0FOts8LCwel11n507w2lNd/wbYMTI2A5AfOEOXvr6Xwx/jOWX4MWuhMqiZwQ=="],
+
+    "@tiptap/extension-table-cell": ["@tiptap/extension-table-cell@3.18.0", "", { "peerDependencies": { "@tiptap/extension-table": "^3.18.0" } }, "sha512-FFk0KkC0r9M4SU7J5qUxtrWAXGTFSjmLDQiZGy/ZEeQI1kq0vCs9ExCcW4V2R1VI6A/LamzHK+rL9Ez/B+ZUsg=="],
+
+    "@tiptap/extension-table-header": ["@tiptap/extension-table-header@3.18.0", "", { "peerDependencies": { "@tiptap/extension-table": "^3.18.0" } }, "sha512-IPVyXWAumrI2qGSSAbI8iR1dFnqg8/tQZX9VqAI+KHoH5dPPEloikHRbZEUngLMwUDQfRWc0rxGGOx/MmDiSKQ=="],
+
+    "@tiptap/extension-table-row": ["@tiptap/extension-table-row@3.18.0", "", { "peerDependencies": { "@tiptap/extension-table": "^3.18.0" } }, "sha512-3m7/SmWOlmRHExayHrU6I0wqwuzGE7vE8S3ORqUc7gA9yYA5PbnEQF+1K6jtVQjQd4LsJwBVqIBBPdD5WP1Tvg=="],
 
     "@tiptap/extension-task-item": ["@tiptap/extension-task-item@3.18.0", "", { "peerDependencies": { "@tiptap/extension-list": "^3.18.0" } }, "sha512-XWrprk9YN2sc6coDypLxFGnFN51ZW+nKwz+9CHefINK6ndmUOeG1QNDGkQBnU5IB1fZBSEpyJga/shmJ7RfOAg=="],
 

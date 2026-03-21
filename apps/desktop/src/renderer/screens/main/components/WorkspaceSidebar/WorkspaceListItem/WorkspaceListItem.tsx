@@ -8,6 +8,7 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
@@ -75,6 +76,14 @@ export function WorkspaceListItem({
 			}
 		}
 		return getHighestPriorityStatus(paneStatuses());
+	});
+	const workspaceRunState = useTabsStore((state) => {
+		for (const pane of Object.values(state.panes)) {
+			if (pane.type === "terminal" && pane.workspaceRun?.workspaceId === id) {
+				return pane.workspaceRun.state;
+			}
+		}
+		return null;
 	});
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
@@ -286,41 +295,46 @@ export function WorkspaceListItem({
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
 			)}
 
-			<Tooltip delayDuration={500}>
-				<TooltipTrigger asChild>
-					<div
-						className={cn(
-							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
-							showBranchSubtitle && "mt-0.5",
+			<div
+				className={cn(
+					"flex flex-col items-center shrink-0 mr-2.5 gap-0.5",
+					showBranchSubtitle && "mt-0.5",
+				)}
+			>
+				<Tooltip delayDuration={500}>
+					<TooltipTrigger asChild>
+						<div className="relative size-5 flex items-center justify-center">
+							<WorkspaceIcon
+								isBranchWorkspace={isBranchWorkspace}
+								isActive={isActive}
+								isUnread={isUnread}
+								workspaceStatus={workspaceStatus}
+								variant="expanded"
+							/>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent side="right" sideOffset={8}>
+						{isBranchWorkspace ? (
+							<>
+								<p className="text-xs font-medium">Local workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Changes are made directly in the main repository
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">Worktree workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Isolated copy for parallel development
+								</p>
+							</>
 						)}
-					>
-						<WorkspaceIcon
-							isBranchWorkspace={isBranchWorkspace}
-							isActive={isActive}
-							isUnread={isUnread}
-							workspaceStatus={workspaceStatus}
-							variant="expanded"
-						/>
-					</div>
-				</TooltipTrigger>
-				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
-						<>
-							<p className="text-xs font-medium">Local workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Changes are made directly in the main repository
-							</p>
-						</>
-					) : (
-						<>
-							<p className="text-xs font-medium">Worktree workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Isolated copy for parallel development
-							</p>
-						</>
-					)}
-				</TooltipContent>
-			</Tooltip>
+					</TooltipContent>
+				</Tooltip>
+				{workspaceRunState && showBranchSubtitle && (
+					<WorkspaceRunIndicator state={workspaceRunState} variant="inline" />
+				)}
+			</div>
 
 			<div className="flex-1 min-w-0">
 				{rename.isRenaming ? (

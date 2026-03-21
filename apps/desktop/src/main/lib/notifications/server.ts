@@ -5,15 +5,16 @@ import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
-import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
+import { resolvePaneId } from "./resolve-pane-id";
 
 // Re-export types for backwards compatibility
 export type {
 	AgentLifecycleEvent,
 	NotificationIds,
 } from "shared/notification-types";
+export { resolvePaneId } from "./resolve-pane-id";
 
 /**
  * The environment this server is running in.
@@ -27,6 +28,9 @@ const DEBUG_HOOKS_ENABLED =
 		? SERVER_ENV === "development"
 		: !/^(0|false)$/i.test(debugHooksOverride);
 
+/**
+ * Broadcasts normalized agent lifecycle events from the local hook server.
+ */
 export const notificationsEmitter = new EventEmitter();
 
 const app = express();
@@ -43,66 +47,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
-/**
- * Resolves paneId from tabId or workspaceId using synced tabs state.
- * Falls back to focused pane in active tab.
- *
- * If a paneId is provided but doesn't exist in state (stale reference),
- * we fall through to tabId/workspaceId resolution instead of returning
- * an invalid paneId that would corrupt the store.
- */
-function resolvePaneId(
-	paneId: string | undefined,
-	tabId: string | undefined,
-	workspaceId: string | undefined,
-	sessionId: string | undefined,
-): string | undefined {
-	try {
-		const tabsState = appState.data.tabsState;
-		if (!tabsState) return undefined;
-
-		// If paneId provided, validate it exists before returning
-		if (paneId && tabsState.panes?.[paneId]) {
-			return paneId;
-		}
-		// If paneId was provided but doesn't exist, fall through to resolution
-
-		// Try to resolve from tabId
-		if (tabId) {
-			const focusedPaneId = tabsState.focusedPaneIds?.[tabId];
-			if (focusedPaneId && tabsState.panes?.[focusedPaneId]) {
-				return focusedPaneId;
-			}
-		}
-
-		// Try to resolve from workspaceId
-		if (workspaceId) {
-			const activeTabId = tabsState.activeTabIds?.[workspaceId];
-			if (activeTabId) {
-				const focusedPaneId = tabsState.focusedPaneIds?.[activeTabId];
-				if (focusedPaneId && tabsState.panes?.[focusedPaneId]) {
-					return focusedPaneId;
-				}
-			}
-		}
-
-		// Resolve from chat session ID
-		if (sessionId) {
-			for (const [existingPaneId, pane] of Object.entries(
-				tabsState.panes ?? {},
-			)) {
-				if (pane.chat?.sessionId === sessionId) {
-					return existingPaneId;
-				}
-			}
-		}
-	} catch {
-		// App state not initialized yet, ignore
-	}
-
-	return undefined;
-}
 
 // Agent lifecycle hook
 app.get("/hook/complete", (req, res) => {
@@ -232,4 +176,7 @@ app.use((_req, res) => {
 	res.status(404).json({ error: "Not found" });
 });
 
+/**
+ * Exposes the notifications Express app for startup and tests.
+ */
 export const notificationsApp = app;

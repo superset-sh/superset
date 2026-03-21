@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+	buildWorkspaceList,
+	type ListedWorkspace,
+} from "./list-workspaces.utils";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
 const schema = z.object({});
@@ -6,7 +10,7 @@ const schema = z.object({});
 async function execute(
 	_params: z.infer<typeof schema>,
 	ctx: ToolContext,
-): Promise<CommandResult> {
+): Promise<CommandResult<{ workspaces: ListedWorkspace[] }>> {
 	const workspaces = ctx.getWorkspaces();
 
 	if (!workspaces) {
@@ -15,11 +19,21 @@ async function execute(
 
 	return {
 		success: true,
-		data: { workspaces: workspaces as unknown as Record<string, unknown>[] },
+		data: {
+			workspaces: buildWorkspaceList({
+				workspaces,
+				projects: ctx.getProjects(),
+				activeWorkspaceId: ctx.getActiveWorkspaceId(),
+				getWorktreePathByWorkspaceId: ctx.getWorktreePathByWorkspaceId,
+			}),
+		},
 	};
 }
 
-export const listWorkspaces: ToolDefinition<typeof schema> = {
+export const listWorkspaces: ToolDefinition<
+	typeof schema,
+	{ workspaces: ListedWorkspace[] }
+> = {
 	name: "list_workspaces",
 	schema,
 	execute,

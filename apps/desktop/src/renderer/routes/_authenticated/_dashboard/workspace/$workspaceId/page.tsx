@@ -8,6 +8,7 @@ import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { NotFound } from "renderer/routes/not-found";
 import {
 	CommandPalette,
@@ -181,6 +182,11 @@ function WorkspacePage() {
 		activeTabId ? (s.focusedPaneIds[activeTabId] ?? null) : null,
 	);
 
+	const { toggleWorkspaceRun } = useWorkspaceRunCommand({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+
 	const { presets } = usePresets();
 
 	const openTabWithPreset = useCallback(
@@ -218,6 +224,10 @@ function WorkspacePage() {
 		addBrowserTab,
 	]);
 	usePresetHotkeys(openTabWithPreset);
+
+	useAppHotkey("RUN_WORKSPACE_COMMAND", () => toggleWorkspaceRun(), undefined, [
+		toggleWorkspaceRun,
+	]);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",

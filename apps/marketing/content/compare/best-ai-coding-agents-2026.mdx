@@ -128,7 +128,7 @@ Open-source terminal agent focused on pair programming. Works with many models, 
 
 ### Superset
 
-Desktop terminal that runs any CLI-based coding agent in parallel across isolated Git worktrees. Each task gets its own branch and working directory — agents can't conflict with each other or your main work. Persistent daemon means sessions survive crashes. Integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2), zero telemetry.
+Desktop terminal that runs any CLI-based coding agent in parallel across isolated Git worktrees. Each task gets its own branch and working directory — agents can't conflict with each other or your main work. Persistent daemon means sessions survive crashes. Integrates with VS Code, Cursor, JetBrains, and Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 **Best for:** Running 5-10+ agents in parallel, agent-agnostic teams, privacy-conscious developers
 
@@ -188,4 +188,4 @@ The free tiers of most tools are sufficient for light usage. If you're using age
 
 ### Which tool is most private?
 
-Superset runs locally with zero telemetry by default, and its source is available under ELv2. OpenCode is open source and also runs locally. Codex CLI is open source but requires OpenAI API calls. Cursor, Windsurf, Devin, and Copilot all route code through external servers.
+Superset runs locally and is source-available under ELv2, but data egress still depends on which agents and providers you connect. OpenCode is open source and also runs locally. Codex CLI is open source but typically relies on OpenAI API calls. Cursor, Windsurf, Devin, and Copilot route code context through external services.
