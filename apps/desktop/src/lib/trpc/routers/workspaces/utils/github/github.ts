@@ -1,7 +1,8 @@
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
-import { branchExistsOnRemote, getTrackingRemoteNameForWorktree } from "../git";
+import { branchExistsOnRemote } from "../git";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
+import { parseUpstreamRef } from "../upstream-ref";
 import {
 	GHDeploymentSchema,
 	GHDeploymentStatusSchema,
@@ -16,6 +17,18 @@ const CACHE_TTL_MS = 10_000;
 
 export function clearGitHubStatusCacheForWorktree(worktreePath: string): void {
 	cache.delete(worktreePath);
+}
+
+export function resolveRemoteBranchNameForGitHubStatus({
+	localBranchName,
+	upstreamBranchName,
+	prHeadRefName,
+}: {
+	localBranchName: string;
+	upstreamBranchName?: string | null;
+	prHeadRefName?: string | null;
+}): string {
+	return upstreamBranchName?.trim() || prHeadRefName?.trim() || localBranchName;
 }
 
 /**
@@ -36,22 +49,44 @@ export async function fetchGitHubPRStatus(
 			return null;
 		}
 
-		const [{ stdout: branchOutput }, { stdout: shaOutput }, trackingRemote] =
-			await Promise.all([
-				execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
-					cwd: worktreePath,
-				}),
-				execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
-				getTrackingRemoteNameForWorktree(worktreePath),
-			]);
-		const branchName = branchOutput.trim();
-		const headSha = shaOutput.trim();
-
-		const [branchCheck, prInfo, previewUrl] = await Promise.all([
-			branchExistsOnRemote(worktreePath, branchName, trackingRemote),
-			getPRForBranch(worktreePath, branchName, repoContext, headSha),
-			fetchPreviewDeploymentUrl(worktreePath, headSha, branchName, repoContext),
+		const [branchResult, shaResult, upstreamResult] = await Promise.all([
+			execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
+				cwd: worktreePath,
+			}),
+			execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
+			execGitWithShellPath(["rev-parse", "--abbrev-ref", "@{upstream}"], {
+				cwd: worktreePath,
+			}).catch(() => ({ stdout: "", stderr: "" })),
 		]);
+		const branchName = branchResult.stdout.trim();
+		const headSha = shaResult.stdout.trim();
+		const parsedUpstreamRef = parseUpstreamRef(upstreamResult.stdout.trim());
+		const trackingRemote = parsedUpstreamRef?.remoteName ?? "origin";
+
+		const [prInfo, previewUrl] = await Promise.all([
+			getPRForBranch(worktreePath, branchName, repoContext, headSha),
+			fetchPreviewDeploymentUrl(
+				worktreePath,
+				headSha,
+				resolveRemoteBranchNameForGitHubStatus({
+					localBranchName: branchName,
+					upstreamBranchName: parsedUpstreamRef?.branchName,
+				}),
+				repoContext,
+			),
+		]);
+
+		const remoteBranchName = resolveRemoteBranchNameForGitHubStatus({
+			localBranchName: branchName,
+			upstreamBranchName: parsedUpstreamRef?.branchName,
+			prHeadRefName: prInfo?.headRefName,
+		});
+
+		const branchCheck = await branchExistsOnRemote(
+			worktreePath,
+			remoteBranchName,
+			trackingRemote,
+		);
 
 		// If no preview URL found via SHA/branch, try the PR merge ref
 		// (GitHub Actions pull_request triggers use refs/pull/N/merge)
@@ -217,7 +252,7 @@ export function getPullRequestRepoArgs(
 }
 
 const PR_JSON_FIELDS =
-	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,headRefName,reviewDecision,statusCheckRollup,reviewRequests";
+	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,headRefName,headRepository,headRepositoryOwner,isCrossRepository,reviewDecision,statusCheckRollup,reviewRequests";
 
 async function getPRForBranch(
 	worktreePath: string,
@@ -405,6 +440,10 @@ function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
 		mergedAt: data.mergedAt ? new Date(data.mergedAt).getTime() : undefined,
 		additions: data.additions,
 		deletions: data.deletions,
+		headRefName: data.headRefName,
+		headRepositoryOwner: data.headRepositoryOwner?.login,
+		headRepositoryName: data.headRepository?.name,
+		isCrossRepository: data.isCrossRepository,
 		reviewDecision: mapReviewDecision(data.reviewDecision),
 		checksStatus: computeChecksStatus(data.statusCheckRollup),
 		checks: parseChecks(data.statusCheckRollup),

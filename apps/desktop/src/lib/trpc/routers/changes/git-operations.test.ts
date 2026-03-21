@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { isUpstreamMissingError } from "./git-utils";
+import {
+	getExistingPRHeadRepoUrl,
+	resolveRemoteNameForExistingPRHead,
+} from "./utils/existing-pr-push-target";
 
 describe("git-operations error handling", () => {
 	describe("isUpstreamMissingError", () => {
@@ -89,5 +93,77 @@ describe("sync operation logic", () => {
 		);
 
 		expect(isUpstreamMissingError(pullError.message)).toBe(false);
+	});
+});
+
+describe("existing PR push target resolution", () => {
+	test("uses the fallback remote for same-repo PRs", () => {
+		expect(
+			resolveRemoteNameForExistingPRHead({
+				remotes: [
+					{
+						name: "origin",
+						fetchUrl: "git@github.com:superset-sh/superset.git",
+					},
+				],
+				pr: {
+					isCrossRepository: false,
+				},
+				fallbackRemote: "origin",
+			}),
+		).toBe("origin");
+	});
+
+	test("matches the existing fork remote for cross-repo PRs", () => {
+		expect(
+			resolveRemoteNameForExistingPRHead({
+				remotes: [
+					{
+						name: "origin",
+						fetchUrl: "git@github.com:superset-sh/superset.git",
+					},
+					{
+						name: "kitenite",
+						fetchUrl: "git@github.com:kitenite/superset.git",
+						pushUrl: "git@github.com:kitenite/superset.git",
+					},
+				],
+				pr: {
+					headRepositoryOwner: "kitenite",
+					headRepositoryName: "superset",
+					isCrossRepository: true,
+				},
+				fallbackRemote: "origin",
+			}),
+		).toBe("kitenite");
+	});
+
+	test("returns null when a cross-repo PR remote cannot be found", () => {
+		expect(
+			resolveRemoteNameForExistingPRHead({
+				remotes: [
+					{
+						name: "origin",
+						fetchUrl: "git@github.com:superset-sh/superset.git",
+					},
+				],
+				pr: {
+					headRepositoryOwner: "kitenite",
+					headRepositoryName: "superset",
+					isCrossRepository: true,
+				},
+				fallbackRemote: "origin",
+			}),
+		).toBeNull();
+	});
+
+	test("builds the PR head repo url for cross-repo PRs", () => {
+		expect(
+			getExistingPRHeadRepoUrl({
+				headRepositoryOwner: "kitenite",
+				headRepositoryName: "superset",
+				isCrossRepository: true,
+			}),
+		).toBe("https://github.com/kitenite/superset");
 	});
 });

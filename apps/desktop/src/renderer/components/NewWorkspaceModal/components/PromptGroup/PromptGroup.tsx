@@ -31,12 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	ArrowUpIcon,
-	Loader2Icon,
-	PaperclipIcon,
-	PlusIcon,
-} from "lucide-react";
+import { ArrowUpIcon, PaperclipIcon, PlusIcon } from "lucide-react";
 import {
 	forwardRef,
 	useCallback,
@@ -59,8 +54,10 @@ import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseB
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
-	useSetIsGeneratingBranchName,
+	useClearPendingWorkspace,
+	useNewWorkspaceModalOpen,
 	useSetPendingWorkspace,
+	useSetPendingWorkspaceStatus,
 } from "renderer/stores/new-workspace-modal";
 import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
 import {
@@ -123,7 +120,7 @@ const PlusMenu = forwardRef<
 						<PlusIcon className="size-3.5" />
 					</PromptInputButton>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent side="top" align="end" className="w-52">
+				<DropdownMenuContent side="bottom" align="start" className="w-52">
 					<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
 						<PaperclipIcon className="size-4" />
 						Add attachment
@@ -394,7 +391,9 @@ function PromptGroupInner({
 }: PromptGroupProps) {
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
+	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const {
+		closeAndResetDraft,
 		closeModal,
 		createWorkspace,
 		createFromPr,
@@ -403,8 +402,9 @@ function PromptGroupInner({
 		updateDraft,
 	} = useNewWorkspaceModalDraft();
 	const attachments = useProviderAttachments();
+	const clearPendingWorkspace = useClearPendingWorkspace();
 	const setPendingWorkspace = useSetPendingWorkspace();
-	const setIsGeneratingBranchNameGlobal = useSetIsGeneratingBranchName();
+	const setPendingWorkspaceStatus = useSetPendingWorkspaceStatus();
 	const {
 		baseBranch,
 		prompt,
@@ -416,8 +416,6 @@ function PromptGroupInner({
 		linkedIssues,
 		linkedPR,
 	} = draft;
-	const runSetupScriptRef = useRef(runSetupScript);
-	runSetupScriptRef.current = runSetupScript;
 	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
 	const agentPresets = agentPresetsQuery.data ?? [];
 	const enabledAgentPresets = useMemo(
@@ -443,21 +441,18 @@ function PromptGroupInner({
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
+	const submitStartedRef = useRef(false);
 	const trimmedPrompt = prompt.trim();
 	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
 	// AI branch name generation (on submit only)
 	const generateBranchNameMutation =
 		electronTrpc.workspaces.generateBranchName.useMutation();
-	const [isGeneratingBranchName, setIsGeneratingBranchName] = useState(false);
-
-	// Track component mount state for cleanup
-	const isMountedRef = useRef(true);
 	useEffect(() => {
-		return () => {
-			isMountedRef.current = false;
-		};
-	}, []);
+		if (isNewWorkspaceModalOpen) {
+			submitStartedRef.current = false;
+		}
+	}, [isNewWorkspaceModalOpen]);
 
 	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
@@ -556,198 +551,202 @@ function PromptGroupInner({
 			return;
 		}
 
-		// Prevent re-entry while generation/creation is in flight
-		if (
-			isGeneratingBranchName ||
-			generateBranchNameMutation.isPending ||
-			createWorkspace.isPending ||
-			createFromPr.isPending
-		) {
+		if (submitStartedRef.current) {
 			return;
 		}
+		submitStartedRef.current = true;
 
-		// Set pending workspace immediately for suspense UI
 		const displayName =
 			workspaceNameEdited && workspaceName.trim()
 				? workspaceName.trim()
 				: trimmedPrompt || "New workspace";
-
 		const willGenerateAIName =
 			!branchNameEdited && !!trimmedPrompt && !linkedPR;
+		const pendingWorkspaceId = crypto.randomUUID();
+		const detachedFiles = attachments.takeFiles();
 
 		setPendingWorkspace({
+			id: pendingWorkspaceId,
 			projectId,
 			name: displayName,
-			isGeneratingBranchName: willGenerateAIName,
+			status: willGenerateAIName ? "generating-branch" : "preparing",
 		});
+		closeAndResetDraft();
 
-		// Generate AI branch name if needed (before creating workspace)
-		let aiBranchName: string | null = null;
-		if (willGenerateAIName) {
-			setIsGeneratingBranchName(true);
-			let timeoutId: NodeJS.Timeout | null = null;
-			try {
-				// Add timeout to prevent hanging indefinitely
-				const AI_GENERATION_TIMEOUT_MS = 30000; // 30 seconds
-				const timeoutPromise = new Promise<never>((_, reject) => {
-					timeoutId = setTimeout(
-						() => reject(new Error("AI generation timeout")),
-						AI_GENERATION_TIMEOUT_MS,
-					);
-				});
+		try {
+			let aiBranchName: string | null = null;
+			if (willGenerateAIName) {
+				let timeoutId: NodeJS.Timeout | null = null;
+				try {
+					const AI_GENERATION_TIMEOUT_MS = 30000;
+					const timeoutPromise = new Promise<never>((_, reject) => {
+						timeoutId = setTimeout(
+							() => reject(new Error("AI generation timeout")),
+							AI_GENERATION_TIMEOUT_MS,
+						);
+					});
 
-				const result = await Promise.race([
-					generateBranchNameMutation.mutateAsync({
-						prompt: trimmedPrompt,
-						projectId,
-					}),
-					timeoutPromise,
-				]);
+					const result = await Promise.race([
+						generateBranchNameMutation.mutateAsync({
+							prompt: trimmedPrompt,
+							projectId,
+						}),
+						timeoutPromise,
+					]);
 
-				// Clear timeout on successful completion
-				if (timeoutId) clearTimeout(timeoutId);
-				aiBranchName = result.branchName;
-			} catch (error) {
-				// Clear timeout on error
-				if (timeoutId) clearTimeout(timeoutId);
+					if (timeoutId) clearTimeout(timeoutId);
+					aiBranchName = result.branchName;
+				} catch (error) {
+					if (timeoutId) clearTimeout(timeoutId);
 
-				// Distinguish error types for better user feedback
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
-				if (errorMessage.includes("timeout")) {
-					console.warn("[PromptGroup] AI generation timeout");
-					toast.info("Using random branch name (AI generation timed out)");
-				} else if (
-					errorMessage.toLowerCase().includes("auth") ||
-					errorMessage.includes("401") ||
-					errorMessage.includes("403")
-				) {
-					console.error("[PromptGroup] AI auth error:", error);
-					toast.error(
-						"AI authentication failed. Please check your AI settings.",
-					);
-					setPendingWorkspace(null);
-					return; // Don't continue with workspace creation on auth errors
-				} else {
-					console.warn("[PromptGroup] AI generation failed:", error);
-					toast.info("Using random branch name (AI generation unavailable)");
-				}
-				// Continue with workspace creation - backend will use random name
-			} finally {
-				// Always clear global state to prevent stuck "Generating..." in sidebar
-				setIsGeneratingBranchNameGlobal(false);
-				// Only update local state if component is still mounted
-				if (isMountedRef.current) {
-					setIsGeneratingBranchName(false);
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					if (errorMessage.includes("timeout")) {
+						console.warn("[PromptGroup] AI generation timeout");
+						toast.info("Using random branch name (AI generation timed out)");
+					} else if (
+						errorMessage.toLowerCase().includes("auth") ||
+						errorMessage.includes("401") ||
+						errorMessage.includes("403")
+					) {
+						console.error("[PromptGroup] AI auth error:", error);
+						toast.error(
+							"AI authentication failed. Please check your AI settings.",
+						);
+						clearPendingWorkspace(pendingWorkspaceId);
+						return;
+					} else {
+						console.warn("[PromptGroup] AI generation failed:", error);
+						toast.info("Using random branch name (AI generation unavailable)");
+					}
+				} finally {
+					setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
 				}
 			}
-		}
 
-		let convertedFiles: ConvertedFile[] | undefined;
-		if (attachments.files.length > 0) {
+			let convertedFiles: ConvertedFile[] | undefined;
+			if (detachedFiles.length > 0) {
+				try {
+					convertedFiles = await Promise.all(
+						detachedFiles.map(async (file) => ({
+							data: await convertBlobUrlToDataUrl(file.url),
+							mediaType: file.mediaType,
+							filename: file.filename,
+						})),
+					);
+				} catch (err) {
+					clearPendingWorkspace(pendingWorkspaceId);
+					toast.error(
+						err instanceof Error
+							? err.message
+							: "Failed to process attachments",
+					);
+					return;
+				}
+			}
+
+			let launchRequest: AgentLaunchRequest | null = null;
 			try {
-				convertedFiles = await Promise.all(
-					attachments.files.map(async (file) => ({
-						data: await convertBlobUrlToDataUrl(file.url),
-						mediaType: file.mediaType,
-						filename: file.filename,
-					})),
-				);
-			} catch (err) {
-				setPendingWorkspace(null);
+				launchRequest = buildLaunchRequest(trimmedPrompt, convertedFiles);
+			} catch (error) {
+				clearPendingWorkspace(pendingWorkspaceId);
 				toast.error(
-					err instanceof Error ? err.message : "Failed to process attachments",
+					error instanceof Error
+						? error.message
+						: "Failed to prepare agent launch",
 				);
 				return;
 			}
-		}
 
-		let launchRequest: AgentLaunchRequest | null = null;
-		try {
-			launchRequest = buildLaunchRequest(trimmedPrompt, convertedFiles);
-		} catch (error) {
-			setPendingWorkspace(null);
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to prepare agent launch",
-			);
-			return;
-		}
+			setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
 
-		if (linkedPR) {
+			if (linkedPR) {
+				void runAsyncAction(
+					createFromPr.mutateAsyncWithSetup(
+						{ projectId, prUrl: linkedPR.url },
+						launchRequest ?? undefined,
+					),
+					{
+						loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
+						success: "Workspace created from PR",
+						error: (err) =>
+							err instanceof Error
+								? err.message
+								: "Failed to create workspace from PR",
+					},
+					{ closeAndReset: false },
+				).finally(() => {
+					clearPendingWorkspace(pendingWorkspaceId);
+				});
+				return;
+			}
+
 			void runAsyncAction(
-				createFromPr.mutateAsyncWithSetup(
-					{ projectId, prUrl: linkedPR.url },
-					launchRequest ?? undefined,
+				createWorkspace.mutateAsyncWithPendingSetup(
+					{
+						projectId,
+						name:
+							workspaceNameEdited && workspaceName.trim()
+								? workspaceName.trim()
+								: undefined,
+						prompt: trimmedPrompt || undefined,
+						branchName:
+							(branchNameEdited && branchName.trim()
+								? sanitizeBranchNameWithMaxLength(
+										branchName.trim(),
+										undefined,
+										{
+											preserveCase: true,
+										},
+									)
+								: aiBranchName) || undefined,
+						baseBranch: baseBranch || undefined,
+					},
+					{
+						agentLaunchRequest: launchRequest ?? undefined,
+						resolveInitialCommands: runSetupScript
+							? (commands) => commands
+							: () => null,
+					},
 				),
 				{
-					loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
-					success: "Workspace created from PR",
+					loading: "Creating workspace...",
+					success: "Workspace created",
 					error: (err) =>
-						err instanceof Error
-							? err.message
-							: "Failed to create workspace from PR",
+						err instanceof Error ? err.message : "Failed to create workspace",
 				},
+				{ closeAndReset: false },
 			).finally(() => {
-				setPendingWorkspace(null);
+				clearPendingWorkspace(pendingWorkspaceId);
 			});
-			return;
+		} finally {
+			for (const file of detachedFiles) {
+				if (file.url?.startsWith("blob:")) {
+					URL.revokeObjectURL(file.url);
+				}
+			}
 		}
-
-		void runAsyncAction(
-			createWorkspace.mutateAsyncWithPendingSetup(
-				{
-					projectId,
-					name:
-						workspaceNameEdited && workspaceName.trim()
-							? workspaceName.trim()
-							: undefined,
-					prompt: trimmedPrompt || undefined,
-					branchName:
-						(branchNameEdited && branchName.trim()
-							? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
-									preserveCase: true,
-								})
-							: aiBranchName) || undefined,
-					baseBranch: baseBranch || undefined,
-				},
-				{
-					agentLaunchRequest: launchRequest ?? undefined,
-					resolveInitialCommands: (commands) =>
-						runSetupScriptRef.current ? commands : null,
-				},
-			),
-			{
-				loading: isGeneratingBranchName
-					? "Generating branch name..."
-					: "Creating workspace...",
-				success: "Workspace created",
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to create workspace",
-			},
-		).finally(() => {
-			setPendingWorkspace(null);
-		});
 	}, [
-		attachments.files,
+		attachments,
 		baseBranch,
 		branchName,
 		branchNameEdited,
 		buildLaunchRequest,
+		closeAndResetDraft,
+		clearPendingWorkspace,
 		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
 		generateBranchNameMutation,
-		isGeneratingBranchName,
 		linkedPR,
 		projectId,
 		runAsyncAction,
+		runSetupScript,
 		setPendingWorkspace,
+		setPendingWorkspaceStatus,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,
-		setIsGeneratingBranchNameGlobal,
 	]);
 
 	const handlePromptSubmit = useCallback(() => {
@@ -800,9 +799,6 @@ function PromptGroupInner({
 					<Input
 						className={cn(
 							"border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
-							isGeneratingBranchName &&
-								!branchNameEdited &&
-								"animate-pulse placeholder:animate-pulse",
 						)}
 						placeholder="branch name"
 						value={branchName}
@@ -931,17 +927,12 @@ function PromptGroupInner({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={createWorkspace.isPending || createFromPr.isPending}
 							onClick={(e) => {
 								e.preventDefault();
 								void handleCreate();
 							}}
 						>
-							{createWorkspace.isPending || createFromPr.isPending ? (
-								<Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
-							) : (
-								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
-							)}
+							<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 						</PromptInputSubmit>
 					</div>
 				</PromptInputFooter>
