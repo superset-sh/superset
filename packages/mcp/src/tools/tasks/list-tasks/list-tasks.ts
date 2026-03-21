@@ -2,7 +2,18 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
 import { taskStatuses, tasks, users } from "@superset/db/schema";
 import type { SQL } from "drizzle-orm";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	ilike,
+	isNull,
+	lte,
+	or,
+	sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -19,6 +30,13 @@ type TaskPriority = (typeof PRIORITIES)[number];
 
 function isPriority(value: unknown): value is TaskPriority {
 	return PRIORITIES.includes(value as TaskPriority);
+}
+
+const SORT_COLUMNS = ["createdAt", "updatedAt", "dueDate", "priority"] as const;
+type SortColumn = (typeof SORT_COLUMNS)[number];
+
+function isSortColumn(value: unknown): value is SortColumn {
+	return SORT_COLUMNS.includes(value as SortColumn);
 }
 
 export function register(server: McpServer) {
@@ -50,6 +68,36 @@ export function register(server: McpServer) {
 					.optional()
 					.describe("Filter by labels (tasks must have ALL specified labels)"),
 				search: z.string().optional().describe("Search in title/description"),
+				externalProjectId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear project ID"),
+				externalProjectName: z
+					.string()
+					.optional()
+					.describe(
+						"Filter by Linear project name (partial match, case-insensitive)",
+					),
+				externalCycleId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear cycle ID"),
+				dueDateFrom: z
+					.string()
+					.optional()
+					.describe("Filter tasks with due date on or after this ISO date"),
+				dueDateTo: z
+					.string()
+					.optional()
+					.describe("Filter tasks with due date on or before this ISO date"),
+				sortBy: z
+					.enum(["createdAt", "updatedAt", "dueDate", "priority"])
+					.optional()
+					.describe("Sort by field (default: createdAt)"),
+				sortOrder: z
+					.enum(["asc", "desc"])
+					.optional()
+					.describe("Sort order (default: desc)"),
 				includeDeleted: z
 					.boolean()
 					.optional()
@@ -78,6 +126,10 @@ export function register(server: McpServer) {
 						labels: z.array(z.string()),
 						dueDate: z.string().nullable(),
 						estimate: z.number().nullable(),
+						externalProjectId: z.string().nullable(),
+						externalProjectName: z.string().nullable(),
+						externalCycleId: z.string().nullable(),
+						externalCycleName: z.string().nullable(),
 						deletedAt: z.string().nullable(),
 					}),
 				),
@@ -96,6 +148,16 @@ export function register(server: McpServer) {
 			const priority = args.priority;
 			const labels = args.labels as string[] | undefined;
 			const search = args.search as string | undefined;
+			const externalProjectId = args.externalProjectId as string | undefined;
+			const externalProjectName = args.externalProjectName as
+				| string
+				| undefined;
+			const externalCycleId = args.externalCycleId as string | undefined;
+			const dueDateFrom = args.dueDateFrom as string | undefined;
+			const dueDateTo = args.dueDateTo as string | undefined;
+			const sortBy = args.sortBy as SortColumn | undefined;
+			const sortOrder =
+				(args.sortOrder as "asc" | "desc" | undefined) ?? "desc";
 			const includeDeleted = args.includeDeleted as boolean | undefined;
 			const limit = args.limit as number;
 			const offset = args.offset as number;
@@ -148,6 +210,28 @@ export function register(server: McpServer) {
 				}
 			}
 
+			if (externalProjectId) {
+				conditions.push(eq(tasks.externalProjectId, externalProjectId));
+			}
+
+			if (externalProjectName) {
+				conditions.push(
+					ilike(tasks.externalProjectName, `%${externalProjectName}%`),
+				);
+			}
+
+			if (externalCycleId) {
+				conditions.push(eq(tasks.externalCycleId, externalCycleId));
+			}
+
+			if (dueDateFrom) {
+				conditions.push(gte(tasks.dueDate, new Date(dueDateFrom)));
+			}
+
+			if (dueDateTo) {
+				conditions.push(lte(tasks.dueDate, new Date(dueDateTo)));
+			}
+
 			if (statusType) {
 				const statusesOfType = await db
 					.select({ id: taskStatuses.id })
@@ -180,6 +264,24 @@ export function register(server: McpServer) {
 				}
 			}
 
+			// Build order by clause
+			const dirFn = sortOrder === "asc" ? asc : desc;
+			let orderByClause: SQL;
+
+			if (isSortColumn(sortBy) && sortBy === "priority") {
+				// Custom priority ordering: urgent=0, high=1, medium=2, low=3, none=4
+				orderByClause =
+					sortOrder === "asc"
+						? sql`CASE ${tasks.priority} WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 WHEN 'none' THEN 4 END ASC`
+						: sql`CASE ${tasks.priority} WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 WHEN 'none' THEN 4 END DESC`;
+			} else if (isSortColumn(sortBy) && sortBy === "updatedAt") {
+				orderByClause = dirFn(tasks.updatedAt);
+			} else if (isSortColumn(sortBy) && sortBy === "dueDate") {
+				orderByClause = dirFn(tasks.dueDate);
+			} else {
+				orderByClause = dirFn(tasks.createdAt);
+			}
+
 			const tasksList = await db
 				.select({
 					id: tasks.id,
@@ -202,6 +304,10 @@ export function register(server: McpServer) {
 					labels: tasks.labels,
 					dueDate: tasks.dueDate,
 					estimate: tasks.estimate,
+					externalProjectId: tasks.externalProjectId,
+					externalProjectName: tasks.externalProjectName,
+					externalCycleId: tasks.externalCycleId,
+					externalCycleName: tasks.externalCycleName,
 					deletedAt: tasks.deletedAt,
 				})
 				.from(tasks)
@@ -209,7 +315,7 @@ export function register(server: McpServer) {
 				.leftJoin(creator, eq(tasks.creatorId, creator.id))
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(and(...conditions))
-				.orderBy(desc(tasks.createdAt))
+				.orderBy(orderByClause)
 				.limit(limit)
 				.offset(offset);
 
