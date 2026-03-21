@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "lines changed" returns the behavior toggle for sidebar stats', () => {
+		const results = searchSettings("lines changed");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_SHOW_LINE_CHANGE_STATS);
+	});
 });

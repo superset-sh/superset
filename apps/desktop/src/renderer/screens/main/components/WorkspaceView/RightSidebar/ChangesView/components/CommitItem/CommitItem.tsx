@@ -21,6 +21,7 @@ interface CommitItemProps {
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
 	worktreePath: string;
+	showStats?: boolean;
 	isExpandedView?: boolean;
 	projectId?: string;
 }
@@ -77,6 +78,7 @@ export function CommitItem({
 	onFileSelect,
 	viewMode,
 	worktreePath,
+	showStats = true,
 	isExpandedView,
 	projectId,
 }: CommitItemProps) {
@@ -110,6 +112,7 @@ export function CommitItem({
 					selectedFile={isCommitSelected ? selectedFile : null}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={handleFileSelect}
+					showStats={showStats}
 					worktreePath={worktreePath}
 					projectId={projectId}
 					category="committed"

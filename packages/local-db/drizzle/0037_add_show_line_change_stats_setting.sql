@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `show_line_change_stats` integer;

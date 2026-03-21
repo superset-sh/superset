@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { isValidElement } from "react";
 import type {
 	ChangeCategory,
 	ChangedFile,
@@ -29,6 +30,7 @@ const emptyArgs = {
 	},
 	toggleSection: () => {},
 	fileListViewMode: "tree" as const,
+	showLineChangeStats: true,
 	selectedFile: null,
 	selectedCommitHash: null,
 	worktreePath: "/tmp/repo",
@@ -100,5 +102,23 @@ describe("useOrderedSections", () => {
 		expect(sections.find((section) => section.id === "unstaged")?.count).toBe(
 			3,
 		);
+	});
+
+	test("passes showStats=false to file list content when line change stats are disabled", () => {
+		const sections = useOrderedSections({
+			...emptyArgs,
+			showLineChangeStats: false,
+			againstBaseFiles: [emptyFile()],
+		});
+		const againstBaseSection = sections.find(
+			(section) => section.id === "against-base",
+		);
+
+		expect(againstBaseSection).toBeDefined();
+		expect(isValidElement(againstBaseSection?.content)).toBe(true);
+		expect(
+			(againstBaseSection?.content as { props: { showStats: boolean } }).props
+				.showStats,
+		).toBe(false);
 	});
 });

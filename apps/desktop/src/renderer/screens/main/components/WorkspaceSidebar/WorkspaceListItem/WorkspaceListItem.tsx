@@ -153,6 +153,8 @@ export function WorkspaceListItem({
 				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
 			},
 		);
+	const { data: showLineChangeStats } =
+		electronTrpc.settings.getShowLineChangeStats.useQuery();
 
 	useBranchSyncInvalidation({
 		gitBranch: localChanges?.branch,
@@ -374,7 +376,7 @@ export function WorkspaceListItem({
 							)}
 
 							<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center">
-								{diffStats && (
+								{(showLineChangeStats ?? true) && diffStats && (
 									<WorkspaceDiffStats
 										additions={diffStats.additions}
 										deletions={diffStats.deletions}

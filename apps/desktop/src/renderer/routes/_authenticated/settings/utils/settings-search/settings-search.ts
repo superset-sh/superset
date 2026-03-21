@@ -24,6 +24,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
+	BEHAVIOR_SHOW_LINE_CHANGE_STATS: "behavior-show-line-change-stats",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 
@@ -431,6 +432,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"split pane",
 			"viewer",
 			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_SHOW_LINE_CHANGE_STATS,
+		section: "behavior",
+		title: "Show lines changed",
+		description: "Show +/− line counts in the left and right sidebars",
+		keywords: [
+			"lines changed",
+			"line counts",
+			"additions",
+			"deletions",
+			"sidebar",
+			"stats",
+			"diff",
+			"noise",
+			"hide",
+			"show",
 		],
 	},
 	{
