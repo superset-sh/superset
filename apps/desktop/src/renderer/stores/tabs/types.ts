@@ -63,6 +63,7 @@ export interface AddTabWithMultiplePanesOptions {
 }
 
 export type MosaicDropPosition = "top" | "bottom" | "left" | "right";
+export type FileViewerReuseScope = "none" | "active-tab" | "workspace";
 
 /**
  * Options for opening a file in a file-viewer pane
@@ -87,6 +88,8 @@ export interface AddFileViewerPaneOptions {
 	isPinned?: boolean;
 	/** If true, opens in a new tab instead of splitting the current tab */
 	openInNewTab?: boolean;
+	/** Controls whether an already-open matching file viewer is focused instead of opened again */
+	reuseExisting?: FileViewerReuseScope;
 }
 
 /**
