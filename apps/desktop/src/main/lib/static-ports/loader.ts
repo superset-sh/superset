@@ -6,10 +6,12 @@ import type { StaticPortsResult } from "shared/types";
 interface PortEntry {
 	port: unknown;
 	label: unknown;
+	url?: unknown;
 }
 
 interface PortsConfig {
 	ports: unknown;
+	check?: unknown;
 }
 
 /**
@@ -23,7 +25,7 @@ function validatePortEntry(
 	entry: PortEntry,
 	index: number,
 ):
-	| { valid: true; port: number; label: string }
+	| { valid: true; port: number; label: string; url?: string }
 	| { valid: false; error: string } {
 	if (typeof entry !== "object" || entry === null) {
 		return { valid: false, error: `ports[${index}] must be an object` };
@@ -64,7 +66,29 @@ function validatePortEntry(
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
 	}
 
-	return { valid: true, port, label: label.trim() };
+	const result: { valid: true; port: number; label: string; url?: string } = {
+		valid: true,
+		port,
+		label: label.trim(),
+	};
+
+	if ("url" in entry && entry.url !== undefined) {
+		if (typeof entry.url !== "string") {
+			return {
+				valid: false,
+				error: `ports[${index}].url must be a string`,
+			};
+		}
+		if (entry.url.trim() === "") {
+			return {
+				valid: false,
+				error: `ports[${index}].url cannot be empty`,
+			};
+		}
+		result.url = entry.url.trim();
+	}
+
+	return result;
 }
 
 /**
@@ -81,7 +105,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 	);
 
 	if (!existsSync(portsPath)) {
-		return { exists: false, ports: null, error: null };
+		return { exists: false, ports: null, check: null, error: null };
 	}
 
 	let content: string;
@@ -92,6 +116,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			check: null,
 			error: `Failed to read ports.json: ${message}`,
 		};
 	}
@@ -104,6 +129,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			check: null,
 			error: `Invalid JSON in ports.json: ${message}`,
 		};
 	}
@@ -112,6 +138,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			check: null,
 			error: "ports.json must contain a JSON object",
 		};
 	}
@@ -120,6 +147,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			check: null,
 			error: "ports.json is missing required field 'ports'",
 		};
 	}
@@ -128,24 +156,55 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			check: null,
 			error: "'ports' field must be an array",
 		};
 	}
 
-	const validatedPorts: Array<{ port: number; label: string }> = [];
+	// Validate optional 'check' field
+	let check: string | null = null;
+	if ("check" in parsed && parsed.check !== undefined) {
+		if (typeof parsed.check !== "string") {
+			return {
+				exists: true,
+				ports: null,
+				check: null,
+				error: "'check' field must be a string",
+			};
+		}
+		if (parsed.check.trim() === "") {
+			return {
+				exists: true,
+				ports: null,
+				check: null,
+				error: "'check' field cannot be empty",
+			};
+		}
+		check = parsed.check.trim();
+	}
+
+	const validatedPorts: Array<{ port: number; label: string; url?: string }> =
+		[];
 
 	for (let i = 0; i < parsed.ports.length; i++) {
 		const entry = parsed.ports[i] as PortEntry;
 		const result = validatePortEntry(entry, i);
 
 		if (!result.valid) {
-			return { exists: true, ports: null, error: result.error };
+			return { exists: true, ports: null, check: null, error: result.error };
 		}
 
-		validatedPorts.push({ port: result.port, label: result.label });
+		const portEntry: { port: number; label: string; url?: string } = {
+			port: result.port,
+			label: result.label,
+		};
+		if (result.url) {
+			portEntry.url = result.url;
+		}
+		validatedPorts.push(portEntry);
 	}
 
-	return { exists: true, ports: validatedPorts, error: null };
+	return { exists: true, ports: validatedPorts, check, error: null };
 }
 
 /**

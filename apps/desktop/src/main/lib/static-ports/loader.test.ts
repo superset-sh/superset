@@ -23,7 +23,12 @@ describe("loadStaticPorts", () => {
 	test("returns exists: false when ports.json does not exist", () => {
 		rmSync(PORTS_FILE, { force: true });
 		const result = loadStaticPorts(WORKTREE_PATH);
-		expect(result).toEqual({ exists: false, ports: null, error: null });
+		expect(result).toEqual({
+			exists: false,
+			ports: null,
+			check: null,
+			error: null,
+		});
 	});
 
 	test("loads valid ports.json with single port", () => {
@@ -36,6 +41,7 @@ describe("loadStaticPorts", () => {
 		expect(result).toEqual({
 			exists: true,
 			ports: [{ port: 3000, label: "Frontend" }],
+			check: null,
 			error: null,
 		});
 	});
@@ -58,6 +64,7 @@ describe("loadStaticPorts", () => {
 				{ port: 8080, label: "API Server" },
 				{ port: 5432, label: "PostgreSQL" },
 			],
+			check: null,
 			error: null,
 		});
 	});
@@ -255,7 +262,151 @@ describe("loadStaticPorts", () => {
 		writeFileSync(PORTS_FILE, JSON.stringify({ ports: [] }));
 
 		const result = loadStaticPorts(WORKTREE_PATH);
-		expect(result).toEqual({ exists: true, ports: [], error: null });
+		expect(result).toEqual({
+			exists: true,
+			ports: [],
+			check: null,
+			error: null,
+		});
+	});
+
+	test("loads port entry with url", () => {
+		const config = {
+			ports: [
+				{
+					port: 5173,
+					label: "Web Client",
+					url: "https://local.tana.inc:5173",
+				},
+			],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result).toEqual({
+			exists: true,
+			ports: [
+				{
+					port: 5173,
+					label: "Web Client",
+					url: "https://local.tana.inc:5173",
+				},
+			],
+			check: null,
+			error: null,
+		});
+	});
+
+	test("omits url from result when not provided", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0]).toEqual({ port: 3000, label: "Frontend" });
+		expect("url" in (result.ports?.[0] ?? {})).toBe(false);
+	});
+
+	test("trims whitespace from url", () => {
+		const config = {
+			ports: [
+				{
+					port: 3000,
+					label: "Frontend",
+					url: "  https://example.com  ",
+				},
+			],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0].url).toBe("https://example.com");
+	});
+
+	test("returns error when url is not a string", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ ports: [{ port: 3000, label: "Test", url: 123 }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("ports[0].url must be a string");
+	});
+
+	test("returns error when url is empty", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ ports: [{ port: 3000, label: "Test", url: "" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("ports[0].url cannot be empty");
+	});
+
+	test("loads check command", () => {
+		const config = {
+			check: "pnpm polaris ps --json",
+			ports: [{ port: 3000, label: "Frontend" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result).toEqual({
+			exists: true,
+			ports: [{ port: 3000, label: "Frontend" }],
+			check: "pnpm polaris ps --json",
+			error: null,
+		});
+	});
+
+	test("returns check: null when not provided", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.check).toBeNull();
+	});
+
+	test("returns error when check is not a string", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ check: 123, ports: [{ port: 3000, label: "Test" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("'check' field must be a string");
+	});
+
+	test("returns error when check is empty", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ check: "", ports: [{ port: 3000, label: "Test" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("'check' field cannot be empty");
+	});
+
+	test("trims whitespace from check command", () => {
+		const config = {
+			check: "  pnpm ps --json  ",
+			ports: [],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.check).toBe("pnpm ps --json");
 	});
 });
 
