@@ -1,6 +1,6 @@
 import { skipToken } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChatRuntimeServiceRouter } from "../../../server/trpc";
 import { chatRuntimeServiceTrpc } from "../../provider";
 
@@ -22,12 +22,45 @@ export interface UseChatDisplayOptions {
 	sessionId: string | null;
 	cwd?: string;
 	enabled?: boolean;
-	fps?: number;
 }
 
-function toRefetchIntervalMs(fps: number): number {
-	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
-	return Math.max(16, Math.floor(1000 / fps));
+const DEFAULT_ACTIVE_POLL_FPS = 30;
+const MAX_ACTIVE_POLL_FPS = 30;
+
+export function toActiveRefetchIntervalMs(fps: number): number {
+	const normalizedFps =
+		Number.isFinite(fps) && fps > 0
+			? Math.min(fps, MAX_ACTIVE_POLL_FPS)
+			: DEFAULT_ACTIVE_POLL_FPS;
+	return Math.max(33, Math.floor(1000 / normalizedFps));
+}
+
+interface ScopedDisplayState {
+	scopeKey: string;
+	displayState: DisplayStateOutput;
+}
+
+interface OptimisticUserMessageEntry {
+	expectedPersistedUserCount: number;
+	message: HistoryMessage;
+}
+
+export function toDisplayStateScopeKey(
+	sessionId: string | null,
+	cwd?: string,
+): string {
+	return `${sessionId ?? ""}:${cwd ?? ""}`;
+}
+
+export function resolveScopedDisplayState(
+	scopeKey: string,
+	liveDisplayState: ScopedDisplayState | null,
+	queryDisplayState: DisplayStateOutput | undefined,
+): DisplayStateOutput | null {
+	if (liveDisplayState?.scopeKey === scopeKey) {
+		return liveDisplayState.displayState;
+	}
+	return queryDisplayState ?? null;
 }
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
@@ -83,19 +116,70 @@ export function withoutActiveTurnAssistantHistory({
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
-function hasFileOrImagePart(message: HistoryMessage): boolean {
-	return message.content.some(
-		(part: HistoryMessagePart) =>
-			(part as Record<string, unknown>).type === "file" ||
-			part.type === "image",
-	);
+function countUserMessages(messages: ListMessagesOutput): number {
+	return messages.filter((message: HistoryMessage) => message.role === "user")
+		.length;
 }
 
-function countFileMessages(messages: ListMessagesOutput): number {
-	return messages.filter(
-		(message: HistoryMessage) =>
-			message.role === "user" && hasFileOrImagePart(message),
-	).length;
+function toUserMessageSignature(message: HistoryMessage): string | null {
+	if (message.role !== "user") return null;
+
+	return message.content
+		.map((part: HistoryMessagePart) => {
+			if (part.type === "text") return `text:${part.text}`;
+			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			if ((part as { type?: string }).type === "file") {
+				const filePart = part as {
+					data?: string;
+					filename?: string;
+					mediaType?: string;
+				};
+				return `file:${filePart.mediaType ?? ""}:${filePart.filename ?? ""}:${filePart.data ?? ""}`;
+			}
+			return `${part.type}:${JSON.stringify(part)}`;
+		})
+		.join("||");
+}
+
+export function reconcileOptimisticUserMessages({
+	historicalMessages,
+	optimisticMessages,
+}: {
+	historicalMessages: ListMessagesOutput;
+	optimisticMessages: OptimisticUserMessageEntry[];
+}): OptimisticUserMessageEntry[] {
+	if (optimisticMessages.length === 0) {
+		return optimisticMessages;
+	}
+
+	const historicalUserMessages = historicalMessages.filter(
+		(message: HistoryMessage) => message.role === "user",
+	);
+	let consumedCount = 0;
+
+	for (const optimisticMessage of optimisticMessages) {
+		const persistedIndex = optimisticMessage.expectedPersistedUserCount - 1;
+		if (persistedIndex >= historicalUserMessages.length) {
+			break;
+		}
+
+		const persistedMessage = historicalUserMessages[persistedIndex];
+		if (!persistedMessage) {
+			break;
+		}
+		if (
+			toUserMessageSignature(persistedMessage) !==
+			toUserMessageSignature(optimisticMessage.message)
+		) {
+			break;
+		}
+
+		consumedCount += 1;
+	}
+
+	return consumedCount === 0
+		? optimisticMessages
+		: optimisticMessages.slice(consumedCount);
 }
 
 function getLegacyImagePayload(
@@ -113,34 +197,95 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, cwd, enabled = true, fps = 60 } = options;
+	const { sessionId, cwd, enabled = true } = options;
 	const utils = chatRuntimeServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
+	const displayStateScopeKey = toDisplayStateScopeKey(sessionId, cwd);
 	const sessionCommandInput =
 		sessionId === null ? null : { sessionId, ...(cwd ? { cwd } : {}) };
 	const queryInput = sessionCommandInput ?? skipToken;
 	const isQueryEnabled = enabled && Boolean(sessionId);
-	const refetchIntervalMs = toRefetchIntervalMs(fps);
-	const queryOptions = {
-		enabled: isQueryEnabled,
-		refetchInterval: refetchIntervalMs,
-		refetchIntervalInBackground: true,
-		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
-	} as const;
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(
 		queryInput,
-		queryOptions,
+		{
+			enabled: isQueryEnabled,
+			refetchOnWindowFocus: true,
+			staleTime: 0,
+			gcTime: 0,
+		},
 	);
 
 	const messagesQuery = chatRuntimeServiceTrpc.session.listMessages.useQuery(
 		queryInput,
-		queryOptions,
+		{
+			enabled: isQueryEnabled,
+			refetchInterval: false,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: true,
+			staleTime: 0,
+			gcTime: 0,
+		},
 	);
 
-	const displayState = displayQuery.data ?? null;
+	const isConversationLoading =
+		isQueryEnabled &&
+		messagesQuery.data === undefined &&
+		(messagesQuery.isLoading || messagesQuery.isFetching);
+	const historicalMessages = messagesQuery.data ?? [];
+	const historicalUserCount = countUserMessages(historicalMessages);
+	const [optimisticUserMessages, setOptimisticUserMessages] = useState<
+		OptimisticUserMessageEntry[]
+	>([]);
+	const [liveDisplayState, setLiveDisplayState] =
+		useState<ScopedDisplayState | null>(null);
+
+	const refreshMessages = useCallback(async () => {
+		if (!sessionCommandInput) return;
+		await utils.session.listMessages.invalidate(sessionCommandInput);
+	}, [sessionCommandInput, utils.session.listMessages]);
+
+	useEffect(() => {
+		setLiveDisplayState(null);
+		setCommandError(null);
+		setOptimisticUserMessages([]);
+	}, [displayStateScopeKey]);
+
+	useEffect(() => {
+		setOptimisticUserMessages((existingMessages) =>
+			reconcileOptimisticUserMessages({
+				historicalMessages,
+				optimisticMessages: existingMessages,
+			}),
+		);
+	}, [historicalMessages]);
+
+	chatRuntimeServiceTrpc.session.subscribe.useSubscription(
+		isQueryEnabled && sessionCommandInput ? sessionCommandInput : skipToken,
+		{
+			onData: (event) => {
+				setLiveDisplayState({
+					scopeKey: displayStateScopeKey,
+					displayState: event.displayState,
+				});
+
+				if (sessionCommandInput && event.messagesChanged) {
+					void utils.session.listMessages.invalidate(sessionCommandInput);
+				}
+			},
+			onError: () => {
+				setLiveDisplayState(null);
+				void displayQuery.refetch();
+				void refreshMessages();
+			},
+		},
+	);
+
+	const displayState = resolveScopedDisplayState(
+		displayStateScopeKey,
+		liveDisplayState,
+		displayQuery.data,
+	);
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()
@@ -148,62 +293,24 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
 	const isRunning = displayState?.isRunning ?? false;
-	const isConversationLoading =
-		isQueryEnabled &&
-		messagesQuery.data === undefined &&
-		(messagesQuery.isLoading || messagesQuery.isFetching);
-	const historicalMessages = messagesQuery.data ?? [];
 	const latestAssistantErrorMessage = isRunning
 		? null
 		: findLatestAssistantErrorMessage(historicalMessages);
-	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
-		ListMessagesOutput[number] | null
-	>(null);
-	const optimisticTextRef = useRef<string | null>(null);
-	const optimisticIdRef = useRef<string | null>(null);
-	const fileMessageCountAtSendRef = useRef<number | null>(null);
-
-	useEffect(() => {
-		if (!optimisticIdRef.current) return;
-
-		const optimisticText = optimisticTextRef.current;
-
-		const found = optimisticText
-			? historicalMessages.some(
-					(message: HistoryMessage) =>
-						message.role === "user" &&
-						message.content.some(
-							(part: HistoryMessagePart) =>
-								part.type === "text" &&
-								"text" in part &&
-								part.text === optimisticText,
-						),
-				)
-			: (() => {
-					const currentFileMessageCount = countFileMessages(historicalMessages);
-					return (
-						fileMessageCountAtSendRef.current !== null &&
-						currentFileMessageCount > fileMessageCountAtSendRef.current
-					);
-				})();
-		if (!found) return;
-
-		setOptimisticUserMessage(null);
-		optimisticTextRef.current = null;
-		optimisticIdRef.current = null;
-		fileMessageCountAtSendRef.current = null;
-	}, [historicalMessages]);
 
 	const messages = useMemo(() => {
-		const withOptimistic = optimisticUserMessage
-			? [...historicalMessages, optimisticUserMessage]
-			: historicalMessages;
+		const withOptimistic =
+			optimisticUserMessages.length > 0
+				? [
+						...historicalMessages,
+						...optimisticUserMessages.map(({ message }) => message),
+					]
+				: historicalMessages;
 		return withoutActiveTurnAssistantHistory({
 			messages: withOptimistic,
 			currentMessage,
 			isRunning,
 		});
-	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
+	}, [historicalMessages, optimisticUserMessages, currentMessage, isRunning]);
 
 	const commands = useMemo(
 		() => ({
@@ -225,14 +332,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						: "";
 				const files = input.payload?.files ?? [];
 				const legacyImages = getLegacyImagePayload(input.payload);
+				let optimisticMessageId: string | null = null;
 				if (text || files.length > 0 || legacyImages.length > 0) {
-					const optimisticId = `optimistic-${Date.now()}`;
-					optimisticTextRef.current = text || null;
-					optimisticIdRef.current = optimisticId;
-					if (!text) {
-						fileMessageCountAtSendRef.current =
-							countFileMessages(historicalMessages);
-					}
+					const optimisticId = `optimistic-${crypto.randomUUID()}`;
+					optimisticMessageId = optimisticId;
 					const content: ListMessagesOutput[number]["content"] = [];
 					for (const file of files) {
 						content.push({
@@ -255,26 +358,39 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 							text,
 						} as ListMessagesOutput[number]["content"][number]);
 					}
-					setOptimisticUserMessage({
+					const optimisticMessage = {
 						id: optimisticId,
 						role: "user",
 						content,
 						createdAt: new Date(),
-					} as ListMessagesOutput[number]);
+					} as ListMessagesOutput[number];
+					setOptimisticUserMessages((existingMessages) => [
+						...existingMessages,
+						{
+							expectedPersistedUserCount:
+								historicalUserCount + existingMessages.length + 1,
+							message: optimisticMessage,
+						},
+					]);
 				}
 
 				try {
-					return await utils.client.session.sendMessage.mutate({
+					const result = await utils.client.session.sendMessage.mutate({
 						sessionId,
 						...(cwd ? { cwd } : {}),
 						...input,
 					});
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
-					setOptimisticUserMessage(null);
-					optimisticTextRef.current = null;
-					optimisticIdRef.current = null;
-					fileMessageCountAtSendRef.current = null;
+					if (optimisticMessageId) {
+						setOptimisticUserMessages((existingMessages) =>
+							existingMessages.filter(
+								({ message }) => message.id !== optimisticMessageId,
+							),
+						);
+					}
 					throw error;
 				}
 			},
@@ -282,7 +398,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.stop.mutate(sessionCommandInput);
+					const result =
+						await utils.client.session.stop.mutate(sessionCommandInput);
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -292,7 +411,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.abort.mutate(sessionCommandInput);
+					const result =
+						await utils.client.session.abort.mutate(sessionCommandInput);
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -304,10 +426,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.approval.respond.mutate({
+					const result = await utils.client.session.approval.respond.mutate({
 						...sessionCommandInput,
 						...input,
 					});
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -319,10 +443,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.question.respond.mutate({
+					const result = await utils.client.session.question.respond.mutate({
 						...sessionCommandInput,
 						...input,
 					});
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -334,17 +460,26 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!sessionCommandInput) return;
 				setCommandError(null);
 				try {
-					return await utils.client.session.plan.respond.mutate({
+					const result = await utils.client.session.plan.respond.mutate({
 						...sessionCommandInput,
 						...input,
 					});
+					void refreshMessages();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
 				}
 			},
 		}),
-		[cwd, historicalMessages, sessionCommandInput, sessionId, utils],
+		[
+			cwd,
+			historicalUserCount,
+			refreshMessages,
+			sessionCommandInput,
+			sessionId,
+			utils,
+		],
 	);
 
 	return {

@@ -1,6 +1,7 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { createAuthStorage, createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
@@ -63,6 +64,68 @@ export interface ChatRuntimeServiceOptions {
 	onLifecycleEvent?: (event: LifecycleEvent) => void;
 }
 
+interface ChatRuntimeSessionEvent {
+	displayState: ReturnType<typeof resolveSessionDisplayState>;
+	eventType: string;
+	messagesChanged: boolean;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function getRuntimeEventType(event: unknown): string {
+	if (!isObjectRecord(event) || typeof event.type !== "string") {
+		return "unknown";
+	}
+	return event.type;
+}
+
+function shouldRefreshMessagesForRuntimeEvent(eventType: string): boolean {
+	return (
+		eventType === "agent_end" ||
+		eventType === "thread_changed" ||
+		eventType === "thread_created"
+	);
+}
+
+function resolveSessionDisplayState(runtime: RuntimeSession) {
+	const displayState = runtime.harness.getDisplayState();
+	const currentMessage = displayState.currentMessage as {
+		role?: string;
+		stopReason?: string;
+		errorMessage?: string;
+	} | null;
+	const currentMessageError =
+		currentMessage?.role === "assistant" &&
+		typeof currentMessage.errorMessage === "string" &&
+		currentMessage.errorMessage.trim()
+			? currentMessage.errorMessage.trim()
+			: null;
+	const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+		? {
+				questionId: runtime.pendingSandboxQuestion.questionId,
+				question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+				options: [
+					{
+						label: "Yes",
+						description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+					},
+					{
+						label: "No",
+						description: "Deny access.",
+					},
+				],
+			}
+		: null;
+
+	return {
+		...displayState,
+		pendingQuestion: displayState.pendingQuestion ?? sandboxPendingQuestion,
+		errorMessage: currentMessageError ?? runtime.lastErrorMessage,
+	};
+}
+
 export class ChatRuntimeService {
 	private readonly runtimes = new Map<string, RuntimeSession>();
 	private readonly runtimeCreations = new Map<
@@ -70,6 +133,10 @@ export class ChatRuntimeService {
 		Promise<RuntimeSession>
 	>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
+	private readonly sessionListeners = new Map<
+		string,
+		Set<(event: ChatRuntimeSessionEvent) => void>
+	>();
 
 	constructor(readonly opts: ChatRuntimeServiceOptions) {
 		this.apiClient = createTRPCClient<AppRouter>({
@@ -85,6 +152,53 @@ export class ChatRuntimeService {
 		});
 	}
 
+	private getRuntimeListenerKey(
+		runtime: Pick<RuntimeSession, "sessionId" | "cwd">,
+	): string {
+		return `${runtime.sessionId}:${runtime.cwd}`;
+	}
+
+	private emitSessionEvent(runtime: RuntimeSession, event: unknown): void {
+		const listeners = this.sessionListeners.get(
+			this.getRuntimeListenerKey(runtime),
+		);
+		if (!listeners || listeners.size === 0) {
+			return;
+		}
+
+		const eventType = getRuntimeEventType(event);
+		const nextEvent: ChatRuntimeSessionEvent = {
+			displayState: resolveSessionDisplayState(runtime),
+			eventType,
+			messagesChanged: shouldRefreshMessagesForRuntimeEvent(eventType),
+		};
+
+		for (const listener of listeners) {
+			listener(nextEvent);
+		}
+	}
+
+	private addSessionListener(
+		runtime: Pick<RuntimeSession, "sessionId" | "cwd">,
+		listener: (event: ChatRuntimeSessionEvent) => void,
+	): () => void {
+		const listenerKey = this.getRuntimeListenerKey(runtime);
+		const listeners = this.sessionListeners.get(listenerKey) ?? new Set();
+		listeners.add(listener);
+		this.sessionListeners.set(listenerKey, listeners);
+
+		return () => {
+			const current = this.sessionListeners.get(listenerKey);
+			if (!current) {
+				return;
+			}
+			current.delete(listener);
+			if (current.size === 0) {
+				this.sessionListeners.delete(listenerKey);
+			}
+		};
+	}
+
 	private async getOrCreateRuntime(
 		sessionId: string,
 		cwd?: string,
@@ -96,6 +210,7 @@ export class ChatRuntimeService {
 		if (existing) {
 			if (cwd && existing.cwd !== cwd) {
 				await destroyRuntime(existing);
+				this.sessionListeners.delete(this.getRuntimeListenerKey(existing));
 				this.runtimes.delete(sessionId);
 			} else {
 				reloadHookConfig(existing);
@@ -145,7 +260,13 @@ export class ChatRuntimeService {
 				};
 				syncRuntimeHookSessionId(sessionRuntime);
 				await runSessionStartHook(sessionRuntime).catch(() => {});
-				subscribeToSessionEvents(sessionRuntime, this.opts.onLifecycleEvent);
+				subscribeToSessionEvents(
+					sessionRuntime,
+					this.opts.onLifecycleEvent,
+					(event) => {
+						this.emitSessionEvent(sessionRuntime, event);
+					},
+				);
 				this.runtimes.set(sessionId, sessionRuntime);
 				return sessionRuntime;
 			} finally {
@@ -209,40 +330,62 @@ export class ChatRuntimeService {
 							input.sessionId,
 							input.cwd,
 						);
-						const displayState = runtime.harness.getDisplayState();
-						const currentMessage = displayState.currentMessage as {
-							role?: string;
-							stopReason?: string;
-							errorMessage?: string;
-						} | null;
-						const currentMessageError =
-							currentMessage?.role === "assistant" &&
-							typeof currentMessage.errorMessage === "string" &&
-							currentMessage.errorMessage.trim()
-								? currentMessage.errorMessage.trim()
-								: null;
-						const sandboxPendingQuestion = runtime.pendingSandboxQuestion
-							? {
-									questionId: runtime.pendingSandboxQuestion.questionId,
-									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
-									options: [
-										{
-											label: "Yes",
-											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
-										},
-										{
-											label: "No",
-											description: "Deny access.",
-										},
-									],
-								}
-							: null;
-						return {
-							...displayState,
-							pendingQuestion:
-								displayState.pendingQuestion ?? sandboxPendingQuestion,
-							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
-						};
+						return resolveSessionDisplayState(runtime);
+					}),
+
+				subscribe: t.procedure
+					.input(sessionIdInput)
+					.subscription(({ input }) => {
+						return observable<ChatRuntimeSessionEvent>((emit) => {
+							let isClosed = false;
+							let unsubscribe = () => {};
+							const subscribeToRuntime = (runtime: RuntimeSession) => {
+								reloadHookConfig(runtime);
+								unsubscribe = this.addSessionListener(runtime, (event) => {
+									emit.next(event);
+								});
+								emit.next({
+									displayState: resolveSessionDisplayState(runtime),
+									eventType: "initial",
+									messagesChanged: false,
+								});
+							};
+
+							const existingRuntime = this.runtimes.get(input.sessionId);
+							if (
+								existingRuntime &&
+								(!input.cwd || existingRuntime.cwd === input.cwd)
+							) {
+								subscribeToRuntime(existingRuntime);
+								return () => {
+									isClosed = true;
+									unsubscribe();
+								};
+							}
+
+							void this.getOrCreateRuntime(input.sessionId, input.cwd)
+								.then((runtime) => {
+									if (isClosed) {
+										return;
+									}
+									subscribeToRuntime(runtime);
+								})
+								.catch((error: unknown) => {
+									if (isClosed) {
+										return;
+									}
+									emit.error(
+										error instanceof Error
+											? error
+											: new Error("Failed to subscribe to session"),
+									);
+								});
+
+							return () => {
+								isClosed = true;
+								unsubscribe();
+							};
+						});
 					}),
 
 				listMessages: t.procedure

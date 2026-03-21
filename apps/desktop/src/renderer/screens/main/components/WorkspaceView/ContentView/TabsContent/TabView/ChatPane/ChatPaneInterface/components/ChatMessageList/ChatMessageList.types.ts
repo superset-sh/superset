@@ -56,6 +56,7 @@ export interface UserMessageRestartRequest {
 
 export interface ChatMessageListProps {
 	messages: ChatMessage[];
+	queuedMessages: ChatMessage[];
 	isFocused: boolean;
 	isRunning: boolean;
 	isConversationLoading: boolean;

@@ -1,6 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 
 interface UseChatDisplayOptions {
@@ -10,9 +10,16 @@ interface UseChatDisplayOptions {
 	fps?: number;
 }
 
-function toRefetchIntervalMs(fps: number): number {
-	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
-	return Math.max(16, Math.floor(1000 / fps));
+const DEFAULT_ACTIVE_POLL_FPS = 30;
+const MAX_ACTIVE_POLL_FPS = 30;
+const IDLE_DISPLAY_REFRESH_INTERVAL_MS = 2_000;
+
+function toActiveRefetchIntervalMs(fps: number): number {
+	const normalizedFps =
+		Number.isFinite(fps) && fps > 0
+			? Math.min(fps, MAX_ACTIVE_POLL_FPS)
+			: DEFAULT_ACTIVE_POLL_FPS;
+	return Math.max(33, Math.floor(1000 / normalizedFps));
 }
 
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -24,6 +31,10 @@ type ListMessagesOutput = ChatOutputs["listMessages"];
 type HistoryMessage = ListMessagesOutput[number];
 type HistoryMessagePart = HistoryMessage["content"][number];
 type SendMessageInput = ChatInputs["sendMessage"];
+type OptimisticUserMessageEntry = {
+	expectedPersistedUserCount: number;
+	message: HistoryMessage;
+};
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
 	for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -78,18 +89,69 @@ function withoutActiveTurnAssistantHistory({
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
-function hasFileOrImagePart(message: HistoryMessage): boolean {
-	return message.content.some(
-		(part: HistoryMessagePart) =>
-			(part as Record<string, unknown>).type === "file" ||
-			part.type === "image",
-	);
+function countUserMessages(messages: ListMessagesOutput): number {
+	return messages.filter((message) => message.role === "user").length;
 }
 
-function countFileMessages(messages: ListMessagesOutput): number {
-	return messages.filter(
-		(message) => message.role === "user" && hasFileOrImagePart(message),
-	).length;
+function toUserMessageSignature(message: HistoryMessage): string | null {
+	if (message.role !== "user") return null;
+
+	return message.content
+		.map((part: HistoryMessagePart) => {
+			if (part.type === "text") return `text:${part.text}`;
+			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			if ((part as { type?: string }).type === "file") {
+				const filePart = part as {
+					data?: string;
+					filename?: string;
+					mediaType?: string;
+				};
+				return `file:${filePart.mediaType ?? ""}:${filePart.filename ?? ""}:${filePart.data ?? ""}`;
+			}
+			return `${part.type}:${JSON.stringify(part)}`;
+		})
+		.join("||");
+}
+
+function reconcileOptimisticUserMessages({
+	historicalMessages,
+	optimisticMessages,
+}: {
+	historicalMessages: ListMessagesOutput;
+	optimisticMessages: OptimisticUserMessageEntry[];
+}): OptimisticUserMessageEntry[] {
+	if (optimisticMessages.length === 0) {
+		return optimisticMessages;
+	}
+
+	const historicalUserMessages = historicalMessages.filter(
+		(message) => message.role === "user",
+	);
+	let consumedCount = 0;
+
+	for (const optimisticMessage of optimisticMessages) {
+		const persistedIndex = optimisticMessage.expectedPersistedUserCount - 1;
+		if (persistedIndex >= historicalUserMessages.length) {
+			break;
+		}
+
+		const persistedMessage = historicalUserMessages[persistedIndex];
+		if (!persistedMessage) {
+			break;
+		}
+		if (
+			toUserMessageSignature(persistedMessage) !==
+			toUserMessageSignature(optimisticMessage.message)
+		) {
+			break;
+		}
+
+		consumedCount += 1;
+	}
+
+	return consumedCount === 0
+		? optimisticMessages
+		: optimisticMessages.slice(consumedCount);
 }
 
 function getLegacyImagePayload(
@@ -107,30 +169,44 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, workspaceId, enabled = true, fps = 60 } = options;
+	const {
+		sessionId,
+		workspaceId,
+		enabled = true,
+		fps = DEFAULT_ACTIVE_POLL_FPS,
+	} = options;
 	const utils = workspaceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const queryInput =
 		sessionId === null ? undefined : { sessionId, workspaceId };
 	const isQueryEnabled = enabled && Boolean(sessionId);
-	const refetchIntervalMs = toRefetchIntervalMs(fps);
-	const queryOptions = {
-		enabled: isQueryEnabled && queryInput !== undefined,
-		refetchInterval: refetchIntervalMs,
-		refetchIntervalInBackground: true,
-		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
-	} as const;
+	const activeRefetchIntervalMs = toActiveRefetchIntervalMs(fps);
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
-		queryOptions,
+		{
+			enabled: isQueryEnabled && queryInput !== undefined,
+			refetchInterval: (query) =>
+				query.state.data?.isRunning
+					? activeRefetchIntervalMs
+					: IDLE_DISPLAY_REFRESH_INTERVAL_MS,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: true,
+			staleTime: 0,
+			gcTime: 0,
+		},
 	);
 
 	const messagesQuery = workspaceTrpc.chat.listMessages.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
-		queryOptions,
+		{
+			enabled: isQueryEnabled && queryInput !== undefined,
+			refetchInterval: false,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: true,
+			staleTime: 0,
+			gcTime: 0,
+		},
 	);
 
 	const sendMessageMutation = workspaceTrpc.chat.sendMessage.useMutation();
@@ -154,56 +230,62 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		messagesQuery.data === undefined &&
 		(messagesQuery.isLoading || messagesQuery.isFetching);
 	const historicalMessages = messagesQuery.data ?? [];
+	const historicalUserCount = countUserMessages(historicalMessages);
 	const latestAssistantErrorMessage = isRunning
 		? null
 		: findLatestAssistantErrorMessage(historicalMessages);
-	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
-		ListMessagesOutput[number] | null
-	>(null);
-	const optimisticTextRef = useRef<string | null>(null);
-	const optimisticIdRef = useRef<string | null>(null);
-	const fileMessageCountAtSendRef = useRef<number | null>(null);
+	const [optimisticUserMessages, setOptimisticUserMessages] = useState<
+		OptimisticUserMessageEntry[]
+	>([]);
+	const previousIsRunningRef = useRef(isRunning);
+
+	const refreshChatQueries = useCallback(async () => {
+		if (!queryInput) return;
+		await Promise.all([
+			utils.chat.getDisplayState.invalidate(queryInput),
+			utils.chat.listMessages.invalidate(queryInput),
+		]);
+	}, [queryInput, utils.chat.getDisplayState, utils.chat.listMessages]);
 
 	useEffect(() => {
-		if (!optimisticIdRef.current) return;
+		setCommandError(null);
+		setOptimisticUserMessages([]);
+	}, [sessionId, workspaceId]);
 
-		const optimisticText = optimisticTextRef.current;
-		const found = optimisticText
-			? historicalMessages.some(
-					(message) =>
-						message.role === "user" &&
-						message.content.some(
-							(part) =>
-								part.type === "text" &&
-								"text" in part &&
-								part.text === optimisticText,
-						),
-				)
-			: (() => {
-					const currentFileMessageCount = countFileMessages(historicalMessages);
-					return (
-						fileMessageCountAtSendRef.current !== null &&
-						currentFileMessageCount > fileMessageCountAtSendRef.current
-					);
-				})();
-		if (!found) return;
-
-		setOptimisticUserMessage(null);
-		optimisticTextRef.current = null;
-		optimisticIdRef.current = null;
-		fileMessageCountAtSendRef.current = null;
+	useEffect(() => {
+		setOptimisticUserMessages((existingMessages) =>
+			reconcileOptimisticUserMessages({
+				historicalMessages,
+				optimisticMessages: existingMessages,
+			}),
+		);
 	}, [historicalMessages]);
 
+	useEffect(() => {
+		const wasRunning = previousIsRunningRef.current;
+		previousIsRunningRef.current = isRunning;
+
+		if (!wasRunning || isRunning || !queryInput) {
+			return;
+		}
+
+		void utils.chat.listMessages.invalidate(queryInput);
+	}, [isRunning, queryInput, utils.chat.listMessages]);
+
 	const messages = useMemo(() => {
-		const withOptimistic = optimisticUserMessage
-			? [...historicalMessages, optimisticUserMessage]
-			: historicalMessages;
+		const withOptimistic =
+			optimisticUserMessages.length > 0
+				? [
+						...historicalMessages,
+						...optimisticUserMessages.map(({ message }) => message),
+					]
+				: historicalMessages;
 		return withoutActiveTurnAssistantHistory({
 			messages: withOptimistic,
 			currentMessage,
 			isRunning,
 		});
-	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
+	}, [historicalMessages, optimisticUserMessages, currentMessage, isRunning]);
 
 	const commands = useMemo(
 		() => ({
@@ -225,14 +307,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						: "";
 				const files = input.payload?.files ?? [];
 				const legacyImages = getLegacyImagePayload(input.payload);
+				let optimisticMessageId: string | null = null;
 				if (text || files.length > 0 || legacyImages.length > 0) {
-					const optimisticId = `optimistic-${Date.now()}`;
-					optimisticTextRef.current = text || null;
-					optimisticIdRef.current = optimisticId;
-					if (!text) {
-						fileMessageCountAtSendRef.current =
-							countFileMessages(historicalMessages);
-					}
+					const optimisticId = `optimistic-${crypto.randomUUID()}`;
+					optimisticMessageId = optimisticId;
 					const content: ListMessagesOutput[number]["content"] = [];
 					for (const file of files) {
 						content.push({
@@ -255,26 +333,39 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 							text,
 						} as ListMessagesOutput[number]["content"][number]);
 					}
-					setOptimisticUserMessage({
+					const optimisticMessage = {
 						id: optimisticId,
 						role: "user",
 						content,
 						createdAt: new Date(),
-					} as ListMessagesOutput[number]);
+					} as ListMessagesOutput[number];
+					setOptimisticUserMessages((existingMessages) => [
+						...existingMessages,
+						{
+							expectedPersistedUserCount:
+								historicalUserCount + existingMessages.length + 1,
+							message: optimisticMessage,
+						},
+					]);
 				}
 
 				try {
-					return await sendMessageMutation.mutateAsync({
+					const result = await sendMessageMutation.mutateAsync({
 						sessionId,
 						workspaceId,
 						...input,
 					});
+					void refreshChatQueries();
+					return result;
 				} catch (error) {
 					setCommandError(error);
-					setOptimisticUserMessage(null);
-					optimisticTextRef.current = null;
-					optimisticIdRef.current = null;
-					fileMessageCountAtSendRef.current = null;
+					if (optimisticMessageId) {
+						setOptimisticUserMessages((existingMessages) =>
+							existingMessages.filter(
+								({ message }) => message.id !== optimisticMessageId,
+							),
+						);
+					}
 					throw error;
 				}
 			},
@@ -282,7 +373,9 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!queryInput) return;
 				setCommandError(null);
 				try {
-					return await stopMutation.mutateAsync(queryInput);
+					const result = await stopMutation.mutateAsync(queryInput);
+					void refreshChatQueries();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -295,10 +388,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!queryInput) return;
 				setCommandError(null);
 				try {
-					return await respondToApprovalMutation.mutateAsync({
+					const result = await respondToApprovalMutation.mutateAsync({
 						...queryInput,
 						...input,
 					});
+					void refreshChatQueries();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -310,10 +405,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!queryInput) return;
 				setCommandError(null);
 				try {
-					return await respondToQuestionMutation.mutateAsync({
+					const result = await respondToQuestionMutation.mutateAsync({
 						...queryInput,
 						...input,
 					});
+					void refreshChatQueries();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -328,10 +425,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				if (!queryInput) return;
 				setCommandError(null);
 				try {
-					return await respondToPlanMutation.mutateAsync({
+					const result = await respondToPlanMutation.mutateAsync({
 						...queryInput,
 						...input,
 					});
+					void refreshChatQueries();
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -339,8 +438,9 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			},
 		}),
 		[
-			historicalMessages,
+			historicalUserCount,
 			queryInput,
+			refreshChatQueries,
 			respondToApprovalMutation,
 			respondToPlanMutation,
 			respondToQuestionMutation,
@@ -350,20 +450,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			workspaceId,
 		],
 	);
-
-	useEffect(() => {
-		if (!queryInput) return;
-		if (!isRunning) return;
-		void Promise.all([
-			utils.chat.getDisplayState.invalidate(queryInput),
-			utils.chat.listMessages.invalidate(queryInput),
-		]);
-	}, [
-		isRunning,
-		queryInput,
-		utils.chat.getDisplayState,
-		utils.chat.listMessages,
-	]);
 
 	return {
 		...displayState,

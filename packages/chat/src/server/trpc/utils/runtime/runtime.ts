@@ -189,6 +189,7 @@ export interface LifecycleEvent {
 export function subscribeToSessionEvents(
 	runtime: RuntimeSession,
 	onLifecycleEvent?: (event: LifecycleEvent) => void,
+	onRuntimeEvent?: (event: unknown) => void,
 ): void {
 	runtime.harness.subscribe((event: unknown) => {
 		if (
@@ -196,13 +197,12 @@ export function subscribeToSessionEvents(
 			isHarnessThreadCreatedEvent(event)
 		) {
 			syncRuntimeHookSessionId(runtime);
-			return;
-		}
-		if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
+		} else if (
+			isHarnessErrorEvent(event) ||
+			isHarnessWorkspaceErrorEvent(event)
+		) {
 			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
-			return;
-		}
-		if (isHarnessSandboxAccessRequestEvent(event)) {
+		} else if (isHarnessSandboxAccessRequestEvent(event)) {
 			runtime.pendingSandboxQuestion = {
 				questionId: event.questionId,
 				path: event.path,
@@ -212,18 +212,14 @@ export function subscribeToSessionEvents(
 				sessionId: runtime.sessionId,
 				eventType: "PermissionRequest",
 			});
-			return;
-		}
-		if (isHarnessAgentStartEvent(event)) {
+		} else if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
 			runtime.pendingSandboxQuestion = null;
 			onLifecycleEvent?.({
 				sessionId: runtime.sessionId,
 				eventType: "Start",
 			});
-			return;
-		}
-		if (isHarnessAgentEndEvent(event)) {
+		} else if (isHarnessAgentEndEvent(event)) {
 			runtime.pendingSandboxQuestion = null;
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
@@ -235,6 +231,8 @@ export function subscribeToSessionEvents(
 				eventType: "Stop",
 			});
 		}
+
+		onRuntimeEvent?.(event);
 	});
 }
 

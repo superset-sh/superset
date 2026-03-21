@@ -34,6 +34,7 @@ import {
 
 export function ChatMessageList({
 	messages,
+	queuedMessages,
 	isFocused,
 	isRunning,
 	isConversationLoading,
@@ -283,6 +284,27 @@ export function ChatMessageList({
 							onRespond={onQuestionRespond}
 						/>
 					)}
+					{queuedMessages.map((message, messageIndex) => (
+						<UserMessage
+							key={`queued-${message.id}`}
+							message={message}
+							prefixMessages={[
+								...renderedMessages,
+								...(interruptedPreview ? [interruptedPreview] : []),
+								...(currentMessage ? [currentMessage] : []),
+								...queuedMessages.slice(0, messageIndex),
+							]}
+							workspaceId={workspaceId}
+							workspaceCwd={workspaceCwd}
+							isEditing={false}
+							isSubmitting={false}
+							onStartEdit={onStartEditUserMessage}
+							onCancelEdit={onCancelEditUserMessage}
+							onSubmitEdit={onSubmitEditedUserMessage}
+							onRestart={onRestartUserMessage}
+							actionDisabled
+						/>
+					))}
 				</div>
 			</ConversationContent>
 			<ChatSearch
