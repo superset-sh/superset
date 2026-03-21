@@ -17,10 +17,18 @@ The user provides:
 
 ### 0. Resolve current user and environment
 
-Run these in parallel:
+**Phase A** — run in parallel (no dependencies):
 - Call `mcp__superset__list_members` and match against the git user email (`git config user.email`) to get the current user's member ID
 - Call `mcp__superset__list_devices` and select the device owned by the current user
-- Call `mcp__superset__list_projects` on the resolved device and select the project matching the current git repo
+
+**Fail-fast**: If no matching member is found, abort with an error (e.g., "No Superset member matches git email `<email>`"). If no device is found for the current user, abort with an error (e.g., "No device found for member `<memberId>`").
+
+**Phase B** — depends on Phase A (needs the resolved device):
+- Call `mcp__superset__list_projects` for the resolved device and select the project matching the current git repo
+
+**Fail-fast**: If no matching project is found on the device, abort with an error (e.g., "No project on device `<deviceId>` matches the current repo").
+
+Do not proceed to any mutation calls (create_task, create_workspace, start_agent_session) until all three identifiers (memberId, deviceId, projectId) are resolved and validated.
 
 ### 1. Create the task
 

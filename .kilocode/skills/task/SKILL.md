@@ -18,7 +18,7 @@ The user provides:
 1. Parse the input to extract the task description and optional priority
 2. Generate a clear, concise task title from the description (imperative form, under 80 chars)
 3. If the user provided more detail beyond a short title, include it as a markdown description on the task
-4. Resolve the current user's member ID by calling `mcp__superset__list_members` and matching against the git user (run `git config user.email` to get the current user's email)
+4. Resolve the current user's member ID by calling `mcp__superset__list_members` and matching against the git user (run `git config user.email` to get the current user's email). If no matching member is found, abort with an error (e.g., "No Superset member matches git email `<email>`") — do not proceed to task creation with a null or invalid assigneeId.
 5. Create the task using `mcp__superset__create_task` with:
    - `title`: The generated title
    - `description`: Expanded detail if provided, otherwise omit

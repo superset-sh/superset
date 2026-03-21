@@ -9,12 +9,15 @@ Run all CI checks locally to validate the project.
 
 ## Checks
 
-Run these four commands **in parallel** and report all results:
+Run the file-mutating fixers **sequentially** (they both write to the working tree and can clash), then run the read-only checks **in parallel**:
 
+### Sequential (mutating)
 1. `bun run lint:fix` — Biome formatting + linting (auto-fixes)
-2. `bun run typecheck` — TypeScript type checking across all packages
-3. `bun test` — Run all tests
-4. `bunx sherif --fix` — Monorepo dependency linting (auto-fixes)
+2. `bunx sherif --fix` — Monorepo dependency linting (auto-fixes)
+
+### Parallel (read-only)
+3. `bun run typecheck` — TypeScript type checking across all packages
+4. `bun test` — Run all tests
 
 ## Output
 
