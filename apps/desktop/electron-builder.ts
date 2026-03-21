@@ -110,6 +110,9 @@ const config: Configuration = {
 				"Superset needs access to your local network to discover and connect to development servers running on your network.",
 			// Bonjour service types to browse for (triggers the permission prompt)
 			NSBonjourServices: ["_http._tcp", "_https._tcp"],
+			// Required for macOS Contacts permission prompt (TCC)
+			NSContactsUsageDescription:
+				"Superset needs access to your contacts so tools and scripts running in the integrated terminal can read contact information when authorized.",
 			// Required for Apple Events / Automation permission prompt
 			NSAppleEventsUsageDescription:
 				"Superset needs to interact with other applications to run terminal commands and development tools.",
