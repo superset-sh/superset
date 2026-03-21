@@ -86,6 +86,9 @@ export const githubRepositories = pgTable(
 		defaultBranch: text("default_branch").notNull().default("main"),
 		isPrivate: boolean("is_private").notNull().default(false),
 
+		// Issue sync opt-in (default off so existing repos are unaffected)
+		issueSyncEnabled: boolean("issue_sync_enabled").notNull().default(false),
+
 		// Timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")

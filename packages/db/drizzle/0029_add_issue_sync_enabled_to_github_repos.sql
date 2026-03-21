@@ -1,0 +1,1 @@
+ALTER TABLE "github_repositories" ADD COLUMN "issue_sync_enabled" boolean DEFAULT false NOT NULL;

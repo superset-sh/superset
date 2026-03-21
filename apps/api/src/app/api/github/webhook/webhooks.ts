@@ -5,10 +5,18 @@ import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	tasks,
 } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 
 import { env } from "@/env";
+import {
+	type GitHubIssue,
+	mapGithubIssueToTask,
+	resolveGithubAssignee,
+	resolveOrgTaskStatuses,
+	upsertIssueTask,
+} from "../lib/issue-sync";
 
 export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 
@@ -19,6 +27,26 @@ webhooks.on(
 			"[github/webhook] Installation deleted:",
 			payload.installation.id,
 		);
+
+		const [installation] = await db
+			.select()
+			.from(githubInstallations)
+			.where(
+				eq(githubInstallations.installationId, String(payload.installation.id)),
+			)
+			.limit(1);
+
+		if (installation) {
+			await db
+				.delete(tasks)
+				.where(
+					and(
+						eq(tasks.organizationId, installation.organizationId),
+						eq(tasks.externalProvider, "github"),
+					),
+				);
+		}
+
 		await db
 			.delete(githubInstallations)
 			.where(
@@ -117,8 +145,29 @@ webhooks.on(
 	async ({
 		payload,
 	}: EmitterWebhookEvent<"installation_repositories.removed">) => {
+		const [installation] = await db
+			.select()
+			.from(githubInstallations)
+			.where(
+				eq(githubInstallations.installationId, String(payload.installation.id)),
+			)
+			.limit(1);
+
 		for (const repo of payload.repositories_removed) {
 			console.log("[github/webhook] Repository removed:", repo.full_name);
+
+			if (installation) {
+				await db
+					.delete(tasks)
+					.where(
+						and(
+							eq(tasks.organizationId, installation.organizationId),
+							eq(tasks.externalProvider, "github"),
+							like(tasks.slug, `gh:${repo.full_name}#%`),
+						),
+					);
+			}
+
 			await db
 				.delete(githubRepositories)
 				.where(eq(githubRepositories.repoId, String(repo.id)));
@@ -409,5 +458,147 @@ webhooks.on(
 				})
 				.where(eq(githubPullRequests.id, currentPr.id));
 		}
+	},
+);
+
+// ---------------------------------------------------------------------------
+// Issue events → upsert as Superset tasks
+// ---------------------------------------------------------------------------
+
+async function upsertIssueAsTask(
+	repository: { id: number; full_name: string },
+	issue: GitHubIssue,
+	action: string,
+) {
+	// Look up the DB repo
+	const [repo] = await db
+		.select()
+		.from(githubRepositories)
+		.where(eq(githubRepositories.repoId, String(repository.id)))
+		.limit(1);
+
+	if (!repo) {
+		console.warn("[github/webhook] Repository not found:", repository.id);
+		return;
+	}
+
+	// Guard: only sync if the repo opted in
+	if (!repo.issueSyncEnabled) return;
+
+	// Guard: GitHub fires issue events for PRs too — skip those
+	if (issue.pull_request) return;
+
+	// Look up the installation to get orgId and creatorId
+	const [installation] = await db
+		.select()
+		.from(githubInstallations)
+		.where(eq(githubInstallations.id, repo.installationId))
+		.limit(1);
+
+	if (!installation) {
+		console.warn("[github/webhook] Installation not found for repo:", repo.id);
+		return;
+	}
+
+	const organizationId = installation.organizationId;
+
+	// Resolve status
+	const { unstartedStatus, completedStatus } =
+		await resolveOrgTaskStatuses(organizationId);
+
+	const isCompleted = issue.state === "closed" || action === "closed";
+	const statusId = isCompleted ? completedStatus?.id : unstartedStatus?.id;
+
+	if (!statusId) {
+		console.warn(
+			"[github/webhook] No matching task status found for org:",
+			organizationId,
+		);
+		return;
+	}
+
+	// Resolve assignee
+	const assigneeUserId = issue.assignee
+		? await resolveGithubAssignee(issue.assignee.id, organizationId)
+		: null;
+
+	console.log(
+		`[github/webhook] Issue ${action}:`,
+		`${repository.full_name}#${issue.number}`,
+	);
+
+	const mapping = mapGithubIssueToTask(issue, {
+		organizationId,
+		repoFullName: repo.fullName,
+		statusId,
+		creatorId: installation.connectedByUserId,
+		assigneeUserId,
+		isCompleted,
+	});
+
+	await upsertIssueTask(mapping);
+}
+
+webhooks.on(
+	[
+		"issues.opened",
+		"issues.edited",
+		"issues.closed",
+		"issues.reopened",
+		"issues.assigned",
+		"issues.unassigned",
+		"issues.labeled",
+		"issues.unlabeled",
+	],
+	async ({
+		payload,
+	}: EmitterWebhookEvent<
+		| "issues.opened"
+		| "issues.edited"
+		| "issues.closed"
+		| "issues.reopened"
+		| "issues.assigned"
+		| "issues.unassigned"
+		| "issues.labeled"
+		| "issues.unlabeled"
+	>) => {
+		await upsertIssueAsTask(payload.repository, payload.issue, payload.action);
+	},
+);
+
+webhooks.on(
+	"issues.deleted",
+	async ({ payload }: EmitterWebhookEvent<"issues.deleted">) => {
+		const [repo] = await db
+			.select()
+			.from(githubRepositories)
+			.where(eq(githubRepositories.repoId, String(payload.repository.id)))
+			.limit(1);
+
+		if (!repo || !repo.issueSyncEnabled) return;
+
+		const [installation] = await db
+			.select()
+			.from(githubInstallations)
+			.where(eq(githubInstallations.id, repo.installationId))
+			.limit(1);
+
+		if (!installation) return;
+
+		console.log(
+			"[github/webhook] Issue deleted:",
+			`${payload.repository.full_name}#${payload.issue.number}`,
+		);
+
+		await db
+			.update(tasks)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
+			.where(
+				and(
+					eq(tasks.organizationId, installation.organizationId),
+					eq(tasks.externalProvider, "github"),
+					eq(tasks.externalId, String(payload.issue.id)),
+				),
+			);
 	},
 );

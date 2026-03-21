@@ -1,10 +1,12 @@
 "use client";
 
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { Switch } from "@superset/ui/switch";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GitBranch, Lock, RefreshCw, Unlock } from "lucide-react";
+import { useState } from "react";
 import { useTRPC } from "@/trpc/react";
 
 interface RepositoryListProps {
@@ -45,6 +47,40 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	const handleSync = () => {
 		syncMutation.mutate({ organizationId });
 	};
+
+	const queryClient = useQueryClient();
+	const [togglingRepoId, setTogglingRepoId] = useState<string | null>(null);
+
+	const toggleIssueSyncMutation = useMutation(
+		trpc.integration.github.toggleIssueSync.mutationOptions({
+			onMutate: (variables) => {
+				setTogglingRepoId(variables.repositoryId);
+			},
+			onSettled: () => {
+				setTogglingRepoId(null);
+			},
+			onSuccess: (_data, variables) => {
+				toast.success(
+					variables.enabled ? "Issue sync enabled" : "Issue sync disabled",
+					{
+						description: variables.enabled
+							? "Existing issues will be imported shortly."
+							: "Issues will no longer sync from this repo.",
+					},
+				);
+				queryClient.invalidateQueries({
+					queryKey: trpc.integration.github.listRepositories.queryOptions({
+						organizationId,
+					}).queryKey,
+				});
+			},
+			onError: (error) => {
+				toast.error("Failed to update issue sync", {
+					description: error.message,
+				});
+			},
+		}),
+	);
 
 	const isSyncing = syncMutation.isPending;
 
@@ -126,9 +162,26 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 								</div>
 							</div>
 						</div>
-						<Badge variant={repo.isPrivate ? "secondary" : "outline"}>
-							{repo.isPrivate ? "Private" : "Public"}
-						</Badge>
+						<div className="flex items-center gap-2">
+							<Switch
+								id={`issue-sync-${repo.id}`}
+								checked={repo.issueSyncEnabled}
+								disabled={togglingRepoId === repo.id}
+								onCheckedChange={(checked) => {
+									toggleIssueSyncMutation.mutate({
+										organizationId,
+										repositoryId: repo.id,
+										enabled: checked,
+									});
+								}}
+							/>
+							<Label
+								htmlFor={`issue-sync-${repo.id}`}
+								className="text-sm text-muted-foreground"
+							>
+								Sync Issues
+							</Label>
+						</div>
 					</div>
 				))}
 			</div>

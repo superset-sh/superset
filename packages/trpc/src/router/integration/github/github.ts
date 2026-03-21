@@ -1,8 +1,9 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	tasks,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -41,10 +42,21 @@ export const githubRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			const result = await db
-				.delete(githubInstallations)
-				.where(eq(githubInstallations.organizationId, input.organizationId))
-				.returning({ id: githubInstallations.id });
+			const result = await dbWs.transaction(async (tx) => {
+				await tx
+					.delete(tasks)
+					.where(
+						and(
+							eq(tasks.organizationId, input.organizationId),
+							eq(tasks.externalProvider, "github"),
+						),
+					);
+
+				return tx
+					.delete(githubInstallations)
+					.where(eq(githubInstallations.organizationId, input.organizationId))
+					.returning({ id: githubInstallations.id });
+			});
 
 			if (result.length === 0) {
 				return { success: false, error: "No installation found" };
@@ -240,5 +252,69 @@ export const githubRouter = {
 				pendingChecksCount,
 				failedChecksCount,
 			};
+		}),
+	toggleIssueSync: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				repositoryId: z.string().uuid(),
+				enabled: z.boolean(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+
+			// Update the repo's issueSyncEnabled flag
+			const result = await db
+				.update(githubRepositories)
+				.set({ issueSyncEnabled: input.enabled, updatedAt: new Date() })
+				.where(
+					and(
+						eq(githubRepositories.id, input.repositoryId),
+						eq(githubRepositories.organizationId, input.organizationId),
+					),
+				)
+				.returning({ id: githubRepositories.id });
+
+			if (result.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Repository not found",
+				});
+			}
+
+			// If enabling, trigger initial sync via QStash so existing issues get imported
+			if (input.enabled) {
+				const installation = await db.query.githubInstallations.findFirst({
+					where: eq(githubInstallations.organizationId, input.organizationId),
+					columns: { id: true },
+				});
+
+				if (installation) {
+					const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+					const syncBody = {
+						installationDbId: installation.id,
+						organizationId: input.organizationId,
+					};
+
+					if (env.NODE_ENV === "development") {
+						fetch(syncUrl, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(syncBody),
+						}).catch((error) => {
+							console.error("[github/toggleIssueSync] Dev sync failed:", error);
+						});
+					} else {
+						await qstash.publishJSON({
+							url: syncUrl,
+							body: syncBody,
+							retries: 3,
+						});
+					}
+				}
+			}
+
+			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;

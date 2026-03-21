@@ -3,6 +3,7 @@ import { integrationConnections, tasks } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import { env } from "../../../env";
+import { getEligibleSyncProviders } from "./provider-routing";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -24,11 +25,21 @@ export async function syncTask(taskId: string) {
 		where: eq(integrationConnections.organizationId, task.organizationId),
 		columns: { provider: true },
 	});
+	const eligibleProviders = new Set(
+		getEligibleSyncProviders(
+			task.externalProvider ?? null,
+			connections.map((connection) => connection.provider),
+		),
+	);
 
 	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
 
 	const results = await Promise.allSettled(
 		connections.map(async (conn) => {
+			if (!eligibleProviders.has(conn.provider)) {
+				return { provider: conn.provider, skipped: true };
+			}
+
 			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
 			if (!endpoint) {
 				return { provider: conn.provider, skipped: true };

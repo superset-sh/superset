@@ -6,9 +6,15 @@ import {
 } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
 import { subDays } from "date-fns";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import {
+	batchResolveGithubAssignees,
+	mapGithubIssueToTask,
+	resolveOrgTaskStatuses,
+	upsertIssueTask,
+} from "../../lib/issue-sync";
 import { githubApp } from "../../octokit";
 
 const receiver = new Receiver({
@@ -243,6 +249,125 @@ export async function POST(request: Request) {
 							updatedAt: new Date(),
 						},
 					});
+			}
+		}
+
+		// ----- Issue sync (for repos with issueSyncEnabled) -----
+		const issueSyncRepos = await db
+			.select()
+			.from(githubRepositories)
+			.where(
+				and(
+					eq(githubRepositories.installationId, installationDbId),
+					eq(githubRepositories.issueSyncEnabled, true),
+				),
+			);
+
+		if (issueSyncRepos.length > 0) {
+			const { unstartedStatus, completedStatus } =
+				await resolveOrgTaskStatuses(organizationId);
+
+			if (!unstartedStatus || !completedStatus) {
+				console.warn(
+					"[github/initial-sync] Missing task statuses for issue sync:",
+					{
+						organizationId,
+						hasUnstartedStatus: !!unstartedStatus,
+						hasCompletedStatus: !!completedStatus,
+					},
+				);
+			}
+
+			for (const dbRepo of issueSyncRepos) {
+				const issues: Array<{
+					id: number;
+					number: number;
+					html_url: string;
+					title: string;
+					body?: string | null;
+					created_at?: string;
+					state: string;
+					pull_request?: unknown;
+					assignee?: {
+						id: number;
+						login: string;
+						avatar_url: string;
+					} | null;
+					labels: Array<{ name?: string } | string>;
+					closed_at?: string | null;
+					updated_at: string;
+				}> = [];
+
+				for await (const response of octokit.paginate.iterator(
+					octokit.rest.issues.listForRepo,
+					{
+						owner: dbRepo.owner,
+						repo: dbRepo.name,
+						state: "all",
+						sort: "updated",
+						direction: "desc",
+						per_page: 100,
+					},
+				)) {
+					let reachedCutoff = false;
+					for (const issue of response.data) {
+						if (new Date(issue.updated_at) < thirtyDaysAgo) {
+							reachedCutoff = true;
+							break;
+						}
+						// Skip PRs (GitHub's issues API includes PRs)
+						if (issue.pull_request) continue;
+						issues.push(issue as (typeof issues)[number]);
+					}
+					if (reachedCutoff) break;
+				}
+
+				console.log(
+					`[github/initial-sync] Found ${issues.length} issues (last 30 days) for ${dbRepo.fullName}`,
+				);
+
+				// Batch-resolve assignees
+				const uniqueAssigneeIds = [
+					...new Set(
+						issues
+							.map((i) => i.assignee?.id)
+							.filter((id): id is number => id != null),
+					),
+				];
+				const assigneeMap = await batchResolveGithubAssignees(
+					uniqueAssigneeIds,
+					organizationId,
+				);
+
+				for (const issue of issues) {
+					const isCompleted = issue.state === "closed";
+					const statusId = isCompleted
+						? completedStatus?.id
+						: unstartedStatus?.id;
+
+					if (!statusId) {
+						console.warn(
+							"[github/initial-sync] Skipping issue due to missing mapped status:",
+							`${dbRepo.fullName}#${issue.number}`,
+						);
+						continue;
+					}
+
+					const assigneeUserId = issue.assignee
+						? (assigneeMap.get(String(issue.assignee.id)) ?? null)
+						: null;
+
+					const mapping = mapGithubIssueToTask(issue, {
+						organizationId,
+						repoFullName: dbRepo.fullName,
+						statusId,
+						creatorId: installation.connectedByUserId,
+						assigneeUserId,
+						isCompleted,
+					});
+
+					await upsertIssueTask(mapping);
+				}
 			}
 		}
 

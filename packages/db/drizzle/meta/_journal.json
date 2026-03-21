@@ -204,6 +204,13 @@
       "when": 1773379684617,
       "tag": "0028_v2_workspace_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1773875386678,
+      "tag": "0029_add_issue_sync_enabled_to_github_repos",
+      "breakpoints": true
     }
   ]
 }
