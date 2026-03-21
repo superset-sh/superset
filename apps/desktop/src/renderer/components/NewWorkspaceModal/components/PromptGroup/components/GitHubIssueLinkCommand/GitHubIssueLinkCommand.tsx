@@ -19,6 +19,10 @@ import {
 
 const MAX_RESULTS = 20;
 
+// Normalize issue state to valid IssueState type
+const normalizeIssueState = (state: string): IssueState =>
+	state.toLowerCase() === "closed" ? "closed" : "open";
+
 export interface SelectedIssue {
 	issueNumber: number;
 	title: string;
@@ -133,7 +137,7 @@ export function GitHubIssueLinkCommand({
 										className="group"
 									>
 										<IssueIcon
-											state={issue.state as IssueState}
+											state={normalizeIssueState(issue.state)}
 											className="size-3.5 shrink-0"
 										/>
 										<span className="shrink-0 font-mono text-xs text-muted-foreground">

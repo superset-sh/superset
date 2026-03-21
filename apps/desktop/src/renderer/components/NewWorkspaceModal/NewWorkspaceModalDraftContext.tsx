@@ -18,7 +18,7 @@ export type LinkedIssue = {
 	source?: "github" | "internal";
 	url?: string; // GitHub issue URL
 	number?: number; // GitHub issue number
-	state?: string; // "open" | "closed"
+	state?: "open" | "closed";
 };
 
 export type LinkedPR = {

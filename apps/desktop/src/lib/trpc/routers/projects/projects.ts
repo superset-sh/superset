@@ -386,32 +386,31 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						{ cwd: project.mainRepoPath },
 					);
 					const raw: unknown = JSON.parse(stdout.trim() || "[]");
-					if (!Array.isArray(raw)) return [];
-					return raw
-						.filter(
-							(
-								item: unknown,
-							): item is {
-								number: number;
-								title: string;
-								url: string;
-								state: string;
-								labels: unknown;
-							} =>
-								typeof item === "object" &&
-								item !== null &&
-								"number" in item &&
-								"title" in item &&
-								"url" in item &&
-								"state" in item,
-						)
-						.map((issue) => ({
-							issueNumber: issue.number,
-							title: issue.title,
-							url: issue.url,
-							state:
-								issue.state === "OPEN" ? "open" : issue.state.toLowerCase(),
-						}));
+
+					// Runtime validation with zod schema
+					const IssueListItemSchema = z.object({
+						number: z.number(),
+						title: z.string(),
+						url: z.string(),
+						state: z.string(),
+						labels: z.array(z.unknown()).optional(),
+					});
+
+					const issuesArray = z.array(IssueListItemSchema).safeParse(raw);
+					if (!issuesArray.success) {
+						console.warn(
+							"[listIssues] Invalid response format:",
+							issuesArray.error,
+						);
+						return [];
+					}
+
+					return issuesArray.data.map((issue) => ({
+						issueNumber: issue.number,
+						title: issue.title,
+						url: issue.url,
+						state: issue.state === "OPEN" ? "open" : issue.state.toLowerCase(),
+					}));
 				} catch (err) {
 					console.warn("[listIssues] Failed to list issues:", err);
 					return [];

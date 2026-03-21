@@ -664,32 +664,77 @@ function PromptGroupInner({
 			);
 			if (githubIssues.length > 0 && projectId) {
 				try {
+					// Helper to add timeout to promises
+					const fetchWithTimeout = <T,>(
+						promise: Promise<T>,
+						timeoutMs: number,
+					): Promise<T> => {
+						return Promise.race([
+							promise,
+							new Promise<T>((_, reject) =>
+								setTimeout(
+									() => reject(new Error("Request timeout")),
+									timeoutMs,
+								),
+							),
+						]);
+					};
+
 					const issueContents = await Promise.all(
 						githubIssues.map(async (issue) => {
 							try {
-								const content =
-									await utils.client.projects.getIssueContent.query({
+								const content = await fetchWithTimeout(
+									utils.client.projects.getIssueContent.query({
 										projectId,
 										issueNumber: issue.number,
-									});
+									}),
+									10000, // 10 second timeout per issue
+								);
 
 								// Sanitize user-generated content to prevent injection
-								const sanitize = (str: string) =>
-									str.replace(/[<>]/g, (char) =>
-										char === "<" ? "&lt;" : "&gt;",
-									);
+								const sanitizeText = (str: string) =>
+									str.replace(/[&<>"']/g, (char) => {
+										const entities: Record<string, string> = {
+											"&": "&amp;",
+											"<": "&lt;",
+											">": "&gt;",
+											'"': "&quot;",
+											"'": "&#39;",
+										};
+										return entities[char] || char;
+									});
 
-								const markdown = `# GitHub Issue #${content.number}: ${sanitize(content.title)}
+								const sanitizeUrl = (url: string) => {
+									try {
+										const parsed = new URL(url);
+										// Only allow http/https protocols
+										if (!["http:", "https:"].includes(parsed.protocol)) {
+											return "#invalid-url";
+										}
+										return url;
+									} catch {
+										return "#invalid-url";
+									}
+								};
 
-**URL:** ${content.url}
+								// Limit body size to prevent memory issues
+								const MAX_BODY_LENGTH = 50000; // 50KB
+								const truncatedBody =
+									content.body.length > MAX_BODY_LENGTH
+										? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
+										: content.body;
+
+								const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
+
+**URL:** ${sanitizeUrl(content.url)}
 **State:** ${content.state}
-**Author:** ${sanitize(content.author || "Unknown")}
+**Author:** ${sanitizeText(content.author || "Unknown")}
 **Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
 **Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
 
 ---
 
-${sanitize(content.body)}`;
+${sanitizeText(truncatedBody)}`;
 
 								// Convert markdown to base64 data URL
 								const base64 = btoa(
@@ -853,15 +898,20 @@ ${sanitize(content.body)}`;
 		url: string,
 		state: string,
 	) => {
+		// Normalize state to valid type
+		const normalizedState: "open" | "closed" =
+			state.toLowerCase() === "closed" ? "closed" : "open";
+
 		const issue = {
 			slug: `#${issueNumber}`,
 			title,
 			source: "github" as const,
 			url,
 			number: issueNumber,
-			state,
+			state: normalizedState,
 		};
-		if (linkedIssues.some((i) => i.slug === issue.slug)) return;
+		// Check for duplicates by URL to handle same issue numbers from different repos
+		if (linkedIssues.some((i) => i.url === url)) return;
 		updateDraft({ linkedIssues: [...linkedIssues, issue] });
 	};
 

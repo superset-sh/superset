@@ -12,6 +12,10 @@ interface LinkedGitHubIssuePillProps {
 	onRemove: () => void;
 }
 
+// Normalize issue state to valid IssueState type
+const normalizeIssueState = (state: string): IssueState =>
+	state.toLowerCase() === "closed" ? "closed" : "open";
+
 export function LinkedGitHubIssuePill({
 	issueNumber,
 	title,
@@ -25,7 +29,7 @@ export function LinkedGitHubIssuePill({
 		>
 			<div className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/10 p-0.5">
 				<IssueIcon
-					state={state as IssueState}
+					state={normalizeIssueState(state)}
 					className="size-5 transition-opacity group-hover:opacity-0"
 				/>
 				<Button
