@@ -234,7 +234,14 @@ async function quitApp(): Promise<void> {
 	}
 
 	if (response === 2) {
-		await restartDaemonShared();
+		try {
+			await restartDaemonShared();
+		} catch (error) {
+			console.warn(
+				"[Tray] Failed to restart terminal daemon during quit; quitting anyway:",
+				error,
+			);
+		}
 	}
 
 	app.quit();
