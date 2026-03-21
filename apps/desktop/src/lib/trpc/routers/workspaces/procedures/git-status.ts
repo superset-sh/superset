@@ -18,6 +18,7 @@ import {
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
+import { getWorkspacePath } from "../utils/worktree";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -110,20 +111,20 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const worktree = workspace.worktreeId
-					? getWorktree(workspace.worktreeId)
-					: null;
-				if (!worktree) {
+				// Use getWorkspacePath to resolve the correct directory for both
+				// "branch" workspaces (main repo path) and "worktree" workspaces
+				const workspacePath = getWorkspacePath(workspace);
+				if (!workspacePath) {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				const freshStatus = await fetchGitHubPRStatus(workspacePath);
 
-				if (freshStatus) {
+				if (freshStatus && workspace.worktreeId) {
 					localDb
 						.update(worktrees)
 						.set({ githubStatus: freshStatus })
-						.where(eq(worktrees.id, worktree.id))
+						.where(eq(worktrees.id, workspace.worktreeId))
 						.run();
 				}
 
