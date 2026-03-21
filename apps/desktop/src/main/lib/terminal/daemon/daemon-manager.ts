@@ -76,17 +76,9 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.setupClientEventHandlers();
 	}
 
-	private async listExistingDaemonSessions(): Promise<ListSessionsResponse> {
-		// `listSessionsIfRunning()` returns null only when no daemon/socket exists.
-		// Probe contention and other failures bubble up so callers can choose whether
-		// to retry, fall back, or fail closed.
-		const response = await this.client.listSessionsIfRunning();
-		return response ?? { sessions: [] };
-	}
-
 	async reconcileOnStartup(): Promise<void> {
 		try {
-			const response = await this.listExistingDaemonSessions();
+			const response = await this.client.listSessions();
 			if (response.sessions.length === 0) {
 				this.daemonAliveSessionIds.clear();
 				this.daemonSessionIdsHydrated = true;
@@ -155,7 +147,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		if (this.daemonSessionIdsHydrated) return;
 
 		try {
-			const response = await this.listExistingDaemonSessions();
+			const response = await this.client.listSessions();
 			this.daemonAliveSessionIds = new Set(
 				response.sessions.filter((s) => s.isAlive).map((s) => s.sessionId),
 			);
@@ -304,7 +296,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	async listDaemonSessions(): Promise<ListSessionsResponse> {
-		const response = await this.listExistingDaemonSessions();
+		const response = await this.client.listSessions();
 		this.daemonAliveSessionIds = new Set(
 			response.sessions.filter((s) => s.isAlive).map((s) => s.sessionId),
 		);
@@ -744,7 +736,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		const paneIdsToKill = new Set<string>();
 
 		try {
-			const response = await this.listExistingDaemonSessions();
+			const response = await this.client.listSessions();
 			for (const session of response.sessions) {
 				if (session.workspaceId === workspaceId && session.isAlive) {
 					paneIdsToKill.add(session.paneId);
@@ -800,7 +792,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	async getSessionCountByWorkspaceId(workspaceId: string): Promise<number> {
 		try {
-			const response = await this.listExistingDaemonSessions();
+			const response = await this.client.listSessions();
 			return response.sessions.filter(
 				(s) => s.workspaceId === workspaceId && s.isAlive,
 			).length;
@@ -864,7 +856,9 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	async forceKillAll(): Promise<void> {
-		const response = await this.listExistingDaemonSessions();
+		const response = await this.client.listSessions().catch(() => ({
+			sessions: [],
+		}));
 		const sessionIds = response.sessions.map((s) => s.sessionId);
 
 		for (const session of response.sessions) {
@@ -885,11 +879,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		await this.historyManager.forceCloseAll();
 
-		// Skip the daemon RPC when the probe proves there are no live sessions to kill.
-		// Revisit this if killAll ever grows daemon-side cleanup responsibilities.
-		if (sessionIds.length > 0) {
-			await this.client.killAll({});
-		}
+		await this.client.killAll({});
 		for (const paneId of sessionIds) {
 			portManager.unregisterDaemonSession(paneId);
 		}

@@ -39,13 +39,12 @@ export async function reconcileDaemonSessions(): Promise<void> {
 export async function restartDaemon(): Promise<{ success: boolean }> {
 	console.log("[restartDaemon] Starting daemon restart...");
 
-	const client = getTerminalHostClient();
-
 	try {
-		const existingSessions = await client.listSessionsIfRunning();
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
 
-		if (existingSessions) {
-			const { sessions } = existingSessions;
+		if (connected) {
+			const { sessions } = await client.listSessions();
 			const aliveCount = sessions.filter((s) => s.isAlive).length;
 			console.log(
 				`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
@@ -56,8 +55,7 @@ export async function restartDaemon(): Promise<{ success: boolean }> {
 			console.log("[restartDaemon] Daemon was not running");
 		}
 	} catch (error) {
-		console.warn("[restartDaemon] Failed to restart daemon:", error);
-		throw error;
+		console.warn("[restartDaemon] Error during shutdown (continuing):", error);
 	}
 
 	const manager = getDaemonTerminalManager();
@@ -73,14 +71,11 @@ export async function tryListExistingDaemonSessions(): Promise<{
 }> {
 	try {
 		const client = getTerminalHostClient();
-		const result = await client.listSessionsIfRunning();
-		if (!result) {
-			return { sessions: [] };
-		}
+		const result = await client.listSessions();
 		return { sessions: result.sessions };
 	} catch (error) {
 		console.warn(
-			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessionsIfRunning):",
+			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessions):",
 			error,
 		);
 		if (DEBUG_TERMINAL) {
