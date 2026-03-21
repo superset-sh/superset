@@ -7,6 +7,7 @@ import {
 	getSimpleGitWithShellPath,
 } from "../workspaces/utils/git-client";
 import {
+	clearGitHubStatusCacheForWorktree,
 	getPullRequestRepoArgs,
 	getRepoContext,
 } from "../workspaces/utils/github/github";
@@ -70,6 +71,11 @@ async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 		}
 		throw error;
 	}
+}
+
+function clearWorktreeStatusCaches(worktreePath: string): void {
+	clearGitHubStatusCacheForWorktree(worktreePath);
+	clearStatusCacheForWorktree(worktreePath);
 }
 
 async function pushWithSetUpstream({
@@ -538,7 +544,7 @@ export const createGitOperationsRouter = () => {
 					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
 					if (existingPRUrl) {
 						await fetchCurrentBranch(git);
-						clearStatusCacheForWorktree(input.worktreePath);
+						clearWorktreeStatusCaches(input.worktreePath);
 						return { success: true, url: existingPRUrl };
 					}
 
@@ -549,7 +555,7 @@ export const createGitOperationsRouter = () => {
 							branch,
 						);
 						await fetchCurrentBranch(git);
-						clearStatusCacheForWorktree(input.worktreePath);
+						clearWorktreeStatusCaches(input.worktreePath);
 
 						return { success: true, url };
 					} catch (error) {
@@ -560,7 +566,7 @@ export const createGitOperationsRouter = () => {
 						);
 						if (recoveredPRUrl) {
 							await fetchCurrentBranch(git);
-							clearStatusCacheForWorktree(input.worktreePath);
+							clearWorktreeStatusCaches(input.worktreePath);
 							return { success: true, url: recoveredPRUrl };
 						}
 						throw error;
@@ -583,7 +589,7 @@ export const createGitOperationsRouter = () => {
 
 					try {
 						await execWithShellEnv("gh", args, { cwd: input.worktreePath });
-						clearStatusCacheForWorktree(input.worktreePath);
+						clearWorktreeStatusCaches(input.worktreePath);
 						return { success: true, mergedAt: new Date().toISOString() };
 					} catch (error) {
 						const message =

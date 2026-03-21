@@ -1,1 +1,4 @@
-export { fetchGitHubPRStatus } from "./github";
+export {
+	clearGitHubStatusCacheForWorktree,
+	fetchGitHubPRStatus,
+} from "./github";

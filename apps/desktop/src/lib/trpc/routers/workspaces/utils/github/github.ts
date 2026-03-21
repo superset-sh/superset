@@ -14,6 +14,10 @@ import {
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
 const CACHE_TTL_MS = 10_000;
 
+export function clearGitHubStatusCacheForWorktree(worktreePath: string): void {
+	cache.delete(worktreePath);
+}
+
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.
  * Returns null if `gh` is not installed, not authenticated, or on error.
