@@ -152,8 +152,16 @@ export class ChatRuntimeService {
 		});
 	}
 
+	private getRuntimeListenerKey(
+		runtime: Pick<RuntimeSession, "sessionId" | "cwd">,
+	): string {
+		return `${runtime.sessionId}:${runtime.cwd}`;
+	}
+
 	private emitSessionEvent(runtime: RuntimeSession, event: unknown): void {
-		const listeners = this.sessionListeners.get(runtime.sessionId);
+		const listeners = this.sessionListeners.get(
+			this.getRuntimeListenerKey(runtime),
+		);
 		if (!listeners || listeners.size === 0) {
 			return;
 		}
@@ -171,21 +179,22 @@ export class ChatRuntimeService {
 	}
 
 	private addSessionListener(
-		sessionId: string,
+		runtime: Pick<RuntimeSession, "sessionId" | "cwd">,
 		listener: (event: ChatRuntimeSessionEvent) => void,
 	): () => void {
-		const listeners = this.sessionListeners.get(sessionId) ?? new Set();
+		const listenerKey = this.getRuntimeListenerKey(runtime);
+		const listeners = this.sessionListeners.get(listenerKey) ?? new Set();
 		listeners.add(listener);
-		this.sessionListeners.set(sessionId, listeners);
+		this.sessionListeners.set(listenerKey, listeners);
 
 		return () => {
-			const current = this.sessionListeners.get(sessionId);
+			const current = this.sessionListeners.get(listenerKey);
 			if (!current) {
 				return;
 			}
 			current.delete(listener);
 			if (current.size === 0) {
-				this.sessionListeners.delete(sessionId);
+				this.sessionListeners.delete(listenerKey);
 			}
 		};
 	}
@@ -201,6 +210,7 @@ export class ChatRuntimeService {
 		if (existing) {
 			if (cwd && existing.cwd !== cwd) {
 				await destroyRuntime(existing);
+				this.sessionListeners.delete(this.getRuntimeListenerKey(existing));
 				this.runtimes.delete(sessionId);
 			} else {
 				reloadHookConfig(existing);
@@ -331,12 +341,9 @@ export class ChatRuntimeService {
 							let unsubscribe = () => {};
 							const subscribeToRuntime = (runtime: RuntimeSession) => {
 								reloadHookConfig(runtime);
-								unsubscribe = this.addSessionListener(
-									runtime.sessionId,
-									(event) => {
-										emit.next(event);
-									},
-								);
+								unsubscribe = this.addSessionListener(runtime, (event) => {
+									emit.next(event);
+								});
 								emit.next({
 									displayState: resolveSessionDisplayState(runtime),
 									eventType: "initial",

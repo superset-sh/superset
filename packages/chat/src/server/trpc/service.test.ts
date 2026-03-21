@@ -26,6 +26,12 @@ function createRuntime(): RuntimeSession {
 		cwd: CWD,
 		harness: {
 			abort: mock(() => {}),
+			getDisplayState: mock(() => ({
+				isRunning: false,
+				currentMessage: null,
+				errorMessage: null,
+				pendingQuestion: null,
+			})),
 			respondToToolApproval: mock(async (payload: unknown) => payload),
 			respondToQuestion: mock(async (payload: unknown) => payload),
 			respondToPlanApproval: mock(async (payload: unknown) => payload),
@@ -133,5 +139,51 @@ describe("ChatRuntimeService control mutations", () => {
 			response: { action: "approved", feedback: "ship it" },
 		});
 		expect(runtime.pendingSandboxQuestion).toBeNull();
+	});
+
+	it("scopes session listeners by runtime cwd", () => {
+		const service = new ChatRuntimeService({
+			headers: async () => ({}),
+			apiUrl: "http://localhost:3000",
+		});
+		const runtimeA = createRuntime();
+		const runtimeB = {
+			...createRuntime(),
+			cwd: "/tmp/other-project",
+		} as RuntimeSession;
+		const eventsA: Array<{ eventType: string }> = [];
+		const eventsB: Array<{ eventType: string }> = [];
+
+		const addSessionListener = (
+			service as unknown as {
+				addSessionListener: (
+					runtime: Pick<RuntimeSession, "sessionId" | "cwd">,
+					listener: (event: { eventType: string }) => void,
+				) => () => void;
+			}
+		).addSessionListener.bind(service);
+		const emitSessionEvent = (
+			service as unknown as {
+				emitSessionEvent: (runtime: RuntimeSession, event: unknown) => void;
+			}
+		).emitSessionEvent.bind(service);
+
+		const unsubscribeA = addSessionListener(runtimeA, (event) => {
+			eventsA.push(event);
+		});
+		const unsubscribeB = addSessionListener(runtimeB, (event) => {
+			eventsB.push(event);
+		});
+
+		emitSessionEvent(runtimeA, { type: "agent_end" });
+		expect(eventsA.map((event) => event.eventType)).toEqual(["agent_end"]);
+		expect(eventsB).toHaveLength(0);
+
+		emitSessionEvent(runtimeB, { type: "agent_end" });
+		expect(eventsA.map((event) => event.eventType)).toEqual(["agent_end"]);
+		expect(eventsB.map((event) => event.eventType)).toEqual(["agent_end"]);
+
+		unsubscribeA();
+		unsubscribeB();
 	});
 });

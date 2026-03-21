@@ -31,6 +31,10 @@ type ListMessagesOutput = ChatOutputs["listMessages"];
 type HistoryMessage = ListMessagesOutput[number];
 type HistoryMessagePart = HistoryMessage["content"][number];
 type SendMessageInput = ChatInputs["sendMessage"];
+type OptimisticUserMessageEntry = {
+	expectedPersistedUserCount: number;
+	message: HistoryMessage;
+};
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
 	for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -85,18 +89,69 @@ function withoutActiveTurnAssistantHistory({
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
-function hasFileOrImagePart(message: HistoryMessage): boolean {
-	return message.content.some(
-		(part: HistoryMessagePart) =>
-			(part as Record<string, unknown>).type === "file" ||
-			part.type === "image",
-	);
+function countUserMessages(messages: ListMessagesOutput): number {
+	return messages.filter((message) => message.role === "user").length;
 }
 
-function countFileMessages(messages: ListMessagesOutput): number {
-	return messages.filter(
-		(message) => message.role === "user" && hasFileOrImagePart(message),
-	).length;
+function toUserMessageSignature(message: HistoryMessage): string | null {
+	if (message.role !== "user") return null;
+
+	return message.content
+		.map((part: HistoryMessagePart) => {
+			if (part.type === "text") return `text:${part.text}`;
+			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			if ((part as { type?: string }).type === "file") {
+				const filePart = part as {
+					data?: string;
+					filename?: string;
+					mediaType?: string;
+				};
+				return `file:${filePart.mediaType ?? ""}:${filePart.filename ?? ""}:${filePart.data ?? ""}`;
+			}
+			return `${part.type}:${JSON.stringify(part)}`;
+		})
+		.join("||");
+}
+
+function reconcileOptimisticUserMessages({
+	historicalMessages,
+	optimisticMessages,
+}: {
+	historicalMessages: ListMessagesOutput;
+	optimisticMessages: OptimisticUserMessageEntry[];
+}): OptimisticUserMessageEntry[] {
+	if (optimisticMessages.length === 0) {
+		return optimisticMessages;
+	}
+
+	const historicalUserMessages = historicalMessages.filter(
+		(message) => message.role === "user",
+	);
+	let consumedCount = 0;
+
+	for (const optimisticMessage of optimisticMessages) {
+		const persistedIndex = optimisticMessage.expectedPersistedUserCount - 1;
+		if (persistedIndex >= historicalUserMessages.length) {
+			break;
+		}
+
+		const persistedMessage = historicalUserMessages[persistedIndex];
+		if (!persistedMessage) {
+			break;
+		}
+		if (
+			toUserMessageSignature(persistedMessage) !==
+			toUserMessageSignature(optimisticMessage.message)
+		) {
+			break;
+		}
+
+		consumedCount += 1;
+	}
+
+	return consumedCount === 0
+		? optimisticMessages
+		: optimisticMessages.slice(consumedCount);
 }
 
 function getLegacyImagePayload(
@@ -175,15 +230,13 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		messagesQuery.data === undefined &&
 		(messagesQuery.isLoading || messagesQuery.isFetching);
 	const historicalMessages = messagesQuery.data ?? [];
+	const historicalUserCount = countUserMessages(historicalMessages);
 	const latestAssistantErrorMessage = isRunning
 		? null
 		: findLatestAssistantErrorMessage(historicalMessages);
-	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
-		ListMessagesOutput[number] | null
-	>(null);
-	const optimisticTextRef = useRef<string | null>(null);
-	const optimisticIdRef = useRef<string | null>(null);
-	const fileMessageCountAtSendRef = useRef<number | null>(null);
+	const [optimisticUserMessages, setOptimisticUserMessages] = useState<
+		OptimisticUserMessageEntry[]
+	>([]);
 	const previousIsRunningRef = useRef(isRunning);
 
 	const refreshChatQueries = useCallback(async () => {
@@ -195,33 +248,17 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	}, [queryInput, utils.chat.getDisplayState, utils.chat.listMessages]);
 
 	useEffect(() => {
-		if (!optimisticIdRef.current) return;
+		setCommandError(null);
+		setOptimisticUserMessages([]);
+	}, [sessionId, workspaceId]);
 
-		const optimisticText = optimisticTextRef.current;
-		const found = optimisticText
-			? historicalMessages.some(
-					(message) =>
-						message.role === "user" &&
-						message.content.some(
-							(part) =>
-								part.type === "text" &&
-								"text" in part &&
-								part.text === optimisticText,
-						),
-				)
-			: (() => {
-					const currentFileMessageCount = countFileMessages(historicalMessages);
-					return (
-						fileMessageCountAtSendRef.current !== null &&
-						currentFileMessageCount > fileMessageCountAtSendRef.current
-					);
-				})();
-		if (!found) return;
-
-		setOptimisticUserMessage(null);
-		optimisticTextRef.current = null;
-		optimisticIdRef.current = null;
-		fileMessageCountAtSendRef.current = null;
+	useEffect(() => {
+		setOptimisticUserMessages((existingMessages) =>
+			reconcileOptimisticUserMessages({
+				historicalMessages,
+				optimisticMessages: existingMessages,
+			}),
+		);
 	}, [historicalMessages]);
 
 	useEffect(() => {
@@ -236,15 +273,19 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	}, [isRunning, queryInput, utils.chat.listMessages]);
 
 	const messages = useMemo(() => {
-		const withOptimistic = optimisticUserMessage
-			? [...historicalMessages, optimisticUserMessage]
-			: historicalMessages;
+		const withOptimistic =
+			optimisticUserMessages.length > 0
+				? [
+						...historicalMessages,
+						...optimisticUserMessages.map(({ message }) => message),
+					]
+				: historicalMessages;
 		return withoutActiveTurnAssistantHistory({
 			messages: withOptimistic,
 			currentMessage,
 			isRunning,
 		});
-	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
+	}, [historicalMessages, optimisticUserMessages, currentMessage, isRunning]);
 
 	const commands = useMemo(
 		() => ({
@@ -266,14 +307,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						: "";
 				const files = input.payload?.files ?? [];
 				const legacyImages = getLegacyImagePayload(input.payload);
+				let optimisticMessageId: string | null = null;
 				if (text || files.length > 0 || legacyImages.length > 0) {
-					const optimisticId = `optimistic-${Date.now()}`;
-					optimisticTextRef.current = text || null;
-					optimisticIdRef.current = optimisticId;
-					if (!text) {
-						fileMessageCountAtSendRef.current =
-							countFileMessages(historicalMessages);
-					}
+					const optimisticId = `optimistic-${crypto.randomUUID()}`;
+					optimisticMessageId = optimisticId;
 					const content: ListMessagesOutput[number]["content"] = [];
 					for (const file of files) {
 						content.push({
@@ -296,12 +333,20 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 							text,
 						} as ListMessagesOutput[number]["content"][number]);
 					}
-					setOptimisticUserMessage({
+					const optimisticMessage = {
 						id: optimisticId,
 						role: "user",
 						content,
 						createdAt: new Date(),
-					} as ListMessagesOutput[number]);
+					} as ListMessagesOutput[number];
+					setOptimisticUserMessages((existingMessages) => [
+						...existingMessages,
+						{
+							expectedPersistedUserCount:
+								historicalUserCount + existingMessages.length + 1,
+							message: optimisticMessage,
+						},
+					]);
 				}
 
 				try {
@@ -314,10 +359,13 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 					return result;
 				} catch (error) {
 					setCommandError(error);
-					setOptimisticUserMessage(null);
-					optimisticTextRef.current = null;
-					optimisticIdRef.current = null;
-					fileMessageCountAtSendRef.current = null;
+					if (optimisticMessageId) {
+						setOptimisticUserMessages((existingMessages) =>
+							existingMessages.filter(
+								({ message }) => message.id !== optimisticMessageId,
+							),
+						);
+					}
 					throw error;
 				}
 			},
@@ -390,7 +438,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			},
 		}),
 		[
-			historicalMessages,
+			historicalUserCount,
 			queryInput,
 			refreshChatQueries,
 			respondToApprovalMutation,

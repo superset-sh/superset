@@ -3,7 +3,10 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { ChatRuntimeServiceRouter } from "../../../server/trpc";
 import {
 	findLatestAssistantErrorMessage,
+	reconcileOptimisticUserMessages,
+	resolveScopedDisplayState,
 	toActiveRefetchIntervalMs,
+	toDisplayStateScopeKey,
 	withoutActiveTurnAssistantHistory,
 } from "./use-chat-display";
 
@@ -37,6 +40,17 @@ function asCurrentMessage(
 	message: ListMessagesOutput[number],
 ): DisplayStateOutput["currentMessage"] {
 	return message as unknown as DisplayStateOutput["currentMessage"];
+}
+
+function displayState(
+	overrides: Partial<DisplayStateOutput> = {},
+): DisplayStateOutput {
+	return {
+		isRunning: false,
+		currentMessage: null,
+		errorMessage: null,
+		...overrides,
+	} as DisplayStateOutput;
 }
 
 describe("withoutActiveTurnAssistantHistory", () => {
@@ -135,5 +149,54 @@ describe("toActiveRefetchIntervalMs", () => {
 
 	it("falls back to the default active cadence for invalid values", () => {
 		expect(toActiveRefetchIntervalMs(0)).toBe(33);
+	});
+});
+
+describe("resolveScopedDisplayState", () => {
+	it("ignores live display state from a previous session scope", () => {
+		const queryState = displayState({ isRunning: true });
+		const resolved = resolveScopedDisplayState(
+			toDisplayStateScopeKey("session-b", "/repo-b"),
+			{
+				scopeKey: toDisplayStateScopeKey("session-a", "/repo-a"),
+				displayState: displayState({ isRunning: false }),
+			},
+			queryState,
+		);
+
+		expect(resolved).toBe(queryState);
+	});
+});
+
+describe("reconcileOptimisticUserMessages", () => {
+	it("only clears optimistic duplicate prompts once the new user turn is persisted in order", () => {
+		const historicalMessages = [userMessage("u_1", "continue")];
+		const optimisticMessages = [
+			{
+				expectedPersistedUserCount: 2,
+				message: userMessage("optimistic_1", "continue"),
+			},
+			{
+				expectedPersistedUserCount: 3,
+				message: userMessage("optimistic_2", "continue"),
+			},
+		];
+
+		expect(
+			reconcileOptimisticUserMessages({
+				historicalMessages,
+				optimisticMessages,
+			}),
+		).toBe(optimisticMessages);
+
+		expect(
+			reconcileOptimisticUserMessages({
+				historicalMessages: [
+					...historicalMessages,
+					userMessage("u_2", "continue"),
+				],
+				optimisticMessages,
+			}),
+		).toEqual([optimisticMessages[1]]);
 	});
 });
