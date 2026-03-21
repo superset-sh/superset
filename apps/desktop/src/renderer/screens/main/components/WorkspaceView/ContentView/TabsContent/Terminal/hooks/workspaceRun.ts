@@ -2,6 +2,7 @@ import type { MutableRefObject } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getPaneWorkspaceRun,
+	isWorkspaceRunLaunchPending,
 	type PaneWorkspaceRun,
 	setPaneWorkspaceRunState,
 	type WorkspaceRunState,
@@ -22,15 +23,15 @@ interface RecoverWorkspaceRunPaneOptions {
 }
 
 export {
+	clearWorkspaceRunLaunchPending,
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
+	isWorkspaceRunLaunchPending,
+	markWorkspaceRunLaunchPending,
 	setPaneWorkspaceRunState,
 } from "renderer/stores/tabs/workspace-run";
 
-export function resolveWorkspaceRunAttachMode(
-	paneId: string,
-	defaultRestartCommand?: string,
-): {
+export function resolveWorkspaceRunAttachMode(paneId: string): {
 	workspaceRun: PaneWorkspaceRun | null;
 	isNewWorkspaceRun: boolean;
 } {
@@ -38,7 +39,7 @@ export function resolveWorkspaceRunAttachMode(
 	return {
 		workspaceRun,
 		isNewWorkspaceRun:
-			workspaceRun?.state === "running" && Boolean(defaultRestartCommand),
+			workspaceRun?.state === "running" && isWorkspaceRunLaunchPending(paneId),
 	};
 }
 

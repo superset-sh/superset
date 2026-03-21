@@ -4,6 +4,8 @@ import { useTabsStore } from "./store";
 export type PaneWorkspaceRun = NonNullable<Pane["workspaceRun"]>;
 export type WorkspaceRunState = PaneWorkspaceRun["state"];
 
+const pendingWorkspaceRunLaunches = new Set<string>();
+
 export function createWorkspaceRun({
 	workspaceId,
 	state,
@@ -26,6 +28,18 @@ export function getPaneWorkspaceRun(paneId: string): PaneWorkspaceRun | null {
 
 export function hasPaneWorkspaceRun(paneId: string): boolean {
 	return Boolean(getPaneWorkspaceRun(paneId));
+}
+
+export function markWorkspaceRunLaunchPending(paneId: string): void {
+	pendingWorkspaceRunLaunches.add(paneId);
+}
+
+export function clearWorkspaceRunLaunchPending(paneId: string): void {
+	pendingWorkspaceRunLaunches.delete(paneId);
+}
+
+export function isWorkspaceRunLaunchPending(paneId: string): boolean {
+	return pendingWorkspaceRunLaunches.has(paneId);
 }
 
 export function setPaneWorkspaceRunState(

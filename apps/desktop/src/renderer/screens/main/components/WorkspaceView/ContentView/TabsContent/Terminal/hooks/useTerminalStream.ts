@@ -59,11 +59,12 @@ export function useTerminalStream({
 			isExitedRef.current = true;
 			isStreamReadyRef.current = false;
 
-			const wasKilledByUser = reason === "killed";
+			const currentPaneForRun = useTabsStore.getState().panes[paneId];
+			const wasKilledByUser =
+				reason === "killed" ||
+				currentPaneForRun?.workspaceRun?.state === "stopped-by-user";
 			wasKilledByUserRef.current = wasKilledByUser;
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
-
-			const currentPaneForRun = useTabsStore.getState().panes[paneId];
 			const isWorkspaceRunPane = Boolean(currentPaneForRun?.workspaceRun);
 			if (currentPaneForRun?.workspaceRun) {
 				const nextState = wasKilledByUser

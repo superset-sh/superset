@@ -1,9 +1,9 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuX } from "react-icons/lu";
+import { useKillPort } from "renderer/hooks/useKillPort";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "../../../constants";
-import { useKillPort } from "../../hooks/useKillPort";
 import type { WorkspacePortGroup as WorkspacePortGroupType } from "../../hooks/usePortsData";
 import { MergedPortBadge } from "../MergedPortBadge";
 

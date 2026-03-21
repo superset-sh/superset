@@ -1,12 +1,12 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuExternalLink, LuX } from "react-icons/lu";
+import { useKillPort } from "renderer/hooks/useKillPort";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { EnrichedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
-import { useKillPort } from "../../hooks/useKillPort";
 
 interface MergedPortBadgeProps {
 	port: EnrichedPort;

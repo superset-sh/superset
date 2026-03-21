@@ -3,6 +3,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
@@ -31,6 +32,7 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 import {
+	clearWorkspaceRunLaunchPending,
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
 	recoverWorkspaceRunPane,
@@ -320,13 +322,44 @@ export function useTerminalLifecycle({
 							rows: xterm.rows,
 							skipColdRestore: true,
 							allowKilled: true,
-							command,
 						},
 						{
-							onSuccess: (result) => {
+							onSuccess: async (result) => {
 								setConnectionError(null);
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
+								if (command) {
+									try {
+										await writeCommandInPane({
+											paneId,
+											command,
+											write: (input) =>
+												new Promise((resolve, reject) => {
+													writeRef.current(input, {
+														onSuccess: () => resolve(undefined),
+														onError: (error) => reject(error),
+													});
+												}),
+										});
+									} catch (error) {
+										console.error(
+											"[Terminal] Failed to write restart command:",
+											error,
+										);
+										if (workspaceRun) {
+											setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+										}
+										setConnectionError(
+											error instanceof Error
+												? error.message
+												: "Failed to restart terminal",
+										);
+										isStreamReadyRef.current = true;
+										flushPendingEvents();
+										reject(error);
+										return;
+									}
+								}
 								resolve();
 							},
 							onError: (error) => {
@@ -429,7 +462,10 @@ export function useTerminalLifecycle({
 		const initialCwd = paneInitialCwdRef.current;
 
 		const { workspaceRun: paneWorkspaceRun, isNewWorkspaceRun } =
-			resolveWorkspaceRunAttachMode(paneId, defaultRestartCommandRef.current);
+			resolveWorkspaceRunAttachMode(paneId);
+		if (isNewWorkspaceRun) {
+			clearWorkspaceRunLaunchPending(paneId);
+		}
 
 		const cancelInitialAttach = scheduleTerminalAttach({
 			paneId,
@@ -468,10 +504,6 @@ export function useTerminalLifecycle({
 							cols: xterm.cols,
 							rows: xterm.rows,
 							cwd: initialCwd,
-							...(isNewWorkspaceRun && {
-								command: defaultRestartCommandRef.current,
-								skipColdRestore: true,
-							}),
 						},
 						{
 							onSuccess: (result) => {

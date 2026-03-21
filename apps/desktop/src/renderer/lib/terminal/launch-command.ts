@@ -3,6 +3,7 @@ interface TerminalCreateOrAttachInput {
 	tabId: string;
 	workspaceId: string;
 	cwd?: string;
+	allowKilled?: boolean;
 }
 
 interface TerminalWriteInput {
@@ -17,6 +18,7 @@ interface LaunchCommandInPaneOptions {
 	workspaceId: string;
 	command: string;
 	cwd?: string;
+	allowKilled?: boolean;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 	noExecute?: boolean;
@@ -76,6 +78,7 @@ export async function launchCommandInPane({
 	workspaceId,
 	command,
 	cwd,
+	allowKilled,
 	createOrAttach,
 	write,
 	noExecute,
@@ -85,6 +88,7 @@ export async function launchCommandInPane({
 		tabId,
 		workspaceId,
 		cwd,
+		allowKilled,
 	});
 
 	await writeCommandInPane({ paneId, command, write, noExecute });
