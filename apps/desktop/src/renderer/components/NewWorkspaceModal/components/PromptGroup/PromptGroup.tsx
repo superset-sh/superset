@@ -673,17 +673,23 @@ function PromptGroupInner({
 										issueNumber: issue.number,
 									});
 
-								const markdown = `# GitHub Issue #${content.number}: ${content.title}
+								// Sanitize user-generated content to prevent injection
+								const sanitize = (str: string) =>
+									str.replace(/[<>]/g, (char) =>
+										char === "<" ? "&lt;" : "&gt;",
+									);
+
+								const markdown = `# GitHub Issue #${content.number}: ${sanitize(content.title)}
 
 **URL:** ${content.url}
 **State:** ${content.state}
-**Author:** ${content.author || "Unknown"}
+**Author:** ${sanitize(content.author || "Unknown")}
 **Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
 **Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
 
 ---
 
-${content.body}`;
+${sanitize(content.body)}`;
 
 								// Convert markdown to base64 data URL
 								const base64 = btoa(
@@ -815,6 +821,7 @@ ${content.body}`;
 		createFromPr,
 		createWorkspace,
 		generateBranchNameMutation,
+		linkedIssues,
 		linkedPR,
 		projectId,
 		runAsyncAction,
@@ -822,10 +829,9 @@ ${content.body}`;
 		setPendingWorkspace,
 		setPendingWorkspaceStatus,
 		trimmedPrompt,
+		utils,
 		workspaceName,
 		workspaceNameEdited,
-		linkedIssues.filter,
-		utils.client.projects.getIssueContent.query,
 	]);
 
 	const handlePromptSubmit = useCallback(() => {

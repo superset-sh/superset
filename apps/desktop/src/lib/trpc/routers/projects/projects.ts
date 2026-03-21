@@ -419,7 +419,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}),
 
 		getIssueContent: publicProcedure
-			.input(z.object({ projectId: z.string(), issueNumber: z.number() }))
+			.input(
+				z.object({
+					projectId: z.string(),
+					issueNumber: z.number().int().positive(),
+				}),
+			)
 			.query(async ({ input }) => {
 				const project = localDb
 					.select()
@@ -443,20 +448,20 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						{ cwd: project.mainRepoPath },
 					);
 					const raw: unknown = JSON.parse(stdout.trim() || "{}");
-					if (typeof raw !== "object" || raw === null) {
-						throw new Error("Invalid response from gh issue view");
-					}
 
-					const issue = raw as {
-						number: number;
-						title: string;
-						body: string;
-						url: string;
-						state: string;
-						author?: { login: string };
-						createdAt?: string;
-						updatedAt?: string;
-					};
+					// Runtime validation with zod schema
+					const IssueSchema = z.object({
+						number: z.number(),
+						title: z.string(),
+						body: z.string(),
+						url: z.string(),
+						state: z.string(),
+						author: z.object({ login: z.string() }).optional(),
+						createdAt: z.string().optional(),
+						updatedAt: z.string().optional(),
+					});
+
+					const issue = IssueSchema.parse(raw);
 
 					return {
 						number: issue.number,
