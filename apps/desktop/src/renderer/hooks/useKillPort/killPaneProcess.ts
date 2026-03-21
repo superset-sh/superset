@@ -85,7 +85,7 @@ async function waitForPaneToStop({
 	return { didStop: false };
 }
 
-export async function stopPaneProcess({
+export async function killPaneProcess({
 	paneId,
 	getPorts,
 	killPorts,

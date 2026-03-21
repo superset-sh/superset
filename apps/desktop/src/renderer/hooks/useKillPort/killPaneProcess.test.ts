@@ -1,8 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { EnrichedPort } from "shared/types";
-import { stopPaneProcess } from "./stopPaneProcess";
+import { killPaneProcess } from "./killPaneProcess";
 
-describe("stopPaneProcess", () => {
+describe("killPaneProcess", () => {
 	it("uses the hard-kill fallback when the pane stays alive", async () => {
 		const getPorts = mock<() => Promise<EnrichedPort[]>>(() =>
 			Promise.resolve([]),
@@ -24,7 +24,7 @@ describe("stopPaneProcess", () => {
 		const killPane = mock(() => Promise.resolve(undefined));
 		const sleep = mock(() => Promise.resolve());
 
-		await stopPaneProcess({
+		await killPaneProcess({
 			paneId: "pane-1",
 			getPorts,
 			killPorts,
@@ -62,7 +62,7 @@ describe("stopPaneProcess", () => {
 		);
 		const killPane = mock(() => Promise.resolve(undefined));
 
-		await stopPaneProcess({
+		await killPaneProcess({
 			paneId: "pane-1",
 			getPorts,
 			killPorts,
@@ -105,7 +105,7 @@ describe("stopPaneProcess", () => {
 		);
 		const killPane = mock(() => Promise.resolve(undefined));
 
-		await stopPaneProcess({
+		await killPaneProcess({
 			paneId: "pane-1",
 			getPorts,
 			killPorts,
@@ -134,7 +134,7 @@ describe("stopPaneProcess", () => {
 			.mockResolvedValueOnce({ isAlive: false });
 		const killPane = mock(() => Promise.resolve(undefined));
 
-		await stopPaneProcess({
+		await killPaneProcess({
 			paneId: "pane-1",
 			getPorts,
 			killPorts,
@@ -163,7 +163,7 @@ describe("stopPaneProcess", () => {
 		const killPane = mock(() => Promise.resolve(undefined));
 
 		await expect(
-			stopPaneProcess({
+			killPaneProcess({
 				paneId: "pane-1",
 				getPorts,
 				killPorts,

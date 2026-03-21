@@ -1,6 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
-import { stopPaneProcess, useKillPort } from "renderer/hooks/useKillPort";
+import { killPaneProcess, useKillPort } from "renderer/hooks/useKillPort";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -54,7 +54,7 @@ export function useWorkspaceRunCommand({
 			// exits on its own instead of via terminal.kill.
 			setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			try {
-				await stopPaneProcess({
+				await killPaneProcess({
 					paneId: runPane.id,
 					getPorts: () => electronTrpcClient.ports.getAll.query(),
 					killPorts,
