@@ -17,6 +17,17 @@ import { type ZodError, z } from "zod";
 import type { McpContext } from "../../../auth";
 import { executeOnDevice } from "../../utils";
 
+export const START_AGENT_SESSION_TOOL_NAME = "start_agent_session";
+export const START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME =
+	"start_agent_session_with_prompt";
+export const START_AGENT_SESSION_TOOL_NAMES = [
+	START_AGENT_SESSION_TOOL_NAME,
+	START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
+] as const;
+
+export type StartAgentSessionToolName =
+	(typeof START_AGENT_SESSION_TOOL_NAMES)[number];
+
 export const nonEmptyString = z.string().trim().min(1);
 
 export const commonInputSchemaShape = {
@@ -243,7 +254,7 @@ export function executeLaunchOnDevice({
 }: {
 	ctx: McpContext;
 	deviceId: string;
-	tool: string;
+	tool: StartAgentSessionToolName;
 	workspaceId: string;
 	paneId?: string;
 	agent: (typeof STARTABLE_AGENT_TYPES)[number];

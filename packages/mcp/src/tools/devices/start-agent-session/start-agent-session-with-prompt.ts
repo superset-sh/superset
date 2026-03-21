@@ -6,11 +6,12 @@ import {
 	executeLaunchOnDevice,
 	promptInputSchema,
 	promptInputSchemaShape,
+	START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
 } from "./shared";
 
 export function registerPromptLaunchTool(server: McpServer) {
 	server.registerTool(
-		"start_agent_session_with_prompt",
+		START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
 		{
 			description:
 				"Start an autonomous AI session in an existing workspace using a direct prompt instead of a task. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
@@ -35,7 +36,7 @@ export function registerPromptLaunchTool(server: McpServer) {
 			return executeLaunchOnDevice({
 				ctx,
 				deviceId: input.deviceId,
-				tool: "start_agent_session_with_prompt",
+				tool: START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
 				workspaceId: input.workspaceId,
 				paneId: input.paneId,
 				agent,

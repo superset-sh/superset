@@ -6,13 +6,14 @@ import {
 	ERROR_TASK_NOT_FOUND,
 	executeLaunchOnDevice,
 	fetchTaskForOrganization,
+	START_AGENT_SESSION_TOOL_NAME,
 	taskInputSchema,
 	taskInputSchemaShape,
 } from "./shared";
 
 export function registerTaskLaunchTool(server: McpServer) {
 	server.registerTool(
-		"start_agent_session",
+		START_AGENT_SESSION_TOOL_NAME,
 		{
 			description:
 				"Start an autonomous AI session for a task in an existing workspace. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
@@ -43,7 +44,7 @@ export function registerTaskLaunchTool(server: McpServer) {
 			return executeLaunchOnDevice({
 				ctx,
 				deviceId: input.deviceId,
-				tool: "start_agent_session",
+				tool: START_AGENT_SESSION_TOOL_NAME,
 				workspaceId: input.workspaceId,
 				paneId: input.paneId,
 				agent,
