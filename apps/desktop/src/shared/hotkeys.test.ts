@@ -3,7 +3,12 @@ import {
 	canonicalizeHotkey,
 	canonicalizeHotkeyForPlatform,
 	deriveNonMacDefault,
+	getDefaultHotkey,
+	HOTKEYS,
+	type HotkeyId,
+	type HotkeyPlatform,
 	hotkeyFromKeyboardEvent,
+	isOsReservedHotkey,
 	isTerminalReservedEvent,
 	toElectronAccelerator,
 } from "./hotkeys";
@@ -90,5 +95,39 @@ describe("isTerminalReservedEvent", () => {
 				metaKey: false,
 			}),
 		).toBe(true);
+	});
+});
+
+describe("Linux OS reserved chord coverage", () => {
+	it("includes ctrl+alt+up and ctrl+alt+down as OS reserved on Linux (GNOME workspace switching)", () => {
+		expect(isOsReservedHotkey("ctrl+alt+up", "linux")).toBe(true);
+		expect(isOsReservedHotkey("ctrl+alt+down", "linux")).toBe(true);
+	});
+});
+
+describe("default hotkeys do not collide with OS reserved shortcuts", () => {
+	const platforms: HotkeyPlatform[] = ["darwin", "win32", "linux"];
+	for (const platform of platforms) {
+		it(`no default ${platform} hotkey is OS-reserved`, () => {
+			const collisions: string[] = [];
+			for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
+				const keys = getDefaultHotkey(id, platform);
+				if (keys && isOsReservedHotkey(keys, platform)) {
+					collisions.push(`${id} (${keys})`);
+				}
+			}
+			expect(collisions).toEqual([]);
+		});
+	}
+});
+
+describe("PREV_WORKSPACE and NEXT_WORKSPACE Linux defaults", () => {
+	it("should have explicit Linux defaults that avoid ctrl+alt+up/down", () => {
+		const prev = getDefaultHotkey("PREV_WORKSPACE", "linux");
+		const next = getDefaultHotkey("NEXT_WORKSPACE", "linux");
+		expect(prev).not.toBe("ctrl+alt+up");
+		expect(next).not.toBe("ctrl+alt+down");
+		expect(prev).not.toBeNull();
+		expect(next).not.toBeNull();
 	});
 });

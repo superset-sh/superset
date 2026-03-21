@@ -135,7 +135,7 @@ function isFunctionKey(key: string): boolean {
 const OS_RESERVED_CHORDS: Record<HotkeyPlatform, string[]> = {
 	darwin: ["meta+q", "meta+space", "meta+tab"],
 	win32: ["alt+f4", "alt+tab", "ctrl+alt+delete"],
-	linux: ["alt+f4", "alt+tab"],
+	linux: ["alt+f4", "alt+tab", "ctrl+alt+up", "ctrl+alt+down"],
 };
 
 export interface KeyboardEventLike {
@@ -453,11 +453,19 @@ export const HOTKEYS = {
 		keys: "meta+alt+up",
 		label: "Previous Workspace",
 		category: "Workspace",
+		defaults: {
+			win32: "ctrl+shift+up",
+			linux: "ctrl+shift+up",
+		},
 	}),
 	NEXT_WORKSPACE: defineHotkey({
 		keys: "meta+alt+down",
 		label: "Next Workspace",
 		category: "Workspace",
+		defaults: {
+			win32: "ctrl+shift+down",
+			linux: "ctrl+shift+down",
+		},
 	}),
 
 	// Layout
