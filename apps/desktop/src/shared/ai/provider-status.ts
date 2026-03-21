@@ -95,7 +95,29 @@ export function classifyProviderIssue(params: {
 		};
 	}
 
-	if (lower.includes("quota") || lower.includes("insufficient_quota")) {
+	if (
+		lower.includes("unauthorized") ||
+		lower.includes("invalid_api_key") ||
+		lower.includes("invalid api key") ||
+		lower.includes("authentication_error") ||
+		lower.includes("status: 401") ||
+		/\b401\b/.test(normalized)
+	) {
+		return {
+			code: "forbidden",
+			capability: "small_model_tasks",
+			remediation: "add_api_key",
+			message: `${getProviderName(providerId)} API key is invalid or expired`,
+		};
+	}
+
+	if (
+		lower.includes("quota") ||
+		lower.includes("insufficient_quota") ||
+		lower.includes("rate_limit") ||
+		lower.includes("rate limit") ||
+		/\b429\b/.test(normalized)
+	) {
 		return {
 			code: "quota_exceeded",
 			capability: "small_model_tasks",
