@@ -16,11 +16,21 @@ interface KillPortsResult {
 export function useKillPort() {
 	const killMutation = electronTrpc.ports.kill.useMutation();
 
-	const mutatePortKill = (port: Pick<EnrichedPort, "paneId" | "port">) =>
-		killMutation.mutateAsync({
-			paneId: port.paneId,
-			port: port.port,
-		});
+	const mutatePortKill = async (
+		port: Pick<EnrichedPort, "paneId" | "port">,
+	): Promise<KillPortResult> => {
+		try {
+			return await killMutation.mutateAsync({
+				paneId: port.paneId,
+				port: port.port,
+			});
+		} catch (error) {
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Unknown error",
+			};
+		}
+	};
 
 	const killPort = async (
 		port: Pick<EnrichedPort, "paneId" | "port">,

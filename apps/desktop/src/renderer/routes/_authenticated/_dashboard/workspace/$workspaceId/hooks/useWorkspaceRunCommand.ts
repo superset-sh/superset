@@ -1,6 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
-import { getPortsToKillForPane, useKillPort } from "renderer/hooks/useKillPort";
+import { stopPaneProcess, useKillPort } from "renderer/hooks/useKillPort";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -49,25 +49,20 @@ export function useWorkspaceRunCommand({
 		// STOP: if currently running, kill it
 		if (isRunning && runPane) {
 			setIsPending(true);
+			// Mark the pane as user-stopped before the graceful stop path runs so
+			// terminal exit handling preserves the "killed" state when the session
+			// exits on its own instead of via terminal.kill.
 			setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			try {
-				const portsToKill = getPortsToKillForPane(
-					await electronTrpcClient.ports.getAll.query(),
-					runPane.id,
-				);
-
-				if (portsToKill.length > 0) {
-					const { failedCount } = await killPorts(portsToKill);
-					if (failedCount > 0) {
-						setPaneWorkspaceRunState(runPane.id, "running");
-					}
-					return;
-				}
-
-				await electronTrpcClient.terminal.write.mutate({
+				await stopPaneProcess({
 					paneId: runPane.id,
-					data: "\u0003",
-					throwOnError: true,
+					getPorts: () => electronTrpcClient.ports.getAll.query(),
+					killPorts,
+					writeToTerminal: (input) =>
+						electronTrpcClient.terminal.write.mutate(input),
+					getSession: (paneId) =>
+						electronTrpcClient.terminal.getSession.query(paneId),
+					killPane: (input) => electronTrpcClient.terminal.kill.mutate(input),
 				});
 			} catch (error) {
 				setPaneWorkspaceRunState(runPane.id, "running");
