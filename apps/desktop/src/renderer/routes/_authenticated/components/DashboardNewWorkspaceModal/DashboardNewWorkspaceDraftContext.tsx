@@ -62,6 +62,10 @@ interface DashboardNewWorkspaceActionMessages {
 	error: (err: unknown) => string;
 }
 
+interface DashboardNewWorkspaceActionOptions {
+	closeAndReset?: boolean;
+}
+
 interface DashboardNewWorkspaceDraftContextValue {
 	draft: DashboardNewWorkspaceDraft;
 	draftVersion: number;
@@ -70,10 +74,10 @@ interface DashboardNewWorkspaceDraftContextValue {
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: DashboardNewWorkspaceActionMessages,
+		options?: DashboardNewWorkspaceActionOptions,
 	) => Promise<T>;
 	updateDraft: (patch: Partial<DashboardNewWorkspaceDraft>) => void;
 	resetDraft: () => void;
-	resetDraftIfVersion: (draftVersion: number) => void;
 }
 
 const DashboardNewWorkspaceDraftContext =
@@ -116,17 +120,6 @@ export function DashboardNewWorkspaceDraftProvider({
 		}));
 	}, []);
 
-	const resetDraftIfVersion = useCallback((draftVersion: number) => {
-		setState((state) =>
-			state.draftVersion !== draftVersion
-				? state
-				: {
-						...initialDraft,
-						draftVersion: state.draftVersion + 1,
-					},
-		);
-	}, []);
-
 	const closeAndResetDraft = useCallback(() => {
 		resetDraft();
 		onClose();
@@ -136,9 +129,12 @@ export function DashboardNewWorkspaceDraftProvider({
 		<T,>(
 			promise: Promise<T>,
 			messages: DashboardNewWorkspaceActionMessages,
+			options?: DashboardNewWorkspaceActionOptions,
 		) => {
-			onClose();
-			resetDraft();
+			if (options?.closeAndReset !== false) {
+				onClose();
+				resetDraft();
+			}
 			toast.promise(promise, {
 				loading: messages.loading,
 				success: messages.success,
@@ -171,13 +167,11 @@ export function DashboardNewWorkspaceDraftProvider({
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
-			resetDraftIfVersion,
 		}),
 		[
 			closeAndResetDraft,
 			onClose,
 			resetDraft,
-			resetDraftIfVersion,
 			runAsyncAction,
 			state,
 			updateDraft,

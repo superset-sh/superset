@@ -78,6 +78,7 @@ export type AttachmentsContext = {
 	files: (FileUIPart & { id: string })[];
 	add: (files: File[] | FileList) => void;
 	setFiles: (files: FileUIPart[]) => void;
+	takeFiles: () => (FileUIPart & { id: string })[];
 	remove: (id: string) => void;
 	clear: () => void;
 	openFileDialog: () => void;
@@ -211,6 +212,16 @@ export function PromptInputProvider({
 		});
 	}, []);
 
+	const takeFiles = useCallback(() => {
+		const takenFiles = attachmentsRef.current;
+		attachmentsRef.current = [];
+		setAttachmentFiles([]);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+		return takenFiles;
+	}, []);
+
 	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
 	const attachmentsRef = useRef(attachmentFiles);
 	attachmentsRef.current = attachmentFiles;
@@ -235,12 +246,13 @@ export function PromptInputProvider({
 			files: attachmentFiles,
 			add,
 			setFiles,
+			takeFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef,
 		}),
-		[attachmentFiles, add, setFiles, remove, clear, openFileDialog],
+		[attachmentFiles, add, setFiles, takeFiles, remove, clear, openFileDialog],
 	);
 
 	const __registerFileInput = useCallback(
@@ -630,10 +642,23 @@ export const PromptInput = ({
 		});
 	}, []);
 
+	const takeFilesLocal = useCallback(() => {
+		const takenFiles = filesRef.current;
+		filesRef.current = [];
+		setItems([]);
+		if (inputRef.current) {
+			inputRef.current.value = "";
+		}
+		return takenFiles;
+	}, []);
+
 	const add = usingProvider ? controller.attachments.add : addLocal;
 	const setFiles = usingProvider
 		? controller.attachments.setFiles
 		: setLocalFiles;
+	const takeFiles = usingProvider
+		? controller.attachments.takeFiles
+		: takeFilesLocal;
 	const remove = usingProvider ? controller.attachments.remove : removeLocal;
 	const clear = usingProvider ? controller.attachments.clear : clearLocal;
 	const openFileDialog = usingProvider
@@ -747,12 +772,13 @@ export const PromptInput = ({
 			files: files.map((item) => ({ ...item, id: item.id })),
 			add,
 			setFiles,
+			takeFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef: inputRef,
 		}),
-		[files, add, setFiles, remove, clear, openFileDialog],
+		[files, add, setFiles, takeFiles, remove, clear, openFileDialog],
 	);
 
 	const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
