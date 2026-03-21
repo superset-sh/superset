@@ -122,18 +122,12 @@ export function MentionProvider({
 		textInput.setInput(`${before}@${relativePath} ${after}`);
 		setTriggerIndex(-1);
 		setOpen(false);
+		requestAnimationFrame(() => textInput.focus());
 	};
 
 	const handleOpenChange = (nextOpen: boolean) => {
 		if (nextOpen) setSearchQuery("");
 		setOpen(nextOpen);
-		if (!nextOpen) {
-			requestAnimationFrame(() => {
-				document
-					.querySelector<HTMLTextAreaElement>("[data-slot=input-group-control]")
-					?.focus();
-			});
-		}
 	};
 
 	return (

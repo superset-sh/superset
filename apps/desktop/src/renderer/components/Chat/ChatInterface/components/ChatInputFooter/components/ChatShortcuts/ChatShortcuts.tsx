@@ -1,4 +1,7 @@
-import { usePromptInputAttachments } from "@superset/ui/ai-elements/prompt-input";
+import {
+	usePromptInputAttachments,
+	usePromptInputController,
+} from "@superset/ui/ai-elements/prompt-input";
 import type React from "react";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
@@ -14,6 +17,7 @@ export function ChatShortcuts({
 	inputRootRef,
 }: ChatShortcutsProps) {
 	const attachments = usePromptInputAttachments();
+	const { textInput } = usePromptInputController();
 
 	useAppHotkey(
 		"CHAT_ADD_ATTACHMENT",
@@ -34,10 +38,7 @@ export function ChatShortcuts({
 	useAppHotkey(
 		"FOCUS_CHAT_INPUT",
 		() => {
-			const textarea = inputRootRef.current?.querySelector<HTMLTextAreaElement>(
-				"[data-slot=input-group-control]",
-			);
-			textarea?.focus();
+			textInput.focus();
 		},
 		{ enabled: isFocused, preventDefault: true },
 	);
