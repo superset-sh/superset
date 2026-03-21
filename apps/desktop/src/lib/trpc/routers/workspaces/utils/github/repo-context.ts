@@ -43,6 +43,10 @@ export async function getRepoContext(
 			const originUrl = await getOriginUrl(worktreePath);
 			const ghUrl = normalizeGitHubUrl(data.url);
 
+			if (data.isFork) {
+				return null;
+			}
+
 			if (originUrl && ghUrl && originUrl !== ghUrl) {
 				context = {
 					repoUrl: originUrl,

@@ -34,6 +34,7 @@ export async function mergePullRequest({
 		return runMerge(legacyMergeArgs);
 	}
 
+	let pr: Awaited<ReturnType<typeof getPRForBranch>> = null;
 	try {
 		const [{ stdout: branchOutput }, { stdout: headOutput }] =
 			await Promise.all([
@@ -45,48 +46,8 @@ export async function mergePullRequest({
 		const localBranch = branchOutput.trim();
 		const headSha = headOutput.trim();
 
-		const pr = await getPRForBranch(
-			worktreePath,
-			localBranch,
-			repoContext,
-			headSha,
-		);
-		if (!pr) {
-			return runMerge(legacyMergeArgs);
-		}
-		if (pr.state === "merged") {
-			throw new Error(PR_ALREADY_MERGED_MESSAGE);
-		}
-		if (pr.state === "closed") {
-			throw new Error(PR_CLOSED_MESSAGE);
-		}
-
-		const args = [
-			"pr",
-			"merge",
-			String(pr.number),
-			`--${strategy}`,
-			...getPullRequestRepoArgs(repoContext),
-		];
-
-		try {
-			return await runMerge(args);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			if (isNoPullRequestFoundMessage(message)) {
-				return runMerge(legacyMergeArgs);
-			}
-			throw error;
-		}
+		pr = await getPRForBranch(worktreePath, localBranch, repoContext, headSha);
 	} catch (error) {
-		if (
-			error instanceof Error &&
-			(error.message === PR_ALREADY_MERGED_MESSAGE ||
-				error.message === PR_CLOSED_MESSAGE)
-		) {
-			throw error;
-		}
-
 		console.warn(
 			"[git/mergePR] Explicit PR resolution failed; falling back to branch merge.",
 			{
@@ -95,5 +56,33 @@ export async function mergePullRequest({
 			},
 		);
 		return runMerge(legacyMergeArgs);
+	}
+
+	if (!pr) {
+		return runMerge(legacyMergeArgs);
+	}
+	if (pr.state === "merged") {
+		throw new Error(PR_ALREADY_MERGED_MESSAGE);
+	}
+	if (pr.state === "closed") {
+		throw new Error(PR_CLOSED_MESSAGE);
+	}
+
+	const args = [
+		"pr",
+		"merge",
+		String(pr.number),
+		`--${strategy}`,
+		...getPullRequestRepoArgs(repoContext),
+	];
+
+	try {
+		return await runMerge(args);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (isNoPullRequestFoundMessage(message)) {
+			return runMerge(legacyMergeArgs);
+		}
+		throw error;
 	}
 }
