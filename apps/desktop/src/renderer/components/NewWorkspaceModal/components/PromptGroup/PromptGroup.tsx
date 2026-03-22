@@ -11,6 +11,7 @@ import {
 	usePromptInputAttachments,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
+import { Button } from "@superset/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -30,6 +31,7 @@ import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon, PaperclipIcon, PlusIcon } from "lucide-react";
 import {
@@ -51,6 +53,7 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
@@ -254,15 +257,24 @@ function BaseBranchPickerInline({
 	isBranchesError,
 	branches,
 	worktreeBranches,
-	onSelectBaseBranch,
+	isBranchActionPending,
+	onOpenBranch,
+	onCreateBranchFrom,
 }: {
 	effectiveBaseBranch: string | null;
 	defaultBranch?: string;
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
-	branches: Array<{ name: string; lastCommitDate: number }>;
+	branches: Array<{
+		name: string;
+		lastCommitDate: number;
+		isLocal: boolean;
+		isRemote: boolean;
+	}>;
 	worktreeBranches: Set<string>;
-	onSelectBaseBranch: (branchName: string) => void;
+	isBranchActionPending: boolean;
+	onOpenBranch: (branchName: string) => void;
+	onCreateBranchFrom: (branchName: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
@@ -357,13 +369,11 @@ function BaseBranchPickerInline({
 							<CommandItem
 								key={branch.name}
 								value={branch.name}
-								onSelect={() => {
-									onSelectBaseBranch(branch.name);
-									setOpen(false);
-								}}
-								className="flex items-center justify-between"
+								disabled={isBranchActionPending}
+								onSelect={() => onOpenBranch(branch.name)}
+								className="group flex h-11 items-center justify-between gap-2"
 							>
-								<span className="flex items-center gap-2 truncate">
+								<span className="flex min-w-0 items-center gap-2 truncate">
 									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 									<span className="truncate">{branch.name}</span>
 									{branch.name === defaultBranch && (
@@ -371,16 +381,49 @@ function BaseBranchPickerInline({
 											default
 										</span>
 									)}
-								</span>
-								<span className="flex items-center gap-2 shrink-0">
-									{branch.lastCommitDate > 0 && (
-										<span className="text-xs text-muted-foreground">
-											{formatRelativeTime(branch.lastCommitDate)}
+									{!branch.isLocal && branch.isRemote && (
+										<span className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+											remote
 										</span>
 									)}
-									{effectiveBaseBranch === branch.name && (
-										<HiCheck className="size-4 text-primary" />
-									)}
+								</span>
+								<span className="flex items-center gap-2 shrink-0">
+									<span className="flex items-center gap-2 group-data-[selected=true]:hidden">
+										{branch.lastCommitDate > 0 && (
+											<span className="text-xs text-muted-foreground">
+												{formatRelativeTime(branch.lastCommitDate)}
+											</span>
+										)}
+										{effectiveBaseBranch === branch.name && (
+											<HiCheck className="size-4 text-primary" />
+										)}
+									</span>
+									<span className="hidden items-center gap-1.5 group-data-[selected=true]:inline-flex">
+										<Button
+											type="button"
+											size="xs"
+											variant="outline"
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												onOpenBranch(branch.name);
+											}}
+										>
+											Open
+										</Button>
+										<Button
+											type="button"
+											size="xs"
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												onCreateBranchFrom(branch.name);
+												setOpen(false);
+											}}
+										>
+											New branch
+										</Button>
+									</span>
 								</span>
 							</CommandItem>
 						))}
@@ -399,6 +442,7 @@ function PromptGroupInner({
 	onImportRepo,
 	onNewProject,
 }: PromptGroupProps) {
+	const navigate = useNavigate();
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
@@ -408,6 +452,9 @@ function PromptGroupInner({
 		closeModal,
 		createWorkspace,
 		createFromPr,
+		openMainRepoWorkspace,
+		openTrackedWorktree,
+		openExternalWorktree,
 		draft,
 		runAsyncAction,
 		updateDraft,
@@ -505,6 +552,20 @@ function PromptGroupInner({
 		for (const wt of trackedWorktrees) set.add(wt.branch);
 		return set;
 	}, [externalWorktrees, trackedWorktrees]);
+	const trackedWorktreesByBranch = useMemo(
+		() =>
+			new Map(trackedWorktrees.map((worktree) => [worktree.branch, worktree])),
+		[trackedWorktrees],
+	);
+	const externalWorktreesByBranch = useMemo(
+		() =>
+			new Map(externalWorktrees.map((worktree) => [worktree.branch, worktree])),
+		[externalWorktrees],
+	);
+	const isBranchActionPending =
+		openMainRepoWorkspace.isPending ||
+		openTrackedWorktree.isPending ||
+		openExternalWorktree.isPending;
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -883,9 +944,74 @@ ${sanitizeText(truncatedBody)}`;
 		void handleCreate();
 	}, [handleCreate]);
 
-	const handleBaseBranchSelect = (selectedBaseBranch: string) => {
-		updateDraft({ baseBranch: selectedBaseBranch });
-	};
+	const handleCreateBranchFrom = useCallback(
+		(selectedBaseBranch: string) => {
+			updateDraft({ baseBranch: selectedBaseBranch });
+		},
+		[updateDraft],
+	);
+
+	const handleBranchOpenSuccess = useCallback(() => {
+		closeAndResetDraft();
+	}, [closeAndResetDraft]);
+
+	const handleOpenBranch = useCallback(
+		(branchName: string) => {
+			if (!projectId) {
+				toast.error("Select a project first");
+				return;
+			}
+
+			const trackedWorktree = trackedWorktreesByBranch.get(branchName);
+			if (trackedWorktree?.workspace?.id) {
+				closeAndResetDraft();
+				void navigateToWorkspace(trackedWorktree.workspace.id, navigate, {
+					replace: true,
+				});
+				return;
+			}
+
+			const trackedOpenPromise = trackedWorktree
+				? openTrackedWorktree.mutateAsync({ worktreeId: trackedWorktree.id })
+				: null;
+			const externalWorktree = externalWorktreesByBranch.get(branchName);
+			const externalOpenPromise =
+				!trackedOpenPromise && externalWorktree
+					? openExternalWorktree.mutateAsync({
+							projectId,
+							worktreePath: externalWorktree.path,
+							branch: externalWorktree.branch,
+						})
+					: null;
+			const openPromise: Promise<unknown> =
+				trackedOpenPromise ??
+				externalOpenPromise ??
+				openMainRepoWorkspace.mutateAsync({
+					projectId,
+					branch: branchName,
+				});
+
+			toast.promise(openPromise, {
+				loading: `Opening ${branchName}...`,
+				success: `Opened ${branchName}`,
+				error: (error) =>
+					error instanceof Error ? error.message : "Failed to open branch",
+			});
+
+			void openPromise.then(handleBranchOpenSuccess).catch(() => {});
+		},
+		[
+			closeAndResetDraft,
+			externalWorktreesByBranch,
+			handleBranchOpenSuccess,
+			navigate,
+			openExternalWorktree,
+			openMainRepoWorkspace,
+			openTrackedWorktree,
+			projectId,
+			trackedWorktreesByBranch,
+		],
+	);
 
 	const addLinkedIssue = (
 		slug: string,
@@ -1167,7 +1293,9 @@ ${sanitizeText(truncatedBody)}`;
 									isBranchesError={isBranchesError}
 									branches={branchData?.branches ?? []}
 									worktreeBranches={worktreeBranches}
-									onSelectBaseBranch={handleBaseBranchSelect}
+									isBranchActionPending={isBranchActionPending}
+									onOpenBranch={handleOpenBranch}
+									onCreateBranchFrom={handleCreateBranchFrom}
 								/>
 							</motion.div>
 						)}

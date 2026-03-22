@@ -10,6 +10,7 @@ import {
 import { useCreateFromPr } from "renderer/react-query/workspaces/useCreateFromPr";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpenExternalWorktree";
+import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces/useOpenMainRepoWorkspace";
 import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
 export type LinkedIssue = {
@@ -88,6 +89,7 @@ interface NewWorkspaceModalDraftContextValue {
 	createFromPr: ReturnType<typeof useCreateFromPr>;
 	openTrackedWorktree: ReturnType<typeof useOpenTrackedWorktree>;
 	openExternalWorktree: ReturnType<typeof useOpenExternalWorktree>;
+	openMainRepoWorkspace: ReturnType<typeof useOpenMainRepoWorkspace>;
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: NewWorkspaceModalActionMessages,
@@ -111,6 +113,7 @@ export function NewWorkspaceModalDraftProvider({
 	const createFromPr = useCreateFromPr();
 	const openTrackedWorktree = useOpenTrackedWorktree();
 	const openExternalWorktree = useOpenExternalWorktree();
+	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
 
 	const updateDraft = useCallback((patch: Partial<NewWorkspaceModalDraft>) => {
 		setState((state) => ({
@@ -175,6 +178,7 @@ export function NewWorkspaceModalDraftProvider({
 			createFromPr,
 			openTrackedWorktree,
 			openExternalWorktree,
+			openMainRepoWorkspace,
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
@@ -184,6 +188,7 @@ export function NewWorkspaceModalDraftProvider({
 			createFromPr,
 			createWorkspace,
 			openExternalWorktree,
+			openMainRepoWorkspace,
 			openTrackedWorktree,
 			onClose,
 			resetDraft,
