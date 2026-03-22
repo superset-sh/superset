@@ -7,26 +7,30 @@ import {
 	getSimpleGitWithShellPath,
 } from "../workspaces/utils/git-client";
 import {
-	clearGitHubStatusCacheForWorktree,
 	fetchGitHubPRStatus,
 	getPullRequestRepoArgs,
 	getRepoContext,
-} from "../workspaces/utils/github/github";
+} from "../workspaces/utils/github";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { resolveTrackingRemoteName } from "../workspaces/utils/upstream-ref";
-import { isUpstreamMissingError } from "./git-utils";
+import {
+	isNoPullRequestFoundMessage,
+	isUpstreamMissingError,
+} from "./git-utils";
 import { assertRegisteredWorktree } from "./security/path-validation";
 import {
 	type GitRemoteInfo,
 	isOpenPullRequestState,
 	resolveRemoteNameForExistingPRHead,
 } from "./utils/existing-pr-push-target";
+import { mergePullRequest } from "./utils/merge-pull-request";
 import {
 	buildPullRequestCompareUrl,
 	normalizeGitHubRepoUrl,
 	parseUpstreamRef,
 } from "./utils/pull-request-url";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
+import { clearWorktreeStatusCaches } from "./utils/worktree-status-caches";
 
 export { isUpstreamMissingError };
 
@@ -88,11 +92,6 @@ async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
 	}
 }
 
-function clearWorktreeStatusCaches(worktreePath: string): void {
-	clearGitHubStatusCacheForWorktree(worktreePath);
-	clearStatusCacheForWorktree(worktreePath);
-}
-
 async function pushWithSetUpstream({
 	git,
 	targetBranch,
@@ -144,7 +143,7 @@ async function resolveExistingPullRequestPushTarget({
 	worktreePath: string;
 	fallbackRemote: string;
 }): Promise<ExistingPullRequestPushTarget | null> {
-	clearGitHubStatusCacheForWorktree(worktreePath);
+	clearWorktreeStatusCaches(worktreePath);
 	const githubStatus = await fetchGitHubPRStatus(worktreePath);
 	const pr = githubStatus?.pr;
 	if (!pr || !isOpenPullRequestState(pr.state) || !pr.headRefName?.trim()) {
@@ -707,21 +706,26 @@ export const createGitOperationsRouter = () => {
 				async ({ input }): Promise<{ success: boolean; mergedAt?: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
 
-					const args = ["pr", "merge", `--${input.strategy}`];
-
 					try {
-						await execWithShellEnv("gh", args, { cwd: input.worktreePath });
-						clearWorktreeStatusCaches(input.worktreePath);
-						return { success: true, mergedAt: new Date().toISOString() };
+						return await mergePullRequest(input);
 					} catch (error) {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						console.error("[git/mergePR] Failed to merge PR:", message);
 
-						if (message.includes("no pull requests found")) {
+						if (isNoPullRequestFoundMessage(message)) {
 							throw new TRPCError({
 								code: "NOT_FOUND",
 								message: "No pull request found for this branch",
+							});
+						}
+						if (
+							message === "PR is already merged" ||
+							message === "PR is closed and cannot be merged"
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message,
 							});
 						}
 						if (

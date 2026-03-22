@@ -20,9 +20,24 @@ export const checkItemSchema = z.object({
 	name: z.string(),
 	status: z.enum(["success", "failure", "pending", "skipped", "cancelled"]),
 	url: z.string().optional(),
+	durationText: z.string().optional(),
 });
 
 export type CheckItem = z.infer<typeof checkItemSchema>;
+
+export const pullRequestCommentSchema = z.object({
+	id: z.string(),
+	authorLogin: z.string(),
+	avatarUrl: z.string().optional(),
+	body: z.string(),
+	createdAt: z.number().optional(),
+	url: z.string().optional(),
+	kind: z.enum(["review", "conversation"]).optional(),
+	path: z.string().optional(),
+	line: z.number().optional(),
+});
+
+export type PullRequestComment = z.infer<typeof pullRequestCommentSchema>;
 
 /**
  * GitHub PR status
@@ -44,6 +59,7 @@ export const gitHubStatusSchema = z.object({
 			reviewDecision: z.enum(["approved", "changes_requested", "pending"]),
 			checksStatus: z.enum(["success", "failure", "pending", "none"]),
 			checks: z.array(checkItemSchema),
+			comments: z.array(pullRequestCommentSchema).optional(),
 			requestedReviewers: z.array(z.string()).optional(),
 		})
 		.nullable(),

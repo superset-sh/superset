@@ -32,6 +32,38 @@ export const GHReviewRequestSchema = z.object({
 	type: z.enum(["User", "Team"]).optional(),
 });
 
+export const GHCommentAuthorSchema = z.object({
+	login: z.string().optional(),
+	avatar_url: z.string().optional(),
+});
+
+export const GHCommentSchema = z.object({
+	id: z.string().optional(),
+	author: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	createdAt: z.string().optional(),
+	url: z.string().optional(),
+});
+
+export const GHReviewCommentSchema = z.object({
+	id: z.number(),
+	user: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	created_at: z.string().optional(),
+	html_url: z.string().optional(),
+	path: z.string().optional(),
+	line: z.number().nullable().optional(),
+	original_line: z.number().nullable().optional(),
+});
+
+export const GHIssueCommentSchema = z.object({
+	id: z.number(),
+	user: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	created_at: z.string().optional(),
+	html_url: z.string().optional(),
+});
+
 export const GHPRResponseSchema = z.object({
 	number: z.number(),
 	title: z.string(),
@@ -61,6 +93,7 @@ export const GHPRResponseSchema = z.object({
 		.nullable(),
 	// statusCheckRollup is an array directly, not { contexts: [...] }
 	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
+	comments: z.array(GHCommentSchema).nullable().optional(),
 	reviewRequests: z.array(GHReviewRequestSchema).nullable().optional(),
 });
 

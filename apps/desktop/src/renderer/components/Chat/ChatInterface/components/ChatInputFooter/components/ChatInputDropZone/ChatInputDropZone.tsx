@@ -35,11 +35,7 @@ export function ChatInputDropZone({
 			const current = textInput.value;
 			const needsSpace = current.length > 0 && !current.endsWith(" ");
 			textInput.setInput(`${current}${needsSpace ? " " : ""}${path} `);
-
-			const textarea = document.querySelector<HTMLTextAreaElement>(
-				"[data-slot=input-group-control]",
-			);
-			textarea?.focus();
+			textInput.focus();
 		},
 		[textInput],
 	);

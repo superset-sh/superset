@@ -84,8 +84,6 @@ jobs:
         run: bun run install:deps
 
       - name: Test
-        env:
-          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-placeholder-key' }}
         run: bun run test
 
   typecheck:
@@ -140,6 +138,4 @@ jobs:
         run: bun run install:deps
 
       - name: Build Desktop
-        env:
-          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-placeholder-key' }}
         run: bun turbo run build --filter=@superset/desktop

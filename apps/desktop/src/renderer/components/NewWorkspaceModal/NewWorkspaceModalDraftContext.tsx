@@ -13,8 +13,13 @@ import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpen
 import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
 export type LinkedIssue = {
-	slug: string;
+	slug: string; // "#123" for GitHub, "SUP-123" for internal
 	title: string;
+	source?: "github" | "internal";
+	url?: string; // GitHub issue URL
+	taskId?: string; // Internal task ID for navigation
+	number?: number; // GitHub issue number
+	state?: "open" | "closed";
 };
 
 export type LinkedPR = {

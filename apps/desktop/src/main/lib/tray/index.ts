@@ -234,7 +234,31 @@ async function quitApp(): Promise<void> {
 	}
 
 	if (response === 2) {
-		await restartDaemonShared();
+		try {
+			await restartDaemonShared();
+		} catch (error) {
+			console.warn(
+				"[Tray] Failed to restart terminal daemon during quit:",
+				error,
+			);
+			await dialog
+				.showMessageBox({
+					type: "error",
+					buttons: ["OK"],
+					defaultId: 0,
+					title: "Failed to kill sessions",
+					message: "Superset could not kill terminal sessions.",
+					detail:
+						"The app will stay open so you can retry or quit while keeping sessions running in the background.",
+				})
+				.catch((dialogError) => {
+					console.warn(
+						"[Tray] Failed to show terminal quit error dialog:",
+						dialogError,
+					);
+				});
+			return;
+		}
 	}
 
 	app.quit();

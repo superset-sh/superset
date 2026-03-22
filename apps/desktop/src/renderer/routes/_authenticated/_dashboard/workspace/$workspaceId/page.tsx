@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
@@ -373,12 +374,12 @@ function WorkspacePage() {
 	useAppHotkey("OPEN_IN_APP", handleOpenInApp, undefined, [handleOpenInApp]);
 
 	// Copy path shortcut
-	const copyPath = electronTrpc.external.copyPath.useMutation();
+	const { copyToClipboard } = useCopyToClipboard();
 	useAppHotkey(
 		"COPY_PATH",
 		() => {
 			if (workspace?.worktreePath) {
-				copyPath.mutate(workspace.worktreePath);
+				copyToClipboard(workspace.worktreePath);
 			}
 		},
 		undefined,

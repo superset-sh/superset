@@ -11,6 +11,12 @@ class MockTerminalHostClient extends EventEmitter {
 	cancelCreateOrAttachCalls: Array<{ sessionId: string; requestId: string }> =
 		[];
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
+	killAllCalls = 0;
+	listSessionsIfRunningResult: { sessions: Array<unknown> } | null = {
+		sessions: [],
+	};
+	listSessionsIfRunningError: Error | null = null;
+
 	private pendingCreateOrAttach = new Map<
 		string,
 		{
@@ -31,6 +37,7 @@ class MockTerminalHostClient extends EventEmitter {
 			reject: (error: Error) => void;
 		}
 	>();
+
 	private createOrAttachGate: {
 		promise: Promise<void>;
 		release: () => void;
@@ -40,6 +47,7 @@ class MockTerminalHostClient extends EventEmitter {
 		if (this.createOrAttachGate) {
 			throw new Error("createOrAttach is already blocked");
 		}
+
 		let release!: () => void;
 		const promise = new Promise<void>((resolve) => {
 			release = resolve;
@@ -56,6 +64,10 @@ class MockTerminalHostClient extends EventEmitter {
 		this.killCalls.push(params);
 	}
 
+	async killAll(_params?: object) {
+		this.killAllCalls++;
+	}
+
 	async createOrAttach(
 		params: { sessionId: string; requestId?: string },
 		signal?: AbortSignal,
@@ -66,6 +78,7 @@ class MockTerminalHostClient extends EventEmitter {
 		if (signal?.aborted) {
 			throw new TerminalAttachCanceledError();
 		}
+
 		this.createOrAttachCalls.push(params);
 		return new Promise<{
 			isNew: boolean;
@@ -103,6 +116,7 @@ class MockTerminalHostClient extends EventEmitter {
 		if (!pending) {
 			throw new Error(`No pending createOrAttach for ${requestId}`);
 		}
+
 		this.pendingCreateOrAttach.delete(requestId);
 		pending.resolve({
 			isNew: true,
@@ -124,16 +138,27 @@ class MockTerminalHostClient extends EventEmitter {
 		return { sessions: [] };
 	}
 
+	async listSessionsIfRunning() {
+		if (this.listSessionsIfRunningError) {
+			throw this.listSessionsIfRunningError;
+		}
+		return this.listSessionsIfRunningResult;
+	}
+
 	writeNoAck() {}
+
 	resize() {
 		return Promise.resolve();
 	}
+
 	signal() {
 		return Promise.resolve();
 	}
+
 	detach() {
 		return Promise.resolve();
 	}
+
 	clearScrollback() {
 		return Promise.resolve();
 	}
@@ -187,15 +212,25 @@ mock.module("./history-manager", () => ({
 		cleanupHistory() {
 			return Promise.resolve();
 		}
+
 		cleanup() {
 			return Promise.resolve();
 		}
+
+		forceCloseAll() {
+			return Promise.resolve();
+		}
+
 		initHistoryWriter() {
 			return Promise.resolve();
 		}
+
 		writeToHistory() {}
+
 		closeHistoryWriter() {}
+
 		closeAllSync() {}
+
 		reset() {
 			return Promise.resolve();
 		}
@@ -284,6 +319,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 			skipColdRestore: true,
 		});
 		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		const secondPromise = manager.createOrAttach({
 			paneId,
 			requestId: "req-2",
@@ -380,5 +416,13 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		expect(managerInternals.sessions.size).toBe(0);
 		expect(managerInternals.daemonAliveSessionIds.has(paneId)).toBe(false);
+	});
+
+	it("propagates probe failures from forceKillAll instead of silently no-oping", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningError = new Error("probe failed");
+
+		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");
+		expect(mockClient.killAllCalls).toBe(0);
 	});
 });

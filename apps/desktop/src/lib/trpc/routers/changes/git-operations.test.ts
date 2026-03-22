@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { isUpstreamMissingError } from "./git-utils";
+import {
+	isNoPullRequestFoundMessage,
+	isUpstreamMissingError,
+} from "./git-utils";
 import {
 	getExistingPRHeadRepoUrl,
 	resolveRemoteNameForExistingPRHead,
@@ -35,6 +38,20 @@ describe("git-operations error handling", () => {
 	});
 
 	describe("error message patterns", () => {
+		test("detects no-pull-request gh messages case-insensitively", () => {
+			expect(
+				isNoPullRequestFoundMessage(
+					'no pull requests found for branch "feature/my-thing"',
+				),
+			).toBe(true);
+			expect(
+				isNoPullRequestFoundMessage("No pull request found for this branch"),
+			).toBe(true);
+			expect(
+				isNoPullRequestFoundMessage("failed to push some refs to origin"),
+			).toBe(false);
+		});
+
 		test("commit with no staged changes", () => {
 			const message = "nothing to commit, working tree clean";
 			expect(message.includes("nothing to commit")).toBe(true);
