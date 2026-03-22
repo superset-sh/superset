@@ -8,6 +8,7 @@ import {
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import { getCellWidthUpToIndex } from "./cell-width";
 
 /**
  * A link provider that detects file paths in terminal output using VSCode's
@@ -122,8 +123,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 			const range = this.calculateLinkRange(
 				linkStart,
 				linkEnd,
-				prevLineLength,
-				lineLength,
+				prevLineText,
+				lineText,
+				nextLineText,
 				bufferLineNumber,
 				isCurrentLineWrapped,
 				nextLineIsWrapped,
@@ -160,8 +162,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 				const range = this.calculateLinkRange(
 					linkStart,
 					linkEnd,
-					prevLineLength,
-					lineLength,
+					prevLineText,
+					lineText,
+					nextLineText,
 					bufferLineNumber,
 					isCurrentLineWrapped,
 					nextLineIsWrapped,
@@ -330,14 +333,15 @@ export class FilePathLinkProvider implements ILinkProvider {
 	private calculateLinkRange(
 		matchIndex: number,
 		matchEnd: number,
-		prevLineLength: number,
-		lineLength: number,
+		prevLineText: string,
+		lineText: string,
+		nextLineText: string,
 		bufferLineNumber: number,
 		isCurrentLineWrapped: boolean,
 		nextLineIsWrapped: boolean,
 	): ILink["range"] {
-		const currentLineStart = prevLineLength;
-		const currentLineEnd = prevLineLength + lineLength;
+		const currentLineStart = prevLineText.length;
+		const currentLineEnd = prevLineText.length + lineText.length;
 
 		const startsInPrevLine =
 			isCurrentLineWrapped && matchIndex < currentLineStart;
@@ -350,21 +354,22 @@ export class FilePathLinkProvider implements ILinkProvider {
 
 		if (startsInPrevLine) {
 			startY = bufferLineNumber - 1;
-			startX = matchIndex + 1;
+			startX = getCellWidthUpToIndex(prevLineText, matchIndex) + 1;
 		} else {
 			startY = bufferLineNumber;
-			startX = matchIndex - currentLineStart + 1;
+			startX =
+				getCellWidthUpToIndex(lineText, matchIndex - currentLineStart) + 1;
 		}
 
 		if (endsInNextLine) {
 			endY = bufferLineNumber + 1;
-			endX = matchEnd - currentLineEnd + 1;
+			endX = getCellWidthUpToIndex(nextLineText, matchEnd - currentLineEnd) + 1;
 		} else if (matchEnd <= currentLineStart) {
 			endY = bufferLineNumber - 1;
-			endX = matchEnd + 1;
+			endX = getCellWidthUpToIndex(prevLineText, matchEnd) + 1;
 		} else {
 			endY = bufferLineNumber;
-			endX = matchEnd - currentLineStart + 1;
+			endX = getCellWidthUpToIndex(lineText, matchEnd - currentLineStart) + 1;
 		}
 
 		return {

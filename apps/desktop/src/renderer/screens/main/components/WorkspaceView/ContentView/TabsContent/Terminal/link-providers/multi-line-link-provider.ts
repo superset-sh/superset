@@ -1,4 +1,8 @@
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import {
+	getCellWidthForText,
+	getCellWidthUpToIndex,
+} from "./cell-width";
 
 export interface LinkMatch {
 	text: string;
@@ -202,8 +206,9 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				0,
 				Math.min(offset - line.startOffset, line.text.length),
 			);
+			const localCellWidth = getCellWidthUpToIndex(line.text, localOffset);
 			return {
-				x: line.leadingTrim + localOffset + 1,
+				x: line.leadingTrim + localCellWidth + 1,
 				y: line.lineNumber,
 			};
 		}
@@ -213,7 +218,7 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			return { x: 1, y: 1 };
 		}
 		return {
-			x: lastLine.leadingTrim + lastLine.text.length + 1,
+			x: lastLine.leadingTrim + getCellWidthForText(lastLine.text) + 1,
 			y: lastLine.lineNumber,
 		};
 	}
