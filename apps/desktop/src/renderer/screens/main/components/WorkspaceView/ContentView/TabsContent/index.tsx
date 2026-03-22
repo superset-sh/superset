@@ -102,10 +102,10 @@ export function TabsContent({
 		}
 
 		const frameId = requestAnimationFrame(() => {
-			// Scope to the active tab's container (the only div with display:flex)
-			// to avoid matching elements in hidden but still-mounted tabs.
+			// Scope to the active tab's container so we don't match elements
+			// in hidden but still-mounted tabs.
 			const activeContainer = contentRef.current?.querySelector<HTMLDivElement>(
-				`[data-tab-id="${nextTabId}"]`,
+				`[data-tab-id="${CSS.escape(nextTabId)}"]`,
 			);
 			const textarea = activeContainer?.querySelector<HTMLTextAreaElement>(
 				".mosaic-window-focused [data-slot=input-group-control]",
