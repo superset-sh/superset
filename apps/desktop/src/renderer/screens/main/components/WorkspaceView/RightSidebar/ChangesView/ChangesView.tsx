@@ -255,7 +255,6 @@ export function ChangesView({
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
-	const [activeTab, setActiveTab] = useState<ChangesSidebarTab>("diffs");
 	const activePullRequest = githubStatus?.pr ?? null;
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingRefreshRef = useRef<PendingChangesRefresh>({
@@ -319,11 +318,13 @@ export function ChangesView({
 	};
 
 	const {
+		activeTab,
 		expandedSections,
 		fileListViewMode,
 		sectionOrder,
 		selectFile,
 		getSelectedFile,
+		setActiveTab,
 		toggleSection,
 		moveSection,
 		setFileListViewMode,
@@ -340,7 +341,6 @@ export function ChangesView({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
 	useEffect(() => {
 		setExpandedCommits(new Set());
-		setActiveTab("diffs");
 	}, [worktreePath]);
 
 	useEffect(() => {

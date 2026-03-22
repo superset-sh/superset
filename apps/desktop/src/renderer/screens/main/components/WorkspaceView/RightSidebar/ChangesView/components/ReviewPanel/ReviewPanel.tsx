@@ -8,6 +8,7 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
@@ -167,13 +168,8 @@ export function ReviewPanel({
 	const checksStatus = relevantChecks.length > 0 ? pr.checksStatus : "none";
 	const checksStatusConfig = checkSummaryIconConfig[checksStatus];
 	const ChecksStatusIcon = checksStatusConfig.icon;
-	const hasComments = comments.length > 0;
 	const { active: activeComments, resolved: resolvedComments } =
 		splitPullRequestComments(comments);
-	const orderedCommentsForCopy =
-		resolvedComments.length > 0
-			? [...activeComments, ...resolvedComments]
-			: activeComments;
 	const commentsCountLabel = isCommentsLoading
 		? "..."
 		: countOpenPullRequestComments(comments);
@@ -182,7 +178,7 @@ export function ReviewPanel({
 
 	const handleCopyCommentsList = () => {
 		void copyTextToClipboard({
-			text: buildAllCommentsClipboardText(orderedCommentsForCopy),
+			text: buildAllCommentsClipboardText(activeComments),
 			actionKey: ALL_COMMENTS_COPY_ACTION_KEY,
 			errorLabel: "Failed to copy comments",
 		});
@@ -281,34 +277,39 @@ export function ReviewPanel({
 		comments,
 		isOpen,
 		onOpenChange,
+		action,
 	}: {
 		title: string;
 		comments: PullRequestComment[];
 		isOpen: boolean;
 		onOpenChange: (open: boolean) => void;
+		action?: ReactNode;
 	}) => (
 		<Collapsible
 			open={isOpen}
 			onOpenChange={onOpenChange}
 			className="min-w-0 overflow-hidden"
 		>
-			<CollapsibleTrigger
-				className={cn(
-					"group flex w-full items-center gap-1.5 px-1.5 py-1 text-left min-w-0",
-					"hover:bg-accent/30 cursor-pointer transition-colors",
-				)}
-			>
-				<VscChevronRight
+			<div className="group flex min-w-0 items-center">
+				<CollapsibleTrigger
 					className={cn(
-						"size-3 text-muted-foreground shrink-0 transition-transform duration-150",
-						isOpen && "rotate-90",
+						"flex w-full min-w-0 items-center gap-1.5 px-1.5 py-1 text-left",
+						"hover:bg-accent/30 cursor-pointer transition-colors",
 					)}
-				/>
-				<span className="text-xs font-medium truncate">{title}</span>
-				<span className="text-[10px] text-muted-foreground shrink-0">
-					{comments.length}
-				</span>
-			</CollapsibleTrigger>
+				>
+					<VscChevronRight
+						className={cn(
+							"size-3 text-muted-foreground shrink-0 transition-transform duration-150",
+							isOpen && "rotate-90",
+						)}
+					/>
+					<span className="text-xs font-medium truncate">{title}</span>
+					<span className="text-[10px] text-muted-foreground shrink-0">
+						{comments.length}
+					</span>
+				</CollapsibleTrigger>
+				{action ? <div className="mr-1 shrink-0">{action}</div> : null}
+			</div>
 			<CollapsibleContent className="min-w-0 overflow-hidden">
 				{renderCommentList(comments)}
 			</CollapsibleContent>
@@ -473,24 +474,6 @@ export function ReviewPanel({
 							{commentsCountLabel}
 						</span>
 					</CollapsibleTrigger>
-					{hasComments && (
-						<button
-							type="button"
-							className="mr-1 flex items-center gap-1 rounded-sm px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-								handleCopyCommentsList();
-							}}
-						>
-							{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
-								<LuCheck className="size-3" />
-							) : (
-								<LuCopy className="size-3" />
-							)}
-							<span>{copyAllCommentsLabel}</span>
-						</button>
-					)}
 				</div>
 				<CollapsibleContent className="min-h-0 flex-1 overflow-hidden">
 					<div className="h-full overflow-y-auto px-0.5 py-1">
@@ -512,6 +495,24 @@ export function ReviewPanel({
 											comments: activeComments,
 											isOpen: openCommentsGroupOpen,
 											onOpenChange: setOpenCommentsGroupOpen,
+											action: (
+												<button
+													type="button"
+													className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+													onClick={(event) => {
+														event.preventDefault();
+														event.stopPropagation();
+														handleCopyCommentsList();
+													}}
+												>
+													{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
+														<LuCheck className="size-3" />
+													) : (
+														<LuCopy className="size-3" />
+													)}
+													<span>{copyAllCommentsLabel}</span>
+												</button>
+											),
 										})
 									: null}
 								{resolvedComments.length > 0 ? (

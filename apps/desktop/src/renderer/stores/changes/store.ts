@@ -15,6 +15,7 @@ import {
 } from "./section-order";
 
 type FileListViewMode = "grouped" | "tree";
+type ChangesSidebarTab = "diffs" | "review";
 
 interface SelectedFileState {
 	absolutePath: string;
@@ -25,6 +26,7 @@ interface SelectedFileState {
 
 interface ChangesState {
 	selectedFiles: Record<string, SelectedFileState | null>;
+	activeTab: ChangesSidebarTab;
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
@@ -48,6 +50,7 @@ interface ChangesState {
 		isDirectory: boolean,
 	) => void;
 	getSelectedFile: (workspaceId: string) => SelectedFileState | null;
+	setActiveTab: (tab: ChangesSidebarTab) => void;
 	setViewMode: (mode: DiffViewMode) => void;
 	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
@@ -62,6 +65,7 @@ interface ChangesState {
 
 const initialState = {
 	selectedFiles: {} as Record<string, SelectedFileState | null>,
+	activeTab: "diffs" as ChangesSidebarTab,
 	viewMode: "side-by-side" as DiffViewMode,
 	fileListViewMode: "grouped" as FileListViewMode,
 	expandedSections: {
@@ -140,6 +144,10 @@ export const useChangesStore = create<ChangesState>()(
 
 				getSelectedFile: (workspaceId) => {
 					return get().selectedFiles[workspaceId] ?? null;
+				},
+
+				setActiveTab: (activeTab) => {
+					set({ activeTab });
 				},
 
 				setViewMode: (mode) => {
@@ -223,7 +231,7 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
-				version: 4,
+				version: 5,
 				migrate: (persisted, version) => {
 					const state = persisted as Record<string, unknown>;
 					if (version < 2) {
@@ -235,6 +243,9 @@ export const useChangesStore = create<ChangesState>()(
 					if (version < 4) {
 						state.selectedFiles = {};
 					}
+					if (version < 5) {
+						state.activeTab = "diffs";
+					}
 					state.sectionOrder = normalizeChangeSectionOrder(
 						state.sectionOrder as ChangeCategory[] | undefined,
 					);
@@ -242,6 +253,7 @@ export const useChangesStore = create<ChangesState>()(
 				},
 				partialize: (state) => ({
 					selectedFiles: state.selectedFiles,
+					activeTab: state.activeTab,
 					viewMode: state.viewMode,
 					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
