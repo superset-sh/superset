@@ -54,6 +54,38 @@ describe("normalizeAgentPresetPatch", () => {
 		});
 	});
 
+	test("syncs codex prompt command when only command is updated", () => {
+		const patch = normalizeAgentPresetPatch({
+			definition: getBuiltinAgentDefinition("codex"),
+			patch: {
+				command:
+					'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+			},
+		});
+
+		expect(patch).toEqual({
+			command:
+				'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+			promptCommand:
+				'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+		});
+	});
+
+	test("keeps explicit prompt command when provided", () => {
+		const patch = normalizeAgentPresetPatch({
+			definition: getBuiltinAgentDefinition("codex"),
+			patch: {
+				command: "codex --medium",
+				promptCommand: "codex --prompt-medium --",
+			},
+		});
+
+		expect(patch).toEqual({
+			command: "codex --medium",
+			promptCommand: "codex --prompt-medium --",
+		});
+	});
+
 	test("rejects unknown task template variables", () => {
 		expect(() =>
 			normalizeAgentPresetPatch({

@@ -30,11 +30,17 @@ export function AgentCard({
 	const updatePreset = electronTrpc.settings.updateAgentPreset.useMutation({
 		onSuccess: async () => {
 			await utils.settings.getAgentPresets.invalidate();
+			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
 		},
 	});
 	const resetPreset = electronTrpc.settings.resetAgentPreset.useMutation({
 		onSuccess: async () => {
 			await utils.settings.getAgentPresets.invalidate();
+			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
 		},
 	});
 	const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +136,9 @@ export function AgentCard({
 			setValidationMessage(null);
 		} catch (error) {
 			await utils.settings.getAgentPresets.invalidate();
+			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
 			resetFieldInputs();
 			toast.error(
 				error instanceof Error

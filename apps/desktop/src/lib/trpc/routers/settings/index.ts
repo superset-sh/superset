@@ -46,6 +46,8 @@ import {
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
+import { hydrateAgentPresetsFromTerminalPresets } from "./agent-backed-agent-presets";
+import { hydrateAgentBackedPresetCommands } from "./agent-backed-presets";
 import {
 	normalizeAgentPresetPatch,
 	updateAgentPresetInputSchema,
@@ -136,10 +138,23 @@ function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
 		.run();
 }
 
-function getResolvedAgentPresets() {
-	return resolveAgentConfigs({
+function getHydratedAgentPresets() {
+	const agentPresets = resolveAgentConfigs({
 		customDefinitions: readRawAgentCustomDefinitions(),
 		overrideEnvelope: readRawAgentPresetOverrides(),
+	});
+	return hydrateAgentPresetsFromTerminalPresets({
+		agentPresets,
+		terminalPresets: getNormalizedTerminalPresets(),
+	});
+}
+
+function getHydratedTerminalPresets(
+	presets: TerminalPreset[],
+): TerminalPreset[] {
+	return hydrateAgentBackedPresetCommands({
+		presets,
+		agentPresets: getHydratedAgentPresets(),
 	});
 }
 
@@ -181,16 +196,26 @@ function initializeDefaultPresets() {
 	return mergedPresets;
 }
 
+function getDefaultPresetFromFlags(
+	presets: TerminalPreset[],
+): TerminalPreset | null {
+	return (
+		presets.find(
+			(preset) => preset.applyOnWorkspaceCreated && preset.applyOnNewTab,
+		) ?? null
+	);
+}
+
 /** Get presets tagged with a given auto-apply field for the current project, falling back to all-project presets. */
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
 	projectId?: string | null,
 ) {
-	return getPresetsForTriggerField(
-		getNormalizedTerminalPresets(),
-		field,
-		projectId,
-	);
+	const presets = getHydratedTerminalPresets(getNormalizedTerminalPresets());
+	const tagged = getPresetsForTriggerField(presets, field, projectId);
+	if (tagged.length > 0) return tagged;
+	const defaultPreset = getDefaultPresetFromFlags(presets);
+	return defaultPreset ? [defaultPreset] : [];
 }
 
 export const createSettingsRouter = () => {
@@ -198,11 +223,11 @@ export const createSettingsRouter = () => {
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {
-				return initializeDefaultPresets();
+				return getHydratedTerminalPresets(initializeDefaultPresets());
 			}
-			return getNormalizedTerminalPresets();
+			return getHydratedTerminalPresets(getNormalizedTerminalPresets());
 		}),
-		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		getAgentPresets: publicProcedure.query(() => getHydratedAgentPresets()),
 		updateAgentPreset: publicProcedure
 			.input(updateAgentPresetInputSchema)
 			.mutation(({ input }) => {
@@ -230,7 +255,7 @@ export const createSettingsRouter = () => {
 
 				saveAgentPresetOverrides(nextOverrides);
 
-				return getResolvedAgentPresets().find(
+				return getHydratedAgentPresets().find(
 					(preset) => preset.id === input.id,
 				);
 			}),
@@ -389,6 +414,13 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getDefaultPreset: publicProcedure.query(() => {
+			const presets = getHydratedTerminalPresets(
+				getNormalizedTerminalPresets(),
+			);
+			return getDefaultPresetFromFlags(presets);
+		}),
+
 		getWorkspaceCreationPresets: publicProcedure
 			.input(
 				z
@@ -397,12 +429,12 @@ export const createSettingsRouter = () => {
 					})
 					.optional(),
 			)
-			.query(({ input }) =>
-				getPresetsForTrigger(
-					"applyOnWorkspaceCreated",
-					input?.projectId ?? null,
+				.query(({ input }) =>
+					getPresetsForTrigger(
+						"applyOnWorkspaceCreated",
+						input?.projectId ?? null,
+					),
 				),
-			),
 
 		getNewTabPresets: publicProcedure
 			.input(
