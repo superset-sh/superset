@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { SmallModelAttempt } from "lib/ai/call-small-model";
 
 const callSmallModelMock = mock((async () => ({
@@ -102,6 +102,10 @@ describe("generateWorkspaceNameFromPrompt", () => {
 		localDbMock.update.mockClear();
 		generateTitleFromMessageMock.mockClear();
 		generateTitleFromMessageWithStreamingModelMock.mockClear();
+	});
+
+	afterAll(() => {
+		mock.restore();
 	});
 
 	it("falls back to a prompt-derived title when no providers are available", async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
 import type { SessionInfo } from "./types";
 
@@ -79,6 +79,10 @@ const { DaemonTerminalManager } = await import("./daemon-manager");
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
+	});
+
+	afterAll(() => {
+		mock.restore();
 	});
 
 	it("waits for daemon exit and labels killed sessions", async () => {

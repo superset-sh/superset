@@ -221,9 +221,7 @@ export function bindFileViewerSession(
 		previousDocumentKey &&
 			previousDocumentKey !== documentKey &&
 			previousDocument &&
-			(options?.preserveDocumentState ||
-				(previousDocument.workspaceId === identity.workspaceId &&
-					previousDocument.filePath === identity.filePath)),
+			options?.preserveDocumentState,
 	);
 
 	if (previousDocumentKey && previousDocumentKey !== documentKey) {

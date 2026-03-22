@@ -145,6 +145,7 @@ export function FileViewerPane({
 	const markdownContainerRef = useRef<HTMLDivElement>(null);
 	const diffContainerRef = useRef<HTMLDivElement>(null);
 	const pendingRenamePathRef = useRef<string | null>(null);
+	const preserveDocumentStateRef = useRef(false);
 	const [isResolvingIntent, setIsResolvingIntent] = useState(false);
 
 	const filePath = fileViewer?.filePath ?? "";
@@ -229,8 +230,9 @@ export function FileViewerPane({
 		}
 
 		const preserveDocumentState =
-			pendingRenamePathRef.current !== null &&
-			pathsMatch(pendingRenamePathRef.current, filePath);
+			preserveDocumentStateRef.current ||
+			(pendingRenamePathRef.current !== null &&
+				pathsMatch(pendingRenamePathRef.current, filePath));
 
 		bindFileViewerSession(
 			paneId,
@@ -247,6 +249,7 @@ export function FileViewerPane({
 		);
 
 		if (preserveDocumentState) {
+			preserveDocumentStateRef.current = false;
 			pendingRenamePathRef.current = null;
 		}
 	}, [
@@ -269,6 +272,9 @@ export function FileViewerPane({
 			useEditorDocumentsStore.getState().documents[documentKey]
 				?.baselineRevision ?? null,
 		onSaveSuccess: ({ savedContent, currentContent, revision }) => {
+			if (diffCategory === "staged") {
+				preserveDocumentStateRef.current = true;
+			}
 			markDocumentSaved(documentKey, {
 				savedContent,
 				currentContent,
@@ -498,11 +504,19 @@ export function FileViewerPane({
 	}, [paneId, performFileSave]);
 
 	const handleDiscardPendingIntent = useCallback(() => {
-		if ((documentState?.sessionPaneIds.length ?? 0) <= 1) {
+		if (
+			session?.pendingIntent?.type === "change-view-mode" ||
+			(documentState?.sessionPaneIds.length ?? 0) <= 1
+		) {
 			discardDocumentChanges(documentKey);
 		}
 		resumePendingIntent(paneId);
-	}, [documentKey, documentState?.sessionPaneIds.length, paneId]);
+	}, [
+		documentKey,
+		documentState?.sessionPaneIds.length,
+		paneId,
+		session?.pendingIntent?.type,
+	]);
 
 	const handleCloseUnsavedDialog = useCallback(
 		(open: boolean) => {
