@@ -25,6 +25,14 @@ import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/
 import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
+import {
+	cancelPendingTabClose,
+	discardAndClosePendingTab,
+	requestPaneClose,
+	requestTabClose,
+	saveAndClosePendingTab,
+} from "renderer/stores/editor-state/editorCoordinator";
+import { useEditorSessionsStore } from "renderer/stores/editor-state/useEditorSessionsStore";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -36,6 +44,7 @@ import {
 	getPreviousPaneId,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
+import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
@@ -150,8 +159,6 @@ function WorkspacePage() {
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const removeTab = useTabsStore((s) => s.removeTab);
-	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
@@ -181,6 +188,7 @@ function WorkspacePage() {
 	const focusedPaneId = useTabsStore((s) =>
 		activeTabId ? (s.focusedPaneIds[activeTabId] ?? null) : null,
 	);
+	const pendingTabClose = useEditorSessionsStore((s) => s.pendingTabClose);
 
 	const { toggleWorkspaceRun } = useWorkspaceRunCommand({
 		workspaceId,
@@ -233,21 +241,21 @@ function WorkspacePage() {
 		"CLOSE_TERMINAL",
 		() => {
 			if (focusedPaneId) {
-				removePane(focusedPaneId);
+				requestPaneClose(focusedPaneId);
 			}
 		},
 		undefined,
-		[focusedPaneId, removePane],
+		[focusedPaneId],
 	);
 	useAppHotkey(
 		"CLOSE_TAB",
 		() => {
 			if (activeTabId) {
-				removeTab(activeTabId);
+				requestTabClose(activeTabId);
 			}
 		},
 		undefined,
-		[activeTabId, removeTab],
+		[activeTabId],
 	);
 
 	useAppHotkey(
@@ -679,6 +687,28 @@ function WorkspacePage() {
 				isLoading={keywordSearch.isFetching}
 				searchResults={keywordSearch.searchResults}
 				onSelectMatch={keywordSearch.selectMatch}
+			/>
+			<UnsavedChangesDialog
+				open={pendingTabClose !== null}
+				onOpenChange={(open) => {
+					if (!open) {
+						cancelPendingTabClose();
+					}
+				}}
+				onSave={() => {
+					void saveAndClosePendingTab();
+				}}
+				onDiscard={discardAndClosePendingTab}
+				isSaving={pendingTabClose?.isSaving ?? false}
+				description={
+					pendingTabClose
+						? pendingTabClose.documentKeys.length === 1
+							? "This tab has unsaved changes in 1 file. What would you like to do before closing it?"
+							: `This tab has unsaved changes in ${pendingTabClose.documentKeys.length} files. What would you like to do before closing it?`
+						: undefined
+				}
+				discardLabel="Discard & Close Tab"
+				saveLabel="Save & Close Tab"
 			/>
 		</div>
 	);
