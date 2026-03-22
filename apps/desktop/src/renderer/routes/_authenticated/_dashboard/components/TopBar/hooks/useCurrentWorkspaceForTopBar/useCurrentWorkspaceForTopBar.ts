@@ -3,7 +3,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMatchRoute } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
-import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider/HostServiceProvider";
 
@@ -83,20 +82,18 @@ export function useCurrentWorkspaceForTopBar(): CurrentWorkspaceForTopBar {
 			? (services.get(v2Workspace.organizationId)?.url ?? null)
 			: null;
 		const shouldWaitForDeviceInfo = v2Workspace !== null && isDeviceInfoPending;
-		const hostUrl =
-			!v2Workspace || shouldWaitForDeviceInfo
-				? null
-				: v2Workspace.deviceId === currentDevice?.id
-					? localHostUrl
-					: getWorkspaceHostUrlForWorkspace(v2Workspace.id);
+		const isLocalWorkspace =
+			Boolean(v2Workspace) &&
+			!shouldWaitForDeviceInfo &&
+			v2Workspace.deviceId === currentDevice?.id;
 
 		return {
 			openIn:
-				v2Workspace && hostUrl
+				v2Workspace && isLocalWorkspace && localHostUrl
 					? {
 							kind: "v2",
 							branch: v2Workspace.branch,
-							hostUrl,
+							hostUrl: localHostUrl,
 							projectId: v2Workspace.projectId,
 							workspaceId: v2Workspace.id,
 						}

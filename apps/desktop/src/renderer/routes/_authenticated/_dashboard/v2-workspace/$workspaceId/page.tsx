@@ -1,6 +1,7 @@
 import type { ExternalApp } from "@superset/local-db";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -44,6 +45,20 @@ function V2WorkspacePage() {
 		[collections, workspaceId],
 	);
 	const workspace = workspaces[0] ?? null;
+	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const { data: currentDevices = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ v2Devices: collections.v2Devices })
+				.where(({ v2Devices }) =>
+					and(
+						eq(v2Devices.clientId, deviceInfo?.deviceId ?? ""),
+						eq(v2Devices.organizationId, workspace?.organizationId ?? ""),
+					),
+				),
+		[collections, deviceInfo?.deviceId, workspace?.organizationId],
+	);
+	const currentDevice = currentDevices[0] ?? null;
 
 	const { data: projects = [] } = useLiveQuery(
 		(q) =>
@@ -66,6 +81,7 @@ function V2WorkspacePage() {
 
 	return (
 		<V2WorkspaceContent
+			canOpenInApp={workspace.deviceId === currentDevice?.id}
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
 			workspaceBranch={workspace.branch}
@@ -76,12 +92,14 @@ function V2WorkspacePage() {
 }
 
 function V2WorkspaceContent({
+	canOpenInApp,
 	projectId,
 	workspaceName,
 	workspaceBranch,
 	projectName,
 	workspaceId,
 }: {
+	canOpenInApp: boolean;
 	projectId: string;
 	workspaceName: string;
 	workspaceBranch: string;
@@ -158,16 +176,25 @@ function V2WorkspaceContent({
 	};
 
 	const handleOpenInApp = useCallback(() => {
-		if (!worktreePath) return;
+		if (!canOpenInApp || !worktreePath) return;
 		mutateOpenInApp({
 			path: worktreePath,
 			app: resolvedDefaultApp,
 			projectId,
 		});
-	}, [mutateOpenInApp, projectId, resolvedDefaultApp, worktreePath]);
+	}, [
+		canOpenInApp,
+		mutateOpenInApp,
+		projectId,
+		resolvedDefaultApp,
+		worktreePath,
+	]);
 
 	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
-	useAppHotkey("OPEN_IN_APP", handleOpenInApp, undefined, [handleOpenInApp]);
+	useAppHotkey("OPEN_IN_APP", handleOpenInApp, { enabled: canOpenInApp }, [
+		canOpenInApp,
+		handleOpenInApp,
+	]);
 
 	return (
 		<>

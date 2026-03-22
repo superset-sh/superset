@@ -1,5 +1,5 @@
 export {
-	useFileDocument,
 	type UseFileDocumentParams,
 	type UseFileDocumentResult,
+	useFileDocument,
 } from "./useFileDocument";

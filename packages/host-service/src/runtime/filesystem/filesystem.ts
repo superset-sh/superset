@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
 import {
 	createFsHostService,
-	FsWatcherManager,
 	type FsHostService,
+	FsWatcherManager,
 } from "@superset/workspace-fs/host";
+import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 
