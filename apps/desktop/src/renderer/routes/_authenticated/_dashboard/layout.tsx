@@ -6,10 +6,12 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
+import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
@@ -93,6 +95,19 @@ function DashboardLayout() {
 		[openNewWorkspaceModal, currentWorkspace?.projectId],
 	);
 
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+	useAppHotkey(
+		"CLOSE_WORKSPACE",
+		() => {
+			if (currentWorkspaceId) {
+				setShowDeleteDialog(true);
+			}
+		},
+		{ enabled: !!currentWorkspaceId },
+		[currentWorkspaceId],
+	);
+
 	return (
 		<div className="flex flex-col h-full w-full">
 			<TopBar />
@@ -124,6 +139,15 @@ function DashboardLayout() {
 				)}
 				<Outlet />
 			</div>
+			{currentWorkspaceId && currentWorkspace && (
+				<DeleteWorkspaceDialog
+					workspaceId={currentWorkspaceId}
+					workspaceName={currentWorkspace.name}
+					workspaceType={currentWorkspace.type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			)}
 		</div>
 	);
 }
