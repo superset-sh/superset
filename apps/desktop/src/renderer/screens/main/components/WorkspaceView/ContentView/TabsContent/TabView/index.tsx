@@ -9,6 +9,7 @@ import {
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { requestPaneClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -36,8 +37,6 @@ export function TabView({ tab }: TabViewProps) {
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
-	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
-		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
@@ -49,6 +48,8 @@ export function TabView({ tab }: TabViewProps) {
 		{ id: tab.workspaceId },
 		{ enabled: !!tab.workspaceId },
 	);
+	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
+		useTabsWithPresets(workspace?.projectId);
 	const worktreePath = workspace?.worktreePath ?? "";
 
 	// Get tabs in the same workspace for move targets
@@ -144,6 +145,10 @@ export function TabView({ tab }: TabViewProps) {
 			for (const removedId of removedPaneIds) {
 				const pane = freshPanes[removedId];
 				if (pane && pane.tabId === tab.id) {
+					if (pane.type === "file-viewer") {
+						requestPaneClose(removedId);
+						return;
+					}
 					removePane(removedId);
 				}
 			}

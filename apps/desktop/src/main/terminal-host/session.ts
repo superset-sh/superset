@@ -16,7 +16,9 @@ import {
 	getCommandShellArgs,
 	getShellArgs,
 } from "../lib/agent-setup/shell-wrappers";
+import { raceWithAbort, throwIfAborted } from "../lib/terminal/abort";
 import { buildSafeEnv } from "../lib/terminal/env";
+import { isTerminalAttachCanceledError } from "../lib/terminal/errors";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
@@ -102,6 +104,7 @@ export interface SessionOptions {
 export interface AttachedClient {
 	socket: Socket;
 	attachedAt: number;
+	attachToken: symbol;
 }
 
 // =============================================================================
@@ -767,37 +770,65 @@ export class Session {
 	/**
 	 * Attach a client to this session
 	 */
-	async attach(socket: Socket): Promise<TerminalSnapshot> {
+	async attach(
+		socket: Socket,
+		signal?: AbortSignal,
+	): Promise<TerminalSnapshot> {
 		if (this.disposed) {
 			throw new Error("Session disposed");
 		}
+		throwIfAborted(signal);
 
-		this.attachedClients.set(socket, {
+		const attachedClient: AttachedClient = {
 			socket,
 			attachedAt: Date.now(),
-		});
+			attachToken: Symbol("attach"),
+		};
+		this.attachedClients.set(socket, attachedClient);
 		this.lastAttachedAt = new Date();
 
 		// Use snapshot boundary flush for consistent state with continuous output.
 		// This ensures we capture all data received BEFORE attach was called,
 		// even if new data continues to arrive during the flush.
-		const reachedBoundary = await this.flushToSnapshotBoundary(
-			ATTACH_FLUSH_TIMEOUT_MS,
-		);
-
-		if (!reachedBoundary) {
-			console.warn(
-				`[Session ${this.sessionId}] Attach flush timeout after ${ATTACH_FLUSH_TIMEOUT_MS}ms`,
+		try {
+			const reachedBoundary = await raceWithAbort(
+				this.flushToSnapshotBoundary(ATTACH_FLUSH_TIMEOUT_MS),
+				signal,
 			);
-		}
 
-		return this.emulator.getSnapshotAsync();
+			if (!reachedBoundary) {
+				console.warn(
+					`[Session ${this.sessionId}] Attach flush timeout after ${ATTACH_FLUSH_TIMEOUT_MS}ms`,
+				);
+			}
+
+			await raceWithAbort(this.emulator.flush(), signal);
+			throwIfAborted(signal);
+			return this.emulator.getSnapshot();
+		} catch (error) {
+			if (isTerminalAttachCanceledError(error)) {
+				this.detachAttachedClient(socket, attachedClient);
+				throw error;
+			}
+			throw error;
+		}
 	}
 
 	/**
 	 * Detach a client from this session
 	 */
 	detach(socket: Socket): void {
+		this.detachAttachedClient(socket);
+	}
+
+	private detachAttachedClient(
+		socket: Socket,
+		attachedClient?: AttachedClient,
+	): void {
+		const currentClient = this.attachedClients.get(socket);
+		if (attachedClient && currentClient !== attachedClient) {
+			return;
+		}
 		this.attachedClients.delete(socket);
 		this.clientSocketsWaitingForDrain.delete(socket);
 		this.maybeResumeSubprocessStdout();

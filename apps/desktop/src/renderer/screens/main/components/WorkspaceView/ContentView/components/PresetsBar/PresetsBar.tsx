@@ -126,12 +126,7 @@ function getTargetIndexForPinnedReorder({
 export function PresetsBar() {
 	const { workspaceId } = useParams({ strict: false });
 	const navigate = useNavigate();
-	const { presets, createPreset, updatePreset, reorderPresets } = usePresets();
 	const isDark = useIsDarkTheme();
-	const { openPreset, openPresetInCurrentTerminal } = useTabsWithPresets();
-	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
-		() => getPinnedPresetOrder(presets),
-	);
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
@@ -157,9 +152,22 @@ export function PresetsBar() {
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);
+	const {
+		presets,
+		matchedPresets,
+		createPreset,
+		updatePreset,
+		reorderPresets,
+	} = usePresets(workspace?.projectId);
+	const { openPreset, openPresetInCurrentTerminal } = useTabsWithPresets(
+		workspace?.projectId,
+	);
+	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
+		() => getPinnedPresetOrder(matchedPresets),
+	);
 	const presetsByName = useMemo(() => {
-		const map = new Map<string, typeof presets>();
-		for (const preset of presets) {
+		const map = new Map<string, typeof matchedPresets>();
+		for (const preset of matchedPresets) {
 			const existing = map.get(preset.name);
 			if (existing) {
 				existing.push(preset);
@@ -168,13 +176,13 @@ export function PresetsBar() {
 			map.set(preset.name, [preset]);
 		}
 		return map;
-	}, [presets]);
+	}, [matchedPresets]);
 	const pinnedPresets = useMemo(() => {
 		const presetById = new Map(
-			presets.map((preset, index) => [preset.id, { preset, index }]),
+			matchedPresets.map((preset, index) => [preset.id, { preset, index }]),
 		);
 		const orderedPinnedPresets: Array<{
-			preset: (typeof presets)[number];
+			preset: (typeof matchedPresets)[number];
 			index: number;
 		}> = [];
 		const seenIds = new Set<string>();
@@ -187,17 +195,17 @@ export function PresetsBar() {
 			seenIds.add(presetId);
 		}
 
-		for (const [index, preset] of presets.entries()) {
+		for (const [index, preset] of matchedPresets.entries()) {
 			if (!isPresetPinnedToBar(preset.pinnedToBar)) continue;
 			if (seenIds.has(preset.id)) continue;
 			orderedPinnedPresets.push({ preset, index });
 		}
 
 		return orderedPinnedPresets;
-	}, [presets, localPinnedPresetIds]);
+	}, [matchedPresets, localPinnedPresetIds]);
 	const presetIndexById = useMemo(
-		() => new Map(presets.map((preset, index) => [preset.id, index])),
-		[presets],
+		() => new Map(matchedPresets.map((preset, index) => [preset.id, index])),
+		[matchedPresets],
 	);
 	const managedPresets = useMemo(() => {
 		const templateNames = new Set(
@@ -216,7 +224,7 @@ export function PresetsBar() {
 			template,
 			iconName: template.name,
 		}));
-		const customExisting = presets
+		const customExisting = matchedPresets
 			.filter(
 				(preset) =>
 					!templateNames.has(preset.name) ||
@@ -230,19 +238,19 @@ export function PresetsBar() {
 				iconName: preset.name,
 			}));
 		return [...fromTemplates, ...customExisting];
-	}, [presetsByName, presets]);
+	}, [matchedPresets, presetsByName]);
 
 	useEffect(() => {
-		const serverPinnedPresetIds = getPinnedPresetOrder(presets);
+		const serverPinnedPresetIds = getPinnedPresetOrder(matchedPresets);
 		setLocalPinnedPresetIds((current) =>
 			areStringArraysEqual(current, serverPinnedPresetIds)
 				? current
 				: serverPinnedPresetIds,
 		);
-	}, [presets]);
+	}, [matchedPresets]);
 
 	const handleOpenPresetDefault = useCallback(
-		(preset: (typeof presets)[number]) => {
+		(preset: (typeof matchedPresets)[number]) => {
 			if (!workspaceId) return;
 			openPreset(workspaceId, preset, { target: "active-tab" });
 		},
@@ -250,7 +258,7 @@ export function PresetsBar() {
 	);
 
 	const handleOpenPresetInNewTab = useCallback(
-		(preset: (typeof presets)[number]) => {
+		(preset: (typeof matchedPresets)[number]) => {
 			if (!workspaceId) return;
 			openPreset(workspaceId, preset, {
 				target: "new-tab",
@@ -260,7 +268,7 @@ export function PresetsBar() {
 	);
 
 	const handleOpenPresetInPane = useCallback(
-		(preset: (typeof presets)[number]) => {
+		(preset: (typeof matchedPresets)[number]) => {
 			if (!workspaceId) return;
 			openPreset(workspaceId, preset, {
 				target: "active-tab",
@@ -271,7 +279,7 @@ export function PresetsBar() {
 	);
 
 	const handleOpenPresetInCurrentTerminal = useCallback(
-		(preset: (typeof presets)[number]) => {
+		(preset: (typeof matchedPresets)[number]) => {
 			if (!workspaceId) return;
 			openPresetInCurrentTerminal(workspaceId, preset);
 		},

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { SmallModelAttempt } from "lib/ai/call-small-model";
 
 const callSmallModelMock = mock((async () => ({
@@ -213,6 +213,10 @@ describe("generateWorkspaceNameFromPrompt", () => {
 			usedPromptFallback: false,
 		});
 	});
+});
+
+afterAll(() => {
+	mock.restore();
 });
 
 describe("attemptWorkspaceAutoRenameFromPrompt", () => {

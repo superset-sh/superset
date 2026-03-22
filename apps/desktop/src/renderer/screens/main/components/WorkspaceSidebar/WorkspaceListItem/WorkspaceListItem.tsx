@@ -104,19 +104,31 @@ export function WorkspaceListItem({
 		fuzzy: true,
 	});
 
-	const itemRef = useRef<HTMLElement | null>(null);
-	useEffect(() => {
-		if (isActive) {
-			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-		}
-	}, [isActive]);
-
 	const { isDragging, drag, drop } = useWorkspaceDnD({
 		id,
 		projectId,
 		sectionId,
 		index,
 	});
+
+	const expandedItemRef = useRef<HTMLDivElement>(null);
+	const collapsedItemRef = useRef<HTMLButtonElement>(null);
+
+	useEffect(() => {
+		if (isCollapsed) {
+			drag(drop(collapsedItemRef));
+			return;
+		}
+		drag(drop(expandedItemRef));
+	}, [drag, drop, isCollapsed]);
+
+	useEffect(() => {
+		if (!isActive) return;
+		const activeNode = isCollapsed
+			? collapsedItemRef.current
+			: expandedItemRef.current;
+		activeNode?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+	}, [isActive, isCollapsed]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -243,7 +255,7 @@ export function WorkspaceListItem({
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
-				itemRef={itemRef}
+				itemRef={collapsedItemRef}
 				showDeleteDialog={showDeleteDialog}
 				setShowDeleteDialog={setShowDeleteDialog}
 				onMouseEnter={handleMouseEnter}
@@ -259,10 +271,7 @@ export function WorkspaceListItem({
 		<div
 			role="button"
 			tabIndex={0}
-			ref={(node) => {
-				itemRef.current = node;
-				drag(drop(node));
-			}}
+			ref={expandedItemRef}
 			onClick={handleClick}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {

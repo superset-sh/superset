@@ -12,6 +12,8 @@ interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 	editingPresetId?: string | null;
 	onEditingPresetIdChange?: (presetId: string | null) => void;
+	pendingCreateProjectId?: string | null;
+	onPendingCreateProjectIdChange?: (projectId: string | null) => void;
 }
 
 /**
@@ -39,6 +41,8 @@ export function TerminalSettings({
 	visibleItems,
 	editingPresetId,
 	onEditingPresetIdChange,
+	pendingCreateProjectId,
+	onPendingCreateProjectIdChange,
 }: TerminalSettingsProps) {
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
@@ -74,6 +78,8 @@ export function TerminalSettings({
 						showQuickAdd={showQuickAdd}
 						editingPresetId={editingPresetId}
 						onEditingPresetIdChange={onEditingPresetIdChange}
+						pendingCreateProjectId={pendingCreateProjectId}
+						onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
 					/>
 				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}

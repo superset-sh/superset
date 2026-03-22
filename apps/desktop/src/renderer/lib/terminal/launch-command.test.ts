@@ -23,6 +23,7 @@ describe("launchCommandInPane", () => {
 			paneId: "pane-1",
 			tabId: "tab-1",
 			workspaceId: "ws-1",
+			joinPending: true,
 		});
 		expect(write).toHaveBeenCalledWith({
 			paneId: "pane-1",
@@ -50,6 +51,7 @@ describe("launchCommandInPane", () => {
 			tabId: "tab-1",
 			workspaceId: "ws-1",
 			cwd: "./apps/desktop",
+			joinPending: true,
 		});
 	});
 

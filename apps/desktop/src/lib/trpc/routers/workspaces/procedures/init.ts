@@ -201,7 +201,10 @@ export const createInitProcedures = () => {
 					worktreePath: relations.worktree?.path,
 					projectId: project.id,
 				});
-				const defaultPresets = getPresetsForTrigger("applyOnWorkspaceCreated");
+				const defaultPresets = getPresetsForTrigger(
+					"applyOnWorkspaceCreated",
+					project.id,
+				);
 
 				return {
 					projectId: project.id,
