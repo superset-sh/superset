@@ -1,5 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
@@ -145,15 +146,12 @@ export function useAnthropicOAuth({
 		}
 	}, [clearAutoSubmitTimeout, openExternalUrl, startAnthropicOAuthMutation]);
 
-	const copyOAuthUrl = useCallback(async () => {
+	const { copyToClipboard } = useCopyToClipboard();
+	const copyOAuthUrl = useCallback(() => {
 		if (!oauthUrl) return;
-		try {
-			await navigator.clipboard.writeText(oauthUrl);
-			setOauthError(null);
-		} catch (error) {
-			setOauthError(getErrorMessage(error, "Failed to copy URL"));
-		}
-	}, [oauthUrl]);
+		copyToClipboard(oauthUrl);
+		setOauthError(null);
+	}, [oauthUrl, copyToClipboard]);
 
 	const submitAnthropicOAuthCode = useCallback(
 		async (rawCode: string) => {

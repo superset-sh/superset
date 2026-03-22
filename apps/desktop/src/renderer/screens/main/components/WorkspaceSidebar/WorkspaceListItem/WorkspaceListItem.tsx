@@ -5,6 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -216,14 +217,11 @@ export function WorkspaceListItem({
 		if (worktreePath) openInFinder.mutate(worktreePath);
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopyPath = async () => {
 		if (!worktreePath) return;
-		try {
-			await navigator.clipboard.writeText(worktreePath);
-			toast.success("Path copied to clipboard");
-		} catch {
-			toast.error("Failed to copy path");
-		}
+		await copyToClipboard(worktreePath);
+		toast.success("Path copied to clipboard");
 	};
 
 	const pr = githubStatus?.pr;

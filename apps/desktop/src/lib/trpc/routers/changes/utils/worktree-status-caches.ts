@@ -1,7 +1,7 @@
-import { clearGitHubStatusCacheForWorktree } from "../../workspaces/utils/github";
+import { clearGitHubCachesForWorktree } from "../../workspaces/utils/github";
 import { clearStatusCacheForWorktree } from "./status-cache";
 
 export function clearWorktreeStatusCaches(worktreePath: string): void {
-	clearGitHubStatusCacheForWorktree(worktreePath);
+	clearGitHubCachesForWorktree(worktreePath);
 	clearStatusCacheForWorktree(worktreePath);
 }

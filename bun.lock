@@ -110,7 +110,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.2.3",
+      "version": "1.2.4",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -332,7 +332,6 @@
       "name": "@superset/docs",
       "version": "0.0.0",
       "dependencies": {
-        "@outlit/browser": "^1.4.3",
         "@radix-ui/react-collapsible": "^1.1.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
         "@sentry/nextjs": "^10.36.0",
@@ -384,7 +383,6 @@
       "name": "@superset/marketing",
       "version": "0.1.0",
       "dependencies": {
-        "@outlit/browser": "^1.4.3",
         "@react-three/drei": "^10.7.6",
         "@react-three/fiber": "^9.4.0",
         "@sentry/nextjs": "^10.36.0",
@@ -529,7 +527,6 @@
       "name": "@superset/web",
       "version": "0.1.0",
       "dependencies": {
-        "@outlit/browser": "^1.4.3",
         "@sentry/nextjs": "^10.36.0",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
@@ -1803,10 +1800,6 @@
     "@opentelemetry/sql-common": ["@opentelemetry/sql-common@0.41.2", "", { "dependencies": { "@opentelemetry/core": "^2.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.1.0" } }, "sha512-4mhWm3Z8z+i508zQJ7r6Xi7y4mmoJpdvH0fZPFRkWrdp5fq7hhZ2HhYokEOLkfqSMgPR4Z9EyB3DBkbKGOqZiQ=="],
 
     "@orama/orama": ["@orama/orama@3.1.18", "", {}, "sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA=="],
-
-    "@outlit/browser": ["@outlit/browser@1.4.3", "", { "dependencies": { "@outlit/core": "^1.4.3" }, "peerDependencies": { "react": ">=17.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "vue"] }, "sha512-iHr0ZEfpBEaqmZRcn3ADBnugQXHduuLZwxG4YolOU+2iaXSC/mKhBuUgbfxTjPUc13d0TfslLLgPvbLXgkH7Sg=="],
-
-    "@outlit/core": ["@outlit/core@1.4.3", "", {}, "sha512-4DwLrZb2OE938WgpcRKuvSBEQ1WvyBAkXeUpVka2BWtRmDTfsOHOQ/HRFjWpGfF1k6ckjLDGSgvilxmr11DZtQ=="],
 
     "@parcel/watcher": ["@parcel/watcher@2.5.6", "", { "dependencies": { "detect-libc": "^2.0.3", "is-glob": "^4.0.3", "node-addon-api": "^7.0.0", "picomatch": "^4.0.3" }, "optionalDependencies": { "@parcel/watcher-android-arm64": "2.5.6", "@parcel/watcher-darwin-arm64": "2.5.6", "@parcel/watcher-darwin-x64": "2.5.6", "@parcel/watcher-freebsd-x64": "2.5.6", "@parcel/watcher-linux-arm-glibc": "2.5.6", "@parcel/watcher-linux-arm-musl": "2.5.6", "@parcel/watcher-linux-arm64-glibc": "2.5.6", "@parcel/watcher-linux-arm64-musl": "2.5.6", "@parcel/watcher-linux-x64-glibc": "2.5.6", "@parcel/watcher-linux-x64-musl": "2.5.6", "@parcel/watcher-win32-arm64": "2.5.6", "@parcel/watcher-win32-ia32": "2.5.6", "@parcel/watcher-win32-x64": "2.5.6" } }, "sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ=="],
 

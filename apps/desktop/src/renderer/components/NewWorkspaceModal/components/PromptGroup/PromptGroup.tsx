@@ -887,9 +887,19 @@ ${sanitizeText(truncatedBody)}`;
 		updateDraft({ baseBranch: selectedBaseBranch });
 	};
 
-	const addLinkedIssue = (slug: string, title: string) => {
+	const addLinkedIssue = (
+		slug: string,
+		title: string,
+		taskId: string | undefined,
+		url?: string,
+	) => {
 		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({ linkedIssues: [...linkedIssues, { slug, title }] });
+		updateDraft({
+			linkedIssues: [
+				...linkedIssues,
+				{ slug, title, source: "internal", taskId, url },
+			],
+		});
 	};
 
 	const addLinkedGitHubIssue = (
@@ -1024,6 +1034,8 @@ ${sanitizeText(truncatedBody)}`;
 										<LinkedIssuePill
 											slug={issue.slug}
 											title={issue.title}
+											url={issue.url}
+											taskId={issue.taskId}
 											onRemove={() => removeLinkedIssue(issue.slug)}
 										/>
 									)}

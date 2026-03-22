@@ -15,6 +15,7 @@ import {
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
@@ -87,12 +88,14 @@ export function TaskContextMenu({
 		}
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCopyId = () => {
-		navigator.clipboard.writeText(task.slug);
+		copyToClipboard(task.slug);
 	};
 
 	const handleCopyTitle = () => {
-		navigator.clipboard.writeText(task.title);
+		copyToClipboard(task.title);
 	};
 
 	const handleDelete = () => {

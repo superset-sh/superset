@@ -1,75 +1,85 @@
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
+import {
+	clearInFlightRepoContext,
+	getCachedRepoContext,
+	getInFlightRepoContext,
+	setCachedRepoContext,
+	setInFlightRepoContext,
+} from "./cache";
 import { GHRepoResponseSchema, type RepoContext } from "./types";
-
-const repoContextCache = new Map<
-	string,
-	{ data: RepoContext; timestamp: number }
->();
-const REPO_CONTEXT_CACHE_TTL_MS = 300_000; // 5 minutes
 
 export async function getRepoContext(
 	worktreePath: string,
 ): Promise<RepoContext | null> {
-	const cached = repoContextCache.get(worktreePath);
-	if (cached && Date.now() - cached.timestamp < REPO_CONTEXT_CACHE_TTL_MS) {
-		return cached.data;
+	const cached = getCachedRepoContext(worktreePath);
+	if (cached) {
+		return cached;
 	}
 
-	try {
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			["repo", "view", "--json", "url,isFork,parent"],
-			{ cwd: worktreePath },
-		);
-		const raw = JSON.parse(stdout);
-		const result = GHRepoResponseSchema.safeParse(raw);
-		if (!result.success) {
-			console.error("[GitHub] Repo schema validation failed:", result.error);
-			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
-			return null;
-		}
+	const inFlight = getInFlightRepoContext(worktreePath);
+	if (inFlight) {
+		return inFlight;
+	}
 
-		const data = result.data;
-		let context: RepoContext;
-
-		if (data.isFork && data.parent) {
-			context = {
-				repoUrl: data.url,
-				upstreamUrl: data.parent.url,
-				isFork: true,
-			};
-		} else {
-			const originUrl = await getOriginUrl(worktreePath);
-			const ghUrl = normalizeGitHubUrl(data.url);
-
-			if (data.isFork) {
+	const promise = (async () => {
+		try {
+			const { stdout } = await execWithShellEnv(
+				"gh",
+				["repo", "view", "--json", "url,isFork,parent"],
+				{ cwd: worktreePath },
+			);
+			const raw = JSON.parse(stdout);
+			const result = GHRepoResponseSchema.safeParse(raw);
+			if (!result.success) {
+				console.error("[GitHub] Repo schema validation failed:", result.error);
+				console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
 				return null;
 			}
 
-			if (originUrl && ghUrl && originUrl !== ghUrl) {
+			const data = result.data;
+			let context: RepoContext;
+
+			if (data.isFork && data.parent) {
 				context = {
-					repoUrl: originUrl,
-					upstreamUrl: ghUrl,
+					repoUrl: data.url,
+					upstreamUrl: data.parent.url,
 					isFork: true,
 				};
 			} else {
-				context = {
-					repoUrl: data.url,
-					upstreamUrl: data.url,
-					isFork: false,
-				};
-			}
-		}
+				const originUrl = await getOriginUrl(worktreePath);
+				const ghUrl = normalizeGitHubUrl(data.url);
 
-		repoContextCache.set(worktreePath, {
-			data: context,
-			timestamp: Date.now(),
-		});
-		return context;
-	} catch {
-		return null;
-	}
+				if (data.isFork) {
+					return null;
+				}
+
+				if (originUrl && ghUrl && originUrl !== ghUrl) {
+					context = {
+						repoUrl: originUrl,
+						upstreamUrl: ghUrl,
+						isFork: true,
+					};
+				} else {
+					context = {
+						repoUrl: data.url,
+						upstreamUrl: data.url,
+						isFork: false,
+					};
+				}
+			}
+
+			setCachedRepoContext(worktreePath, context);
+			return context;
+		} catch {
+			return null;
+		} finally {
+			clearInFlightRepoContext(worktreePath);
+		}
+	})();
+
+	setInFlightRepoContext(worktreePath, promise);
+	return promise;
 }
 
 async function getOriginUrl(worktreePath: string): Promise<string | null> {

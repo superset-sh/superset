@@ -35,14 +35,8 @@ describe("Task detail action menu", () => {
 		expect(source).toContain(
 			'console.error("[TaskActionMenu] Failed to delete task:", error)',
 		);
-		expect(source).toContain("await navigator.clipboard.writeText(task.slug)");
-		expect(source).toContain("await navigator.clipboard.writeText(task.title)");
-		expect(source).toContain(
-			'console.error("[TaskActionMenu] Failed to copy task ID:", error)',
-		);
-		expect(source).toContain(
-			'console.error("[TaskActionMenu] Failed to copy task title:", error)',
-		);
+		expect(source).toContain("copyToClipboard(task.slug)");
+		expect(source).toContain("copyToClipboard(task.title)");
 		expect(source).not.toContain("<span>Status</span>");
 		expect(source).not.toContain("<span>Assignee</span>");
 		expect(source).not.toContain("<span>Priority</span>");

@@ -60,12 +60,6 @@ mock.module("./daemon", () => ({
 	}),
 }));
 
-mock.module("./env", () => ({
-	prewarmTerminalEnv: () => {},
-	getDefaultShell: () => "/bin/sh",
-	buildTerminalEnv: () => ({}),
-}));
-
 const { restartDaemon, tryListExistingDaemonSessions } = await import(
 	"./index"
 );
