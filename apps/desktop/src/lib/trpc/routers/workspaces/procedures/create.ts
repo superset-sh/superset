@@ -557,11 +557,11 @@ export const createCreateProcedures = () => {
 							// Rollback: Clean up DB records if side effects failed
 							if (workspaceId) {
 								try {
-									updateActiveWorkspaceIfRemoved(workspaceId);
 									localDb
 										.delete(workspaces)
 										.where(eq(workspaces.id, workspaceId))
 										.run();
+									updateActiveWorkspaceIfRemoved(workspaceId);
 								} catch (cleanupError) {
 									console.error(
 										"[workspaces/create] Failed to clean up workspace record:",
