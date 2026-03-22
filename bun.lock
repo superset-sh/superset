@@ -758,8 +758,16 @@
       },
     },
     "packages/scripts": {
-      "name": "@superset/scripts",
+      "name": "@superset/cli",
       "version": "0.1.0",
+      "bin": {
+        "superset": "./src/bin.ts",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "bun-types": "^1.3.1",
+        "typescript": "^5.9.3",
+      },
     },
     "packages/shared": {
       "name": "@superset/shared",
@@ -2275,6 +2283,8 @@
 
     "@superset/chat": ["@superset/chat@workspace:packages/chat"],
 
+    "@superset/cli": ["@superset/cli@workspace:packages/scripts"],
+
     "@superset/db": ["@superset/db@workspace:packages/db"],
 
     "@superset/desktop": ["@superset/desktop@workspace:apps/desktop"],
@@ -2296,8 +2306,6 @@
     "@superset/mcp": ["@superset/mcp@workspace:packages/mcp"],
 
     "@superset/mobile": ["@superset/mobile@workspace:apps/mobile"],
-
-    "@superset/scripts": ["@superset/scripts@workspace:packages/scripts"],
 
     "@superset/shared": ["@superset/shared@workspace:packages/shared"],
 
