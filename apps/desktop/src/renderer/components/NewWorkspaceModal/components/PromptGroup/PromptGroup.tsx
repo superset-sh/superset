@@ -36,7 +36,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
 	ArrowUpIcon,
 	ExternalLinkIcon,
-	Loader2Icon,
 	PaperclipIcon,
 	PlusIcon,
 } from "lucide-react";

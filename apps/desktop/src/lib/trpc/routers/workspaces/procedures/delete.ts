@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
+import { resolve } from "node:path";
 import type { SelectWorktree } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
@@ -24,6 +25,19 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+
+/**
+ * Normalize a filesystem path for comparison.
+ * Uses realpathSync to resolve symlinks and get canonical path.
+ * Falls back to resolve if realpathSync fails (e.g., path doesn't exist).
+ */
+const normalizePath = (p: string): string => {
+	try {
+		return realpathSync(p);
+	} catch {
+		return resolve(p);
+	}
+};
 
 export const createDeleteProcedures = () => {
 	return router({
@@ -260,8 +274,9 @@ export const createDeleteProcedures = () => {
 							const externalWorktrees = await listExternalWorktrees(
 								project.mainRepoPath,
 							);
+							const worktreePathNorm = normalizePath(worktree.path);
 							const isActuallyExternal = externalWorktrees.some(
-								(wt) => wt.path === worktree.path,
+								(wt) => normalizePath(wt.path) === worktreePathNorm,
 							);
 
 							if (isActuallyExternal) {

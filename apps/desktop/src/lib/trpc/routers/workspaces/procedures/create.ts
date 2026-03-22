@@ -434,87 +434,156 @@ export const createCreateProcedures = () => {
 					const externalWorktrees = await listExternalWorktrees(
 						project.mainRepoPath,
 					);
-					const externalMatch = externalWorktrees.find(
-						(wt) => wt.branch === branch && !wt.isBare && !wt.isDetached,
+
+					// Filter candidates: exclude main repo, bare, and detached
+					const candidates = externalWorktrees.filter(
+						(wt) =>
+							wt.branch === branch &&
+							!wt.isBare &&
+							!wt.isDetached &&
+							wt.path !== project.mainRepoPath, // Exclude main repo
 					);
+
+					// Prefer exact path match if available, otherwise take the only candidate
+					const expectedPath = resolveWorktreePath(project, branch);
+					const externalMatch =
+						candidates.find((wt) => wt.path === expectedPath) ??
+						(candidates.length === 1 ? candidates[0] : undefined);
+
+					// Handle ambiguous case
+					if (!externalMatch && candidates.length > 1) {
+						throw new Error(
+							`Multiple external worktrees found for branch "${branch}". Please specify which one to use.`,
+						);
+					}
 
 					if (externalMatch) {
 						console.log(
 							`[workspaces/create] Found external worktree for branch "${branch}", importing automatically`,
 						);
 
-						// Import the external worktree
-						const knownBranches = await getKnownBranchesSafe(
-							project.mainRepoPath,
-						);
-						const baseBranch = resolveWorkspaceBaseBranch({
-							workspaceBaseBranch: project.workspaceBaseBranch,
-							defaultBranch: project.defaultBranch,
-							knownBranches,
-						});
+						// Import the external worktree with transaction rollback on failure
+						let worktreeId: string | undefined;
+						let workspaceId: string | undefined;
+						let existingWorktreeByPath: any;
 
-						const worktree = localDb
-							.insert(worktrees)
-							.values({
+						try {
+							const knownBranches = await getKnownBranchesSafe(
+								project.mainRepoPath,
+							);
+							const baseBranch = resolveWorkspaceBaseBranch({
+								workspaceBaseBranch: project.workspaceBaseBranch,
+								defaultBranch: project.defaultBranch,
+								knownBranches,
+							});
+
+							// Check for existing worktree by path to prevent duplicates
+							existingWorktreeByPath = localDb
+								.select()
+								.from(worktrees)
+								.where(
+									and(
+										eq(worktrees.projectId, input.projectId),
+										eq(worktrees.path, externalMatch.path),
+									),
+								)
+								.get();
+
+							const worktree =
+								existingWorktreeByPath ??
+								localDb
+									.insert(worktrees)
+									.values({
+										projectId: input.projectId,
+										path: externalMatch.path,
+										branch,
+										baseBranch,
+										gitStatus: null, // Will be populated by refresh pipeline
+										createdBySuperset: false, // Mark as external
+									})
+									.returning()
+									.get();
+
+							worktreeId = worktree.id;
+
+							const workspace = createWorkspaceFromWorktree({
 								projectId: input.projectId,
-								path: externalMatch.path,
+								worktreeId: worktree.id,
+								branch,
+								name: input.name ?? branch,
+							});
+
+							workspaceId = workspace.id;
+
+							activateProject(project);
+
+							copySupersetConfigToWorktree(
+								project.mainRepoPath,
+								externalMatch.path,
+							);
+
+							await setBranchBaseConfig({
+								repoPath: project.mainRepoPath,
 								branch,
 								baseBranch,
-								gitStatus: {
-									branch,
-									needsRebase: false,
-									ahead: 0,
-									behind: 0,
-									lastRefreshed: Date.now(),
-								},
-								createdBySuperset: false, // Mark as external
-							})
-							.returning()
-							.get();
+								isExplicit: false,
+							});
 
-						const workspace = createWorkspaceFromWorktree({
-							projectId: input.projectId,
-							worktreeId: worktree.id,
-							branch,
-							name: input.name ?? branch,
-						});
+							const setupConfig = loadSetupConfig({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: externalMatch.path,
+								projectId: project.id,
+							});
 
-						activateProject(project);
+							track("workspace_created", {
+								workspace_id: workspace.id,
+								project_id: project.id,
+								branch,
+								base_branch: baseBranch,
+								source: "external_import_auto",
+							});
 
-						copySupersetConfigToWorktree(
-							project.mainRepoPath,
-							externalMatch.path,
-						);
-
-						await setBranchBaseConfig({
-							repoPath: project.mainRepoPath,
-							branch,
-							baseBranch,
-							isExplicit: false,
-						});
-
-						const setupConfig = loadSetupConfig({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: externalMatch.path,
-							projectId: project.id,
-						});
-
-						track("workspace_created", {
-							workspace_id: workspace.id,
-							project_id: project.id,
-							branch,
-							base_branch: baseBranch,
-							source: "external_import_auto",
-						});
-
-						return {
-							workspace,
-							initialCommands: setupConfig?.setup || null,
-							worktreePath: externalMatch.path,
-							projectId: project.id,
-							isInitializing: false,
-							wasExisting: true,
-						};
+							return {
+								workspace,
+								initialCommands: setupConfig?.setup || null,
+								worktreePath: externalMatch.path,
+								projectId: project.id,
+								isInitializing: false,
+								wasExisting: true,
+							};
+						} catch (error) {
+							// Rollback: Clean up DB records if side effects failed
+							if (workspaceId) {
+								try {
+									localDb
+										.delete(workspaces)
+										.where(eq(workspaces.id, workspaceId))
+										.run();
+								} catch (cleanupError) {
+									console.error(
+										"[workspaces/create] Failed to clean up workspace record:",
+										cleanupError,
+									);
+								}
+							}
+							if (
+								worktreeId &&
+								!existingWorktreeByPath // Only delete if we created it
+							) {
+								try {
+									localDb
+										.delete(worktrees)
+										.where(eq(worktrees.id, worktreeId))
+										.run();
+								} catch (cleanupError) {
+									console.error(
+										"[workspaces/create] Failed to clean up worktree record:",
+										cleanupError,
+									);
+								}
+							}
+							throw error;
+						}
 					}
 				}
 
