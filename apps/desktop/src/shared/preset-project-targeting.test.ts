@@ -23,7 +23,9 @@ describe("normalizePresetProjectIds", () => {
 
 describe("presetMatchesProjectId", () => {
 	it("matches global presets for any project", () => {
-		expect(presetMatchesProjectId({ projectIds: null }, "project-a")).toBe(true);
+		expect(presetMatchesProjectId({ projectIds: null }, "project-a")).toBe(
+			true,
+		);
 		expect(presetMatchesProjectId({ projectIds: undefined }, "project-a")).toBe(
 			true,
 		);

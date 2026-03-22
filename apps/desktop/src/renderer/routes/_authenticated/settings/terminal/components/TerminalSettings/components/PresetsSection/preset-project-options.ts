@@ -35,16 +35,8 @@ export function getPresetProjectTargetLabel(
 		normalizedProjectIds,
 		projectOptionsById,
 	);
-	if (selectedProjects.length === 1) {
-		return selectedProjects[0].name;
-	}
-
-	if (selectedProjects.length > 1) {
-		return `${selectedProjects.length} projects`;
-	}
-
 	if (normalizedProjectIds.length === 1) {
-		return "Unknown project";
+		return selectedProjects[0]?.name ?? "Unknown project";
 	}
 
 	return `${normalizedProjectIds.length} projects`;

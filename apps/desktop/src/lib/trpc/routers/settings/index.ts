@@ -30,6 +30,11 @@ import {
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import {
+	filterMatchingPresetsForProject,
+	isProjectTargetedPreset,
+	normalizePresetProjectIds,
+} from "shared/preset-project-targeting";
+import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
@@ -57,11 +62,6 @@ import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
 } from "./preset-execution-mode";
-import {
-	filterMatchingPresetsForProject,
-	isProjectTargetedPreset,
-	normalizePresetProjectIds,
-} from "shared/preset-project-targeting";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -187,7 +187,9 @@ export function getPresetsForTrigger(
 		projectId,
 	);
 	const targetedPresets = presets.filter(isProjectTargetedPreset);
-	const globalPresets = presets.filter((preset) => !isProjectTargetedPreset(preset));
+	const globalPresets = presets.filter(
+		(preset) => !isProjectTargetedPreset(preset),
+	);
 
 	const targetedTagged = targetedPresets.filter((preset) => preset[field]);
 	if (targetedTagged.length > 0) {
@@ -199,7 +201,9 @@ export function getPresetsForTrigger(
 		return globalTagged;
 	}
 
-	const targetedDefaultPreset = targetedPresets.find((preset) => preset.isDefault);
+	const targetedDefaultPreset = targetedPresets.find(
+		(preset) => preset.isDefault,
+	);
 	if (targetedDefaultPreset) {
 		return [targetedDefaultPreset];
 	}

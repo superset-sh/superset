@@ -39,10 +39,9 @@ export function presetMatchesProjectId(
 	return normalizedProjectIds.includes(projectId);
 }
 
-export function filterMatchingPresetsForProject<T extends ProjectTargetedPresetLike>(
-	presets: readonly T[],
-	projectId: string | null | undefined,
-): T[] {
+export function filterMatchingPresetsForProject<
+	T extends ProjectTargetedPresetLike,
+>(presets: readonly T[], projectId: string | null | undefined): T[] {
 	const targeted: T[] = [];
 	const global: T[] = [];
 
