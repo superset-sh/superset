@@ -4,7 +4,6 @@ import { DashboardNewWorkspaceFormHeader } from "./components/DashboardNewWorksp
 import { DashboardNewWorkspaceListTabContent } from "./components/DashboardNewWorkspaceListTabContent";
 import { DashboardNewWorkspacePromptTabContent } from "./components/DashboardNewWorkspacePromptTabContent";
 import { useDashboardNewWorkspaceProjectSelection } from "./hooks/useDashboardNewWorkspaceProjectSelection";
-import { useResolvedLocalProject } from "./hooks/useResolvedLocalProject";
 
 interface DashboardNewWorkspaceFormProps {
 	isOpen: boolean;
@@ -23,14 +22,13 @@ export function DashboardNewWorkspaceForm({
 		},
 		[updateDraft],
 	);
-	const { githubRepository, githubRepositoryId } =
+	const { githubRepositoryId, localProjectId } =
 		useDashboardNewWorkspaceProjectSelection({
 			isOpen,
 			preSelectedProjectId,
 			selectedProjectId: draft.selectedProjectId,
 			onSelectProject: handleSelectProject,
 		});
-	const resolvedLocalProjectId = useResolvedLocalProject(githubRepository);
 
 	const listTab = draft.activeTab === "prompt" ? null : draft.activeTab;
 	const isListTab = listTab !== null;
@@ -74,14 +72,14 @@ export function DashboardNewWorkspaceForm({
 					projectId={draft.selectedProjectId}
 					githubRepositoryId={githubRepositoryId}
 					hostTarget={draft.hostTarget}
-					localProjectId={resolvedLocalProjectId}
+					localProjectId={localProjectId}
 					query={listQuery}
 					onQueryChange={handleListQueryChange}
 				/>
 			) : (
 				<DashboardNewWorkspacePromptTabContent
 					projectId={draft.selectedProjectId}
-					localProjectId={resolvedLocalProjectId}
+					localProjectId={localProjectId}
 					hostTarget={draft.hostTarget}
 				/>
 			)}

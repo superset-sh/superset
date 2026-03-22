@@ -1,7 +1,12 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	resolveGithubRepositoryFromLocalProject,
+	resolveLocalProject,
+} from "./resolveProjectSelection";
 
 interface UseDashboardNewWorkspaceProjectSelectionOptions {
 	isOpen: boolean;
@@ -78,24 +83,94 @@ export function useDashboardNewWorkspaceProjectSelection({
 
 	const selectedProject =
 		v2Projects.find((project) => project.id === selectedProjectId) ?? null;
-	const githubRepositoryId = selectedProject?.githubRepositoryId ?? null;
+	const { data: localProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
 
-	const { data: githubRepoData } = useLiveQuery(
+	const { data: githubRepositoriesData } = useLiveQuery(
 		(q) =>
-			q
-				.from({ repos: collections.githubRepositories })
-				.where(({ repos }) => eq(repos.id, githubRepositoryId ?? ""))
-				.select(({ repos }) => ({
-					id: repos.id,
-					owner: repos.owner,
-					name: repos.name,
-				})),
-		[collections, githubRepositoryId],
+			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
+				id: repos.id,
+				owner: repos.owner,
+				name: repos.name,
+			})),
+		[collections],
+	);
+	const githubRepositories = useMemo(
+		() => githubRepositoriesData ?? [],
+		[githubRepositoriesData],
 	);
 
+	const linkedGithubRepository = useMemo(
+		() =>
+			githubRepositories.find(
+				(repository) => repository.id === selectedProject?.githubRepositoryId,
+			) ?? null,
+		[githubRepositories, selectedProject?.githubRepositoryId],
+	);
+
+	const localProject = useMemo(
+		() =>
+			resolveLocalProject({
+				selectedProject,
+				linkedGithubRepository,
+				localProjects,
+			}),
+		[linkedGithubRepository, localProjects, selectedProject],
+	);
+
+	const { data: githubAvatar } = electronTrpc.projects.getGitHubAvatar.useQuery(
+		{ id: localProject?.id ?? "" },
+		{ enabled: !!localProject && !localProject.githubOwner },
+	);
+
+	const inferredGithubRepository = useMemo(
+		() =>
+			resolveGithubRepositoryFromLocalProject({
+				localProject,
+				githubRepositories,
+				githubOwner: githubAvatar?.owner ?? localProject?.githubOwner ?? null,
+			}),
+		[githubAvatar?.owner, githubRepositories, localProject],
+	);
+
+	const githubRepository = linkedGithubRepository ?? inferredGithubRepository;
+	const githubRepositoryId = githubRepository?.id ?? null;
+	const persistedAutoLinkRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (
+			!selectedProject ||
+			selectedProject.githubRepositoryId ||
+			!githubRepository
+		) {
+			return;
+		}
+
+		const linkKey = `${selectedProject.id}:${githubRepository.id}`;
+		if (persistedAutoLinkRef.current === linkKey) {
+			return;
+		}
+
+		persistedAutoLinkRef.current = linkKey;
+
+		void apiTrpcClient.v2Project.update
+			.mutate({
+				id: selectedProject.id,
+				githubRepositoryId: githubRepository.id,
+			})
+			.catch((error) => {
+				console.warn(
+					"[dashboard-new-workspace] Failed to auto-link GitHub repository:",
+					error,
+				);
+				persistedAutoLinkRef.current = null;
+			});
+	}, [githubRepository, selectedProject]);
+
 	return {
-		githubRepository: githubRepoData?.[0] ?? null,
+		githubRepository,
 		githubRepositoryId,
+		localProjectId: localProject?.id ?? null,
 		selectedProject,
 		v2Projects,
 	};
