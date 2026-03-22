@@ -14,6 +14,11 @@ interface CacheEntry<T> {
 	expiresAt: number;
 }
 
+interface CacheState<T> {
+	value: T;
+	isFresh: boolean;
+}
+
 const githubStatusCache = new Map<string, CacheEntry<GitHubStatus>>();
 const githubStatusInFlight = new Map<string, Promise<GitHubStatus | null>>();
 
@@ -29,21 +34,27 @@ const pullRequestCommentsInFlight = new Map<
 const repoContextCache = new Map<string, CacheEntry<RepoContext>>();
 const repoContextInFlight = new Map<string, Promise<RepoContext | null>>();
 
-function getCachedValue<T>(
+function getCachedValueState<T>(
 	cache: Map<string, CacheEntry<T>>,
 	cacheKey: string,
-): T | null {
+): CacheState<T> | null {
 	const cached = cache.get(cacheKey);
 	if (!cached) {
 		return null;
 	}
 
-	if (cached.expiresAt <= Date.now()) {
-		cache.delete(cacheKey);
-		return null;
-	}
+	return {
+		value: cached.value,
+		isFresh: cached.expiresAt > Date.now(),
+	};
+}
 
-	return cached.value;
+function getCachedValue<T>(
+	cache: Map<string, CacheEntry<T>>,
+	cacheKey: string,
+): T | null {
+	const cached = getCachedValueState(cache, cacheKey);
+	return cached?.isFresh ? cached.value : null;
 }
 
 function setCachedValue<T>(
@@ -78,6 +89,12 @@ export function getCachedGitHubStatus(
 	worktreePath: string,
 ): GitHubStatus | null {
 	return getCachedValue(githubStatusCache, worktreePath);
+}
+
+export function getCachedGitHubStatusState(
+	worktreePath: string,
+): CacheState<GitHubStatus> | null {
+	return getCachedValueState(githubStatusCache, worktreePath);
 }
 
 export function setCachedGitHubStatus(
@@ -134,6 +151,12 @@ export function getCachedPullRequestComments(
 	return getCachedValue(pullRequestCommentsCache, cacheKey);
 }
 
+export function getCachedPullRequestCommentsState(
+	cacheKey: string,
+): CacheState<PullRequestComment[]> | null {
+	return getCachedValueState(pullRequestCommentsCache, cacheKey);
+}
+
 export function setCachedPullRequestComments(
 	cacheKey: string,
 	value: PullRequestComment[],
@@ -166,6 +189,12 @@ export function clearInFlightPullRequestComments(cacheKey: string): void {
 
 export function getCachedRepoContext(worktreePath: string): RepoContext | null {
 	return getCachedValue(repoContextCache, worktreePath);
+}
+
+export function getCachedRepoContextState(
+	worktreePath: string,
+): CacheState<RepoContext> | null {
+	return getCachedValueState(repoContextCache, worktreePath);
 }
 
 export function setCachedRepoContext(

@@ -3,6 +3,7 @@ import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
 import {
 	clearGitHubCachesForWorktree,
 	getCachedGitHubStatus,
+	getCachedGitHubStatusState,
 	getCachedPullRequestComments,
 	getCachedRepoContext,
 	makePullRequestCommentsCacheKey,
@@ -64,5 +65,37 @@ describe("clearGitHubCachesForWorktree", () => {
 		);
 
 		clearGitHubCachesForWorktree(otherWorktreePath);
+	});
+});
+
+describe("getCachedGitHubStatusState", () => {
+	test("returns stale cache entries without treating them as fresh", () => {
+		const worktreePath = "/tmp/worktrees/review-cache-stale-test";
+		const status: GitHubStatus = {
+			pr: null,
+			repoUrl: "https://github.com/superset-sh/superset",
+			upstreamUrl: "https://github.com/superset-sh/superset",
+			isFork: false,
+			branchExistsOnRemote: true,
+			lastRefreshed: 1000,
+		};
+
+		const originalDateNow = Date.now;
+		Date.now = () => 1000;
+
+		try {
+			setCachedGitHubStatus(worktreePath, status);
+
+			Date.now = () => 1000 + 10_001;
+
+			expect(getCachedGitHubStatus(worktreePath)).toBeNull();
+			expect(getCachedGitHubStatusState(worktreePath)).toEqual({
+				value: status,
+				isFresh: false,
+			});
+		} finally {
+			Date.now = originalDateNow;
+			clearGitHubCachesForWorktree(worktreePath);
+		}
 	});
 });
