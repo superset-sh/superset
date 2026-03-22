@@ -12,6 +12,7 @@ import {
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
+	tabContainsPaneType,
 } from "./utils";
 
 describe("findPanePath", () => {
@@ -295,6 +296,64 @@ describe("resolveActiveTabIdForWorkspace", () => {
 				tabHistoryStacks: { "ws-1": ["tab-x"] },
 			}),
 		).toBeNull();
+	});
+});
+
+describe("tabContainsPaneType", () => {
+	const createTab = (id: string): Tab => ({
+		id,
+		name: id,
+		workspaceId: "workspace-1",
+		layout: {
+			direction: "row",
+			first: `${id}-terminal`,
+			second: `${id}-browser`,
+		},
+		createdAt: 0,
+	});
+
+	it("returns true when the tab layout includes the requested pane type", () => {
+		const tab = createTab("tab-1");
+		const panes: Record<string, Pane> = {
+			"tab-1-terminal": {
+				id: "tab-1-terminal",
+				tabId: "tab-1",
+				type: "terminal",
+				name: "Terminal",
+				isNew: false,
+			},
+			"tab-1-browser": {
+				id: "tab-1-browser",
+				tabId: "tab-1",
+				type: "webview",
+				name: "Browser",
+				isNew: false,
+			},
+		};
+
+		expect(tabContainsPaneType(tab, panes, "webview")).toBe(true);
+	});
+
+	it("ignores panes that no longer belong to the tab", () => {
+		const tab = createTab("tab-1");
+		const panes: Record<string, Pane> = {
+			"tab-1-terminal": {
+				id: "tab-1-terminal",
+				tabId: "tab-1",
+				type: "terminal",
+				name: "Terminal",
+				isNew: false,
+			},
+			"tab-1-browser": {
+				id: "tab-1-browser",
+				tabId: "tab-2",
+				type: "webview",
+				name: "Browser",
+				isNew: false,
+			},
+		};
+
+		expect(tabContainsPaneType(tab, panes, "webview")).toBe(false);
 	});
 });
 

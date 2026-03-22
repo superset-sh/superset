@@ -18,6 +18,7 @@ interface TabPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	workspaceId: string;
+	isActive: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -48,6 +49,7 @@ export function TabPane({
 	path,
 	tabId,
 	workspaceId,
+	isActive,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
@@ -57,12 +59,6 @@ export function TabPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: TabPaneProps) {
-	// Terminal panes are only rendered when their tab is active to avoid
-	// keeping stream subscriptions and xterm instances alive in hidden tabs.
-	// Browser/webview panes are unaffected — they stay mounted for keepalive.
-	const isActiveTab = useTabsStore(
-		(s) => s.activeTabIds[workspaceId] === tabId,
-	);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 	const workspaceRun = useTabsStore((s) => s.panes[paneId]?.workspaceRun);
@@ -156,7 +152,7 @@ export function TabPane({
 				closeLabel="Close Terminal"
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					{isActiveTab && (
+					{isActive && (
 						<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
 					)}
 				</div>

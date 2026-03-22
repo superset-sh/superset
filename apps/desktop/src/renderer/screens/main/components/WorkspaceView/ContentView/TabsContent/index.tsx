@@ -2,7 +2,10 @@ import type { ExternalApp } from "@superset/local-db";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
+import {
+	resolveActiveTabIdForWorkspace,
+	tabContainsPaneType,
+} from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
@@ -19,6 +22,7 @@ export function TabsContent({
 }: TabsContentProps) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
+	const allPanes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -47,11 +51,17 @@ export function TabsContent({
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	// Keep all workspace tabs mounted so webviews survive tab switches
-	// (reparenting an Electron <webview> reloads the guest page).
+	// Keep inactive tabs mounted only when they contain a browser pane.
+	// Reparenting an Electron <webview> reloads the guest page, but other
+	// pane types should unmount when their tab is hidden.
 	const workspaceTabs = useMemo(
-		() => allTabs.filter((t) => t.workspaceId === activeWorkspaceId),
-		[allTabs, activeWorkspaceId],
+		() =>
+			allTabs.filter((tab) => {
+				if (tab.workspaceId !== activeWorkspaceId) return false;
+				if (tab.id === activeTabId) return true;
+				return tabContainsPaneType(tab, allPanes, "webview");
+			}),
+		[activeTabId, allPanes, allTabs, activeWorkspaceId],
 	);
 
 	useEffect(() => {
@@ -82,14 +92,12 @@ export function TabsContent({
 		const frameId = requestAnimationFrame(() => {
 			// Scope to the active tab's container (the only div with display:flex)
 			// to avoid matching elements in hidden but still-mounted tabs.
-			const activeContainer =
-				contentRef.current?.querySelector<HTMLDivElement>(
-					`[data-tab-id="${nextTabId}"]`,
-				);
-			const textarea =
-				activeContainer?.querySelector<HTMLTextAreaElement>(
-					".mosaic-window-focused [data-slot=input-group-control]",
-				);
+			const activeContainer = contentRef.current?.querySelector<HTMLDivElement>(
+				`[data-tab-id="${nextTabId}"]`,
+			);
+			const textarea = activeContainer?.querySelector<HTMLTextAreaElement>(
+				".mosaic-window-focused [data-slot=input-group-control]",
+			);
 			textarea?.focus();
 		});
 
@@ -109,7 +117,7 @@ export function TabsContent({
 						display: tab.id === activeTabId ? "flex" : "none",
 					}}
 				>
-					<TabView tab={tab} />
+					<TabView tab={tab} isActive={tab.id === activeTabId} />
 				</div>
 			))}
 			{!hasActiveTab && (

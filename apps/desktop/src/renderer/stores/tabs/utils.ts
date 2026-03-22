@@ -153,6 +153,17 @@ export const extractPaneIdsFromLayout = (
 /** Alias for extractPaneIdsFromLayout emphasizing the visual ordering contract */
 export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
 
+export const tabContainsPaneType = (
+	tab: Tab,
+	panes: TabsState["panes"],
+	paneType: PaneType,
+): boolean => {
+	return extractPaneIdsFromLayout(tab.layout).some((paneId) => {
+		const pane = panes[paneId];
+		return pane?.tabId === tab.id && pane.type === paneType;
+	});
+};
+
 /**
  * Options for creating a pane with preset configuration
  */
