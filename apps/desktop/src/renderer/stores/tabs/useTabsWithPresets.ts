@@ -37,6 +37,7 @@ interface PresetPaneLaunch {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd: string | undefined;
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -48,9 +49,13 @@ function preparePreset(preset: TerminalPreset): PreparedPreset {
 	};
 }
 
-export function useTabsWithPresets() {
+export function useTabsWithPresets(projectId?: string | null) {
+	const newTabPresetsInput = useMemo(
+		() => ({ projectId: projectId ?? null }),
+		[projectId],
+	);
 	const { data: newTabPresets = [] } =
-		electronTrpc.settings.getNewTabPresets.useQuery();
+		electronTrpc.settings.getNewTabPresets.useQuery(newTabPresetsInput);
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
@@ -98,12 +103,13 @@ export function useTabsWithPresets() {
 	}, []);
 
 	const launchPresetCommand = useCallback(
-		({ paneId, tabId, workspaceId, command }: PresetPaneLaunch) => {
+		({ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch) => {
 			void launchCommandInPane({
 				paneId,
 				tabId,
 				workspaceId,
 				command,
+				cwd,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
 				write: (input) => writeToTerminal.mutateAsync(input),
 			}).catch((error) => {
@@ -144,9 +150,15 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPreset?.cwd || undefined,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand, resolveWorkspaceIdForTab],
+		[
+			firstPreset,
+			firstPresetCommand,
+			launchPresetCommand,
+			resolveWorkspaceIdForTab,
+		],
 	);
 
 	const launchFirstPresetInFocusedPane = useCallback(
@@ -162,9 +174,10 @@ export function useTabsWithPresets() {
 				tabId,
 				workspaceId: tab.workspaceId,
 				command: firstPresetCommand,
+				cwd: firstPreset?.cwd || undefined,
 			});
 		},
-		[firstPresetCommand, launchPresetCommand],
+		[firstPreset, firstPresetCommand, launchPresetCommand],
 	);
 
 	const executePresetInNewTab = useCallback(
@@ -187,6 +200,7 @@ export function useTabsWithPresets() {
 						tabId: result.tabId,
 						workspaceId,
 						command,
+						cwd: preset.initialCwd,
 					});
 					applyTabName(result.tabId, preset.name);
 				}
@@ -212,7 +226,15 @@ export function useTabsWithPresets() {
 					(paneId, index) => {
 						const command = preset.commands[index];
 						if (command === undefined) return [];
-						return [{ paneId, tabId: multiPane.tabId, workspaceId, command }];
+						return [
+							{
+								paneId,
+								tabId: multiPane.tabId,
+								workspaceId,
+								command,
+								cwd: preset.initialCwd,
+							},
+						];
 					},
 				);
 				launchPresetCommands(launches);
@@ -230,6 +252,7 @@ export function useTabsWithPresets() {
 					tabId: result.tabId,
 					workspaceId,
 					command,
+					cwd: preset.initialCwd,
 				});
 			}
 			applyTabName(result.tabId, preset.name);
@@ -268,7 +291,15 @@ export function useTabsWithPresets() {
 						(paneId, index) => {
 							const command = preset.commands[index];
 							if (command === undefined) return [];
-							return [{ paneId, tabId: activeTabId, workspaceId, command }];
+							return [
+								{
+									paneId,
+									tabId: activeTabId,
+									workspaceId,
+									command,
+									cwd: preset.initialCwd,
+								},
+							];
 						},
 					);
 					launchPresetCommands(launches);
@@ -289,6 +320,7 @@ export function useTabsWithPresets() {
 							tabId: activeTabId,
 							workspaceId,
 							command,
+							cwd: preset.initialCwd,
 						});
 					}
 					return { tabId: activeTabId, paneId };

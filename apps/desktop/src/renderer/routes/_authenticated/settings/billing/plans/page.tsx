@@ -75,9 +75,12 @@ const PLAN_CARDS: PlanCardData[] = [
 	{
 		id: "pro",
 		name: "Pro",
-		price: { monthly: "$20", yearly: "$180" },
-		priceNote: { monthly: "per user/month", yearly: "per user/year" },
-		billingText: { monthly: "Billed monthly", yearly: "Billed yearly" },
+		price: { monthly: "$20", yearly: "$15" },
+		priceNote: { monthly: "per user/month", yearly: "per user/month" },
+		billingText: {
+			monthly: "Billed monthly",
+			yearly: "Billed yearly",
+		},
 		showBillingToggle: true,
 		actions: [
 			{
@@ -133,7 +136,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "GitHub integration",
-				values: [true, true, true],
+				values: [null, true, true],
 			},
 			{
 				label: "Cloud workspaces",

@@ -12,19 +12,20 @@ import type { DragItem } from "../types";
 interface UseSectionDropZoneOptions {
 	canAccept: (item: DragItem) => boolean;
 	targetSectionId: string | null;
+	targetRootPlacement?: "top" | "bottom";
 	onAutoExpand?: () => void;
 }
 
 export function useSectionDropZone({
 	canAccept,
 	targetSectionId,
+	targetRootPlacement,
 	onAutoExpand,
 }: UseSectionDropZoneOptions) {
 	const [isDragOver, setIsDragOver] = useState(false);
-	const activeDragItem = useActiveDragItemStore(
-		(state) => state.activeDragItem,
+	const isDropTarget = useActiveDragItemStore(
+		(state) => state.activeDragItem !== null && canAccept(state.activeDragItem),
 	);
-	const isDropTarget = activeDragItem !== null && canAccept(activeDragItem);
 	const dragEnterCount = useRef(0);
 	const autoExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const moveToSection = useMoveWorkspaceToSection();
@@ -48,45 +49,55 @@ export function useSectionDropZone({
 
 	const handleDrop = useCallback(
 		(e: React.DragEvent) => {
+			const item = getActiveDragItem();
+			if (!item || !canAccept(item)) return;
 			e.preventDefault();
 			if (autoExpandTimer.current) {
 				clearTimeout(autoExpandTimer.current);
 				autoExpandTimer.current = null;
 			}
-			const item = getActiveDragItem();
-			if (item && canAccept(item)) {
-				if (item.selectedIds && item.selectedIds.length > 1) {
-					bulkMoveToSection.mutate({
-						workspaceIds: item.selectedIds,
-						sectionId: targetSectionId,
-					});
-				} else {
-					moveToSection.mutate({
-						workspaceId: item.id,
-						sectionId: targetSectionId,
-					});
-				}
-				item.handled = true;
+			if (item.selectedIds && item.selectedIds.length > 1) {
+				bulkMoveToSection.mutate({
+					workspaceIds: item.selectedIds,
+					sectionId: targetSectionId,
+					...(targetSectionId === null && targetRootPlacement
+						? { rootPlacement: targetRootPlacement }
+						: {}),
+				});
+			} else {
+				moveToSection.mutate({
+					workspaceId: item.id,
+					sectionId: targetSectionId,
+					...(targetSectionId === null && targetRootPlacement
+						? { rootPlacement: targetRootPlacement }
+						: {}),
+				});
 			}
+			item.handled = true;
 			dragEnterCount.current = 0;
 			setIsDragOver(false);
 		},
-		[canAccept, targetSectionId, moveToSection, bulkMoveToSection],
+		[
+			canAccept,
+			targetSectionId,
+			targetRootPlacement,
+			moveToSection,
+			bulkMoveToSection,
+		],
 	);
 
 	const handleDragEnter = useCallback(
 		(e: React.DragEvent) => {
+			const item = getActiveDragItem();
+			if (!item || !canAccept(item)) return;
 			e.preventDefault();
 			dragEnterCount.current++;
-			const item = getActiveDragItem();
-			if (item && canAccept(item)) {
-				setIsDragOver(true);
-				if (onAutoExpand && !autoExpandTimer.current) {
-					autoExpandTimer.current = setTimeout(() => {
-						onAutoExpand();
-						autoExpandTimer.current = null;
-					}, 600);
-				}
+			setIsDragOver(true);
+			if (onAutoExpand && !autoExpandTimer.current) {
+				autoExpandTimer.current = setTimeout(() => {
+					onAutoExpand();
+					autoExpandTimer.current = null;
+				}, 600);
 			}
 		},
 		[canAccept, onAutoExpand],

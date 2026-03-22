@@ -35,6 +35,7 @@ interface SearchDialogProps<TItem extends SearchDialogItem> {
 	getItemValue: (item: TItem) => string;
 	onSelectItem: (item: TItem) => void;
 	renderItem: (item: TItem) => ReactNode;
+	headerExtra?: ReactNode;
 }
 
 export function SearchDialog<TItem extends SearchDialogItem>({
@@ -57,6 +58,7 @@ export function SearchDialog<TItem extends SearchDialogItem>({
 	getItemValue,
 	onSelectItem,
 	renderItem,
+	headerExtra,
 }: SearchDialogProps<TItem>) {
 	return (
 		<CommandDialog
@@ -112,6 +114,7 @@ export function SearchDialog<TItem extends SearchDialogItem>({
 					/>
 				</div>
 			) : null}
+			{headerExtra}
 			<CommandList>
 				{query.trim().length > 0 && !isLoading && results.length === 0 && (
 					<CommandEmpty>{emptyMessage}</CommandEmpty>

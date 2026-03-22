@@ -20,6 +20,9 @@ import {
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 import { focusPrimaryDialogAction } from "./focus-primary-dialog-action";
 
+const DELETE_STATUS_STALE_TIME_MS = 5_000;
+const TERMINAL_COUNT_STALE_TIME_MS = 1_000;
+
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
 	workspaceName: string;
@@ -57,6 +60,8 @@ export function DeleteWorkspaceDialog({
 			{ id: workspaceId },
 			{
 				enabled: open,
+				staleTime: DELETE_STATUS_STALE_TIME_MS,
+				refetchOnWindowFocus: false,
 			},
 		);
 
@@ -66,6 +71,8 @@ export function DeleteWorkspaceDialog({
 			{
 				enabled: open,
 				refetchInterval: open ? 2000 : false,
+				staleTime: TERMINAL_COUNT_STALE_TIME_MS,
+				refetchOnWindowFocus: false,
 			},
 		);
 

@@ -2,13 +2,18 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Terminal for Coding Agents
+### The Code Editor for AI Agents
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
 [![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
+
+<br />
+
+Orchestrate swarms of Claude Code, Codex, and more in parallel.<br />
+Works with any CLI agent. Built for local worktree-based development.
 
 <br />
 
@@ -19,14 +24,15 @@
 
 </div>
 
-## Why Superset?
+## Code 10x Faster With No Switching Cost
 
-Superset is a turbocharged terminal that allows you to run any CLI coding agents along with the tools to 10x your development workflow. 
+Superset orchestrates CLI-based coding agents across isolated git worktrees, with built-in terminal, review, and open-in-editor workflows.
 
 - **Run multiple agents simultaneously** without context switching overhead
 - **Isolate each task** in its own git worktree so agents don't interfere with each other
 - **Monitor all your agents** from one place and get notified when they need attention
-- **Review changes quickly** with built-in diff viewer and editor
+- **Review and edit changes quickly** with the built-in diff viewer and editor
+- **Open any workspace where you need it** with one-click handoff to your editor or terminal
 
 Wait less, ship more.
 
@@ -55,6 +61,7 @@ Superset works with any CLI-based coding agent, including:
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
 | [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | Any CLI agent | Will work |
 
 If it runs in a terminal, it runs on Superset
@@ -215,6 +222,11 @@ For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
 
+## Private by Default
+
+- **Source Available** — Full source is available on GitHub under Elastic License 2.0 (ELv2).
+- **Explicit Connections** — You choose which agents, providers, and integrations to connect.
+
 ## Contributing
 
 We welcome contributions! If you have a suggestion that would make Superset better:
@@ -250,4 +262,4 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
+Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.

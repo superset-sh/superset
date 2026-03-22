@@ -1,4 +1,6 @@
 import {
+	type AgentCustomDefinition,
+	type AgentPresetOverrideEnvelope,
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	EXTERNAL_APPS,
@@ -27,14 +29,27 @@ import {
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
+import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
 } from "shared/ringtones";
+import {
+	type AgentDefinitionId,
+	createOverrideEnvelopeWithPatch,
+	getAgentDefinitionById,
+	readAgentPresetOverrides,
+	resetAgentPresetOverride,
+	resolveAgentConfigs,
+} from "shared/utils/agent-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
+import {
+	normalizeAgentPresetPatch,
+	updateAgentPresetInputSchema,
+} from "./agent-preset-router.utils";
 import {
 	setFontSettingsSchema,
 	transformFontSettings,
@@ -42,7 +57,9 @@ import {
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
+	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
+import { getPresetsForTriggerField } from "./preset-trigger-selection";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -71,7 +88,13 @@ function readRawTerminalPresets(): PresetWithUnknownMode[] {
 
 function getNormalizedTerminalPresets() {
 	const rawPresets = readRawTerminalPresets();
-	return normalizeTerminalPresets(rawPresets);
+	const normalizedPresets = normalizeTerminalPresets(rawPresets);
+
+	if (shouldPersistNormalizedTerminalPresets(rawPresets)) {
+		saveTerminalPresets(normalizedPresets);
+	}
+
+	return normalizedPresets;
 }
 
 function saveTerminalPresets(
@@ -89,11 +112,43 @@ function saveTerminalPresets(
 		.run();
 }
 
+function readRawAgentPresetOverrides(): AgentPresetOverrideEnvelope {
+	const row = getSettings();
+	return readAgentPresetOverrides(row.agentPresetOverrides);
+}
+
+function readRawAgentCustomDefinitions(): AgentCustomDefinition[] {
+	const row = getSettings();
+	return row.agentCustomDefinitions ?? [];
+}
+
+function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			agentPresetOverrides: overrides,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { agentPresetOverrides: overrides },
+		})
+		.run();
+}
+
+function getResolvedAgentPresets() {
+	return resolveAgentConfigs({
+		customDefinitions: readRawAgentCustomDefinitions(),
+		overrideEnvelope: readRawAgentPresetOverrides(),
+	});
+}
+
 const DEFAULT_PRESET_AGENTS = [
 	"claude",
 	"codex",
 	"copilot",
 	"opencode",
+	"pi",
 	"gemini",
 ] as const;
 
@@ -116,25 +171,26 @@ function initializeDefaultPresets() {
 		existingPresets.length > 0
 			? existingPresets
 			: DEFAULT_PRESETS.map((p) => ({
-				id: crypto.randomUUID(),
-				...p,
-				executionMode: p.executionMode ?? "split-pane",
-			}));
+					id: crypto.randomUUID(),
+					...p,
+					executionMode: p.executionMode ?? "new-tab",
+				}));
 
 	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
 
 	return mergedPresets;
 }
 
-/** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
+/** Get presets tagged with a given auto-apply field for the current project, falling back to all-project presets. */
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+	projectId?: string | null,
 ) {
-	const presets = getNormalizedTerminalPresets();
-	const tagged = presets.filter((p) => p[field]);
-	if (tagged.length > 0) return tagged;
-	const defaultPreset = presets.find((p) => p.isDefault);
-	return defaultPreset ? [defaultPreset] : [];
+	return getPresetsForTriggerField(
+		getNormalizedTerminalPresets(),
+		field,
+		projectId,
+	);
 }
 
 export const createSettingsRouter = () => {
@@ -146,6 +202,52 @@ export const createSettingsRouter = () => {
 			}
 			return getNormalizedTerminalPresets();
 		}),
+		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		updateAgentPreset: publicProcedure
+			.input(updateAgentPresetInputSchema)
+			.mutation(({ input }) => {
+				const definition = getAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as AgentDefinitionId,
+				});
+				if (!definition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Agent preset ${input.id} not found`,
+					});
+				}
+
+				const normalizedPatch = normalizeAgentPresetPatch({
+					definition,
+					patch: input.patch,
+				});
+				const nextOverrides = createOverrideEnvelopeWithPatch({
+					definition,
+					currentOverrides: readRawAgentPresetOverrides(),
+					id: input.id as AgentDefinitionId,
+					patch: normalizedPatch,
+				});
+
+				saveAgentPresetOverrides(nextOverrides);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === input.id,
+				);
+			}),
+		resetAgentPreset: publicProcedure
+			.input(z.object({ id: z.string().min(1) }))
+			.mutation(({ input }) => {
+				const nextOverrides = resetAgentPresetOverride({
+					currentOverrides: readRawAgentPresetOverrides(),
+					id: input.id as AgentDefinitionId,
+				});
+				saveAgentPresetOverrides(nextOverrides);
+				return { success: true };
+			}),
+		resetAllAgentPresets: publicProcedure.mutation(() => {
+			saveAgentPresetOverrides({ version: 1, presets: [] });
+			return { success: true };
+		}),
 		createTerminalPreset: publicProcedure
 			.input(
 				z.object({
@@ -153,6 +255,7 @@ export const createSettingsRouter = () => {
 					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
+					projectIds: z.array(z.string()).nullable().optional(),
 					pinnedToBar: z.boolean().optional(),
 					executionMode: z.enum(EXECUTION_MODES).optional(),
 				}),
@@ -161,7 +264,8 @@ export const createSettingsRouter = () => {
 				const preset: TerminalPreset = {
 					id: crypto.randomUUID(),
 					...input,
-					executionMode: input.executionMode ?? "split-pane",
+					projectIds: normalizePresetProjectIds(input.projectIds),
+					executionMode: input.executionMode ?? "new-tab",
 				};
 
 				const presets = getNormalizedTerminalPresets();
@@ -181,6 +285,7 @@ export const createSettingsRouter = () => {
 						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
+						projectIds: z.array(z.string()).nullable().optional(),
 						pinnedToBar: z.boolean().optional(),
 						executionMode: z.enum(EXECUTION_MODES).optional(),
 					}),
@@ -203,6 +308,8 @@ export const createSettingsRouter = () => {
 				if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 				if (input.patch.commands !== undefined)
 					preset.commands = input.patch.commands;
+				if (input.patch.projectIds !== undefined)
+					preset.projectIds = normalizePresetProjectIds(input.patch.projectIds);
 				if (input.patch.pinnedToBar !== undefined)
 					preset.pinnedToBar = input.patch.pinnedToBar;
 				if (input.patch.executionMode !== undefined)
@@ -224,21 +331,6 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		setDefaultPreset: publicProcedure
-			.input(z.object({ id: z.string().nullable() }))
-			.mutation(({ input }) => {
-				const presets = getNormalizedTerminalPresets();
-
-				const updatedPresets = presets.map((p) => ({
-					...p,
-					isDefault: input.id === p.id ? true : undefined,
-				}));
-
-				saveTerminalPresets(updatedPresets);
-
-				return { success: true };
-			}),
-
 		setPresetAutoApply: publicProcedure
 			.input(
 				z.object({
@@ -253,23 +345,8 @@ export const createSettingsRouter = () => {
 				const updatedPresets = presets.map((p) => {
 					if (p.id !== input.id) return p;
 
-					// Migrate legacy isDefault preset to explicit fields on first toggle
-					const needsMigration =
-						p.isDefault &&
-						p.applyOnWorkspaceCreated === undefined &&
-						p.applyOnNewTab === undefined;
-
-					const base = needsMigration
-						? {
-							...p,
-							isDefault: undefined,
-							applyOnWorkspaceCreated: true as const,
-							applyOnNewTab: true as const,
-						}
-						: p;
-
 					return {
-						...base,
+						...p,
 						[input.field]: input.enabled ? true : undefined,
 					};
 				});
@@ -312,18 +389,32 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		getDefaultPreset: publicProcedure.query(() => {
-			const presets = getNormalizedTerminalPresets();
-			return presets.find((p) => p.isDefault) ?? null;
-		}),
+		getWorkspaceCreationPresets: publicProcedure
+			.input(
+				z
+					.object({
+						projectId: z.string().nullable().optional(),
+					})
+					.optional(),
+			)
+			.query(({ input }) =>
+				getPresetsForTrigger(
+					"applyOnWorkspaceCreated",
+					input?.projectId ?? null,
+				),
+			),
 
-		getWorkspaceCreationPresets: publicProcedure.query(() =>
-			getPresetsForTrigger("applyOnWorkspaceCreated"),
-		),
-
-		getNewTabPresets: publicProcedure.query(() =>
-			getPresetsForTrigger("applyOnNewTab"),
-		),
+		getNewTabPresets: publicProcedure
+			.input(
+				z
+					.object({
+						projectId: z.string().nullable().optional(),
+					})
+					.optional(),
+			)
+			.query(({ input }) =>
+				getPresetsForTrigger("applyOnNewTab", input?.projectId ?? null),
+			),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
-import type { Tab } from "./types";
+import type { Pane, Tab } from "./types";
 import {
+	activatePaneInWorkspace,
+	applyFileViewerOpenOptionsToPane,
 	buildMultiPaneLayout,
-	createChatMastraPane,
+	createChatPane,
+	fileViewerTargetsMatch,
 	findPanePath,
+	findReusableFileViewerPane,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
@@ -403,6 +407,266 @@ describe("buildMultiPaneLayout", () => {
 	});
 });
 
+describe("findReusableFileViewerPane", () => {
+	const createTab = (
+		id: string,
+		workspaceId: string,
+		layout: MosaicNode<string>,
+	): Tab => {
+		return {
+			id,
+			name: id,
+			workspaceId,
+			layout,
+			createdAt: 0,
+		};
+	};
+
+	const createFileViewerPane = (
+		id: string,
+		tabId: string,
+		filePath: string,
+	): Pane => {
+		return {
+			id,
+			tabId,
+			type: "file-viewer",
+			name: filePath.split("/").at(-1) ?? filePath,
+			fileViewer: {
+				filePath,
+				viewMode: "diff",
+				isPinned: true,
+				diffLayout: "inline",
+				diffCategory: "unstaged",
+			},
+		};
+	};
+
+	it("reuses matching panes across the workspace", () => {
+		const tabs = [
+			createTab("tab-a", "ws-1", "pane-a"),
+			createTab("tab-b", "ws-1", "pane-b"),
+		];
+		const panes = {
+			"pane-a": createFileViewerPane("pane-a", "tab-a", "/repo/other.ts"),
+			"pane-b": createFileViewerPane("pane-b", "tab-b", "/repo/file.ts"),
+		};
+
+		const result = findReusableFileViewerPane({
+			workspaceId: "ws-1",
+			activeTabId: "tab-a",
+			tabs,
+			panes,
+			tabHistoryStacks: { "ws-1": [] },
+			reuseExisting: "workspace",
+			options: {
+				filePath: "/repo/file.ts",
+				diffCategory: "unstaged",
+			},
+		});
+
+		expect(result?.id).toBe("pane-b");
+	});
+
+	it("limits reuse to the active tab when requested", () => {
+		const tabs = [
+			createTab("tab-a", "ws-1", "pane-a"),
+			createTab("tab-b", "ws-1", "pane-b"),
+		];
+		const panes = {
+			"pane-a": createFileViewerPane("pane-a", "tab-a", "/repo/other.ts"),
+			"pane-b": createFileViewerPane("pane-b", "tab-b", "/repo/file.ts"),
+		};
+
+		const result = findReusableFileViewerPane({
+			workspaceId: "ws-1",
+			activeTabId: "tab-a",
+			tabs,
+			panes,
+			tabHistoryStacks: { "ws-1": [] },
+			reuseExisting: "active-tab",
+			options: {
+				filePath: "/repo/file.ts",
+				diffCategory: "unstaged",
+			},
+		});
+
+		expect(result).toBeNull();
+	});
+
+	it("prefers more recently used matching tabs when duplicates already exist", () => {
+		const tabs = [
+			createTab("tab-a", "ws-1", "pane-a"),
+			createTab("tab-b", "ws-1", "pane-b"),
+			createTab("tab-c", "ws-1", "pane-c"),
+		];
+		const panes = {
+			"pane-a": createFileViewerPane("pane-a", "tab-a", "/repo/other.ts"),
+			"pane-b": createFileViewerPane("pane-b", "tab-b", "/repo/file.ts"),
+			"pane-c": createFileViewerPane("pane-c", "tab-c", "/repo/file.ts"),
+		};
+
+		const result = findReusableFileViewerPane({
+			workspaceId: "ws-1",
+			activeTabId: "tab-a",
+			tabs,
+			panes,
+			tabHistoryStacks: { "ws-1": ["tab-c", "tab-b"] },
+			reuseExisting: "workspace",
+			options: {
+				filePath: "/repo/file.ts",
+				diffCategory: "unstaged",
+			},
+		});
+
+		expect(result?.id).toBe("pane-c");
+	});
+});
+
+describe("fileViewerTargetsMatch", () => {
+	it("matches remote urls with only a trailing slash difference", () => {
+		expect(
+			fileViewerTargetsMatch(
+				{
+					filePath: "https://example.com/files/readme.md/",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+				{
+					filePath: "https://example.com/files/readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+			),
+		).toBe(true);
+	});
+
+	it("does not normalize distinct remote urls beyond the trailing slash", () => {
+		expect(
+			fileViewerTargetsMatch(
+				{
+					filePath: "https://example.com/files//readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+				{
+					filePath: "https://example.com/files/readme.md",
+					diffCategory: undefined,
+					commitHash: undefined,
+				},
+			),
+		).toBe(false);
+	});
+});
+
+describe("applyFileViewerOpenOptionsToPane", () => {
+	it("updates matching file viewers without losing pinned or renamed state", () => {
+		const pane: Pane = {
+			id: "pane-a",
+			tabId: "tab-a",
+			type: "file-viewer",
+			name: "file.ts",
+			fileViewer: {
+				filePath: "/repo/file.ts",
+				viewMode: "raw",
+				isPinned: false,
+				diffLayout: "inline",
+				diffCategory: "unstaged",
+				initialLine: 3,
+			},
+		};
+
+		const result = applyFileViewerOpenOptionsToPane(pane, {
+			filePath: "/repo/file.ts",
+			diffCategory: "unstaged",
+			viewMode: "diff",
+			line: 42,
+			column: 7,
+			isPinned: true,
+		});
+
+		expect(result.fileViewer).toEqual({
+			filePath: "/repo/file.ts",
+			viewMode: "diff",
+			isPinned: true,
+			diffLayout: "inline",
+			diffCategory: "unstaged",
+			initialLine: 42,
+			initialColumn: 7,
+		});
+	});
+});
+
+describe("activatePaneInWorkspace", () => {
+	const createTab = (id: string, layout: MosaicNode<string>): Tab => {
+		return {
+			id,
+			name: id,
+			workspaceId: "ws-1",
+			layout,
+			createdAt: 0,
+		};
+	};
+
+	it("activates the pane's tab, focuses it, and acknowledges review status", () => {
+		const tabs = [
+			createTab("tab-a", "pane-a"),
+			createTab("tab-b", {
+				direction: "row",
+				first: "pane-b",
+				second: "pane-c",
+				splitPercentage: 50,
+			}),
+		];
+		const panes: Record<string, Pane> = {
+			"pane-a": {
+				id: "pane-a",
+				tabId: "tab-a",
+				type: "terminal",
+				name: "Terminal",
+			},
+			"pane-b": {
+				id: "pane-b",
+				tabId: "tab-b",
+				type: "file-viewer",
+				name: "file.ts",
+				status: "review",
+				fileViewer: {
+					filePath: "/repo/file.ts",
+					viewMode: "diff",
+					isPinned: true,
+					diffLayout: "inline",
+					diffCategory: "unstaged",
+				},
+			},
+			"pane-c": {
+				id: "pane-c",
+				tabId: "tab-b",
+				type: "terminal",
+				name: "Terminal 2",
+				status: "review",
+			},
+		};
+
+		const result = activatePaneInWorkspace({
+			workspaceId: "ws-1",
+			paneId: "pane-b",
+			tabs,
+			panes,
+			activeTabIds: { "ws-1": "tab-a" },
+			focusedPaneIds: { "tab-a": "pane-a", "tab-b": "pane-c" },
+			tabHistoryStacks: { "ws-1": ["tab-c"] },
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.activeTabIds["ws-1"]).toBe("tab-b");
+		expect(result?.focusedPaneIds["tab-b"]).toBe("pane-b");
+		expect(result?.tabHistoryStacks["ws-1"]).toEqual(["tab-a", "tab-c"]);
+		expect(result?.panes["pane-b"].status).toBe("idle");
+		expect(result?.panes["pane-c"].status).toBe("idle");
+	});
+});
+
 describe("resolveFileViewerMode", () => {
 	it("returns diff for modified file with diffCategory", () => {
 		expect(
@@ -521,18 +785,18 @@ describe("resolveFileViewerMode", () => {
 	});
 });
 
-describe("createChatMastraPane", () => {
+describe("createChatPane", () => {
 	it("seeds a session id when the pane is created", () => {
-		const pane = createChatMastraPane("tab-1");
+		const pane = createChatPane("tab-1");
 
-		expect(pane.type).toBe("chat-mastra");
-		expect(typeof pane.chatMastra?.sessionId).toBe("string");
-		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
-		expect(pane.chatMastra?.launchConfig ?? null).toBeNull();
+		expect(pane.type).toBe("chat");
+		expect(typeof pane.chat?.sessionId).toBe("string");
+		expect((pane.chat?.sessionId ?? "").length).toBeGreaterThan(0);
+		expect(pane.chat?.launchConfig ?? null).toBeNull();
 	});
 
 	it("stores launch config when provided", () => {
-		const pane = createChatMastraPane("tab-1", {
+		const pane = createChatPane("tab-1", {
 			launchConfig: {
 				initialPrompt: "hello",
 				metadata: { model: "gpt-5" },
@@ -540,7 +804,7 @@ describe("createChatMastraPane", () => {
 			},
 		});
 
-		expect(pane.chatMastra?.launchConfig).toEqual({
+		expect(pane.chat?.launchConfig).toEqual({
 			initialPrompt: "hello",
 			metadata: { model: "gpt-5" },
 			retryCount: 2,

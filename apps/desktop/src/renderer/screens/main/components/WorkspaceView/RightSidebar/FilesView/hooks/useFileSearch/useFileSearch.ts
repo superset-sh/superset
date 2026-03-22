@@ -3,7 +3,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SEARCH_RESULT_LIMIT } from "../../constants";
 
 interface UseFileSearchParams {
-	worktreePath: string | undefined;
+	workspaceId: string | undefined;
 	searchTerm: string;
 	includePattern?: string;
 	excludePattern?: string;
@@ -11,7 +11,7 @@ interface UseFileSearchParams {
 }
 
 export function useFileSearch({
-	worktreePath,
+	workspaceId,
 	searchTerm,
 	includePattern = "",
 	excludePattern = "",
@@ -25,21 +25,31 @@ export function useFileSearch({
 	const { data: searchResults, isFetching } =
 		electronTrpc.filesystem.searchFiles.useQuery(
 			{
-				rootPath: worktreePath ?? "",
+				workspaceId: workspaceId ?? "",
 				query: debouncedQuery,
 				includePattern,
 				excludePattern,
 				limit,
 			},
 			{
-				enabled: Boolean(worktreePath) && debouncedQuery.length > 0,
+				enabled: Boolean(workspaceId) && debouncedQuery.length > 0,
 				staleTime: 1000,
-				placeholderData: (previous) => previous ?? [],
+				placeholderData: (previous) => previous ?? { matches: [] },
 			},
 		);
 
+	const results =
+		searchResults?.matches.map((match) => ({
+			id: match.absolutePath,
+			name: match.name,
+			path: match.absolutePath,
+			relativePath: match.relativePath,
+			isDirectory: match.kind === "directory",
+			score: match.score,
+		})) ?? [];
+
 	return {
-		searchResults: searchResults ?? [],
+		searchResults: results,
 		isFetching: isFetching || isDebouncing,
 		hasQuery: trimmedQuery.length > 0,
 	};

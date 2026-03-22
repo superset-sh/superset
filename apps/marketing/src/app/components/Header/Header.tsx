@@ -30,6 +30,7 @@ const NAV_LINKS = [
 	{ href: "/blog", label: "Blog", external: false },
 	{ href: "/team", label: "About", external: false },
 	{ href: "/community", label: "Community", external: false },
+	{ href: "/enterprise", label: "Enterprise", external: false },
 ];
 
 interface HeaderProps {

@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
@@ -22,7 +22,7 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const navigate = useNavigate();
 	const { openNew, isPending: isOpenPending } = useOpenProject();
-	const createBranchWorkspace = useCreateBranchWorkspace();
+	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
 
 	const handleOpenProject = async () => {
 		try {
@@ -30,7 +30,7 @@ export function WorkspaceSidebarFooter({
 
 			for (const project of projects) {
 				try {
-					await createBranchWorkspace.mutateAsync({
+					await openMainRepoWorkspace.mutateAsync({
 						projectId: project.id,
 					});
 				} catch (err) {
@@ -48,11 +48,11 @@ export function WorkspaceSidebarFooter({
 		}
 	};
 
-	const isLoading = isOpenPending || createBranchWorkspace.isPending;
+	const isLoading = isOpenPending || openMainRepoWorkspace.isPending;
 
 	if (isCollapsed) {
 		return (
-			<div className="border-t border-border p-2 flex justify-center">
+			<div className="border-t border-border p-2 flex flex-col items-center gap-1">
 				<DropdownMenu>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
@@ -85,7 +85,7 @@ export function WorkspaceSidebarFooter({
 	}
 
 	return (
-		<div className="border-t border-border p-2">
+		<div className="border-t border-border p-2 flex items-center gap-2">
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button

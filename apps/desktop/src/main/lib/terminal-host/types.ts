@@ -156,6 +156,7 @@ export interface HelloResponse {
  */
 export interface CreateOrAttachRequest {
 	sessionId: string;
+	requestId?: string;
 	cols: number;
 	rows: number;
 	cwd?: string;
@@ -167,6 +168,7 @@ export interface CreateOrAttachRequest {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
+	command?: string;
 }
 
 export interface CreateOrAttachResponse {
@@ -175,6 +177,11 @@ export interface CreateOrAttachResponse {
 	wasRecovered: boolean;
 	/** PTY process ID for port scanning (null if not yet spawned or exited) */
 	pid: number | null;
+}
+
+export interface CancelCreateOrAttachRequest {
+	sessionId: string;
+	requestId: string;
 }
 
 /**
@@ -351,6 +358,10 @@ export type RequestTypeMap = {
 	createOrAttach: {
 		request: CreateOrAttachRequest;
 		response: CreateOrAttachResponse;
+	};
+	cancelCreateOrAttach: {
+		request: CancelCreateOrAttachRequest;
+		response: EmptyResponse;
 	};
 	write: { request: WriteRequest; response: EmptyResponse };
 	resize: { request: ResizeRequest; response: EmptyResponse };

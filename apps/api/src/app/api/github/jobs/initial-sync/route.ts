@@ -5,9 +5,9 @@ import {
 	githubRepositories,
 } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
+import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-
 import { env } from "@/env";
 import { githubApp } from "../../octokit";
 
@@ -25,7 +25,6 @@ export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("upstash-signature");
 
-	// Skip signature verification in development (QStash can't reach localhost)
 	const isDev = env.NODE_ENV === "development";
 
 	if (!isDev) {
@@ -84,7 +83,6 @@ export async function POST(request: Request) {
 			Number(installation.installationId),
 		);
 
-		// Fetch all repositories
 		const repos = await octokit.paginate(
 			octokit.rest.apps.listReposAccessibleToInstallation,
 			{ per_page: 100 },
@@ -92,7 +90,6 @@ export async function POST(request: Request) {
 
 		console.log(`[github/initial-sync] Found ${repos.length} repositories`);
 
-		// Upsert repositories
 		for (const repo of repos) {
 			await db
 				.insert(githubRepositories)
@@ -120,7 +117,8 @@ export async function POST(request: Request) {
 				});
 		}
 
-		// Fetch PRs for each repository
+		const thirtyDaysAgo = subDays(new Date(), 30);
+
 		for (const repo of repos) {
 			const [dbRepo] = await db
 				.select()
@@ -130,19 +128,36 @@ export async function POST(request: Request) {
 
 			if (!dbRepo) continue;
 
-			const prs = await octokit.paginate(octokit.rest.pulls.list, {
-				owner: repo.owner.login,
-				repo: repo.name,
-				state: "open",
-				per_page: 100,
-			});
+			const prs: Awaited<ReturnType<typeof octokit.rest.pulls.list>>["data"] =
+				[];
+
+			for await (const response of octokit.paginate.iterator(
+				octokit.rest.pulls.list,
+				{
+					owner: repo.owner.login,
+					repo: repo.name,
+					state: "all",
+					sort: "updated",
+					direction: "desc",
+					per_page: 100,
+				},
+			)) {
+				let reachedCutoff = false;
+				for (const pr of response.data) {
+					if (new Date(pr.updated_at) < thirtyDaysAgo) {
+						reachedCutoff = true;
+						break;
+					}
+					prs.push(pr);
+				}
+				if (reachedCutoff) break;
+			}
 
 			console.log(
-				`[github/initial-sync] Found ${prs.length} PRs for ${repo.full_name}`,
+				`[github/initial-sync] Found ${prs.length} PRs (last 30 days) for ${repo.full_name}`,
 			);
 
 			for (const pr of prs) {
-				// Get CI checks
 				const { data: checksData } = await octokit.rest.checks.listForRef({
 					owner: repo.owner.login,
 					repo: repo.name,
@@ -158,7 +173,6 @@ export async function POST(request: Request) {
 					}),
 				);
 
-				// Compute checks status
 				let checksStatus = "none";
 				if (checks.length > 0) {
 					const hasFailure = checks.some(
@@ -201,10 +215,10 @@ export async function POST(request: Request) {
 						authorAvatarUrl: pr.user?.avatar_url ?? null,
 						state: pr.state,
 						isDraft: pr.draft ?? false,
-						additions: 0, // Not available in list response
-						deletions: 0, // Not available in list response
-						changedFiles: 0, // Not available in list response
-						reviewDecision: null, // Will be updated by webhooks
+						additions: 0,
+						deletions: 0,
+						changedFiles: 0,
+						reviewDecision: null,
 						checksStatus,
 						checks,
 						mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
@@ -232,7 +246,6 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Update installation lastSyncedAt
 		await db
 			.update(githubInstallations)
 			.set({ lastSyncedAt: new Date() })

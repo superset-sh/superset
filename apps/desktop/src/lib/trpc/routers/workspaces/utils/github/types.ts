@@ -32,6 +32,38 @@ export const GHReviewRequestSchema = z.object({
 	type: z.enum(["User", "Team"]).optional(),
 });
 
+export const GHCommentAuthorSchema = z.object({
+	login: z.string().optional(),
+	avatar_url: z.string().optional(),
+});
+
+export const GHCommentSchema = z.object({
+	id: z.string().optional(),
+	author: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	createdAt: z.string().optional(),
+	url: z.string().optional(),
+});
+
+export const GHReviewCommentSchema = z.object({
+	id: z.number(),
+	user: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	created_at: z.string().optional(),
+	html_url: z.string().optional(),
+	path: z.string().optional(),
+	line: z.number().nullable().optional(),
+	original_line: z.number().nullable().optional(),
+});
+
+export const GHIssueCommentSchema = z.object({
+	id: z.number(),
+	user: GHCommentAuthorSchema.nullable().optional(),
+	body: z.string().optional(),
+	created_at: z.string().optional(),
+	html_url: z.string().optional(),
+});
+
 export const GHPRResponseSchema = z.object({
 	number: z.number(),
 	title: z.string(),
@@ -42,11 +74,26 @@ export const GHPRResponseSchema = z.object({
 	additions: z.number(),
 	deletions: z.number(),
 	headRefOid: z.string(),
+	headRefName: z.string(),
+	headRepository: z
+		.object({
+			name: z.string().optional(),
+		})
+		.nullable()
+		.optional(),
+	headRepositoryOwner: z
+		.object({
+			login: z.string().optional(),
+		})
+		.nullable()
+		.optional(),
+	isCrossRepository: z.boolean().optional(),
 	reviewDecision: z
 		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
 		.nullable(),
 	// statusCheckRollup is an array directly, not { contexts: [...] }
 	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
+	comments: z.array(GHCommentSchema).nullable().optional(),
 	reviewRequests: z.array(GHReviewRequestSchema).nullable().optional(),
 });
 
@@ -63,3 +110,23 @@ export interface RepoContext {
 }
 
 export type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+
+export const GHDeploymentSchema = z.object({
+	id: z.number(),
+	ref: z.string(),
+	environment: z.string(),
+	created_at: z.string(),
+});
+
+export const GHDeploymentStatusSchema = z.object({
+	state: z.enum([
+		"error",
+		"failure",
+		"inactive",
+		"in_progress",
+		"queued",
+		"pending",
+		"success",
+	]),
+	environment_url: z.string().optional(),
+});

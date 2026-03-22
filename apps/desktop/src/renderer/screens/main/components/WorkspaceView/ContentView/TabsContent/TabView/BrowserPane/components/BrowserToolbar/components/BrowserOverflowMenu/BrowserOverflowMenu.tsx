@@ -13,6 +13,7 @@ import {
 	TbReload,
 	TbTrash,
 } from "react-icons/tb";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -41,9 +42,11 @@ export function BrowserOverflowMenu({
 		reloadMutation.mutate({ paneId, hard: true });
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCopyUrl = () => {
 		if (currentUrl) {
-			navigator.clipboard.writeText(currentUrl);
+			copyToClipboard(currentUrl);
 		}
 	};
 

@@ -15,6 +15,7 @@ import {
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
@@ -37,13 +38,11 @@ export function TaskContextMenu({
 }: TaskContextMenuProps) {
 	const collections = useCollections();
 
-	// Load statuses for the status submenu
 	const { data: allStatuses } = useLiveQuery(
 		(q) => q.from({ taskStatuses: collections.taskStatuses }),
 		[collections],
 	);
 
-	// Load users for the assignee submenu
 	const { data: allUsers } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
@@ -70,6 +69,9 @@ export function TaskContextMenu({
 		try {
 			collections.tasks.update(task.id, (draft) => {
 				draft.assigneeId = userId;
+				draft.assigneeExternalId = null;
+				draft.assigneeDisplayName = null;
+				draft.assigneeAvatarUrl = null;
 			});
 		} catch (error) {
 			console.error("[TaskContextMenu] Failed to update assignee:", error);
@@ -86,19 +88,29 @@ export function TaskContextMenu({
 		}
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCopyId = () => {
-		navigator.clipboard.writeText(task.slug);
+		copyToClipboard(task.slug);
 	};
 
 	const handleCopyTitle = () => {
-		navigator.clipboard.writeText(task.title);
+		copyToClipboard(task.title);
+	};
+
+	const handleDelete = () => {
+		try {
+			collections.tasks.delete(task.id);
+			onDelete?.();
+		} catch (error) {
+			console.error("[TaskContextMenu] Failed to delete task:", error);
+		}
 	};
 
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-64">
-				{/* Status submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<ActiveIcon className="mr-2" />
@@ -127,6 +139,7 @@ export function TaskContextMenu({
 							<AssigneeMenuItems
 								users={users}
 								currentAssigneeId={task.assigneeId}
+								hasExternalAssignee={!!task.assigneeExternalId}
 								onSelect={handleAssigneeChange}
 								MenuItem={ContextMenuItem}
 							/>
@@ -171,7 +184,7 @@ export function TaskContextMenu({
 				<ContextMenuSeparator />
 
 				<ContextMenuItem
-					onClick={onDelete}
+					onSelect={handleDelete}
 					className="text-destructive focus:text-destructive"
 				>
 					<HiOutlineTrash className="text-destructive size-4" />

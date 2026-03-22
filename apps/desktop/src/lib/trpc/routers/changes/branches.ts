@@ -1,7 +1,7 @@
 import { worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import simpleGit from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -10,11 +10,12 @@ import {
 	unsetBranchBaseConfig,
 } from "../workspaces/utils/base-branch-config";
 import { getCurrentBranch } from "../workspaces/utils/git";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { gitSwitchBranch } from "./security/git-commands";
 import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
-	gitSwitchBranch,
-} from "./security";
+} from "./security/path-validation";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {
@@ -34,7 +35,7 @@ export const createBranchesRouter = () => {
 				}> => {
 					assertRegisteredWorktree(input.worktreePath);
 
-					const git = simpleGit(input.worktreePath);
+					const git = await getSimpleGitWithShellPath(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
 					const currentBranch = await getCurrentBranch(input.worktreePath);
@@ -160,7 +161,7 @@ export const createBranchesRouter = () => {
 };
 
 async function getLocalBranchesWithDates(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	localBranches: string[],
 ): Promise<Array<{ branch: string; lastCommitDate: number }>> {
 	try {
@@ -191,7 +192,7 @@ async function getLocalBranchesWithDates(
 }
 
 async function getDefaultBranch(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	remoteBranches: string[],
 ): Promise<string> {
 	try {
@@ -209,7 +210,7 @@ async function getDefaultBranch(
 }
 
 async function getCheckedOutBranches(
-	git: ReturnType<typeof simpleGit>,
+	git: SimpleGit,
 	currentWorktreePath: string,
 ): Promise<Record<string, string>> {
 	const checkedOutBranches: Record<string, string> = {};

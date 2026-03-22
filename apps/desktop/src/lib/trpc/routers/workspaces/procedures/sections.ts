@@ -1,22 +1,91 @@
 import { workspaceSections, workspaces } from "@superset/local-db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
+import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getMaxProjectChildTabOrder } from "../utils/db-helpers";
+import { placeWorkspacesAtProjectChildBoundary } from "../utils/project-children-order";
 import { reorderItems } from "../utils/reorder";
-
-const SECTION_COLORS = PROJECT_COLORS.filter(
-	(c) => c.value !== PROJECT_COLOR_DEFAULT,
-);
+import { computeVisualOrder } from "../utils/visual-order";
 
 function randomSectionColor(): string {
-	return SECTION_COLORS[Math.floor(Math.random() * SECTION_COLORS.length)]
-		.value;
+	return PROJECT_CUSTOM_COLORS[
+		Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
+	].value;
+}
+
+type RootPlacement = "top" | "bottom";
+
+function moveWorkspacesToRootBoundary(
+	workspaceIds: string[],
+	rootPlacement: RootPlacement,
+) {
+	const movingWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(inArray(workspaces.id, workspaceIds))
+		.all();
+
+	if (movingWorkspaces.length === 0) return;
+
+	const projectId = movingWorkspaces[0].projectId;
+	if (movingWorkspaces.some((workspace) => workspace.projectId !== projectId)) {
+		throw new Error(
+			"Cannot move workspaces to the project root across different projects",
+		);
+	}
+
+	const projectWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
+		.all();
+	const projectSections = localDb
+		.select()
+		.from(workspaceSections)
+		.where(eq(workspaceSections.projectId, projectId))
+		.all();
+
+	const targetWorkspaceIds = new Set(workspaceIds);
+	const orderedWorkspaceIds = computeVisualOrder(
+		[{ id: projectId, tabOrder: 0 }],
+		projectWorkspaces,
+		projectSections,
+	).filter((id) => targetWorkspaceIds.has(id));
+	const missingWorkspaceIds = workspaceIds.filter(
+		(id) => !orderedWorkspaceIds.includes(id),
+	);
+	const normalizedItems = placeWorkspacesAtProjectChildBoundary(
+		projectId,
+		projectWorkspaces,
+		projectSections,
+		[...orderedWorkspaceIds, ...missingWorkspaceIds],
+		rootPlacement,
+	);
+	const movingWorkspaceIdSet = new Set(workspaceIds);
+
+	for (const item of normalizedItems) {
+		if (item.kind === "workspace") {
+			localDb
+				.update(workspaces)
+				.set({
+					tabOrder: item.tabOrder,
+					...(movingWorkspaceIdSet.has(item.id) ? { sectionId: null } : {}),
+				})
+				.where(eq(workspaces.id, item.id))
+				.run();
+			continue;
+		}
+
+		localDb
+			.update(workspaceSections)
+			.set({ tabOrder: item.tabOrder })
+			.where(eq(workspaceSections.id, item.id))
+			.run();
+	}
 }
 
 export const createSectionsProcedures = () => {
@@ -184,9 +253,16 @@ export const createSectionsProcedures = () => {
 				z.object({
 					workspaceIds: z.array(z.string()).min(1),
 					sectionId: z.string().nullable(),
+					rootPlacement: z.enum(["top", "bottom"]).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
+				const matchingWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(inArray(workspaces.id, input.workspaceIds))
+					.all();
+
 				if (input.sectionId) {
 					const section = localDb
 						.select()
@@ -199,12 +275,6 @@ export const createSectionsProcedures = () => {
 					}
 
 					const targetProjectId = section.projectId;
-					const matchingWorkspaces = localDb
-						.select()
-						.from(workspaces)
-						.where(inArray(workspaces.id, input.workspaceIds))
-						.all();
-
 					for (const ws of matchingWorkspaces) {
 						if (ws.projectId !== targetProjectId) {
 							throw new Error(
@@ -212,6 +282,11 @@ export const createSectionsProcedures = () => {
 							);
 						}
 					}
+				}
+
+				if (input.sectionId === null && input.rootPlacement) {
+					moveWorkspacesToRootBoundary(input.workspaceIds, input.rootPlacement);
+					return { success: true };
 				}
 
 				localDb
@@ -228,6 +303,7 @@ export const createSectionsProcedures = () => {
 				z.object({
 					workspaceId: z.string(),
 					sectionId: z.string().nullable(),
+					rootPlacement: z.enum(["top", "bottom"]).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -257,6 +333,14 @@ export const createSectionsProcedures = () => {
 							"Cannot move workspace to a section in a different project",
 						);
 					}
+				}
+
+				if (input.sectionId === null && input.rootPlacement) {
+					moveWorkspacesToRootBoundary(
+						[input.workspaceId],
+						input.rootPlacement,
+					);
+					return { success: true };
 				}
 
 				localDb

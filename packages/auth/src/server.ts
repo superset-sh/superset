@@ -5,6 +5,7 @@ import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { MemberAddedEmail } from "@superset/email/emails/member-added";
 import { MemberAddedBillingEmail } from "@superset/email/emails/member-added-billing";
 import { MemberRemovedEmail } from "@superset/email/emails/member-removed";
@@ -295,6 +296,8 @@ export const auth = betterAuth({
 						.update(authSchema.organizations)
 						.set({ stripeCustomerId: customer.id })
 						.where(eq(authSchema.organizations.id, organization.id));
+
+					await seedDefaultStatuses(organization.id);
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
@@ -349,18 +352,31 @@ export const auth = betterAuth({
 						),
 					});
 
-					await resend.emails.send({
-						from: "Superset <noreply@superset.sh>",
-						to: user.email,
-						subject: `You've been added to ${organization.name}`,
-						react: MemberAddedEmail({
-							memberName: user.name,
-							organizationName: organization.name,
-							role: member.role,
-							addedByName: "A team admin",
-							dashboardLink: env.NEXT_PUBLIC_WEB_URL,
-						}),
+					// This email is invitation-specific. Auto-enroll and direct addMember
+					// calls should not send the invite-style "you were added" message.
+					const acceptedInvitation = await db.query.invitations.findFirst({
+						where: and(
+							eq(authSchema.invitations.organizationId, organization.id),
+							eq(authSchema.invitations.email, user.email),
+							eq(authSchema.invitations.status, "accepted"),
+						),
+						orderBy: desc(authSchema.invitations.createdAt),
 					});
+
+					if (acceptedInvitation) {
+						await resend.emails.send({
+							from: "Superset <noreply@superset.sh>",
+							to: user.email,
+							subject: `You've been added to ${organization.name}`,
+							react: MemberAddedEmail({
+								memberName: user.name,
+								organizationName: organization.name,
+								role: member.role,
+								addedByName: "A team admin",
+								dashboardLink: env.NEXT_PUBLIC_WEB_URL,
+							}),
+						});
+					}
 
 					if (!subscription?.stripeSubscriptionId) return;
 					if (subscription.plan === "enterprise") return;

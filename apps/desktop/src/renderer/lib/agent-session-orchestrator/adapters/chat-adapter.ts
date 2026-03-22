@@ -1,24 +1,35 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
-import type { ChatMastraLaunchConfig } from "shared/tabs-types";
+import type { ChatLaunchConfig } from "shared/tabs-types";
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
 type ChatLaunchRequest = Extract<AgentLaunchRequest, { kind: "chat" }>;
 
-function toLaunchConfig(
-	request: ChatLaunchRequest,
-): ChatMastraLaunchConfig | null {
-	const initialPrompt = request.chat.initialPrompt?.trim();
+function toLaunchConfig(request: ChatLaunchRequest): ChatLaunchConfig | null {
+	const prompt = request.chat.initialPrompt?.trim();
 	const model = request.chat.model?.trim();
 	const retryCount = request.chat.retryCount;
+	const autoExecute = request.chat.autoExecute;
+	const taskSlug = request.chat.taskSlug?.trim();
+	const initialFiles = request.chat.initialFiles;
 
-	if (!initialPrompt && !model && retryCount === undefined) {
+	if (
+		!prompt &&
+		!model &&
+		retryCount === undefined &&
+		!taskSlug &&
+		!initialFiles?.length
+	) {
 		return null;
 	}
 
+	const isDraft = autoExecute === false;
+
 	return {
-		initialPrompt: initialPrompt || undefined,
+		initialPrompt: !isDraft ? prompt || undefined : undefined,
+		initialFiles: !isDraft ? initialFiles : undefined,
+		draftInput: isDraft && taskSlug ? `@task:${taskSlug} ` : undefined,
 		metadata: model ? { model } : undefined,
-		retryCount,
+		retryCount: !isDraft ? retryCount : undefined,
 	};
 }
 
@@ -46,7 +57,7 @@ export async function launchChatAdapter(
 			throw new Error(`Tab not found for pane: ${targetPaneId}`);
 		}
 
-		if (targetPane.type === "chat-mastra") {
+		if (targetPane.type === "chat") {
 			tabId = tab.id;
 			paneId = targetPane.id;
 		} else {
@@ -67,12 +78,12 @@ export async function launchChatAdapter(
 	tabs.setTabAutoTitle(tabId, "Superset Chat");
 
 	const pane = tabs.getPane(paneId);
-	let sessionId = request.chat.sessionId ?? pane?.chatMastra?.sessionId ?? null;
+	let sessionId = request.chat.sessionId ?? pane?.chat?.sessionId ?? null;
 	if (!sessionId) {
 		sessionId = crypto.randomUUID();
 	}
 
-	if (pane?.chatMastra?.sessionId !== sessionId) {
+	if (pane?.chat?.sessionId !== sessionId) {
 		tabs.switchChatSession(paneId, sessionId);
 	}
 

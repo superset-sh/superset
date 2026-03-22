@@ -7,6 +7,7 @@ import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
+	members,
 	taskStatuses,
 	tasks,
 	users,
@@ -143,10 +144,29 @@ async function processIssueEvent(
 
 		let assigneeId: string | null = null;
 		if (issue.assignee?.email) {
-			const matchedUser = await db.query.users.findFirst({
-				where: eq(users.email, issue.assignee.email),
-			});
-			assigneeId = matchedUser?.id ?? null;
+			const matchedMember = await db
+				.select({ userId: users.id })
+				.from(users)
+				.innerJoin(members, eq(members.userId, users.id))
+				.where(
+					and(
+						eq(users.email, issue.assignee.email),
+						eq(members.organizationId, connection.organizationId),
+					),
+				)
+				.limit(1)
+				.then((rows) => rows[0]);
+			assigneeId = matchedMember?.userId ?? null;
+		}
+
+		let assigneeExternalId: string | null = null;
+		let assigneeDisplayName: string | null = null;
+		let assigneeAvatarUrl: string | null = null;
+
+		if (issue.assignee && !assigneeId) {
+			assigneeExternalId = issue.assignee.id;
+			assigneeDisplayName = issue.assignee.name ?? null;
+			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
 		const taskData = {
@@ -156,6 +176,9 @@ async function processIssueEvent(
 			statusId: taskStatus.id,
 			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
+			assigneeExternalId,
+			assigneeDisplayName,
+			assigneeAvatarUrl,
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 			labels: issue.labels.map((l) => l.name),

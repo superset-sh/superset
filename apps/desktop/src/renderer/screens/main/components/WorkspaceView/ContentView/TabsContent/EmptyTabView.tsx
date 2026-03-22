@@ -1,13 +1,14 @@
 import type { ExternalApp } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
-import { LuExternalLink, LuSearch } from "react-icons/lu";
+import { LuExternalLink, LuSearch, LuTrash2 } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { getAppOption } from "renderer/components/OpenInExternalDropdown";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
+import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -37,11 +38,16 @@ export function EmptyTabView({
 	const { workspaceId } = useParams({
 		from: "/_authenticated/_dashboard/workspace/$workspaceId/",
 	});
-	const { addTab } = useTabsWithPresets();
-	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const activeTheme = useTheme();
+
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
+		id: workspaceId,
+	});
+	const { addTab } = useTabsWithPresets(workspace?.projectId);
+	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
+		useWorkspaceDeleteHandler();
 
 	const newGroupDisplay = useHotkeyDisplay("NEW_GROUP");
 	const newChatDisplay = useHotkeyDisplay("NEW_CHAT");
@@ -54,8 +60,8 @@ export function EmptyTabView({
 	}, [addTab, workspaceId]);
 
 	const handleNewAgent = useCallback(() => {
-		addChatMastraTab(workspaceId);
-	}, [addChatMastraTab, workspaceId]);
+		addChatTab(workspaceId);
+	}, [addChatTab, workspaceId]);
 
 	const handleOpenBrowser = useCallback(() => {
 		addBrowserTab(workspaceId);
@@ -77,17 +83,14 @@ export function EmptyTabView({
 				icon: BsTerminalPlus,
 				onClick: handleShowTerminal,
 			},
-		];
-
-		if (hasAiChat) {
-			baseActions.push({
+			{
 				id: "new-agent",
 				label: "Open Chat",
 				display: newChatDisplay,
 				icon: TbMessageCirclePlus,
 				onClick: handleNewAgent,
-			});
-		}
+			},
+		];
 
 		baseActions.push({
 			id: "open-browser",
@@ -120,7 +123,6 @@ export function EmptyTabView({
 		handleNewAgent,
 		handleOpenBrowser,
 		handleShowTerminal,
-		hasAiChat,
 		newBrowserDisplay,
 		newChatDisplay,
 		newGroupDisplay,
@@ -157,7 +159,26 @@ export function EmptyTabView({
 						/>
 					))}
 				</div>
+				{workspace && (
+					<button
+						type="button"
+						className="mx-auto mt-6 flex items-center gap-1 text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+						onClick={handleDeleteClick}
+					>
+						<LuTrash2 className="size-3" />
+						Delete workspace
+					</button>
+				)}
 			</div>
+			{workspace && (
+				<DeleteWorkspaceDialog
+					workspaceId={workspaceId}
+					workspaceName={workspace.name}
+					workspaceType={workspace.type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			)}
 		</div>
 	);
 }

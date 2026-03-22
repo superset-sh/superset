@@ -11,6 +11,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
+import { loadSetupConfig } from "../utils/setup";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -79,6 +80,7 @@ export const createQueryProcedures = () => {
 								branch: worktree.branch,
 								// Normalize to null to ensure consistent "incomplete init" detection in UI
 								gitStatus: worktree.gitStatus ?? null,
+								createdBySuperset: worktree.createdBySuperset,
 							}
 						: null,
 				};
@@ -109,6 +111,7 @@ export const createQueryProcedures = () => {
 				lastOpenedAt: number;
 				isUnread: boolean;
 				isUnnamed: boolean;
+				createdBySuperset: boolean | null;
 			};
 
 			type SectionItem = {
@@ -136,6 +139,9 @@ export const createQueryProcedures = () => {
 			const allWorktrees = localDb.select().from(worktrees).all();
 			const worktreePathMap: WorktreePathMap = new Map(
 				allWorktrees.map((wt) => [wt.id, wt.path]),
+			);
+			const worktreeCreatedBySupersetMap = new Map(
+				allWorktrees.map((wt) => [wt.id, wt.createdBySuperset]),
 			);
 
 			const allSections = localDb.select().from(workspaceSections).all();
@@ -215,6 +221,9 @@ export const createQueryProcedures = () => {
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
+						createdBySuperset: workspace.worktreeId
+							? (worktreeCreatedBySupersetMap.get(workspace.worktreeId) ?? null)
+							: null,
 					};
 
 					if (workspace.sectionId) {
@@ -286,6 +295,56 @@ export const createQueryProcedures = () => {
 						? 0
 						: currentIndex + 1;
 				return orderedWorkspaceIds[nextIndex];
+			}),
+
+		getResolvedRunCommands: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+				if (!workspace) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+				if (!project) {
+					return { commands: [] };
+				}
+
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+
+				const worktreePath =
+					workspace.type === "worktree" && worktree?.path
+						? worktree.path
+						: workspace.type === "branch"
+							? project.mainRepoPath
+							: undefined;
+
+				const config = loadSetupConfig({
+					mainRepoPath: project.mainRepoPath,
+					worktreePath,
+					projectId: project.id,
+				});
+
+				return {
+					commands: config?.run ?? [],
+				};
 			}),
 	});
 };

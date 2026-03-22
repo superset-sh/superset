@@ -27,6 +27,7 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
+import { useResolvedTheme } from "renderer/stores/theme";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { loadLanguageSupport } from "./loadLanguageSupport";
 
@@ -176,6 +177,8 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
+	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
+	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
 		{
@@ -184,6 +187,7 @@ export function CodeEditor({
 	);
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
@@ -194,6 +198,7 @@ export function CodeEditor({
 
 		const updateListener = EditorView.updateListener.of((update) => {
 			if (!update.docChanged) return;
+			if (isExternalUpdateRef.current) return;
 			onChangeRef.current?.(update.state.doc.toString());
 		});
 
@@ -238,8 +243,9 @@ export function CodeEditor({
 				]),
 				saveKeymap,
 				themeCompartment.of([
-					getCodeSyntaxHighlighting(),
+					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
+						activeTheme,
 						{
 							fontFamily: editorFontFamily,
 							fontSize: editorFontSize,
@@ -279,13 +285,19 @@ export function CodeEditor({
 		const currentValue = view.state.doc.toString();
 		if (currentValue === value) return;
 
-		view.dispatch({
-			changes: {
-				from: 0,
-				to: view.state.doc.length,
-				insert: value,
-			},
-		});
+		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
+		isExternalUpdateRef.current = true;
+		try {
+			view.dispatch({
+				changes: {
+					from: 0,
+					to: view.state.doc.length,
+					insert: value,
+				},
+			});
+		} finally {
+			isExternalUpdateRef.current = false;
+		}
 	}, [value]);
 
 	useEffect(() => {
@@ -294,8 +306,9 @@ export function CodeEditor({
 
 		view.dispatch({
 			effects: themeCompartment.reconfigure([
-				getCodeSyntaxHighlighting(),
+				getCodeSyntaxHighlighting(activeTheme),
 				createCodeMirrorTheme(
+					activeTheme,
 					{
 						fontFamily: editorFontFamily,
 						fontSize: editorFontSize,
@@ -304,7 +317,13 @@ export function CodeEditor({
 				),
 			]),
 		});
-	}, [editorFontFamily, editorFontSize, fillHeight, themeCompartment]);
+	}, [
+		activeTheme,
+		editorFontFamily,
+		editorFontSize,
+		fillHeight,
+		themeCompartment,
+	]);
 
 	useEffect(() => {
 		const view = viewRef.current;

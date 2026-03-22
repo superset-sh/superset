@@ -27,5 +27,31 @@
 		"rules": {
 			"recommended": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["apps/desktop/src/renderer/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"@superset/workspace-fs/host": "Renderer code must stay browser-compatible. Import Node filesystem helpers from the desktop server/host layer instead.",
+									"@superset/workspace-fs/server": "Renderer code must stay browser-compatible. Import Node filesystem helpers from the desktop server/host layer instead."
+								},
+								"patterns": [
+									{
+										"group": ["node:*"],
+										"message": "Renderer code must not import Node builtins."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }

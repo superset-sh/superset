@@ -8,7 +8,6 @@ const SEARCH_LIMIT = 200;
 
 interface UseKeywordSearchParams {
 	workspaceId: string;
-	worktreePath: string | undefined;
 }
 
 interface KeywordSearchResult {
@@ -21,10 +20,7 @@ interface KeywordSearchResult {
 	preview: string;
 }
 
-export function useKeywordSearch({
-	workspaceId,
-	worktreePath,
-}: UseKeywordSearchParams) {
+export function useKeywordSearch({ workspaceId }: UseKeywordSearchParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const includePattern = useSearchDialogStore(
@@ -51,20 +47,31 @@ export function useKeywordSearch({
 		trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
 
 	const { data: searchResults, isFetching } =
-		electronTrpc.filesystem.searchKeyword.useQuery(
+		electronTrpc.filesystem.searchContent.useQuery(
 			{
-				rootPath: worktreePath ?? "",
+				workspaceId,
 				query: debouncedQuery,
 				includePattern,
 				excludePattern,
 				limit: SEARCH_LIMIT,
 			},
 			{
-				enabled: open && Boolean(worktreePath) && debouncedQuery.length > 0,
+				enabled: open && debouncedQuery.length > 0,
 				staleTime: 1000,
-				placeholderData: (previous) => previous ?? [],
+				placeholderData: (previous) => previous ?? { matches: [] },
 			},
 		);
+
+	const results =
+		searchResults?.matches.map((match) => ({
+			id: `${match.absolutePath}:${match.line}:${match.column}`,
+			name: match.absolutePath.split(/[/\\]/).pop() ?? match.absolutePath,
+			relativePath: match.relativePath,
+			path: match.absolutePath,
+			line: match.line,
+			column: match.column,
+			preview: match.preview,
+		})) ?? [];
 
 	const handleOpenChange = useCallback((nextOpen: boolean) => {
 		setOpen(nextOpen);
@@ -85,7 +92,7 @@ export function useKeywordSearch({
 	const selectMatch = useCallback(
 		(match: KeywordSearchResult) => {
 			useTabsStore.getState().addFileViewerPane(workspaceId, {
-				filePath: match.relativePath,
+				filePath: match.path,
 				line: match.line,
 				column: match.column,
 			});
@@ -128,7 +135,7 @@ export function useKeywordSearch({
 		handleOpenChange,
 		toggle,
 		selectMatch,
-		searchResults: searchResults ?? [],
+		searchResults: results,
 		isFetching: isFetching || isDebouncing,
 	};
 }

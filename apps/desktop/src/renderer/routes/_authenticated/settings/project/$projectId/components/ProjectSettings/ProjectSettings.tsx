@@ -23,23 +23,22 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiOutlineCog6Tooth,
+	HiOutlineCommandLine,
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
 } from "renderer/react-query/workspaces";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import {
@@ -47,6 +46,12 @@ import {
 	WorktreeLocationPicker,
 } from "../../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
+import type { SettingItemId } from "../../../../utils/settings-search";
+import {
+	isItemVisible,
+	SETTING_ITEM_ID,
+} from "../../../../utils/settings-search";
+import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
@@ -80,9 +85,14 @@ export function SettingsSection({
 
 interface ProjectSettingsProps {
 	projectId: string;
+	visibleItems?: SettingItemId[] | null;
 }
 
-export function ProjectSettings({ projectId }: ProjectSettingsProps) {
+export function ProjectSettings({
+	projectId,
+	visibleItems,
+}: ProjectSettingsProps) {
+	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
@@ -144,7 +154,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleIconUpload = useCallback(() => {
-		fileInputRef.current?.click();
+		if (!fileInputRef.current) return;
+		fileInputRef.current.value = "";
+		fileInputRef.current.click();
 	}, []);
 
 	const handleFileChange = useCallback(
@@ -306,10 +318,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">{project.name}</h2>
+			<ProjectSettingsHeader title={project.name}>
 				<ClickablePath path={project.mainRepoPath} />
-			</div>
+			</ProjectSettingsHeader>
 
 			<div className="space-y-4">
 				<SettingsSection
@@ -451,92 +462,143 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 						}
 					/>
 
-					{!isExternalLoading && externalWorktrees.length > 0 && (
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label className="text-sm font-medium">Import Worktrees</Label>
-								<p className="text-xs text-muted-foreground">
-									{externalWorktrees.length} external worktree
-									{externalWorktrees.length === 1 ? "" : "s"} found on disk.
-								</p>
-							</div>
-							<div className="flex items-center gap-2">
-								<Select
-									value={selectedWorktreePath ?? "__all__"}
-									onValueChange={(value) =>
-										setSelectedWorktreePath(value === "__all__" ? null : value)
-									}
-								>
-									<SelectTrigger className="w-[220px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="__all__">
-											All worktrees ({externalWorktrees.length})
-										</SelectItem>
-										{externalWorktrees.map((wt) => (
-											<SelectItem key={wt.path} value={wt.path}>
-												{wt.branch}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								{selectedWorktreePath ? (
-									<Button
-										size="sm"
-										className="w-22"
-										disabled={openExternalWorktree.isPending}
-										onClick={() => {
-											const wt = externalWorktrees.find(
-												(w) => w.path === selectedWorktreePath,
-											);
-											if (wt) {
-												handleImportWorktree(wt.path, wt.branch);
-												setSelectedWorktreePath(null);
-											}
-										}}
+					{!isExternalLoading &&
+						externalWorktrees.length > 0 &&
+						isItemVisible(
+							SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+							visibleItems,
+						) && (
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label className="text-sm font-medium">
+										Import Worktrees
+									</Label>
+									<p className="text-xs text-muted-foreground">
+										{externalWorktrees.length} external worktree
+										{externalWorktrees.length === 1 ? "" : "s"} found on disk.
+									</p>
+								</div>
+								<div className="flex items-center gap-2">
+									<Select
+										value={selectedWorktreePath ?? "__all__"}
+										onValueChange={(value) =>
+											setSelectedWorktreePath(
+												value === "__all__" ? null : value,
+											)
+										}
 									>
-										{openExternalWorktree.isPending ? "Importing..." : "Import"}
-									</Button>
-								) : (
-									<AlertDialog>
-										<AlertDialogTrigger asChild>
-											<Button
-												size="sm"
-												className="w-22"
-												disabled={importAllWorktrees.isPending}
-											>
-												{importAllWorktrees.isPending
-													? "Importing..."
-													: "Import all"}
-											</Button>
-										</AlertDialogTrigger>
-										<AlertDialogContent>
-											<AlertDialogHeader>
-												<AlertDialogTitle>
-													Import all worktrees
-												</AlertDialogTitle>
-												<AlertDialogDescription>
-													This will import {externalWorktrees.length} external
-													worktree
-													{externalWorktrees.length === 1 ? "" : "s"} into
-													Superset as workspaces. Each worktree on disk will be
-													tracked and appear in your sidebar. No files will be
-													modified.
-												</AlertDialogDescription>
-											</AlertDialogHeader>
-											<AlertDialogFooter>
-												<AlertDialogCancel>Cancel</AlertDialogCancel>
-												<AlertDialogAction onClick={handleImportAll}>
-													Import all
-												</AlertDialogAction>
-											</AlertDialogFooter>
-										</AlertDialogContent>
-									</AlertDialog>
-								)}
+										<SelectTrigger className="w-[220px]">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="__all__">
+												All worktrees ({externalWorktrees.length})
+											</SelectItem>
+											{externalWorktrees.map((wt) => (
+												<SelectItem key={wt.path} value={wt.path}>
+													{wt.branch}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									{selectedWorktreePath ? (
+										<Button
+											size="sm"
+											className="w-22"
+											disabled={openExternalWorktree.isPending}
+											onClick={() => {
+												const wt = externalWorktrees.find(
+													(w) => w.path === selectedWorktreePath,
+												);
+												if (wt) {
+													handleImportWorktree(wt.path, wt.branch);
+													setSelectedWorktreePath(null);
+												}
+											}}
+										>
+											{openExternalWorktree.isPending
+												? "Importing..."
+												: "Import"}
+										</Button>
+									) : (
+										<AlertDialog>
+											<AlertDialogTrigger asChild>
+												<Button
+													size="sm"
+													className="w-22"
+													disabled={importAllWorktrees.isPending}
+												>
+													{importAllWorktrees.isPending
+														? "Importing..."
+														: "Import all"}
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent>
+												<AlertDialogHeader>
+													<AlertDialogTitle>
+														Import all worktrees
+													</AlertDialogTitle>
+													<AlertDialogDescription>
+														This will import {externalWorktrees.length} external
+														worktree
+														{externalWorktrees.length === 1 ? "" : "s"} into
+														Superset as workspaces. Each worktree on disk will
+														be tracked and appear in your sidebar. No files will
+														be modified.
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel>Cancel</AlertDialogCancel>
+													<AlertDialogAction onClick={handleImportAll}>
+														Import all
+													</AlertDialogAction>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									)}
+								</div>
 							</div>
+						)}
+				</SettingsSection>
+
+				<SettingsSection
+					icon={<HiOutlineCommandLine className="h-4 w-4" />}
+					title="Terminal Presets"
+					description="Create repo-specific terminal presets without leaving settings."
+				>
+					<div className="flex items-center justify-between gap-4">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Project Presets</Label>
+							<p className="text-xs text-muted-foreground">
+								New presets can be limited to this project or expanded later to
+								multiple projects.
+							</p>
 						</div>
-					)}
+						<div className="flex items-center gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() =>
+									navigate({
+										to: "/settings/terminal",
+									})
+								}
+							>
+								Manage Presets
+							</Button>
+							<Button
+								type="button"
+								onClick={() =>
+									navigate({
+										to: "/settings/terminal",
+										search: { createProjectId: projectId },
+									})
+								}
+							>
+								New Preset for This Project
+							</Button>
+						</div>
+					</div>
 				</SettingsSection>
 
 				<div className="pt-3 border-t">
@@ -548,36 +610,17 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 					title="Appearance"
 					description="Customize this project's sidebar look."
 				>
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2">
-							{PROJECT_COLORS.map((color) => {
-								const isDefault = color.value === PROJECT_COLOR_DEFAULT;
-								const isSelected = project.color === color.value;
-								return (
-									<button
-										key={color.value}
-										type="button"
-										title={color.name}
-										onClick={() =>
-											updateProject.mutate({
-												id: projectId,
-												patch: { color: color.value },
-											})
-										}
-										className={cn(
-											"size-6 rounded-full border-2 transition-transform hover:scale-110",
-											isSelected
-												? "border-foreground scale-110"
-												: "border-transparent",
-											isDefault && "bg-muted",
-										)}
-										style={
-											isDefault ? undefined : { backgroundColor: color.value }
-										}
-									/>
-								);
-							})}
-						</div>
+					<div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+						<ColorSelector
+							selectedColor={project.color}
+							onSelectColor={(color) =>
+								updateProject.mutate({
+									id: projectId,
+									patch: { color },
+								})
+							}
+							className="max-w-xl"
+						/>
 						<div className="flex items-center gap-2">
 							<Label className="text-sm text-muted-foreground">
 								Hide Image

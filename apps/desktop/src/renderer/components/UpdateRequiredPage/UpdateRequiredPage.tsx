@@ -75,6 +75,10 @@ export function UpdateRequiredPage({
 						<span>Required version: {minimumVersion}+</span>
 					</div>
 
+					<p className="text-xs text-muted-foreground/70">
+						Your terminal sessions won't be interrupted.
+					</p>
+
 					{isError && (
 						<p className="text-sm text-destructive">
 							{updateStatus.error || "Update check failed. Please try again."}

@@ -2,6 +2,8 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
+	AgentCustomDefinition,
+	AgentPresetOverrideEnvelope,
 	BranchPrefixMode,
 	ExternalApp,
 	FileOpenMode,
@@ -75,6 +77,11 @@ export const worktrees = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		gitStatus: text("git_status", { mode: "json" }).$type<GitStatus>(),
 		githubStatus: text("github_status", { mode: "json" }).$type<GitHubStatus>(),
+		// Track whether this worktree was created by Superset or imported from external source
+		// Used to prevent accidental deletion of user-created worktrees
+		createdBySuperset: integer("created_by_superset", { mode: "boolean" })
+			.notNull()
+			.default(true),
 	},
 	(table) => [
 		index("worktrees_project_id_idx").on(table.projectId),
@@ -178,6 +185,12 @@ export const settings = sqliteTable("settings", {
 	terminalPresetsInitialized: integer("terminal_presets_initialized", {
 		mode: "boolean",
 	}),
+	agentPresetOverrides: text("agent_preset_overrides", {
+		mode: "json",
+	}).$type<AgentPresetOverrideEnvelope>(),
+	agentCustomDefinitions: text("agent_custom_definitions", {
+		mode: "json",
+	}).$type<AgentCustomDefinition[]>(),
 	selectedRingtoneId: text("selected_ringtone_id"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),

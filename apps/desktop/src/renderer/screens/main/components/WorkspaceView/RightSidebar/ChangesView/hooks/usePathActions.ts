@@ -1,6 +1,7 @@
 import type { ExternalApp } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface UsePathActionsProps {
@@ -36,17 +37,19 @@ export function usePathActions({
 				}),
 		});
 
-	const copyPath = useCallback(async () => {
-		if (absolutePath) {
-			await navigator.clipboard.writeText(absolutePath);
-		}
-	}, [absolutePath]);
+	const { copyToClipboard } = useCopyToClipboard();
 
-	const copyRelativePath = useCallback(async () => {
-		if (relativePath) {
-			await navigator.clipboard.writeText(relativePath);
+	const copyPath = useCallback(() => {
+		if (absolutePath) {
+			copyToClipboard(absolutePath);
 		}
-	}, [relativePath]);
+	}, [absolutePath, copyToClipboard]);
+
+	const copyRelativePath = useCallback(() => {
+		if (relativePath) {
+			copyToClipboard(relativePath);
+		}
+	}, [relativePath, copyToClipboard]);
 
 	const revealInFinder = useCallback(() => {
 		if (absolutePath) {

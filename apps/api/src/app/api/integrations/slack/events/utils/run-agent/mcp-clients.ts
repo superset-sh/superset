@@ -1,6 +1,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { McpContext } from "@superset/mcp/auth";
 import { createInMemoryMcpClient } from "@superset/mcp/in-memory";
+import { posthog } from "@/lib/analytics";
 
 interface McpTool {
 	name: string;
@@ -16,7 +18,22 @@ export async function createSupersetMcpClient({
 	organizationId: string;
 	userId: string;
 }): Promise<{ client: Client; cleanup: () => Promise<void> }> {
-	return createInMemoryMcpClient({ organizationId, userId });
+	return createInMemoryMcpClient({
+		organizationId,
+		userId,
+		source: "slack",
+		onToolCall: (toolName: string, ctx: McpContext) => {
+			posthog.capture({
+				distinctId: ctx.userId,
+				event: "mcp_tool_called",
+				properties: {
+					tool_name: toolName,
+					source: ctx.source,
+					org_id: ctx.organizationId,
+				},
+			});
+		},
+	});
 }
 
 export function mcpToolToAnthropicTool(

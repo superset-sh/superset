@@ -32,3 +32,16 @@ export function navigateToWorkspace(
 		...rest,
 	});
 }
+
+/**
+ * Navigate to a V2 workspace route.
+ */
+export function navigateToV2Workspace(
+	workspaceId: string,
+	navigate: UseNavigateResult<string>,
+): Promise<void> {
+	return navigate({
+		to: "/v2-workspace/$workspaceId",
+		params: { workspaceId },
+	});
+}

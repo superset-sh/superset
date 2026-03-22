@@ -4,12 +4,15 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
+	withEmojiFontFallback,
 } from "./config";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
@@ -38,6 +41,7 @@ const stripLeadingEmoji = (text: string) =>
 
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
+	const isWorkspaceRunPane = Boolean(pane?.workspaceRun?.workspaceId);
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 
@@ -47,6 +51,19 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	);
 	const isUnnamedRef = useRef(false);
 	isUnnamedRef.current = workspaceData?.isUnnamed ?? false;
+
+	const { data: workspaceRunConfig } =
+		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
+			{ workspaceId },
+			{ enabled: isWorkspaceRunPane },
+		);
+
+	const defaultRestartCommandRef = useRef<string | undefined>(undefined);
+	defaultRestartCommandRef.current =
+		pane?.workspaceRun?.command ??
+		(isWorkspaceRunPane
+			? (buildTerminalCommand(workspaceRunConfig?.commands) ?? undefined)
+			: undefined);
 
 	const utils = electronTrpc.useUtils();
 	const updateWorkspace = electronTrpc.workspaces.update.useMutation({
@@ -82,7 +99,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	tabIdRef.current = tabId;
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
-	const removePane = useTabsStore((s) => s.removePane);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 
@@ -96,6 +112,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			write: writeRef,
 			resize: resizeRef,
 			detach: detachRef,
+			cancelCreateOrAttach: cancelCreateOrAttachRef,
 			clearScrollback: clearScrollbackRef,
 		},
 	} = useTerminalConnection({ workspaceId });
@@ -212,7 +229,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		tabId,
 		workspaceId,
 		xtermRef,
-		fitAddonRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -251,7 +267,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			setConnectionError,
 			updateModesFromData,
 			updateCwdFromData,
-			onShellExit: () => removePane(paneId),
 		});
 
 	// Populate handler refs for flushPendingEvents to use
@@ -335,6 +350,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		writeRef,
 		resizeRef,
 		detachRef,
+		cancelCreateOrAttachRef,
 		clearScrollbackRef,
 		isStreamReadyRef,
 		didFirstRenderRef,
@@ -355,7 +371,24 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		defaultRestartCommandRef,
 	});
+
+	const registerRestartCallback = useTerminalCallbacksStore(
+		(s) => s.registerRestartCallback,
+	);
+	const unregisterRestartCallback = useTerminalCallbacksStore(
+		(s) => s.unregisterRestartCallback,
+	);
+	useEffect(() => {
+		registerRestartCallback(paneId, restartTerminal);
+		return () => unregisterRestartCallback(paneId);
+	}, [
+		paneId,
+		restartTerminal,
+		registerRestartCallback,
+		unregisterRestartCallback,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
@@ -373,8 +406,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !fontSettings) return;
-		const family =
-			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
+		const family = fontSettings.terminalFontFamily
+			? withEmojiFontFallback(fontSettings.terminalFontFamily)
+			: DEFAULT_TERMINAL_FONT_FAMILY;
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
 		xterm.options.fontFamily = family;
 		xterm.options.fontSize = size;
@@ -421,10 +455,15 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 				onClose={() => setIsSearchOpen(false)}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
-			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
-				<SessionKilledOverlay onRestart={restartTerminal} />
-			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			{exitStatus === "killed" &&
+				!connectionError &&
+				!isRestoredMode &&
+				!isWorkspaceRunPane && (
+					<SessionKilledOverlay onRestart={restartTerminal} />
+				)}
+			<div className="h-full w-full p-2">
+				<div ref={terminalRef} className="h-full w-full" />
+			</div>
 		</div>
 	);
 };

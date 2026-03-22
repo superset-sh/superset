@@ -11,16 +11,14 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiChevronRight } from "react-icons/hi2";
 import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjectChildren } from "renderer/react-query/workspaces";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import { SECTION_DND_TYPE, STROKE_WIDTH } from "../constants";
 import { useSectionDropZone } from "../hooks";
 import { RenameInput } from "../RenameInput";
@@ -130,6 +128,18 @@ export function WorkspaceSection({
 	});
 
 	const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const sectionContainerRef = useRef<HTMLDivElement>(null);
+	const sectionDragHandleRef = useRef<HTMLDivElement>(null);
+	const sectionHeaderRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (isSidebarCollapsed) {
+			sectionDrop(sectionContainerRef);
+			sectionDrag(sectionDragHandleRef);
+			return;
+		}
+		sectionDrag(sectionDrop(sectionHeaderRef));
+	}, [isSidebarCollapsed, sectionDrag, sectionDrop]);
 
 	const handleClick = useCallback(() => {
 		if (clickTimer.current) return;
@@ -169,9 +179,7 @@ export function WorkspaceSection({
 	if (isSidebarCollapsed) {
 		return (
 			<div
-				ref={(node) => {
-					sectionDrop(node);
-				}}
+				ref={sectionContainerRef}
 				{...dropZone.handlers}
 				className={cn(
 					"relative flex flex-col -ml-0.5",
@@ -180,9 +188,7 @@ export function WorkspaceSection({
 				style={sectionBorderStyle}
 			>
 				<div
-					ref={(node) => {
-						sectionDrag(node);
-					}}
+					ref={sectionDragHandleRef}
 					className="absolute inset-y-0 -left-1 w-2 cursor-grab"
 				/>
 				<WorkspaceList
@@ -206,9 +212,7 @@ export function WorkspaceSection({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<div
-						ref={(node) => {
-							sectionDrag(sectionDrop(node));
-						}}
+						ref={sectionHeaderRef}
 						className={cn(
 							"flex items-center w-full pl-2 pr-2 py-2 text-[11px] font-medium uppercase tracking-wider",
 							"text-muted-foreground hover:bg-muted/50 transition-colors",
@@ -261,35 +265,12 @@ export function WorkspaceSection({
 							<LuPalette className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Set Color
 						</ContextMenuSubTrigger>
-						<ContextMenuSubContent className="w-36">
-							{PROJECT_COLORS.map((c) => {
-								const isDefault = c.value === PROJECT_COLOR_DEFAULT;
-								return (
-									<ContextMenuItem
-										key={c.value}
-										onSelect={() => mutations.setColor(c.value)}
-										className="flex items-center gap-2"
-									>
-										<span
-											className={cn(
-												"size-3 rounded-full border",
-												isDefault
-													? "border-border bg-muted"
-													: "border-border/50",
-											)}
-											style={
-												isDefault ? undefined : { backgroundColor: c.value }
-											}
-										/>
-										<span>{c.name}</span>
-										{(isDefault ? !hasColor : color === c.value) && (
-											<span className="ml-auto text-xs text-muted-foreground">
-												✓
-											</span>
-										)}
-									</ContextMenuItem>
-								);
-							})}
+						<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
+							<ColorSelector
+								variant="menu"
+								selectedColor={color}
+								onSelectColor={mutations.setColor}
+							/>
 						</ContextMenuSubContent>
 					</ContextMenuSub>
 					<ContextMenuSeparator />

@@ -59,10 +59,15 @@ const {
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createClaudeSettingsJson,
+	createCodexHooksJson,
 	createCodexWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
+	getClaudeGlobalSettingsJsonContent,
+	getClaudeManagedHookCommand,
+	getCodexGlobalHooksJsonContent,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
@@ -70,6 +75,8 @@ const {
 	getMastraHooksJsonContent,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+
+const managedClaudeHookCommand = getClaudeManagedHookCommand();
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -577,6 +584,461 @@ describe("agent-wrappers copilot", () => {
 
 		expect(
 			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
+		).toBeNull();
+	});
+});
+
+describe("agent-wrappers claude settings.json", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("creates Claude settings.json with hooks when no file exists", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getClaudeGlobalSettingsJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		const managedEvents = [
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+			"PostToolUseFailure",
+			"PermissionRequest",
+		] as const;
+
+		for (const eventName of managedEvents) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === managedClaudeHookCommand),
+				),
+			).toBe(true);
+		}
+
+		expect(parsed.hooks.PostToolUse.some((def) => def.matcher === "*")).toBe(
+			true,
+		);
+	});
+
+	it("preserves user hooks and non-hook settings when merging", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+		writeFileSync(
+			claudeSettingsPath,
+			JSON.stringify(
+				{
+					permissions: { allow: ["Bash(*)", "Read"] },
+					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getClaudeGlobalSettingsJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content);
+
+		// Preserves non-hook settings
+		expect(parsed.permissions).toEqual({ allow: ["Bash(*)", "Read"] });
+
+		// Preserves user hook
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-hook.sh",
+					),
+			),
+		).toBe(true);
+
+		// Adds managed hook
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === managedClaudeHookCommand,
+					),
+			),
+		).toBe(true);
+	});
+
+	it("replaces stale Claude hook commands from old superset paths", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+		writeFileSync(
+			claudeSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-prompt.sh" },
+								],
+							},
+						],
+						Stop: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+						PostToolUse: [
+							{
+								matcher: "*",
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getClaudeGlobalSettingsJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		// Second run should be idempotent
+		writeFileSync(claudeSettingsPath, content);
+		const content2 = getClaudeGlobalSettingsJsonContent(currentHookPath);
+		expect(content2).not.toBeNull();
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		// Stale hooks removed, current hooks present
+		for (const eventName of [
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+		] as const) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === managedClaudeHookCommand),
+				),
+			).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+		}
+
+		// Custom hook preserved
+		expect(
+			parsed.hooks.UserPromptSubmit.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-prompt.sh"),
+			),
+		).toBe(true);
+
+		// Idempotent
+		expect(content2).not.toBeNull();
+		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
+	});
+
+	it("skips Claude settings writes when existing JSON is invalid", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+		const invalidJson = "{not-json";
+
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+		writeFileSync(claudeSettingsPath, invalidJson);
+
+		expect(
+			getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+		).toBeNull();
+
+		createClaudeSettingsJson();
+
+		// Should not have overwritten the file
+		expect(readFileSync(claudeSettingsPath, "utf-8")).toBe(invalidJson);
+	});
+
+	it("skips Claude settings writes when existing JSON is not an object", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+		writeFileSync(claudeSettingsPath, JSON.stringify("not-an-object"));
+
+		expect(
+			getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+		).toBeNull();
+	});
+});
+
+describe("agent-wrappers codex hooks.json", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("creates Codex hooks.json with SessionStart and Stop when no file exists", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getCodexGlobalHooksJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		for (const eventName of ["SessionStart", "Stop"] as const) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === notifyPath),
+				),
+			).toBe(true);
+		}
+	});
+
+	it("preserves user hooks when merging", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(
+			codexHooksPath,
+			JSON.stringify(
+				{
+					hooks: {
+						Stop: [
+							{
+								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getCodexGlobalHooksJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content);
+
+		// Preserves user hook
+		expect(
+			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
+				def.hooks.some(
+					(hook: { command: string }) =>
+						hook.command === "/opt/my-custom-hook.sh",
+				),
+			),
+		).toBe(true);
+
+		// Adds managed hook
+		expect(
+			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
+				def.hooks.some(
+					(hook: { command: string }) => hook.command === notifyPath,
+				),
+			),
+		).toBe(true);
+
+		// Also creates SessionStart
+		expect(
+			parsed.hooks.SessionStart.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
+	});
+
+	it("does not add UserPromptSubmit to the Codex fallback hooks.json merge", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = getCodexGlobalHooksJsonContent(notifyPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		expect(parsed.hooks.UserPromptSubmit).toBeUndefined();
+	});
+
+	it("replaces stale Codex hook commands from old superset paths", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(
+			codexHooksPath,
+			JSON.stringify(
+				{
+					hooks: {
+						SessionStart: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+						Stop: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: "/opt/custom-stop.sh" },
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getCodexGlobalHooksJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		// Second run should be idempotent
+		writeFileSync(codexHooksPath, content);
+		const content2 = getCodexGlobalHooksJsonContent(currentHookPath);
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		for (const eventName of ["SessionStart", "Stop"] as const) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === currentHookPath),
+				),
+			).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+		}
+
+		// Custom hook preserved
+		expect(
+			parsed.hooks.Stop.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-stop.sh"),
+			),
+		).toBe(true);
+
+		// Idempotent
+		expect(content2).not.toBeNull();
+		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
+	});
+
+	it("skips Codex hooks writes when existing JSON is invalid", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const invalidJson = "{not-json";
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(codexHooksPath, invalidJson);
+
+		expect(
+			getCodexGlobalHooksJsonContent("/tmp/.superset/hooks/notify.sh"),
+		).toBeNull();
+
+		createCodexHooksJson();
+
+		expect(readFileSync(codexHooksPath, "utf-8")).toBe(invalidJson);
+	});
+
+	it("skips Codex hooks writes when existing JSON is not an object", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(codexHooksPath, JSON.stringify("not-an-object"));
+
+		expect(
+			getCodexGlobalHooksJsonContent("/tmp/.superset/hooks/notify.sh"),
 		).toBeNull();
 	});
 });

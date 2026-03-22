@@ -514,6 +514,16 @@ export const HOTKEYS = {
 			linux: "ctrl+shift+alt+s",
 		},
 	}),
+	EQUALIZE_PANE_SPLITS: defineHotkey({
+		keys: "meta+shift+0",
+		label: "Equalize Pane Splits",
+		category: "Layout",
+		description: "Make all panes equal size",
+		defaults: {
+			win32: "ctrl+shift+0",
+			linux: "ctrl+shift+0",
+		},
+	}),
 	CLOSE_PANE: defineHotkey({
 		keys: "meta+w",
 		label: "Close Pane",
@@ -711,6 +721,12 @@ export const HOTKEYS = {
 		label: "Quick Create Workspace",
 		category: "Workspace",
 		description: "Quickly create a workspace in the current project",
+	}),
+	RUN_WORKSPACE_COMMAND: defineHotkey({
+		keys: "meta+g",
+		label: "Run Workspace Command",
+		category: "Workspace",
+		description: "Start or stop the workspace run command",
 	}),
 	FOCUS_TASK_SEARCH: defineHotkey({
 		keys: "meta+f",

@@ -1,8 +1,13 @@
+import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { LuGripVertical } from "react-icons/lu";
+import { LuGripVertical, LuPin } from "react-icons/lu";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
+import {
+	getPresetProjectTargetLabel,
+	type PresetProjectOption,
+} from "../PresetsSection/preset-project-options";
 
 const PRESET_TYPE = "TERMINAL_PRESET";
 
@@ -10,20 +15,24 @@ interface PresetRowProps {
 	preset: TerminalPreset;
 	rowIndex: number;
 	isEven: boolean;
+	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
+	onTogglePin: (presetId: string, pinned: boolean) => void;
 }
 
 export function PresetRow({
 	preset,
 	rowIndex,
 	isEven,
+	projectOptionsById,
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
+	onTogglePin,
 }: PresetRowProps) {
-	const rowRef = useRef<HTMLButtonElement>(null);
+	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLDivElement>(null);
 
 	const [{ isDragging }, drag, preview] = useDrag(
@@ -57,19 +66,9 @@ export function PresetRow({
 		drag(dragHandleRef);
 	}, [preview, drop, drag]);
 
-	const isWorkspaceCreation = !!(
-		preset.applyOnWorkspaceCreated ||
-		(!preset.applyOnNewTab && preset.isDefault)
-	);
-	const isNewTab = !!(
-		preset.applyOnNewTab ||
-		(!preset.applyOnWorkspaceCreated && preset.isDefault)
-	);
-	const modeValue =
-		preset.executionMode === "new-tab" ||
-		preset.executionMode === "new-tab-split-pane"
-			? preset.executionMode
-			: "split-pane";
+	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
+	const isNewTab = !!preset.applyOnNewTab;
+	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel =
 		modeValue === "new-tab"
 			? preset.commands.length > 1
@@ -83,12 +82,25 @@ export function PresetRow({
 					? "Single tab + panes"
 					: "Split pane";
 	const commandsToShow = preset.commands.length > 0 ? preset.commands : [""];
+	const appliesToLabel = getPresetProjectTargetLabel(
+		preset.projectIds,
+		projectOptionsById,
+	);
 
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/useSemanticElements: div needed to avoid invalid nested <button> elements
+		<div
+			role="button"
+			tabIndex={0}
 			ref={rowRef}
 			onClick={() => onEdit(preset.id)}
+			onKeyDown={(e) => {
+				if (e.target !== e.currentTarget) return;
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onEdit(preset.id);
+				}
+			}}
 			className={`w-full flex items-start gap-4 py-3 px-4 text-left cursor-pointer hover:bg-accent/30 transition-colors ${
 				isEven ? "bg-accent/20" : ""
 			} ${isDragging ? "opacity-30" : ""}`}
@@ -122,6 +134,12 @@ export function PresetRow({
 				))}
 			</div>
 
+			<div className="w-40 shrink-0 pt-0.5">
+				<Badge variant="outline" className="max-w-full truncate">
+					{appliesToLabel}
+				</Badge>
+			</div>
+
 			<div className="w-32 shrink-0 pt-0.5">
 				<span className="text-xs text-muted-foreground">{modeLabel}</span>
 			</div>
@@ -138,6 +156,31 @@ export function PresetRow({
 					</Badge>
 				) : null}
 			</div>
-		</button>
+
+			<div className="w-16 shrink-0 flex items-center justify-center">
+				<button
+					type="button"
+					className="p-1 rounded hover:bg-accent/50 transition-colors"
+					onClick={(e) => {
+						e.stopPropagation();
+						const isPinned = preset.pinnedToBar !== false;
+						onTogglePin(preset.id, !isPinned);
+					}}
+					title={preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"}
+					aria-label={
+						preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"
+					}
+					aria-pressed={preset.pinnedToBar !== false}
+				>
+					<LuPin
+						className={`size-3.5 ${
+							preset.pinnedToBar !== false
+								? "text-foreground"
+								: "text-muted-foreground/40"
+						}`}
+					/>
+				</button>
+			</div>
+		</div>
 	);
 }

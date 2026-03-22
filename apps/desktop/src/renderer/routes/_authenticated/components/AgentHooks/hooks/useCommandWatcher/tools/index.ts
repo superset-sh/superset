@@ -4,7 +4,10 @@ import { getAppContext } from "./get-app-context";
 import { getWorkspaceDetails } from "./get-workspace-details";
 import { listProjects } from "./list-projects";
 import { listWorkspaces } from "./list-workspaces";
-import { startAgentSession } from "./start-agent-session";
+import {
+	startAgentSession,
+	startAgentSessionWithPrompt,
+} from "./start-agent-session";
 import { switchWorkspace } from "./switch-workspace";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 import { updateWorkspace } from "./update-workspace";
@@ -19,6 +22,7 @@ const tools: ToolDefinition<any>[] = [
 	listProjects,
 	listWorkspaces,
 	startAgentSession,
+	startAgentSessionWithPrompt,
 	switchWorkspace,
 	updateWorkspace,
 ];

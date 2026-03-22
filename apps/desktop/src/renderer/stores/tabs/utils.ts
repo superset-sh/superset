@@ -1,18 +1,32 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import {
+	getPathBaseName,
+	isRemotePath,
+	pathsMatch,
+} from "shared/absolute-paths";
+import {
 	type ChangeCategory,
 	type FileStatus,
 	isNewFile,
 } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
-import type {
-	BrowserPaneState,
-	DevToolsPaneState,
-	DiffLayout,
-	FileViewerMode,
-	FileViewerState,
+import {
+	acknowledgedStatus,
+	type BrowserPaneState,
+	type DevToolsPaneState,
+	type DiffLayout,
+	type FileViewerMode,
+	type FileViewerState,
 } from "shared/tabs-types";
-import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
+import type {
+	AddChatTabOptions,
+	AddFileViewerPaneOptions,
+	FileViewerReuseScope,
+	Pane,
+	PaneType,
+	Tab,
+	TabsState,
+} from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -171,6 +185,7 @@ export const createPane = (
  */
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
+	displayName?: string;
 	viewMode?: FileViewerMode;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
@@ -212,10 +227,11 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
+		displayName: options.displayName,
 	};
 
 	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	const fileName = options.displayName || getPathBaseName(options.filePath);
 
 	return {
 		id,
@@ -226,9 +242,9 @@ export const createFileViewerPane = (
 	};
 };
 
-export const createChatMastraPane = (
+export const createChatPane = (
 	tabId: string,
-	options?: AddChatMastraTabOptions,
+	options?: AddChatTabOptions,
 ): Pane => {
 	const id = generateId("pane");
 	const sessionId = crypto.randomUUID();
@@ -236,9 +252,9 @@ export const createChatMastraPane = (
 	return {
 		id,
 		tabId,
-		type: "chat-mastra",
+		type: "chat",
 		name: "New Chat",
-		chatMastra: {
+		chat: {
 			sessionId,
 			launchConfig: options?.launchConfig ?? null,
 		},
@@ -324,12 +340,12 @@ export const createBrowserTabWithPane = (
 	return { tab, pane };
 };
 
-export const createChatMastraTabWithPane = (
+export const createChatTabWithPane = (
 	workspaceId: string,
-	options?: AddChatMastraTabOptions,
+	options?: AddChatTabOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createChatMastraPane(tabId, options);
+	const pane = createChatPane(tabId, options);
 
 	const tab: Tab = {
 		id: tabId,
@@ -400,6 +416,13 @@ export const getPaneIdsForTab = (
 	return Object.values(panes)
 		.filter((pane) => pane.tabId === tabId)
 		.map((pane) => pane.id);
+};
+
+export const getPaneIdSetForTab = (
+	panes: Record<string, Pane>,
+	tabId: string,
+): Set<string> => {
+	return new Set(getPaneIdsForTab(panes, tabId));
 };
 
 /**
@@ -582,6 +605,32 @@ export const addPaneToLayout = (
 });
 
 /**
+ * Counts the number of leaf panes in a mosaic subtree.
+ */
+const countLeaves = (node: MosaicNode<string>): number => {
+	if (typeof node === "string") return 1;
+	return countLeaves(node.first) + countLeaves(node.second);
+};
+
+/**
+ * Recursively sets split percentages so all leaf panes get equal space.
+ * Each split is proportional to the number of leaves on each side.
+ */
+export const equalizeSplitPercentages = (
+	node: MosaicNode<string>,
+): MosaicNode<string> => {
+	if (typeof node === "string") return node;
+	const leftLeaves = countLeaves(node.first);
+	const rightLeaves = countLeaves(node.second);
+	return {
+		...node,
+		splitPercentage: (leftLeaves / (leftLeaves + rightLeaves)) * 100,
+		first: equalizeSplitPercentages(node.first),
+		second: equalizeSplitPercentages(node.second),
+	};
+};
+
+/**
  * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
  * For 3+ panes, alternates between column and row splits to create a grid.
  */
@@ -641,4 +690,242 @@ export const updateHistoryStack = (
 	}
 
 	return newStack;
+};
+
+export const fileViewerTargetsMatch = (
+	fileViewer:
+		| Pick<FileViewerState, "filePath" | "diffCategory" | "commitHash">
+		| undefined,
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>,
+): boolean => {
+	if (!fileViewer) {
+		return false;
+	}
+
+	const normalizeRemoteFileTarget = (value: string): string => {
+		return value.endsWith("/") && !value.endsWith("://")
+			? value.slice(0, -1)
+			: value;
+	};
+	const filePathsMatch =
+		isRemotePath(fileViewer.filePath) || isRemotePath(options.filePath)
+			? normalizeRemoteFileTarget(fileViewer.filePath) ===
+				normalizeRemoteFileTarget(options.filePath)
+			: pathsMatch(fileViewer.filePath, options.filePath);
+
+	return (
+		filePathsMatch &&
+		fileViewer.diffCategory === options.diffCategory &&
+		fileViewer.commitHash === options.commitHash
+	);
+};
+
+const getWorkspaceTabIdsByReusePreference = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	tabHistoryStacks,
+	reuseExisting,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+}): string[] => {
+	if (reuseExisting === "none") {
+		return [];
+	}
+
+	const workspaceTabs = tabs.filter((tab) => tab.workspaceId === workspaceId);
+	if (workspaceTabs.length === 0) {
+		return [];
+	}
+
+	if (reuseExisting === "active-tab") {
+		return activeTabId && workspaceTabs.some((tab) => tab.id === activeTabId)
+			? [activeTabId]
+			: [];
+	}
+
+	const orderedTabIds: string[] = [];
+	const seenTabIds = new Set<string>();
+	const addTabId = (tabId: string | null | undefined): void => {
+		if (!tabId || seenTabIds.has(tabId)) {
+			return;
+		}
+		if (!workspaceTabs.some((tab) => tab.id === tabId)) {
+			return;
+		}
+		seenTabIds.add(tabId);
+		orderedTabIds.push(tabId);
+	};
+
+	addTabId(activeTabId);
+	for (const tabId of tabHistoryStacks[workspaceId] ?? []) {
+		addTabId(tabId);
+	}
+	for (const tab of workspaceTabs) {
+		addTabId(tab.id);
+	}
+
+	return orderedTabIds;
+};
+
+export const findReusableFileViewerPane = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	panes,
+	tabHistoryStacks,
+	reuseExisting,
+	options,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>;
+}): Pane | null => {
+	const orderedTabIds = getWorkspaceTabIdsByReusePreference({
+		workspaceId,
+		activeTabId,
+		tabs,
+		tabHistoryStacks,
+		reuseExisting,
+	});
+
+	for (const tabId of orderedTabIds) {
+		const tab = tabs.find((candidate) => candidate.id === tabId);
+		if (!tab) {
+			continue;
+		}
+
+		for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+			const pane = panes[paneId];
+			if (
+				pane?.type === "file-viewer" &&
+				fileViewerTargetsMatch(pane.fileViewer, options)
+			) {
+				return pane;
+			}
+		}
+	}
+
+	return null;
+};
+
+export const applyFileViewerOpenOptionsToPane = (
+	pane: Pane,
+	options: AddFileViewerPaneOptions,
+): Pane => {
+	if (pane.type !== "file-viewer" || !pane.fileViewer) {
+		return pane;
+	}
+
+	const nextFileViewer: FileViewerState = {
+		...pane.fileViewer,
+		viewMode: options.viewMode ?? pane.fileViewer.viewMode,
+		isPinned: pane.fileViewer.isPinned || (options.isPinned ?? false),
+		oldPath: options.oldPath ?? pane.fileViewer.oldPath,
+		initialLine: options.line ?? pane.fileViewer.initialLine,
+		initialColumn: options.column ?? pane.fileViewer.initialColumn,
+		displayName: options.displayName ?? pane.fileViewer.displayName,
+	};
+
+	const nextName = pane.userTitle?.trim()
+		? pane.name
+		: nextFileViewer.displayName || getPathBaseName(nextFileViewer.filePath);
+
+	if (
+		nextName === pane.name &&
+		nextFileViewer.viewMode === pane.fileViewer.viewMode &&
+		nextFileViewer.isPinned === pane.fileViewer.isPinned &&
+		nextFileViewer.oldPath === pane.fileViewer.oldPath &&
+		nextFileViewer.initialLine === pane.fileViewer.initialLine &&
+		nextFileViewer.initialColumn === pane.fileViewer.initialColumn &&
+		nextFileViewer.displayName === pane.fileViewer.displayName
+	) {
+		return pane;
+	}
+
+	return {
+		...pane,
+		name: nextName,
+		fileViewer: nextFileViewer,
+	};
+};
+
+export const activatePaneInWorkspace = ({
+	workspaceId,
+	paneId,
+	tabs,
+	panes,
+	activeTabIds,
+	focusedPaneIds,
+	tabHistoryStacks,
+}: {
+	workspaceId: string;
+	paneId: string;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	activeTabIds: TabsState["activeTabIds"];
+	focusedPaneIds: TabsState["focusedPaneIds"];
+	tabHistoryStacks: TabsState["tabHistoryStacks"];
+}): Pick<
+	TabsState,
+	"activeTabIds" | "focusedPaneIds" | "tabHistoryStacks" | "panes"
+> | null => {
+	const pane = panes[paneId];
+	if (!pane) {
+		return null;
+	}
+
+	const tab = tabs.find((candidate) => candidate.id === pane.tabId);
+	if (!tab || tab.workspaceId !== workspaceId) {
+		return null;
+	}
+
+	const nextPanes = { ...panes };
+	let hasPaneChanges = false;
+	for (const tabPaneId of extractPaneIdsFromLayout(tab.layout)) {
+		const currentPane = nextPanes[tabPaneId];
+		if (!currentPane) {
+			continue;
+		}
+
+		const resolvedStatus = acknowledgedStatus(currentPane.status);
+		if (resolvedStatus !== (currentPane.status ?? "idle")) {
+			nextPanes[tabPaneId] = { ...currentPane, status: resolvedStatus };
+			hasPaneChanges = true;
+		}
+	}
+
+	return {
+		panes: hasPaneChanges ? nextPanes : panes,
+		activeTabIds: {
+			...activeTabIds,
+			[workspaceId]: tab.id,
+		},
+		focusedPaneIds: {
+			...focusedPaneIds,
+			[tab.id]: paneId,
+		},
+		tabHistoryStacks: {
+			...tabHistoryStacks,
+			[workspaceId]: updateHistoryStack(
+				tabHistoryStacks[workspaceId] ?? [],
+				activeTabIds[workspaceId] ?? null,
+				tab.id,
+			),
+		},
+	};
 };

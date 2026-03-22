@@ -144,6 +144,19 @@ export const createExternalRouter = () => {
 			clipboard.writeText(input);
 		}),
 
+		copyText: publicProcedure.input(z.string()).mutation(async ({ input }) => {
+			clipboard.writeText(input);
+		}),
+
+		resolvePath: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+					cwd: z.string().optional(),
+				}),
+			)
+			.query(({ input }) => resolvePath(input.path, input.cwd)),
+
 		openFileInEditor: publicProcedure
 			.input(
 				z.object({

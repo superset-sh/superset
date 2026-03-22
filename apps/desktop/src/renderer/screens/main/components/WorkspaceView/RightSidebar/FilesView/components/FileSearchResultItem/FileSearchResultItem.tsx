@@ -25,7 +25,7 @@ interface FileSearchResultItemProps {
 	entry: DirectoryEntry;
 	worktreePath: string;
 	projectId?: string;
-	onActivate: (entry: DirectoryEntry) => void;
+	onActivate: (entry: DirectoryEntry, openInNewTab?: boolean) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
 	onNewFolder: (parentPath: string) => void;
@@ -83,9 +83,9 @@ export function FileSearchResultItem({
 
 	const fileDragProps = useFileDrag({ absolutePath: entry.path });
 
-	const handleClick = () => {
+	const handleClick = (e: React.MouseEvent) => {
 		if (!entry.isDirectory) {
-			onActivate(entry);
+			onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 		}
 	};
 
@@ -97,7 +97,7 @@ export function FileSearchResultItem({
 		if (e.key === "Enter") {
 			e.preventDefault();
 			if (!entry.isDirectory) {
-				onActivate(entry);
+				onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 			}
 		}
 	};

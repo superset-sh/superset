@@ -3,8 +3,10 @@ import { db } from "@superset/db/client";
 import type { LinearConfig, SelectTask } from "@superset/db/schema";
 import {
 	integrationConnections,
+	members,
 	taskStatuses,
 	tasks,
+	users,
 } from "@superset/db/schema";
 import {
 	getLinearClient,
@@ -56,9 +58,35 @@ async function findLinearState(
 	return match?.id;
 }
 
+async function resolveLinearAssigneeId(
+	client: LinearClient,
+	organizationId: string,
+	userId: string,
+): Promise<string | undefined> {
+	const matchedUser = await db
+		.select({ email: users.email })
+		.from(users)
+		.innerJoin(members, eq(members.userId, users.id))
+		.where(
+			and(eq(users.id, userId), eq(members.organizationId, organizationId)),
+		)
+		.limit(1)
+		.then((rows) => rows[0]);
+	if (!matchedUser?.email) return undefined;
+
+	const linearUsers = await client.users({
+		filter: { email: { eq: matchedUser.email } },
+	});
+	const linearUser = linearUsers.nodes[0];
+	if (linearUsers.nodes.length === 1 && linearUser) {
+		return linearUser.id;
+	}
+	return undefined;
+}
+
 async function syncTaskToLinear(
 	task: SelectTask,
-	teamId: string,
+	teamId: string | null,
 ): Promise<{
 	success: boolean;
 	externalId?: string;
@@ -81,9 +109,39 @@ async function syncTaskToLinear(
 			return { success: false, error: "Task status not found" };
 		}
 
-		const stateId = await findLinearState(client, teamId, taskStatus.name);
-
 		if (task.externalProvider === "linear" && task.externalId) {
+			if (task.deletedAt) {
+				await client.archiveIssue(task.externalId);
+				await db
+					.update(tasks)
+					.set({
+						lastSyncedAt: new Date(),
+						syncError: null,
+					})
+					.where(eq(tasks.id, task.id));
+				return { success: true, externalId: task.externalId };
+			}
+
+			const existingIssue = await client.issue(task.externalId);
+			const issueTeam = await existingIssue.team;
+			const resolvedUpdateTeamId = issueTeam?.id;
+
+			const stateId = resolvedUpdateTeamId
+				? await findLinearState(client, resolvedUpdateTeamId, taskStatus.name)
+				: undefined;
+
+			let linearAssigneeId: string | null | undefined;
+			if (task.assigneeId === null && !task.assigneeExternalId) {
+				linearAssigneeId = null;
+			} else if (task.assigneeId) {
+				linearAssigneeId =
+					(await resolveLinearAssigneeId(
+						client,
+						task.organizationId,
+						task.assigneeId,
+					)) ?? undefined;
+			}
+
 			const result = await client.updateIssue(task.externalId, {
 				title: task.title,
 				description: task.description ?? undefined,
@@ -91,6 +149,7 @@ async function syncTaskToLinear(
 				stateId,
 				estimate: task.estimate ?? undefined,
 				dueDate: task.dueDate?.toISOString().split("T")[0],
+				...(linearAssigneeId !== undefined && { assigneeId: linearAssigneeId }),
 			});
 
 			if (!result.success) {
@@ -118,6 +177,20 @@ async function syncTaskToLinear(
 			};
 		}
 
+		if (!teamId) {
+			return { success: false, error: "No team configured" };
+		}
+
+		const stateId = await findLinearState(client, teamId, taskStatus.name);
+
+		const createAssigneeId = task.assigneeId
+			? await resolveLinearAssigneeId(
+					client,
+					task.organizationId,
+					task.assigneeId,
+				)
+			: undefined;
+
 		const result = await client.createIssue({
 			teamId,
 			title: task.title,
@@ -126,6 +199,7 @@ async function syncTaskToLinear(
 			stateId,
 			estimate: task.estimate ?? undefined,
 			dueDate: task.dueDate?.toISOString().split("T")[0],
+			...(createAssigneeId && { assigneeId: createAssigneeId }),
 		});
 
 		if (!result.success) {
@@ -140,6 +214,7 @@ async function syncTaskToLinear(
 		await db
 			.update(tasks)
 			.set({
+				slug: issue.identifier,
 				externalProvider: "linear",
 				externalId: issue.id,
 				externalKey: issue.identifier,
@@ -172,14 +247,11 @@ export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("upstash-signature");
 
-	// Skip signature verification in development (QStash can't reach localhost)
-	const isDev = env.NODE_ENV === "development";
+	if (!signature) {
+		return Response.json({ error: "Missing signature" }, { status: 401 });
+	}
 
-	if (!isDev) {
-		if (!signature) {
-			return Response.json({ error: "Missing signature" }, { status: 401 });
-		}
-
+	try {
 		const isValid = await receiver.verify({
 			body,
 			signature,
@@ -189,6 +261,12 @@ export async function POST(request: Request) {
 		if (!isValid) {
 			return Response.json({ error: "Invalid signature" }, { status: 401 });
 		}
+	} catch (verifyError) {
+		console.error("[sync-task] Signature verification failed:", verifyError);
+		return Response.json(
+			{ error: "Signature verification failed" },
+			{ status: 401 },
+		);
 	}
 
 	const parsed = payloadSchema.safeParse(JSON.parse(body));
@@ -208,9 +286,6 @@ export async function POST(request: Request) {
 
 	const resolvedTeamId =
 		teamId ?? (await getNewTasksTeamId(task.organizationId));
-	if (!resolvedTeamId) {
-		return Response.json({ error: "No team configured", skipped: true });
-	}
 
 	const result = await syncTaskToLinear(task, resolvedTeamId);
 

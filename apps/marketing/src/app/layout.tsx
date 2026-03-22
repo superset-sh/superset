@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
-import Script from "next/script";
+
 import { CookieConsent } from "@/components/CookieConsent";
 import {
 	OrganizationJsonLd,
@@ -119,7 +119,6 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<head>
-				<Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />

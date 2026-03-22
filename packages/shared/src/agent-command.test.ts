@@ -10,7 +10,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"--dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"model_supports_reasoning_summaries=true -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -25,5 +25,16 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith(
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
+	});
+
+	it("uses pi interactive mode for prompt launches", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "pi-1234",
+			agent: "pi",
+		});
+
+		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).not.toContain("pi -p");
 	});
 });

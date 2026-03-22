@@ -1,0 +1,17 @@
+import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
+
+export interface AgentCardProps {
+	preset: ResolvedAgentConfig;
+	showEnabled: boolean;
+	showCommands: boolean;
+	showTaskPrompts: boolean;
+}
+
+export type AgentEditableField =
+	| "label"
+	| "description"
+	| "command"
+	| "promptCommand"
+	| "promptCommandSuffix"
+	| "taskPromptTemplate"
+	| "model";

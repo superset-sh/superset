@@ -1,7 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { mapEventType } from "./map-event-type";
+import { resolvePaneId } from "./resolve-pane-id";
 
 describe("notifications/server", () => {
+	describe("resolvePaneId", () => {
+		it("returns an explicit paneId even when app state is not initialized", () => {
+			expect(resolvePaneId("pane-1", "tab-1", "ws-1", "session-1")).toBe(
+				"pane-1",
+			);
+		});
+	});
+
 	describe("mapEventType", () => {
 		it("should map 'Start' to 'Start'", () => {
 			expect(mapEventType("Start")).toBe("Start");

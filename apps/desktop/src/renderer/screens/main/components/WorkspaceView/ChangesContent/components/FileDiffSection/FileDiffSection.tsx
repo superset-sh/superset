@@ -1,10 +1,14 @@
+import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
+import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useChangesStore } from "renderer/stores/changes";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import {
@@ -16,6 +20,8 @@ import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT } from "./constants";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -73,6 +79,7 @@ export function FileDiffSection({
 	onDiscard,
 	isActioning = false,
 }: FileDiffSectionProps) {
+	const { workspaceId } = useParams({ strict: false });
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const {
@@ -88,19 +95,39 @@ export function FileDiffSection({
 	const [isInLoadRange, setIsInLoadRange] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
 	const [editedContent, setEditedContent] = useState<string | null>(null);
+	const [hasExternalDiskChange, setHasExternalDiskChange] = useState(false);
+	const [saveConflict, setSaveConflict] = useState<{
+		localContent: string;
+		diskContent: string | null;
+	} | null>(null);
+	const baselineContentRef = useRef("");
+	const editedContentRef = useRef<string | null>(null);
 
-	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
-		category,
-		worktreePath,
-		filePath: file.path,
-	});
+	const absolutePath = useMemo(
+		() => toAbsoluteWorkspacePath(worktreePath, file.path),
+		[worktreePath, file.path],
+	);
+	const oldAbsolutePath = useMemo(
+		() =>
+			file.oldPath
+				? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
+				: undefined,
+		[worktreePath, file.oldPath],
+	);
+
+	const { isEditing, editable, isSaving, toggleEdit, handleSave } =
+		useFileDiffEdit({
+			category,
+			workspaceId,
+			absolutePath,
+		});
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
 	const isGenerated = isGeneratedFile(file.path);
 	const isHiddenByDefault = isLargeDiff || isGenerated;
 
-	const fileKey = createFileKey(file, category, commitHash);
+	const fileKey = createFileKey(file, category, commitHash, worktreePath);
 	const isViewed = viewedFiles.has(fileKey);
 
 	const openInEditorMutation =
@@ -110,7 +137,7 @@ export function FileDiffSection({
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
 			if (worktreePath) {
-				const absolutePath = `${worktreePath}/${file.path}`;
+				const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
 				openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
 			}
 		},
@@ -163,11 +190,17 @@ export function FileDiffSection({
 	}, [fileKey, setActiveFileKey, toggleEdit]);
 
 	useEffect(() => {
-		registerFileRef(file, category, commitHash, sectionRef.current);
+		registerFileRef(
+			file,
+			category,
+			commitHash,
+			worktreePath,
+			sectionRef.current,
+		);
 		return () => {
-			registerFileRef(file, category, commitHash, null);
+			registerFileRef(file, category, commitHash, worktreePath, null);
 		};
-	}, [file, category, commitHash, registerFileRef]);
+	}, [file, category, commitHash, registerFileRef, worktreePath]);
 
 	useEffect(() => {
 		const element = sectionRef.current;
@@ -214,32 +247,155 @@ export function FileDiffSection({
 	const shouldLoadDiff =
 		canShowDiffBody && hasBeenVisible && (isInLoadRange || isEditing);
 
-	const { data: diffData, isLoading: isLoadingDiff } =
-		electronTrpc.changes.getFileContents.useQuery(
+	const isUnstaged = category === "unstaged";
+
+	const { data: gitDiffData, isLoading: isLoadingGitDiff } =
+		electronTrpc.changes.getGitFileContents.useQuery(
 			{
 				worktreePath,
-				filePath: file.path,
-				oldPath: file.oldPath,
-				category,
+				absolutePath,
+				oldAbsolutePath: oldAbsolutePath,
+				category:
+					(category as "against-base" | "committed" | "staged") ?? "staged",
 				commitHash,
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
-				enabled: shouldLoadDiff,
+				enabled: !isUnstaged && shouldLoadDiff,
 			},
 		);
+
+	const { data: gitOriginal, isLoading: isLoadingGitOriginal } =
+		electronTrpc.changes.getGitOriginalContent.useQuery(
+			{
+				worktreePath,
+				absolutePath,
+				oldAbsolutePath: oldAbsolutePath,
+			},
+			{
+				enabled: isUnstaged && shouldLoadDiff,
+			},
+		);
+
+	const { data: workingCopy, isLoading: isLoadingWorkingCopy } =
+		electronTrpc.filesystem.readFile.useQuery(
+			{
+				workspaceId: workspaceId ?? "",
+				absolutePath,
+				encoding: "utf-8",
+				maxBytes: MAX_FILE_SIZE,
+			},
+			{
+				enabled: isUnstaged && shouldLoadDiff && !!workspaceId,
+			},
+		);
+
+	const diffData = useMemo(() => {
+		if (!isUnstaged) return gitDiffData;
+		if (gitOriginal) {
+			let modifiedContent = "";
+			if (workingCopy) {
+				if (workingCopy.exceededLimit) {
+					modifiedContent = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+				} else {
+					modifiedContent = workingCopy.content as string;
+				}
+			}
+			return {
+				original: gitOriginal.content,
+				modified: modifiedContent,
+				language: detectLanguage(file.path),
+			};
+		}
+		return undefined;
+	}, [isUnstaged, gitDiffData, gitOriginal, workingCopy, file.path]);
+
+	const isLoadingDiff = isUnstaged
+		? isLoadingGitOriginal || isLoadingWorkingCopy
+		: isLoadingGitDiff;
+
 	const hasRenderedDiff = canShowDiffBody && !!diffData;
 	const modifiedDiffContent = diffData?.modified;
 
 	useEffect(() => {
+		editedContentRef.current = editedContent;
+	}, [editedContent]);
+
+	useEffect(() => {
 		if (!isEditing) {
 			setEditedContent(null);
+			setHasExternalDiskChange(false);
+			setSaveConflict(null);
+			baselineContentRef.current = modifiedDiffContent ?? "";
 			return;
 		}
 
 		if (modifiedDiffContent == null) return;
-		setEditedContent((current) => current ?? modifiedDiffContent);
+
+		const currentEditedContent = editedContentRef.current;
+		const isDirty =
+			currentEditedContent !== null &&
+			currentEditedContent !== baselineContentRef.current;
+
+		if (!isDirty) {
+			baselineContentRef.current = modifiedDiffContent;
+			setEditedContent(modifiedDiffContent);
+			setHasExternalDiskChange(false);
+			return;
+		}
+
+		if (modifiedDiffContent !== baselineContentRef.current) {
+			setHasExternalDiskChange(true);
+		}
 	}, [isEditing, modifiedDiffContent]);
+
+	const handleSaveEditedContent = useCallback(async () => {
+		if (!editable || !isEditing) {
+			return;
+		}
+
+		const nextContent = editedContentRef.current ?? modifiedDiffContent ?? "";
+		const result = await handleSave(nextContent, {
+			expectedContent: baselineContentRef.current,
+		});
+
+		if (result?.status === "conflict") {
+			setSaveConflict({
+				localContent: nextContent,
+				diskContent: result.currentContent,
+			});
+			return;
+		}
+
+		baselineContentRef.current = nextContent;
+		setEditedContent(nextContent);
+		setHasExternalDiskChange(false);
+	}, [editable, handleSave, isEditing, modifiedDiffContent]);
+
+	const handleReloadFromDisk = useCallback(() => {
+		const nextDiskContent =
+			saveConflict?.diskContent ??
+			diffData?.modified ??
+			modifiedDiffContent ??
+			"";
+		baselineContentRef.current = nextDiskContent;
+		setEditedContent(nextDiskContent);
+		setHasExternalDiskChange(false);
+		setSaveConflict(null);
+	}, [diffData?.modified, modifiedDiffContent, saveConflict]);
+
+	const handleOverwriteSave = useCallback(async () => {
+		const nextContent = editedContentRef.current ?? modifiedDiffContent ?? "";
+		const result = await handleSave(nextContent, { force: true });
+		if (result?.status !== "saved") {
+			return;
+		}
+
+		baselineContentRef.current = nextContent;
+		setEditedContent(nextContent);
+		setHasExternalDiskChange(false);
+		setSaveConflict(null);
+	}, [handleSave, modifiedDiffContent]);
 
 	const inactivePlaceholder = (
 		<div
@@ -305,6 +461,38 @@ export function FileDiffSection({
 					) : hasRenderedDiff ? (
 						isEditing ? (
 							<div className="max-h-[70vh] min-h-[240px] overflow-auto bg-background">
+								{hasExternalDiskChange && (
+									<div className="border-b px-3 py-2">
+										<Alert variant="destructive">
+											<AlertTitle>File changed on disk</AlertTitle>
+											<AlertDescription>
+												This diff editor has local edits. Review the conflict
+												before saving or reload the current disk version.
+												<div className="mt-2 flex gap-2">
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={handleReloadFromDisk}
+													>
+														Reload From Disk
+													</Button>
+													<Button
+														size="sm"
+														onClick={() => {
+															setSaveConflict({
+																localContent:
+																	editedContentRef.current ?? diffData.modified,
+																diskContent: diffData.modified,
+															});
+														}}
+													>
+														Review Diff
+													</Button>
+												</div>
+											</AlertDescription>
+										</Alert>
+									</div>
+								)}
 								<CodeEditor
 									key={`${file.path}-edit`}
 									value={editedContent ?? diffData.modified}
@@ -312,7 +500,9 @@ export function FileDiffSection({
 									onChange={(value) => {
 										setEditedContent(value);
 									}}
-									onSave={() => handleSave(editedContent ?? diffData.modified)}
+									onSave={() => {
+										void handleSaveEditedContent();
+									}}
 									fillHeight={false}
 								/>
 							</div>
@@ -343,6 +533,28 @@ export function FileDiffSection({
 					)}
 				</CollapsibleContent>
 			</Collapsible>
+			<FileSaveConflictDialog
+				open={saveConflict !== null}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSaveConflict(null);
+					}
+				}}
+				filePath={file.path}
+				localContent={
+					saveConflict?.localContent ??
+					editedContentRef.current ??
+					modifiedDiffContent ??
+					""
+				}
+				diskContent={saveConflict?.diskContent ?? null}
+				isSaving={isSaving}
+				onKeepEditing={() => setSaveConflict(null)}
+				onReloadFromDisk={handleReloadFromDisk}
+				onOverwrite={() => {
+					void handleOverwriteSave();
+				}}
+			/>
 		</div>
 	);
 }

@@ -13,6 +13,11 @@ import {
 	subscriptions,
 	taskStatuses,
 	tasks,
+	v2DevicePresence,
+	v2Devices,
+	v2Projects,
+	v2UsersDevices,
+	v2Workspaces,
 	workspaces,
 } from "@superset/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -46,6 +51,29 @@ export function buildWhereClause(
 
 		case "projects":
 			return build(projects, projects.organizationId, organizationId);
+
+		case "v2_projects":
+			return build(v2Projects, v2Projects.organizationId, organizationId);
+
+		case "v2_devices":
+			return build(v2Devices, v2Devices.organizationId, organizationId);
+
+		case "v2_device_presence":
+			return build(
+				v2DevicePresence,
+				v2DevicePresence.organizationId,
+				organizationId,
+			);
+
+		case "v2_users_devices":
+			return build(
+				v2UsersDevices,
+				v2UsersDevices.organizationId,
+				organizationId,
+			);
+
+		case "v2_workspaces":
+			return build(v2Workspaces, v2Workspaces.organizationId, organizationId);
 
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);

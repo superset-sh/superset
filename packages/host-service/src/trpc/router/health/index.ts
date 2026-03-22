@@ -1,0 +1,1 @@
+export { healthRouter } from "./health";

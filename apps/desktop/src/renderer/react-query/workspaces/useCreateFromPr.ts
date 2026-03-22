@@ -1,4 +1,6 @@
+import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
@@ -15,11 +17,15 @@ export function useCreateFromPr(options?: MutationOptions) {
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
+	const pendingLaunchRequestRef = useRef<AgentLaunchRequest | null>(null);
 
-	return electronTrpc.workspaces.createFromPr.useMutation({
+	const mutation = electronTrpc.workspaces.createFromPr.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			if (!data.wasExisting && data.initialCommands) {
+			const agentLaunchRequest = pendingLaunchRequestRef.current;
+			pendingLaunchRequestRef.current = null;
+
+			if (!data.wasExisting && (data.initialCommands || agentLaunchRequest)) {
 				const optimisticProgress: WorkspaceInitProgress = {
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
@@ -29,11 +35,16 @@ export function useCreateFromPr(options?: MutationOptions) {
 				updateProgress(optimisticProgress);
 			}
 
-			if (data.initialCommands) {
+			const normalizedLaunchRequest = agentLaunchRequest
+				? { ...agentLaunchRequest, workspaceId: data.workspace.id }
+				: undefined;
+
+			if (data.initialCommands || normalizedLaunchRequest) {
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
 					initialCommands: data.initialCommands,
+					agentLaunchRequest: normalizedLaunchRequest,
 				});
 			}
 
@@ -44,4 +55,24 @@ export function useCreateFromPr(options?: MutationOptions) {
 			await options?.onSuccess?.(data, ...rest);
 		},
 	});
+
+	const mutateAsyncWithSetup = useCallback(
+		async (
+			input: Parameters<typeof mutation.mutateAsync>[0],
+			agentLaunchRequest?: AgentLaunchRequest,
+		) => {
+			pendingLaunchRequestRef.current = agentLaunchRequest ?? null;
+			try {
+				return await mutation.mutateAsync(input);
+			} finally {
+				pendingLaunchRequestRef.current = null;
+			}
+		},
+		[mutation],
+	);
+
+	return {
+		...mutation,
+		mutateAsyncWithSetup,
+	};
 }

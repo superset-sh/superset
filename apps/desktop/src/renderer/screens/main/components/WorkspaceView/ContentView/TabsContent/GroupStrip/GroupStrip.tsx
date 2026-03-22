@@ -1,9 +1,7 @@
 import type { TerminalPreset } from "@superset/local-db";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
 	useEffect,
@@ -15,6 +13,7 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { requestTabClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -38,22 +37,25 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const { addTab, openPreset } = useTabsWithPresets();
-	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
-	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
-	const { presets } = usePresets();
 	const navigate = useNavigate();
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
+		{ id: activeWorkspaceId ?? "" },
+		{ enabled: !!activeWorkspaceId },
+	);
+	const { addTab, openPreset } = useTabsWithPresets(workspace?.projectId);
+	const { matchedPresets: presets } = usePresets(workspace?.projectId);
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
@@ -136,17 +138,17 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync Electric session titles → tab and pane names for Mastra chat panes in this workspace
+	// Sync Electric session titles → tab and pane names for chat panes in this workspace
 	const chatSessionTargets = useMemo(() => {
 		const map = new Map<
 			string,
 			{ tabIds: Set<string>; paneIds: Set<string> }
 		>();
 		for (const pane of Object.values(panes)) {
-			if (pane.type === "chat-mastra" && pane.chatMastra?.sessionId) {
+			if (pane.type === "chat" && pane.chat?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
 				if (!tab) continue;
-				const sessionId = pane.chatMastra.sessionId;
+				const sessionId = pane.chat.sessionId;
 				const existing = map.get(sessionId) ?? {
 					tabIds: new Set<string>(),
 					paneIds: new Set<string>(),
@@ -222,7 +224,7 @@ export function GroupStrip() {
 
 	const handleAddChat = () => {
 		if (!activeWorkspaceId) return;
-		addChatMastraTab(activeWorkspaceId);
+		addChatTab(activeWorkspaceId);
 	};
 
 	const handleAddBrowser = () => {
@@ -249,11 +251,19 @@ export function GroupStrip() {
 	};
 
 	const handleCloseGroup = (tabId: string) => {
-		removeTab(tabId);
+		requestTabClose(tabId);
 	};
 
 	const handleRenameGroup = (tabId: string, newName: string) => {
 		renameTab(tabId, newName);
+	};
+
+	const handleMarkTabAsUnread = (tabId: string) => {
+		for (const pane of Object.values(panes)) {
+			if (pane.tabId === tabId) {
+				setPaneStatus(pane.id, "review");
+			}
+		}
 	};
 
 	const handleReorderTabs = useCallback(
@@ -306,7 +316,6 @@ export function GroupStrip() {
 
 	const plusControl = (
 		<AddTabButton
-			hasAiChat={hasAiChat === true}
 			useCompactAddButton={useCompactAddButton}
 			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
@@ -351,6 +360,7 @@ export function GroupStrip() {
 											onSelect={() => handleSelectGroup(tab.id)}
 											onClose={() => handleCloseGroup(tab.id)}
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
+											onMarkAsUnread={() => handleMarkTabAsUnread(tab.id)}
 											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
 											onReorder={handleReorderTabs}
 										/>
@@ -362,11 +372,7 @@ export function GroupStrip() {
 					{hasHorizontalOverflow ? (
 						<div
 							className={`h-full shrink-0 ${
-								!useCompactAddButton
-									? hasAiChat
-										? "w-[220px]"
-										: "w-[170px]"
-									: "w-10"
+								!useCompactAddButton ? "w-[220px]" : "w-10"
 							}`}
 						/>
 					) : (

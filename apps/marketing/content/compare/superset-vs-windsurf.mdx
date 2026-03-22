@@ -2,7 +2,7 @@
 title: "Superset vs Windsurf (2026): Parallel Agent Orchestration vs AI IDE"
 description: "Compare Superset and Windsurf for AI-assisted development. See how parallel agent orchestration differs from an AI-powered integrated development environment."
 date: 2026-02-18
-lastUpdated: 2026-02-18
+lastUpdated: 2026-03-21
 type: "1v1"
 competitors:
   - windsurf
@@ -14,7 +14,7 @@ keywords:
   - ai coding tool comparison
 ---
 
-Windsurf is an AI-powered IDE that embeds AI into every part of the editing experience. Superset is a terminal that runs many AI coding agents in parallel, each in its own Git worktree. They solve fundamentally different problems: Windsurf replaces your editor with an AI-native one, Superset scales autonomous agent work alongside any editor.
+Windsurf is an AI-powered IDE that embeds AI into every part of the editing experience. Superset is a local-first workspace that runs many AI coding agents in parallel, each in its own Git worktree. They solve fundamentally different problems: Windsurf replaces your editor with an AI-native one, while Superset scales autonomous agent work alongside any editor.
 
 ---
 
@@ -22,19 +22,19 @@ Windsurf is an AI-powered IDE that embeds AI into every part of the editing expe
 
 | | **Superset** | **Windsurf** |
 |---|---|---|
-| **Category** | Agent orchestration terminal | AI-powered IDE (VS Code fork) |
-| **AI approach** | Agent-agnostic — works with Claude Code, Codex, Aider, or any CLI agent | Built-in AI models proxied through Windsurf servers |
+| **Category** | Agent orchestration workspace | AI-powered IDE (VS Code fork) |
+| **AI approach** | Agent-agnostic — works with Claude Code, Codex, Aider, Superset Chat, or any CLI agent | Built-in AI models proxied through Windsurf servers |
 | **Parallelism** | Core feature — 10+ agents across isolated worktrees | Sequential by default; Windsurf Flows handles multi-step tasks |
 | **Editor** | Works alongside any editor (VS Code, Cursor, JetBrains, Xcode) | You must use the Windsurf IDE |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $15/mo, Ultra $60/mo, Teams $35/seat/mo |
-| **Privacy** | Fully local — no telemetry, code never leaves your machine | Code sent to Windsurf servers and third-party AI providers |
-| **Open source** | Yes (Apache 2.0) | No (closed source) |
+| **Privacy** | Local Git worktrees; you control agent and provider choices | Code sent to Windsurf servers and third-party AI providers |
+| **License** | Source-available (ELv2) | Closed source |
 
 ---
 
 ## What Is Superset?
 
-Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Open source (Apache 2.0) with zero telemetry.
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Aider, Copilot, Cursor Agent, Gemini CLI, Superset Chat, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
@@ -52,19 +52,19 @@ Windsurf's Cascade is a single agentic flow — it tackles one task at a time th
 
 ### Editor Lock-In vs Editor Freedom
 
-Using Windsurf means adopting the Windsurf IDE. If you use JetBrains, Xcode, Neovim, or even Cursor, you have to switch. Superset runs alongside any editor — it's a terminal, not an IDE. Use VS Code today, switch to JetBrains tomorrow, nothing changes in your Superset workflow.
+Using Windsurf means adopting the Windsurf IDE. If you use JetBrains, Xcode, Neovim, or even Cursor, you have to switch. Superset runs alongside any editor. It now has its own chat, diff/file review, and browser surfaces, but it still treats your editor as interchangeable rather than something it needs to own.
 
 ### Model Lock-In vs Model Freedom
 
-Windsurf routes all AI requests through its servers and credit system. You get access to multiple models (GPT-4, Claude, etc.) but Windsurf controls the routing and pricing. Superset runs whatever CLI agents you install — your API keys, your models, no middleman. When a new agent ships, use it immediately.
+Windsurf routes all AI requests through its servers and credit system. You get access to multiple models (GPT-4, Claude, etc.) but Windsurf controls the routing and pricing. Superset runs whatever CLI agents you install — or Superset Chat when you want a built-in surface — with your own provider choices. When a new agent ships, you can use it immediately.
 
 ### Privacy
 
-Superset runs entirely locally — no telemetry, no data collection, code never leaves your machine. The full source is on GitHub under Apache 2.0. Windsurf sends code to its servers and third-party AI providers. Windsurf is closed source, so you cannot audit what data is collected or how it's processed.
+Superset runs agents locally in Git worktrees, and the full source is on GitHub under Elastic License 2.0 (ELv2). Windsurf sends code to its servers and third-party AI providers. Windsurf is closed source, so you cannot audit what data is collected or how it's processed.
 
 ### Session Persistence
 
-Windsurf's Cascade sessions live within the IDE — close the window and the context resets. Superset's persistent daemon keeps agent sessions alive across crashes and app restarts. Long-running tasks continue even when you close and reopen the app.
+Windsurf's Cascade sessions live within the IDE. Superset adds a stronger workspace layer around autonomous runs: persistent sessions, task-level worktrees, in-app diff/file review, and browser previews for local apps. Long-running tasks are easier to manage when they are attached to explicit worktrees instead of a single editor thread.
 
 ---
 
@@ -85,7 +85,7 @@ Superset offers a free tier and Pro at $20/seat/month. You also pay your agents'
 **Choose Superset if you:**
 - Run CLI-based coding agents and want to parallelize across 10+ tasks
 - Use JetBrains, Xcode, Neovim, or any non-VS Code editor
-- Need code to stay on your machine with no telemetry
+- Need local worktrees and direct control over providers
 - Want agent and model flexibility with no vendor lock-in
 - Need sessions that survive crashes and app restarts
 
@@ -97,7 +97,7 @@ Both tools can coexist. Use Windsurf as your editor for inline AI assistance, an
 
 ### Is Superset a Windsurf replacement?
 
-No. Superset provides no inline completions, syntax highlighting, or file editing. It is a terminal for orchestrating AI coding agents in parallel. Superset and Windsurf serve different functions and can be used together.
+No. Superset is not an AI IDE with inline completions. It does provide in-app chat, diff/file editing, browser previews, and worktree orchestration, but it is still not trying to replace Windsurf as your full editor. The two products can be used together.
 
 ### Does Windsurf support parallel agents?
 
@@ -105,7 +105,7 @@ Windsurf's Cascade handles multi-step tasks sequentially within a single flow. I
 
 ### Is Superset open source?
 
-Yes. Superset is open source under Apache 2.0 with zero telemetry. Windsurf is closed source from Codeium.
+No. Superset is source-available on GitHub under Elastic License 2.0 (ELv2). Windsurf is closed source from Codeium.
 
 ### Can I use Windsurf as my editor with Superset?
 

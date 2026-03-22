@@ -13,7 +13,9 @@ import {
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
+	LuEyeOff,
 } from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import {
 	type PaneContextMenuActions,
@@ -31,11 +33,13 @@ interface TabContentContextMenuProps {
 	onSplitVertical: PaneContextMenuActions["onSplitVertical"];
 	onSplitWithNewChat?: PaneContextMenuActions["onSplitWithNewChat"];
 	onSplitWithNewBrowser?: PaneContextMenuActions["onSplitWithNewBrowser"];
+	onEqualizePaneSplits?: PaneContextMenuActions["onEqualizePaneSplits"];
 	onClosePane: PaneContextMenuActions["onClosePane"];
 	onClearTerminal?: () => void;
 	onScrollToBottom?: () => void;
 	getSelection?: () => string;
 	onPaste?: (text: string) => void;
+	onMarkAsUnread?: () => void;
 	currentTabId: PaneContextMenuActions["currentTabId"];
 	availableTabs: PaneContextMenuActions["availableTabs"];
 	onMoveToTab: PaneContextMenuActions["onMoveToTab"];
@@ -49,11 +53,13 @@ export function TabContentContextMenu({
 	onSplitVertical,
 	onSplitWithNewChat,
 	onSplitWithNewBrowser,
+	onEqualizePaneSplits,
 	onClosePane,
 	onClearTerminal,
 	onScrollToBottom,
 	getSelection,
 	onPaste,
+	onMarkAsUnread,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -67,6 +73,7 @@ export function TabContentContextMenu({
 	const modKey = getModifierKeyLabel();
 	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;
 
+	const { copyToClipboard } = useCopyToClipboard();
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasClipboard, setHasClipboard] = useState(false);
 
@@ -84,7 +91,7 @@ export function TabContentContextMenu({
 	const handleCopy = async () => {
 		const text = getSelection?.();
 		if (!text) return;
-		await navigator.clipboard.writeText(text);
+		copyToClipboard(text);
 	};
 
 	const handlePaste = async () => {
@@ -137,12 +144,22 @@ export function TabContentContextMenu({
 					</ContextMenuItem>
 				)}
 				{hasTerminalActions && <ContextMenuSeparator />}
+				{onMarkAsUnread && (
+					<>
+						<ContextMenuItem onSelect={onMarkAsUnread}>
+							<LuEyeOff className="size-4" />
+							Mark as Unread
+						</ContextMenuItem>
+						<ContextMenuSeparator />
+					</>
+				)}
 				<PaneContextMenuItems
 					actions={{
 						onSplitHorizontal,
 						onSplitVertical,
 						onSplitWithNewChat,
 						onSplitWithNewBrowser,
+						onEqualizePaneSplits,
 						onClosePane,
 						currentTabId,
 						availableTabs,

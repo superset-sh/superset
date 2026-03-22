@@ -1,9 +1,11 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
+import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 const AVAILABLE_MODELS = [
 	{
@@ -22,13 +24,13 @@ const AVAILABLE_MODELS = [
 		provider: "Anthropic",
 	},
 	{
-		id: "openai/gpt-5.3-codex",
-		name: "GPT-5.3 Codex",
+		id: "openai/gpt-5.4",
+		name: "GPT-5.4",
 		provider: "OpenAI",
 	},
 	{
-		id: "openai/gpt-5.2",
-		name: "GPT-5.2",
+		id: "openai/gpt-5.3-codex",
+		name: "GPT-5.3 Codex",
 		provider: "OpenAI",
 	},
 ];
@@ -37,6 +39,38 @@ export const chatRouter = {
 	getModels: protectedProcedure.query(() => {
 		return { models: AVAILABLE_MODELS };
 	}),
+
+	uploadAttachment: protectedProcedure
+		.input(
+			z.object({
+				sessionId: z.uuid(),
+				filename: z.string().min(1).max(255),
+				mediaType: z.string().min(1).max(255),
+				fileData: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const [sessionRecord] = await db
+				.select({ id: chatSessions.id })
+				.from(chatSessions)
+				.where(
+					and(
+						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.createdBy, ctx.session.user.id),
+					),
+				)
+				.limit(1);
+
+			if (!sessionRecord) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Chat session not found",
+				});
+			}
+
+			const result = await uploadChatAttachment(input);
+			return result;
+		}),
 
 	updateTitle: protectedProcedure
 		.input(z.object({ sessionId: z.uuid(), title: z.string() }))

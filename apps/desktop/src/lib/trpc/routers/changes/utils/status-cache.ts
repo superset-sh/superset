@@ -1,6 +1,8 @@
 import type { GitChangesStatus } from "shared/changes-types";
 
-const STATUS_CACHE_TTL_MS = 2_000;
+// Keep status cached slightly longer than the UI poll interval so repeated
+// passive refreshes reuse the same result instead of spawning git twice.
+export const STATUS_CACHE_TTL_MS = 3_000;
 
 const statusCache = new Map<
 	string,

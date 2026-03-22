@@ -2,6 +2,8 @@ interface TerminalCreateOrAttachInput {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
+	cwd?: string;
+	joinPending?: boolean;
 }
 
 interface TerminalWriteInput {
@@ -15,8 +17,10 @@ interface LaunchCommandInPaneOptions {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd?: string;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
+	noExecute?: boolean;
 }
 
 function normalizeTerminalCommand(command: string): string {
@@ -27,6 +31,7 @@ interface WriteCommandInPaneOptions {
 	paneId: string;
 	command: string;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
+	noExecute?: boolean;
 }
 
 interface WriteCommandsInPaneOptions {
@@ -46,10 +51,12 @@ export async function writeCommandInPane({
 	paneId,
 	command,
 	write,
+	noExecute,
 }: WriteCommandInPaneOptions): Promise<void> {
+	const data = noExecute ? command : normalizeTerminalCommand(command);
 	await write({
 		paneId,
-		data: normalizeTerminalCommand(command),
+		data,
 		throwOnError: true,
 	});
 }
@@ -69,14 +76,40 @@ export async function launchCommandInPane({
 	tabId,
 	workspaceId,
 	command,
+	cwd,
 	createOrAttach,
 	write,
+	noExecute,
 }: LaunchCommandInPaneOptions): Promise<void> {
+	await ensureTerminalAttached({
+		paneId,
+		tabId,
+		workspaceId,
+		cwd,
+		createOrAttach,
+	});
+
+	await writeCommandInPane({ paneId, command, write, noExecute });
+}
+
+export async function ensureTerminalAttached({
+	paneId,
+	tabId,
+	workspaceId,
+	cwd,
+	createOrAttach,
+}: {
+	paneId: string;
+	tabId: string;
+	workspaceId: string;
+	cwd?: string;
+	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
+}): Promise<void> {
 	await createOrAttach({
 		paneId,
 		tabId,
 		workspaceId,
+		cwd,
+		joinPending: true,
 	});
-
-	await writeCommandInPane({ paneId, command, write });
 }
