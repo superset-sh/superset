@@ -2,12 +2,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronReactClient } from "../../lib/trpc-client";
 
-// Shared QueryClient for tRPC hooks and router loaders
+// Shared QueryClient for tRPC hooks and router loaders.
+// All queries/mutations go through Electron IPC to a local SQLite database,
+// so retrying on transient failures is safe and cheap. This is critical for
+// surviving renderer reloads (CMD+R) where IPC messages can be lost during
+// the brief frame-recreation window.
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
 			networkMode: "always",
-			retry: false,
+			retry: 2,
+			retryDelay: 150,
 		},
 		mutations: {
 			networkMode: "always",
