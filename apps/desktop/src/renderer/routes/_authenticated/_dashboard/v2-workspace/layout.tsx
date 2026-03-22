@@ -69,7 +69,11 @@ function V2WorkspaceLayout() {
 	}, [ensureWorkspaceInSidebar, workspace]);
 
 	if (!workspaceId || !workspace) {
-		return <Outlet />;
+		return (
+			<div className="flex flex-1 min-h-0 min-w-0">
+				<Outlet />
+			</div>
+		);
 	}
 
 	if (shouldWaitForDeviceInfo) {
@@ -94,7 +98,9 @@ function V2WorkspaceLayout() {
 			key={`${workspace.id}:${hostUrl}`}
 			hostUrl={hostUrl}
 		>
-			<Outlet />
+			<div className="flex flex-1 min-h-0 min-w-0">
+				<Outlet />
+			</div>
 		</WorkspaceTrpcProvider>
 	);
 }
