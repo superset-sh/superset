@@ -30,6 +30,7 @@ const PROCESS_EXIT_GRACE_MS = 1500;
 interface WorkspaceRunTransitionStore {
 	transitions: Record<string, WorkspaceRunTransition | undefined>;
 	recentStarts: Record<string, number | undefined>;
+	stopRequests: Record<string, boolean | undefined>;
 	setTransition: (
 		workspaceId: string,
 		transition: Exclude<WorkspaceRunTransition, null>,
@@ -37,12 +38,15 @@ interface WorkspaceRunTransitionStore {
 	clearTransition: (workspaceId: string) => void;
 	markStarted: (workspaceId: string) => void;
 	clearRecentStart: (workspaceId: string) => void;
+	requestStop: (workspaceId: string) => void;
+	clearStopRequest: (workspaceId: string) => void;
 }
 
 const useWorkspaceRunTransitionStore = create<WorkspaceRunTransitionStore>(
 	(set) => ({
 		transitions: {},
 		recentStarts: {},
+		stopRequests: {},
 		setTransition: (workspaceId, transition) =>
 			set((state) => ({
 				transitions: {
@@ -69,6 +73,19 @@ const useWorkspaceRunTransitionStore = create<WorkspaceRunTransitionStore>(
 				delete nextRecentStarts[workspaceId];
 				return { recentStarts: nextRecentStarts };
 			}),
+		requestStop: (workspaceId) =>
+			set((state) => ({
+				stopRequests: {
+					...state.stopRequests,
+					[workspaceId]: true,
+				},
+			})),
+		clearStopRequest: (workspaceId) =>
+			set((state) => {
+				const nextStopRequests = { ...state.stopRequests };
+				delete nextStopRequests[workspaceId];
+				return { stopRequests: nextStopRequests };
+			}),
 	}),
 );
 
@@ -89,6 +106,9 @@ export function useWorkspaceRunCommand({
 	);
 	const recentStartAt = useWorkspaceRunTransitionStore(
 		(s) => s.recentStarts[workspaceId] ?? 0,
+	);
+	const isStopRequested = useWorkspaceRunTransitionStore(
+		(s) => s.stopRequests[workspaceId] ?? false,
 	);
 
 	// Derive run state from pane metadata (single source of truth)
@@ -112,6 +132,7 @@ export function useWorkspaceRunCommand({
 	const uiState = getWorkspaceRunUiState({
 		hasRunCommand,
 		isRunning,
+		isStopRequested,
 		transition,
 	});
 	const isPending = transition !== null;
@@ -131,17 +152,32 @@ export function useWorkspaceRunCommand({
 		if (!runPane || runPane.workspaceRun?.state !== "running") return;
 		if (processStateQuery.status !== "success") return;
 		if (processStateQuery.data.hasSubprocesses) return;
-		if (Date.now() - recentStartAt < PROCESS_EXIT_GRACE_MS) return;
+		if (
+			!isStopRequested &&
+			Date.now() - recentStartAt < PROCESS_EXIT_GRACE_MS
+		) {
+			return;
+		}
 
-		setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
+		setPaneWorkspaceRunState(
+			runPane.id,
+			isStopRequested ? "stopped-by-user" : "stopped-by-exit",
+		);
+		useWorkspaceRunTransitionStore.getState().clearStopRequest(workspaceId);
 		useWorkspaceRunTransitionStore.getState().clearRecentStart(workspaceId);
 	}, [
+		isStopRequested,
 		processStateQuery.data,
 		processStateQuery.status,
 		recentStartAt,
 		runPane,
 		workspaceId,
 	]);
+
+	useEffect(() => {
+		if (isRunning) return;
+		useWorkspaceRunTransitionStore.getState().clearStopRequest(workspaceId);
+	}, [isRunning, workspaceId]);
 
 	const toggleWorkspaceRun = useCallback(async () => {
 		const transitionState =
@@ -161,8 +197,7 @@ export function useWorkspaceRunCommand({
 					paneId: runPane.id,
 					write: electronTrpcClient.terminal.write.mutate,
 				});
-				setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
-				useWorkspaceRunTransitionStore.getState().clearRecentStart(workspaceId);
+				useWorkspaceRunTransitionStore.getState().requestStop(workspaceId);
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Unknown error";
@@ -171,6 +206,9 @@ export function useWorkspaceRunCommand({
 					useWorkspaceRunTransitionStore
 						.getState()
 						.clearRecentStart(workspaceId);
+					useWorkspaceRunTransitionStore
+						.getState()
+						.clearStopRequest(workspaceId);
 					return;
 				}
 				toast.error("Failed to stop workspace run command", {
@@ -201,6 +239,7 @@ export function useWorkspaceRunCommand({
 			useWorkspaceRunTransitionStore
 				.getState()
 				.setTransition(workspaceId, "starting");
+			useWorkspaceRunTransitionStore.getState().clearStopRequest(workspaceId);
 
 			const initialCwd = worktreePath?.trim() ? worktreePath : undefined;
 
@@ -290,6 +329,7 @@ export function useWorkspaceRunCommand({
 			useWorkspaceRunTransitionStore.getState().markStarted(workspaceId);
 		} catch (error) {
 			useWorkspaceRunTransitionStore.getState().clearRecentStart(workspaceId);
+			useWorkspaceRunTransitionStore.getState().clearStopRequest(workspaceId);
 			const currentWorkspaceRun = targetPaneId
 				? useTabsStore.getState().panes[targetPaneId]?.workspaceRun
 				: null;
