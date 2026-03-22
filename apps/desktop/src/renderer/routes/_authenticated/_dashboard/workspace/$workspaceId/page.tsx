@@ -334,7 +334,14 @@ function WorkspacePage() {
 
 	useAppHotkey(
 		"PREV_PANE",
-		() => {
+		(event) => {
+			const target = event.target as Element;
+			if (
+				target?.tagName === "TEXTAREA" ||
+				target?.tagName === "INPUT" ||
+				(target as HTMLElement)?.isContentEditable
+			)
+				return;
 			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
 			const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
 			if (prevPaneId) {
@@ -347,7 +354,14 @@ function WorkspacePage() {
 
 	useAppHotkey(
 		"NEXT_PANE",
-		() => {
+		(event) => {
+			const target = event.target as Element;
+			if (
+				target?.tagName === "TEXTAREA" ||
+				target?.tagName === "INPUT" ||
+				(target as HTMLElement)?.isContentEditable
+			)
+				return;
 			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
 			const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
 			if (nextPaneId) {
