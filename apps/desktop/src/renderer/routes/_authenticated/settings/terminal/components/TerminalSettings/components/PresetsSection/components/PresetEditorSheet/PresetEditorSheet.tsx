@@ -162,7 +162,7 @@ export function PresetEditorSheet({
 
 						<div className="flex-1 overflow-y-auto p-4 space-y-6">
 							<div className="space-y-4">
-								<p className={sectionHeadingClassName}>Details</p>
+								<p className={sectionHeadingClassName}>Preset</p>
 
 								<div className="space-y-2">
 									<LabelWithTooltip
@@ -197,10 +197,6 @@ export function PresetEditorSheet({
 										placeholder="e.g. Starts the dev server (optional)"
 									/>
 								</div>
-							</div>
-
-							<div className="space-y-4 border-t border-border/40 pt-5">
-								<p className={sectionHeadingClassName}>Targeting</p>
 
 								<div className="space-y-2">
 									<LabelWithTooltip
@@ -276,7 +272,7 @@ export function PresetEditorSheet({
 							</div>
 
 							<div className="space-y-4 border-t border-border/40 pt-5">
-								<p className={sectionHeadingClassName}>Launch</p>
+								<p className={sectionHeadingClassName}>Execution</p>
 
 								<div className="space-y-2">
 									<LabelWithTooltip
