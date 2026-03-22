@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { GlobeIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { TbCopy } from "react-icons/tb";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { BrowserLoadError } from "shared/tabs-types";
 
 const ERROR_LABELS: Record<number, string> = {
@@ -57,9 +58,10 @@ export function BrowserErrorOverlay({
 		setShowDetails((prev) => !prev);
 	}, []);
 
+	const { copyToClipboard } = useCopyToClipboard();
 	const copyDetails = useCallback(() => {
-		navigator.clipboard.writeText(detailsText);
-	}, [detailsText]);
+		copyToClipboard(detailsText);
+	}, [detailsText, copyToClipboard]);
 
 	return (
 		<div className="absolute inset-0 flex items-center justify-center bg-background z-10">

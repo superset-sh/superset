@@ -11,6 +11,7 @@ import {
 	usePromptInputAttachments,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
+import { Button } from "@superset/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -30,8 +31,14 @@ import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, PaperclipIcon, PlusIcon } from "lucide-react";
+import {
+	ArrowUpIcon,
+	ExternalLinkIcon,
+	PaperclipIcon,
+	PlusIcon,
+} from "lucide-react";
 import {
 	forwardRef,
 	useCallback,
@@ -40,7 +47,12 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { GoGitBranch, GoIssueOpened } from "react-icons/go";
+import {
+	GoArrowUpRight,
+	GoGitBranch,
+	GoGlobe,
+	GoIssueOpened,
+} from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
@@ -51,6 +63,7 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
@@ -72,6 +85,8 @@ import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
+import type { OpenableWorktreeAction } from "./utils/resolveOpenableWorktrees";
+import { resolveOpenableWorktrees } from "./utils/resolveOpenableWorktrees";
 
 type WorkspaceCreateAgent = AgentDefinitionId | "none";
 
@@ -254,15 +269,27 @@ function BaseBranchPickerInline({
 	isBranchesError,
 	branches,
 	worktreeBranches,
+	openableWorktrees,
+	activeWorkspacesByBranch,
+	externalWorktreeBranches,
+	modKey,
 	onSelectBaseBranch,
+	onOpenWorktree,
+	onOpenActiveWorkspace,
 }: {
 	effectiveBaseBranch: string | null;
 	defaultBranch?: string;
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
-	branches: Array<{ name: string; lastCommitDate: number }>;
+	branches: Array<{ name: string; lastCommitDate: number; isLocal: boolean }>;
 	worktreeBranches: Set<string>;
+	openableWorktrees: Map<string, OpenableWorktreeAction>;
+	activeWorkspacesByBranch: Map<string, string>;
+	externalWorktreeBranches: Set<string>;
+	modKey: string;
 	onSelectBaseBranch: (branchName: string) => void;
+	onOpenWorktree: (action: OpenableWorktreeAction) => void;
+	onOpenActiveWorkspace: (workspaceId: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
@@ -317,7 +344,7 @@ function BaseBranchPickerInline({
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
-				className="w-64 p-0"
+				className="w-96 p-0"
 				align="start"
 				onWheel={(event) => event.stopPropagation()}
 			>
@@ -351,39 +378,140 @@ function BaseBranchPickerInline({
 						value={branchSearch}
 						onValueChange={setBranchSearch}
 					/>
-					<CommandList className="max-h-[200px]">
+					<CommandList className="max-h-[400px]">
 						<CommandEmpty>No branches found</CommandEmpty>
-						{displayBranches.map((branch) => (
-							<CommandItem
-								key={branch.name}
-								value={branch.name}
-								onSelect={() => {
-									onSelectBaseBranch(branch.name);
-									setOpen(false);
-								}}
-								className="flex items-center justify-between"
-							>
-								<span className="flex items-center gap-2 truncate">
+						{displayBranches.map((branch) => {
+							const openAction = openableWorktrees.get(branch.name);
+							const activeWorkspaceId = activeWorkspacesByBranch.get(
+								branch.name,
+							);
+							const isExternal = externalWorktreeBranches.has(branch.name);
+							const hasExistingWorkspace = !!(activeWorkspaceId || openAction);
+
+							// Determine icon based on state - all same color
+							let icon: React.ReactNode;
+							if (activeWorkspaceId) {
+								icon = (
+									<GoArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
+								);
+							} else if (openAction) {
+								icon = (
+									<ExternalLinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+								);
+							} else if (branch.isLocal) {
+								icon = (
 									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-									<span className="truncate">{branch.name}</span>
-									{branch.name === defaultBranch && (
-										<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-											default
+								);
+							} else {
+								icon = (
+									<GoGlobe className="size-3.5 shrink-0 text-muted-foreground" />
+								);
+							}
+
+							return (
+								<CommandItem
+									key={branch.name}
+									value={branch.name}
+									onSelect={() => {
+										if (activeWorkspaceId) {
+											onOpenActiveWorkspace(activeWorkspaceId);
+										} else if (openAction) {
+											onOpenWorktree(openAction);
+										} else {
+											onSelectBaseBranch(branch.name);
+										}
+										setOpen(false);
+									}}
+									className="group h-11 flex items-center justify-between gap-3 px-3"
+								>
+									<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
+										{icon}
+										<span className="truncate font-mono text-xs">
+											{branch.name}
 										</span>
-									)}
-								</span>
-								<span className="flex items-center gap-2 shrink-0">
-									{branch.lastCommitDate > 0 && (
-										<span className="text-xs text-muted-foreground">
-											{formatRelativeTime(branch.lastCommitDate)}
+
+										{/* Inline badges */}
+										<span className="flex items-center gap-1.5 shrink-0">
+											{branch.name === defaultBranch && (
+												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+													default
+												</span>
+											)}
+											{isExternal && !activeWorkspaceId && (
+												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
+													external
+												</span>
+											)}
 										</span>
-									)}
-									{effectiveBaseBranch === branch.name && (
-										<HiCheck className="size-4 text-primary" />
-									)}
-								</span>
-							</CommandItem>
-						))}
+									</span>
+
+									{/* Right side: time + buttons */}
+									<span className="flex items-center gap-2 shrink-0">
+										{branch.lastCommitDate > 0 && (
+											<span className="text-[11px] text-muted-foreground/70 group-data-[selected=true]:hidden">
+												{formatRelativeTime(branch.lastCommitDate)}
+											</span>
+										)}
+
+										{/* Show checkmark for selected base branch when not hovering */}
+										{!hasExistingWorkspace &&
+											effectiveBaseBranch === branch.name && (
+												<HiCheck className="size-4 text-primary group-data-[selected=true]:hidden" />
+											)}
+
+										{/* Action buttons - show on hover/select */}
+										<span className="hidden group-data-[selected=true]:flex items-center gap-1.5">
+											{hasExistingWorkspace && (
+												<Button
+													size="sm"
+													variant="ghost"
+													className="h-7 px-2.5 text-xs font-medium hover:bg-accent/10 hover:text-accent-foreground"
+													onClick={(e) => {
+														e.stopPropagation();
+														if (activeWorkspaceId) {
+															onOpenActiveWorkspace(activeWorkspaceId);
+														} else if (openAction) {
+															onOpenWorktree(openAction);
+														}
+														setOpen(false);
+													}}
+												>
+													<GoArrowUpRight className="size-3.5 mr-1" />
+													Open
+													<span className="ml-1 text-[10px] opacity-60">↵</span>
+												</Button>
+											)}
+											<Button
+												size="sm"
+												className="h-7 px-2.5 text-xs font-medium"
+												onClick={(e) => {
+													e.stopPropagation();
+													onSelectBaseBranch(branch.name);
+													setOpen(false);
+												}}
+											>
+												{hasExistingWorkspace ? (
+													<>
+														<PlusIcon className="size-3.5 mr-1" />
+														Create
+														<span className="ml-1 text-[10px] opacity-70">
+															{modKey}↵
+														</span>
+													</>
+												) : (
+													<>
+														Create
+														<span className="ml-1 text-[10px] opacity-70">
+															↵
+														</span>
+													</>
+												)}
+											</Button>
+										</span>
+									</span>
+								</CommandItem>
+							);
+						})}
 					</CommandList>
 				</Command>
 			</PopoverContent>
@@ -399,6 +527,7 @@ function PromptGroupInner({
 	onImportRepo,
 	onNewProject,
 }: PromptGroupProps) {
+	const navigate = useNavigate();
 	const platform = useHotkeysStore((state) => state.platform);
 	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
@@ -408,6 +537,8 @@ function PromptGroupInner({
 		closeModal,
 		createWorkspace,
 		createFromPr,
+		openTrackedWorktree,
+		openExternalWorktree,
 		draft,
 		runAsyncAction,
 		updateDraft,
@@ -505,6 +636,35 @@ function PromptGroupInner({
 		for (const wt of trackedWorktrees) set.add(wt.branch);
 		return set;
 	}, [externalWorktrees, trackedWorktrees]);
+
+	// Fetch active workspaces for this project
+	const { data: activeWorkspaces = [] } =
+		electronTrpc.workspaces.getAll.useQuery();
+
+	const activeWorkspacesByBranch = useMemo(() => {
+		const map = new Map<string, string>(); // branch → workspaceId
+		for (const ws of activeWorkspaces) {
+			if (ws.projectId === projectId && !ws.deletingAt) {
+				map.set(ws.branch, ws.id);
+			}
+		}
+		return map;
+	}, [activeWorkspaces, projectId]);
+
+	// Resolve openable worktrees (no active workspace)
+	const openableWorktrees = useMemo(
+		() => resolveOpenableWorktrees(trackedWorktrees, externalWorktrees),
+		[trackedWorktrees, externalWorktrees],
+	);
+
+	// Map external worktree paths for badge display
+	const externalWorktreeBranches = useMemo(() => {
+		const set = new Set<string>();
+		for (const wt of externalWorktrees) {
+			set.add(wt.branch);
+		}
+		return set;
+	}, [externalWorktrees]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -887,9 +1047,67 @@ ${sanitizeText(truncatedBody)}`;
 		updateDraft({ baseBranch: selectedBaseBranch });
 	};
 
-	const addLinkedIssue = (slug: string, title: string) => {
+	const handleOpenWorktree = useCallback(
+		(action: OpenableWorktreeAction) => {
+			if (!projectId) return;
+
+			if (action.type === "tracked") {
+				void runAsyncAction(
+					openTrackedWorktree.mutateAsync({
+						worktreeId: action.worktreeId,
+					}),
+					{
+						loading: "Opening worktree...",
+						success: "Worktree opened",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to open worktree",
+					},
+				);
+			} else {
+				void runAsyncAction(
+					openExternalWorktree.mutateAsync({
+						projectId,
+						worktreePath: action.worktreePath,
+						branch: action.branch,
+					}),
+					{
+						loading: "Opening worktree...",
+						success: "Worktree opened",
+						error: (err) =>
+							err instanceof Error ? err.message : "Failed to open worktree",
+					},
+				);
+			}
+		},
+		[
+			projectId,
+			runAsyncAction,
+			openExternalWorktree.mutateAsync,
+			openTrackedWorktree.mutateAsync,
+		],
+	);
+
+	const handleOpenActiveWorkspace = useCallback(
+		(workspaceId: string) => {
+			closeModal();
+			void navigateToWorkspace(workspaceId, navigate);
+		},
+		[closeModal, navigate],
+	);
+
+	const addLinkedIssue = (
+		slug: string,
+		title: string,
+		taskId: string | undefined,
+		url?: string,
+	) => {
 		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({ linkedIssues: [...linkedIssues, { slug, title }] });
+		updateDraft({
+			linkedIssues: [
+				...linkedIssues,
+				{ slug, title, source: "internal", taskId, url },
+			],
+		});
 	};
 
 	const addLinkedGitHubIssue = (
@@ -1024,6 +1242,8 @@ ${sanitizeText(truncatedBody)}`;
 										<LinkedIssuePill
 											slug={issue.slug}
 											title={issue.title}
+											url={issue.url}
+											taskId={issue.taskId}
 											onRemove={() => removeLinkedIssue(issue.slug)}
 										/>
 									)}
@@ -1155,7 +1375,13 @@ ${sanitizeText(truncatedBody)}`;
 									isBranchesError={isBranchesError}
 									branches={branchData?.branches ?? []}
 									worktreeBranches={worktreeBranches}
+									openableWorktrees={openableWorktrees}
+									activeWorkspacesByBranch={activeWorkspacesByBranch}
+									externalWorktreeBranches={externalWorktreeBranches}
+									modKey={modKey}
 									onSelectBaseBranch={handleBaseBranchSelect}
+									onOpenWorktree={handleOpenWorktree}
+									onOpenActiveWorkspace={handleOpenActiveWorkspace}
 								/>
 							</motion.div>
 						)}

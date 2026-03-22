@@ -35,6 +35,7 @@ interface ChangesHeaderProps {
 	onRefresh: () => void;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
+	showViewModeToggle?: boolean;
 	worktreePath: string;
 	pr: GitHubStatus["pr"] | null;
 	isPRStatusLoading: boolean;
@@ -238,47 +239,11 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 	);
 }
 
-const reviewTagStyles = {
-	approved:
-		"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-	changes_requested:
-		"border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-	pending:
-		"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-} as const;
-
-const reviewTagLabels = {
-	approved: "Approved",
-	changes_requested: "Changes req.",
-	pending: "Review pending",
-} as const;
-
-function ReviewTag({
-	status,
-	requestedReviewers,
-}: {
-	status: "approved" | "changes_requested" | "pending";
-	requestedReviewers?: string[];
-}) {
-	const label =
-		status === "pending" && requestedReviewers && requestedReviewers.length > 0
-			? `Awaiting ${requestedReviewers.join(", ")}`
-			: reviewTagLabels[status];
-
-	return (
-		<span
-			className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[140px] ${reviewTagStyles[status]}`}
-			title={label}
-		>
-			{label}
-		</span>
-	);
-}
-
 export function ChangesHeader({
 	onRefresh,
 	viewMode,
 	onViewModeChange,
+	showViewModeToggle = true,
 	worktreePath,
 	pr,
 	isPRStatusLoading,
@@ -298,14 +263,13 @@ export function ChangesHeader({
 				onStashPop={onStashPop}
 				isPending={isStashPending}
 			/>
-			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
-			<RefreshButton onRefresh={onRefresh} />
-			{pr && pr.state === "open" && (
-				<ReviewTag
-					status={pr.reviewDecision}
-					requestedReviewers={pr.requestedReviewers}
+			{showViewModeToggle && (
+				<ViewModeToggle
+					viewMode={viewMode}
+					onViewModeChange={onViewModeChange}
 				/>
 			)}
+			<RefreshButton onRefresh={onRefresh} />
 			<PRButton
 				pr={pr}
 				isLoading={isPRStatusLoading}

@@ -81,12 +81,15 @@ export function ChatInputFooter({
 	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
-	const addLinkedIssue = useCallback((slug: string, title: string) => {
-		setLinkedIssues((prev) => {
-			if (prev.some((issue) => issue.slug === slug)) return prev;
-			return [...prev, { slug, title }];
-		});
-	}, []);
+	const addLinkedIssue = useCallback(
+		(slug: string, title: string, taskId: string | undefined, url?: string) => {
+			setLinkedIssues((prev) => {
+				if (prev.some((issue) => issue.slug === slug)) return prev;
+				return [...prev, { slug, title, taskId, url }];
+			});
+		},
+		[],
+	);
 
 	const removeLinkedIssue = useCallback((slug: string) => {
 		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));

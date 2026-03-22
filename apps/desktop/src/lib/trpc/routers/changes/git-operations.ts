@@ -7,7 +7,6 @@ import {
 	getSimpleGitWithShellPath,
 } from "../workspaces/utils/git-client";
 import {
-	clearGitHubStatusCacheForWorktree,
 	fetchGitHubPRStatus,
 	getPullRequestRepoArgs,
 	getRepoContext,
@@ -144,7 +143,7 @@ async function resolveExistingPullRequestPushTarget({
 	worktreePath: string;
 	fallbackRemote: string;
 }): Promise<ExistingPullRequestPushTarget | null> {
-	clearGitHubStatusCacheForWorktree(worktreePath);
+	clearWorktreeStatusCaches(worktreePath);
 	const githubStatus = await fetchGitHubPRStatus(worktreePath);
 	const pr = githubStatus?.pr;
 	if (!pr || !isOpenPullRequestState(pr.state) || !pr.headRefName?.trim()) {

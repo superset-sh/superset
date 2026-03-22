@@ -26,6 +26,8 @@ export function LinkedIssues({ issues, onRemove }: LinkedIssuesProps) {
 						<LinkedIssuePill
 							slug={issue.slug}
 							title={issue.title}
+							url={issue.url}
+							taskId={issue.taskId}
 							onRemove={() => onRemove(issue.slug)}
 						/>
 					</motion.div>

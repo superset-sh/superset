@@ -17,6 +17,7 @@ export type LinkedIssue = {
 	title: string;
 	source?: "github" | "internal";
 	url?: string; // GitHub issue URL
+	taskId?: string; // Internal task ID for navigation
 	number?: number; // GitHub issue number
 	state?: "open" | "closed";
 };

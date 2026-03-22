@@ -24,14 +24,11 @@ import {
 	LuSettings,
 	LuX,
 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
 import { CloseProjectDialog } from "./CloseProjectDialog";
@@ -168,29 +165,12 @@ export function ProjectHeader({
 				<LuPalette className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Set Color
 			</ContextMenuSubTrigger>
-			<ContextMenuSubContent className="w-36">
-				{PROJECT_COLORS.map((color) => {
-					const isDefault = color.value === PROJECT_COLOR_DEFAULT;
-					return (
-						<ContextMenuItem
-							key={color.value}
-							onSelect={() => handleColorChange(color.value)}
-							className="flex items-center gap-2"
-						>
-							<span
-								className={cn(
-									"size-3 rounded-full border",
-									isDefault ? "border-border bg-muted" : "border-border/50",
-								)}
-								style={isDefault ? undefined : { backgroundColor: color.value }}
-							/>
-							<span>{color.name}</span>
-							{projectColor === color.value && (
-								<span className="ml-auto text-xs text-muted-foreground">✓</span>
-							)}
-						</ContextMenuItem>
-					);
-				})}
+			<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
+				<ColorSelector
+					variant="menu"
+					selectedColor={projectColor}
+					onSelectColor={handleColorChange}
+				/>
 			</ContextMenuSubContent>
 		</ContextMenuSub>
 	);
