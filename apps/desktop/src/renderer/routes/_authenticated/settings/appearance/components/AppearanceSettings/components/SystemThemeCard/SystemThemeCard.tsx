@@ -1,18 +1,22 @@
 import { cn } from "@superset/ui/utils";
 import { HiCheck } from "react-icons/hi2";
-import { darkTheme, lightTheme } from "shared/themes";
+import type { Theme } from "shared/themes";
 
 interface SystemThemeCardProps {
 	isSelected: boolean;
 	onSelect: () => void;
+	darkTheme: Theme | undefined;
+	lightTheme: Theme | undefined;
 }
 
 export function SystemThemeCard({
 	isSelected,
 	onSelect,
+	darkTheme,
+	lightTheme,
 }: SystemThemeCardProps) {
-	const darkTerminal = darkTheme.terminal;
-	const lightTerminal = lightTheme.terminal;
+	const darkTerminal = darkTheme?.terminal;
+	const lightTerminal = lightTheme?.terminal;
 
 	if (!darkTerminal || !lightTerminal) {
 		return null;
@@ -59,15 +63,17 @@ export function SystemThemeCard({
 						</div>
 					</div>
 					<div className="flex gap-0.5 mt-2">
-						{[darkTerminal.red, darkTerminal.green, darkTerminal.yellow].map(
-							(color) => (
-								<div
-									key={color}
-									className="h-2 w-3 rounded-sm"
-									style={{ backgroundColor: color }}
-								/>
-							),
-						)}
+						{[
+							darkTerminal.red,
+							darkTerminal.green,
+							darkTerminal.yellow,
+						].map((color) => (
+							<div
+								key={color}
+								className="h-2 w-3 rounded-sm"
+								style={{ backgroundColor: color }}
+							/>
+						))}
 					</div>
 				</div>
 
@@ -99,15 +105,17 @@ export function SystemThemeCard({
 						</div>
 					</div>
 					<div className="flex gap-0.5 mt-2">
-						{[lightTerminal.red, lightTerminal.green, lightTerminal.yellow].map(
-							(color) => (
-								<div
-									key={color}
-									className="h-2 w-3 rounded-sm"
-									style={{ backgroundColor: color }}
-								/>
-							),
-						)}
+						{[
+							lightTerminal.red,
+							lightTerminal.green,
+							lightTerminal.yellow,
+						].map((color) => (
+							<div
+								key={color}
+								className="h-2 w-3 rounded-sm"
+								style={{ backgroundColor: color }}
+							/>
+						))}
 					</div>
 				</div>
 			</div>

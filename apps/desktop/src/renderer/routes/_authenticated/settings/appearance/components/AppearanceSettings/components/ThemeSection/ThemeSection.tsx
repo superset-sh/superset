@@ -1,5 +1,12 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { type ChangeEvent, useRef, useState } from "react";
 import {
@@ -9,7 +16,10 @@ import {
 } from "react-icons/hi2";
 import {
 	SYSTEM_THEME_ID,
+	useSetSystemTheme,
 	useSetTheme,
+	useSystemDarkThemeId,
+	useSystemLightThemeId,
 	useThemeId,
 	useThemeStore,
 } from "renderer/stores";
@@ -28,11 +38,17 @@ export function ThemeSection() {
 	const [isImporting, setIsImporting] = useState(false);
 	const activeThemeId = useThemeId();
 	const setTheme = useSetTheme();
+	const setSystemTheme = useSetSystemTheme();
+	const systemDarkThemeId = useSystemDarkThemeId();
+	const systemLightThemeId = useSystemLightThemeId();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const customThemes = useThemeStore((state) => state.customThemes);
 	const upsertCustomThemes = useThemeStore((state) => state.upsertCustomThemes);
 
 	const allThemes = [...builtInThemes, ...customThemes];
+	const darkThemes = allThemes.filter((t) => t.type === "dark");
+	const lightThemes = allThemes.filter((t) => t.type === "light");
+	const isSystemSelected = activeThemeId === SYSTEM_THEME_ID;
 
 	const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -166,8 +182,14 @@ export function ThemeSection() {
 			</div>
 			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
 				<SystemThemeCard
-					isSelected={activeThemeId === SYSTEM_THEME_ID}
+					isSelected={isSystemSelected}
 					onSelect={() => setTheme(SYSTEM_THEME_ID)}
+					darkTheme={darkThemes.find(
+						(t) => t.id === systemDarkThemeId,
+					)}
+					lightTheme={lightThemes.find(
+						(t) => t.id === systemLightThemeId,
+					)}
 				/>
 				{allThemes.map((theme) => (
 					<ThemeCard
@@ -178,6 +200,61 @@ export function ThemeSection() {
 					/>
 				))}
 			</div>
+
+			{/* System theme mapping — shown below the grid when System is active */}
+			{isSystemSelected && (
+				<div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card px-4 py-3">
+					<span className="text-xs font-medium text-muted-foreground">
+						System uses
+					</span>
+					<Select
+						value={systemDarkThemeId}
+						onValueChange={(id) =>
+							setSystemTheme("dark", id)
+						}
+					>
+						<SelectTrigger size="sm" className="w-auto">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{darkThemes.map((theme) => (
+								<SelectItem
+									key={theme.id}
+									value={theme.id}
+								>
+									{theme.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<span className="text-xs text-muted-foreground">
+						when dark,
+					</span>
+					<Select
+						value={systemLightThemeId}
+						onValueChange={(id) =>
+							setSystemTheme("light", id)
+						}
+					>
+						<SelectTrigger size="sm" className="w-auto">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{lightThemes.map((theme) => (
+								<SelectItem
+									key={theme.id}
+									value={theme.id}
+								>
+									{theme.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<span className="text-xs text-muted-foreground">
+						when light
+					</span>
+				</div>
+			)}
 		</div>
 	);
 }
