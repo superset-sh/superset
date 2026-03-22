@@ -3,6 +3,7 @@ import { getMcpContext } from "../../utils";
 import {
 	buildTaskLaunchRequest,
 	createValidationErrorResult,
+	DEFAULT_STARTABLE_AGENT,
 	ERROR_TASK_NOT_FOUND,
 	executeLaunchOnDevice,
 	fetchTaskForOrganization,
@@ -27,7 +28,7 @@ export function registerTaskLaunchTool(server: McpServer) {
 
 			const ctx = getMcpContext(extra);
 			const input = parsed.data;
-			const agent = input.agent ?? "claude";
+			const agent = input.agent ?? DEFAULT_STARTABLE_AGENT;
 			const task = await fetchTaskForOrganization({
 				taskId: input.taskId,
 				organizationId: ctx.organizationId,

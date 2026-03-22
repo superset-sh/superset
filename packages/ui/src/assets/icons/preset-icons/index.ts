@@ -5,6 +5,8 @@ import copilotIcon from "./copilot.svg";
 import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
+import kiloDarkIcon from "./kilo-dark.svg";
+import kiloLightIcon from "./kilo-light.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
@@ -21,6 +23,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
+	kilocode: { light: kiloLightIcon, dark: kiloDarkIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"superset-chat": { light: supersetIcon, dark: supersetIcon },
@@ -46,6 +49,8 @@ export {
 	copilotWhiteIcon,
 	cursorAgentIcon,
 	geminiIcon,
+	kiloDarkIcon,
+	kiloLightIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
 	piIcon,

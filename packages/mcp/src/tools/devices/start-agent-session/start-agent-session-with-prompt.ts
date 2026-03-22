@@ -3,6 +3,7 @@ import { getMcpContext } from "../../utils";
 import {
 	buildPromptLaunchRequest,
 	createValidationErrorResult,
+	DEFAULT_STARTABLE_AGENT,
 	executeLaunchOnDevice,
 	promptInputSchema,
 	promptInputSchemaShape,
@@ -25,7 +26,7 @@ export function registerPromptLaunchTool(server: McpServer) {
 
 			const ctx = getMcpContext(extra);
 			const input = parsed.data;
-			const agent = input.agent ?? "claude";
+			const agent = input.agent ?? DEFAULT_STARTABLE_AGENT;
 			const request = buildPromptLaunchRequest({
 				workspaceId: input.workspaceId,
 				paneId: input.paneId,
