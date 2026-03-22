@@ -3,6 +3,9 @@ import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import { deleteDocumentBuffer } from "renderer/stores/editor-state/editorBufferRegistry";
+import { useEditorDocumentsStore } from "renderer/stores/editor-state/useEditorDocumentsStore";
+import { useEditorSessionsStore } from "renderer/stores/editor-state/useEditorSessionsStore";
 import {
 	getPathBaseName,
 	pathsMatch,
@@ -157,6 +160,28 @@ const withDerivedTabNames = (
 				: tab,
 		),
 	};
+};
+
+const cleanupEditorPaneState = (paneId: string): void => {
+	const sessionsStore = useEditorSessionsStore.getState();
+	const session = sessionsStore.sessions[paneId];
+	if (!session) {
+		return;
+	}
+
+	useEditorDocumentsStore
+		.getState()
+		.removeSessionBinding(session.documentKey, paneId);
+	sessionsStore.clearSession(paneId);
+
+	const document =
+		useEditorDocumentsStore.getState().documents[session.documentKey];
+	if (document && document.sessionPaneIds.length > 0) {
+		return;
+	}
+
+	useEditorDocumentsStore.getState().removeDocument(session.documentKey);
+	deleteDocumentBuffer(session.documentKey);
 };
 
 export const useTabsStore = create<TabsStore>()(
@@ -351,6 +376,8 @@ export const useTabsStore = create<TabsStore>()(
 						if (pane?.type === "terminal") {
 							killTerminalForPane(paneId);
 						}
+
+						cleanupEditorPaneState(paneId);
 					}
 
 					const newPanes = { ...state.panes };
@@ -768,13 +795,38 @@ export const useTabsStore = create<TabsStore>()(
 							// Should not happen due to filter above, but satisfy type checker
 							return "";
 						}
-
-						// If clicking the same file that's already in preview, just focus it
+						const paneSession =
+							useEditorSessionsStore.getState().sessions[paneToReuse.id];
+						const paneDocument = paneSession
+							? useEditorDocumentsStore.getState().documents[
+									paneSession.documentKey
+								]
+							: null;
 						const isSameFile =
 							pathsMatch(existingFileViewer.filePath, options.filePath) &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
+						if (paneDocument?.dirty && !isSameFile) {
+							set({
+								focusedPaneIds: {
+									...state.focusedPaneIds,
+									[activeTab.id]: paneToReuse.id,
+								},
+							});
+							useEditorSessionsStore.getState().setPendingIntent(
+								paneToReuse.id,
+								{
+									type: "replace-preview",
+									workspaceId,
+									options,
+								},
+								"unsaved",
+							);
+							return paneToReuse.id;
+						}
+
+						// If clicking the same file that's already in preview, just focus it
 						if (isSameFile) {
 							const nextViewMode =
 								options.viewMode ?? existingFileViewer.viewMode;
@@ -974,6 +1026,8 @@ export const useTabsStore = create<TabsStore>()(
 						if (state.panes[id]?.type === "terminal") {
 							killTerminalForPane(id);
 						}
+
+						cleanupEditorPaneState(id);
 					}
 
 					// Remove all panes from layout

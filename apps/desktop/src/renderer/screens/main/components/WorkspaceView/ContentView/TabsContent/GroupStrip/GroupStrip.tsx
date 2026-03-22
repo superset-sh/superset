@@ -13,6 +13,7 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { requestTabClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -40,7 +41,6 @@ export function GroupStrip() {
 	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
-	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
@@ -247,7 +247,7 @@ export function GroupStrip() {
 	};
 
 	const handleCloseGroup = (tabId: string) => {
-		removeTab(tabId);
+		requestTabClose(tabId);
 	};
 
 	const handleRenameGroup = (tabId: string, newName: string) => {

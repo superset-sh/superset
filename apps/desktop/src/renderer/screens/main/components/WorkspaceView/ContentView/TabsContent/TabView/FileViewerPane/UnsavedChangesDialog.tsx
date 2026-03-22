@@ -14,27 +14,35 @@ import { LuLoader } from "react-icons/lu";
 interface UnsavedChangesDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSaveAndSwitch: () => void;
-	onDiscardAndSwitch: () => void;
+	onSave: () => void;
+	onDiscard: () => void;
 	isSaving?: boolean;
+	title?: string;
+	description?: string;
+	discardLabel?: string;
+	saveLabel?: string;
 }
 
 export function UnsavedChangesDialog({
 	open,
 	onOpenChange,
-	onSaveAndSwitch,
-	onDiscardAndSwitch,
+	onSave,
+	onDiscard,
 	isSaving = false,
+	title = "Unsaved Changes",
+	description = "You have unsaved changes. What would you like to do?",
+	discardLabel = "Discard & Continue",
+	saveLabel = "Save & Continue",
 }: UnsavedChangesDialogProps) {
 	const handleSaveAndSwitch = (e: React.MouseEvent) => {
 		e.preventDefault();
-		onSaveAndSwitch();
+		onSave();
 		// Don't close dialog - parent will close on success
 	};
 
 	const handleDiscardAndSwitch = (e: React.MouseEvent) => {
 		e.preventDefault();
-		onDiscardAndSwitch();
+		onDiscard();
 		onOpenChange(false);
 	};
 
@@ -42,10 +50,8 @@ export function UnsavedChangesDialog({
 		<AlertDialog open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-					<AlertDialogDescription>
-						You have unsaved changes. What would you like to do?
-					</AlertDialogDescription>
+					<AlertDialogTitle>{title}</AlertDialogTitle>
+					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
@@ -55,7 +61,7 @@ export function UnsavedChangesDialog({
 						disabled={isSaving}
 						className="border-destructive/50 text-destructive hover:bg-destructive/10"
 					>
-						Discard & Switch
+						{discardLabel}
 					</Button>
 					<AlertDialogAction onClick={handleSaveAndSwitch} disabled={isSaving}>
 						{isSaving ? (
@@ -64,7 +70,7 @@ export function UnsavedChangesDialog({
 								Saving...
 							</>
 						) : (
-							"Save & Switch"
+							saveLabel
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>

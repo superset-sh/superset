@@ -1,16 +1,10 @@
-import { type MutableRefObject, useCallback } from "react";
+import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { EditorSaveResult } from "renderer/stores/editor-state/types";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
-export type FileSaveResult =
-	| { status: "saved" }
-	| {
-			status: "conflict";
-			currentContent: string | null;
-	  };
 
 interface UseFileSaveParams {
 	workspaceId?: string;
@@ -18,12 +12,12 @@ interface UseFileSaveParams {
 	paneId: string;
 	diffCategory?: ChangeCategory;
 	getCurrentContent: () => string;
-	hasLoadedOriginalContentRef: MutableRefObject<boolean>;
-	originalContentRef: MutableRefObject<string>;
-	originalDiffContentRef: MutableRefObject<string>;
-	draftContentRef: MutableRefObject<string | null>;
-	revisionRef: MutableRefObject<string>;
-	setIsDirty: (dirty: boolean) => void;
+	getRevision: () => string | null;
+	onSaveSuccess: (input: {
+		savedContent: string;
+		currentContent: string;
+		revision: string;
+	}) => void;
 }
 
 export function useFileSave({
@@ -32,12 +26,8 @@ export function useFileSave({
 	paneId,
 	diffCategory,
 	getCurrentContent,
-	hasLoadedOriginalContentRef,
-	originalContentRef,
-	originalDiffContentRef,
-	draftContentRef,
-	revisionRef,
-	setIsDirty,
+	getRevision,
+	onSaveSuccess,
 }: UseFileSaveParams) {
 	const utils = electronTrpc.useUtils();
 
@@ -46,14 +36,14 @@ export function useFileSave({
 	const handleSaveFile = useCallback(
 		async (options?: {
 			force?: boolean;
-		}): Promise<FileSaveResult | undefined> => {
+		}): Promise<EditorSaveResult | undefined> => {
 			if (!filePath || !workspaceId) return;
 
 			const content = getCurrentContent();
 			const precondition =
-				options?.force || !revisionRef.current
+				options?.force || !getRevision()
 					? undefined
-					: { ifMatch: revisionRef.current };
+					: { ifMatch: getRevision() as string };
 
 			const result = await writeFileMutation.mutateAsync({
 				workspaceId,
@@ -83,20 +73,12 @@ export function useFileSave({
 				return undefined;
 			}
 
-			revisionRef.current = result.revision;
-
 			const currentContent = getCurrentContent();
-			const hasUnsavedChanges = currentContent !== content;
-
-			originalContentRef.current = content;
-			hasLoadedOriginalContentRef.current = true;
-			setIsDirty(hasUnsavedChanges);
-			if (!hasUnsavedChanges) {
-				draftContentRef.current = null;
-			} else if (hasUnsavedChanges) {
-				draftContentRef.current = currentContent;
-			}
-			originalDiffContentRef.current = "";
+			onSaveSuccess({
+				savedContent: content,
+				currentContent,
+				revision: result.revision,
+			});
 
 			void utils.filesystem.readFile.invalidate({
 				workspaceId,
@@ -128,15 +110,11 @@ export function useFileSave({
 		},
 		[
 			diffCategory,
-			draftContentRef,
 			filePath,
 			getCurrentContent,
-			hasLoadedOriginalContentRef,
-			originalContentRef,
-			originalDiffContentRef,
+			getRevision,
+			onSaveSuccess,
 			paneId,
-			revisionRef,
-			setIsDirty,
 			utils,
 			workspaceId,
 			writeFileMutation,
