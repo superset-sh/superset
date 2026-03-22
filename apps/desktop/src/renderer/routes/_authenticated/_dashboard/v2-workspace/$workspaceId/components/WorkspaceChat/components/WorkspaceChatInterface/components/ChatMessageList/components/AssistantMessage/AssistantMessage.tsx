@@ -34,6 +34,7 @@ interface AssistantMessageProps {
 		action: "approved" | "rejected";
 		feedback?: string;
 	}) => Promise<void>;
+	activeSubagents?: Map<string, unknown>;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -111,6 +112,7 @@ export function AssistantMessage({
 	pendingPlanToolCallId = null,
 	isPlanSubmitting = false,
 	onPlanRespond,
+	activeSubagents,
 }: AssistantMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 	const nodes: ReactNode[] = [];
@@ -261,6 +263,7 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					activeSubagent={activeSubagents?.get(part.id) as Record<string, unknown> | undefined}
 				/>,
 			);
 			nodes.push(...getInlineToolStateNodes(part.id));
@@ -284,6 +287,7 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					activeSubagent={activeSubagents?.get(part.id) as Record<string, unknown> | undefined}
 				/>,
 			);
 			nodes.push(...getInlineToolStateNodes(part.id));
@@ -313,6 +317,7 @@ export function AssistantMessage({
 				sessionId={sessionId}
 				organizationId={organizationId}
 				workspaceCwd={workspaceCwd}
+				activeSubagent={activeSubagents?.get(previewPart.toolCallId) as Record<string, unknown> | undefined}
 			/>,
 		);
 		nodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
