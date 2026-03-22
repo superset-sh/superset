@@ -355,6 +355,85 @@ describe("tabContainsPaneType", () => {
 
 		expect(tabContainsPaneType(tab, panes, "webview")).toBe(false);
 	});
+
+	it("returns false when no panes match the requested type", () => {
+		const tab = createTab("tab-1");
+		const panes: Record<string, Pane> = {
+			"tab-1-terminal": {
+				id: "tab-1-terminal",
+				tabId: "tab-1",
+				type: "terminal",
+				name: "Terminal",
+				isNew: false,
+			},
+			"tab-1-browser": {
+				id: "tab-1-browser",
+				tabId: "tab-1",
+				type: "terminal",
+				name: "Terminal 2",
+				isNew: false,
+			},
+		};
+
+		expect(tabContainsPaneType(tab, panes, "webview")).toBe(false);
+	});
+
+	it("works with a single-pane leaf layout", () => {
+		const tab: Tab = {
+			id: "tab-leaf",
+			name: "tab-leaf",
+			workspaceId: "workspace-1",
+			layout: "tab-leaf-browser",
+			createdAt: 0,
+		};
+		const panes: Record<string, Pane> = {
+			"tab-leaf-browser": {
+				id: "tab-leaf-browser",
+				tabId: "tab-leaf",
+				type: "webview",
+				name: "Browser",
+				isNew: false,
+			},
+		};
+
+		expect(tabContainsPaneType(tab, panes, "webview")).toBe(true);
+		expect(tabContainsPaneType(tab, panes, "terminal")).toBe(false);
+	});
+
+	it("handles missing pane records gracefully", () => {
+		const tab = createTab("tab-1");
+		// Pane IDs in layout but not in the panes record (orphaned references)
+		const panes: Record<string, Pane> = {};
+
+		expect(tabContainsPaneType(tab, panes, "webview")).toBe(false);
+	});
+
+	it("accepts an array of pane types", () => {
+		const tab = createTab("tab-1");
+		const panes: Record<string, Pane> = {
+			"tab-1-terminal": {
+				id: "tab-1-terminal",
+				tabId: "tab-1",
+				type: "terminal",
+				name: "Terminal",
+				isNew: false,
+			},
+			"tab-1-browser": {
+				id: "tab-1-browser",
+				tabId: "tab-1",
+				type: "devtools",
+				name: "DevTools",
+				isNew: false,
+			},
+		};
+
+		expect(tabContainsPaneType(tab, panes, ["webview", "devtools"])).toBe(
+			true,
+		);
+		expect(tabContainsPaneType(tab, panes, ["webview", "chat"])).toBe(
+			false,
+		);
+	});
 });
 
 describe("buildMultiPaneLayout", () => {
