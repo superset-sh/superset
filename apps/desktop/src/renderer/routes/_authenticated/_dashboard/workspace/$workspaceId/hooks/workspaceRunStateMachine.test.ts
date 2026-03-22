@@ -7,7 +7,6 @@ describe("getWorkspaceRunUiState", () => {
 			getWorkspaceRunUiState({
 				hasRunCommand: false,
 				isRunning: false,
-				isStopRequested: false,
 				transition: null,
 			}),
 		).toBe("setup");
@@ -18,7 +17,6 @@ describe("getWorkspaceRunUiState", () => {
 			getWorkspaceRunUiState({
 				hasRunCommand: true,
 				isRunning: false,
-				isStopRequested: false,
 				transition: null,
 			}),
 		).toBe("idle");
@@ -29,7 +27,6 @@ describe("getWorkspaceRunUiState", () => {
 			getWorkspaceRunUiState({
 				hasRunCommand: true,
 				isRunning: false,
-				isStopRequested: false,
 				transition: "starting",
 			}),
 		).toBe("starting");
@@ -40,19 +37,7 @@ describe("getWorkspaceRunUiState", () => {
 			getWorkspaceRunUiState({
 				hasRunCommand: true,
 				isRunning: true,
-				isStopRequested: false,
 				transition: "stopping",
-			}),
-		).toBe("stopping");
-	});
-
-	it("returns stopping while a stop has been requested and the process is still running", () => {
-		expect(
-			getWorkspaceRunUiState({
-				hasRunCommand: true,
-				isRunning: true,
-				isStopRequested: true,
-				transition: null,
 			}),
 		).toBe("stopping");
 	});
@@ -62,7 +47,6 @@ describe("getWorkspaceRunUiState", () => {
 			getWorkspaceRunUiState({
 				hasRunCommand: true,
 				isRunning: true,
-				isStopRequested: false,
 				transition: null,
 			}),
 		).toBe("running");
