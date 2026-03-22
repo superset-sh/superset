@@ -37,6 +37,7 @@ import {
 	reconcileDaemonSessions,
 } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
+import { installSigtstpGuard } from "./sigtstp-guard";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -45,6 +46,10 @@ const IS_DEV = process.env.NODE_ENV === "development";
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
+
+// Ignore SIGTSTP so terminal job-control (Ctrl-Z) does not suspend the GUI process.
+// See sigtstp-guard.ts for details.
+installSigtstpGuard();
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
 if (IS_DEV) {
