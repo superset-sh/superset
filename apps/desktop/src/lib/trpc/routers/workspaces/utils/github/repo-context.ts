@@ -21,7 +21,7 @@ async function refreshRepoContext(
 			["repo", "view", "--json", "url,isFork,parent"],
 			{ cwd: worktreePath },
 		);
-		const raw = JSON.parse(stdout);
+		const raw: unknown = JSON.parse(stdout);
 		const result = GHRepoResponseSchema.safeParse(raw);
 		if (!result.success) {
 			console.error("[GitHub] Repo schema validation failed:", result.error);

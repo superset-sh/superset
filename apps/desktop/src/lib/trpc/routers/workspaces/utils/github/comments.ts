@@ -223,9 +223,19 @@ async function fetchResolvedReviewCommentIdsForPullRequest(
 		const { stdout } = await execWithShellEnv("gh", args, {
 			cwd: worktreePath,
 		});
-		const parsed = GHReviewThreadsResponseSchema.safeParse(
-			JSON.parse(stdout.trim()),
-		);
+		let raw: unknown;
+		try {
+			raw = JSON.parse(stdout.trim());
+		} catch (error) {
+			console.warn(
+				"[GitHub] Failed to parse pull request review threads JSON response:",
+				error,
+				stdout,
+			);
+			return resolvedIds;
+		}
+
+		const parsed = GHReviewThreadsResponseSchema.safeParse(raw);
 		if (!parsed.success) {
 			console.warn(
 				"[GitHub] Failed to parse pull request review threads response:",
@@ -320,9 +330,18 @@ async function fetchAdditionalResolvedReviewCommentIdsForThread({
 			],
 			{ cwd: worktreePath },
 		);
-		const parsed = GHReviewThreadCommentsResponseSchema.safeParse(
-			JSON.parse(stdout.trim()),
-		);
+		let raw: unknown;
+		try {
+			raw = JSON.parse(stdout.trim());
+		} catch (error) {
+			console.warn(
+				"[GitHub] Failed to parse pull request review thread comments JSON response:",
+				{ error, threadId, worktreePath, stdout },
+			);
+			return;
+		}
+
+		const parsed = GHReviewThreadCommentsResponseSchema.safeParse(raw);
 		if (!parsed.success) {
 			console.warn(
 				"[GitHub] Failed to parse pull request review thread comments response:",
