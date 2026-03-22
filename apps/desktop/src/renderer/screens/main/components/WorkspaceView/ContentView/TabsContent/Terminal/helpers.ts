@@ -530,6 +530,7 @@ export function setupKeyboardHandler(
 		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
 	const isMac = platform.includes("mac");
 	const isWindows = platform.includes("win");
+	const isLinux = !isMac && !isWindows;
 
 	const handler = (event: KeyboardEvent): boolean => {
 		const isShiftEnter =
@@ -651,6 +652,53 @@ export function setupKeyboardHandler(
 			!event.shiftKey;
 
 		if (isCtrlRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bf"); // Meta+F - forward word
+			}
+			return false;
+		}
+
+		// Linux: Ctrl+Shift+C/V are the standard terminal copy/paste shortcuts.
+		// Return false to let the browser handle clipboard operations natively,
+		// preventing xterm from sending escape sequences to the PTY.
+		if (
+			isLinux &&
+			event.ctrlKey &&
+			event.shiftKey &&
+			!event.altKey &&
+			!event.metaKey
+		) {
+			const key = event.key.toLowerCase();
+			if (key === "c" || key === "v") {
+				return false;
+			}
+		}
+
+		// Ctrl+Left/Right (Linux): word navigation (Meta+B / Meta+F)
+		const isCtrlLeftLinux =
+			event.key === "ArrowLeft" &&
+			event.ctrlKey &&
+			isLinux &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlLeftLinux) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bb"); // Meta+B - backward word
+			}
+			return false;
+		}
+
+		const isCtrlRightLinux =
+			event.key === "ArrowRight" &&
+			event.ctrlKey &&
+			isLinux &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlRightLinux) {
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}

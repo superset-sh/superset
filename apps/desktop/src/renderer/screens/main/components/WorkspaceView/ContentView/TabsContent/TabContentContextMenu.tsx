@@ -22,9 +22,15 @@ import {
 	PaneContextMenuItems,
 } from "../components/PaneContextMenuItems";
 
-function getModifierKeyLabel() {
-	const isMac = navigator.platform.toLowerCase().includes("mac");
-	return isMac ? "⌘" : "Ctrl+";
+function getClipboardShortcutLabels() {
+	const platform = navigator.platform.toLowerCase();
+	if (platform.includes("mac")) {
+		return { copy: "⌘C", paste: "⌘V" };
+	}
+	if (platform.includes("linux")) {
+		return { copy: "Ctrl+Shift+C", paste: "Ctrl+Shift+V" };
+	}
+	return { copy: "Ctrl+C", paste: "Ctrl+V" };
 }
 
 interface TabContentContextMenuProps {
@@ -70,7 +76,7 @@ export function TabContentContextMenu({
 	const showClearShortcut = clearShortcut !== "Unassigned";
 	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
-	const modKey = getModifierKeyLabel();
+	const clipboardLabels = getClipboardShortcutLabels();
 	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;
 
 	const { copyToClipboard } = useCopyToClipboard();
@@ -112,14 +118,14 @@ export function TabContentContextMenu({
 					<ContextMenuItem disabled={!hasSelection} onSelect={handleCopy}>
 						<LuClipboardCopy className="size-4" />
 						Copy
-						<ContextMenuShortcut>{modKey}C</ContextMenuShortcut>
+						<ContextMenuShortcut>{clipboardLabels.copy}</ContextMenuShortcut>
 					</ContextMenuItem>
 				)}
 				{onPaste && (
 					<ContextMenuItem disabled={!hasClipboard} onSelect={handlePaste}>
 						<LuClipboard className="size-4" />
 						Paste
-						<ContextMenuShortcut>{modKey}V</ContextMenuShortcut>
+						<ContextMenuShortcut>{clipboardLabels.paste}</ContextMenuShortcut>
 					</ContextMenuItem>
 				)}
 				{(getSelection || onPaste) && <ContextMenuSeparator />}

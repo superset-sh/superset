@@ -177,6 +177,103 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 
+	it("returns false for Ctrl+Shift+C on Linux to allow browser copy", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Linux x86_64" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm, {});
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "C",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: true,
+		} as KeyboardEvent);
+
+		expect(result).toBe(false);
+	});
+
+	it("returns false for Ctrl+Shift+V on Linux to allow browser paste", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Linux x86_64" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm, {});
+
+		const result = captured.handler?.({
+			type: "keydown",
+			key: "V",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: true,
+		} as KeyboardEvent);
+
+		expect(result).toBe(false);
+	});
+
+	it("maps Ctrl+Left/Right to Meta+B/F on Linux", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Linux x86_64" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowLeft",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: false,
+		} as KeyboardEvent);
+		captured.handler?.({
+			type: "keydown",
+			key: "ArrowRight",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bb");
+		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
 		// @ts-expect-error - mocking navigator for tests
 		globalThis.navigator = { platform: "Win32" };
