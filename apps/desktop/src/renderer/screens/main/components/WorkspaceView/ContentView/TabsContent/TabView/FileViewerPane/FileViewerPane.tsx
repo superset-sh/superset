@@ -498,19 +498,11 @@ export function FileViewerPane({
 	}, [paneId, performFileSave]);
 
 	const handleDiscardPendingIntent = useCallback(() => {
-		if (
-			session?.pendingIntent?.type === "change-view-mode" ||
-			(documentState?.sessionPaneIds.length ?? 0) <= 1
-		) {
+		if ((documentState?.sessionPaneIds.length ?? 0) <= 1) {
 			discardDocumentChanges(documentKey);
 		}
 		resumePendingIntent(paneId);
-	}, [
-		documentKey,
-		documentState?.sessionPaneIds.length,
-		paneId,
-		session?.pendingIntent?.type,
-	]);
+	}, [documentKey, documentState?.sessionPaneIds.length, paneId]);
 
 	const handleCloseUnsavedDialog = useCallback(
 		(open: boolean) => {

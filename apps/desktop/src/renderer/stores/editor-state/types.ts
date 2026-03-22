@@ -88,6 +88,10 @@ export function isEditableFileViewerDocument({
 	return resolveEditorDocumentScope(diffCategory) === "working";
 }
 
+function encodeDocumentKeyPart(value: string | null | undefined): string {
+	return encodeURIComponent(value ?? "");
+}
+
 export function buildEditorDocumentKey({
 	workspaceId,
 	filePath,
@@ -98,10 +102,18 @@ export function buildEditorDocumentKey({
 	const scope = resolveEditorDocumentScope(diffCategory);
 
 	if (scope === "working") {
-		return `${workspaceId}::working::${filePath}`;
+		return [
+			encodeDocumentKeyPart(workspaceId),
+			encodeDocumentKeyPart(scope),
+			encodeDocumentKeyPart(filePath),
+		].join("::");
 	}
 
-	return [workspaceId, scope, commitHash ?? "", oldPath ?? "", filePath].join(
-		"::",
-	);
+	return [
+		encodeDocumentKeyPart(workspaceId),
+		encodeDocumentKeyPart(scope),
+		encodeDocumentKeyPart(commitHash),
+		encodeDocumentKeyPart(oldPath),
+		encodeDocumentKeyPart(filePath),
+	].join("::");
 }

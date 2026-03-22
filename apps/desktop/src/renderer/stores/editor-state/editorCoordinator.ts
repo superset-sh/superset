@@ -214,16 +214,22 @@ export function bindFileViewerSession(
 	const sessionsStore = useEditorSessionsStore.getState();
 	const currentSession = sessionsStore.sessions[paneId];
 	const previousDocumentKey = currentSession?.documentKey;
-
-	if (
+	const previousDocument = previousDocumentKey
+		? documentsStore.documents[previousDocumentKey]
+		: undefined;
+	const shouldPreserveDocumentState = Boolean(
 		previousDocumentKey &&
-		previousDocumentKey !== documentKey &&
-		options?.preserveDocumentState
-	) {
-		const previous = documentsStore.documents[previousDocumentKey];
-		if (previous) {
+			previousDocumentKey !== documentKey &&
+			previousDocument &&
+			(options?.preserveDocumentState ||
+				(previousDocument.workspaceId === identity.workspaceId &&
+					previousDocument.filePath === identity.filePath)),
+	);
+
+	if (previousDocumentKey && previousDocumentKey !== documentKey) {
+		if (shouldPreserveDocumentState && previousDocument) {
 			documentsStore.replaceDocumentKey(previousDocumentKey, {
-				...previous,
+				...previousDocument,
 				documentKey,
 				workspaceId: identity.workspaceId,
 				filePath: identity.filePath,
@@ -231,12 +237,10 @@ export function bindFileViewerSession(
 			});
 			sessionsStore.replaceDocumentKey(previousDocumentKey, documentKey);
 			transferDocumentBuffer(previousDocumentKey, documentKey);
+		} else {
+			documentsStore.removeSessionBinding(previousDocumentKey, paneId);
+			cleanupDocumentIfOrphaned(previousDocumentKey);
 		}
-	}
-
-	if (previousDocumentKey && previousDocumentKey !== documentKey) {
-		documentsStore.removeSessionBinding(previousDocumentKey, paneId);
-		cleanupDocumentIfOrphaned(previousDocumentKey);
 	}
 
 	documentsStore.upsertDocument({
