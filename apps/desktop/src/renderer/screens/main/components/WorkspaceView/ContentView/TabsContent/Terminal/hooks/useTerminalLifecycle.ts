@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
+import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
@@ -24,12 +25,15 @@ import { coldRestoreState, pendingDetaches } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
+	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import { createAttachRequestId } from "./attach-request-id";
+import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
@@ -84,7 +88,6 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
-
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -116,6 +119,7 @@ export interface UseTerminalLifecycleOptions {
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
 	detachRef: MutableRefObject<TerminalDetachMutate>;
+	cancelCreateOrAttachRef: MutableRefObject<TerminalCancelCreateOrAttachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
 	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
@@ -180,6 +184,7 @@ export function useTerminalLifecycle({
 	writeRef,
 	resizeRef,
 	detachRef,
+	cancelCreateOrAttachRef,
 	clearScrollbackRef,
 	isStreamReadyRef,
 	didFirstRenderRef,
@@ -232,6 +237,7 @@ export function useTerminalLifecycle({
 		let attachCanceled = false;
 		let attachSequence = 0;
 		let activeAttachId = 0;
+		let activeAttachRequestId: string | null = null;
 		let cancelAttachWait: (() => void) | null = null;
 
 		const {
@@ -294,6 +300,12 @@ export function useTerminalLifecycle({
 			maybeApplyInitialState();
 		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
+		const nextAttachRequestId = () => createAttachRequestId(paneId);
+		const cancelAttachRequest = (requestId: string | null) => {
+			if (!requestId) return;
+			cancelCreateOrAttachRef.current({ paneId, requestId });
+		};
+
 		const restartTerminalSession = (options?: {
 			command?: string;
 			forceRestart?: boolean;
@@ -311,9 +323,13 @@ export function useTerminalLifecycle({
 					setPaneWorkspaceRunState(paneId, "running");
 				}
 				const attach = () => {
+					const requestId = nextAttachRequestId();
+					cancelAttachRequest(activeAttachRequestId);
+					activeAttachRequestId = requestId;
 					createOrAttachRef.current(
 						{
 							paneId,
+							requestId,
 							tabId: tabIdRef.current,
 							workspaceId,
 							cols: xterm.cols,
@@ -324,12 +340,24 @@ export function useTerminalLifecycle({
 						},
 						{
 							onSuccess: (result) => {
+								if (activeAttachRequestId !== requestId) {
+									resolve();
+									return;
+								}
 								setConnectionError(null);
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
 								resolve();
 							},
 							onError: (error) => {
+								if (activeAttachRequestId !== requestId) {
+									resolve();
+									return;
+								}
+								if (isTerminalAttachCanceledMessage(error.message)) {
+									resolve();
+									return;
+								}
 								console.error("[Terminal] Failed to restart:", error);
 								if (workspaceRun) {
 									setPaneWorkspaceRunState(paneId, "stopped-by-exit");
@@ -340,6 +368,11 @@ export function useTerminalLifecycle({
 								isStreamReadyRef.current = true;
 								flushPendingEvents();
 								reject(error);
+							},
+							onSettled: () => {
+								if (activeAttachRequestId === requestId) {
+									activeAttachRequestId = null;
+								}
 							},
 						},
 					);
@@ -445,6 +478,9 @@ export function useTerminalLifecycle({
 						return;
 					}
 
+					const requestId = nextAttachRequestId();
+					cancelAttachRequest(activeAttachRequestId);
+					activeAttachRequestId = requestId;
 					activeAttachId = ++attachSequence;
 					const attachId = activeAttachId;
 					const isAttachActive = () =>
@@ -463,6 +499,7 @@ export function useTerminalLifecycle({
 					createOrAttachRef.current(
 						{
 							paneId,
+							requestId,
 							tabId: tabIdRef.current,
 							workspaceId,
 							cols: xterm.cols,
@@ -476,6 +513,7 @@ export function useTerminalLifecycle({
 						{
 							onSuccess: (result) => {
 								if (!isAttachActive()) return;
+								if (activeAttachRequestId !== requestId) return;
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
 
@@ -515,6 +553,10 @@ export function useTerminalLifecycle({
 							},
 							onError: (error) => {
 								if (!isAttachActive()) return;
+								if (activeAttachRequestId !== requestId) return;
+								if (isTerminalAttachCanceledMessage(error.message)) {
+									return;
+								}
 								const workspaceRun = getPaneWorkspaceRun(paneId);
 								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
 									if (workspaceRun) {
@@ -537,7 +579,12 @@ export function useTerminalLifecycle({
 								isStreamReadyRef.current = true;
 								flushPendingEvents();
 							},
-							onSettled: () => finishAttach(),
+							onSettled: () => {
+								if (activeAttachRequestId === requestId) {
+									activeAttachRequestId = null;
+								}
+								finishAttach();
+							},
 						},
 					);
 				};
@@ -731,16 +778,35 @@ export function useTerminalLifecycle({
 			if (DEBUG_TERMINAL) {
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
-			cancelInitialAttach();
+			const paneDestroyed = isPaneDestroyedInStore();
+			const hasWorkspaceRun = hasPaneWorkspaceRun(paneId);
+			const keepAttachAlive = shouldKeepAttachAliveOnUnmount({
+				paneDestroyed,
+				hasWorkspaceRun,
+				isStartingWorkspaceRun: isNewWorkspaceRun,
+				hasActiveAttachRequest: activeAttachRequestId !== null,
+			});
+
+			if (!keepAttachAlive) {
+				cancelInitialAttach();
+			}
 			isUnmounted = true;
-			attachCanceled = true;
-			const cleanupAttachId = activeAttachId || undefined;
+			attachCanceled = !keepAttachAlive;
+			if (!keepAttachAlive) {
+				cancelAttachRequest(activeAttachRequestId);
+			}
+			activeAttachRequestId = null;
+			const cleanupAttachId = !keepAttachAlive
+				? activeAttachId || undefined
+				: undefined;
 			activeAttachId = 0;
 			if (cancelAttachWait) {
 				cancelAttachWait();
 				cancelAttachWait = null;
 			}
-			clearAttachInFlight(paneId, cleanupAttachId);
+			if (!keepAttachAlive) {
+				clearAttachInFlight(paneId, cleanupAttachId);
+			}
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -760,12 +826,12 @@ export function useTerminalLifecycle({
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
 
-			if (isPaneDestroyedInStore()) {
+			if (paneDestroyed) {
 				// Pane was explicitly destroyed, so kill the session.
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
-			} else if (hasPaneWorkspaceRun(paneId)) {
+			} else if (hasWorkspaceRun) {
 				// Keep workspace-run panes attached while hidden
 				pendingDetaches.delete(paneId);
 			} else {

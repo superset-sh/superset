@@ -6,6 +6,8 @@ import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import { restartDaemon as restartDaemonShared } from "main/lib/terminal";
 import {
+	isTerminalAttachCanceledError,
+	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
@@ -59,6 +61,8 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: SAFE_ID,
+					requestId: z.string().min(1).optional(),
+					joinPending: z.boolean().optional(),
 					tabId: z.string(),
 					workspaceId: SAFE_ID,
 					cols: z.number().optional(),
@@ -75,6 +79,8 @@ export const createTerminalRouter = () => {
 				const startedAt = Date.now();
 				const {
 					paneId,
+					requestId,
+					joinPending,
 					tabId,
 					workspaceId,
 					cols,
@@ -113,6 +119,8 @@ export const createTerminalRouter = () => {
 				try {
 					const result = await terminal.createOrAttach({
 						paneId,
+						requestId,
+						joinPending,
 						tabId,
 						workspaceId,
 						workspaceName: workspace?.name,
@@ -153,6 +161,7 @@ export const createTerminalRouter = () => {
 						error instanceof TerminalKilledError ||
 						(error instanceof Error &&
 							error.message === TERMINAL_SESSION_KILLED_MESSAGE);
+					const isAttachCanceled = isTerminalAttachCanceledError(error);
 					if (isKilledError) {
 						if (DEBUG_TERMINAL) {
 							console.warn(
@@ -168,6 +177,12 @@ export const createTerminalRouter = () => {
 							message: TERMINAL_SESSION_KILLED_MESSAGE,
 						});
 					}
+					if (isAttachCanceled) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: TERMINAL_ATTACH_CANCELED_MESSAGE,
+						});
+					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
 							callId,
@@ -179,6 +194,18 @@ export const createTerminalRouter = () => {
 					console.error("[Terminal Router] createOrAttach ERROR:", error);
 					throw error;
 				}
+			}),
+
+		cancelCreateOrAttach: publicProcedure
+			.input(
+				z.object({
+					paneId: SAFE_ID,
+					requestId: z.string().min(1),
+				}),
+			)
+			.mutation(({ input }) => {
+				terminal.cancelCreateOrAttach(input);
+				return { success: true };
 			}),
 
 		write: publicProcedure

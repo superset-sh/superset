@@ -11,7 +11,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiChevronRight } from "react-icons/hi2";
 import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
@@ -128,6 +128,18 @@ export function WorkspaceSection({
 	});
 
 	const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const sectionContainerRef = useRef<HTMLDivElement>(null);
+	const sectionDragHandleRef = useRef<HTMLDivElement>(null);
+	const sectionHeaderRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (isSidebarCollapsed) {
+			sectionDrop(sectionContainerRef);
+			sectionDrag(sectionDragHandleRef);
+			return;
+		}
+		sectionDrag(sectionDrop(sectionHeaderRef));
+	}, [isSidebarCollapsed, sectionDrag, sectionDrop]);
 
 	const handleClick = useCallback(() => {
 		if (clickTimer.current) return;
@@ -167,9 +179,7 @@ export function WorkspaceSection({
 	if (isSidebarCollapsed) {
 		return (
 			<div
-				ref={(node) => {
-					sectionDrop(node);
-				}}
+				ref={sectionContainerRef}
 				{...dropZone.handlers}
 				className={cn(
 					"relative flex flex-col -ml-0.5",
@@ -178,9 +188,7 @@ export function WorkspaceSection({
 				style={sectionBorderStyle}
 			>
 				<div
-					ref={(node) => {
-						sectionDrag(node);
-					}}
+					ref={sectionDragHandleRef}
 					className="absolute inset-y-0 -left-1 w-2 cursor-grab"
 				/>
 				<WorkspaceList
@@ -204,9 +212,7 @@ export function WorkspaceSection({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<div
-						ref={(node) => {
-							sectionDrag(sectionDrop(node));
-						}}
+						ref={sectionHeaderRef}
 						className={cn(
 							"flex items-center w-full pl-2 pr-2 py-2 text-[11px] font-medium uppercase tracking-wider",
 							"text-muted-foreground hover:bg-muted/50 transition-colors",

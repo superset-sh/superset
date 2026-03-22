@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -9,9 +17,353 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { projects, workspaces, worktrees } from "@superset/local-db";
-import { eq } from "drizzle-orm";
-import { localDb } from "main/lib/local-db";
+
+type TableName =
+	| "projects"
+	| "workspaces"
+	| "worktrees"
+	| "settings"
+	| "workspaceSections";
+
+type Row = Record<string, unknown>;
+
+interface Column<Key extends string = string> {
+	__kind: "column";
+	tableName: TableName;
+	key: Key;
+}
+
+type Table<Key extends string> = {
+	__tableName: TableName;
+} & Record<Key, Column<Key>>;
+
+type Predicate = (row: Row) => boolean;
+type OrderBy = { kind: "desc"; column: Column };
+
+function createTable<Key extends string>(
+	tableName: TableName,
+	keys: readonly Key[],
+): Table<Key> {
+	const table = {
+		__tableName: tableName,
+	} as {
+		__tableName: TableName;
+	} & Partial<Record<Key, Column<Key>>>;
+
+	for (const key of keys) {
+		(table as Record<string, Column>)[key] = {
+			__kind: "column",
+			tableName,
+			key,
+		};
+	}
+
+	return table as Table<Key>;
+}
+
+const projects = createTable("projects", [
+	"id",
+	"mainRepoPath",
+	"name",
+	"color",
+	"defaultBranch",
+	"tabOrder",
+	"lastOpenedAt",
+	"workspaceBaseBranch",
+	"worktreeBaseDir",
+] as const);
+
+const workspaces = createTable("workspaces", [
+	"id",
+	"projectId",
+	"worktreeId",
+	"type",
+	"branch",
+	"name",
+	"tabOrder",
+	"sectionId",
+	"deletingAt",
+	"lastOpenedAt",
+	"updatedAt",
+] as const);
+
+const worktrees = createTable("worktrees", [
+	"id",
+	"projectId",
+	"path",
+	"branch",
+	"baseBranch",
+	"gitStatus",
+	"createdBySuperset",
+] as const);
+
+const settings = createTable("settings", [
+	"id",
+	"lastActiveWorkspaceId",
+	"worktreeBaseDir",
+] as const);
+
+const workspaceSections = createTable("workspaceSections", [
+	"id",
+	"projectId",
+	"tabOrder",
+] as const);
+
+function eq(column: Column, value: unknown): Predicate {
+	return (row) => row[column.key] === value;
+}
+
+function and(...predicates: Predicate[]): Predicate {
+	return (row) => predicates.every((predicate) => predicate(row));
+}
+
+function isNull(column: Column): Predicate {
+	return (row) => row[column.key] == null;
+}
+
+function isNotNull(column: Column): Predicate {
+	return (row) => row[column.key] != null;
+}
+
+function desc(column: Column): OrderBy {
+	return { kind: "desc", column };
+}
+
+const dbState: Record<TableName, Row[]> = {
+	projects: [],
+	workspaces: [],
+	worktrees: [],
+	settings: [],
+	workspaceSections: [],
+};
+
+let nextId = 1;
+
+function resetLocalDb(): void {
+	for (const table of Object.values(dbState)) {
+		table.length = 0;
+	}
+	nextId = 1;
+}
+
+function cloneRow<T extends Row | undefined>(row: T): T {
+	if (!row) {
+		return row;
+	}
+
+	return { ...row } as T;
+}
+
+function getTableRows(table: { __tableName: TableName }): Row[] {
+	return dbState[table.__tableName];
+}
+
+function withDefaults(tableName: TableName, row: Row): Row {
+	switch (tableName) {
+		case "projects":
+			return {
+				tabOrder: null,
+				lastOpenedAt: null,
+				workspaceBaseBranch: null,
+				worktreeBaseDir: null,
+				...row,
+			};
+		case "workspaces":
+			return {
+				sectionId: null,
+				deletingAt: null,
+				lastOpenedAt: null,
+				updatedAt: null,
+				...row,
+			};
+		case "worktrees":
+			return {
+				gitStatus: null,
+				createdBySuperset: true,
+				...row,
+			};
+		case "settings":
+			return {
+				id: 1,
+				lastActiveWorkspaceId: null,
+				worktreeBaseDir: null,
+				...row,
+			};
+		case "workspaceSections":
+			return {
+				tabOrder: 0,
+				...row,
+			};
+	}
+}
+
+function normalizeInsertedRow(tableName: TableName, row: Row): Row {
+	const nextRow = withDefaults(tableName, row);
+	if (nextRow.id == null) {
+		nextRow.id = `test-${nextId++}`;
+	}
+	return nextRow;
+}
+
+function projectSelection(
+	row: Row,
+	selection?: Record<string, Column>,
+): Row | undefined {
+	if (!row) {
+		return undefined;
+	}
+
+	if (!selection) {
+		return cloneRow(row);
+	}
+
+	const projected: Row = {};
+	for (const [key, column] of Object.entries(selection)) {
+		projected[key] = row[column.key];
+	}
+	return projected;
+}
+
+function runSelect(
+	table: { __tableName: TableName },
+	selection?: Record<string, Column>,
+	predicate?: Predicate,
+	orderBy?: OrderBy,
+): Row[] {
+	const rows = getTableRows(table)
+		.filter((row) => (predicate ? predicate(row) : true))
+		.map((row) => projectSelection(row, selection) ?? {});
+
+	if (orderBy?.kind === "desc") {
+		rows.sort(
+			(a, b) =>
+				Number(b[orderBy.column.key] ?? 0) - Number(a[orderBy.column.key] ?? 0),
+		);
+	}
+
+	return rows;
+}
+
+function createSelectResult(
+	table: { __tableName: TableName },
+	selection?: Record<string, Column>,
+	predicate?: Predicate,
+	orderBy?: OrderBy,
+) {
+	return {
+		get: () => cloneRow(runSelect(table, selection, predicate, orderBy)[0]),
+		all: () => runSelect(table, selection, predicate, orderBy).map(cloneRow),
+		orderBy: (nextOrderBy: OrderBy) =>
+			createSelectResult(table, selection, predicate, nextOrderBy),
+	};
+}
+
+const localDb = {
+	select: (selection?: Record<string, Column>) => ({
+		from: (table: { __tableName: TableName }) => ({
+			get: () => cloneRow(runSelect(table, selection)[0]),
+			all: () => runSelect(table, selection).map(cloneRow),
+			where: (predicate: Predicate) =>
+				createSelectResult(table, selection, predicate),
+			orderBy: (orderBy: OrderBy) =>
+				createSelectResult(table, selection, undefined, orderBy),
+		}),
+	}),
+	insert: (table: { __tableName: TableName }) => ({
+		values: (value: Row) => {
+			const insertRow = () => {
+				const row = normalizeInsertedRow(table.__tableName, value);
+				getTableRows(table).push(row);
+				return row;
+			};
+
+			return {
+				returning: () => ({
+					get: () => cloneRow(insertRow()),
+				}),
+				onConflictDoUpdate: ({
+					target,
+					set,
+				}: {
+					target: Column;
+					set: Row;
+				}) => ({
+					run: () => {
+						const rows = getTableRows(table);
+						const existingRow = rows.find(
+							(row) => row[target.key] === value[target.key],
+						);
+						if (existingRow) {
+							Object.assign(existingRow, set);
+							return;
+						}
+						rows.push(normalizeInsertedRow(table.__tableName, value));
+					},
+				}),
+				run: () => {
+					insertRow();
+				},
+			};
+		},
+	}),
+	update: (table: { __tableName: TableName }) => ({
+		set: (patch: Row) => ({
+			where: (predicate: Predicate) => ({
+				run: () => {
+					for (const row of getTableRows(table)) {
+						if (predicate(row)) {
+							Object.assign(row, patch);
+						}
+					}
+				},
+			}),
+		}),
+	}),
+	delete: (table: { __tableName: TableName }) => ({
+		where: (predicate: Predicate) => ({
+			run: () => {
+				const rows = getTableRows(table);
+				for (let index = rows.length - 1; index >= 0; index -= 1) {
+					if (predicate(rows[index])) {
+						rows.splice(index, 1);
+					}
+				}
+			},
+		}),
+	}),
+};
+
+mock.module("drizzle-orm", () => ({
+	and,
+	desc,
+	eq,
+	isNotNull,
+	isNull,
+}));
+
+mock.module("@superset/local-db", () => ({
+	projects,
+	settings,
+	workspaces,
+	workspaceSections,
+	worktrees,
+}));
+
+mock.module("@superset/local-db/schema", () => ({
+	projects,
+	settings,
+	workspaces,
+	workspaceSections,
+	worktrees,
+}));
+
+mock.module("main/lib/local-db", () => ({
+	localDb,
+}));
+
+afterAll(() => {
+	mock.restore();
+});
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -62,6 +414,8 @@ describe("Workspace creation with external worktree auto-import", () => {
 	let externalWorktreePath: string;
 
 	beforeEach(() => {
+		resetLocalDb();
+
 		// Clean test directory
 		if (existsSync(TEST_DIR)) {
 			rmSync(TEST_DIR, { recursive: true, force: true });
@@ -83,7 +437,7 @@ describe("Workspace creation with external worktree auto-import", () => {
 			})
 			.returning()
 			.get();
-		projectId = project.id;
+		projectId = project.id as string;
 
 		// Create external worktree
 		externalWorktreePath = join(TEST_DIR, "external-worktree");
@@ -195,10 +549,14 @@ describe("Workspace creation with external worktree auto-import", () => {
 			.get();
 		expect(worktree?.createdBySuperset).toBe(false);
 
-		// Now delete the workspace using the delete utility
-		const { deleteWorkspace } = await import("../utils/db-helpers");
+		// Mirror the actual delete flow: remove the workspace row and then the
+		// imported worktree record, while preserving the external worktree on disk.
+		const { deleteWorkspace, deleteWorktreeRecord } = await import(
+			"../utils/db-helpers"
+		);
 
 		deleteWorkspace(workspaceId);
+		deleteWorktreeRecord(worktreeId);
 
 		// Verify workspace was deleted from DB
 		const deletedWorkspace = localDb
@@ -228,6 +586,8 @@ describe("External worktree import via openExternalWorktree", () => {
 	let externalWorktreePath: string;
 
 	beforeEach(() => {
+		resetLocalDb();
+
 		if (existsSync(TEST_DIR)) {
 			rmSync(TEST_DIR, { recursive: true, force: true });
 		}
@@ -246,7 +606,7 @@ describe("External worktree import via openExternalWorktree", () => {
 			})
 			.returning()
 			.get();
-		projectId = project.id;
+		projectId = project.id as string;
 
 		externalWorktreePath = join(TEST_DIR, "external-worktree");
 	});

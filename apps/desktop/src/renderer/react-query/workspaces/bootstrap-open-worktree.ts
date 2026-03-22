@@ -1,5 +1,6 @@
 import {
 	buildTerminalCommand,
+	ensureTerminalAttached,
 	writeCommandInPane,
 } from "renderer/lib/terminal/launch-command";
 
@@ -20,6 +21,7 @@ interface BootstrapOpenWorktreeOptions {
 		paneId: string;
 		tabId: string;
 		workspaceId: string;
+		joinPending?: boolean;
 	}) => Promise<unknown>;
 	writeToTerminal: (input: {
 		paneId: string;
@@ -39,10 +41,11 @@ export async function bootstrapOpenWorktree(
 	}
 
 	try {
-		await options.createOrAttach({
+		await ensureTerminalAttached({
 			paneId,
 			tabId,
 			workspaceId: options.data.workspace.id,
+			createOrAttach: options.createOrAttach,
 		});
 	} catch (error) {
 		console.error("[bootstrapOpenWorktree] Failed to create or attach:", error);

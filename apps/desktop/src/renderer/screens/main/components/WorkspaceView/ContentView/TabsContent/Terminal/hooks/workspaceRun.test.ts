@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const mockGetSessionQuery = mock();
 
@@ -55,6 +55,10 @@ describe("recoverWorkspaceRunPane", () => {
 		mockGetSessionQuery.mockReset();
 		storeState.panes = {};
 		storeState.setPaneWorkspaceRun.mockClear();
+	});
+
+	afterAll(() => {
+		mock.restore();
 	});
 
 	it("does not query session state for panes already stopped by user", async () => {

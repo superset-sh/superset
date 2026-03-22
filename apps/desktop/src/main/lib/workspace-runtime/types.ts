@@ -71,9 +71,13 @@ export interface TerminalManagement {
 export interface TerminalSessionOperations {
 	/**
 	 * Create a new session or attach to an existing one.
-	 * Deduplicates concurrent calls for the same paneId.
+	 * Reuses identical requests, can join a currently pending attach, and lets
+	 * newer request-scoped attaches supersede stale ones per paneId.
 	 */
 	createOrAttach(params: CreateSessionParams): Promise<SessionResult>;
+
+	/** Cancel the current createOrAttach attempt for a pane if it matches requestId. */
+	cancelCreateOrAttach(params: { paneId: string; requestId: string }): void;
 
 	/** Write data to the terminal */
 	write(params: { paneId: string; data: string }): void;

@@ -26,6 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
+	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
 	type DetachRequest,
@@ -336,6 +337,26 @@ const handlers: Record<string, RequestHandler> = {
 			sendError(socket, id, "CREATE_ATTACH_FAILED", message);
 			log("error", `Failed to create/attach session: ${message}`);
 		}
+	},
+
+	cancelCreateOrAttach: (socket, id, payload, clientState) => {
+		if (!clientState.authenticated) {
+			sendError(socket, id, "NOT_AUTHENTICATED", "Must authenticate first");
+			return;
+		}
+		if (clientState.role !== "control") {
+			sendError(
+				socket,
+				id,
+				"INVALID_ROLE",
+				"cancelCreateOrAttach requires control",
+			);
+			return;
+		}
+
+		const request = payload as CancelCreateOrAttachRequest;
+		const response = terminalHost.cancelCreateOrAttach(request);
+		sendSuccess(socket, id, response);
 	},
 
 	write: (socket, id, payload, clientState) => {

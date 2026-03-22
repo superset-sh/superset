@@ -112,6 +112,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			write: writeRef,
 			resize: resizeRef,
 			detach: detachRef,
+			cancelCreateOrAttach: cancelCreateOrAttachRef,
 			clearScrollback: clearScrollbackRef,
 		},
 	} = useTerminalConnection({ workspaceId });
@@ -228,7 +229,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		tabId,
 		workspaceId,
 		xtermRef,
-		fitAddonRef,
 		isStreamReadyRef,
 		isExitedRef,
 		wasKilledByUserRef,
@@ -350,6 +350,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		writeRef,
 		resizeRef,
 		detachRef,
+		cancelCreateOrAttachRef,
 		clearScrollbackRef,
 		isStreamReadyRef,
 		didFirstRenderRef,

@@ -38,7 +38,6 @@ export function EmptyTabView({
 	const { workspaceId } = useParams({
 		from: "/_authenticated/_dashboard/workspace/$workspaceId/",
 	});
-	const { addTab } = useTabsWithPresets();
 	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const activeTheme = useTheme();
@@ -46,6 +45,7 @@ export function EmptyTabView({
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
+	const { addTab } = useTabsWithPresets(workspace?.projectId);
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 

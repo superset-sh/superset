@@ -50,6 +50,8 @@ export interface AgentSessionLaunchContext {
 		paneId: string;
 		tabId: string;
 		workspaceId: string;
+		cwd?: string;
+		joinPending?: boolean;
 	}) => Promise<unknown>;
 	write: (input: {
 		paneId: string;
