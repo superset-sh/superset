@@ -96,22 +96,23 @@ export function TabsContent({
 		return () => cancelAnimationFrame(frameId);
 	}, [activeTabId, activeWorkspaceId]);
 
+	const hasActiveTab = workspaceTabs.some((t) => t.id === activeTabId);
+
 	return (
 		<div ref={contentRef} className="flex-1 min-h-0 flex overflow-hidden">
-			{workspaceTabs.length > 0 ? (
-				workspaceTabs.map((tab) => (
-					<div
-						key={tab.id}
-						data-tab-id={tab.id}
-						className="flex-1 min-h-0 overflow-hidden"
-						style={{
-							display: tab.id === activeTabId ? "flex" : "none",
-						}}
-					>
-						<TabView tab={tab} />
-					</div>
-				))
-			) : (
+			{workspaceTabs.map((tab) => (
+				<div
+					key={tab.id}
+					data-tab-id={tab.id}
+					className="flex-1 min-h-0 overflow-hidden"
+					style={{
+						display: tab.id === activeTabId ? "flex" : "none",
+					}}
+				>
+					<TabView tab={tab} />
+				</div>
+			))}
+			{!hasActiveTab && (
 				<EmptyTabView
 					defaultExternalApp={defaultExternalApp}
 					onOpenInApp={onOpenInApp}
