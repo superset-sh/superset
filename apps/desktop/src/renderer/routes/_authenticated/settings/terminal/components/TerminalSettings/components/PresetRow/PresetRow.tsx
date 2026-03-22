@@ -66,14 +66,8 @@ export function PresetRow({
 		drag(dragHandleRef);
 	}, [preview, drop, drag]);
 
-	const isWorkspaceCreation = !!(
-		preset.applyOnWorkspaceCreated ||
-		(!preset.applyOnNewTab && preset.isDefault)
-	);
-	const isNewTab = !!(
-		preset.applyOnNewTab ||
-		(!preset.applyOnWorkspaceCreated && preset.isDefault)
-	);
+	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
+	const isNewTab = !!preset.applyOnNewTab;
 	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel =
 		modeValue === "new-tab"

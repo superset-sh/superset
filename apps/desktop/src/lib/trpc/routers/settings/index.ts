@@ -29,11 +29,7 @@ import {
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
-import {
-	filterMatchingPresetsForProject,
-	isProjectTargetedPreset,
-	normalizePresetProjectIds,
-} from "shared/preset-project-targeting";
+import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -62,6 +58,7 @@ import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
 } from "./preset-execution-mode";
+import { getPresetsForTriggerField } from "./preset-trigger-selection";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -177,39 +174,16 @@ function initializeDefaultPresets() {
 	return mergedPresets;
 }
 
-/** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
+/** Get presets tagged with a given auto-apply field for the current project, falling back to all-project presets. */
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
 	projectId?: string | null,
 ) {
-	const presets = filterMatchingPresetsForProject(
+	return getPresetsForTriggerField(
 		getNormalizedTerminalPresets(),
+		field,
 		projectId,
 	);
-	const targetedPresets = presets.filter(isProjectTargetedPreset);
-	const globalPresets = presets.filter(
-		(preset) => !isProjectTargetedPreset(preset),
-	);
-
-	const targetedTagged = targetedPresets.filter((preset) => preset[field]);
-	if (targetedTagged.length > 0) {
-		return targetedTagged;
-	}
-
-	const globalTagged = globalPresets.filter((preset) => preset[field]);
-	if (globalTagged.length > 0) {
-		return globalTagged;
-	}
-
-	const targetedDefaultPreset = targetedPresets.find(
-		(preset) => preset.isDefault,
-	);
-	if (targetedDefaultPreset) {
-		return [targetedDefaultPreset];
-	}
-
-	const globalDefaultPreset = globalPresets.find((preset) => preset.isDefault);
-	return globalDefaultPreset ? [globalDefaultPreset] : [];
 }
 
 export const createSettingsRouter = () => {

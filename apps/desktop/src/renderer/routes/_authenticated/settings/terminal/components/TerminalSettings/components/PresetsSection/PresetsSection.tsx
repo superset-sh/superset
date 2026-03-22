@@ -351,14 +351,8 @@ export function PresetsSection({
 		setEditingPreset(null);
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
-	const isWorkspaceCreation = !!(
-		editingPreset?.applyOnWorkspaceCreated ||
-		(!editingPreset?.applyOnNewTab && editingPreset?.isDefault)
-	);
-	const isNewTab = !!(
-		editingPreset?.applyOnNewTab ||
-		(!editingPreset?.applyOnWorkspaceCreated && editingPreset?.isDefault)
-	);
+	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
 	const modeValue: ExecutionMode = hasMultipleCommands
