@@ -156,11 +156,12 @@ export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
 export const tabContainsPaneType = (
 	tab: Tab,
 	panes: TabsState["panes"],
-	paneType: PaneType,
+	paneType: PaneType | PaneType[],
 ): boolean => {
+	const types = Array.isArray(paneType) ? paneType : [paneType];
 	return extractPaneIdsFromLayout(tab.layout).some((paneId) => {
 		const pane = panes[paneId];
-		return pane?.tabId === tab.id && pane.type === paneType;
+		return pane?.tabId === tab.id && types.includes(pane.type);
 	});
 };
 

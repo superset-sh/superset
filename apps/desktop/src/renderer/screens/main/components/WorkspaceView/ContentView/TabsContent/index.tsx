@@ -51,15 +51,18 @@ export function TabsContent({
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	// Keep inactive tabs mounted only when they contain a browser pane.
-	// Reparenting an Electron <webview> reloads the guest page, but other
-	// pane types should unmount when their tab is hidden.
+	// Keep inactive tabs mounted when they contain a webview-based pane.
+	// Reparenting an Electron <webview> reloads the guest page, so both
+	// browser ("webview") and devtools panes must stay in the DOM.
 	const workspaceTabs = useMemo(
 		() =>
 			allTabs.filter((tab) => {
 				if (tab.workspaceId !== activeWorkspaceId) return false;
 				if (tab.id === activeTabId) return true;
-				return tabContainsPaneType(tab, allPanes, "webview");
+				return tabContainsPaneType(tab, allPanes, [
+					"webview",
+					"devtools",
+				]);
 			}),
 		[activeTabId, allPanes, allTabs, activeWorkspaceId],
 	);
