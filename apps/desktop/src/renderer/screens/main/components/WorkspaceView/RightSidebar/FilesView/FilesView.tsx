@@ -35,6 +35,7 @@ import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
 import type { NewItemMode } from "./types";
+import { createWorktreePathTracker } from "./utils/workspace-switch";
 
 interface PendingTreeRefresh {
 	fullRefresh: boolean;
@@ -235,17 +236,12 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	const prevWorktreePathRef = useRef(worktreePath);
+	const worktreePathTrackerRef = useRef(createWorktreePathTracker());
 	useEffect(() => {
-		if (
-			worktreePath &&
-			prevWorktreePathRef.current !== worktreePath &&
-			prevWorktreePathRef.current !== undefined
-		) {
+		if (worktreePathTrackerRef.current.update(worktreePath)) {
 			entryCacheRef.current.clear();
 			tree.getItemInstance("root")?.invalidateChildrenIds();
 		}
-		prevWorktreePathRef.current = worktreePath;
 	}, [worktreePath, tree]);
 
 	const refreshVisibleDirectories = useCallback(() => {
