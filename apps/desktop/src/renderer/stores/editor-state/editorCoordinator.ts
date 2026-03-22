@@ -3,6 +3,7 @@ import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/Ele
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { AddFileViewerPaneOptions } from "renderer/stores/tabs/types";
 import { resolveFileViewerMode } from "renderer/stores/tabs/utils";
+import { getPathBaseName } from "shared/absolute-paths";
 import {
 	deleteDocumentBuffer,
 	discardDocumentCurrentContent,
@@ -68,10 +69,7 @@ function applyFileViewerReplacement(
 		return;
 	}
 
-	const fileName =
-		options.displayName ??
-		options.filePath.split("/").pop() ??
-		options.filePath;
+	const fileName = options.displayName ?? getPathBaseName(options.filePath);
 	const viewMode = resolveFileViewerMode({
 		filePath: options.filePath,
 		diffCategory: options.diffCategory,
@@ -187,6 +185,21 @@ function collectDirtyTabDocuments(tabId: string): Array<{
 	}
 
 	return dirtyDocs;
+}
+
+function isDocumentExclusivelyBoundToTab(
+	documentKey: string,
+	tabId: string,
+): boolean {
+	const document = getDocumentState(documentKey);
+	if (!document) {
+		return true;
+	}
+
+	const panes = useTabsStore.getState().panes;
+	return document.sessionPaneIds.every(
+		(paneId) => panes[paneId]?.tabId === tabId,
+	);
 }
 
 export function bindFileViewerSession(
@@ -437,7 +450,15 @@ export async function saveDocumentForPane(
 					status: "conflict",
 					currentContent: (currentFile.content as string) ?? null,
 				};
-			} catch {
+			} catch (error) {
+				console.error(
+					"[editorCoordinator] Failed to read disk content after save conflict",
+					{
+						documentKey: document.documentKey,
+						filePath: document.filePath,
+						error,
+					},
+				);
 				setDocumentConflict(document.documentKey, null, paneId);
 				return { status: "conflict", currentContent: null };
 			}
@@ -453,17 +474,27 @@ export async function saveDocumentForPane(
 	});
 
 	if (pane.fileViewer.diffCategory === "staged") {
-		useTabsStore.setState({
-			panes: {
-				...tabsState.panes,
-				[paneId]: {
-					...pane,
-					fileViewer: {
-						...pane.fileViewer,
-						diffCategory: "unstaged",
+		useTabsStore.setState((state) => {
+			const currentPane = state.panes[paneId];
+			if (
+				!currentPane?.fileViewer ||
+				currentPane.fileViewer.diffCategory !== "staged"
+			) {
+				return state;
+			}
+
+			return {
+				panes: {
+					...state.panes,
+					[paneId]: {
+						...currentPane,
+						fileViewer: {
+							...currentPane.fileViewer,
+							diffCategory: "unstaged",
+						},
 					},
 				},
-			},
+			};
 		});
 	}
 
@@ -559,6 +590,11 @@ export function requestPreviewReplacement(
 }
 
 export function requestTabClose(tabId: string): boolean {
+	const tab = useTabsStore.getState().tabs.find((item) => item.id === tabId);
+	if (!tab) {
+		return true;
+	}
+
 	const dirtyDocs = collectDirtyTabDocuments(tabId);
 	if (dirtyDocs.length === 0) {
 		useTabsStore.getState().removeTab(tabId);
@@ -566,6 +602,7 @@ export function requestTabClose(tabId: string): boolean {
 	}
 
 	useEditorSessionsStore.getState().setPendingTabClose({
+		workspaceId: tab.workspaceId,
 		tabId,
 		paneIds: dirtyDocs.map((entry) => entry.paneId),
 		documentKeys: dirtyDocs.map((entry) => entry.documentKey),
@@ -606,9 +643,11 @@ export function isPaneDocumentDirty(paneId: string): boolean {
 	);
 }
 
-export async function saveAndClosePendingTab(): Promise<void> {
+export async function saveAndClosePendingTab(
+	workspaceId: string,
+): Promise<void> {
 	const pending = useEditorSessionsStore.getState().pendingTabClose;
-	if (!pending || pending.isSaving) {
+	if (!pending || pending.isSaving || pending.workspaceId !== workspaceId) {
 		return;
 	}
 
@@ -616,12 +655,60 @@ export async function saveAndClosePendingTab(): Promise<void> {
 		.getState()
 		.setPendingTabClose({ ...pending, isSaving: true });
 
-	for (const paneId of pending.paneIds) {
-		const result: EditorSaveResult | undefined =
-			await saveDocumentForPane(paneId);
-		if (!result || result.status === "conflict") {
-			useEditorSessionsStore.getState().setPendingTabClose(null);
-			return;
+	try {
+		for (const paneId of pending.paneIds) {
+			const result: EditorSaveResult | undefined =
+				await saveDocumentForPane(paneId);
+			if (!result) {
+				const currentPending =
+					useEditorSessionsStore.getState().pendingTabClose;
+				if (
+					currentPending?.tabId === pending.tabId &&
+					currentPending.workspaceId === workspaceId
+				) {
+					useEditorSessionsStore
+						.getState()
+						.setPendingTabClose({ ...currentPending, isSaving: false });
+				}
+				return;
+			}
+
+			if (result.status === "conflict") {
+				useEditorSessionsStore.getState().setPendingTabClose(null);
+				return;
+			}
+		}
+	} catch (error) {
+		console.error("[editorCoordinator] Failed to save before closing tab", {
+			tabId: pending.tabId,
+			workspaceId,
+			error,
+		});
+		const currentPending = useEditorSessionsStore.getState().pendingTabClose;
+		if (
+			currentPending?.tabId === pending.tabId &&
+			currentPending.workspaceId === workspaceId
+		) {
+			useEditorSessionsStore
+				.getState()
+				.setPendingTabClose({ ...currentPending, isSaving: false });
+		}
+		return;
+	}
+
+	useEditorSessionsStore.getState().setPendingTabClose(null);
+	useTabsStore.getState().removeTab(pending.tabId);
+}
+
+export function discardAndClosePendingTab(workspaceId: string): void {
+	const pending = useEditorSessionsStore.getState().pendingTabClose;
+	if (!pending || pending.workspaceId !== workspaceId) {
+		return;
+	}
+
+	for (const documentKey of pending.documentKeys) {
+		if (isDocumentExclusivelyBoundToTab(documentKey, pending.tabId)) {
+			discardDocumentChanges(documentKey);
 		}
 	}
 
@@ -629,20 +716,11 @@ export async function saveAndClosePendingTab(): Promise<void> {
 	useTabsStore.getState().removeTab(pending.tabId);
 }
 
-export function discardAndClosePendingTab(): void {
+export function cancelPendingTabClose(workspaceId: string): void {
 	const pending = useEditorSessionsStore.getState().pendingTabClose;
-	if (!pending) {
+	if (!pending || pending.workspaceId !== workspaceId) {
 		return;
 	}
 
-	for (const documentKey of pending.documentKeys) {
-		discardDocumentChanges(documentKey);
-	}
-
-	useEditorSessionsStore.getState().setPendingTabClose(null);
-	useTabsStore.getState().removeTab(pending.tabId);
-}
-
-export function cancelPendingTabClose(): void {
 	useEditorSessionsStore.getState().setPendingTabClose(null);
 }

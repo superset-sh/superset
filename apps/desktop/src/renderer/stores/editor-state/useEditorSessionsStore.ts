@@ -6,6 +6,10 @@ import type {
 	PendingTabCloseState,
 } from "./types";
 
+type EditorSessionPatch = Partial<
+	Pick<EditorSessionMeta, "pendingIntent" | "autoPinnedBecauseDirty" | "dialog">
+>;
+
 interface EditorSessionsStoreState {
 	sessions: Record<string, EditorSessionMeta>;
 	pendingTabClose: PendingTabCloseState | null;
@@ -14,7 +18,7 @@ interface EditorSessionsStoreState {
 		previousDocumentKey: string,
 		nextDocumentKey: string,
 	) => void;
-	patchSession: (paneId: string, patch: Partial<EditorSessionMeta>) => void;
+	patchSession: (paneId: string, patch: EditorSessionPatch) => void;
 	setPendingIntent: (
 		paneId: string,
 		intent: EditorPendingIntent | null,

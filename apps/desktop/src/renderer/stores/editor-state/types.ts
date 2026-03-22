@@ -41,6 +41,7 @@ export interface EditorSessionMeta {
 }
 
 export interface PendingTabCloseState {
+	workspaceId: string;
 	tabId: string;
 	paneIds: string[];
 	documentKeys: string[];

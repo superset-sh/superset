@@ -1,16 +1,15 @@
 import { create } from "zustand";
 import type { EditorDocumentState } from "./types";
 
+type EditorDocumentPatch = Partial<Omit<EditorDocumentState, "documentKey">>;
+
 interface EditorDocumentsStoreState {
 	documents: Record<string, EditorDocumentState>;
 	upsertDocument: (
 		document: Omit<EditorDocumentState, "sessionPaneIds" | "contentVersion"> &
 			Partial<Pick<EditorDocumentState, "sessionPaneIds" | "contentVersion">>,
 	) => void;
-	patchDocument: (
-		documentKey: string,
-		patch: Partial<EditorDocumentState>,
-	) => void;
+	patchDocument: (documentKey: string, patch: EditorDocumentPatch) => void;
 	addSessionBinding: (documentKey: string, paneId: string) => void;
 	removeSessionBinding: (documentKey: string, paneId: string) => void;
 	replaceDocumentKey: (
@@ -65,6 +64,7 @@ export const useEditorDocumentsStore = create<EditorDocumentsStoreState>(
 						[documentKey]: {
 							...existing,
 							...patch,
+							documentKey,
 						},
 					},
 				};
@@ -111,23 +111,55 @@ export const useEditorDocumentsStore = create<EditorDocumentsStoreState>(
 		replaceDocumentKey: (previousDocumentKey, nextDocument) => {
 			set((state) => {
 				const previous = state.documents[previousDocumentKey];
+				const destination = state.documents[nextDocument.documentKey];
 				const documents = { ...state.documents };
 				delete documents[previousDocumentKey];
+
+				const mergedConflict =
+					nextDocument.conflict ??
+					destination?.conflict ??
+					previous?.conflict ??
+					null;
+				const mergedDirty = Boolean(
+					destination?.dirty || nextDocument.dirty || previous?.dirty,
+				);
+				const mergedSessionPaneIds = Array.from(
+					new Set([
+						...(destination?.sessionPaneIds ?? []),
+						...(nextDocument.sessionPaneIds ?? previous?.sessionPaneIds ?? []),
+					]),
+				);
+				const mergedContentVersion = Math.max(
+					destination?.contentVersion ?? 0,
+					nextDocument.contentVersion ?? previous?.contentVersion ?? 0,
+				);
 
 				documents[nextDocument.documentKey] = {
 					documentKey: nextDocument.documentKey,
 					workspaceId: nextDocument.workspaceId,
 					filePath: nextDocument.filePath,
-					status: nextDocument.status,
-					dirty: nextDocument.dirty,
-					baselineRevision: nextDocument.baselineRevision,
-					hasExternalDiskChange: nextDocument.hasExternalDiskChange,
-					conflict: nextDocument.conflict,
+					status:
+						mergedConflict !== null
+							? "conflict"
+							: nextDocument.status === "saving" ||
+									destination?.status === "saving"
+								? "saving"
+								: nextDocument.status,
+					dirty: mergedDirty,
+					baselineRevision:
+						nextDocument.baselineRevision ??
+						destination?.baselineRevision ??
+						previous?.baselineRevision ??
+						null,
+					hasExternalDiskChange: Boolean(
+						destination?.hasExternalDiskChange ||
+							nextDocument.hasExternalDiskChange ||
+							previous?.hasExternalDiskChange,
+					),
+					conflict: mergedConflict,
 					isEditable: nextDocument.isEditable,
-					sessionPaneIds:
-						nextDocument.sessionPaneIds ?? previous?.sessionPaneIds ?? [],
-					contentVersion:
-						nextDocument.contentVersion ?? previous?.contentVersion ?? 0,
+					sessionPaneIds: mergedSessionPaneIds,
+					contentVersion: mergedContentVersion,
 				};
 
 				return { documents };

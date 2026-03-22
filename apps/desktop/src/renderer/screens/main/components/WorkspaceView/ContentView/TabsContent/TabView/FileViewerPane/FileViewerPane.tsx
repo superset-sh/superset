@@ -221,7 +221,6 @@ export function FileViewerPane({
 		diffCategory,
 		commitHash,
 		oldPath,
-		isDirty,
 	});
 
 	useEffect(() => {
@@ -499,9 +498,19 @@ export function FileViewerPane({
 	}, [paneId, performFileSave]);
 
 	const handleDiscardPendingIntent = useCallback(() => {
-		discardDocumentChanges(documentKey);
+		if (
+			session?.pendingIntent?.type === "change-view-mode" ||
+			(documentState?.sessionPaneIds.length ?? 0) <= 1
+		) {
+			discardDocumentChanges(documentKey);
+		}
 		resumePendingIntent(paneId);
-	}, [documentKey, paneId]);
+	}, [
+		documentKey,
+		documentState?.sessionPaneIds.length,
+		paneId,
+		session?.pendingIntent?.type,
+	]);
 
 	const handleCloseUnsavedDialog = useCallback(
 		(open: boolean) => {

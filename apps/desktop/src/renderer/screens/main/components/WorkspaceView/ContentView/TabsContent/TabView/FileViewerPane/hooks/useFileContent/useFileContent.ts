@@ -18,7 +18,6 @@ interface UseFileContentParams {
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
 	oldPath?: string;
-	isDirty: boolean;
 }
 
 function isBinaryText(content: string): boolean {
@@ -39,7 +38,6 @@ export function useFileContent({
 	diffCategory,
 	commitHash,
 	oldPath,
-	isDirty,
 }: UseFileContentParams) {
 	// For remote URLs (e.g. Vercel Blob), skip all IPC queries
 	const isRemote =
@@ -229,7 +227,7 @@ export function useFileContent({
 		isLoadingImage: isRemote ? false : imageQuery.isLoading,
 		diffData,
 		isLoadingDiff,
-		rawRevision: !isDirty ? (rawQuery.data?.revision ?? null) : null,
-		workingCopyRevision: !isDirty ? (workingCopy?.revision ?? null) : null,
+		rawRevision: rawQuery.data?.revision ?? null,
+		workingCopyRevision: workingCopy?.revision ?? null,
 	};
 }
