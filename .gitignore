@@ -84,3 +84,8 @@ superset-dev-data/
 !.codex/config.toml
 !.codex/commands
 !.codex/prompts
+
+# Kilo Code workspace config (track MCP config and skills; ignore runtime state)
+.kilocode/*
+!.kilocode/mcp.json
+!.kilocode/skills
