@@ -9,7 +9,7 @@ interface V2OpenInMenuButtonProps {
 	workspaceId: string;
 }
 
-function V2OpenInMenuButtonInner({
+export function V2OpenInMenuButton({
 	branch,
 	hostUrl,
 	projectId,
@@ -32,22 +32,6 @@ function V2OpenInMenuButtonInner({
 			branch={branch}
 			projectId={projectId}
 			worktreePath={workspaceQuery.data.worktreePath}
-		/>
-	);
-}
-
-export function V2OpenInMenuButton({
-	branch,
-	hostUrl,
-	projectId,
-	workspaceId,
-}: V2OpenInMenuButtonProps) {
-	return (
-		<V2OpenInMenuButtonInner
-			branch={branch}
-			hostUrl={hostUrl}
-			projectId={projectId}
-			workspaceId={workspaceId}
 		/>
 	);
 }

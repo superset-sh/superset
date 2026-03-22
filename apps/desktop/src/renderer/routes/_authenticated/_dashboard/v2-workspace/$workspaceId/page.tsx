@@ -1,11 +1,11 @@
 import type { ExternalApp } from "@superset/local-db";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	CommandPalette,
@@ -16,21 +16,10 @@ import { WorkspaceChat } from "./components/WorkspaceChat";
 import { WorkspaceFiles } from "./components/WorkspaceFiles";
 import { WorkspaceTerminal } from "./components/WorkspaceTerminal";
 
-type V2WorkspaceSearch = {
-	file?: string;
-	view?: "overview" | "chat" | "files";
-};
-
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId/",
 )({
 	component: V2WorkspacePage,
-	validateSearch: (search: Record<string, unknown>): V2WorkspaceSearch => ({
-		file: typeof search.file === "string" ? search.file : undefined,
-		view: ["overview", "chat", "files"].includes(search.view as string)
-			? (search.view as V2WorkspaceSearch["view"])
-			: undefined,
-	}),
 });
 
 function V2WorkspacePage() {
@@ -82,6 +71,7 @@ function V2WorkspacePage() {
 	return (
 		<V2WorkspaceContent
 			canOpenInApp={workspace.deviceId === currentDevice?.id}
+			key={workspace.id}
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
 			workspaceBranch={workspace.branch}
@@ -107,8 +97,10 @@ function V2WorkspaceContent({
 	workspaceId: string;
 }) {
 	const navigate = Route.useNavigate();
-	const { file: selectedFilePath, view } = Route.useSearch();
-	const activeView = view ?? "overview";
+	const [activeView, setActiveView] = useState<"overview" | "chat" | "files">(
+		"overview",
+	);
+	const [selectedFilePath, setSelectedFilePath] = useState<string>();
 	const healthQuery = workspaceTrpc.health.info.useQuery();
 	const githubUserQuery = workspaceTrpc.github.getUser.useQuery();
 	const gitStatusQuery = workspaceTrpc.workspace.gitStatus.useQuery({
@@ -137,38 +129,24 @@ function V2WorkspaceContent({
 			close,
 			filePath,
 			targetWorkspaceId,
-			navigate: routerNavigate,
+			navigate: _routerNavigate,
 		}) => {
 			close();
-			void routerNavigate({
-				to: "/v2-workspace/$workspaceId",
-				params: { workspaceId: targetWorkspaceId },
-				search: (current) => ({
-					...current,
-					file: filePath,
-					view: "files",
-				}),
-			});
+			if (targetWorkspaceId !== workspaceId) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: targetWorkspaceId },
+				});
+				return;
+			}
+			setSelectedFilePath(filePath);
+			setActiveView("files");
 		},
 	});
 
-	const setActiveView = (nextView: "overview" | "chat" | "files") => {
-		void navigate({
-			search: (current) => ({
-				...current,
-				view: nextView,
-			}),
-		});
-	};
-
 	const handleSelectFile = (absolutePath: string) => {
-		void navigate({
-			search: (current) => ({
-				...current,
-				file: absolutePath,
-				view: "files",
-			}),
-		});
+		setSelectedFilePath(absolutePath);
+		setActiveView("files");
 	};
 
 	const handleQuickOpen = () => {
