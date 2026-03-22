@@ -162,7 +162,7 @@ export function PresetEditorSheet({
 
 						<div className="flex-1 overflow-y-auto p-4 space-y-6">
 							<div className="space-y-4">
-								<p className={sectionHeadingClassName}>Preset</p>
+								<p className={sectionHeadingClassName}>Essentials</p>
 
 								<div className="space-y-2">
 									<LabelWithTooltip
@@ -197,6 +197,36 @@ export function PresetEditorSheet({
 										placeholder="e.g. Starts the dev server (optional)"
 									/>
 								</div>
+
+								<div className="space-y-2">
+									<LabelWithTooltip
+										label="Commands"
+										tooltip="Each row is one command. Add multiple commands to run a grouped preset."
+									/>
+									<CommandsEditor
+										commands={preset.commands}
+										onChange={onCommandsChange}
+										onBlur={onCommandsBlur}
+										placeholder="e.g. bun run dev"
+									/>
+								</div>
+
+								<div className="space-y-2">
+									<LabelWithTooltip
+										label="Commands"
+										tooltip="Each row is one command. Add multiple commands to run a grouped preset."
+									/>
+									<CommandsEditor
+										commands={preset.commands}
+										onChange={onCommandsChange}
+										onBlur={onCommandsBlur}
+										placeholder="e.g. bun run dev"
+									/>
+								</div>
+							</div>
+
+							<div className="space-y-4 border-t border-border/40 pt-5">
+								<p className={sectionHeadingClassName}>Advanced</p>
 
 								<div className="space-y-2">
 									<LabelWithTooltip
@@ -268,23 +298,6 @@ export function PresetEditorSheet({
 											</p>
 										) : null}
 									</div>
-								</div>
-							</div>
-
-							<div className="space-y-4 border-t border-border/40 pt-5">
-								<p className={sectionHeadingClassName}>Execution</p>
-
-								<div className="space-y-2">
-									<LabelWithTooltip
-										label="Commands"
-										tooltip="Each row is one command. Add multiple commands to run a grouped preset."
-									/>
-									<CommandsEditor
-										commands={preset.commands}
-										onChange={onCommandsChange}
-										onBlur={onCommandsBlur}
-										placeholder="e.g. bun run dev"
-									/>
 								</div>
 
 								<div className="space-y-2">
