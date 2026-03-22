@@ -53,7 +53,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 		"GitHub's coding agent for planning, editing, and building in your repo.",
 	"cursor-agent":
 		"Cursor's coding agent for editing, running, and debugging code in parallel.",
-	kilocode: "Kilo Code's coding agent for VS Code and CLI.",
+	kilocode: "Kilo Code's coding agent for terminal workflows.",
 };
 
 export interface AgentPromptCommandDefaults {
