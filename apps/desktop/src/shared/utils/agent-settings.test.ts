@@ -85,17 +85,20 @@ describe("resolveAgentConfigs", () => {
 		});
 	});
 
-	test("repairs stale default prompt command when command override exists", () => {
+	test("preserves explicit prompt command override when command is overridden", () => {
+		const codexDefinition = getBuiltinAgentDefinition("codex");
+		if (codexDefinition.kind !== "terminal") {
+			throw new Error("Expected terminal codex definition");
+		}
+
 		const codex = resolveAgentConfigs({
 			overrideEnvelope: {
 				version: 1,
 				presets: [
 					{
 						id: "codex",
-						command:
-							'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-						promptCommand:
-							'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+						command: "codex --custom-command",
+						promptCommand: codexDefinition.defaultPromptCommand,
 					},
 				],
 			},
@@ -104,10 +107,8 @@ describe("resolveAgentConfigs", () => {
 		expect(codex).toMatchObject({
 			id: "codex",
 			kind: "terminal",
-			command:
-				'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-			promptCommand:
-				'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+			command: "codex --custom-command",
+			promptCommand: codexDefinition.defaultPromptCommand,
 		});
 	});
 });
