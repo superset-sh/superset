@@ -93,7 +93,7 @@ export function ProjectTargetingField({
 			<RadioGroup
 				value={appliesToValue}
 				onValueChange={handleAppliesToChange}
-				className="gap-3"
+				className="gap-4"
 			>
 				<div className="flex items-start gap-2">
 					<RadioGroupItem
@@ -120,7 +120,7 @@ export function ProjectTargetingField({
 						disabled={projects.length === 0}
 						className={radioItemClassName}
 					/>
-					<div className="min-w-0 flex-1 space-y-2">
+					<div className="min-w-0 flex-1 space-y-2.5">
 						<div className="space-y-0.5">
 							<label
 								htmlFor="preset-project-scope-specific"

@@ -296,7 +296,7 @@ export function PresetEditorSheet({
 											onValueChange={(value) =>
 												onModeChange(value as ExecutionMode)
 											}
-											className="gap-3 pt-1"
+											className="gap-4 pt-1"
 										>
 											<div className="flex items-start gap-2">
 												<RadioGroupItem
@@ -365,7 +365,7 @@ export function PresetEditorSheet({
 										tooltip="Choose when this preset should run automatically."
 									/>
 
-									<div className="space-y-3">
+									<div className="space-y-4">
 										<div className="flex items-start gap-3">
 											<Checkbox
 												id="preset-workspace-autostart"
