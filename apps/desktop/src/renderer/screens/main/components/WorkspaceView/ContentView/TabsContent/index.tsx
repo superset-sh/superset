@@ -2,7 +2,10 @@ import type { ExternalApp } from "@superset/local-db";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
+import {
+	resolveActiveTabIdForWorkspace,
+	tabContainsPaneType,
+} from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
@@ -19,23 +22,8 @@ export function TabsContent({
 }: TabsContentProps) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
+	const allPanes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
-
-	// Derive which tab IDs contain webview-based panes (webview or devtools).
-	// Uses a custom equality function so the component only re-renders when
-	// the set of keepalive tab IDs actually changes, not on every pane mutation.
-	const keepAliveTabIds = useTabsStore(
-		(s) => {
-			const ids = new Set<string>();
-			for (const pane of Object.values(s.panes)) {
-				if (pane.type === "webview" || pane.type === "devtools") {
-					ids.add(pane.tabId);
-				}
-			}
-			return ids;
-		},
-		(a, b) => a.size === b.size && [...a].every((id) => b.has(id)),
-	);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const contentRef = useRef<HTMLDivElement>(null);
 	const hasMountedRef = useRef(false);
@@ -71,9 +59,12 @@ export function TabsContent({
 			allTabs.filter((tab) => {
 				if (tab.workspaceId !== activeWorkspaceId) return false;
 				if (tab.id === activeTabId) return true;
-				return keepAliveTabIds.has(tab.id);
+				return tabContainsPaneType(tab, allPanes, [
+					"webview",
+					"devtools",
+				]);
 			}),
-		[activeTabId, keepAliveTabIds, allTabs, activeWorkspaceId],
+		[activeTabId, allPanes, allTabs, activeWorkspaceId],
 	);
 
 	useEffect(() => {
