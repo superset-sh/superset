@@ -77,6 +77,7 @@ export function TabPane({
 	const getPasteCallback = useTerminalCallbacksStore((s) => s.getPasteCallback);
 
 	useEffect(() => {
+		if (!isActive) return;
 		const container = terminalContainerRef.current;
 		if (container) {
 			registerPaneRef(paneId, container);
@@ -84,7 +85,7 @@ export function TabPane({
 		return () => {
 			unregisterPaneRef(paneId);
 		};
-	}, [paneId]);
+	}, [paneId, isActive]);
 
 	const handleClearTerminal = () => {
 		getClearCallback(paneId)?.();
