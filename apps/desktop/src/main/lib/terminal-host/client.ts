@@ -28,7 +28,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
+import { throwIfAborted } from "../terminal/abort";
+import { TerminalAttachCanceledError } from "../terminal/errors";
 import {
+	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
 	type CreateOrAttachResponse,
@@ -170,6 +173,7 @@ export class TerminalHostClient extends EventEmitter {
 	private notifyDrainArmed = false;
 	private disconnectArmed = false;
 	private clientId = randomUUID();
+	private canceledCreateOrAttachKeys = new Set<string>();
 
 	constructor() {
 		super();
@@ -259,35 +263,88 @@ export class TerminalHostClient extends EventEmitter {
 
 	/**
 	 * Try to connect and authenticate to an existing daemon without spawning.
-	 * Returns true if successfully connected and authenticated, false if no daemon running.
+	 * Returns true if successfully connected and authenticated, false only when
+	 * there is definitively no daemon/socket to connect to.
 	 * This is useful for cleanup operations that should only act on existing daemons.
 	 */
 	async tryConnectAndAuthenticate(): Promise<boolean> {
 		// Already connected and authenticated (control socket is sufficient here)
 		if (this.controlSocket && this.controlAuthenticated) return true;
 
-		// Don't interfere with an in-progress connection
 		if (this.connectionState === ConnectionState.CONNECTING) {
-			return false;
+			return this.waitForExistingDaemonProbe();
 		}
 
 		this.connectionState = ConnectionState.CONNECTING;
 
 		try {
+			const socketPathExisted = existsSync(SOCKET_PATH);
 			const connected = await this.tryConnectControl();
 			if (!connected) {
 				this.resetConnectionState({ emitDisconnected: false });
-				return false;
+				if (!socketPathExisted && !existsSync(SOCKET_PATH)) {
+					return false;
+				}
+				throw new Error(
+					"Existing terminal daemon probe failed while a socket path was present",
+				);
 			}
 
 			const token = this.readAuthToken();
 			await this.authenticateControl({ token });
 			this.connectionState = ConnectionState.CONNECTED; // control-only
 			return true;
-		} catch (_error) {
+		} catch (error) {
 			this.resetConnectionState({ emitDisconnected: false });
+			throw error;
+		}
+	}
+
+	async listSessionsIfRunning(): Promise<ListSessionsResponse | null> {
+		const connected = await this.tryConnectAndAuthenticate();
+		if (!connected) return null;
+
+		const response = await this.sendRequest<ListSessionsResponse>(
+			"listSessions",
+			undefined,
+		);
+		return {
+			sessions: response.sessions.map((session) => ({
+				...session,
+				pid: session.pid ?? null,
+			})),
+		};
+	}
+
+	private async waitForExistingDaemonProbe(): Promise<boolean> {
+		const startTime = Date.now();
+		const WAIT_TIMEOUT_MS = 10_000;
+
+		while (this.connectionState === ConnectionState.CONNECTING) {
+			if (this.controlSocket && this.controlAuthenticated) {
+				return true;
+			}
+
+			if (Date.now() - startTime > WAIT_TIMEOUT_MS) {
+				throw new Error(
+					"Timeout waiting for an existing terminal daemon probe to finish",
+				);
+			}
+
+			await this.sleep(100);
+		}
+
+		if (this.controlSocket && this.controlAuthenticated) {
+			return true;
+		}
+
+		if (!existsSync(SOCKET_PATH)) {
 			return false;
 		}
+
+		throw new Error(
+			"Existing terminal daemon probe finished without an authenticated control connection",
+		);
 	}
 
 	/**
@@ -296,24 +353,29 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
 		for (let attempt = 0; attempt < 2; attempt++) {
-			if (attempt === 0 && process.env.NODE_ENV === "development") {
-				if (this.isDaemonScriptStale()) {
-					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Daemon script rebuilt, restarting...",
-						);
-					}
-					this.killDaemonFromPidFile();
-					await this.waitForDaemonShutdown();
+			if (
+				attempt === 0 &&
+				process.env.NODE_ENV === "development" &&
+				this.isDaemonScriptStale()
+			) {
+				if (DEBUG_CLIENT) {
+					console.log(
+						"[TerminalHostClient] Daemon script rebuilt, restarting...",
+					);
 				}
+				this.resetConnectionState({ emitDisconnected: false });
+				this.killDaemonFromPidFile();
+				await this.waitForDaemonShutdown();
 			}
 
-			let controlConnected = await this.tryConnectControl();
-			if (!controlConnected) {
-				await this.spawnDaemon();
-				controlConnected = await this.tryConnectControl();
+			if (!this.controlSocket) {
+				let controlConnected = await this.tryConnectControl();
 				if (!controlConnected) {
-					throw new Error("Failed to connect control socket after spawn");
+					await this.spawnDaemon();
+					controlConnected = await this.tryConnectControl();
+					if (!controlConnected) {
+						throw new Error("Failed to connect control socket after spawn");
+					}
 				}
 			}
 
@@ -336,30 +398,36 @@ export class TerminalHostClient extends EventEmitter {
 				throw error;
 			}
 
-			try {
-				await this.authenticateControl({ token });
-			} catch (error) {
-				if (attempt === 0 && this.isProtocolMismatchError(error)) {
-					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
-						);
+			if (!this.controlAuthenticated) {
+				try {
+					await this.authenticateControl({ token });
+				} catch (error) {
+					if (attempt === 0 && this.isProtocolMismatchError(error)) {
+						if (DEBUG_CLIENT) {
+							console.log(
+								"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
+							);
+						}
+						this.resetConnectionState({ emitDisconnected: false });
+						await this.shutdownLegacyDaemon();
+						await this.waitForDaemonShutdown();
+						await this.spawnDaemon();
+						continue;
 					}
-					this.resetConnectionState({ emitDisconnected: false });
-					await this.shutdownLegacyDaemon();
-					await this.waitForDaemonShutdown();
-					await this.spawnDaemon();
-					continue;
+					throw error;
 				}
-				throw error;
 			}
 
-			const streamConnected = await this.tryConnectStream();
-			if (!streamConnected) {
-				throw new Error("Failed to connect stream socket");
+			if (!this.streamSocket) {
+				const streamConnected = await this.tryConnectStream();
+				if (!streamConnected) {
+					throw new Error("Failed to connect stream socket");
+				}
 			}
 
-			await this.authenticateStream({ token });
+			if (!this.streamAuthenticated) {
+				await this.authenticateStream({ token });
+			}
 			this.setupStreamSocketHandlers();
 			return;
 		}
@@ -433,6 +501,14 @@ export class TerminalHostClient extends EventEmitter {
 				return;
 			}
 
+			try {
+				this.controlSocket?.destroy();
+			} catch {
+				// Ignore
+			}
+			this.controlSocket = null;
+			this.controlAuthenticated = false;
+
 			const socket = connect(SOCKET_PATH);
 			let resolved = false;
 
@@ -472,6 +548,14 @@ export class TerminalHostClient extends EventEmitter {
 				resolve(false);
 				return;
 			}
+
+			try {
+				this.streamSocket?.destroy();
+			} catch {
+				// Ignore
+			}
+			this.streamSocket = null;
+			this.streamAuthenticated = false;
 
 			const socket = connect(SOCKET_PATH);
 			let resolved = false;
@@ -652,6 +736,7 @@ export class TerminalHostClient extends EventEmitter {
 		this.controlAuthenticated = false;
 		this.streamAuthenticated = false;
 		this.connectionState = ConnectionState.DISCONNECTED;
+		this.canceledCreateOrAttachKeys.clear();
 
 		this.notifyQueue = [];
 		this.notifyQueueBytes = 0;
@@ -1279,6 +1364,16 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
+	private getCreateOrAttachKey({
+		sessionId,
+		requestId,
+	}: {
+		sessionId: string;
+		requestId: string;
+	}): string {
+		return `${sessionId}:${requestId}`;
+	}
+
 	// ===========================================================================
 	// Public API
 	// ===========================================================================
@@ -1288,14 +1383,49 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	async createOrAttach(
 		request: CreateOrAttachRequest,
+		signal?: AbortSignal,
 	): Promise<CreateOrAttachResponse> {
+		throwIfAborted(signal);
 		await this.ensureConnected();
+		throwIfAborted(signal);
+		if (
+			request.requestId &&
+			this.canceledCreateOrAttachKeys.delete(
+				this.getCreateOrAttachKey({
+					sessionId: request.sessionId,
+					requestId: request.requestId,
+				}),
+			)
+		) {
+			throw new TerminalAttachCanceledError();
+		}
 		const response = await this.sendRequest<CreateOrAttachResponse>(
 			"createOrAttach",
 			request,
 		);
 		// Version skew: older daemons may not return pid - normalize undefined → null
 		return { ...response, pid: response.pid ?? null };
+	}
+
+	/**
+	 * Cancel an in-flight createOrAttach request if the daemon is already connected.
+	 * This is best-effort and intentionally does not spawn or reconnect the daemon.
+	 */
+	async cancelCreateOrAttach(
+		request: CancelCreateOrAttachRequest,
+	): Promise<EmptyResponse> {
+		if (this.connectionState === ConnectionState.CONNECTING) {
+			this.canceledCreateOrAttachKeys.add(this.getCreateOrAttachKey(request));
+		}
+		if (
+			this.connectionState !== ConnectionState.CONNECTED ||
+			!this.controlSocket ||
+			!this.controlAuthenticated
+		) {
+			return { success: true };
+		}
+
+		return this.sendRequest<EmptyResponse>("cancelCreateOrAttach", request);
 	}
 
 	/**
@@ -1382,9 +1512,11 @@ export class TerminalHostClient extends EventEmitter {
 			"listSessions",
 			undefined,
 		);
-		// Version skew: older daemons may not return pid - normalize undefined → null
 		return {
-			sessions: response.sessions.map((s) => ({ ...s, pid: s.pid ?? null })),
+			sessions: response.sessions.map((session) => ({
+				...session,
+				pid: session.pid ?? null,
+			})),
 		};
 	}
 
@@ -1420,22 +1552,26 @@ export class TerminalHostClient extends EventEmitter {
 		request: ShutdownRequest = {},
 	): Promise<{ wasRunning: boolean }> {
 		// Avoid spawning a daemon if none exists.
-		const connected = await this.tryConnectControl();
+		const connected =
+			(this.controlSocket && this.controlAuthenticated) ||
+			(await this.tryConnectControl());
 		if (!connected) return { wasRunning: false };
 
 		try {
-			const token = this.readAuthToken();
-			try {
-				await this.authenticateControl({ token });
-			} catch (error) {
-				if (this.isProtocolMismatchError(error)) {
-					this.resetConnectionState({ emitDisconnected: false });
-					await this.shutdownLegacyDaemon({
-						killSessions: request.killSessions ?? false,
-					});
-					return { wasRunning: true };
+			if (!this.controlAuthenticated) {
+				const token = this.readAuthToken();
+				try {
+					await this.authenticateControl({ token });
+				} catch (error) {
+					if (this.isProtocolMismatchError(error)) {
+						this.resetConnectionState({ emitDisconnected: false });
+						await this.shutdownLegacyDaemon({
+							killSessions: request.killSessions ?? false,
+						});
+						return { wasRunning: true };
+					}
+					throw error;
 				}
-				throw error;
 			}
 
 			await this.sendRequest<EmptyResponse>("shutdown", request);

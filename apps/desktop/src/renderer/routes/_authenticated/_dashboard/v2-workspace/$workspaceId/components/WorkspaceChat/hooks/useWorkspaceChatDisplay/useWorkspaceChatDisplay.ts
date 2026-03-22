@@ -1,7 +1,7 @@
 import type { AppRouter } from "@superset/host-service";
+import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 
 interface UseChatDisplayOptions {
 	sessionId: string | null;

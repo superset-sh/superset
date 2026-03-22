@@ -1,6 +1,10 @@
 export { createApiClient } from "./api";
 export { type CreateAppOptions, createApp } from "./app";
 export type { HostDb } from "./db";
+export {
+	buildWorkspaceFilesystemEventsPath,
+	type WorkspaceFilesystemServerMessage,
+} from "./filesystem";
 export type { AuthProvider } from "./providers/auth";
 export {
 	DeviceKeyAuthProvider,

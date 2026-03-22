@@ -4,6 +4,7 @@ import {
 	PromptInputProvider,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
@@ -15,7 +16,6 @@ import type {
 } from "renderer/components/Chat/ChatInterface/types";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
-import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import {
 	type UseChatDisplayReturn,

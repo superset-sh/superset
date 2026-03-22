@@ -4,8 +4,16 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
-import { ComparisonJsonLd } from "@/components/JsonLd";
+import {
+	BreadcrumbJsonLd,
+	ComparisonJsonLd,
+	FAQPageJsonLd,
+} from "@/components/JsonLd";
 import { getAllComparisonSlugs, getComparisonPage } from "@/lib/compare";
+import {
+	extractComparisonFaqItems,
+	getComparisonPageTypeLabel,
+} from "@/lib/compare-utils";
 import { CompareLayout } from "./components/CompareLayout";
 
 interface PageProps {
@@ -21,6 +29,7 @@ export default async function ComparePageRoute({ params }: PageProps) {
 	}
 
 	const url = `${COMPANY.MARKETING_URL}/compare/${slug}`;
+	const faqItems = extractComparisonFaqItems(page.content);
 
 	return (
 		<main>
@@ -35,7 +44,17 @@ export default async function ComparePageRoute({ params }: PageProps) {
 				}
 				url={url}
 				image={page.image}
+				keywords={page.keywords}
+				articleSection={getComparisonPageTypeLabel(page.type)}
 			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Compare", url: `${COMPANY.MARKETING_URL}/compare` },
+					{ name: page.title, url },
+				]}
+			/>
+			{faqItems.length > 0 && <FAQPageJsonLd items={faqItems} />}
 			<CompareLayout page={page}>
 				<MDXRemote
 					source={page.content}
@@ -66,6 +85,7 @@ export async function generateMetadata({
 	return {
 		title: `${page.title} | ${COMPANY.NAME}`,
 		description: page.description,
+		...(page.keywords.length > 0 && { keywords: page.keywords }),
 		alternates: {
 			canonical: url,
 		},

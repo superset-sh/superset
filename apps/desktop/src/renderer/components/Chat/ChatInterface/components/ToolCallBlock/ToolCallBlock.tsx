@@ -557,6 +557,15 @@ export function ToolCallBlock({
 		return <StartAgentSessionToolCall part={part} />;
 	}
 
+	if (toolName === "start_agent_session_with_prompt") {
+		return (
+			<StartAgentSessionToolCall
+				part={part}
+				toolName="Start agent session with prompt"
+			/>
+		);
+	}
+
 	// --- Read-only exploration tools ---
 	if (READ_ONLY_TOOLS.has(toolName)) {
 		return <ReadOnlyToolCall part={part} onOpenFileInPane={openFileInPane} />;

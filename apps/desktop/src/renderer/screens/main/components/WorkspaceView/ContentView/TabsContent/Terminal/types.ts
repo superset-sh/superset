@@ -59,6 +59,8 @@ export interface ColdRestoreState {
  */
 export interface CreateOrAttachInput {
 	paneId: string;
+	requestId?: string;
+	joinPending?: boolean;
 	tabId: string;
 	workspaceId: string;
 	cols?: number;
@@ -117,6 +119,15 @@ export interface TerminalDetachInput {
 }
 
 export type TerminalDetachMutate = (input: TerminalDetachInput) => void;
+
+export interface TerminalCancelCreateOrAttachInput {
+	paneId: string;
+	requestId: string;
+}
+
+export type TerminalCancelCreateOrAttachMutate = (
+	input: TerminalCancelCreateOrAttachInput,
+) => void;
 
 export interface TerminalClearScrollbackInput {
 	paneId: string;

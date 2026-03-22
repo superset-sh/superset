@@ -8,6 +8,7 @@ import { Label } from "@superset/ui/label";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { PresetEditorSheet } from "./components/PresetEditorSheet";
@@ -18,12 +19,15 @@ import {
 	PRESET_TEMPLATES,
 	type PresetTemplate,
 } from "./constants";
+import type { PresetProjectOption } from "./preset-project-options";
 
 interface PresetsSectionProps {
 	showPresets: boolean;
 	showQuickAdd: boolean;
 	editingPresetId?: string | null;
 	onEditingPresetIdChange?: (presetId: string | null) => void;
+	pendingCreateProjectId?: string | null;
+	onPendingCreateProjectIdChange?: (projectId: string | null) => void;
 }
 
 export function PresetsSection({
@@ -31,8 +35,12 @@ export function PresetsSection({
 	showQuickAdd,
 	editingPresetId: editingPresetIdFromRoute,
 	onEditingPresetIdChange,
+	pendingCreateProjectId,
+	onPendingCreateProjectIdChange,
 }: PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
+	const { data: groupedProjects = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const {
 		presets: serverPresets,
 		isLoading: isLoadingPresets,
@@ -55,6 +63,22 @@ export function PresetsSection({
 		new Set(serverPresets.map((preset) => preset.id)),
 	);
 	const shouldOpenNewPresetEditorRef = useRef(false);
+	const lastHandledCreateProjectIdRef = useRef<string | null>(null);
+
+	const projectOptions = useMemo<PresetProjectOption[]>(
+		() =>
+			groupedProjects.map((group) => ({
+				id: group.project.id,
+				name: group.project.name,
+				color: group.project.color,
+				mainRepoPath: group.project.mainRepoPath,
+			})),
+		[groupedProjects],
+	);
+	const projectOptionsById = useMemo(
+		() => new Map(projectOptions.map((project) => [project.id, project])),
+		[projectOptions],
+	);
 
 	useEffect(() => {
 		serverPresetsRef.current = serverPresets;
@@ -231,15 +255,19 @@ export function PresetsSection({
 		[updatePreset],
 	);
 
-	const handleAddRow = useCallback(() => {
-		shouldOpenNewPresetEditorRef.current = true;
-		createPreset.mutate({
-			name: "",
-			cwd: "",
-			commands: [""],
-			executionMode: "new-tab",
-		});
-	}, [createPreset]);
+	const handleAddRow = useCallback(
+		(projectIds?: string[] | null) => {
+			shouldOpenNewPresetEditorRef.current = true;
+			createPreset.mutate({
+				name: "",
+				cwd: "",
+				commands: [""],
+				projectIds,
+				executionMode: "new-tab",
+			});
+		},
+		[createPreset],
+	);
 
 	const handleAddTemplate = useCallback(
 		(template: PresetTemplate) => {
@@ -248,6 +276,21 @@ export function PresetsSection({
 		},
 		[createPreset, existingPresetNames],
 	);
+
+	useEffect(() => {
+		if (!pendingCreateProjectId) {
+			lastHandledCreateProjectIdRef.current = null;
+			return;
+		}
+
+		if (lastHandledCreateProjectIdRef.current === pendingCreateProjectId) {
+			return;
+		}
+
+		lastHandledCreateProjectIdRef.current = pendingCreateProjectId;
+		handleAddRow([pendingCreateProjectId]);
+		onPendingCreateProjectIdChange?.(null);
+	}, [handleAddRow, onPendingCreateProjectIdChange, pendingCreateProjectId]);
 
 	const handleDeleteRow = useCallback(
 		(rowIndex: number) => {
@@ -308,14 +351,8 @@ export function PresetsSection({
 		setEditingPreset(null);
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
-	const isWorkspaceCreation = !!(
-		editingPreset?.applyOnWorkspaceCreated ||
-		(!editingPreset?.applyOnNewTab && editingPreset?.isDefault)
-	);
-	const isNewTab = !!(
-		editingPreset?.applyOnNewTab ||
-		(!editingPreset?.applyOnWorkspaceCreated && editingPreset?.isDefault)
-	);
+	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
 	const modeValue: ExecutionMode = hasMultipleCommands
@@ -353,6 +390,24 @@ export function PresetsSection({
 			updatePreset.mutate({
 				id: editingPreset.id,
 				patch: { cwd: value },
+			});
+		},
+		[editingPreset, editingRowIndex, updatePreset],
+	);
+
+	const handleEditorProjectIdsChange = useCallback(
+		(projectIds: string[] | null) => {
+			if (!editingPreset || editingRowIndex < 0) return;
+
+			setLocalPresets((prev) =>
+				prev.map((preset, index) =>
+					index === editingRowIndex ? { ...preset, projectIds } : preset,
+				),
+			);
+
+			updatePreset.mutate({
+				id: editingPreset.id,
+				patch: { projectIds },
 			});
 		},
 		[editingPreset, editingRowIndex, updatePreset],
@@ -402,7 +457,7 @@ export function PresetsSection({
 						variant="default"
 						size="sm"
 						className="gap-2"
-						onClick={handleAddRow}
+						onClick={() => handleAddRow()}
 					>
 						<HiOutlinePlus className="h-4 w-4" />
 						Add Preset
@@ -425,6 +480,7 @@ export function PresetsSection({
 					<PresetsTable
 						presets={localPresets}
 						isLoading={isLoadingPresets}
+						projectOptionsById={projectOptionsById}
 						presetsContainerRef={presetsContainerRef}
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
@@ -439,11 +495,13 @@ export function PresetsSection({
 
 			<PresetEditorSheet
 				preset={editingPreset}
+				projects={projectOptions}
 				open={!!editingPreset}
 				onOpenChange={(open) => !open && handleCloseEditor()}
 				onDeletePreset={handleDeleteEditingPreset}
 				onFieldChange={handleEditorFieldChange}
 				onFieldBlur={handleEditorFieldBlur}
+				onProjectIdsChange={handleEditorProjectIdsChange}
 				onDirectorySelect={handleEditorDirectorySelect}
 				onCommandsChange={handleEditorCommandsChange}
 				onCommandsBlur={handleEditorCommandsBlur}

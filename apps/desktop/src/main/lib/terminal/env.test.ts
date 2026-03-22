@@ -6,11 +6,20 @@ import {
 	getLocale,
 	normalizeDefaultShell,
 	removeAppEnvVars,
+	resetTerminalEnvCachesForTests,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
 } from "./env";
 
 describe("env", () => {
+	beforeEach(() => {
+		resetTerminalEnvCachesForTests();
+	});
+
+	afterEach(() => {
+		resetTerminalEnvCachesForTests();
+	});
+
 	describe("constants", () => {
 		it("should have FALLBACK_SHELL set to /bin/sh on non-Windows", () => {
 			// On macOS/Linux, fallback should be /bin/sh

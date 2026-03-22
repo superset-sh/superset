@@ -63,4 +63,5 @@ export type FsWatchEvent = {
 	kind: "create" | "update" | "delete" | "rename" | "overflow";
 	absolutePath: string;
 	oldAbsolutePath?: string;
+	isDirectory?: boolean;
 };

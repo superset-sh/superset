@@ -12,6 +12,10 @@
 			"types": "./src/db/index.ts",
 			"default": "./src/db/index.ts"
 		},
+		"./filesystem": {
+			"types": "./src/filesystem/index.ts",
+			"default": "./src/filesystem/index.ts"
+		},
 		"./git": {
 			"types": "./src/runtime/git/index.ts",
 			"default": "./src/runtime/git/index.ts"
@@ -33,6 +37,7 @@
 		"@hono/trpc-server": "^0.3.4",
 		"@octokit/rest": "^22.0.1",
 		"@superset/trpc": "workspace:*",
+		"@superset/workspace-fs": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"better-sqlite3": "12.6.2",

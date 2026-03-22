@@ -1,6 +1,6 @@
 import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { SlashCommandParamField } from "./components/SlashCommandParamField";
 import {
 	buildNextSlashInput,

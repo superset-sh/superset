@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb } from "./db";
+import { registerWorkspaceFilesystemEventsRoute } from "./filesystem";
 import type { AuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import {
@@ -14,6 +15,7 @@ import {
 	type ModelProviderRuntimeResolver,
 } from "./providers/model-providers";
 import { ChatRuntimeManager } from "./runtime/chat";
+import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
@@ -63,6 +65,7 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 		github,
 	});
 	pullRequestRuntime.start();
+	const filesystem = new WorkspaceFilesystemManager({ db });
 	const chatRuntime = new ChatRuntimeManager({
 		db,
 		runtimeResolver: modelProviderRuntimeResolver,
@@ -70,11 +73,17 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 
 	const runtime = {
 		chat: chatRuntime,
+		filesystem,
 		pullRequests: pullRequestRuntime,
 	};
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 	app.use("*", cors());
+	registerWorkspaceFilesystemEventsRoute({
+		app,
+		filesystem,
+		upgradeWebSocket,
+	});
 	registerWorkspaceTerminalRoute({
 		app,
 		db,

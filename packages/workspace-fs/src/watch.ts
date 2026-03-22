@@ -282,6 +282,7 @@ function internalToFsWatchEvent(event: InternalWatchEvent): FsWatchEvent {
 		kind: event.kind,
 		absolutePath: event.absolutePath,
 		oldAbsolutePath: event.oldAbsolutePath,
+		isDirectory: event.isDirectory,
 	};
 }
 

@@ -1,0 +1,1 @@
+export { WorkspaceFilesSearchResultItem } from "./WorkspaceFilesSearchResultItem";

@@ -1,0 +1,1 @@
+export { useWorkspaceFileSearch } from "./useWorkspaceFileSearch";

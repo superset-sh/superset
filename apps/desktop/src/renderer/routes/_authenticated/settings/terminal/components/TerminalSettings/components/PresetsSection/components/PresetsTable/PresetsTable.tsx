@@ -1,10 +1,12 @@
 import type { TerminalPreset } from "@superset/local-db";
 import type { RefObject } from "react";
 import { PresetRow } from "../../../PresetRow";
+import type { PresetProjectOption } from "../../preset-project-options";
 
 interface PresetsTableProps {
 	presets: TerminalPreset[];
 	isLoading: boolean;
+	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
 	presetsContainerRef: RefObject<HTMLDivElement | null>;
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
@@ -15,6 +17,7 @@ interface PresetsTableProps {
 export function PresetsTable({
 	presets,
 	isLoading,
+	projectOptionsById,
 	presetsContainerRef,
 	onEdit,
 	onLocalReorder,
@@ -27,6 +30,7 @@ export function PresetsTable({
 				<div className="w-6 shrink-0" />
 				<div className="flex-1 min-w-0">Preset</div>
 				<div className="flex-[1.2] min-w-0">Commands</div>
+				<div className="w-40 shrink-0">Applies to</div>
 				<div className="w-32 shrink-0">Mode</div>
 				<div className="w-36 shrink-0">Auto-run</div>
 				<div className="w-16 shrink-0 text-center">Pinned</div>
@@ -47,6 +51,7 @@ export function PresetsTable({
 							preset={preset}
 							rowIndex={index}
 							isEven={index % 2 === 0}
+							projectOptionsById={projectOptionsById}
 							onEdit={onEdit}
 							onLocalReorder={onLocalReorder}
 							onPersistReorder={onPersistReorder}

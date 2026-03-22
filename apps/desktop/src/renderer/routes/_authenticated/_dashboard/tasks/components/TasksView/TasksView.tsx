@@ -107,6 +107,21 @@ export function TasksView({
 		navigate({ to: "/tasks", search, replace: true });
 	};
 
+	const [selectedTasks, setSelectedTasks] = useState<TaskWithStatus[]>([]);
+	const clearSelectionRef = useRef<(() => void) | null>(null);
+
+	const handleSelectionChange = useCallback(
+		(tasks: TaskWithStatus[], clearSelection: () => void) => {
+			setSelectedTasks(tasks);
+			clearSelectionRef.current = clearSelection;
+		},
+		[],
+	);
+
+	const handleClearSelection = useCallback(() => {
+		clearSelectionRef.current?.();
+	}, []);
+
 	const handleTaskClick = (task: TaskWithStatus) => {
 		const search: Record<string, string> = {};
 		if (currentTab !== "all") search.tab = currentTab;
@@ -131,6 +146,8 @@ export function TasksView({
 					onSearchChange={handleSearchChange}
 					assigneeFilter={assigneeFilter}
 					onAssigneeFilterChange={handleAssigneeFilterChange}
+					selectedTasks={selectedTasks}
+					onClearSelection={handleClearSelection}
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
 				/>
@@ -155,6 +172,7 @@ export function TasksView({
 					searchQuery={searchQuery}
 					assigneeFilter={assigneeFilter}
 					onTaskClick={handleTaskClick}
+					onSelectionChange={handleSelectionChange}
 				/>
 			)}
 		</div>

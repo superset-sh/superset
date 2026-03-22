@@ -13,8 +13,13 @@ import { useOpenExternalWorktree } from "renderer/react-query/workspaces/useOpen
 import { useOpenTrackedWorktree } from "renderer/react-query/workspaces/useOpenTrackedWorktree";
 
 export type LinkedIssue = {
-	slug: string;
+	slug: string; // "#123" for GitHub, "SUP-123" for internal
 	title: string;
+	source?: "github" | "internal";
+	url?: string; // GitHub issue URL
+	taskId?: string; // Internal task ID for navigation
+	number?: number; // GitHub issue number
+	state?: "open" | "closed";
 };
 
 export type LinkedPR = {
@@ -69,6 +74,10 @@ interface NewWorkspaceModalActionMessages {
 	error: (err: unknown) => string;
 }
 
+interface NewWorkspaceModalActionOptions {
+	closeAndReset?: boolean;
+}
+
 interface NewWorkspaceModalDraftContextValue {
 	draft: NewWorkspaceModalDraft;
 	draftVersion: number;
@@ -82,10 +91,10 @@ interface NewWorkspaceModalDraftContextValue {
 	runAsyncAction: <T>(
 		promise: Promise<T>,
 		messages: NewWorkspaceModalActionMessages,
+		options?: NewWorkspaceModalActionOptions,
 	) => Promise<T>;
 	updateDraft: (patch: Partial<NewWorkspaceModalDraft>) => void;
 	resetDraft: () => void;
-	resetDraftIfVersion: (draftVersion: number) => void;
 }
 
 const NewWorkspaceModalDraftContext =
@@ -119,40 +128,29 @@ export function NewWorkspaceModalDraftProvider({
 		}));
 	}, []);
 
-	const resetDraftIfVersion = useCallback((draftVersion: number) => {
-		setState((state) =>
-			state.draftVersion !== draftVersion
-				? state
-				: {
-						...initialDraft,
-						draftVersion: state.draftVersion + 1,
-						resetKey: state.resetKey + 1,
-					},
-		);
-	}, []);
-
 	const closeAndResetDraft = useCallback(() => {
 		resetDraft();
 		onClose();
 	}, [onClose, resetDraft]);
 
 	const runAsyncAction = useCallback(
-		<T,>(promise: Promise<T>, messages: NewWorkspaceModalActionMessages) => {
-			const submitDraftVersion = state.draftVersion;
-			onClose();
+		<T,>(
+			promise: Promise<T>,
+			messages: NewWorkspaceModalActionMessages,
+			options?: NewWorkspaceModalActionOptions,
+		) => {
+			if (options?.closeAndReset !== false) {
+				onClose();
+				resetDraft();
+			}
 			toast.promise(promise, {
 				loading: messages.loading,
 				success: messages.success,
 				error: (err) => messages.error(err),
 			});
-			void promise
-				.then(() => {
-					resetDraftIfVersion(submitDraftVersion);
-				})
-				.catch(() => undefined);
 			return promise;
 		},
-		[onClose, resetDraftIfVersion, state.draftVersion],
+		[onClose, resetDraft],
 	);
 
 	const value = useMemo<NewWorkspaceModalDraftContextValue>(
@@ -180,7 +178,6 @@ export function NewWorkspaceModalDraftProvider({
 			runAsyncAction,
 			updateDraft,
 			resetDraft,
-			resetDraftIfVersion,
 		}),
 		[
 			closeAndResetDraft,
@@ -190,7 +187,6 @@ export function NewWorkspaceModalDraftProvider({
 			openTrackedWorktree,
 			onClose,
 			resetDraft,
-			resetDraftIfVersion,
 			runAsyncAction,
 			state,
 			updateDraft,

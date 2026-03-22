@@ -20,9 +20,25 @@ export const checkItemSchema = z.object({
 	name: z.string(),
 	status: z.enum(["success", "failure", "pending", "skipped", "cancelled"]),
 	url: z.string().optional(),
+	durationText: z.string().optional(),
 });
 
 export type CheckItem = z.infer<typeof checkItemSchema>;
+
+export const pullRequestCommentSchema = z.object({
+	id: z.string(),
+	authorLogin: z.string(),
+	avatarUrl: z.string().optional(),
+	body: z.string(),
+	createdAt: z.number().optional(),
+	url: z.string().optional(),
+	kind: z.enum(["review", "conversation"]).optional(),
+	path: z.string().optional(),
+	line: z.number().optional(),
+	isResolved: z.boolean().optional(),
+});
+
+export type PullRequestComment = z.infer<typeof pullRequestCommentSchema>;
 
 /**
  * GitHub PR status
@@ -37,9 +53,14 @@ export const gitHubStatusSchema = z.object({
 			mergedAt: z.number().optional(),
 			additions: z.number(),
 			deletions: z.number(),
+			headRefName: z.string().optional(),
+			headRepositoryOwner: z.string().optional(),
+			headRepositoryName: z.string().optional(),
+			isCrossRepository: z.boolean().optional(),
 			reviewDecision: z.enum(["approved", "changes_requested", "pending"]),
 			checksStatus: z.enum(["success", "failure", "pending", "none"]),
 			checks: z.array(checkItemSchema),
+			comments: z.array(pullRequestCommentSchema).optional(),
 			requestedReviewers: z.array(z.string()).optional(),
 		})
 		.nullable(),
@@ -86,8 +107,8 @@ export const terminalPresetSchema = z.object({
 	description: z.string().optional(),
 	cwd: z.string(),
 	commands: z.array(z.string()),
+	projectIds: z.array(z.string()).nullable().optional(),
 	pinnedToBar: z.boolean().optional(),
-	isDefault: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),

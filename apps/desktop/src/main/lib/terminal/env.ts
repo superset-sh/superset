@@ -8,6 +8,14 @@ import { getShellEnv } from "../agent-setup/shell-wrappers";
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
 let localeProbeInFlight = false;
+const PROCESS_ENV_SNAPSHOT_CACHE_TTL_MS = 1_000;
+
+let cachedProcessEnvSnapshot: {
+	raw: Record<string, string>;
+	safe: Record<string, string>;
+	expiresAt: number;
+} | null = null;
+let cachedMacosSystemCertAvailable: boolean | null = null;
 
 function startLocaleProbe(): void {
 	if (cachedUtf8Locale || localeProbeInFlight) return;
@@ -131,6 +139,41 @@ export function sanitizeEnv(
 	}
 
 	return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+}
+
+function getProcessEnvSnapshot(): {
+	raw: Record<string, string>;
+	safe: Record<string, string>;
+} {
+	const now = Date.now();
+	if (cachedProcessEnvSnapshot && cachedProcessEnvSnapshot.expiresAt > now) {
+		return cachedProcessEnvSnapshot;
+	}
+
+	const raw = sanitizeEnv(process.env) || {};
+	const safe = buildSafeEnv(raw);
+	cachedProcessEnvSnapshot = {
+		raw,
+		safe,
+		expiresAt: now + PROCESS_ENV_SNAPSHOT_CACHE_TTL_MS,
+	};
+	return cachedProcessEnvSnapshot;
+}
+
+function hasMacosSystemCertBundle(): boolean {
+	if (cachedMacosSystemCertAvailable !== null) {
+		return cachedMacosSystemCertAvailable;
+	}
+
+	cachedMacosSystemCertAvailable = fs.existsSync(MACOS_SYSTEM_CERT_FILE);
+	return cachedMacosSystemCertAvailable;
+}
+
+export function resetTerminalEnvCachesForTests(): void {
+	cachedProcessEnvSnapshot = null;
+	cachedMacosSystemCertAvailable = null;
+	cachedUtf8Locale = null;
+	localeProbeInFlight = false;
 }
 
 /**
@@ -408,8 +451,7 @@ export function buildTerminalEnv(params: {
 
 	// Get Electron's process.env and filter to only allowlisted safe vars
 	// This prevents secrets and app config from leaking to user terminals
-	const rawBaseEnv = sanitizeEnv(process.env) || {};
-	const baseEnv = buildSafeEnv(rawBaseEnv);
+	const { raw: rawBaseEnv, safe: baseEnv } = getProcessEnvSnapshot();
 
 	// shellEnv provides shell wrapper control variables (ZDOTDIR, BASH_ENV, etc.)
 	// These configure how the shell initializes, not the user's actual environment
@@ -447,7 +489,7 @@ export function buildTerminalEnv(params: {
 	if (
 		os.platform() === "darwin" &&
 		!terminalEnv.SSL_CERT_FILE &&
-		fs.existsSync(MACOS_SYSTEM_CERT_FILE)
+		hasMacosSystemCertBundle()
 	) {
 		terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
 	}

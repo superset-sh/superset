@@ -22,6 +22,7 @@
  * duration instead of silently returning.
  */
 import { describe, expect, it } from "bun:test";
+import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 
 // ---------------------------------------------------------------------------
 // Minimal model of the scheduleReattachRecovery throttle mechanism.
@@ -166,5 +167,51 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// FAILS with current code: calls is still 0 because no retry was scheduled
 		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
+	});
+});
+
+describe("shouldKeepAttachAliveOnUnmount", () => {
+	it("keeps a starting workspace-run attach alive while the pane is hidden", () => {
+		expect(
+			shouldKeepAttachAliveOnUnmount({
+				paneDestroyed: false,
+				hasWorkspaceRun: true,
+				isStartingWorkspaceRun: true,
+				hasActiveAttachRequest: false,
+			}),
+		).toBe(true);
+	});
+
+	it("keeps an in-flight workspace-run attach alive while the pane is hidden", () => {
+		expect(
+			shouldKeepAttachAliveOnUnmount({
+				paneDestroyed: false,
+				hasWorkspaceRun: true,
+				isStartingWorkspaceRun: false,
+				hasActiveAttachRequest: true,
+			}),
+		).toBe(true);
+	});
+
+	it("still cancels hidden non-workspace-run attaches", () => {
+		expect(
+			shouldKeepAttachAliveOnUnmount({
+				paneDestroyed: false,
+				hasWorkspaceRun: false,
+				isStartingWorkspaceRun: true,
+				hasActiveAttachRequest: true,
+			}),
+		).toBe(false);
+	});
+
+	it("still cancels when the pane was explicitly destroyed", () => {
+		expect(
+			shouldKeepAttachAliveOnUnmount({
+				paneDestroyed: true,
+				hasWorkspaceRun: true,
+				isStartingWorkspaceRun: true,
+				hasActiveAttachRequest: true,
+			}),
+		).toBe(false);
 	});
 });
