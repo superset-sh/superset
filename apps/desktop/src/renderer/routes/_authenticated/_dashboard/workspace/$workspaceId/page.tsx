@@ -18,13 +18,12 @@ import {
 	KeywordSearch,
 	useKeywordSearch,
 } from "renderer/screens/main/components/KeywordSearch";
+import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
-import { useAppHotkey } from "renderer/stores/hotkeys";
-import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import {
 	cancelPendingTabClose,
 	discardAndClosePendingTab,
@@ -33,6 +32,8 @@ import {
 	saveAndClosePendingTab,
 } from "renderer/stores/editor-state/editorCoordinator";
 import { useEditorSessionsStore } from "renderer/stores/editor-state/useEditorSessionsStore";
+import { useAppHotkey } from "renderer/stores/hotkeys";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -44,7 +45,6 @@ import {
 	getPreviousPaneId,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
-import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
@@ -188,7 +188,9 @@ function WorkspacePage() {
 	const focusedPaneId = useTabsStore((s) =>
 		activeTabId ? (s.focusedPaneIds[activeTabId] ?? null) : null,
 	);
-	const pendingTabClose = useEditorSessionsStore((s) => s.pendingTabClose);
+	const pendingTabClose = useEditorSessionsStore((s) =>
+		s.pendingTabClose?.workspaceId === workspaceId ? s.pendingTabClose : null,
+	);
 
 	const { toggleWorkspaceRun } = useWorkspaceRunCommand({
 		workspaceId,
@@ -692,13 +694,21 @@ function WorkspacePage() {
 				open={pendingTabClose !== null}
 				onOpenChange={(open) => {
 					if (!open) {
-						cancelPendingTabClose();
+						cancelPendingTabClose(workspaceId);
 					}
 				}}
 				onSave={() => {
-					void saveAndClosePendingTab();
+					void saveAndClosePendingTab(workspaceId).catch((error) => {
+						console.error(
+							"[WorkspacePage] Failed to save dirty files before closing tab",
+							{
+								workspaceId,
+								error,
+							},
+						);
+					});
 				}}
-				onDiscard={discardAndClosePendingTab}
+				onDiscard={() => discardAndClosePendingTab(workspaceId)}
 				isSaving={pendingTabClose?.isSaving ?? false}
 				description={
 					pendingTabClose
