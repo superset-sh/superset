@@ -47,10 +47,12 @@ export function TabsContent({
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	const tabToRender = useMemo(() => {
-		if (!activeTabId) return null;
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
-	}, [activeTabId, allTabs]);
+	// Keep all workspace tabs mounted so webviews survive tab switches
+	// (reparenting an Electron <webview> reloads the guest page).
+	const workspaceTabs = useMemo(
+		() => allTabs.filter((t) => t.workspaceId === activeWorkspaceId),
+		[allTabs, activeWorkspaceId],
+	);
 
 	useEffect(() => {
 		const nextWorkspaceId = activeWorkspaceId ?? null;
@@ -89,8 +91,18 @@ export function TabsContent({
 
 	return (
 		<div ref={contentRef} className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? (
-				<TabView tab={tabToRender} />
+			{workspaceTabs.length > 0 ? (
+				workspaceTabs.map((tab) => (
+					<div
+						key={tab.id}
+						className="flex-1 min-h-0 overflow-hidden"
+						style={{
+							display: tab.id === activeTabId ? "flex" : "none",
+						}}
+					>
+						<TabView tab={tab} />
+					</div>
+				))
 			) : (
 				<EmptyTabView
 					defaultExternalApp={defaultExternalApp}
