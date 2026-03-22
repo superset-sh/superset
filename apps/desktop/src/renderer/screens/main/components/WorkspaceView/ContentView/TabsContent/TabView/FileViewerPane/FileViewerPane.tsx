@@ -89,6 +89,11 @@ export function FileViewerPane({
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
 	const hasLoadedOriginalContentRef = useRef(false);
+	// Stores the TipTap-normalized version of originalContentRef for isDirty
+	// comparison. Null when no normalization has occurred (raw mode, or content
+	// matches after round-trip). Kept separate so originalContentRef always
+	// reflects the raw disk content for hasExternalDiskChange detection.
+	const normalizedOriginalRef = useRef<string | null>(null);
 	const draftContentRef = useRef<string | null>(null);
 	const originalDiffContentRef = useRef<string>("");
 	const revisionRef = useRef<string>("");
@@ -177,6 +182,9 @@ export function FileViewerPane({
 		revisionRef,
 	});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: viewMode is only used as a guard
+	// (skip in diff mode) — it must NOT trigger re-runs, because a mode switch would overwrite
+	// originalContentRef with stale cached rawFileData before the invalidation refetch completes.
 	useEffect(() => {
 		if (viewMode === "diff") {
 			return;
@@ -191,9 +199,10 @@ export function FileViewerPane({
 		}
 
 		originalContentRef.current = rawFileData.content;
+		normalizedOriginalRef.current = null;
 		hasLoadedOriginalContentRef.current = true;
 		setIsDirty(false);
-	}, [isLoadingRaw, rawFileData, viewMode]);
+	}, [isLoadingRaw, rawFileData]);
 
 	const absoluteFilePath = useMemo(
 		() => toAbsoluteWorkspacePath(worktreePath, filePath),
@@ -261,16 +270,18 @@ export function FileViewerPane({
 			setIsDirty(false);
 			return;
 		}
-		setIsDirty(value !== originalContentRef.current);
+		const baseline =
+			normalizedOriginalRef.current ?? originalContentRef.current;
+		setIsDirty(value !== baseline);
 	}, []);
 
 	// When TipTap normalizes markdown (round-trip parse → serialize changes
-	// whitespace, trailing newlines, etc.), update the baseline so the
-	// normalized form is treated as "clean" and doesn't trigger isDirty.
+	// whitespace, trailing newlines, etc.), store the normalized form so
+	// isDirty comparisons use it instead of the raw disk content.
 	const handleMarkdownNormalize = useCallback(
 		(normalizedContent: string) => {
 			if (!hasLoadedOriginalContentRef.current || isDirty) return;
-			originalContentRef.current = normalizedContent;
+			normalizedOriginalRef.current = normalizedContent;
 			draftContentRef.current = null;
 		},
 		[isDirty],
@@ -288,6 +299,7 @@ export function FileViewerPane({
 		pendingRenamePathRef.current = null;
 		setIsDirty(false);
 		originalContentRef.current = "";
+		normalizedOriginalRef.current = null;
 		hasLoadedOriginalContentRef.current = false;
 		originalDiffContentRef.current = "";
 		draftContentRef.current = null;
@@ -390,6 +402,7 @@ export function FileViewerPane({
 		(nextContent: string) => {
 			syncEditorContent(nextContent);
 			originalContentRef.current = nextContent;
+			normalizedOriginalRef.current = null;
 			hasLoadedOriginalContentRef.current = true;
 			originalDiffContentRef.current = "";
 			draftContentRef.current = null;
