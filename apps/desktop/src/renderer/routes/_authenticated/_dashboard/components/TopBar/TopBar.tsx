@@ -1,23 +1,19 @@
-import { useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
+import { V2OpenInMenuButton } from "./components/V2OpenInMenuButton";
 import { WindowControls } from "./components/WindowControls";
+import { useCurrentWorkspaceForTopBar } from "./hooks/useCurrentWorkspaceForTopBar";
 
 export function TopBar() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
-	const { workspaceId } = useParams({ strict: false });
-	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: workspaceId ?? "" },
-		{ enabled: !!workspaceId },
-	);
+	const currentWorkspace = useCurrentWorkspaceForTopBar();
 	const isOnline = useOnlineStatus();
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
@@ -35,20 +31,10 @@ export function TopBar() {
 				<ResourceConsumption />
 			</div>
 
-			{workspaceId && (
+			{currentWorkspace.workspaceId && (
 				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
 					<div className="pointer-events-auto">
-						<SearchBarTrigger
-							workspaceName={
-								workspace
-									? getWorkspaceDisplayName(
-											workspace.name,
-											workspace.type,
-											workspace.project?.name,
-										)
-									: undefined
-							}
-						/>
+						<SearchBarTrigger workspaceName={currentWorkspace.workspaceName} />
 					</div>
 				</div>
 			)}
@@ -60,13 +46,20 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
-				{workspace?.worktreePath && (
+				{currentWorkspace.openIn?.kind === "v1" ? (
 					<OpenInMenuButton
-						worktreePath={workspace.worktreePath}
-						branch={workspace.worktree?.branch}
-						projectId={workspace.project?.id}
+						branch={currentWorkspace.openIn.branch}
+						projectId={currentWorkspace.openIn.projectId}
+						worktreePath={currentWorkspace.openIn.worktreePath}
 					/>
-				)}
+				) : currentWorkspace.openIn?.kind === "v2" ? (
+					<V2OpenInMenuButton
+						branch={currentWorkspace.openIn.branch}
+						hostUrl={currentWorkspace.openIn.hostUrl}
+						projectId={currentWorkspace.openIn.projectId}
+						workspaceId={currentWorkspace.openIn.workspaceId}
+					/>
+				) : null}
 				<OrganizationDropdown />
 				{!isMac && <WindowControls />}
 			</div>

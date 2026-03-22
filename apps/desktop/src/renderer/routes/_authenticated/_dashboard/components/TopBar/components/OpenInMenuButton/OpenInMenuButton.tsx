@@ -10,7 +10,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { memo, useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
-import { LuExternalLink } from "react-icons/lu";
 import {
 	getAppOption,
 	OpenInExternalDropdownItems,
@@ -36,6 +35,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		{ projectId: projectId as string },
 		{ enabled: !!projectId, staleTime: 30000 },
 	);
+	const resolvedApp: ExternalApp = defaultApp ?? "cursor";
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => {
 			if (projectId) {
@@ -50,8 +50,8 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	});
 
 	const currentApp = useMemo(
-		() => (defaultApp ? (getAppOption(defaultApp) ?? null) : null),
-		[defaultApp],
+		() => getAppOption(resolvedApp) ?? null,
+		[resolvedApp],
 	);
 	const openInShortcut = useHotkeyText("OPEN_IN_APP");
 	const copyPathShortcut = useHotkeyText("COPY_PATH");
@@ -63,14 +63,8 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
-		if (!defaultApp) {
-			toast.error("No default editor configured", {
-				description: "Open a project in an editor first to set a default.",
-			});
-			return;
-		}
-		openInApp.mutate({ path: worktreePath, app: defaultApp, projectId });
-	}, [worktreePath, defaultApp, projectId, openInApp, copyPath.isPending]);
+		openInApp.mutate({ path: worktreePath, app: resolvedApp, projectId });
+	}, [worktreePath, resolvedApp, projectId, openInApp, copyPath.isPending]);
 
 	const handleOpenInOtherApp = useCallback(
 		(appId: ExternalApp) => {
@@ -106,17 +100,14 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",
-							!currentApp && "opacity-50",
 						)}
 					>
-						{currentApp ? (
+						{currentApp && (
 							<img
 								src={isDark ? currentApp.darkIcon : currentApp.lightIcon}
 								alt=""
 								className="size-3.5 object-contain shrink-0"
 							/>
-						) : (
-							<LuExternalLink className="size-3.5 shrink-0" />
 						)}
 						{branch && (
 							<span className="hidden lg:inline text-muted-foreground truncate max-w-[140px] tabular-nums">
@@ -171,12 +162,12 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				<DropdownMenuContent align="end" className="w-48">
 					<OpenInExternalDropdownItems
 						isDark={isDark}
-						activeApp={defaultApp ?? undefined}
+						activeApp={resolvedApp}
 						onOpenIn={handleOpenInOtherApp}
 						onCopyPath={handleCopyPath}
 						renderAppTrailing={(appId, group) => {
 							if (
-								appId !== defaultApp ||
+								appId !== resolvedApp ||
 								!showOpenInShortcut ||
 								group === "jetbrains"
 							) {

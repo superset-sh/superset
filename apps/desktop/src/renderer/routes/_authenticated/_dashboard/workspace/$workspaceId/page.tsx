@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
@@ -342,6 +343,7 @@ function WorkspacePage() {
 		{ projectId: projectId as string },
 		{ enabled: !!projectId },
 	);
+	const resolvedDefaultApp: ExternalApp = defaultApp ?? "cursor";
 	const utils = electronTrpc.useUtils();
 	const { mutate: mutateOpenInApp } =
 		electronTrpc.external.openInApp.useMutation({
@@ -352,14 +354,14 @@ function WorkspacePage() {
 			},
 		});
 	const handleOpenInApp = useCallback(() => {
-		if (workspace?.worktreePath && defaultApp) {
+		if (workspace?.worktreePath) {
 			mutateOpenInApp({
 				path: workspace.worktreePath,
-				app: defaultApp,
+				app: resolvedDefaultApp,
 				projectId,
 			});
 		}
-	}, [workspace?.worktreePath, defaultApp, mutateOpenInApp, projectId]);
+	}, [workspace?.worktreePath, resolvedDefaultApp, mutateOpenInApp, projectId]);
 	useAppHotkey("OPEN_IN_APP", handleOpenInApp, undefined, [handleOpenInApp]);
 
 	// Copy path shortcut
@@ -623,7 +625,7 @@ function WorkspacePage() {
 					/>
 				) : (
 					<WorkspaceLayout
-						defaultExternalApp={defaultApp}
+						defaultExternalApp={resolvedDefaultApp}
 						onOpenInApp={handleOpenInApp}
 						onOpenQuickOpen={handleQuickOpen}
 					/>

@@ -1,0 +1,1 @@
+export { WorkspaceFilesToolbar } from "./WorkspaceFilesToolbar";

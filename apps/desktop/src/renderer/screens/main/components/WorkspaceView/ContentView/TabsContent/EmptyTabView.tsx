@@ -54,6 +54,7 @@ export function EmptyTabView({
 	const quickOpenDisplay = useHotkeyDisplay("QUICK_OPEN");
 	const newBrowserDisplay = useHotkeyDisplay("NEW_BROWSER");
 	const openInAppDisplay = useHotkeyDisplay("OPEN_IN_APP");
+	const resolvedExternalApp: ExternalApp = defaultExternalApp ?? "cursor";
 
 	const handleShowTerminal = useCallback(() => {
 		addTab(workspaceId);
@@ -68,11 +69,10 @@ export function EmptyTabView({
 	}, [addBrowserTab, workspaceId]);
 
 	const openInActionLabel = useMemo(() => {
-		if (!defaultExternalApp) return null;
-		const appOption = getAppOption(defaultExternalApp);
+		const appOption = getAppOption(resolvedExternalApp);
 		const appName = appOption?.displayLabel ?? appOption?.label;
 		return appName ? `Open in ${appName}` : null;
-	}, [defaultExternalApp]);
+	}, [resolvedExternalApp]);
 
 	const actions = useMemo<EmptyTabAction[]>(() => {
 		const baseActions: EmptyTabAction[] = [

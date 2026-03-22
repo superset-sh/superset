@@ -1,0 +1,1 @@
+export { WorkspaceFilesTreeItem } from "./WorkspaceFilesTreeItem";
