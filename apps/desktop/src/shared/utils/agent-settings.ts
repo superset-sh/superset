@@ -23,6 +23,7 @@ import {
 } from "@superset/shared/agent-prompt-template";
 import {
 	derivePromptCommandFromCommand,
+	isStaleDefaultPromptCommand,
 } from "./terminal-agent-command";
 
 const TERMINAL_OVERRIDE_FIELDS = [
@@ -188,8 +189,13 @@ function resolveAgentConfig(
 ): ResolvedAgentConfig {
 	if (isTerminalAgentDefinition(definition)) {
 		const command = override?.command ?? definition.defaultCommand;
+		const shouldTreatPromptAsStaleDefault = isStaleDefaultPromptCommand({
+			commandOverridden: override?.command !== undefined,
+			promptCommand: override?.promptCommand,
+			defaultPromptCommand: definition.defaultPromptCommand,
+		});
 		const promptCommand =
-			override?.promptCommand ??
+			(shouldTreatPromptAsStaleDefault ? undefined : override?.promptCommand) ??
 			derivePromptCommandFromCommand({
 				command,
 				baseCommand: definition.defaultCommand,

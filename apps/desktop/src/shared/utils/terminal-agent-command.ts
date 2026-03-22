@@ -28,3 +28,19 @@ export function derivePromptCommandFromCommand({
 
 	return null;
 }
+
+export function isStaleDefaultPromptCommand({
+	commandOverridden,
+	promptCommand,
+	defaultPromptCommand,
+}: {
+	commandOverridden: boolean;
+	promptCommand: string | undefined;
+	defaultPromptCommand: string;
+}): boolean {
+	return (
+		commandOverridden &&
+		promptCommand !== undefined &&
+		promptCommand === defaultPromptCommand
+	);
+}

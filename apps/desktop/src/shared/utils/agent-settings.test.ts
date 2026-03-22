@@ -90,6 +90,7 @@ describe("resolveAgentConfigs", () => {
 		if (codexDefinition.kind !== "terminal") {
 			throw new Error("Expected terminal codex definition");
 		}
+		const explicitPromptCommand = "codex --explicit-prompt-command";
 
 		const codex = resolveAgentConfigs({
 			overrideEnvelope: {
@@ -98,7 +99,7 @@ describe("resolveAgentConfigs", () => {
 					{
 						id: "codex",
 						command: "codex --custom-command",
-						promptCommand: codexDefinition.defaultPromptCommand,
+						promptCommand: explicitPromptCommand,
 					},
 				],
 			},
@@ -108,7 +109,37 @@ describe("resolveAgentConfigs", () => {
 			id: "codex",
 			kind: "terminal",
 			command: "codex --custom-command",
-			promptCommand: codexDefinition.defaultPromptCommand,
+			promptCommand: explicitPromptCommand,
+		});
+		expect(codex?.promptCommand).not.toBe(codexDefinition.defaultPromptCommand);
+	});
+
+	test("repairs stale default prompt command when command override exists", () => {
+		const codexDefinition = getBuiltinAgentDefinition("codex");
+		if (codexDefinition.kind !== "terminal") {
+			throw new Error("Expected terminal codex definition");
+		}
+		const command =
+			'codex -c model_reasoning_effort="medium" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true';
+
+		const codex = resolveAgentConfigs({
+			overrideEnvelope: {
+				version: 1,
+				presets: [
+					{
+						id: "codex",
+						command,
+						promptCommand: codexDefinition.defaultPromptCommand,
+					},
+				],
+			},
+		}).find((preset) => preset.id === "codex");
+
+		expect(codex).toMatchObject({
+			id: "codex",
+			kind: "terminal",
+			command,
+			promptCommand: `${command} --`,
 		});
 	});
 });
