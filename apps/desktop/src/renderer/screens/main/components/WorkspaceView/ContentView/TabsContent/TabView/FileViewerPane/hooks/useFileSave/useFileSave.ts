@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { invalidateFileSaveQueries } from "renderer/lib/invalidate-file-save-queries";
 import type { EditorSaveResult } from "renderer/stores/editor-state/types";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
@@ -80,12 +81,10 @@ export function useFileSave({
 				revision: result.revision,
 			});
 
-			void utils.filesystem.readFile.invalidate({
+			invalidateFileSaveQueries({
 				workspaceId,
-				absolutePath: filePath,
+				filePath,
 			});
-			utils.changes.getGitFileContents.invalidate();
-			utils.changes.getStatus.invalidate();
 
 			if (diffCategory === "staged") {
 				const panes = useTabsStore.getState().panes;

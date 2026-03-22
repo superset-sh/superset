@@ -104,10 +104,6 @@ describe("generateWorkspaceNameFromPrompt", () => {
 		generateTitleFromMessageWithStreamingModelMock.mockClear();
 	});
 
-	afterAll(() => {
-		mock.restore();
-	});
-
 	it("falls back to a prompt-derived title when no providers are available", async () => {
 		await expect(
 			generateWorkspaceNameFromPrompt("  debug   prod rename failure  "),
@@ -217,6 +213,10 @@ describe("generateWorkspaceNameFromPrompt", () => {
 			usedPromptFallback: false,
 		});
 	});
+});
+
+afterAll(() => {
+	mock.restore();
 });
 
 describe("attemptWorkspaceAutoRenameFromPrompt", () => {

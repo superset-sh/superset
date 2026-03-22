@@ -1,5 +1,5 @@
+import { invalidateFileSaveQueries } from "renderer/lib/invalidate-file-save-queries";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { AddFileViewerPaneOptions } from "renderer/stores/tabs/types";
 import { resolveFileViewerMode } from "renderer/stores/tabs/utils";
@@ -500,7 +500,10 @@ export async function saveDocumentForPane(
 		});
 	}
 
-	void electronQueryClient.invalidateQueries();
+	invalidateFileSaveQueries({
+		workspaceId: document.workspaceId,
+		filePath: document.filePath,
+	});
 
 	return { status: "saved" };
 }
