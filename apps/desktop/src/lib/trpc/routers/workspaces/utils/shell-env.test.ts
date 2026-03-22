@@ -8,7 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
+import {
+	applyShellEnvToProcess,
+	getProcessEnvWithShellEnv,
+	getProcessEnvWithShellPath,
+} from "./shell-env";
 
 describe("shell env merging", () => {
 	test("getProcessEnvWithShellEnv fills in missing shell variables", async () => {
@@ -53,6 +57,27 @@ describe("shell env merging", () => {
 		await applyShellEnvToProcess(targetEnv, {});
 
 		expect(targetEnv).toEqual({});
+	});
+});
+
+describe("getProcessEnvWithShellPath", () => {
+	test("includes /usr/bin in PATH even when shell env omits it (issue #2670)", async () => {
+		// Reproduces: shellEnv() succeeds but returns a PATH from a custom
+		// shell profile that omits system directories. getProcessEnvWithShellPath
+		// overwrites env.PATH with the shell PATH, losing /usr/bin/git.
+		const origPlatform = process.platform;
+		Object.defineProperty(process, "platform", { value: "darwin" });
+		try {
+			const env = await getProcessEnvWithShellPath(
+				{ PATH: "/usr/bin:/bin" } as unknown as NodeJS.ProcessEnv,
+				{ forceRefresh: true },
+			);
+			// On macOS, system paths must always be present
+			expect(env.PATH).toContain("/usr/bin");
+			expect(env.PATH).toContain("/bin");
+		} finally {
+			Object.defineProperty(process, "platform", { value: origPlatform });
+		}
 	});
 });
 

@@ -57,13 +57,39 @@ describe("augmentPathForMacOS", () => {
 
 	test("preserves existing PATH separators when nothing needs to be added", () => {
 		const originalPath =
-			"/opt/homebrew/bin::/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:";
+			"/opt/homebrew/bin::/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin";
 		const env: Record<string, string> = {
 			PATH: originalPath,
 		};
 		augmentPathForMacOS(env, "darwin");
 
 		expect(env.PATH).toBe(originalPath);
+	});
+
+	test("adds system paths when PATH has only homebrew paths (issue #2670)", () => {
+		// Reproduces: Electron GUI app on macOS where shellEnv() fails and
+		// process.env.PATH is empty/undefined, leaving only homebrew paths.
+		// Without /usr/bin, `spawn git` fails with ENOENT.
+		const env: Record<string, string> = {
+			PATH: "/opt/homebrew/bin:/opt/homebrew/sbin",
+		};
+		augmentPathForMacOS(env, "darwin");
+
+		expect(env.PATH).toContain("/usr/bin");
+		expect(env.PATH).toContain("/bin");
+		expect(env.PATH).toContain("/usr/sbin");
+		expect(env.PATH).toContain("/sbin");
+	});
+
+	test("adds system paths when PATH is empty (issue #2670)", () => {
+		// Reproduces: macOS Electron app launched from Finder with no PATH at all.
+		const env: Record<string, string> = { PATH: "" };
+		augmentPathForMacOS(env, "darwin");
+
+		expect(env.PATH).toContain("/usr/bin");
+		expect(env.PATH).toContain("/bin");
+		expect(env.PATH).toContain("/usr/sbin");
+		expect(env.PATH).toContain("/sbin");
 	});
 
 	test("does nothing outside macOS", () => {

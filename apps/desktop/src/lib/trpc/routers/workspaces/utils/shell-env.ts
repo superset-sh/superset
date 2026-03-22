@@ -100,6 +100,10 @@ const COMMON_MACOS_PATHS = [
 	"/opt/homebrew/sbin",
 	"/usr/local/bin",
 	"/usr/local/sbin",
+	"/usr/bin",
+	"/bin",
+	"/usr/sbin",
+	"/sbin",
 ];
 
 /**
@@ -193,6 +197,10 @@ export async function getProcessEnvWithShellPath(
 	) {
 		env.Path = shellPath;
 	}
+
+	// Ensure system paths are always present on macOS, even when the shell
+	// env returns a PATH that omits them (e.g. custom shell profiles).
+	augmentPathForMacOS(env);
 
 	return env;
 }
