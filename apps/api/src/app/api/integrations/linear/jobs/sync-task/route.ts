@@ -16,6 +16,7 @@ import { Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import { resolveLinearStateMatch } from "./resolveLinearStateMatch";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -49,13 +50,55 @@ async function findLinearState(
 	client: LinearClient,
 	teamId: string,
 	statusName: string,
+	statusExternalId?: string | null,
+	statusType?: string | null,
 ): Promise<string | undefined> {
 	const team = await client.team(teamId);
-	const states = await team.states();
-	const match = states.nodes.find(
-		(s: WorkflowState) => s.name.toLowerCase() === statusName.toLowerCase(),
+	let connection = await team.states();
+	const allStates = [...connection.nodes];
+	while (connection.pageInfo.hasNextPage) {
+		connection = await connection.fetchNext();
+		allStates.push(...connection.nodes);
+	}
+
+	const match = resolveLinearStateMatch(
+		allStates.map((state: WorkflowState) => ({
+			id: state.id,
+			name: state.name,
+			type: state.type,
+		})),
+		{
+			statusName,
+			statusExternalId,
+			statusType,
+		},
 	);
-	return match?.id;
+
+	if (
+		match.matchedBy === "externalId" ||
+		match.matchedBy === "name" ||
+		match.matchedBy === "uniqueType"
+	) {
+		if (match.matchedBy === "uniqueType") {
+			console.warn(
+				`[sync-task] Status "${statusName}" not found in team ${teamId}; falling back to unique ${statusType} state "${match.stateName}"`,
+			);
+		}
+
+		return match.stateId;
+	}
+
+	if (match.matchedBy === "ambiguousType") {
+		console.warn(
+			`[sync-task] Refusing ambiguous ${statusType} fallback for "${statusName}" in team ${teamId}; candidates: ${match.candidateNames.join(", ")}`,
+		);
+		return undefined;
+	}
+
+	console.warn(
+		`[sync-task] No matching Linear state found for "${statusName}" (type: ${statusType}) in team ${teamId}`,
+	);
+	return undefined;
 }
 
 async function resolveLinearAssigneeId(
@@ -127,7 +170,15 @@ async function syncTaskToLinear(
 			const resolvedUpdateTeamId = issueTeam?.id;
 
 			const stateId = resolvedUpdateTeamId
-				? await findLinearState(client, resolvedUpdateTeamId, taskStatus.name)
+				? await findLinearState(
+						client,
+						resolvedUpdateTeamId,
+						taskStatus.name,
+						taskStatus.externalProvider === "linear"
+							? taskStatus.externalId
+							: null,
+						taskStatus.type,
+					)
 				: undefined;
 
 			let linearAssigneeId: string | null | undefined;
@@ -181,7 +232,13 @@ async function syncTaskToLinear(
 			return { success: false, error: "No team configured" };
 		}
 
-		const stateId = await findLinearState(client, teamId, taskStatus.name);
+		const stateId = await findLinearState(
+			client,
+			teamId,
+			taskStatus.name,
+			taskStatus.externalProvider === "linear" ? taskStatus.externalId : null,
+			taskStatus.type,
+		);
 
 		const createAssigneeId = task.assigneeId
 			? await resolveLinearAssigneeId(

@@ -124,8 +124,13 @@ export const linearRouter = {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 			const client = await getLinearClient(input.organizationId);
 			if (!client) return [];
-			const teams = await client.teams();
-			return teams.nodes.map((t) => ({ id: t.id, name: t.name, key: t.key }));
+			let connection = await client.teams();
+			const allTeams = [...connection.nodes];
+			while (connection.pageInfo.hasNextPage) {
+				connection = await connection.fetchNext();
+				allTeams.push(...connection.nodes);
+			}
+			return allTeams.map((t) => ({ id: t.id, name: t.name, key: t.key }));
 		}),
 
 	updateConfig: protectedProcedure

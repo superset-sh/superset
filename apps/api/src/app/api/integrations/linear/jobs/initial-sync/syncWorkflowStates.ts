@@ -1,8 +1,28 @@
-import type { LinearClient } from "@linear/sdk";
+import type { LinearClient, Team, WorkflowState } from "@linear/sdk";
 import { buildConflictUpdateColumns } from "@superset/db";
 import { db } from "@superset/db/client";
 import { taskStatuses } from "@superset/db/schema";
 import { calculateProgressForStates } from "./utils";
+
+async function fetchAllTeams(client: LinearClient): Promise<Team[]> {
+	let connection = await client.teams();
+	const allTeams = [...connection.nodes];
+	while (connection.pageInfo.hasNextPage) {
+		connection = await connection.fetchNext();
+		allTeams.push(...connection.nodes);
+	}
+	return allTeams;
+}
+
+async function fetchAllStates(team: Team): Promise<WorkflowState[]> {
+	let connection = await team.states();
+	const allStates = [...connection.nodes];
+	while (connection.pageInfo.hasNextPage) {
+		connection = await connection.fetchNext();
+		allStates.push(...connection.nodes);
+	}
+	return allStates;
+}
 
 export async function syncWorkflowStates({
 	client,
@@ -11,13 +31,13 @@ export async function syncWorkflowStates({
 	client: LinearClient;
 	organizationId: string;
 }): Promise<void> {
-	const teams = await client.teams();
+	const allTeams = await fetchAllTeams(client);
 
-	for (const team of teams.nodes) {
-		const states = await team.states();
+	for (const team of allTeams) {
+		const allStates = await fetchAllStates(team);
 
-		const statesByType = new Map<string, typeof states.nodes>();
-		for (const state of states.nodes) {
+		const statesByType = new Map<string, WorkflowState[]>();
+		for (const state of allStates) {
 			if (!statesByType.has(state.type)) {
 				statesByType.set(state.type, []);
 			}
@@ -29,7 +49,7 @@ export async function syncWorkflowStates({
 			startedStates.map((s) => ({ name: s.name, position: s.position })),
 		);
 
-		const values = states.nodes.map((state) => ({
+		const values = allStates.map((state) => ({
 			organizationId,
 			name: state.name,
 			color: state.color,
