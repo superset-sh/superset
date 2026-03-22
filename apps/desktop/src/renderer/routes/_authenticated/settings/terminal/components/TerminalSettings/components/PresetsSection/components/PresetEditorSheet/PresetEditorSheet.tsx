@@ -160,74 +160,68 @@ export function PresetEditorSheet({
 							</SheetDescription>
 						</SheetHeader>
 
-						<div className="flex-1 overflow-y-auto p-5 space-y-8">
-							<div className="space-y-5">
+						<div className="flex-1 overflow-y-auto p-4 space-y-6">
+							<div className="space-y-4">
 								<p className={sectionHeadingClassName}>Details</p>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Name"
 										htmlFor="preset-name"
 										tooltip="The preset name shown in your presets list and launch surfaces."
 									/>
-									<div className="pl-2">
-										<Input
-											id="preset-name"
-											value={preset.name}
-											onChange={(e) => onFieldChange("name", e.target.value)}
-											onBlur={() => onFieldBlur("name")}
-											className={fieldClassName}
-											placeholder="e.g. Dev Server"
-										/>
-									</div>
+									<Input
+										id="preset-name"
+										value={preset.name}
+										onChange={(e) => onFieldChange("name", e.target.value)}
+										onBlur={() => onFieldBlur("name")}
+										className={fieldClassName}
+										placeholder="e.g. Dev Server"
+									/>
 								</div>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Description"
 										htmlFor="preset-description"
 										tooltip="Optional context to explain what this preset is for."
 									/>
-									<div className="pl-2">
-										<Input
-											id="preset-description"
-											value={preset.description ?? ""}
-											onChange={(e) =>
-												onFieldChange("description", e.target.value)
-											}
-											onBlur={() => onFieldBlur("description")}
-											className={fieldClassName}
-											placeholder="e.g. Starts the dev server (optional)"
-										/>
-									</div>
+									<Input
+										id="preset-description"
+										value={preset.description ?? ""}
+										onChange={(e) =>
+											onFieldChange("description", e.target.value)
+										}
+										onBlur={() => onFieldBlur("description")}
+										className={fieldClassName}
+										placeholder="e.g. Starts the dev server (optional)"
+									/>
 								</div>
 							</div>
 
-							<div className="space-y-5 border-t border-border/40 pt-6">
+							<div className="space-y-4 border-t border-border/40 pt-5">
 								<p className={sectionHeadingClassName}>Targeting</p>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Applies To"
 										tooltip="Choose whether this preset is available everywhere or only in specific projects."
 									/>
-									<div className="pl-2">
-										<ProjectTargetingField
-											projectIds={preset.projectIds}
-											projects={projects}
-											preferredProjectId={originWorkspace?.projectId ?? null}
-											onChange={onProjectIdsChange}
-										/>
-									</div>
+									<ProjectTargetingField
+										projectIds={preset.projectIds}
+										projects={projects}
+										preferredProjectId={originWorkspace?.projectId ?? null}
+										onChange={onProjectIdsChange}
+									/>
 								</div>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Directory"
 										htmlFor="preset-directory"
 										tooltip="Working directory for commands. Use a workspace-relative path like ./apps/web or choose an absolute folder."
 									/>
-									<div className="space-y-2.5 pl-2">
+									<div className="space-y-2">
 										<div className="flex items-center gap-2">
 											<Input
 												id="preset-directory"
@@ -281,101 +275,93 @@ export function PresetEditorSheet({
 								</div>
 							</div>
 
-							<div className="space-y-5 border-t border-border/40 pt-6">
+							<div className="space-y-4 border-t border-border/40 pt-5">
 								<p className={sectionHeadingClassName}>Launch</p>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Commands"
 										tooltip="Each row is one command. Add multiple commands to run a grouped preset."
 									/>
-									<div className="pl-2">
-										<CommandsEditor
-											commands={preset.commands}
-											onChange={onCommandsChange}
-											onBlur={onCommandsBlur}
-											placeholder="e.g. bun run dev"
-										/>
-									</div>
+									<CommandsEditor
+										commands={preset.commands}
+										onChange={onCommandsChange}
+										onBlur={onCommandsBlur}
+										placeholder="e.g. bun run dev"
+									/>
 								</div>
 
-								<div className="space-y-2.5">
+								<div className="space-y-2">
 									<LabelWithTooltip
 										label="Launch Mode"
 										tooltip="Controls whether commands open in the current tab, one new tab with panes, or one new tab per command."
 									/>
-									<div className="pl-2">
-										{hasMultipleCommands ? (
-											<RadioGroup
-												value={modeValue}
-												onValueChange={(value) =>
-													onModeChange(value as ExecutionMode)
-												}
-												className="gap-3 pt-1"
-											>
-												<div className="flex items-start gap-2">
-													<RadioGroupItem
-														id="preset-multi-command-split-pane"
-														value="split-pane"
-														className={`${neutralSelectionControlClassName} mt-0.5`}
-													/>
-													<Label
-														htmlFor="preset-multi-command-split-pane"
-														className="text-sm font-medium"
-													>
-														Open all commands in current tab using split panes
-													</Label>
-												</div>
-												<div className="flex items-start gap-2">
-													<RadioGroupItem
-														id="preset-multi-command-new-tab"
-														value="new-tab"
-														className={`${neutralSelectionControlClassName} mt-0.5`}
-													/>
-													<Label
-														htmlFor="preset-multi-command-new-tab"
-														className="text-sm font-medium"
-													>
-														Open each command in its own new tab
-													</Label>
-												</div>
-												<div className="flex items-start gap-2">
-													<RadioGroupItem
-														id="preset-multi-command-new-tab-split-pane"
-														value="new-tab-split-pane"
-														className={`${neutralSelectionControlClassName} mt-0.5`}
-													/>
-													<Label
-														htmlFor="preset-multi-command-new-tab-split-pane"
-														className="text-sm font-medium"
-													>
-														Open all commands in a new tab using split panes
-													</Label>
-												</div>
-											</RadioGroup>
-										) : (
-											<Select
-												value={singleCommandModeValue}
-												onValueChange={(value) =>
-													onModeChange(value as ExecutionMode)
-												}
-											>
-												<SelectTrigger
-													className={`h-9 w-full ${fieldClassName}`}
+									{hasMultipleCommands ? (
+										<RadioGroup
+											value={modeValue}
+											onValueChange={(value) =>
+												onModeChange(value as ExecutionMode)
+											}
+											className="gap-3 pt-1"
+										>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-split-pane"
+													value="split-pane"
+													className={`${neutralSelectionControlClassName} mt-0.5`}
+												/>
+												<Label
+													htmlFor="preset-multi-command-split-pane"
+													className="text-sm font-medium"
 												>
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="split-pane">
-														Open in current tab
-													</SelectItem>
-													<SelectItem value="new-tab">
-														Open in new tab
-													</SelectItem>
-												</SelectContent>
-											</Select>
-										)}
-									</div>
+													Open all commands in current tab using split panes
+												</Label>
+											</div>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-new-tab"
+													value="new-tab"
+													className={`${neutralSelectionControlClassName} mt-0.5`}
+												/>
+												<Label
+													htmlFor="preset-multi-command-new-tab"
+													className="text-sm font-medium"
+												>
+													Open each command in its own new tab
+												</Label>
+											</div>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-new-tab-split-pane"
+													value="new-tab-split-pane"
+													className={`${neutralSelectionControlClassName} mt-0.5`}
+												/>
+												<Label
+													htmlFor="preset-multi-command-new-tab-split-pane"
+													className="text-sm font-medium"
+												>
+													Open all commands in a new tab using split panes
+												</Label>
+											</div>
+										</RadioGroup>
+									) : (
+										<Select
+											value={singleCommandModeValue}
+											onValueChange={(value) =>
+												onModeChange(value as ExecutionMode)
+											}
+										>
+											<SelectTrigger className={`h-9 w-full ${fieldClassName}`}>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="split-pane">
+													Open in current tab
+												</SelectItem>
+												<SelectItem value="new-tab">Open in new tab</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
 								</div>
 
 								<div className="space-y-3">
@@ -385,7 +371,7 @@ export function PresetEditorSheet({
 										tooltip="Choose when this preset should run automatically."
 									/>
 
-									<div className="space-y-4 pl-2">
+									<div className="space-y-3">
 										<div className="flex items-start gap-3">
 											<Checkbox
 												id="preset-workspace-autostart"
