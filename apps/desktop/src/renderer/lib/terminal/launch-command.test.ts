@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import {
 	buildTerminalCommand,
 	launchCommandInPane,
+	sendInterruptToPane,
 	writeCommandsInPane,
 } from "./launch-command";
 
@@ -53,6 +54,30 @@ describe("launchCommandInPane", () => {
 		});
 	});
 
+	it("forwards attach options used by workspace-run restarts", async () => {
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			skipColdRestore: true,
+			allowKilled: true,
+			createOrAttach,
+			write,
+		});
+
+		expect(createOrAttach).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			allowKilled: true,
+		});
+	});
+
 	it("does not append a second newline when command already has one", async () => {
 		const createOrAttach = mock(async () => ({}));
 		const write = mock(async () => ({}));
@@ -85,6 +110,23 @@ describe("buildTerminalCommand", () => {
 		expect(buildTerminalCommand([])).toBeNull();
 		expect(buildTerminalCommand(null)).toBeNull();
 		expect(buildTerminalCommand(undefined)).toBeNull();
+	});
+});
+
+describe("sendInterruptToPane", () => {
+	it("writes ctrl+c to the pane without appending a newline", async () => {
+		const write = mock(async () => ({}));
+
+		await sendInterruptToPane({
+			paneId: "pane-1",
+			write,
+		});
+
+		expect(write).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			data: "\u0003",
+			throwOnError: true,
+		});
 	});
 });
 

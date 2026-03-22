@@ -13,7 +13,6 @@ import {
 	HiMiniPlay,
 	HiMiniStop,
 } from "react-icons/hi2";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import { useSetSettingsSearchQuery } from "renderer/stores/settings-state";
@@ -32,18 +31,8 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
 	const hotkeyText = useHotkeyText("RUN_WORKSPACE_COMMAND");
-	const { isRunning, isPending, toggleWorkspaceRun } = useWorkspaceRunCommand({
-		workspaceId,
-		worktreePath,
-	});
-	const { data: runConfig } =
-		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
-			{ workspaceId },
-			{ enabled: !!workspaceId },
-		);
-	const hasRunCommand = (runConfig?.commands ?? []).some(
-		(command) => command.trim().length > 0,
-	);
+	const { hasRunCommand, isPending, toggleWorkspaceRun, uiState } =
+		useWorkspaceRunCommand({ workspaceId, worktreePath });
 
 	const handleRunClick = useCallback(() => {
 		if (!hasRunCommand && projectId) {
@@ -73,16 +62,17 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		});
 	}, [navigate, projectId, setSettingsSearchQuery]);
 
-	const buttonLabel = isRunning ? "Stop" : hasRunCommand ? "Run" : "Set Run";
+	const isRunning = uiState === "running" || uiState === "stopping";
+	const isSetupState = uiState === "setup";
+	const buttonLabel = isRunning ? "Stop" : isSetupState ? "Set Run" : "Run";
 	const buttonAriaLabel = isRunning
 		? "Stop workspace run command"
-		: hasRunCommand
-			? "Run workspace command"
-			: "Configure workspace run command";
+		: isSetupState
+			? "Configure workspace run command"
+			: "Run workspace command";
 
 	return (
 		<div className="flex items-center no-drag">
-			{/* Main button - Run/Stop action */}
 			<button
 				type="button"
 				onClick={handleRunClick}
@@ -96,7 +86,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 					"active:scale-[0.98]",
 					isPending && "opacity-50 pointer-events-none",
 					isRunning
-						? "text-emerald-300 border-emerald-500/25 bg-emerald-500/10"
+						? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
 						: hasRunCommand
 							? "text-foreground"
 							: "text-muted-foreground/80 border-border/40 bg-secondary/40",
@@ -104,10 +94,10 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 			>
 				{isRunning ? (
 					<HiMiniStop className="size-3.5 shrink-0" />
-				) : hasRunCommand ? (
-					<HiMiniPlay className="size-3.5 shrink-0" />
-				) : (
+				) : isSetupState ? (
 					<HiMiniCog6Tooth className="size-3.5 shrink-0" />
+				) : (
+					<HiMiniPlay className="size-3.5 shrink-0" />
 				)}
 				<span className="hidden sm:inline">{buttonLabel}</span>
 				{hotkeyText && hotkeyText !== "Unassigned" && (
@@ -117,7 +107,6 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 				)}
 			</button>
 
-			{/* Dropdown trigger */}
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<button

@@ -56,6 +56,11 @@ interface ScanState {
 	emptyTreePanes: Set<string>;
 }
 
+interface PaneProcessState {
+	shellPid: number | null;
+	subprocessPids: number[];
+}
+
 class PortManager extends EventEmitter {
 	private ports = new Map<string, DetectedPort>();
 	private sessions = new Map<string, RegisteredSession>();
@@ -498,6 +503,35 @@ class PortManager extends EventEmitter {
 		}
 
 		return treeKillWithEscalation({ pid: detectedPort.pid });
+	}
+
+	private getPaneShellPid(paneId: string): number | null {
+		const session = this.sessions.get(paneId);
+		if (session?.session.isAlive) {
+			return session.session.pty.pid;
+		}
+
+		const daemonSession = this.daemonSessions.get(paneId);
+		return daemonSession?.pid ?? null;
+	}
+
+	async getPaneProcessState(paneId: string): Promise<PaneProcessState> {
+		const shellPid = this.getPaneShellPid(paneId);
+		if (shellPid === null) {
+			return {
+				shellPid: null,
+				subprocessPids: [],
+			};
+		}
+
+		const subprocessPids = (await getProcessTree(shellPid)).filter(
+			(pid) => pid !== shellPid,
+		);
+
+		return {
+			shellPid,
+			subprocessPids,
+		};
 	}
 }
 

@@ -33,8 +33,6 @@ import { scrollToBottom } from "../utils";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
-	recoverWorkspaceRunPane,
-	resolveWorkspaceRunAttachMode,
 	setPaneWorkspaceRunState,
 } from "./workspaceRun";
 
@@ -140,7 +138,6 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
-	defaultRestartCommandRef: MutableRefObject<string | undefined>;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -200,7 +197,6 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
-	defaultRestartCommandRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<
@@ -299,7 +295,7 @@ export function useTerminalLifecycle({
 			forceRestart?: boolean;
 		}) =>
 			new Promise<void>((resolve, reject) => {
-				const command = options?.command ?? defaultRestartCommandRef.current;
+				const command = options?.command;
 				const workspaceRun = getPaneWorkspaceRun(paneId);
 				isExitedRef.current = false;
 				isStreamReadyRef.current = false;
@@ -320,14 +316,37 @@ export function useTerminalLifecycle({
 							rows: xterm.rows,
 							skipColdRestore: true,
 							allowKilled: true,
-							command,
 						},
 						{
 							onSuccess: (result) => {
 								setConnectionError(null);
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
-								resolve();
+								if (!command) {
+									resolve();
+									return;
+								}
+
+								writeRef.current(
+									{
+										paneId,
+										data: command.endsWith("\n") ? command : `${command}\n`,
+										throwOnError: true,
+									},
+									{
+										onSuccess: () => resolve(),
+										onError: (error) => {
+											console.error(
+												"[Terminal] Failed to write restart command:",
+												error,
+											);
+											if (workspaceRun) {
+												setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+											}
+											reject(error);
+										},
+									},
+								);
 							},
 							onError: (error) => {
 								console.error("[Terminal] Failed to restart:", error);
@@ -367,12 +386,6 @@ export function useTerminalLifecycle({
 					!isFocusedRef.current ||
 					(wasKilledByUserRef.current && !isWorkspaceRunPane)
 				) {
-					return;
-				}
-				// For workspace-run panes, don't restart until the run command
-				// has been resolved via tRPC query — otherwise we'd start a
-				// plain interactive shell instead of the configured command.
-				if (isWorkspaceRunPane && !defaultRestartCommandRef.current) {
 					return;
 				}
 				void restartTerminalSession();
@@ -428,9 +441,6 @@ export function useTerminalLifecycle({
 
 		const initialCwd = paneInitialCwdRef.current;
 
-		const { workspaceRun: paneWorkspaceRun, isNewWorkspaceRun } =
-			resolveWorkspaceRunAttachMode(paneId, defaultRestartCommandRef.current);
-
 		const cancelInitialAttach = scheduleTerminalAttach({
 			paneId,
 			priority: isFocusedRef.current ? 0 : 1,
@@ -468,10 +478,6 @@ export function useTerminalLifecycle({
 							cols: xterm.cols,
 							rows: xterm.rows,
 							cwd: initialCwd,
-							...(isNewWorkspaceRun && {
-								command: defaultRestartCommandRef.current,
-								skipColdRestore: true,
-							}),
 						},
 						{
 							onSuccess: (result) => {
@@ -541,25 +547,6 @@ export function useTerminalLifecycle({
 						},
 					);
 				};
-
-				// Handle workspace-run panes that need recovery (stopped or stale "running" after restart)
-				if (paneWorkspaceRun && !isNewWorkspaceRun) {
-					void recoverWorkspaceRunPane({
-						paneId,
-						workspaceRun: paneWorkspaceRun,
-						isNewWorkspaceRun,
-						xterm,
-						shouldAbort: () => isUnmounted || attachCanceled,
-						startAttach,
-						done,
-						isExitedRef,
-						wasKilledByUserRef,
-						isStreamReadyRef,
-						setExitStatus,
-					});
-					return;
-				}
-
 				startAttach();
 				return;
 			},

@@ -64,7 +64,6 @@ export function useTerminalStream({
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
 
 			const currentPaneForRun = useTabsStore.getState().panes[paneId];
-			const isWorkspaceRunPane = Boolean(currentPaneForRun?.workspaceRun);
 			if (currentPaneForRun?.workspaceRun) {
 				const nextState = wasKilledByUser
 					? "stopped-by-user"
@@ -74,12 +73,8 @@ export function useTerminalStream({
 
 			if (wasKilledByUser) {
 				xterm.writeln("\r\n\r\n[Session killed]");
-				xterm.writeln(
-					isWorkspaceRunPane
-						? "[Press any key to restart]"
-						: "[Restart to start a new session]",
-				);
-			} else if (exitCode === 0 && !isWorkspaceRunPane) {
+				xterm.writeln("[Restart to start a new session]");
+			} else if (exitCode === 0) {
 				// Clean exit (e.g. typing "exit") — close the pane/tab
 				removePane(paneId);
 				return;

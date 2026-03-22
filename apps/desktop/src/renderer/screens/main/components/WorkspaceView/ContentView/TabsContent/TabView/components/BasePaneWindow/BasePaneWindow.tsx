@@ -55,9 +55,6 @@ export function BasePaneWindow({
 	contentClassName = "w-full h-full overflow-hidden",
 }: BasePaneWindowProps) {
 	const isActive = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
-	const workspaceRunState = useTabsStore(
-		(s) => s.panes[paneId]?.workspaceRun?.state,
-	);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
 	const isDragging = useDragPaneStore((s) => s.draggingPaneId !== null);
@@ -103,10 +100,7 @@ export function BasePaneWindow({
 					renderToolbar(handlers)
 				)
 			}
-			className={cn(
-				isActive && "mosaic-window-focused",
-				workspaceRunState && `workspace-run-pane-${workspaceRunState}`,
-			)}
+			className={cn(isActive && "mosaic-window-focused")}
 			onDragStart={() => setDragging(paneId, tabId)}
 			onDragEnd={() => clearDragging()}
 		>

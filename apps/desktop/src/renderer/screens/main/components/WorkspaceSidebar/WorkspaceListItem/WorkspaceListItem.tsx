@@ -9,7 +9,6 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
@@ -77,14 +76,6 @@ export function WorkspaceListItem({
 			}
 		}
 		return getHighestPriorityStatus(paneStatuses());
-	});
-	const workspaceRunState = useTabsStore((state) => {
-		for (const pane of Object.values(state.panes)) {
-			if (pane.type === "terminal" && pane.workspaceRun?.workspaceId === id) {
-				return pane.workspaceRun.state;
-			}
-		}
-		return null;
 	});
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
@@ -329,9 +320,6 @@ export function WorkspaceListItem({
 						)}
 					</TooltipContent>
 				</Tooltip>
-				{workspaceRunState && showBranchSubtitle && (
-					<WorkspaceRunIndicator state={workspaceRunState} variant="inline" />
-				)}
 			</div>
 
 			<div className="flex-1 min-w-0">

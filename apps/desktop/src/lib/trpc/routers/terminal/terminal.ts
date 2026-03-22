@@ -9,6 +9,7 @@ import {
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
+import { portManager } from "main/lib/terminal/port-manager";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -260,6 +261,22 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				await terminal.kill(input);
+			}),
+
+		getPaneProcessState: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const { shellPid, subprocessPids } =
+					await portManager.getPaneProcessState(input.paneId);
+				return {
+					shellPid,
+					hasSubprocesses: subprocessPids.length > 0,
+					subprocessCount: subprocessPids.length,
+				};
 			}),
 
 		detach: publicProcedure
