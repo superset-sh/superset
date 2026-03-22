@@ -162,4 +162,60 @@ describe("Terminal Host Session shell args", () => {
 		).rejects.toThrow(TERMINAL_ATTACH_CANCELED_MESSAGE);
 		expect(session.clientCount).toBe(0);
 	});
+
+	it("keeps a replacement attach registered when an older attach is canceled", async () => {
+		const session = new Session({
+			sessionId: "session-replacement-attach",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+		});
+
+		let resolveBoundary!: (value: boolean) => void;
+		const boundaryPromise = new Promise<boolean>((resolve) => {
+			resolveBoundary = resolve;
+		});
+		(
+			session as unknown as {
+				flushToSnapshotBoundary: (_timeoutMs: number) => Promise<boolean>;
+			}
+		).flushToSnapshotBoundary = () => boundaryPromise;
+
+		const writes: string[] = [];
+		const socket = {
+			write(message: string) {
+				writes.push(message);
+				return true;
+			},
+		} as unknown as import("node:net").Socket;
+
+		const firstController = new AbortController();
+		const firstAttach = session.attach(socket, firstController.signal);
+		await Promise.resolve();
+
+		const secondAttach = session.attach(socket);
+		await Promise.resolve();
+
+		firstController.abort();
+		await expect(firstAttach).rejects.toThrow(TERMINAL_ATTACH_CANCELED_MESSAGE);
+		expect(session.clientCount).toBe(1);
+
+		resolveBoundary(true);
+		await expect(secondAttach).resolves.toBeDefined();
+
+		(
+			session as unknown as {
+				broadcastEvent: (
+					eventType: string,
+					payload: { type: "data"; data: string },
+				) => void;
+			}
+		).broadcastEvent("data", { type: "data", data: "hello" });
+
+		expect(writes.some((message) => message.includes('"hello"'))).toBe(true);
+	});
 });

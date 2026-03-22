@@ -60,6 +60,7 @@ export interface ColdRestoreState {
 export interface CreateOrAttachInput {
 	paneId: string;
 	requestId?: string;
+	joinPending?: boolean;
 	tabId: string;
 	workspaceId: string;
 	cols?: number;

@@ -71,7 +71,8 @@ export interface TerminalManagement {
 export interface TerminalSessionOperations {
 	/**
 	 * Create a new session or attach to an existing one.
-	 * Reuses identical requests and lets newer requests supersede stale ones per paneId.
+	 * Reuses identical requests, can join a currently pending attach, and lets
+	 * newer request-scoped attaches supersede stale ones per paneId.
 	 */
 	createOrAttach(params: CreateSessionParams): Promise<SessionResult>;
 

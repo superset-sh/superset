@@ -62,6 +62,7 @@ export const createTerminalRouter = () => {
 				z.object({
 					paneId: SAFE_ID,
 					requestId: z.string().min(1).optional(),
+					joinPending: z.boolean().optional(),
 					tabId: z.string(),
 					workspaceId: SAFE_ID,
 					cols: z.number().optional(),
@@ -79,6 +80,7 @@ export const createTerminalRouter = () => {
 				const {
 					paneId,
 					requestId,
+					joinPending,
 					tabId,
 					workspaceId,
 					cols,
@@ -118,6 +120,7 @@ export const createTerminalRouter = () => {
 					const result = await terminal.createOrAttach({
 						paneId,
 						requestId,
+						joinPending,
 						tabId,
 						workspaceId,
 						workspaceName: workspace?.name,

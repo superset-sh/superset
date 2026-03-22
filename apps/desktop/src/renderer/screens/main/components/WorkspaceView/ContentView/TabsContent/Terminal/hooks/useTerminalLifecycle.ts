@@ -33,6 +33,7 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 import { createAttachRequestId } from "./attach-request-id";
+import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
@@ -87,7 +88,6 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
-
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -778,18 +778,35 @@ export function useTerminalLifecycle({
 			if (DEBUG_TERMINAL) {
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
-			cancelInitialAttach();
+			const paneDestroyed = isPaneDestroyedInStore();
+			const hasWorkspaceRun = hasPaneWorkspaceRun(paneId);
+			const keepAttachAlive = shouldKeepAttachAliveOnUnmount({
+				paneDestroyed,
+				hasWorkspaceRun,
+				isStartingWorkspaceRun: isNewWorkspaceRun,
+				hasActiveAttachRequest: activeAttachRequestId !== null,
+			});
+
+			if (!keepAttachAlive) {
+				cancelInitialAttach();
+			}
 			isUnmounted = true;
-			attachCanceled = true;
-			cancelAttachRequest(activeAttachRequestId);
+			attachCanceled = !keepAttachAlive;
+			if (!keepAttachAlive) {
+				cancelAttachRequest(activeAttachRequestId);
+			}
 			activeAttachRequestId = null;
-			const cleanupAttachId = activeAttachId || undefined;
+			const cleanupAttachId = !keepAttachAlive
+				? activeAttachId || undefined
+				: undefined;
 			activeAttachId = 0;
 			if (cancelAttachWait) {
 				cancelAttachWait();
 				cancelAttachWait = null;
 			}
-			clearAttachInFlight(paneId, cleanupAttachId);
+			if (!keepAttachAlive) {
+				clearAttachInFlight(paneId, cleanupAttachId);
+			}
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -809,12 +826,12 @@ export function useTerminalLifecycle({
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
 
-			if (isPaneDestroyedInStore()) {
+			if (paneDestroyed) {
 				// Pane was explicitly destroyed, so kill the session.
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
-			} else if (hasPaneWorkspaceRun(paneId)) {
+			} else if (hasWorkspaceRun) {
 				// Keep workspace-run panes attached while hidden
 				pendingDetaches.delete(paneId);
 			} else {

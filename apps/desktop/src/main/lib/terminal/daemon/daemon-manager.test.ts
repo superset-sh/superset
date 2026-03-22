@@ -354,6 +354,50 @@ describe("DaemonTerminalManager kill tracking", () => {
 		]);
 	});
 
+	it("reuses a helper joinPending attach when a request-scoped attach starts later", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-attach-helper-first";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		const helperPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		const mountedPromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-mounted",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		expect(mockClient.createOrAttachCalls).toHaveLength(1);
+		expect(mockClient.cancelCreateOrAttachCalls).toEqual([]);
+
+		const helperRequestId = mockClient.createOrAttachCalls[0]?.requestId;
+		expect(typeof helperRequestId).toBe("string");
+		mockClient.resolveCreateOrAttach(helperRequestId ?? "", 456);
+
+		await expect(helperPromise).resolves.toMatchObject({
+			isNew: true,
+			wasRecovered: false,
+		});
+		await expect(mountedPromise).resolves.toMatchObject({
+			isNew: true,
+			wasRecovered: false,
+		});
+	});
+
 	it("does not dispatch stale daemon work after canceling before dispatch", async () => {
 		const manager = new DaemonTerminalManager();
 		const paneId = "pane-attach-blocked";

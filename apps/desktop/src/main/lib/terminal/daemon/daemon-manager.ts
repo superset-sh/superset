@@ -28,6 +28,7 @@ import type { ColdRestoreInfo, SessionInfo } from "./types";
 
 interface PendingCreateOrAttach {
 	requestId: string;
+	joinPending: boolean;
 	abortController: AbortController;
 	promise: Promise<SessionResult>;
 }
@@ -296,9 +297,14 @@ export class DaemonTerminalManager extends EventEmitter {
 		}
 
 		const requestId = params.requestId ?? `${paneId}:${Date.now()}`;
+		const joinPending = params.joinPending ?? false;
 		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
-			if (pending.requestId === requestId) {
+			if (
+				pending.requestId === requestId ||
+				joinPending ||
+				pending.joinPending
+			) {
 				return pending.promise;
 			}
 			pending.abortController.abort();
@@ -312,6 +318,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		);
 		const entry: PendingCreateOrAttach = {
 			requestId,
+			joinPending,
 			abortController,
 			promise,
 		};

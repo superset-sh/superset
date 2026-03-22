@@ -104,6 +104,7 @@ export interface SessionOptions {
 export interface AttachedClient {
 	socket: Socket;
 	attachedAt: number;
+	attachToken: symbol;
 }
 
 // =============================================================================
@@ -778,10 +779,12 @@ export class Session {
 		}
 		throwIfAborted(signal);
 
-		this.attachedClients.set(socket, {
+		const attachedClient: AttachedClient = {
 			socket,
 			attachedAt: Date.now(),
-		});
+			attachToken: Symbol("attach"),
+		};
+		this.attachedClients.set(socket, attachedClient);
 		this.lastAttachedAt = new Date();
 
 		// Use snapshot boundary flush for consistent state with continuous output.
@@ -804,7 +807,7 @@ export class Session {
 			return this.emulator.getSnapshot();
 		} catch (error) {
 			if (isTerminalAttachCanceledError(error)) {
-				this.detach(socket);
+				this.detachAttachedClient(socket, attachedClient);
 				throw error;
 			}
 			throw error;
@@ -815,6 +818,17 @@ export class Session {
 	 * Detach a client from this session
 	 */
 	detach(socket: Socket): void {
+		this.detachAttachedClient(socket);
+	}
+
+	private detachAttachedClient(
+		socket: Socket,
+		attachedClient?: AttachedClient,
+	): void {
+		const currentClient = this.attachedClients.get(socket);
+		if (attachedClient && currentClient !== attachedClient) {
+			return;
+		}
 		this.attachedClients.delete(socket);
 		this.clientSocketsWaitingForDrain.delete(socket);
 		this.maybeResumeSubprocessStdout();
