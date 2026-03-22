@@ -264,6 +264,18 @@ export function FileViewerPane({
 		setIsDirty(value !== originalContentRef.current);
 	}, []);
 
+	// When TipTap normalizes markdown (round-trip parse → serialize changes
+	// whitespace, trailing newlines, etc.), update the baseline so the
+	// normalized form is treated as "clean" and doesn't trigger isDirty.
+	const handleMarkdownNormalize = useCallback(
+		(normalizedContent: string) => {
+			if (!hasLoadedOriginalContentRef.current || isDirty) return;
+			originalContentRef.current = normalizedContent;
+			draftContentRef.current = null;
+		},
+		[isDirty],
+	);
+
 	useEffect(() => {
 		if (
 			pendingRenamePathRef.current &&
@@ -614,6 +626,7 @@ export function FileViewerPane({
 							hideUnchangedRegions={hideUnchangedRegions}
 							onSaveFile={handleEditorSave}
 							onContentChange={handleContentChange}
+							onMarkdownNormalize={handleMarkdownNormalize}
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							// Context menu props
 							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}

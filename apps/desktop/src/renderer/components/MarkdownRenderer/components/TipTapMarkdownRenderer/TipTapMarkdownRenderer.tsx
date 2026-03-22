@@ -30,6 +30,7 @@ interface TipTapMarkdownRendererProps {
 	editable?: boolean;
 	editorRef?: MutableRefObject<MarkdownEditorAdapter | null>;
 	onChange?: (value: string) => void;
+	onNormalize?: (normalizedContent: string) => void;
 	onSave?: () => void;
 }
 
@@ -75,6 +76,7 @@ export function TipTapMarkdownRenderer({
 	editable = false,
 	editorRef,
 	onChange,
+	onNormalize,
 	onSave,
 }: TipTapMarkdownRendererProps) {
 	const globalStyle = useMarkdownStyle();
@@ -82,9 +84,11 @@ export function TipTapMarkdownRenderer({
 	const config = styleConfigs[style];
 	const articleRef = useRef<HTMLElement | null>(null);
 	const onChangeRef = useRef(onChange);
+	const onNormalizeRef = useRef(onNormalize);
 	const onSaveRef = useRef(onSave);
 
 	onChangeRef.current = onChange;
+	onNormalizeRef.current = onNormalize;
 	onSaveRef.current = onSave;
 
 	// Tracks TipTap's serialized markdown baseline to distinguish
@@ -133,6 +137,9 @@ export function TipTapMarkdownRenderer({
 
 		editor.commands.setContent(value, { emitUpdate: false });
 		normalizedContentRef.current = getEditorMarkdown(editor);
+		// Notify parent of the normalized content so it can update its
+		// baseline and avoid false "unsaved changes" from round-trip diffs
+		onNormalizeRef.current?.(normalizedContentRef.current);
 	}, [editor, value]);
 
 	useEffect(() => {
