@@ -98,6 +98,8 @@ export function PresetEditorSheet({
 		"border-border/70 bg-transparent shadow-none dark:bg-transparent focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10";
 	const neutralSelectionControlClassName =
 		"border-border bg-transparent text-foreground shadow-none dark:bg-transparent data-[state=checked]:border-foreground data-[state=checked]:bg-transparent data-[state=checked]:text-foreground dark:data-[state=checked]:bg-transparent focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10 [&_svg]:fill-current";
+	const sectionHeadingClassName =
+		"text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80";
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
@@ -159,260 +161,276 @@ export function PresetEditorSheet({
 						</SheetHeader>
 
 						<div className="flex-1 overflow-y-auto p-5 space-y-8">
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Name"
-									htmlFor="preset-name"
-									tooltip="The preset name shown in your presets list and launch surfaces."
-								/>
-								<div className="pl-2">
-									<Input
-										id="preset-name"
-										value={preset.name}
-										onChange={(e) => onFieldChange("name", e.target.value)}
-										onBlur={() => onFieldBlur("name")}
-										className={fieldClassName}
-										placeholder="e.g. Dev Server"
-									/>
-								</div>
-							</div>
+							<div className="space-y-5">
+								<p className={sectionHeadingClassName}>Details</p>
 
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Description"
-									htmlFor="preset-description"
-									tooltip="Optional context to explain what this preset is for."
-								/>
-								<div className="pl-2">
-									<Input
-										id="preset-description"
-										value={preset.description ?? ""}
-										onChange={(e) =>
-											onFieldChange("description", e.target.value)
-										}
-										onBlur={() => onFieldBlur("description")}
-										className={fieldClassName}
-										placeholder="e.g. Starts the dev server (optional)"
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Name"
+										htmlFor="preset-name"
+										tooltip="The preset name shown in your presets list and launch surfaces."
 									/>
-								</div>
-							</div>
-
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Applies To"
-									tooltip="Choose whether this preset is available everywhere or only in specific projects."
-								/>
-								<div className="pl-2">
-									<ProjectTargetingField
-										projectIds={preset.projectIds}
-										projects={projects}
-										preferredProjectId={originWorkspace?.projectId ?? null}
-										onChange={onProjectIdsChange}
-									/>
-								</div>
-							</div>
-
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Directory"
-									htmlFor="preset-directory"
-									tooltip="Working directory for commands. Use a workspace-relative path like ./apps/web or choose an absolute folder."
-								/>
-								<div className="space-y-2.5 pl-2">
-									<div className="flex items-center gap-2">
+									<div className="pl-2">
 										<Input
-											id="preset-directory"
-											value={preset.cwd}
-											onChange={(e) => onFieldChange("cwd", e.target.value)}
-											onBlur={() => onFieldBlur("cwd")}
+											id="preset-name"
+											value={preset.name}
+											onChange={(e) => onFieldChange("name", e.target.value)}
+											onBlur={() => onFieldBlur("name")}
 											className={fieldClassName}
-											placeholder="e.g. ./apps/web or /full/path (optional)"
+											placeholder="e.g. Dev Server"
 										/>
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											onClick={handleBrowseDirectory}
-											disabled={selectDirectory.isPending}
-											className="border-border/70 bg-transparent shadow-none hover:bg-accent/40 focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10 dark:bg-transparent"
-										>
-											<HiOutlineFolderOpen className="size-4" />
-											Browse
-										</Button>
 									</div>
-									{trimmedCwd &&
-									isAbsolutePath &&
-									directoryStatus?.exists === false ? (
-										<Alert variant="destructive">
-											<HiExclamationTriangle />
-											<AlertDescription>
-												This directory does not exist. Launching the preset will
-												fall back to the workspace root.
-											</AlertDescription>
-										</Alert>
-									) : null}
-									{trimmedCwd &&
-									isAbsolutePath &&
-									directoryStatus?.exists &&
-									!directoryStatus.isDirectory ? (
-										<Alert variant="destructive">
-											<HiExclamationTriangle />
-											<AlertDescription>
-												This path exists, but it is not a directory.
-											</AlertDescription>
-										</Alert>
-									) : null}
-									{trimmedCwd && !isAbsolutePath ? (
-										<p className="text-xs text-muted-foreground">
-											Relative paths are resolved from each workspace root when
-											the preset launches.
-										</p>
-									) : null}
 								</div>
-							</div>
 
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Commands"
-									tooltip="Each row is one command. Add multiple commands to run a grouped preset."
-								/>
-								<div className="pl-2">
-									<CommandsEditor
-										commands={preset.commands}
-										onChange={onCommandsChange}
-										onBlur={onCommandsBlur}
-										placeholder="e.g. bun run dev"
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Description"
+										htmlFor="preset-description"
+										tooltip="Optional context to explain what this preset is for."
 									/>
-								</div>
-							</div>
-
-							<div className="space-y-2.5">
-								<LabelWithTooltip
-									label="Launch Mode"
-									tooltip="Controls whether commands open in the current tab, one new tab with panes, or one new tab per command."
-								/>
-								<div className="pl-2">
-									{hasMultipleCommands ? (
-										<RadioGroup
-											value={modeValue}
-											onValueChange={(value) =>
-												onModeChange(value as ExecutionMode)
+									<div className="pl-2">
+										<Input
+											id="preset-description"
+											value={preset.description ?? ""}
+											onChange={(e) =>
+												onFieldChange("description", e.target.value)
 											}
-											className="gap-3 pt-1"
-										>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-split-pane"
-													value="split-pane"
-													className={`${neutralSelectionControlClassName} mt-0.5`}
-												/>
-												<Label
-													htmlFor="preset-multi-command-split-pane"
-													className="text-sm font-medium"
-												>
-													Open all commands in current tab using split panes
-												</Label>
-											</div>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-new-tab"
-													value="new-tab"
-													className={`${neutralSelectionControlClassName} mt-0.5`}
-												/>
-												<Label
-													htmlFor="preset-multi-command-new-tab"
-													className="text-sm font-medium"
-												>
-													Open each command in its own new tab
-												</Label>
-											</div>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-new-tab-split-pane"
-													value="new-tab-split-pane"
-													className={`${neutralSelectionControlClassName} mt-0.5`}
-												/>
-												<Label
-													htmlFor="preset-multi-command-new-tab-split-pane"
-													className="text-sm font-medium"
-												>
-													Open all commands in a new tab using split panes
-												</Label>
-											</div>
-										</RadioGroup>
-									) : (
-										<Select
-											value={singleCommandModeValue}
-											onValueChange={(value) =>
-												onModeChange(value as ExecutionMode)
-											}
-										>
-											<SelectTrigger className={`h-9 w-full ${fieldClassName}`}>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="split-pane">
-													Open in current tab
-												</SelectItem>
-												<SelectItem value="new-tab">Open in new tab</SelectItem>
-											</SelectContent>
-										</Select>
-									)}
-								</div>
-							</div>
-
-							<div className="space-y-3">
-								<LabelWithTooltip
-									label="Auto-run"
-									className="text-sm font-medium"
-									tooltip="Choose when this preset should run automatically."
-								/>
-
-								<div className="space-y-4 pl-2">
-									<div className="flex items-start gap-3">
-										<Checkbox
-											id="preset-workspace-autostart"
-											checked={isWorkspaceCreation}
-											className={neutralSelectionControlClassName}
-											onCheckedChange={(checked) =>
-												onToggleAutoApply(
-													"applyOnWorkspaceCreated",
-													checked === true,
-												)
-											}
+											onBlur={() => onFieldBlur("description")}
+											className={fieldClassName}
+											placeholder="e.g. Starts the dev server (optional)"
 										/>
-										<div className="space-y-0.5">
-											<Label
-												htmlFor="preset-workspace-autostart"
-												className="text-sm font-medium"
-											>
-												When creating a workspace
-											</Label>
-											<p className="text-xs text-muted-foreground">
-												Automatically launch this preset for new workspaces.
-											</p>
-										</div>
 									</div>
+								</div>
+							</div>
 
-									<div className="flex items-start gap-3">
-										<Checkbox
-											id="preset-tab-autostart"
-											checked={isNewTab}
-											className={neutralSelectionControlClassName}
-											onCheckedChange={(checked) =>
-												onToggleAutoApply("applyOnNewTab", checked === true)
-											}
+							<div className="space-y-5 border-t border-border/40 pt-6">
+								<p className={sectionHeadingClassName}>Targeting</p>
+
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Applies To"
+										tooltip="Choose whether this preset is available everywhere or only in specific projects."
+									/>
+									<div className="pl-2">
+										<ProjectTargetingField
+											projectIds={preset.projectIds}
+											projects={projects}
+											preferredProjectId={originWorkspace?.projectId ?? null}
+											onChange={onProjectIdsChange}
 										/>
-										<div className="space-y-0.5">
-											<Label
-												htmlFor="preset-tab-autostart"
-												className="text-sm font-medium"
+									</div>
+								</div>
+
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Directory"
+										htmlFor="preset-directory"
+										tooltip="Working directory for commands. Use a workspace-relative path like ./apps/web or choose an absolute folder."
+									/>
+									<div className="space-y-2.5 pl-2">
+										<div className="flex items-center gap-2">
+											<Input
+												id="preset-directory"
+												value={preset.cwd}
+												onChange={(e) => onFieldChange("cwd", e.target.value)}
+												onBlur={() => onFieldBlur("cwd")}
+												className={fieldClassName}
+												placeholder="e.g. ./apps/web or /full/path (optional)"
+											/>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={handleBrowseDirectory}
+												disabled={selectDirectory.isPending}
+												className="border-border/70 bg-transparent shadow-none hover:bg-accent/40 focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10 dark:bg-transparent"
 											>
-												When opening a new tab
-											</Label>
+												<HiOutlineFolderOpen className="size-4" />
+												Browse
+											</Button>
+										</div>
+										{trimmedCwd &&
+										isAbsolutePath &&
+										directoryStatus?.exists === false ? (
+											<Alert variant="destructive">
+												<HiExclamationTriangle />
+												<AlertDescription>
+													This directory does not exist. Launching the preset
+													will fall back to the workspace root.
+												</AlertDescription>
+											</Alert>
+										) : null}
+										{trimmedCwd &&
+										isAbsolutePath &&
+										directoryStatus?.exists &&
+										!directoryStatus.isDirectory ? (
+											<Alert variant="destructive">
+												<HiExclamationTriangle />
+												<AlertDescription>
+													This path exists, but it is not a directory.
+												</AlertDescription>
+											</Alert>
+										) : null}
+										{trimmedCwd && !isAbsolutePath ? (
 											<p className="text-xs text-muted-foreground">
-												Automatically launch this preset for new tabs.
+												Relative paths are resolved from each workspace root
+												when the preset launches.
 											</p>
+										) : null}
+									</div>
+								</div>
+							</div>
+
+							<div className="space-y-5 border-t border-border/40 pt-6">
+								<p className={sectionHeadingClassName}>Launch</p>
+
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Commands"
+										tooltip="Each row is one command. Add multiple commands to run a grouped preset."
+									/>
+									<div className="pl-2">
+										<CommandsEditor
+											commands={preset.commands}
+											onChange={onCommandsChange}
+											onBlur={onCommandsBlur}
+											placeholder="e.g. bun run dev"
+										/>
+									</div>
+								</div>
+
+								<div className="space-y-2.5">
+									<LabelWithTooltip
+										label="Launch Mode"
+										tooltip="Controls whether commands open in the current tab, one new tab with panes, or one new tab per command."
+									/>
+									<div className="pl-2">
+										{hasMultipleCommands ? (
+											<RadioGroup
+												value={modeValue}
+												onValueChange={(value) =>
+													onModeChange(value as ExecutionMode)
+												}
+												className="gap-3 pt-1"
+											>
+												<div className="flex items-start gap-2">
+													<RadioGroupItem
+														id="preset-multi-command-split-pane"
+														value="split-pane"
+														className={`${neutralSelectionControlClassName} mt-0.5`}
+													/>
+													<Label
+														htmlFor="preset-multi-command-split-pane"
+														className="text-sm font-medium"
+													>
+														Open all commands in current tab using split panes
+													</Label>
+												</div>
+												<div className="flex items-start gap-2">
+													<RadioGroupItem
+														id="preset-multi-command-new-tab"
+														value="new-tab"
+														className={`${neutralSelectionControlClassName} mt-0.5`}
+													/>
+													<Label
+														htmlFor="preset-multi-command-new-tab"
+														className="text-sm font-medium"
+													>
+														Open each command in its own new tab
+													</Label>
+												</div>
+												<div className="flex items-start gap-2">
+													<RadioGroupItem
+														id="preset-multi-command-new-tab-split-pane"
+														value="new-tab-split-pane"
+														className={`${neutralSelectionControlClassName} mt-0.5`}
+													/>
+													<Label
+														htmlFor="preset-multi-command-new-tab-split-pane"
+														className="text-sm font-medium"
+													>
+														Open all commands in a new tab using split panes
+													</Label>
+												</div>
+											</RadioGroup>
+										) : (
+											<Select
+												value={singleCommandModeValue}
+												onValueChange={(value) =>
+													onModeChange(value as ExecutionMode)
+												}
+											>
+												<SelectTrigger
+													className={`h-9 w-full ${fieldClassName}`}
+												>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="split-pane">
+														Open in current tab
+													</SelectItem>
+													<SelectItem value="new-tab">
+														Open in new tab
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										)}
+									</div>
+								</div>
+
+								<div className="space-y-3">
+									<LabelWithTooltip
+										label="Auto-run"
+										className="text-sm font-medium"
+										tooltip="Choose when this preset should run automatically."
+									/>
+
+									<div className="space-y-4 pl-2">
+										<div className="flex items-start gap-3">
+											<Checkbox
+												id="preset-workspace-autostart"
+												checked={isWorkspaceCreation}
+												className={neutralSelectionControlClassName}
+												onCheckedChange={(checked) =>
+													onToggleAutoApply(
+														"applyOnWorkspaceCreated",
+														checked === true,
+													)
+												}
+											/>
+											<div className="space-y-0.5">
+												<Label
+													htmlFor="preset-workspace-autostart"
+													className="text-sm font-medium"
+												>
+													When creating a workspace
+												</Label>
+												<p className="text-xs text-muted-foreground">
+													Automatically launch this preset for new workspaces.
+												</p>
+											</div>
+										</div>
+
+										<div className="flex items-start gap-3">
+											<Checkbox
+												id="preset-tab-autostart"
+												checked={isNewTab}
+												className={neutralSelectionControlClassName}
+												onCheckedChange={(checked) =>
+													onToggleAutoApply("applyOnNewTab", checked === true)
+												}
+											/>
+											<div className="space-y-0.5">
+												<Label
+													htmlFor="preset-tab-autostart"
+													className="text-sm font-medium"
+												>
+													When opening a new tab
+												</Label>
+												<p className="text-xs text-muted-foreground">
+													Automatically launch this preset for new tabs.
+												</p>
+											</div>
 										</div>
 									</div>
 								</div>
