@@ -60,14 +60,20 @@ export const GHReviewThreadCommentSchema = z.object({
 	databaseId: z.number().nullable().optional(),
 });
 
+export const GHPageInfoSchema = z.object({
+	hasNextPage: z.boolean(),
+	endCursor: z.string().nullable(),
+});
+
+export const GHReviewThreadCommentsConnectionSchema = z.object({
+	nodes: z.array(GHReviewThreadCommentSchema.nullable()).optional(),
+	pageInfo: GHPageInfoSchema,
+});
+
 export const GHReviewThreadSchema = z.object({
+	id: z.string().optional(),
 	isResolved: z.boolean().optional(),
-	comments: z
-		.object({
-			nodes: z.array(GHReviewThreadCommentSchema.nullable()).optional(),
-		})
-		.nullable()
-		.optional(),
+	comments: GHReviewThreadCommentsConnectionSchema.nullable().optional(),
 });
 
 export const GHReviewThreadsResponseSchema = z.object({
@@ -78,13 +84,20 @@ export const GHReviewThreadsResponseSchema = z.object({
 					.object({
 						reviewThreads: z.object({
 							nodes: z.array(GHReviewThreadSchema.nullable()).optional(),
-							pageInfo: z.object({
-								hasNextPage: z.boolean(),
-								endCursor: z.string().nullable(),
-							}),
+							pageInfo: GHPageInfoSchema,
 						}),
 					})
 					.nullable(),
+			})
+			.nullable(),
+	}),
+});
+
+export const GHReviewThreadCommentsResponseSchema = z.object({
+	data: z.object({
+		node: z
+			.object({
+				comments: GHReviewThreadCommentsConnectionSchema,
 			})
 			.nullable(),
 	}),

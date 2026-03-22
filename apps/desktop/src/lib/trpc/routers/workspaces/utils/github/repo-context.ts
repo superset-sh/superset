@@ -60,7 +60,8 @@ async function refreshRepoContext(
 
 		setCachedRepoContext(worktreePath, context);
 		return context;
-	} catch {
+	} catch (error) {
+		console.warn("[GitHub] Failed to refresh repo context:", error);
 		return null;
 	} finally {
 		clearInFlightRepoContext(worktreePath);

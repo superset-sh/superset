@@ -3,6 +3,8 @@ import { execWithShellEnv } from "../shell-env";
 import {
 	GHIssueCommentSchema,
 	GHReviewCommentSchema,
+	GHReviewThreadCommentsConnectionSchema,
+	GHReviewThreadCommentsResponseSchema,
 	GHReviewThreadsResponseSchema,
 } from "./types";
 
@@ -17,12 +19,35 @@ query PullRequestReviewThreads(
 		pullRequest(number: $pullRequestNumber) {
 			reviewThreads(first: 100, after: $after) {
 				nodes {
+					id
 					isResolved
 					comments(first: 100) {
 						nodes {
 							databaseId
 						}
+						pageInfo {
+							hasNextPage
+							endCursor
+						}
 					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	}
+}
+`;
+
+const REVIEW_THREAD_COMMENTS_QUERY = `
+query PullRequestReviewThreadComments($threadId: ID!, $after: String) {
+	node(id: $threadId) {
+		... on PullRequestReviewThread {
+			comments(first: 100, after: $after) {
+				nodes {
+					databaseId
 				}
 				pageInfo {
 					hasNextPage
@@ -224,10 +249,19 @@ async function fetchResolvedReviewCommentIdsForPullRequest(
 				continue;
 			}
 
-			for (const comment of thread.comments?.nodes ?? []) {
-				if (comment && typeof comment.databaseId === "number") {
-					resolvedIds.add(comment.databaseId);
-				}
+			addResolvedReviewCommentIds(resolvedIds, thread.comments);
+
+			if (
+				thread.id &&
+				thread.comments?.pageInfo.hasNextPage &&
+				thread.comments.pageInfo.endCursor
+			) {
+				await fetchAdditionalResolvedReviewCommentIdsForThread({
+					worktreePath,
+					threadId: thread.id,
+					initialAfterCursor: thread.comments.pageInfo.endCursor,
+					resolvedIds,
+				});
 			}
 		}
 
@@ -239,6 +273,74 @@ async function fetchResolvedReviewCommentIdsForPullRequest(
 		}
 
 		afterCursor = reviewThreads.pageInfo.endCursor;
+	}
+}
+
+function addResolvedReviewCommentIds(
+	resolvedIds: Set<number>,
+	comments: unknown,
+): void {
+	const parsed = GHReviewThreadCommentsConnectionSchema.safeParse(comments);
+	if (!parsed.success) {
+		return;
+	}
+
+	for (const comment of parsed.data.nodes ?? []) {
+		if (comment && typeof comment.databaseId === "number") {
+			resolvedIds.add(comment.databaseId);
+		}
+	}
+}
+
+async function fetchAdditionalResolvedReviewCommentIdsForThread({
+	worktreePath,
+	threadId,
+	initialAfterCursor,
+	resolvedIds,
+}: {
+	worktreePath: string;
+	threadId: string;
+	initialAfterCursor: string;
+	resolvedIds: Set<number>;
+}): Promise<void> {
+	let afterCursor: string | null = initialAfterCursor;
+
+	while (afterCursor) {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"api",
+				"graphql",
+				"-f",
+				`query=${REVIEW_THREAD_COMMENTS_QUERY}`,
+				"-F",
+				`threadId=${threadId}`,
+				"-F",
+				`after=${afterCursor}`,
+			],
+			{ cwd: worktreePath },
+		);
+		const parsed = GHReviewThreadCommentsResponseSchema.safeParse(
+			JSON.parse(stdout.trim()),
+		);
+		if (!parsed.success) {
+			console.warn(
+				"[GitHub] Failed to parse pull request review thread comments response:",
+				parsed.error.message,
+			);
+			return;
+		}
+
+		const comments = parsed.data.data.node?.comments;
+		if (!comments) {
+			return;
+		}
+
+		addResolvedReviewCommentIds(resolvedIds, comments);
+		afterCursor =
+			comments.pageInfo.hasNextPage && comments.pageInfo.endCursor
+				? comments.pageInfo.endCursor
+				: null;
 	}
 }
 
