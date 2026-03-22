@@ -23,7 +23,7 @@ export function InfiniteScrollView({
 	worktreePath,
 	baseBranch,
 }: InfiniteScrollViewProps) {
-	const { containerRef, viewedCount } = useScrollContext();
+	const { containerRef, viewedCount, viewedFiles } = useScrollContext();
 	const {
 		viewMode: diffViewMode,
 		setViewMode: setDiffViewMode,
@@ -217,7 +217,10 @@ export function InfiniteScrollView({
 									? baseBranch
 									: undefined
 							}
-							isExpanded={!collapsedFiles.has(focusedEntry.key)}
+							isExpanded={
+								!collapsedFiles.has(focusedEntry.key) &&
+								!viewedFiles.has(focusedEntry.key)
+							}
 							onToggleExpanded={() => toggleFile(focusedEntry.key)}
 							{...getFocusedFileActions(focusedEntry)}
 							isActioning={isActioning}
