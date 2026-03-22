@@ -54,6 +54,8 @@ interface ToolCallBlockProps {
 		toolCallId: string,
 		answers: Record<string, string>,
 	) => Promise<void> | void;
+	/** Live streaming state for a running subagent, keyed by tool-call ID. */
+	activeSubagent?: Record<string, unknown>;
 }
 
 interface DiffPaneTarget {
@@ -69,6 +71,7 @@ export function ToolCallBlock({
 	sessionId,
 	organizationId,
 	onAnswer,
+	activeSubagent,
 }: ToolCallBlockProps) {
 	const args = getArgs(part);
 	const result = getResult(part);
@@ -596,7 +599,14 @@ export function ToolCallBlock({
 	}
 
 	if (toolName === "subagent") {
-		return <SubagentToolCall part={part} args={args} result={result} />;
+		return (
+			<SubagentToolCall
+				part={part}
+				args={args}
+				result={result}
+				activeSubagent={activeSubagent}
+			/>
+		);
 	}
 
 	// --- Fallback: generic tool UI ---

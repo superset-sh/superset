@@ -15,6 +15,8 @@ interface SubagentToolCallProps {
 	part: ToolPart;
 	args: Record<string, unknown>;
 	result: Record<string, unknown>;
+	/** Live streaming state from activeSubagents map, if this subagent is still running. */
+	activeSubagent?: Record<string, unknown>;
 }
 
 function asString(value: unknown): string | null {
@@ -23,30 +25,91 @@ function asString(value: unknown): string | null {
 	return trimmed.length > 0 ? trimmed : null;
 }
 
+function asNumber(value: unknown): number | undefined {
+	if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+		return undefined;
+	}
+	return value;
+}
+
+interface ToolBadge {
+	name: string;
+	isError: boolean;
+}
+
+function parseLiveToolCalls(value: unknown): ToolBadge[] {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => {
+			if (typeof item !== "object" || item === null) return null;
+			const record = item as Record<string, unknown>;
+			const name = asString(record.name);
+			if (!name) return null;
+			return { name, isError: record.isError === true };
+		})
+		.filter((item): item is ToolBadge => item !== null);
+}
+
 export function SubagentToolCall({
 	part,
 	args,
 	result,
+	activeSubagent,
 }: SubagentToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [renderMarkdown, setRenderMarkdown] = useState(true);
 	const markdownToggleId = useId();
-	const isPending =
-		part.state !== "output-available" && part.state !== "output-error";
+
+	const hasCompleted =
+		part.state === "output-available" || part.state === "output-error";
+	const isLive = !hasCompleted && activeSubagent !== undefined;
+
+	// Derive status
+	const isPending = !hasCompleted && !isLive;
+	const isRunning = isLive;
 	const isError =
 		part.state === "output-error" ||
 		result.isError === true ||
-		(asString(result.error) ?? "").length > 0;
+		(asString(result.error) ?? "").length > 0 ||
+		(isLive && activeSubagent.isError === true);
+
 	const task = asString(args.task) ?? "Running subagent task...";
 	const agentType = asString(args.agentType) ?? "subagent";
+
+	// For completed subagents, parse from the tool result.
+	// For live subagents, derive from the streaming state.
 	const parsed = useMemo(() => parseSubagentToolResult(result), [result]);
+
+	const liveText = isLive
+		? (asString(activeSubagent.textDelta) ??
+			asString(activeSubagent.result) ??
+			"")
+		: "";
+	const liveModelId = isLive ? asString(activeSubagent.modelId) : undefined;
+	const liveDurationMs = isLive
+		? asNumber(activeSubagent.durationMs)
+		: undefined;
+	const liveToolCalls = useMemo(
+		() => (isLive ? parseLiveToolCalls(activeSubagent.toolCalls) : []),
+		[isLive, activeSubagent?.toolCalls],
+	);
+
+	// Use live data when running, parsed result data when completed
+	const displayText = hasCompleted ? parsed.text : liveText;
+	const displayModelId = hasCompleted
+		? parsed.modelId
+		: (liveModelId ?? undefined);
+	const displayDurationMs = hasCompleted
+		? parsed.durationMs
+		: (liveDurationMs ?? undefined);
+	const displayTools = hasCompleted ? parsed.tools : liveToolCalls;
 
 	const hasDetails =
 		task.length > 0 ||
-		parsed.text.length > 0 ||
-		parsed.tools.length > 0 ||
-		Boolean(parsed.modelId) ||
-		parsed.durationMs !== undefined;
+		displayText.length > 0 ||
+		displayTools.length > 0 ||
+		Boolean(displayModelId) ||
+		displayDurationMs !== undefined;
 
 	return (
 		<Collapsible
@@ -68,13 +131,13 @@ export function SubagentToolCall({
 						<BotIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
 						<ShimmerLabel
 							className="truncate text-xs text-muted-foreground"
-							isShimmering={isPending}
+							isShimmering={isPending || isRunning}
 						>
 							{`Subagent (${agentType})`}
 						</ShimmerLabel>
 					</div>
 					<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
-						{isPending ? (
+						{isPending || isRunning ? (
 							<Loader2Icon className="h-3 w-3 animate-spin" />
 						) : isError ? (
 							<XIcon className="h-3 w-3" />
@@ -90,14 +153,14 @@ export function SubagentToolCall({
 						<div className="font-medium text-foreground">{task}</div>
 						<div className="text-muted-foreground">
 							{agentType}
-							{parsed.modelId ? ` • ${parsed.modelId}` : ""}
-							{parsed.durationMs !== undefined
-								? ` • ${Math.round(parsed.durationMs)} ms`
+							{displayModelId ? ` • ${displayModelId}` : ""}
+							{displayDurationMs !== undefined
+								? ` • ${Math.round(displayDurationMs)} ms`
 								: ""}
 						</div>
-						{parsed.tools.length > 0 ? (
+						{displayTools.length > 0 ? (
 							<div className="flex flex-wrap gap-1.5">
-								{parsed.tools.map((tool, index) => (
+								{displayTools.map((tool, index) => (
 									<span
 										key={`${tool.name}-${index}`}
 										className={cn(
@@ -112,12 +175,12 @@ export function SubagentToolCall({
 								))}
 							</div>
 						) : null}
-						{parsed.text ? (
+						{displayText ? (
 							<MarkdownToggleContent
 								toggleId={markdownToggleId}
 								checked={renderMarkdown}
 								onCheckedChange={setRenderMarkdown}
-								content={parsed.text}
+								content={displayText}
 								markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
 								plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
 							/>
