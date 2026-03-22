@@ -166,6 +166,11 @@ export const auth = betterAuth({
 			enableMetadata: true,
 			enableSessionForAPIKeys: true,
 			defaultPrefix: "sk_live_",
+			rateLimit: {
+				enabled: true,
+				maxRequests: 1000,
+				timeWindow: 1000 * 60 * 60, // 1 hour
+			},
 		}),
 		jwt({
 			jwks: {
