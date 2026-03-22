@@ -80,9 +80,16 @@ export function TabsContent({
 		}
 
 		const frameId = requestAnimationFrame(() => {
-			const textarea = contentRef.current?.querySelector<HTMLTextAreaElement>(
-				".mosaic-window-focused [data-slot=input-group-control]",
-			);
+			// Scope to the active tab's container (the only div with display:flex)
+			// to avoid matching elements in hidden but still-mounted tabs.
+			const activeContainer =
+				contentRef.current?.querySelector<HTMLDivElement>(
+					`[data-tab-id="${nextTabId}"]`,
+				);
+			const textarea =
+				activeContainer?.querySelector<HTMLTextAreaElement>(
+					".mosaic-window-focused [data-slot=input-group-control]",
+				);
 			textarea?.focus();
 		});
 
@@ -95,6 +102,7 @@ export function TabsContent({
 				workspaceTabs.map((tab) => (
 					<div
 						key={tab.id}
+						data-tab-id={tab.id}
 						className="flex-1 min-h-0 overflow-hidden"
 						style={{
 							display: tab.id === activeTabId ? "flex" : "none",
