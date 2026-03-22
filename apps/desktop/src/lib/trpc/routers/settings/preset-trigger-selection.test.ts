@@ -56,14 +56,11 @@ describe("getPresetsForTriggerField", () => {
 		).toEqual(["all-projects"]);
 	});
 
-	it("does not fall back to legacy defaults when no explicit trigger is set", () => {
+	it("returns no presets when no explicit trigger is set", () => {
 		const presets = [
-			createPreset("all-projects", {
-				isDefault: true,
-			}),
+			createPreset("all-projects"),
 			createPreset("project-a", {
 				projectIds: ["project-a"],
-				isDefault: true,
 			}),
 		];
 

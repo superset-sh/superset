@@ -6,7 +6,7 @@ import {
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
-	shouldPersistNormalizedPresetModes,
+	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
 
 function createPreset(mode?: unknown): PresetWithUnknownMode {
@@ -79,21 +79,50 @@ describe("normalizeTerminalPresets", () => {
 			["project-a", "project-b"],
 		]);
 	});
+
+	it("migrates legacy defaults to explicit auto-apply flags and strips isDefault", () => {
+		const [normalized] = normalizeTerminalPresets([
+			{
+				...createPreset("new-tab"),
+				isDefault: true,
+			},
+		]);
+
+		expect(normalized.applyOnWorkspaceCreated).toBe(true);
+		expect(normalized.applyOnNewTab).toBe(true);
+		expect("isDefault" in normalized).toBe(false);
+	});
 });
 
-describe("shouldPersistNormalizedPresetModes", () => {
-	it("returns true when legacy or missing mode exists", () => {
-		expect(shouldPersistNormalizedPresetModes([createPreset("parallel")])).toBe(
-			true,
-		);
-		expect(shouldPersistNormalizedPresetModes([createPreset(undefined)])).toBe(
-			true,
-		);
+describe("shouldPersistNormalizedTerminalPresets", () => {
+	it("returns true when legacy mode, project targeting, or default state exists", () => {
+		expect(
+			shouldPersistNormalizedTerminalPresets([createPreset("parallel")]),
+		).toBe(true);
+		expect(
+			shouldPersistNormalizedTerminalPresets([createPreset(undefined)]),
+		).toBe(true);
+		expect(
+			shouldPersistNormalizedTerminalPresets([
+				{
+					...createPreset("new-tab"),
+					projectIds: [],
+				},
+			]),
+		).toBe(true);
+		expect(
+			shouldPersistNormalizedTerminalPresets([
+				{
+					...createPreset("new-tab"),
+					isDefault: true,
+				},
+			]),
+		).toBe(true);
 	});
 
 	it("returns false when all modes are normalized", () => {
 		expect(
-			shouldPersistNormalizedPresetModes([
+			shouldPersistNormalizedTerminalPresets([
 				createPreset("split-pane"),
 				createPreset("new-tab"),
 				createPreset("new-tab-split-pane"),

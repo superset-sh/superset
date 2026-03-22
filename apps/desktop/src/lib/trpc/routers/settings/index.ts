@@ -57,6 +57,7 @@ import {
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
+	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
 import { getPresetsForTriggerField } from "./preset-trigger-selection";
 
@@ -87,7 +88,13 @@ function readRawTerminalPresets(): PresetWithUnknownMode[] {
 
 function getNormalizedTerminalPresets() {
 	const rawPresets = readRawTerminalPresets();
-	return normalizeTerminalPresets(rawPresets);
+	const normalizedPresets = normalizeTerminalPresets(rawPresets);
+
+	if (shouldPersistNormalizedTerminalPresets(rawPresets)) {
+		saveTerminalPresets(normalizedPresets);
+	}
+
+	return normalizedPresets;
 }
 
 function saveTerminalPresets(
@@ -324,21 +331,6 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		setDefaultPreset: publicProcedure
-			.input(z.object({ id: z.string().nullable() }))
-			.mutation(({ input }) => {
-				const presets = getNormalizedTerminalPresets();
-
-				const updatedPresets = presets.map((p) => ({
-					...p,
-					isDefault: input.id === p.id ? true : undefined,
-				}));
-
-				saveTerminalPresets(updatedPresets);
-
-				return { success: true };
-			}),
-
 		setPresetAutoApply: publicProcedure
 			.input(
 				z.object({
@@ -353,23 +345,8 @@ export const createSettingsRouter = () => {
 				const updatedPresets = presets.map((p) => {
 					if (p.id !== input.id) return p;
 
-					// Migrate legacy isDefault preset to explicit fields on first toggle
-					const needsMigration =
-						p.isDefault &&
-						p.applyOnWorkspaceCreated === undefined &&
-						p.applyOnNewTab === undefined;
-
-					const base = needsMigration
-						? {
-								...p,
-								isDefault: undefined,
-								applyOnWorkspaceCreated: true as const,
-								applyOnNewTab: true as const,
-							}
-						: p;
-
 					return {
-						...base,
+						...p,
 						[input.field]: input.enabled ? true : undefined,
 					};
 				});
@@ -411,11 +388,6 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
-
-		getDefaultPreset: publicProcedure.query(() => {
-			const presets = getNormalizedTerminalPresets();
-			return presets.find((p) => p.isDefault) ?? null;
-		}),
 
 		getWorkspaceCreationPresets: publicProcedure
 			.input(
