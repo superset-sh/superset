@@ -57,6 +57,12 @@ export function TabPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: TabPaneProps) {
+	// Terminal panes are only rendered when their tab is active to avoid
+	// keeping stream subscriptions and xterm instances alive in hidden tabs.
+	// Browser/webview panes are unaffected — they stay mounted for keepalive.
+	const isActiveTab = useTabsStore(
+		(s) => s.activeTabIds[workspaceId] === tabId,
+	);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 	const workspaceRun = useTabsStore((s) => s.panes[paneId]?.workspaceRun);
@@ -150,7 +156,9 @@ export function TabPane({
 				closeLabel="Close Terminal"
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
+					{isActiveTab && (
+						<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
+					)}
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>
