@@ -12,6 +12,7 @@ import {
 	HiOutlineDocumentDuplicate,
 	HiOutlineTrash,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 
@@ -24,22 +25,16 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 
-	const handleCopyId = async () => {
-		try {
-			await navigator.clipboard.writeText(task.slug);
-			setOpen(false);
-		} catch (error) {
-			console.error("[TaskActionMenu] Failed to copy task ID:", error);
-		}
+	const { copyToClipboard } = useCopyToClipboard();
+
+	const handleCopyId = () => {
+		copyToClipboard(task.slug);
+		setOpen(false);
 	};
 
-	const handleCopyTitle = async () => {
-		try {
-			await navigator.clipboard.writeText(task.title);
-			setOpen(false);
-		} catch (error) {
-			console.error("[TaskActionMenu] Failed to copy task title:", error);
-		}
+	const handleCopyTitle = () => {
+		copyToClipboard(task.title);
+		setOpen(false);
 	};
 
 	const handleDelete = async () => {

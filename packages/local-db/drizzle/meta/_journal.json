@@ -260,6 +260,13 @@
       "when": 1773592336317,
       "tag": "0036_add_agent_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1773824260645,
+      "tag": "0037_add_created_by_superset_to_worktrees",
+      "breakpoints": true
     }
   ]
 }

@@ -267,6 +267,56 @@ function ListDropdown({ editor }: { editor: Editor }) {
 
 export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 	const prevent = (e: React.MouseEvent) => e.preventDefault();
+	const [showLinkInput, setShowLinkInput] = useState(false);
+	const [linkUrl, setLinkUrl] = useState("");
+	const linkInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (showLinkInput) {
+			linkInputRef.current?.focus();
+		}
+	}, [showLinkInput]);
+
+	const applyLink = () => {
+		const url = linkUrl.trim();
+		if (url) {
+			editor.chain().focus().setLink({ href: url }).run();
+		}
+		setShowLinkInput(false);
+		setLinkUrl("");
+	};
+
+	const cancelLink = () => {
+		setShowLinkInput(false);
+		setLinkUrl("");
+		editor.chain().focus().run();
+	};
+
+	if (showLinkInput) {
+		return (
+			<div className="flex items-center gap-1 bg-popover border rounded-lg shadow-md px-1.5 py-0.5">
+				<HiOutlineLink className="size-3.5 text-muted-foreground shrink-0" />
+				<input
+					ref={linkInputRef}
+					type="url"
+					value={linkUrl}
+					onChange={(e) => setLinkUrl(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter") {
+							e.preventDefault();
+							applyLink();
+						} else if (e.key === "Escape") {
+							e.preventDefault();
+							cancelLink();
+						}
+					}}
+					onBlur={cancelLink}
+					placeholder="Enter URL..."
+					className="bg-transparent text-sm outline-none w-48 text-foreground placeholder:text-muted-foreground"
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex items-center gap-0.5 bg-popover border rounded-lg shadow-md px-1 py-0.5">
@@ -339,10 +389,8 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 					if (editor.isActive("link")) {
 						editor.chain().focus().unsetLink().run();
 					} else {
-						const url = window.prompt("Enter URL:");
-						if (url) {
-							editor.chain().focus().setLink({ href: url }).run();
-						}
+						setShowLinkInput(true);
+						setLinkUrl("");
 					}
 				}}
 			>

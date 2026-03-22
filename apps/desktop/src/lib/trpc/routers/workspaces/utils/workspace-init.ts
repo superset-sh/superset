@@ -306,7 +306,42 @@ export async function initializeWorkspaceWorktree({
 			);
 
 			if (branchCheck.status === "exists") {
-				startPoint = `origin/${effectiveBaseBranch}`;
+				const originRef = `origin/${effectiveBaseBranch}`;
+
+				// VALIDATION: Verify the remote-tracking ref actually exists locally
+				// branchExistsOnRemote checks the remote, but the local ref might not be fetched yet
+				if (await refExistsLocally(mainRepoPath, originRef)) {
+					startPoint = originRef;
+				} else {
+					console.warn(
+						`[workspace-init] Remote branch "${effectiveBaseBranch}" exists but local tracking ref "${originRef}" not found. Falling back to local ref.`,
+					);
+					manager.updateProgress(
+						workspaceId,
+						"verifying",
+						"Using local reference",
+						`Remote tracking reference not found locally. Will fetch before creating worktree.`,
+					);
+
+					const ref = await resolveLocalRef({
+						reason: "Remote tracking ref not found locally",
+						checkOriginRefs: false, // Don't check origin refs since we just confirmed it doesn't exist
+						progressStep: "verifying",
+					});
+
+					if (!ref) {
+						manager.updateProgress(
+							workspaceId,
+							"failed",
+							"No local reference available",
+							baseBranchWasExplicit
+								? `Branch "${effectiveBaseBranch}" exists on remote but has not been fetched yet, and no local branch exists. Please run "git fetch origin ${effectiveBaseBranch}" and try again.`
+								: `Branch "${effectiveBaseBranch}" not found locally. Please run "git fetch" and try again.`,
+						);
+						return;
+					}
+					startPoint = ref;
+				}
 			} else {
 				const isNetworkError = branchCheck.status === "error";
 				const fallbackReason = isNetworkError

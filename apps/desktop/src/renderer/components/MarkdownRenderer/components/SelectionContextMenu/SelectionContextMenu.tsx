@@ -13,6 +13,7 @@ import type {
 } from "react";
 import { useState } from "react";
 import { LuCopy } from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 
 function getModifierKeyLabel() {
 	const isMac = navigator.platform.toLowerCase().includes("mac");
@@ -28,54 +29,9 @@ export function SelectionContextMenu<T extends HTMLElement>({
 	children,
 	selectAllContainerRef,
 }: SelectionContextMenuProps<T>) {
+	const { copyToClipboard } = useCopyToClipboard();
 	const [selectionText, setSelectionText] = useState("");
 	const [linkHref, setLinkHref] = useState<string | null>(null);
-
-	const copyTextToClipboard = async (text: string) => {
-		try {
-			await navigator.clipboard.writeText(text);
-			return;
-		} catch {
-			// Fall through to legacy copy method.
-		}
-
-		// Legacy fallback: `execCommand("copy")` copies from the currently-selected input/textarea.
-		// Snapshot the current selection ranges so we can restore the user's selection after copying.
-		const selection = document.getSelection();
-		const savedRanges =
-			selection?.rangeCount && selection.rangeCount > 0
-				? Array.from({ length: selection.rangeCount }, (_, index) =>
-						selection.getRangeAt(index).cloneRange(),
-					)
-				: [];
-
-		const textarea = document.createElement("textarea");
-		textarea.value = text;
-		textarea.setAttribute("readonly", "");
-		textarea.style.position = "fixed";
-		textarea.style.top = "-9999px";
-		textarea.style.left = "-9999px";
-		textarea.style.opacity = "0";
-		document.body.appendChild(textarea);
-
-		textarea.select();
-		textarea.setSelectionRange(0, textarea.value.length);
-
-		try {
-			document.execCommand("copy");
-		} catch {
-			// Ignore; clipboard access may be restricted.
-		} finally {
-			textarea.remove();
-		}
-
-		if (selection) {
-			selection.removeAllRanges();
-			for (const range of savedRanges) {
-				selection.addRange(range);
-			}
-		}
-	};
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
@@ -103,12 +59,12 @@ export function SelectionContextMenu<T extends HTMLElement>({
 		const text = selection?.toString() || selectionText;
 		if (!text) return;
 
-		await copyTextToClipboard(text);
+		copyToClipboard(text);
 	};
 
 	const handleCopyLinkAddress = async () => {
 		if (!linkHref) return;
-		await copyTextToClipboard(linkHref);
+		copyToClipboard(linkHref);
 	};
 
 	const handleSelectAll = () => {

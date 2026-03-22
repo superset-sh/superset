@@ -1,13 +1,14 @@
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+
 import {
 	TbFold,
 	TbLayoutSidebarRightFilled,
 	TbListDetails,
 	TbPinFilled,
 } from "react-icons/tb";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { DiffViewMode } from "shared/changes-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { PaneToolbarActions } from "../../../components";
@@ -54,12 +55,10 @@ export function FileViewerToolbar({
 	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
-	const [copied, setCopied] = useState(false);
+	const { copyToClipboard, copied } = useCopyToClipboard(1500);
 
 	const handleCopyPath = () => {
-		navigator.clipboard.writeText(filePath);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1500);
+		copyToClipboard(filePath);
 	};
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">

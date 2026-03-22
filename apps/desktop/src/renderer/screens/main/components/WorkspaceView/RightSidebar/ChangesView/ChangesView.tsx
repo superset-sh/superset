@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -22,10 +23,11 @@ import {
 } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
+import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
-import { PRChecksStatus } from "./components/PRChecksStatus";
+import { ReviewPanel } from "./components/ReviewPanel";
 import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
@@ -40,11 +42,17 @@ interface ChangesViewProps {
 }
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
+const GITHUB_STATUS_STALE_TIME_MS = 10_000;
+const GITHUB_STATUS_REFETCH_INTERVAL_MS = 10_000;
+const GITHUB_PR_COMMENTS_STALE_TIME_MS = 30_000;
+const GITHUB_PR_COMMENTS_REFETCH_INTERVAL_MS = 30_000;
 
 interface PendingChangesRefresh {
 	invalidateBranches: boolean;
 	invalidateSelectedFile: boolean;
 }
+
+type ChangesSidebarTab = "diffs" | "review";
 
 function eventTargetsSelectedFile(
 	event: FileSystemChangeEvent,
@@ -105,20 +113,10 @@ export function ChangesView({
 		{ workspaceId: workspaceId ?? "" },
 		{
 			enabled: !!workspaceId && isActive,
-			refetchInterval: isActive ? 10000 : false,
+			refetchInterval: isActive ? GITHUB_STATUS_REFETCH_INTERVAL_MS : false,
+			staleTime: GITHUB_STATUS_STALE_TIME_MS,
 		},
 	);
-
-	useBranchSyncInvalidation({
-		gitBranch: status?.branch ?? branchData?.currentBranch ?? undefined,
-		workspaceBranch: workspace?.branch,
-		workspaceId: workspaceId ?? "",
-	});
-
-	const handleRefresh = () => {
-		refetch();
-		refetchGithubStatus();
-	};
 
 	const stageAllMutation = electronTrpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
@@ -256,11 +254,53 @@ export function ChangesView({
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
+	const [activeTab, setActiveTab] = useState<ChangesSidebarTab>("diffs");
+	const activePullRequest = githubStatus?.pr ?? null;
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingRefreshRef = useRef<PendingChangesRefresh>({
 		invalidateBranches: false,
 		invalidateSelectedFile: false,
 	});
+	const {
+		data: githubComments = [],
+		isLoading: isGitHubCommentsLoading,
+		refetch: refetchGitHubComments,
+	} = electronTrpc.workspaces.getGitHubPRComments.useQuery(
+		{
+			workspaceId: workspaceId ?? "",
+			...(activePullRequest
+				? {
+						prNumber: activePullRequest.number,
+						repoUrl: githubStatus?.repoUrl,
+						upstreamUrl: githubStatus?.upstreamUrl,
+						isFork: githubStatus?.isFork,
+					}
+				: {}),
+		},
+		{
+			enabled: !!workspaceId && isActive && !!activePullRequest,
+			refetchInterval:
+				isActive && activePullRequest
+					? GITHUB_PR_COMMENTS_REFETCH_INTERVAL_MS
+					: false,
+			staleTime: GITHUB_PR_COMMENTS_STALE_TIME_MS,
+			refetchOnWindowFocus: false,
+		},
+	);
+
+	useBranchSyncInvalidation({
+		gitBranch: status?.branch ?? branchData?.currentBranch ?? undefined,
+		workspaceBranch: workspace?.branch,
+		workspaceId: workspaceId ?? "",
+	});
+
+	const handleRefresh = () => {
+		refetch();
+		refetchGithubStatus();
+		if (activePullRequest) {
+			refetchGitHubComments();
+		}
+	};
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -299,6 +339,7 @@ export function ChangesView({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
 	useEffect(() => {
 		setExpandedCommits(new Set());
+		setActiveTab("diffs");
 	}, [worktreePath]);
 
 	useEffect(() => {
@@ -521,8 +562,8 @@ export function ChangesView({
 	]);
 
 	const hasStagedChanges = stagedFiles.length > 0;
-	const hasExistingPR = !!githubStatus?.pr;
-	const prUrl = githubStatus?.pr?.url;
+	const hasExistingPR = !!activePullRequest;
+	const prUrl = activePullRequest?.url;
 	const hasGitHubRepo = !!githubStatus?.repoUrl;
 	const defaultBranch =
 		branchData?.defaultBranch ?? status?.defaultBranch ?? "";
@@ -642,69 +683,122 @@ export function ChangesView({
 		);
 	}
 
+	const againstMainCount = status.againstBase.length;
+	const reviewCommentCount = activePullRequest ? githubComments.length : 0;
+
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
-			<ChangesHeader
-				onRefresh={handleRefresh}
-				viewMode={fileListViewMode}
-				onViewModeChange={setFileListViewMode}
-				worktreePath={worktreePath}
-				pr={githubStatus?.pr ?? null}
-				isPRStatusLoading={isGitHubStatusLoading}
-				canCreatePR={prActionState.canCreatePR}
-				createPRBlockedReason={prActionState.createPRBlockedReason}
-				onStash={() => stashMutation.mutate({ worktreePath })}
-				onStashIncludeUntracked={() =>
-					stashIncludeUntrackedMutation.mutate({ worktreePath })
-				}
-				onStashPop={() => stashPopMutation.mutate({ worktreePath })}
-				isStashPending={
-					stashMutation.isPending ||
-					stashIncludeUntrackedMutation.isPending ||
-					stashPopMutation.isPending
-				}
-			/>
-
-			<div className="border-b border-border">
-				{githubStatus?.pr && <PRChecksStatus pr={githubStatus.pr} />}
-				<CommitInput
-					worktreePath={worktreePath}
-					hasStagedChanges={hasStagedChanges}
-					pushCount={status.pushCount}
-					pullCount={status.pullCount}
-					hasUpstream={status.hasUpstream}
-					hasExistingPR={hasExistingPR}
-					canCreatePR={prActionState.canCreatePR}
-					shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
-					prUrl={prUrl}
-					onRefresh={handleRefresh}
-				/>
-			</div>
-
-			{!hasChanges ? (
-				<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4 text-center">
-					No changes detected
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => setActiveTab(value as ChangesSidebarTab)}
+				className="flex flex-1 min-h-0 flex-col gap-0"
+			>
+				<div className="h-8 shrink-0 border-b bg-background">
+					<TabsList className="flex h-full w-full items-stretch justify-start gap-0 rounded-none bg-transparent p-0">
+						<TabsTrigger
+							value="diffs"
+							className={sidebarHeaderTabTriggerClassName}
+						>
+							<span>Diffs</span>
+							<span className="text-[11px] text-muted-foreground/60 tabular-nums">
+								{againstMainCount}
+							</span>
+						</TabsTrigger>
+						<TabsTrigger
+							value="review"
+							className={sidebarHeaderTabTriggerClassName}
+						>
+							<span>Review</span>
+							<span className="text-[11px] text-muted-foreground/60 tabular-nums">
+								{reviewCommentCount}
+							</span>
+						</TabsTrigger>
+					</TabsList>
 				</div>
-			) : (
-				<div className="flex-1 overflow-y-auto" data-changes-scroll-container>
-					{orderedSections
-						.filter((section) => section.count > 0)
-						.map((section) => (
-							<CategorySection
-								key={section.id}
-								id={section.id}
-								title={section.title}
-								count={section.count}
-								isExpanded={section.isExpanded}
-								onToggle={section.onToggle}
-								actions={section.actions}
-								onMove={moveSection}
-							>
-								{section.content}
-							</CategorySection>
-						))}
-				</div>
-			)}
+
+				<TabsContent
+					value="diffs"
+					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
+				>
+					<div>
+						<ChangesHeader
+							onRefresh={handleRefresh}
+							viewMode={fileListViewMode}
+							onViewModeChange={setFileListViewMode}
+							showViewModeToggle
+							worktreePath={worktreePath}
+							pr={githubStatus?.pr ?? null}
+							isPRStatusLoading={isGitHubStatusLoading}
+							canCreatePR={prActionState.canCreatePR}
+							createPRBlockedReason={prActionState.createPRBlockedReason}
+							onStash={() => stashMutation.mutate({ worktreePath })}
+							onStashIncludeUntracked={() =>
+								stashIncludeUntrackedMutation.mutate({ worktreePath })
+							}
+							onStashPop={() => stashPopMutation.mutate({ worktreePath })}
+							isStashPending={
+								stashMutation.isPending ||
+								stashIncludeUntrackedMutation.isPending ||
+								stashPopMutation.isPending
+							}
+						/>
+					</div>
+					<div className="border-b border-border">
+						<CommitInput
+							worktreePath={worktreePath}
+							hasStagedChanges={hasStagedChanges}
+							pushCount={status.pushCount}
+							pullCount={status.pullCount}
+							hasUpstream={status.hasUpstream}
+							hasExistingPR={hasExistingPR}
+							canCreatePR={prActionState.canCreatePR}
+							shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
+							prUrl={prUrl}
+							onRefresh={handleRefresh}
+						/>
+					</div>
+
+					{!hasChanges ? (
+						<div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+							No changes detected
+						</div>
+					) : (
+						<div
+							className="flex-1 overflow-y-auto"
+							data-changes-scroll-container
+						>
+							{orderedSections
+								.filter((section) => section.count > 0)
+								.map((section) => (
+									<CategorySection
+										key={section.id}
+										id={section.id}
+										title={section.title}
+										count={section.count}
+										isExpanded={section.isExpanded}
+										onToggle={section.onToggle}
+										actions={section.actions}
+										onMove={moveSection}
+									>
+										{section.content}
+									</CategorySection>
+								))}
+						</div>
+					)}
+				</TabsContent>
+
+				<TabsContent
+					value="review"
+					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
+				>
+					<ReviewPanel
+						pr={isGitHubStatusLoading ? null : activePullRequest}
+						comments={githubComments}
+						isLoading={isGitHubStatusLoading}
+						isCommentsLoading={isGitHubCommentsLoading}
+					/>
+				</TabsContent>
+			</Tabs>
 
 			<AlertDialog
 				open={showDiscardUnstagedDialog}

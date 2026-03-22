@@ -13,6 +13,7 @@ import {
 	getAppOption,
 	OpenInExternalDropdownItems,
 } from "renderer/components/OpenInExternalDropdown";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores";
 import { useHotkeyText } from "renderer/stores/hotkeys";
@@ -55,7 +56,7 @@ export function OpenInButton({
 			}
 		},
 	});
-	const copyPath = electronTrpc.external.copyPath.useMutation();
+	const { copyToClipboard } = useCopyToClipboard();
 
 	const currentApp = defaultApp ? (getAppOption(defaultApp) ?? null) : null;
 
@@ -69,7 +70,7 @@ export function OpenInButton({
 
 	const handleCopyPath = () => {
 		if (!path) return;
-		copyPath.mutate(path);
+		copyToClipboard(path);
 		setIsOpen(false);
 	};
 
