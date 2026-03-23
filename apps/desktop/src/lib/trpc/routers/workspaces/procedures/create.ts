@@ -21,6 +21,7 @@ import {
 	touchWorkspace,
 } from "../utils/db-helpers";
 import {
+	applyBranchPrefix,
 	createWorktreeFromPr,
 	generateBranchName,
 	getBranchWorktreePath,
@@ -316,8 +317,16 @@ export const createCreateProcedures = () => {
 					}
 				}
 
+				const branchPrefixSeparator = (() => {
+					const globalSettings = localDb.select().from(settings).get();
+					const projectOverrides = project.branchPrefixMode != null;
+					return projectOverrides
+						? (project.branchPrefixSeparator ?? globalSettings?.branchPrefixSeparator ?? "/")
+						: (globalSettings?.branchPrefixSeparator ?? "/");
+				})();
+
 				const withPrefix = (name: string): string =>
-					branchPrefix ? `${branchPrefix}/${name}` : name;
+					applyBranchPrefix(name, branchPrefix, branchPrefixSeparator);
 
 				let branch: string;
 				if (existingBranchName) {
@@ -337,6 +346,7 @@ export const createCreateProcedures = () => {
 					branch = generateBranchName({
 						existingBranches,
 						authorPrefix: branchPrefix,
+						separator: branchPrefixSeparator,
 					});
 				}
 

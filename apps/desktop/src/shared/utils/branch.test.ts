@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	applyBranchPrefix,
 	deduplicateBranchName,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
@@ -223,5 +224,53 @@ describe("deduplicateBranchName", () => {
 				"feature/test-2",
 			]),
 		).toBe("feature/test-3");
+	});
+});
+
+describe("applyBranchPrefix", () => {
+	test("returns name unchanged when prefix is null", () => {
+		expect(applyBranchPrefix("my-feature", null)).toBe("my-feature");
+	});
+
+	test("returns name unchanged when prefix is undefined", () => {
+		expect(applyBranchPrefix("my-feature", undefined)).toBe("my-feature");
+	});
+
+	test("returns name unchanged when prefix is empty string", () => {
+		expect(applyBranchPrefix("my-feature", "")).toBe("my-feature");
+	});
+
+	test("uses default '/' separator when none provided", () => {
+		expect(applyBranchPrefix("my-feature", "john")).toBe("john/my-feature");
+	});
+
+	test("uses custom '-' separator", () => {
+		expect(applyBranchPrefix("my-feature", "john", "-")).toBe(
+"john-my-feature",
+);
+	});
+
+	test("uses custom '_' separator", () => {
+		expect(applyBranchPrefix("my-feature", "john", "_")).toBe(
+"john_my-feature",
+);
+	});
+
+	test("uses empty string separator (no separator between prefix and name)", () => {
+		expect(applyBranchPrefix("my-feature", "john", "")).toBe(
+"johnmy-feature",
+);
+	});
+
+	test("null separator falls back to default '/'", () => {
+		expect(applyBranchPrefix("my-feature", "john", null)).toBe(
+"john/my-feature",
+);
+	});
+
+	test("undefined separator falls back to default '/'", () => {
+		expect(applyBranchPrefix("my-feature", "john", undefined)).toBe(
+"john/my-feature",
+);
 	});
 });

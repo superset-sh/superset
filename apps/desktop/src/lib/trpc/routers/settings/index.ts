@@ -598,6 +598,7 @@ export const createSettingsRouter = () => {
 			return {
 				mode: row.branchPrefixMode ?? "none",
 				customPrefix: row.branchPrefixCustom ?? null,
+				separator: row.branchPrefixSeparator ?? "/",
 			};
 		}),
 
@@ -606,6 +607,7 @@ export const createSettingsRouter = () => {
 				z.object({
 					mode: z.enum(BRANCH_PREFIX_MODES),
 					customPrefix: z.string().nullable().optional(),
+					separator: z.string().nullable().optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -615,12 +617,14 @@ export const createSettingsRouter = () => {
 						id: 1,
 						branchPrefixMode: input.mode,
 						branchPrefixCustom: input.customPrefix ?? null,
+						branchPrefixSeparator: input.separator ?? null,
 					})
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: {
 							branchPrefixMode: input.mode,
 							branchPrefixCustom: input.customPrefix ?? null,
+							branchPrefixSeparator: input.separator ?? null,
 						},
 					})
 					.run();
