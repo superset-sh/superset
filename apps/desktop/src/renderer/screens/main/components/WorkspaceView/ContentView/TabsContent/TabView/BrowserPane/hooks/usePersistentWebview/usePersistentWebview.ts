@@ -26,6 +26,28 @@ function getHiddenContainer(): HTMLDivElement {
 	return hiddenContainer;
 }
 
+// ---------------------------------------------------------------------------
+// Disable webview interaction during ANY drag operation.
+// Electron <webview> tags create separate compositor layers that swallow
+// drag events before they reach the mosaic drop targets. Setting
+// pointer-events:none directly on the <webview> element tells the
+// compositor to stop routing events to the guest process.
+//
+// We use native HTML5 drag events (capture phase) rather than the drag pane
+// store because the store only covers mosaic pane drags — not tab-bar drags
+// or other drag sources.
+// ---------------------------------------------------------------------------
+
+function setWebviewsDragPassthrough(passthrough: boolean) {
+	for (const webview of webviewRegistry.values()) {
+		webview.style.pointerEvents = passthrough ? "none" : "";
+	}
+}
+
+window.addEventListener("dragstart", () => setWebviewsDragPassthrough(true), true);
+window.addEventListener("dragend", () => setWebviewsDragPassthrough(false), true);
+window.addEventListener("drop", () => setWebviewsDragPassthrough(false), true);
+
 /** Call from useBrowserLifecycle when a pane is removed. */
 export function destroyPersistentWebview(paneId: string): void {
 	const webview = webviewRegistry.get(paneId);
