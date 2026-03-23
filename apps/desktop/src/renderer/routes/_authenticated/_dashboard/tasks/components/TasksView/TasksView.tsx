@@ -158,7 +158,7 @@ export function TasksView({
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
 				/>
-				<OnedevTasksContent searchQuery={searchQuery} />
+				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} />
 			</div>
 		);
 	}

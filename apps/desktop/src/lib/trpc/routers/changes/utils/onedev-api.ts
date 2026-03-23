@@ -200,7 +200,7 @@ export function createOnedevClient(config: OnedevConfig) {
 			const projectId = project[0].id;
 			const offset = options?.offset ?? 0;
 			const count = options?.count ?? 100;
-			const stateFilter = options?.stateFilter ?? "open";
+			const stateFilter = options?.stateFilter ?? "all";
 			// OneDev query API is limited — fetch all issues and filter client-side
 			const allIssues = await apiGet<OnedevIssue[]>(
 				`/~api/issues?offset=${offset}&count=${count}`,

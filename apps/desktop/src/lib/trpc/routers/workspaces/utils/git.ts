@@ -496,6 +496,19 @@ export async function createWorktree(
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
 
+		// If branch already exists, reuse it instead of failing
+		if (lowerError.includes("already exists")) {
+			console.log(
+				`Branch ${branch} already exists, reusing with createWorktreeFromExistingBranch`,
+			);
+			await createWorktreeFromExistingBranch({
+				mainRepoPath,
+				branch,
+				worktreePath,
+			});
+			return;
+		}
+
 		const isLockError =
 			lowerError.includes("could not lock") ||
 			lowerError.includes("unable to lock") ||
