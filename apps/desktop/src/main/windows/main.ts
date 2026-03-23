@@ -218,6 +218,12 @@ export async function MainWindow() {
 		window.on("show", () => {
 			window.webContents.invalidate();
 		});
+		// Cmd+Tab back fires "focus", not "restore"/"show".  Without this
+		// handler the stale compositor layers are never rebuilt and the
+		// terminal output appears blank after returning to the app (#2507).
+		window.on("focus", () => {
+			forceRepaint(window);
+		});
 	}
 
 	// Persist window bounds on move/resize so state survives app.exit(0)
