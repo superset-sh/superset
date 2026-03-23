@@ -12,6 +12,13 @@ export function PendingWorkspaceItem({
 
 	if (!pendingWorkspace) return null;
 
+	const statusLabel =
+		pendingWorkspace.status === "generating-branch"
+			? "Generating..."
+			: pendingWorkspace.status === "preparing"
+				? "Preparing..."
+				: "Creating...";
+
 	// Collapsed variant: icon-only with loader
 	if (isCollapsed) {
 		return (
@@ -32,11 +39,7 @@ export function PendingWorkspaceItem({
 			</div>
 			<div className="flex items-center gap-1 text-muted-foreground shrink-0">
 				<Loader2Icon className="size-3 animate-spin" />
-				<span className="text-xs">
-					{pendingWorkspace.isGeneratingBranchName
-						? "Generating..."
-						: "Creating..."}
-				</span>
+				<span className="text-xs">{statusLabel}</span>
 			</div>
 		</div>
 	);

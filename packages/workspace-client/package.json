@@ -1,0 +1,33 @@
+{
+	"name": "@superset/workspace-client",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/host-service": "workspace:*",
+		"@superset/workspace-fs": "workspace:*",
+		"@tanstack/react-query": "^5.90.19",
+		"@trpc/client": "^11.7.1",
+		"@trpc/react-query": "^11.7.1",
+		"superjson": "^2.2.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/react": "~19.2.2",
+		"react": "19.2.0",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"react": "19.2.0"
+	}
+}

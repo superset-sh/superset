@@ -31,6 +31,7 @@ import {
 	HiOutlinePlus,
 	HiOutlineTrash,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -51,8 +52,6 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
 	const [newKeyName, setNewKeyName] = useState("");
 	const [newKeyValue, setNewKeyValue] = useState("");
-	const [copied, setCopied] = useState(false);
-
 	const { data: apiKeys, isLoading } = useLiveQuery(
 		(q) => q.from({ apiKeys: collections.apiKeys }),
 		[collections],
@@ -100,10 +99,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		});
 	};
 
+	const { copyToClipboard, copied } = useCopyToClipboard();
 	const handleCopyKey = () => {
-		navigator.clipboard.writeText(newKeyValue);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+		copyToClipboard(newKeyValue);
 	};
 
 	const formatDate = (date: Date | string | null) => {

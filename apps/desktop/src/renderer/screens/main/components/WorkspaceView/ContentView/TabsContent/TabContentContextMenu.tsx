@@ -15,6 +15,7 @@ import {
 	LuEraser,
 	LuEyeOff,
 } from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import {
 	type PaneContextMenuActions,
@@ -72,6 +73,7 @@ export function TabContentContextMenu({
 	const modKey = getModifierKeyLabel();
 	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;
 
+	const { copyToClipboard } = useCopyToClipboard();
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasClipboard, setHasClipboard] = useState(false);
 
@@ -89,7 +91,7 @@ export function TabContentContextMenu({
 	const handleCopy = async () => {
 		const text = getSelection?.();
 		if (!text) return;
-		await navigator.clipboard.writeText(text);
+		copyToClipboard(text);
 	};
 
 	const handlePaste = async () => {

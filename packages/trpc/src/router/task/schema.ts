@@ -16,6 +16,17 @@ export const createTaskSchema = z.object({
 	labels: z.array(z.string()).nullish(),
 });
 
+export const createTaskFromUiSchema = z.object({
+	title: z.string().min(1),
+	description: z.string().nullish(),
+	statusId: z.string().uuid().nullish(),
+	priority: z.enum(taskPriorityValues).default("none"),
+	assigneeId: z.string().uuid().nullish(),
+	estimate: z.number().int().positive().nullish(),
+	dueDate: z.coerce.date().nullish(),
+	labels: z.array(z.string()).nullish(),
+});
+
 export const updateTaskSchema = z.object({
 	id: z.string().uuid(),
 	title: z.string().min(1).optional(),

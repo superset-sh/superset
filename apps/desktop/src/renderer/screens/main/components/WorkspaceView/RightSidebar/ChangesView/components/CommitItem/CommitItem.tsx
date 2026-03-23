@@ -6,6 +6,7 @@ import {
 } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { VscClippy } from "react-icons/vsc";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { formatRelativeDate } from "../../utils";
@@ -36,8 +37,9 @@ function CommitHeader({
 	message: string;
 	date: Date;
 }) {
+	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopyCommitHash = () => {
-		void navigator.clipboard.writeText(hash);
+		copyToClipboard(hash);
 	};
 
 	return (

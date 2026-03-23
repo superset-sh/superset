@@ -360,6 +360,133 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 			}),
 
+		listIssues: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) return [];
+
+				try {
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						[
+							"issue",
+							"list",
+							"--state",
+							"open",
+							"--limit",
+							"30",
+							"--json",
+							"number,title,url,state,labels",
+						],
+						{ cwd: project.mainRepoPath, timeout: 10000 },
+					);
+					const raw: unknown = JSON.parse(stdout.trim() || "[]");
+
+					// Runtime validation with zod schema
+					const IssueListItemSchema = z.object({
+						number: z.number(),
+						title: z.string(),
+						url: z.string(),
+						state: z.string(),
+						labels: z.array(z.unknown()).optional(),
+					});
+
+					const issuesArray = z.array(IssueListItemSchema).safeParse(raw);
+					if (!issuesArray.success) {
+						console.warn(
+							"[listIssues] Invalid response format:",
+							issuesArray.error,
+						);
+						return [];
+					}
+
+					return issuesArray.data.map((issue) => ({
+						issueNumber: issue.number,
+						title: issue.title,
+						url: issue.url,
+						state: issue.state === "OPEN" ? "open" : issue.state.toLowerCase(),
+					}));
+				} catch (err) {
+					console.warn("[listIssues] Failed to list issues:", err);
+					return [];
+				}
+			}),
+
+		getIssueContent: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					issueNumber: z.number().int().positive(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
+				}
+
+				try {
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						[
+							"issue",
+							"view",
+							String(input.issueNumber),
+							"--json",
+							"number,title,body,url,state,author,createdAt,updatedAt",
+						],
+						{ cwd: project.mainRepoPath, timeout: 10000 },
+					);
+					const raw: unknown = JSON.parse(stdout.trim() || "{}");
+
+					// Runtime validation with zod schema
+					const IssueSchema = z.object({
+						number: z.number(),
+						title: z.string(),
+						body: z.string(),
+						url: z.string(),
+						state: z.string(),
+						author: z.object({ login: z.string() }).optional(),
+						createdAt: z.string().optional(),
+						updatedAt: z.string().optional(),
+					});
+
+					const issue = IssueSchema.parse(raw);
+
+					return {
+						number: issue.number,
+						title: issue.title,
+						body: issue.body || "",
+						url: issue.url,
+						state: issue.state === "OPEN" ? "open" : issue.state.toLowerCase(),
+						author: issue.author?.login,
+						createdAt: issue.createdAt,
+						updatedAt: issue.updatedAt,
+					};
+				} catch (err) {
+					console.warn(
+						`[getIssueContent] Failed to fetch issue #${input.issueNumber}:`,
+						err,
+					);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to fetch issue #${input.issueNumber}: ${err instanceof Error ? err.message : String(err)}`,
+					});
+				}
+			}),
+
 		selectDirectory: publicProcedure
 			.input(
 				z.object({

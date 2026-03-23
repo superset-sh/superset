@@ -2,6 +2,10 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import {
+	generateBaseTaskSlug,
+	generateUniqueTaskSlug,
+} from "@superset/shared/task-slug";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -38,28 +42,6 @@ const taskInputSchema = z.object({
 
 type TaskInput = z.infer<typeof taskInputSchema>;
 
-function generateBaseSlug(title: string): string {
-	return title
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}
-
-function generateUniqueSlug(
-	baseSlug: string,
-	existingSlugs: Set<string>,
-): string {
-	let slug = baseSlug;
-	if (existingSlugs.has(slug)) {
-		let counter = 1;
-		while (existingSlugs.has(slug)) {
-			slug = `${baseSlug}-${counter++}`;
-		}
-	}
-	return slug;
-}
-
 export function register(server: McpServer) {
 	server.registerTool(
 		"create_task",
@@ -93,7 +75,7 @@ export function register(server: McpServer) {
 				defaultStatusId = await seedDefaultStatuses(ctx.organizationId);
 			}
 
-			const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
+			const baseSlugs = taskInputs.map((t) => generateBaseTaskSlug(t.title));
 			const uniqueBaseSlugs = [...new Set(baseSlugs)];
 
 			const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
@@ -131,7 +113,7 @@ export function register(server: McpServer) {
 
 			for (const [i, input] of taskInputs.entries()) {
 				const baseSlug = baseSlugs[i] ?? "";
-				const slug = generateUniqueSlug(baseSlug, usedSlugs);
+				const slug = generateUniqueTaskSlug(baseSlug, usedSlugs);
 				usedSlugs.add(slug);
 
 				const priority: TaskPriority = isPriority(input.priority)

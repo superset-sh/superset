@@ -1,11 +1,11 @@
 import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
 import { env } from "renderer/env.renderer";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { posthog } from "renderer/lib/posthog";
-import { workspaceTrpc } from "renderer/lib/workspace-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;

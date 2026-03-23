@@ -1,10 +1,7 @@
 import { workspaceSections, workspaces } from "@superset/local-db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
+import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getMaxProjectChildTabOrder } from "../utils/db-helpers";
@@ -12,13 +9,10 @@ import { placeWorkspacesAtProjectChildBoundary } from "../utils/project-children
 import { reorderItems } from "../utils/reorder";
 import { computeVisualOrder } from "../utils/visual-order";
 
-const SECTION_COLORS = PROJECT_COLORS.filter(
-	(c) => c.value !== PROJECT_COLOR_DEFAULT,
-);
-
 function randomSectionColor(): string {
-	return SECTION_COLORS[Math.floor(Math.random() * SECTION_COLORS.length)]
-		.value;
+	return PROJECT_CUSTOM_COLORS[
+		Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
+	].value;
 }
 
 type RootPlacement = "top" | "bottom";

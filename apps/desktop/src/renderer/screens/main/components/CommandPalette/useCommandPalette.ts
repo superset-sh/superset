@@ -16,11 +16,18 @@ const SEARCH_LIMIT = 50;
 interface UseCommandPaletteParams {
 	workspaceId: string;
 	navigate: UseNavigateResult<string>;
+	onSelectFile?: (input: {
+		filePath: string;
+		targetWorkspaceId: string;
+		close: () => void;
+		navigate: UseNavigateResult<string>;
+	}) => void;
 }
 
 export function useCommandPalette({
 	workspaceId,
 	navigate,
+	onSelectFile,
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
@@ -166,13 +173,22 @@ export function useCommandPalette({
 	const selectFile = useCallback(
 		(filePath: string, resultWorkspaceId?: string) => {
 			const targetWs = resultWorkspaceId ?? workspaceId;
+			if (onSelectFile) {
+				onSelectFile({
+					filePath,
+					targetWorkspaceId: targetWs,
+					close: () => handleOpenChange(false),
+					navigate,
+				});
+				return;
+			}
 			useTabsStore.getState().addFileViewerPane(targetWs, { filePath });
 			handleOpenChange(false);
 			if (targetWs !== workspaceId) {
 				navigateToWorkspace(targetWs, navigate);
 			}
 		},
-		[workspaceId, handleOpenChange, navigate],
+		[workspaceId, onSelectFile, handleOpenChange, navigate],
 	);
 
 	const setIncludePattern = useCallback(

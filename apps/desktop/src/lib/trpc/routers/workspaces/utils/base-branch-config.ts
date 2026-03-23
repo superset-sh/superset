@@ -6,12 +6,12 @@ interface BranchConfigParams {
 }
 
 interface SetBranchBaseConfigParams extends BranchConfigParams {
-	baseBranch: string;
+	compareBaseBranch: string;
 	isExplicit: boolean;
 }
 
 interface BranchBaseConfig {
-	baseBranch: string | null;
+	compareBaseBranch: string | null;
 	isExplicit: boolean;
 }
 
@@ -38,7 +38,7 @@ export async function getBranchBaseConfig({
 	]);
 
 	return {
-		baseBranch: baseOutput.trim() || null,
+		compareBaseBranch: baseOutput.trim() || null,
 		isExplicit: parseBooleanConfig(explicitOutput),
 	};
 }
@@ -46,13 +46,13 @@ export async function getBranchBaseConfig({
 export async function setBranchBaseConfig({
 	repoPath,
 	branch,
-	baseBranch,
+	compareBaseBranch,
 	isExplicit,
 }: SetBranchBaseConfigParams): Promise<void> {
 	const git = await getSimpleGitWithShellPath(repoPath);
 
 	await git
-		.raw(["config", `branch.${branch}.base`, baseBranch])
+		.raw(["config", `branch.${branch}.base`, compareBaseBranch])
 		.catch(() => {});
 	if (isExplicit) {
 		await git

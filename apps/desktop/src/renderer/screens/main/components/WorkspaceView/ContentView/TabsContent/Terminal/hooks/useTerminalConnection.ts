@@ -3,6 +3,7 @@ import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWith
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
+	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
@@ -67,6 +68,15 @@ export function useTerminalConnection({
 			console.warn("[Terminal] Failed to detach terminal:", error);
 		});
 	});
+	const cancelCreateOrAttachRef = useRef<TerminalCancelCreateOrAttachMutate>(
+		(input) => {
+			electronTrpcClient.terminal.cancelCreateOrAttach
+				.mutate(input)
+				.catch((error) => {
+					console.warn("[Terminal] Failed to cancel create/attach:", error);
+				});
+		},
+	);
 	const clearScrollbackRef = useRef<TerminalClearScrollbackMutate>((input) => {
 		electronTrpcClient.terminal.clearScrollback.mutate(input).catch((error) => {
 			console.warn("[Terminal] Failed to clear scrollback:", error);
@@ -90,6 +100,7 @@ export function useTerminalConnection({
 			write: writeRef,
 			resize: resizeRef,
 			detach: detachRef,
+			cancelCreateOrAttach: cancelCreateOrAttachRef,
 			clearScrollback: clearScrollbackRef,
 		},
 	};

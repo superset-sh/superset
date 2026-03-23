@@ -1,7 +1,7 @@
 import { ContextMenuItem } from "@superset/ui/context-menu";
-import { toast } from "@superset/ui/sonner";
 import { type MutableRefObject, type ReactNode, useCallback } from "react";
 import { LuSquarePen } from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { Tab } from "renderer/stores/tabs/types";
 import {
 	type CodeEditorAdapter,
@@ -63,6 +63,7 @@ export function DiffViewerContextMenu({
 	onMoveToNewTab,
 	onEditAtLocation,
 }: DiffViewerContextMenuProps) {
+	const { copyToClipboard } = useCopyToClipboard();
 	const getEditor = useCallback((): CodeEditorAdapter | null => {
 		const container = containerRef.current;
 		if (!container) {
@@ -99,21 +100,13 @@ export function DiffViewerContextMenu({
 					return;
 				}
 
-				void navigator.clipboard.writeText(selectedText).catch((error) => {
-					console.error(
-						"[DiffViewerContextMenu] Failed to copy selection:",
-						error,
-					);
-					toast.error("Failed to copy selection", {
-						description: String(error),
-					});
-				});
+				copyToClipboard(selectedText);
 			},
 			paste() {},
 			openFind() {},
 			dispose() {},
 		};
-	}, [containerRef, getSelectionLines]);
+	}, [containerRef, getSelectionLines, copyToClipboard]);
 
 	const editorActions = useEditorActions({
 		getEditor,

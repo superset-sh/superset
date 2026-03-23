@@ -49,9 +49,13 @@ function preparePreset(preset: TerminalPreset): PreparedPreset {
 	};
 }
 
-export function useTabsWithPresets() {
+export function useTabsWithPresets(projectId?: string | null) {
+	const newTabPresetsInput = useMemo(
+		() => ({ projectId: projectId ?? null }),
+		[projectId],
+	);
 	const { data: newTabPresets = [] } =
-		electronTrpc.settings.getNewTabPresets.useQuery();
+		electronTrpc.settings.getNewTabPresets.useQuery(newTabPresetsInput);
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(

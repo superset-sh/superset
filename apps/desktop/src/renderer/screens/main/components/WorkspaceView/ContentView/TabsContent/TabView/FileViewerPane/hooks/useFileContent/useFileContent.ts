@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
@@ -18,10 +18,6 @@ interface UseFileContentParams {
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
 	oldPath?: string;
-	isDirty: boolean;
-	originalContentRef: React.MutableRefObject<string>;
-	originalDiffContentRef: React.MutableRefObject<string>;
-	revisionRef: React.MutableRefObject<string>;
 }
 
 function isBinaryText(content: string): boolean {
@@ -42,10 +38,6 @@ export function useFileContent({
 	diffCategory,
 	commitHash,
 	oldPath,
-	isDirty,
-	originalContentRef,
-	originalDiffContentRef,
-	revisionRef,
 }: UseFileContentParams) {
 	// For remote URLs (e.g. Vercel Blob), skip all IPC queries
 	const isRemote =
@@ -228,34 +220,6 @@ export function useFileContent({
 			? isLoadingGitOriginal || isLoadingWorkingCopy
 			: false;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update revision when data loads
-	useEffect(() => {
-		if (rawQuery.data && !isDirty) {
-			revisionRef.current = rawQuery.data.revision;
-		}
-	}, [rawQuery.data]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update revision when working copy loads
-	useEffect(() => {
-		if (workingCopy && !isDirty) {
-			revisionRef.current = workingCopy.revision;
-		}
-	}, [workingCopy]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
-	useEffect(() => {
-		if (rawFileData?.ok === true && !isDirty) {
-			originalContentRef.current = rawFileData.content;
-		}
-	}, [rawFileData]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when diff loads
-	useEffect(() => {
-		if (diffData && !isDirty) {
-			originalDiffContentRef.current = diffData.modified;
-		}
-	}, [diffData]);
-
 	return {
 		rawFileData,
 		isLoadingRaw: rawQuery.isLoading || (isImage && imageQuery.isLoading),
@@ -263,5 +227,7 @@ export function useFileContent({
 		isLoadingImage: isRemote ? false : imageQuery.isLoading,
 		diffData,
 		isLoadingDiff,
+		rawRevision: rawQuery.data?.revision ?? null,
+		workingCopyRevision: workingCopy?.revision ?? null,
 	};
 }

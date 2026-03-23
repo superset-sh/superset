@@ -1,5 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { ChatRawSnapshot } from "../../ChatPaneInterface/types";
 
 interface UseChatRawSnapshotOptions {
@@ -9,7 +10,7 @@ interface UseChatRawSnapshotOptions {
 interface UseChatRawSnapshotReturn {
 	snapshotAvailableForSession: boolean;
 	handleRawSnapshotChange: (snapshot: ChatRawSnapshot) => void;
-	handleCopyRawSnapshot: () => Promise<void>;
+	handleCopyRawSnapshot: () => void;
 }
 
 export function useChatRawSnapshot({
@@ -29,25 +30,18 @@ export function useChatRawSnapshot({
 		);
 	}, []);
 
-	const handleCopyRawSnapshot = useCallback(async () => {
+	const { copyToClipboard } = useCopyToClipboard();
+
+	const handleCopyRawSnapshot = useCallback(() => {
 		const rawSnapshot = rawSnapshotRef.current;
 		if (!rawSnapshot || rawSnapshot.sessionId !== sessionId) {
 			toast.error("No raw chat data to copy yet");
 			return;
 		}
 
-		if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-			toast.error("Clipboard API is unavailable");
-			return;
-		}
-
-		try {
-			await navigator.clipboard.writeText(JSON.stringify(rawSnapshot, null, 2));
-			toast.success("Copied raw chat JSON");
-		} catch {
-			toast.error("Failed to copy raw chat JSON");
-		}
-	}, [sessionId]);
+		copyToClipboard(JSON.stringify(rawSnapshot, null, 2));
+		toast.success("Copied raw chat JSON");
+	}, [sessionId, copyToClipboard]);
 
 	return {
 		snapshotAvailableForSession:

@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import {
@@ -23,6 +22,7 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
 import { FilesView } from "./FilesView";
+import { getSidebarHeaderTabButtonClassName } from "./headerTabStyles";
 
 function TabButton({
 	isActive,
@@ -44,12 +44,10 @@ function TabButton({
 					<button
 						type="button"
 						onClick={onClick}
-						className={cn(
-							"flex items-center justify-center shrink-0 h-full w-10 transition-all",
-							isActive
-								? "text-foreground bg-border/30"
-								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-						)}
+						className={getSidebarHeaderTabButtonClassName({
+							isActive,
+							compact: true,
+						})}
 					>
 						{icon}
 					</button>
@@ -65,12 +63,7 @@ function TabButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={cn(
-				"flex items-center gap-2 shrink-0 px-3 h-full transition-all text-sm",
-				isActive
-					? "text-foreground bg-border/30"
-					: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-			)}
+			className={getSidebarHeaderTabButtonClassName({ isActive })}
 		>
 			{icon}
 			{label}

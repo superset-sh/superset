@@ -30,7 +30,6 @@ import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
-import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
@@ -198,7 +197,6 @@ app.on("before-quit", async (event) => {
 	// Quit confirmed or no confirmation needed - exit immediately
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
-	await outlit.shutdown();
 	getHostServiceManager().stopAll();
 	disposeTray();
 	app.exit(0);

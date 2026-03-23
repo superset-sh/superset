@@ -63,6 +63,10 @@ class LocalTerminalRuntime implements TerminalRuntime {
 		return this.backend.createOrAttach(params);
 	};
 
+	cancelCreateOrAttach: TerminalRuntime["cancelCreateOrAttach"] = (params) => {
+		this.backend.cancelCreateOrAttach(params);
+	};
+
 	write: TerminalRuntime["write"] = (params) => {
 		return this.backend.write(params);
 	};

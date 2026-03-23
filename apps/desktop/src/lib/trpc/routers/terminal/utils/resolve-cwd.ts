@@ -1,6 +1,6 @@
-import { existsSync } from "node:fs";
 import os from "node:os";
 import { isAbsolute, join } from "node:path";
+import { pathExistsCached } from "../../utils/path-exists-cache";
 
 /**
  * Resolves a cwd path against a base worktree path.
@@ -17,7 +17,7 @@ export function resolveCwd(
 ): string | undefined {
 	// Validate worktreePath exists if provided
 	const validWorktreePath =
-		worktreePath && existsSync(worktreePath) ? worktreePath : undefined;
+		worktreePath && pathExistsCached(worktreePath) ? worktreePath : undefined;
 
 	if (!cwdOverride) {
 		return validWorktreePath;
@@ -25,7 +25,7 @@ export function resolveCwd(
 
 	// Absolute path (Unix `/...`, Windows `C:\...`, UNC `\\...`) - use if exists, otherwise fall back
 	if (isAbsolute(cwdOverride)) {
-		if (existsSync(cwdOverride)) {
+		if (pathExistsCached(cwdOverride)) {
 			return cwdOverride;
 		}
 		// Fall back to worktreePath if it exists, otherwise homedir
@@ -46,7 +46,7 @@ export function resolveCwd(
 	const resolvedPath = join(validWorktreePath, relativePath);
 
 	// Fall back to worktreePath if resolved path doesn't exist
-	if (!existsSync(resolvedPath)) {
+	if (!pathExistsCached(resolvedPath)) {
 		return validWorktreePath;
 	}
 

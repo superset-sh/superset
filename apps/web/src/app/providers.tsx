@@ -6,7 +6,6 @@ import { ThemeProvider } from "next-themes";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 
-import { OutlitProvider } from "@/components/OutlitProvider";
 import { PostHogUserIdentifier } from "@/components/PostHogUserIdentifier";
 
 import { TRPCReactProvider } from "../trpc/react";
@@ -14,21 +13,19 @@ import { TRPCReactProvider } from "../trpc/react";
 export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<PostHogProvider client={posthog}>
-			<OutlitProvider>
-				<TRPCReactProvider>
-					<ThemeProvider
-						attribute="class"
-						defaultTheme="dark"
-						forcedTheme="dark"
-						storageKey={THEME_STORAGE_KEY}
-						disableTransitionOnChange
-					>
-						<PostHogUserIdentifier />
-						{children}
-						<ReactQueryDevtools initialIsOpen={false} />
-					</ThemeProvider>
-				</TRPCReactProvider>
-			</OutlitProvider>
+			<TRPCReactProvider>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					forcedTheme="dark"
+					storageKey={THEME_STORAGE_KEY}
+					disableTransitionOnChange
+				>
+					<PostHogUserIdentifier />
+					{children}
+					<ReactQueryDevtools initialIsOpen={false} />
+				</ThemeProvider>
+			</TRPCReactProvider>
 		</PostHogProvider>
 	);
 }

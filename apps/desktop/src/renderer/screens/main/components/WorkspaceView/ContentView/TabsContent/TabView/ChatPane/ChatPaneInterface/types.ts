@@ -11,6 +11,7 @@ export interface ChatRawSnapshot {
 }
 
 export interface ChatPaneInterfaceProps {
+	paneId: string;
 	sessionId: string | null;
 	initialLaunchConfig: ChatLaunchConfig | null;
 	workspaceId: string;

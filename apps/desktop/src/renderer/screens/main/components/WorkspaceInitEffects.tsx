@@ -8,6 +8,7 @@ import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWith
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { writeCommandsInPane } from "renderer/lib/terminal/launch-command";
+import { isTerminalAttachCanceledMessage } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/attach-cancel";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -160,6 +161,7 @@ export function WorkspaceInitEffects() {
 						paneId: setupPaneId,
 						tabId: setupTabId,
 						workspaceId: setup.workspaceId,
+						joinPending: true,
 					},
 					{
 						onSuccess: () => {
@@ -182,6 +184,10 @@ export function WorkspaceInitEffects() {
 								.finally(() => onComplete());
 						},
 						onError: (error) => {
+							if (isTerminalAttachCanceledMessage(error.message)) {
+								onComplete();
+								return;
+							}
 							console.error(
 								"[WorkspaceInitEffects] Failed to create terminal:",
 								error,
@@ -210,6 +216,7 @@ export function WorkspaceInitEffects() {
 						paneId,
 						tabId,
 						workspaceId: setup.workspaceId,
+						joinPending: true,
 					},
 					{
 						onSuccess: () => {
@@ -229,6 +236,10 @@ export function WorkspaceInitEffects() {
 								.finally(() => onComplete());
 						},
 						onError: (error) => {
+							if (isTerminalAttachCanceledMessage(error.message)) {
+								onComplete();
+								return;
+							}
 							console.error(
 								"[WorkspaceInitEffects] Failed to create terminal:",
 								error,
@@ -247,6 +258,7 @@ export function WorkspaceInitEffects() {
 												paneId: newPaneId,
 												tabId: newTabId,
 												workspaceId: setup.workspaceId,
+												joinPending: true,
 											},
 											{
 												onSuccess: () => {

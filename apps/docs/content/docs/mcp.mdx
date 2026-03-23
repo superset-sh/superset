@@ -219,7 +219,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `create_workspace` | Create a new git worktree workspace |
+| `create_workspace` | Create a new git worktree workspace. Pass `sourceWorkspaceId` to branch from an existing workspace instead of `main`. |
 | `update_workspace` | Update workspaces (rename) |
 | `switch_workspace` | Switch to a different workspace |
 | `delete_workspace` | Delete a workspace |
@@ -239,7 +239,8 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `start_agent_session` | Start an autonomous AI agent session for a task. Supports multiple agents: Claude, Codex, Gemini, OpenCode, Pi, Copilot, and Cursor Agent (defaults to Claude). Launches the agent with task context in the specified workspace. When `paneId` is provided, adds a new terminal pane to the tab containing that pane (subagent behavior) instead of initializing the workspace. |
+| `start_agent_session` | Start an autonomous AI agent session for a task in an existing workspace. Requires `taskId`. Supports Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
+| `start_agent_session_with_prompt` | Start an autonomous AI agent session in an existing workspace using a direct `prompt` instead of a task. Supports Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
 
 ## Chat Integration
 
@@ -254,5 +255,5 @@ Once connected, you can ask your AI agent to:
 - "Create a new workspace for the auth feature"
 - "Show me who's online in my team"
 - "Start a Claude session on my MacBook to work on the auth task"
-- "Start a Codex session to fix the failing tests"
+- "Start a Codex session in my auth workspace with the prompt 'fix the failing tests'"
 - "Spin up a subagent to fix the failing tests"

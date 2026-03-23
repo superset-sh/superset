@@ -4,7 +4,7 @@ import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
 
 interface LabelWithTooltipProps {
 	label: string;
-	tooltip: string;
+	tooltip?: string;
 	htmlFor?: string;
 	className?: string;
 }
@@ -15,8 +15,16 @@ export function LabelWithTooltip({
 	htmlFor,
 	className,
 }: LabelWithTooltipProps) {
+	if (!tooltip) {
+		return (
+			<Label htmlFor={htmlFor} className={className}>
+				{label}
+			</Label>
+		);
+	}
+
 	return (
-		<div className="flex items-center gap-1.5">
+		<div className="flex items-center gap-1.5 pt-1">
 			<Label htmlFor={htmlFor} className={className}>
 				{label}
 			</Label>

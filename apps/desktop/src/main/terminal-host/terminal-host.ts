@@ -9,7 +9,9 @@
  */
 
 import type { Socket } from "node:net";
+import { TerminalAttachCanceledError } from "../lib/terminal/errors";
 import type {
+	CancelCreateOrAttachRequest,
 	ClearScrollbackRequest,
 	CreateOrAttachRequest,
 	CreateOrAttachResponse,
@@ -32,6 +34,17 @@ import { createSession, type Session } from "./session";
 const KILL_TIMEOUT_MS = 5000;
 const MAX_CONCURRENT_SPAWNS = 3;
 const SPAWN_READY_TIMEOUT_MS = 5000;
+
+interface PendingAttach {
+	requestId: string;
+	abortController: AbortController;
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+	if (signal.aborted) {
+		throw new TerminalAttachCanceledError();
+	}
+}
 
 function promiseWithTimeout<T>(
 	promise: Promise<T>,
@@ -57,6 +70,7 @@ function promiseWithTimeout<T>(
 export class TerminalHost {
 	private sessions: Map<string, Session> = new Map();
 	private killTimers: Map<string, NodeJS.Timeout> = new Map();
+	private pendingAttaches: Map<string, PendingAttach> = new Map();
 	private spawnLimiter = new Semaphore(MAX_CONCURRENT_SPAWNS);
 	private onUnattachedExit?: (event: {
 		sessionId: string;
@@ -84,82 +98,139 @@ export class TerminalHost {
 		request: CreateOrAttachRequest,
 	): Promise<CreateOrAttachResponse> {
 		const { sessionId } = request;
+		const requestId = request.requestId ?? `${sessionId}:${Date.now()}`;
+		const existingPending = this.pendingAttaches.get(sessionId);
+		if (existingPending && existingPending.requestId !== requestId) {
+			existingPending.abortController.abort();
+		}
+		const pendingAttach: PendingAttach = {
+			requestId,
+			abortController: new AbortController(),
+		};
+		this.pendingAttaches.set(sessionId, pendingAttach);
 
 		let session = this.sessions.get(sessionId);
 		let isNew = false;
+		let shouldDisposeIfCanceled = false;
 
-		// Force-dispose terminating sessions to prevent race conditions
-		if (session?.isTerminating) {
-			void session.dispose();
-			this.sessions.delete(sessionId);
-			this.clearKillTimer(sessionId);
-			session = undefined;
-		}
+		try {
+			// Force-dispose terminating sessions to prevent race conditions
+			if (session?.isTerminating) {
+				void session.dispose();
+				this.sessions.delete(sessionId);
+				this.clearKillTimer(sessionId);
+				session = undefined;
+			}
 
-		if (session && !session.isAlive) {
-			void session.dispose();
-			this.sessions.delete(sessionId);
-			session = undefined;
-		}
+			if (session && !session.isAlive) {
+				void session.dispose();
+				this.sessions.delete(sessionId);
+				session = undefined;
+			}
 
-		if (!session) {
-			const releaseSpawn = await this.spawnLimiter.acquire();
-
-			try {
-				session = createSession(request);
-
-				session.onExit((id, exitCode, signal) => {
-					this.handleSessionExit(id, exitCode, signal);
-				});
-
-				session.spawn({
-					cwd: request.cwd || process.env.HOME || "/",
-					cols: request.cols,
-					rows: request.rows,
-					env: request.env,
-				});
+			if (!session) {
+				const releaseSpawn = await this.spawnLimiter.acquire(
+					pendingAttach.abortController.signal,
+				);
+				let spawnReleased = false;
+				const releaseSpawnOnce = () => {
+					if (spawnReleased) return;
+					spawnReleased = true;
+					releaseSpawn();
+				};
 
 				try {
-					await promiseWithTimeout(
-						session.waitForReady(),
-						SPAWN_READY_TIMEOUT_MS,
-					);
-				} catch {
-					console.warn(
-						`[TerminalHost] Timeout waiting for PTY ready for session ${sessionId}`,
-					);
-				} finally {
-					releaseSpawn();
+					throwIfAborted(pendingAttach.abortController.signal);
+					session = createSession(request);
+					shouldDisposeIfCanceled = true;
+
+					session.onExit((id, exitCode, signal) => {
+						this.handleSessionExit(id, exitCode, signal);
+					});
+
+					session.spawn({
+						cwd: request.cwd || process.env.HOME || "/",
+						cols: request.cols,
+						rows: request.rows,
+						env: request.env,
+					});
+
+					try {
+						await promiseWithTimeout(
+							session.waitForReady(),
+							SPAWN_READY_TIMEOUT_MS,
+						);
+					} catch {
+						console.warn(
+							`[TerminalHost] Timeout waiting for PTY ready for session ${sessionId}`,
+						);
+					} finally {
+						releaseSpawnOnce();
+					}
+				} catch (error) {
+					releaseSpawnOnce();
+					throw error;
 				}
-			} catch (error) {
-				releaseSpawn();
-				throw error;
+
+				throwIfAborted(pendingAttach.abortController.signal);
+
+				if (!session.isAlive) {
+					void session.dispose();
+					throw new Error(
+						"Session spawn failed: PTY process exited immediately",
+					);
+				}
+
+				this.sessions.set(sessionId, session);
+				isNew = true;
+			} else {
+				// Resize to client dimensions - failures are non-fatal
+				try {
+					session.resize(request.cols, request.rows);
+				} catch {
+					// Ignore - session may still be attachable
+				}
 			}
 
-			if (!session.isAlive) {
+			const snapshot = await session.attach(
+				socket,
+				pendingAttach.abortController.signal,
+			);
+
+			return {
+				isNew,
+				snapshot,
+				wasRecovered: !isNew && session.isAlive,
+				pid: session.pid,
+			};
+		} catch (error) {
+			if (
+				error instanceof TerminalAttachCanceledError &&
+				shouldDisposeIfCanceled &&
+				session &&
+				session.clientCount === 0
+			) {
 				void session.dispose();
-				throw new Error("Session spawn failed: PTY process exited immediately");
+				this.sessions.delete(sessionId);
 			}
-
-			this.sessions.set(sessionId, session);
-			isNew = true;
-		} else {
-			// Resize to client dimensions - failures are non-fatal
-			try {
-				session.resize(request.cols, request.rows);
-			} catch {
-				// Ignore - session may still be attachable
+			throw error;
+		} finally {
+			if (this.pendingAttaches.get(sessionId) === pendingAttach) {
+				this.pendingAttaches.delete(sessionId);
 			}
 		}
+	}
 
-		const snapshot = await session.attach(socket);
-
-		return {
-			isNew,
-			snapshot,
-			wasRecovered: !isNew && session.isAlive,
-			pid: session.pid,
-		};
+	cancelCreateOrAttach(request: CancelCreateOrAttachRequest): EmptyResponse {
+		const pendingAttach = this.pendingAttaches.get(request.sessionId);
+		if (!pendingAttach || pendingAttach.requestId !== request.requestId) {
+			return { success: true };
+		}
+		pendingAttach.abortController.abort();
+		if (this.pendingAttaches.get(request.sessionId) === pendingAttach) {
+			this.pendingAttaches.delete(request.sessionId);
+		}
+		return { success: true };
 	}
 
 	/**
@@ -311,6 +382,11 @@ export class TerminalHost {
 	}
 
 	async dispose(): Promise<void> {
+		for (const pendingAttach of this.pendingAttaches.values()) {
+			pendingAttach.abortController.abort();
+		}
+		this.pendingAttaches.clear();
+
 		for (const timer of this.killTimers.values()) {
 			clearTimeout(timer);
 		}
@@ -395,18 +471,42 @@ export class TerminalHost {
 
 class Semaphore {
 	private inUse = 0;
-	private queue: Array<(release: () => void) => void> = [];
+	private queue: Array<{
+		resolve: (release: () => void) => void;
+		reject: (error: Error) => void;
+		signal?: AbortSignal;
+		onAbort?: () => void;
+	}> = [];
 
 	constructor(private max: number) {}
 
-	acquire(): Promise<() => void> {
+	acquire(signal?: AbortSignal): Promise<() => void> {
+		if (signal?.aborted) {
+			return Promise.reject(new TerminalAttachCanceledError());
+		}
+
 		if (this.inUse < this.max) {
 			this.inUse++;
 			return Promise.resolve(() => this.release());
 		}
 
-		return new Promise<() => void>((resolve) => {
-			this.queue.push(resolve);
+		return new Promise<() => void>((resolve, reject) => {
+			const waiter = { resolve, reject, signal } as {
+				resolve: (release: () => void) => void;
+				reject: (error: Error) => void;
+				signal?: AbortSignal;
+				onAbort?: () => void;
+			};
+			if (signal) {
+				waiter.onAbort = () => {
+					const index = this.queue.indexOf(waiter);
+					if (index === -1) return;
+					this.queue.splice(index, 1);
+					waiter.reject(new TerminalAttachCanceledError());
+				};
+				signal.addEventListener("abort", waiter.onAbort, { once: true });
+			}
+			this.queue.push(waiter);
 		});
 	}
 
@@ -415,8 +515,16 @@ class Semaphore {
 
 		const next = this.queue.shift();
 		if (next) {
+			if (next.onAbort && next.signal) {
+				next.signal.removeEventListener("abort", next.onAbort);
+			}
+			if (next.signal?.aborted) {
+				next.reject(new TerminalAttachCanceledError());
+				this.release();
+				return;
+			}
 			this.inUse++;
-			next(() => this.release());
+			next.resolve(() => this.release());
 		}
 	}
 }

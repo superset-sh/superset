@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type {
 	UserMessageActionPayload,
@@ -62,18 +63,13 @@ export function UserMessage({
 		},
 		[addFileViewerPane, workspaceId],
 	);
+	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopy = useCallback(() => {
 		if (!fullText) return;
-		navigator.clipboard.writeText(fullText).then(
-			() => {
-				setCopied(true);
-				setTimeout(() => setCopied(false), 1500);
-			},
-			(error) => {
-				console.warn("[UserMessage] clipboard write failed", error);
-			},
-		);
-	}, [fullText]);
+		copyToClipboard(fullText);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 1500);
+	}, [fullText, copyToClipboard]);
 	const handleResend = useCallback(() => {
 		const resendPayload: UserMessageActionPayload = {
 			content: draft.text,

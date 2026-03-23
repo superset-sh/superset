@@ -1,7 +1,7 @@
-import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
+import { pathExistsCached } from "../../utils/path-exists-cache";
 
 export type WorkspaceUsabilityReason =
 	| "initializing"
@@ -48,7 +48,7 @@ export function checkWorkspaceUsability(
 		return { usable: false, reason: "path_missing" };
 	}
 
-	if (!existsSync(worktreePath)) {
+	if (!pathExistsCached(worktreePath)) {
 		return { usable: false, reason: "path_missing" };
 	}
 

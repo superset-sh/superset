@@ -3,6 +3,9 @@ import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import { deleteDocumentBuffer } from "renderer/stores/editor-state/editorBufferRegistry";
+import { useEditorDocumentsStore } from "renderer/stores/editor-state/useEditorDocumentsStore";
+import { useEditorSessionsStore } from "renderer/stores/editor-state/useEditorSessionsStore";
 import {
 	getPathBaseName,
 	pathsMatch,
@@ -23,6 +26,8 @@ import type {
 	TabsStore,
 } from "./types";
 import {
+	activatePaneInWorkspace,
+	applyFileViewerOpenOptionsToPane,
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
 	createBrowserPane,
@@ -35,6 +40,7 @@ import {
 	createTabWithPane,
 	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
+	findReusableFileViewerPane,
 	generateId,
 	generateTabName,
 	getAdjacentPaneId,
@@ -157,6 +163,28 @@ const withDerivedTabNames = (
 				: tab,
 		),
 	};
+};
+
+const cleanupEditorPaneState = (paneId: string): void => {
+	const sessionsStore = useEditorSessionsStore.getState();
+	const session = sessionsStore.sessions[paneId];
+	if (!session) {
+		return;
+	}
+
+	useEditorDocumentsStore
+		.getState()
+		.removeSessionBinding(session.documentKey, paneId);
+	sessionsStore.clearSession(paneId);
+
+	const document =
+		useEditorDocumentsStore.getState().documents[session.documentKey];
+	if (document && document.sessionPaneIds.length > 0) {
+		return;
+	}
+
+	useEditorDocumentsStore.getState().removeDocument(session.documentKey);
+	deleteDocumentBuffer(session.documentKey);
 };
 
 export const useTabsStore = create<TabsStore>()(
@@ -351,6 +379,8 @@ export const useTabsStore = create<TabsStore>()(
 						if (pane?.type === "terminal") {
 							killTerminalForPane(paneId);
 						}
+
+						cleanupEditorPaneState(paneId);
 					}
 
 					const newPanes = { ...state.panes };
@@ -725,28 +755,65 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
+					const reuseExisting = options.reuseExisting ?? "workspace";
+					const canReuseExistingPane =
+						!options.openInNewTab && reuseExisting !== "none";
+					const existingFileViewerPane = canReuseExistingPane
+						? findReusableFileViewerPane({
+								workspaceId,
+								activeTabId: activeTab.id,
+								tabs: state.tabs,
+								panes: state.panes,
+								tabHistoryStacks: state.tabHistoryStacks,
+								reuseExisting,
+								options,
+							})
+						: null;
 
-					// First, check if the file is already open in a pinned pane - if so, just focus it
-					const existingPinnedPane = tabPaneIds
-						.map((id) => state.panes[id])
-						.find(
-							(p) =>
-								p?.type === "file-viewer" &&
-								p.fileViewer?.isPinned &&
-								pathsMatch(p.fileViewer.filePath, options.filePath) &&
-								p.fileViewer.diffCategory === options.diffCategory &&
-								p.fileViewer.commitHash === options.commitHash,
+					if (existingFileViewerPane) {
+						const nextPane = applyFileViewerOpenOptionsToPane(
+							existingFileViewerPane,
+							options,
 						);
-
-					if (existingPinnedPane) {
-						// File is already open in a pinned pane, just focus it
-						set({
-							focusedPaneIds: {
-								...state.focusedPaneIds,
-								[activeTab.id]: existingPinnedPane.id,
-							},
+						const nextPanes =
+							nextPane === existingFileViewerPane
+								? state.panes
+								: {
+										...state.panes,
+										[existingFileViewerPane.id]: nextPane,
+									};
+						const activationState = activatePaneInWorkspace({
+							workspaceId,
+							paneId: existingFileViewerPane.id,
+							tabs: state.tabs,
+							panes: nextPanes,
+							activeTabIds: state.activeTabIds,
+							focusedPaneIds: state.focusedPaneIds,
+							tabHistoryStacks: state.tabHistoryStacks,
 						});
-						return existingPinnedPane.id;
+
+						if (!activationState) {
+							return existingFileViewerPane.id;
+						}
+
+						const didPaneNameChange =
+							nextPane.name !== existingFileViewerPane.name;
+						set({
+							...activationState,
+							...(didPaneNameChange
+								? {
+										tabs: state.tabs.map((tab) =>
+											tab.id === existingFileViewerPane.tabId
+												? {
+														...tab,
+														name: deriveTabName(nextPanes, tab.id),
+													}
+												: tab,
+										),
+									}
+								: {}),
+						});
+						return existingFileViewerPane.id;
 					}
 
 					// Look for an existing unpinned (preview) file-viewer pane in the active tab
@@ -761,20 +828,45 @@ export const useTabsStore = create<TabsStore>()(
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
 					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
-					if (fileViewerPanes.length > 0 && !options.openInNewTab) {
+					if (fileViewerPanes.length > 0 && canReuseExistingPane) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
 						if (!existingFileViewer) {
 							// Should not happen due to filter above, but satisfy type checker
 							return "";
 						}
-
-						// If clicking the same file that's already in preview, just focus it
+						const paneSession =
+							useEditorSessionsStore.getState().sessions[paneToReuse.id];
+						const paneDocument = paneSession
+							? useEditorDocumentsStore.getState().documents[
+									paneSession.documentKey
+								]
+							: null;
 						const isSameFile =
 							pathsMatch(existingFileViewer.filePath, options.filePath) &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
+						if (paneDocument?.dirty && !isSameFile) {
+							set({
+								focusedPaneIds: {
+									...state.focusedPaneIds,
+									[activeTab.id]: paneToReuse.id,
+								},
+							});
+							useEditorSessionsStore.getState().setPendingIntent(
+								paneToReuse.id,
+								{
+									type: "replace-preview",
+									workspaceId,
+									options,
+								},
+								"unsaved",
+							);
+							return paneToReuse.id;
+						}
+
+						// If clicking the same file that's already in preview, just focus it
 						if (isSameFile) {
 							const nextViewMode =
 								options.viewMode ?? existingFileViewer.viewMode;
@@ -974,6 +1066,8 @@ export const useTabsStore = create<TabsStore>()(
 						if (state.panes[id]?.type === "terminal") {
 							killTerminalForPane(id);
 						}
+
+						cleanupEditorPaneState(id);
 					}
 
 					// Remove all panes from layout
@@ -1576,15 +1670,6 @@ export const useTabsStore = create<TabsStore>()(
 							history.splice(0, history.length - 100);
 						}
 
-						const currentActiveId = state.activeTabIds[workspaceId];
-						const historyStack = state.tabHistoryStacks[workspaceId] || [];
-						const newHistoryStack = currentActiveId
-							? [
-									currentActiveId,
-									...historyStack.filter((id) => id !== currentActiveId),
-								]
-							: historyStack;
-
 						const newPanes = {
 							...state.panes,
 							[existingPane.id]: {
@@ -1599,24 +1684,25 @@ export const useTabsStore = create<TabsStore>()(
 							},
 						};
 						const tabName = deriveTabName(newPanes, existingPane.tabId);
+						const activationState = activatePaneInWorkspace({
+							workspaceId,
+							paneId: existingPane.id,
+							tabs: state.tabs,
+							panes: newPanes,
+							activeTabIds: state.activeTabIds,
+							focusedPaneIds: state.focusedPaneIds,
+							tabHistoryStacks: state.tabHistoryStacks,
+						});
+
+						if (!activationState) {
+							return;
+						}
 
 						set({
-							panes: newPanes,
+							...activationState,
 							tabs: state.tabs.map((t) =>
 								t.id === existingPane.tabId ? { ...t, name: tabName } : t,
 							),
-							activeTabIds: {
-								...state.activeTabIds,
-								[workspaceId]: existingPane.tabId,
-							},
-							focusedPaneIds: {
-								...state.focusedPaneIds,
-								[existingPane.tabId]: existingPane.id,
-							},
-							tabHistoryStacks: {
-								...state.tabHistoryStacks,
-								[workspaceId]: newHistoryStack,
-							},
 						});
 					} else {
 						// No existing browser pane — add one to the active tab

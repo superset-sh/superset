@@ -5,24 +5,24 @@ import { getComparisonPages } from "@/lib/compare";
 import { formatCompareDate } from "@/lib/compare-utils";
 
 export const metadata: Metadata = {
-	title: "Compare Superset | AI Coding Tool Comparisons",
+	title: "Compare Superset | AI Coding Comparisons and Guides",
 	description:
-		"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. See how parallel agent orchestration stacks up against other AI coding tools.",
+		"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
 	alternates: {
 		canonical: "/compare",
 	},
 	openGraph: {
-		title: "Compare Superset | AI Coding Tool Comparisons",
+		title: "Compare Superset | AI Coding Comparisons and Guides",
 		description:
-			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more.",
+			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
 		url: "/compare",
 		images: ["/opengraph-image"],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Compare Superset | AI Coding Tool Comparisons",
+		title: "Compare Superset | AI Coding Comparisons and Guides",
 		description:
-			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more.",
+			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
 		images: ["/opengraph-image"],
 	},
 };
@@ -32,6 +32,7 @@ export default async function ComparePage() {
 
 	const oneVsOne = pages.filter((p) => p.type === "1v1");
 	const roundups = pages.filter((p) => p.type === "roundup");
+	const tutorials = pages.filter((p) => p.type === "tutorial");
 
 	return (
 		<main className="relative min-h-screen">
@@ -70,29 +71,15 @@ export default async function ComparePage() {
 			{/* Content */}
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				{roundups.length > 0 && (
-					<section className="mb-12">
-						<h2 className="text-xl font-medium text-foreground mb-6">
-							Roundups
-						</h2>
-						<div className="flex flex-col gap-4">
-							{roundups.map((page) => (
-								<CompareCard key={page.slug} page={page} />
-							))}
-						</div>
-					</section>
+					<CompareSection title="Roundups" pages={roundups} />
+				)}
+
+				{tutorials.length > 0 && (
+					<CompareSection title="Workflow Tutorials" pages={tutorials} />
 				)}
 
 				{oneVsOne.length > 0 && (
-					<section>
-						<h2 className="text-xl font-medium text-foreground mb-6">
-							Head-to-Head Comparisons
-						</h2>
-						<div className="flex flex-col gap-4">
-							{oneVsOne.map((page) => (
-								<CompareCard key={page.slug} page={page} />
-							))}
-						</div>
-					</section>
+					<CompareSection title="Head-to-Head Comparisons" pages={oneVsOne} />
 				)}
 
 				{pages.length === 0 && (
@@ -100,6 +87,25 @@ export default async function ComparePage() {
 				)}
 			</div>
 		</main>
+	);
+}
+
+function CompareSection({
+	title,
+	pages,
+}: {
+	title: string;
+	pages: ReturnType<typeof getComparisonPages>;
+}) {
+	return (
+		<section className="mb-12 last:mb-0">
+			<h2 className="text-xl font-medium text-foreground mb-6">{title}</h2>
+			<div className="flex flex-col gap-4">
+				{pages.map((page) => (
+					<CompareCard key={page.slug} page={page} />
+				))}
+			</div>
+		</section>
 	);
 }
 

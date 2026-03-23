@@ -19,6 +19,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import type { TeamMember } from "../../../../types";
@@ -37,12 +38,8 @@ export function MemberActions({
 	canRemove: boolean;
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
-	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const plan = session?.session?.plan as
-		| "free"
-		| "pro"
-		| "enterprise"
-		| undefined;
+	const { refetch: refetchSession } = authClient.useSession();
+	const plan = useCurrentPlan();
 	const navigate = useNavigate();
 
 	const availableRoles = getAvailableRoleChanges(

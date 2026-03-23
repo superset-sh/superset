@@ -29,7 +29,7 @@ interface CollapsedWorkspaceItemProps {
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
-	itemRef: RefObject<HTMLElement | null>;
+	itemRef: RefObject<HTMLButtonElement | null>;
 	showDeleteDialog: boolean;
 	setShowDeleteDialog: (open: boolean) => void;
 	onMouseEnter: () => void;
@@ -63,9 +63,7 @@ export function CollapsedWorkspaceItem({
 
 	const collapsedButton = (
 		<button
-			ref={(node) => {
-				(itemRef as React.MutableRefObject<HTMLElement | null>).current = node;
-			}}
+			ref={itemRef}
 			type="button"
 			onClick={onClick}
 			onAuxClick={(e) => {

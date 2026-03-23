@@ -37,6 +37,7 @@ export function registerMenuHotkeyUpdates() {
 }
 
 export function createApplicationMenu() {
+	const reloadAccelerator = getMenuAccelerator("RELOAD_WINDOW");
 	const closeAccelerator = getMenuAccelerator("CLOSE_WINDOW");
 	const showHotkeysAccelerator = getMenuAccelerator("SHOW_HOTKEYS");
 	const openSettingsAccelerator = getMenuAccelerator("OPEN_SETTINGS");
@@ -57,7 +58,13 @@ export function createApplicationMenu() {
 		{
 			label: "View",
 			submenu: [
-				{ role: "reload" },
+				{
+					label: "Reload",
+					accelerator: reloadAccelerator,
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.reload();
+					},
+				},
 				{ role: "forceReload" },
 				{ role: "toggleDevTools" },
 				{ type: "separator" },

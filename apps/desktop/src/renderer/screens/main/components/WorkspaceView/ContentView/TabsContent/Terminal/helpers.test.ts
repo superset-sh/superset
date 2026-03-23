@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 // Mock localStorage for Node.js test environment
@@ -93,6 +101,10 @@ describe("getDefaultTerminalTheme", () => {
 		// Should fall back to default
 		expect(theme.background).toBe("#151110");
 	});
+});
+
+afterAll(() => {
+	mock.restore();
 });
 
 describe("getDefaultTerminalBg", () => {

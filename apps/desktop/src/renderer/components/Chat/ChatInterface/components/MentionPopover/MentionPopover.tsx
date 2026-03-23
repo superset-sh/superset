@@ -122,6 +122,7 @@ export function MentionProvider({
 		textInput.setInput(`${before}@${relativePath} ${after}`);
 		setTriggerIndex(-1);
 		setOpen(false);
+		requestAnimationFrame(() => textInput.focus());
 	};
 
 	const handleOpenChange = (nextOpen: boolean) => {

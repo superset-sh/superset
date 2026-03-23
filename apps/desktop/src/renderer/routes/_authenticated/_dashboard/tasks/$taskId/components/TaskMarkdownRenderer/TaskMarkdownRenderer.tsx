@@ -1,6 +1,7 @@
 import "highlight.js/styles/github-dark.css";
 import "./task-markdown.css";
 
+import { cn } from "@superset/ui/utils";
 import { Extension } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { Bold } from "@tiptap/extension-bold";
@@ -24,9 +25,15 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
 import { Underline } from "@tiptap/extension-underline";
-import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
+import {
+	type Editor,
+	EditorContent,
+	ReactNodeViewRenderer,
+	useEditor,
+} from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
+import { useEffect } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import { env } from "renderer/env.renderer";
 import { Markdown } from "tiptap-markdown";
@@ -117,14 +124,34 @@ const KeyboardHandler = Extension.create({
 
 interface TaskMarkdownRendererProps {
 	content: string;
-	onSave: (markdown: string) => void;
+	onSave?: (markdown: string) => void;
+	onChange?: (markdown: string) => void;
+	placeholder?: string;
+	autoFocus?: boolean;
+	className?: string;
+	editorClassName?: string;
+	onModEnter?: () => void;
+}
+
+function getMarkdown(editor: Editor | null): string {
+	const storage = editor?.storage as
+		| Record<string, { getMarkdown?: () => string }>
+		| undefined;
+	return storage?.markdown?.getMarkdown?.() ?? "";
 }
 
 export function TaskMarkdownRenderer({
 	content,
 	onSave,
+	onChange,
+	placeholder = "Add description...",
+	autoFocus = false,
+	className,
+	editorClassName,
+	onModEnter,
 }: TaskMarkdownRendererProps) {
 	const editor = useEditor({
+		autofocus: autoFocus ? "end" : false,
 		extensions: [
 			Document,
 			Text,
@@ -198,7 +225,7 @@ export function TaskMarkdownRenderer({
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === "paragraph") {
-						return "Add description...";
+						return placeholder;
 					}
 					return "";
 				},
@@ -217,21 +244,35 @@ export function TaskMarkdownRenderer({
 		content,
 		editorProps: {
 			attributes: {
-				class: "focus:outline-none min-h-[100px]",
+				class: cn("focus:outline-none min-h-[100px]", editorClassName),
+			},
+			handleKeyDown: (_, event) => {
+				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+					onModEnter?.();
+					return true;
+				}
+				return false;
 			},
 		},
+		onUpdate: ({ editor }) => {
+			onChange?.(getMarkdown(editor));
+		},
 		onBlur: ({ editor }) => {
-			const storage = editor.storage as unknown as Record<
-				string,
-				{ getMarkdown?: () => string }
-			>;
-			const markdown = storage.markdown?.getMarkdown?.() ?? "";
-			onSave(markdown);
+			onSave?.(getMarkdown(editor));
 		},
 	});
 
+	useEffect(() => {
+		if (!editor || editor.isFocused) return;
+
+		const currentMarkdown = getMarkdown(editor);
+		if (currentMarkdown === content) return;
+
+		editor.commands.setContent(content, { emitUpdate: false });
+	}, [content, editor]);
+
 	return (
-		<div className="w-full">
+		<div className={cn("w-full", className)}>
 			{editor && (
 				<BubbleMenu
 					editor={editor}

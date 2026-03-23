@@ -118,6 +118,8 @@ interface ComparisonJsonLdProps {
 	modifiedTime?: string;
 	url: string;
 	image?: string;
+	keywords?: string[];
+	articleSection?: string;
 }
 
 export function ComparisonJsonLd({
@@ -127,12 +129,16 @@ export function ComparisonJsonLd({
 	modifiedTime,
 	url,
 	image,
+	keywords,
+	articleSection,
 }: ComparisonJsonLdProps) {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Article",
 		headline: title,
 		description,
+		...(articleSection && { articleSection }),
+		...(keywords && keywords.length > 0 && { keywords }),
 		publisher: {
 			"@type": "Organization",
 			name: COMPANY.NAME,

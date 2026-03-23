@@ -115,3 +115,9 @@ export const startAgentSession: ToolDefinition<typeof schema> = {
 	schema,
 	execute,
 };
+
+export const startAgentSessionWithPrompt: ToolDefinition<typeof schema> = {
+	name: "start_agent_session_with_prompt",
+	schema,
+	execute,
+};

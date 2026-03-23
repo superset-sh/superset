@@ -136,7 +136,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "GitHub integration",
-				values: [true, true, true],
+				values: [null, true, true],
 			},
 			{
 				label: "Cloud workspaces",

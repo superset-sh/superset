@@ -1,4 +1,4 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import { workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -6,6 +6,8 @@ import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import { restartDaemon as restartDaemonShared } from "main/lib/terminal";
 import {
+	isTerminalAttachCanceledError,
+	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
@@ -14,9 +16,8 @@ import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
-import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveTerminalThemeType } from "./theme-type";
-import { resolveCwd } from "./utils";
+import { getWorkspaceTerminalContext, resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 const logger = console;
@@ -60,6 +61,8 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: SAFE_ID,
+					requestId: z.string().min(1).optional(),
+					joinPending: z.boolean().optional(),
 					tabId: z.string(),
 					workspaceId: SAFE_ID,
 					cols: z.number().optional(),
@@ -76,6 +79,8 @@ export const createTerminalRouter = () => {
 				const startedAt = Date.now();
 				const {
 					paneId,
+					requestId,
+					joinPending,
 					tabId,
 					workspaceId,
 					cols,
@@ -87,14 +92,8 @@ export const createTerminalRouter = () => {
 					themeType,
 				} = input;
 
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, workspaceId))
-					.get();
-				const workspacePath = workspace
-					? (getWorkspacePath(workspace) ?? undefined)
-					: undefined;
+				const { workspace, workspacePath, rootPath } =
+					getWorkspaceTerminalContext(workspaceId);
 				if (workspace?.type === "worktree") {
 					assertWorkspaceUsable(workspaceId, workspacePath);
 				}
@@ -112,13 +111,6 @@ export const createTerminalRouter = () => {
 					});
 				}
 
-				const project = workspace
-					? localDb
-							.select()
-							.from(projects)
-							.where(eq(projects.id, workspace.projectId))
-							.get()
-					: undefined;
 				const resolvedThemeType = resolveTerminalThemeType({
 					requestedThemeType: themeType,
 					persistedThemeState: appState.data.themeState,
@@ -127,11 +119,13 @@ export const createTerminalRouter = () => {
 				try {
 					const result = await terminal.createOrAttach({
 						paneId,
+						requestId,
+						joinPending,
 						tabId,
 						workspaceId,
 						workspaceName: workspace?.name,
 						workspacePath,
-						rootPath: project?.mainRepoPath,
+						rootPath,
 						cwd,
 						cols,
 						rows,
@@ -167,6 +161,7 @@ export const createTerminalRouter = () => {
 						error instanceof TerminalKilledError ||
 						(error instanceof Error &&
 							error.message === TERMINAL_SESSION_KILLED_MESSAGE);
+					const isAttachCanceled = isTerminalAttachCanceledError(error);
 					if (isKilledError) {
 						if (DEBUG_TERMINAL) {
 							console.warn(
@@ -182,6 +177,12 @@ export const createTerminalRouter = () => {
 							message: TERMINAL_SESSION_KILLED_MESSAGE,
 						});
 					}
+					if (isAttachCanceled) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: TERMINAL_ATTACH_CANCELED_MESSAGE,
+						});
+					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
 							callId,
@@ -193,6 +194,18 @@ export const createTerminalRouter = () => {
 					console.error("[Terminal Router] createOrAttach ERROR:", error);
 					throw error;
 				}
+			}),
+
+		cancelCreateOrAttach: publicProcedure
+			.input(
+				z.object({
+					paneId: SAFE_ID,
+					requestId: z.string().min(1),
+				}),
+			)
+			.mutation(({ input }) => {
+				terminal.cancelCreateOrAttach(input);
+				return { success: true };
 			}),
 
 		write: publicProcedure

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { GridCross } from "@/app/blog/components/GridCross";
-import { type ComparisonPage, formatCompareDate } from "@/lib/compare-utils";
+import {
+	type ComparisonPage,
+	formatCompareDate,
+	getComparisonPageTypeLabel,
+} from "@/lib/compare-utils";
 
 interface CompareLayoutProps {
 	page: ComparisonPage;
@@ -12,6 +16,7 @@ interface CompareLayoutProps {
 
 export function CompareLayout({ page, children }: CompareLayoutProps) {
 	const formattedDate = formatCompareDate(page.lastUpdated ?? page.date);
+	const pageTypeLabel = getComparisonPageTypeLabel(page.type);
 
 	return (
 		<article className="relative min-h-screen">
@@ -34,7 +39,7 @@ export function CompareLayout({ page, children }: CompareLayoutProps) {
 
 					<div className="text-center">
 						<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-							Comparison
+							{pageTypeLabel}
 						</span>
 
 						<h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-foreground mt-4 mb-4">

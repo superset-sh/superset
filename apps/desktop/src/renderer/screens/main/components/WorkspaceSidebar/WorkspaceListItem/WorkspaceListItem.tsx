@@ -5,6 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -103,19 +104,31 @@ export function WorkspaceListItem({
 		fuzzy: true,
 	});
 
-	const itemRef = useRef<HTMLElement | null>(null);
-	useEffect(() => {
-		if (isActive) {
-			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-		}
-	}, [isActive]);
-
 	const { isDragging, drag, drop } = useWorkspaceDnD({
 		id,
 		projectId,
 		sectionId,
 		index,
 	});
+
+	const expandedItemRef = useRef<HTMLDivElement>(null);
+	const collapsedItemRef = useRef<HTMLButtonElement>(null);
+
+	useEffect(() => {
+		if (isCollapsed) {
+			drag(drop(collapsedItemRef));
+			return;
+		}
+		drag(drop(expandedItemRef));
+	}, [drag, drop, isCollapsed]);
+
+	useEffect(() => {
+		if (!isActive) return;
+		const activeNode = isCollapsed
+			? collapsedItemRef.current
+			: expandedItemRef.current;
+		activeNode?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+	}, [isActive, isCollapsed]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -216,14 +229,11 @@ export function WorkspaceListItem({
 		if (worktreePath) openInFinder.mutate(worktreePath);
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopyPath = async () => {
 		if (!worktreePath) return;
-		try {
-			await navigator.clipboard.writeText(worktreePath);
-			toast.success("Path copied to clipboard");
-		} catch {
-			toast.error("Failed to copy path");
-		}
+		await copyToClipboard(worktreePath);
+		toast.success("Path copied to clipboard");
 	};
 
 	const pr = githubStatus?.pr;
@@ -245,7 +255,7 @@ export function WorkspaceListItem({
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
-				itemRef={itemRef}
+				itemRef={collapsedItemRef}
 				showDeleteDialog={showDeleteDialog}
 				setShowDeleteDialog={setShowDeleteDialog}
 				onMouseEnter={handleMouseEnter}
@@ -261,10 +271,7 @@ export function WorkspaceListItem({
 		<div
 			role="button"
 			tabIndex={0}
-			ref={(node) => {
-				itemRef.current = node;
-				drag(drop(node));
-			}}
+			ref={expandedItemRef}
 			onClick={handleClick}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {

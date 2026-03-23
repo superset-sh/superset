@@ -2,9 +2,10 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 interface PendingWorkspace {
+	id: string;
 	projectId: string;
 	name: string;
-	isGeneratingBranchName: boolean;
+	status: "preparing" | "generating-branch" | "creating";
 }
 
 interface NewWorkspaceModalState {
@@ -14,7 +15,11 @@ interface NewWorkspaceModalState {
 	openModal: (projectId?: string) => void;
 	closeModal: () => void;
 	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
-	setIsGeneratingBranchName: (isGenerating: boolean) => void;
+	clearPendingWorkspace: (id: string) => void;
+	setPendingWorkspaceStatus: (
+		id: string,
+		status: PendingWorkspace["status"],
+	) => void;
 }
 
 export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
@@ -36,15 +41,24 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 				set({ pendingWorkspace: workspace });
 			},
 
-			setIsGeneratingBranchName: (isGenerating: boolean) => {
+			clearPendingWorkspace: (id) => {
 				set((state) => {
-					if (!state.pendingWorkspace) {
+					if (state.pendingWorkspace?.id !== id) {
+						return {};
+					}
+					return { pendingWorkspace: null };
+				});
+			},
+
+			setPendingWorkspaceStatus: (id, status) => {
+				set((state) => {
+					if (state.pendingWorkspace?.id !== id) {
 						return {};
 					}
 					return {
 						pendingWorkspace: {
 							...state.pendingWorkspace,
-							isGeneratingBranchName: isGenerating,
+							status,
 						},
 					};
 				});
@@ -66,5 +80,7 @@ export const usePendingWorkspace = () =>
 	useNewWorkspaceModalStore((state) => state.pendingWorkspace);
 export const useSetPendingWorkspace = () =>
 	useNewWorkspaceModalStore((state) => state.setPendingWorkspace);
-export const useSetIsGeneratingBranchName = () =>
-	useNewWorkspaceModalStore((state) => state.setIsGeneratingBranchName);
+export const useClearPendingWorkspace = () =>
+	useNewWorkspaceModalStore((state) => state.clearPendingWorkspace);
+export const useSetPendingWorkspaceStatus = () =>
+	useNewWorkspaceModalStore((state) => state.setPendingWorkspaceStatus);

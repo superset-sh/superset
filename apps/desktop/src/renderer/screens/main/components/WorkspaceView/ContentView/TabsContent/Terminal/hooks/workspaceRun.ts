@@ -2,6 +2,7 @@ import type { MutableRefObject } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getPaneWorkspaceRun,
+	isPaneWorkspaceRunLaunchPending,
 	type PaneWorkspaceRun,
 	setPaneWorkspaceRunState,
 	type WorkspaceRunState,
@@ -13,12 +14,13 @@ interface RecoverWorkspaceRunPaneOptions {
 	isNewWorkspaceRun: boolean;
 	xterm: { writeln: (data: string) => void };
 	shouldAbort: () => boolean;
-	startAttach: () => void;
+	startAttach: (commandToRunAfterAttach?: string) => void;
 	done: () => void;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	isStreamReadyRef: MutableRefObject<boolean>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
+	restartCommand?: string;
 }
 
 export {
@@ -33,12 +35,21 @@ export function resolveWorkspaceRunAttachMode(
 ): {
 	workspaceRun: PaneWorkspaceRun | null;
 	isNewWorkspaceRun: boolean;
+	restartCommand?: string;
 } {
 	const workspaceRun = getPaneWorkspaceRun(paneId);
+	const hasRestartCommand =
+		workspaceRun?.state === "running" && Boolean(defaultRestartCommand);
+	const isNewWorkspaceRun =
+		hasRestartCommand && isPaneWorkspaceRunLaunchPending(paneId);
+
 	return {
 		workspaceRun,
-		isNewWorkspaceRun:
-			workspaceRun?.state === "running" && Boolean(defaultRestartCommand),
+		isNewWorkspaceRun,
+		restartCommand:
+			hasRestartCommand && !isNewWorkspaceRun
+				? defaultRestartCommand
+				: undefined,
 	};
 }
 
@@ -54,6 +65,7 @@ export async function recoverWorkspaceRunPane({
 	wasKilledByUserRef,
 	isStreamReadyRef,
 	setExitStatus,
+	restartCommand,
 }: RecoverWorkspaceRunPaneOptions): Promise<boolean> {
 	if (!workspaceRun || isNewWorkspaceRun) {
 		return false;
@@ -75,7 +87,27 @@ export async function recoverWorkspaceRunPane({
 	};
 
 	if (workspaceRun.state !== "running") {
-		return showExitedState(workspaceRun.state);
+		try {
+			const existingSession =
+				await electronTrpcClient.terminal.getSession.query(paneId);
+			if (shouldAbort()) return true;
+
+			if (existingSession?.isAlive) {
+				startAttach();
+				return true;
+			}
+
+			return showExitedState(workspaceRun.state);
+		} catch (error) {
+			if (shouldAbort()) return true;
+
+			console.warn(
+				`[workspace-run] Failed to inspect session for pane ${paneId}:`,
+				error,
+			);
+			startAttach();
+			return true;
+		}
 	}
 
 	try {
@@ -86,6 +118,12 @@ export async function recoverWorkspaceRunPane({
 		if (existingSession?.isAlive) {
 			setPaneWorkspaceRunState(paneId, "running");
 			startAttach();
+			return true;
+		}
+
+		if (restartCommand) {
+			setPaneWorkspaceRunState(paneId, "running");
+			startAttach(restartCommand);
 			return true;
 		}
 

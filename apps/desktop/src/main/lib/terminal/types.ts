@@ -93,6 +93,10 @@ export interface CreateSessionParams {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
+	/** Stable identifier for the current attach attempt. */
+	requestId?: string;
+	/** Join an in-flight attach for this pane instead of superseding it. */
+	joinPending?: boolean;
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
