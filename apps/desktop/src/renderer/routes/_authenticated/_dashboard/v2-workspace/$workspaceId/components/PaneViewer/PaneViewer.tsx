@@ -262,6 +262,7 @@ export function PaneViewer({
 			className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
 			data-workspace-id={workspaceId}
 		>
+			{showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR ? <PresetsBar /> : null}
 			<PaneWorkspace
 				className="rounded-none border-0"
 				onAddRoot={addTerminalRoot}
@@ -294,9 +295,6 @@ export function PaneViewer({
 						</DropdownMenuCheckboxItem>
 					</>
 				)}
-				renderBelowRootTabs={() =>
-					(showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR) ? <PresetsBar /> : null
-				}
 				registry={paneRegistry}
 				store={store}
 			/>

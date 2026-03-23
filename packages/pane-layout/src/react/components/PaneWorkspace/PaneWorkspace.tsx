@@ -9,7 +9,6 @@ export function PaneWorkspace<TPaneData>({
 	registry,
 	className,
 	getRootTitle,
-	renderBelowRootTabs,
 	onAddRoot,
 	renderAddRootMenu,
 	onAddPane,
@@ -40,7 +39,6 @@ export function PaneWorkspace<TPaneData>({
 				roots={roots}
 				store={store}
 			/>
-			{renderBelowRootTabs?.()}
 			<PaneRootView
 				registry={registry}
 				onAddPane={onAddPane}
