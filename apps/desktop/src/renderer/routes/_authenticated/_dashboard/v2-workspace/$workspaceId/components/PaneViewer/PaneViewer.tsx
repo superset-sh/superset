@@ -1,13 +1,12 @@
-import { Button } from "@superset/ui/button";
-import { DropdownMenuItem } from "@superset/ui/dropdown-menu";
 import {
 	PaneWorkspace,
 	createPaneRoot,
 	createPaneWorkspaceStore,
-	type PaneDefinition,
-	type PaneRegistry,
 	usePaneWorkspaceStore,
+	type PaneRegistry,
 } from "@superset/pane-layout";
+import { Button } from "@superset/ui/button";
+import { DropdownMenuItem } from "@superset/ui/dropdown-menu";
 import {
 	Bug,
 	FileCode2,
@@ -18,11 +17,14 @@ import {
 	SquareSplitVertical,
 	TerminalSquare,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { BsTerminalPlus } from "react-icons/bs";
+import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import {
 	createBrowserPane,
 	createChatPane,
-	createDevtoolsPane,
 	createFilePane,
 	createPaneViewerState,
 	createTerminalPane,
@@ -86,8 +88,6 @@ const paneRegistry: PaneRegistry<PaneViewerData> = {
 						<dd className="break-all">{data.cwd}</dd>
 						<dt className="text-muted-foreground">Launch mode</dt>
 						<dd>{data.launchMode}</dd>
-						<dt className="text-muted-foreground">Persistent</dt>
-						<dd>{data.isPersistent ? "yes" : "no"}</dd>
 					</dl>
 				</div>
 			);
@@ -186,7 +186,9 @@ function PaneViewerToolbar({
 		: null;
 	const activePane =
 		activeGroup?.activePaneId != null
-			? activeGroup.panes.find((pane) => pane.id === activeGroup.activePaneId) ?? null
+			? (activeGroup.panes.find(
+					(pane) => pane.id === activeGroup.activePaneId,
+				) ?? null)
 			: null;
 
 	const nextId = (prefix: string) => {
@@ -220,7 +222,6 @@ function PaneViewerToolbar({
 									mode: "editor",
 									hasChanges: sequenceRef.current % 2 === 0,
 									language: "tsx",
-									pinned: false,
 								}),
 								replaceUnpinned: true,
 								select: true,
@@ -245,7 +246,6 @@ function PaneViewerToolbar({
 									sessionKey: `${workspaceBranch}:terminal-${sequenceRef.current}`,
 									cwd: `/workspace/${workspaceName}`,
 									launchMode: "workspace-shell",
-									isPersistent: true,
 								}),
 								select: true,
 							}),
@@ -293,7 +293,6 @@ function PaneViewerToolbar({
 									sessionKey: `${workspaceBranch}:split-${sequenceRef.current}`,
 									cwd: `/workspace/${workspaceName}`,
 									launchMode: "workspace-shell",
-									isPersistent: true,
 								}),
 							}),
 						)
@@ -372,6 +371,66 @@ export function PaneViewer({
 		}),
 	);
 
+	const addTerminalRoot = useCallback(() => {
+		store.getState().addRoot(
+			createPaneRoot({
+				id: `root-${crypto.randomUUID()}`,
+				titleOverride: "Terminal",
+				groupId: `group-${crypto.randomUUID()}`,
+				panes: [
+					createTerminalPane({
+						id: `pane-root-${crypto.randomUUID()}`,
+						title: "Terminal",
+						sessionKey: `${workspaceBranch}:root-${crypto.randomUUID()}`,
+						cwd: `/workspace/${workspaceName}`,
+						launchMode: "workspace-shell",
+					}),
+				],
+			}),
+		);
+	}, [store, workspaceBranch, workspaceName]);
+
+	const addChatRoot = useCallback(() => {
+		store.getState().addRoot(
+			createPaneRoot({
+				id: `root-${crypto.randomUUID()}`,
+				titleOverride: "Chat",
+				groupId: `group-${crypto.randomUUID()}`,
+				panes: [
+					createChatPane({
+						id: `pane-root-${crypto.randomUUID()}`,
+						title: "Chat",
+						sessionId: null,
+						model: "gpt-5.4",
+						hasDraft: false,
+					}),
+				],
+			}),
+		);
+	}, [store]);
+
+	const addBrowserRoot = useCallback(() => {
+		store.getState().addRoot(
+			createPaneRoot({
+				id: `root-${crypto.randomUUID()}`,
+				titleOverride: "Browser",
+				groupId: `group-${crypto.randomUUID()}`,
+				panes: [
+					createBrowserPane({
+						id: `pane-root-${crypto.randomUUID()}`,
+						title: "Browser",
+						url: "http://localhost:3000",
+						mode: "preview",
+					}),
+				],
+			}),
+		);
+	}, [store]);
+
+	useAppHotkey("NEW_GROUP", addTerminalRoot, undefined, [addTerminalRoot]);
+	useAppHotkey("NEW_CHAT", addChatRoot, undefined, [addChatRoot]);
+	useAppHotkey("NEW_BROWSER", addBrowserRoot, undefined, [addBrowserRoot]);
+
 	return (
 		<div
 			className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
@@ -384,94 +443,23 @@ export function PaneViewer({
 			/>
 			<PaneWorkspace
 				className="rounded-none border-0"
-				onAddRoot={({ store }) =>
-					store.getState().addRoot(
-						createPaneRoot({
-							id: `root-${crypto.randomUUID()}`,
-							titleOverride: "New root",
-							groupId: `group-${crypto.randomUUID()}`,
-							panes: [
-								createChatPane({
-									id: `pane-root-${crypto.randomUUID()}`,
-									title: "Scratchpad",
-									sessionId: null,
-									model: "gpt-5.4",
-									hasDraft: false,
-								}),
-							],
-						}),
-					)
-				}
-				renderAddRootMenu={({ store }) => (
+				onAddRoot={addTerminalRoot}
+				renderAddRootMenu={() => (
 					<>
-						<DropdownMenuItem
-							onClick={() =>
-								store.getState().addRoot(
-									createPaneRoot({
-										id: `root-${crypto.randomUUID()}`,
-										titleOverride: "Terminal",
-										groupId: `group-${crypto.randomUUID()}`,
-										panes: [
-											createTerminalPane({
-												id: `pane-root-${crypto.randomUUID()}`,
-												title: "Terminal",
-												sessionKey: `${workspaceBranch}:root-${crypto.randomUUID()}`,
-												cwd: `/workspace/${workspaceName}`,
-												launchMode: "workspace-shell",
-												isPersistent: true,
-											}),
-										],
-									}),
-								)
-							}
-						>
-							<TerminalSquare className="size-4" />
+						<DropdownMenuItem className="gap-2" onClick={addTerminalRoot}>
+							<BsTerminalPlus className="size-4" />
 							<span>Terminal</span>
+							<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 						</DropdownMenuItem>
-						<DropdownMenuItem
-							onClick={() =>
-								store.getState().addRoot(
-									createPaneRoot({
-										id: `root-${crypto.randomUUID()}`,
-										titleOverride: "Chat",
-										groupId: `group-${crypto.randomUUID()}`,
-										panes: [
-											createChatPane({
-												id: `pane-root-${crypto.randomUUID()}`,
-												title: "Chat",
-												sessionId: null,
-												model: "gpt-5.4",
-												hasDraft: false,
-											}),
-										],
-									}),
-								)
-							}
-						>
-							<MessageSquare className="size-4" />
+						<DropdownMenuItem className="gap-2" onClick={addChatRoot}>
+							<TbMessageCirclePlus className="size-4" />
 							<span>Chat</span>
+							<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
 						</DropdownMenuItem>
-						<DropdownMenuItem
-							onClick={() =>
-								store.getState().addRoot(
-									createPaneRoot({
-										id: `root-${crypto.randomUUID()}`,
-										titleOverride: "Browser",
-										groupId: `group-${crypto.randomUUID()}`,
-										panes: [
-											createBrowserPane({
-												id: `pane-root-${crypto.randomUUID()}`,
-												title: "Browser",
-												url: "http://localhost:3000",
-												mode: "preview",
-											}),
-										],
-									}),
-								)
-							}
-						>
-							<Globe className="size-4" />
+						<DropdownMenuItem className="gap-2" onClick={addBrowserRoot}>
+							<TbWorld className="size-4" />
 							<span>Browser</span>
+							<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 						</DropdownMenuItem>
 					</>
 				)}

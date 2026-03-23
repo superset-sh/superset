@@ -15,6 +15,7 @@ import {
 	useState,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import { cn } from "@superset/ui/lib/utils";
 import type { PaneWorkspaceStore } from "../../../../../core/store";
 import type { PaneRootState } from "../../../../../types";
 import { PaneRootTabItem } from "./components/PaneRootTabItem";
@@ -47,24 +48,22 @@ function AddRootButtonCell<TPaneData>({
 	}) => ReactNode;
 }) {
 	const button = (
-		<div className="flex items-center shrink-0">
-			<Button
-				className="size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
-				onClick={renderAddRootMenu ? undefined : () => onAddRoot?.({ store })}
-				size="icon"
-				type="button"
-				variant="ghost"
-			>
-				<PlusIcon className="size-3.5" />
-			</Button>
-		</div>
+		<Button
+			className="h-full w-full rounded-none border-0 bg-transparent px-0 text-muted-foreground shadow-none hover:bg-tertiary/20 hover:text-foreground"
+			onClick={renderAddRootMenu ? undefined : () => onAddRoot?.({ store })}
+			size="sm"
+			type="button"
+			variant="ghost"
+		>
+			<PlusIcon className="size-3.5" />
+		</Button>
 	);
 
 	if (renderAddRootMenu) {
 		return (
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>{button}</DropdownMenuTrigger>
-				<DropdownMenuContent align="start" className="w-56">
+				<DropdownMenuContent align="end" className="w-56">
 					{renderAddRootMenu({ store })}
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -129,11 +128,23 @@ export function PaneRootTabs<TPaneData>({
 	}
 
 	return (
-		<div className="flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
+		<div
+			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+		>
 			<div
 				ref={scrollContainerRef}
-				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
-				style={{ scrollbarWidth: "none" }}
+				className={cn(
+					"flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
+					hasHorizontalOverflow
+						? [
+								"[scrollbar-width:none]",
+								"[&::-webkit-scrollbar]:h-0",
+								"group-hover/root-tabs:[scrollbar-width:thin]",
+								"group-hover/root-tabs:[&::-webkit-scrollbar]:h-2",
+								"group-hover/root-tabs:[&::-webkit-scrollbar-thumb]:border-[2px]",
+						  ].join(" ")
+						: "hide-scrollbar",
+				)}
 			>
 				<div ref={rootsTrackRef} className="flex h-full items-stretch">
 					{roots.map((root) => (
@@ -151,8 +162,8 @@ export function PaneRootTabs<TPaneData>({
 							/>
 						</div>
 					))}
-					{!hasHorizontalOverflow && (onAddRoot || renderAddRootMenu) ? (
-						<div className="flex h-full shrink-0 items-center px-1">
+					{(onAddRoot || renderAddRootMenu) && !hasHorizontalOverflow ? (
+						<div className="flex h-full w-10 shrink-0 items-stretch">
 							<AddRootButtonCell
 								onAddRoot={onAddRoot}
 								renderAddRootMenu={renderAddRootMenu}
@@ -162,8 +173,8 @@ export function PaneRootTabs<TPaneData>({
 					) : null}
 				</div>
 			</div>
-			{hasHorizontalOverflow && (onAddRoot || renderAddRootMenu) ? (
-				<div className="flex h-full shrink-0 items-center bg-background/95 pr-1">
+			{(onAddRoot || renderAddRootMenu) && hasHorizontalOverflow ? (
+				<div className="flex h-full w-10 shrink-0 items-stretch bg-background">
 					<AddRootButtonCell
 						onAddRoot={onAddRoot}
 						renderAddRootMenu={renderAddRootMenu}

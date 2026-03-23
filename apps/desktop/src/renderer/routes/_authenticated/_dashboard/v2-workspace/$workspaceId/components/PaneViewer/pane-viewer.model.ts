@@ -20,7 +20,6 @@ export interface TerminalPaneData {
 	cwd: string;
 	launchMode: "workspace-shell" | "command" | "agent";
 	command?: string;
-	isPersistent: boolean;
 }
 
 export interface ChatPaneData {
@@ -83,7 +82,6 @@ export function createTerminalPane({
 	sessionKey,
 	cwd,
 	launchMode,
-	isPersistent,
 	command,
 	pinned = true,
 }: {
@@ -92,7 +90,6 @@ export function createTerminalPane({
 	sessionKey: string;
 	cwd: string;
 	launchMode: TerminalPaneData["launchMode"];
-	isPersistent: boolean;
 	command?: string;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
@@ -106,7 +103,6 @@ export function createTerminalPane({
 			cwd,
 			launchMode,
 			command,
-			isPersistent,
 		},
 	};
 }
@@ -238,7 +234,6 @@ export function createPaneViewerState({
 		sessionKey: `${workspaceBranch}:main`,
 		cwd: `/workspace/${workspaceName}`,
 		launchMode: "workspace-shell",
-		isPersistent: true,
 	});
 
 	const devtoolsPane = createDevtoolsPane({
