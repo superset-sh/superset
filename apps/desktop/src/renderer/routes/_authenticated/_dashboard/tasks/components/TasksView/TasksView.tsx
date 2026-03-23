@@ -7,7 +7,10 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
 import { LinearCTA } from "./components/LinearCTA";
-import { OnedevTasksContent } from "./components/OnedevTasksContent";
+import {
+	CreateOnedevIssueDialog,
+	OnedevTasksContent,
+} from "./components/OnedevTasksContent";
 import { TableContent } from "./components/TableContent";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
 import type { TaskWithStatus } from "./hooks/useTasksData";
@@ -142,6 +145,12 @@ export function TasksView({
 
 	const showLinearCTA = !isCheckingLinear && !isLinearConnected;
 
+	const { data: onedevProjectPaths } =
+		electronTrpc.workspaces.getOnedevProjectPaths.useQuery(undefined, {
+			enabled: isOnedevConfigured,
+		});
+	const [isCreateOnedevOpen, setIsCreateOnedevOpen] = useState(false);
+
 	// OneDev takes priority over Linear when configured
 	if (isOnedevConfigured) {
 		return (
@@ -157,8 +166,14 @@ export function TasksView({
 					onClearSelection={handleClearSelection}
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
+					onNewTask={() => setIsCreateOnedevOpen(true)}
 				/>
 				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} />
+				<CreateOnedevIssueDialog
+					open={isCreateOnedevOpen}
+					onOpenChange={setIsCreateOnedevOpen}
+					projectPaths={onedevProjectPaths ?? []}
+				/>
 			</div>
 		);
 	}

@@ -209,7 +209,10 @@ const ISSUE_STATES = ["Open", "In Progress", "In Review", "Closed"] as const;
 function IssueStateSelector({
 	issueId,
 	currentState,
-}: { issueId: number; currentState: string }) {
+}: {
+	issueId: number;
+	currentState: string;
+}) {
 	const utils = electronTrpc.useUtils();
 	const updateState = electronTrpc.settings.updateOnedevIssueState.useMutation({
 		onSuccess: () => {
@@ -250,7 +253,9 @@ function IssueStateSelector({
 							<IssueStateIcon state={state} />
 							{state}
 							{state === currentState && (
-								<span className="ml-auto text-xs text-muted-foreground">current</span>
+								<span className="ml-auto text-xs text-muted-foreground">
+									current
+								</span>
 							)}
 						</DropdownMenuItem>
 					))}
@@ -294,7 +299,7 @@ function IssueFieldSelector({
 						<span className="text-sm">
 							{updateFields.isPending
 								? "Updating..."
-								: currentValue ?? "Not set"}
+								: (currentValue ?? "Not set")}
 						</span>
 						<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
 					</Button>
@@ -352,6 +357,8 @@ function OpenInWorkspaceSection({
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const updateIssueState =
+		electronTrpc.settings.updateOnedevIssueState.useMutation();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
@@ -487,6 +494,11 @@ When done: push branch, create PR via OneDev API, set issue to "In Progress" or 
 			toast.success(
 				result.wasExisting ? "Opened existing workspace" : "Workspace created",
 			);
+
+			// Auto-set issue to "In Progress" when starting work
+			if (state === "Open") {
+				updateIssueState.mutate({ issueId, state: "In Progress" });
+			}
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to create workspace",

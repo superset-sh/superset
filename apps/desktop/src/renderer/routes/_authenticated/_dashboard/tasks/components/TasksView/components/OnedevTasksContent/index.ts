@@ -1,1 +1,1 @@
-export { OnedevTasksContent } from "./OnedevTasksContent";
+export { CreateOnedevIssueDialog, OnedevTasksContent } from "./OnedevTasksContent";

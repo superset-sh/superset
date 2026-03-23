@@ -33,6 +33,7 @@ interface TasksTopBarProps {
 	onClearSelection?: () => void;
 	viewMode: ViewMode;
 	onViewModeChange: (mode: ViewMode) => void;
+	onNewTask?: () => void;
 }
 
 const TABS = [
@@ -64,6 +65,7 @@ export function TasksTopBar({
 	onClearSelection,
 	viewMode,
 	onViewModeChange,
+	onNewTask,
 }: TasksTopBarProps) {
 	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +145,9 @@ export function TasksTopBar({
 						variant="outline"
 						size="sm"
 						className="h-8 gap-1.5 px-3"
-						onClick={() => setIsCreateTaskOpen(true)}
+						onClick={() =>
+							onNewTask ? onNewTask() : setIsCreateTaskOpen(true)
+						}
 					>
 						<HiOutlinePencilSquare className="size-4" />
 						<span>New task</span>

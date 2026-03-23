@@ -1,7 +1,17 @@
 import { Button } from "@superset/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
+import { Input } from "@superset/ui/input";
 import { ScrollArea, ScrollBar } from "@superset/ui/scroll-area";
+import { toast } from "@superset/ui/sonner";
+import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { VscIssues } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
@@ -19,10 +29,23 @@ interface OnedevIssue {
 
 const KANBAN_COLUMNS = ["Open", "In Progress", "In Review", "Closed"] as const;
 
+function stateColor(state: string): string {
+	return state === "Open"
+		? "text-green-500"
+		: state === "In Progress"
+			? "text-blue-500"
+			: state === "In Review"
+				? "text-yellow-500"
+				: "text-muted-foreground";
+}
+
 export function OnedevTasksContent({
 	searchQuery,
 	viewMode,
-}: { searchQuery: string; viewMode: "table" | "board" }) {
+}: {
+	searchQuery: string;
+	viewMode: "table" | "board";
+}) {
 	const navigate = useNavigate();
 	const { data: onedevConfig } =
 		electronTrpc.settings.getOnedevConfig.useQuery();
@@ -72,7 +95,7 @@ export function OnedevTasksContent({
 	}
 
 	return (
-		<div className="flex-1 overflow-hidden">
+		<div className="flex-1 overflow-hidden flex flex-col">
 			{onedevProjectPaths.map((path) => (
 				<OnedevProjectView
 					key={path}
@@ -94,11 +117,14 @@ function OnedevProjectView({
 	searchQuery: string;
 	viewMode: "table" | "board";
 }) {
-	// Fetch ALL issues (no state filter) for both views, auto-refresh every 30s
+	const utils = electronTrpc.useUtils();
 	const { data, isLoading } = electronTrpc.settings.getOnedevIssues.useQuery(
 		{ projectPath },
 		{ refetchInterval: 30000 },
 	);
+	const updateState = electronTrpc.settings.updateOnedevIssueState.useMutation({
+		onSuccess: () => utils.settings.getOnedevIssues.invalidate(),
+	});
 
 	const allIssues = data?.issues ?? [];
 	const projectKey = data?.projectKey ?? projectPath;
@@ -131,6 +157,9 @@ function OnedevProjectView({
 				issues={filteredIssues}
 				projectKey={projectKey}
 				projectPath={projectPath}
+				onStateChange={(issueId, newState) =>
+					updateState.mutate({ issueId, state: newState })
+				}
 			/>
 		);
 	}
@@ -148,11 +177,15 @@ function KanbanView({
 	issues,
 	projectKey,
 	projectPath,
+	onStateChange,
 }: {
 	issues: OnedevIssue[];
 	projectKey: string;
 	projectPath: string;
+	onStateChange: (issueId: number, newState: string) => void;
 }) {
+	const [draggedIssue, setDraggedIssue] = useState<OnedevIssue | null>(null);
+
 	const issuesByState = useMemo(() => {
 		const map: Record<string, OnedevIssue[]> = {};
 		for (const col of KANBAN_COLUMNS) {
@@ -180,6 +213,14 @@ function KanbanView({
 						issues={issuesByState[state] ?? []}
 						projectKey={projectKey}
 						projectPath={projectPath}
+						draggedIssue={draggedIssue}
+						onDragStart={setDraggedIssue}
+						onDrop={(targetState) => {
+							if (draggedIssue && draggedIssue.state !== targetState) {
+								onStateChange(draggedIssue.id, targetState);
+							}
+							setDraggedIssue(null);
+						}}
 					/>
 				))}
 			</div>
@@ -193,64 +234,81 @@ function KanbanColumn({
 	issues,
 	projectKey,
 	projectPath,
+	draggedIssue,
+	onDragStart,
+	onDrop,
 }: {
 	state: string;
 	issues: OnedevIssue[];
 	projectKey: string;
 	projectPath: string;
+	draggedIssue: OnedevIssue | null;
+	onDragStart: (issue: OnedevIssue) => void;
+	onDrop: (targetState: string) => void;
 }) {
 	const navigate = useNavigate();
-
-	const stateColor =
-		state === "Open"
-			? "text-green-500"
-			: state === "In Progress"
-				? "text-blue-500"
-				: state === "In Review"
-					? "text-yellow-500"
-					: "text-muted-foreground";
+	const [isDragOver, setIsDragOver] = useState(false);
 
 	return (
-		<div className="w-72 shrink-0 flex flex-col">
+		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target
+		<div
+			className={`w-72 shrink-0 flex flex-col rounded-lg transition-colors ${
+				isDragOver ? "bg-accent/30" : ""
+			}`}
+			onDragOver={(e) => {
+				e.preventDefault();
+				setIsDragOver(true);
+			}}
+			onDragLeave={() => setIsDragOver(false)}
+			onDrop={(e) => {
+				e.preventDefault();
+				setIsDragOver(false);
+				onDrop(state);
+			}}
+		>
 			<div className="flex items-center gap-2 px-2 py-2 mb-2">
-				<VscIssues className={`size-4 ${stateColor}`} />
+				<VscIssues className={`size-4 ${stateColor(state)}`} />
 				<span className="text-sm font-medium">{state}</span>
 				<span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 					{issues.length}
 				</span>
 			</div>
-			<div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+			<div className="flex flex-col gap-2 flex-1 overflow-y-auto px-1">
 				{issues.map((issue) => {
 					const slug = `${projectKey.toLowerCase()}-${issue.number}`;
 					return (
-						<button
+						// biome-ignore lint/a11y/noStaticElementInteractions: draggable card
+						<div
 							key={issue.id}
-							type="button"
-							className="text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-							onClick={() =>
-								navigate({
-									to: "/tasks/onedev/$projectPath/$issueNumber",
-									params: {
-										projectPath: encodeURIComponent(projectPath),
-										issueNumber: String(issue.number),
-									},
-								})
-							}
+							draggable
+							onDragStart={() => onDragStart(issue)}
+							className={`text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing ${
+								draggedIssue?.id === issue.id ? "opacity-50" : ""
+							}`}
 						>
-							<div className="flex items-center gap-2 mb-1">
-								<span className="text-xs text-muted-foreground tabular-nums">
-									{slug}
-								</span>
-							</div>
-							<p className="text-sm font-medium line-clamp-2">
-								{issue.title}
-							</p>
-							{issue.commentCount > 0 && (
-								<span className="text-xs text-muted-foreground mt-1 inline-block">
-									{issue.commentCount} comments
-								</span>
-							)}
-						</button>
+							<button
+								type="button"
+								className="w-full text-left"
+								onClick={() =>
+									navigate({
+										to: "/tasks/onedev/$projectPath/$issueNumber",
+										params: {
+											projectPath: encodeURIComponent(projectPath),
+											issueNumber: String(issue.number),
+										},
+									})
+								}
+							>
+								<div className="flex items-center gap-2 mb-1">
+									<span className="text-xs text-muted-foreground tabular-nums">
+										{slug}
+									</span>
+								</div>
+								<p className="text-sm font-medium line-clamp-2">
+									{issue.title}
+								</p>
+							</button>
+						</div>
 					);
 				})}
 				{issues.length === 0 && (
@@ -292,14 +350,6 @@ function ListView({
 				<div className="divide-y divide-border">
 					{issues.map((issue) => {
 						const slug = `${projectKey.toLowerCase()}-${issue.number}`;
-						const stateColor =
-							issue.state === "Open"
-								? "text-green-500"
-								: issue.state === "In Progress"
-									? "text-blue-500"
-									: issue.state === "In Review"
-										? "text-yellow-500"
-										: "text-muted-foreground";
 						const date = new Date(issue.submitDate);
 						const dateStr = date.toLocaleDateString("de-DE", {
 							day: "2-digit",
@@ -321,7 +371,9 @@ function ListView({
 									})
 								}
 							>
-								<VscIssues className={`size-4 shrink-0 ${stateColor}`} />
+								<VscIssues
+									className={`size-4 shrink-0 ${stateColor(issue.state)}`}
+								/>
 								<span className="text-xs text-muted-foreground tabular-nums shrink-0 w-20">
 									{slug}
 								</span>
@@ -338,5 +390,100 @@ function ListView({
 				</div>
 			)}
 		</div>
+	);
+}
+
+export function CreateOnedevIssueDialog({
+	open,
+	onOpenChange,
+	projectPaths,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	projectPaths: string[];
+}) {
+	const [title, setTitle] = useState("");
+	const [description, setDescription] = useState("");
+	const [selectedProject, setSelectedProject] = useState(projectPaths[0] ?? "");
+	const utils = electronTrpc.useUtils();
+	const createIssue = electronTrpc.settings.createOnedevIssue.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssues.invalidate();
+			toast.success("Issue created");
+			setTitle("");
+			setDescription("");
+			onOpenChange(false);
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>New Issue</DialogTitle>
+				</DialogHeader>
+				<div className="flex flex-col gap-3 py-2">
+					{projectPaths.length > 1 && (
+						<select
+							value={selectedProject}
+							onChange={(e) => setSelectedProject(e.target.value)}
+							className="h-8 rounded-md border bg-transparent px-2 text-sm"
+						>
+							{projectPaths.map((p) => (
+								<option key={p} value={p}>
+									{p}
+								</option>
+							))}
+						</select>
+					)}
+					<Input
+						placeholder="Issue title"
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						autoFocus
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && title.trim()) {
+								createIssue.mutate({
+									projectPath: selectedProject,
+									title: title.trim(),
+									description: description.trim() || undefined,
+								});
+							}
+						}}
+					/>
+					<Textarea
+						placeholder="Description (optional)"
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						rows={4}
+					/>
+				</div>
+				<DialogFooter>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => onOpenChange(false)}
+					>
+						Cancel
+					</Button>
+					<Button
+						size="sm"
+						disabled={!title.trim() || createIssue.isPending}
+						onClick={() =>
+							createIssue.mutate({
+								projectPath: selectedProject,
+								title: title.trim(),
+								description: description.trim() || undefined,
+							})
+						}
+					>
+						{createIssue.isPending ? "Creating..." : "Create"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }

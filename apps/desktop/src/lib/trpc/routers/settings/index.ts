@@ -816,6 +816,53 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		createOnedevIssue: publicProcedure
+			.input(
+				z.object({
+					projectPath: z.string(),
+					title: z.string(),
+					description: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) {
+					throw new Error("OneDev not configured");
+				}
+				const { createOnedevClient } = await import(
+					"../changes/utils/onedev-api"
+				);
+				const client = createOnedevClient({ url, accessToken });
+				const project = await client.getProjectWithKey(
+					input.projectPath,
+				);
+				if (!project) {
+					throw new Error(`Project ${input.projectPath} not found`);
+				}
+				const baseUrl = url.replace(/\/+$/, "");
+				const response = await fetch(`${baseUrl}/~api/issues`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						title: input.title,
+						description: input.description ?? "",
+						projectId: project.id,
+					}),
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Failed to create issue: ${response.status}`,
+					);
+				}
+				const issueId = await response.json();
+				return { issueId, projectId: project.id };
+			}),
+
 		getGitInfo: publicProcedure.query(async () => {
 			const githubUsername = await getGitHubUsername();
 			const authorName = await getGitAuthorName();
