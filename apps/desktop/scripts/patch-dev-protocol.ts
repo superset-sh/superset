@@ -186,17 +186,23 @@ export function main() {
 
 	const PROTOCOL_SCHEME = `superset-${workspaceName}`;
 	const BUNDLE_ID = `com.superset.desktop.${workspaceName}`;
-	const ELECTRON_DIST_DIR = resolve(
-		import.meta.dirname,
-		"../node_modules/electron/dist",
-	);
-	const ELECTRON_APP_PATH = resolve(ELECTRON_DIST_DIR, "Electron.app");
-	const PLIST_PATH = resolve(ELECTRON_APP_PATH, "Contents/Info.plist");
 
-	if (!existsSync(PLIST_PATH)) {
+	// Electron may be in apps/desktop/node_modules (non-hoisted) or the repo root node_modules (hoisted).
+	const candidates = [
+		resolve(import.meta.dirname, "../node_modules/electron/dist"),
+		resolve(import.meta.dirname, "../../../node_modules/electron/dist"),
+	];
+	const ELECTRON_DIST_DIR = candidates.find((dir) =>
+		existsSync(resolve(dir, "Electron.app/Contents/Info.plist")),
+	);
+
+	if (!ELECTRON_DIST_DIR) {
 		console.log("[patch-dev-protocol] Electron.app not found, skipping");
 		process.exit(0);
 	}
+
+	const ELECTRON_APP_PATH = resolve(ELECTRON_DIST_DIR, "Electron.app");
+	const PLIST_PATH = resolve(ELECTRON_APP_PATH, "Contents/Info.plist");
 
 	const DISPLAY_NAME = `Superset (${bundleDisplayWorkspaceName})`;
 
@@ -218,10 +224,7 @@ export function main() {
 		const isRenamed =
 			lstatSync(ELECTRON_APP_PATH).isSymbolicLink() &&
 			readlinkSync(ELECTRON_APP_PATH) === `${DISPLAY_NAME}.app`;
-		const electronPkgCheck = resolve(
-			import.meta.dirname,
-			"../node_modules/electron",
-		);
+		const electronPkgCheck = resolve(ELECTRON_DIST_DIR, "..");
 		const pathTxtCheck = resolve(electronPkgCheck, "path.txt");
 		let pathTxtCorrect = false;
 		try {
@@ -348,10 +351,7 @@ export function main() {
 	// Update the electron package's path.txt so electron-vite launches from the
 	// renamed .app directly (not through the Electron.app symlink). This ensures
 	// the invocation path contains the correct app name for macOS bundle resolution.
-	const electronPkgDir = resolve(
-		import.meta.dirname,
-		"../node_modules/electron",
-	);
+	const electronPkgDir = resolve(ELECTRON_DIST_DIR, "..");
 	const pathTxtPath = resolve(electronPkgDir, "path.txt");
 	const desiredPathTxt = `${DESIRED_APP_NAME}/Contents/MacOS/Electron`;
 	try {
