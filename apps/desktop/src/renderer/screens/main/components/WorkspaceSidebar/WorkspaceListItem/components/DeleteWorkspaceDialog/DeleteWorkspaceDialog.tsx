@@ -11,7 +11,7 @@ import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseWorkspace,
@@ -86,7 +86,7 @@ export function DeleteWorkspaceDialog({
 		: terminalCountData;
 	const isLoading = isLoadingGitStatus;
 
-	const handleClose = () => {
+	const handleClose = useCallback(() => {
 		onOpenChange(false);
 
 		toast.promise(closeWorkspace.mutateAsync({ id: workspaceId }), {
@@ -104,9 +104,9 @@ export function DeleteWorkspaceDialog({
 			error: (error) =>
 				error instanceof Error ? error.message : "Failed to hide",
 		});
-	};
+	}, [onOpenChange, closeWorkspace, workspaceId]);
 
-	const handleDelete = async () => {
+	const handleDelete = useCallback(async () => {
 		onOpenChange(false);
 
 		setDeleteLocalBranchSetting.mutate({
@@ -127,13 +127,57 @@ export function DeleteWorkspaceDialog({
 					force: true,
 				}),
 		});
-	};
+	}, [
+		onOpenChange,
+		setDeleteLocalBranchSetting,
+		deleteLocalBranchChecked,
+		workspaceName,
+		deleteWorkspace,
+		workspaceId,
+	]);
 
 	const canDelete = canDeleteData?.canDelete ?? true;
 	const reason = canDeleteData?.reason;
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+
+	// Handle Enter key press to trigger delete/close action
+	useEffect(() => {
+		if (!open) return;
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (
+				event.key === "Enter" &&
+				!event.shiftKey &&
+				!event.metaKey &&
+				!event.ctrlKey &&
+				!event.altKey
+			) {
+				event.preventDefault();
+
+				if (isBranch) {
+					// For branch workspaces, Enter triggers close
+					handleClose();
+				} else {
+					// For regular workspaces, Enter triggers delete if enabled
+					if (canDelete && !isLoading) {
+						handleDelete();
+					}
+				}
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [
+		open,
+		isBranch,
+		canDelete,
+		isLoading, // For branch workspaces, Enter triggers close
+		handleClose,
+		handleDelete,
+	]);
 
 	// For branch workspaces, use simplified dialog (only close option)
 	if (isBranch) {
