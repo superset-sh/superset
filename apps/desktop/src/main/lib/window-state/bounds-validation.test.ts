@@ -228,6 +228,7 @@ describe("getInitialWindowBounds", () => {
 				height: 1080,
 				center: true,
 				isMaximized: false,
+				isFullScreen: false,
 			});
 		});
 
@@ -254,6 +255,7 @@ describe("getInitialWindowBounds", () => {
 				height: 600,
 				center: false,
 				isMaximized: false,
+				isFullScreen: false,
 			});
 		});
 
@@ -284,6 +286,7 @@ describe("getInitialWindowBounds", () => {
 				height: 600,
 				center: true,
 				isMaximized: false,
+				isFullScreen: false,
 			});
 			expect(result.x).toBeUndefined();
 			expect(result.y).toBeUndefined();
@@ -385,6 +388,44 @@ describe("getInitialWindowBounds", () => {
 
 			expect(result.width).toBe(300);
 			expect(result.height).toBe(200);
+		});
+	});
+
+	describe("fullscreen state persistence", () => {
+		it("should restore isFullScreen when saved state has isFullScreen true", () => {
+			const result = getInitialWindowBounds({
+				x: 0,
+				y: 0,
+				width: 1920,
+				height: 1080,
+				isMaximized: false,
+				isFullScreen: true,
+			});
+			expect(result.isFullScreen).toBe(true);
+		});
+
+		it("should default isFullScreen to false when not present in saved state (backward compat)", () => {
+			const result = getInitialWindowBounds({
+				x: 0,
+				y: 0,
+				width: 1920,
+				height: 1080,
+				isMaximized: false,
+			});
+			expect(result.isFullScreen).toBe(false);
+		});
+
+		it("should preserve isFullScreen when centering due to disconnected display", () => {
+			const result = getInitialWindowBounds({
+				x: 2000,
+				y: 100,
+				width: 800,
+				height: 600,
+				isMaximized: false,
+				isFullScreen: true,
+			});
+			expect(result.isFullScreen).toBe(true);
+			expect(result.center).toBe(true);
 		});
 	});
 

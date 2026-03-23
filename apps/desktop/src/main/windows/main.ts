@@ -232,6 +232,7 @@ export async function MainWindow() {
 		saveTimeout = setTimeout(() => {
 			if (window.isDestroyed()) return;
 			const isMaximized = window.isMaximized();
+			const isFullScreen = window.isFullScreen();
 			const bounds = isMaximized
 				? window.getNormalBounds()
 				: window.getBounds();
@@ -241,6 +242,7 @@ export async function MainWindow() {
 				width: bounds.width,
 				height: bounds.height,
 				isMaximized,
+				isFullScreen,
 				zoomLevel: window.webContents.getZoomLevel(),
 			});
 		}, 500);
@@ -250,7 +252,9 @@ export async function MainWindow() {
 
 	window.webContents.once("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
-		if (initialBounds.isMaximized) {
+		if (initialBounds.isFullScreen) {
+			window.setFullScreen(true);
+		} else if (initialBounds.isMaximized) {
 			window.maximize();
 		}
 		if (savedWindowState?.zoomLevel !== undefined) {
@@ -285,6 +289,7 @@ export async function MainWindow() {
 	window.on("close", () => {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
+		const isFullScreen = window.isFullScreen();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
 		const zoomLevel = window.webContents.getZoomLevel();
 		saveWindowState({
@@ -293,6 +298,7 @@ export async function MainWindow() {
 			width: bounds.width,
 			height: bounds.height,
 			isMaximized,
+			isFullScreen,
 			zoomLevel,
 		});
 

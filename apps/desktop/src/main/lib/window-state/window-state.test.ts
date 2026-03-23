@@ -127,6 +127,44 @@ describe("isValidWindowState", () => {
 			).toBe(true);
 		});
 
+		it("should accept valid window state with isFullScreen true", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 1920,
+					height: 1080,
+					isMaximized: false,
+					isFullScreen: true,
+				}),
+			).toBe(true);
+		});
+
+		it("should accept valid window state with isFullScreen false", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 1920,
+					height: 1080,
+					isMaximized: false,
+					isFullScreen: false,
+				}),
+			).toBe(true);
+		});
+
+		it("should accept valid window state without isFullScreen (optional, backward compat)", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 1920,
+					height: 1080,
+					isMaximized: false,
+				}),
+			).toBe(true);
+		});
+
 		it("should accept MAX_SAFE_INTEGER dimensions", () => {
 			expect(
 				isValidWindowState({
@@ -250,6 +288,32 @@ describe("isValidWindowState", () => {
 					height: 600,
 					isMaximized: false,
 					zoomLevel: "1.5" as unknown as number,
+				}),
+			).toBe(false);
+		});
+
+		it("should reject string isFullScreen", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					isFullScreen: "true" as unknown as boolean,
+				}),
+			).toBe(false);
+		});
+
+		it("should reject number isFullScreen", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					isFullScreen: 1 as unknown as boolean,
 				}),
 			).toBe(false);
 		});
