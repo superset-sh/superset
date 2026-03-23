@@ -109,12 +109,10 @@ export function useWorkspaceChatController({
 		[collections.chatSessions],
 	);
 	const allSessions = allSessionsData ?? [];
-	const sessions = useMemo(() => {
-		const scopedOrUnscoped = allSessions.filter(
-			(item) => item.workspaceId === workspaceId || item.workspaceId === null,
-		);
-		return scopedOrUnscoped.length > 0 ? scopedOrUnscoped : allSessions;
-	}, [allSessions, workspaceId]);
+	const sessions = useMemo(
+		() => allSessions.filter((item) => item.workspaceId === workspaceId),
+		[allSessions, workspaceId],
+	);
 
 	useEffect(() => {
 		if (sessionId && sessions.some((item) => item.id === sessionId)) return;

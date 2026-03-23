@@ -4,10 +4,8 @@ import { useWorkspaceChatController } from "./hooks/useWorkspaceChatController";
 
 export function WorkspaceChat({
 	workspaceId,
-	workspaceName,
 }: {
 	workspaceId: string;
-	workspaceName: string;
 }) {
 	const {
 		sessionId,
@@ -28,12 +26,12 @@ export function WorkspaceChat({
 	});
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
+		<div className="flex h-full w-full min-h-0 flex-col">
 			<div className="border-b border-border px-4 py-3">
 				<SessionSelector
 					currentSessionId={sessionId}
 					sessions={sessionItems}
-					fallbackTitle={workspaceName}
+					fallbackTitle="New Chat"
 					isSessionInitializing={isSessionInitializing}
 					onSelectSession={handleSelectSession}
 					onNewChat={handleNewChat}

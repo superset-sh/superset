@@ -202,10 +202,7 @@ function V2WorkspaceOldContent({
 				</div>
 
 				{activeView === "chat" ? (
-					<WorkspaceChat
-						workspaceId={workspaceId}
-						workspaceName={workspaceName}
-					/>
+					<WorkspaceChat workspaceId={workspaceId} />
 				) : activeView === "files" ? (
 					<WorkspaceFiles
 						onSelectFile={handleSelectFile}

@@ -478,9 +478,9 @@ step_write_env() {
     echo ""
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
-    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
+    echo "# Client-side Electric uses the local Cloudflare worker/proxy"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "http://localhost:$WRANGLER_PORT"
   } >> .env
 
   success "Workspace .env written"
@@ -522,6 +522,8 @@ PORTSJSON
 
   cat > apps/electric-proxy/.dev.vars <<DEVVARS
 AUTH_URL=http://localhost:$API_PORT
+ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape
+ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
 ELECTRIC_CLOUD_URL=${ELECTRIC_CLOUD_URL:-https://api.electric-sql.cloud}
 ELECTRIC_SOURCE_ID=${ELECTRIC_SOURCE_ID:-}
 ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}

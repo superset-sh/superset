@@ -125,7 +125,7 @@ export function SessionSelector({
 				<button
 					type="button"
 					aria-busy={isSessionInitializing}
-					className="flex w-full min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<HiMiniChevronDown className="size-3" />
 					<span className="min-w-0 flex-1 truncate text-left">

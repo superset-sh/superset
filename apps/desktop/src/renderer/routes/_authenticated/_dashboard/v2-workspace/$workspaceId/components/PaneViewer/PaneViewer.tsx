@@ -213,7 +213,6 @@ export function PaneViewer({
 					return (
 						<WorkspaceChat
 							workspaceId={workspaceId}
-							workspaceName={workspaceName}
 						/>
 					);
 				},

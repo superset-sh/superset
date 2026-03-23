@@ -170,7 +170,7 @@ export function ChatMessageList({
 		onPlanRespond,
 	} as const;
 
-	return (
+		return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-[680px] py-6">
 				<div ref={messageListRef} className="flex flex-col gap-6">
