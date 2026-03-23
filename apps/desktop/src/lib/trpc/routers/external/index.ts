@@ -193,8 +193,20 @@ export const createExternalRouter = () => {
 					// Parse XML plist — file paths are in <string> tags
 					const matches = plist.match(/<string>([^<]+)<\/string>/g);
 					if (matches) {
+						const xmlEntities: Record<string, string> = {
+							"&amp;": "&",
+							"&lt;": "<",
+							"&gt;": ">",
+							"&quot;": '"',
+							"&apos;": "'",
+						};
+						const decodeXmlEntities = (s: string) =>
+							s.replace(
+								/&(?:amp|lt|gt|quot|apos);/g,
+								(m) => xmlEntities[m] ?? m,
+							);
 						const paths = matches
-							.map((m) => m.replace(/<\/?string>/g, ""))
+							.map((m) => decodeXmlEntities(m.replace(/<\/?string>/g, "")))
 							.filter((p) => path.isAbsolute(p) && fs.existsSync(p));
 						if (paths.length > 0) return paths;
 					}

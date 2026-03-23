@@ -21,7 +21,8 @@ function resolveTargetFolder(
 ): string {
 	if (!selectedEntry) return worktreePath;
 	if (selectedEntry.isDirectory) return selectedEntry.path;
-	return getParentPath(selectedEntry.path) || worktreePath;
+	const parent = getParentPath(selectedEntry.path);
+	return parent !== selectedEntry.path ? parent : worktreePath;
 }
 
 export function useFileTreePaste({
@@ -36,6 +37,16 @@ export function useFileTreePaste({
 
 	const handlePaste = useCallback(
 		async (e: React.KeyboardEvent) => {
+			// Don't intercept paste in editable elements (rename/new item inputs)
+			const target = e.target as HTMLElement;
+			if (
+				target.tagName === "INPUT" ||
+				target.tagName === "TEXTAREA" ||
+				target.isContentEditable
+			) {
+				return;
+			}
+
 			const isMac = navigator.platform.includes("Mac");
 			const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 

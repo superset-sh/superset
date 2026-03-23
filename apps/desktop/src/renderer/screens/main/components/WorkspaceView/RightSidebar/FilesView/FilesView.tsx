@@ -421,10 +421,9 @@ export function FilesView() {
 
 	const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
-	const selectedEntry = useMemo(() => {
-		if (!selectedPath) return null;
-		return entryCacheRef.current.get(selectedPath) ?? null;
-	}, [selectedPath]);
+	const selectedEntry = selectedPath
+		? (entryCacheRef.current.get(selectedPath) ?? null)
+		: null;
 
 	const { handlePaste } = useFileTreePaste({
 		workspaceId,
@@ -669,9 +668,12 @@ export function FilesView() {
 											data.isDirectory &&
 											data.path === newItemParentPath;
 										const isRenaming = renameEntry?.path === data.path;
+										const parentPath = getParentPath(data.path);
 										const itemTargetFolder = data.isDirectory
 											? data.path
-											: getParentPath(data.path) || worktreePath;
+											: parentPath !== data.path
+												? parentPath
+												: worktreePath;
 										return (
 											<div key={item.getId()}>
 												{isRenaming ? (

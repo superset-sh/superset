@@ -19,7 +19,8 @@ function resolveTargetFolder(
 	worktreePath: string,
 ): string {
 	if (entry.isDirectory) return entry.path;
-	return getParentPath(entry.path) || worktreePath;
+	const parent = getParentPath(entry.path);
+	return parent !== entry.path ? parent : worktreePath;
 }
 
 function isDescendantOf(childPath: string, parentPath: string): boolean {
