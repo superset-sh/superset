@@ -11,8 +11,17 @@ import {
 	AlertDialogTrigger,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -25,8 +34,10 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+	HiCheck,
+	HiChevronUpDown,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlineFolderOpen,
@@ -35,6 +46,7 @@ import {
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import {
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
@@ -54,7 +66,6 @@ import {
 import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
-const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
 
 export function SettingsSection({
 	icon,
@@ -97,11 +108,19 @@ export function ProjectSettings({
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
-	const { data: branchData, isLoading: isBranchDataLoading } =
+	const { data: localBranchData, isLoading: isLocalBranchDataLoading } =
+		electronTrpc.projects.getBranchesLocal.useQuery(
+			{ projectId },
+			{ enabled: !!projectId },
+		);
+	const { data: remoteBranchData } =
 		electronTrpc.projects.getBranches.useQuery(
 			{ projectId },
 			{ enabled: !!projectId },
 		);
+	// Use remote data when available, fall back to fast local data
+	const branchData = remoteBranchData ?? localBranchData;
+	const isBranchDataLoading = isLocalBranchDataLoading;
 	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery({
 		id: projectId,
 	});
@@ -115,6 +134,30 @@ export function ProjectSettings({
 	const [selectedWorktreePath, setSelectedWorktreePath] = useState<
 		string | null
 	>(null);
+	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
+	const [baseBranchSearch, setBaseBranchSearch] = useState("");
+
+
+
+	const filteredBranches = useMemo(() => {
+		const branches = (branchData?.branches ?? []).map((branch) => {
+			// storedValue: always the full remote-qualified name (for persistence + trigger)
+			const storedValue =
+				branch.isRemote && !branch.name.includes("/")
+					? `origin/${branch.name}`
+					: branch.name;
+			// menuLabel: origin branches always plain, non-origin remotes always prefixed
+			const menuLabel = branch.name;
+			return { ...branch, storedValue, menuLabel };
+		});
+		if (!baseBranchSearch) return branches;
+		const searchLower = baseBranchSearch.toLowerCase();
+		return branches.filter(
+			(branch) =>
+				branch.menuLabel.toLowerCase().includes(searchLower) ||
+				branch.storedValue.toLowerCase().includes(searchLower),
+		);
+	}, [branchData?.branches, baseBranchSearch]);
 
 	useEffect(() => {
 		setCustomPrefixInput(project?.branchPrefixCustom ?? "");
@@ -206,7 +249,7 @@ export function ProjectSettings({
 		updateProject.mutate({
 			id: projectId,
 			patch: {
-				workspaceBaseBranch: value === REPO_DEFAULT_BASE_BRANCH ? null : value,
+				workspaceBaseBranch: value,
 			},
 		});
 	};
@@ -280,17 +323,26 @@ export function ProjectSettings({
 
 	const currentMode = project.branchPrefixMode ?? "default";
 	const previewPrefix = getPreviewPrefix(currentMode);
-	const repoDefaultBranch =
+	const rawDefaultBranch =
 		branchData?.defaultBranch ?? project.defaultBranch ?? "main";
-	const workspaceBaseBranchValue =
-		project.workspaceBaseBranch ?? REPO_DEFAULT_BASE_BRANCH;
+	const repoDefaultBranch = rawDefaultBranch.includes("/")
+		? rawDefaultBranch
+		: `origin/${rawDefaultBranch}`;
 	const workspaceBaseBranchMissing =
 		!isBranchDataLoading &&
 		!!project.workspaceBaseBranch &&
 		!!branchData &&
-		!branchData.branches.some(
-			(branch) => branch.name === project.workspaceBaseBranch,
-		);
+		!branchData.branches.some((branch) => {
+			const stored =
+				branch.isRemote && !branch.name.includes("/")
+					? `origin/${branch.name}`
+					: branch.name;
+			return stored === project.workspaceBaseBranch;
+		});
+	const workspaceBaseBranchValue =
+		workspaceBaseBranchMissing
+			? repoDefaultBranch
+			: (project.workspaceBaseBranch ?? repoDefaultBranch);
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
@@ -365,34 +417,82 @@ export function ProjectSettings({
 								branch.
 							</p>
 						</div>
-						<Select
-							value={workspaceBaseBranchValue}
-							onValueChange={handleWorkspaceBaseBranchChange}
-							disabled={updateProject.isPending || isBranchDataLoading}
+						<Popover
+							open={baseBranchOpen}
+							onOpenChange={(v) => {
+								setBaseBranchOpen(v);
+								if (!v) setBaseBranchSearch("");
+								if (v) {
+									requestAnimationFrame(() => {
+										const selected = document.querySelector(
+											"[data-selected='']",
+										);
+										selected?.scrollIntoView({ block: "nearest" });
+									});
+								}
+							}}
 						>
-							<SelectTrigger className="w-[260px]">
-								{isBranchDataLoading ? (
-									<span className="text-muted-foreground">Loading...</span>
-								) : (
-									<SelectValue />
-								)}
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value={REPO_DEFAULT_BASE_BRANCH}>
-									Use repository default ({repoDefaultBranch})
-								</SelectItem>
-								{workspaceBaseBranchMissing && project.workspaceBaseBranch && (
-									<SelectItem value={project.workspaceBaseBranch}>
-										{project.workspaceBaseBranch} (missing)
-									</SelectItem>
-								)}
-								{(branchData?.branches ?? []).map((branch) => (
-									<SelectItem key={branch.name} value={branch.name}>
-										{branch.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+							<PopoverTrigger asChild>
+								<Button
+									variant="outline"
+									className="w-[260px] justify-between font-normal"
+									disabled={updateProject.isPending || isBranchDataLoading}
+								>
+									{isBranchDataLoading ? (
+										<span className="text-muted-foreground">Loading...</span>
+									) : (
+										<span className="truncate">
+											{workspaceBaseBranchValue}
+										</span>
+									)}
+									<HiChevronUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent
+								className="w-[300px] p-0"
+								align="end"
+								onWheel={(event) => event.stopPropagation()}
+							>
+								<Command shouldFilter={false}>
+									<CommandInput
+										placeholder="Search branches..."
+										value={baseBranchSearch}
+										onValueChange={setBaseBranchSearch}
+									/>
+									<CommandList className="max-h-[300px]">
+										<CommandEmpty>No branches found</CommandEmpty>
+										<CommandGroup>
+											{filteredBranches.map((branch) => (
+												<CommandItem
+													key={branch.storedValue}
+													value={branch.menuLabel}
+													onSelect={() => {
+														handleWorkspaceBaseBranchChange(branch.storedValue);
+														setBaseBranchOpen(false);
+													}}
+													className="flex items-center justify-between"
+													data-selected={workspaceBaseBranchValue === branch.storedValue ? "" : undefined}
+												>
+													<span className="truncate">
+														{branch.menuLabel}
+													</span>
+													<span className="flex items-center gap-2 shrink-0">
+														{branch.lastCommitDate > 0 && (
+															<span className="text-xs text-muted-foreground">
+																{formatRelativeTime(branch.lastCommitDate)}
+															</span>
+														)}
+														{workspaceBaseBranchValue === branch.storedValue && (
+															<HiCheck className="size-4 text-primary" />
+														)}
+													</span>
+												</CommandItem>
+											))}
+										</CommandGroup>
+									</CommandList>
+								</Command>
+							</PopoverContent>
+						</Popover>
 					</div>
 					{workspaceBaseBranchMissing && (
 						<p className="text-xs text-destructive">

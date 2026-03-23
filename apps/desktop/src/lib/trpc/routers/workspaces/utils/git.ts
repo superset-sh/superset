@@ -1299,8 +1299,14 @@ export async function listBranches(
 
 	const remoteResult = await git.branch(["-r"]);
 	const remote = remoteResult.all
-		.filter((b) => b.startsWith("origin/") && !b.includes("->"))
-		.map((b) => b.replace("origin/", ""));
+		.filter((b) => !b.includes("->"))
+		.map((b) => {
+			// Strip "origin/" prefix for backward compat, keep prefix for other remotes
+			if (b.startsWith("origin/")) {
+				return b.replace("origin/", "");
+			}
+			return b;
+		});
 
 	return { local, remote };
 }

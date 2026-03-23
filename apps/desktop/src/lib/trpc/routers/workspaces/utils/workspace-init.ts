@@ -203,6 +203,26 @@ export async function initializeWorkspaceWorktree({
 		);
 		const hasRemote = await hasOriginRemote(mainRepoPath);
 
+		// Parse remote-qualified branch names (e.g., "upstream/main" → { remote: "upstream", branch: "main" })
+		// Plain names like "main" are treated as { remote: undefined, branch: "main" }
+		const parseRemoteQualifiedBranch = (
+			name: string,
+		): { remote: string | undefined; branch: string } => {
+			const slashIdx = name.indexOf("/");
+			if (slashIdx <= 0) return { remote: undefined, branch: name };
+			const potentialRemote = name.substring(0, slashIdx);
+			// Only treat as remote-qualified if it looks like a remote name (not a path like "feature/foo")
+			// We check if a tracking ref exists for this pattern
+			const potentialBranch = name.substring(slashIdx + 1);
+			return { remote: potentialRemote, branch: potentialBranch };
+		};
+
+		const parsed = parseRemoteQualifiedBranch(effectiveBaseBranch);
+		// The remote to use for this base branch (defaults to "origin" for plain names)
+		const effectiveRemote = parsed.remote ?? "origin";
+		// The plain branch name without remote prefix
+		const effectivePlainBranch = parsed.branch;
+
 		type LocalStartPointResult = {
 			ref: string;
 			fallbackBranch?: string;
@@ -210,23 +230,24 @@ export async function initializeWorkspaceWorktree({
 
 		const resolveLocalStartPoint = async (
 			reason: string,
-			checkOriginRefs: boolean,
+			checkRemoteRefs: boolean,
 		): Promise<LocalStartPointResult> => {
-			if (checkOriginRefs) {
-				const originRef = `origin/${effectiveBaseBranch}`;
-				if (await refExistsLocally(mainRepoPath, originRef)) {
+			if (checkRemoteRefs) {
+				// For remote-qualified names, use the specified remote; otherwise use origin
+				const remoteRef = `${effectiveRemote}/${effectivePlainBranch}`;
+				if (await refExistsLocally(mainRepoPath, remoteRef)) {
 					console.log(
-						`[workspace-init] ${reason}. Using local tracking ref: ${originRef}`,
+						`[workspace-init] ${reason}. Using local tracking ref: ${remoteRef}`,
 					);
-					return { ref: originRef };
+					return { ref: remoteRef };
 				}
 			}
 
-			if (await refExistsLocally(mainRepoPath, effectiveBaseBranch)) {
+			if (await refExistsLocally(mainRepoPath, effectivePlainBranch)) {
 				console.log(
-					`[workspace-init] ${reason}. Using local branch: ${effectiveBaseBranch}`,
+					`[workspace-init] ${reason}. Using local branch: ${effectivePlainBranch}`,
 				);
-				return { ref: effectiveBaseBranch };
+				return { ref: effectivePlainBranch };
 			}
 
 			if (baseBranchWasExplicit) {
@@ -238,8 +259,8 @@ export async function initializeWorkspaceWorktree({
 
 			const commonBranches = ["main", "master", "develop", "trunk"];
 			for (const branch of commonBranches) {
-				if (branch === effectiveBaseBranch) continue;
-				if (checkOriginRefs) {
+				if (branch === effectivePlainBranch) continue;
+				if (checkRemoteRefs) {
 					const fallbackOriginRef = `origin/${branch}`;
 					if (await refExistsLocally(mainRepoPath, fallbackOriginRef)) {
 						console.log(
@@ -302,19 +323,20 @@ export async function initializeWorkspaceWorktree({
 		if (hasRemote) {
 			const branchCheck = await branchExistsOnRemote(
 				mainRepoPath,
-				effectiveBaseBranch,
+				effectivePlainBranch,
+				effectiveRemote,
 			);
 
 			if (branchCheck.status === "exists") {
-				const originRef = `origin/${effectiveBaseBranch}`;
+				const remoteRef = `${effectiveRemote}/${effectivePlainBranch}`;
 
 				// VALIDATION: Verify the remote-tracking ref actually exists locally
 				// branchExistsOnRemote checks the remote, but the local ref might not be fetched yet
-				if (await refExistsLocally(mainRepoPath, originRef)) {
-					startPoint = originRef;
+				if (await refExistsLocally(mainRepoPath, remoteRef)) {
+					startPoint = remoteRef;
 				} else {
 					console.warn(
-						`[workspace-init] Remote branch "${effectiveBaseBranch}" exists but local tracking ref "${originRef}" not found. Falling back to local ref.`,
+						`[workspace-init] Remote branch "${effectiveBaseBranch}" exists but local tracking ref "${remoteRef}" not found. Falling back to local ref.`,
 					);
 					manager.updateProgress(
 						workspaceId,
@@ -335,7 +357,7 @@ export async function initializeWorkspaceWorktree({
 							"failed",
 							"No local reference available",
 							baseBranchWasExplicit
-								? `Branch "${effectiveBaseBranch}" exists on remote but has not been fetched yet, and no local branch exists. Please run "git fetch origin ${effectiveBaseBranch}" and try again.`
+								? `Branch "${effectiveBaseBranch}" exists on remote but has not been fetched yet, and no local branch exists. Please run "git fetch ${effectiveRemote} ${effectivePlainBranch}" and try again.`
 								: `Branch "${effectiveBaseBranch}" not found locally. Please run "git fetch" and try again.`,
 						);
 						return;

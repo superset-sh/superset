@@ -16,7 +16,12 @@ export function resolveWorkspaceBaseBranch({
 	defaultBranch,
 	knownBranches,
 }: ResolveWorkspaceBaseBranchParams): string {
-	const fallbackBranch = normalizeBranch(defaultBranch) ?? "main";
+	const rawDefault = normalizeBranch(defaultBranch) ?? "main";
+	// Default to origin/<branch> so new workspaces base off the remote tracking
+	// branch rather than a potentially stale local checkout.
+	const fallbackBranch = rawDefault.includes("/")
+		? rawDefault
+		: `origin/${rawDefault}`;
 	const explicit = normalizeBranch(explicitBaseBranch);
 	if (explicit) {
 		return explicit;
