@@ -72,6 +72,7 @@ export function FileTreeItem({
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
+		item.setFocused();
 		if (isFolder) {
 			if (isExpanded) {
 				item.collapse();
@@ -113,7 +114,7 @@ export function FileTreeItem({
 				paddingLeft: level * indent,
 			}}
 			role="treeitem"
-			tabIndex={0}
+			tabIndex={item.isFocused() ? 0 : -1}
 			aria-expanded={isFolder ? isExpanded : undefined}
 			className={cn(
 				"flex items-center gap-1 px-1 cursor-pointer select-none",

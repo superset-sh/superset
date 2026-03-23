@@ -1,6 +1,7 @@
 import {
 	asyncDataLoaderFeature,
 	expandAllFeature,
+	hotkeysCoreFeature,
 	type ItemInstance,
 	selectionFeature,
 } from "@headless-tree/core";
@@ -232,7 +233,13 @@ export function FilesView() {
 				}
 			},
 		},
-		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
+		features: [
+			asyncDataLoaderFeature,
+			selectionFeature,
+			expandAllFeature,
+			hotkeysCoreFeature,
+		],
+		ignoreHotkeysOnInputs: true,
 	});
 
 	const prevWorktreePathRef = useRef(worktreePath);
