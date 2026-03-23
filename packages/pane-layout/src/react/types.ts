@@ -25,6 +25,7 @@ export interface PaneWorkspaceProps<TPaneData> {
 	registry: PaneRegistry<TPaneData>;
 	className?: string;
 	getRootTitle?: (root: PaneRootState<TPaneData>) => ReactNode;
+	renderBelowRootTabs?: () => ReactNode;
 	onAddRoot?: (args: {
 		store: StoreApi<PaneWorkspaceStore<TPaneData>>;
 	}) => void;

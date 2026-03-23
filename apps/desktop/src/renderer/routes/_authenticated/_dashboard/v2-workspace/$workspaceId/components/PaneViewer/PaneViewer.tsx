@@ -6,22 +6,26 @@ import {
 	type PaneRegistry,
 } from "@superset/pane-layout";
 import { Button } from "@superset/ui/button";
-import { DropdownMenuItem } from "@superset/ui/dropdown-menu";
+import {
+	DropdownMenuCheckboxItem,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@superset/ui/dropdown-menu";
 import {
 	Bug,
 	FileCode2,
 	Globe,
 	MessageSquare,
-	Pin,
-	SquareSplitHorizontal,
-	SquareSplitVertical,
 	TerminalSquare,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { BsTerminalPlus } from "react-icons/bs";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import { DEFAULT_SHOW_PRESETS_BAR } from "shared/constants";
 import {
 	createBrowserPane,
 	createChatPane,
@@ -160,208 +164,30 @@ const paneRegistry: PaneRegistry<PaneViewerData> = {
 	},
 };
 
-function PaneViewerToolbar({
-	store,
-	workspaceBranch,
-	workspaceName,
-}: {
-	store: ReturnType<typeof createPaneWorkspaceStore<PaneViewerData>>;
-	workspaceBranch: string;
-	workspaceName: string;
-}) {
-	const roots = usePaneWorkspaceStore(store, (state) => state.state.roots);
-	const activeRootId = usePaneWorkspaceStore(
-		store,
-		(state) => state.state.activeRootId,
-	);
-	const sequenceRef = useRef(0);
-
-	const activeRoot =
-		roots.find((root) => root.id === activeRootId) ?? roots[0] ?? null;
-	const activeGroup = activeRoot?.activeGroupId
-		? store.getState().getGroup({
-				rootId: activeRoot.id,
-				groupId: activeRoot.activeGroupId,
-			})
-		: null;
-	const activePane =
-		activeGroup?.activePaneId != null
-			? (activeGroup.panes.find(
-					(pane) => pane.id === activeGroup.activePaneId,
-				) ?? null)
-			: null;
-
-	const nextId = (prefix: string) => {
-		sequenceRef.current += 1;
-		return `${prefix}-${sequenceRef.current}`;
-	};
-
-	const withActiveGroup = (
-		callback: (args: { rootId: string; groupId: string }) => void,
-	) => {
-		if (!activeRoot?.activeGroupId) return;
-		callback({
-			rootId: activeRoot.id,
-			groupId: activeRoot.activeGroupId,
-		});
-	};
-
-	return (
-		<div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-muted/30 px-3 py-2">
-			<div className="flex flex-wrap items-center gap-2">
-				<Button
-					onClick={() =>
-						withActiveGroup(({ rootId, groupId }) =>
-							store.getState().addPaneToGroup({
-								rootId,
-								groupId,
-								pane: createFilePane({
-									id: nextId("pane-file"),
-									title: `src/demo/File${sequenceRef.current}.tsx`,
-									filePath: `src/demo/File${sequenceRef.current}.tsx`,
-									mode: "editor",
-									hasChanges: sequenceRef.current % 2 === 0,
-									language: "tsx",
-								}),
-								replaceUnpinned: true,
-								select: true,
-							}),
-						)
-					}
-					size="sm"
-					variant="outline"
-				>
-					<FileCode2 className="size-4" />
-					Preview file
-				</Button>
-				<Button
-					onClick={() =>
-						withActiveGroup(({ rootId, groupId }) =>
-							store.getState().addPaneToGroup({
-								rootId,
-								groupId,
-								pane: createTerminalPane({
-									id: nextId("pane-terminal"),
-									title: `Terminal ${sequenceRef.current}`,
-									sessionKey: `${workspaceBranch}:terminal-${sequenceRef.current}`,
-									cwd: `/workspace/${workspaceName}`,
-									launchMode: "workspace-shell",
-								}),
-								select: true,
-							}),
-						)
-					}
-					size="sm"
-					variant="outline"
-				>
-					<TerminalSquare className="size-4" />
-					Add terminal
-				</Button>
-				<Button
-					onClick={() =>
-						withActiveGroup(({ rootId, groupId }) =>
-							store.getState().addPaneToGroup({
-								rootId,
-								groupId,
-								pane: createBrowserPane({
-									id: nextId("pane-browser"),
-									title: `Preview ${sequenceRef.current}`,
-									url: `http://localhost:3000/preview/${sequenceRef.current}`,
-									mode: "preview",
-								}),
-								select: true,
-							}),
-						)
-					}
-					size="sm"
-					variant="outline"
-				>
-					<Globe className="size-4" />
-					Add browser
-				</Button>
-				<Button
-					onClick={() =>
-						withActiveGroup(({ rootId, groupId }) =>
-							store.getState().splitGroup({
-								rootId,
-								groupId,
-								position: "right",
-								newGroupId: nextId("group-right"),
-								newPane: createTerminalPane({
-									id: nextId("pane-split-terminal"),
-									title: `Split terminal ${sequenceRef.current}`,
-									sessionKey: `${workspaceBranch}:split-${sequenceRef.current}`,
-									cwd: `/workspace/${workspaceName}`,
-									launchMode: "workspace-shell",
-								}),
-							}),
-						)
-					}
-					size="sm"
-					variant="outline"
-				>
-					<SquareSplitHorizontal className="size-4" />
-					Split right
-				</Button>
-				<Button
-					onClick={() =>
-						withActiveGroup(({ rootId, groupId }) =>
-							store.getState().splitGroup({
-								rootId,
-								groupId,
-								position: "bottom",
-								newGroupId: nextId("group-bottom"),
-								newPane: createChatPane({
-									id: nextId("pane-split-chat"),
-									title: `Chat ${sequenceRef.current}`,
-									sessionId: null,
-									model: "gpt-5.4-mini",
-									hasDraft: false,
-								}),
-							}),
-						)
-					}
-					size="sm"
-					variant="outline"
-				>
-					<SquareSplitVertical className="size-4" />
-					Split down
-				</Button>
-				<Button
-					disabled={!activeRoot || !activeGroup || !activePane}
-					onClick={() => {
-						if (!activeRoot || !activeGroup || !activePane) return;
-						store.getState().setPanePinned({
-							rootId: activeRoot.id,
-							groupId: activeGroup.id,
-							paneId: activePane.id,
-							pinned: true,
-						});
-					}}
-					size="sm"
-					variant="outline"
-				>
-					<Pin className="size-4" />
-					Pin active
-				</Button>
-			</div>
-			<div className="min-w-0 text-right text-xs text-muted-foreground">
-				<div>{activeRoot?.titleOverride ?? activeRoot?.id ?? "No root"}</div>
-				<div className="truncate">
-					{activePane
-						? `${activeGroup?.id ?? "group"} / ${activePane.titleOverride ?? activePane.id}`
-						: "No active pane"}
-				</div>
-			</div>
-		</div>
-	);
-}
-
 export function PaneViewer({
 	workspaceBranch,
 	workspaceId,
 	workspaceName,
 }: PaneViewerProps) {
+	const utils = electronTrpc.useUtils();
+	const { data: showPresetsBar } =
+		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation({
+		onMutate: async ({ enabled }) => {
+			await utils.settings.getShowPresetsBar.cancel();
+			const previous = utils.settings.getShowPresetsBar.getData();
+			utils.settings.getShowPresetsBar.setData(undefined, enabled);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getShowPresetsBar.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getShowPresetsBar.invalidate();
+		},
+	});
 	const [store] = useState(() =>
 		createPaneWorkspaceStore<PaneViewerData>({
 			initialState: createPaneViewerState({
@@ -436,11 +262,6 @@ export function PaneViewer({
 			className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
 			data-workspace-id={workspaceId}
 		>
-			<PaneViewerToolbar
-				store={store}
-				workspaceBranch={workspaceBranch}
-				workspaceName={workspaceName}
-			/>
 			<PaneWorkspace
 				className="rounded-none border-0"
 				onAddRoot={addTerminalRoot}
@@ -461,8 +282,21 @@ export function PaneViewer({
 							<span>Browser</span>
 							<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuCheckboxItem
+							checked={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
+							onCheckedChange={(checked) =>
+								setShowPresetsBar.mutate({ enabled: checked === true })
+							}
+							onSelect={(event) => event.preventDefault()}
+						>
+							Show Preset Bar
+						</DropdownMenuCheckboxItem>
 					</>
 				)}
+				renderBelowRootTabs={() =>
+					(showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR) ? <PresetsBar /> : null
+				}
 				registry={paneRegistry}
 				store={store}
 			/>
