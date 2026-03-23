@@ -19,6 +19,12 @@ interface ThemeState {
 	/** Current active theme ID (can be "system" or a specific theme ID) */
 	activeThemeId: string;
 
+	/** Theme ID to use when OS is in light mode and system theme is active */
+	systemLightThemeId: string;
+
+	/** Theme ID to use when OS is in dark mode and system theme is active */
+	systemDarkThemeId: string;
+
 	/** List of custom (user-imported) themes */
 	customThemes: Theme[];
 
@@ -30,6 +36,9 @@ interface ThemeState {
 
 	/** Set the active theme by ID (can be "system" or a specific theme ID) */
 	setTheme: (themeId: string) => void;
+
+	/** Set the theme to use for a specific OS mode when system theme is active */
+	setSystemThemeMapping: (osMode: "dark" | "light", themeId: string) => void;
 
 	/** Add a custom theme */
 	addCustomTheme: (theme: Theme) => void;
@@ -62,11 +71,16 @@ function getSystemPreferredThemeType(): "dark" | "light" {
 
 /**
  * Resolve a theme ID to the actual theme ID to use.
- * If "system" is passed, resolves to "dark" or "light" based on OS preference.
+ * If "system" is passed, resolves using the user's custom mapping for the current OS mode.
  */
-function resolveThemeId(themeId: string): string {
+function resolveThemeId(
+	themeId: string,
+	systemDarkThemeId: string,
+	systemLightThemeId: string,
+): string {
 	if (themeId === SYSTEM_THEME_ID) {
-		return getSystemPreferredThemeType();
+		const osMode = getSystemPreferredThemeType();
+		return osMode === "dark" ? systemDarkThemeId : systemLightThemeId;
 	}
 	return themeId;
 }
@@ -126,14 +140,19 @@ export const useThemeStore = create<ThemeState>()(
 		persist(
 			(set, get) => ({
 				activeThemeId: DEFAULT_THEME_ID,
+				systemLightThemeId: "light",
+				systemDarkThemeId: "dark",
 				customThemes: [],
 				activeTheme: null,
 				terminalTheme: null,
 
 				setTheme: (themeId: string) => {
 					const state = get();
-					// Resolve system theme to actual theme ID
-					const resolvedId = resolveThemeId(themeId);
+					const resolvedId = resolveThemeId(
+						themeId,
+						state.systemDarkThemeId,
+						state.systemLightThemeId,
+					);
 					const theme = findTheme(resolvedId, state.customThemes);
 
 					if (!theme) {
@@ -148,6 +167,31 @@ export const useThemeStore = create<ThemeState>()(
 						activeTheme: theme, // Store the resolved theme
 						terminalTheme,
 					});
+				},
+
+				setSystemThemeMapping: (osMode: "dark" | "light", themeId: string) => {
+					const state = get();
+					const update =
+						osMode === "dark"
+							? { systemDarkThemeId: themeId }
+							: { systemLightThemeId: themeId };
+
+					set(update);
+
+					// Re-apply if system theme is currently active
+					if (state.activeThemeId === SYSTEM_THEME_ID) {
+						const newState = get();
+						const resolvedId = resolveThemeId(
+							SYSTEM_THEME_ID,
+							newState.systemDarkThemeId,
+							newState.systemLightThemeId,
+						);
+						const theme = findTheme(resolvedId, newState.customThemes);
+						if (theme) {
+							const { terminalTheme } = applyTheme(theme);
+							set({ activeTheme: theme, terminalTheme });
+						}
+					}
 				},
 
 				addCustomTheme: (theme: Theme) => {
@@ -184,7 +228,11 @@ export const useThemeStore = create<ThemeState>()(
 					}
 
 					const customThemes = Array.from(customThemesById.values());
-					const resolvedId = resolveThemeId(state.activeThemeId);
+					const resolvedId = resolveThemeId(
+						state.activeThemeId,
+						state.systemDarkThemeId,
+						state.systemLightThemeId,
+					);
 					const resolvedTheme = findTheme(resolvedId, customThemes);
 
 					if (!resolvedTheme) {
@@ -210,6 +258,14 @@ export const useThemeStore = create<ThemeState>()(
 						state.setTheme(DEFAULT_THEME_ID);
 					}
 
+					// If removing a theme used in system mapping, reset to built-in
+					if (state.systemDarkThemeId === themeId) {
+						set({ systemDarkThemeId: "dark" });
+					}
+					if (state.systemLightThemeId === themeId) {
+						set({ systemLightThemeId: "light" });
+					}
+
 					set((state) => ({
 						customThemes: state.customThemes.filter((t) => t.id !== themeId),
 					}));
@@ -230,7 +286,11 @@ export const useThemeStore = create<ThemeState>()(
 
 				initializeTheme: () => {
 					const state = get();
-					const resolvedId = resolveThemeId(state.activeThemeId);
+					const resolvedId = resolveThemeId(
+						state.activeThemeId,
+						state.systemDarkThemeId,
+						state.systemLightThemeId,
+					);
 					const theme = findTheme(resolvedId, state.customThemes);
 
 					if (theme) {
@@ -264,6 +324,8 @@ export const useThemeStore = create<ThemeState>()(
 				storage: trpcThemeStorage,
 				partialize: (state) => ({
 					activeThemeId: state.activeThemeId,
+					systemLightThemeId: state.systemLightThemeId,
+					systemDarkThemeId: state.systemDarkThemeId,
 					customThemes: state.customThemes,
 				}),
 				onRehydrateStorage: () => (state) => {
