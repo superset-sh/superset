@@ -8,6 +8,7 @@ export type {
 	PaneWorkspaceStore,
 	PaneWorkspaceStoreState,
 } from "./core/store";
+export { PaneWorkspace, usePaneWorkspaceStore } from "./react";
 export type {
 	DropTarget,
 	PaneGroupNode,
@@ -17,5 +18,11 @@ export type {
 	PaneSplitNode,
 	PaneSplitPosition,
 	PaneState,
-	PersistedPaneWorkspaceState,
+	PaneWorkspaceState,
 } from "./types";
+export type {
+	PaneDefinition,
+	PaneRegistry,
+	PaneRendererContext,
+	PaneWorkspaceProps,
+} from "./react";

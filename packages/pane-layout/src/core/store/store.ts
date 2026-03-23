@@ -2,58 +2,86 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type {
 	PaneGroupNode,
 	PaneRootState,
-	PaneSplitDirection,
 	PaneSplitPosition,
 	PaneState,
-	PersistedPaneWorkspaceState,
+	PaneWorkspaceState,
 } from "../../types";
 import {
-	clampInsertIndex,
 	findPaneLocation,
 	findNodePathByGroupId,
 	findNodePathBySplitId,
-	findRootIndex,
 	getGroupNode,
 	getNodeAtPath,
-	removePaneFromGroupNode,
 	replaceNodeAtPath,
 	updateGroupNode,
 	updateNodeAtPath,
-	withUpdatedRootAt,
 } from "./utils";
 
 export interface PaneWorkspaceStoreState<TPaneData> {
-	persisted: PersistedPaneWorkspaceState<TPaneData>;
+	state: PaneWorkspaceState<TPaneData>;
 }
 
 export interface CreatePaneWorkspaceStoreOptions<TPaneData> {
-	initialPersistedState: PersistedPaneWorkspaceState<TPaneData>;
+	initialState: PaneWorkspaceState<TPaneData>;
 }
 
 export interface PaneWorkspaceStore<TPaneData>
 	extends PaneWorkspaceStoreState<TPaneData> {
-	setPersistedState: (
+	getRoot: (rootId: string) => PaneRootState<TPaneData> | null;
+	getActiveRoot: () => PaneRootState<TPaneData> | null;
+	getGroup: (args: {
+		rootId: string;
+		groupId: string;
+	}) => PaneGroupNode<TPaneData> | null;
+	getActiveGroup: (rootId?: string) => PaneGroupNode<TPaneData> | null;
+	getPane: (paneId: string) => {
+		rootId: string;
+		groupId: string;
+		paneIndex: number;
+		pane: PaneState<TPaneData>;
+	} | null;
+	getActivePane: (rootId?: string) => {
+		rootId: string;
+		groupId: string;
+		paneIndex: number;
+		pane: PaneState<TPaneData>;
+	} | null;
+	replaceState: (
 		next:
-			| PersistedPaneWorkspaceState<TPaneData>
-			| ((
-					prev: PersistedPaneWorkspaceState<TPaneData>,
-			  ) => PersistedPaneWorkspaceState<TPaneData>),
+			| PaneWorkspaceState<TPaneData>
+			| ((prev: PaneWorkspaceState<TPaneData>) => PaneWorkspaceState<TPaneData>),
 	) => void;
-	rehydrate: (state: PersistedPaneWorkspaceState<TPaneData>) => void;
 	addRoot: (root: PaneRootState<TPaneData>) => void;
 	removeRoot: (rootId: string) => void;
 	setActiveRoot: (rootId: string) => void;
+	setRootTitleOverride: (args: {
+		rootId: string;
+		titleOverride?: string;
+	}) => void;
 	setActiveGroup: (args: { rootId: string; groupId: string }) => void;
 	setActivePane: (args: {
 		rootId: string;
 		groupId: string;
 		paneId: string;
 	}) => void;
+	setPaneTitleOverride: (args: {
+		rootId: string;
+		groupId: string;
+		paneId: string;
+		titleOverride?: string;
+	}) => void;
+	setPanePinned: (args: {
+		rootId: string;
+		groupId: string;
+		paneId: string;
+		pinned: boolean;
+	}) => void;
 	addPaneToGroup: (args: {
 		rootId: string;
 		groupId: string;
 		pane: PaneState<TPaneData>;
 		index?: number;
+		replaceUnpinned?: boolean;
 		select?: boolean;
 	}) => void;
 	closePane: (args: {
@@ -83,21 +111,25 @@ export interface PaneWorkspaceStore<TPaneData>
 		splitId: string;
 		sizes: number[];
 	}) => void;
+	equalizeSplit: (args: { rootId: string; splitId: string }) => void;
 }
 
 export function createPaneRoot<TPaneData>({
 	id,
+	titleOverride,
 	groupId,
 	panes,
 	activePaneId,
 }: {
 	id: string;
+	titleOverride?: string;
 	groupId: string;
 	panes: Array<PaneState<TPaneData>>;
 	activePaneId?: string | null;
 }): PaneRootState<TPaneData> {
 	return {
 		id,
+		titleOverride,
 		root: {
 			type: "group",
 			id: groupId,
@@ -114,7 +146,7 @@ export function createPaneWorkspaceState<TPaneData>({
 }: {
 	roots: Array<PaneRootState<TPaneData>>;
 	activeRootId?: string | null;
-}): PersistedPaneWorkspaceState<TPaneData> {
+}): PaneWorkspaceState<TPaneData> {
 	return {
 		version: 1,
 		roots,
@@ -122,130 +154,285 @@ export function createPaneWorkspaceState<TPaneData>({
 	};
 }
 
-function splitDirectionForPosition(position: PaneSplitPosition): PaneSplitDirection {
-	return position === "left" || position === "right" ? "horizontal" : "vertical";
-}
-
 export function createPaneWorkspaceStore<TPaneData>(
 	options: CreatePaneWorkspaceStoreOptions<TPaneData>,
 ): StoreApi<PaneWorkspaceStore<TPaneData>> {
-	return createStore<PaneWorkspaceStore<TPaneData>>((set) => ({
-		persisted: options.initialPersistedState,
-		setPersistedState: (next) => {
-			set((state) => ({
-				persisted:
-					typeof next === "function" ? next(state.persisted) : next,
-			}));
+	return createStore<PaneWorkspaceStore<TPaneData>>((set, get) => ({
+		state: options.initialState,
+		getRoot: (rootId) =>
+			get().state.roots.find((root) => root.id === rootId) ?? null,
+		getActiveRoot: () => {
+			const state = get().state;
+			return state.roots.find((root) => root.id === state.activeRootId) ?? null;
 		},
-		rehydrate: (state) => {
-			set({ persisted: state });
+		getGroup: (args) => {
+			const root = get().state.roots.find((entry) => entry.id === args.rootId);
+			return root ? getGroupNode(root, args.groupId) : null;
+		},
+		getActiveGroup: (rootId) => {
+			const state = get().state;
+			const root =
+				(rootId == null
+					? state.roots.find((entry) => entry.id === state.activeRootId)
+					: state.roots.find((entry) => entry.id === rootId)) ?? null;
+			return root?.activeGroupId ? getGroupNode(root, root.activeGroupId) : null;
+		},
+		getPane: (paneId) => {
+			const location = findPaneLocation(get().state, paneId);
+			if (!location) return null;
+
+			const root = get().state.roots.find((entry) => entry.id === location.rootId);
+			const group = root ? getGroupNode(root, location.groupId) : null;
+			const pane = group?.panes[location.paneIndex] ?? null;
+
+			return pane
+				? {
+						...location,
+						pane,
+					}
+				: null;
+		},
+		getActivePane: (rootId) => {
+			const root = rootId == null ? get().getActiveRoot() : get().getRoot(rootId);
+			if (!root || !root.activeGroupId) return null;
+
+			const group = getGroupNode(root, root.activeGroupId);
+			if (!group || !group.activePaneId) return null;
+
+			const paneIndex = group.panes.findIndex((pane) => pane.id === group.activePaneId);
+			if (paneIndex === -1) return null;
+
+			return {
+				rootId: root.id,
+				groupId: group.id,
+				paneIndex,
+				pane: group.panes[paneIndex]!,
+			};
+		},
+		replaceState: (next) => {
+			set((state) => ({
+				state: typeof next === "function" ? next(state.state) : next,
+			}));
 		},
 		addRoot: (root) => {
 			set((state) => ({
-				persisted: {
-					...state.persisted,
-					roots: [...state.persisted.roots, root],
-					activeRootId: state.persisted.activeRootId ?? root.id,
+				state: {
+					...state.state,
+					roots: [...state.state.roots, root],
+					activeRootId: state.state.activeRootId ?? root.id,
 				},
 			}));
 		},
 		removeRoot: (rootId) => {
 			set((state) => ({
-				persisted: {
-					...state.persisted,
-					roots: state.persisted.roots.filter((root) => root.id !== rootId),
+				state: {
+					...state.state,
+					roots: state.state.roots.filter((root) => root.id !== rootId),
 					activeRootId:
-						state.persisted.activeRootId === rootId
-							? state.persisted.roots.filter((root) => root.id !== rootId)[0]?.id ??
+						state.state.activeRootId === rootId
+							? state.state.roots.filter((root) => root.id !== rootId)[0]?.id ??
 							  null
-							: state.persisted.activeRootId,
+							: state.state.activeRootId,
 				},
 			}));
 		},
 		setActiveRoot: (rootId) => {
 			set((state) => ({
-				persisted: state.persisted.roots.some((root) => root.id === rootId)
-					? { ...state.persisted, activeRootId: rootId }
-					: state.persisted,
+				state: state.state.roots.some((root) => root.id === rootId)
+					? { ...state.state, activeRootId: rootId }
+					: state.state,
+			}));
+		},
+		setRootTitleOverride: (args) => {
+			set((state) => ({
+				state: {
+					...state.state,
+					roots: state.state.roots.map((root) =>
+						root.id === args.rootId
+							? {
+									...root,
+									titleOverride: args.titleOverride,
+								}
+							: root,
+					),
+				},
 			}));
 		},
 		setActiveGroup: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
-				if (!getGroupNode(state.persisted.roots[rootIndex]!, args.groupId)) {
+				if (!getGroupNode(state.state.roots[rootIndex]!, args.groupId)) {
 					return state;
 				}
 
 				return {
-					persisted: withUpdatedRootAt(
-						state.persisted,
-						rootIndex,
-						(root) => ({
-							...root,
-							activeGroupId: args.groupId,
-						}),
-					),
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? {
+										...root,
+										activeGroupId: args.groupId,
+									}
+								: root,
+						),
+					},
 				};
 			});
 		},
 		setActivePane: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
 
-				const group = getGroupNode(state.persisted.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
 
 				return {
-					persisted: {
-						...withUpdatedRootAt(state.persisted, rootIndex, (root) => ({
-							...updateGroupNode(root, args.groupId, (currentGroup) => ({
-								...currentGroup,
-								activePaneId: args.paneId,
-							})),
-							activeGroupId: args.groupId,
-						})),
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? {
+										...updateGroupNode(root, args.groupId, (currentGroup) => ({
+											...currentGroup,
+											activePaneId: args.paneId,
+										})),
+										activeGroupId: args.groupId,
+									}
+								: root,
+						),
 						activeRootId: args.rootId,
+					},
+				};
+			});
+		},
+		setPaneTitleOverride: (args) => {
+			set((state) => {
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
+				if (rootIndex === -1) return state;
+
+				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
+					return state;
+				}
+
+				return {
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? updateGroupNode(root, args.groupId, (currentGroup) => ({
+										...currentGroup,
+										panes: currentGroup.panes.map((pane) =>
+											pane.id === args.paneId
+												? {
+														...pane,
+														titleOverride: args.titleOverride,
+													}
+												: pane,
+										),
+									}))
+								: root,
+						),
+					},
+				};
+			});
+		},
+		setPanePinned: (args) => {
+			set((state) => {
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
+				if (rootIndex === -1) return state;
+
+				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
+					return state;
+				}
+
+				return {
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? updateGroupNode(root, args.groupId, (currentGroup) => ({
+										...currentGroup,
+										panes: currentGroup.panes.map((pane) =>
+											pane.id === args.paneId ? { ...pane, pinned: args.pinned } : pane,
+										),
+									}))
+								: root,
+						),
 					},
 				};
 			});
 		},
 		addPaneToGroup: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
 
-				const group = getGroupNode(state.persisted.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
 				if (!group || group.panes.some((pane) => pane.id === args.pane.id)) {
 					return state;
 				}
 
 				return {
-					persisted: {
-						...withUpdatedRootAt(state.persisted, rootIndex, (root) => ({
-							...updateGroupNode(root, args.groupId, (currentGroup) => {
-								const insertAt = clampInsertIndex(
-									args.index,
-									currentGroup.panes.length,
-								);
-								const nextPanes = [...currentGroup.panes];
-								nextPanes.splice(insertAt, 0, args.pane);
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? {
+										...updateGroupNode(root, args.groupId, (currentGroup) => {
+											const previewIndex = args.replaceUnpinned
+												? currentGroup.panes.findIndex(
+														(pane) => pane.pinned !== true,
+													)
+												: -1;
+											const nextPanes = [...currentGroup.panes];
 
-								return {
-									...currentGroup,
-									panes: nextPanes,
-									activePaneId:
-										args.select === true || currentGroup.activePaneId == null
-											? args.pane.id
-											: currentGroup.activePaneId,
-								};
-							}),
-							activeGroupId:
-								args.select === true ? args.groupId : root.activeGroupId,
-						})),
+											if (previewIndex !== -1) {
+												nextPanes.splice(previewIndex, 1, args.pane);
+											} else {
+												const insertAt =
+													args.index == null
+														? currentGroup.panes.length
+														: Math.max(
+																0,
+																Math.min(args.index, currentGroup.panes.length),
+															);
+												nextPanes.splice(insertAt, 0, args.pane);
+											}
+
+											return {
+												...currentGroup,
+												panes: nextPanes,
+												activePaneId:
+													args.select === true ||
+													currentGroup.activePaneId ===
+														currentGroup.panes[previewIndex]?.id ||
+													currentGroup.activePaneId == null
+														? args.pane.id
+														: currentGroup.activePaneId,
+											};
+										}),
+										activeGroupId:
+											args.select === true ? args.groupId : root.activeGroupId,
+									}
+								: root,
+						),
 						activeRootId: args.rootId,
 					},
 				};
@@ -253,30 +440,35 @@ export function createPaneWorkspaceStore<TPaneData>(
 		},
 		closePane: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
 
-				const group = getGroupNode(state.persisted.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
 
 				return {
-					persisted: {
-						...withUpdatedRootAt(state.persisted, rootIndex, (root) =>
-							updateGroupNode(root, args.groupId, (currentGroup) => {
-								const nextPanes = currentGroup.panes.filter(
-									(pane) => pane.id !== args.paneId,
-								);
-								return {
-									...currentGroup,
-									panes: nextPanes,
-									activePaneId:
-										currentGroup.activePaneId === args.paneId
-											? nextPanes[0]?.id ?? null
-											: currentGroup.activePaneId,
-								};
-							}),
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root, index) =>
+							index === rootIndex
+								? updateGroupNode(root, args.groupId, (currentGroup) => {
+										const nextPanes = currentGroup.panes.filter(
+											(pane) => pane.id !== args.paneId,
+										);
+										return {
+											...currentGroup,
+											panes: nextPanes,
+											activePaneId:
+												currentGroup.activePaneId === args.paneId
+													? nextPanes[0]?.id ?? null
+													: currentGroup.activePaneId,
+										};
+									})
+								: root,
 						),
 						activeRootId: args.rootId,
 					},
@@ -285,77 +477,99 @@ export function createPaneWorkspaceStore<TPaneData>(
 		},
 		movePane: (args) => {
 			set((state) => {
-				const source = findPaneLocation(state.persisted, args.paneId);
+				const source = findPaneLocation(state.state, args.paneId);
 				if (!source) return state;
 
-				const sourceRootIndex = findRootIndex(state.persisted, source.rootId);
-				const targetRootIndex = findRootIndex(state.persisted, args.targetRootId);
+				const sourceRootIndex = state.state.roots.findIndex(
+					(root) => root.id === source.rootId,
+				);
+				const targetRootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.targetRootId,
+				);
 				if (sourceRootIndex === -1 || targetRootIndex === -1) return state;
 
 				const sourceGroup = getGroupNode(
-					state.persisted.roots[sourceRootIndex]!,
+					state.state.roots[sourceRootIndex]!,
 					source.groupId,
 				);
 				const targetGroup = getGroupNode(
-					state.persisted.roots[targetRootIndex]!,
+					state.state.roots[targetRootIndex]!,
 					args.targetGroupId,
 				);
 				if (!sourceGroup || !targetGroup) return state;
 
-				const removal = removePaneFromGroupNode(sourceGroup, args.paneId);
-				if (!removal.pane) return state;
-
-				let nextPersisted = withUpdatedRootAt(
-					state.persisted,
-					sourceRootIndex,
-					(root) => updateGroupNode(root, source.groupId, () => removal.group),
+				const sourcePaneIndex = sourceGroup.panes.findIndex(
+					(pane) => pane.id === args.paneId,
 				);
+				if (sourcePaneIndex === -1) return state;
+
+				const pane = sourceGroup.panes[sourcePaneIndex]!;
+				const nextSourceGroup = {
+					...sourceGroup,
+					panes: sourceGroup.panes.filter((existingPane) => existingPane.id !== args.paneId),
+					activePaneId:
+						sourceGroup.activePaneId === args.paneId
+							? sourceGroup.panes.find((existingPane) => existingPane.id !== args.paneId)
+									?.id ?? null
+							: sourceGroup.activePaneId,
+				};
+
+				let nextState: PaneWorkspaceState<TPaneData> = {
+					...state.state,
+					roots: state.state.roots.map((root, index) =>
+						index === sourceRootIndex
+							? updateGroupNode(root, source.groupId, () => nextSourceGroup)
+							: root,
+					),
+				};
 
 				const adjustedTargetIndex =
 					source.rootId === args.targetRootId &&
 					source.groupId === args.targetGroupId &&
 					args.index != null &&
-					args.index > removal.paneIndex
+					args.index > sourcePaneIndex
 						? args.index - 1
 						: args.index;
 
-				nextPersisted = withUpdatedRootAt(nextPersisted, targetRootIndex, (root) => {
-					const nextRoot = updateGroupNode(root, args.targetGroupId, (currentGroup) => {
-						if (
-							currentGroup.panes.some(
-								(pane) => pane.id === removal.pane?.id,
-							)
-						) {
-							return currentGroup;
-						}
+				nextState = {
+					...nextState,
+					roots: nextState.roots.map((root, index) => {
+						if (index !== targetRootIndex) return root;
 
-						const insertAt = clampInsertIndex(
-							adjustedTargetIndex,
-							currentGroup.panes.length,
-						);
-						const nextPanes = [...currentGroup.panes];
-						nextPanes.splice(insertAt, 0, removal.pane!);
+						const nextRoot = updateGroupNode(root, args.targetGroupId, (currentGroup) => {
+							if (currentGroup.panes.some((existingPane) => existingPane.id === pane.id)) {
+								return currentGroup;
+							}
+
+							const insertAt =
+								adjustedTargetIndex == null
+									? currentGroup.panes.length
+									: Math.max(
+											0,
+											Math.min(adjustedTargetIndex, currentGroup.panes.length),
+										);
+							const nextPanes = [...currentGroup.panes];
+							nextPanes.splice(insertAt, 0, pane);
+
+							return {
+								...currentGroup,
+								panes: nextPanes,
+								activePaneId:
+									args.select === true ? pane.id : currentGroup.activePaneId,
+							};
+						});
 
 						return {
-							...currentGroup,
-							panes: nextPanes,
-							activePaneId:
-								args.select === true
-									? removal.pane!.id
-									: currentGroup.activePaneId,
+							...nextRoot,
+							activeGroupId:
+								args.select === true ? args.targetGroupId : nextRoot.activeGroupId,
 						};
-					});
-
-					return {
-						...nextRoot,
-						activeGroupId:
-							args.select === true ? args.targetGroupId : nextRoot.activeGroupId,
-					};
-				});
+					}),
+				};
 
 				return {
-					persisted: {
-						...nextPersisted,
+					state: {
+						...nextState,
 						activeRootId: args.targetRootId,
 					},
 				};
@@ -363,10 +577,12 @@ export function createPaneWorkspaceStore<TPaneData>(
 		},
 		splitGroup: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
 
-				const root = state.persisted.roots[rootIndex]!;
+				const root = state.state.roots[rootIndex]!;
 				const path = findNodePathByGroupId(root.root, args.groupId);
 				if (!path) return state;
 
@@ -386,21 +602,29 @@ export function createPaneWorkspaceStore<TPaneData>(
 						: [node, newGroup];
 
 				return {
-					persisted: {
-						...withUpdatedRootAt(state.persisted, rootIndex, (currentRoot) => ({
-							...currentRoot,
-							root: replaceNodeAtPath(currentRoot.root, path, {
-								type: "split",
-								id: args.splitId ?? `${args.groupId}:${args.newGroupId}`,
-								direction: splitDirectionForPosition(args.position),
-								sizes: args.sizes ?? [50, 50],
-								children,
-							}),
-							activeGroupId:
-								args.selectNewPane === false
-									? currentRoot.activeGroupId
-									: args.newGroupId,
-						})),
+					state: {
+						...state.state,
+						roots: state.state.roots.map((currentRoot, index) =>
+							index === rootIndex
+								? {
+										...currentRoot,
+										root: replaceNodeAtPath(currentRoot.root, path, {
+											type: "split",
+											id: args.splitId ?? `${args.groupId}:${args.newGroupId}`,
+											direction:
+												args.position === "left" || args.position === "right"
+													? "horizontal"
+													: "vertical",
+											sizes: args.sizes ?? [50, 50],
+											children,
+										}),
+										activeGroupId:
+											args.selectNewPane === false
+												? currentRoot.activeGroupId
+												: args.newGroupId,
+									}
+								: currentRoot,
+						),
 						activeRootId: args.rootId,
 					},
 				};
@@ -408,26 +632,73 @@ export function createPaneWorkspaceStore<TPaneData>(
 		},
 		resizeSplit: (args) => {
 			set((state) => {
-				const rootIndex = findRootIndex(state.persisted, args.rootId);
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
 				if (rootIndex === -1) return state;
 
-				const root = state.persisted.roots[rootIndex]!;
+				const root = state.state.roots[rootIndex]!;
 				const path = findNodePathBySplitId(root.root, args.splitId);
 				if (!path) return state;
 
 				return {
-					persisted: withUpdatedRootAt(state.persisted, rootIndex, (currentRoot) => ({
-						...currentRoot,
-						root: updateNodeAtPath(currentRoot.root, path, (node) => {
-							if (node.type !== "split") {
-								throw new Error("Expected split node");
-							}
-							return {
-								...node,
-								sizes: args.sizes,
-							};
-						}),
-					})),
+					state: {
+						...state.state,
+						roots: state.state.roots.map((currentRoot, index) =>
+							index === rootIndex
+								? {
+										...currentRoot,
+										root: updateNodeAtPath(currentRoot.root, path, (node) => {
+											if (node.type !== "split") {
+												throw new Error("Expected split node");
+											}
+											return {
+												...node,
+												sizes: args.sizes,
+											};
+										}),
+									}
+								: currentRoot,
+						),
+					},
+				};
+			});
+		},
+		equalizeSplit: (args) => {
+			set((state) => {
+				const rootIndex = state.state.roots.findIndex(
+					(root) => root.id === args.rootId,
+				);
+				if (rootIndex === -1) return state;
+
+				const root = state.state.roots[rootIndex]!;
+				const path = findNodePathBySplitId(root.root, args.splitId);
+				if (!path) return state;
+
+				return {
+					state: {
+						...state.state,
+						roots: state.state.roots.map((currentRoot, index) =>
+							index === rootIndex
+								? {
+										...currentRoot,
+										root: updateNodeAtPath(currentRoot.root, path, (node) => {
+											if (node.type !== "split") {
+												throw new Error("Expected split node");
+											}
+
+											return {
+												...node,
+												sizes: Array.from(
+													{ length: node.children.length },
+													() => 100 / node.children.length,
+												),
+											};
+										}),
+									}
+								: currentRoot,
+						),
+					},
 				};
 			});
 		},

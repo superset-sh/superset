@@ -2,21 +2,13 @@ import type {
 	PaneGroupNode,
 	PaneLayoutNode,
 	PaneRootState,
-	PaneState,
-	PersistedPaneWorkspaceState,
+	PaneWorkspaceState,
 } from "../../../types";
 
 export interface PaneLocation {
 	rootId: string;
 	groupId: string;
 	paneIndex: number;
-}
-
-export function findRootIndex<TPaneData>(
-	state: PersistedPaneWorkspaceState<TPaneData>,
-	rootId: string,
-): number {
-	return state.roots.findIndex((root) => root.id === rootId);
 }
 
 export function findNodePathByGroupId<TPaneData>(
@@ -123,60 +115,8 @@ export function updateGroupNode<TPaneData>(
 	};
 }
 
-export function withUpdatedRootAt<TPaneData>(
-	state: PersistedPaneWorkspaceState<TPaneData>,
-	rootIndex: number,
-	updater: (root: PaneRootState<TPaneData>) => PaneRootState<TPaneData>,
-): PersistedPaneWorkspaceState<TPaneData> {
-	return {
-		...state,
-		roots: state.roots.map((root, index) =>
-			index === rootIndex ? updater(root) : root,
-		),
-	};
-}
-
-export function clampInsertIndex(index: number | undefined, length: number): number {
-	if (index == null) return length;
-	if (index < 0) return 0;
-	if (index > length) return length;
-	return index;
-}
-
-export function removePaneFromGroupNode<TPaneData>(
-	group: PaneGroupNode<TPaneData>,
-	paneId: string,
-): {
-	group: PaneGroupNode<TPaneData>;
-	pane: PaneState<TPaneData> | null;
-	paneIndex: number;
-} {
-	const paneIndex = group.panes.findIndex((pane) => pane.id === paneId);
-	if (paneIndex === -1) {
-		return {
-			group,
-			pane: null,
-			paneIndex: -1,
-		};
-	}
-
-	const pane = group.panes[paneIndex]!;
-	const nextPanes = group.panes.filter((existingPane) => existingPane.id !== paneId);
-
-	return {
-		group: {
-			...group,
-			panes: nextPanes,
-			activePaneId:
-				group.activePaneId === paneId ? nextPanes[0]?.id ?? null : group.activePaneId,
-		},
-		pane,
-		paneIndex,
-	};
-}
-
 export function findPaneLocation<TPaneData>(
-	state: PersistedPaneWorkspaceState<TPaneData>,
+	state: PaneWorkspaceState<TPaneData>,
 	paneId: string,
 ): PaneLocation | null {
 	const visit = (

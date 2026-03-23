@@ -30,11 +30,12 @@ export type PaneLayoutNode<TPaneData> =
 
 export interface PaneRootState<TPaneData> {
 	id: string;
+	titleOverride?: string;
 	root: PaneLayoutNode<TPaneData>;
 	activeGroupId: string | null;
 }
 
-export interface PersistedPaneWorkspaceState<TPaneData> {
+export interface PaneWorkspaceState<TPaneData> {
 	version: 1;
 	roots: Array<PaneRootState<TPaneData>>;
 	activeRootId: string | null;
