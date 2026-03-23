@@ -325,7 +325,7 @@ export const v2DevicePresenceRelations = relations(
 	}),
 );
 
-export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
+export const v2WorkspacesRelations = relations(v2Workspaces, ({ one, many }) => ({
 	organization: one(organizations, {
 		fields: [v2Workspaces.organizationId],
 		references: [organizations.id],
@@ -342,6 +342,7 @@ export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
 		fields: [v2Workspaces.createdByUserId],
 		references: [users.id],
 	}),
+	chatSessions: many(chatSessions),
 }));
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
@@ -400,6 +401,10 @@ export const chatSessionsRelations = relations(
 		workspace: one(workspaces, {
 			fields: [chatSessions.workspaceId],
 			references: [workspaces.id],
+		}),
+		v2Workspace: one(v2Workspaces, {
+			fields: [chatSessions.v2WorkspaceId],
+			references: [v2Workspaces.id],
 		}),
 		sessionHosts: many(sessionHosts),
 	}),

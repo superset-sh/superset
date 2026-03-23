@@ -645,6 +645,9 @@ export const chatSessions = pgTable(
 		workspaceId: uuid("workspace_id").references(() => workspaces.id, {
 			onDelete: "set null",
 		}),
+		v2WorkspaceId: uuid("v2_workspace_id").references(() => v2Workspaces.id, {
+			onDelete: "set null",
+		}),
 		title: text(),
 		lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
