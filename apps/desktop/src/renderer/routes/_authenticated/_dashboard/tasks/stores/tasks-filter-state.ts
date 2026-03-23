@@ -17,7 +17,7 @@ export const useTasksFilterStore = create<TasksFilterState>()((set) => ({
 	tab: "all",
 	assignee: null,
 	search: "",
-	viewMode: "table",
+	viewMode: "board",
 	setTab: (tab) => set({ tab }),
 	setAssignee: (assignee) => set({ assignee }),
 	setSearch: (search) => set({ search }),

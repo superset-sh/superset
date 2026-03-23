@@ -7,7 +7,6 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
-import { ScrollArea, ScrollBar } from "@superset/ui/scroll-area";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
@@ -204,8 +203,8 @@ function KanbanView({
 	}, [issues]);
 
 	return (
-		<ScrollArea className="flex-1 h-full">
-			<div className="flex gap-4 p-4 h-full min-w-max">
+		<div className="flex-1 flex min-h-0 overflow-x-auto">
+			<div className="flex gap-4 p-4 min-w-max items-stretch flex-1">
 				{KANBAN_COLUMNS.map((state) => (
 					<KanbanColumn
 						key={state}
@@ -224,8 +223,7 @@ function KanbanView({
 					/>
 				))}
 			</div>
-			<ScrollBar orientation="horizontal" />
-		</ScrollArea>
+		</div>
 	);
 }
 
@@ -249,22 +247,41 @@ function KanbanColumn({
 	const navigate = useNavigate();
 	const [isDragOver, setIsDragOver] = useState(false);
 
+	const dropHandlers = {
+		onDragOver: (e: React.DragEvent) => {
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			if (!isDragOver) setIsDragOver(true);
+		},
+		onDragLeave: (e: React.DragEvent) => {
+			// Only leave if actually leaving the column (not entering a child)
+			const rect = e.currentTarget.getBoundingClientRect();
+			const { clientX, clientY } = e;
+			if (
+				clientX < rect.left ||
+				clientX > rect.right ||
+				clientY < rect.top ||
+				clientY > rect.bottom
+			) {
+				setIsDragOver(false);
+			}
+		},
+		onDrop: (e: React.DragEvent) => {
+			e.preventDefault();
+			setIsDragOver(false);
+			onDrop(state);
+		},
+	};
+
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target
 		<div
-			className={`w-72 shrink-0 flex flex-col rounded-lg transition-colors ${
-				isDragOver ? "bg-accent/30" : ""
+			className={`w-72 shrink-0 flex flex-col rounded-lg border-2 transition-colors h-full ${
+				isDragOver
+					? "border-primary/50 bg-accent/20"
+					: "border-transparent"
 			}`}
-			onDragOver={(e) => {
-				e.preventDefault();
-				setIsDragOver(true);
-			}}
-			onDragLeave={() => setIsDragOver(false)}
-			onDrop={(e) => {
-				e.preventDefault();
-				setIsDragOver(false);
-				onDrop(state);
-			}}
+			{...dropHandlers}
 		>
 			<div className="flex items-center gap-2 px-2 py-2 mb-2">
 				<VscIssues className={`size-4 ${stateColor(state)}`} />
@@ -273,7 +290,8 @@ function KanbanColumn({
 					{issues.length}
 				</span>
 			</div>
-			<div className="flex flex-col gap-2 flex-1 overflow-y-auto px-1">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: drop zone */}
+			<div className="flex flex-col gap-2 flex-1 overflow-y-auto px-1 min-h-[100px]" {...dropHandlers}>
 				{issues.map((issue) => {
 					const slug = `${projectKey.toLowerCase()}-${issue.number}`;
 					return (
@@ -281,33 +299,32 @@ function KanbanColumn({
 						<div
 							key={issue.id}
 							draggable
-							onDragStart={() => onDragStart(issue)}
+							onDragStart={(e) => {
+								e.dataTransfer.effectAllowed = "move";
+								e.dataTransfer.setData("text/plain", String(issue.id));
+								onDragStart(issue);
+							}}
+							onClick={() =>
+								navigate({
+									to: "/tasks/onedev/$projectPath/$issueNumber",
+									params: {
+										projectPath: encodeURIComponent(projectPath),
+										issueNumber: String(issue.number),
+									},
+								})
+							}
 							className={`text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing ${
 								draggedIssue?.id === issue.id ? "opacity-50" : ""
 							}`}
 						>
-							<button
-								type="button"
-								className="w-full text-left"
-								onClick={() =>
-									navigate({
-										to: "/tasks/onedev/$projectPath/$issueNumber",
-										params: {
-											projectPath: encodeURIComponent(projectPath),
-											issueNumber: String(issue.number),
-										},
-									})
-								}
-							>
-								<div className="flex items-center gap-2 mb-1">
-									<span className="text-xs text-muted-foreground tabular-nums">
-										{slug}
-									</span>
-								</div>
-								<p className="text-sm font-medium line-clamp-2">
-									{issue.title}
-								</p>
-							</button>
+							<div className="flex items-center gap-2 mb-1">
+								<span className="text-xs text-muted-foreground tabular-nums">
+									{slug}
+								</span>
+							</div>
+							<p className="text-sm font-medium line-clamp-2">
+								{issue.title}
+							</p>
 						</div>
 					);
 				})}
