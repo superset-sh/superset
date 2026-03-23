@@ -208,7 +208,7 @@ export function createTerminalInstance(
 	// Track cleanup state to prevent operations on disposed terminal
 	let isDisposed = false;
 	let rafId: number | null = null;
-	let ligaturesTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	let ligaturesTimeoutId: NodeJS.Timeout | null = null;
 
 	// Use a ref pattern so the renderer can be updated after rAF.
 	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
