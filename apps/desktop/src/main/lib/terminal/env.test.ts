@@ -345,6 +345,17 @@ describe("env", () => {
 				expect(result.XDG_CACHE_HOME).toBe("/home/user/.cache");
 			});
 
+			it("should include WAYLAND_DISPLAY for Wayland clipboard access on Linux", () => {
+				const env = {
+					WAYLAND_DISPLAY: "wayland-0",
+					DISPLAY: ":0",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.WAYLAND_DISPLAY).toBe("wayland-0");
+				expect(result.DISPLAY).toBe(":0");
+			});
+
 			it("should include editor vars", () => {
 				const env = {
 					EDITOR: "vim",
