@@ -863,6 +863,52 @@ export const createSettingsRouter = () => {
 				return { issueId, projectId: project.id };
 			}),
 
+		updateOnedevIssueTitle: publicProcedure
+			.input(z.object({ issueId: z.number(), title: z.string() }))
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) throw new Error("OneDev not configured");
+				const baseUrl = url.replace(/\/+$/, "");
+				const response = await fetch(
+					`${baseUrl}/~api/issues/${input.issueId}/title`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(input.title),
+					},
+				);
+				if (!response.ok) throw new Error(`Failed: ${response.status}`);
+				return { success: true };
+			}),
+
+		updateOnedevIssueDescription: publicProcedure
+			.input(z.object({ issueId: z.number(), description: z.string() }))
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) throw new Error("OneDev not configured");
+				const baseUrl = url.replace(/\/+$/, "");
+				const response = await fetch(
+					`${baseUrl}/~api/issues/${input.issueId}/description`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(input.description),
+					},
+				);
+				if (!response.ok) throw new Error(`Failed: ${response.status}`);
+				return { success: true };
+			}),
+
 		getGitInfo: publicProcedure.query(async () => {
 			const githubUsername = await getGitHubUsername();
 			const authorName = await getGitAuthorName();

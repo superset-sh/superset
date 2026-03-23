@@ -11,8 +11,9 @@ import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
+import { Textarea } from "@superset/ui/textarea";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { HiArrowLeft, HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
 import { VscIssues } from "react-icons/vsc";
@@ -109,15 +110,14 @@ function OnedevIssuePage() {
 				{/* Content */}
 				<ScrollArea className="flex-1 min-h-0">
 					<div className="px-6 py-6 max-w-4xl">
-						<h1 className="text-2xl font-bold mb-4">{issue.title}</h1>
-
-						{issue.description && (
-							<div className="prose prose-invert prose-sm max-w-none">
-								<pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
-									{issue.description}
-								</pre>
-							</div>
-						)}
+						<EditableIssueTitle
+							issueId={issue.id}
+							value={issue.title}
+						/>
+						<EditableIssueDescription
+							issueId={issue.id}
+							value={issue.description ?? ""}
+						/>
 
 						<Separator className="my-8" />
 
@@ -188,6 +188,135 @@ function OnedevIssuePage() {
 					projectId={issue.projectId}
 				/>
 			</div>
+		</div>
+	);
+}
+
+function EditableIssueTitle({
+	issueId,
+	value,
+}: { issueId: number; value: string }) {
+	const [isEditing, setIsEditing] = useState(false);
+	const [draft, setDraft] = useState(value);
+	const utils = electronTrpc.useUtils();
+	const updateTitle = electronTrpc.settings.updateOnedevIssueTitle.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
+			utils.settings.getOnedevIssues.invalidate();
+			setIsEditing(false);
+		},
+	});
+
+	if (isEditing) {
+		return (
+			<input
+				type="text"
+				value={draft}
+				onChange={(e) => setDraft(e.target.value)}
+				onBlur={() => {
+					if (draft.trim() && draft !== value) {
+						updateTitle.mutate({ issueId, title: draft.trim() });
+					} else {
+						setIsEditing(false);
+						setDraft(value);
+					}
+				}}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" && draft.trim()) {
+						updateTitle.mutate({ issueId, title: draft.trim() });
+					}
+					if (e.key === "Escape") {
+						setIsEditing(false);
+						setDraft(value);
+					}
+				}}
+				className="text-2xl font-bold mb-4 w-full bg-transparent border-b border-primary outline-none"
+				autoFocus
+			/>
+		);
+	}
+
+	return (
+		<h1
+			className="text-2xl font-bold mb-4 cursor-pointer hover:text-muted-foreground transition-colors"
+			onClick={() => {
+				setDraft(value);
+				setIsEditing(true);
+			}}
+			title="Click to edit"
+		>
+			{value}
+		</h1>
+	);
+}
+
+function EditableIssueDescription({
+	issueId,
+	value,
+}: { issueId: number; value: string }) {
+	const [isEditing, setIsEditing] = useState(false);
+	const [draft, setDraft] = useState(value);
+	const utils = electronTrpc.useUtils();
+	const updateDesc =
+		electronTrpc.settings.updateOnedevIssueDescription.useMutation({
+			onSuccess: () => {
+				utils.settings.getOnedevIssue.invalidate();
+				utils.settings.getOnedevIssues.invalidate();
+				setIsEditing(false);
+			},
+		});
+
+	if (isEditing) {
+		return (
+			<div className="mb-4">
+				<Textarea
+					value={draft}
+					onChange={(e) => setDraft(e.target.value)}
+					rows={8}
+					className="w-full text-sm"
+					autoFocus
+				/>
+				<div className="flex gap-2 mt-2">
+					<Button
+						size="sm"
+						onClick={() => updateDesc.mutate({ issueId, description: draft })}
+						disabled={updateDesc.isPending}
+					>
+						{updateDesc.isPending ? "Saving..." : "Save"}
+					</Button>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => {
+							setIsEditing(false);
+							setDraft(value);
+						}}
+					>
+						Cancel
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div
+			className="cursor-pointer hover:bg-accent/30 rounded-md p-2 -mx-2 transition-colors min-h-[40px]"
+			onClick={() => {
+				setDraft(value);
+				setIsEditing(true);
+			}}
+			title="Click to edit"
+		>
+			{value ? (
+				<pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
+					{value}
+				</pre>
+			) : (
+				<p className="text-sm text-muted-foreground italic">
+					Click to add description...
+				</p>
+			)}
 		</div>
 	);
 }
@@ -411,6 +540,10 @@ function OpenInWorkspaceSection({
 	const onedevContext = `${description ?? ""}
 
 ---
+## Instructions
+
+**IMPORTANT: Always create a plan first before implementing.** Analyze the task, explore the codebase, then present a step-by-step plan. Wait for confirmation before writing code.
+
 ## OneDev Integration
 
 This project uses OneDev (NOT GitHub). Do NOT use \`gh\` CLI.
