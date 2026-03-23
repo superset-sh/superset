@@ -20,8 +20,6 @@ export interface TerminalPaneData {
 
 export interface ChatPaneData {
 	sessionId: string | null;
-	model?: string;
-	hasDraft: boolean;
 }
 
 export interface BrowserPaneData {
@@ -122,14 +120,10 @@ export function createBrowserPane({
 export function createChatPane({
 	title,
 	sessionId,
-	model,
-	hasDraft,
 	pinned = true,
 }: {
 	title: string;
 	sessionId: string | null;
-	model?: string;
-	hasDraft: boolean;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
 	return createPane({
@@ -138,8 +132,6 @@ export function createChatPane({
 		pinned,
 		data: {
 			sessionId,
-			model,
-			hasDraft,
 		},
 	});
 }

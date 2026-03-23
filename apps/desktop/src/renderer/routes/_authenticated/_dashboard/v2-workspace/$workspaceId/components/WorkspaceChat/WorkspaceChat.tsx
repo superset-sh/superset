@@ -3,25 +3,25 @@ import { ChatPaneInterface as WorkspaceChatInterface } from "./components/Worksp
 import { useWorkspaceChatController } from "./hooks/useWorkspaceChatController";
 
 export function WorkspaceChat({
+	onSessionIdChange,
+	sessionId,
 	workspaceId,
 }: {
+	onSessionIdChange: (sessionId: string | null) => void;
+	sessionId: string | null;
 	workspaceId: string;
 }) {
 	const {
-		sessionId,
-		launchConfig,
 		organizationId,
 		workspacePath,
-		isSessionInitializing,
-		hasCurrentSessionRecord,
 		sessionItems,
 		handleSelectSession,
 		handleNewChat,
-		handleStartFreshSession,
 		handleDeleteSession,
-		ensureCurrentSessionRecord,
-		consumeLaunchConfig,
+		getOrCreateSession,
 	} = useWorkspaceChatController({
+		onSessionIdChange,
+		sessionId,
 		workspaceId,
 	});
 
@@ -32,7 +32,6 @@ export function WorkspaceChat({
 					currentSessionId={sessionId}
 					sessions={sessionItems}
 					fallbackTitle="New Chat"
-					isSessionInitializing={isSessionInitializing}
 					onSelectSession={handleSelectSession}
 					onNewChat={handleNewChat}
 					onDeleteSession={handleDeleteSession}
@@ -41,16 +40,14 @@ export function WorkspaceChat({
 
 			<div className="min-h-0 flex-1">
 				<WorkspaceChatInterface
+					getOrCreateSession={getOrCreateSession}
+					initialLaunchConfig={null}
+					isFocused
+					onResetSession={handleNewChat}
 					sessionId={sessionId}
-					initialLaunchConfig={launchConfig}
 					workspaceId={workspaceId}
 					organizationId={organizationId}
 					cwd={workspacePath}
-					isFocused
-					isSessionReady={hasCurrentSessionRecord}
-					ensureSessionReady={ensureCurrentSessionRecord}
-					onStartFreshSession={handleStartFreshSession}
-					onConsumeLaunchConfig={consumeLaunchConfig}
 				/>
 			</div>
 		</div>

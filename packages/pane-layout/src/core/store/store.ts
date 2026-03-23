@@ -62,7 +62,7 @@ function collapseEmptyNodes<TPaneData>(
 	}
 
 	if (nextChildren.length === 1) {
-		return nextChildren[0];
+		return nextChildren[0]!;
 	}
 
 	return {
@@ -145,6 +145,10 @@ export interface PaneWorkspaceStore<TPaneData>
 		groupId: string;
 		paneId: string;
 		pinned: boolean;
+	}) => void;
+	setPaneData: (args: {
+		paneId: string;
+		data: TPaneData;
 	}) => void;
 	addPaneToGroup: (args: {
 		rootId: string;
@@ -464,6 +468,28 @@ export function createPaneWorkspaceStore<TPaneData>(
 										...currentGroup,
 										panes: currentGroup.panes.map((pane) =>
 											pane.id === args.paneId ? { ...pane, pinned: args.pinned } : pane,
+										),
+									}))
+								: root,
+						),
+					},
+				};
+			});
+		},
+			setPaneData: (args) => {
+				set((state) => {
+					const paneLocation = findPaneLocation(state.state, args.paneId);
+					if (!paneLocation) return state;
+
+				return {
+					state: {
+						...state.state,
+						roots: state.state.roots.map((root) =>
+							root.id === paneLocation.rootId
+								? updateGroupNode(root, paneLocation.groupId, (currentGroup) => ({
+										...currentGroup,
+										panes: currentGroup.panes.map((pane) =>
+											pane.id === args.paneId ? { ...pane, data: args.data } : pane,
 										),
 									}))
 								: root,

@@ -1,4 +1,3 @@
-import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
 import type { UseChatDisplayReturn } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceChat/hooks/useWorkspaceChatDisplay";
 import type { ChatLaunchConfig } from "shared/tabs-types";
 
@@ -17,10 +16,8 @@ export interface ChatPaneInterfaceProps {
 	organizationId: string | null;
 	cwd: string;
 	isFocused: boolean;
-	isSessionReady: boolean;
-	ensureSessionReady: () => Promise<boolean>;
-	onStartFreshSession: () => Promise<StartFreshSessionResult>;
-	onConsumeLaunchConfig: () => void;
+	getOrCreateSession: () => Promise<string>;
+	onResetSession: () => Promise<void>;
 	onUserMessageSubmitted?: (message: string) => void;
 	onRawSnapshotChange?: (snapshot: ChatRawSnapshot) => void;
 }

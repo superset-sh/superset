@@ -125,8 +125,6 @@ export function PaneViewer({
 					createChatPane({
 						title: "Chat",
 						sessionId: null,
-						model: "gpt-5.4",
-						hasDraft: false,
 					}),
 				],
 			}),
@@ -209,9 +207,16 @@ export function PaneViewer({
 			chat: {
 				getIcon: () => <MessageSquare className="size-4" />,
 				renderPane: ({ pane }) => {
-					const _data = pane.data as ChatPaneData;
+					const data = pane.data as ChatPaneData;
 					return (
 						<WorkspaceChat
+							onSessionIdChange={(sessionId) =>
+								store.getState().setPaneData({
+									paneId: pane.id,
+									data: { sessionId },
+								})
+							}
+							sessionId={data.sessionId}
 							workspaceId={workspaceId}
 						/>
 					);

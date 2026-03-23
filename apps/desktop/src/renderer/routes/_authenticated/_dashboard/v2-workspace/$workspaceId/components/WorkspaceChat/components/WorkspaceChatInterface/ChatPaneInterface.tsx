@@ -30,11 +30,7 @@ import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
 import type { ChatPaneInterfaceProps } from "./types";
 import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
-import {
-	type ChatSendMessageInput,
-	sendMessageForSession,
-	toSendFailureMessage,
-} from "./utils/sendMessage";
+import { type ChatSendMessageInput, toSendFailureMessage } from "./utils/sendMessage";
 import {
 	getVisibleMessagesWithPendingUserTurn,
 	type PendingUserTurn,
@@ -189,10 +185,8 @@ export function ChatPaneInterface({
 	organizationId,
 	cwd,
 	isFocused,
-	isSessionReady,
-	ensureSessionReady,
-	onStartFreshSession,
-	onConsumeLaunchConfig,
+	getOrCreateSession,
+	onResetSession,
 	onUserMessageSubmitted,
 	onRawSnapshotChange,
 }: ChatPaneInterfaceProps) {
@@ -426,7 +420,7 @@ export function ChatPaneInterface({
 		cwd,
 		availableModels,
 		canAbort,
-		onStartFreshSession,
+		onResetSession,
 		onStopActiveResponse: () => {
 			void stopActiveResponse();
 		},
@@ -538,14 +532,7 @@ export function ChatPaneInterface({
 
 			if (preparedFiles?.some((file) => file.uploaded === false)) {
 				if (!effectiveSessionId) {
-					const startResult = await onStartFreshSession();
-					if (!startResult.created || !startResult.sessionId) {
-						throw new Error(
-							startResult.errorMessage ??
-								"Failed to create a chat session. Please retry.",
-						);
-					}
-					effectiveSessionId = startResult.sessionId;
+					effectiveSessionId = await getOrCreateSession();
 				}
 
 				const uploadedFiles = await uploadFiles(
@@ -583,38 +570,18 @@ export function ChatPaneInterface({
 					thinkingLevel,
 				},
 			};
-			const immediateUserMessage =
-				effectiveSessionId && !isSessionReady
-					? toOptimisticUserMessage(sendInput)
-					: null;
-			if (immediateUserMessage) {
-				setPendingUserTurn({
-					kind: "append",
-					message: immediateUserMessage,
-				});
-			}
 
 			let targetSessionId = effectiveSessionId;
 			try {
-				const sendResult =
-					effectiveSessionId && effectiveSessionId !== sessionId
-						? {
-								targetSessionId: effectiveSessionId,
-								value: await sendMessageToSession(
-									effectiveSessionId,
-									sendInput,
-								),
-							}
-						: await sendMessageForSession({
-								currentSessionId: effectiveSessionId,
-								isSessionReady,
-								ensureSessionReady,
-								onStartFreshSession,
-								sendToCurrentSession: () => commands.sendMessage(sendInput),
-								sendToSession: (nextSessionId) =>
-									sendMessageToSession(nextSessionId, sendInput),
-							});
-				targetSessionId = sendResult.targetSessionId;
+				if (!targetSessionId) {
+					targetSessionId = await getOrCreateSession();
+				}
+
+				if (sessionId && targetSessionId === sessionId) {
+					await commands.sendMessage(sendInput);
+				} else {
+					await sendMessageToSession(targetSessionId, sendInput);
+				}
 				if (content) {
 					onUserMessageSubmitted?.(content);
 				}
@@ -622,14 +589,6 @@ export function ChatPaneInterface({
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
-				if (immediateUserMessage) {
-					setPendingUserTurn((previousTurn) =>
-						previousTurn?.kind === "append" &&
-						previousTurn.message.id === immediateUserMessage.id
-							? null
-							: previousTurn,
-					);
-				}
 				if (error instanceof Error) throw error;
 				throw new Error(sendErrorMessage);
 			}
@@ -649,11 +608,9 @@ export function ChatPaneInterface({
 			captureChatEvent,
 			clearRuntimeError,
 			commands,
-			isSessionReady,
+			getOrCreateSession,
 			messages?.length,
-			onStartFreshSession,
 			resolveSlashCommandInput,
-			ensureSessionReady,
 			sessionId,
 			sendMessageToSession,
 			setRuntimeErrorMessage,
@@ -676,7 +633,6 @@ export function ChatPaneInterface({
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
-				onConsumeLaunchConfig();
 				return;
 			}
 
@@ -718,15 +674,16 @@ export function ChatPaneInterface({
 			};
 
 			try {
-				const sendResult = await sendMessageForSession({
-					currentSessionId: autoLaunchSessionLockRef.current[launchConfigKey],
-					isSessionReady,
-					ensureSessionReady,
-					onStartFreshSession,
-					sendToCurrentSession: () => commands.sendMessage(sendInput),
-					sendToSession: (nextSessionId) =>
-						sendMessageToSession(nextSessionId, sendInput),
-				});
+				let targetSessionId = autoLaunchSessionLockRef.current[launchConfigKey];
+				if (!targetSessionId) {
+					targetSessionId = await getOrCreateSession();
+					autoLaunchSessionLockRef.current[launchConfigKey] = targetSessionId;
+				}
+				if (sessionId && targetSessionId === sessionId) {
+					await commands.sendMessage(sendInput);
+				} else {
+					await sendMessageToSession(targetSessionId, sendInput);
+				}
 				if (prompt) {
 					onUserMessageSubmitted?.(prompt);
 				}
@@ -735,10 +692,9 @@ export function ChatPaneInterface({
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
-				onConsumeLaunchConfig();
 
 				captureChatEvent("chat_message_sent", {
-					session_id: sendResult.targetSessionId,
+					session_id: targetSessionId,
 					model_id: modelId ?? null,
 					mention_count: 0,
 					attachment_count: launchFiles?.length ?? 0,
@@ -775,17 +731,14 @@ export function ChatPaneInterface({
 		};
 	}, [
 		activeModel?.id,
-		captureChatEvent,
-		clearRuntimeError,
-		commands,
-		ensureSessionReady,
-		initialLaunchConfig,
-		isSessionReady,
-		onConsumeLaunchConfig,
-		onStartFreshSession,
-		sendMessageToSession,
-		sessionId,
-		setRuntimeErrorMessage,
+			captureChatEvent,
+			clearRuntimeError,
+			commands,
+			getOrCreateSession,
+			initialLaunchConfig,
+			sendMessageToSession,
+			sessionId,
+			setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
 	]);

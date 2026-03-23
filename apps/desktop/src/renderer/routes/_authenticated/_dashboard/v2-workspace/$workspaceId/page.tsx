@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { PaneViewer } from "./components/PaneViewer";
+import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId/",
@@ -14,21 +15,21 @@ function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: workspaces } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId)),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
+	const workspace = workspaces?.[0] ?? null;
+
+	if (!workspaces) {
+		return <div className="flex h-full w-full" />;
+	}
 
 	if (!workspace) {
-		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Workspace not found
-			</div>
-		);
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (

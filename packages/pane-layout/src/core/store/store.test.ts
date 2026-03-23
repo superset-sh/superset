@@ -129,6 +129,29 @@ describe("pane workspace state operations", () => {
 		expect(store.getState().state.roots[0]?.titleOverride).toBe("Renamed");
 	});
 
+	it("updates pane data in place by pane id", () => {
+		const store = createPaneWorkspaceStore<TestPaneData>({
+			initialState: createPaneWorkspaceState({
+				roots: [
+					createPaneRoot({
+						id: "root-main",
+						groupId: "group-root",
+						panes: [createTestPane("pane-a", "A")],
+					}),
+				],
+			}),
+		});
+
+		store.getState().setPaneData({
+			paneId: "pane-a",
+			data: { label: "Updated" },
+		});
+
+		expect(store.getState().getPane("pane-a")?.pane.data).toEqual({
+			label: "Updated",
+		});
+	});
+
 	it("splits a group and adds a sibling group", () => {
 		const store = createPaneWorkspaceStore<TestPaneData>({
 			initialState: createPaneWorkspaceState({

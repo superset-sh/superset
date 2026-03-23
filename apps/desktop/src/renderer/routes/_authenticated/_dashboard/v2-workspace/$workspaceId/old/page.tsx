@@ -13,6 +13,7 @@ import {
 	useCommandPalette,
 } from "renderer/screens/main/components/CommandPalette";
 import { useAppHotkey } from "renderer/stores/hotkeys";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { WorkspaceChat } from "../components/WorkspaceChat";
 import { WorkspaceFiles } from "../components/WorkspaceFiles";
 import { WorkspaceTerminal } from "../components/WorkspaceTerminal";
@@ -27,14 +28,14 @@ function V2WorkspaceOldPage() {
 	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: workspaces } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId)),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
+	const workspace = workspaces?.[0] ?? null;
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: currentDevices = [] } = useLiveQuery(
 		(q) =>
@@ -61,12 +62,12 @@ function V2WorkspaceOldPage() {
 	);
 	const project = projects[0] ?? null;
 
+	if (!workspaces) {
+		return <div className="flex h-full w-full" />;
+	}
+
 	if (!workspace) {
-		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Workspace not found
-			</div>
-		);
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
@@ -201,9 +202,13 @@ function V2WorkspaceOldContent({
 					</Tabs>
 				</div>
 
-				{activeView === "chat" ? (
-					<WorkspaceChat workspaceId={workspaceId} />
-				) : activeView === "files" ? (
+					{activeView === "chat" ? (
+						<WorkspaceChat
+							onSessionIdChange={() => {}}
+							sessionId={null}
+							workspaceId={workspaceId}
+						/>
+					) : activeView === "files" ? (
 					<WorkspaceFiles
 						onSelectFile={handleSelectFile}
 						selectedFilePath={selectedFilePath}
