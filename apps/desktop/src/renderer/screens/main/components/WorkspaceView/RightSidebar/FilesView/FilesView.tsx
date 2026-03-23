@@ -34,6 +34,8 @@ import { RenameInput } from "./components/RenameInput";
 import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
+import { useFileTreeDrop } from "./hooks/useFileTreeDrop";
+import { useFileTreePaste } from "./hooks/useFileTreePaste";
 import type { NewItemMode } from "./types";
 
 interface PendingTreeRefresh {
@@ -375,26 +377,60 @@ export function FilesView() {
 		Boolean(workspaceId && worktreePath),
 	);
 
-	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
-		useFileTreeActions({
+	const handleTreeRefresh = useCallback(
+		async (parentPath: string) => {
+			const isRoot = parentPath === worktreePath;
+			const itemId = isRoot
+				? "root"
+				: tree
+						.getItems()
+						.find(
+							(item: ItemInstance<DirectoryEntry>) =>
+								item.getItemData()?.path === parentPath,
+						)
+						?.getId();
+			if (itemId) {
+				await tree.getItemInstance(itemId)?.invalidateChildrenIds();
+			}
+		},
+		[worktreePath, tree],
+	);
+
+	const {
+		createFile,
+		createDirectory,
+		rename,
+		deleteItems,
+		moveItems,
+		copyItems,
+		isDeleting,
+	} = useFileTreeActions({
+		workspaceId,
+		worktreePath,
+		onRefresh: handleTreeRefresh,
+	});
+
+	const { dropTargetPath, getItemDropProps, getRootDropProps } =
+		useFileTreeDrop({
 			workspaceId,
 			worktreePath,
-			onRefresh: async (parentPath: string) => {
-				const isRoot = parentPath === worktreePath;
-				const itemId = isRoot
-					? "root"
-					: tree
-							.getItems()
-							.find(
-								(item: ItemInstance<DirectoryEntry>) =>
-									item.getItemData()?.path === parentPath,
-							)
-							?.getId();
-				if (itemId) {
-					await tree.getItemInstance(itemId)?.invalidateChildrenIds();
-				}
-			},
+			moveItems,
+			copyItems,
+			onRefresh: handleTreeRefresh,
 		});
+
+	const [selectedPath, setSelectedPath] = useState<string | null>(null);
+
+	const selectedEntry = useMemo(() => {
+		if (!selectedPath) return null;
+		return entryCacheRef.current.get(selectedPath) ?? null;
+	}, [selectedPath]);
+
+	const { handlePaste } = useFileTreePaste({
+		workspaceId,
+		worktreePath,
+		selectedEntry,
+	});
 
 	const {
 		searchResults,
@@ -408,12 +444,19 @@ export function FilesView() {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const openFileInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation();
-
 	const [newItemMode, setNewItemMode] = useState<NewItemMode>(null);
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
 	const [renameEntry, setRenameEntry] = useState<DirectoryEntry | null>(null);
 	const [deleteEntry, setDeleteEntry] = useState<DirectoryEntry | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+	const handleSelect = useCallback((entry: DirectoryEntry) => {
+		setSelectedPath(entry.path);
+	}, []);
+
+	const handleBackgroundClick = useCallback(() => {
+		setSelectedPath(null);
+	}, []);
 
 	const handleFileActivate = useCallback(
 		(entry: DirectoryEntry, openInNewTab?: boolean) => {
@@ -565,7 +608,14 @@ export function FilesView() {
 			<div className="flex-1 min-h-0 overflow-hidden">
 				<ContextMenu>
 					<ContextMenuTrigger asChild className="h-full">
-						<div className="h-full overflow-auto">
+						<div
+							role="tree"
+							tabIndex={-1}
+							className="h-full overflow-auto outline-none"
+							{...getRootDropProps()}
+							onKeyDown={handlePaste}
+							onClick={handleBackgroundClick}
+						>
 							{newItemMode && newItemParentPath === worktreePath && (
 								<NewItemInput
 									mode={newItemMode}
@@ -610,7 +660,7 @@ export function FilesView() {
 									</div>
 								)
 							) : (
-								<div {...tree.getContainerProps()} className="outline-none">
+								<div {...tree.getContainerProps()} className="outline-none min-h-full pb-8">
 									{tree.getItems().map((item: ItemInstance<DirectoryEntry>) => {
 										const data = item.getItemData();
 										if (!data || item.getId() === "root") return null;
@@ -619,6 +669,10 @@ export function FilesView() {
 											data.isDirectory &&
 											data.path === newItemParentPath;
 										const isRenaming = renameEntry?.path === data.path;
+										const itemTargetFolder = data.isDirectory
+											? data.path
+											: data.path.split("/").slice(0, -1).join("/") ||
+												worktreePath;
 										return (
 											<div key={item.getId()}>
 												{isRenaming ? (
@@ -636,6 +690,11 @@ export function FilesView() {
 														indent={TREE_INDENT}
 														worktreePath={worktreePath}
 														projectId={projectId}
+														isSelected={selectedPath === data.path}
+														isDropTarget={dropTargetPath === itemTargetFolder}
+														dropProps={getItemDropProps(data)}
+														onSelect={handleSelect}
+														onDeselect={handleBackgroundClick}
 														onActivate={handleFileActivate}
 														onOpenInEditor={handleOpenInEditor}
 														onNewFile={handleNewFile}

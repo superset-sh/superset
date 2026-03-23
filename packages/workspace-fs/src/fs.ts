@@ -739,3 +739,69 @@ export async function copyPath({
 	await fs.cp(sourcePath, destinationPath, { recursive: true });
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
 }
+
+async function resolveConflictFreePath(
+	destinationPath: string,
+): Promise<string> {
+	try {
+		await fs.access(destinationPath);
+	} catch {
+		return destinationPath;
+	}
+
+	const parsed = path.parse(destinationPath);
+	let counter = 0;
+	let candidate: string;
+
+	do {
+		counter += 1;
+		const suffix = counter === 1 ? " (copy)" : ` (copy ${counter})`;
+		candidate = path.join(parsed.dir, `${parsed.name}${suffix}${parsed.ext}`);
+		try {
+			await fs.access(candidate);
+		} catch {
+			return candidate;
+		}
+	} while (counter < 100);
+
+	throw new Error(`Too many copies of ${parsed.base}`);
+}
+
+export async function importExternalFiles({
+	rootPath,
+	sourcePaths,
+	destinationDirectoryPath,
+}: {
+	rootPath: string;
+	sourcePaths: string[];
+	destinationDirectoryPath: string;
+}): Promise<{
+	imported: Array<{ sourcePath: string; destinationPath: string }>;
+}> {
+	const destDir = ensureWithinRoot({
+		rootPath,
+		absolutePath: destinationDirectoryPath,
+	});
+
+	const destStat = await fs.stat(destDir);
+	if (!destStat.isDirectory()) {
+		throw new Error(`Destination is not a directory: ${destDir}`);
+	}
+
+	const imported: Array<{ sourcePath: string; destinationPath: string }> = [];
+
+	for (const sourcePath of sourcePaths) {
+		const normalizedSource = normalizeAbsolutePath(sourcePath);
+
+		await fs.access(normalizedSource);
+
+		const baseName = path.basename(normalizedSource);
+		const rawDest = path.join(destDir, baseName);
+		const finalDest = await resolveConflictFreePath(rawDest);
+
+		await fs.cp(normalizedSource, finalDest, { recursive: true });
+		imported.push({ sourcePath: normalizedSource, destinationPath: finalDest });
+	}
+
+	return { imported };
+}

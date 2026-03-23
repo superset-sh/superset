@@ -23,6 +23,13 @@ import type { DirectoryEntry } from "shared/file-tree-types";
 import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
 import { FileIcon } from "../../utils";
 
+interface DropEventHandlers {
+	onDragEnter: (e: React.DragEvent) => void;
+	onDragOver: (e: React.DragEvent) => void;
+	onDragLeave: (e: React.DragEvent) => void;
+	onDrop: (e: React.DragEvent) => void;
+}
+
 interface FileTreeItemProps {
 	item: ItemInstance<DirectoryEntry>;
 	entry: DirectoryEntry;
@@ -30,6 +37,11 @@ interface FileTreeItemProps {
 	indent: number;
 	worktreePath: string;
 	projectId?: string;
+	isSelected?: boolean;
+	isDropTarget?: boolean;
+	dropProps?: DropEventHandlers;
+	onSelect: (entry: DirectoryEntry) => void;
+	onDeselect: () => void;
 	onActivate: (entry: DirectoryEntry, openInNewTab?: boolean) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
@@ -45,6 +57,11 @@ export function FileTreeItem({
 	indent,
 	worktreePath,
 	projectId,
+	isSelected,
+	isDropTarget,
+	dropProps,
+	onSelect,
+	onDeselect,
 	onActivate,
 	onOpenInEditor,
 	onNewFile,
@@ -75,10 +92,13 @@ export function FileTreeItem({
 		if (isFolder) {
 			if (isExpanded) {
 				item.collapse();
+				onDeselect();
 			} else {
 				item.expand();
+				onSelect(entry);
 			}
 		} else {
+			onSelect(entry);
 			onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 		}
 	};
@@ -107,6 +127,7 @@ export function FileTreeItem({
 		<div
 			{...item.getProps()}
 			{...fileDragProps}
+			{...dropProps}
 			data-item-id={item.getId()}
 			style={{
 				height: rowHeight,
@@ -118,7 +139,8 @@ export function FileTreeItem({
 			className={cn(
 				"flex items-center gap-1 px-1 cursor-pointer select-none",
 				"hover:bg-accent/50 transition-colors",
-				item.isSelected() && "bg-accent",
+				isSelected && "bg-accent",
+				isDropTarget && !isSelected && "bg-accent",
 			)}
 			onClick={handleClick}
 			onDoubleClick={handleDoubleClick}
