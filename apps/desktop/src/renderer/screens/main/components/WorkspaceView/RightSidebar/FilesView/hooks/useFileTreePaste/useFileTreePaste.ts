@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { DirectoryEntry } from "shared/file-tree-types";
+import { getParentPath } from "../../utils/new-item-paths";
 
 interface UseFileTreePasteProps {
 	workspaceId: string | undefined;
@@ -20,7 +21,7 @@ function resolveTargetFolder(
 ): string {
 	if (!selectedEntry) return worktreePath;
 	if (selectedEntry.isDirectory) return selectedEntry.path;
-	return selectedEntry.path.split("/").slice(0, -1).join("/") || worktreePath;
+	return getParentPath(selectedEntry.path) || worktreePath;
 }
 
 export function useFileTreePaste({
@@ -47,7 +48,11 @@ export function useFileTreePaste({
 			try {
 				clipboardPaths =
 					await trpcUtils.external.readClipboardFilePaths.fetch();
-			} catch {
+			} catch (error) {
+				console.warn(
+					"[useFileTreePaste] Failed to read clipboard file paths:",
+					error,
+				);
 				return;
 			}
 

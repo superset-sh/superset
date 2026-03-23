@@ -671,8 +671,7 @@ export function FilesView() {
 										const isRenaming = renameEntry?.path === data.path;
 										const itemTargetFolder = data.isDirectory
 											? data.path
-											: data.path.split("/").slice(0, -1).join("/") ||
-												worktreePath;
+											: getParentPath(data.path) || worktreePath;
 										return (
 											<div key={item.getId()}>
 												{isRenaming ? (

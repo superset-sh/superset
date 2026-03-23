@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { DirectoryEntry } from "shared/file-tree-types";
+import { getParentPath } from "../../utils/new-item-paths";
 
 const FILE_PATH_MIME = "application/x-superset-file-path";
 
@@ -18,7 +19,7 @@ function resolveTargetFolder(
 	worktreePath: string,
 ): string {
 	if (entry.isDirectory) return entry.path;
-	return entry.path.split("/").slice(0, -1).join("/") || worktreePath;
+	return getParentPath(entry.path) || worktreePath;
 }
 
 function isDescendantOf(childPath: string, parentPath: string): boolean {
@@ -49,8 +50,12 @@ export function useFileTreeDrop({
 				try {
 					const filePath = window.webUtils.getPathForFile(file);
 					if (filePath) sourcePaths.push(filePath);
-				} catch {
-					// Skip files we can't get paths for
+				} catch (error) {
+					console.warn(
+						"[useFileTreeDrop] Failed to get path for dropped file:",
+						file.name,
+						error,
+					);
 				}
 			}
 

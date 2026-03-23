@@ -783,6 +783,9 @@ export async function importExternalFiles({
 		absolutePath: destinationDirectoryPath,
 	});
 
+	// Resolve symlinks to prevent escaping the workspace root
+	await assertRealpathWithinRoot(rootPath, destDir);
+
 	const destStat = await fs.stat(destDir);
 	if (!destStat.isDirectory()) {
 		throw new Error(`Destination is not a directory: ${destDir}`);

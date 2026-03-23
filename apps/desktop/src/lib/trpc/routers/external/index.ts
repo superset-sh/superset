@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
 	EXTERNAL_APPS,
 	NON_EDITOR_APPS,
@@ -198,8 +199,11 @@ export const createExternalRouter = () => {
 						if (paths.length > 0) return paths;
 					}
 				}
-			} catch {
-				// Not on macOS or format not available
+			} catch (error) {
+				console.warn(
+					"[readClipboardFilePaths] Failed to read NSFilenamesPboardType:",
+					error,
+				);
 			}
 
 			// Fallback: check for text/uri-list (Linux/other)
@@ -211,8 +215,13 @@ export const createExternalRouter = () => {
 					.filter((line) => line.startsWith("file://"))
 					.map((uri) => {
 						try {
-							return decodeURIComponent(new URL(uri).pathname);
-						} catch {
+							return fileURLToPath(uri);
+						} catch (error) {
+							console.warn(
+								"[readClipboardFilePaths] Failed to parse file URI:",
+								uri,
+								error,
+							);
 							return null;
 						}
 					})
