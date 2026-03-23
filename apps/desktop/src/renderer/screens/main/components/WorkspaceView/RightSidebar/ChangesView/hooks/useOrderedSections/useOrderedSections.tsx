@@ -8,7 +8,7 @@ import type {
 	ChangedFile,
 	CommitInfo,
 } from "shared/changes-types";
-import { CommitItem } from "../../components/CommitItem";
+import { CommitListVirtualized } from "../../components/CommitListVirtualized";
 import { FileList } from "../../components/FileList";
 import type { ChangesViewMode } from "../../types";
 
@@ -126,23 +126,20 @@ export function useOrderedSections({
 			count: commitCount,
 			isExpanded: expandedSections.committed,
 			onToggle: () => toggleSection("committed"),
-			content: expandedSections.committed
-				? commitsWithFiles.map((commit) => (
-						<CommitItem
-							key={commit.hash}
-							commit={commit}
-							isExpanded={expandedCommits.has(commit.hash)}
-							onToggle={() => onCommitToggle(commit.hash)}
-							selectedFile={selectedFile}
-							selectedCommitHash={selectedCommitHash}
-							onFileSelect={onCommitFileSelect}
-							viewMode={fileListViewMode}
-							worktreePath={worktreePath}
-							projectId={projectId}
-							isExpandedView={isExpandedView}
-						/>
-					))
-				: null,
+			content: expandedSections.committed ? (
+				<CommitListVirtualized
+					commits={commitsWithFiles}
+					expandedCommits={expandedCommits}
+					onCommitToggle={onCommitToggle}
+					selectedFile={selectedFile}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={onCommitFileSelect}
+					viewMode={fileListViewMode}
+					worktreePath={worktreePath}
+					projectId={projectId}
+					isExpandedView={isExpandedView}
+				/>
+			) : null,
 		},
 		staged: {
 			id: "staged",
