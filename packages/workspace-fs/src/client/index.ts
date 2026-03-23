@@ -47,6 +47,9 @@ export function createFsClient(transport: FsClientTransport): FsService {
 		async copyPath(input) {
 			return await transport.request("copyPath", input);
 		},
+		async importExternalFiles(input) {
+			return await transport.request("importExternalFiles", input);
+		},
 		async searchFiles(input) {
 			return await transport.request("searchFiles", input);
 		},

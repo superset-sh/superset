@@ -187,6 +187,22 @@ export const createFilesystemRouter = () => {
 				});
 			}),
 
+		importExternalFiles: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					sourcePaths: z.array(z.string()),
+					destinationDirectoryPath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const service = getServiceForWorkspace(input.workspaceId);
+				return await service.importExternalFiles({
+					sourcePaths: input.sourcePaths,
+					destinationDirectoryPath: input.destinationDirectoryPath,
+				});
+			}),
+
 		searchFiles: publicProcedure
 			.input(
 				z.object({

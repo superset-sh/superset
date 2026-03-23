@@ -15,7 +15,7 @@ export function useFileDrag({ absolutePath }: UseFileDragProps) {
 			}
 			e.dataTransfer.setData("text/plain", absolutePath);
 			e.dataTransfer.setData(FILE_PATH_MIME, absolutePath);
-			e.dataTransfer.effectAllowed = "copy";
+			e.dataTransfer.effectAllowed = "copyMove";
 		},
 		[absolutePath],
 	);
