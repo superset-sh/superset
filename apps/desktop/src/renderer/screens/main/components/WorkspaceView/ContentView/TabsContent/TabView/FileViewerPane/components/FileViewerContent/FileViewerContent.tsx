@@ -118,6 +118,7 @@ interface FileViewerContentProps {
 	hideUnchangedRegions: boolean;
 	onSaveFile: () => void;
 	onContentChange: (value: string | undefined) => void;
+	onMarkdownNormalize?: (normalizedContent: string) => void;
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
@@ -153,6 +154,7 @@ export function FileViewerContent({
 	hideUnchangedRegions,
 	onSaveFile,
 	onContentChange,
+	onMarkdownNormalize,
 	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
@@ -460,6 +462,7 @@ export function FileViewerContent({
 						editable
 						editorRef={markdownEditorRef}
 						onChange={onContentChange}
+						onNormalize={onMarkdownNormalize}
 						onSave={onSaveFile}
 					/>
 				</div>

@@ -389,6 +389,22 @@ export function setDocumentExternalDiskChange(
 	});
 }
 
+/**
+ * Update the baseline to a normalized form of the same content (e.g. TipTap's
+ * markdown round-trip). Only touches the buffer — metadata, revision, and
+ * dirty flag stay unchanged so that hasExternalDiskChange keeps comparing
+ * against the original disk revision.
+ */
+export function normalizeDocumentBaseline(
+	documentKey: string,
+	normalizedContent: string,
+): void {
+	setDocumentLoadedContent(documentKey, normalizedContent);
+	useEditorDocumentsStore.getState().patchDocument(documentKey, {
+		dirty: false,
+	});
+}
+
 export function getEditorDocumentCurrentContent(documentKey: string): string {
 	return getDocumentCurrentContent(documentKey);
 }

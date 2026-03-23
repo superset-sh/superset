@@ -18,6 +18,7 @@ import {
 	getEditorDocumentCurrentContent,
 	hasEditorDocumentInitialized,
 	markDocumentSaved,
+	normalizeDocumentBaseline,
 	requestPaneClose,
 	requestViewModeChange,
 	resumePendingIntent,
@@ -399,6 +400,17 @@ export function FileViewerPane({
 		[documentKey, isPinned, paneId, pinPane],
 	);
 
+	// When TipTap normalizes markdown (round-trip parse → serialize changes
+	// whitespace, trailing newlines, etc.), update the baseline so the
+	// normalized form is treated as "clean" and doesn't trigger isDirty.
+	const handleMarkdownNormalize = useCallback(
+		(normalizedContent: string) => {
+			if (isDirty) return;
+			normalizeDocumentBaseline(documentKey, normalizedContent);
+		},
+		[documentKey, isDirty],
+	);
+
 	useEffect(() => {
 		if (!isDirty) {
 			clearDocumentConflict(documentKey);
@@ -693,6 +705,7 @@ export function FileViewerPane({
 							hideUnchangedRegions={hideUnchangedRegions}
 							onSaveFile={handleEditorSave}
 							onContentChange={handleContentChange}
+							onMarkdownNormalize={handleMarkdownNormalize}
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 							onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
