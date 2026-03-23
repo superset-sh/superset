@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 
+/** Survives component remounts so we don't re-show questions that were already answered. */
+const answeredToolCalls = new Set<string>();
+
 interface QuestionToolOption {
 	label: string;
 	description?: string;
@@ -169,8 +172,9 @@ export function AskUserQuestionToolCall({
 	useEffect(() => {
 		if (part.state === "output-available" || part.state === "output-error") {
 			setIsSubmittingLocally(false);
+			answeredToolCalls.delete(part.toolCallId);
 		}
-	}, [part.state]);
+	}, [part.state, part.toolCallId]);
 
 	const questions = useMemo(() => {
 		return toQuestionToolQuestions(args.questions);
@@ -209,11 +213,13 @@ export function AskUserQuestionToolCall({
 
 	const handleSubmit = (submittedAnswers: Record<string, string>): void => {
 		if (!onAnswer || isSubmittingLocally) return;
+		answeredToolCalls.add(part.toolCallId);
 		setOptimisticAnswers(submittedAnswers);
 		setIsSubmittingLocally(true);
 
 		void Promise.resolve(onAnswer(part.toolCallId, submittedAnswers)).catch(
 			() => {
+				answeredToolCalls.delete(part.toolCallId);
 				setOptimisticAnswers(null);
 				setIsSubmittingLocally(false);
 			},
@@ -230,7 +236,11 @@ export function AskUserQuestionToolCall({
 		);
 	}
 
-	if (hasOutput || !onAnswer || optimisticAnswers) {
+	if (optimisticAnswers || answeredToolCalls.has(part.toolCallId)) {
+		return null;
+	}
+
+	if (hasOutput || !onAnswer) {
 		return (
 			<div className="space-y-2">
 				{messageBlock}

@@ -17,7 +17,7 @@ import { InterruptedFooter } from "./components/InterruptedFooter";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
-import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
+
 import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
@@ -54,8 +54,6 @@ export function ChatMessageList({
 	isPlanSubmitting,
 	onPlanRespond,
 	pendingQuestion,
-	isQuestionSubmitting,
-	onQuestionRespond,
 	editingUserMessageId,
 	isEditSubmitting,
 	onStartEditUserMessage,
@@ -276,13 +274,7 @@ export function ChatMessageList({
 							onRespond={onPlanRespond}
 						/>
 					)}
-					{pendingQuestion && (
-						<PendingQuestionMessage
-							question={pendingQuestion}
-							isSubmitting={isQuestionSubmitting}
-							onRespond={onQuestionRespond}
-						/>
-					)}
+	
 				</div>
 			</ConversationContent>
 			<ChatSearch

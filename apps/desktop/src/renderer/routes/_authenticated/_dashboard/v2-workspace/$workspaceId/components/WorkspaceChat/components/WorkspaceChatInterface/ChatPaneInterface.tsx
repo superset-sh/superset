@@ -21,6 +21,7 @@ import {
 	type UseChatDisplayReturn,
 	useChatDisplay,
 } from "../../hooks/useWorkspaceChatDisplay";
+import { QuestionFooter } from "renderer/components/Chat/ChatInterface/components/QuestionFooter";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { ChatMessageList } from "./components/ChatMessageList";
 import type { UserMessageRestartRequest } from "./components/ChatMessageList/ChatMessageList.types";
@@ -983,8 +984,6 @@ export function ChatPaneInterface({
 					isPlanSubmitting={planResponsePending}
 					onPlanRespond={handlePlanResponse}
 					pendingQuestion={pendingQuestion}
-					isQuestionSubmitting={questionResponsePending}
-					onQuestionRespond={handleQuestionResponse}
 					editingUserMessageId={editingUserMessageId}
 					isEditSubmitting={isAwaitingAssistant}
 					onStartEditUserMessage={setEditingUserMessageId}
@@ -993,30 +992,38 @@ export function ChatPaneInterface({
 					onRestartUserMessage={handleResendUserMessage}
 				/>
 				<McpControls mcpUi={mcpUi} />
-				<ChatUploadFooter
-					cwd={cwd}
-					isFocused={isFocused}
-					error={errorMessage}
-					canAbort={canAbort}
-					submitStatus={submitStatus}
-					availableModels={availableModels}
-					selectedModel={activeModel}
-					setSelectedModel={handleSelectModel}
-					modelSelectorOpen={modelSelectorOpen}
-					setModelSelectorOpen={setModelSelectorOpen}
-					permissionMode={permissionMode}
-					setPermissionMode={setPermissionMode}
-					thinkingLevel={thinkingLevel}
-					setThinkingLevel={setThinkingLevel}
-					slashCommands={slashCommands}
-					sessionId={sessionId}
-					workspaceId={workspaceId}
-					onError={setRuntimeErrorMessage}
-					onSend={handleSend}
-					onSubmitStart={() => setSubmitStatus("submitted")}
-					onStop={handleStop}
-					onSlashCommandSend={handleSlashCommandSend}
-				/>
+				{pendingQuestion ? (
+					<QuestionFooter
+						question={pendingQuestion}
+						isSubmitting={questionResponsePending}
+						onRespond={handleQuestionResponse}
+					/>
+				) : (
+					<ChatUploadFooter
+						cwd={cwd}
+						isFocused={isFocused}
+						error={errorMessage}
+						canAbort={canAbort}
+						submitStatus={submitStatus}
+						availableModels={availableModels}
+						selectedModel={activeModel}
+						setSelectedModel={handleSelectModel}
+						modelSelectorOpen={modelSelectorOpen}
+						setModelSelectorOpen={setModelSelectorOpen}
+						permissionMode={permissionMode}
+						setPermissionMode={setPermissionMode}
+						thinkingLevel={thinkingLevel}
+						setThinkingLevel={setThinkingLevel}
+						slashCommands={slashCommands}
+						sessionId={sessionId}
+						workspaceId={workspaceId}
+						onError={setRuntimeErrorMessage}
+						onSend={handleSend}
+						onSubmitStart={() => setSubmitStatus("submitted")}
+						onStop={handleStop}
+						onSlashCommandSend={handleSlashCommandSend}
+					/>
+				)}
 			</div>
 		</PromptInputProvider>
 	);
