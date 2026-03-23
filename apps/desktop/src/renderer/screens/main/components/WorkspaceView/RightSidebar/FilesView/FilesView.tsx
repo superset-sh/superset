@@ -428,7 +428,7 @@ export function FilesView() {
 
 	const handleOpenInEditor = useCallback(
 		(entry: DirectoryEntry) => {
-			if (!worktreePath) return;
+			if (!worktreePath || entry.isDirectory) return;
 			openFileInEditorMutation.mutate({
 				path: entry.path,
 				cwd: worktreePath,

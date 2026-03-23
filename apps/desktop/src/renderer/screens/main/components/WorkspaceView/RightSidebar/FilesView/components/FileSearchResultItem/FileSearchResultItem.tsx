@@ -90,7 +90,9 @@ export function FileSearchResultItem({
 	};
 
 	const handleDoubleClick = () => {
-		onOpenInEditor(entry);
+		if (!entry.isDirectory) {
+			onOpenInEditor(entry);
+		}
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
