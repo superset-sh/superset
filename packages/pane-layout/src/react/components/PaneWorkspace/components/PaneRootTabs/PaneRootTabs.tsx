@@ -47,15 +47,17 @@ function AddRootButtonCell<TPaneData>({
 	}) => ReactNode;
 }) {
 	const button = (
-		<Button
-			className="h-full w-10 rounded-none border-0 px-0 text-muted-foreground shadow-none hover:bg-tertiary/20 hover:text-foreground"
-			onClick={renderAddRootMenu ? undefined : () => onAddRoot?.({ store })}
-			size="sm"
-			type="button"
-			variant="ghost"
-		>
-			<PlusIcon className="size-4" />
-		</Button>
+		<div className="flex items-center shrink-0">
+			<Button
+				className="size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+				onClick={renderAddRootMenu ? undefined : () => onAddRoot?.({ store })}
+				size="icon"
+				type="button"
+				variant="ghost"
+			>
+				<PlusIcon className="size-3.5" />
+			</Button>
+		</div>
 	);
 
 	if (renderAddRootMenu) {
@@ -135,17 +137,22 @@ export function PaneRootTabs<TPaneData>({
 			>
 				<div ref={rootsTrackRef} className="flex h-full items-stretch">
 					{roots.map((root) => (
-						<PaneRootTabItem
-							getRootTitle={getRootTitle}
-							isActive={root.id === activeRootId}
+						<div
+							className="h-full shrink-0"
 							key={root.id}
-							onSelect={() => onSelectRoot(root.id)}
-							root={root}
-							store={store}
-						/>
+							style={{ width: "160px" }}
+						>
+							<PaneRootTabItem
+								getRootTitle={getRootTitle}
+								isActive={root.id === activeRootId}
+								onSelect={() => onSelectRoot(root.id)}
+								root={root}
+								store={store}
+							/>
+						</div>
 					))}
 					{!hasHorizontalOverflow && (onAddRoot || renderAddRootMenu) ? (
-						<div className="h-full shrink-0">
+						<div className="flex h-full shrink-0 items-center px-1">
 							<AddRootButtonCell
 								onAddRoot={onAddRoot}
 								renderAddRootMenu={renderAddRootMenu}
@@ -156,7 +163,7 @@ export function PaneRootTabs<TPaneData>({
 				</div>
 			</div>
 			{hasHorizontalOverflow && (onAddRoot || renderAddRootMenu) ? (
-				<div className="h-full shrink-0 bg-background">
+				<div className="flex h-full shrink-0 items-center bg-background/95 pr-1">
 					<AddRootButtonCell
 						onAddRoot={onAddRoot}
 						renderAddRootMenu={renderAddRootMenu}

@@ -6,14 +6,14 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { XIcon } from "lucide-react";
+import { PencilIcon, XIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneWorkspaceStore } from "../../../../../../../core/store";
 import type { PaneRootState } from "../../../../../../../types";
+import { RootRenameInput } from "./components/RootRenameInput";
 
 interface PaneRootTabItemProps<TPaneData> {
 	store: StoreApi<PaneWorkspaceStore<TPaneData>>;
@@ -59,24 +59,15 @@ export function PaneRootTabItem<TPaneData>({
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				<div className="group relative flex h-full shrink-0 border-r border-border">
+				<div className="group relative flex h-full w-full items-center border-r border-border">
 					{isEditing ? (
-						<div className="flex h-full w-[160px] items-center px-2">
-							<Input
-								autoFocus
-								className="h-7"
-								onBlur={saveEdit}
-								onChange={(event) => setEditValue(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === "Enter") {
-										event.preventDefault();
-										saveEdit();
-									}
-									if (event.key === "Escape") {
-										event.preventDefault();
-										stopEditing();
-									}
-								}}
+						<div className="flex h-full w-full shrink-0 items-center px-2">
+							<RootRenameInput
+								className="text-sm w-full min-w-0 rounded border border-border bg-background px-1 py-0.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
+								maxLength={64}
+								onCancel={stopEditing}
+								onChange={setEditValue}
+								onSubmit={saveEdit}
 								value={editValue}
 							/>
 						</div>
@@ -86,7 +77,7 @@ export function PaneRootTabItem<TPaneData>({
 								<TooltipTrigger asChild>
 									<button
 										className={cn(
-											"flex h-full w-[160px] shrink-0 items-center gap-2 pl-3 pr-8 text-left text-sm transition-all",
+											"flex h-full w-full shrink-0 items-center gap-2 pl-3 pr-8 text-left text-sm transition-all",
 											isActive
 												? "bg-border/30 text-foreground"
 												: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
@@ -134,9 +125,15 @@ export function PaneRootTabItem<TPaneData>({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
-				<ContextMenuItem onSelect={startEditing}>Rename</ContextMenuItem>
+				<ContextMenuItem onSelect={startEditing}>
+					<PencilIcon className="mr-2 size-4" />
+					Rename
+				</ContextMenuItem>
 				<ContextMenuSeparator />
-				<ContextMenuItem onSelect={handleClose}>Close</ContextMenuItem>
+				<ContextMenuItem onSelect={handleClose}>
+					<XIcon className="mr-2 size-4" />
+					Close
+				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
 	);
