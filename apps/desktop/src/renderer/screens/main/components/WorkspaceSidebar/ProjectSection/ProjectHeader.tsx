@@ -16,6 +16,7 @@ import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuFolderOpen,
+	LuGitPullRequest,
 	LuImage,
 	LuImageOff,
 	LuListPlus,
@@ -29,6 +30,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
+import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
 import { CloseProjectDialog } from "./CloseProjectDialog";
@@ -70,6 +72,12 @@ export function ProjectHeader({
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
 	const rename = useProjectRename(projectId, projectName);
+	const autoOrganizeEnabled = useV2ProjectLocalMetaStore(
+		(s) => s.getProjectMeta(projectId).autoOrganizeByPRStatus,
+	);
+	const toggleAutoOrganize = useV2ProjectLocalMetaStore(
+		(s) => s.toggleAutoOrganize,
+	);
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
@@ -159,6 +167,10 @@ export function ProjectHeader({
 		createSection.mutate({ projectId, name: "New Section" });
 	};
 
+	const handleToggleAutoOrganize = () => {
+		toggleAutoOrganize(projectId);
+	};
+
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
 			<ContextMenuSubTrigger>
@@ -226,6 +238,15 @@ export function ProjectHeader({
 							Project Settings
 						</ContextMenuItem>
 						{colorPickerSubmenu}
+						<ContextMenuItem onSelect={handleToggleAutoOrganize}>
+							<LuGitPullRequest
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
+							{autoOrganizeEnabled
+								? "Disable Auto-Organize by PR"
+								: "Auto-Organize by PR Status"}
+						</ContextMenuItem>
 						<ContextMenuItem onSelect={handleNewSection}>
 							<LuListPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							New Section
@@ -363,6 +384,15 @@ export function ProjectHeader({
 							<LuImageOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						)}
 						{hideImage ? "Show Image" : "Hide Image"}
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={handleToggleAutoOrganize}>
+						<LuGitPullRequest
+							className="size-4 mr-2"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						{autoOrganizeEnabled
+							? "Disable Auto-Organize by PR"
+							: "Auto-Organize by PR Status"}
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleNewSection}>
 						<LuListPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

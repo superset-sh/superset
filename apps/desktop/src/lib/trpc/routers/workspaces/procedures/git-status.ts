@@ -23,6 +23,7 @@ import {
 	fetchGitHubPRStatus,
 	type PullRequestCommentsTarget,
 } from "../utils/github";
+import { categorizePR, type PRCategory } from "../utils/map-pr-state";
 
 const gitHubPRCommentsInputSchema = z.object({
 	workspaceId: z.string(),
@@ -256,6 +257,90 @@ export const createGitStatusProcedures = () => {
 						workspace: workspace ?? null,
 					};
 				});
+			}),
+
+		getProjectPRStatuses: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const projectWorkspaces = localDb
+					.select({
+						workspaceId: workspaces.id,
+						worktreeId: workspaces.worktreeId,
+					})
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+
+				const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+				const MAX_CONCURRENT_REFRESHES = 5;
+				const now = Date.now();
+
+				const results: Record<string, PRCategory> = {};
+
+				const staleWorktrees: Array<{
+					workspaceId: string;
+					worktreeId: string;
+					path: string;
+				}> = [];
+
+				for (const ws of projectWorkspaces) {
+					if (!ws.worktreeId) {
+						results[ws.workspaceId] = "no-pr";
+						continue;
+					}
+
+					const wt = getWorktree(ws.worktreeId);
+					if (!wt) {
+						results[ws.workspaceId] = "no-pr";
+						continue;
+					}
+
+					const cached = wt.githubStatus;
+					if (cached) {
+						results[ws.workspaceId] = categorizePR(cached);
+
+						if (
+							cached.lastRefreshed &&
+							now - cached.lastRefreshed > STALE_THRESHOLD_MS
+						) {
+							staleWorktrees.push({
+								workspaceId: ws.workspaceId,
+								worktreeId: wt.id,
+								path: wt.path,
+							});
+						}
+					} else {
+						results[ws.workspaceId] = "no-pr";
+						staleWorktrees.push({
+							workspaceId: ws.workspaceId,
+							worktreeId: wt.id,
+							path: wt.path,
+						});
+					}
+				}
+
+				const toRefresh = staleWorktrees.slice(0, MAX_CONCURRENT_REFRESHES);
+				if (toRefresh.length > 0) {
+					void Promise.allSettled(
+						toRefresh.map(async (item) => {
+							const freshStatus = await fetchGitHubPRStatus(item.path);
+							if (freshStatus) {
+								localDb
+									.update(worktrees)
+									.set({ githubStatus: freshStatus })
+									.where(eq(worktrees.id, item.worktreeId))
+									.run();
+							}
+						}),
+					);
+				}
+
+				return results;
 			}),
 
 		getExternalWorktrees: publicProcedure
