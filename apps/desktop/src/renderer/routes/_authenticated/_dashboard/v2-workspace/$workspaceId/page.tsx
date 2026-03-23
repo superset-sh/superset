@@ -34,6 +34,7 @@ function V2WorkspacePage() {
 	return (
 		<V2WorkspacePageContent
 			key={workspace.id}
+			projectId={workspace.projectId}
 			workspaceBranch={workspace.branch}
 			workspaceId={workspace.id}
 			workspaceName={workspace.name}
@@ -42,10 +43,12 @@ function V2WorkspacePage() {
 }
 
 function V2WorkspacePageContent({
+	projectId,
 	workspaceBranch,
 	workspaceId,
 	workspaceName,
 }: {
+	projectId: string;
 	workspaceBranch: string;
 	workspaceId: string;
 	workspaceName: string;
@@ -54,6 +57,7 @@ function V2WorkspacePageContent({
 		<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 			<PaneViewer
 				key={workspaceId}
+				projectId={projectId}
 				workspaceBranch={workspaceBranch}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}

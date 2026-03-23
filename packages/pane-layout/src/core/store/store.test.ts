@@ -146,7 +146,6 @@ describe("pane workspace state operations", () => {
 			rootId: "root-main",
 			groupId: "group-root",
 			position: "right",
-			newGroupId: "group-right",
 			newPane: createTestPane("pane-b", "B"),
 		});
 
@@ -154,14 +153,14 @@ describe("pane workspace state operations", () => {
 
 		const root = nextState.roots[0]!;
 		expect(root.root.type).toBe("split");
-		expect(root.activeGroupId).toBe("group-right");
+		expect(root.activeGroupId).toMatch(/^group-/);
 
 		const splitNode = root.root.type === "split" ? root.root : null;
 		expect(splitNode?.children[1]).toMatchObject({
 			type: "group",
-			id: "group-right",
 			activePaneId: "pane-b",
 		});
+		expect(splitNode?.children[1]?.id).toMatch(/^group-/);
 	});
 
 	it("splits with custom metadata and preserves the current group when requested", () => {
@@ -181,10 +180,8 @@ describe("pane workspace state operations", () => {
 			rootId: "root-main",
 			groupId: "group-root",
 			position: "top",
-			newGroupId: "group-top",
 			newPane: createTestPane("pane-b"),
 			selectNewPane: false,
-			splitId: "split-custom",
 			sizes: [30, 70],
 		});
 
@@ -192,7 +189,6 @@ describe("pane workspace state operations", () => {
 		expect(root.activeGroupId).toBe("group-root");
 		expect(root.root).toMatchObject({
 			type: "split",
-			id: "split-custom",
 			direction: "vertical",
 			sizes: [30, 70],
 		});
@@ -203,8 +199,9 @@ describe("pane workspace state operations", () => {
 
 		expect(root.root.children[0]).toMatchObject({
 			type: "group",
-			id: "group-top",
 		});
+		expect(root.root.id).toMatch(/^split-/);
+		expect(root.root.children[0]?.id).toMatch(/^group-/);
 		expect(root.root.children[1]).toMatchObject({
 			type: "group",
 			id: "group-root",

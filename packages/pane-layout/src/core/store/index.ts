@@ -1,4 +1,5 @@
 export {
+	createPane,
 	createPaneRoot,
 	createPaneWorkspaceState,
 	createPaneWorkspaceStore,

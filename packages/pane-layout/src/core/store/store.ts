@@ -25,6 +25,76 @@ export interface CreatePaneWorkspaceStoreOptions<TPaneData> {
 	initialState: PaneWorkspaceState<TPaneData>;
 }
 
+function generatePaneLayoutId(prefix: string): string {
+	return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function getFirstGroupId<TPaneData>(
+	node: PaneRootState<TPaneData>["root"],
+): string | null {
+	if (node.type === "group") {
+		return node.id;
+	}
+
+	for (const child of node.children) {
+		const groupId = getFirstGroupId(child);
+		if (groupId) {
+			return groupId;
+		}
+	}
+
+	return null;
+}
+
+function collapseEmptyNodes<TPaneData>(
+	node: PaneRootState<TPaneData>["root"],
+): PaneRootState<TPaneData>["root"] | null {
+	if (node.type === "group") {
+		return node.panes.length > 0 ? node : null;
+	}
+
+	const nextChildren = node.children
+		.map((child) => collapseEmptyNodes(child))
+		.filter((child): child is NonNullable<typeof child> => child !== null);
+
+	if (nextChildren.length === 0) {
+		return null;
+	}
+
+	if (nextChildren.length === 1) {
+		return nextChildren[0];
+	}
+
+	return {
+		...node,
+		children: nextChildren,
+		sizes: Array.from({ length: nextChildren.length }, () => 100 / nextChildren.length),
+	};
+}
+
+function normalizeRootState<TPaneData>(
+	root: PaneRootState<TPaneData>,
+): PaneRootState<TPaneData> | null {
+	const nextRootNode = collapseEmptyNodes(root.root);
+	if (!nextRootNode) {
+		return null;
+	}
+
+	const nextRoot = {
+		...root,
+		root: nextRootNode,
+	};
+	const nextActiveGroupId =
+		root.activeGroupId && getGroupNode(nextRoot, root.activeGroupId)
+			? root.activeGroupId
+			: getFirstGroupId(nextRootNode);
+
+	return {
+		...nextRoot,
+		activeGroupId: nextActiveGroupId,
+	};
+}
+
 export interface PaneWorkspaceStore<TPaneData>
 	extends PaneWorkspaceStoreState<TPaneData> {
 	getRoot: (rootId: string) => PaneRootState<TPaneData> | null;
@@ -100,10 +170,8 @@ export interface PaneWorkspaceStore<TPaneData>
 		rootId: string;
 		groupId: string;
 		position: PaneSplitPosition;
-		newGroupId: string;
 		newPane: PaneState<TPaneData>;
 		selectNewPane?: boolean;
-		splitId?: string;
 		sizes?: number[];
 	}) => void;
 	resizeSplit: (args: {
@@ -114,6 +182,28 @@ export interface PaneWorkspaceStore<TPaneData>
 	equalizeSplit: (args: { rootId: string; splitId: string }) => void;
 }
 
+export function createPane<TPaneData>({
+	id,
+	kind,
+	titleOverride,
+	pinned,
+	data,
+}: {
+	id?: string;
+	kind: string;
+	titleOverride?: string;
+	pinned?: boolean;
+	data: TPaneData;
+}): PaneState<TPaneData> {
+	return {
+		id: id ?? generatePaneLayoutId("pane"),
+		kind,
+		titleOverride,
+		pinned,
+		data,
+	};
+}
+
 export function createPaneRoot<TPaneData>({
 	id,
 	titleOverride,
@@ -121,22 +211,25 @@ export function createPaneRoot<TPaneData>({
 	panes,
 	activePaneId,
 }: {
-	id: string;
+	id?: string;
 	titleOverride?: string;
-	groupId: string;
+	groupId?: string;
 	panes: Array<PaneState<TPaneData>>;
 	activePaneId?: string | null;
 }): PaneRootState<TPaneData> {
+	const resolvedRootId = id ?? generatePaneLayoutId("root");
+	const resolvedGroupId = groupId ?? generatePaneLayoutId("group");
+
 	return {
-		id,
+		id: resolvedRootId,
 		titleOverride,
 		root: {
 			type: "group",
-			id: groupId,
+			id: resolvedGroupId,
 			activePaneId: activePaneId ?? panes[0]?.id ?? null,
 			panes,
 		},
-		activeGroupId: groupId,
+		activeGroupId: resolvedGroupId,
 	};
 }
 
@@ -144,13 +237,15 @@ export function createPaneWorkspaceState<TPaneData>({
 	roots,
 	activeRootId,
 }: {
-	roots: Array<PaneRootState<TPaneData>>;
+	roots?: Array<PaneRootState<TPaneData>>;
 	activeRootId?: string | null;
 }): PaneWorkspaceState<TPaneData> {
+	const resolvedRoots = roots ?? [];
+
 	return {
 		version: 1,
-		roots,
-		activeRootId: activeRootId ?? roots[0]?.id ?? null,
+		roots: resolvedRoots,
+		activeRootId: activeRootId ?? resolvedRoots[0]?.id ?? null,
 	};
 }
 
@@ -450,12 +545,11 @@ export function createPaneWorkspaceStore<TPaneData>(
 					return state;
 				}
 
-				return {
-					state: {
-						...state.state,
-						roots: state.state.roots.map((root, index) =>
-							index === rootIndex
-								? updateGroupNode(root, args.groupId, (currentGroup) => {
+				const nextRoots = state.state.roots
+					.map((root, index) =>
+						index === rootIndex
+							? normalizeRootState(
+									updateGroupNode(root, args.groupId, (currentGroup) => {
 										const nextPanes = currentGroup.panes.filter(
 											(pane) => pane.id !== args.paneId,
 										);
@@ -467,10 +561,20 @@ export function createPaneWorkspaceStore<TPaneData>(
 													? nextPanes[0]?.id ?? null
 													: currentGroup.activePaneId,
 										};
-									})
-								: root,
-						),
-						activeRootId: args.rootId,
+									}),
+								)
+							: root,
+					)
+					.filter((root): root is PaneRootState<TPaneData> => root !== null);
+
+				return {
+					state: {
+						...state.state,
+						roots: nextRoots,
+						activeRootId:
+							nextRoots.some((root) => root.id === state.state.activeRootId)
+								? state.state.activeRootId
+								: nextRoots[0]?.id ?? null,
 					},
 				};
 			});
@@ -591,7 +695,7 @@ export function createPaneWorkspaceStore<TPaneData>(
 
 				const newGroup: PaneGroupNode<TPaneData> = {
 					type: "group",
-					id: args.newGroupId,
+					id: generatePaneLayoutId("group"),
 					activePaneId: args.newPane.id,
 					panes: [args.newPane],
 				};
@@ -610,7 +714,7 @@ export function createPaneWorkspaceStore<TPaneData>(
 										...currentRoot,
 										root: replaceNodeAtPath(currentRoot.root, path, {
 											type: "split",
-											id: args.splitId ?? `${args.groupId}:${args.newGroupId}`,
+											id: generatePaneLayoutId("split"),
 											direction:
 												args.position === "left" || args.position === "right"
 													? "horizontal"
@@ -621,7 +725,7 @@ export function createPaneWorkspaceStore<TPaneData>(
 										activeGroupId:
 											args.selectNewPane === false
 												? currentRoot.activeGroupId
-												: args.newGroupId,
+												: newGroup.id,
 									}
 								: currentRoot,
 						),

@@ -1,12 +1,8 @@
 import {
+	createPane,
 	createPaneRoot,
-	createPaneWorkspaceState,
-	type PaneRootState,
 	type PaneState,
-	type PaneWorkspaceState,
 } from "@superset/pane-layout";
-
-export type PaneKind = "terminal" | "browser" | "file" | "chat" | "devtools";
 
 export interface FilePaneData {
 	filePath: string;
@@ -46,7 +42,6 @@ export type PaneViewerData =
 	| DevtoolsPaneData;
 
 export function createFilePane({
-	id,
 	title,
 	filePath,
 	mode,
@@ -54,7 +49,6 @@ export function createFilePane({
 	language,
 	pinned,
 }: {
-	id: string;
 	title: string;
 	filePath: string;
 	mode: FilePaneData["mode"];
@@ -62,8 +56,7 @@ export function createFilePane({
 	language?: string;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
-	return {
-		id,
+	return createPane({
 		kind: "file",
 		titleOverride: title,
 		pinned,
@@ -73,11 +66,10 @@ export function createFilePane({
 			hasChanges,
 			language,
 		},
-	};
+	});
 }
 
 export function createTerminalPane({
-	id,
 	title,
 	sessionKey,
 	cwd,
@@ -85,7 +77,6 @@ export function createTerminalPane({
 	command,
 	pinned = true,
 }: {
-	id: string;
 	title: string;
 	sessionKey: string;
 	cwd: string;
@@ -93,8 +84,7 @@ export function createTerminalPane({
 	command?: string;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
-	return {
-		id,
+	return createPane({
 		kind: "terminal",
 		titleOverride: title,
 		pinned,
@@ -104,24 +94,21 @@ export function createTerminalPane({
 			launchMode,
 			command,
 		},
-	};
+	});
 }
 
 export function createBrowserPane({
-	id,
 	title,
 	url,
 	mode,
 	pinned = true,
 }: {
-	id: string;
 	title: string;
 	url: string;
 	mode: BrowserPaneData["mode"];
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
-	return {
-		id,
+	return createPane({
 		kind: "browser",
 		titleOverride: title,
 		pinned,
@@ -129,26 +116,23 @@ export function createBrowserPane({
 			url,
 			mode,
 		},
-	};
+	});
 }
 
 export function createChatPane({
-	id,
 	title,
 	sessionId,
 	model,
 	hasDraft,
 	pinned = true,
 }: {
-	id: string;
 	title: string;
 	sessionId: string | null;
 	model?: string;
 	hasDraft: boolean;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
-	return {
-		id,
+	return createPane({
 		kind: "chat",
 		titleOverride: title,
 		pinned,
@@ -157,24 +141,21 @@ export function createChatPane({
 			model,
 			hasDraft,
 		},
-	};
+	});
 }
 
 export function createDevtoolsPane({
-	id,
 	title,
 	targetPaneId,
 	targetTitle,
 	pinned = true,
 }: {
-	id: string;
 	title: string;
 	targetPaneId: string;
 	targetTitle: string;
 	pinned?: boolean;
 }): PaneState<PaneViewerData> {
-	return {
-		id,
+	return createPane({
 		kind: "devtools",
 		titleOverride: title,
 		pinned,
@@ -182,125 +163,5 @@ export function createDevtoolsPane({
 			targetPaneId,
 			targetTitle,
 		},
-	};
-}
-
-export function createPaneViewerState({
-	workspaceBranch,
-	workspaceName,
-}: {
-	workspaceBranch: string;
-	workspaceName: string;
-}): PaneWorkspaceState<PaneViewerData> {
-	const previewPane = createFilePane({
-		id: "pane-file-preview",
-		title: "apps/desktop/package.json",
-		filePath: "apps/desktop/package.json",
-		mode: "editor",
-		hasChanges: true,
-		language: "json",
-		pinned: false,
-	});
-
-	const pinnedFilePane = createFilePane({
-		id: "pane-file-pinned",
-		title: "WorkspaceFiles.tsx",
-		filePath:
-			"apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceFiles/WorkspaceFiles.tsx",
-		mode: "diff",
-		hasChanges: false,
-		language: "tsx",
-		pinned: true,
-	});
-
-	const browserPane = createBrowserPane({
-		id: "pane-browser-preview",
-		title: "Preview",
-		url: "http://localhost:3000",
-		mode: "preview",
-	});
-
-	const chatPane = createChatPane({
-		id: "pane-chat-main",
-		title: "Chat",
-		sessionId: "chat-session-stub",
-		model: "gpt-5.4",
-		hasDraft: true,
-	});
-
-	const terminalPane = createTerminalPane({
-		id: "pane-terminal-main",
-		title: "Terminal",
-		sessionKey: `${workspaceBranch}:main`,
-		cwd: `/workspace/${workspaceName}`,
-		launchMode: "workspace-shell",
-	});
-
-	const devtoolsPane = createDevtoolsPane({
-		id: "pane-devtools-preview",
-		title: "Devtools",
-		targetPaneId: browserPane.id,
-		targetTitle: browserPane.titleOverride ?? "Preview",
-	});
-
-	const mainRoot: PaneRootState<PaneViewerData> = {
-		id: "root-main",
-		titleOverride: workspaceName,
-		activeGroupId: "group-files",
-		root: {
-			type: "split",
-			id: "split-main",
-			direction: "horizontal",
-			sizes: [54, 46],
-			children: [
-				{
-					type: "group",
-					id: "group-files",
-					activePaneId: previewPane.id,
-					panes: [previewPane, pinnedFilePane],
-				},
-				{
-					type: "split",
-					id: "split-runtime",
-					direction: "vertical",
-					sizes: [58, 42],
-					children: [
-						{
-							type: "group",
-							id: "group-browser-chat",
-							activePaneId: browserPane.id,
-							panes: [browserPane, chatPane],
-						},
-						{
-							type: "group",
-							id: "group-runtime",
-							activePaneId: terminalPane.id,
-							panes: [terminalPane, devtoolsPane],
-						},
-					],
-				},
-			],
-		},
-	};
-
-	return createPaneWorkspaceState({
-		roots: [
-			mainRoot,
-			createPaneRoot({
-				id: "root-chat",
-				titleOverride: "Chat",
-				groupId: "group-chat",
-				panes: [
-					createChatPane({
-						id: "pane-chat-secondary",
-						title: "Chat",
-						sessionId: null,
-						model: "gpt-5.4-mini",
-						hasDraft: false,
-					}),
-				],
-			}),
-		],
-		activeRootId: mainRoot.id,
 	});
 }

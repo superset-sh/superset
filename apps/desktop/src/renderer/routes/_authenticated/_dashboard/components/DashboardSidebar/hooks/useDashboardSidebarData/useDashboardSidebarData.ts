@@ -78,7 +78,7 @@ export function useDashboardSidebarData() {
 	const { data: sidebarWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ sidebarWorkspaces: collections.v2SidebarWorkspaces })
+				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
 				.innerJoin(
 					{ workspaces: collections.v2Workspaces },
 					({ sidebarWorkspaces, workspaces }) =>
@@ -88,10 +88,13 @@ export function useDashboardSidebarData() {
 					{ devices: collections.v2Devices },
 					({ workspaces, devices }) => eq(workspaces.deviceId, devices.id),
 				)
-				.orderBy(({ sidebarWorkspaces }) => sidebarWorkspaces.tabOrder, "asc")
+				.orderBy(
+					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
+					"asc",
+				)
 				.select(({ sidebarWorkspaces, workspaces, devices }) => ({
 					id: workspaces.id,
-					projectId: sidebarWorkspaces.projectId,
+					projectId: sidebarWorkspaces.sidebarState.projectId,
 					deviceId: workspaces.deviceId,
 					deviceType: devices?.type ?? null,
 					deviceClientId: devices?.clientId ?? null,
@@ -99,8 +102,8 @@ export function useDashboardSidebarData() {
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
-					tabOrder: sidebarWorkspaces.tabOrder,
-					sectionId: sidebarWorkspaces.sectionId,
+					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
+					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 				})),
 		[collections],
 	);

@@ -41,10 +41,10 @@ import { z } from "zod";
 import {
 	type DashboardSidebarProjectRow,
 	type DashboardSidebarSectionRow,
-	type DashboardSidebarWorkspaceRow,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
-	dashboardSidebarWorkspaceSchema,
+	type WorkspaceLocalStateRow,
+	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
 
 const columnMapper = snakeCamelMapper();
@@ -95,12 +95,12 @@ export interface OrgCollections {
 		typeof dashboardSidebarProjectSchema,
 		z.input<typeof dashboardSidebarProjectSchema>
 	>;
-	v2SidebarWorkspaces: Collection<
-		DashboardSidebarWorkspaceRow,
+	v2WorkspaceLocalState: Collection<
+		WorkspaceLocalStateRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof dashboardSidebarWorkspaceSchema,
-		z.input<typeof dashboardSidebarWorkspaceSchema>
+		typeof workspaceLocalStateSchema,
+		z.input<typeof workspaceLocalStateSchema>
 	>;
 	v2SidebarSections: Collection<
 		DashboardSidebarSectionRow,
@@ -568,11 +568,11 @@ function createOrgCollections(
 		}),
 	);
 
-	const v2SidebarWorkspaces = createCollection(
+	const v2WorkspaceLocalState = createCollection(
 		localStorageCollectionOptions({
-			id: `v2_sidebar_workspaces-${organizationId}`,
-			storageKey: `v2-sidebar-workspaces-${organizationId}`,
-			schema: dashboardSidebarWorkspaceSchema,
+			id: `v2_workspace_local_state-${organizationId}`,
+			storageKey: `v2-workspace-local-state-${organizationId}`,
+			schema: workspaceLocalStateSchema,
 			getKey: (item) => item.workspaceId,
 		}),
 	);
@@ -609,7 +609,7 @@ function createOrgCollections(
 		githubRepositories,
 		githubPullRequests,
 		v2SidebarProjects,
-		v2SidebarWorkspaces,
+		v2WorkspaceLocalState,
 		v2SidebarSections,
 	};
 }

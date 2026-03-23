@@ -124,7 +124,20 @@ export function PaneRootTabs<TPaneData>({
 	}, [roots, updateOverflow]);
 
 	if (roots.length === 0) {
-		return null;
+		return (
+			<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
+				{(onAddRoot || renderAddRootMenu) && (
+					<div className="flex h-full w-10 shrink-0 items-stretch bg-background">
+						<AddRootButtonCell
+							onAddRoot={onAddRoot}
+							renderAddRootMenu={renderAddRootMenu}
+							store={store}
+						/>
+					</div>
+				)}
+				<div className="flex min-w-0 flex-1 items-stretch" />
+			</div>
+		);
 	}
 
 	return (
