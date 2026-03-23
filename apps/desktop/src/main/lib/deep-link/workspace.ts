@@ -141,6 +141,7 @@ async function createFromPr(
 		if (existingWorkspace) {
 			touchWorkspace(existingWorkspace.id);
 			setLastActiveWorkspace(existingWorkspace.id);
+			activateProject(project);
 			return { workspaceId: existingWorkspace.id };
 		}
 
