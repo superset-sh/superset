@@ -1,10 +1,13 @@
 import { existsSync } from "node:fs";
 import type { GitHubStatus } from "@superset/local-db";
-import { workspaces, worktrees } from "@superset/local-db";
+import { settings, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import {
+	detectGitProvider,
+} from "../../changes/utils/git-provider";
 import {
 	getProject,
 	getWorkspace,
@@ -18,6 +21,7 @@ import {
 	listExternalWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
+import { getSimpleGitWithShellPath } from "../utils/git-client";
 import {
 	fetchGitHubPRComments,
 	fetchGitHubPRStatus,
@@ -174,6 +178,41 @@ export const createGitStatusProcedures = () => {
 				}
 
 				return freshStatus;
+			}),
+
+		getGitProvider: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = getWorkspace(input.workspaceId);
+				if (!workspace) {
+					return { provider: "unknown" as const };
+				}
+
+				const worktree = workspace.worktreeId
+					? getWorktree(workspace.worktreeId)
+					: null;
+				if (!worktree) {
+					return { provider: "unknown" as const };
+				}
+
+				try {
+					const git = await getSimpleGitWithShellPath(worktree.path);
+					const remoteUrl = (
+						await git.remote(["get-url", "origin"])
+					).trim();
+
+					const settingsRow = localDb
+						.select()
+						.from(settings)
+						.get();
+					const onedevUrl = settingsRow?.onedevUrl ?? null;
+
+					return {
+						provider: detectGitProvider(remoteUrl, onedevUrl),
+					};
+				} catch {
+					return { provider: "unknown" as const };
+				}
 			}),
 
 		getGitHubPRComments: publicProcedure

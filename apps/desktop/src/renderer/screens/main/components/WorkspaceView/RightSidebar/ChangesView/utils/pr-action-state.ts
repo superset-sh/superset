@@ -27,7 +27,7 @@ export function getPRActionState({
 	if (!hasRepo) {
 		return {
 			canCreatePR: false,
-			createPRBlockedReason: "GitHub is not available for this workspace.",
+			createPRBlockedReason: "No git provider is available for this workspace.",
 		};
 	}
 

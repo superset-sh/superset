@@ -1,4 +1,5 @@
 import type { BranchPrefixMode } from "@superset/local-db";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -9,7 +10,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import {
@@ -38,6 +39,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	);
 	const showWorktreeLocation = isItemVisible(
 		SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
+		visibleItems,
+	);
+	const showOnedevConfig = isItemVisible(
+		SETTING_ITEM_ID.GIT_ONEDEV_CONFIG,
 		visibleItems,
 	);
 
@@ -130,6 +135,57 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 			},
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
+
+	// OneDev config
+	const { data: onedevConfig, isLoading: isOnedevLoading } =
+		electronTrpc.settings.getOnedevConfig.useQuery();
+	const [onedevUrlInput, setOnedevUrlInput] = useState("");
+	const [onedevTokenInput, setOnedevTokenInput] = useState("");
+	const [onedevTestStatus, setOnedevTestStatus] = useState<
+		"idle" | "testing" | "success" | "error"
+	>("idle");
+
+	useEffect(() => {
+		if (onedevConfig) {
+			setOnedevUrlInput(onedevConfig.url ?? "");
+			setOnedevTokenInput(onedevConfig.accessToken ?? "");
+		}
+	}, [onedevConfig]);
+
+	const setOnedevConfig = electronTrpc.settings.setOnedevConfig.useMutation({
+		onError: (err) => {
+			console.error("[settings/onedev] Failed to update:", err);
+		},
+		onSettled: () => {
+			utils.settings.getOnedevConfig.invalidate();
+		},
+	});
+
+	const handleOnedevSave = useCallback(() => {
+		setOnedevConfig.mutate({
+			url: onedevUrlInput.trim() || null,
+			accessToken: onedevTokenInput.trim() || null,
+		});
+	}, [onedevUrlInput, onedevTokenInput, setOnedevConfig]);
+
+	const testOnedevConnection =
+		electronTrpc.settings.testOnedevConnection.useMutation({
+			onSuccess: (result) => {
+				setOnedevTestStatus(result.success ? "success" : "error");
+			},
+			onError: () => {
+				setOnedevTestStatus("error");
+			},
+		});
+
+	const handleOnedevTest = useCallback(() => {
+		if (!onedevUrlInput.trim() || !onedevTokenInput.trim()) return;
+		setOnedevTestStatus("testing");
+		testOnedevConnection.mutate({
+			url: onedevUrlInput.trim(),
+			accessToken: onedevTokenInput.trim(),
+		});
+	}, [onedevUrlInput, onedevTokenInput, testOnedevConnection]);
 
 	const previewPrefix =
 		resolveBranchPrefix({
@@ -244,6 +300,79 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
 							onReset={() => setWorktreeBaseDir.mutate({ path: null })}
 						/>
+					</div>
+				)}
+
+				{showOnedevConfig && (
+					<div className="space-y-3 border-t pt-6">
+						<div>
+							<Label className="text-sm font-medium">OneDev</Label>
+							<p className="text-xs text-muted-foreground">
+								Connect to a self-hosted OneDev server for pull request
+								creation
+							</p>
+						</div>
+						<div className="space-y-2">
+							<div className="space-y-1">
+								<Label htmlFor="onedev-url" className="text-xs">
+									Server URL
+								</Label>
+								<Input
+									id="onedev-url"
+									placeholder="https://onedev.example.com"
+									value={onedevUrlInput}
+									onChange={(e) => {
+										setOnedevUrlInput(e.target.value);
+										setOnedevTestStatus("idle");
+									}}
+									onBlur={handleOnedevSave}
+									disabled={isOnedevLoading}
+								/>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor="onedev-token" className="text-xs">
+									Access Token
+								</Label>
+								<Input
+									id="onedev-token"
+									type="password"
+									placeholder="Your OneDev access token"
+									value={onedevTokenInput}
+									onChange={(e) => {
+										setOnedevTokenInput(e.target.value);
+										setOnedevTestStatus("idle");
+									}}
+									onBlur={handleOnedevSave}
+									disabled={isOnedevLoading}
+								/>
+							</div>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleOnedevTest}
+									disabled={
+										!onedevUrlInput.trim() ||
+										!onedevTokenInput.trim() ||
+										onedevTestStatus === "testing"
+									}
+								>
+									{onedevTestStatus === "testing"
+										? "Testing..."
+										: "Test Connection"}
+								</Button>
+								{onedevTestStatus === "success" && (
+									<span className="text-xs text-green-600">
+										Connected successfully
+									</span>
+								)}
+								{onedevTestStatus === "error" && (
+									<span className="text-xs text-red-600">
+										Connection failed
+									</span>
+								)}
+							</div>
+						</div>
 					</div>
 				)}
 			</div>

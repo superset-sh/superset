@@ -570,11 +570,21 @@ export function ChangesView({
 	const hasExistingPR = !!activePullRequest;
 	const prUrl = activePullRequest?.url;
 	const hasGitHubRepo = !!githubStatus?.repoUrl;
+
+	// OneDev support: detect git provider for this workspace
+	const { data: gitProviderData } =
+		electronTrpc.workspaces.getGitProvider.useQuery(
+			{ workspaceId: workspaceId ?? "" },
+			{ enabled: !!workspaceId && isActive },
+		);
+	const hasOnedevRepo = gitProviderData?.provider === "onedev";
+	const hasRepo = hasGitHubRepo || hasOnedevRepo;
+
 	const defaultBranch =
 		branchData?.defaultBranch ?? status?.defaultBranch ?? "";
 	const isDefaultBranch = status?.branch === defaultBranch;
 	const prActionState = getPRActionState({
-		hasRepo: hasGitHubRepo,
+		hasRepo,
 		hasExistingPR,
 		hasUpstream: status?.hasUpstream ?? false,
 		pushCount: status?.pushCount ?? 0,
@@ -582,7 +592,7 @@ export function ChangesView({
 		isDefaultBranch,
 	});
 	const shouldAutoCreatePR =
-		hasGitHubRepo &&
+		hasRepo &&
 		shouldAutoCreatePRAfterPublish({
 			hasExistingPR,
 			isDefaultBranch,

@@ -628,6 +628,65 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getOnedevConfig: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				url: row.onedevUrl ?? null,
+				accessToken: row.onedevAccessToken ?? null,
+			};
+		}),
+
+		setOnedevConfig: publicProcedure
+			.input(
+				z.object({
+					url: z.string().nullable(),
+					accessToken: z.string().nullable(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						onedevUrl: input.url,
+						onedevAccessToken: input.accessToken,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							onedevUrl: input.url,
+							onedevAccessToken: input.accessToken,
+						},
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		testOnedevConnection: publicProcedure
+			.input(
+				z.object({
+					url: z.string(),
+					accessToken: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					const baseUrl = input.url.replace(/\/+$/, "");
+					const response = await fetch(
+						`${baseUrl}/~api/projects?offset=0&count=1`,
+						{
+							headers: {
+								Authorization: `Bearer ${input.accessToken}`,
+							},
+						},
+					);
+					return { success: response.ok };
+				} catch {
+					return { success: false };
+				}
+			}),
+
 		getGitInfo: publicProcedure.query(async () => {
 			const githubUsername = await getGitHubUsername();
 			const authorName = await getGitAuthorName();

@@ -1,4 +1,6 @@
+import { settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { localDb } from "main/lib/local-db";
 import type { RemoteWithRefs, SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -30,9 +32,97 @@ import {
 	parseUpstreamRef,
 } from "./utils/pull-request-url";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
+import {
+	type OnedevConfig,
+	detectGitProvider,
+	extractOnedevProjectPath,
+} from "./utils/git-provider";
+import { createOnedevClient } from "./utils/onedev-api";
 import { clearWorktreeStatusCaches } from "./utils/worktree-status-caches";
 
 export { isUpstreamMissingError };
+
+function getOnedevSettings(): OnedevConfig | null {
+	let row = localDb.select().from(settings).get();
+	if (!row) {
+		row = localDb.insert(settings).values({ id: 1 }).returning().get();
+	}
+	if (row.onedevUrl && row.onedevAccessToken) {
+		return { url: row.onedevUrl, accessToken: row.onedevAccessToken };
+	}
+	return null;
+}
+
+async function handleOnedevPR(
+	remoteUrl: string,
+	branch: string,
+	config: OnedevConfig,
+): Promise<{ success: boolean; url: string }> {
+	const projectPath = extractOnedevProjectPath(remoteUrl);
+	if (!projectPath) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not extract OneDev project path from remote URL: ${remoteUrl}`,
+		});
+	}
+
+	const client = createOnedevClient(config);
+
+	const project = await client.getProjectByPath(projectPath);
+	if (!project) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `OneDev project not found: ${projectPath}`,
+		});
+	}
+
+	// Check for existing open PR
+	const existingUrl = await client.findOpenPRWithUrl(
+		project.id,
+		branch,
+		projectPath,
+	);
+	if (existingUrl) {
+		return { success: true, url: existingUrl };
+	}
+
+	// Create new PR
+	const title = branch.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+	const result = await client.createPR(
+		{
+			projectId: project.id,
+			sourceBranch: branch,
+			targetBranch: project.defaultBranch,
+			title,
+		},
+		projectPath,
+	);
+
+	return { success: true, url: result.url };
+}
+
+async function findExistingOnedevPRUrl(
+	remoteUrl: string,
+	branch: string,
+	config: OnedevConfig,
+): Promise<string | null> {
+	try {
+		const projectPath = extractOnedevProjectPath(remoteUrl);
+		if (!projectPath) return null;
+
+		const client = createOnedevClient(config);
+		const project = await client.getProjectByPath(projectPath);
+		if (!project) return null;
+
+		return await client.findOpenPRWithUrl(project.id, branch, projectPath);
+	} catch (error) {
+		console.warn(
+			"[git/findExistingOnedevPRUrl] Failed:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return null;
+	}
+}
 
 async function getTrackingRef(
 	git: SimpleGit,
@@ -662,6 +752,43 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 
+					// Detect git provider and route accordingly
+					const remoteUrl = (
+						await git.remote(["get-url", "origin"])
+					).trim();
+					const onedevConfig = getOnedevSettings();
+					const provider = detectGitProvider(
+						remoteUrl,
+						onedevConfig?.url ?? null,
+					);
+
+					if (provider === "onedev" && onedevConfig) {
+						try {
+							const result = await handleOnedevPR(
+								remoteUrl,
+								branch,
+								onedevConfig,
+							);
+							await fetchCurrentBranch(git);
+							clearWorktreeStatusCaches(input.worktreePath);
+							return result;
+						} catch (error) {
+							const recoveredUrl =
+								await findExistingOnedevPRUrl(
+									remoteUrl,
+									branch,
+									onedevConfig,
+								);
+							if (recoveredUrl) {
+								await fetchCurrentBranch(git);
+								clearWorktreeStatusCaches(input.worktreePath);
+								return { success: true, url: recoveredUrl };
+							}
+							throw error;
+						}
+					}
+
+					// GitHub flow (default)
 					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
 					if (existingPRUrl) {
 						await fetchCurrentBranch(git);

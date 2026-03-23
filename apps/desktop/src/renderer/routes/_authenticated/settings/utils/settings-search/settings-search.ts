@@ -30,6 +30,7 @@ export const SETTING_ITEM_ID = {
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
+	GIT_ONEDEV_CONFIG: "git-onedev-config",
 
 	AGENTS_ENABLED: "agents-enabled",
 	AGENTS_COMMANDS: "agents-commands",
@@ -467,6 +468,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"storage",
 			"base",
 			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.GIT_ONEDEV_CONFIG,
+		section: "git",
+		title: "OneDev",
+		description:
+			"Connect to a self-hosted OneDev git server for pull request creation",
+		keywords: [
+			"onedev",
+			"git",
+			"server",
+			"self-hosted",
+			"pull request",
+			"token",
+			"api",
+			"url",
 		],
 	},
 	{
