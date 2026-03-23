@@ -1196,6 +1196,7 @@ export class TerminalHostClient extends EventEmitter {
 			try {
 				child = spawn(process.execPath, [daemonScript], {
 					detached: true,
+					windowsHide: true,
 					stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
 					env: {
 						...process.env,

@@ -121,6 +121,7 @@ async function getListeningPortsWindows(pids: number[]): Promise<PortInfo[]> {
 		const { stdout: output } = await execAsync("netstat -ano", {
 			maxBuffer: 10 * 1024 * 1024,
 			timeout: EXEC_TIMEOUT_MS,
+			windowsHide: true,
 		});
 
 		const pidSet = new Set(pids);
@@ -199,7 +200,7 @@ async function getProcessNameWindows(pid: number): Promise<string> {
 	try {
 		const { stdout: output } = await execAsync(
 			`wmic process where processid=${pid} get name 2>nul`,
-			{ timeout: EXEC_TIMEOUT_MS },
+			{ timeout: EXEC_TIMEOUT_MS, windowsHide: true },
 		);
 		const lines = output.trim().split("\n");
 		if (lines.length >= 2) {
@@ -211,7 +212,7 @@ async function getProcessNameWindows(pid: number): Promise<string> {
 		try {
 			const { stdout: output } = await execAsync(
 				`powershell -Command "(Get-Process -Id ${pid}).ProcessName"`,
-				{ timeout: EXEC_TIMEOUT_MS },
+				{ timeout: EXEC_TIMEOUT_MS, windowsHide: true },
 			);
 			return output.trim() || "unknown";
 		} catch {}
