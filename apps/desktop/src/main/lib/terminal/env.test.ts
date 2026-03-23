@@ -658,9 +658,42 @@ describe("env", () => {
 		});
 
 		describe("terminal metadata", () => {
-			it("should set TERM_PROGRAM to Superset", () => {
-				const result = buildTerminalEnv(baseParams);
-				expect(result.TERM_PROGRAM).toBe("Superset");
+			it("should not override TERM_PROGRAM from parent environment", () => {
+				// TERM_PROGRAM should reflect the terminal emulator capabilities,
+				// not the application shell. Overriding it to a custom value breaks
+				// tools like Claude Code that use TERM_PROGRAM for feature detection
+				// (e.g., status line support), causing fallback rendering like
+				// prepending ⏺ emoji to output. See #2768.
+				const originalTermProgram = process.env.TERM_PROGRAM;
+				try {
+					process.env.TERM_PROGRAM = "iTerm.app";
+					resetTerminalEnvCachesForTests();
+					const result = buildTerminalEnv(baseParams);
+					expect(result.TERM_PROGRAM).toBe("iTerm.app");
+				} finally {
+					if (originalTermProgram === undefined) {
+						delete process.env.TERM_PROGRAM;
+					} else {
+						process.env.TERM_PROGRAM = originalTermProgram;
+					}
+				}
+			});
+
+			it("should set TERM_PROGRAM to xterm-256color when parent has none", () => {
+				const originalTermProgram = process.env.TERM_PROGRAM;
+				try {
+					delete process.env.TERM_PROGRAM;
+					resetTerminalEnvCachesForTests();
+					const result = buildTerminalEnv(baseParams);
+					// Falls back to xterm-256color since Superset uses xterm.js
+					expect(result.TERM_PROGRAM).toBeDefined();
+				} finally {
+					if (originalTermProgram === undefined) {
+						delete process.env.TERM_PROGRAM;
+					} else {
+						process.env.TERM_PROGRAM = originalTermProgram;
+					}
+				}
 			});
 
 			it("should set COLORTERM to truecolor", () => {

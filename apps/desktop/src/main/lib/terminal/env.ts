@@ -464,7 +464,11 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "Superset",
+		// Don't override TERM_PROGRAM — tools like Claude Code use it for terminal
+		// feature detection (e.g., status line support). Overriding to a custom value
+		// causes fallback rendering (⏺ prefix). Let the parent value pass through;
+		// if absent, use "xterm-256color" since Superset uses xterm.js. (#2768)
+		TERM_PROGRAM: baseEnv.TERM_PROGRAM || "xterm-256color",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
