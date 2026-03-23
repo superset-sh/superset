@@ -1,10 +1,12 @@
 import type { ExternalApp } from "@superset/local-db";
+import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
+import { getTabsToRender } from "./utils/getTabsToRender";
 
 interface TabsContentProps {
 	defaultExternalApp?: ExternalApp | null;
@@ -19,6 +21,7 @@ export function TabsContent({
 }: TabsContentProps) {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
+	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -47,10 +50,15 @@ export function TabsContent({
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	const tabToRender = useMemo(() => {
-		if (!activeTabId) return null;
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
-	}, [activeTabId, allTabs]);
+	const tabsToRender = useMemo(
+		() =>
+			getTabsToRender({
+				activeTabId,
+				tabs: allTabs,
+				panes,
+			}),
+		[activeTabId, allTabs, panes],
+	);
 
 	useEffect(() => {
 		const nextWorkspaceId = activeWorkspaceId ?? null;
@@ -79,7 +87,7 @@ export function TabsContent({
 
 		const frameId = requestAnimationFrame(() => {
 			const textarea = contentRef.current?.querySelector<HTMLTextAreaElement>(
-				".mosaic-window-focused [data-slot=input-group-control]",
+				'[data-active-tab-content="true"] .mosaic-window-focused [data-slot="input-group-control"]',
 			);
 			textarea?.focus();
 		});
@@ -88,16 +96,36 @@ export function TabsContent({
 	}, [activeTabId, activeWorkspaceId]);
 
 	return (
-		<div ref={contentRef} className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? (
-				<TabView tab={tabToRender} />
-			) : (
-				<EmptyTabView
-					defaultExternalApp={defaultExternalApp}
-					onOpenInApp={onOpenInApp}
-					onOpenQuickOpen={onOpenQuickOpen}
-				/>
-			)}
+		<div
+			ref={contentRef}
+			className="relative flex flex-1 min-h-0 overflow-hidden"
+		>
+			{tabsToRender.map((tab) => {
+				const isActive = tab.id === activeTabId;
+
+				return (
+					<div
+						key={tab.id}
+						data-active-tab-content={isActive ? "true" : undefined}
+						aria-hidden={!isActive}
+						className={cn(
+							"absolute inset-0 min-h-0",
+							isActive ? "visible z-10" : "invisible pointer-events-none",
+						)}
+					>
+						<TabView tab={tab} />
+					</div>
+				);
+			})}
+			{activeTabId === null ? (
+				<div className="absolute inset-0 z-10 flex min-h-0 overflow-hidden">
+					<EmptyTabView
+						defaultExternalApp={defaultExternalApp}
+						onOpenInApp={onOpenInApp}
+						onOpenQuickOpen={onOpenQuickOpen}
+					/>
+				</div>
+			) : null}
 		</div>
 	);
 }

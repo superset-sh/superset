@@ -1,4 +1,1 @@
-export {
-	destroyPersistentWebview,
-	usePersistentWebview,
-} from "./usePersistentWebview";
+export { usePersistentWebview } from "./usePersistentWebview";

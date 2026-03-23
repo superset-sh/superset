@@ -184,6 +184,7 @@ export function TabView({ tab }: TabViewProps) {
 						paneId={paneId}
 						path={path}
 						tabId={tab.id}
+						workspaceId={tab.workspaceId}
 						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
