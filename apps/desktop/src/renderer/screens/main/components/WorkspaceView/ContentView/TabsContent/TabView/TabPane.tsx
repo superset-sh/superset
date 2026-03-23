@@ -18,6 +18,7 @@ interface TabPaneProps {
 	path: MosaicBranch[];
 	tabId: string;
 	workspaceId: string;
+	isActive: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -48,6 +49,7 @@ export function TabPane({
 	path,
 	tabId,
 	workspaceId,
+	isActive,
 	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
@@ -75,6 +77,7 @@ export function TabPane({
 	const getPasteCallback = useTerminalCallbacksStore((s) => s.getPasteCallback);
 
 	useEffect(() => {
+		if (!isActive) return;
 		const container = terminalContainerRef.current;
 		if (container) {
 			registerPaneRef(paneId, container);
@@ -82,7 +85,7 @@ export function TabPane({
 		return () => {
 			unregisterPaneRef(paneId);
 		};
-	}, [paneId]);
+	}, [paneId, isActive]);
 
 	const handleClearTerminal = () => {
 		getClearCallback(paneId)?.();
@@ -150,7 +153,9 @@ export function TabPane({
 				closeLabel="Close Terminal"
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
+					{isActive && (
+						<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
+					)}
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>

@@ -30,9 +30,10 @@ export const MOSAIC_ID = "superset-mosaic";
 
 interface TabViewProps {
 	tab: Tab;
+	isActive: boolean;
 }
 
-export function TabView({ tab }: TabViewProps) {
+export function TabView({ tab, isActive }: TabViewProps) {
 	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
@@ -253,6 +254,7 @@ export function TabView({ tab }: TabViewProps) {
 					path={path}
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
+					isActive={isActive}
 					splitPaneAuto={splitPaneAuto}
 					splitPaneHorizontal={splitPaneHorizontal}
 					splitPaneVertical={splitPaneVertical}
@@ -268,6 +270,7 @@ export function TabView({ tab }: TabViewProps) {
 			tabPanes,
 			tab.id,
 			tab.workspaceId,
+			isActive,
 			worktreePath,
 			splitPaneAuto,
 			splitPaneHorizontal,
