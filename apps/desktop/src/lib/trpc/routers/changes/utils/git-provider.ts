@@ -58,8 +58,9 @@ export function extractOnedevProjectPath(remoteUrl: string): string | null {
 	}
 
 	// HTTPS format: https://[user@]host/path.git
-	const httpsMatch =
-		/^https?:\/\/(?:[^@]+@)?[^/]+\/(.+?)(?:\.git)?\/?$/.exec(trimmed);
+	const httpsMatch = /^https?:\/\/(?:[^@]+@)?[^/]+\/(.+?)(?:\.git)?\/?$/.exec(
+		trimmed,
+	);
 	if (httpsMatch?.[1]) {
 		// Remove leading ~ if present (OneDev API prefix)
 		return httpsMatch[1].replace(/^~\//, "");

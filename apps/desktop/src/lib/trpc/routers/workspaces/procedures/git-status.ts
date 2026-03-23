@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import type { GitHubStatus } from "@superset/local-db";
-import { settings, workspaces, worktrees } from "@superset/local-db";
+import { projects, settings, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
 	detectGitProvider,
+	extractOnedevProjectPath,
 } from "../../changes/utils/git-provider";
 import {
 	getProject,
@@ -197,14 +198,9 @@ export const createGitStatusProcedures = () => {
 
 				try {
 					const git = await getSimpleGitWithShellPath(worktree.path);
-					const remoteUrl = (
-						await git.remote(["get-url", "origin"])
-					).trim();
+					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
 
-					const settingsRow = localDb
-						.select()
-						.from(settings)
-						.get();
+					const settingsRow = localDb.select().from(settings).get();
 					const onedevUrl = settingsRow?.onedevUrl ?? null;
 
 					return {
@@ -214,6 +210,79 @@ export const createGitStatusProcedures = () => {
 					return { provider: "unknown" as const };
 				}
 			}),
+
+		getProjectGitProvider: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = getProject(input.projectId);
+				if (!project) {
+					return { provider: "unknown" as const, onedevProjectPath: null };
+				}
+
+				try {
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+
+					const settingsRow = localDb.select().from(settings).get();
+					const onedevUrl = settingsRow?.onedevUrl ?? null;
+
+					const provider = detectGitProvider(remoteUrl, onedevUrl);
+					const onedevProjectPath =
+						provider === "onedev" ? extractOnedevProjectPath(remoteUrl) : null;
+
+					return { provider, onedevProjectPath };
+				} catch {
+					return { provider: "unknown" as const, onedevProjectPath: null };
+				}
+			}),
+
+		getOnedevProjectPaths: publicProcedure.query(async () => {
+			const settingsRow = localDb.select().from(settings).get();
+			const onedevUrl = settingsRow?.onedevUrl ?? null;
+			if (!onedevUrl) return [];
+
+			const allProjects = localDb.select().from(projects).all();
+			console.log(
+				`[onedev] Checking ${allProjects.length} projects for OneDev remotes (onedevUrl=${onedevUrl})`,
+			);
+			const results: string[] = [];
+
+			for (const project of allProjects) {
+				try {
+					const git = await getSimpleGitWithShellPath(
+						project.mainRepoPath,
+					);
+					const remotes = await git.getRemotes(true);
+					const origin = remotes.find((r) => r.name === "origin");
+					if (!origin?.refs?.fetch) {
+						console.log(
+							`[onedev] No origin remote for ${project.mainRepoPath}`,
+						);
+						continue;
+					}
+					const remoteUrl = origin.refs.fetch.trim();
+					console.log(
+						`[onedev] Project ${project.name}: remote=${remoteUrl}`,
+					);
+					const provider = detectGitProvider(remoteUrl, onedevUrl);
+					if (provider === "onedev") {
+						const path = extractOnedevProjectPath(remoteUrl);
+						console.log(
+							`[onedev] Found OneDev project: ${path}`,
+						);
+						if (path) results.push(path);
+					}
+				} catch (error) {
+					console.error(
+						`[onedev] Failed to check project ${project.mainRepoPath}:`,
+						error,
+					);
+				}
+			}
+
+			console.log(`[onedev] Found ${results.length} OneDev projects`);
+			return results;
+		}),
 
 		getGitHubPRComments: publicProcedure
 			.input(gitHubPRCommentsInputSchema)

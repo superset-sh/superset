@@ -57,7 +57,11 @@ export function DashboardNewWorkspaceListTabContent({
 					/>
 				)}
 				{activeTab === "issues" && (
-					<IssuesGroup projectId={projectId} hostTarget={hostTarget} />
+					<IssuesGroup
+						projectId={projectId}
+						localProjectId={localProjectId}
+						hostTarget={hostTarget}
+					/>
 				)}
 			</CommandList>
 		</Command>

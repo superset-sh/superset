@@ -4,6 +4,8 @@ interface OnedevProject {
 	id: number;
 	name: string;
 	path: string;
+	key: string | null;
+	issueManagement: boolean;
 }
 
 interface OnedevPullRequest {
@@ -12,6 +14,33 @@ interface OnedevPullRequest {
 	title: string;
 	sourceBranch: string;
 	targetBranch: string;
+}
+
+export interface OnedevIssue {
+	id: number;
+	number: number;
+	title: string;
+	description: string | null;
+	state: string;
+	stateOrdinal: number;
+	submitDate: string;
+	projectId: number;
+	submitterId: number;
+	lastActivity: {
+		date: string;
+		description: string;
+		userId: number;
+	};
+	confidential: boolean;
+	commentCount: number;
+	voteCount: number;
+}
+
+interface OnedevIssueFields {
+	Type?: string;
+	Priority?: string;
+	Assignees?: string | null;
+	[key: string]: string | null | undefined;
 }
 
 interface CreatePRParams {
@@ -67,9 +96,7 @@ export function createOnedevClient(config: OnedevConfig) {
 		async getProjectByPath(
 			projectPath: string,
 		): Promise<{ id: number; defaultBranch: string } | null> {
-			const query = encodeURIComponent(
-				`"Path" is "${projectPath}"`,
-			);
+			const query = encodeURIComponent(`"Path" is "${projectPath}"`);
 			const projects = await apiGet<OnedevProject[]>(
 				`/~api/projects?query=${query}&offset=0&count=1`,
 			);
@@ -87,7 +114,7 @@ export function createOnedevClient(config: OnedevConfig) {
 		},
 
 		async findOpenPRWithUrl(
-			projectId: number,
+			_projectId: number,
 			sourceBranch: string,
 			projectPath: string,
 		): Promise<string | null> {
@@ -122,11 +149,78 @@ export function createOnedevClient(config: OnedevConfig) {
 			};
 		},
 
+		async getProjectWithKey(projectPath: string): Promise<{
+			id: number;
+			key: string | null;
+			issueManagement: boolean;
+		} | null> {
+			const query = encodeURIComponent(`"Path" is "${projectPath}"`);
+			const projects = await apiGet<OnedevProject[]>(
+				`/~api/projects?query=${query}&offset=0&count=1`,
+			);
+			if (projects.length === 0) {
+				return null;
+			}
+			return {
+				id: projects[0].id,
+				key: projects[0].key,
+				issueManagement: projects[0].issueManagement,
+			};
+		},
+
+		async getIssues(
+			projectId: number,
+			options?: { query?: string; offset?: number; count?: number },
+		): Promise<OnedevIssue[]> {
+			const offset = options?.offset ?? 0;
+			const count = options?.count ?? 100;
+			const queryParts: string[] = [`"Project" is "project-${projectId}"`];
+			if (options?.query) {
+				queryParts.push(options.query);
+			}
+			// Default: show open issues, sorted by newest first
+			const query = encodeURIComponent(
+				`${queryParts.join(" and ")} order by "Submit Date" desc`,
+			);
+			return apiGet<OnedevIssue[]>(
+				`/~api/issues?query=${query}&offset=${offset}&count=${count}`,
+			);
+		},
+
+		async getIssuesByProjectPath(
+			projectPath: string,
+			options?: { stateFilter?: string; offset?: number; count?: number },
+		): Promise<{ issues: OnedevIssue[]; projectKey: string | null }> {
+			const project = await apiGet<OnedevProject[]>(
+				`/~api/projects?query=${encodeURIComponent(`"Path" is "${projectPath}"`)}&offset=0&count=1`,
+			);
+			if (project.length === 0) {
+				return { issues: [], projectKey: null };
+			}
+			const projectId = project[0].id;
+			const offset = options?.offset ?? 0;
+			const count = options?.count ?? 100;
+			const stateFilter = options?.stateFilter ?? "open";
+			// OneDev query API is limited — fetch all issues and filter client-side
+			const allIssues = await apiGet<OnedevIssue[]>(
+				`/~api/issues?offset=${offset}&count=${count}`,
+			);
+			const issues = allIssues.filter((issue) => {
+				if (issue.projectId !== projectId) return false;
+				if (stateFilter === "open") return issue.state !== "Closed";
+				if (stateFilter === "closed") return issue.state === "Closed";
+				return true;
+			});
+			return { issues, projectKey: project[0].key };
+		},
+
+		async getIssueFields(issueId: number): Promise<OnedevIssueFields> {
+			return apiGet<OnedevIssueFields>(`/~api/issues/${issueId}/fields`);
+		},
+
 		async testConnection(): Promise<boolean> {
 			try {
-				await apiGet<OnedevProject[]>(
-					"/~api/projects?offset=0&count=1",
-				);
+				await apiGet<OnedevProject[]>("/~api/projects?offset=0&count=1");
 				return true;
 			} catch {
 				return false;

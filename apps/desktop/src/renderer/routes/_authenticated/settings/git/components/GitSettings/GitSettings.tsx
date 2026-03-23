@@ -308,8 +308,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 						<div>
 							<Label className="text-sm font-medium">OneDev</Label>
 							<p className="text-xs text-muted-foreground">
-								Connect to a self-hosted OneDev server for pull request
-								creation
+								Connect to a self-hosted OneDev server for pull request creation
 							</p>
 						</div>
 						<div className="space-y-2">

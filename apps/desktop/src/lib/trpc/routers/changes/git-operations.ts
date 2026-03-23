@@ -25,19 +25,19 @@ import {
 	isOpenPullRequestState,
 	resolveRemoteNameForExistingPRHead,
 } from "./utils/existing-pr-push-target";
+import {
+	detectGitProvider,
+	extractOnedevProjectPath,
+	type OnedevConfig,
+} from "./utils/git-provider";
 import { mergePullRequest } from "./utils/merge-pull-request";
+import { createOnedevClient } from "./utils/onedev-api";
 import {
 	buildPullRequestCompareUrl,
 	normalizeGitHubRepoUrl,
 	parseUpstreamRef,
 } from "./utils/pull-request-url";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
-import {
-	type OnedevConfig,
-	detectGitProvider,
-	extractOnedevProjectPath,
-} from "./utils/git-provider";
-import { createOnedevClient } from "./utils/onedev-api";
 import { clearWorktreeStatusCaches } from "./utils/worktree-status-caches";
 
 export { isUpstreamMissingError };
@@ -87,7 +87,9 @@ async function handleOnedevPR(
 	}
 
 	// Create new PR
-	const title = branch.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+	const title = branch
+		.replace(/[-_]/g, " ")
+		.replace(/\b\w/g, (c) => c.toUpperCase());
 	const result = await client.createPR(
 		{
 			projectId: project.id,
@@ -753,9 +755,7 @@ export const createGitOperationsRouter = () => {
 					}
 
 					// Detect git provider and route accordingly
-					const remoteUrl = (
-						await git.remote(["get-url", "origin"])
-					).trim();
+					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
 					const onedevConfig = getOnedevSettings();
 					const provider = detectGitProvider(
 						remoteUrl,
@@ -773,12 +773,11 @@ export const createGitOperationsRouter = () => {
 							clearWorktreeStatusCaches(input.worktreePath);
 							return result;
 						} catch (error) {
-							const recoveredUrl =
-								await findExistingOnedevPRUrl(
-									remoteUrl,
-									branch,
-									onedevConfig,
-								);
+							const recoveredUrl = await findExistingOnedevPRUrl(
+								remoteUrl,
+								branch,
+								onedevConfig,
+							);
 							if (recoveredUrl) {
 								await fetchCurrentBranch(git);
 								clearWorktreeStatusCaches(input.worktreePath);

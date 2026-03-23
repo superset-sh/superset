@@ -687,6 +687,33 @@ export const createSettingsRouter = () => {
 				}
 			}),
 
+		getOnedevIssues: publicProcedure
+			.input(
+				z.object({
+					projectPath: z.string(),
+					stateFilter: z.string().optional(),
+					offset: z.number().optional(),
+					count: z.number().optional(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) {
+					return { issues: [], projectKey: null };
+				}
+				const { createOnedevClient } = await import(
+					"../changes/utils/onedev-api"
+				);
+				const client = createOnedevClient({ url, accessToken });
+				return client.getIssuesByProjectPath(input.projectPath, {
+					stateFilter: input.stateFilter,
+					offset: input.offset,
+					count: input.count,
+				});
+			}),
+
 		getGitInfo: publicProcedure.query(async () => {
 			const githubUsername = await getGitHubUsername();
 			const authorName = await getGitAuthorName();
