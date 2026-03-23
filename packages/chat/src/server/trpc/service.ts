@@ -312,6 +312,16 @@ export class ChatRuntimeService {
 						});
 					}),
 
+				generateTitle: t.procedure
+					.input(sessionIdInput)
+					.mutation(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						await generateAndSetTitle(runtime, this.apiClient);
+					}),
+
 				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 					const runtime = await this.getOrCreateRuntime(
 						input.sessionId,

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
 import { env } from "renderer/env.renderer";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { MOCK_ORG_ID } from "shared/constants";
 import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
@@ -89,7 +90,9 @@ export function useWorkspaceChatController({
 	workspaceId: string;
 }) {
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 	const collections = useCollections();
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [isSessionInitializing, setIsSessionInitializing] = useState(false);

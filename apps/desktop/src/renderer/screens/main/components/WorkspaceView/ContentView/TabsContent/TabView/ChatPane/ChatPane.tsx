@@ -4,7 +4,7 @@ import {
 } from "@superset/chat/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { CopyIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
 import { env } from "renderer/env.renderer";
@@ -95,6 +95,29 @@ export function ChatPane({
 		handleRawSnapshotChange,
 		handleCopyRawSnapshot,
 	} = useChatRawSnapshot({ sessionId });
+
+	const currentDbTitle =
+		sessionItems.find((s) => s.sessionId === sessionId)?.title ?? "";
+
+	useEffect(() => {
+		if (!currentDbTitle) return;
+		setPaneAutoTitle(paneId, currentDbTitle);
+		setTabAutoTitle(tabId, currentDbTitle);
+	}, [currentDbTitle, paneId, tabId, setPaneAutoTitle, setTabAutoTitle]);
+
+	// Lazy backfill: if the session has no DB title, trigger generation once.
+	// Covers existing sessions (old chats) and cases where sendMessage title gen failed.
+	const titleGenerationAttemptedRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!sessionId || !workspacePath) return;
+		if (currentDbTitle) return;
+		if (titleGenerationAttemptedRef.current === sessionId) return;
+		titleGenerationAttemptedRef.current = sessionId;
+		void chatRuntimeIpcClient.session.generateTitle.mutate({
+			sessionId,
+			cwd: workspacePath,
+		});
+	}, [sessionId, workspacePath, currentDbTitle]);
 
 	const applySubmittedMessageFallbackTitle = useCallback(
 		(message: string) => {
