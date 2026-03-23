@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import type { PRCategory } from "lib/trpc/routers/workspaces/utils/map-pr-state";
 import { useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -10,6 +11,7 @@ import {
 	useOpenNewWorkspaceModal,
 	usePendingWorkspace,
 } from "renderer/stores/new-workspace-modal";
+import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
@@ -18,6 +20,33 @@ import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
 const PROJECT_TYPE = "PROJECT";
+
+const PR_ORDER: readonly PRCategory[] = [
+	"approved",
+	"in-review",
+	"draft",
+	"merged",
+	"closed",
+	"no-pr",
+];
+
+const PR_LABELS: Record<PRCategory, string> = {
+	approved: "Approved",
+	"in-review": "In Review",
+	draft: "Draft",
+	merged: "Merged",
+	closed: "Closed",
+	"no-pr": "In Progress",
+};
+
+const PR_COLORS: Record<PRCategory, string | null> = {
+	approved: "#22c55e",
+	"in-review": "#10b981",
+	draft: "#6b7280",
+	merged: "#8b5cf6",
+	closed: "#ef4444",
+	"no-pr": null,
+};
 
 type TopLevelChild =
 	| {
@@ -77,6 +106,19 @@ export function ProjectSection({
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 	const pendingWorkspace = usePendingWorkspace();
+	const autoOrganizeEnabled = useV2ProjectLocalMetaStore(
+		(s) => s.getProjectMeta(projectId).autoOrganizeByPRStatus,
+	);
+
+	const { data: prStatuses } =
+		electronTrpc.workspaces.getProjectPRStatuses.useQuery(
+			{ projectId },
+			{
+				enabled: autoOrganizeEnabled,
+				refetchInterval: 60_000,
+				staleTime: 30_000,
+			},
+		);
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
@@ -92,6 +134,65 @@ export function ProjectSection({
 		) : null;
 
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
+		if (autoOrganizeEnabled && prStatuses) {
+			const allWs = [...workspaces, ...sections.flatMap((s) => s.workspaces)];
+
+			const ungrouped: SidebarWorkspace[] = [];
+			const grouped = new Map<string, SidebarWorkspace[]>();
+			for (const cat of PR_ORDER) grouped.set(cat, []);
+
+			for (const ws of allWs) {
+				const cat = prStatuses[ws.id] ?? "no-pr";
+				if (cat === "no-pr" && ws.type === "branch") {
+					ungrouped.push(ws);
+				} else {
+					grouped.get(cat)?.push(ws);
+				}
+			}
+
+			const ids: string[] = [];
+			const renderables: TopLevelChild[] = [];
+			let shortcutOffset = shortcutBaseIndex;
+			let topLevelIndex = 0;
+
+			for (const ws of ungrouped) {
+				ids.push(ws.id);
+				renderables.push({
+					kind: "workspace",
+					workspace: ws,
+					topLevelIndex,
+					shortcutIndex: shortcutOffset,
+				});
+				shortcutOffset++;
+				topLevelIndex++;
+			}
+
+			for (const cat of PR_ORDER) {
+				const catWs = grouped.get(cat) ?? [];
+				if (catWs.length === 0) continue;
+				for (const ws of catWs) ids.push(ws.id);
+				const section: SidebarSection = {
+					id: `auto-pr-${cat}`,
+					projectId,
+					name: PR_LABELS[cat],
+					tabOrder: topLevelIndex,
+					isCollapsed: false,
+					color: PR_COLORS[cat] ?? null,
+					workspaces: catWs,
+				};
+				renderables.push({
+					kind: "section",
+					section,
+					topLevelIndex,
+					shortcutBaseIndex: shortcutOffset,
+				});
+				shortcutOffset += catWs.length;
+				topLevelIndex++;
+			}
+
+			return { orderedWorkspaceIds: ids, topLevelChildren: renderables };
+		}
+
 		const topLevelWorkspacesById = new Map(
 			workspaces.map((workspace) => [workspace.id, workspace]),
 		);
@@ -136,7 +237,15 @@ export function ProjectSection({
 			orderedWorkspaceIds: ids,
 			topLevelChildren: renderables,
 		};
-	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
+	}, [
+		autoOrganizeEnabled,
+		prStatuses,
+		shortcutBaseIndex,
+		sections,
+		topLevelItems,
+		workspaces,
+		projectId,
+	]);
 
 	const topUngroupedDropZone = useSectionDropZone({
 		canAccept: (item) =>
