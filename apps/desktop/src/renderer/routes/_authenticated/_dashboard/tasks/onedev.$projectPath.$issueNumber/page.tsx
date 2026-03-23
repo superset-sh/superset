@@ -146,29 +146,23 @@ function OnedevIssuePage() {
 				</h3>
 
 				{/* State */}
-				<div className="flex flex-col gap-1">
-					<span className="text-xs text-muted-foreground">Status</span>
-					<div className="flex items-center gap-2">
-						<IssueStateIcon state={issue.state} />
-						<span className="text-sm">{issue.state}</span>
-					</div>
-				</div>
-
-				{/* Priority */}
-				{issue.fields?.Priority && (
-					<div className="flex flex-col gap-1">
-						<span className="text-xs text-muted-foreground">Priority</span>
-						<span className="text-sm">{issue.fields.Priority}</span>
-					</div>
-				)}
+				<IssueStateSelector issueId={issue.id} currentState={issue.state} />
 
 				{/* Type */}
-				{issue.fields?.Type && (
-					<div className="flex flex-col gap-1">
-						<span className="text-xs text-muted-foreground">Type</span>
-						<span className="text-sm">{issue.fields.Type}</span>
-					</div>
-				)}
+				<IssueFieldSelector
+					issueId={issue.id}
+					fieldName="Type"
+					currentValue={issue.fields?.Type ?? null}
+					options={["New Feature", "Improvement", "Bug", "Task"]}
+				/>
+
+				{/* Priority */}
+				<IssueFieldSelector
+					issueId={issue.id}
+					fieldName="Priority"
+					currentValue={issue.fields?.Priority ?? null}
+					options={["Critical", "High", "Normal", "Low"]}
+				/>
 
 				{/* Assignees */}
 				{issue.fields?.Assignees && (
@@ -204,8 +198,132 @@ function IssueStateIcon({ state }: { state: string }) {
 			? "text-green-500"
 			: state === "In Progress"
 				? "text-blue-500"
-				: "text-muted-foreground";
+				: state === "In Review"
+					? "text-yellow-500"
+					: "text-muted-foreground";
 	return <VscIssues className={`size-4 ${color}`} />;
+}
+
+const ISSUE_STATES = ["Open", "In Progress", "In Review", "Closed"] as const;
+
+function IssueStateSelector({
+	issueId,
+	currentState,
+}: { issueId: number; currentState: string }) {
+	const utils = electronTrpc.useUtils();
+	const updateState = electronTrpc.settings.updateOnedevIssueState.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
+			utils.settings.getOnedevIssues.invalidate();
+		},
+	});
+
+	return (
+		<div className="flex flex-col gap-1">
+			<span className="text-xs text-muted-foreground">Status</span>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="outline"
+						size="sm"
+						className="justify-between font-normal h-8"
+						disabled={updateState.isPending}
+					>
+						<span className="flex items-center gap-2">
+							<IssueStateIcon state={currentState} />
+							{updateState.isPending ? "Updating..." : currentState}
+						</span>
+						<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start">
+					{ISSUE_STATES.map((state) => (
+						<DropdownMenuItem
+							key={state}
+							onClick={() => {
+								if (state !== currentState) {
+									updateState.mutate({ issueId, state });
+								}
+							}}
+							className="flex items-center gap-2"
+						>
+							<IssueStateIcon state={state} />
+							{state}
+							{state === currentState && (
+								<span className="ml-auto text-xs text-muted-foreground">current</span>
+							)}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
+	);
+}
+
+function IssueFieldSelector({
+	issueId,
+	fieldName,
+	currentValue,
+	options,
+}: {
+	issueId: number;
+	fieldName: string;
+	currentValue: string | null;
+	options: string[];
+}) {
+	const utils = electronTrpc.useUtils();
+	const updateFields =
+		electronTrpc.settings.updateOnedevIssueFields.useMutation({
+			onSuccess: () => {
+				utils.settings.getOnedevIssue.invalidate();
+				utils.settings.getOnedevIssues.invalidate();
+			},
+		});
+
+	return (
+		<div className="flex flex-col gap-1">
+			<span className="text-xs text-muted-foreground">{fieldName}</span>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="outline"
+						size="sm"
+						className="justify-between font-normal h-8"
+						disabled={updateFields.isPending}
+					>
+						<span className="text-sm">
+							{updateFields.isPending
+								? "Updating..."
+								: currentValue ?? "Not set"}
+						</span>
+						<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start">
+					{options.map((option) => (
+						<DropdownMenuItem
+							key={option}
+							onClick={() => {
+								if (option !== currentValue) {
+									updateFields.mutate({
+										issueId,
+										fields: { [fieldName]: option },
+									});
+								}
+							}}
+						>
+							{option}
+							{option === currentValue && (
+								<span className="ml-auto text-xs text-muted-foreground">
+									current
+								</span>
+							)}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
+	);
 }
 
 function OpenInWorkspaceSection({

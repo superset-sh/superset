@@ -17,7 +17,7 @@ interface OnedevIssue {
 	commentCount: number;
 }
 
-const KANBAN_COLUMNS = ["Open", "In Progress", "Closed"] as const;
+const KANBAN_COLUMNS = ["Open", "In Progress", "In Review", "Closed"] as const;
 
 export function OnedevTasksContent({
 	searchQuery,
@@ -206,7 +206,9 @@ function KanbanColumn({
 			? "text-green-500"
 			: state === "In Progress"
 				? "text-blue-500"
-				: "text-muted-foreground";
+				: state === "In Review"
+					? "text-yellow-500"
+					: "text-muted-foreground";
 
 	return (
 		<div className="w-72 shrink-0 flex flex-col">
@@ -295,7 +297,9 @@ function ListView({
 								? "text-green-500"
 								: issue.state === "In Progress"
 									? "text-blue-500"
-									: "text-muted-foreground";
+									: issue.state === "In Review"
+										? "text-yellow-500"
+										: "text-muted-foreground";
 						const date = new Date(issue.submitDate);
 						const dateStr = date.toLocaleDateString("de-DE", {
 							day: "2-digit",

@@ -748,6 +748,74 @@ export const createSettingsRouter = () => {
 				};
 			}),
 
+		updateOnedevIssueState: publicProcedure
+			.input(
+				z.object({
+					issueId: z.number(),
+					state: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) {
+					throw new Error("OneDev not configured");
+				}
+				const baseUrl = url.replace(/\/+$/, "");
+				const response = await fetch(
+					`${baseUrl}/~api/issues/${input.issueId}/state-transitions`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ state: input.state }),
+					},
+				);
+				if (!response.ok) {
+					throw new Error(
+						`Failed to update issue state: ${response.status}`,
+					);
+				}
+				return { success: true };
+			}),
+
+		updateOnedevIssueFields: publicProcedure
+			.input(
+				z.object({
+					issueId: z.number(),
+					fields: z.record(z.string(), z.string().nullable()),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) {
+					throw new Error("OneDev not configured");
+				}
+				const baseUrl = url.replace(/\/+$/, "");
+				const response = await fetch(
+					`${baseUrl}/~api/issues/${input.issueId}/fields`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(input.fields),
+					},
+				);
+				if (!response.ok) {
+					throw new Error(
+						`Failed to update issue fields: ${response.status}`,
+					);
+				}
+				return { success: true };
+			}),
+
 		getGitInfo: publicProcedure.query(async () => {
 			const githubUsername = await getGitHubUsername();
 			const authorName = await getGitAuthorName();
