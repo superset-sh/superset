@@ -1,0 +1,472 @@
+import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { Label } from "@superset/ui/label";
+import { ScrollArea } from "@superset/ui/scroll-area";
+import { Separator } from "@superset/ui/separator";
+import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { HiArrowLeft, HiArrowRight, HiChevronDown } from "react-icons/hi2";
+import { LuExternalLink } from "react-icons/lu";
+import { VscIssues } from "react-icons/vsc";
+import { AgentSelect } from "renderer/components/AgentSelect";
+import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
+import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
+import {
+	type AgentDefinitionId,
+	getEnabledAgentConfigs,
+	getFallbackAgentId,
+	indexResolvedAgentConfigs,
+} from "shared/utils/agent-settings";
+import { sanitizeSegment } from "shared/utils/branch";
+
+export const Route = createFileRoute(
+	"/_authenticated/_dashboard/tasks/onedev/$projectPath/$issueNumber/",
+)({
+	component: OnedevIssuePage,
+});
+
+type TaskLaunchAgent = AgentDefinitionId | "none";
+
+function OnedevIssuePage() {
+	const { projectPath, issueNumber } = Route.useParams();
+	const navigate = useNavigate();
+	const issueNum = Number.parseInt(issueNumber, 10);
+
+	const { data: onedevConfig } =
+		electronTrpc.settings.getOnedevConfig.useQuery();
+	const { data: issue, isLoading } =
+		electronTrpc.settings.getOnedevIssue.useQuery({
+			projectPath: decodeURIComponent(projectPath),
+			issueNumber: issueNum,
+		});
+
+	const handleBack = () => {
+		navigate({ to: "/tasks" });
+	};
+
+	if (isLoading) {
+		return (
+			<div className="flex-1 flex items-center justify-center">
+				<span className="text-muted-foreground">Loading issue...</span>
+			</div>
+		);
+	}
+
+	if (!issue) {
+		return (
+			<div className="flex-1 flex items-center justify-center flex-col gap-4">
+				<span className="text-muted-foreground">Issue not found</span>
+				<Button variant="outline" onClick={handleBack}>
+					Back to Tasks
+				</Button>
+			</div>
+		);
+	}
+
+	const slug = `${(issue.projectKey ?? issue.projectPath).toLowerCase()}-${issue.number}`;
+
+	return (
+		<div className="flex-1 flex min-h-0">
+			<div className="flex-1 flex flex-col min-h-0 min-w-0">
+				{/* Header */}
+				<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-8 w-8"
+						onClick={handleBack}
+					>
+						<HiArrowLeft className="w-4 h-4" />
+					</Button>
+					<span className="text-sm text-muted-foreground">{slug}</span>
+					<div className="ml-auto flex items-center gap-1">
+						{issue.externalUrl && (
+							<a
+								href={issue.externalUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-muted-foreground hover:text-foreground transition-colors p-2"
+								title="Open in OneDev"
+							>
+								<LuExternalLink className="w-4 h-4" />
+							</a>
+						)}
+					</div>
+				</div>
+
+				{/* Content */}
+				<ScrollArea className="flex-1 min-h-0">
+					<div className="px-6 py-6 max-w-4xl">
+						<h1 className="text-2xl font-bold mb-4">{issue.title}</h1>
+
+						{issue.description && (
+							<div className="prose prose-invert prose-sm max-w-none">
+								<pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
+									{issue.description}
+								</pre>
+							</div>
+						)}
+
+						<Separator className="my-8" />
+
+						<h2 className="text-lg font-semibold mb-4">Activity</h2>
+						<div className="flex items-start gap-3">
+							<div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
+								S
+							</div>
+							<div>
+								<span className="text-sm">Someone</span>
+								<span className="text-sm text-muted-foreground">
+									{" "}
+									created the issue ·{" "}
+									{new Date(issue.submitDate).toLocaleDateString("de-DE")}
+								</span>
+							</div>
+						</div>
+					</div>
+				</ScrollArea>
+			</div>
+
+			{/* Properties Sidebar */}
+			<div className="w-72 border-l border-border shrink-0 p-4 flex flex-col gap-6 overflow-y-auto">
+				<h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+					Properties
+				</h3>
+
+				{/* State */}
+				<div className="flex flex-col gap-1">
+					<span className="text-xs text-muted-foreground">Status</span>
+					<div className="flex items-center gap-2">
+						<IssueStateIcon state={issue.state} />
+						<span className="text-sm">{issue.state}</span>
+					</div>
+				</div>
+
+				{/* Priority */}
+				{issue.fields?.Priority && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Priority</span>
+						<span className="text-sm">{issue.fields.Priority}</span>
+					</div>
+				)}
+
+				{/* Type */}
+				{issue.fields?.Type && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Type</span>
+						<span className="text-sm">{issue.fields.Type}</span>
+					</div>
+				)}
+
+				{/* Assignees */}
+				{issue.fields?.Assignees && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Assignee</span>
+						<span className="text-sm">{issue.fields.Assignees}</span>
+					</div>
+				)}
+
+				<Separator />
+
+				{/* Open in Workspace */}
+				<OpenInWorkspaceSection
+					slug={slug}
+					title={issue.title}
+					description={issue.description}
+					state={issue.state}
+					priority={issue.fields?.Priority ?? null}
+					issueId={issue.id}
+					projectPath={decodeURIComponent(projectPath)}
+					onedevUrl={onedevConfig?.url ?? ""}
+					onedevToken={onedevConfig?.accessToken ?? ""}
+					projectId={issue.projectId}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function IssueStateIcon({ state }: { state: string }) {
+	const color =
+		state === "Open"
+			? "text-green-500"
+			: state === "In Progress"
+				? "text-blue-500"
+				: "text-muted-foreground";
+	return <VscIssues className={`size-4 ${color}`} />;
+}
+
+function OpenInWorkspaceSection({
+	slug,
+	title,
+	description,
+	state,
+	priority,
+	issueId,
+	projectPath,
+	onedevUrl,
+	onedevToken,
+	projectId,
+}: {
+	slug: string;
+	title: string;
+	description: string | null;
+	state: string;
+	priority: string | null;
+	issueId: number;
+	projectPath: string;
+	onedevUrl: string;
+	onedevToken: string;
+	projectId: number;
+}) {
+	const { data: recentProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
+	const createWorkspace = useCreateWorkspace();
+	const terminalCreateOrAttach =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const terminalWrite = electronTrpc.terminal.write.useMutation();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const agentPresets = agentPresetsQuery.data ?? [];
+	const enabledAgentPresets = useMemo(
+		() => getEnabledAgentConfigs(agentPresets),
+		[agentPresets],
+	);
+	const agentConfigsById = useMemo(
+		() => indexResolvedAgentConfigs(agentPresets),
+		[agentPresets],
+	);
+	const fallbackAgentId = useMemo(
+		() => getFallbackAgentId(agentPresets),
+		[agentPresets],
+	);
+	const selectableAgents = useMemo(
+		() => enabledAgentPresets.map((preset) => preset.id),
+		[enabledAgentPresets],
+	);
+	const {
+		autoRun,
+		effectiveProjectId,
+		selectedAgent,
+		setAutoRun,
+		setSelectedAgent,
+		setSelectedProjectId,
+	} = useAgentLaunchPreferences<TaskLaunchAgent>({
+		agentStorageKey: "lastSelectedAgent",
+		defaultAgent: fallbackAgentId ?? "none",
+		fallbackAgent: fallbackAgentId ?? "none",
+		validAgents: ["none", ...selectableAgents],
+		agentsReady: agentPresetsQuery.isFetched,
+		projectStorageKey: "lastOpenedInProjectId",
+		recentProjects,
+		autoRunStorageKey: "agentAutoRun",
+	});
+
+	const selectedProject = recentProjects.find(
+		(p) => p.id === effectiveProjectId,
+	);
+
+	const branchName = useMemo(() => {
+		const prefix = slug.toLowerCase();
+		const titleSegment = sanitizeSegment(title, 40);
+		return titleSegment ? `${prefix}-${titleSegment}` : prefix;
+	}, [slug, title]);
+
+	const onedevContext = `${description ?? ""}
+
+---
+## OneDev Integration
+
+This project uses OneDev (NOT GitHub). Do NOT use \`gh\` CLI.
+
+### Create PR:
+\`\`\`bash
+curl -s -X POST "${onedevUrl}/~api/pulls" \\
+  -H "Authorization: Bearer ${onedevToken}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"targetProjectId": ${projectId}, "sourceProjectId": ${projectId}, "sourceBranch": "BRANCH", "targetBranch": "main", "title": "TITLE", "description": "DESC", "mergeStrategy": "CREATE_MERGE_COMMIT"}'
+\`\`\`
+
+### Update issue status (Issue #${issueId}):
+\`\`\`bash
+curl -s -X POST "${onedevUrl}/~api/issues/${issueId}/state-transitions" \\
+  -H "Authorization: Bearer ${onedevToken}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"state": "STATE"}'
+# States: "Open", "In Progress", "Closed"
+\`\`\`
+
+When done: push branch, create PR via OneDev API, set issue to "In Progress" or "Closed".`;
+
+	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest | null =>
+		buildTaskAgentLaunchRequest({
+			task: {
+				id: slug,
+				slug,
+				title,
+				description: onedevContext,
+				priority: priority?.toLowerCase() ?? null,
+				statusName: state,
+				labels: [],
+			},
+			workspaceId,
+			selectedAgent,
+			source: "open-in-workspace",
+			autoRun,
+			configsById: agentConfigsById,
+		});
+
+	const handleOpen = async () => {
+		if (!effectiveProjectId) return;
+		if (
+			selectedAgent !== "none" &&
+			!agentConfigsById.get(selectedAgent)?.enabled
+		) {
+			toast.error("Enable an agent in Settings > Agents first");
+			return;
+		}
+
+		try {
+			const launchRequestTemplate = buildLaunchRequest("pending-workspace");
+			const result = await createWorkspace.mutateAsyncWithPendingSetup(
+				{
+					projectId: effectiveProjectId,
+					name: slug,
+					branchName,
+				},
+				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
+			);
+
+			if (result.wasExisting && launchRequestTemplate) {
+				const launchRequest: AgentLaunchRequest = {
+					...launchRequestTemplate,
+					workspaceId: result.workspace.id,
+				};
+				const launchResult = await launchAgentSession(launchRequest, {
+					source: "open-in-workspace",
+					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => terminalWrite.mutateAsync(input),
+				});
+				if (launchResult.status === "failed") {
+					toast.error("Failed to start agent", {
+						description: launchResult.error ?? "Failed to start agent session.",
+					});
+					return;
+				}
+			}
+
+			toast.success(
+				result.wasExisting ? "Opened existing workspace" : "Workspace created",
+			);
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to create workspace",
+			);
+		}
+	};
+
+	return (
+		<div className="flex flex-col gap-2">
+			<span className="text-xs text-muted-foreground">Open in workspace</span>
+			<div className="flex gap-1.5">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="outline"
+							size="sm"
+							className="flex-1 justify-between font-normal h-8 min-w-0"
+						>
+							<span className="flex items-center gap-2 truncate">
+								{selectedProject ? (
+									<>
+										<ProjectThumbnail
+											projectId={selectedProject.id}
+											projectName={selectedProject.name}
+											projectColor={selectedProject.color}
+											githubOwner={selectedProject.githubOwner}
+											hideImage={selectedProject.hideImage ?? undefined}
+											iconUrl={selectedProject.iconUrl}
+											className="size-4"
+										/>
+										<span className="truncate">{selectedProject.name}</span>
+									</>
+								) : (
+									<span className="text-muted-foreground">Select project</span>
+								)}
+							</span>
+							<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align="start"
+						className="w-[--radix-dropdown-menu-trigger-width]"
+					>
+						{recentProjects.length === 0 ? (
+							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
+						) : (
+							recentProjects
+								.filter((p) => p.id)
+								.map((project) => (
+									<DropdownMenuItem
+										key={project.id}
+										onClick={() => setSelectedProjectId(project.id)}
+										className="flex items-center gap-2"
+									>
+										<ProjectThumbnail
+											projectId={project.id}
+											projectName={project.name}
+											projectColor={project.color}
+											githubOwner={project.githubOwner}
+											hideImage={project.hideImage ?? undefined}
+											iconUrl={project.iconUrl}
+											className="size-4"
+										/>
+										{project.name}
+									</DropdownMenuItem>
+								))
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<Button
+					size="icon"
+					className="h-8 w-8 shrink-0"
+					disabled={!effectiveProjectId || createWorkspace.isPending}
+					onClick={handleOpen}
+				>
+					<HiArrowRight className="w-3.5 h-3.5" />
+				</Button>
+			</div>
+			<AgentSelect<TaskLaunchAgent>
+				agents={enabledAgentPresets}
+				value={selectedAgent}
+				placeholder="Select agent"
+				onValueChange={setSelectedAgent}
+				triggerClassName="h-8 text-xs"
+				allowNone
+				noneLabel="No agent"
+				noneValue="none"
+			/>
+			<div className="flex items-center justify-between">
+				<Label htmlFor="onedev-auto-run-toggle" className="text-xs font-normal">
+					Auto-run command
+				</Label>
+				<Switch
+					id="onedev-auto-run-toggle"
+					checked={autoRun}
+					onCheckedChange={setAutoRun}
+				/>
+			</div>
+		</div>
+	);
+}

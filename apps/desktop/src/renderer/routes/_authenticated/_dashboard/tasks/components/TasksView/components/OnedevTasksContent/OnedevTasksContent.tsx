@@ -1,12 +1,8 @@
 import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { GoArrowUpRight } from "react-icons/go";
-import { LuGitBranchPlus } from "react-icons/lu";
 import { VscIssues } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
 
 interface OnedevIssue {
 	id: number;
@@ -189,8 +185,6 @@ function OnedevIssueRow({
 	issue,
 	projectKey,
 	projectPath,
-	onedevUrl,
-	localProjectId,
 }: {
 	issue: OnedevIssue;
 	projectKey: string;
@@ -198,9 +192,8 @@ function OnedevIssueRow({
 	onedevUrl: string;
 	localProjectId: string | null;
 }) {
+	const navigate = useNavigate();
 	const slug = `${projectKey.toLowerCase()}-${issue.number}`;
-	const issueUrl = `${onedevUrl.replace(/\/+$/, "")}/${projectPath}/~issues/${issue.id}`;
-	const { createWorkspace, isPending } = useCreateDashboardWorkspace();
 
 	const stateColor =
 		issue.state === "Open"
@@ -215,35 +208,21 @@ function OnedevIssueRow({
 		month: "2-digit",
 	});
 
-	const handleOpenInBrowser = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		window.open(issueUrl, "_blank", "noopener,noreferrer");
-	};
-
-	const handleStartWork = async (e: React.MouseEvent) => {
-		e.stopPropagation();
-		if (!localProjectId) return;
-		try {
-			await createWorkspace({
-				projectId: localProjectId,
-				name: issue.title,
-				branch: slug,
-				hostTarget: { kind: "local" },
-			});
-		} catch (error) {
-			console.error("[onedev] Failed to create workspace:", error);
-		}
+	const handleClick = () => {
+		navigate({
+			to: "/tasks/onedev/$projectPath/$issueNumber",
+			params: {
+				projectPath: encodeURIComponent(projectPath),
+				issueNumber: String(issue.number),
+			},
+		});
 	};
 
 	return (
-		<div
-			role="button"
-			tabIndex={0}
-			className="group flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
-			onClick={handleOpenInBrowser}
-			onKeyDown={(e) => {
-				if (e.key === "Enter") handleOpenInBrowser(e as unknown as React.MouseEvent);
-			}}
+		<button
+			type="button"
+			className="group flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer w-full text-left"
+			onClick={handleClick}
 		>
 			<VscIssues className={`size-4 shrink-0 ${stateColor}`} />
 			<span className="text-xs text-muted-foreground tabular-nums shrink-0 w-20">
@@ -258,37 +237,6 @@ function OnedevIssueRow({
 					{issue.commentCount}
 				</span>
 			)}
-			<div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-				{localProjectId && (
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleStartWork}
-								disabled={isPending}
-								className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
-							>
-								<LuGitBranchPlus className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent>
-							Workspace erstellen (Branch: {slug})
-						</TooltipContent>
-					</Tooltip>
-				)}
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleOpenInBrowser}
-							className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
-						>
-							<GoArrowUpRight className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent>In OneDev öffnen</TooltipContent>
-				</Tooltip>
-			</div>
-		</div>
+		</button>
 	);
 }
