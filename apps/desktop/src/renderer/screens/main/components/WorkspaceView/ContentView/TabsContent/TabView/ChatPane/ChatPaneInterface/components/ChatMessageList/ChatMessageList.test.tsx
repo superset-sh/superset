@@ -102,10 +102,6 @@ mock.module("./components/PendingPlanApprovalMessage", () => ({
 	PendingPlanApprovalMessage: () => <div>PENDING_PLAN_APPROVAL_MESSAGE</div>,
 }));
 
-mock.module("./components/PendingQuestionMessage", () => ({
-	PendingQuestionMessage: () => null,
-}));
-
 mock.module("./components/ToolPreviewMessage", () => ({
 	ToolPreviewMessage: ({
 		pendingPlanToolCallId,
@@ -182,8 +178,6 @@ function createBaseProps(
 		isPlanSubmitting: false,
 		onPlanRespond: async () => {},
 		pendingQuestion: null,
-		isQuestionSubmitting: false,
-		onQuestionRespond: async () => {},
 		editingUserMessageId: null,
 		isEditSubmitting: false,
 		onStartEditUserMessage: () => {},

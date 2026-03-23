@@ -15,6 +15,7 @@ import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInputFooter } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter";
+import { QuestionFooter } from "renderer/components/Chat/ChatInterface/components/QuestionFooter";
 import { useSlashCommandExecutor } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
@@ -980,8 +981,6 @@ export function ChatPaneInterface({
 					isPlanSubmitting={planResponsePending}
 					onPlanRespond={handlePlanResponse}
 					pendingQuestion={pendingQuestion}
-					isQuestionSubmitting={questionResponsePending}
-					onQuestionRespond={handleQuestionResponse}
 					editingUserMessageId={editingUserMessageId}
 					isEditSubmitting={isAwaitingAssistant}
 					onStartEditUserMessage={setEditingUserMessageId}
@@ -990,29 +989,37 @@ export function ChatPaneInterface({
 					onRestartUserMessage={handleResendUserMessage}
 				/>
 				<McpControls mcpUi={mcpUi} />
-				<ChatUploadFooter
-					cwd={cwd}
-					isFocused={isFocused}
-					error={errorMessage}
-					canAbort={canAbort}
-					submitStatus={submitStatus}
-					availableModels={availableModels}
-					selectedModel={activeModel}
-					setSelectedModel={handleSelectModel}
-					modelSelectorOpen={modelSelectorOpen}
-					setModelSelectorOpen={setModelSelectorOpen}
-					permissionMode={permissionMode}
-					setPermissionMode={setPermissionMode}
-					thinkingLevel={thinkingLevel}
-					setThinkingLevel={setThinkingLevel}
-					slashCommands={slashCommands}
-					sessionId={sessionId}
-					onError={setRuntimeErrorMessage}
-					onSend={handleSend}
-					onSubmitStart={() => setSubmitStatus("submitted")}
-					onStop={handleStop}
-					onSlashCommandSend={handleSlashCommandSend}
-				/>
+				{pendingQuestion ? (
+					<QuestionFooter
+						question={pendingQuestion}
+						isSubmitting={questionResponsePending}
+						onRespond={handleQuestionResponse}
+					/>
+				) : (
+					<ChatUploadFooter
+						cwd={cwd}
+						isFocused={isFocused}
+						error={errorMessage}
+						canAbort={canAbort}
+						submitStatus={submitStatus}
+						availableModels={availableModels}
+						selectedModel={activeModel}
+						setSelectedModel={handleSelectModel}
+						modelSelectorOpen={modelSelectorOpen}
+						setModelSelectorOpen={setModelSelectorOpen}
+						permissionMode={permissionMode}
+						setPermissionMode={setPermissionMode}
+						thinkingLevel={thinkingLevel}
+						setThinkingLevel={setThinkingLevel}
+						slashCommands={slashCommands}
+						sessionId={sessionId}
+						onError={setRuntimeErrorMessage}
+						onSend={handleSend}
+						onSubmitStart={() => setSubmitStatus("submitted")}
+						onStop={handleStop}
+						onSlashCommandSend={handleSlashCommandSend}
+					/>
+				)}
 			</div>
 		</PromptInputProvider>
 	);
