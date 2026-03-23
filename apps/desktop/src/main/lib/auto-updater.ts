@@ -200,9 +200,8 @@ export function simulateError(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
-		return;
-	}
+	// Auto-update disabled for self-hosted fork — use ~/bin/superset-update instead
+	return;
 
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
