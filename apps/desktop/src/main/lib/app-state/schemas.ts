@@ -11,6 +11,8 @@ export type { BaseTabsState as TabsState, Pane } from "shared/tabs-types";
 export interface ThemeState {
 	activeThemeId: string;
 	customThemes: Theme[];
+	systemLightThemeId?: string;
+	systemDarkThemeId?: string;
 }
 
 export interface AppState {
@@ -30,6 +32,8 @@ export const defaultAppState: AppState = {
 	themeState: {
 		activeThemeId: "dark",
 		customThemes: [],
+		systemLightThemeId: "light",
+		systemDarkThemeId: "dark",
 	},
 	hotkeysState: createDefaultHotkeysState(),
 };

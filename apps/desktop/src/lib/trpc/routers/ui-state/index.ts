@@ -232,6 +232,8 @@ const themeSchema = z.object({
 const themeStateSchema = z.object({
 	activeThemeId: z.string(),
 	customThemes: z.array(themeSchema),
+	systemLightThemeId: z.string().optional(),
+	systemDarkThemeId: z.string().optional(),
 });
 
 const hotkeysStateSchema = z.object({
