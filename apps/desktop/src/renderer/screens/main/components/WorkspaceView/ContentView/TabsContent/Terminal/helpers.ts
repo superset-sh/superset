@@ -540,6 +540,13 @@ export function setupKeyboardHandler(
 			!event.altKey;
 
 		if (isShiftEnter) {
+			// In alternate buffer mode (TUI apps like vim, gsd-pi, etc.), let xterm.js
+			// handle the key natively so TUI apps can distinguish Shift+Enter from Enter
+			// (e.g. via the Kitty keyboard protocol in xterm.js v7+).
+			const isAlternateBuffer = xterm.buffer.active !== xterm.buffer.normal;
+			if (isAlternateBuffer) {
+				return true;
+			}
 			if (event.type === "keydown" && options.onShiftEnter) {
 				event.preventDefault();
 				options.onShiftEnter();
