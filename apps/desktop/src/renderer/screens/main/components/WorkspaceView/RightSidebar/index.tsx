@@ -125,8 +125,9 @@ export function RightSidebar() {
 		[workspaceId, worktreePath, trpcUtils],
 	);
 
+	/** Opens a changed file in the file viewer. When `openInNewTab` is true (cmd/ctrl+click), creates a new pinned tab. */
 	const handleFileOpenPane = useCallback(
-		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+		(file: ChangedFile, category: ChangeCategory, commitHash?: string, openInNewTab?: boolean) => {
 			if (!workspaceId || !worktreePath) return;
 			const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
 			addFileViewerPane(workspaceId, {
@@ -137,6 +138,7 @@ export function RightSidebar() {
 				oldPath: file.oldPath
 					? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
 					: undefined,
+				openInNewTab,
 			});
 			invalidateFileContent(absolutePath);
 		},

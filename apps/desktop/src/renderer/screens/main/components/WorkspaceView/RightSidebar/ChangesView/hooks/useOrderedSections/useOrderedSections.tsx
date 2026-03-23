@@ -34,13 +34,13 @@ interface UseOrderedSectionsInput {
 	projectId?: string;
 	isExpandedView?: boolean;
 	againstBaseFiles: ChangedFile[];
-	onAgainstBaseFileSelect: (file: ChangedFile) => void;
+	onAgainstBaseFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	commitsWithFiles: CommitInfo[];
 	expandedCommits: Set<string>;
 	onCommitToggle: (commitHash: string) => void;
-	onCommitFileSelect: (file: ChangedFile, commitHash: string) => void;
+	onCommitFileSelect: (file: ChangedFile, commitHash: string, openInNewTab?: boolean) => void;
 	stagedFiles: ChangedFile[];
-	onStagedFileSelect: (file: ChangedFile) => void;
+	onStagedFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	onUnstageFile: (file: ChangedFile) => void;
 	onUnstageFiles: (files: ChangedFile[]) => void;
 	onShowDiscardStagedDialog: () => void;
@@ -49,7 +49,7 @@ interface UseOrderedSectionsInput {
 	isUnstageAllPending: boolean;
 	isStagedActioning: boolean;
 	unstagedFiles: ChangedFile[];
-	onUnstagedFileSelect: (file: ChangedFile) => void;
+	onUnstagedFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	onStageFile: (file: ChangedFile) => void;
 	onStageFiles: (files: ChangedFile[]) => void;
 	onDiscardFile: (file: ChangedFile) => void;

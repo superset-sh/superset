@@ -12,7 +12,7 @@ interface FileListGroupedVirtualizedProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -214,7 +214,7 @@ export function FileListGroupedVirtualized({
 											selectedFile?.path === row.file.path &&
 											(!commitHash || selectedCommitHash === commitHash)
 										}
-										onClick={() => onFileSelect(row.file)}
+										onClick={(openInNewTab) => onFileSelect(row.file, openInNewTab)}
 										showStats={showStats}
 										onStage={onStage ? () => onStage(row.file) : undefined}
 										onUnstage={
