@@ -36,7 +36,7 @@ export default async function LegalPage({ params }: PageProps) {
 					</p>
 				</header>
 
-				<div className="prose dark:prose-invert max-w-none">
+				<div className="prose max-w-none">
 					<MDXRemote
 						source={page.content}
 						options={{
