@@ -1151,7 +1151,7 @@ ${sanitizeText(truncatedBody)}`;
 		<div className="p-3 space-y-2">
 			<div className="flex items-center">
 				<Input
-					className="border-none bg-transparent text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
+					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder="Workspace name (optional)"
 					value={workspaceName}
 					onChange={(e) =>
@@ -1165,11 +1165,17 @@ ${sanitizeText(truncatedBody)}`;
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
 						}
 					}}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+							e.preventDefault();
+							void handleCreate();
+						}
+					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
 						className={cn(
-							"border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder="branch name"
 						value={branchName}
@@ -1189,6 +1195,12 @@ ${sanitizeText(truncatedBody)}`;
 								updateDraft({ branchName: "", branchNameEdited: false });
 							} else {
 								updateDraft({ branchName: sanitized });
+							}
+						}}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+								e.preventDefault();
+								void handleCreate();
 							}
 						}}
 					/>
