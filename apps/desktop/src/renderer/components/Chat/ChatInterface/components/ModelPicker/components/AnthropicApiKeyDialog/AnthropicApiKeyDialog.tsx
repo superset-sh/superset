@@ -56,6 +56,7 @@ export function AnthropicApiKeyDialog({
 							<InputGroupInput
 								id="anthropic-api-key"
 								type="password"
+								autoComplete="off"
 								placeholder="sk-ant-..."
 								value={apiKey}
 								onChange={(event) => onApiKeyChange(event.target.value)}

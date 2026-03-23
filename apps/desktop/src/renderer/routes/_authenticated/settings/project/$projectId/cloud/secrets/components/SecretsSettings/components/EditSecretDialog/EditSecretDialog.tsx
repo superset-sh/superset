@@ -98,6 +98,7 @@ export function EditSecretDialog({
 							onChange={(e) => setValue(e.target.value)}
 							className="font-mono text-sm"
 							type={secret.sensitive ? "password" : "text"}
+							autoComplete="off"
 							autoFocus
 						/>
 					</div>

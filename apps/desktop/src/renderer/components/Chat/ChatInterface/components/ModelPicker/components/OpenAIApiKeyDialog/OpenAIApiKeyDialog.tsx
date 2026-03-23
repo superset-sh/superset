@@ -57,6 +57,7 @@ export function OpenAIApiKeyDialog({
 							<InputGroupInput
 								id="openai-api-key"
 								type="password"
+								autoComplete="off"
 								placeholder="sk-..."
 								value={apiKey}
 								onChange={(event) => onApiKeyChange(event.target.value)}

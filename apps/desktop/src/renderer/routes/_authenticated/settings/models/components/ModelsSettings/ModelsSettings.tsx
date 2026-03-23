@@ -346,6 +346,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										field={
 											<Input
 												type="password"
+												autoComplete="off"
 												value={anthropicApiKeyInput}
 												onChange={(event) => {
 													setAnthropicApiKeyInput(event.target.value);
@@ -400,6 +401,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										field={
 											<Input
 												type="password"
+												autoComplete="off"
 												value={openAIApiKeyInput}
 												onChange={(event) => {
 													setOpenAIApiKeyInput(event.target.value);
@@ -471,6 +473,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										field={
 											<Input
 												type="password"
+												autoComplete="off"
 												value={anthropicForm.authToken}
 												onChange={(event) => {
 													setAnthropicForm((current) => ({
