@@ -160,6 +160,19 @@ function getProcessEnvSnapshot(): {
 	return cachedProcessEnvSnapshot;
 }
 
+/**
+ * Append a key=value pair to a GODEBUG string if not already present.
+ * GODEBUG values are comma-separated (e.g. "gctrace=1,x509usefallbackroots=1").
+ */
+function appendGoDebug(
+	existing: string | undefined,
+	entry: string,
+): string {
+	if (!existing) return entry;
+	if (existing.split(",").some((e) => e.trim() === entry)) return existing;
+	return `${existing},${entry}`;
+}
+
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
 		return cachedMacosSystemCertAvailable;
@@ -280,7 +293,11 @@ const ALLOWED_ENV_VARS = new Set([
 
 	// macOS specific
 	"__CF_USER_TEXT_ENCODING",
+	"__CFBundleIdentifier",
 	"Apple_PubSub_Socket_Render",
+	"SECURITYSESSIONID", // Security framework session (Keychain access)
+	"XPC_FLAGS", // XPC communication with system daemons (securityd)
+	"XPC_SERVICE_NAME", // XPC service identification
 
 	// Windows specific (for cross-platform compatibility)
 	// Note: Windows stores these with various casings (Path, SystemRoot, etc.)
@@ -302,6 +319,9 @@ const ALLOWED_ENV_VARS = new Set([
 	"SSL_CERT_DIR",
 	"NODE_EXTRA_CA_CERTS",
 	"REQUESTS_CA_BUNDLE", // Python requests library
+
+	// Go runtime configuration (needed for x509 TLS fallback in Electron)
+	"GODEBUG",
 
 	// Git configuration (not credentials)
 	"GIT_SSH_COMMAND",
@@ -485,13 +505,18 @@ export function buildTerminalEnv(params: {
 	delete terminalEnv.GOOGLE_API_KEY;
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,
-	// causing "x509: OSStatus -26276" in Go binaries like `gh`. File-based fallback.
-	if (
-		os.platform() === "darwin" &&
-		!terminalEnv.SSL_CERT_FILE &&
-		hasMacosSystemCertBundle()
-	) {
-		terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+	// causing "x509: OSStatus -26276" in Go binaries like `gh`.
+	// SSL_CERT_FILE provides a file-based cert bundle for non-CGO Go binaries.
+	// GODEBUG=x509usefallbackroots=1 tells CGO-enabled Go to fall back to file-based
+	// roots (and Go's own verifier) when the Security framework call fails.
+	if (os.platform() === "darwin" && hasMacosSystemCertBundle()) {
+		if (!terminalEnv.SSL_CERT_FILE) {
+			terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+		}
+		terminalEnv.GODEBUG = appendGoDebug(
+			terminalEnv.GODEBUG,
+			"x509usefallbackroots=1",
+		);
 	}
 
 	return terminalEnv;

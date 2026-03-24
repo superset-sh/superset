@@ -391,18 +391,39 @@ describe("env", () => {
 			});
 		});
 
+		describe("includes macOS system vars for Security framework", () => {
+			it("should include XPC and Security session vars", () => {
+				const env = {
+					XPC_FLAGS: "0x0",
+					XPC_SERVICE_NAME: "application.sh.superset.app.123",
+					SECURITYSESSIONID: "186a8",
+					__CFBundleIdentifier: "sh.superset.app",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.XPC_FLAGS).toBe("0x0");
+				expect(result.XPC_SERVICE_NAME).toBe(
+					"application.sh.superset.app.123",
+				);
+				expect(result.SECURITYSESSIONID).toBe("186a8");
+				expect(result.__CFBundleIdentifier).toBe("sh.superset.app");
+			});
+		});
+
 		describe("includes developer tool config vars (non-secrets)", () => {
 			it("should include SSL/TLS config vars", () => {
 				const env = {
 					SSL_CERT_FILE: "/etc/ssl/certs/ca-certificates.crt",
 					SSL_CERT_DIR: "/etc/ssl/certs",
 					NODE_EXTRA_CA_CERTS: "/path/to/custom-ca.crt",
+					GODEBUG: "x509usefallbackroots=1",
 					PATH: "/usr/bin",
 				};
 				const result = buildSafeEnv(env);
 				expect(result.SSL_CERT_FILE).toBe("/etc/ssl/certs/ca-certificates.crt");
 				expect(result.SSL_CERT_DIR).toBe("/etc/ssl/certs");
 				expect(result.NODE_EXTRA_CA_CERTS).toBe("/path/to/custom-ca.crt");
+				expect(result.GODEBUG).toBe("x509usefallbackroots=1");
 			});
 
 			it("should include Git config vars (not credentials)", () => {
@@ -592,6 +613,7 @@ describe("env", () => {
 			"DATABASE_URL",
 			"CLERK_SECRET_KEY",
 			"SSL_CERT_FILE",
+			"GODEBUG",
 			"SUPERSET_HOME_DIR",
 		];
 
@@ -740,6 +762,32 @@ describe("env", () => {
 				process.env.SSL_CERT_FILE = "/custom/certs/ca-bundle.crt";
 				const result = buildTerminalEnv(baseParams);
 				expect(result.SSL_CERT_FILE).toBe("/custom/certs/ca-bundle.crt");
+			});
+
+			it("should set GODEBUG x509usefallbackroots on macOS", () => {
+				delete process.env.GODEBUG;
+				const result = buildTerminalEnv(baseParams);
+				if (process.platform === "darwin") {
+					expect(result.GODEBUG).toBe("x509usefallbackroots=1");
+				}
+			});
+
+			it("should append to existing GODEBUG on macOS", () => {
+				process.env.GODEBUG = "gctrace=1";
+				const result = buildTerminalEnv(baseParams);
+				if (process.platform === "darwin") {
+					expect(result.GODEBUG).toBe(
+						"gctrace=1,x509usefallbackroots=1",
+					);
+				}
+			});
+
+			it("should not duplicate x509usefallbackroots in GODEBUG", () => {
+				process.env.GODEBUG = "x509usefallbackroots=1";
+				const result = buildTerminalEnv(baseParams);
+				if (process.platform === "darwin") {
+					expect(result.GODEBUG).toBe("x509usefallbackroots=1");
+				}
 			});
 		});
 
