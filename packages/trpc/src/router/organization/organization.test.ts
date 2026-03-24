@@ -2,10 +2,6 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { TRPCError } from "@trpc/server";
 
 const addMemberMock = mock(async (input: unknown) => input);
-const deleteWhereMock = mock(async () => ({ success: true }));
-const deleteMock = mock(() => ({
-	where: deleteWhereMock,
-}));
 const findOrgMembershipMock = mock(async () => null);
 
 mock.module("@superset/auth/stripe", () => ({
@@ -17,9 +13,7 @@ mock.module("@superset/auth/stripe", () => ({
 }));
 
 mock.module("@superset/db/client", () => ({
-	db: {
-		delete: deleteMock,
-	},
+	db: {},
 }));
 
 mock.module("@superset/db/schema", () => ({
@@ -104,12 +98,6 @@ describe("organization router authorization", () => {
 	beforeEach(() => {
 		addMemberMock.mockReset();
 		addMemberMock.mockImplementation(async (input: unknown) => input);
-		deleteMock.mockReset();
-		deleteMock.mockImplementation(() => ({
-			where: deleteWhereMock,
-		}));
-		deleteWhereMock.mockReset();
-		deleteWhereMock.mockImplementation(async () => ({ success: true }));
 		findOrgMembershipMock.mockReset();
 		findOrgMembershipMock.mockImplementation(async () => null);
 	});
@@ -168,31 +156,5 @@ describe("organization router authorization", () => {
 			},
 			headers: expect.any(Headers),
 		});
-	});
-
-	it("requires owner access to delete an organization", async () => {
-		findOrgMembershipMock.mockImplementation(async () => ({
-			role: "admin",
-		}));
-		const caller = createCaller(createContext());
-
-		await expect(caller.organization.delete(ORG_ID)).rejects.toMatchObject({
-			code: "FORBIDDEN",
-			message: "Owner access required",
-		} satisfies Partial<TRPCError>);
-
-		expect(deleteMock).not.toHaveBeenCalled();
-	});
-
-	it("allows owners to delete their own organization", async () => {
-		findOrgMembershipMock.mockImplementation(async () => ({
-			role: "owner",
-		}));
-		const caller = createCaller(createContext());
-
-		await caller.organization.delete(ORG_ID);
-
-		expect(deleteMock).toHaveBeenCalledTimes(1);
-		expect(deleteWhereMock).toHaveBeenCalledTimes(1);
 	});
 });

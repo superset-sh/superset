@@ -29,16 +29,3 @@ export async function verifyOrgAdmin(userId: string, organizationId: string) {
 
 	return { membership };
 }
-
-export async function verifyOrgOwner(userId: string, organizationId: string) {
-	const { membership } = await verifyOrgMembership(userId, organizationId);
-
-	if (membership.role !== "owner") {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Owner access required",
-		});
-	}
-
-	return { membership };
-}
