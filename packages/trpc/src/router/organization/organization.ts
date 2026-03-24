@@ -13,6 +13,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
+import { verifyOrgAdmin, verifyOrgOwner } from "../integration/utils";
 
 export const organizationRouter = {
 	getInvitation: publicProcedure.input(z.uuid()).query(async ({ input }) => {
@@ -252,7 +253,8 @@ export const organizationRouter = {
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgOwner(ctx.session.user.id, input);
 			await db.delete(organizations).where(eq(organizations.id, input));
 			return { success: true };
 		}),
@@ -265,6 +267,7 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 			const member = await ctx.auth.api.addMember({
 				body: {
 					organizationId: input.organizationId,
