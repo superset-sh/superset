@@ -755,6 +755,8 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 				if (process.platform === "darwin") {
 					expect(result.SSL_CERT_FILE).toBe("/etc/ssl/cert.pem");
+				} else {
+					expect(result.SSL_CERT_FILE).toBeUndefined();
 				}
 			});
 
@@ -769,6 +771,8 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 				if (process.platform === "darwin") {
 					expect(result.GODEBUG).toBe("x509usefallbackroots=1");
+				} else {
+					expect(result.GODEBUG).toBeUndefined();
 				}
 			});
 
@@ -779,6 +783,8 @@ describe("env", () => {
 					expect(result.GODEBUG).toBe(
 						"gctrace=1,x509usefallbackroots=1",
 					);
+				} else {
+					expect(result.GODEBUG).toBe("gctrace=1");
 				}
 			});
 
@@ -786,6 +792,8 @@ describe("env", () => {
 				process.env.GODEBUG = "x509usefallbackroots=1";
 				const result = buildTerminalEnv(baseParams);
 				if (process.platform === "darwin") {
+					expect(result.GODEBUG).toBe("x509usefallbackroots=1");
+				} else {
 					expect(result.GODEBUG).toBe("x509usefallbackroots=1");
 				}
 			});

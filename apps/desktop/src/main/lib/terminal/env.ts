@@ -1,11 +1,11 @@
 import { exec } from "node:child_process";
-import fs from "node:fs";
 import os from "node:os";
+
 import defaultShell from "default-shell";
+import { applyMacosTlsFix } from "lib/macos-tls";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
-const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
 let localeProbeInFlight = false;
 const PROCESS_ENV_SNAPSHOT_CACHE_TTL_MS = 1_000;
@@ -15,8 +15,6 @@ let cachedProcessEnvSnapshot: {
 	safe: Record<string, string>;
 	expiresAt: number;
 } | null = null;
-let cachedMacosSystemCertAvailable: boolean | null = null;
-
 function startLocaleProbe(): void {
 	if (cachedUtf8Locale || localeProbeInFlight) return;
 	localeProbeInFlight = true;
@@ -160,31 +158,8 @@ function getProcessEnvSnapshot(): {
 	return cachedProcessEnvSnapshot;
 }
 
-/**
- * Append a key=value pair to a GODEBUG string if not already present.
- * GODEBUG values are comma-separated (e.g. "gctrace=1,x509usefallbackroots=1").
- */
-function appendGoDebug(
-	existing: string | undefined,
-	entry: string,
-): string {
-	if (!existing) return entry;
-	if (existing.split(",").some((e) => e.trim() === entry)) return existing;
-	return `${existing},${entry}`;
-}
-
-function hasMacosSystemCertBundle(): boolean {
-	if (cachedMacosSystemCertAvailable !== null) {
-		return cachedMacosSystemCertAvailable;
-	}
-
-	cachedMacosSystemCertAvailable = fs.existsSync(MACOS_SYSTEM_CERT_FILE);
-	return cachedMacosSystemCertAvailable;
-}
-
 export function resetTerminalEnvCachesForTests(): void {
 	cachedProcessEnvSnapshot = null;
-	cachedMacosSystemCertAvailable = null;
 	cachedUtf8Locale = null;
 	localeProbeInFlight = false;
 }
@@ -504,20 +479,7 @@ export function buildTerminalEnv(params: {
 
 	delete terminalEnv.GOOGLE_API_KEY;
 
-	// Electron child processes can't access macOS Keychain for TLS cert verification,
-	// causing "x509: OSStatus -26276" in Go binaries like `gh`.
-	// SSL_CERT_FILE provides a file-based cert bundle for non-CGO Go binaries.
-	// GODEBUG=x509usefallbackroots=1 tells CGO-enabled Go to fall back to file-based
-	// roots (and Go's own verifier) when the Security framework call fails.
-	if (os.platform() === "darwin" && hasMacosSystemCertBundle()) {
-		if (!terminalEnv.SSL_CERT_FILE) {
-			terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
-		}
-		terminalEnv.GODEBUG = appendGoDebug(
-			terminalEnv.GODEBUG,
-			"x509usefallbackroots=1",
-		);
-	}
+	applyMacosTlsFix(terminalEnv);
 
 	return terminalEnv;
 }

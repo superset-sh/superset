@@ -2,9 +2,8 @@ import {
 	type ExecFileOptionsWithStringEncoding,
 	execFile,
 } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
 import { promisify } from "node:util";
+import { applyMacosTlsFix } from "lib/macos-tls";
 import { shellEnv } from "shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -276,35 +275,6 @@ export async function execWithShellEnv(
 			throw retryError;
 		}
 	}
-}
-
-const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
-
-/**
- * On macOS, Electron child processes can't access the Keychain for TLS cert
- * verification, causing "x509: OSStatus -26276" in CGO-enabled Go binaries
- * (e.g. `gh` from Homebrew). Set SSL_CERT_FILE for file-based cert roots and
- * GODEBUG=x509usefallbackroots=1 so Go falls back to its own verifier when
- * the Security framework call fails.
- */
-function applyMacosTlsFix(env: Record<string, string>): Record<string, string> {
-	if (os.platform() !== "darwin") return env;
-	try {
-		if (!fs.existsSync(MACOS_SYSTEM_CERT_FILE)) return env;
-	} catch {
-		return env;
-	}
-	if (!env.SSL_CERT_FILE) {
-		env.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
-	}
-	const flag = "x509usefallbackroots=1";
-	const godebug = env.GODEBUG;
-	if (!godebug) {
-		env.GODEBUG = flag;
-	} else if (!godebug.split(",").some((e) => e.trim() === flag)) {
-		env.GODEBUG = `${godebug},${flag}`;
-	}
-	return env;
 }
 
 /**
