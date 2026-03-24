@@ -9,53 +9,12 @@ import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
 export const organizationRouter = {
-	all: publicProcedure.query(() => {
-		return db.query.organizations.findMany({
-			orderBy: desc(organizations.createdAt),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
-				},
-			},
-		});
-	}),
-
-	byId: publicProcedure.input(z.string().uuid()).query(({ input }) => {
-		return db.query.organizations.findFirst({
-			where: eq(organizations.id, input),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
-				},
-				projects: true,
-			},
-		});
-	}),
-
-	bySlug: publicProcedure.input(z.string()).query(({ input }) => {
-		return db.query.organizations.findFirst({
-			where: eq(organizations.slug, input),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
-				},
-				projects: true,
-			},
-		});
-	}),
-
 	getInvitation: publicProcedure.input(z.uuid()).query(async ({ input }) => {
 		const invitation = await db.query.invitations.findFirst({
 			where: eq(invitations.id, input),
