@@ -32,7 +32,11 @@ import type {
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import {
+	captureTerminalViewport,
+	restoreTerminalViewport,
+	scrollToBottom,
+} from "../utils";
 import { createAttachRequestId } from "./attach-request-id";
 import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 import {
@@ -767,8 +771,7 @@ export function useTerminalLifecycle({
 
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
-			const wasAtBottom =
-				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
+			const viewportSnapshot = captureTerminalViewport(xterm);
 
 			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
 			rendererRef.current?.current.clearTextureAtlas?.();
@@ -784,10 +787,9 @@ export function useTerminalLifecycle({
 				xterm.focus();
 			}
 
-			if (!wasAtBottom) return;
 			requestAnimationFrame(() => {
 				if (isUnmounted || xtermRef.current !== xterm) return;
-				scrollToBottom(xterm);
+				restoreTerminalViewport(xterm, viewportSnapshot);
 			});
 		};
 

@@ -3,6 +3,10 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	captureTerminalViewport,
+	restoreTerminalViewport,
+} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/utils";
 import { useWorkspaceHostUrl } from "../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 
 interface WorkspaceTerminalProps {
@@ -79,8 +83,12 @@ export function WorkspaceTerminal({ workspaceId }: WorkspaceTerminalProps) {
 		};
 
 		const resizeObserver = new ResizeObserver(() => {
+			const viewportSnapshot = captureTerminalViewport(terminal);
 			fitAddon.fit();
 			sendResize();
+			requestAnimationFrame(() =>
+				restoreTerminalViewport(terminal, viewportSnapshot),
+			);
 		});
 		resizeObserver.observe(container);
 

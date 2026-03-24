@@ -25,7 +25,7 @@ import {
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { scrollToBottom } from "./utils";
+import { captureTerminalViewport, restoreTerminalViewport } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -714,13 +714,12 @@ export function setupResizeHandlers(
 	onResize: (cols: number, rows: number) => void,
 ): () => void {
 	const debouncedHandleResize = debounce(() => {
-		const buffer = xterm.buffer.active;
-		const wasAtBottom = buffer.viewportY >= buffer.baseY;
+		const viewportSnapshot = captureTerminalViewport(xterm);
 		fitAddon.fit();
 		onResize(xterm.cols, xterm.rows);
-		if (wasAtBottom) {
-			requestAnimationFrame(() => scrollToBottom(xterm));
-		}
+		requestAnimationFrame(() =>
+			restoreTerminalViewport(xterm, viewportSnapshot),
+		);
 	}, RESIZE_DEBOUNCE_MS);
 
 	const resizeObserver = new ResizeObserver(debouncedHandleResize);
