@@ -7,12 +7,14 @@ import { getPathBaseName } from "shared/absolute-paths";
 import {
 	deleteDocumentBuffer,
 	discardDocumentCurrentContent,
-	getDocumentBaselineContent,
 	getDocumentCurrentContent,
+	getDocumentLoadedContent,
+	getDocumentRenderedMarkdownPristineContent,
 	hasInitializedDocumentBuffer,
 	markDocumentSavedContent,
 	setDocumentCurrentContent,
 	setDocumentLoadedContent,
+	setDocumentRenderedMarkdownPristineContent,
 	transferDocumentBuffer,
 } from "./editorBufferRegistry";
 import {
@@ -272,13 +274,13 @@ export function unbindFileViewerSession(paneId: string): void {
 	cleanupDocumentIfOrphaned(session.documentKey);
 }
 
-export function updateDocumentDraft(
+function updateDocumentDraftState(
 	documentKey: string,
 	content: string,
+	pristineContent: string,
 ): boolean {
 	setDocumentCurrentContent(documentKey, content);
-	const baseline = getDocumentBaselineContent(documentKey);
-	const dirty = content !== baseline;
+	const dirty = content !== pristineContent;
 
 	useEditorDocumentsStore.getState().patchDocument(documentKey, {
 		dirty,
@@ -287,6 +289,36 @@ export function updateDocumentDraft(
 	});
 
 	return dirty;
+}
+
+export function updateRawDocumentDraft(
+	documentKey: string,
+	content: string,
+): boolean {
+	return updateDocumentDraftState(
+		documentKey,
+		content,
+		getDocumentLoadedContent(documentKey),
+	);
+}
+
+export function updateRenderedMarkdownDocumentDraft(
+	documentKey: string,
+	content: string,
+): boolean {
+	return updateDocumentDraftState(
+		documentKey,
+		content,
+		getDocumentRenderedMarkdownPristineContent(documentKey) ??
+			getDocumentLoadedContent(documentKey),
+	);
+}
+
+export function registerRenderedMarkdownPristineContent(
+	documentKey: string,
+	content: string,
+): void {
+	setDocumentRenderedMarkdownPristineContent(documentKey, content);
 }
 
 export function applyLoadedDocumentContent(
@@ -393,8 +425,16 @@ export function getEditorDocumentCurrentContent(documentKey: string): string {
 	return getDocumentCurrentContent(documentKey);
 }
 
-export function getEditorDocumentBaselineContent(documentKey: string): string {
-	return getDocumentBaselineContent(documentKey);
+export function getEditorDocumentContentForSave(documentKey: string): string {
+	if (!getDocumentState(documentKey)?.dirty) {
+		return getDocumentLoadedContent(documentKey);
+	}
+
+	return getDocumentCurrentContent(documentKey);
+}
+
+export function getEditorDocumentLoadedContent(documentKey: string): string {
+	return getDocumentLoadedContent(documentKey);
 }
 
 export function hasEditorDocumentInitialized(documentKey: string): boolean {
@@ -420,7 +460,7 @@ export async function saveDocumentForPane(
 		return undefined;
 	}
 
-	const content = getDocumentCurrentContent(document.documentKey);
+	const content = getEditorDocumentContentForSave(document.documentKey);
 	const precondition =
 		options?.force || !document.baselineRevision
 			? undefined
@@ -468,7 +508,7 @@ export async function saveDocumentForPane(
 		return undefined;
 	}
 
-	const currentContent = getDocumentCurrentContent(document.documentKey);
+	const currentContent = getEditorDocumentContentForSave(document.documentKey);
 	markDocumentSaved(document.documentKey, {
 		savedContent: content,
 		currentContent,

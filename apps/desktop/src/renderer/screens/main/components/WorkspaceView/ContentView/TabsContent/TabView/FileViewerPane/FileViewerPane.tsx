@@ -14,16 +14,19 @@ import {
 	cancelPendingIntent,
 	clearDocumentConflict,
 	discardDocumentChanges,
-	getEditorDocumentBaselineContent,
+	getEditorDocumentContentForSave,
 	getEditorDocumentCurrentContent,
+	getEditorDocumentLoadedContent,
 	hasEditorDocumentInitialized,
 	markDocumentSaved,
+	registerRenderedMarkdownPristineContent,
 	requestPaneClose,
 	requestViewModeChange,
 	resumePendingIntent,
 	setDocumentConflict,
 	setDocumentExternalDiskChange,
-	updateDocumentDraft,
+	updateRawDocumentDraft,
+	updateRenderedMarkdownDocumentDraft,
 } from "renderer/stores/editor-state/editorCoordinator";
 import {
 	buildEditorDocumentKey,
@@ -195,7 +198,7 @@ export function FileViewerPane({
 
 	const getCurrentContent = useCallback(() => {
 		if (hasEditorDocumentInitialized(documentKey)) {
-			return getEditorDocumentCurrentContent(documentKey);
+			return getEditorDocumentContentForSave(documentKey);
 		}
 
 		if (viewMode === "rendered") {
@@ -323,17 +326,17 @@ export function FileViewerPane({
 		() => toAbsoluteWorkspacePath(worktreePath, filePath),
 		[worktreePath, filePath],
 	);
-	const baselineContent = getEditorDocumentBaselineContent(documentKey);
+	const loadedContent = getEditorDocumentLoadedContent(documentKey);
 
 	useEffect(() => {
 		const nextHasExternalDiskChange =
 			isDirty &&
 			viewMode !== "diff" &&
-			((rawFileData?.ok === true && rawFileData.content !== baselineContent) ||
+			((rawFileData?.ok === true && rawFileData.content !== loadedContent) ||
 				(rawFileData?.ok === false && rawFileData.reason === "not-found"));
 
 		setDocumentExternalDiskChange(documentKey, nextHasExternalDiskChange);
-	}, [baselineContent, documentKey, isDirty, rawFileData, viewMode]);
+	}, [documentKey, isDirty, loadedContent, rawFileData, viewMode]);
 
 	const trpcUtils = electronTrpc.useUtils();
 	const invalidateCurrentFile = useCallback(() => {
@@ -388,7 +391,10 @@ export function FileViewerPane({
 				return;
 			}
 
-			const dirty = updateDocumentDraft(documentKey, value);
+			const dirty =
+				viewMode === "rendered"
+					? updateRenderedMarkdownDocumentDraft(documentKey, value)
+					: updateRawDocumentDraft(documentKey, value);
 			if (dirty && !isPinned) {
 				pinPane(paneId);
 				useEditorSessionsStore.getState().patchSession(paneId, {
@@ -396,7 +402,18 @@ export function FileViewerPane({
 				});
 			}
 		},
-		[documentKey, isPinned, paneId, pinPane],
+		[documentKey, isPinned, paneId, pinPane, viewMode],
+	);
+
+	const handleMarkdownNormalizedValue = useCallback(
+		(value: string) => {
+			if (isDirty) {
+				return;
+			}
+
+			registerRenderedMarkdownPristineContent(documentKey, value);
+		},
+		[documentKey, isDirty],
 	);
 
 	useEffect(() => {
@@ -575,7 +592,11 @@ export function FileViewerPane({
 	const currentDocumentContent = getEditorDocumentCurrentContent(documentKey);
 	const renderedContent = useMemo(() => {
 		if (hasEditorDocumentInitialized(documentKey)) {
-			return currentDocumentContent;
+			if (viewMode === "rendered") {
+				return currentDocumentContent;
+			}
+
+			return isDirty ? currentDocumentContent : loadedContent;
 		}
 
 		if (rawFileData?.ok === true) {
@@ -583,7 +604,14 @@ export function FileViewerPane({
 		}
 
 		return "";
-	}, [currentDocumentContent, documentKey, rawFileData]);
+	}, [
+		currentDocumentContent,
+		documentKey,
+		isDirty,
+		loadedContent,
+		rawFileData,
+		viewMode,
+	]);
 	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const unsavedDialogCopy = getUnsavedDialogCopy(
@@ -693,6 +721,7 @@ export function FileViewerPane({
 							hideUnchangedRegions={hideUnchangedRegions}
 							onSaveFile={handleEditorSave}
 							onContentChange={handleContentChange}
+							onMarkdownNormalizedValue={handleMarkdownNormalizedValue}
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 							onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
