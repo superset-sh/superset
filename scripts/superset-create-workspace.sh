@@ -165,7 +165,7 @@ fi
 MAX_ORDER=$(sqlite3 "$DB" "SELECT COALESCE(MAX(tab_order), 0) FROM workspaces WHERE project_id = '$PROJECT_ID_ESC';" 2>/dev/null || echo "0")
 TAB_ORDER=$((MAX_ORDER + 1))
 
-# Determine if name was explicitly provided
+# Determine if name was explicitly provided (requires schema with is_unnamed column)
 IS_UNNAMED=0
 if [[ -z "$WS_NAME_PROVIDED" ]]; then
   IS_UNNAMED=1
@@ -185,5 +185,5 @@ echo "  Branch:   $BRANCH"
 echo "  Worktree: ${WT_PATH:-$WORKTREE_PATH}"
 echo ""
 echo "Click on the project in the Superset sidebar to see the new workspace."
-echo "Or to navigate directly (once deep link support ships):"
+echo "Or open the workspace directly via deep link:"
 echo "  open 'superset://workspace/$WS_ID'"

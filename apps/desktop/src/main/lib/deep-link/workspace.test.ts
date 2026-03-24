@@ -362,7 +362,7 @@ const TEST_DIR = join(
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
 	mkdirSync(repoPath, { recursive: true });
-	execSync("git init", { cwd: repoPath, stdio: "ignore" });
+	execSync("git init -b main", { cwd: repoPath, stdio: "ignore" });
 	execSync("git config user.email 'test@test.com'", {
 		cwd: repoPath,
 		stdio: "ignore",

@@ -257,7 +257,8 @@ async function createWorkspace(
 	let branchPrefix: string | undefined;
 	try {
 		branchPrefix = await resolveBranchPrefix(project, existingBranches);
-	} catch {
+	} catch (error) {
+		console.warn("[deep-link] Failed to resolve branch prefix:", error);
 		branchPrefix = undefined;
 	}
 
