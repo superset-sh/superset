@@ -466,6 +466,97 @@ describe("DaemonTerminalManager kill tracking", () => {
 		expect(managerInternals.daemonAliveSessionIds.has(paneId)).toBe(false);
 	});
 
+	/**
+	 * Reproduction for #2748: TERMINAL_ATTACH_CANCELED when opening worktrees.
+	 *
+	 * WorkspaceInitEffects creates a tab and then calls createOrAttach for the
+	 * same paneId that the Terminal lifecycle hook also attaches to. When BOTH
+	 * calls omit joinPending, the second supersedes the first, aborting it with
+	 * TERMINAL_ATTACH_CANCELED. The fix is for the caller (WorkspaceInitEffects)
+	 * to pass joinPending: true so the two calls share one pending promise.
+	 */
+	it("cancels first attach when two non-joinPending calls race for the same pane (#2748)", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-worktree-race";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		// Lifecycle hook fires first (has requestId, no joinPending)
+		const lifecyclePromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-lifecycle",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		// WorkspaceInitEffects fires second (no requestId, no joinPending)
+		const initEffectsPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		// The lifecycle call is aborted — this is the bug the user sees
+		await expect(lifecyclePromise).rejects.toThrow(
+			TERMINAL_ATTACH_CANCELED_MESSAGE,
+		);
+
+		// The second call proceeds but if WorkspaceInitEffects had used
+		// joinPending: true, both calls would have shared one promise
+		const secondRequestId = mockClient.createOrAttachCalls.at(-1)?.requestId;
+		expect(typeof secondRequestId).toBe("string");
+		mockClient.resolveCreateOrAttach(secondRequestId ?? "");
+		await expect(initEffectsPromise).resolves.toBeDefined();
+	});
+
+	it("joinPending avoids cancellation when WorkspaceInitEffects and lifecycle race (#2748 fix)", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-worktree-fix";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		// Lifecycle hook fires first (has requestId, no joinPending)
+		const lifecyclePromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-lifecycle-fix",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		// WorkspaceInitEffects fires second WITH joinPending: true (the fix)
+		const initEffectsPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+
+		// No cancellation! Both share the same promise
+		expect(mockClient.cancelCreateOrAttachCalls).toEqual([]);
+		expect(mockClient.createOrAttachCalls).toHaveLength(1);
+
+		const requestId = mockClient.createOrAttachCalls[0]?.requestId;
+		expect(typeof requestId).toBe("string");
+		mockClient.resolveCreateOrAttach(requestId ?? "");
+
+		await expect(lifecyclePromise).resolves.toMatchObject({ isNew: true });
+		await expect(initEffectsPromise).resolves.toMatchObject({ isNew: true });
+	});
+
 	it("propagates probe failures from forceKillAll instead of silently no-oping", async () => {
 		const manager = new DaemonTerminalManager();
 		mockClient.listSessionsIfRunningError = new Error("probe failed");

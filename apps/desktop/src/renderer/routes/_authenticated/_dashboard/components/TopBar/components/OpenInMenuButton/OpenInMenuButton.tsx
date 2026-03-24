@@ -36,7 +36,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		{ projectId: projectId as string },
 		{ enabled: !!projectId, staleTime: 30000 },
 	);
-	const resolvedApp: ExternalApp = defaultApp ?? "cursor";
+	const resolvedApp: ExternalApp = defaultApp ?? "finder";
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => {
 			if (projectId) {

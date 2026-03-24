@@ -2,6 +2,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
@@ -12,6 +13,7 @@ import {
 	HiMiniCog6Tooth,
 	HiMiniPlay,
 	HiMiniStop,
+	HiMiniXMark,
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
@@ -32,7 +34,13 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
 	const hotkeyText = useHotkeyText("RUN_WORKSPACE_COMMAND");
-	const { isRunning, isPending, toggleWorkspaceRun } = useWorkspaceRunCommand({
+	const {
+		canForceStop,
+		forceStopWorkspaceRun,
+		isRunning,
+		isPending,
+		toggleWorkspaceRun,
+	} = useWorkspaceRunCommand({
 		workspaceId,
 		worktreePath,
 	});
@@ -72,6 +80,10 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 			params: { projectId },
 		});
 	}, [navigate, projectId, setSettingsSearchQuery]);
+
+	const handleForceStopClick = useCallback(() => {
+		void forceStopWorkspaceRun();
+	}, [forceStopWorkspaceRun]);
 
 	const buttonLabel = isRunning ? "Stop" : hasRunCommand ? "Run" : "Set Run";
 	const buttonAriaLabel = isRunning
@@ -137,6 +149,18 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent align="end" className="w-40">
+					{canForceStop && (
+						<>
+							<DropdownMenuItem
+								onClick={handleForceStopClick}
+								className="text-destructive focus:text-destructive"
+							>
+								<HiMiniXMark className="mr-2 size-4 text-destructive" />
+								Force Stop
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+						</>
+					)}
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
 						Configure

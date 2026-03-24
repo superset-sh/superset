@@ -16,6 +16,7 @@ import {
 	getBranchWorkspace,
 	getMaxProjectChildTabOrder,
 	getProject,
+	getWorkspace,
 	getWorktree,
 	setLastActiveWorkspace,
 	touchWorkspace,
@@ -181,7 +182,7 @@ async function handleNewWorktree({
 	});
 
 	const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
-	const baseBranch = resolveWorkspaceBaseBranch({
+	const compareBaseBranch = resolveWorkspaceBaseBranch({
 		workspaceBaseBranch: project.workspaceBaseBranch,
 		defaultBranch: project.defaultBranch,
 		knownBranches,
@@ -193,7 +194,7 @@ async function handleNewWorktree({
 			projectId: project.id,
 			path: worktreePath,
 			branch: localBranchName,
-			baseBranch,
+			baseBranch: compareBaseBranch,
 			gitStatus: null,
 			createdBySuperset: true,
 		})
@@ -213,7 +214,7 @@ async function handleNewWorktree({
 		workspace_id: workspace.id,
 		project_id: project.id,
 		branch: localBranchName,
-		base_branch: baseBranch,
+		base_branch: compareBaseBranch,
 		source: "pr",
 		pr_number: prInfo.number,
 		is_fork: prInfo.isCrossRepository,
@@ -222,7 +223,7 @@ async function handleNewWorktree({
 	await setBranchBaseConfig({
 		repoPath: project.mainRepoPath,
 		branch: localBranchName,
-		baseBranch,
+		compareBaseBranch,
 		isExplicit: false,
 	});
 
@@ -259,15 +260,31 @@ export const createCreateProcedures = () => {
 	return router({
 		create: publicProcedure
 			.input(
-				z.object({
-					projectId: z.string(),
-					name: z.string().optional(),
-					prompt: z.string().optional(),
-					branchName: z.string().optional(),
-					baseBranch: z.string().optional(),
-					useExistingBranch: z.boolean().optional(),
-					applyPrefix: z.boolean().optional().default(true),
-				}),
+				z
+					.object({
+						projectId: z.string(),
+						name: z.string().optional(),
+						prompt: z.string().optional(),
+						branchName: z.string().optional(),
+						compareBaseBranch: z.string().optional(),
+						sourceWorkspaceId: z.string().optional(),
+						useExistingBranch: z.boolean().optional(),
+						applyPrefix: z.boolean().optional().default(true),
+					})
+					.refine(
+						(data) => !(data.compareBaseBranch && data.sourceWorkspaceId),
+						{
+							message:
+								"Cannot specify both compareBaseBranch and sourceWorkspaceId. Use one or the other.",
+						},
+					)
+					.refine(
+						(data) => !(data.useExistingBranch && data.sourceWorkspaceId),
+						{
+							message:
+								"Cannot specify both useExistingBranch and sourceWorkspaceId.",
+						},
+					),
 			)
 			.mutation(async ({ input }) => {
 				const project = localDb
@@ -277,6 +294,28 @@ export const createCreateProcedures = () => {
 					.get();
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
+				}
+				const requestedCompareBaseBranch = input.compareBaseBranch;
+
+				const sourceWorkspace = input.sourceWorkspaceId
+					? getWorkspace(input.sourceWorkspaceId)
+					: undefined;
+				if (input.sourceWorkspaceId && !sourceWorkspace) {
+					throw new Error(
+						`Source workspace "${input.sourceWorkspaceId}" not found`,
+					);
+				}
+				if (sourceWorkspace && sourceWorkspace.projectId !== input.projectId) {
+					throw new Error("Source workspace must belong to the same project");
+				}
+
+				const sourceWorktree = sourceWorkspace?.worktreeId
+					? getWorktree(sourceWorkspace.worktreeId)
+					: undefined;
+				if (sourceWorkspace && !sourceWorktree) {
+					throw new Error(
+						`Source workspace "${sourceWorkspace.id}" is not backed by a worktree`,
+					);
 				}
 
 				let existingBranchName: string | undefined;
@@ -417,9 +456,10 @@ export const createCreateProcedures = () => {
 
 				const worktreePath = resolveWorktreePath(project, branch);
 
-				const targetBranch = resolveWorkspaceBaseBranch({
-					explicitBaseBranch: input.baseBranch,
-					workspaceBaseBranch: project.workspaceBaseBranch,
+				const compareBaseBranch = resolveWorkspaceBaseBranch({
+					explicitBaseBranch: requestedCompareBaseBranch,
+					workspaceBaseBranch:
+						sourceWorktree?.baseBranch ?? project.workspaceBaseBranch,
 					defaultBranch: project.defaultBranch,
 					knownBranches: existingBranches,
 				});
@@ -430,7 +470,7 @@ export const createCreateProcedures = () => {
 						projectId: input.projectId,
 						path: worktreePath,
 						branch,
-						baseBranch: targetBranch,
+						baseBranch: compareBaseBranch,
 						gitStatus: null,
 						createdBySuperset: true,
 					})
@@ -460,15 +500,15 @@ export const createCreateProcedures = () => {
 					workspace_id: workspace.id,
 					project_id: project.id,
 					branch: branch,
-					base_branch: targetBranch,
+					base_branch: compareBaseBranch,
 					use_existing_branch: input.useExistingBranch ?? false,
 				});
 
 				await setBranchBaseConfig({
 					repoPath: project.mainRepoPath,
 					branch,
-					baseBranch: targetBranch,
-					isExplicit: Boolean(input.baseBranch?.trim()),
+					compareBaseBranch,
+					isExplicit: Boolean(requestedCompareBaseBranch?.trim()),
 				});
 
 				workspaceInitManager.startJob(workspace.id, input.projectId);
@@ -479,6 +519,7 @@ export const createCreateProcedures = () => {
 					worktreePath,
 					branch,
 					mainRepoPath: project.mainRepoPath,
+					startPointBranch: sourceWorkspace?.branch,
 					namingPrompt: input.prompt,
 					useExistingBranch: input.useExistingBranch,
 				});
@@ -773,7 +814,7 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
-				const baseBranch = resolveWorkspaceBaseBranch({
+				const compareBaseBranch = resolveWorkspaceBaseBranch({
 					workspaceBaseBranch: project.workspaceBaseBranch,
 					defaultBranch: project.defaultBranch,
 					knownBranches,
@@ -847,7 +888,7 @@ export const createCreateProcedures = () => {
 							projectId: input.projectId,
 							path: ext.path,
 							branch,
-							baseBranch,
+							baseBranch: compareBaseBranch,
 							gitStatus: {
 								branch,
 								needsRebase: false,
@@ -876,7 +917,7 @@ export const createCreateProcedures = () => {
 					await setBranchBaseConfig({
 						repoPath: project.mainRepoPath,
 						branch,
-						baseBranch,
+						compareBaseBranch,
 						isExplicit: false,
 					});
 

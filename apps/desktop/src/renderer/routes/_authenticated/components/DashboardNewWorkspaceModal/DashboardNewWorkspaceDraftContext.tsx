@@ -22,7 +22,7 @@ export interface DashboardNewWorkspaceDraft {
 	prompt: string;
 	branchName: string;
 	branchNameEdited: boolean;
-	baseBranch: string | null;
+	compareBaseBranch: string | null;
 	showAdvanced: boolean;
 	branchSearch: string;
 	issuesQuery: string;
@@ -41,7 +41,7 @@ const initialDraft: DashboardNewWorkspaceDraft = {
 	prompt: "",
 	branchName: "",
 	branchNameEdited: false,
-	baseBranch: null,
+	compareBaseBranch: null,
 	showAdvanced: false,
 	branchSearch: "",
 	issuesQuery: "",
@@ -154,7 +154,7 @@ export function DashboardNewWorkspaceDraftProvider({
 				prompt: state.prompt,
 				branchName: state.branchName,
 				branchNameEdited: state.branchNameEdited,
-				baseBranch: state.baseBranch,
+				compareBaseBranch: state.compareBaseBranch,
 				showAdvanced: state.showAdvanced,
 				branchSearch: state.branchSearch,
 				issuesQuery: state.issuesQuery,

@@ -39,12 +39,13 @@ export const createBranchesRouter = () => {
 
 					const branchSummary = await git.branch(["-a"]);
 					const currentBranch = await getCurrentBranch(input.worktreePath);
-					const { baseBranch: configuredBaseBranch } = currentBranch
-						? await getBranchBaseConfig({
-								repoPath: input.worktreePath,
-								branch: currentBranch,
-							})
-						: { baseBranch: null };
+					const { compareBaseBranch: configuredCompareBaseBranch } =
+						currentBranch
+							? await getBranchBaseConfig({
+									repoPath: input.worktreePath,
+									branch: currentBranch,
+								})
+							: { compareBaseBranch: null };
 					const persistedWorktree = localDb
 						.select({
 							branch: worktrees.branch,
@@ -84,7 +85,8 @@ export const createBranchesRouter = () => {
 						remote: remote.sort(),
 						defaultBranch,
 						checkedOutBranches,
-						worktreeBaseBranch: configuredBaseBranch ?? persistedBaseBranch,
+						worktreeBaseBranch:
+							configuredCompareBaseBranch ?? persistedBaseBranch,
 						currentBranch,
 					};
 				},
@@ -138,7 +140,7 @@ export const createBranchesRouter = () => {
 					await setBranchBaseConfig({
 						repoPath: input.worktreePath,
 						branch: currentBranch,
-						baseBranch: input.baseBranch,
+						compareBaseBranch: input.baseBranch,
 						isExplicit: true,
 					});
 				} else {

@@ -37,7 +37,8 @@ type Table<Key extends string> = {
 	__tableName: TableName;
 } & Record<Key, Column<Key>>;
 
-type Predicate = (row: Row) => boolean;
+type QueryRow = Row | Record<string, Row>;
+type Predicate = (row: QueryRow) => boolean;
 type OrderBy = { kind: "desc"; column: Column };
 
 function createTable<Key extends string>(
@@ -59,6 +60,21 @@ function createTable<Key extends string>(
 	}
 
 	return table as Table<Key>;
+}
+
+function isColumn(value: unknown): value is Column {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"__kind" in value &&
+		(value as { __kind?: string }).__kind === "column"
+	);
+}
+
+function isTable(value: unknown): value is {
+	__tableName: TableName;
+} {
+	return typeof value === "object" && value !== null && "__tableName" in value;
 }
 
 const projects = createTable("projects", [
@@ -110,7 +126,9 @@ const workspaceSections = createTable("workspaceSections", [
 ] as const);
 
 function eq(column: Column, value: unknown): Predicate {
-	return (row) => row[column.key] === value;
+	return (row) =>
+		readColumn(row, column) ===
+		(isColumn(value) ? readColumn(row, value) : value);
 }
 
 function and(...predicates: Predicate[]): Predicate {
@@ -118,11 +136,15 @@ function and(...predicates: Predicate[]): Predicate {
 }
 
 function isNull(column: Column): Predicate {
-	return (row) => row[column.key] == null;
+	return (row) => readColumn(row, column) == null;
 }
 
 function isNotNull(column: Column): Predicate {
-	return (row) => row[column.key] != null;
+	return (row) => readColumn(row, column) != null;
+}
+
+function not(predicate: Predicate): Predicate {
+	return (row) => !predicate(row);
 }
 
 function desc(column: Column): OrderBy {
@@ -152,6 +174,34 @@ function cloneRow<T extends Row | undefined>(row: T): T {
 	}
 
 	return { ...row } as T;
+}
+
+function cloneQueryRow<T extends QueryRow | undefined>(row: T): T {
+	if (!row) {
+		return row;
+	}
+
+	const entries = Object.entries(row);
+	const isJoined =
+		entries.length > 0 &&
+		entries.every(([, value]) => typeof value === "object" && value !== null);
+
+	if (!isJoined) {
+		return cloneRow(row as Row) as T;
+	}
+
+	return Object.fromEntries(
+		entries.map(([key, value]) => [key, cloneRow(value as Row)]),
+	) as T;
+}
+
+function readColumn(row: QueryRow, column: Column): unknown {
+	const nested = (row as Record<string, unknown>)[column.tableName];
+	if (nested && typeof nested === "object" && column.key in nested) {
+		return (nested as Row)[column.key];
+	}
+
+	return (row as Row)[column.key];
 }
 
 function getTableRows(table: { __tableName: TableName }): Row[] {
@@ -209,27 +259,36 @@ function normalizeInsertedRow(tableName: TableName, row: Row): Row {
 }
 
 function projectSelection(
-	row: Row,
-	selection?: Record<string, Column>,
+	row: QueryRow,
+	selection?: Record<string, Column | { __tableName: TableName }>,
 ): Row | undefined {
 	if (!row) {
 		return undefined;
 	}
 
 	if (!selection) {
-		return cloneRow(row);
+		return cloneQueryRow(row as QueryRow) as Row;
 	}
 
 	const projected: Row = {};
-	for (const [key, column] of Object.entries(selection)) {
-		projected[key] = row[column.key];
+	for (const [key, value] of Object.entries(selection)) {
+		if (isColumn(value)) {
+			projected[key] = readColumn(row, value);
+			continue;
+		}
+
+		if (isTable(value)) {
+			projected[key] = cloneRow(
+				(row as Record<string, Row>)[value.__tableName],
+			) as unknown as Row;
+		}
 	}
 	return projected;
 }
 
 function runSelect(
 	table: { __tableName: TableName },
-	selection?: Record<string, Column>,
+	selection?: Record<string, Column | { __tableName: TableName }>,
 	predicate?: Predicate,
 	orderBy?: OrderBy,
 ): Row[] {
@@ -249,7 +308,7 @@ function runSelect(
 
 function createSelectResult(
 	table: { __tableName: TableName },
-	selection?: Record<string, Column>,
+	selection?: Record<string, Column | { __tableName: TableName }>,
 	predicate?: Predicate,
 	orderBy?: OrderBy,
 ) {
@@ -261,8 +320,70 @@ function createSelectResult(
 	};
 }
 
+function runInnerJoinSelect(
+	leftTable: { __tableName: TableName },
+	rightTable: { __tableName: TableName },
+	selection?: Record<string, Column | { __tableName: TableName }>,
+	joinPredicate?: Predicate,
+	predicate?: Predicate,
+): Row[] {
+	const joinedRows = getTableRows(leftTable)
+		.flatMap((leftRow) =>
+			getTableRows(rightTable)
+				.map((rightRow) => ({
+					[leftTable.__tableName]: leftRow,
+					[rightTable.__tableName]: rightRow,
+				}))
+				.filter((row) => (joinPredicate ? joinPredicate(row) : true)),
+		)
+		.filter((row) => (predicate ? predicate(row) : true));
+
+	return joinedRows
+		.map((row) => projectSelection(row, selection) ?? {})
+		.map((row) => row as Row);
+}
+
+function createInnerJoinResult(
+	leftTable: { __tableName: TableName },
+	rightTable: { __tableName: TableName },
+	selection?: Record<string, Column | { __tableName: TableName }>,
+	joinPredicate?: Predicate,
+	predicate?: Predicate,
+) {
+	return {
+		get: () =>
+			cloneRow(
+				runInnerJoinSelect(
+					leftTable,
+					rightTable,
+					selection,
+					joinPredicate,
+					predicate,
+				)[0],
+			),
+		all: () =>
+			runInnerJoinSelect(
+				leftTable,
+				rightTable,
+				selection,
+				joinPredicate,
+				predicate,
+			).map(cloneRow),
+		where: (nextPredicate: Predicate) =>
+			createInnerJoinResult(
+				leftTable,
+				rightTable,
+				selection,
+				joinPredicate,
+				nextPredicate,
+			),
+	};
+}
+
 const localDb = {
-	select: (selection?: Record<string, Column>) => ({
+	select: (
+		selection?: Record<string, Column | { __tableName: TableName }>,
+	) => ({
 		from: (table: { __tableName: TableName }) => ({
 			get: () => cloneRow(runSelect(table, selection)[0]),
 			all: () => runSelect(table, selection).map(cloneRow),
@@ -270,6 +391,19 @@ const localDb = {
 				createSelectResult(table, selection, predicate),
 			orderBy: (orderBy: OrderBy) =>
 				createSelectResult(table, selection, undefined, orderBy),
+			innerJoin: (
+				joinTable: { __tableName: TableName },
+				joinPredicate: Predicate,
+			) => ({
+				where: (predicate: Predicate) =>
+					createInnerJoinResult(
+						table,
+						joinTable,
+						selection,
+						joinPredicate,
+						predicate,
+					),
+			}),
 		}),
 	}),
 	insert: (table: { __tableName: TableName }) => ({
@@ -342,6 +476,7 @@ mock.module("drizzle-orm", () => ({
 	eq,
 	isNotNull,
 	isNull,
+	not,
 }));
 
 mock.module("@superset/local-db", () => ({
@@ -367,6 +502,23 @@ mock.module("main/lib/local-db", () => ({
 afterAll(() => {
 	mock.restore();
 });
+
+const trackMock = mock(() => {});
+mock.module("main/lib/analytics", () => ({
+	track: trackMock,
+}));
+
+const startJobMock = mock(() => {});
+mock.module("main/lib/workspace-init-manager", () => ({
+	workspaceInitManager: {
+		startJob: startJobMock,
+	},
+}));
+
+const initializeWorkspaceWorktreeMock = mock(() => {});
+mock.module("../utils/workspace-init", () => ({
+	initializeWorkspaceWorktree: initializeWorkspaceWorktreeMock,
+}));
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -657,5 +809,108 @@ describe("External worktree import via openExternalWorktree", () => {
 
 		expect(importedWorktree).toBeDefined();
 		expect(importedWorktree?.createdBySuperset).toBe(false);
+	});
+});
+
+describe("Workspace creation from source workspace", () => {
+	let mainRepoPath: string;
+	let projectId: string;
+
+	beforeEach(() => {
+		resetLocalDb();
+		trackMock.mockClear();
+		startJobMock.mockClear();
+		initializeWorkspaceWorktreeMock.mockClear();
+
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+		mkdirSync(TEST_DIR, { recursive: true });
+
+		mainRepoPath = createTestRepo("source-workspace-repo");
+		seedCommit(mainRepoPath, "initial commit");
+
+		const project = localDb
+			.insert(projects)
+			.values({
+				mainRepoPath,
+				name: "Test Project",
+				color: "#000000",
+				defaultBranch: "main",
+			})
+			.returning()
+			.get();
+		projectId = project.id as string;
+	});
+
+	afterEach(() => {
+		if (projectId) {
+			localDb
+				.delete(workspaces)
+				.where(eq(workspaces.projectId, projectId))
+				.run();
+			localDb.delete(worktrees).where(eq(worktrees.projectId, projectId)).run();
+			localDb.delete(projects).where(eq(projects.id, projectId)).run();
+		}
+
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("inherits the source workspace base branch while branching from the source workspace branch", async () => {
+		const sourceWorktree = localDb
+			.insert(worktrees)
+			.values({
+				projectId,
+				path: join(TEST_DIR, "source-worktree"),
+				branch: "changelog/2026-03-23-23431298423",
+				baseBranch: "main",
+			})
+			.returning()
+			.get();
+
+		const sourceWorkspace = localDb
+			.insert(workspaces)
+			.values({
+				projectId,
+				worktreeId: sourceWorktree.id as string,
+				type: "worktree",
+				branch: sourceWorktree.branch as string,
+				name: "Source Workspace",
+				tabOrder: 0,
+			})
+			.returning()
+			.get();
+
+		const { createCreateProcedures } = await import("./create");
+		const caller = createCreateProcedures().createCaller({});
+		const result = await caller.create({
+			projectId,
+			branchName: "kitenite/ubiquitous-spot",
+			sourceWorkspaceId: sourceWorkspace.id as string,
+		});
+
+		const createdWorktree = localDb
+			.select()
+			.from(worktrees)
+			.where(eq(worktrees.id, result.workspace.worktreeId as string))
+			.get();
+
+		expect(createdWorktree?.baseBranch).toBe("main");
+		expect(initializeWorkspaceWorktreeMock).toHaveBeenCalledTimes(1);
+		expect(initializeWorkspaceWorktreeMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				branch: "kitenite/ubiquitous-spot",
+				startPointBranch: "changelog/2026-03-23-23431298423",
+			}),
+		);
+
+		expect(
+			execSync("git config branch.kitenite/ubiquitous-spot.base", {
+				cwd: mainRepoPath,
+				encoding: "utf8",
+			}).trim(),
+		).toBe("main");
 	});
 });

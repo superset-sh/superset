@@ -809,6 +809,14 @@ export const HOTKEYS = {
 		category: "Terminal",
 	}),
 
+	// Window
+	RELOAD_WINDOW: defineHotkey({
+		keys: "meta+r",
+		label: "Reload Window",
+		category: "Window",
+		description: "Reload the current window",
+	}),
+
 	// Help
 	OPEN_SETTINGS: defineHotkey({
 		keys: "meta+,",
