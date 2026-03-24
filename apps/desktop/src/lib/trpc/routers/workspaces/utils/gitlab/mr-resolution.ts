@@ -247,18 +247,29 @@ async function fetchPipelineChecks(
 
 		const pipelineId = latestPipelineResult.data.id;
 
-		// Get jobs for the latest pipeline
-		const { stdout: jobsStdout } = await execWithShellEnv(
-			"glab",
-			[
-				"api",
-				`projects/${projectPath}/pipelines/${pipelineId}/jobs?per_page=100&include_retried=false`,
-			],
-			{ cwd: worktreePath },
-		);
+		// Get jobs for the latest pipeline (paginated)
+		const allRawJobs: unknown[] = [];
+		let jobPage = 1;
+		while (true) {
+			const { stdout: jobsStdout } = await execWithShellEnv(
+				"glab",
+				[
+					"api",
+					`projects/${projectPath}/pipelines/${pipelineId}/jobs?per_page=100&include_retried=false&page=${jobPage}`,
+				],
+				{ cwd: worktreePath },
+			);
 
-		const rawJobs: unknown = JSON.parse(jobsStdout.trim());
-		if (!Array.isArray(rawJobs) || rawJobs.length === 0) {
+			const pageJobs: unknown = JSON.parse(jobsStdout.trim());
+			if (!Array.isArray(pageJobs) || pageJobs.length === 0) {
+				break;
+			}
+			allRawJobs.push(...pageJobs);
+			if (pageJobs.length < 100) break;
+			jobPage++;
+		}
+
+		if (allRawJobs.length === 0) {
 			// No jobs but pipeline exists — use pipeline-level status
 			const pipelineStatus = mapPipelineStatusToChecksStatus(
 				latestPipelineResult.data.status,
@@ -271,7 +282,7 @@ async function fetchPipelineChecks(
 		let hasPending = false;
 		let hasSuccess = false;
 
-		for (const rawJob of rawJobs) {
+		for (const rawJob of allRawJobs) {
 			const jobResult = GLJobSchema.safeParse(rawJob);
 			if (!jobResult.success) {
 				continue;
@@ -347,12 +358,13 @@ function mapJobStatus(status: string): CheckItem["status"] {
 	}
 }
 
-function formatDuration(seconds: number): string {
-	if (seconds < 60) {
-		return `${Math.round(seconds)}s`;
+function formatDuration(rawSeconds: number): string {
+	const total = Math.round(rawSeconds);
+	if (total < 60) {
+		return `${total}s`;
 	}
-	const minutes = Math.floor(seconds / 60);
-	const remainingSeconds = Math.round(seconds % 60);
+	const minutes = Math.floor(total / 60);
+	const remainingSeconds = total % 60;
 	return remainingSeconds > 0
 		? `${minutes}m ${remainingSeconds}s`
 		: `${minutes}m`;
