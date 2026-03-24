@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 import "./global.css";
 import { COMPANY } from "@superset/shared/constants";
 import { Inter } from "next/font/google";
-import Script from "next/script";
-import Script from "next/script";
 import { NavigationBar } from "@/app/components/NavigationBar";
 import { NavbarProvider } from "@/app/components/NavigationBar/components/NavigationMobile";
 

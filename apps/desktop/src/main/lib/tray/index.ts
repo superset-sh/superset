@@ -17,19 +17,15 @@ import {
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
 
-/** Must have "Template" suffix for macOS dark/light mode support */
-const TRAY_ICON_FILENAME_MAC = "iconTemplate.png";
-/** Linux needs a regular (non-template) icon — re-use the app icon */
-const TRAY_ICON_FILENAME_LINUX = "iconTemplate.png";
-
-function getTrayIconFilename(): string {
-	return process.platform === "darwin"
-		? TRAY_ICON_FILENAME_MAC
-		: TRAY_ICON_FILENAME_LINUX;
-}
+/**
+ * Single icon asset for all platforms.
+ * macOS template behavior is controlled via setTemplateImage(true) at runtime,
+ * so the "Template" suffix in the filename is what macOS needs to auto-detect it.
+ */
+const TRAY_ICON_FILENAME = "iconTemplate.png";
 
 function getTrayIconPath(): string | null {
-	const filename = getTrayIconFilename();
+	const filename = TRAY_ICON_FILENAME;
 
 	if (app.isPackaged) {
 		const prodPath = join(
@@ -55,11 +51,7 @@ function getTrayIconPath(): string | null {
 		return previewPath;
 	}
 
-	const devPath = join(
-		app.getAppPath(),
-		"src/resources/tray",
-		filename,
-	);
+	const devPath = join(app.getAppPath(), "src/resources/tray", filename);
 	if (existsSync(devPath)) {
 		return devPath;
 	}

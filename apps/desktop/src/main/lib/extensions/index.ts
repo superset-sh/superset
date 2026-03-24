@@ -214,9 +214,7 @@ export async function loadWebviewBrowserExtension(): Promise<void> {
 	}
 
 	try {
-		await session
-			.fromPartition(APP_PARTITION)
-			.loadExtension(extensionPath);
+		await session.fromPartition(APP_PARTITION).loadExtension(extensionPath);
 		console.log("[main] Browser extension loaded");
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

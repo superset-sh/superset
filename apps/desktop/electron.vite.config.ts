@@ -22,7 +22,11 @@ import {
 // (e.g. https://api.superset.sh) are used instead of local dev URLs.
 // CI sets env vars directly; local dev uses .env.
 if (process.env.NODE_ENV === "development") {
-	config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+	config({
+		path: resolve(__dirname, "../../.env"),
+		override: true,
+		quiet: true,
+	});
 }
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
@@ -107,7 +111,7 @@ export default defineConfig({
 			sourcemap: true,
 			rollupOptions: {
 				input: {
-				"patch-node-stream": resolve("src/main/patch-node-stream.ts"),
+					"patch-node-stream": resolve("src/main/patch-node-stream.ts"),
 					index: resolve("src/main/entrypoints/main.ts"),
 					// Terminal host daemon process - runs separately for terminal persistence
 					"terminal-host": resolve("src/main/entrypoints/terminal-host.ts"),
