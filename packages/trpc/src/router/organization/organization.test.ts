@@ -3,19 +3,39 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 const TEST_USER_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 const TEST_ORG_ID = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22";
 
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+function asyncIterableOf<T>(items: T[]): AsyncIterable<T> {
+	return {
+		[Symbol.asyncIterator]: async function* () {
+			for (const item of items) yield item;
+		},
+	};
+}
+
 // ── Mock state ──────────────────────────────────────────────────────────
 let mockMembership: { role: string } | undefined;
 let mockOrganization:
 	| { id: string; stripeCustomerId: string | null }
 	| undefined;
-const mockDeleteWhere = mock(() => Promise.resolve());
-const mockSubscriptionsList = mock(
-	() =>
-		Promise.resolve({ data: [] }) as Promise<{
-			data: { id: string }[];
-		}>,
+const callOrder: string[] = [];
+
+const mockFindOrgMembership = mock(
+	(_args: { userId: string; organizationId: string }) =>
+		Promise.resolve(mockMembership),
 );
-const mockSubscriptionsCancel = mock(() => Promise.resolve());
+const mockDeleteWhere = mock(() => {
+	callOrder.push("delete");
+	return Promise.resolve();
+});
+const mockSubscriptionsList = mock(
+	(_params: { customer: string; status: string }) =>
+		asyncIterableOf<{ id: string }>([]),
+);
+const mockSubscriptionsCancel = mock((_id: string) => {
+	callOrder.push("cancel");
+	return Promise.resolve();
+});
 
 // ── Mocks (must be declared before dynamic import) ──────────────────────
 
@@ -27,11 +47,22 @@ mock.module("@superset/db/client", () => ({
 				findFirst: () => Promise.resolve(mockOrganization),
 			},
 		},
+		transaction: (fn: (tx: unknown) => Promise<unknown>) => {
+			const tx = {
+				delete: () => ({ where: mockDeleteWhere }),
+				query: {
+					members: {
+						findFirst: () => Promise.resolve(mockMembership),
+					},
+				},
+			};
+			return fn(tx);
+		},
 	},
 }));
 
 mock.module("@superset/db/utils", () => ({
-	findOrgMembership: () => Promise.resolve(mockMembership),
+	findOrgMembership: mockFindOrgMembership,
 }));
 
 mock.module("@superset/auth/stripe", () => ({
@@ -100,6 +131,8 @@ describe("organization.delete", () => {
 	beforeEach(() => {
 		mockMembership = undefined;
 		mockOrganization = undefined;
+		callOrder.length = 0;
+		mockFindOrgMembership.mockClear();
 		mockDeleteWhere.mockClear();
 		mockSubscriptionsList.mockClear();
 		mockSubscriptionsCancel.mockClear();
@@ -110,6 +143,9 @@ describe("organization.delete", () => {
 		await expect(caller.organization.delete(TEST_ORG_ID)).rejects.toMatchObject(
 			{ code: "UNAUTHORIZED" },
 		);
+		expect(mockFindOrgMembership).not.toHaveBeenCalled();
+		expect(mockDeleteWhere).not.toHaveBeenCalled();
+		expect(mockSubscriptionsList).not.toHaveBeenCalled();
 	});
 
 	test("rejects non-members", async () => {
@@ -121,6 +157,12 @@ describe("organization.delete", () => {
 				message: "You are not a member of this organization",
 			},
 		);
+		expect(mockFindOrgMembership).toHaveBeenCalledWith({
+			userId: TEST_USER_ID,
+			organizationId: TEST_ORG_ID,
+		});
+		expect(mockDeleteWhere).not.toHaveBeenCalled();
+		expect(mockSubscriptionsList).not.toHaveBeenCalled();
 	});
 
 	test("rejects members with member role", async () => {
@@ -129,6 +171,12 @@ describe("organization.delete", () => {
 		await expect(caller.organization.delete(TEST_ORG_ID)).rejects.toMatchObject(
 			{ code: "FORBIDDEN", message: "Only owners can delete organizations" },
 		);
+		expect(mockFindOrgMembership).toHaveBeenCalledWith({
+			userId: TEST_USER_ID,
+			organizationId: TEST_ORG_ID,
+		});
+		expect(mockDeleteWhere).not.toHaveBeenCalled();
+		expect(mockSubscriptionsList).not.toHaveBeenCalled();
 	});
 
 	test("rejects members with admin role", async () => {
@@ -137,6 +185,12 @@ describe("organization.delete", () => {
 		await expect(caller.organization.delete(TEST_ORG_ID)).rejects.toMatchObject(
 			{ code: "FORBIDDEN", message: "Only owners can delete organizations" },
 		);
+		expect(mockFindOrgMembership).toHaveBeenCalledWith({
+			userId: TEST_USER_ID,
+			organizationId: TEST_ORG_ID,
+		});
+		expect(mockDeleteWhere).not.toHaveBeenCalled();
+		expect(mockSubscriptionsList).not.toHaveBeenCalled();
 	});
 
 	test("allows owner to delete organization without Stripe", async () => {
@@ -147,6 +201,10 @@ describe("organization.delete", () => {
 		const result = await caller.organization.delete(TEST_ORG_ID);
 
 		expect(result).toEqual({ success: true });
+		expect(mockFindOrgMembership).toHaveBeenCalledWith({
+			userId: TEST_USER_ID,
+			organizationId: TEST_ORG_ID,
+		});
 		expect(mockDeleteWhere).toHaveBeenCalledTimes(1);
 		expect(mockSubscriptionsList).not.toHaveBeenCalled();
 	});
@@ -154,9 +212,9 @@ describe("organization.delete", () => {
 	test("cancels active Stripe subscriptions before deletion", async () => {
 		mockMembership = { role: "owner" };
 		mockOrganization = { id: TEST_ORG_ID, stripeCustomerId: "cus_test123" };
-		mockSubscriptionsList.mockResolvedValueOnce({
-			data: [{ id: "sub_1" }, { id: "sub_2" }],
-		});
+		mockSubscriptionsList.mockReturnValueOnce(
+			asyncIterableOf([{ id: "sub_1" }, { id: "sub_2" }]),
+		);
 
 		const caller = authedCaller();
 		const result = await caller.organization.delete(TEST_ORG_ID);
@@ -170,6 +228,7 @@ describe("organization.delete", () => {
 		expect(mockSubscriptionsCancel).toHaveBeenCalledWith("sub_1");
 		expect(mockSubscriptionsCancel).toHaveBeenCalledWith("sub_2");
 		expect(mockDeleteWhere).toHaveBeenCalledTimes(1);
+		expect(callOrder).toEqual(["cancel", "cancel", "delete"]);
 	});
 
 	test("rejects invalid UUID input", async () => {
@@ -177,5 +236,7 @@ describe("organization.delete", () => {
 		await expect(
 			caller.organization.delete("not-a-uuid"),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		expect(mockFindOrgMembership).not.toHaveBeenCalled();
+		expect(mockDeleteWhere).not.toHaveBeenCalled();
 	});
 });

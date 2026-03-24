@@ -318,16 +318,30 @@ export const organizationRouter = {
 			});
 
 			if (organization?.stripeCustomerId) {
-				const subs = await stripeClient.subscriptions.list({
+				for await (const sub of stripeClient.subscriptions.list({
 					customer: organization.stripeCustomerId,
 					status: "active",
-				});
-				for (const sub of subs.data) {
+				})) {
 					await stripeClient.subscriptions.cancel(sub.id);
 				}
 			}
 
-			await db.delete(organizations).where(eq(organizations.id, input));
+			await db.transaction(async (tx) => {
+				const currentMembership = await tx.query.members.findFirst({
+					where: and(
+						eq(members.organizationId, input),
+						eq(members.userId, ctx.session.user.id),
+					),
+				});
+				if (!currentMembership || currentMembership.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only owners can delete organizations",
+					});
+				}
+				await tx.delete(organizations).where(eq(organizations.id, input));
+			});
+
 			return { success: true };
 		}),
 
