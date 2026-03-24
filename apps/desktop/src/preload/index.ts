@@ -1,6 +1,17 @@
 import "@sentry/electron/preload";
 
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+
+// webUtils was added in Electron 28; use dynamic require to avoid TS errors on Electron 25 types
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const webUtils: { getPathForFile: (file: File) => string } | undefined = (() => {
+	try {
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic require for forward-compatible API
+		return (require("electron") as any).webUtils;
+	} catch {
+		return undefined;
+	}
+})();
 import { exposeElectronTRPC } from "trpc-electron/main";
 
 declare const __APP_VERSION__: string;
@@ -64,5 +75,9 @@ exposeElectronTRPC();
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
 contextBridge.exposeInMainWorld("webUtils", {
-	getPathForFile: (file: File) => webUtils.getPathForFile(file),
+	getPathForFile: (file: File) => {
+		if (webUtils) return webUtils.getPathForFile(file);
+		// Fallback for Electron <28: File.path is available in Electron's renderer
+		return (file as File & { path?: string }).path ?? "";
+	},
 });

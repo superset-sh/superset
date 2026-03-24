@@ -1,37 +1,100 @@
+import fs from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
+import { shell, systemPreferences } from "electron";
+import { PLATFORM } from "shared/constants";
 import { publicProcedure, router } from "..";
-import {
-	getPermissionStatus,
-	requestAccessibility,
-	requestAppleEvents,
-	requestFullDiskAccess,
-	requestLocalNetwork,
-	requestMicrophone,
-} from "./permissions/native-permissions";
+
+type PermissionStatus = boolean | "not-applicable";
+
+function checkFullDiskAccess(): PermissionStatus {
+	if (!PLATFORM.IS_MAC) return "not-applicable";
+	try {
+		// Safari bookmarks are TCC-protected — readable only with Full Disk Access
+		const tccProtectedPath = path.join(
+			homedir(),
+			"Library/Safari/Bookmarks.plist",
+		);
+		fs.accessSync(tccProtectedPath, fs.constants.R_OK);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function checkAccessibility(): PermissionStatus {
+	if (!PLATFORM.IS_MAC) return "not-applicable";
+	return systemPreferences.isTrustedAccessibilityClient(false);
+}
+
+function checkMicrophone(): PermissionStatus {
+	if (!PLATFORM.IS_MAC) return "not-applicable";
+	try {
+		return systemPreferences.getMediaAccessStatus("microphone") === "granted";
+	} catch {
+		return false;
+	}
+}
 
 export const createPermissionsRouter = () => {
 	return router({
 		getStatus: publicProcedure.query(() => {
-			return getPermissionStatus();
+			return {
+				fullDiskAccess: checkFullDiskAccess(),
+				accessibility: checkAccessibility(),
+				microphone: checkMicrophone(),
+				appleEvents: (PLATFORM.IS_MAC ? undefined : "not-applicable") as
+					| PermissionStatus
+					| undefined,
+				localNetwork: (PLATFORM.IS_MAC ? undefined : "not-applicable") as
+					| PermissionStatus
+					| undefined,
+			};
 		}),
 
 		requestFullDiskAccess: publicProcedure.mutation(async () => {
-			await requestFullDiskAccess();
+			if (!PLATFORM.IS_MAC) return;
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+			);
 		}),
 
 		requestAccessibility: publicProcedure.mutation(async () => {
-			await requestAccessibility();
+			if (!PLATFORM.IS_MAC) return;
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+			);
 		}),
 
 		requestMicrophone: publicProcedure.mutation(async () => {
-			return requestMicrophone();
+			if (!PLATFORM.IS_MAC) return { granted: false };
+			try {
+				const granted = await systemPreferences.askForMediaAccess("microphone");
+				if (granted) {
+					return { granted: true };
+				}
+			} catch {
+				// Fall through to opening System Settings.
+			}
+
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+			);
+			return { granted: false };
 		}),
 
 		requestAppleEvents: publicProcedure.mutation(async () => {
-			await requestAppleEvents();
+			if (!PLATFORM.IS_MAC) return;
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+			);
 		}),
 
 		requestLocalNetwork: publicProcedure.mutation(async () => {
-			await requestLocalNetwork();
+			if (!PLATFORM.IS_MAC) return;
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension",
+			);
 		}),
 	});
 };

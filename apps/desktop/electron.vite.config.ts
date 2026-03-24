@@ -17,8 +17,13 @@ import {
 	htmlEnvTransformPlugin,
 } from "./vite/helpers";
 
-// override: true ensures .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+// In development, load .env so local overrides (e.g. localhost URLs) are used.
+// In production builds, skip .env entirely so defineEnv() fallbacks
+// (e.g. https://api.superset.sh) are used instead of local dev URLs.
+// CI sets env vars directly; local dev uses .env.
+if (process.env.NODE_ENV === "development") {
+	config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+}
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
 
