@@ -26,46 +26,38 @@ const TRAY_ICON_FILENAME = "iconTemplate.png";
 
 function getTrayIconPath(): string | null {
 	const filename = TRAY_ICON_FILENAME;
+	const isLinux = process.platform === "linux";
 
-	if (app.isPackaged) {
-		const prodPath = join(
-			process.resourcesPath,
-			"app.asar.unpacked/resources/tray",
-			filename,
-		);
-		if (existsSync(prodPath)) return prodPath;
+	// Build candidate paths in priority order (packaged vs dev, then Linux fallback)
+	const candidates: string[] = app.isPackaged
+		? [
+				join(
+					process.resourcesPath,
+					"app.asar.unpacked/resources/tray",
+					filename,
+				),
+				...(isLinux
+					? [
+							join(
+								process.resourcesPath,
+								"app.asar/resources/build/icons/icon.png",
+							),
+						]
+					: []),
+			]
+		: [
+				join(__dirname, "../resources/tray", filename),
+				join(app.getAppPath(), "src/resources/tray", filename),
+				...(isLinux
+					? [join(app.getAppPath(), "src/resources/build/icons/icon.png")]
+					: []),
+			];
 
-		// Linux fallback: use the app icon from build resources
-		if (process.platform === "linux") {
-			const appIconPath = join(
-				process.resourcesPath,
-				"app.asar/resources/build/icons/icon.png",
-			);
-			if (existsSync(appIconPath)) return appIconPath;
-		}
-		return null;
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) return candidate;
 	}
 
-	const previewPath = join(__dirname, "../resources/tray", filename);
-	if (existsSync(previewPath)) {
-		return previewPath;
-	}
-
-	const devPath = join(app.getAppPath(), "src/resources/tray", filename);
-	if (existsSync(devPath)) {
-		return devPath;
-	}
-
-	// Linux fallback: use the app icon
-	if (process.platform === "linux") {
-		const appIconPath = join(
-			app.getAppPath(),
-			"src/resources/build/icons/icon.png",
-		);
-		if (existsSync(appIconPath)) return appIconPath;
-	}
-
-	console.warn("[Tray] Icon not found at:", previewPath, "or", devPath);
+	console.warn("[Tray] Icon not found, tried:", candidates);
 	return null;
 }
 

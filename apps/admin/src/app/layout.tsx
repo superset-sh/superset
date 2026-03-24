@@ -46,14 +46,9 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<Script
-					id="strip-katalon-attrs"
-					strategy="beforeInteractive"
-					dangerouslySetInnerHTML={{
-						__html:
-							"(function(){try{var attrs=document.documentElement.attributes;for(var i=attrs.length-1;i>=0;i--){var name=attrs[i].name;if(name&&name.toLowerCase().indexOf('katalon')!==-1){document.documentElement.removeAttribute(name);}}}catch(e){console.warn('strip-katalon-attrs failed',e)}})();",
-					}}
-				/>
+				<Script id="strip-katalon-attrs" strategy="beforeInteractive">
+					{`(function(){try{var attrs=document.documentElement.attributes;for(var i=attrs.length-1;i>=0;i--){var name=attrs[i].name;if(name&&name.toLowerCase().indexOf('katalon')!==-1){document.documentElement.removeAttribute(name);}}}catch(e){console.warn('strip-katalon-attrs failed',e)}})();`}
+				</Script>
 			</head>
 			<body
 				className={cn(
