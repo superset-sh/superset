@@ -13,12 +13,16 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const isProduction = process.env.NODE_ENV === "production";
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+	: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
 	"base-uri 'self'",
 	[
 		"connect-src 'self'",
+		apiOrigin,
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",
