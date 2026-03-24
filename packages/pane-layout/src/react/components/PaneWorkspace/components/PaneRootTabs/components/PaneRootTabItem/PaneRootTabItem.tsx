@@ -9,7 +9,7 @@ import {
 import { cn } from "@superset/ui/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { PencilIcon, XIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneWorkspaceStore } from "../../../../../../../core/store";
 import type { PaneRootState } from "../../../../../../../types";

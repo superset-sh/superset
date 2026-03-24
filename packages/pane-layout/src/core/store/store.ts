@@ -7,9 +7,9 @@ import type {
 	PaneWorkspaceState,
 } from "../../types";
 import {
-	findPaneLocation,
 	findNodePathByGroupId,
 	findNodePathBySplitId,
+	findPaneLocation,
 	getGroupNode,
 	getNodeAtPath,
 	replaceNodeAtPath,
@@ -62,13 +62,17 @@ function collapseEmptyNodes<TPaneData>(
 	}
 
 	if (nextChildren.length === 1) {
-		return nextChildren[0]!;
+		const [onlyChild] = nextChildren;
+		return onlyChild ?? null;
 	}
 
 	return {
 		...node,
 		children: nextChildren,
-		sizes: Array.from({ length: nextChildren.length }, () => 100 / nextChildren.length),
+		sizes: Array.from(
+			{ length: nextChildren.length },
+			() => 100 / nextChildren.length,
+		),
 	};
 }
 
@@ -95,6 +99,13 @@ function normalizeRootState<TPaneData>(
 	};
 }
 
+function getRootAtIndex<TPaneData>(
+	roots: PaneRootState<TPaneData>[],
+	index: number,
+): PaneRootState<TPaneData> | null {
+	return roots[index] ?? null;
+}
+
 export interface PaneWorkspaceStore<TPaneData>
 	extends PaneWorkspaceStoreState<TPaneData> {
 	getRoot: (rootId: string) => PaneRootState<TPaneData> | null;
@@ -119,7 +130,9 @@ export interface PaneWorkspaceStore<TPaneData>
 	replaceState: (
 		next:
 			| PaneWorkspaceState<TPaneData>
-			| ((prev: PaneWorkspaceState<TPaneData>) => PaneWorkspaceState<TPaneData>),
+			| ((
+					prev: PaneWorkspaceState<TPaneData>,
+			  ) => PaneWorkspaceState<TPaneData>),
 	) => void;
 	addRoot: (root: PaneRootState<TPaneData>) => void;
 	removeRoot: (rootId: string) => void;
@@ -146,10 +159,7 @@ export interface PaneWorkspaceStore<TPaneData>
 		paneId: string;
 		pinned: boolean;
 	}) => void;
-	setPaneData: (args: {
-		paneId: string;
-		data: TPaneData;
-	}) => void;
+	setPaneData: (args: { paneId: string; data: TPaneData }) => void;
 	addPaneToGroup: (args: {
 		rootId: string;
 		groupId: string;
@@ -274,13 +284,17 @@ export function createPaneWorkspaceStore<TPaneData>(
 				(rootId == null
 					? state.roots.find((entry) => entry.id === state.activeRootId)
 					: state.roots.find((entry) => entry.id === rootId)) ?? null;
-			return root?.activeGroupId ? getGroupNode(root, root.activeGroupId) : null;
+			return root?.activeGroupId
+				? getGroupNode(root, root.activeGroupId)
+				: null;
 		},
 		getPane: (paneId) => {
 			const location = findPaneLocation(get().state, paneId);
 			if (!location) return null;
 
-			const root = get().state.roots.find((entry) => entry.id === location.rootId);
+			const root = get().state.roots.find(
+				(entry) => entry.id === location.rootId,
+			);
 			const group = root ? getGroupNode(root, location.groupId) : null;
 			const pane = group?.panes[location.paneIndex] ?? null;
 
@@ -292,20 +306,25 @@ export function createPaneWorkspaceStore<TPaneData>(
 				: null;
 		},
 		getActivePane: (rootId) => {
-			const root = rootId == null ? get().getActiveRoot() : get().getRoot(rootId);
+			const root =
+				rootId == null ? get().getActiveRoot() : get().getRoot(rootId);
 			if (!root || !root.activeGroupId) return null;
 
 			const group = getGroupNode(root, root.activeGroupId);
 			if (!group || !group.activePaneId) return null;
 
-			const paneIndex = group.panes.findIndex((pane) => pane.id === group.activePaneId);
+			const paneIndex = group.panes.findIndex(
+				(pane) => pane.id === group.activePaneId,
+			);
 			if (paneIndex === -1) return null;
+			const pane = group.panes[paneIndex];
+			if (!pane) return null;
 
 			return {
 				rootId: root.id,
 				groupId: group.id,
 				paneIndex,
-				pane: group.panes[paneIndex]!,
+				pane,
 			};
 		},
 		replaceState: (next) => {
@@ -329,8 +348,8 @@ export function createPaneWorkspaceStore<TPaneData>(
 					roots: state.state.roots.filter((root) => root.id !== rootId),
 					activeRootId:
 						state.state.activeRootId === rootId
-							? state.state.roots.filter((root) => root.id !== rootId)[0]?.id ??
-							  null
+							? (state.state.roots.filter((root) => root.id !== rootId)[0]
+									?.id ?? null)
 							: state.state.activeRootId,
 				},
 			}));
@@ -363,7 +382,8 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
-				if (!getGroupNode(state.state.roots[rootIndex]!, args.groupId)) {
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root || !getGroupNode(root, args.groupId)) {
 					return state;
 				}
 
@@ -388,8 +408,10 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 
-				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(root, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
@@ -419,8 +441,10 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 
-				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(root, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
@@ -453,8 +477,10 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 
-				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(root, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
@@ -467,7 +493,9 @@ export function createPaneWorkspaceStore<TPaneData>(
 								? updateGroupNode(root, args.groupId, (currentGroup) => ({
 										...currentGroup,
 										panes: currentGroup.panes.map((pane) =>
-											pane.id === args.paneId ? { ...pane, pinned: args.pinned } : pane,
+											pane.id === args.paneId
+												? { ...pane, pinned: args.pinned }
+												: pane,
 										),
 									}))
 								: root,
@@ -476,22 +504,28 @@ export function createPaneWorkspaceStore<TPaneData>(
 				};
 			});
 		},
-			setPaneData: (args) => {
-				set((state) => {
-					const paneLocation = findPaneLocation(state.state, args.paneId);
-					if (!paneLocation) return state;
+		setPaneData: (args) => {
+			set((state) => {
+				const paneLocation = findPaneLocation(state.state, args.paneId);
+				if (!paneLocation) return state;
 
 				return {
 					state: {
 						...state.state,
 						roots: state.state.roots.map((root) =>
 							root.id === paneLocation.rootId
-								? updateGroupNode(root, paneLocation.groupId, (currentGroup) => ({
-										...currentGroup,
-										panes: currentGroup.panes.map((pane) =>
-											pane.id === args.paneId ? { ...pane, data: args.data } : pane,
-										),
-									}))
+								? updateGroupNode(
+										root,
+										paneLocation.groupId,
+										(currentGroup) => ({
+											...currentGroup,
+											panes: currentGroup.panes.map((pane) =>
+												pane.id === args.paneId
+													? { ...pane, data: args.data }
+													: pane,
+											),
+										}),
+									)
 								: root,
 						),
 					},
@@ -504,8 +538,10 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 
-				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(root, args.groupId);
 				if (!group || group.panes.some((pane) => pane.id === args.pane.id)) {
 					return state;
 				}
@@ -565,8 +601,10 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 
-				const group = getGroupNode(state.state.roots[rootIndex]!, args.groupId);
+				const group = getGroupNode(root, args.groupId);
 				if (!group || !group.panes.some((pane) => pane.id === args.paneId)) {
 					return state;
 				}
@@ -584,7 +622,7 @@ export function createPaneWorkspaceStore<TPaneData>(
 											panes: nextPanes,
 											activePaneId:
 												currentGroup.activePaneId === args.paneId
-													? nextPanes[0]?.id ?? null
+													? (nextPanes[0]?.id ?? null)
 													: currentGroup.activePaneId,
 										};
 									}),
@@ -597,10 +635,11 @@ export function createPaneWorkspaceStore<TPaneData>(
 					state: {
 						...state.state,
 						roots: nextRoots,
-						activeRootId:
-							nextRoots.some((root) => root.id === state.state.activeRootId)
-								? state.state.activeRootId
-								: nextRoots[0]?.id ?? null,
+						activeRootId: nextRoots.some(
+							(root) => root.id === state.state.activeRootId,
+						)
+							? state.state.activeRootId
+							: (nextRoots[0]?.id ?? null),
 					},
 				};
 			});
@@ -617,30 +656,30 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.targetRootId,
 				);
 				if (sourceRootIndex === -1 || targetRootIndex === -1) return state;
+				const sourceRoot = getRootAtIndex(state.state.roots, sourceRootIndex);
+				const targetRoot = getRootAtIndex(state.state.roots, targetRootIndex);
+				if (!sourceRoot || !targetRoot) return state;
 
-				const sourceGroup = getGroupNode(
-					state.state.roots[sourceRootIndex]!,
-					source.groupId,
-				);
-				const targetGroup = getGroupNode(
-					state.state.roots[targetRootIndex]!,
-					args.targetGroupId,
-				);
+				const sourceGroup = getGroupNode(sourceRoot, source.groupId);
+				const targetGroup = getGroupNode(targetRoot, args.targetGroupId);
 				if (!sourceGroup || !targetGroup) return state;
 
 				const sourcePaneIndex = sourceGroup.panes.findIndex(
 					(pane) => pane.id === args.paneId,
 				);
 				if (sourcePaneIndex === -1) return state;
-
-				const pane = sourceGroup.panes[sourcePaneIndex]!;
+				const pane = sourceGroup.panes[sourcePaneIndex];
+				if (!pane) return state;
 				const nextSourceGroup = {
 					...sourceGroup,
-					panes: sourceGroup.panes.filter((existingPane) => existingPane.id !== args.paneId),
+					panes: sourceGroup.panes.filter(
+						(existingPane) => existingPane.id !== args.paneId,
+					),
 					activePaneId:
 						sourceGroup.activePaneId === args.paneId
-							? sourceGroup.panes.find((existingPane) => existingPane.id !== args.paneId)
-									?.id ?? null
+							? (sourceGroup.panes.find(
+									(existingPane) => existingPane.id !== args.paneId,
+								)?.id ?? null)
 							: sourceGroup.activePaneId,
 				};
 
@@ -666,33 +705,46 @@ export function createPaneWorkspaceStore<TPaneData>(
 					roots: nextState.roots.map((root, index) => {
 						if (index !== targetRootIndex) return root;
 
-						const nextRoot = updateGroupNode(root, args.targetGroupId, (currentGroup) => {
-							if (currentGroup.panes.some((existingPane) => existingPane.id === pane.id)) {
-								return currentGroup;
-							}
+						const nextRoot = updateGroupNode(
+							root,
+							args.targetGroupId,
+							(currentGroup) => {
+								if (
+									currentGroup.panes.some(
+										(existingPane) => existingPane.id === pane.id,
+									)
+								) {
+									return currentGroup;
+								}
 
-							const insertAt =
-								adjustedTargetIndex == null
-									? currentGroup.panes.length
-									: Math.max(
-											0,
-											Math.min(adjustedTargetIndex, currentGroup.panes.length),
-										);
-							const nextPanes = [...currentGroup.panes];
-							nextPanes.splice(insertAt, 0, pane);
+								const insertAt =
+									adjustedTargetIndex == null
+										? currentGroup.panes.length
+										: Math.max(
+												0,
+												Math.min(
+													adjustedTargetIndex,
+													currentGroup.panes.length,
+												),
+											);
+								const nextPanes = [...currentGroup.panes];
+								nextPanes.splice(insertAt, 0, pane);
 
-							return {
-								...currentGroup,
-								panes: nextPanes,
-								activePaneId:
-									args.select === true ? pane.id : currentGroup.activePaneId,
-							};
-						});
+								return {
+									...currentGroup,
+									panes: nextPanes,
+									activePaneId:
+										args.select === true ? pane.id : currentGroup.activePaneId,
+								};
+							},
+						);
 
 						return {
 							...nextRoot,
 							activeGroupId:
-								args.select === true ? args.targetGroupId : nextRoot.activeGroupId,
+								args.select === true
+									? args.targetGroupId
+									: nextRoot.activeGroupId,
 						};
 					}),
 				};
@@ -711,8 +763,8 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
-
-				const root = state.state.roots[rootIndex]!;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 				const path = findNodePathByGroupId(root.root, args.groupId);
 				if (!path) return state;
 
@@ -766,8 +818,8 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
-
-				const root = state.state.roots[rootIndex]!;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 				const path = findNodePathBySplitId(root.root, args.splitId);
 				if (!path) return state;
 
@@ -800,8 +852,8 @@ export function createPaneWorkspaceStore<TPaneData>(
 					(root) => root.id === args.rootId,
 				);
 				if (rootIndex === -1) return state;
-
-				const root = state.state.roots[rootIndex]!;
+				const root = getRootAtIndex(state.state.roots, rootIndex);
+				if (!root) return state;
 				const path = findNodePathBySplitId(root.root, args.splitId);
 				if (!path) return state;
 

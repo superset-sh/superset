@@ -1,5 +1,5 @@
-import { z } from "zod";
 import type { PaneWorkspaceState } from "@superset/pane-layout";
+import { z } from "zod";
 
 const persistedDateSchema = z
 	.union([z.string(), z.date()])

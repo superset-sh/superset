@@ -44,8 +44,16 @@ function setWebviewsDragPassthrough(passthrough: boolean) {
 	}
 }
 
-window.addEventListener("dragstart", () => setWebviewsDragPassthrough(true), true);
-window.addEventListener("dragend", () => setWebviewsDragPassthrough(false), true);
+window.addEventListener(
+	"dragstart",
+	() => setWebviewsDragPassthrough(true),
+	true,
+);
+window.addEventListener(
+	"dragend",
+	() => setWebviewsDragPassthrough(false),
+	true,
+);
 window.addEventListener("drop", () => setWebviewsDragPassthrough(false), true);
 
 /** Call from useBrowserLifecycle when a pane is removed. */

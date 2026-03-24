@@ -1,5 +1,13 @@
-import { PaneWorkspace, createPaneRoot, type PaneRegistry } from "@superset/pane-layout";
-import { DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from "@superset/ui/dropdown-menu";
+import {
+	createPaneRoot,
+	type PaneRegistry,
+	PaneWorkspace,
+} from "@superset/pane-layout";
+import {
+	DropdownMenuCheckboxItem,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@superset/ui/dropdown-menu";
 import { useNavigate } from "@tanstack/react-router";
 import { FileCode2, Globe, MessageSquare, TerminalSquare } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -7,22 +15,25 @@ import { BsTerminalPlus } from "react-icons/bs";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { CommandPalette, useCommandPalette } from "renderer/screens/main/components/CommandPalette";
-import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
-import { WorkspaceFilePreview } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceFiles/components/WorkspaceFilePreview/WorkspaceFilePreview";
 import { WorkspaceChat } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceChat";
+import { WorkspaceFilePreview } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceFiles/components/WorkspaceFilePreview/WorkspaceFilePreview";
 import { WorkspaceTerminal } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceTerminal";
+import {
+	CommandPalette,
+	useCommandPalette,
+} from "renderer/screens/main/components/CommandPalette";
+import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { DEFAULT_SHOW_PRESETS_BAR } from "shared/constants";
 import { PaneViewerEmptyState } from "./components/PaneViewerEmptyState";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import {
+	type BrowserPaneData,
+	type ChatPaneData,
 	createBrowserPane,
 	createChatPane,
 	createFilePane,
 	createTerminalPane,
-	type BrowserPaneData,
-	type ChatPaneData,
 	type DevtoolsPaneData,
 	type FilePaneData,
 	type PaneViewerData,
@@ -31,7 +42,6 @@ import {
 
 interface PaneViewerProps {
 	projectId: string;
-	workspaceBranch: string;
 	workspaceId: string;
 	workspaceName: string;
 }
@@ -42,7 +52,6 @@ function getFileTitle(filePath: string): string {
 
 export function PaneViewer({
 	projectId,
-	workspaceBranch,
 	workspaceId,
 	workspaceName,
 }: PaneViewerProps) {
@@ -52,23 +61,26 @@ export function PaneViewer({
 		workspaceId,
 	});
 	const utils = electronTrpc.useUtils();
-	const { data: showPresetsBar } = electronTrpc.settings.getShowPresetsBar.useQuery();
-	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation({
-		onMutate: async ({ enabled }) => {
-			await utils.settings.getShowPresetsBar.cancel();
-			const previous = utils.settings.getShowPresetsBar.getData();
-			utils.settings.getShowPresetsBar.setData(undefined, enabled);
-			return { previous };
+	const { data: showPresetsBar } =
+		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
+		{
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowPresetsBar.cancel();
+				const previous = utils.settings.getShowPresetsBar.getData();
+				utils.settings.getShowPresetsBar.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_error, _variables, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowPresetsBar.setData(undefined, context.previous);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowPresetsBar.invalidate();
+			},
 		},
-		onError: (_error, _variables, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getShowPresetsBar.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getShowPresetsBar.invalidate();
-		},
-	});
+	);
 
 	const openFilePane = useCallback(
 		(filePath: string) => {
@@ -167,6 +179,7 @@ export function PaneViewer({
 	const handleQuickOpen = useCallback(() => {
 		commandPalette.toggle();
 	}, [commandPalette]);
+	const setPaneData = store.getState().setPaneData;
 
 	const paneRegistry = useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -211,7 +224,7 @@ export function PaneViewer({
 					return (
 						<WorkspaceChat
 							onSessionIdChange={(sessionId) =>
-								store.getState().setPaneData({
+								setPaneData({
 									paneId: pane.id,
 									data: { sessionId },
 								})
@@ -234,7 +247,7 @@ export function PaneViewer({
 				},
 			},
 		}),
-		[workspaceId, workspaceName],
+		[setPaneData, workspaceId],
 	);
 
 	useAppHotkey("NEW_GROUP", addTerminalRoot, undefined, [addTerminalRoot]);

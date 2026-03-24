@@ -1,3 +1,8 @@
+export type {
+	CreatePaneWorkspaceStoreOptions,
+	PaneWorkspaceStore,
+	PaneWorkspaceStoreState,
+} from "./core/store";
 export {
 	createPane,
 	createPaneRoot,
@@ -5,10 +10,11 @@ export {
 	createPaneWorkspaceStore,
 } from "./core/store";
 export type {
-	CreatePaneWorkspaceStoreOptions,
-	PaneWorkspaceStore,
-	PaneWorkspaceStoreState,
-} from "./core/store";
+	PaneDefinition,
+	PaneRegistry,
+	PaneRendererContext,
+	PaneWorkspaceProps,
+} from "./react";
 export { PaneWorkspace, usePaneWorkspaceStore } from "./react";
 export type {
 	DropTarget,
@@ -21,9 +27,3 @@ export type {
 	PaneState,
 	PaneWorkspaceState,
 } from "./types";
-export type {
-	PaneDefinition,
-	PaneRegistry,
-	PaneRendererContext,
-	PaneWorkspaceProps,
-} from "./react";

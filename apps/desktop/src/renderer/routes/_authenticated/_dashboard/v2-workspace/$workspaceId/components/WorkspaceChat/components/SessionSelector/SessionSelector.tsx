@@ -108,10 +108,7 @@ export function SessionSelector({
 	);
 	const resolvedFallbackTitle =
 		fallbackTitle && fallbackTitle !== "New Chat" ? fallbackTitle : null;
-	const currentTitle =
-		current?.title ||
-		resolvedFallbackTitle ||
-		"New Chat";
+	const currentTitle = current?.title || resolvedFallbackTitle || "New Chat";
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

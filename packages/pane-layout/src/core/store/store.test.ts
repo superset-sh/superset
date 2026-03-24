@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import type { PaneState, PaneWorkspaceState } from "../../types";
 import {
 	createPaneRoot,
 	createPaneWorkspaceState,
 	createPaneWorkspaceStore,
 } from "./store";
-import type { PaneState, PaneWorkspaceState } from "../../types";
 
 interface TestPaneData {
 	label: string;
@@ -16,6 +16,14 @@ function createTestPane(id: string, label = id): PaneState<TestPaneData> {
 		kind: "test",
 		data: { label },
 	};
+}
+
+function getFirstRoot(state: PaneWorkspaceState<TestPaneData>) {
+	const root = state.roots[0];
+	if (!root) {
+		throw new Error("Expected first root");
+	}
+	return root;
 }
 
 describe("pane workspace state operations", () => {
@@ -61,7 +69,9 @@ describe("pane workspace state operations", () => {
 		);
 		store.getState().removeRoot("root-a");
 
-		expect(store.getState().state.roots.map((root) => root.id)).toEqual(["root-b"]);
+		expect(store.getState().state.roots.map((root) => root.id)).toEqual([
+			"root-b",
+		]);
 		expect(store.getState().state.activeRootId).toBe("root-b");
 	});
 
@@ -174,7 +184,7 @@ describe("pane workspace state operations", () => {
 
 		const nextState = store.getState().state;
 
-		const root = nextState.roots[0]!;
+		const root = getFirstRoot(nextState);
 		expect(root.root.type).toBe("split");
 		expect(root.activeGroupId).toMatch(/^group-/);
 
@@ -208,7 +218,7 @@ describe("pane workspace state operations", () => {
 			sizes: [30, 70],
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		expect(root.activeGroupId).toBe("group-root");
 		expect(root.root).toMatchObject({
 			type: "split",
@@ -260,12 +270,19 @@ describe("pane workspace state operations", () => {
 		const nextState = store.getState().state;
 
 		const sourceGroup =
-			nextState.roots[0]!.root.type === "group" ? nextState.roots[0]!.root : null;
+			nextState.roots[0]?.root.type === "group"
+				? nextState.roots[0]?.root
+				: null;
 		const targetGroup =
-			nextState.roots[1]!.root.type === "group" ? nextState.roots[1]!.root : null;
+			nextState.roots[1]?.root.type === "group"
+				? nextState.roots[1]?.root
+				: null;
 
 		expect(sourceGroup?.panes).toEqual([]);
-		expect(targetGroup?.panes.map((pane) => pane.id)).toEqual(["pane-b", "pane-a"]);
+		expect(targetGroup?.panes.map((pane) => pane.id)).toEqual([
+			"pane-b",
+			"pane-a",
+		]);
 		expect(targetGroup?.activePaneId).toBe("pane-a");
 		expect(nextState.activeRootId).toBe("root-target");
 	});
@@ -295,7 +312,7 @@ describe("pane workspace state operations", () => {
 			select: true,
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		if (root.root.type !== "group") {
 			throw new Error("Expected group root");
 		}
@@ -330,8 +347,15 @@ describe("pane workspace state operations", () => {
 
 		const nextState = store.getState().state;
 
-		const group = nextState.roots[0]!.root.type === "group" ? nextState.roots[0]!.root : null;
-		expect(group?.panes.map((pane) => pane.id)).toEqual(["pane-a", "pane-b", "pane-c"]);
+		const group =
+			nextState.roots[0]?.root.type === "group"
+				? nextState.roots[0]?.root
+				: null;
+		expect(group?.panes.map((pane) => pane.id)).toEqual([
+			"pane-a",
+			"pane-b",
+			"pane-c",
+		]);
 	});
 
 	it("clamps add-pane indexes and can select the inserted pane", () => {
@@ -355,7 +379,7 @@ describe("pane workspace state operations", () => {
 			select: true,
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		if (root.root.type !== "group") {
 			throw new Error("Expected group root");
 		}
@@ -393,7 +417,7 @@ describe("pane workspace state operations", () => {
 			replaceUnpinned: true,
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		if (root.root.type !== "group") {
 			throw new Error("Expected group root");
 		}
@@ -431,7 +455,7 @@ describe("pane workspace state operations", () => {
 			replaceUnpinned: true,
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		if (root.root.type !== "group") {
 			throw new Error("Expected group root");
 		}
@@ -465,7 +489,10 @@ describe("pane workspace state operations", () => {
 
 		const nextState = store.getState().state;
 
-		const group = nextState.roots[0]!.root.type === "group" ? nextState.roots[0]!.root : null;
+		const group =
+			nextState.roots[0]?.root.type === "group"
+				? nextState.roots[0]?.root
+				: null;
 		expect(group?.panes.map((pane) => pane.id)).toEqual(["pane-b"]);
 		expect(group?.activePaneId).toBe("pane-b");
 	});
@@ -508,7 +535,7 @@ describe("pane workspace state operations", () => {
 			sizes: [35, 65],
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		expect(root.root).toMatchObject({
 			type: "split",
 			id: "split-root",
@@ -559,7 +586,7 @@ describe("pane workspace state operations", () => {
 			splitId: "split-root",
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		expect(root.root).toMatchObject({
 			type: "split",
 			id: "split-root",
@@ -627,7 +654,10 @@ describe("pane workspace state operations", () => {
 
 		const nextState = store.getState().state;
 
-		const group = nextState.roots[0]!.root.type === "group" ? nextState.roots[0]!.root : null;
+		const group =
+			nextState.roots[0]?.root.type === "group"
+				? nextState.roots[0]?.root
+				: null;
 		expect(group?.activePaneId).toBe("pane-b");
 	});
 });
@@ -652,7 +682,7 @@ describe("createPaneWorkspaceStore", () => {
 			paneId: "pane-b",
 		});
 
-		const root = store.getState().state.roots[0]!;
+		const root = getFirstRoot(store.getState().state);
 		const group = root.root.type === "group" ? root.root : null;
 		expect(store.getState().state.activeRootId).toBe("root-main");
 		expect(root.activeGroupId).toBe("group-root");

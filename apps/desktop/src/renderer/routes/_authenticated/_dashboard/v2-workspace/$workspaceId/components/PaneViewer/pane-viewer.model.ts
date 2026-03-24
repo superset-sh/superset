@@ -1,8 +1,4 @@
-import {
-	createPane,
-	createPaneRoot,
-	type PaneState,
-} from "@superset/pane-layout";
+import { createPane, type PaneState } from "@superset/pane-layout";
 
 export interface FilePaneData {
 	filePath: string;

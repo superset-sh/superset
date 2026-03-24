@@ -14,7 +14,9 @@ interface PaneRootViewProps<TPaneData> {
 		group: import("../../../../../types").PaneGroupNode<TPaneData>;
 	}) => void;
 	renderEmptyState?: () => React.ReactNode;
-	renderUnknownPane?: (context: PaneRendererContext<TPaneData>) => React.ReactNode;
+	renderUnknownPane?: (
+		context: PaneRendererContext<TPaneData>,
+	) => React.ReactNode;
 }
 
 export function PaneRootView<TPaneData>({

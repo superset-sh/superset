@@ -1,5 +1,5 @@
-import { eq } from "@tanstack/db";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -83,9 +83,12 @@ export function useWorkspaceChatController({
 	);
 	const sessions = allSessionsData ?? [];
 
-	const handleSelectSession = useCallback((nextSessionId: string) => {
-		onSessionIdChange(nextSessionId);
-	}, [onSessionIdChange]);
+	const handleSelectSession = useCallback(
+		(nextSessionId: string) => {
+			onSessionIdChange(nextSessionId);
+		},
+		[onSessionIdChange],
+	);
 
 	const handleNewChat = useCallback(async () => {
 		onSessionIdChange(null);

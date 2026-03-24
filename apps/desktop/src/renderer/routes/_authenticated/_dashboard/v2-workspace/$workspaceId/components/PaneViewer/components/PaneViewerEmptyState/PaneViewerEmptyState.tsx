@@ -3,10 +3,10 @@ import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuSearch } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
-import { useHotkeyDisplay } from "renderer/stores/hotkeys";
-import { useTheme } from "renderer/stores/theme";
 import supersetEmptyStateWordmark from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/assets/superset-empty-state-wordmark.svg";
 import { EmptyTabActionButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/components/EmptyTabActionButton";
+import { useHotkeyDisplay } from "renderer/stores/hotkeys";
+import { useTheme } from "renderer/stores/theme";
 
 interface PaneViewerEmptyStateProps {
 	onOpenBrowser: () => void;

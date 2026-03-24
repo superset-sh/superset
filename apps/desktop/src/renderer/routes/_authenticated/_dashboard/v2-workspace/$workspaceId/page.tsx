@@ -36,7 +36,6 @@ function V2WorkspacePage() {
 		<V2WorkspacePageContent
 			key={workspace.id}
 			projectId={workspace.projectId}
-			workspaceBranch={workspace.branch}
 			workspaceId={workspace.id}
 			workspaceName={workspace.name}
 		/>
@@ -45,12 +44,10 @@ function V2WorkspacePage() {
 
 function V2WorkspacePageContent({
 	projectId,
-	workspaceBranch,
 	workspaceId,
 	workspaceName,
 }: {
 	projectId: string;
-	workspaceBranch: string;
 	workspaceId: string;
 	workspaceName: string;
 }) {
@@ -59,7 +56,6 @@ function V2WorkspacePageContent({
 			<PaneViewer
 				key={workspaceId}
 				projectId={projectId}
-				workspaceBranch={workspaceBranch}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}
 			/>

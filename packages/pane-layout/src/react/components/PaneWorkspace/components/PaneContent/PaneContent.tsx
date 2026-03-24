@@ -1,6 +1,10 @@
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneWorkspaceStore } from "../../../../../core/store";
-import type { PaneGroupNode, PaneRootState, PaneState } from "../../../../../types";
+import type {
+	PaneGroupNode,
+	PaneRootState,
+	PaneState,
+} from "../../../../../types";
 import type { PaneRegistry, PaneRendererContext } from "../../../../types";
 
 interface PaneContentProps<TPaneData> {
@@ -9,7 +13,9 @@ interface PaneContentProps<TPaneData> {
 	group: PaneGroupNode<TPaneData>;
 	pane: PaneState<TPaneData>;
 	registry: PaneRegistry<TPaneData>;
-	renderUnknownPane?: (context: PaneRendererContext<TPaneData>) => React.ReactNode;
+	renderUnknownPane?: (
+		context: PaneRendererContext<TPaneData>,
+	) => React.ReactNode;
 }
 
 export function PaneContent<TPaneData>({

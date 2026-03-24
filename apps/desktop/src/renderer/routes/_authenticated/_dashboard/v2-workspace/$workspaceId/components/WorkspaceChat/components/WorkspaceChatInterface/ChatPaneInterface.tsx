@@ -30,7 +30,10 @@ import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
 import type { ChatPaneInterfaceProps } from "./types";
 import { toOptimisticUserMessage } from "./utils/optimisticUserMessage";
-import { type ChatSendMessageInput, toSendFailureMessage } from "./utils/sendMessage";
+import {
+	type ChatSendMessageInput,
+	toSendFailureMessage,
+} from "./utils/sendMessage";
 import {
 	getVisibleMessagesWithPendingUserTurn,
 	type PendingUserTurn,
@@ -731,14 +734,14 @@ export function ChatPaneInterface({
 		};
 	}, [
 		activeModel?.id,
-			captureChatEvent,
-			clearRuntimeError,
-			commands,
-			getOrCreateSession,
-			initialLaunchConfig,
-			sendMessageToSession,
-			sessionId,
-			setRuntimeErrorMessage,
+		captureChatEvent,
+		clearRuntimeError,
+		commands,
+		getOrCreateSession,
+		initialLaunchConfig,
+		sendMessageToSession,
+		sessionId,
+		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
 	]);

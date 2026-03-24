@@ -113,9 +113,7 @@ export interface OrgCollections {
 // Per-org collections cache
 const collectionsCache = new Map<string, OrgCollections>();
 
-function getCollectionsCacheKey(
-	organizationId: string,
-): string {
+function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 

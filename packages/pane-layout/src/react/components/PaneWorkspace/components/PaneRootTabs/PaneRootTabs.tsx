@@ -4,6 +4,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { cn } from "@superset/ui/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { PlusIcon } from "lucide-react";
 import {
@@ -15,7 +16,6 @@ import {
 	useState,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import { cn } from "@superset/ui/lib/utils";
 import type { PaneWorkspaceStore } from "../../../../../core/store";
 import type { PaneRootState } from "../../../../../types";
 import { PaneRootTabItem } from "./components/PaneRootTabItem";
@@ -72,9 +72,7 @@ function AddRootButtonCell<TPaneData>({
 
 	return (
 		<Tooltip delayDuration={500}>
-			<TooltipTrigger asChild>
-				{button}
-			</TooltipTrigger>
+			<TooltipTrigger asChild>{button}</TooltipTrigger>
 			<TooltipContent side="top" showArrow={false}>
 				Add root
 			</TooltipContent>
@@ -121,7 +119,7 @@ export function PaneRootTabs<TPaneData>({
 
 	useEffect(() => {
 		requestAnimationFrame(updateOverflow);
-	}, [roots, updateOverflow]);
+	}, [updateOverflow]);
 
 	if (roots.length === 0) {
 		return (
@@ -141,9 +139,7 @@ export function PaneRootTabs<TPaneData>({
 	}
 
 	return (
-		<div
-			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
-		>
+		<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
 			<div
 				ref={scrollContainerRef}
 				className={cn(
@@ -155,7 +151,7 @@ export function PaneRootTabs<TPaneData>({
 								"group-hover/root-tabs:[scrollbar-width:thin]",
 								"group-hover/root-tabs:[&::-webkit-scrollbar]:h-2",
 								"group-hover/root-tabs:[&::-webkit-scrollbar-thumb]:border-[2px]",
-						  ].join(" ")
+							].join(" ")
 						: "hide-scrollbar",
 				)}
 			>

@@ -1,10 +1,10 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createPaneWorkspaceState,
 	createPaneWorkspaceStore,
 	type PaneWorkspaceState,
 } from "@superset/pane-layout";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -36,7 +36,9 @@ export function useV2WorkspacePaneLayout({
 			initialState: EMPTY_PANE_LAYOUT,
 		}),
 	);
-	const lastSyncedSnapshotRef = useRef(getPaneLayoutSnapshot(EMPTY_PANE_LAYOUT));
+	const lastSyncedSnapshotRef = useRef(
+		getPaneLayoutSnapshot(EMPTY_PANE_LAYOUT),
+	);
 
 	const { data: localWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
@@ -50,8 +52,9 @@ export function useV2WorkspacePaneLayout({
 	const localWorkspaceState = localWorkspaceRows[0] ?? null;
 	const persistedPaneLayout = useMemo(
 		() =>
-			(localWorkspaceState?.paneLayout as PaneWorkspaceState<PaneViewerData> | undefined) ??
-			EMPTY_PANE_LAYOUT,
+			(localWorkspaceState?.paneLayout as
+				| PaneWorkspaceState<PaneViewerData>
+				| undefined) ?? EMPTY_PANE_LAYOUT,
 		[localWorkspaceState],
 	);
 

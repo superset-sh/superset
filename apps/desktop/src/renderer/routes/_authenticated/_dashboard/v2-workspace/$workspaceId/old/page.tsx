@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -13,9 +13,9 @@ import {
 	useCommandPalette,
 } from "renderer/screens/main/components/CommandPalette";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { WorkspaceChat } from "../components/WorkspaceChat";
 import { WorkspaceFiles } from "../components/WorkspaceFiles";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { WorkspaceTerminal } from "../components/WorkspaceTerminal";
 
 export const Route = createFileRoute(
@@ -202,13 +202,13 @@ function V2WorkspaceOldContent({
 					</Tabs>
 				</div>
 
-					{activeView === "chat" ? (
-						<WorkspaceChat
-							onSessionIdChange={() => {}}
-							sessionId={null}
-							workspaceId={workspaceId}
-						/>
-					) : activeView === "files" ? (
+				{activeView === "chat" ? (
+					<WorkspaceChat
+						onSessionIdChange={() => {}}
+						sessionId={null}
+						workspaceId={workspaceId}
+					/>
+				) : activeView === "files" ? (
 					<WorkspaceFiles
 						onSelectFile={handleSelectFile}
 						selectedFilePath={selectedFilePath}

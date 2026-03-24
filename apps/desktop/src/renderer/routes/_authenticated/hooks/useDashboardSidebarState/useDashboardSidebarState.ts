@@ -180,12 +180,14 @@ export function useDashboardSidebarState() {
 
 			const siblingRows = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
-			).filter(
-				(item) =>
-					item.sidebarState.projectId === projectId &&
-					item.workspaceId !== workspaceId &&
-					item.sidebarState.sectionId === sectionId,
-			).map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === projectId &&
+						item.workspaceId !== workspaceId &&
+						item.sidebarState.sectionId === sectionId,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.sidebarState.sectionId = sectionId;
@@ -202,11 +204,13 @@ export function useDashboardSidebarState() {
 
 			const siblingTopLevelRows = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
-			).filter(
-				(item) =>
-					item.sidebarState.projectId === section.projectId &&
-					item.sidebarState.sectionId === null,
-			).map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === section.projectId &&
+						item.sidebarState.sectionId === null,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
 			let nextOrder = getNextTabOrder(siblingTopLevelRows);
 			for (const workspace of collections.v2WorkspaceLocalState.state.values()) {

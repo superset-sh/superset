@@ -1,11 +1,11 @@
+export type { PaneLocation } from "./utils";
 export {
-	findPaneLocation,
 	findNodePathByGroupId,
 	findNodePathBySplitId,
+	findPaneLocation,
 	getGroupNode,
 	getNodeAtPath,
 	replaceNodeAtPath,
 	updateGroupNode,
 	updateNodeAtPath,
 } from "./utils";
-export type { PaneLocation } from "./utils";

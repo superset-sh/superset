@@ -7,8 +7,8 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { Input } from "@superset/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import type { StoreApi } from "zustand/vanilla";

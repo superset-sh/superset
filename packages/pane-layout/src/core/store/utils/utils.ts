@@ -53,7 +53,11 @@ export function getNodeAtPath<TPaneData>(
 		if (current.type !== "split") {
 			throw new Error("Invalid path into non-split node");
 		}
-		current = current.children[index]!;
+		const child = current.children[index];
+		if (!child) {
+			throw new Error("Invalid path index");
+		}
+		current = child;
 	}
 	return current;
 }
@@ -72,7 +76,9 @@ export function replaceNodeAtPath<TPaneData>(
 	return {
 		...node,
 		children: node.children.map((child, childIndex) =>
-			childIndex === index ? replaceNodeAtPath(child, rest, replacement) : child,
+			childIndex === index
+				? replaceNodeAtPath(child, rest, replacement)
+				: child,
 		),
 	};
 }
