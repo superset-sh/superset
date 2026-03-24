@@ -20,8 +20,8 @@ function extractHostname(remoteUrl: string): string | null {
 		return sshMatch[1];
 	}
 
-	// SSH with protocol: ssh://git@host/path
-	const sshProtoMatch = trimmed.match(/^ssh:\/\/git@([^/]+)/);
+	// SSH with protocol: ssh://git@host/path or ssh://git@host:port/path
+	const sshProtoMatch = trimmed.match(/^ssh:\/\/git@([^/:]+)/);
 	if (sshProtoMatch) {
 		return sshProtoMatch[1];
 	}

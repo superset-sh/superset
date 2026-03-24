@@ -110,7 +110,12 @@ async function refreshRepoContext(
 		// Check if there's an upstream remote (fork setup)
 		const upstreamUrl = await getUpstreamRemoteUrl(worktreePath);
 
-		if (upstreamUrl && upstreamUrl !== originUrl) {
+		// Compare ignoring protocol differences (http vs https)
+		const isSameRepo =
+			upstreamUrl &&
+			upstreamUrl.replace(/^https?:\/\//, "") ===
+				originUrl.replace(/^https?:\/\//, "");
+		if (upstreamUrl && !isSameRepo) {
 			const upstreamProjectPath = extractProjectPath(upstreamUrl);
 			return {
 				repoUrl: originUrl,

@@ -259,7 +259,11 @@ async function fetchPipelineChecks(
 
 		const rawJobs: unknown = JSON.parse(jobsStdout.trim());
 		if (!Array.isArray(rawJobs) || rawJobs.length === 0) {
-			return ["none", []];
+			// No jobs but pipeline exists — use pipeline-level status
+			const pipelineStatus = mapPipelineStatusToChecksStatus(
+				latestPipelineResult.data.status,
+			);
+			return [pipelineStatus, []];
 		}
 
 		const checks: CheckItem[] = [];
@@ -274,9 +278,8 @@ async function fetchPipelineChecks(
 
 			const job = jobResult.data;
 			const status = mapJobStatus(job.status);
-			const durationText = job.duration
-				? formatDuration(job.duration)
-				: undefined;
+			const durationText =
+				job.duration != null ? formatDuration(job.duration) : undefined;
 
 			checks.push({
 				name: job.name,
@@ -305,6 +308,22 @@ async function fetchPipelineChecks(
 			error instanceof Error ? error.message : String(error),
 		);
 		return ["none", []];
+	}
+}
+
+function mapPipelineStatusToChecksStatus(
+	status: string,
+): NonNullable<GitHubStatus["pr"]>["checksStatus"] {
+	switch (status) {
+		case "success":
+			return "success";
+		case "failed":
+			return "failure";
+		case "canceled":
+		case "skipped":
+			return "none";
+		default:
+			return "pending";
 	}
 }
 
