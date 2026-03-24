@@ -117,7 +117,7 @@ export function TipTapMarkdownRenderer({
 			return;
 		}
 
-		editor.setEditable(editable);
+		editor.setEditable(editable, false);
 	}, [editable, editor]);
 
 	useEffect(() => {
