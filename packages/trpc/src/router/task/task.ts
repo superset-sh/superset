@@ -11,8 +11,13 @@ import { and, desc, eq, ilike, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
-import { protectedProcedure, publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
+import { requireActiveOrgMembership } from "../utils/active-organization";
+import {
+	requireOrgResourceAccess,
+	requireOrgScopedResource,
+} from "../utils/org-resource-access";
 import {
 	createTaskFromUiSchema,
 	createTaskSchema,
@@ -38,25 +43,62 @@ async function getTaskAccess(
 	userId: string,
 	taskId: string,
 ) {
-	const [task] = await executor
-		.select({
-			id: tasks.id,
-			organizationId: tasks.organizationId,
-		})
+	return requireOrgResourceAccess(
+		userId,
+		async () => {
+			const [task] = await executor
+				.select({
+					id: tasks.id,
+					organizationId: tasks.organizationId,
+				})
+				.from(tasks)
+				.where(and(eq(tasks.id, taskId), isNull(tasks.deletedAt)))
+				.limit(1);
+
+			return task ?? null;
+		},
+		{
+			message: "Task not found",
+		},
+	);
+}
+
+async function getTaskById(userId: string, taskId: string) {
+	const [task] = await db
+		.select()
 		.from(tasks)
 		.where(and(eq(tasks.id, taskId), isNull(tasks.deletedAt)))
 		.limit(1);
 
 	if (!task) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Task not found",
-		});
+		return null;
 	}
 
 	await verifyOrgMembership(userId, task.organizationId);
 
 	return task;
+}
+
+async function getTaskBySlug(
+	userId: string,
+	organizationId: string,
+	slug: string,
+) {
+	await verifyOrgMembership(userId, organizationId);
+
+	const [task] = await db
+		.select()
+		.from(tasks)
+		.where(
+			and(
+				eq(tasks.slug, slug),
+				eq(tasks.organizationId, organizationId),
+				isNull(tasks.deletedAt),
+			),
+		)
+		.limit(1);
+
+	return task ?? null;
 }
 
 async function getScopedStatusId(
@@ -65,23 +107,25 @@ async function getScopedStatusId(
 	statusId: string,
 	message: string,
 ) {
-	const [status] = await executor
-		.select({ id: taskStatuses.id })
-		.from(taskStatuses)
-		.where(
-			and(
-				eq(taskStatuses.id, statusId),
-				eq(taskStatuses.organizationId, organizationId),
-			),
-		)
-		.limit(1);
+	const status = await requireOrgScopedResource(
+		async () => {
+			const [status] = await executor
+				.select({
+					id: taskStatuses.id,
+					organizationId: taskStatuses.organizationId,
+				})
+				.from(taskStatuses)
+				.where(eq(taskStatuses.id, statusId))
+				.limit(1);
 
-	if (!status) {
-		throw new TRPCError({
+			return status ?? null;
+		},
+		{
 			code: "BAD_REQUEST",
 			message,
-		});
-	}
+			organizationId,
+		},
+	);
 
 	return status.id;
 }
@@ -96,29 +140,38 @@ async function getScopedAssigneeId(
 		return null;
 	}
 
-	const [member] = await executor
-		.select({ userId: members.userId })
-		.from(members)
-		.where(
-			and(
-				eq(members.organizationId, organizationId),
-				eq(members.userId, assigneeId),
-			),
-		)
-		.limit(1);
+	const member = await requireOrgScopedResource(
+		async () => {
+			const [member] = await executor
+				.select({
+					organizationId: members.organizationId,
+					userId: members.userId,
+				})
+				.from(members)
+				.where(
+					and(
+						eq(members.organizationId, organizationId),
+						eq(members.userId, assigneeId),
+					),
+				)
+				.limit(1);
 
-	if (!member) {
-		throw new TRPCError({
+			return member ?? null;
+		},
+		{
 			code: "BAD_REQUEST",
 			message,
-		});
-	}
+			organizationId,
+		},
+	);
 
 	return member.userId;
 }
 
 export const taskRouter = {
-	all: publicProcedure.query(() => {
+	all: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx.session);
+
 		const assignee = alias(users, "assignee");
 		const creator = alias(users, "creator");
 
@@ -139,13 +192,17 @@ export const taskRouter = {
 			.from(tasks)
 			.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
 			.leftJoin(creator, eq(tasks.creatorId, creator.id))
-			.where(isNull(tasks.deletedAt))
+			.where(
+				and(eq(tasks.organizationId, organizationId), isNull(tasks.deletedAt)),
+			)
 			.orderBy(desc(tasks.createdAt));
 	}),
 
-	byOrganization: publicProcedure
+	byOrganization: protectedProcedure
 		.input(z.string().uuid())
-		.query(({ input }) => {
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input);
+
 			return db
 				.select()
 				.from(tasks)
@@ -153,22 +210,13 @@ export const taskRouter = {
 				.orderBy(desc(tasks.createdAt));
 		}),
 
-	byId: publicProcedure.input(z.string().uuid()).query(async ({ input }) => {
-		const [task] = await db
-			.select()
-			.from(tasks)
-			.where(and(eq(tasks.id, input), isNull(tasks.deletedAt)))
-			.limit(1);
-		return task ?? null;
-	}),
+	byId: protectedProcedure
+		.input(z.string().uuid())
+		.query(({ ctx, input }) => getTaskById(ctx.session.user.id, input)),
 
-	bySlug: publicProcedure.input(z.string()).query(async ({ input }) => {
-		const [task] = await db
-			.select()
-			.from(tasks)
-			.where(and(eq(tasks.slug, input), isNull(tasks.deletedAt)))
-			.limit(1);
-		return task ?? null;
+	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
+		const organizationId = await requireActiveOrgMembership(ctx.session);
+		return getTaskBySlug(ctx.session.user.id, organizationId, input);
 	}),
 
 	create: protectedProcedure
@@ -219,16 +267,7 @@ export const taskRouter = {
 	createFromUi: protectedProcedure
 		.input(createTaskFromUiSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "No active organization selected",
-				});
-			}
-
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
+			const organizationId = await requireActiveOrgMembership(ctx.session);
 
 			for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
 				try {

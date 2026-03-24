@@ -4,12 +4,40 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 const getCurrentTxidMock = mock(async () => "txid-123");
 const seedDefaultStatusesMock = mock(async () => "status-seeded");
 const syncTaskMock = mock(() => undefined);
+const verifyOrgAdminMock = mock(async () => ({
+	membership: { role: "owner" },
+}));
 const verifyOrgMembershipMock = mock(async () => ({
 	membership: { role: "member" },
 }));
 
+let dbSelectResults: unknown[][] = [];
 let selectResults: unknown[][] = [];
 let updateResults: unknown[][] = [];
+
+function createDb() {
+	const selectLimitMock = mock(async () => dbSelectResults.shift() ?? []);
+	const selectOrderByMock = mock(async () => dbSelectResults.shift() ?? []);
+	const selectWhereMock = mock(() => ({
+		limit: selectLimitMock,
+		orderBy: selectOrderByMock,
+	}));
+	const selectFromMock = mock(() => ({
+		where: selectWhereMock,
+	}));
+	const selectMock = mock(() => ({
+		from: selectFromMock,
+	}));
+
+	return {
+		db: {
+			select: selectMock,
+		},
+		mocks: {
+			selectMock,
+		},
+	};
+}
 
 function createTx() {
 	const selectLimitMock = mock(async () => selectResults.shift() ?? []);
@@ -57,6 +85,7 @@ function createTx() {
 	};
 }
 
+let dbState = createDb();
 let txState = createTx();
 
 const transactionMock = mock(async (callback: (tx: unknown) => unknown) =>
@@ -64,7 +93,7 @@ const transactionMock = mock(async (callback: (tx: unknown) => unknown) =>
 );
 
 mock.module("@superset/db/client", () => ({
-	db: {},
+	db: dbState.db,
 	dbWs: {
 		transaction: transactionMock,
 	},
@@ -127,6 +156,7 @@ mock.module("../../lib/integrations/sync", () => ({
 }));
 
 mock.module("../integration/utils", () => ({
+	verifyOrgAdmin: verifyOrgAdminMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
 }));
 
@@ -163,8 +193,10 @@ function createContext() {
 
 describe("task router authorization", () => {
 	beforeEach(() => {
+		dbSelectResults = [];
 		selectResults = [];
 		updateResults = [];
+		dbState = createDb();
 		txState = createTx();
 
 		getCurrentTxidMock.mockReset();
@@ -185,6 +217,88 @@ describe("task router authorization", () => {
 		verifyOrgMembershipMock.mockImplementation(async () => ({
 			membership: { role: "member" },
 		}));
+
+		verifyOrgAdminMock.mockReset();
+		verifyOrgAdminMock.mockImplementation(async () => ({
+			membership: { role: "owner" },
+		}));
+	});
+
+	it("rejects non-members from task.byOrganization before reading tasks", async () => {
+		verifyOrgMembershipMock.mockImplementationOnce(async () => {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Not a member of this organization",
+			});
+		});
+
+		const caller = createCaller(createContext());
+
+		await expect(
+			caller.task.byOrganization(ORGANIZATION_ID),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "Not a member of this organization",
+		});
+
+		expect(dbState.mocks.selectMock).not.toHaveBeenCalled();
+	});
+
+	it("returns null from task.byId when the task does not exist", async () => {
+		dbSelectResults.push([]);
+		const caller = createCaller(createContext());
+
+		const result = await caller.task.byId(TASK_ID);
+
+		expect(result).toBeNull();
+		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects cross-tenant task.byId access after resolving task ownership", async () => {
+		dbSelectResults.push([
+			{
+				id: TASK_ID,
+				organizationId: ORGANIZATION_ID,
+				title: "Cross-tenant task",
+			},
+		]);
+		verifyOrgMembershipMock.mockImplementationOnce(async () => {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Not a member of this organization",
+			});
+		});
+
+		const caller = createCaller(createContext());
+
+		await expect(caller.task.byId(TASK_ID)).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "Not a member of this organization",
+		});
+	});
+
+	it("scopes task.bySlug to the active organization", async () => {
+		dbSelectResults.push([
+			{
+				id: TASK_ID,
+				organizationId: ORGANIZATION_ID,
+				slug: "demo-task",
+				title: "Scoped task",
+			},
+		]);
+		const caller = createCaller(createContext());
+
+		const result = await caller.task.bySlug("demo-task");
+
+		expect(verifyOrgMembershipMock).toHaveBeenCalledWith(
+			ACTOR_USER_ID,
+			ORGANIZATION_ID,
+		);
+		expect(result).toMatchObject({
+			id: TASK_ID,
+			slug: "demo-task",
+			title: "Scoped task",
+		});
 	});
 
 	it("rejects cross-tenant task updates before modifying the row", async () => {
@@ -237,8 +351,10 @@ describe("task router authorization", () => {
 
 	it("allows same-org updates and clears external assignee fields", async () => {
 		selectResults.push([{ id: TASK_ID, organizationId: ORGANIZATION_ID }]);
-		selectResults.push([{ id: STATUS_ID }]);
-		selectResults.push([{ userId: ASSIGNEE_ID }]);
+		selectResults.push([{ id: STATUS_ID, organizationId: ORGANIZATION_ID }]);
+		selectResults.push([
+			{ userId: ASSIGNEE_ID, organizationId: ORGANIZATION_ID },
+		]);
 		updateResults.push([{ id: TASK_ID, title: "Renamed task" }]);
 
 		const caller = createCaller(createContext());

@@ -1,12 +1,69 @@
 import { dbWs } from "@superset/db/client";
-import { projects, sandboxImages } from "@superset/db/schema";
+import {
+	githubRepositories,
+	projects,
+	sandboxImages,
+} from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import { verifyOrgMembership } from "../integration/utils";
+import {
+	requireOrgResourceAccess,
+	requireOrgScopedResource,
+} from "../utils/org-resource-access";
 import { secretsRouter } from "./secrets";
+
+async function getProjectAccess(
+	userId: string,
+	projectId: string,
+	options?: {
+		access?: "admin" | "member";
+		organizationId?: string;
+	},
+) {
+	return requireOrgResourceAccess(
+		userId,
+		() =>
+			dbWs.query.projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(projects.id, projectId),
+			}),
+		{
+			access: options?.access,
+			message: options?.organizationId
+				? "Project not found in this organization"
+				: "Project not found",
+			organizationId: options?.organizationId,
+		},
+	);
+}
+
+async function getScopedGithubRepository(
+	organizationId: string,
+	githubRepositoryId: string,
+) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.githubRepositories.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(githubRepositories.id, githubRepositoryId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "GitHub repository not found in this organization",
+			organizationId,
+		},
+	);
+}
 
 export const projectRouter = {
 	secrets: secretsRouter,
@@ -26,6 +83,12 @@ export const projectRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const githubRepository = input.githubRepositoryId
+				? await getScopedGithubRepository(
+						input.organizationId,
+						input.githubRepositoryId,
+					)
+				: null;
 			const [project] = await dbWs
 				.insert(projects)
 				.values({
@@ -36,7 +99,7 @@ export const projectRouter = {
 					repoName: input.repoName,
 					repoUrl: input.repoUrl,
 					defaultBranch: input.defaultBranch ?? "main",
-					githubRepositoryId: input.githubRepositoryId,
+					githubRepositoryId: githubRepository?.id,
 				})
 				.returning();
 			if (!project) {
@@ -62,14 +125,17 @@ export const projectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			const { id, organizationId, ...data } = input;
+			const project = await getProjectAccess(ctx.session.user.id, input.id, {
+				organizationId: input.organizationId,
+			});
+			const data = {
+				defaultBranch: input.defaultBranch,
+				name: input.name,
+			};
 			const [updated] = await dbWs
 				.update(projects)
 				.set(data)
-				.where(
-					and(eq(projects.id, id), eq(projects.organizationId, organizationId)),
-				)
+				.where(eq(projects.id, project.id))
 				.returning();
 			return updated;
 		}),
@@ -79,15 +145,11 @@ export const projectRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
-			await dbWs
-				.delete(projects)
-				.where(
-					and(
-						eq(projects.id, input.id),
-						eq(projects.organizationId, input.organizationId),
-					),
-				);
+			const project = await getProjectAccess(ctx.session.user.id, input.id, {
+				access: "admin",
+				organizationId: input.organizationId,
+			});
+			await dbWs.delete(projects).where(eq(projects.id, project.id));
 			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;
