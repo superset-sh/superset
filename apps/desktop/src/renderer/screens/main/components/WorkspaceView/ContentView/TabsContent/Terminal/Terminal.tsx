@@ -33,11 +33,7 @@ import type {
 	TerminalProps,
 	TerminalStreamEvent,
 } from "./types";
-import {
-	captureTerminalViewport,
-	restoreTerminalViewport,
-	shellEscapePaths,
-} from "./utils";
+import { shellEscapePaths } from "./utils";
 
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
@@ -412,14 +408,15 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		const family =
 			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
-		const viewportSnapshot = captureTerminalViewport(xterm);
+		if (
+			xterm.options.fontFamily === family &&
+			xterm.options.fontSize === size
+		) {
+			return;
+		}
 		xterm.options.fontFamily = family;
 		xterm.options.fontSize = size;
 		fitAddonRef.current?.fit();
-		requestAnimationFrame(() => {
-			if (xtermRef.current !== xterm) return;
-			restoreTerminalViewport(xterm, viewportSnapshot);
-		});
 	}, [fontSettings]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();

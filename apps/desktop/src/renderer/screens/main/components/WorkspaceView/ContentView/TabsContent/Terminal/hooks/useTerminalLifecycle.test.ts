@@ -34,11 +34,10 @@ type SchedulerState = {
 	throttleMs: number;
 	pendingFrame: number | null;
 	lastRunAt: number;
-	pendingForceResize: boolean;
 };
 
-function makeScheduler(runRecovery: (forceResize: boolean) => void): {
-	schedule: (forceResize: boolean) => void;
+function makeScheduler(runRecovery: () => void): {
+	schedule: () => void;
 	flush: () => void;
 	state: SchedulerState;
 } {
@@ -46,7 +45,6 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 		throttleMs: 120,
 		pendingFrame: null,
 		lastRunAt: 0,
-		pendingForceResize: false,
 	};
 
 	const pendingRafs: Array<() => void> = [];
@@ -58,8 +56,7 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 
 	const isUnmounted = false;
 
-	const scheduleReattachRecovery = (forceResize: boolean) => {
-		reattachRecovery.pendingForceResize ||= forceResize;
+	const scheduleReattachRecovery = () => {
 		if (reattachRecovery.pendingFrame !== null) return;
 
 		reattachRecovery.pendingFrame = mockRaf(() => {
@@ -72,16 +69,13 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 				const remaining =
 					reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
 				setTimeout(() => {
-					if (!isUnmounted)
-						scheduleReattachRecovery(reattachRecovery.pendingForceResize);
+					if (!isUnmounted) scheduleReattachRecovery();
 				}, remaining + 1);
 				return;
 			}
 
 			reattachRecovery.lastRunAt = now;
-			const shouldForce = reattachRecovery.pendingForceResize;
-			reattachRecovery.pendingForceResize = false;
-			runRecovery(shouldForce);
+			runRecovery();
 		}) as unknown as number;
 	};
 
@@ -110,7 +104,7 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 			calls++;
 		});
 
-		schedule(false);
+		schedule();
 		flush();
 
 		expect(calls).toBe(1);
@@ -125,7 +119,7 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// Simulate a recovery that ran 50ms ago (within the 120ms throttle window)
 		state.lastRunAt = Date.now() - 50;
 
-		schedule(false);
+		schedule();
 		flush();
 
 		// Recovery was dropped because lastRunAt is only 50ms ago (< 120ms throttle)
@@ -133,16 +127,9 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 	});
 
 	/**
-	 * REPRODUCTION TEST — this test currently FAILS, demonstrating the bug.
-	 *
-	 * Expected behaviour: when a recovery call is throttled, a retry should be
+	 * Regression test: when a recovery call is throttled, a retry should be
 	 * scheduled to run after the remaining throttle window expires. Without a
-	 * retry the terminal is permanently blank until the user resizes the window.
-	 *
-	 * Fix: in scheduleReattachRecovery (useTerminalLifecycle.ts), when the
-	 * throttle fires, add:
-	 *   const remaining = reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
-	 *   setTimeout(() => { if (!isUnmounted) scheduleReattachRecovery(reattachRecovery.pendingForceResize); }, remaining + 1);
+	 * retry the terminal can stay blank until the next container resize.
 	 */
 	it("throttled recovery is retried after throttle window expires", async () => {
 		let calls = 0;
@@ -154,7 +141,7 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		state.lastRunAt = Date.now() - 50;
 
 		// This call hits the throttle; current code silently drops it
-		schedule(false);
+		schedule();
 		flush();
 		expect(calls).toBe(0); // correctly throttled
 

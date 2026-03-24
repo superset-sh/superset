@@ -32,11 +32,7 @@ import type {
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
-import {
-	captureTerminalViewport,
-	restoreTerminalViewport,
-	scrollToBottom,
-} from "../utils";
+import { scrollToBottom } from "../utils";
 import { createAttachRequestId } from "./attach-request-id";
 import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 import {
@@ -750,7 +746,6 @@ export function useTerminalLifecycle({
 			throttleMs: 120,
 			pendingFrame: null as number | null,
 			lastRunAt: 0,
-			pendingForceResize: false,
 		};
 
 		const isCurrentTerminalRenderable = () => {
@@ -766,12 +761,13 @@ export function useTerminalLifecycle({
 			return rect.width > 1 && rect.height > 1;
 		};
 
-		const runReattachRecovery = (forceResize: boolean) => {
+		const runReattachRecovery = () => {
 			if (!isCurrentTerminalRenderable()) return;
 
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
-			const viewportSnapshot = captureTerminalViewport(xterm);
+			const wasAtBottom =
+				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
 
 			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
 			rendererRef.current?.current.clearTextureAtlas?.();
@@ -779,7 +775,7 @@ export function useTerminalLifecycle({
 			fitAddon.fit();
 			xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
-			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			}
 
@@ -787,14 +783,14 @@ export function useTerminalLifecycle({
 				xterm.focus();
 			}
 
+			if (!wasAtBottom) return;
 			requestAnimationFrame(() => {
 				if (isUnmounted || xtermRef.current !== xterm) return;
-				restoreTerminalViewport(xterm, viewportSnapshot);
+				scrollToBottom(xterm);
 			});
 		};
 
-		const scheduleReattachRecovery = (forceResize: boolean) => {
-			reattachRecovery.pendingForceResize ||= forceResize;
+		const scheduleReattachRecovery = () => {
 			if (reattachRecovery.pendingFrame !== null) return;
 
 			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
@@ -807,16 +803,13 @@ export function useTerminalLifecycle({
 					const remaining =
 						reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
 					setTimeout(() => {
-						if (!isUnmounted)
-							scheduleReattachRecovery(reattachRecovery.pendingForceResize);
+						if (!isUnmounted) scheduleReattachRecovery();
 					}, remaining + 1);
 					return;
 				}
 				reattachRecovery.lastRunAt = now;
 
-				const shouldForceResize = reattachRecovery.pendingForceResize;
-				reattachRecovery.pendingForceResize = false;
-				runReattachRecovery(shouldForceResize);
+				runReattachRecovery();
 			});
 		};
 
@@ -828,10 +821,10 @@ export function useTerminalLifecycle({
 
 		const handleVisibilityChange = () => {
 			if (document.hidden) return;
-			scheduleReattachRecovery(isFocusedRef.current);
+			scheduleReattachRecovery();
 		};
 		const handleWindowFocus = () => {
-			scheduleReattachRecovery(isFocusedRef.current);
+			scheduleReattachRecovery();
 		};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
