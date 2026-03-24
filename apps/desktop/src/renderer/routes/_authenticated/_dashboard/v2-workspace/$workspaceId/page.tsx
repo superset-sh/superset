@@ -52,13 +52,11 @@ function V2WorkspacePageContent({
 	workspaceName: string;
 }) {
 	return (
-		<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-			<PaneViewer
-				key={workspaceId}
-				projectId={projectId}
-				workspaceId={workspaceId}
-				workspaceName={workspaceName}
-			/>
-		</div>
+		<PaneViewer
+			key={workspaceId}
+			projectId={projectId}
+			workspaceId={workspaceId}
+			workspaceName={workspaceName}
+		/>
 	);
 }

@@ -34,9 +34,7 @@ export function buildUpstreamUrl(
 	const hasSourceCredentials =
 		Boolean(env.ELECTRIC_SOURCE_ID) && Boolean(env.ELECTRIC_SOURCE_SECRET);
 
-	const upstream = hasSourceCredentials
-		? new URL("/v1/shape", env.ELECTRIC_CLOUD_URL)
-		: new URL(env.ELECTRIC_URL ?? "");
+	const upstream = new URL(env.ELECTRIC_SHAPE_URL ?? "");
 
 	if (hasSourceCredentials) {
 		upstream.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID ?? "");
