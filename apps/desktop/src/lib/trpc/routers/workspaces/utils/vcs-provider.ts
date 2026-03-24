@@ -11,22 +11,41 @@ const vcsProviderResource = createCachedResource<VCSProvider>({
 	maxEntries: MAX_VCS_PROVIDER_CACHE_ENTRIES,
 });
 
-export function detectProviderFromUrl(remoteUrl: string): VCSProvider {
-	const lower = remoteUrl.toLowerCase();
+function extractHostname(remoteUrl: string): string | null {
+	const trimmed = remoteUrl.trim().toLowerCase();
 
-	if (
-		lower.includes("github.com") ||
-		lower.includes("github.com:") ||
-		lower.includes("github.com/")
-	) {
+	// SSH: git@host:path
+	const sshMatch = trimmed.match(/^git@([^:]+):/);
+	if (sshMatch) {
+		return sshMatch[1];
+	}
+
+	// SSH with protocol: ssh://git@host/path
+	const sshProtoMatch = trimmed.match(/^ssh:\/\/git@([^/]+)/);
+	if (sshProtoMatch) {
+		return sshProtoMatch[1];
+	}
+
+	// HTTPS/HTTP: https://host/path
+	try {
+		const url = new URL(trimmed);
+		return url.hostname;
+	} catch {
+		return null;
+	}
+}
+
+export function detectProviderFromUrl(remoteUrl: string): VCSProvider {
+	const hostname = extractHostname(remoteUrl);
+	if (!hostname) {
+		return "unknown";
+	}
+
+	if (hostname === "github.com" || hostname.endsWith(".github.com")) {
 		return "github";
 	}
 
-	if (
-		lower.includes("gitlab.com") ||
-		lower.includes("gitlab.com:") ||
-		lower.includes("gitlab.com/")
-	) {
+	if (hostname === "gitlab.com" || hostname.endsWith(".gitlab.com")) {
 		return "gitlab";
 	}
 
@@ -57,8 +76,8 @@ async function resolveVCSProvider(worktreePath: string): Promise<VCSProvider> {
 			});
 			return "gitlab";
 		} catch {
-			// glab failed — not GitLab, fall back to GitHub (backwards compat)
-			return "github";
+			// glab failed — not GitLab, provider is unknown
+			return "unknown";
 		}
 	} catch {
 		return "unknown";

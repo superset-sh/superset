@@ -20,7 +20,11 @@ export async function getMRForBranch(
 	repoContext: GitLabRepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
-	const byView = await getMRByView(worktreePath, localBranch);
+	const byView = await getMRByView(
+		worktreePath,
+		localBranch,
+		repoContext.projectPath,
+	);
 	if (byView) {
 		return byView;
 	}
@@ -31,6 +35,7 @@ export async function getMRForBranch(
 async function getMRByView(
 	worktreePath: string,
 	localBranch: string,
+	projectPath: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		const { stdout } = await execWithShellEnv(
@@ -49,7 +54,7 @@ async function getMRByView(
 			return null;
 		}
 
-		return formatMRData(worktreePath, data);
+		return formatMRData(worktreePath, data, projectPath);
 	} catch (error) {
 		if (
 			error instanceof Error &&
@@ -58,6 +63,10 @@ async function getMRByView(
 		) {
 			return null;
 		}
+		console.warn(
+			"[GitLab] getMRByView failed:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
@@ -65,7 +74,7 @@ async function getMRByView(
 async function findMRBySourceBranch(
 	worktreePath: string,
 	localBranch: string,
-	_repoContext: GitLabRepoContext,
+	repoContext: GitLabRepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
@@ -91,8 +100,14 @@ async function findMRBySourceBranch(
 
 		const sorted = sortMRCandidates(candidates, headSha);
 		const best = sorted[0];
-		return best ? formatMRData(worktreePath, best) : null;
-	} catch {
+		return best
+			? formatMRData(worktreePath, best, repoContext.projectPath)
+			: null;
+	} catch (error) {
+		console.warn(
+			"[GitLab] findMRBySourceBranch failed:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
@@ -135,15 +150,21 @@ function sortMRCandidates(
 async function formatMRData(
 	worktreePath: string,
 	data: GLMRResponse,
+	projectPath: string,
 ): Promise<NonNullable<GitHubStatus["pr"]>> {
-	const [reviewDecision, requestedReviewers] = await fetchApprovalStatus(
+	const [reviewDecision] = await fetchApprovalStatus(
 		worktreePath,
 		data.iid,
+		projectPath,
 	);
 	const [checksStatus, checks] = await fetchPipelineChecks(
 		worktreePath,
 		data.iid,
+		projectPath,
 	);
+
+	const requestedReviewers =
+		data.reviewers?.map((r) => r.username).filter(Boolean) ?? [];
 
 	return {
 		number: data.iid,
@@ -157,10 +178,7 @@ async function formatMRData(
 		reviewDecision,
 		checksStatus,
 		checks,
-		requestedReviewers:
-			requestedReviewers.length > 0
-				? requestedReviewers
-				: (data.reviewers?.map((r) => r.username).filter(Boolean) ?? []),
+		requestedReviewers,
 	};
 }
 
@@ -177,38 +195,42 @@ function mapMRState(
 async function fetchApprovalStatus(
 	worktreePath: string,
 	mrIid: number,
-): Promise<[NonNullable<GitHubStatus["pr"]>["reviewDecision"], string[]]> {
+	projectPath: string,
+): Promise<[NonNullable<GitHubStatus["pr"]>["reviewDecision"]]> {
 	try {
 		const { stdout } = await execWithShellEnv(
 			"glab",
-			["api", `merge_requests/${mrIid}/approvals`],
+			["api", `projects/${projectPath}/merge_requests/${mrIid}/approvals`],
 			{ cwd: worktreePath },
 		);
 
 		const raw: unknown = JSON.parse(stdout.trim());
 		const result = GLApprovalsResponseSchema.safeParse(raw);
 		if (!result.success) {
-			return ["pending", []];
+			return ["pending"];
 		}
 
-		const approvedBy =
-			result.data.approved_by?.map((a) => a.user.username) ?? [];
 		const decision = result.data.approved ? "approved" : "pending";
-		return [decision, approvedBy];
-	} catch {
-		return ["pending", []];
+		return [decision];
+	} catch (error) {
+		console.warn(
+			"[GitLab] fetchApprovalStatus failed:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return ["pending"];
 	}
 }
 
 async function fetchPipelineChecks(
 	worktreePath: string,
 	mrIid: number,
+	projectPath: string,
 ): Promise<[NonNullable<GitHubStatus["pr"]>["checksStatus"], CheckItem[]]> {
 	try {
 		// Get pipelines for this MR
 		const { stdout: pipelinesStdout } = await execWithShellEnv(
 			"glab",
-			["api", `merge_requests/${mrIid}/pipelines`],
+			["api", `projects/${projectPath}/merge_requests/${mrIid}/pipelines`],
 			{ cwd: worktreePath },
 		);
 
@@ -230,7 +252,7 @@ async function fetchPipelineChecks(
 			"glab",
 			[
 				"api",
-				`pipelines/${pipelineId}/jobs?per_page=100&include_retried=false`,
+				`projects/${projectPath}/pipelines/${pipelineId}/jobs?per_page=100&include_retried=false`,
 			],
 			{ cwd: worktreePath },
 		);
@@ -277,7 +299,11 @@ async function fetchPipelineChecks(
 						: "success";
 
 		return [checksStatus, checks];
-	} catch {
+	} catch (error) {
+		console.warn(
+			"[GitLab] fetchPipelineChecks failed:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return ["none", []];
 	}
 }

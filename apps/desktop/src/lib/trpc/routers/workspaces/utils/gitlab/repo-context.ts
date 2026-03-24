@@ -3,8 +3,8 @@ import { readCachedRepoContext } from "./cache";
 import type { GitLabRepoContext } from "./types";
 
 /**
- * Normalizes a GitLab remote URL to a canonical HTTPS URL.
- * Handles SSH, HTTPS, and self-hosted variants.
+ * Normalizes a GitLab remote URL to a canonical URL.
+ * SSH URLs are converted to HTTPS. HTTP/HTTPS URLs preserve their original protocol.
  */
 export function normalizeGitLabUrl(remoteUrl: string): string | null {
 	const trimmed = remoteUrl.trim();
@@ -23,12 +23,12 @@ export function normalizeGitLabUrl(remoteUrl: string): string | null {
 		return `https://${sshProtoMatch.groups.host}/${sshProtoMatch.groups.path}`;
 	}
 
-	// HTTPS: https://gitlab.com/group/project.git
+	// HTTPS/HTTP: https://gitlab.com/group/project.git or http://gitlab.example.com/group/project.git
 	const httpsMatch = trimmed.match(
-		/^https?:\/\/(?<host>[^/]+)\/(?<path>.+?)(?:\.git)?\/?$/,
+		/^(?<protocol>https?:\/\/)(?<host>[^/]+)\/(?<path>.+?)(?:\.git)?\/?$/,
 	);
 	if (httpsMatch?.groups) {
-		return `https://${httpsMatch.groups.host}/${httpsMatch.groups.path}`;
+		return `${httpsMatch.groups.protocol}${httpsMatch.groups.host}/${httpsMatch.groups.path}`;
 	}
 
 	return null;
@@ -66,7 +66,11 @@ async function getOriginUrl(worktreePath: string): Promise<string | null> {
 			{ cwd: worktreePath },
 		);
 		return normalizeGitLabUrl(stdout.trim());
-	} catch {
+	} catch (error) {
+		console.warn(
+			"[GitLab] getOriginUrl failed:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
@@ -80,7 +84,11 @@ async function getUpstreamRemoteUrl(
 			{ cwd: worktreePath },
 		);
 		return normalizeGitLabUrl(stdout.trim());
-	} catch {
+	} catch (error) {
+		console.warn(
+			"[GitLab] getUpstreamRemoteUrl failed:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
