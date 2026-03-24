@@ -28,12 +28,11 @@ export function appendGoDebug(
 export function applyMacosTlsFix(env: Record<string, string>): Record<string, string> {
 	if (os.platform() !== "darwin") return env;
 	try {
-		if (!fs.existsSync(MACOS_SYSTEM_CERT_FILE)) return env;
+		if (!env.SSL_CERT_FILE && fs.existsSync(MACOS_SYSTEM_CERT_FILE)) {
+			env.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+		}
 	} catch {
-		return env;
-	}
-	if (!env.SSL_CERT_FILE) {
-		env.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+		// best-effort cert file probe; still apply Go fallback roots below
 	}
 	env.GODEBUG = appendGoDebug(env.GODEBUG, "x509usefallbackroots=1");
 	return env;
