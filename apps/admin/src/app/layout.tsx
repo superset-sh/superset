@@ -1,3 +1,4 @@
+import { STRIP_KATALON_ATTRS_SCRIPT } from "@superset/shared/constants";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
@@ -47,7 +48,7 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<Script id="strip-katalon-attrs" strategy="beforeInteractive">
-					{`(function(){try{var attrs=document.documentElement.attributes;for(var i=attrs.length-1;i>=0;i--){var name=attrs[i].name;if(name&&name.toLowerCase().indexOf('katalon')!==-1){document.documentElement.removeAttribute(name);}}}catch(e){console.warn('strip-katalon-attrs failed',e)}})();`}
+					{STRIP_KATALON_ATTRS_SCRIPT}
 				</Script>
 			</head>
 			<body
