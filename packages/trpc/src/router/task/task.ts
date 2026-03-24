@@ -12,6 +12,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
 import { protectedProcedure, publicProcedure } from "../../trpc";
+import { verifyOrgMembership } from "../integration/utils";
 import {
 	createTaskFromUiSchema,
 	createTaskSchema,
@@ -20,6 +21,8 @@ import {
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
+type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
+type Executor = typeof dbWs | DbWsTransaction;
 
 function isConstraintError(error: unknown, constraint: string): boolean {
 	if (!error || typeof error !== "object") {
@@ -28,6 +31,90 @@ function isConstraintError(error: unknown, constraint: string): boolean {
 
 	const maybeError = error as { code?: string; constraint?: string };
 	return maybeError.code === "23505" && maybeError.constraint === constraint;
+}
+
+async function getTaskAccess(
+	executor: Executor,
+	userId: string,
+	taskId: string,
+) {
+	const [task] = await executor
+		.select({
+			id: tasks.id,
+			organizationId: tasks.organizationId,
+		})
+		.from(tasks)
+		.where(and(eq(tasks.id, taskId), isNull(tasks.deletedAt)))
+		.limit(1);
+
+	if (!task) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Task not found",
+		});
+	}
+
+	await verifyOrgMembership(userId, task.organizationId);
+
+	return task;
+}
+
+async function getScopedStatusId(
+	executor: Executor,
+	organizationId: string,
+	statusId: string,
+	message: string,
+) {
+	const [status] = await executor
+		.select({ id: taskStatuses.id })
+		.from(taskStatuses)
+		.where(
+			and(
+				eq(taskStatuses.id, statusId),
+				eq(taskStatuses.organizationId, organizationId),
+			),
+		)
+		.limit(1);
+
+	if (!status) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message,
+		});
+	}
+
+	return status.id;
+}
+
+async function getScopedAssigneeId(
+	executor: Executor,
+	organizationId: string,
+	assigneeId: string | null,
+	message: string,
+) {
+	if (!assigneeId) {
+		return null;
+	}
+
+	const [member] = await executor
+		.select({ userId: members.userId })
+		.from(members)
+		.where(
+			and(
+				eq(members.organizationId, organizationId),
+				eq(members.userId, assigneeId),
+			),
+		)
+		.limit(1);
+
+	if (!member) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message,
+		});
+	}
+
+	return member.userId;
 }
 
 export const taskRouter = {
@@ -87,11 +174,31 @@ export const taskRouter = {
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
 			const result = await dbWs.transaction(async (tx) => {
+				const statusId = await getScopedStatusId(
+					tx,
+					input.organizationId,
+					input.statusId,
+					"Status must belong to the organization",
+				);
+				const assigneeId =
+					input.assigneeId === undefined
+						? undefined
+						: await getScopedAssigneeId(
+								tx,
+								input.organizationId,
+								input.assigneeId ?? null,
+								"Assignee must belong to the organization",
+							);
+
 				const [task] = await tx
 					.insert(tasks)
 					.values({
 						...input,
+						statusId,
+						assigneeId,
 						creatorId: ctx.session.user.id,
 						labels: input.labels ?? [],
 					})
@@ -121,52 +228,28 @@ export const taskRouter = {
 				});
 			}
 
+			await verifyOrgMembership(ctx.session.user.id, organizationId);
+
 			for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
 				try {
 					const result = await dbWs.transaction(async (tx) => {
 						const statusId = input.statusId
-							? (
-									await tx
-										.select({ id: taskStatuses.id })
-										.from(taskStatuses)
-										.where(
-											and(
-												eq(taskStatuses.id, input.statusId),
-												eq(taskStatuses.organizationId, organizationId),
-											),
-										)
-										.limit(1)
-								)[0]?.id
+							? await getScopedStatusId(
+									tx,
+									organizationId,
+									input.statusId,
+									"Status must belong to the active organization",
+								)
 							: await seedDefaultStatuses(organizationId, tx);
 
-						if (!statusId) {
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "Status must belong to the active organization",
-							});
-						}
-
 						const assigneeId = input.assigneeId
-							? ((
-									await tx
-										.select({ userId: members.userId })
-										.from(members)
-										.where(
-											and(
-												eq(members.organizationId, organizationId),
-												eq(members.userId, input.assigneeId),
-											),
-										)
-										.limit(1)
-								)[0]?.userId ?? null)
+							? await getScopedAssigneeId(
+									tx,
+									organizationId,
+									input.assigneeId,
+									"Assignee must belong to the active organization",
+								)
 							: null;
-
-						if (input.assigneeId && !assigneeId) {
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "Assignee must belong to the active organization",
-							});
-						}
 
 						const baseSlug = generateBaseTaskSlug(input.title);
 						const existingSlugs = await tx
@@ -230,22 +313,40 @@ export const taskRouter = {
 
 	update: protectedProcedure
 		.input(updateTaskSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
-			// Enforce assignee invariant: setting internal assignee clears external snapshot
-			const updateData: Record<string, unknown> = { ...data };
-			if ("assigneeId" in data) {
-				updateData.assigneeExternalId = null;
-				updateData.assigneeDisplayName = null;
-				updateData.assigneeAvatarUrl = null;
-			}
-
 			const result = await dbWs.transaction(async (tx) => {
+				const taskAccess = await getTaskAccess(tx, ctx.session.user.id, id);
+
+				// Enforce assignee invariant: setting internal assignee clears external snapshot
+				const updateData: Record<string, unknown> = { ...data };
+
+				if (data.statusId) {
+					updateData.statusId = await getScopedStatusId(
+						tx,
+						taskAccess.organizationId,
+						data.statusId,
+						"Status must belong to the task organization",
+					);
+				}
+
+				if ("assigneeId" in data) {
+					updateData.assigneeId = await getScopedAssigneeId(
+						tx,
+						taskAccess.organizationId,
+						data.assigneeId ?? null,
+						"Assignee must belong to the task organization",
+					);
+					updateData.assigneeExternalId = null;
+					updateData.assigneeDisplayName = null;
+					updateData.assigneeAvatarUrl = null;
+				}
+
 				const [task] = await tx
 					.update(tasks)
 					.set(updateData)
-					.where(eq(tasks.id, id))
+					.where(and(eq(tasks.id, id), isNull(tasks.deletedAt)))
 					.returning();
 
 				const txid = await getCurrentTxid(tx);
@@ -262,12 +363,14 @@ export const taskRouter = {
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const result = await dbWs.transaction(async (tx) => {
+				await getTaskAccess(tx, ctx.session.user.id, input);
+
 				const [deleted] = await tx
 					.update(tasks)
 					.set({ deletedAt: new Date() })
-					.where(eq(tasks.id, input))
+					.where(and(eq(tasks.id, input), isNull(tasks.deletedAt)))
 					.returning({
 						externalProvider: tasks.externalProvider,
 						externalId: tasks.externalId,
