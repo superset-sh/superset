@@ -269,6 +269,7 @@ async function fetchPipelineChecks(
 		const checks: CheckItem[] = [];
 		let hasFailure = false;
 		let hasPending = false;
+		let hasSuccess = false;
 
 		for (const rawJob of rawJobs) {
 			const jobResult = GLJobSchema.safeParse(rawJob);
@@ -290,6 +291,7 @@ async function fetchPipelineChecks(
 
 			if (status === "failure") hasFailure = true;
 			if (status === "pending") hasPending = true;
+			if (status === "success") hasSuccess = true;
 		}
 
 		const checksStatus: NonNullable<GitHubStatus["pr"]>["checksStatus"] =
@@ -299,7 +301,9 @@ async function fetchPipelineChecks(
 					? "failure"
 					: hasPending
 						? "pending"
-						: "success";
+						: hasSuccess
+							? "success"
+							: "none";
 
 		return [checksStatus, checks];
 	} catch (error) {
