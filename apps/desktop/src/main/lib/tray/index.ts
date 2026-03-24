@@ -87,12 +87,12 @@ function createTrayIcon(): Electron.NativeImage | null {
 			return null;
 		}
 
-		// 16x16 is standard menu bar size, auto-scales for Retina
-		if (size.width > 22 || size.height > 22) {
-			image = image.resize({ width: 16, height: 16 });
-		}
-		// Template images are a macOS concept for menu bar icons
 		if (process.platform === "darwin") {
+			// 16x16 is standard macOS menu bar size, auto-scales for Retina
+			if (size.width > 22 || size.height > 22) {
+				image = image.resize({ width: 16, height: 16 });
+			}
+			// Template images are a macOS concept for menu bar icons
 			image.setTemplateImage(true);
 		}
 		return image;

@@ -94,14 +94,8 @@ export function StartView() {
 			try {
 				filePath = window.webUtils.getPathForFile(firstFile);
 			} catch {
-				setError("Could not get path from dropped item");
-				return;
+				// getPathForFile threw — fall through to guard below
 			}
-			if (!filePath) {
-				setError("Could not get path from dropped item");
-				return;
-			}
-
 			if (!filePath) {
 				setError("Could not get path from dropped item");
 				return;
