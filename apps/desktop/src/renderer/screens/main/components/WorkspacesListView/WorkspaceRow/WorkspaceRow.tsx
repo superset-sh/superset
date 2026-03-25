@@ -14,14 +14,13 @@ import {
 	LuRotateCw,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getGitHubStatusQueryPolicy } from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
 import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
-
-const GITHUB_STATUS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
 interface WorkspaceRowProps {
 	workspace: WorkspaceItem;
@@ -40,18 +39,17 @@ export function WorkspaceRow({
 	const [hasHovered, setHasHovered] = useState(false);
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy("workspace-row", {
+		hasWorkspaceId: !!workspace.workspaceId,
+		isActive:
+			hasHovered && workspace.type === "worktree" && !!workspace.workspaceId,
+	});
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: workspace.workspaceId ?? "" },
-			{
-				enabled:
-					hasHovered &&
-					workspace.type === "worktree" &&
-					!!workspace.workspaceId,
-				staleTime: GITHUB_STATUS_STALE_TIME,
-			},
+			githubStatusQueryPolicy,
 		);
 
 	const pr = githubStatus?.pr;

@@ -34,7 +34,7 @@ export function UserMessageText({
 		return (
 			<div
 				key={`${message.id}-${partIndex}`}
-				className="flex max-w-[85%] flex-col items-end gap-2"
+				className="flex max-w-[85%] min-w-0 flex-col items-end gap-2"
 			>
 				{taskMentions.length > 0 && (
 					<div className="flex flex-wrap justify-end gap-2">
@@ -47,7 +47,7 @@ export function UserMessageText({
 					</div>
 				)}
 				{hasNonTaskContent && (
-					<div className="rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
+					<div className="max-w-full overflow-x-auto rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
 						{otherSegments.map((segment, segmentIndex) => {
 							if (segment.type === "text") {
 								return (

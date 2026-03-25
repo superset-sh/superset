@@ -2,6 +2,7 @@
 
 import { COMPANY } from "@superset/shared/constants";
 import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { SocialLinks } from "../SocialLinks";
 
@@ -69,6 +70,15 @@ export function Footer() {
 							>
 								Terms
 							</Link>
+							<a
+								href="https://statuspage.incident.io/superset"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group"
+							>
+								Status
+								<ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+							</a>
 						</nav>
 					</div>
 

@@ -233,7 +233,7 @@ export function ProjectSection({
 					isDragging && "cursor-grabbing",
 				)}
 			>
-				<div className="w-full">
+				<div className="flex w-full justify-center">
 					<ProjectHeader
 						projectId={projectId}
 						projectName={projectName}

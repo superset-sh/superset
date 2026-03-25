@@ -1,3 +1,4 @@
+import type { SelectUser } from "@superset/db/schema";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
 import { eq, or } from "@tanstack/db";
@@ -64,7 +65,14 @@ function TaskDetailPage() {
 
 	const task: TaskWithStatus | null = useMemo(() => {
 		if (!taskData || taskData.length === 0) return null;
-		return taskData[0];
+		const task = taskData[0];
+		return {
+			...task,
+			assignee:
+				typeof task.assignee?.id === "string"
+					? (task.assignee as SelectUser)
+					: null,
+		};
 	}, [taskData]);
 	const taskFallbackQuery = useQuery({
 		queryKey: ["task-detail-fallback", taskId, isUuidTaskId ? "id" : "slug"],

@@ -38,7 +38,7 @@ export function WorkspaceHoverCardContent({
 		branchExistsOnRemote,
 		previewUrl,
 		isLoading: isLoadingGithub,
-	} = usePRStatus({ workspaceId });
+	} = usePRStatus({ workspaceId, surface: "workspace-hover-card" });
 
 	const openPRDisplay = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(

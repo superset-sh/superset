@@ -407,6 +407,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		const family =
 			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+		if (
+			xterm.options.fontFamily === family &&
+			xterm.options.fontSize === size
+		) {
+			return;
+		}
 		xterm.options.fontFamily = family;
 		xterm.options.fontSize = size;
 		fitAddonRef.current?.fit();

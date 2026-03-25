@@ -39,7 +39,7 @@ function getPullRequestCommentsRepoNameWithOwner(
 async function resolvePullRequestCommentsTarget(
 	worktreePath: string,
 ): Promise<PullRequestCommentsTarget | null> {
-	const repoContext = await getRepoContext(worktreePath, { forceFresh: true });
+	const repoContext = await getRepoContext(worktreePath);
 	if (!repoContext) {
 		return null;
 	}
@@ -86,9 +86,7 @@ async function refreshGitHubPRStatus(
 	worktreePath: string,
 ): Promise<GitHubStatus | null> {
 	try {
-		const repoContext = await getRepoContext(worktreePath, {
-			forceFresh: true,
-		});
+		const repoContext = await getRepoContext(worktreePath);
 		if (!repoContext) {
 			return null;
 		}

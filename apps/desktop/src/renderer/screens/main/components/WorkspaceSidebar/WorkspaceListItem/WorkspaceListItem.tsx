@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getGitHubStatusQueryPolicy } from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
@@ -141,14 +142,18 @@ export function WorkspaceListItem({
 
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy(
+		"workspace-list-item",
+		{
+			hasWorkspaceId: !!id,
+			isActive: hasHovered && type === "worktree",
+		},
+	);
 
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: id },
-			{
-				enabled: hasHovered && type === "worktree",
-				staleTime: GITHUB_STATUS_STALE_TIME,
-			},
+			githubStatusQueryPolicy,
 		);
 
 	const { status: localChanges } = useGitChangesStatus({

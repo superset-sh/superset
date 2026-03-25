@@ -64,7 +64,15 @@ export function useTasksData({
 
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		return [...allData].sort(compareTasks);
+		return allData
+			.map((task) => ({
+				...task,
+				assignee:
+					typeof task.assignee?.id === "string"
+						? (task.assignee as SelectUser)
+						: null,
+			}))
+			.sort(compareTasks);
 	}, [allData]);
 
 	const { search } = useHybridSearch(sortedData);
