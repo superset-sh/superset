@@ -11,11 +11,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgMembership } from "../integration/utils";
-import {
-	requireOrgResourceAccess,
-	requireOrgScopedResource,
-} from "../utils/org-resource-access";
+import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import { requireOrgScopedResource } from "../utils/org-resource-access";
 
 async function getScopedProject(organizationId: string, projectId: string) {
 	return requireOrgScopedResource(
@@ -35,16 +32,8 @@ async function getScopedProject(organizationId: string, projectId: string) {
 	);
 }
 
-async function getWorkspaceAccess(
-	userId: string,
-	workspaceId: string,
-	options?: {
-		access?: "admin" | "member";
-		organizationId?: string;
-	},
-) {
-	return requireOrgResourceAccess(
-		userId,
+async function getScopedWorkspace(organizationId: string, workspaceId: string) {
+	return requireOrgScopedResource(
 		() =>
 			dbWs.query.workspaces.findFirst({
 				columns: {
@@ -54,11 +43,8 @@ async function getWorkspaceAccess(
 				where: eq(workspaces.id, workspaceId),
 			}),
 		{
-			access: options?.access,
-			message: options?.organizationId
-				? "Workspace not found in this organization"
-				: "Workspace not found",
-			organizationId: options?.organizationId,
+			message: "Workspace not found in this organization",
+			organizationId,
 		},
 	);
 }
@@ -186,13 +172,10 @@ export const workspaceRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const workspace = await getWorkspaceAccess(
-				ctx.session.user.id,
+			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			const workspace = await getScopedWorkspace(
+				input.organizationId,
 				input.id,
-				{
-					access: "admin",
-					organizationId: input.organizationId,
-				},
 			);
 			await dbWs.delete(workspaces).where(eq(workspaces.id, workspace.id));
 			return { success: true };

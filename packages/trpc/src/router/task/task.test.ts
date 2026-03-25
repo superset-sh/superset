@@ -87,13 +87,18 @@ function createTx() {
 
 let dbState = createDb();
 let txState = createTx();
+const dbSelectProxyMock = mock((...args: unknown[]) =>
+	(dbState.db.select as (...args: unknown[]) => unknown)(...args),
+);
 
 const transactionMock = mock(async (callback: (tx: unknown) => unknown) =>
 	callback(txState.tx),
 );
 
 mock.module("@superset/db/client", () => ({
-	db: dbState.db,
+	db: {
+		select: dbSelectProxyMock,
+	},
 	dbWs: {
 		transaction: transactionMock,
 	},
