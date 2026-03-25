@@ -13,6 +13,9 @@ export const dashboardSidebarProjectSchema = z.object({
 });
 
 const paneWorkspaceStateSchema = z.custom<PaneWorkspaceState<unknown>>();
+const workspaceHostResolutionSchema = z.object({
+	sshHostId: z.string().min(1).nullable().default(null),
+});
 
 export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
@@ -21,6 +24,9 @@ export const workspaceLocalStateSchema = z.object({
 		projectId: z.string().uuid(),
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
+	}),
+	hostResolution: workspaceHostResolutionSchema.default({
+		sshHostId: null,
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 });

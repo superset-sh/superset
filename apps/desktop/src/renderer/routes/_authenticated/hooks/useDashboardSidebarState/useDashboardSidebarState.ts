@@ -36,8 +36,21 @@ function ensureSidebarWorkspaceRecord(
 	>,
 	workspaceId: string,
 	projectId: string,
+	options?: {
+		sshHostId?: string | null;
+	},
 ): void {
-	if (collections.v2WorkspaceLocalState.get(workspaceId)) {
+	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+	if (existing) {
+		if (
+			options?.sshHostId !== undefined &&
+			existing.hostResolution.sshHostId !== options.sshHostId
+		) {
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.hostResolution ??= { sshHostId: null };
+				draft.hostResolution.sshHostId = options.sshHostId ?? null;
+			});
+		}
 		return;
 	}
 
@@ -62,6 +75,9 @@ function ensureSidebarWorkspaceRecord(
 			tabOrder: getNextTabOrder(topLevelOrders),
 			sectionId: null,
 		},
+		hostResolution: {
+			sshHostId: options?.sshHostId ?? null,
+		},
 		paneLayout: createPaneWorkspaceState({ roots: [] }),
 	});
 }
@@ -77,9 +93,20 @@ export function useDashboardSidebarState() {
 	);
 
 	const ensureWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string) => {
+		(
+			workspaceId: string,
+			projectId: string,
+			options?: {
+				sshHostId?: string | null;
+			},
+		) => {
 			ensureSidebarProjectRecord(collections, projectId);
-			ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+			ensureSidebarWorkspaceRecord(
+				collections,
+				workspaceId,
+				projectId,
+				options,
+			);
 		},
 		[collections],
 	);

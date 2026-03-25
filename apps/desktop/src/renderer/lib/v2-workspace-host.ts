@@ -1,4 +1,6 @@
 import { env } from "renderer/env.renderer";
+import type { SshHostConnectionStatus } from "shared/ssh-hosts";
+import { getSshHostIdFromDeviceClientId } from "shared/ssh-hosts";
 
 export type WorkspaceHostTarget =
 	| { kind: "local" }
@@ -33,4 +35,72 @@ export function resolveCreateWorkspaceHostUrl(
 		case "ssh":
 			return sshHostUrls.get(target.hostId) ?? null;
 	}
+}
+
+interface ResolveWorkspaceSshHostIdInput {
+	workspaceDeviceClientId: string | null;
+	workspaceSshHostId?: string | null;
+	sshStatuses?: ReadonlyMap<string, SshHostConnectionStatus>;
+}
+
+export function resolveWorkspaceSshHostId({
+	workspaceDeviceClientId,
+	workspaceSshHostId = null,
+	sshStatuses = new Map(),
+}: ResolveWorkspaceSshHostIdInput): string | null {
+	if (workspaceSshHostId) {
+		return workspaceSshHostId;
+	}
+
+	const directSshHostId = getSshHostIdFromDeviceClientId(
+		workspaceDeviceClientId,
+	);
+	if (directSshHostId) {
+		return directSshHostId;
+	}
+
+	if (!workspaceDeviceClientId) {
+		return null;
+	}
+
+	for (const [sshHostId, status] of sshStatuses) {
+		if (status.health?.deviceClientId === workspaceDeviceClientId) {
+			return sshHostId;
+		}
+	}
+
+	return null;
+}
+
+interface ResolveWorkspaceHostUrlInput {
+	currentDeviceClientId: string | null;
+	localHostUrl: string | null;
+	sshStatuses?: ReadonlyMap<string, SshHostConnectionStatus>;
+	workspaceDeviceClientId: string | null;
+	workspaceId: string;
+	workspaceSshHostId?: string | null;
+}
+
+export function resolveWorkspaceHostUrl({
+	currentDeviceClientId,
+	localHostUrl,
+	sshStatuses = new Map(),
+	workspaceDeviceClientId,
+	workspaceId,
+	workspaceSshHostId = null,
+}: ResolveWorkspaceHostUrlInput): string | null {
+	if (workspaceDeviceClientId === currentDeviceClientId) {
+		return localHostUrl;
+	}
+
+	const sshHostId = resolveWorkspaceSshHostId({
+		workspaceDeviceClientId,
+		workspaceSshHostId,
+		sshStatuses,
+	});
+	if (sshHostId) {
+		return sshStatuses.get(sshHostId)?.hostUrl ?? null;
+	}
+
+	return getWorkspaceHostUrlForWorkspace(workspaceId);
 }

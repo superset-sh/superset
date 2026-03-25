@@ -55,7 +55,10 @@ export function useCreateDashboardWorkspace() {
 					name: input.name,
 					branch: input.branch,
 				});
-				ensureWorkspaceInSidebar(workspace.id, input.projectId);
+				ensureWorkspaceInSidebar(workspace.id, input.projectId, {
+					sshHostId:
+						input.hostTarget.kind === "ssh" ? input.hostTarget.hostId : null,
+				});
 				return workspace;
 			} finally {
 				setIsPending(false);

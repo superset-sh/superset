@@ -3,14 +3,16 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import {
+	resolveWorkspaceHostUrl,
+	resolveWorkspaceSshHostId,
+} from "renderer/lib/v2-workspace-host";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	getSshHostServiceKey,
 	useHostService,
 } from "renderer/routes/_authenticated/providers/HostServiceProvider";
-import { getSshHostIdFromDeviceClientId } from "shared/ssh-hosts";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -40,12 +42,18 @@ function V2WorkspaceLayout() {
 					{ devices: collections.v2Devices },
 					({ workspaces, devices }) => eq(workspaces.deviceId, devices.id),
 				)
+				.leftJoin(
+					{ localState: collections.v2WorkspaceLocalState },
+					({ localState, workspaces }) =>
+						eq(localState.workspaceId, workspaces.id),
+				)
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId ?? ""))
-				.select(({ devices, workspaces }) => ({
+				.select(({ devices, localState, workspaces }) => ({
 					...workspaces,
 					deviceClientId: devices?.clientId ?? null,
 					deviceName: devices?.name ?? null,
 					deviceType: devices?.type ?? null,
+					sshHostId: localState?.hostResolution.sshHostId ?? null,
 				})),
 		[collections, workspaceId],
 	);
@@ -54,7 +62,11 @@ function V2WorkspaceLayout() {
 		? (services.get(workspace.organizationId)?.url ?? null)
 		: null;
 	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
-	const sshHostId = getSshHostIdFromDeviceClientId(workspace?.deviceClientId);
+	const sshHostId = resolveWorkspaceSshHostId({
+		workspaceDeviceClientId: workspace?.deviceClientId ?? null,
+		workspaceSshHostId: workspace?.sshHostId ?? null,
+		sshStatuses,
+	});
 	const sshStatus =
 		workspace && sshHostId
 			? (sshStatuses.get(getSshHostServiceKey(sshHostId)) ?? null)
@@ -66,11 +78,14 @@ function V2WorkspaceLayout() {
 	const hostUrl =
 		!workspace || shouldWaitForDeviceInfo
 			? null
-			: workspace.deviceClientId === deviceInfo?.deviceId
-				? localHostUrl
-				: sshHostId
-					? (sshStatus?.hostUrl ?? null)
-					: getWorkspaceHostUrlForWorkspace(workspace.id);
+			: resolveWorkspaceHostUrl({
+					currentDeviceClientId: deviceInfo?.deviceId ?? null,
+					localHostUrl,
+					sshStatuses,
+					workspaceDeviceClientId: workspace.deviceClientId,
+					workspaceId: workspace.id,
+					workspaceSshHostId: workspace.sshHostId,
+				});
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
