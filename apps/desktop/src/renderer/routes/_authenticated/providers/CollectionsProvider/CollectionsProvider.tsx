@@ -9,15 +9,10 @@ import {
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import {
-	getCollections,
-	preloadCollections,
-	refreshOrganizationsCollection,
-} from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	switchOrganization: (organizationId: string) => Promise<void>;
-	refreshOrganizations: () => Promise<void>;
 };
 
 const CollectionsContext = createContext<CollectionsContextType | null>(null);
@@ -37,7 +32,6 @@ export function preloadActiveOrganizationCollections(
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const [isSwitching, setIsSwitching] = useState(false);
-	const [, setOrganizationsRefreshKey] = useState(0);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
@@ -57,11 +51,6 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		[activeOrganizationId, refetchSession],
 	);
 
-	const refreshOrganizations = useCallback(async () => {
-		await refreshOrganizationsCollection();
-		setOrganizationsRefreshKey((value) => value + 1);
-	}, []);
-
 	useEffect(() => {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
@@ -75,9 +64,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	}
 
 	return (
-		<CollectionsContext.Provider
-			value={{ ...collections, switchOrganization, refreshOrganizations }}
-		>
+		<CollectionsContext.Provider value={{ ...collections, switchOrganization }}>
 			{children}
 		</CollectionsContext.Provider>
 	);

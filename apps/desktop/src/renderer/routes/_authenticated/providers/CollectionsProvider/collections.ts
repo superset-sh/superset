@@ -138,27 +138,18 @@ const electricHeaders = {
 	},
 };
 
-function createOrganizationsCollection(): Collection<SelectOrganization> {
-	return createCollection(
-		electricCollectionOptions<SelectOrganization>({
-			id: "organizations",
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "auth.organizations" },
-				headers: electricHeaders,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-}
-
-let organizationsCollection = createOrganizationsCollection();
-
-export async function refreshOrganizationsCollection(): Promise<void> {
-	organizationsCollection = createOrganizationsCollection();
-	await organizationsCollection.preload();
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
 function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createCollection(
