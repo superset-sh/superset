@@ -1,5 +1,6 @@
-export type { OrgService } from "./HostServiceProvider";
+export type { OrgService, SshHostService } from "./HostServiceProvider";
 export {
+	getSshHostServiceKey,
 	HostServiceProvider,
 	useHostService,
 } from "./HostServiceProvider";

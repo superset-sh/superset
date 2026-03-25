@@ -32,6 +32,7 @@ import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
+import { getSshHostServiceManager } from "./lib/ssh-hosts/manager";
 import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
@@ -198,6 +199,7 @@ app.on("before-quit", async (event) => {
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	getHostServiceManager().stopAll();
+	void getSshHostServiceManager().disconnectAll();
 	disposeTray();
 	app.exit(0);
 });

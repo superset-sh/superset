@@ -3,7 +3,8 @@ import { env } from "renderer/env.renderer";
 export type WorkspaceHostTarget =
 	| { kind: "local" }
 	| { kind: "cloud" }
-	| { kind: "device"; deviceId: string };
+	| { kind: "device"; deviceId: string }
+	| { kind: "ssh"; hostId: string };
 
 export function getCloudWorkspaceHostUrl(): string {
 	return `${env.NEXT_PUBLIC_API_URL}/api/v2-workspaces/cloud/host`;
@@ -20,6 +21,7 @@ export function getWorkspaceHostUrlForWorkspace(workspaceId: string): string {
 export function resolveCreateWorkspaceHostUrl(
 	target: WorkspaceHostTarget,
 	localHostUrl: string | null,
+	sshHostUrls: Map<string, string> = new Map(),
 ): string | null {
 	switch (target.kind) {
 		case "local":
@@ -28,5 +30,7 @@ export function resolveCreateWorkspaceHostUrl(
 			return getCloudWorkspaceHostUrl();
 		case "device":
 			return getWorkspaceHostUrlForDevice(target.deviceId);
+		case "ssh":
+			return sshHostUrls.get(target.hostId) ?? null;
 	}
 }

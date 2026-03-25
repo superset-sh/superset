@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	getHostServiceClientByUrl,
 	type HostServiceClient,
@@ -19,8 +19,18 @@ interface CreateDashboardWorkspaceInput {
 
 export function useCreateDashboardWorkspace() {
 	const [isPending, setIsPending] = useState(false);
-	const { localHostService } = useWorkspaceHostOptions();
+	const { localHostService, sshHosts } = useWorkspaceHostOptions();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
+	const sshHostUrls = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const host of sshHosts) {
+			if (!host.status?.hostUrl) {
+				continue;
+			}
+			map.set(host.hostId, host.status.hostUrl);
+		}
+		return map;
+	}, [sshHosts]);
 
 	const createWorkspace = useCallback(
 		async (input: CreateDashboardWorkspaceInput) => {
@@ -29,6 +39,7 @@ export function useCreateDashboardWorkspace() {
 				const hostUrl = resolveCreateWorkspaceHostUrl(
 					input.hostTarget,
 					localHostService?.url ?? null,
+					sshHostUrls,
 				);
 				if (!hostUrl) {
 					throw new Error("Host service not available");
@@ -50,7 +61,7 @@ export function useCreateDashboardWorkspace() {
 				setIsPending(false);
 			}
 		},
-		[ensureWorkspaceInSidebar, localHostService],
+		[ensureWorkspaceInSidebar, localHostService, sshHostUrls],
 	);
 
 	return { createWorkspace, isPending };
