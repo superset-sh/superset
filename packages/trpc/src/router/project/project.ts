@@ -149,6 +149,16 @@ export const projectRouter = {
 				defaultBranch: input.defaultBranch,
 				name: input.name,
 			};
+			if (
+				Object.keys(data).every(
+					(k) => data[k as keyof typeof data] === undefined,
+				)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No fields to update",
+				});
+			}
 			const [updated] = await dbWs
 				.update(projects)
 				.set(data)

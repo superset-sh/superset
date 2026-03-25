@@ -222,7 +222,6 @@ describe("task router authorization", () => {
 		verifyOrgMembershipMock.mockImplementation(async () => ({
 			membership: { role: "member" },
 		}));
-
 		verifyOrgAdminMock.mockReset();
 		verifyOrgAdminMock.mockImplementation(async () => ({
 			membership: { role: "owner" },
