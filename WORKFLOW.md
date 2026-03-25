@@ -22,7 +22,7 @@ server:
   port: 4045
 hooks:
   after_create: |
-    gh repo clone superset-sh/superset .
+    gh repo clone thalysguimaraes/superset .
   before_remove: |
     branch=$(git branch --show-current 2>/dev/null)
     if [ -n "$branch" ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
