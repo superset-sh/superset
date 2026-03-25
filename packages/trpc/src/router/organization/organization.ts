@@ -4,6 +4,7 @@ import { members, organizations } from "@superset/db/schema";
 import {
 	sessions as authSessions,
 	invitations,
+	verifications,
 } from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
@@ -15,48 +16,121 @@ import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 
-export const organizationRouter = {
-	getInvitation: publicProcedure.input(z.uuid()).query(async ({ input }) => {
-		const invitation = await db.query.invitations.findFirst({
-			where: eq(invitations.id, input),
-			with: {
-				organization: true,
-				inviter: true,
-			},
+async function getInvitationById(invitationId: string) {
+	const invitation = await db.query.invitations.findFirst({
+		where: eq(invitations.id, invitationId),
+		with: {
+			organization: true,
+			inviter: true,
+		},
+	});
+
+	if (!invitation) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Invitation not found",
 		});
+	}
 
-		if (!invitation) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Invitation not found",
+	return invitation;
+}
+
+function isInvitationExpired(expiresAt: Date) {
+	return new Date(expiresAt) < new Date();
+}
+
+function verificationMatchesInvitation({
+	verificationIdentifier,
+	invitationId,
+	invitationEmail,
+}: {
+	verificationIdentifier: string;
+	invitationId: string;
+	invitationEmail: string;
+}) {
+	return (
+		verificationIdentifier === invitationId ||
+		verificationIdentifier.toLowerCase() === invitationEmail.toLowerCase()
+	);
+}
+
+export const organizationRouter = {
+	getInvitation: protectedProcedure
+		.input(z.uuid())
+		.query(async ({ ctx, input }) => {
+			const invitation = await getInvitationById(input);
+			const isInvitee =
+				ctx.session.user.email.toLowerCase() === invitation.email.toLowerCase();
+
+			if (!isInvitee) {
+				await verifyOrgAdmin(ctx.session.user.id, invitation.organizationId);
+			}
+
+			return {
+				id: invitation.id,
+				email: invitation.email,
+				role: invitation.role,
+				status: invitation.status,
+				expiresAt: invitation.expiresAt,
+				isExpired: isInvitationExpired(invitation.expiresAt),
+				organization: {
+					id: invitation.organization.id,
+					name: invitation.organization.name,
+					slug: invitation.organization.slug,
+					logo: invitation.organization.logo,
+				},
+				inviter: {
+					id: invitation.inviter.id,
+					name: invitation.inviter.name,
+					email: invitation.inviter.email,
+					image: invitation.inviter.image,
+				},
+			};
+		}),
+
+	getInvitationPreview: publicProcedure
+		.input(
+			z.object({
+				invitationId: z.uuid(),
+				token: z.string().min(1),
+			}),
+		)
+		.query(async ({ input }) => {
+			const invitation = await getInvitationById(input.invitationId);
+			const verification = await db.query.verifications.findFirst({
+				where: eq(verifications.value, input.token),
 			});
-		}
 
-		// Check if invitation is expired
-		const isExpired = new Date(invitation.expiresAt) < new Date();
+			const hasValidToken =
+				verification &&
+				new Date() <= new Date(verification.expiresAt) &&
+				verificationMatchesInvitation({
+					verificationIdentifier: verification.identifier,
+					invitationId: invitation.id,
+					invitationEmail: invitation.email,
+				});
 
-		return {
-			id: invitation.id,
-			email: invitation.email,
-			role: invitation.role,
-			status: invitation.status,
-			expiresAt: invitation.expiresAt,
-			isExpired,
-			organization: {
-				id: invitation.organization.id,
-				name: invitation.organization.name,
-				slug: invitation.organization.slug,
-				logo: invitation.organization.logo,
-			},
-			inviter: {
-				id: invitation.inviter.id,
-				name: invitation.inviter.name,
-				email: invitation.inviter.email,
-				image: invitation.inviter.image,
-			},
-		};
-	}),
+			if (!hasValidToken) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invitation not found",
+				});
+			}
 
+			return {
+				role: invitation.role,
+				status: invitation.status,
+				expiresAt: invitation.expiresAt,
+				isExpired: isInvitationExpired(invitation.expiresAt),
+				organization: {
+					name: invitation.organization.name,
+					logo: invitation.organization.logo,
+				},
+				inviter: {
+					name: invitation.inviter.name,
+				},
+			};
+		}),
 	create: protectedProcedure
 		.input(
 			z.object({

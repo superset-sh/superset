@@ -15,6 +15,7 @@ import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -60,12 +61,13 @@ export const auth = betterAuth({
 		usePlural: true,
 		schema: { ...authSchema, subscriptions },
 	}),
-	trustedOrigins: [
+	trustedOrigins: async (request) => [
 		env.NEXT_PUBLIC_WEB_URL,
 		env.NEXT_PUBLIC_API_URL,
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		...getTrustedVercelPreviewOrigins(request?.url ?? env.NEXT_PUBLIC_API_URL),
 		...desktopDevOrigins,
 		"superset://app",
 		"superset://",
@@ -229,7 +231,7 @@ export const auth = betterAuth({
 			invitationExpiresIn: 60 * 60 * 24 * 7,
 			sendInvitationEmail: async (data) => {
 				const token = await generateMagicTokenForInvite({
-					email: data.email,
+					invitationId: data.id,
 				});
 
 				const inviteLink = `${env.NEXT_PUBLIC_WEB_URL}/accept-invitation/${data.id}?token=${token}`;
