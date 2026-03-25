@@ -428,7 +428,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			}
 
 			const shell = getDefaultShell();
-			const env = buildTerminalEnv({
+			const env = await buildTerminalEnv({
 				shell,
 				paneId,
 				tabId,

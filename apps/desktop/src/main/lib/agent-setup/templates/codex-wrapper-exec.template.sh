@@ -72,7 +72,24 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
   SUPERSET_CODEX_START_WATCHER_PID=$!
 fi
 
-"$REAL_BIN" -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+_RELAY_BROKER="$(command -v agent-relay-broker 2>/dev/null || printf '%s\n' {{RELAY_BROKER_PATH_SHELL_ARG}})"
+if [ -n "$_RELAY_BROKER" ] && [ -x "$_RELAY_BROKER" ]; then
+  export RELAY_AGENT_NAME="${RELAY_AGENT_NAME:-${SUPERSET_TAB_ID:-codex-$$}}"
+  export RELAY_CHANNELS="general"
+  export RUST_LOG="${RUST_LOG:-error}"
+  export RELAY_SKIP_PROMPT=1
+  "$_RELAY_BROKER" wrap "$REAL_BIN" -- \
+    -c 'mcp_servers.relaycast.command="npx"' \
+    -c 'mcp_servers.relaycast.args=["-y", "@relaycast/mcp"]' \
+    -c "mcp_servers.relaycast.env.RELAY_API_KEY=\"${RELAY_API_KEY}\"" \
+    -c "mcp_servers.relaycast.env.RELAY_AGENT_NAME=\"${RELAY_AGENT_NAME}\"" \
+    -c "mcp_servers.relaycast.env.RELAY_AGENT_TOKEN=\"${RELAY_AGENT_TOKEN}\"" \
+    -c 'mcp_servers.relaycast.env.RELAY_SKIP_BOOTSTRAP="1"' \
+    -c 'mcp_servers.relaycast.env.RELAY_STRICT_AGENT_NAME="1"' \
+    -c {{NOTIFY_CONFIG_SHELL_ARG}} "$@"
+else
+  "$REAL_BIN" -c {{NOTIFY_CONFIG_SHELL_ARG}} "$@"
+fi
 SUPERSET_CODEX_STATUS=$?
 
 if [ -n "$SUPERSET_CODEX_START_WATCHER_PID" ]; then

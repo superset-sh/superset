@@ -59,11 +59,13 @@ const {
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createClaudeWrapper,
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
+	createGeminiWrapper,
 	createMastraWrapper,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
@@ -197,6 +199,13 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
 		expect(wrapper).toContain(
+			`_RELAY_BROKER="$(command -v agent-relay-broker 2>/dev/null`,
+		);
+		expect(wrapper).toContain('"$_RELAY_BROKER" wrap "$REAL_BIN" --');
+		expect(wrapper).toContain(
+			`-c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+		);
+		expect(wrapper).toContain(
 			`"$REAL_BIN" -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
@@ -207,6 +216,43 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
+	});
+
+	it("shell-escapes single quotes in codex notify config", () => {
+		const execLine = buildCodexWrapperExecLine(
+			"/tmp/superset's hooks/notify.sh",
+		);
+
+		expect(execLine).toContain(
+			`-c 'notify=["bash","/tmp/superset'"'"'s hooks/notify.sh"]'`,
+		);
+		expect(execLine).not.toContain("{{NOTIFY_CONFIG_SHELL_ARG}}");
+	});
+
+	it("uses the resolved real binary in the claude relay wrapper path", () => {
+		createClaudeWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "claude");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain(
+			'_RELAY_BROKER="$(command -v agent-relay-broker 2>/dev/null',
+		);
+		expect(wrapper).toContain('exec "$_RELAY_BROKER" wrap "$REAL_BIN" -- "$@"');
+		expect(wrapper).not.toContain('exec "$_RELAY_BROKER" wrap claude -- "$@"');
+	});
+
+	it("uses the resolved real binary in the gemini relay wrapper path", () => {
+		createGeminiWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "gemini");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain(
+			'_RELAY_BROKER="$(command -v agent-relay-broker 2>/dev/null',
+		);
+		expect(wrapper).toContain('exec "$_RELAY_BROKER" wrap "$REAL_BIN" -- "$@"');
+		expect(wrapper).not.toContain('exec "$_RELAY_BROKER" wrap gemini -- "$@"');
 	});
 
 	it("creates mastracode wrapper passthrough", () => {

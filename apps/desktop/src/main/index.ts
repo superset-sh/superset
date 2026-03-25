@@ -22,6 +22,7 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { ensureRelayApiKey } from "./lib/terminal/env";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
@@ -334,6 +335,14 @@ if (!gotTheLock) {
 		await initAppState();
 
 		await loadWebviewBrowserExtension();
+
+		// Initialize shared relay workspace for agent-to-agent communication
+		// Must run before terminals start so all agents share the same workspace
+		try {
+			await ensureRelayApiKey();
+		} catch (error) {
+			console.warn("[main] Failed to initialize relay workspace:", error);
+		}
 
 		// Must happen before renderer restore runs
 		await reconcileDaemonSessions();
