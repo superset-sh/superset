@@ -334,6 +334,30 @@ describe("task router authorization", () => {
 		expect(syncTaskMock).not.toHaveBeenCalled();
 	});
 
+	it("rejects cross-tenant task deletes before soft-deleting the row", async () => {
+		selectResults.push([{ id: TASK_ID, organizationId: ORGANIZATION_ID }]);
+		verifyOrgMembershipMock.mockImplementationOnce(async () => {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Not a member of this organization",
+			});
+		});
+
+		const caller = createCaller(createContext());
+
+		await expect(caller.task.delete(TASK_ID)).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "Not a member of this organization",
+		});
+
+		expect(verifyOrgMembershipMock).toHaveBeenCalledWith(
+			ACTOR_USER_ID,
+			ORGANIZATION_ID,
+		);
+		expect(txState.mocks.updateMock).not.toHaveBeenCalled();
+		expect(syncTaskMock).not.toHaveBeenCalled();
+	});
+
 	it("rejects status changes that point at another organization", async () => {
 		selectResults.push([{ id: TASK_ID, organizationId: ORGANIZATION_ID }]);
 		selectResults.push([]);
