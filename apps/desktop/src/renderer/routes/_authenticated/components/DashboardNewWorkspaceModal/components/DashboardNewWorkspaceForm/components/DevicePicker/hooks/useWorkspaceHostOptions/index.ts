@@ -1,2 +1,5 @@
-export type { WorkspaceHostDeviceOption } from "./useWorkspaceHostOptions";
+export type {
+	WorkspaceHostDeviceOption,
+	WorkspaceHostSshOption,
+} from "./useWorkspaceHostOptions";
 export { useWorkspaceHostOptions } from "./useWorkspaceHostOptions";

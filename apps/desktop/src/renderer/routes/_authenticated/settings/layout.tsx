@@ -45,6 +45,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/models")) return "models";
 	if (pathname.includes("/settings/integrations")) return "integrations";
+	if (pathname.includes("/settings/devices")) return "devices";
 	if (pathname.includes("/settings/permissions")) return "permissions";
 	if (pathname.includes("/settings/project")) return "project";
 	return null;
@@ -72,6 +73,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/models";
 		case "integrations":
 			return "/settings/integrations";
+		case "devices":
+			return "/settings/devices";
 		case "permissions":
 			return "/settings/permissions";
 		default:

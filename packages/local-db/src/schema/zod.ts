@@ -166,6 +166,15 @@ export const agentCustomDefinitionSchema = z.object({
 
 export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
 
+export const sshHostConfigSchema = z.object({
+	id: z.string().min(1),
+	name: z.string().min(1),
+	sshTarget: z.string().min(1),
+	remoteRootDir: z.string().min(1).optional(),
+});
+
+export type SshHostConfig = z.infer<typeof sshHostConfigSchema>;
+
 /**
  * Workspace type
  */

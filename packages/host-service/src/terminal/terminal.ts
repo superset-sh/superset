@@ -10,6 +10,7 @@ import { workspaces } from "../db/schema";
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
 	db: HostDb;
+	mode?: "pty" | "tmux";
 	upgradeWebSocket: NodeWebSocket["upgradeWebSocket"];
 }
 
@@ -60,9 +61,14 @@ function resolveShell(): string {
 	return process.env.SHELL || "/bin/zsh";
 }
 
+function getTmuxSessionName(workspaceId: string): string {
+	return `superset-workspace-${workspaceId.replaceAll(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 export function registerWorkspaceTerminalRoute({
 	app,
 	db,
+	mode = "pty",
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
 	app.get(
@@ -97,18 +103,32 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					try {
-						terminal = spawn(resolveShell(), [], {
+						const env = {
+							...process.env,
+							TERM: "xterm-256color",
+							COLORTERM: "truecolor",
+							HOME: process.env.HOME || homedir(),
+							PWD: workspace.worktreePath,
+						};
+						const command = mode === "tmux" ? "tmux" : resolveShell();
+						const args =
+							mode === "tmux"
+								? [
+										"new-session",
+										"-A",
+										"-s",
+										getTmuxSessionName(workspaceId),
+										"-c",
+										workspace.worktreePath,
+									]
+								: [];
+
+						terminal = spawn(command, args, {
 							name: "xterm-256color",
 							cwd: workspace.worktreePath,
 							cols: 120,
 							rows: 32,
-							env: {
-								...process.env,
-								TERM: "xterm-256color",
-								COLORTERM: "truecolor",
-								HOME: process.env.HOME || homedir(),
-								PWD: workspace.worktreePath,
-							},
+							env,
 						});
 					} catch (error) {
 						sendMessage(ws, {

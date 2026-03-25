@@ -10,6 +10,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { usePendingWorkspace } from "renderer/stores/new-workspace-modal";
 import { MOCK_ORG_ID } from "shared/constants";
+import { isSshHostDeviceClientId } from "shared/ssh-hosts";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -215,7 +216,9 @@ export function useDashboardSidebarData() {
 					? "cloud"
 					: workspace.deviceClientId === deviceInfo?.deviceId
 						? "local-device"
-						: "remote-device";
+						: isSshHostDeviceClientId(workspace.deviceClientId)
+							? "ssh-host"
+							: "remote-device";
 
 			const sidebarWorkspace: DashboardSidebarWorkspace = {
 				id: workspace.id,

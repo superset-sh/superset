@@ -9,6 +9,7 @@ import type {
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
+	SshHostConfig,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -190,6 +191,7 @@ export const settings = sqliteTable("settings", {
 	agentCustomDefinitions: text("agent_custom_definitions", {
 		mode: "json",
 	}).$type<AgentCustomDefinition[]>(),
+	sshHosts: text("ssh_hosts", { mode: "json" }).$type<SshHostConfig[]>(),
 	selectedRingtoneId: text("selected_ringtone_id"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),

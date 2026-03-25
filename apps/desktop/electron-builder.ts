@@ -65,6 +65,11 @@ const config: Configuration = {
 			to: "resources/host-migrations",
 			filter: ["**/*"],
 		},
+		{
+			from: "dist/resources/remote-host-service",
+			to: "resources/remote-host-service",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [

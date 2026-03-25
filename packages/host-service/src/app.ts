@@ -30,6 +30,7 @@ export interface CreateAppOptions {
 	dbPath?: string;
 	deviceClientId?: string;
 	deviceName?: string;
+	terminalMode?: "pty" | "tmux";
 }
 
 export interface CreateAppResult {
@@ -50,6 +51,7 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 	const git = createGitFactory(credentials);
 	const modelProviderRuntimeResolver =
 		options?.modelProviderRuntimeResolver ?? new LocalModelProvider();
+	const terminalMode = options?.terminalMode ?? "pty";
 	const github = async () => {
 		const token = await credentials.getToken("github.com");
 		if (!token) {
@@ -87,8 +89,19 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
+		mode: terminalMode,
 		upgradeWebSocket,
 	});
+	app.get("/healthz", async (c) =>
+		c.json({
+			deviceClientId: options?.deviceClientId ?? null,
+			deviceName: options?.deviceName ?? null,
+			hasModelProviderCredentials:
+				await modelProviderRuntimeResolver.hasUsableRuntimeEnv(),
+			status: "ok" as const,
+			terminalMode,
+		}),
+	);
 	app.use(
 		"/trpc/*",
 		trpcServer({

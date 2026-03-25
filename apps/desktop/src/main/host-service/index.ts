@@ -19,6 +19,8 @@ const cloudApiUrl = process.env.CLOUD_API_URL;
 const dbPath = process.env.HOST_DB_PATH;
 const deviceClientId = process.env.DEVICE_CLIENT_ID;
 const deviceName = process.env.DEVICE_NAME;
+const hostPort = Number(process.env.HOST_PORT || "0");
+const terminalMode = process.env.HOST_TERMINAL_MODE === "tmux" ? "tmux" : "pty";
 
 const auth =
 	authToken && cloudApiUrl ? new JwtAuthProvider(authToken) : undefined;
@@ -30,10 +32,11 @@ const { app, injectWebSocket } = createApp({
 	dbPath,
 	deviceClientId,
 	deviceName,
+	terminalMode,
 });
 
 const server = serve(
-	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
+	{ fetch: app.fetch, port: hostPort, hostname: "127.0.0.1" },
 	(info: { port: number }) => {
 		process.send?.({ type: "ready", port: info.port });
 	},

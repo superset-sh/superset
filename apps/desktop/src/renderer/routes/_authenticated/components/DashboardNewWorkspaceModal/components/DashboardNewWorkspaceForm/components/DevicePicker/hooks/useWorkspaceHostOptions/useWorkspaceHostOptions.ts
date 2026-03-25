@@ -6,10 +6,12 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getSshHostServiceKey,
 	type OrgService,
 	useHostService,
 } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
+import type { SshHostConnectionStatus } from "shared/ssh-hosts";
 
 const ONLINE_THRESHOLD_MS = 30_000;
 
@@ -20,10 +22,20 @@ export interface WorkspaceHostDeviceOption {
 	isOnline: boolean;
 }
 
+export interface WorkspaceHostSshOption {
+	hostId: string;
+	name: string;
+	remoteRootDir: string | null;
+	sshTarget: string;
+	status: SshHostConnectionStatus | null;
+}
+
 interface UseWorkspaceHostOptionsResult {
+	activeOrganizationId: string | null;
 	currentDeviceName: string | null;
 	localHostService: OrgService | null;
 	otherDevices: WorkspaceHostDeviceOption[];
+	sshHosts: WorkspaceHostSshOption[];
 }
 
 function isDeviceOnline(lastSeenAt: Date | null): boolean {
@@ -36,7 +48,7 @@ function isDeviceOnline(lastSeenAt: Date | null): boolean {
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { services } = useHostService();
+	const { services, sshHosts, sshStatuses } = useHostService();
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -87,13 +99,34 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					type: device.type,
 					isOnline: isDeviceOnline(device.lastSeenAt),
 				}))
-				.sort((a, b) => a.name.localeCompare(b.name)),
+				.sort((left, right) => left.name.localeCompare(right.name)),
 		[accessibleDevices, deviceInfo?.deviceId],
 	);
 
+	const sshHostOptions = useMemo(
+		() =>
+			sshHosts
+				.map((host) => ({
+					hostId: host.id,
+					name: host.name,
+					remoteRootDir: host.remoteRootDir ?? null,
+					sshTarget: host.sshTarget,
+					status:
+						activeOrganizationId === null
+							? null
+							: (sshStatuses.get(
+									getSshHostServiceKey(activeOrganizationId, host.id),
+								) ?? null),
+				}))
+				.sort((left, right) => left.name.localeCompare(right.name)),
+		[activeOrganizationId, sshHosts, sshStatuses],
+	);
+
 	return {
+		activeOrganizationId,
 		currentDeviceName: deviceInfo?.deviceName ?? null,
 		localHostService,
 		otherDevices,
+		sshHosts: sshHostOptions,
 	};
 }

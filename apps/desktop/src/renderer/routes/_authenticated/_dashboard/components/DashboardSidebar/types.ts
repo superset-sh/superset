@@ -1,6 +1,7 @@
 export type DashboardSidebarWorkspaceHostType =
 	| "local-device"
 	| "remote-device"
+	| "ssh-host"
 	| "cloud";
 
 export interface DashboardSidebarWorkspacePullRequestCheck {

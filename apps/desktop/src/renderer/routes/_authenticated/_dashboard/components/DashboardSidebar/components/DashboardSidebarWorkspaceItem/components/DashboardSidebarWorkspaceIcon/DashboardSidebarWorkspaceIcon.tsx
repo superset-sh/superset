@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { LuCloud, LuFolderGit2, LuLaptop } from "react-icons/lu";
+import { LuCloud, LuFolderGit2, LuLaptop, LuServer } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { ActivePaneStatus } from "shared/tabs-types";
@@ -42,6 +42,15 @@ export function DashboardSidebarWorkspaceIcon({
 				/>
 			) : hostType === "remote-device" ? (
 				<LuLaptop
+					className={cn(
+						"size-4 transition-colors",
+						variant === "expanded" && "transition-colors",
+						isActive ? "text-foreground" : "text-muted-foreground",
+					)}
+					strokeWidth={1.75}
+				/>
+			) : hostType === "ssh-host" ? (
+				<LuServer
 					className={cn(
 						"size-4 transition-colors",
 						variant === "expanded" && "transition-colors",

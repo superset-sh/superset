@@ -1,3 +1,4 @@
+import type { SshHostConfig } from "@superset/local-db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createContext,
@@ -11,23 +12,43 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	getHostServiceClient,
+	getHostServiceClientByUrl,
 	type HostServiceClient,
 } from "renderer/lib/host-service-client";
 import { MOCK_ORG_ID } from "shared/constants";
+import type { SshHostConnectionStatus } from "shared/ssh-hosts";
 import { useCollections } from "../CollectionsProvider";
 
 export interface OrgService {
+	kind: "local" | "ssh";
 	port: number;
 	url: string;
 	client: HostServiceClient;
 }
 
+export interface SshHostService extends OrgService {
+	kind: "ssh";
+	host: SshHostConfig;
+	hostId: string;
+	organizationId: string;
+	status: SshHostConnectionStatus;
+}
+
 interface HostServiceContextValue {
-	/** Map of organizationId → { port, url, client } for all running services */
 	services: Map<string, OrgService>;
+	sshHosts: SshHostConfig[];
+	sshServices: Map<string, SshHostService>;
+	sshStatuses: Map<string, SshHostConnectionStatus>;
 }
 
 const HostServiceContext = createContext<HostServiceContextValue | null>(null);
+
+export function getSshHostServiceKey(
+	organizationId: string,
+	hostId: string,
+): string {
+	return `${organizationId}:${hostId}`;
+}
 
 export function HostServiceProvider({ children }: { children: ReactNode }) {
 	const { data: session } = authClient.useSession();
@@ -42,67 +63,137 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 		(q) => q.from({ organizations: collections.organizations }),
 		[collections],
 	);
+	const { data: sshHosts = [] } =
+		electronTrpc.hostServiceManager.sshHosts.list.useQuery();
 
 	const orgIds = useMemo(
-		() => organizations?.map((o) => o.id) ?? [],
+		() => organizations?.map((organization) => organization.id) ?? [],
 		[organizations],
 	);
 
-	// Start a host service for every org
 	useEffect(() => {
-		for (const orgId of orgIds) {
+		for (const organizationId of orgIds) {
 			utils.hostServiceManager.getLocalPort
-				.ensureData({ organizationId: orgId })
-				.catch((err) => {
+				.ensureData({ organizationId })
+				.catch((error) => {
 					console.error(
-						`[host-service] Failed to start for org ${orgId}:`,
-						err,
+						`[host-service] Failed to start local host-service for org ${organizationId}:`,
+						error,
 					);
 				});
 		}
-	}, [orgIds, utils]);
+	}, [orgIds, utils.hostServiceManager.getLocalPort]);
 
-	// Query the active org's port reactively
 	const { data: activePortData } =
 		electronTrpc.hostServiceManager.getLocalPort.useQuery(
 			{ organizationId: activeOrganizationId as string },
-			{ enabled: !!activeOrganizationId },
+			{ enabled: Boolean(activeOrganizationId) },
 		);
 
-	// Build the services map from cached query data
+	const sshConnectionQueries = electronTrpc.useQueries((t) =>
+		activeOrganizationId
+			? sshHosts.map((host) =>
+					t.hostServiceManager.sshHosts.ensureConnection({
+						hostId: host.id,
+						organizationId: activeOrganizationId,
+					}),
+				)
+			: [],
+	);
+
 	const services = useMemo(() => {
 		const map = new Map<string, OrgService>();
 
-		const addOrg = (orgId: string, port: number) => {
-			map.set(orgId, {
+		const addLocalService = (organizationId: string, port: number) => {
+			map.set(organizationId, {
+				kind: "local",
 				port,
 				url: `http://127.0.0.1:${port}`,
 				client: getHostServiceClient(port),
 			});
 		};
 
-		for (const orgId of orgIds) {
+		for (const organizationId of orgIds) {
 			const cached = utils.hostServiceManager.getLocalPort.getData({
-				organizationId: orgId,
+				organizationId,
 			});
 			if (cached?.port) {
-				addOrg(orgId, cached.port);
+				addLocalService(organizationId, cached.port);
 			}
 		}
 
-		// Ensure active org is included even if orgIds hasn't updated yet
 		if (
 			activeOrganizationId &&
 			activePortData?.port &&
 			!map.has(activeOrganizationId)
 		) {
-			addOrg(activeOrganizationId, activePortData.port);
+			addLocalService(activeOrganizationId, activePortData.port);
 		}
 
 		return map;
-	}, [orgIds, utils, activeOrganizationId, activePortData]);
+	}, [
+		activeOrganizationId,
+		activePortData,
+		orgIds,
+		utils.hostServiceManager.getLocalPort,
+	]);
 
-	const value = useMemo(() => ({ services }), [services]);
+	const sshStatuses = useMemo(() => {
+		const map = new Map<string, SshHostConnectionStatus>();
+
+		if (!activeOrganizationId) {
+			return map;
+		}
+
+		sshHosts.forEach((host, index) => {
+			const status = sshConnectionQueries[index]?.data?.status;
+			if (!status) {
+				return;
+			}
+			map.set(getSshHostServiceKey(activeOrganizationId, host.id), status);
+		});
+
+		return map;
+	}, [activeOrganizationId, sshConnectionQueries, sshHosts]);
+
+	const sshServices = useMemo(() => {
+		const map = new Map<string, SshHostService>();
+
+		if (!activeOrganizationId) {
+			return map;
+		}
+
+		sshHosts.forEach((host) => {
+			const key = getSshHostServiceKey(activeOrganizationId, host.id);
+			const status = sshStatuses.get(key);
+			if (!status?.hostUrl || status.localPort === null) {
+				return;
+			}
+
+			map.set(key, {
+				kind: "ssh",
+				host,
+				hostId: host.id,
+				organizationId: activeOrganizationId,
+				status,
+				port: status.localPort,
+				url: status.hostUrl,
+				client: getHostServiceClientByUrl(status.hostUrl),
+			});
+		});
+
+		return map;
+	}, [activeOrganizationId, sshHosts, sshStatuses]);
+
+	const value = useMemo(
+		() => ({
+			services,
+			sshHosts,
+			sshServices,
+			sshStatuses,
+		}),
+		[services, sshHosts, sshServices, sshStatuses],
+	);
 
 	return (
 		<HostServiceContext.Provider value={value}>
