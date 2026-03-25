@@ -23,6 +23,13 @@ import {
 	fetchGitHubPRStatus,
 	type PullRequestCommentsTarget,
 } from "../utils/github";
+import {
+	extractProjectPath,
+	fetchGitLabMRComments,
+	fetchGitLabMRStatus,
+	type MRCommentsTarget,
+} from "../utils/gitlab";
+import { detectVCSProvider } from "../utils/vcs-provider";
 
 const gitHubPRCommentsInputSchema = z.object({
 	workspaceId: z.string(),
@@ -62,6 +69,46 @@ function resolveCommentsPullRequestTarget({
 			upstreamUrl,
 			isFork: input.isFork ?? githubStatus?.isFork ?? false,
 		},
+	};
+}
+
+function resolveCommentsMRTarget({
+	input,
+	githubStatus,
+}: {
+	input: z.infer<typeof gitHubPRCommentsInputSchema>;
+	githubStatus: GitHubStatus | null | undefined;
+}): MRCommentsTarget | null {
+	const mrIid = input.prNumber ?? githubStatus?.pr?.number;
+	if (!mrIid) {
+		return null;
+	}
+
+	const repoUrl = input.repoUrl ?? githubStatus?.repoUrl;
+	if (!repoUrl) {
+		return null;
+	}
+
+	const upstreamUrl =
+		input.upstreamUrl ?? githubStatus?.upstreamUrl ?? githubStatus?.repoUrl;
+	if (!upstreamUrl) {
+		return null;
+	}
+
+	const projectPath = extractProjectPath(upstreamUrl);
+	if (!projectPath) {
+		return null;
+	}
+
+	return {
+		mrIid,
+		repoContext: {
+			repoUrl,
+			upstreamUrl,
+			isFork: input.isFork ?? githubStatus?.isFork ?? false,
+			projectPath,
+		},
+		mrWebUrl: githubStatus?.pr?.url,
 	};
 }
 
@@ -163,7 +210,11 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				const provider = await detectVCSProvider(worktree.path);
+				const freshStatus =
+					provider === "gitlab"
+						? await fetchGitLabMRStatus(worktree.path)
+						: await fetchGitHubPRStatus(worktree.path);
 
 				if (freshStatus) {
 					localDb
@@ -191,7 +242,18 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
+				const provider = await detectVCSProvider(worktree.path);
 				const cachedGitHubStatus = worktree.githubStatus ?? null;
+
+				if (provider === "gitlab") {
+					return fetchGitLabMRComments({
+						worktreePath: worktree.path,
+						mergeRequest: resolveCommentsMRTarget({
+							input,
+							githubStatus: cachedGitHubStatus,
+						}),
+					});
+				}
 
 				return fetchGitHubPRComments({
 					worktreePath: worktree.path,

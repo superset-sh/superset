@@ -144,7 +144,8 @@ export function ReviewPanel({
 	if (!pr) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				Open a pull request to view review status, checks, and comments.
+				Open a pull request or merge request to view review status, checks, and
+				comments.
 			</div>
 		);
 	}
@@ -246,7 +247,7 @@ export function ReviewPanel({
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								aria-label="Open comment on GitHub"
+								aria-label="Open comment"
 							>
 								<LuArrowUpRight className="size-3" />
 							</a>
