@@ -4,7 +4,7 @@ import { verifyOrgMembership } from "../integration/utils";
 
 type Session = NonNullable<TRPCContext["session"]>;
 
-export function requireActiveOrganizationId(
+export function requireActiveOrgId(
 	session: Session,
 	message = "No active organization selected",
 ) {
@@ -24,7 +24,7 @@ export async function requireActiveOrgMembership(
 	session: Session,
 	message?: string,
 ) {
-	const organizationId = requireActiveOrganizationId(session, message);
+	const organizationId = requireActiveOrgId(session, message);
 	await verifyOrgMembership(session.user.id, organizationId);
 	return organizationId;
 }

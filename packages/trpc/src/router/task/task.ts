@@ -13,7 +13,7 @@ import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
 import { protectedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
-import { requireActiveOrgMembership } from "../utils/active-organization";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,

@@ -6,9 +6,9 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import {
-	requireActiveOrganizationId,
+	requireActiveOrgId,
 	requireActiveOrgMembership,
-} from "../utils/active-organization";
+} from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
@@ -65,7 +65,7 @@ export const v2ProjectRouter = {
 	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrganizationId(
+			const organizationId = requireActiveOrgId(
 				ctx.session,
 				"No active organization",
 			);
@@ -134,7 +134,7 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrganizationId(
+			const organizationId = requireActiveOrgId(
 				ctx.session,
 				"No active organization",
 			);
@@ -181,7 +181,7 @@ export const v2ProjectRouter = {
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrganizationId(
+			const organizationId = requireActiveOrgId(
 				ctx.session,
 				"No active organization",
 			);
