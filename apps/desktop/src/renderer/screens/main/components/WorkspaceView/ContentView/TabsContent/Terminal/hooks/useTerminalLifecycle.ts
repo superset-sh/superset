@@ -746,6 +746,7 @@ export function useTerminalLifecycle({
 			throttleMs: 120,
 			pendingFrame: null as number | null,
 			lastRunAt: 0,
+			pendingForceResize: false,
 		};
 
 		const isCurrentTerminalRenderable = () => {
@@ -761,7 +762,7 @@ export function useTerminalLifecycle({
 			return rect.width > 1 && rect.height > 1;
 		};
 
-		const runReattachRecovery = () => {
+		const runReattachRecovery = (forceResize: boolean) => {
 			if (!isCurrentTerminalRenderable()) return;
 
 			const prevCols = xterm.cols;
@@ -775,7 +776,7 @@ export function useTerminalLifecycle({
 			fitAddon.fit();
 			xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
-			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			}
 
@@ -790,7 +791,8 @@ export function useTerminalLifecycle({
 			});
 		};
 
-		const scheduleReattachRecovery = () => {
+		const scheduleReattachRecovery = (forceResize: boolean) => {
+			reattachRecovery.pendingForceResize ||= forceResize;
 			if (reattachRecovery.pendingFrame !== null) return;
 
 			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
@@ -803,13 +805,16 @@ export function useTerminalLifecycle({
 					const remaining =
 						reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
 					setTimeout(() => {
-						if (!isUnmounted) scheduleReattachRecovery();
+						if (!isUnmounted)
+							scheduleReattachRecovery(reattachRecovery.pendingForceResize);
 					}, remaining + 1);
 					return;
 				}
 				reattachRecovery.lastRunAt = now;
 
-				runReattachRecovery();
+				const shouldForceResize = reattachRecovery.pendingForceResize;
+				reattachRecovery.pendingForceResize = false;
+				runReattachRecovery(shouldForceResize);
 			});
 		};
 
@@ -821,10 +826,10 @@ export function useTerminalLifecycle({
 
 		const handleVisibilityChange = () => {
 			if (document.hidden) return;
-			scheduleReattachRecovery();
+			scheduleReattachRecovery(isFocusedRef.current);
 		};
 		const handleWindowFocus = () => {
-			scheduleReattachRecovery();
+			scheduleReattachRecovery(isFocusedRef.current);
 		};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
