@@ -35,7 +35,7 @@ export function useDashboardSidebarData() {
 			? (services.get(activeOrganizationId) ?? null)
 			: null;
 
-	const { data: sidebarProjects = [] } = useLiveQuery(
+	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
@@ -61,6 +61,16 @@ export function useDashboardSidebarData() {
 					isCollapsed: sidebarProjects.isCollapsed,
 				})),
 		[collections],
+	);
+
+	const sidebarProjects = useMemo(
+		() =>
+			rawSidebarProjects.map((project) => ({
+				...project,
+				githubOwner: project.githubOwner ?? null,
+				githubRepoName: project.githubRepoName ?? null,
+			})),
+		[rawSidebarProjects],
 	);
 
 	const { data: sidebarSections = [] } = useLiveQuery(

@@ -85,7 +85,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					id: device.id,
 					name: device.name,
 					type: device.type,
-					isOnline: isDeviceOnline(device.lastSeenAt),
+					isOnline: isDeviceOnline(device.lastSeenAt ?? null),
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
 		[accessibleDevices, deviceInfo?.deviceId],
