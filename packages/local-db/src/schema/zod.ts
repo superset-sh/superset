@@ -169,6 +169,7 @@ export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
 export const sshHostConfigSchema = z.object({
 	id: z.string().min(1),
 	name: z.string().min(1),
+	repoPath: z.string().min(1).optional(),
 	sshTarget: z.string().min(1),
 	remoteRootDir: z.string().min(1).optional(),
 });

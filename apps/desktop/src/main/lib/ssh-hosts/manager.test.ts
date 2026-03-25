@@ -9,6 +9,7 @@ import {
 } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import type { SshHostConfig } from "@superset/local-db";
 import {
 	getSshHostDeviceClientId,
 	getSshHostRemotePort,
@@ -74,25 +75,19 @@ class MockSshProcess extends EventEmitter {
 const commandLog: string[] = [];
 const uploadedFiles = new Map<string, string>();
 const forwardProcesses: MockSshProcess[] = [];
-const getSshHostMock = mock((_hostId: string) => ({
-	id: "ssh-host-1",
-	name: "Homebox",
-	remoteRootDir: undefined,
-	sshTarget: "dev@homebox",
-}));
-const getSshHostBundleMock = mock(() => ({
-	bundleHash: "bundle-abc123",
-	files: [
-		{
-			contents: Buffer.from("console.log('remote host service');", "utf8"),
-			relativePath: "main/host-service.js",
-		},
-		{
-			contents: Buffer.from("-- migration", "utf8"),
-			relativePath: "host-migrations/0001.sql",
-		},
-	],
-}));
+
+function makeSshHostConfig(overrides?: Partial<SshHostConfig>): SshHostConfig {
+	return {
+		id: "ssh-host-1",
+		name: "Homebox",
+		repoPath: "/srv/superset",
+		remoteRootDir: undefined,
+		sshTarget: "dev@homebox",
+		...overrides,
+	};
+}
+
+const getSshHostMock = mock((_hostId: string) => makeSshHostConfig());
 const loadTokenMock = mock(async () => ({ token: "desktop-auth-token" }));
 const fetchMock = mock(
 	async () =>
@@ -112,7 +107,10 @@ const fetchMock = mock(
 );
 
 let missingToolsStdout = "";
-let remoteBundleAlreadyPresent = false;
+let remoteEntrypointPresent = true;
+let remotePackageJsonPresent = true;
+let remoteRepoDirectoryPresent = true;
+let remoteSessionAlreadyRunning = false;
 
 const spawnMock = mock((command: string, args: string[]) => {
 	if (command !== "ssh") {
@@ -128,11 +126,12 @@ const spawnMock = mock((command: string, args: string[]) => {
 	const remoteCommand = args.at(-1) ?? "";
 	commandLog.push(remoteCommand);
 
-	const uploadMatch = /cat > '([^']+)'/.exec(remoteCommand);
+	const uploadMatch =
+		/cat > (?:"([^"]+)"|'([^']+)')/.exec(remoteCommand) ?? null;
 	const process = new MockSshProcess({
 		onStdinEnd: (stdinText) => {
 			if (uploadMatch) {
-				uploadedFiles.set(uploadMatch[1], stdinText);
+				uploadedFiles.set(uploadMatch[1] ?? uploadMatch[2], stdinText);
 			}
 			process.finish(0);
 		},
@@ -160,9 +159,54 @@ const spawnMock = mock((command: string, args: string[]) => {
 			return;
 		}
 
-		if (remoteCommand.includes("test -f")) {
-			process.finish(remoteBundleAlreadyPresent ? 0 : 1, {
-				stderr: remoteBundleAlreadyPresent ? undefined : "missing package.json",
+		if (remoteCommand.includes('test -d "/srv/superset"')) {
+			process.finish(remoteRepoDirectoryPresent ? 0 : 1, {
+				stderr: remoteRepoDirectoryPresent
+					? undefined
+					: "missing repo directory",
+			});
+			return;
+		}
+
+		if (remoteCommand.includes('test -f "/srv/superset/package.json"')) {
+			process.finish(remotePackageJsonPresent ? 0 : 1, {
+				stderr: remotePackageJsonPresent ? undefined : "missing package.json",
+			});
+			return;
+		}
+
+		if (
+			remoteCommand.includes(
+				'test -f "/srv/superset/apps/desktop/src/main/host-service/index.ts"',
+			)
+		) {
+			process.finish(remoteEntrypointPresent ? 0 : 1, {
+				stderr: remoteEntrypointPresent
+					? undefined
+					: "missing host-service entrypoint",
+			});
+			return;
+		}
+
+		if (
+			remoteCommand.includes(
+				'test -f "/srv/superset/packages/host-service/package.json"',
+			)
+		) {
+			process.finish(remotePackageJsonPresent ? 0 : 1, {
+				stderr: remotePackageJsonPresent
+					? undefined
+					: "missing host-service package",
+			});
+			return;
+		}
+
+		if (
+			remoteCommand.includes("tmux has-session -t") &&
+			!remoteCommand.includes("tmux new-session -d -s")
+		) {
+			process.finish(remoteSessionAlreadyRunning ? 0 : 1, {
+				stderr: remoteSessionAlreadyRunning ? undefined : "no session",
 			});
 			return;
 		}
@@ -185,9 +229,6 @@ describe("SshHostServiceManager", () => {
 				spawn: (...args: [string, string[]]) => spawnMock(...args),
 			};
 		});
-		mock.module("./bundle", () => ({
-			getSshHostBundle: () => getSshHostBundleMock(),
-		}));
 		mock.module("./settings", () => ({
 			getSshHost: (...args: [string]) => getSshHostMock(...args),
 		}));
@@ -215,10 +256,13 @@ describe("SshHostServiceManager", () => {
 		forwardProcesses.length = 0;
 		uploadedFiles.clear();
 		missingToolsStdout = "";
-		remoteBundleAlreadyPresent = false;
+		remoteEntrypointPresent = true;
+		remotePackageJsonPresent = true;
+		remoteRepoDirectoryPresent = true;
+		remoteSessionAlreadyRunning = false;
 		spawnMock.mockClear();
 		getSshHostMock.mockClear();
-		getSshHostBundleMock.mockClear();
+		getSshHostMock.mockImplementation((_hostId: string) => makeSshHostConfig());
 		loadTokenMock.mockClear();
 		fetchMock.mockClear();
 	});
@@ -258,16 +302,28 @@ describe("SshHostServiceManager", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 
 		const launcherPath =
-			"~/.superset/ssh-hosts/ssh-host-1/bundles/bundle-abc123/launch-host-service.sh";
+			"$HOME/.superset/ssh-hosts/ssh-host-1/launch-host-service.sh";
+		expect(uploadedFiles.get(launcherPath)).toContain('cd "/srv/superset"');
+		expect(uploadedFiles.get(launcherPath)).toContain(
+			"bun run 'apps/desktop/src/main/host-service/index.ts'",
+		);
 		expect(uploadedFiles.get(launcherPath)).toContain(
 			"HOST_TERMINAL_MODE='tmux'",
 		);
 		expect(uploadedFiles.get(launcherPath)).toContain(
 			"CLOUD_API_URL='https://api.superset.test'",
 		);
+		expect(uploadedFiles.get(launcherPath)).toContain(
+			'HOST_DB_PATH="$HOME/.superset/ssh-hosts/ssh-host-1/host.db"',
+		);
 		expect(
 			commandLog.some((command) => command.includes("tmux new-session -d -s")),
 		).toBe(true);
+		expect(
+			commandLog.some((command) =>
+				command.includes("bun install --production"),
+			),
+		).toBe(false);
 
 		await manager.disconnect("ssh-host-1");
 
@@ -287,6 +343,20 @@ describe("SshHostServiceManager", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
+	it("reuses an existing remote tmux session when the checkout-backed host-service is already running", async () => {
+		const manager = new SshHostServiceManager();
+		remoteSessionAlreadyRunning = true;
+
+		const status = await manager.connect("ssh-host-1");
+
+		expect(status.state).toBe("ready");
+		expect(uploadedFiles.size).toBe(0);
+		expect(
+			commandLog.some((command) => command.includes("tmux new-session -d -s")),
+		).toBe(false);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	it("captures missing remote prerequisites in the connection status", async () => {
 		const manager = new SshHostServiceManager();
 		missingToolsStdout = "node\nbun\n";
@@ -303,6 +373,46 @@ describe("SshHostServiceManager", () => {
 			hostId: "ssh-host-1",
 			lastError: "Remote host is missing required tools: node, bun",
 			missingPrerequisites: ["node", "bun"],
+			state: "error",
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("captures a missing configured repo path before attempting to connect", async () => {
+		const manager = new SshHostServiceManager();
+		getSshHostMock.mockImplementation((_hostId: string) =>
+			makeSshHostConfig({ repoPath: undefined }),
+		);
+
+		await expect(manager.connect("ssh-host-1")).rejects.toThrow(
+			"Remote Superset repo path is not configured",
+		);
+
+		expect(manager.getStatus("ssh-host-1")).toMatchObject({
+			diagnostic: {
+				phase: "connect",
+				summary: "Remote Superset repo path is not configured",
+			},
+			lastError: "Remote Superset repo path is not configured",
+			state: "error",
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("captures a missing remote repo directory in the connection status", async () => {
+		const manager = new SshHostServiceManager();
+		remoteRepoDirectoryPresent = false;
+
+		await expect(manager.connect("ssh-host-1")).rejects.toThrow(
+			"Remote Superset repo path not found: /srv/superset",
+		);
+
+		expect(manager.getStatus("ssh-host-1")).toMatchObject({
+			diagnostic: {
+				phase: "connect",
+				summary: "Remote Superset repo path not found: /srv/superset",
+			},
+			lastError: "Remote Superset repo path not found: /srv/superset",
 			state: "error",
 		});
 		expect(fetchMock).not.toHaveBeenCalled();

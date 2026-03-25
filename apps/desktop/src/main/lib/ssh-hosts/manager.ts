@@ -11,7 +11,6 @@ import {
 	getSshHostServiceSessionName,
 	resolveSshHostRemoteRootDir,
 } from "../../../shared/ssh-hosts";
-import { getSshHostBundle } from "./bundle";
 import { getSshHost } from "./settings";
 import type {
 	SshHostConnectionDiagnostic,
@@ -22,12 +21,12 @@ import type {
 } from "./types";
 
 interface ManagedConnection {
-	bundleHash: string | null;
 	forwardProcess: ChildProcess | null;
 	forwardStopRequested: boolean;
 	hostId: string;
 	localPort: number | null;
 	pending: Promise<SshHostConnectionStatus> | null;
+	remoteRepoPath: string | null;
 	remoteRootDir: string | null;
 	remoteSessionName: string | null;
 	sshTarget: string | null;
@@ -39,6 +38,11 @@ interface SshCommandResult {
 	command: string;
 	stderr: string;
 	stdout: string;
+}
+
+interface RemoteConnectionIssue {
+	diagnostic: SshHostConnectionDiagnostic;
+	summary: string;
 }
 
 const SSH_COMMON_ARGS = [
@@ -53,6 +57,9 @@ const SSH_COMMON_ARGS = [
 ];
 
 const REMOTE_REQUIRED_TOOLS = ["node", "bun", "git", "rg", "tmux"] as const;
+const REMOTE_HOST_SERVICE_ENTRYPOINT =
+	"apps/desktop/src/main/host-service/index.ts";
+const REMOTE_HOST_SERVICE_PACKAGE_PATH = "packages/host-service/package.json";
 
 const REMOTE_PREREQUISITES_COMMAND = [
 	"missing=''",
@@ -65,6 +72,21 @@ const REMOTE_PREREQUISITES_COMMAND = [
 
 function shellEscape(value: string): string {
 	return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+function shellEscapeRemotePath(value: string): string {
+	const homePlaceholder = "__SUPERSET_REMOTE_HOME__";
+	const normalized = value.trim();
+	const withHome =
+		normalized === "~"
+			? homePlaceholder
+			: normalized.replace(/^~(?=\/|$)/, homePlaceholder);
+	const escaped = withHome
+		.replaceAll("\\", "\\\\")
+		.replaceAll('"', '\\"')
+		.replaceAll("`", "\\`")
+		.replaceAll("$", "\\$");
+	return `"${escaped.replace(homePlaceholder, "$HOME")}"`;
 }
 
 function formatArg(value: string): string {
@@ -181,38 +203,30 @@ async function waitForHealthCheck(
 }
 
 function buildRemoteLauncherScript(input: {
-	bundleDir: string;
 	dbPath: string;
 	deviceClientId: string;
 	deviceName: string;
 	hostPort: number;
 	logPath: string;
+	repoPath: string;
 	token: string;
 }) {
-	const hostServiceScriptPath = path.posix.join(
-		input.bundleDir,
-		"main/host-service.js",
-	);
-	const migrationsPath = path.posix.join(input.bundleDir, "host-migrations");
-	const envEntries = {
-		AUTH_TOKEN: input.token,
-		CLOUD_API_URL: env.NEXT_PUBLIC_API_URL,
-		DEVICE_CLIENT_ID: input.deviceClientId,
-		DEVICE_NAME: input.deviceName,
-		HOST_DB_PATH: input.dbPath,
-		HOST_MIGRATIONS_PATH: migrationsPath,
-		HOST_PORT: String(input.hostPort),
-		HOST_TERMINAL_MODE: "tmux",
-	};
-	const envAssignments = Object.entries(envEntries)
-		.map(([key, value]) => `${key}=${shellEscape(value)}`)
-		.join(" ");
+	const envAssignments = [
+		`AUTH_TOKEN=${shellEscape(input.token)}`,
+		`CLOUD_API_URL=${shellEscape(env.NEXT_PUBLIC_API_URL)}`,
+		`DEVICE_CLIENT_ID=${shellEscape(input.deviceClientId)}`,
+		`DEVICE_NAME=${shellEscape(input.deviceName)}`,
+		`HOST_DB_PATH=${shellEscapeRemotePath(input.dbPath)}`,
+		`HOST_PORT=${shellEscape(String(input.hostPort))}`,
+		`HOST_TERMINAL_MODE=${shellEscape("tmux")}`,
+	].join(" ");
 
 	return [
 		"#!/bin/sh",
 		"set -eu",
-		`cd ${shellEscape(input.bundleDir)}`,
-		`exec ${envAssignments} node ${shellEscape(hostServiceScriptPath)} >> ${shellEscape(input.logPath)} 2>&1`,
+		`mkdir -p ${shellEscapeRemotePath(path.posix.dirname(input.logPath))}`,
+		`cd ${shellEscapeRemotePath(input.repoPath)}`,
+		`exec ${envAssignments} bun run ${shellEscape(REMOTE_HOST_SERVICE_ENTRYPOINT)} >> ${shellEscapeRemotePath(input.logPath)} 2>&1`,
 		"",
 	].join("\n");
 }
@@ -245,6 +259,15 @@ class SshCommandError extends Error {
 		this.signal = params.signal;
 		this.stderr = params.stderr;
 		this.stdout = params.stdout;
+	}
+}
+
+class ManagedConnectionStatusError extends Error {
+	public readonly status: SshHostConnectionStatus;
+
+	constructor(status: SshHostConnectionStatus) {
+		super(status.lastError ?? status.diagnostic?.summary ?? "SSH host failed");
+		this.status = status;
 	}
 }
 
@@ -389,7 +412,7 @@ async function uploadRemoteFile(options: {
 	const remoteDir = path.posix.dirname(options.remotePath);
 	await runSshCommand({
 		target: options.target,
-		command: `mkdir -p ${shellEscape(remoteDir)} && cat > ${shellEscape(options.remotePath)}`,
+		command: `mkdir -p ${shellEscapeRemotePath(remoteDir)} && cat > ${shellEscapeRemotePath(options.remotePath)}`,
 		input: options.contents,
 	});
 }
@@ -404,12 +427,12 @@ export class SshHostServiceManager {
 		}
 
 		const created: ManagedConnection = {
-			bundleHash: null,
 			forwardProcess: null,
 			forwardStopRequested: false,
 			hostId,
 			localPort: null,
 			pending: null,
+			remoteRepoPath: null,
 			remoteRootDir: null,
 			remoteSessionName: null,
 			sshTarget: null,
@@ -449,51 +472,129 @@ export class SshHostServiceManager {
 			.filter((line) => line.length > 0);
 	}
 
-	private async ensureRemoteBundle(target: string, remoteRootDir: string) {
-		const bundle = getSshHostBundle();
-		const bundleDir = path.posix.join(
-			remoteRootDir,
-			"bundles",
-			bundle.bundleHash,
-		);
-		const remotePackagePath = path.posix.join(bundleDir, "package.json");
+	private createRepoPathNotConfiguredStatus(
+		connection: ManagedConnection,
+		phase: "probe" | "connect",
+	): SshHostConnectionStatus {
+		const summary = "Remote Superset repo path is not configured";
+		return this.updateStatus(connection, {
+			diagnostic: createDiagnostic({
+				detail:
+					"Set the SSH host's Superset repo path in Settings > Devices before connecting.",
+				phase,
+				summary,
+			}),
+			health: null,
+			hostUrl: null,
+			lastError: summary,
+			localPort: null,
+			missingPrerequisites: [],
+			state: "error",
+		});
+	}
 
-		let shouldUpload = true;
-		try {
-			await runSshCommand({
-				target,
-				command: `test -f ${shellEscape(remotePackagePath)}`,
-			});
-			shouldUpload = false;
-		} catch {
-			shouldUpload = true;
-		}
+	private async getRemoteRepoIssue(options: {
+		phase: "probe" | "connect";
+		repoPath: string;
+		resolvedConfigSummary: string | null;
+		target: string;
+	}): Promise<RemoteConnectionIssue | null> {
+		const checks = [
+			{
+				command: `test -d ${shellEscapeRemotePath(options.repoPath)}`,
+				detail:
+					"Restore the checkout on the remote machine or update this SSH host's Superset repo path.",
+				summary: `Remote Superset repo path not found: ${options.repoPath}`,
+			},
+			{
+				command: `test -f ${shellEscapeRemotePath(path.posix.join(options.repoPath, "package.json"))}`,
+				detail:
+					"Point this SSH host at a Superset monorepo checkout that includes the workspace root package.json.",
+				summary: `Remote Superset repo path is missing package.json: ${options.repoPath}`,
+			},
+			{
+				command: `test -f ${shellEscapeRemotePath(path.posix.join(options.repoPath, REMOTE_HOST_SERVICE_ENTRYPOINT))}`,
+				detail: `Point this SSH host at a Superset checkout that contains ${REMOTE_HOST_SERVICE_ENTRYPOINT}.`,
+				summary: `Remote Superset repo path is missing ${REMOTE_HOST_SERVICE_ENTRYPOINT}: ${options.repoPath}`,
+			},
+			{
+				command: `test -f ${shellEscapeRemotePath(path.posix.join(options.repoPath, REMOTE_HOST_SERVICE_PACKAGE_PATH))}`,
+				detail: `Point this SSH host at a Superset checkout that contains ${REMOTE_HOST_SERVICE_PACKAGE_PATH}.`,
+				summary: `Remote Superset repo path is missing ${REMOTE_HOST_SERVICE_PACKAGE_PATH}: ${options.repoPath}`,
+			},
+		];
 
-		if (shouldUpload) {
-			for (const file of bundle.files) {
-				await uploadRemoteFile({
-					target,
-					remotePath: path.posix.join(bundleDir, file.relativePath),
-					contents: file.contents,
+		for (const check of checks) {
+			try {
+				await runSshCommand({
+					target: options.target,
+					command: check.command,
 				});
+			} catch (error) {
+				return {
+					diagnostic: createErrorDiagnostic(
+						options.phase,
+						check.summary,
+						error,
+						{
+							command: check.command,
+							detail: [
+								check.detail,
+								options.resolvedConfigSummary
+									? `Resolved SSH config:\n${options.resolvedConfigSummary}`
+									: null,
+							]
+								.filter(Boolean)
+								.join("\n\n"),
+						},
+					),
+					summary: check.summary,
+				};
 			}
 		}
 
-		return {
-			bundleDir,
-			bundleHash: bundle.bundleHash,
-		};
+		return null;
 	}
 
-	private async ensureRemoteDependencies(target: string, bundleDir: string) {
-		await runSshCommand({
+	private async hasRemoteSession(
+		target: string,
+		sessionName: string,
+	): Promise<boolean> {
+		try {
+			await runSshCommand({
+				target,
+				command: `tmux has-session -t ${shellEscape(sessionName)}`,
+			});
+			return true;
+		} catch (error) {
+			if (error instanceof SshCommandError && error.exitCode === 1) {
+				return false;
+			}
+			throw error;
+		}
+	}
+
+	private isExpectedHealthSnapshot(
+		health: SshHostHealthSnapshot,
+		expectedDeviceClientId: string,
+	): boolean {
+		return health.deviceClientId === expectedDeviceClientId;
+	}
+
+	private async readRemoteHostServiceLogTail(
+		target: string,
+		logPath: string,
+	): Promise<string | null> {
+		const { stdout } = await runSshCommand({
 			target,
 			command: [
-				`mkdir -p ${shellEscape(bundleDir)}`,
-				`cd ${shellEscape(bundleDir)}`,
-				"if [ ! -d node_modules ]; then bun install --production; fi",
-			].join(" && "),
+				`if [ -f ${shellEscapeRemotePath(logPath)} ]; then`,
+				`tail -n 40 ${shellEscapeRemotePath(logPath)}`,
+				"fi",
+			].join(" "),
 		});
+		const trimmed = stdout.trim();
+		return trimmed.length > 0 ? trimmed : null;
 	}
 
 	private startForwardProcess(
@@ -566,33 +667,38 @@ export class SshHostServiceManager {
 	}
 
 	private async restartRemoteHostService(options: {
-		bundleDir: string;
 		connection: ManagedConnection;
 		dbPath: string;
 		hostPort: number;
+		repoPath: string;
 		target: string;
 		token: string;
-	}) {
+	}): Promise<{ logPath: string }> {
 		const host = getSshHost(options.connection.hostId);
 		if (!host) {
 			throw new Error(`SSH host ${options.connection.hostId} not found`);
 		}
 
 		const launcherPath = path.posix.join(
-			options.bundleDir,
+			options.connection.remoteRootDir ??
+				getDefaultSshHostRemoteRootDir(options.connection.hostId),
 			"launch-host-service.sh",
 		);
-		const logPath = path.posix.join(options.bundleDir, "host-service.log");
+		const logPath = path.posix.join(
+			options.connection.remoteRootDir ??
+				getDefaultSshHostRemoteRootDir(options.connection.hostId),
+			"host-service.log",
+		);
 		const sessionName =
 			options.connection.remoteSessionName ??
 			getSshHostServiceSessionName(options.connection.hostId);
 		const launcherScript = buildRemoteLauncherScript({
-			bundleDir: options.bundleDir,
 			dbPath: options.dbPath,
 			deviceClientId: getSshHostDeviceClientId(options.connection.hostId),
 			deviceName: host.name,
 			hostPort: options.hostPort,
 			logPath,
+			repoPath: options.repoPath,
 			token: options.token,
 		});
 
@@ -605,13 +711,51 @@ export class SshHostServiceManager {
 		await runSshCommand({
 			target: options.target,
 			command: [
-				`chmod 700 ${shellEscape(launcherPath)}`,
+				`chmod 700 ${shellEscapeRemotePath(launcherPath)}`,
 				`tmux has-session -t ${shellEscape(sessionName)} 2>/dev/null && tmux kill-session -t ${shellEscape(sessionName)} || true`,
-				`tmux new-session -d -s ${shellEscape(sessionName)} ${shellEscape(`sh ${launcherPath}`)}`,
+				`tmux new-session -d -s ${shellEscape(sessionName)} ${shellEscape(`sh ${shellEscapeRemotePath(launcherPath)}`)}`,
 			].join(" && "),
 		});
 
 		options.connection.remoteSessionName = sessionName;
+		return { logPath };
+	}
+
+	private async tryReuseRemoteHostService(options: {
+		connection: ManagedConnection;
+		expectedDeviceClientId: string;
+		remotePort: number;
+		target: string;
+	}): Promise<{ health: SshHostHealthSnapshot; localPort: number } | null> {
+		const sessionName = options.connection.remoteSessionName;
+		if (
+			!sessionName ||
+			!(await this.hasRemoteSession(options.target, sessionName))
+		) {
+			return null;
+		}
+
+		const localPort = await getFreePort();
+		this.startForwardProcess(
+			options.connection,
+			options.target,
+			localPort,
+			options.remotePort,
+		);
+
+		try {
+			const health = await waitForHealthCheck(toHostUrl(localPort));
+			if (
+				!this.isExpectedHealthSnapshot(health, options.expectedDeviceClientId)
+			) {
+				await this.stopForwardProcess(options.connection).catch(() => {});
+				return null;
+			}
+			return { health, localPort };
+		} catch {
+			await this.stopForwardProcess(options.connection).catch(() => {});
+			return null;
+		}
 	}
 
 	private async stopForwardProcess(connection: ManagedConnection) {
@@ -748,6 +892,7 @@ export class SshHostServiceManager {
 		}
 
 		connection.sshTarget = host.sshTarget.trim();
+		connection.remoteRepoPath = host.repoPath?.trim() || null;
 		connection.remoteRootDir = resolveSshHostRemoteRootDir(
 			host.id,
 			host.remoteRootDir ?? getDefaultSshHostRemoteRootDir(host.id),
@@ -773,6 +918,10 @@ export class SshHostServiceManager {
 				: "checking",
 		});
 
+		if (!connection.remoteRepoPath) {
+			return this.createRepoPathNotConfiguredStatus(connection, "probe");
+		}
+
 		try {
 			const { missingPrerequisites, resolvedConfig, resolvedConfigSummary } =
 				await this.resolveAndValidateTarget(connection);
@@ -794,6 +943,24 @@ export class SshHostServiceManager {
 					lastError: summary,
 					localPort: null,
 					missingPrerequisites,
+					state: "error",
+				});
+			}
+
+			const repoIssue = await this.getRemoteRepoIssue({
+				phase: "probe",
+				repoPath: connection.remoteRepoPath,
+				resolvedConfigSummary,
+				target: connection.sshTarget,
+			});
+			if (repoIssue) {
+				return this.updateStatus(connection, {
+					diagnostic: repoIssue.diagnostic,
+					health: null,
+					hostUrl: null,
+					lastError: repoIssue.summary,
+					localPort: null,
+					missingPrerequisites: [],
 					state: "error",
 				});
 			}
@@ -872,10 +1039,11 @@ export class SshHostServiceManager {
 				sshTarget: null,
 				state: "error",
 			});
-			throw new Error(status.lastError ?? summary);
+			throw new ManagedConnectionStatusError(status);
 		}
 
 		const target = host.sshTarget.trim();
+		const repoPath = host.repoPath?.trim() || null;
 		const remoteRootDir = resolveSshHostRemoteRootDir(
 			host.id,
 			host.remoteRootDir ?? getDefaultSshHostRemoteRootDir(host.id),
@@ -897,19 +1065,22 @@ export class SshHostServiceManager {
 				lastError: summary,
 				sshTarget: target,
 			});
-			throw new Error(status.lastError ?? summary);
+			throw new ManagedConnectionStatusError(status);
 		}
 
 		connection.sshTarget = target;
+		connection.remoteRepoPath = repoPath;
 		connection.remoteRootDir = remoteRootDir;
 		connection.remoteSessionName = getSshHostServiceSessionName(host.id);
+		const expectedDeviceClientId = getSshHostDeviceClientId(connection.hostId);
 
 		const tokenFingerprint = fingerprint(token);
 		const currentReadyStatus =
 			connection.status.state === "ready" &&
 			connection.tokenFingerprint === tokenFingerprint &&
-			connection.bundleHash !== null &&
+			connection.remoteRepoPath === repoPath &&
 			connection.sshTarget === target &&
+			connection.remoteRootDir === remoteRootDir &&
 			isForwardProcessAlive(connection.forwardProcess) &&
 			connection.localPort !== null;
 		if (currentReadyStatus) {
@@ -927,6 +1098,12 @@ export class SshHostServiceManager {
 			sshTarget: target,
 			state: "checking",
 		});
+
+		if (!repoPath) {
+			throw new ManagedConnectionStatusError(
+				this.createRepoPathNotConfiguredStatus(connection, "connect"),
+			);
+		}
 
 		try {
 			const { missingPrerequisites, resolvedConfig, resolvedConfigSummary } =
@@ -947,26 +1124,67 @@ export class SshHostServiceManager {
 					missingPrerequisites,
 					state: "error",
 				});
-				throw new Error(status.lastError ?? summary);
+				throw new ManagedConnectionStatusError(status);
 			}
 
-			this.updateStatus(connection, { state: "syncing" });
-			const { bundleDir, bundleHash } = await this.ensureRemoteBundle(
+			const repoIssue = await this.getRemoteRepoIssue({
+				phase: "connect",
+				repoPath,
+				resolvedConfigSummary,
 				target,
-				remoteRootDir,
-			);
-			connection.bundleHash = bundleHash;
+			});
+			if (repoIssue) {
+				throw new ManagedConnectionStatusError(
+					this.updateStatus(connection, {
+						diagnostic: repoIssue.diagnostic,
+						health: null,
+						hostUrl: null,
+						lastError: repoIssue.summary,
+						localPort: null,
+						missingPrerequisites: [],
+						state: "error",
+					}),
+				);
+			}
 
-			this.updateStatus(connection, { state: "installing" });
-			await this.ensureRemoteDependencies(target, bundleDir);
+			this.updateStatus(connection, { state: "forwarding" });
+			const reused = await this.tryReuseRemoteHostService({
+				connection,
+				expectedDeviceClientId,
+				remotePort,
+				target,
+			});
+			if (reused) {
+				connection.tokenFingerprint = tokenFingerprint;
+				return this.updateStatus(connection, {
+					diagnostic: createDiagnostic({
+						command: resolvedConfig.command,
+						detail: [
+							resolvedConfigSummary,
+							`Reused remote tmux session ${connection.remoteSessionName ?? "unknown"}.`,
+						]
+							.filter(Boolean)
+							.join("\n\n"),
+						phase: "connect",
+						summary: "SSH tunnel is ready",
+					}),
+					health: reused.health,
+					hostUrl: toHostUrl(reused.localPort),
+					lastError: null,
+					localPort: reused.localPort,
+					missingPrerequisites: [],
+					remotePort,
+					state: "ready",
+				});
+			}
 
 			this.updateStatus(connection, { state: "starting" });
 			const dbPath = path.posix.join(remoteRootDir, "host.db");
-			await this.restartRemoteHostService({
-				bundleDir,
+			const { logPath } = await this.restartRemoteHostService({
 				connection,
 				dbPath,
 				hostPort: remotePort,
+				repoPath,
 				target,
 				token,
 			});
@@ -975,12 +1193,74 @@ export class SshHostServiceManager {
 			const localPort = await getFreePort();
 			this.startForwardProcess(connection, target, localPort, remotePort);
 
-			const health = await waitForHealthCheck(toHostUrl(localPort));
+			let health: SshHostHealthSnapshot;
+			try {
+				health = await waitForHealthCheck(toHostUrl(localPort));
+			} catch (error) {
+				await this.stopForwardProcess(connection).catch(() => {});
+				const summary = `Remote host-service failed to start from ${repoPath}`;
+				const logTail = await this.readRemoteHostServiceLogTail(
+					target,
+					logPath,
+				).catch(() => null);
+				throw new ManagedConnectionStatusError(
+					this.updateStatus(connection, {
+						diagnostic: createDiagnostic({
+							command: `GET ${toHostUrl(localPort)}/healthz`,
+							detail: [
+								`Check tmux session ${connection.remoteSessionName ?? "unknown"} and log ${logPath} on ${target}.`,
+								logTail ? `Recent log output:\n${logTail}` : null,
+								error instanceof Error
+									? `Healthcheck error: ${error.message}`
+									: null,
+							]
+								.filter(Boolean)
+								.join("\n\n"),
+							phase: "connect",
+							summary,
+						}),
+						state: "error",
+						hostUrl: null,
+						localPort: null,
+						lastError: summary,
+						health: null,
+						missingPrerequisites: [],
+					}),
+				);
+			}
+			if (!this.isExpectedHealthSnapshot(health, expectedDeviceClientId)) {
+				await this.stopForwardProcess(connection).catch(() => {});
+				const summary = `Remote host-service reported unexpected device identity: ${health.deviceClientId ?? "unknown"}`;
+				throw new ManagedConnectionStatusError(
+					this.updateStatus(connection, {
+						diagnostic: createDiagnostic({
+							command: `GET ${toHostUrl(localPort)}/healthz`,
+							detail: [
+								`Expected device client id ${expectedDeviceClientId}.`,
+								`Received ${health.deviceClientId ?? "null"} from the remote host-service.`,
+							].join("\n\n"),
+							phase: "connect",
+							summary,
+						}),
+						state: "error",
+						hostUrl: null,
+						localPort: null,
+						lastError: summary,
+						health: null,
+						missingPrerequisites: [],
+					}),
+				);
+			}
 			connection.tokenFingerprint = tokenFingerprint;
 			return this.updateStatus(connection, {
 				diagnostic: createDiagnostic({
 					command: resolvedConfig.command,
-					detail: resolvedConfigSummary,
+					detail: [
+						resolvedConfigSummary,
+						`Started tmux session ${connection.remoteSessionName ?? "unknown"} from ${repoPath}.`,
+					]
+						.filter(Boolean)
+						.join("\n\n"),
 					phase: "connect",
 					summary: "SSH tunnel is ready",
 				}),
@@ -993,6 +1273,10 @@ export class SshHostServiceManager {
 				state: "ready",
 			});
 		} catch (error) {
+			if (error instanceof ManagedConnectionStatusError) {
+				await this.stopForwardProcess(connection).catch(() => {});
+				throw error;
+			}
 			const summary =
 				error instanceof Error
 					? error.message
@@ -1049,7 +1333,6 @@ export class SshHostServiceManager {
 		}
 
 		connection.tokenFingerprint = null;
-		connection.bundleHash = null;
 		this.updateStatus(connection, {
 			diagnostic: createDiagnostic({
 				detail:
