@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 interface ProjectPreference {
 	id: string;
+	name?: string;
+	mainRepoPath?: string;
 }
 
 interface UseAgentLaunchPreferencesOptions<TAgent extends string> {
@@ -14,6 +16,8 @@ interface UseAgentLaunchPreferencesOptions<TAgent extends string> {
 	recentProjects?: ProjectPreference[];
 	autoRunStorageKey?: string;
 	initialAutoRun?: boolean;
+	/** When set, auto-selects the project whose id/name/path matches this value instead of using localStorage. */
+	preferredProjectMatch?: string;
 }
 
 export function useAgentLaunchPreferences<TAgent extends string>({
@@ -26,6 +30,7 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	recentProjects = [],
 	autoRunStorageKey,
 	initialAutoRun = true,
+	preferredProjectMatch,
 }: UseAgentLaunchPreferencesOptions<TAgent>) {
 	const validAgentSet = useMemo(() => new Set(validAgents), [validAgents]);
 	const [selectedProjectId, setSelectedProjectIdState] = useState<
@@ -46,19 +51,42 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 		return window.localStorage.getItem(autoRunStorageKey) !== "false";
 	});
 
+	// Auto-match project from preferredProjectMatch (e.g. OneDev projectPath)
+	const matchedProjectId = useMemo(() => {
+		if (!preferredProjectMatch || recentProjects.length === 0) return null;
+		const needle = preferredProjectMatch.toLowerCase();
+		const lastSegment = needle.split("/").pop() ?? needle;
+		const match = recentProjects.find((p) => {
+			const name = p.name?.toLowerCase() ?? "";
+			const repoPath = p.mainRepoPath?.toLowerCase() ?? "";
+			return (
+				name === needle ||
+				name === lastSegment ||
+				repoPath.endsWith(`/${needle}`) ||
+				repoPath.endsWith(`/${lastSegment}`)
+			);
+		});
+		return match?.id ?? null;
+	}, [preferredProjectMatch, recentProjects]);
+
 	useEffect(() => {
-		if (
-			!projectStorageKey ||
-			selectedProjectId ||
-			recentProjects.length === 0
-		) {
+		if (!projectStorageKey || recentProjects.length === 0) {
+			return;
+		}
+		if (matchedProjectId) {
+			if (selectedProjectId !== matchedProjectId) {
+				setSelectedProjectIdState(matchedProjectId);
+			}
+			return;
+		}
+		if (selectedProjectId) {
 			return;
 		}
 		const initialProjectId = recentProjects[0]?.id ?? null;
 		if (!initialProjectId) return;
 		setSelectedProjectIdState(initialProjectId);
 		window.localStorage.setItem(projectStorageKey, initialProjectId);
-	}, [projectStorageKey, recentProjects, selectedProjectId]);
+	}, [projectStorageKey, recentProjects, selectedProjectId, matchedProjectId]);
 
 	// Never persist the fallback to localStorage — a transient unavailability
 	// should not permanently overwrite the user's explicit choice.
@@ -113,7 +141,7 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	};
 
 	const effectiveProjectId = projectStorageKey
-		? (selectedProjectId ?? recentProjects[0]?.id ?? null)
+		? (matchedProjectId ?? selectedProjectId ?? recentProjects[0]?.id ?? null)
 		: null;
 
 	return {

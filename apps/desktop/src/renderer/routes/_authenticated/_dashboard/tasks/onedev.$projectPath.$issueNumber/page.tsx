@@ -168,9 +168,16 @@ function OnedevIssuePage() {
 				{issue.fields?.Assignees && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Assignee</span>
-						<span className="text-sm">{issue.fields.Assignees}</span>
+						<span className="text-sm">
+							{Array.isArray(issue.fields.Assignees)
+								? issue.fields.Assignees.join(", ")
+								: String(issue.fields.Assignees)}
+						</span>
 					</div>
 				)}
+
+				{/* Close / Reopen */}
+				<CloseReopenButton issueId={issue.id} currentState={issue.state} />
 
 				<Separator />
 
@@ -525,6 +532,7 @@ function OpenInWorkspaceSection({
 		projectStorageKey: "lastOpenedInProjectId",
 		recentProjects,
 		autoRunStorageKey: "agentAutoRun",
+		preferredProjectMatch: projectPath,
 	});
 
 	const selectedProject = recentProjects.find(
@@ -731,5 +739,48 @@ When done: push branch, create PR via OneDev API, set issue to "In Progress" or 
 				/>
 			</div>
 		</div>
+	);
+}
+
+function CloseReopenButton({
+	issueId,
+	currentState,
+}: {
+	issueId: number;
+	currentState: string;
+}) {
+	const utils = electronTrpc.useUtils();
+	const updateState = electronTrpc.settings.updateOnedevIssueState.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
+			utils.settings.getOnedevIssues.invalidate();
+			toast.success(
+				currentState === "Closed" ? "Issue reopened" : "Issue closed",
+			);
+		},
+		onError: (err) => toast.error(err.message),
+	});
+
+	const isClosed = currentState === "Closed";
+
+	return (
+		<Button
+			variant={isClosed ? "outline" : "destructive"}
+			size="sm"
+			className="w-full"
+			disabled={updateState.isPending}
+			onClick={() =>
+				updateState.mutate({
+					issueId,
+					state: isClosed ? "Open" : "Closed",
+				})
+			}
+		>
+			{updateState.isPending
+				? "..."
+				: isClosed
+					? "Reopen Issue"
+					: "Close Issue"}
+		</Button>
 	);
 }

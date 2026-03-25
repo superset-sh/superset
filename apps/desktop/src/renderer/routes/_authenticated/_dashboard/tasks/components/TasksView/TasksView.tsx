@@ -168,7 +168,7 @@ export function TasksView({
 					onViewModeChange={setViewMode}
 					onNewTask={() => setIsCreateOnedevOpen(true)}
 				/>
-				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} />
+				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} stateFilter={currentTab} />
 				<CreateOnedevIssueDialog
 					open={isCreateOnedevOpen}
 					onOpenChange={setIsCreateOnedevOpen}

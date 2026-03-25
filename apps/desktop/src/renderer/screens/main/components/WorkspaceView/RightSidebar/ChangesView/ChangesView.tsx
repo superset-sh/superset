@@ -123,6 +123,19 @@ export function ChangesView({
 		},
 	);
 
+	const {
+		data: onedevStatus,
+		isLoading: isOnedevStatusLoading,
+		refetch: refetchOnedevStatus,
+	} = electronTrpc.workspaces.getOnedevPRStatus.useQuery(
+		{ workspaceId: workspaceId ?? "" },
+		{
+			enabled: !!workspaceId && isActive && !githubStatus?.pr,
+			refetchInterval: isActive ? GITHUB_STATUS_REFETCH_INTERVAL_MS : false,
+			staleTime: GITHUB_STATUS_STALE_TIME_MS,
+		},
+	);
+
 	const stageAllMutation = electronTrpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error) => {
@@ -259,7 +272,9 @@ export function ChangesView({
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
-	const activePullRequest = githubStatus?.pr ?? null;
+	const activePullRequest = githubStatus?.pr ?? onedevStatus?.pr ?? null;
+	const isPRStatusLoading =
+		isGitHubStatusLoading || (!githubStatus?.pr && isOnedevStatusLoading);
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingRefreshRef = useRef<PendingChangesRefresh>({
 		invalidateBranches: false,
@@ -301,6 +316,7 @@ export function ChangesView({
 	const handleRefresh = () => {
 		refetch();
 		refetchGithubStatus();
+		refetchOnedevStatus();
 		if (activePullRequest) {
 			refetchGitHubComments();
 		}
@@ -592,7 +608,7 @@ export function ChangesView({
 		isDefaultBranch,
 	});
 	const shouldAutoCreatePR =
-		hasRepo &&
+		hasGitHubRepo &&
 		shouldAutoCreatePRAfterPublish({
 			hasExistingPR,
 			isDefaultBranch,
@@ -770,8 +786,8 @@ export function ChangesView({
 							onViewModeChange={setFileListViewMode}
 							showViewModeToggle
 							worktreePath={worktreePath}
-							pr={githubStatus?.pr ?? null}
-							isPRStatusLoading={isGitHubStatusLoading}
+							pr={activePullRequest}
+							isPRStatusLoading={isPRStatusLoading}
 							canCreatePR={prActionState.canCreatePR}
 							createPRBlockedReason={prActionState.createPRBlockedReason}
 							onStash={() => stashMutation.mutate({ worktreePath })}
@@ -835,9 +851,9 @@ export function ChangesView({
 					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
 				>
 					<ReviewPanel
-						pr={isGitHubStatusLoading ? null : activePullRequest}
+						pr={isPRStatusLoading ? null : activePullRequest}
 						comments={githubComments}
-						isLoading={isGitHubStatusLoading}
+						isLoading={isPRStatusLoading}
 						isCommentsLoading={isGitHubCommentsLoading}
 					/>
 				</TabsContent>

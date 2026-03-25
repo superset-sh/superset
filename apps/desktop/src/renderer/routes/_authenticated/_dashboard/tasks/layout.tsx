@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export type TasksSearch = {
-	tab?: "all" | "active" | "backlog";
+	tab?: "all" | "active" | "backlog" | "closed";
 	assignee?: string;
 	search?: string;
 };
@@ -9,7 +9,7 @@ export type TasksSearch = {
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 	component: TasksLayout,
 	validateSearch: (search: Record<string, unknown>): TasksSearch => ({
-		tab: ["all", "active", "backlog"].includes(search.tab as string)
+		tab: ["all", "active", "backlog", "closed"].includes(search.tab as string)
 			? (search.tab as TasksSearch["tab"])
 			: undefined,
 		assignee: typeof search.assignee === "string" ? search.assignee : undefined,

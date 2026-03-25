@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useRef, useState } from "react";
 import {
+	HiOutlineArchiveBox,
 	HiOutlineMagnifyingGlass,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
@@ -20,7 +21,7 @@ import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
 
-export type TabValue = "all" | "active" | "backlog";
+export type TabValue = "all" | "active" | "backlog" | "closed";
 
 interface TasksTopBarProps {
 	currentTab: TabValue;
@@ -51,6 +52,11 @@ const TABS = [
 		value: "backlog" as const,
 		label: "Backlog",
 		Icon: BacklogIcon,
+	},
+	{
+		value: "closed" as const,
+		label: "Closed",
+		Icon: HiOutlineArchiveBox,
 	},
 ] as const;
 

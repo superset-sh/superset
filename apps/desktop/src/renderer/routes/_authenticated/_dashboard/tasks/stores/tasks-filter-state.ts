@@ -3,11 +3,11 @@ import { create } from "zustand";
 export type ViewMode = "table" | "board";
 
 interface TasksFilterState {
-	tab: "all" | "active" | "backlog";
+	tab: "all" | "active" | "backlog" | "closed";
 	assignee: string | null;
 	search: string;
 	viewMode: ViewMode;
-	setTab: (tab: "all" | "active" | "backlog") => void;
+	setTab: (tab: "all" | "active" | "backlog" | "closed") => void;
 	setAssignee: (assignee: string | null) => void;
 	setSearch: (search: string) => void;
 	setViewMode: (viewMode: ViewMode) => void;

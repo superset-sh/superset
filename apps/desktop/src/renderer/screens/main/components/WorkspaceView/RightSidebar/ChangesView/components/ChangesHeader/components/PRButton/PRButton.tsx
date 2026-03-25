@@ -4,12 +4,14 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import {
 	VscChevronDown,
+	VscClose,
 	VscGitMerge,
 	VscGitPullRequest,
 	VscLoading,
@@ -50,6 +52,21 @@ export function PRButton({
 			}),
 	});
 
+	const closePRMutation = electronTrpc.changes.closePR.useMutation({
+		onMutate: () => {
+			const toastId = toast.loading("Closing PR...");
+			return { toastId };
+		},
+		onSuccess: (_data, _variables, context) => {
+			toast.success("PR closed", { id: context?.toastId });
+			onRefresh();
+		},
+		onError: (error, _variables, context) =>
+			toast.error(`Close failed: ${error.message}`, {
+				id: context?.toastId,
+			}),
+	});
+
 	const { createOrOpenPR, isPending: isCreateOrOpenPRPending } =
 		useCreateOrOpenPR({
 			worktreePath,
@@ -57,11 +74,14 @@ export function PRButton({
 		});
 
 	const isCreatePending = isCreateOrOpenPRPending;
+	const isActioning = mergePRMutation.isPending || closePRMutation.isPending;
 
 	const handleCreatePR = () => createOrOpenPR();
 
 	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
 		mergePRMutation.mutate({ worktreePath, strategy });
+
+	const handleClosePR = () => closePRMutation.mutate({ worktreePath });
 
 	if (isLoading) {
 		return (
@@ -127,7 +147,7 @@ export function PRButton({
 	return (
 		<div
 			className="flex items-center ml-auto rounded border border-border overflow-hidden"
-			aria-busy={mergePRMutation.isPending}
+			aria-busy={isActioning}
 		>
 			<a
 				href={pr.url}
@@ -146,14 +166,12 @@ export function PRButton({
 					<button
 						type="button"
 						className="flex items-center px-1 py-0.5 hover:bg-accent transition-colors"
-						disabled={mergePRMutation.isPending}
+						disabled={isActioning}
 						aria-label={
-							mergePRMutation.isPending
-								? "Merging pull request"
-								: "Open merge options"
+							isActioning ? "Processing pull request" : "Open merge options"
 						}
 					>
-						{mergePRMutation.isPending ? (
+						{isActioning ? (
 							<VscLoading className="size-3 animate-spin text-muted-foreground" />
 						) : (
 							<VscChevronDown className="size-3 text-muted-foreground" />
@@ -167,7 +185,7 @@ export function PRButton({
 					<DropdownMenuItem
 						onClick={() => handleMergePR("squash")}
 						className="text-xs"
-						disabled={mergePRMutation.isPending}
+						disabled={isActioning}
 					>
 						<VscGitMerge className="size-3.5" />
 						Squash and merge
@@ -175,7 +193,7 @@ export function PRButton({
 					<DropdownMenuItem
 						onClick={() => handleMergePR("merge")}
 						className="text-xs"
-						disabled={mergePRMutation.isPending}
+						disabled={isActioning}
 					>
 						<VscGitMerge className="size-3.5" />
 						Create merge commit
@@ -183,10 +201,19 @@ export function PRButton({
 					<DropdownMenuItem
 						onClick={() => handleMergePR("rebase")}
 						className="text-xs"
-						disabled={mergePRMutation.isPending}
+						disabled={isActioning}
 					>
 						<VscGitMerge className="size-3.5" />
 						Rebase and merge
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						onClick={handleClosePR}
+						className="text-xs text-destructive"
+						disabled={isActioning}
+					>
+						<VscClose className="size-3.5" />
+						Close pull request
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
