@@ -78,6 +78,7 @@ export function DevicesSettings() {
 	const { sshHosts, sshStatuses } = useHostService();
 	const [editingHostId, setEditingHostId] = useState<string | null>(null);
 	const [name, setName] = useState("");
+	const [repoPath, setRepoPath] = useState("");
 	const [sshTarget, setSshTarget] = useState("");
 	const [remoteRootDir, setRemoteRootDir] = useState("");
 
@@ -114,6 +115,7 @@ export function DevicesSettings() {
 				toast.success(editingHostId ? "SSH host updated" : "SSH host saved");
 				setEditingHostId(null);
 				setName("");
+				setRepoPath("");
 				setSshTarget("");
 				setRemoteRootDir("");
 			},
@@ -268,7 +270,21 @@ export function DevicesSettings() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="ssh-host-root">Remote root directory</Label>
+							<Label htmlFor="ssh-host-repo-path">Superset repo path</Label>
+							<Input
+								id="ssh-host-repo-path"
+								placeholder="~/Developer/superset"
+								value={repoPath}
+								onChange={(event) => setRepoPath(event.target.value)}
+							/>
+							<p className="text-xs text-muted-foreground">
+								Required. Absolute or home-relative path to the Superset
+								checkout that already exists on the remote machine.
+							</p>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="ssh-host-root">Remote state directory</Label>
 							<Input
 								id="ssh-host-root"
 								placeholder="~/.superset/ssh-hosts/homebox"
@@ -276,8 +292,8 @@ export function DevicesSettings() {
 								onChange={(event) => setRemoteRootDir(event.target.value)}
 							/>
 							<p className="text-xs text-muted-foreground">
-								Optional. Leave blank to use the default Superset directory on
-								the remote machine.
+								Optional. Leave blank to use the default Superset SSH state
+								directory on the remote machine for logs and the host database.
 							</p>
 						</div>
 
@@ -287,6 +303,7 @@ export function DevicesSettings() {
 									upsertHost.mutate({
 										id: editingHostId ?? crypto.randomUUID(),
 										name,
+										repoPath,
 										sshTarget,
 										remoteRootDir: remoteRootDir.trim() || undefined,
 									})
@@ -294,6 +311,7 @@ export function DevicesSettings() {
 								disabled={
 									upsertHost.isPending ||
 									name.trim().length === 0 ||
+									repoPath.trim().length === 0 ||
 									sshTarget.trim().length === 0
 								}
 							>
@@ -305,6 +323,7 @@ export function DevicesSettings() {
 									onClick={() => {
 										setEditingHostId(null);
 										setName("");
+										setRepoPath("");
 										setSshTarget("");
 										setRemoteRootDir("");
 									}}
@@ -346,9 +365,14 @@ export function DevicesSettings() {
 												/>
 												<span>{getHostStatusText(host.status)}</span>
 											</div>
+											{host.repoPath && (
+												<div className="mt-2 text-xs text-muted-foreground">
+													Repo path: {host.repoPath}
+												</div>
+											)}
 											{host.remoteRootDir && (
 												<div className="mt-2 text-xs text-muted-foreground">
-													Remote root: {host.remoteRootDir}
+													State dir: {host.remoteRootDir}
 												</div>
 											)}
 											{host.status?.health?.hasModelProviderCredentials ===
@@ -365,6 +389,7 @@ export function DevicesSettings() {
 												onClick={() => {
 													setEditingHostId(host.id);
 													setName(host.name);
+													setRepoPath(host.repoPath ?? "");
 													setSshTarget(host.sshTarget);
 													setRemoteRootDir(host.remoteRootDir ?? "");
 												}}

@@ -13,6 +13,7 @@ import { loadToken } from "../auth/utils/auth-functions";
 
 const sshHostInputSchema = sshHostConfigSchema.extend({
 	name: z.string().trim().min(1),
+	repoPath: z.string().trim().min(1),
 	sshTarget: z.string().trim().min(1),
 	remoteRootDir: z.string().trim().min(1).optional(),
 });
@@ -49,9 +50,11 @@ export const createHostServiceManagerRouter = () => {
 			upsert: publicProcedure
 				.input(sshHostInputSchema)
 				.mutation(({ input }) => {
+					const repoPath = input.repoPath.trim();
 					const remoteRootDir = input.remoteRootDir?.trim();
 					return upsertSshHost({
 						...input,
+						repoPath,
 						remoteRootDir:
 							remoteRootDir && remoteRootDir.length > 0
 								? remoteRootDir

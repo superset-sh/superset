@@ -25,6 +25,7 @@ export interface WorkspaceHostDeviceOption {
 export interface WorkspaceHostSshOption {
 	hostId: string;
 	name: string;
+	repoPath: string | null;
 	remoteRootDir: string | null;
 	sshTarget: string;
 	status: SshHostConnectionStatus | null;
@@ -109,6 +110,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 				.map((host) => ({
 					hostId: host.id,
 					name: host.name,
+					repoPath: host.repoPath ?? null,
 					remoteRootDir: host.remoteRootDir ?? null,
 					sshTarget: host.sshTarget,
 					status:

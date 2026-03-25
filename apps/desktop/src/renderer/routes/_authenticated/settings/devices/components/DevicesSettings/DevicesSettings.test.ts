@@ -17,6 +17,10 @@ describe("DevicesSettings SSH diagnostics wiring", () => {
 		expect(source).toContain("sshStatuses.get(getSshHostServiceKey(host.id))");
 		expect(source).toContain("getHostStatusTone(host.status)");
 		expect(source).toContain("getHostStatusText(host.status)");
+		expect(source).toContain("Superset repo path");
+		expect(source).toContain("repoPath");
+		expect(source).toContain("Repo path:");
+		expect(source).toContain("Remote state directory");
 		expect(source).toContain("Reconnect");
 		expect(source).toContain("Disconnect");
 	});
