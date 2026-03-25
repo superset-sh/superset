@@ -8,8 +8,7 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { desc } from "drizzle-orm";
-import { and, eq, isNotNull, isNull } from "drizzle-orm/sql";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm/sql";
 
 import { localDb } from "main/lib/local-db";
 import { computeNextProjectChildTabOrder } from "./project-children-order";

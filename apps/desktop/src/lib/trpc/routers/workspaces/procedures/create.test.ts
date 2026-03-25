@@ -518,6 +518,7 @@ mock.module("drizzle-orm", () => ({
 
 mock.module("drizzle-orm/sql", () => ({
 	and,
+	desc,
 	eq,
 	isNotNull,
 	isNull,
