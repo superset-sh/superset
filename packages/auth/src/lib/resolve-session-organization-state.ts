@@ -1,3 +1,4 @@
+import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import type { SelectMember } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
@@ -18,32 +19,17 @@ export interface ResolveSessionOrganizationDeps {
 	getSessionActiveOrganization: (sessionId: string) => Promise<string | null>;
 }
 
-let dbPromise: Promise<typeof import("@superset/db/client")["db"]> | undefined;
-
-async function getDb() {
-	if (!dbPromise) {
-		dbPromise = import("@superset/db/client").then(({ db }) => db);
-	}
-
-	return dbPromise;
-}
-
 const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
-	listMemberships: async (userId) => {
-		const db = await getDb();
-
-		return db.query.members.findMany({
+	listMemberships: (userId) =>
+		db.query.members.findMany({
 			where: eq(members.userId, userId),
 			orderBy: desc(members.createdAt),
-		});
-	},
+		}),
 	updateSessionActiveOrganization: async ({
 		sessionId,
 		previousActiveOrganizationId,
 		nextActiveOrganizationId,
 	}) => {
-		const db = await getDb();
-
 		const updatedSessions = await db
 			.update(authSchema.sessions)
 			.set({ activeOrganizationId: nextActiveOrganizationId })
@@ -58,8 +44,6 @@ const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
 		return updatedSessions.length > 0;
 	},
 	getSessionActiveOrganization: async (sessionId) => {
-		const db = await getDb();
-
 		const [sessionRow] = await db
 			.select({
 				activeOrganizationId: authSchema.sessions.activeOrganizationId,
