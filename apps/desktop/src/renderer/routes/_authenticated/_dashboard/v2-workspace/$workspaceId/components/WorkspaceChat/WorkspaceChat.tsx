@@ -7,6 +7,7 @@ import {
 	useHostService,
 } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { getSshHostIdFromDeviceClientId } from "shared/ssh-hosts";
+import { getSshChatUnavailableMessage } from "./chatAvailability";
 import { SessionSelector } from "./components/SessionSelector";
 import { ChatPaneInterface as WorkspaceChatInterface } from "./components/WorkspaceChatInterface";
 import { useWorkspaceChatController } from "./hooks/useWorkspaceChatController";
@@ -62,16 +63,17 @@ export function WorkspaceChat({
 			? null
 			: (sshHosts.find((host) => host.id === sshHostId) ?? null);
 	const chatUnavailableMessage = useMemo(() => {
-		if (!sshHostId) {
-			return null;
-		}
-
-		if (sshStatus?.health?.hasModelProviderCredentials === false) {
-			return `Chat is disabled for ${sshHost?.name ?? "this SSH host"} because the remote machine does not have model provider credentials configured.`;
-		}
-
-		return null;
-	}, [sshHost, sshHostId, sshStatus?.health?.hasModelProviderCredentials]);
+		return getSshChatUnavailableMessage({
+			sshHostId,
+			sshHostName: sshHost?.name ?? null,
+			hasModelProviderCredentials:
+				sshStatus?.health?.hasModelProviderCredentials ?? null,
+		});
+	}, [
+		sshHost?.name,
+		sshHostId,
+		sshStatus?.health?.hasModelProviderCredentials,
+	]);
 
 	if (chatUnavailableMessage) {
 		return (
@@ -119,6 +121,7 @@ export function WorkspaceChat({
 					onResetSession={handleNewChat}
 					sessionId={sessionId}
 					workspaceId={workspaceId}
+					transport={sshHostId ? "ssh" : "local"}
 					organizationId={organizationId}
 					cwd={workspacePath}
 				/>

@@ -185,6 +185,7 @@ export function ChatPaneInterface({
 	sessionId,
 	initialLaunchConfig,
 	workspaceId,
+	transport,
 	organizationId,
 	cwd,
 	isFocused,
@@ -274,6 +275,7 @@ export function ChatPaneInterface({
 		workspaceId,
 		enabled: Boolean(sessionId),
 		fps: 60,
+		transport,
 	});
 	const {
 		commands,

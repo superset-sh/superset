@@ -2,17 +2,17 @@ import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	resolveChatRefetchIntervalMs,
+	type WorkspaceChatTransport,
+} from "./polling";
 
 interface UseChatDisplayOptions {
 	sessionId: string | null;
 	workspaceId: string;
 	enabled?: boolean;
 	fps?: number;
-}
-
-function toRefetchIntervalMs(fps: number): number {
-	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
-	return Math.max(16, Math.floor(1000 / fps));
+	transport?: WorkspaceChatTransport;
 }
 
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -107,13 +107,19 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, workspaceId, enabled = true, fps = 60 } = options;
+	const {
+		sessionId,
+		workspaceId,
+		enabled = true,
+		fps = 60,
+		transport = "local",
+	} = options;
 	const utils = workspaceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const queryInput =
 		sessionId === null ? undefined : { sessionId, workspaceId };
 	const isQueryEnabled = enabled && Boolean(sessionId);
-	const refetchIntervalMs = toRefetchIntervalMs(fps);
+	const refetchIntervalMs = resolveChatRefetchIntervalMs({ fps, transport });
 	const queryOptions = {
 		enabled: isQueryEnabled && queryInput !== undefined,
 		refetchInterval: refetchIntervalMs,

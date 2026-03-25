@@ -1,4 +1,7 @@
-import type { UseChatDisplayReturn } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceChat/hooks/useWorkspaceChatDisplay";
+import type {
+	UseChatDisplayReturn,
+	WorkspaceChatTransport,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceChat/hooks/useWorkspaceChatDisplay";
 import type { ChatLaunchConfig } from "shared/tabs-types";
 
 export interface ChatRawSnapshot {
@@ -13,6 +16,7 @@ export interface ChatPaneInterfaceProps {
 	sessionId: string | null;
 	initialLaunchConfig: ChatLaunchConfig | null;
 	workspaceId: string;
+	transport: WorkspaceChatTransport;
 	organizationId: string | null;
 	cwd: string;
 	isFocused: boolean;
