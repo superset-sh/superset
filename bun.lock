@@ -4,10 +4,8 @@
   "workspaces": {
     "": {
       "name": "@superset/repo",
-      "dependencies": {
-        "@agent-relay/sdk": "^3.2.15",
-      },
       "devDependencies": {
+        "@agent-relay/sdk": "^3.2.17",
         "@biomejs/biome": "2.4.2",
         "dotenv-cli": "^11.0.0",
         "sherif": "^1.10.0",
@@ -950,9 +948,9 @@
 
     "@a2a-js/sdk": ["@a2a-js/sdk@0.2.5", "", { "dependencies": { "@types/cors": "^2.8.17", "@types/express": "^4.17.23", "body-parser": "^2.2.0", "cors": "^2.8.5", "express": "^4.21.2", "uuid": "^11.1.0" } }, "sha512-VTDuRS5V0ATbJ/LkaQlisMnTAeYKXAK6scMguVBstf+KIBQ7HIuKhiXLv+G/hvejkV+THoXzoNifInAkU81P1g=="],
 
-    "@agent-relay/config": ["@agent-relay/config@3.2.15", "", { "dependencies": { "zod": "^3.23.8", "zod-to-json-schema": "^3.23.1" } }, "sha512-oIgspBgO2T9ulauilHmYm5ATk30Jd1YyCGAy67CbELOznF27XuAKfaGHuMHjMIRMhj/PI7VG89DhYaGyHk7O4w=="],
+    "@agent-relay/config": ["@agent-relay/config@3.2.17", "", { "dependencies": { "zod": "^3.23.8", "zod-to-json-schema": "^3.23.1" } }, "sha512-uZS1JTRpGWKzVVxB981mzD2qaza85kKvsK88EiXlNJb+vt2jTjkD5Ra2Fmd6X/XMZR9IwhrcB2cvnEXgBVcFRA=="],
 
-    "@agent-relay/sdk": ["@agent-relay/sdk@3.2.15", "", { "dependencies": { "@agent-relay/config": "3.2.15", "@relaycast/sdk": "^1.0.0", "@sinclair/typebox": "^0.34.48", "chalk": "^4.1.2", "listr2": "^10.2.1", "ws": "^8.18.3", "yaml": "^2.7.0" }, "peerDependencies": { "@anthropic-ai/claude-agent-sdk": ">=0.1.0", "@google/adk": ">=0.5.0", "@langchain/langgraph": ">=1.2.0", "@mariozechner/pi-coding-agent": ">=0.50.0", "@openai/agents": ">=0.7.0", "ai": ">=5.0.0", "crewai": ">=1.0.0" }, "optionalPeers": ["@anthropic-ai/claude-agent-sdk", "@google/adk", "@langchain/langgraph", "@mariozechner/pi-coding-agent", "@openai/agents", "ai", "crewai"] }, "sha512-JLw7gMeX5CiXOQnZBFnRXQaPgSTGdXZp2j6HvHSh0vuCERsFWF0fFpk86ybFaFVlkrpB3qmcLe5hnyUt6wj2CA=="],
+    "@agent-relay/sdk": ["@agent-relay/sdk@3.2.17", "", { "dependencies": { "@agent-relay/config": "3.2.17", "@relaycast/sdk": "^1.1.0", "@sinclair/typebox": "^0.34.48", "chalk": "^4.1.2", "listr2": "^10.2.1", "ws": "^8.18.3", "yaml": "^2.7.0" }, "peerDependencies": { "@anthropic-ai/claude-agent-sdk": ">=0.1.0", "@google/adk": ">=0.5.0", "@langchain/langgraph": ">=1.2.0", "@mariozechner/pi-coding-agent": ">=0.50.0", "@openai/agents": ">=0.7.0", "ai": ">=5.0.0", "crewai": ">=1.0.0" }, "optionalPeers": ["@anthropic-ai/claude-agent-sdk", "@google/adk", "@langchain/langgraph", "@mariozechner/pi-coding-agent", "@openai/agents", "ai", "crewai"] }, "sha512-pWM47Hg+nZSql8d/1nl4P30LPymUfp6R8decLn74yFaP7OrRC70iPKxNqKWy4JuyIZVBR/huakn29bWk+YMVgg=="],
 
     "@ai-sdk/anthropic": ["@ai-sdk/anthropic@3.0.58", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.19" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-/53SACgmVukO4bkms4dpxpRlYhW8Ct6QZRe6sj1Pi5H00hYhxIrqfiLbZBGxkdRvjsBQeP/4TVGsXgH5rQeb8Q=="],
 

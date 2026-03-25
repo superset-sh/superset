@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getBrokerBinaryPath } from "@agent-relay/sdk/broker-path";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
@@ -122,36 +123,7 @@ function buildRealBinaryResolver(): string {
  * Returns the absolute path if found, or null if not installed.
  */
 export function resolveRelayBrokerPath(): string | null {
-	try {
-		const sdkEntry = require.resolve("@agent-relay/sdk");
-		const binDir = path.join(path.dirname(sdkEntry), "..", "bin");
-
-		// Try exact name first
-		const exact = path.join(binDir, "agent-relay-broker");
-		if (fs.existsSync(exact)) return exact;
-
-		// Try platform-specific binary (bun installs as agent-relay-broker-darwin-arm64 etc.)
-		const platform =
-			process.platform === "win32" ? "windows" : process.platform;
-		const arch = process.arch === "x64" ? "x64" : "arm64";
-		const platformBin = path.join(
-			binDir,
-			`agent-relay-broker-${platform}-${arch}`,
-		);
-		if (fs.existsSync(platformBin)) return platformBin;
-	} catch {}
-
-	// Check PATH
-	try {
-		const { execSync } = require("node:child_process");
-		const result = execSync("command -v agent-relay-broker", {
-			encoding: "utf-8",
-			stdio: ["pipe", "pipe", "pipe"],
-		}).trim();
-		if (result) return result;
-	} catch {}
-
-	return null;
+	return getBrokerBinaryPath();
 }
 
 /**

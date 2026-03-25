@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import defaultShell from "default-shell";
+import { createWorkspace, registerAgent } from "@agent-relay/sdk/http";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
@@ -39,35 +40,14 @@ export async function ensureRelayApiKey(): Promise<string | null> {
 			.hostname()
 			.replace(/[^a-z0-9-]/gi, "")
 			.slice(0, 20)}-${Date.now().toString(36)}`;
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 10_000);
-		const res = await fetch("https://api.relaycast.dev/v1/workspaces", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ name }),
-			signal: controller.signal,
-		});
-		clearTimeout(timeout);
-		console.log("[relay] workspace API response:", res.status);
-		if (res.ok) {
-			const body = (await res.json()) as {
-				ok?: boolean;
-				data?: { api_key?: string };
-			};
-			const apiKey = body.data?.api_key;
-			if (apiKey) {
-				cachedRelayApiKey = apiKey;
-				process.env.RELAY_API_KEY = cachedRelayApiKey;
-				console.log("[relay] workspace created, key:", `${apiKey.slice(0, 15)}...`);
-			} else {
-				console.warn("[relay] no api_key in response:", JSON.stringify(body));
-			}
+		const result = await createWorkspace(name);
+		const apiKey = result.api_key;
+		if (apiKey) {
+			cachedRelayApiKey = apiKey;
+			process.env.RELAY_API_KEY = cachedRelayApiKey;
+			console.log("[relay] workspace created, key:", `${apiKey.slice(0, 15)}...`);
 		} else {
-			console.warn(
-				"[relay] workspace API failed:",
-				res.status,
-				await res.text(),
-			);
+			console.warn("[relay] no api_key in response:", JSON.stringify(result));
 		}
 	} catch (error) {
 		console.warn("[relay] failed to create workspace:", error);
@@ -91,34 +71,12 @@ async function registerRelayAgent(name: string): Promise<string | null> {
 		cachedRelayApiKey = relayApiKey;
 	}
 
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 5_000);
-
 	try {
-		const response = await fetch("https://api.relaycast.dev/v1/agents", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${cachedRelayApiKey}`,
-			},
-			body: JSON.stringify({ name }),
-			signal: controller.signal,
-		});
-
-		if (!response.ok) {
-			console.warn("[relay] agent registration failed:", response.status);
-			return null;
-		}
-
-		const body = (await response.json()) as
-			| { token?: string; data?: { token?: string } }
-			| undefined;
-		return body?.data?.token ?? body?.token ?? null;
+		const result = await registerAgent(cachedRelayApiKey, name);
+		return result.token ?? null;
 	} catch (error) {
 		console.warn("[relay] failed to register agent:", error);
 		return null;
-	} finally {
-		clearTimeout(timeout);
 	}
 }
 
