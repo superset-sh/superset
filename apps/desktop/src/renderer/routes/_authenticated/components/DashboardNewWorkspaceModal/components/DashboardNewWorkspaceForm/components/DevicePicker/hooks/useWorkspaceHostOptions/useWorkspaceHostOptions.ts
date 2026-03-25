@@ -114,9 +114,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					status:
 						activeOrganizationId === null
 							? null
-							: (sshStatuses.get(
-									getSshHostServiceKey(activeOrganizationId, host.id),
-								) ?? null),
+							: (sshStatuses.get(getSshHostServiceKey(host.id)) ?? null),
 				}))
 				.sort((left, right) => left.name.localeCompare(right.name)),
 		[activeOrganizationId, sshHosts, sshStatuses],

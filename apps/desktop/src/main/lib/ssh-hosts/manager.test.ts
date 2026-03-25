@@ -74,7 +74,7 @@ class MockSshProcess extends EventEmitter {
 const commandLog: string[] = [];
 const uploadedFiles = new Map<string, string>();
 const forwardProcesses: MockSshProcess[] = [];
-const getSshHostMock = mock(() => ({
+const getSshHostMock = mock((_hostId: string) => ({
 	id: "ssh-host-1",
 	name: "Homebox",
 	remoteRootDir: undefined,
@@ -143,6 +143,18 @@ const spawnMock = mock((command: string, args: string[]) => {
 			return;
 		}
 
+		if (args.includes("-G")) {
+			process.finish(0, {
+				stdout: [
+					"hostname homebox.internal",
+					"user dev",
+					"port 22",
+					"identityfile ~/.ssh/id_ed25519",
+				].join("\n"),
+			});
+			return;
+		}
+
 		if (remoteCommand.includes("command -v")) {
 			process.finish(0, { stdout: missingToolsStdout });
 			return;
@@ -166,9 +178,13 @@ const originalFetch = globalThis.fetch;
 
 describe("SshHostServiceManager", () => {
 	beforeAll(async () => {
-		mock.module("node:child_process", () => ({
-			spawn: (...args: [string, string[]]) => spawnMock(...args),
-		}));
+		const actualChildProcess = await import("node:child_process");
+		mock.module("node:child_process", () => {
+			return {
+				...actualChildProcess,
+				spawn: (...args: [string, string[]]) => spawnMock(...args),
+			};
+		});
 		mock.module("./bundle", () => ({
 			getSshHostBundle: () => getSshHostBundleMock(),
 		}));
@@ -184,7 +200,7 @@ describe("SshHostServiceManager", () => {
 			},
 		}));
 
-		globalThis.fetch = fetchMock as typeof globalThis.fetch;
+		globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
 
 		({ SshHostServiceManager } = await import("./manager"));
 	});
@@ -207,17 +223,27 @@ describe("SshHostServiceManager", () => {
 		fetchMock.mockClear();
 	});
 
-	it("bootstraps the remote host-service and returns a forwarded local hostUrl", async () => {
-		const organizationId = "11111111-1111-1111-1111-111111111111";
+	it("probes the SSH target without starting a forwarded tunnel", async () => {
 		const manager = new SshHostServiceManager();
 
-		const status = await manager.ensureConnected(organizationId, "ssh-host-1");
+		const status = await manager.probe("ssh-host-1");
+
+		expect(status.state).toBe("idle");
+		expect(status.diagnostic?.phase).toBe("probe");
+		expect(status.diagnostic?.summary).toBe("SSH probe succeeded");
+		expect(status.missingPrerequisites).toEqual([]);
+		expect(forwardProcesses).toHaveLength(0);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("bootstraps the remote host-service and returns a forwarded local hostUrl", async () => {
+		const manager = new SshHostServiceManager();
+
+		const status = await manager.connect("ssh-host-1");
 
 		expect(status.state).toBe("ready");
 		expect(status.hostId).toBe("ssh-host-1");
-		expect(status.remotePort).toBe(
-			getSshHostRemotePort(organizationId, "ssh-host-1"),
-		);
+		expect(status.remotePort).toBe(getSshHostRemotePort("ssh-host-1"));
 		expect(status.hostUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
 		expect(status.localPort).toBeGreaterThan(0);
 		expect(status.missingPrerequisites).toEqual([]);
@@ -228,6 +254,7 @@ describe("SshHostServiceManager", () => {
 			status: "ok",
 			terminalMode: "tmux",
 		});
+		expect(status.diagnostic?.phase).toBe("connect");
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 
 		const launcherPath =
@@ -242,22 +269,37 @@ describe("SshHostServiceManager", () => {
 			commandLog.some((command) => command.includes("tmux new-session -d -s")),
 		).toBe(true);
 
-		await manager.disconnect(organizationId, "ssh-host-1");
+		await manager.disconnect("ssh-host-1");
 
 		expect(forwardProcesses[0]?.kill).toHaveBeenCalled();
-		expect(manager.getStatus(organizationId, "ssh-host-1").state).toBe("idle");
+		expect(manager.getStatus("ssh-host-1").state).toBe("idle");
+	});
+
+	it("reuses the existing forwarded tunnel for repeated connects to the same host", async () => {
+		const manager = new SshHostServiceManager();
+
+		const firstStatus = await manager.connect("ssh-host-1");
+		const secondStatus = await manager.connect("ssh-host-1");
+
+		expect(forwardProcesses).toHaveLength(1);
+		expect(secondStatus.state).toBe("ready");
+		expect(secondStatus.hostUrl).toBe(firstStatus.hostUrl);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it("captures missing remote prerequisites in the connection status", async () => {
-		const organizationId = "22222222-2222-2222-2222-222222222222";
 		const manager = new SshHostServiceManager();
 		missingToolsStdout = "node\nbun\n";
 
-		await expect(
-			manager.ensureConnected(organizationId, "ssh-host-1"),
-		).rejects.toThrow("Remote host is missing required tools");
+		await expect(manager.connect("ssh-host-1")).rejects.toThrow(
+			"Remote host is missing required tools",
+		);
 
-		expect(manager.getStatus(organizationId, "ssh-host-1")).toMatchObject({
+		expect(manager.getStatus("ssh-host-1")).toMatchObject({
+			diagnostic: {
+				phase: "connect",
+				summary: "Remote host is missing required tools: node, bun",
+			},
 			hostId: "ssh-host-1",
 			lastError: "Remote host is missing required tools: node, bun",
 			missingPrerequisites: ["node", "bun"],

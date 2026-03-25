@@ -57,9 +57,7 @@ function V2WorkspaceLayout() {
 	const sshHostId = getSshHostIdFromDeviceClientId(workspace?.deviceClientId);
 	const sshStatus =
 		workspace && sshHostId
-			? (sshStatuses.get(
-					getSshHostServiceKey(workspace.organizationId, sshHostId),
-				) ?? null)
+			? (sshStatuses.get(getSshHostServiceKey(sshHostId)) ?? null)
 			: null;
 	const sshHost =
 		sshHostId === null

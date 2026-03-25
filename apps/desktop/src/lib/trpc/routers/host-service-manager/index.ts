@@ -65,63 +65,6 @@ export const createHostServiceManagerRouter = () => {
 					await getSshHostServiceManager().disconnectHost(input.hostId);
 					return removeSshHost(input.hostId);
 				}),
-
-			getStatus: publicProcedure
-				.input(
-					z.object({
-						hostId: z.string().min(1),
-						organizationId: z.string().uuid(),
-					}),
-				)
-				.query(({ input }) => ({
-					status: getSshHostServiceManager().getStatus(
-						input.organizationId,
-						input.hostId,
-					),
-				})),
-
-			ensureConnection: publicProcedure
-				.input(
-					z.object({
-						hostId: z.string().min(1),
-						organizationId: z.string().uuid(),
-					}),
-				)
-				.query(async ({ input }) => {
-					const manager = getSshHostServiceManager();
-					try {
-						return {
-							status: await manager.ensureConnected(
-								input.organizationId,
-								input.hostId,
-							),
-						};
-					} catch {
-						return {
-							status: manager.getStatus(input.organizationId, input.hostId),
-						};
-					}
-				}),
-
-			disconnect: publicProcedure
-				.input(
-					z.object({
-						hostId: z.string().min(1),
-						organizationId: z.string().uuid(),
-					}),
-				)
-				.mutation(async ({ input }) => {
-					await getSshHostServiceManager().disconnect(
-						input.organizationId,
-						input.hostId,
-					);
-					return {
-						status: getSshHostServiceManager().getStatus(
-							input.organizationId,
-							input.hostId,
-						),
-					};
-				}),
 		}),
 	});
 };

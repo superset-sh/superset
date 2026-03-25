@@ -104,13 +104,11 @@ export function DevicesSettings() {
 			onSuccess: async (_data, variables) => {
 				await utils.hostServiceManager.sshHosts.list.invalidate();
 				if (activeOrganizationId) {
-					await utils.hostServiceManager.sshHosts.ensureConnection.invalidate({
+					await utils.sshTunnels.connect.invalidate({
 						hostId: variables.id,
-						organizationId: activeOrganizationId,
 					});
-					await utils.hostServiceManager.sshHosts.ensureConnection.fetch({
+					await utils.sshTunnels.connect.fetch({
 						hostId: variables.id,
-						organizationId: activeOrganizationId,
 					});
 				}
 				toast.success(editingHostId ? "SSH host updated" : "SSH host saved");
@@ -133,12 +131,11 @@ export function DevicesSettings() {
 				toast.error(error.message);
 			},
 		});
-	const disconnectHost =
-		electronTrpc.hostServiceManager.sshHosts.disconnect.useMutation({
-			onError: (error) => {
-				toast.error(error.message);
-			},
-		});
+	const disconnectHost = electronTrpc.sshTunnels.disconnect.useMutation({
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
 
 	const devices = useMemo(
 		() =>
@@ -157,9 +154,7 @@ export function DevicesSettings() {
 				status:
 					activeOrganizationId === null
 						? null
-						: (sshStatuses.get(
-								getSshHostServiceKey(activeOrganizationId, host.id),
-							) ?? null),
+						: (sshStatuses.get(getSshHostServiceKey(host.id)) ?? null),
 			})),
 		[activeOrganizationId, sshHosts, sshStatuses],
 	);
@@ -180,15 +175,12 @@ export function DevicesSettings() {
 
 		await disconnectHost.mutateAsync({
 			hostId,
-			organizationId: activeOrganizationId,
 		});
-		await utils.hostServiceManager.sshHosts.ensureConnection.fetch({
+		await utils.sshTunnels.connect.fetch({
 			hostId,
-			organizationId: activeOrganizationId,
 		});
-		await utils.hostServiceManager.sshHosts.ensureConnection.invalidate({
+		await utils.sshTunnels.connect.invalidate({
 			hostId,
-			organizationId: activeOrganizationId,
 		});
 		toast.success("SSH host reconnected");
 	};
@@ -395,14 +387,10 @@ export function DevicesSettings() {
 													}
 													await disconnectHost.mutateAsync({
 														hostId: host.id,
-														organizationId: activeOrganizationId,
 													});
-													await utils.hostServiceManager.sshHosts.ensureConnection.invalidate(
-														{
-															hostId: host.id,
-															organizationId: activeOrganizationId,
-														},
-													);
+													await utils.sshTunnels.connect.invalidate({
+														hostId: host.id,
+													});
 													toast.success("SSH host disconnected");
 												}}
 												disabled={

@@ -14,6 +14,8 @@ import {
 import { getSshHostBundle } from "./bundle";
 import { getSshHost } from "./settings";
 import type {
+	SshHostConnectionDiagnostic,
+	SshHostConnectionDiagnosticPhase,
 	SshHostConnectionState,
 	SshHostConnectionStatus,
 	SshHostHealthSnapshot,
@@ -25,16 +27,16 @@ interface ManagedConnection {
 	forwardStopRequested: boolean;
 	hostId: string;
 	localPort: number | null;
-	organizationId: string;
 	pending: Promise<SshHostConnectionStatus> | null;
 	remoteRootDir: string | null;
 	remoteSessionName: string | null;
-	status: SshHostConnectionStatus;
 	sshTarget: string | null;
+	status: SshHostConnectionStatus;
 	tokenFingerprint: string | null;
 }
 
 interface SshCommandResult {
+	command: string;
 	stderr: string;
 	stdout: string;
 }
@@ -52,32 +54,63 @@ const SSH_COMMON_ARGS = [
 
 const REMOTE_REQUIRED_TOOLS = ["node", "bun", "git", "rg", "tmux"] as const;
 
+const REMOTE_PREREQUISITES_COMMAND = [
+	"missing=''",
+	...REMOTE_REQUIRED_TOOLS.map(
+		(tool) =>
+			`command -v ${tool} >/dev/null 2>&1 || missing="$missing${tool}\\n"`,
+	),
+	"printf '%b' \"$missing\"",
+].join(" && ");
+
 function shellEscape(value: string): string {
 	return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
-function createConnectionKey(organizationId: string, hostId: string): string {
-	return `${organizationId}:${hostId}`;
+function formatArg(value: string): string {
+	return /^[A-Za-z0-9_./:@%+=,-]+$/.test(value) ? value : shellEscape(value);
+}
+
+function formatCommand(command: string, args: string[]): string {
+	return [command, ...args.map(formatArg)].join(" ");
 }
 
 function fingerprint(value: string): string {
 	return createHash("sha256").update(value).digest("hex").slice(0, 16);
 }
 
-function createDefaultStatus(
-	organizationId: string,
-	hostId: string,
-): SshHostConnectionStatus {
+function createDefaultStatus(hostId: string): SshHostConnectionStatus {
 	return {
-		hostId,
-		organizationId,
-		state: "idle",
-		hostUrl: null,
-		localPort: null,
-		remotePort: null,
-		lastError: null,
-		missingPrerequisites: [],
+		diagnostic: null,
 		health: null,
+		hostId,
+		hostUrl: null,
+		lastError: null,
+		localPort: null,
+		missingPrerequisites: [],
+		organizationId: null,
+		remotePort: null,
+		sshTarget: null,
+		state: "idle",
+		updatedAt: Date.now(),
+	};
+}
+
+function createDiagnostic(params: {
+	command?: string | null;
+	detail?: string | null;
+	exitCode?: number | null;
+	phase: SshHostConnectionDiagnosticPhase;
+	stderr?: string | null;
+	summary: string;
+}): SshHostConnectionDiagnostic {
+	return {
+		command: params.command ?? null,
+		detail: params.detail ?? null,
+		exitCode: params.exitCode ?? null,
+		phase: params.phase,
+		stderr: params.stderr ?? null,
+		summary: params.summary,
 		updatedAt: Date.now(),
 	};
 }
@@ -184,18 +217,46 @@ function buildRemoteLauncherScript(input: {
 	].join("\n");
 }
 
-async function runSshCommand(options: {
+class SshCommandError extends Error {
+	public readonly command: string;
+	public readonly exitCode: number | null;
+	public readonly signal: NodeJS.Signals | null;
+	public readonly stderr: string;
+	public readonly stdout: string;
+
+	constructor(params: {
+		command: string;
+		exitCode: number | null;
+		signal: NodeJS.Signals | null;
+		stderr: string;
+		stdout: string;
+	}) {
+		super(
+			[
+				`SSH command failed: ${params.command}`,
+				`exit: ${params.exitCode ?? "unknown"}${params.signal ? ` (${params.signal})` : ""}`,
+				params.stderr.trim(),
+			]
+				.filter(Boolean)
+				.join("\n"),
+		);
+		this.command = params.command;
+		this.exitCode = params.exitCode;
+		this.signal = params.signal;
+		this.stderr = params.stderr;
+		this.stdout = params.stdout;
+	}
+}
+
+async function runProcess(options: {
+	args: string[];
 	command: string;
 	input?: Buffer;
-	target: string;
 }): Promise<SshCommandResult> {
-	const child = spawn(
-		"ssh",
-		[...SSH_COMMON_ARGS, options.target, options.command],
-		{
-			stdio: ["pipe", "pipe", "pipe"],
-		},
-	);
+	const formattedCommand = formatCommand(options.command, options.args);
+	const child = spawn(options.command, options.args, {
+		stdio: ["pipe", "pipe", "pipe"],
+	});
 
 	const stdoutChunks: Buffer[] = [];
 	const stderrChunks: Buffer[] = [];
@@ -211,19 +272,113 @@ async function runSshCommand(options: {
 	const stdout = Buffer.concat(stdoutChunks).toString("utf8");
 	const stderr = Buffer.concat(stderrChunks).toString("utf8");
 	if (code !== 0) {
-		throw new Error(
-			[
-				`SSH command failed for ${options.target}`,
-				`command: ${options.command}`,
-				`exit: ${code}${signal ? ` (${signal})` : ""}`,
-				stderr.trim(),
-			]
-				.filter(Boolean)
-				.join("\n"),
-		);
+		throw new SshCommandError({
+			command: formattedCommand,
+			exitCode: code,
+			signal,
+			stderr,
+			stdout,
+		});
 	}
 
-	return { stdout, stderr };
+	return {
+		command: formattedCommand,
+		stderr,
+		stdout,
+	};
+}
+
+async function runSshCommand(options: {
+	command: string;
+	input?: Buffer;
+	target: string;
+}): Promise<SshCommandResult> {
+	return runProcess({
+		args: [...SSH_COMMON_ARGS, options.target, options.command],
+		command: "ssh",
+		input: options.input,
+	});
+}
+
+async function resolveSshTarget(target: string): Promise<SshCommandResult> {
+	return runProcess({
+		args: [...SSH_COMMON_ARGS, "-G", target],
+		command: "ssh",
+	});
+}
+
+function summarizeResolvedSshConfig(stdout: string): string | null {
+	const interestingKeys = new Set([
+		"hostname",
+		"identityfile",
+		"port",
+		"proxyjump",
+		"user",
+	]);
+	const seenKeys = new Set<string>();
+	const lines = stdout
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0)
+		.filter((line) => {
+			const [key] = line.split(/\s+/, 1);
+			if (!interestingKeys.has(key) || seenKeys.has(key)) {
+				return false;
+			}
+			seenKeys.add(key);
+			return true;
+		});
+
+	return lines.length > 0 ? lines.join("\n") : null;
+}
+
+function createErrorDiagnostic(
+	phase: SshHostConnectionDiagnosticPhase,
+	summary: string,
+	error: unknown,
+	fallback: {
+		command?: string | null;
+		detail?: string | null;
+		stderr?: string | null;
+	},
+): SshHostConnectionDiagnostic {
+	if (error instanceof SshCommandError) {
+		return createDiagnostic({
+			command: error.command,
+			detail: error.stderr.trim() || fallback.detail || null,
+			exitCode: error.exitCode,
+			phase,
+			stderr: error.stderr.trim() || null,
+			summary,
+		});
+	}
+
+	return createDiagnostic({
+		command: fallback.command ?? null,
+		detail:
+			(error instanceof Error ? error.message : null) ??
+			fallback.detail ??
+			null,
+		exitCode: null,
+		phase,
+		stderr: fallback.stderr ?? null,
+		summary,
+	});
+}
+
+function createMissingPrerequisiteDetail(
+	missingPrerequisites: string[],
+	resolvedConfigSummary: string | null,
+): string {
+	return [
+		"Install the missing tools on the remote host and reconnect.",
+		resolvedConfigSummary
+			? `Resolved SSH config:\n${resolvedConfigSummary}`
+			: null,
+		`Missing: ${missingPrerequisites.join(", ")}`,
+	]
+		.filter(Boolean)
+		.join("\n\n");
 }
 
 async function uploadRemoteFile(options: {
@@ -242,12 +397,8 @@ async function uploadRemoteFile(options: {
 export class SshHostServiceManager {
 	private readonly connections = new Map<string, ManagedConnection>();
 
-	private getConnection(
-		organizationId: string,
-		hostId: string,
-	): ManagedConnection {
-		const key = createConnectionKey(organizationId, hostId);
-		const existing = this.connections.get(key);
+	private getConnection(hostId: string): ManagedConnection {
+		const existing = this.connections.get(hostId);
 		if (existing) {
 			return existing;
 		}
@@ -258,15 +409,14 @@ export class SshHostServiceManager {
 			forwardStopRequested: false,
 			hostId,
 			localPort: null,
-			organizationId,
 			pending: null,
 			remoteRootDir: null,
 			remoteSessionName: null,
-			status: createDefaultStatus(organizationId, hostId),
 			sshTarget: null,
+			status: createDefaultStatus(hostId),
 			tokenFingerprint: null,
 		};
-		this.connections.set(key, created);
+		this.connections.set(hostId, created);
 		return created;
 	}
 
@@ -279,6 +429,9 @@ export class SshHostServiceManager {
 		connection.status = {
 			...connection.status,
 			...patch,
+			hostId: connection.hostId,
+			organizationId: patch.organizationId ?? connection.status.organizationId,
+			sshTarget: patch.sshTarget ?? connection.sshTarget,
 			updatedAt: Date.now(),
 		};
 		return connection.status;
@@ -287,14 +440,7 @@ export class SshHostServiceManager {
 	private async checkRemotePrerequisites(target: string): Promise<string[]> {
 		const { stdout } = await runSshCommand({
 			target,
-			command: [
-				"missing=''",
-				...REMOTE_REQUIRED_TOOLS.map(
-					(tool) =>
-						`command -v ${tool} >/dev/null 2>&1 || missing="$missing${tool}\\n"`,
-				),
-				"printf '%b' \"$missing\"",
-			].join(" && "),
+			command: REMOTE_PREREQUISITES_COMMAND,
 		});
 
 		return stdout
@@ -336,7 +482,6 @@ export class SshHostServiceManager {
 		return {
 			bundleDir,
 			bundleHash: bundle.bundleHash,
-			shouldUpload,
 		};
 	}
 
@@ -358,44 +503,62 @@ export class SshHostServiceManager {
 		remotePort: number,
 	) {
 		connection.forwardStopRequested = false;
-		const child = spawn(
-			"ssh",
-			[
-				...SSH_COMMON_ARGS,
-				"-o",
-				"ExitOnForwardFailure=yes",
-				"-N",
-				"-L",
-				`${localPort}:127.0.0.1:${remotePort}`,
-				target,
-			],
-			{
-				stdio: ["ignore", "ignore", "pipe"],
-			},
-		);
+		const args = [
+			...SSH_COMMON_ARGS,
+			"-o",
+			"ExitOnForwardFailure=yes",
+			"-N",
+			"-L",
+			`${localPort}:127.0.0.1:${remotePort}`,
+			target,
+		];
+		const command = formatCommand("ssh", args);
+		const child = spawn("ssh", args, {
+			stdio: ["ignore", "ignore", "pipe"],
+		});
 		let stderr = "";
 		child.stderr.on("data", (chunk: Buffer) => {
-			stderr = `${stderr}${chunk.toString("utf8")}`.slice(-4000);
+			stderr = `${stderr}${chunk.toString("utf8")}`.slice(-4_000);
 		});
-		child.on("exit", () => {
+		child.on("exit", (code) => {
 			if (connection.forwardProcess !== child) {
 				return;
 			}
 			connection.forwardProcess = null;
 			connection.localPort = null;
 			if (connection.forwardStopRequested) {
-				this.updateStatus(connection, {
-					hostUrl: null,
-					localPort: null,
-					state: "idle",
-				});
+				if (connection.status.state !== "error") {
+					this.updateStatus(connection, {
+						diagnostic: createDiagnostic({
+							command,
+							phase: "disconnect",
+							summary: "SSH tunnel disconnected",
+						}),
+						health: null,
+						hostUrl: null,
+						lastError: null,
+						localPort: null,
+						state: "idle",
+					});
+				}
 				return;
 			}
+			const summary =
+				stderr.trim() || "SSH port forwarding exited unexpectedly";
 			this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					command,
+					detail: "Reconnect the SSH host to establish a new forwarded tunnel.",
+					exitCode: code,
+					phase: "connect",
+					stderr: stderr.trim() || null,
+					summary,
+				}),
+				health: null,
 				hostUrl: null,
+				lastError: summary,
 				localPort: null,
 				state: "error",
-				lastError: stderr.trim() || "SSH port forwarding exited unexpectedly",
 			});
 		});
 		connection.forwardProcess = child;
@@ -422,10 +585,7 @@ export class SshHostServiceManager {
 		const logPath = path.posix.join(options.bundleDir, "host-service.log");
 		const sessionName =
 			options.connection.remoteSessionName ??
-			getSshHostServiceSessionName(
-				options.connection.organizationId,
-				options.connection.hostId,
-			);
+			getSshHostServiceSessionName(options.connection.hostId);
 		const launcherScript = buildRemoteLauncherScript({
 			bundleDir: options.bundleDir,
 			dbPath: options.dbPath,
@@ -467,30 +627,232 @@ export class SshHostServiceManager {
 		connection.localPort = null;
 	}
 
-	getStatus(organizationId: string, hostId: string): SshHostConnectionStatus {
-		return this.getConnection(organizationId, hostId).status;
+	private async resolveAndValidateTarget(connection: ManagedConnection) {
+		if (!connection.sshTarget) {
+			throw new Error(`SSH host ${connection.hostId} is not configured`);
+		}
+
+		const resolvedConfig = await resolveSshTarget(connection.sshTarget);
+		const resolvedConfigSummary = summarizeResolvedSshConfig(
+			resolvedConfig.stdout,
+		);
+		const missingPrerequisites = await this.checkRemotePrerequisites(
+			connection.sshTarget,
+		);
+
+		return {
+			missingPrerequisites,
+			resolvedConfig,
+			resolvedConfigSummary,
+		};
 	}
 
-	getStatuses(organizationId: string): SshHostConnectionStatus[] {
-		return [...this.connections.values()]
-			.filter((connection) => connection.organizationId === organizationId)
-			.map((connection) => connection.status);
-	}
-
-	async ensureConnected(
-		organizationId: string,
-		hostId: string,
+	private async checkCurrentHealth(
+		connection: ManagedConnection,
+		phase: "connect" | "healthcheck",
 	): Promise<SshHostConnectionStatus> {
-		const connection = this.getConnection(organizationId, hostId);
+		if (
+			!isForwardProcessAlive(connection.forwardProcess) ||
+			connection.localPort === null
+		) {
+			const summary = "SSH tunnel is not connected";
+			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					detail: "Run connect to establish the forwarded local port.",
+					phase,
+					summary,
+				}),
+				health: null,
+				hostUrl: null,
+				lastError: connection.status.state === "idle" ? null : summary,
+				localPort: null,
+				state: connection.status.state === "idle" ? "idle" : "error",
+			});
+		}
+
+		const hostUrl = toHostUrl(connection.localPort);
+		try {
+			const health = await waitForHealthCheck(hostUrl);
+			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					command: `GET ${hostUrl}/healthz`,
+					phase,
+					summary:
+						phase === "connect"
+							? "SSH tunnel is ready"
+							: "SSH tunnel healthcheck succeeded",
+				}),
+				health,
+				hostUrl,
+				lastError: null,
+				localPort: connection.localPort,
+				missingPrerequisites: [],
+				state: "ready",
+			});
+		} catch (error) {
+			await this.stopForwardProcess(connection).catch(() => {});
+			const summary =
+				error instanceof Error
+					? error.message
+					: "SSH tunnel healthcheck failed";
+			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					command: `GET ${hostUrl}/healthz`,
+					detail: "Reconnect the SSH host to establish a healthy tunnel.",
+					phase,
+					summary,
+				}),
+				health: null,
+				hostUrl: null,
+				lastError: summary,
+				localPort: null,
+				state: "error",
+			});
+		}
+	}
+
+	getStatus(hostId: string): SshHostConnectionStatus {
+		return this.getConnection(hostId).status;
+	}
+
+	getStatuses(): SshHostConnectionStatus[] {
+		return [...this.connections.values()].map(
+			(connection) => connection.status,
+		);
+	}
+
+	async probe(hostId: string): Promise<SshHostConnectionStatus> {
+		const connection = this.getConnection(hostId);
+		if (connection.pending) {
+			return connection.pending;
+		}
+
+		const host = getSshHost(hostId);
+		if (!host) {
+			const summary = `SSH host ${hostId} is not configured`;
+			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					detail: "Add or restore the SSH host configuration before probing.",
+					phase: "probe",
+					summary,
+				}),
+				health: null,
+				hostUrl: null,
+				lastError: summary,
+				localPort: null,
+				missingPrerequisites: [],
+				remotePort: null,
+				sshTarget: null,
+				state: "error",
+			});
+		}
+
+		connection.sshTarget = host.sshTarget.trim();
+		connection.remoteRootDir = resolveSshHostRemoteRootDir(
+			host.id,
+			host.remoteRootDir ?? getDefaultSshHostRemoteRootDir(host.id),
+		);
+		connection.remoteSessionName = getSshHostServiceSessionName(host.id);
+
+		this.updateStatus(connection, {
+			diagnostic: null,
+			health:
+				connection.status.state === "ready" ? connection.status.health : null,
+			hostUrl:
+				connection.status.state === "ready" ? connection.status.hostUrl : null,
+			lastError: null,
+			localPort:
+				connection.status.state === "ready"
+					? connection.status.localPort
+					: null,
+			missingPrerequisites: [],
+			remotePort: getSshHostRemotePort(host.id),
+			sshTarget: connection.sshTarget,
+			state: isForwardProcessAlive(connection.forwardProcess)
+				? connection.status.state
+				: "checking",
+		});
+
+		try {
+			const { missingPrerequisites, resolvedConfig, resolvedConfigSummary } =
+				await this.resolveAndValidateTarget(connection);
+
+			if (missingPrerequisites.length > 0) {
+				const summary = `Remote host is missing required tools: ${missingPrerequisites.join(", ")}`;
+				return this.updateStatus(connection, {
+					diagnostic: createDiagnostic({
+						command: resolvedConfig.command,
+						detail: createMissingPrerequisiteDetail(
+							missingPrerequisites,
+							resolvedConfigSummary,
+						),
+						phase: "probe",
+						summary,
+					}),
+					health: null,
+					hostUrl: null,
+					lastError: summary,
+					localPort: null,
+					missingPrerequisites,
+					state: "error",
+				});
+			}
+
+			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					command: resolvedConfig.command,
+					detail: resolvedConfigSummary,
+					phase: "probe",
+					summary: "SSH probe succeeded",
+				}),
+				lastError: null,
+				missingPrerequisites: [],
+				state: isForwardProcessAlive(connection.forwardProcess)
+					? connection.status.state
+					: "idle",
+			});
+		} catch (error) {
+			const summary =
+				error instanceof Error ? error.message : "SSH probe failed";
+			return this.updateStatus(connection, {
+				diagnostic: createErrorDiagnostic("probe", summary, error, {
+					command: connection.sshTarget
+						? formatCommand("ssh", [
+								...SSH_COMMON_ARGS,
+								"-G",
+								connection.sshTarget,
+							])
+						: null,
+					detail:
+						"Verify the host alias, SSH config, and credentials used by the system ssh binary.",
+				}),
+				health: null,
+				hostUrl: null,
+				lastError: summary,
+				localPort: null,
+				missingPrerequisites: [],
+				state: "error",
+			});
+		}
+	}
+
+	async connect(hostId: string): Promise<SshHostConnectionStatus> {
+		const connection = this.getConnection(hostId);
 		if (connection.pending) {
 			return connection.pending;
 		}
 
 		const promise = this.connectInternal(connection).finally(() => {
-			connection.pending = null;
+			if (connection.pending === promise) {
+				connection.pending = null;
+			}
 		});
 		connection.pending = promise;
 		return promise;
+	}
+
+	async ensureConnected(hostId: string): Promise<SshHostConnectionStatus> {
+		return this.connect(hostId);
 	}
 
 	private async connectInternal(
@@ -498,7 +860,19 @@ export class SshHostServiceManager {
 	): Promise<SshHostConnectionStatus> {
 		const host = getSshHost(connection.hostId);
 		if (!host) {
-			throw new Error(`SSH host ${connection.hostId} is not configured`);
+			const summary = `SSH host ${connection.hostId} is not configured`;
+			const status = this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					detail:
+						"Add or restore the SSH host configuration before connecting.",
+					phase: "connect",
+					summary,
+				}),
+				lastError: summary,
+				sshTarget: null,
+				state: "error",
+			});
+			throw new Error(status.lastError ?? summary);
 		}
 
 		const target = host.sshTarget.trim();
@@ -506,72 +880,74 @@ export class SshHostServiceManager {
 			host.id,
 			host.remoteRootDir ?? getDefaultSshHostRemoteRootDir(host.id),
 		);
-		const remotePort = getSshHostRemotePort(connection.organizationId, host.id);
+		const remotePort = getSshHostRemotePort(host.id);
 		const tokenRecord = await loadToken();
 		const token = tokenRecord?.token?.trim();
 		if (!token) {
+			const summary =
+				"Desktop auth token missing; sign in again to use SSH hosts";
 			const status = this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					detail:
+						"Restore desktop authentication so the remote host-service can authenticate back to Superset.",
+					phase: "connect",
+					summary,
+				}),
 				state: "error",
-				lastError: "Desktop auth token missing; sign in again to use SSH hosts",
+				lastError: summary,
+				sshTarget: target,
 			});
-			throw new Error(status.lastError ?? "Missing desktop auth token");
+			throw new Error(status.lastError ?? summary);
 		}
 
 		connection.sshTarget = target;
 		connection.remoteRootDir = remoteRootDir;
-		connection.remoteSessionName = getSshHostServiceSessionName(
-			connection.organizationId,
-			host.id,
-		);
+		connection.remoteSessionName = getSshHostServiceSessionName(host.id);
 
 		const tokenFingerprint = fingerprint(token);
 		const currentReadyStatus =
 			connection.status.state === "ready" &&
-			connection.hostId === host.id &&
 			connection.tokenFingerprint === tokenFingerprint &&
 			connection.bundleHash !== null &&
 			connection.sshTarget === target &&
 			isForwardProcessAlive(connection.forwardProcess) &&
 			connection.localPort !== null;
 		if (currentReadyStatus) {
-			try {
-				const health = await waitForHealthCheck(
-					toHostUrl(connection.localPort),
-				);
-				return this.updateStatus(connection, {
-					health,
-					hostUrl: toHostUrl(connection.localPort),
-					lastError: null,
-					localPort: connection.localPort,
-					missingPrerequisites: [],
-					remotePort,
-					state: "ready",
-				});
-			} catch {
-				await this.stopForwardProcess(connection);
-			}
+			return this.checkCurrentHealth(connection, "connect");
 		}
 
 		this.updateStatus(connection, {
-			state: "checking",
-			lastError: null,
-			missingPrerequisites: [],
+			diagnostic: null,
 			health: null,
 			hostUrl: null,
+			lastError: null,
 			localPort: null,
+			missingPrerequisites: [],
 			remotePort,
+			sshTarget: target,
+			state: "checking",
 		});
 
 		try {
-			const missingPrerequisites = await this.checkRemotePrerequisites(target);
+			const { missingPrerequisites, resolvedConfig, resolvedConfigSummary } =
+				await this.resolveAndValidateTarget(connection);
 			if (missingPrerequisites.length > 0) {
-				const message = `Remote host is missing required tools: ${missingPrerequisites.join(", ")}`;
+				const summary = `Remote host is missing required tools: ${missingPrerequisites.join(", ")}`;
 				const status = this.updateStatus(connection, {
-					state: "error",
-					lastError: message,
+					diagnostic: createDiagnostic({
+						command: resolvedConfig.command,
+						detail: createMissingPrerequisiteDetail(
+							missingPrerequisites,
+							resolvedConfigSummary,
+						),
+						phase: "connect",
+						summary,
+					}),
+					lastError: summary,
 					missingPrerequisites,
+					state: "error",
 				});
-				throw new Error(status.lastError ?? message);
+				throw new Error(status.lastError ?? summary);
 			}
 
 			this.updateStatus(connection, { state: "syncing" });
@@ -585,12 +961,7 @@ export class SshHostServiceManager {
 			await this.ensureRemoteDependencies(target, bundleDir);
 
 			this.updateStatus(connection, { state: "starting" });
-			const dbPath = path.posix.join(
-				remoteRootDir,
-				"orgs",
-				connection.organizationId,
-				"host.db",
-			);
+			const dbPath = path.posix.join(remoteRootDir, "host.db");
 			await this.restartRemoteHostService({
 				bundleDir,
 				connection,
@@ -607,6 +978,12 @@ export class SshHostServiceManager {
 			const health = await waitForHealthCheck(toHostUrl(localPort));
 			connection.tokenFingerprint = tokenFingerprint;
 			return this.updateStatus(connection, {
+				diagnostic: createDiagnostic({
+					command: resolvedConfig.command,
+					detail: resolvedConfigSummary,
+					phase: "connect",
+					summary: "SSH tunnel is ready",
+				}),
 				health,
 				hostUrl: toHostUrl(localPort),
 				lastError: null,
@@ -616,28 +993,48 @@ export class SshHostServiceManager {
 				state: "ready",
 			});
 		} catch (error) {
-			const message =
+			const summary =
 				error instanceof Error
 					? error.message
 					: "Failed to connect to SSH host";
 			this.updateStatus(connection, {
+				diagnostic: createErrorDiagnostic("connect", summary, error, {
+					command:
+						connection.sshTarget === null
+							? null
+							: formatCommand("ssh", [
+									...SSH_COMMON_ARGS,
+									"-G",
+									connection.sshTarget,
+								]),
+					detail:
+						"Inspect the SSH target, remote prerequisites, and remote host-service logs before reconnecting.",
+				}),
 				state: "error",
 				hostUrl: null,
 				localPort: null,
-				lastError: message,
+				lastError: summary,
 				health: null,
 			});
 			await this.stopForwardProcess(connection).catch(() => {});
-			throw error instanceof Error ? error : new Error(message);
+			throw error instanceof Error ? error : new Error(summary);
 		}
 	}
 
+	async healthcheck(hostId: string): Promise<SshHostConnectionStatus> {
+		const connection = this.getConnection(hostId);
+		if (connection.pending) {
+			return connection.pending;
+		}
+
+		return this.checkCurrentHealth(connection, "healthcheck");
+	}
+
 	async disconnect(
-		organizationId: string,
 		hostId: string,
 		options?: { shutdownRemote?: boolean },
 	): Promise<void> {
-		const connection = this.getConnection(organizationId, hostId);
+		const connection = this.getConnection(hostId);
 		await this.stopForwardProcess(connection);
 
 		if (
@@ -654,6 +1051,14 @@ export class SshHostServiceManager {
 		connection.tokenFingerprint = null;
 		connection.bundleHash = null;
 		this.updateStatus(connection, {
+			diagnostic: createDiagnostic({
+				detail:
+					options?.shutdownRemote === true
+						? "Stopped the forwarded tunnel and requested remote tmux shutdown."
+						: "Stopped the forwarded local port for this SSH host.",
+				phase: "disconnect",
+				summary: "SSH tunnel disconnected",
+			}),
 			state: "idle",
 			hostUrl: null,
 			localPort: null,
@@ -666,11 +1071,7 @@ export class SshHostServiceManager {
 
 	async disconnectAll(options?: { shutdownRemote?: boolean }): Promise<void> {
 		for (const connection of this.connections.values()) {
-			await this.disconnect(
-				connection.organizationId,
-				connection.hostId,
-				options,
-			);
+			await this.disconnect(connection.hostId, options);
 		}
 	}
 
@@ -678,16 +1079,10 @@ export class SshHostServiceManager {
 		hostId: string,
 		options?: { shutdownRemote?: boolean },
 	): Promise<void> {
-		for (const connection of this.connections.values()) {
-			if (connection.hostId !== hostId) {
-				continue;
-			}
-			await this.disconnect(
-				connection.organizationId,
-				connection.hostId,
-				options,
-			);
+		if (!this.connections.has(hostId)) {
+			return;
 		}
+		await this.disconnect(hostId, options);
 	}
 }
 

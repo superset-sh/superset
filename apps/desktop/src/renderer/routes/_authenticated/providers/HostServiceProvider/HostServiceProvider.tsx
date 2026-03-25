@@ -30,7 +30,6 @@ export interface SshHostService extends OrgService {
 	kind: "ssh";
 	host: SshHostConfig;
 	hostId: string;
-	organizationId: string;
 	status: SshHostConnectionStatus;
 }
 
@@ -43,11 +42,8 @@ interface HostServiceContextValue {
 
 const HostServiceContext = createContext<HostServiceContextValue | null>(null);
 
-export function getSshHostServiceKey(
-	organizationId: string,
-	hostId: string,
-): string {
-	return `${organizationId}:${hostId}`;
+export function getSshHostServiceKey(hostId: string): string {
+	return hostId;
 }
 
 export function HostServiceProvider({ children }: { children: ReactNode }) {
@@ -93,9 +89,8 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 	const sshConnectionQueries = electronTrpc.useQueries((t) =>
 		activeOrganizationId
 			? sshHosts.map((host) =>
-					t.hostServiceManager.sshHosts.ensureConnection({
+					t.sshTunnels.connect({
 						hostId: host.id,
-						organizationId: activeOrganizationId,
 					}),
 				)
 			: [],
@@ -141,30 +136,22 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 	const sshStatuses = useMemo(() => {
 		const map = new Map<string, SshHostConnectionStatus>();
 
-		if (!activeOrganizationId) {
-			return map;
-		}
-
 		sshHosts.forEach((host, index) => {
 			const status = sshConnectionQueries[index]?.data?.status;
 			if (!status) {
 				return;
 			}
-			map.set(getSshHostServiceKey(activeOrganizationId, host.id), status);
+			map.set(getSshHostServiceKey(host.id), status);
 		});
 
 		return map;
-	}, [activeOrganizationId, sshConnectionQueries, sshHosts]);
+	}, [sshConnectionQueries, sshHosts]);
 
 	const sshServices = useMemo(() => {
 		const map = new Map<string, SshHostService>();
 
-		if (!activeOrganizationId) {
-			return map;
-		}
-
 		sshHosts.forEach((host) => {
-			const key = getSshHostServiceKey(activeOrganizationId, host.id);
+			const key = getSshHostServiceKey(host.id);
 			const status = sshStatuses.get(key);
 			if (!status?.hostUrl || status.localPort === null) {
 				return;
@@ -174,7 +161,6 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 				kind: "ssh",
 				host,
 				hostId: host.id,
-				organizationId: activeOrganizationId,
 				status,
 				port: status.localPort,
 				url: status.hostUrl,
@@ -183,7 +169,7 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 		});
 
 		return map;
-	}, [activeOrganizationId, sshHosts, sshStatuses]);
+	}, [sshHosts, sshStatuses]);
 
 	const value = useMemo(
 		() => ({

@@ -16,6 +16,26 @@ export const SSH_HOST_CONNECTION_STATES = [
 export type SshHostConnectionState =
 	(typeof SSH_HOST_CONNECTION_STATES)[number];
 
+export const SSH_HOST_CONNECTION_DIAGNOSTIC_PHASES = [
+	"probe",
+	"connect",
+	"healthcheck",
+	"disconnect",
+] as const;
+
+export type SshHostConnectionDiagnosticPhase =
+	(typeof SSH_HOST_CONNECTION_DIAGNOSTIC_PHASES)[number];
+
+export interface SshHostConnectionDiagnostic {
+	command: string | null;
+	detail: string | null;
+	exitCode: number | null;
+	phase: SshHostConnectionDiagnosticPhase;
+	stderr: string | null;
+	summary: string;
+	updatedAt: number;
+}
+
 export interface SshHostHealthSnapshot {
 	deviceClientId: string | null;
 	deviceName: string | null;
@@ -25,15 +45,17 @@ export interface SshHostHealthSnapshot {
 }
 
 export interface SshHostConnectionStatus {
+	diagnostic: SshHostConnectionDiagnostic | null;
+	health: SshHostHealthSnapshot | null;
 	hostId: string;
-	organizationId: string;
+	organizationId: string | null;
 	state: SshHostConnectionState;
+	sshTarget: string | null;
 	hostUrl: string | null;
 	localPort: number | null;
 	remotePort: number | null;
 	lastError: string | null;
 	missingPrerequisites: string[];
-	health: SshHostHealthSnapshot | null;
 	updatedAt: number;
 }
 
@@ -71,7 +93,8 @@ export function getSshHostIdFromDeviceClientId(
 		return null;
 	}
 
-	return deviceClientId.slice(`${SSH_HOST_DEVICE_PREFIX}:`.length);
+	const normalizedDeviceClientId = deviceClientId ?? "";
+	return normalizedDeviceClientId.slice(`${SSH_HOST_DEVICE_PREFIX}:`.length);
 }
 
 export function getDefaultSshHostRemoteRootDir(hostId: string): string {
@@ -88,21 +111,14 @@ export function resolveSshHostRemoteRootDir(
 		: getDefaultSshHostRemoteRootDir(hostId);
 }
 
-export function getSshHostRemotePort(
-	organizationId: string,
-	hostId: string,
-): number {
+export function getSshHostRemotePort(hostId: string): number {
 	return (
-		DEFAULT_REMOTE_PORT_BASE +
-		(hashString(`${organizationId}:${hostId}`) % DEFAULT_REMOTE_PORT_RANGE)
+		DEFAULT_REMOTE_PORT_BASE + (hashString(hostId) % DEFAULT_REMOTE_PORT_RANGE)
 	);
 }
 
-export function getSshHostServiceSessionName(
-	organizationId: string,
-	hostId: string,
-): string {
-	return `superset-host-${toSlugPart(hostId)}-${toSlugPart(organizationId)}`;
+export function getSshHostServiceSessionName(hostId: string): string {
+	return `superset-host-${toSlugPart(hostId)}-${hashString(hostId).toString(16).slice(0, 6)}`;
 }
 
 export function getSshTerminalSessionName(workspaceId: string): string {

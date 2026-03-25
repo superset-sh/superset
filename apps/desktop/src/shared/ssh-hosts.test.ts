@@ -33,17 +33,12 @@ describe("ssh-host helpers", () => {
 	});
 
 	it("derives stable ports and tmux session names", () => {
-		expect(
-			getSshHostRemotePort("11111111-1111-1111-1111-111111111111", "homebox"),
-		).toBe(
-			getSshHostRemotePort("11111111-1111-1111-1111-111111111111", "homebox"),
+		expect(getSshHostRemotePort("homebox")).toBe(
+			getSshHostRemotePort("homebox"),
 		);
-		expect(
-			getSshHostServiceSessionName(
-				"11111111-1111-1111-1111-111111111111",
-				"Home Box",
-			),
-		).toBe("superset-host-home-box-11111111-1111-1111-1111-");
+		expect(getSshHostServiceSessionName("Home Box")).toBe(
+			"superset-host-home-box-5ed118",
+		);
 		expect(getSshTerminalSessionName("workspace:123")).toBe(
 			"superset-workspace-workspace-123",
 		);
