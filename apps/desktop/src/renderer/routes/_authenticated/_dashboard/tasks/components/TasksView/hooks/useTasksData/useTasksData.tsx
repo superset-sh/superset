@@ -1,17 +1,20 @@
-import type { SelectTaskStatus } from "@superset/db/schema";
+import type {
+	SelectTask,
+	SelectTaskStatus,
+	SelectUser,
+} from "@superset/db/schema";
 import { eq, isNull } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	normalizeTaskWithStatus,
-	type TaskWithStatus,
-} from "../../../../utils/normalizeTaskWithStatus";
 import type { TabValue } from "../../components/TasksTopBar";
 import { compareTasks } from "../../utils/sorting";
 import { useHybridSearch } from "../useHybridSearch";
 
-export type { TaskWithStatus } from "../../../../utils/normalizeTaskWithStatus";
+export type TaskWithStatus = SelectTask & {
+	status: SelectTaskStatus;
+	assignee: SelectUser | null;
+};
 
 interface UseTasksDataParams {
 	filterTab: TabValue;
@@ -61,7 +64,15 @@ export function useTasksData({
 
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		return allData.map(normalizeTaskWithStatus).sort(compareTasks);
+		return allData
+			.map((task) => ({
+				...task,
+				assignee:
+					typeof task.assignee?.id === "string"
+						? (task.assignee as SelectUser)
+						: null,
+			}))
+			.sort(compareTasks);
 	}, [allData]);
 
 	const { search } = useHybridSearch(sortedData);

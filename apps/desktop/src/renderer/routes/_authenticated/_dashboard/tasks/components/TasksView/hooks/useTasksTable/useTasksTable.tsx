@@ -1,3 +1,8 @@
+import type {
+	SelectTask,
+	SelectTaskStatus,
+	SelectUser,
+} from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { Checkbox } from "@superset/ui/checkbox";
 import { eq, isNull } from "@tanstack/db";
@@ -21,10 +26,6 @@ import { getSlugColumnWidth } from "renderer/lib/slug-width";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { create } from "zustand";
 import {
-	normalizeTaskWithStatus,
-	type TaskWithStatus,
-} from "../../../../utils/normalizeTaskWithStatus";
-import {
 	StatusIcon,
 	type StatusType,
 } from "../../components/shared/StatusIcon";
@@ -35,7 +36,10 @@ import { AssigneeCell } from "./components/AssigneeCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { StatusCell } from "./components/StatusCell";
 
-export type { TaskWithStatus } from "../../../../utils/normalizeTaskWithStatus";
+export type TaskWithStatus = SelectTask & {
+	status: SelectTaskStatus;
+	assignee: SelectUser | null;
+};
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
 
@@ -104,7 +108,15 @@ export function useTasksTable({
 
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		return allData.map(normalizeTaskWithStatus).sort(compareTasks);
+		return allData
+			.map((task) => ({
+				...task,
+				assignee:
+					typeof task.assignee?.id === "string"
+						? (task.assignee as SelectUser)
+						: null,
+			}))
+			.sort(compareTasks);
 	}, [allData]);
 
 	const { search } = useHybridSearch(sortedData);
