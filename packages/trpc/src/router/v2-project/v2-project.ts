@@ -35,6 +35,23 @@ async function getScopedGithubRepository(
 	);
 }
 
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Projects.id, projectId),
+			}),
+		{
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
 async function getProjectAccess(
 	userId: string,
 	projectId: string,
@@ -181,14 +198,11 @@ export const v2ProjectRouter = {
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrgId(
+			const organizationId = await requireActiveOrgMembership(
 				ctx.session,
 				"No active organization",
 			);
-			const project = await getProjectAccess(ctx.session.user.id, input.id, {
-				access: "admin",
-				organizationId,
-			});
+			const project = await getScopedProject(organizationId, input.id);
 			await dbWs.delete(v2Projects).where(eq(v2Projects.id, project.id));
 			return { success: true };
 		}),

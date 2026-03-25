@@ -11,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import { verifyOrgMembership } from "../integration/utils";
 import { requireOrgScopedResource } from "../utils/org-resource-access";
 
 async function getScopedProject(organizationId: string, projectId: string) {
@@ -172,7 +172,7 @@ export const workspaceRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 			const workspace = await getScopedWorkspace(
 				input.organizationId,
 				input.id,

@@ -50,6 +50,23 @@ async function getScopedDevice(organizationId: string, deviceId: string) {
 	);
 }
 
+async function getScopedWorkspace(organizationId: string, workspaceId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Workspaces.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Workspaces.id, workspaceId),
+			}),
+		{
+			message: "Workspace not found in this organization",
+			organizationId,
+		},
+	);
+}
+
 async function getWorkspaceAccess(
 	userId: string,
 	workspaceId: string,
@@ -167,18 +184,11 @@ export const v2WorkspaceRouter = {
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrgId(
+			const organizationId = await requireActiveOrgMembership(
 				ctx.session,
 				"No active organization",
 			);
-			const workspace = await getWorkspaceAccess(
-				ctx.session.user.id,
-				input.id,
-				{
-					access: "admin",
-					organizationId,
-				},
-			);
+			const workspace = await getScopedWorkspace(organizationId, input.id);
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
 			return { success: true };
 		}),

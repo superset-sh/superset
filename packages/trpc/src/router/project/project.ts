@@ -65,6 +65,23 @@ async function getScopedGithubRepository(
 	);
 }
 
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(projects.id, projectId),
+			}),
+		{
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
 export const projectRouter = {
 	secrets: secretsRouter,
 
@@ -145,10 +162,8 @@ export const projectRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const project = await getProjectAccess(ctx.session.user.id, input.id, {
-				access: "admin",
-				organizationId: input.organizationId,
-			});
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const project = await getScopedProject(input.organizationId, input.id);
 			await dbWs.delete(projects).where(eq(projects.id, project.id));
 			return { success: true };
 		}),
