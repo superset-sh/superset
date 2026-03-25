@@ -13,7 +13,7 @@
 	},
 	"dependencies": {
 		"@better-auth/expo": "1.4.18",
-		"@electric-sql/client": "1.5.12",
+		"@electric-sql/client": "1.5.13",
 		"@expo/ui": "~55.0.0-preview.4",
 		"@expo/vector-icons": "^15.0.3",
 		"@react-native-async-storage/async-storage": "2.2.0",

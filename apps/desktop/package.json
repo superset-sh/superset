@@ -65,7 +65,7 @@
 		"@dnd-kit/sortable": "^10.0.0",
 		"@dnd-kit/utilities": "^3.2.2",
 		"@durable-streams/client": "^0.2.1",
-		"@electric-sql/client": "1.5.12",
+		"@electric-sql/client": "1.5.13",
 		"@headless-tree/core": "^1.6.3",
 		"@headless-tree/react": "^1.6.3",
 		"@hono/node-server": "^1.14.1",

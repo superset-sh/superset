@@ -62,7 +62,7 @@
         "@anthropic-ai/sdk": "^0.78.0",
         "@better-auth/oauth-provider": "1.4.18",
         "@durable-streams/client": "^0.2.1",
-        "@electric-sql/client": "1.5.12",
+        "@electric-sql/client": "1.5.13",
         "@linear/sdk": "^68.1.0",
         "@modelcontextprotocol/sdk": "^1.26.0",
         "@octokit/app": "^16.1.2",
@@ -142,7 +142,7 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@durable-streams/client": "^0.2.1",
-        "@electric-sql/client": "1.5.12",
+        "@electric-sql/client": "1.5.13",
         "@headless-tree/core": "^1.6.3",
         "@headless-tree/react": "^1.6.3",
         "@hono/node-server": "^1.14.1",
@@ -437,7 +437,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@better-auth/expo": "1.4.18",
-        "@electric-sql/client": "1.5.12",
+        "@electric-sql/client": "1.5.13",
         "@expo/ui": "~55.0.0-preview.4",
         "@expo/vector-icons": "^15.0.3",
         "@react-native-async-storage/async-storage": "2.2.0",
@@ -1326,7 +1326,7 @@
 
     "@durable-streams/client": ["@durable-streams/client@0.2.1", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1", "fastq": "^1.19.1" } }, "sha512-+mGdK6TuDR9fJPo8jw6DufPfoUv6g+27xoPES76GXQc6y3val9Oe/SK2o2FV9sqqLSE19HEUSxTp0D6CZebfZw=="],
 
-    "@electric-sql/client": ["@electric-sql/client@1.5.12", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" }, "bin": { "intent": "bin/intent.mjs" } }, "sha512-mWDEpKog0Zo4WOjReW4x9ELaHsjTthpziLVJkjmSdh/4Y/ZHw5EoY5e9dJX9itPSKVk9GNFz3YfHFv5EAyCOmw=="],
+    "@electric-sql/client": ["@electric-sql/client@1.5.13", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" }, "bin": { "intent": "bin/intent.mjs" } }, "sha512-cR5U/mDNUTRrdrZ8Fr3QPFKwTwDUZ2ux88mEvIxQq5PoyW3UrHkK/GIq3arHoeiXrUnieRIz2U+TBOaQKld8XA=="],
 
     "@electron/asar": ["@electron/asar@3.4.1", "", { "dependencies": { "commander": "^5.0.0", "glob": "^7.1.6", "minimatch": "^3.0.4" }, "bin": { "asar": "bin/asar.js" } }, "sha512-i4/rNPRS84t0vSRa2HorerGRXWyF4vThfHesw0dmcWHp+cspK743UanA0suA5Q5y8kzY2y6YKrvbIUn69BCAiA=="],
 

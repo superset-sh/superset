@@ -47,6 +47,7 @@ export function OrganizationSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const { refreshOrganizations } = collections;
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -151,6 +152,7 @@ export function OrganizationSettings({
 				mimeType,
 			});
 
+			await refreshOrganizations();
 			setLogoPreview(uploadResult.url);
 			toast.success("Logo updated successfully!");
 		} catch (error) {
@@ -172,6 +174,7 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
+			await refreshOrganizations();
 			toast.success("Organization name updated!");
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
@@ -452,6 +455,7 @@ export function OrganizationSettings({
 					onOpenChange={setIsSlugDialogOpen}
 					organizationId={organization.id}
 					currentSlug={organization.slug}
+					onSuccess={refreshOrganizations}
 				/>
 			)}
 		</div>
