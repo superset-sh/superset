@@ -7,8 +7,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { TaskWithStatus } from "../components/TasksView/hooks/useTasksTable";
 import { Route as TasksLayoutRoute } from "../layout";
+import {
+	normalizeTaskWithStatus,
+	type TaskWithStatus,
+} from "../utils/normalizeTaskWithStatus";
 import { ActivitySection } from "./components/ActivitySection";
 import { CommentInput } from "./components/CommentInput";
 import { EditableTitle } from "./components/EditableTitle";
@@ -64,7 +67,7 @@ function TaskDetailPage() {
 
 	const task: TaskWithStatus | null = useMemo(() => {
 		if (!taskData || taskData.length === 0) return null;
-		return taskData[0];
+		return normalizeTaskWithStatus(taskData[0]);
 	}, [taskData]);
 	const taskFallbackQuery = useQuery({
 		queryKey: ["task-detail-fallback", taskId, isUuidTaskId ? "id" : "slug"],
