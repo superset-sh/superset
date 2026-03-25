@@ -18,6 +18,20 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+const globalWindow = (
+	globalThis as typeof globalThis & {
+		window?: { location?: { href?: string } };
+		document?: unknown;
+	}
+).window;
+
+if (globalWindow && globalWindow.location == null) {
+	Object.defineProperty(globalWindow, "location", {
+		configurable: true,
+		value: { href: "http://localhost" },
+	});
+}
+
 type TableName =
 	| "projects"
 	| "workspaces"
@@ -326,6 +340,7 @@ function runInnerJoinSelect(
 	selection?: Record<string, Column | { __tableName: TableName }>,
 	joinPredicate?: Predicate,
 	predicate?: Predicate,
+	orderBy?: OrderBy,
 ): Row[] {
 	const joinedRows = getTableRows(leftTable)
 		.flatMap((leftRow) =>
@@ -338,9 +353,18 @@ function runInnerJoinSelect(
 		)
 		.filter((row) => (predicate ? predicate(row) : true));
 
-	return joinedRows
+	const rows = joinedRows
 		.map((row) => projectSelection(row, selection) ?? {})
 		.map((row) => row as Row);
+
+	if (orderBy?.kind === "desc") {
+		rows.sort(
+			(a, b) =>
+				Number(b[orderBy.column.key] ?? 0) - Number(a[orderBy.column.key] ?? 0),
+		);
+	}
+
+	return rows;
 }
 
 function createInnerJoinResult(
@@ -349,6 +373,7 @@ function createInnerJoinResult(
 	selection?: Record<string, Column | { __tableName: TableName }>,
 	joinPredicate?: Predicate,
 	predicate?: Predicate,
+	orderBy?: OrderBy,
 ) {
 	return {
 		get: () =>
@@ -359,6 +384,7 @@ function createInnerJoinResult(
 					selection,
 					joinPredicate,
 					predicate,
+					orderBy,
 				)[0],
 			),
 		all: () =>
@@ -368,6 +394,7 @@ function createInnerJoinResult(
 				selection,
 				joinPredicate,
 				predicate,
+				orderBy,
 			).map(cloneRow),
 		where: (nextPredicate: Predicate) =>
 			createInnerJoinResult(
@@ -376,6 +403,16 @@ function createInnerJoinResult(
 				selection,
 				joinPredicate,
 				nextPredicate,
+				orderBy,
+			),
+		orderBy: (nextOrderBy: OrderBy) =>
+			createInnerJoinResult(
+				leftTable,
+				rightTable,
+				selection,
+				joinPredicate,
+				predicate,
+				nextOrderBy,
 			),
 	};
 }
@@ -471,6 +508,15 @@ const localDb = {
 };
 
 mock.module("drizzle-orm", () => ({
+	and,
+	desc,
+	eq,
+	isNotNull,
+	isNull,
+	not,
+}));
+
+mock.module("drizzle-orm/sql", () => ({
 	and,
 	desc,
 	eq,

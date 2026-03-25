@@ -1,4 +1,3 @@
-import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import type { SelectMember } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
@@ -20,16 +19,19 @@ export interface ResolveSessionOrganizationDeps {
 }
 
 const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
-	listMemberships: (userId) =>
-		db.query.members.findMany({
+	listMemberships: async (userId) => {
+		const { db } = await import("@superset/db/client");
+		return db.query.members.findMany({
 			where: eq(members.userId, userId),
 			orderBy: desc(members.createdAt),
-		}),
+		});
+	},
 	updateSessionActiveOrganization: async ({
 		sessionId,
 		previousActiveOrganizationId,
 		nextActiveOrganizationId,
 	}) => {
+		const { db } = await import("@superset/db/client");
 		const updatedSessions = await db
 			.update(authSchema.sessions)
 			.set({ activeOrganizationId: nextActiveOrganizationId })
@@ -44,6 +46,7 @@ const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
 		return updatedSessions.length > 0;
 	},
 	getSessionActiveOrganization: async (sessionId) => {
+		const { db } = await import("@superset/db/client");
 		const [sessionRow] = await db
 			.select({
 				activeOrganizationId: authSchema.sessions.activeOrganizationId,

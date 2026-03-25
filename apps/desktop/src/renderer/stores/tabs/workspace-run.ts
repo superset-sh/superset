@@ -1,5 +1,6 @@
 import type { Pane } from "shared/tabs-types";
 import { useTabsStore } from "./store";
+import { createNextPaneWorkspaceRunState } from "./workspace-run-state";
 
 export type PaneWorkspaceRun = NonNullable<Pane["workspaceRun"]>;
 export type WorkspaceRunState = PaneWorkspaceRun["state"];
@@ -49,11 +50,7 @@ export function setPaneWorkspaceRunState(
 	const workspaceRun = getPaneWorkspaceRun(paneId);
 	if (!workspaceRun) return null;
 
-	const nextWorkspaceRun = createWorkspaceRun({
-		workspaceId: workspaceRun.workspaceId,
-		state,
-		command: workspaceRun.command,
-	});
+	const nextWorkspaceRun = createNextPaneWorkspaceRunState(workspaceRun, state);
 
 	useTabsStore.getState().setPaneWorkspaceRun(paneId, nextWorkspaceRun);
 	return nextWorkspaceRun;
