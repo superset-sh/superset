@@ -146,7 +146,7 @@ export function WorkspaceListItem({
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: id },
 			{
-				enabled: hasHovered && type === "worktree",
+				enabled: type === "worktree",
 				staleTime: GITHUB_STATUS_STALE_TIME,
 			},
 		);
@@ -262,6 +262,7 @@ export function WorkspaceListItem({
 				onClick={handleClick}
 				onDeleteClick={handleDeleteClick}
 				onCopyPath={handleCopyPath}
+				prState={githubStatus?.pr?.state}
 			/>
 		);
 	}
@@ -317,6 +318,7 @@ export function WorkspaceListItem({
 								isUnread={isUnread}
 								workspaceStatus={workspaceStatus}
 								variant="expanded"
+								prState={githubStatus?.pr?.state}
 							/>
 						</div>
 					</TooltipTrigger>

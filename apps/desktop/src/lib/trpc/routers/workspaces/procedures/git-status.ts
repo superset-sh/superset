@@ -32,6 +32,12 @@ const gitHubPRCommentsInputSchema = z.object({
 	isFork: z.boolean().optional(),
 });
 
+// Map to track pending GitHub status fetches to prevent concurrent requests
+const pendingGitHubStatusFetches = new Map<
+	string,
+	Promise<GitHubStatus | null>
+>();
+
 function resolveCommentsPullRequestTarget({
 	input,
 	githubStatus,
@@ -163,17 +169,47 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				// Check if we have cached data that's still fresh
+				const CACHE_DURATION = 30_000; // 30 seconds
+				const cachedStatus = worktree.githubStatus;
+				const now = Date.now();
 
-				if (freshStatus) {
-					localDb
-						.update(worktrees)
-						.set({ githubStatus: freshStatus })
-						.where(eq(worktrees.id, worktree.id))
-						.run();
+				if (
+					cachedStatus?.lastRefreshed &&
+					now - cachedStatus.lastRefreshed < CACHE_DURATION
+				) {
+					// Cache is still fresh, return it
+					return cachedStatus;
 				}
 
-				return freshStatus;
+				// Check if there's already a pending fetch for this worktree
+				const pendingFetch = pendingGitHubStatusFetches.get(worktree.id);
+				if (pendingFetch) {
+					// Return the existing promise to avoid duplicate fetches
+					return pendingFetch;
+				}
+
+				// Cache is stale or missing, fetch fresh data
+				const fetchPromise = fetchGitHubPRStatus(worktree.path)
+					.then((freshStatus) => {
+						if (freshStatus) {
+							localDb
+								.update(worktrees)
+								.set({ githubStatus: freshStatus })
+								.where(eq(worktrees.id, worktree.id))
+								.run();
+						}
+						return freshStatus;
+					})
+					.finally(() => {
+						// Clean up the pending fetch entry
+						pendingGitHubStatusFetches.delete(worktree.id);
+					});
+
+				// Store the promise to deduplicate concurrent requests
+				pendingGitHubStatusFetches.set(worktree.id, fetchPromise);
+
+				return fetchPromise;
 			}),
 
 		getGitHubPRComments: publicProcedure

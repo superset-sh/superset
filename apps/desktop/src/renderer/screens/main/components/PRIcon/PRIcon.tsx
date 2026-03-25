@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
+import {
+	LuGitMerge,
+	LuGitPullRequest,
+	LuGitPullRequestClosed,
+} from "react-icons/lu";
 
 export type PRState = "open" | "merged" | "closed" | "draft";
 
@@ -10,16 +14,16 @@ interface PRIconProps {
 
 const stateStyles: Record<PRState, string> = {
 	open: "text-emerald-500",
-	merged: "text-violet-500",
-	closed: "text-red-500",
+	merged: "text-purple-500",
+	closed: "text-destructive",
 	draft: "text-muted-foreground",
 };
 
 /**
  * Renders a PR icon with color based on state.
  * - open: green pull request icon
- * - merged: purple/violet merge icon
- * - closed: red dot icon
+ * - merged: purple merge icon
+ * - closed: red closed pull request icon
  * - draft: muted pull request icon
  */
 export function PRIcon({ state, className }: PRIconProps) {
@@ -30,7 +34,7 @@ export function PRIcon({ state, className }: PRIconProps) {
 	}
 
 	if (state === "closed") {
-		return <LuCircleDot className={baseClass} />;
+		return <LuGitPullRequestClosed className={baseClass} />;
 	}
 
 	// open or draft

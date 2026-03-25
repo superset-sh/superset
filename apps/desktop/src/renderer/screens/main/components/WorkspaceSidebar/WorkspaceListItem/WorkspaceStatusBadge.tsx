@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
+import {
+	LuGitMerge,
+	LuGitPullRequest,
+	LuGitPullRequestClosed,
+} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { STROKE_WIDTH } from "../constants";
 
@@ -44,7 +48,7 @@ export function WorkspaceStatusBadge({
 		},
 		closed: {
 			icon: (
-				<LuCircleDot
+				<LuGitPullRequestClosed
 					className={cn(iconClass, "text-destructive")}
 					strokeWidth={STROKE_WIDTH}
 				/>

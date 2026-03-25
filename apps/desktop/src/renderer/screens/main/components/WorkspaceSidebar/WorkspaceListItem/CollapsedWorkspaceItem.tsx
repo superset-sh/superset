@@ -21,6 +21,8 @@ import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 
+type PRState = "open" | "merged" | "closed" | "draft";
+
 interface CollapsedWorkspaceItemProps {
 	id: string;
 	name: string;
@@ -36,6 +38,7 @@ interface CollapsedWorkspaceItemProps {
 	onClick: () => void;
 	onDeleteClick: () => void;
 	onCopyPath: () => void;
+	prState?: PRState;
 }
 
 export function CollapsedWorkspaceItem({
@@ -53,6 +56,7 @@ export function CollapsedWorkspaceItem({
 	onClick,
 	onDeleteClick,
 	onCopyPath,
+	prState,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const deleteDialogCoordinator = useMemo(
@@ -85,6 +89,7 @@ export function CollapsedWorkspaceItem({
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
 				variant="collapsed"
+				prState={prState}
 			/>
 		</button>
 	);
