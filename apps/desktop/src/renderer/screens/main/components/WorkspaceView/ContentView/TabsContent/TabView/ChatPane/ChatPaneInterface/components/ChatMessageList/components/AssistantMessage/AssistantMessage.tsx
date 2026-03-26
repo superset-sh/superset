@@ -154,11 +154,18 @@ export function AssistantMessage({
 		const part = message.content[partIndex];
 
 		if (part.type === "text") {
+			// Don't animate text if tool calls follow it or tools are actively running —
+			// animating text while subsequent parts pop in causes jarring layout jumps.
+			const hasToolCallAfter = message.content
+				.slice(partIndex + 1)
+				.some((p) => p.type === "tool_call" || p.type === "tool_result");
+			const shouldAnimateText =
+				isStreaming && !hasToolCallAfter && previewToolParts.length === 0;
 			nodes.push(
 				<StreamingMessageText
 					key={`${message.id}-${partIndex}`}
 					text={part.text}
-					isAnimating={isStreaming}
+					isAnimating={shouldAnimateText}
 					mermaid={{
 						config: {
 							theme: "default",
