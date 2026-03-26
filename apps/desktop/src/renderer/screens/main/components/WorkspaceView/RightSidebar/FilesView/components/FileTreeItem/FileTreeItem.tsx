@@ -78,8 +78,10 @@ export function FileTreeItem({
 			} else {
 				item.expand();
 			}
+		} else if (e.metaKey || e.ctrlKey) {
+			onOpenInEditor(entry);
 		} else {
-			onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
+			onActivate(entry);
 		}
 	};
 

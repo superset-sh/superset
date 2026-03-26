@@ -1,5 +1,9 @@
 import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
-import { branchExistsOnRemote } from "../git";
+import {
+	branchExistsOnRemote,
+	getCurrentBranch,
+	isUnbornHeadError,
+} from "../git";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
 import { parseUpstreamRef } from "../upstream-ref";
@@ -44,16 +48,19 @@ async function resolvePullRequestCommentsTarget(
 		return null;
 	}
 
-	const [branchResult, shaResult] = await Promise.all([
-		execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
-			cwd: worktreePath,
-		}),
-		execGitWithShellPath(["rev-parse", "HEAD"], {
-			cwd: worktreePath,
-		}),
-	]);
-	const branchName = branchResult.stdout.trim();
-	const headSha = shaResult.stdout.trim();
+	const branchName = await getCurrentBranch(worktreePath);
+	if (!branchName) {
+		return null;
+	}
+	const shaResult = await execGitWithShellPath(["rev-parse", "HEAD"], {
+		cwd: worktreePath,
+	}).catch((error) => {
+		if (isUnbornHeadError(error)) {
+			return { stdout: "", stderr: "" };
+		}
+		throw error;
+	});
+	const headSha = shaResult.stdout.trim() || undefined;
 	const prInfo = await getPRForBranch(
 		worktreePath,
 		branchName,
@@ -91,17 +98,25 @@ async function refreshGitHubPRStatus(
 			return null;
 		}
 
-		const [branchResult, shaResult, upstreamResult] = await Promise.all([
-			execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
+		const branchName = await getCurrentBranch(worktreePath);
+		if (!branchName) {
+			return null;
+		}
+
+		const [shaResult, upstreamResult] = await Promise.all([
+			execGitWithShellPath(["rev-parse", "HEAD"], {
 				cwd: worktreePath,
+			}).catch((error) => {
+				if (isUnbornHeadError(error)) {
+					return { stdout: "", stderr: "" };
+				}
+				throw error;
 			}),
-			execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
 			execGitWithShellPath(["rev-parse", "--abbrev-ref", "@{upstream}"], {
 				cwd: worktreePath,
 			}).catch(() => ({ stdout: "", stderr: "" })),
 		]);
-		const branchName = branchResult.stdout.trim();
-		const headSha = shaResult.stdout.trim();
+		const headSha = shaResult.stdout.trim() || undefined;
 		const parsedUpstreamRef = parseUpstreamRef(upstreamResult.stdout.trim());
 		const trackingRemote = parsedUpstreamRef?.remoteName ?? "origin";
 		const previewBranchName = resolveRemoteBranchNameForGitHubStatus({
@@ -324,7 +339,7 @@ async function queryDeploymentUrl(
  */
 async function fetchPreviewDeploymentUrl(
 	worktreePath: string,
-	headSha: string,
+	headSha: string | undefined,
 	branchName: string,
 	repoContext: RepoContext,
 ): Promise<string | undefined> {
@@ -337,10 +352,16 @@ async function fetchPreviewDeploymentUrl(
 			return undefined;
 		}
 
-		// Try by commit SHA (works for Vercel, Netlify official integrations)
-		const bySha = await queryDeploymentUrl(worktreePath, nwo, `sha=${headSha}`);
-		if (bySha) {
-			return bySha;
+		if (headSha) {
+			// Try by commit SHA (works for Vercel, Netlify official integrations)
+			const bySha = await queryDeploymentUrl(
+				worktreePath,
+				nwo,
+				`sha=${headSha}`,
+			);
+			if (bySha) {
+				return bySha;
+			}
 		}
 
 		// Fall back to branch name (works for some CI configurations)

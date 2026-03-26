@@ -1,4 +1,5 @@
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
+import { getCurrentBranch } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
 import {
 	assertRegisteredWorktree,
@@ -29,8 +30,7 @@ async function isCurrentBranch({
 	expectedBranch: string;
 }): Promise<boolean> {
 	try {
-		const git = await getGitWithShellPath(worktreePath);
-		const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+		const currentBranch = await getCurrentBranch(worktreePath);
 		return currentBranch === expectedBranch;
 	} catch {
 		return false;

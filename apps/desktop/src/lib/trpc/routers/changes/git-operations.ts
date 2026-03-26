@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { RemoteWithRefs, SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getCurrentBranch } from "../workspaces/utils/git";
 import {
 	execGitWithShellPath,
 	getSimpleGitWithShellPath,
@@ -61,10 +62,16 @@ async function getTrackingRemote(git: SimpleGit): Promise<string> {
 	return trackingRef?.remoteName ?? "origin";
 }
 
-async function fetchCurrentBranch(git: SimpleGit): Promise<void> {
-	const localBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+async function fetchCurrentBranch(
+	git: SimpleGit,
+	worktreePath: string,
+): Promise<void> {
+	const localBranch = await getCurrentBranch(worktreePath);
 	const trackingRef = await getTrackingRef(git);
 	const branch = trackingRef?.branchName ?? localBranch;
+	if (!branch) {
+		return;
+	}
 	const remote = trackingRef?.remoteName ?? resolveTrackingRemoteName(null);
 	try {
 		await git.fetch([remote, branch]);
@@ -498,7 +505,14 @@ export const createGitOperationsRouter = () => {
 				const hasUpstream = await hasUpstreamBranch(git);
 
 				if (input.setUpstream && !hasUpstream) {
-					const localBranch = await git.revparse(["--abbrev-ref", "HEAD"]);
+					const localBranch = await getCurrentBranch(input.worktreePath);
+					if (!localBranch) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Cannot push from detached HEAD. Please checkout a branch and try again.",
+						});
+					}
 					await pushWithResolvedUpstream({
 						git,
 						worktreePath: input.worktreePath,
@@ -511,7 +525,14 @@ export const createGitOperationsRouter = () => {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						if (shouldRetryPushWithUpstream(message)) {
-							const localBranch = await git.revparse(["--abbrev-ref", "HEAD"]);
+							const localBranch = await getCurrentBranch(input.worktreePath);
+							if (!localBranch) {
+								throw new TRPCError({
+									code: "BAD_REQUEST",
+									message:
+										"Cannot push from detached HEAD. Please checkout a branch and try again.",
+								});
+							}
 							await pushWithResolvedUpstream({
 								git,
 								worktreePath: input.worktreePath,
@@ -522,7 +543,8 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 				}
-				await fetchCurrentBranch(git);
+
+				await fetchCurrentBranch(git, input.worktreePath);
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
@@ -569,20 +591,28 @@ export const createGitOperationsRouter = () => {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					if (isUpstreamMissingError(message)) {
-						const localBranch = await git.revparse(["--abbrev-ref", "HEAD"]);
+						const localBranch = await getCurrentBranch(input.worktreePath);
+						if (!localBranch) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"Cannot push from detached HEAD. Please checkout a branch and try again.",
+							});
+						}
 						await pushWithResolvedUpstream({
 							git,
 							worktreePath: input.worktreePath,
 							localBranch,
 						});
-						await fetchCurrentBranch(git);
+						await fetchCurrentBranch(git, input.worktreePath);
 						clearStatusCacheForWorktree(input.worktreePath);
 						return { success: true };
 					}
 					throw error;
 				}
+
 				await git.push();
-				await fetchCurrentBranch(git);
+				await fetchCurrentBranch(git, input.worktreePath);
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
@@ -592,7 +622,7 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 				const git = await getGitWithShellPath(input.worktreePath);
-				await fetchCurrentBranch(git);
+				await fetchCurrentBranch(git, input.worktreePath);
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
@@ -609,7 +639,15 @@ export const createGitOperationsRouter = () => {
 					assertRegisteredWorktree(input.worktreePath);
 
 					const git = await getGitWithShellPath(input.worktreePath);
-					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+					const branch = await getCurrentBranch(input.worktreePath);
+					if (!branch) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Cannot create a pull request from detached HEAD. Please checkout a branch and try again.",
+						});
+					}
+
 					const trackingStatus = await getTrackingBranchStatus(git);
 					const hasUpstream = trackingStatus.hasUpstream;
 					const isBehindUpstream =
@@ -664,7 +702,7 @@ export const createGitOperationsRouter = () => {
 
 					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
 					if (existingPRUrl) {
-						await fetchCurrentBranch(git);
+						await fetchCurrentBranch(git, input.worktreePath);
 						clearWorktreeStatusCaches(input.worktreePath);
 						return { success: true, url: existingPRUrl };
 					}
@@ -675,7 +713,7 @@ export const createGitOperationsRouter = () => {
 							git,
 							branch,
 						);
-						await fetchCurrentBranch(git);
+						await fetchCurrentBranch(git, input.worktreePath);
 						clearWorktreeStatusCaches(input.worktreePath);
 
 						return { success: true, url };
@@ -686,7 +724,7 @@ export const createGitOperationsRouter = () => {
 							input.worktreePath,
 						);
 						if (recoveredPRUrl) {
-							await fetchCurrentBranch(git);
+							await fetchCurrentBranch(git, input.worktreePath);
 							clearWorktreeStatusCaches(input.worktreePath);
 							return { success: true, url: recoveredPRUrl };
 						}

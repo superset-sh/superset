@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { SlashCommandInput } from "renderer/components/Chat/ChatInterface/components/SlashCommandInput";
+import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
@@ -81,6 +82,7 @@ export function ChatInputFooter({
 	onStop,
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
+	useFocusPromptOnPane(isFocused);
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);

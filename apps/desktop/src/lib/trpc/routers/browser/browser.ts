@@ -136,13 +136,6 @@ export const createBrowserRouter = () => {
 				return { success: true };
 			}),
 
-		getDevToolsUrl: publicProcedure
-			.input(z.object({ browserPaneId: z.string() }))
-			.query(async ({ input }) => {
-				const url = await browserManager.getDevToolsUrl(input.browserPaneId);
-				return { url };
-			}),
-
 		getPageInfo: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.query(({ input }) => {
