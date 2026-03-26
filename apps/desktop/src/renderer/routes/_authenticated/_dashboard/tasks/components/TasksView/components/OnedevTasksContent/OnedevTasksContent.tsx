@@ -11,7 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { HiPlus } from "react-icons/hi2";
+import { HiChevronRight, HiPlus } from "react-icons/hi2";
 import { VscIssues } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { IssueDetailSidebar } from "./IssueDetailSidebar";
@@ -183,6 +183,7 @@ function OnedevProjectView({
 		onSuccess: () => utils.settings.getOnedevIssues.invalidate(),
 	});
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
+	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	const allIssues = data?.issues ?? [];
 	const projectKey = data?.projectKey ?? projectPath;
@@ -210,15 +211,22 @@ function OnedevProjectView({
 	const columns = showClosed ? KANBAN_COLUMNS_CLOSED : KANBAN_COLUMNS_ACTIVE;
 
 	return (
-		<div className="flex flex-col min-h-0 flex-1">
+		<div className={`flex flex-col border-b border-border ${isCollapsed ? "shrink-0" : "min-h-0 flex-1"}`}>
 			{/* Project header */}
-			<div className="flex items-center gap-2 px-4 pt-3 pb-1">
-				{projectKey !== projectPath && (
-					<span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-						{projectKey}
-					</span>
-				)}
-				<span className="text-sm font-semibold">{projectPath}</span>
+			<div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/20">
+				<button
+					type="button"
+					onClick={() => setIsCollapsed(!isCollapsed)}
+					className="flex items-center gap-2 min-w-0 hover:text-foreground transition-colors"
+				>
+					<HiChevronRight className={`size-3.5 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
+					{projectKey !== projectPath && (
+						<span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+							{projectKey}
+						</span>
+					)}
+					<span className="text-sm font-semibold">{projectPath}</span>
+				</button>
 				<span className="text-xs text-muted-foreground">
 					{filteredIssues.length}{" "}issues
 				</span>
@@ -232,7 +240,7 @@ function OnedevProjectView({
 				</button>
 			</div>
 
-			{viewMode === "board" ? (
+			{!isCollapsed && (viewMode === "board" ? (
 				<KanbanBoard
 					issues={filteredIssues}
 					columns={columns}
@@ -245,7 +253,7 @@ function OnedevProjectView({
 				/>
 			) : (
 				<ListView issues={filteredIssues} projectKey={projectKey} projectPath={projectPath} navigate={navigate} onIssueClick={onIssueClick} />
-			)}
+			))}
 			<CreateOnedevIssueDialog
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
