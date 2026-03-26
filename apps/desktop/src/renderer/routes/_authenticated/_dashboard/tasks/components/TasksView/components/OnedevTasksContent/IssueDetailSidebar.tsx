@@ -58,6 +58,7 @@ export function IssueDetailSidebar({
 	const utils = electronTrpc.useUtils();
 
 	const { data: onedevConfig } = electronTrpc.settings.getOnedevConfig.useQuery();
+	const { data: onedevUsers = [] } = electronTrpc.settings.getOnedevUsers.useQuery();
 	const { data: issue, isLoading } = electronTrpc.settings.getOnedevIssue.useQuery(
 		{ projectPath, issueNumber },
 		{ refetchInterval: 15000 },
@@ -71,6 +72,12 @@ export function IssueDetailSidebar({
 		onSuccess: () => {
 			utils.settings.getOnedevIssue.invalidate();
 			utils.settings.getOnedevIssues.invalidate();
+		},
+		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Error"),
+	});
+	const updateAssignee = electronTrpc.settings.updateOnedevIssueAssignee.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
 		},
 		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Error"),
 	});
@@ -231,14 +238,16 @@ When done: commit your changes. Do NOT push or create PRs.`;
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);
 
+			// Always launch agent (for new workspaces the setup flow may not auto-start it)
 			if (launchRequestTemplate) {
 				const launchRequest: AgentLaunchRequest = { ...launchRequestTemplate, workspaceId: result.workspace.id };
-				if (result.wasExisting) {
-					await launchAgentSession(launchRequest, {
-						source: "open-in-workspace",
-						createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
-						write: (input) => terminalWrite.mutateAsync(input),
-					});
+				const launchResult = await launchAgentSession(launchRequest, {
+					source: "open-in-workspace",
+					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => terminalWrite.mutateAsync(input),
+				});
+				if (launchResult.status === "failed") {
+					toast.error("Failed to start agent", { description: launchResult.error ?? "Unknown error" });
 				}
 			}
 
@@ -363,14 +372,19 @@ When done: commit your changes. Do NOT push or create PRs.`;
 							<option value="Low">Low</option>
 						</select>
 					</div>
-					{issue.fields?.Assignees != null ? (
-						<div className="flex items-center justify-between">
-							<span className="text-xs text-muted-foreground">Assignee</span>
-							<span className="text-xs">
-								{Array.isArray(issue.fields.Assignees) ? (issue.fields.Assignees as string[]).join(", ") : String(issue.fields.Assignees)}
-							</span>
-						</div>
-					) : null}
+					<div className="flex items-center justify-between">
+						<span className="text-xs text-muted-foreground">Assignee</span>
+						<select
+							value={issue.fields?.Assignees != null ? String(issue.fields.Assignees) : ""}
+							onChange={(e) => updateAssignee.mutate({ issueId: issue.id, assignee: e.target.value || null })}
+							className="h-6 text-xs rounded border bg-transparent px-1 w-32"
+						>
+							<option value="">Unassigned</option>
+							{onedevUsers.map((u) => (
+								<option key={u.name} value={u.name}>{u.fullName ?? u.name}</option>
+							))}
+						</select>
+					</div>
 
 					</div>
 

@@ -1102,6 +1102,76 @@ export const createSettingsRouter = () => {
 			return true;
 		}),
 
+		getOnedevUsers: publicProcedure.query(async () => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) return [];
+				try {
+					const res = await fetch(`${url}/~api/users?offset=0&count=100`, {
+						headers: { Authorization: `Bearer ${accessToken}` },
+					});
+					if (!res.ok) return [];
+					const users = (await res.json()) as { name: string; fullName: string | null; disabled: boolean; serviceAccount: boolean }[];
+					return users.filter((u) => !u.disabled && !u.serviceAccount).map((u) => ({
+						name: u.name,
+						fullName: u.fullName,
+					}));
+				} catch {
+					return [];
+				}
+			}),
+
+		updateOnedevIssueAssignee: publicProcedure
+			.input(z.object({ issueId: z.number(), assignee: z.string().nullable() }))
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) throw new Error("OneDev not configured");
+				const res = await fetch(`${url}/~api/issues/${input.issueId}/fields`, {
+					method: "POST",
+					headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+					body: JSON.stringify({ Assignees: input.assignee }),
+				});
+				if (!res.ok) throw new Error(`Failed to update assignee: ${res.status}`);
+				return { success: true };
+			}),
+
+		createOnedevProject: publicProcedure
+			.input(z.object({
+				name: z.string(),
+				description: z.string().optional(),
+				issueManagement: z.boolean().default(true),
+				codeManagement: z.boolean().default(true),
+			}))
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) throw new Error("OneDev not configured");
+				const res = await fetch(`${url}/~api/projects`, {
+					method: "POST",
+					headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+					body: JSON.stringify({
+						name: input.name,
+						description: input.description ?? "",
+						issueManagement: input.issueManagement,
+						codeManagement: input.codeManagement,
+						packManagement: false,
+						timeTracking: false,
+						gitPackConfig: {},
+						codeAnalysisSetting: {},
+					}),
+				});
+				if (!res.ok) {
+					const text = await res.text().catch(() => "");
+					throw new Error(`Failed to create project: ${res.status} ${text}`);
+				}
+				const projectId = await res.json();
+				return { projectId };
+			}),
+
 		getOnedevIssueComments: publicProcedure
 			.input(z.object({ issueId: z.number() }))
 			.query(async ({ input }) => {

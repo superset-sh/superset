@@ -9,6 +9,7 @@ import { BoardContent } from "./components/BoardContent";
 import { LinearCTA } from "./components/LinearCTA";
 import {
 	CreateOnedevIssueDialog,
+	CreateOnedevProjectDialog,
 	OnedevTasksContent,
 } from "./components/OnedevTasksContent";
 import { TableContent } from "./components/TableContent";
@@ -150,6 +151,7 @@ export function TasksView({
 			enabled: isOnedevConfigured,
 		});
 	const [isCreateOnedevOpen, setIsCreateOnedevOpen] = useState(false);
+	const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
 	// OneDev takes priority over Linear when configured
 	if (isOnedevConfigured) {
@@ -167,12 +169,17 @@ export function TasksView({
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
 					onNewTask={() => setIsCreateOnedevOpen(true)}
+					onNewProject={() => setIsCreateProjectOpen(true)}
 				/>
 				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} stateFilter={currentTab} />
 				<CreateOnedevIssueDialog
 					open={isCreateOnedevOpen}
 					onOpenChange={setIsCreateOnedevOpen}
 					projectPaths={onedevProjectPaths ?? []}
+				/>
+				<CreateOnedevProjectDialog
+					open={isCreateProjectOpen}
+					onOpenChange={setIsCreateProjectOpen}
 				/>
 			</div>
 		);

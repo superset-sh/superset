@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import {
 	HiOutlineArchiveBox,
 	HiOutlineMagnifyingGlass,
+	HiPlus,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
 	HiOutlineViewColumns,
@@ -35,6 +36,7 @@ interface TasksTopBarProps {
 	viewMode: ViewMode;
 	onViewModeChange: (mode: ViewMode) => void;
 	onNewTask?: () => void;
+	onNewProject?: () => void;
 }
 
 const TABS = [
@@ -72,6 +74,7 @@ export function TasksTopBar({
 	viewMode,
 	onViewModeChange,
 	onNewTask,
+	onNewProject,
 }: TasksTopBarProps) {
 	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +161,17 @@ export function TasksTopBar({
 						<HiOutlinePencilSquare className="size-4" />
 						<span>New task</span>
 					</Button>
+					{onNewProject && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-8 gap-1.5 px-3"
+							onClick={onNewProject}
+						>
+							<HiPlus className="size-4" />
+							<span>New project</span>
+						</Button>
+					)}
 
 					<div className="flex items-center rounded-md border bg-muted/30 p-0.5">
 						<button

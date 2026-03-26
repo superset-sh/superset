@@ -551,3 +551,60 @@ export function CreateOnedevIssueDialog({
 		</Dialog>
 	);
 }
+
+export function CreateOnedevProjectDialog({
+	open,
+	onOpenChange,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}) {
+	const [name, setName] = useState("");
+	const [description, setDescription] = useState("");
+	const utils = electronTrpc.useUtils();
+	const createProject = electronTrpc.settings.createOnedevProject.useMutation({
+		onSuccess: () => {
+			utils.workspaces.getOnedevProjectPaths.invalidate();
+			utils.settings.getOnedevIssues.invalidate();
+			toast.success("Project created in OneDev");
+			setName("");
+			setDescription("");
+			onOpenChange(false);
+		},
+		onError: (err) => toast.error(err.message),
+	});
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>New OneDev Project</DialogTitle>
+				</DialogHeader>
+				<div className="flex flex-col gap-3 py-2">
+					<Input
+						placeholder="Project name"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						autoFocus
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && name.trim()) {
+								createProject.mutate({ name: name.trim(), description: description.trim() || undefined });
+							}
+						}}
+					/>
+					<Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+				</div>
+				<DialogFooter>
+					<Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+					<Button
+						size="sm"
+						disabled={!name.trim() || createProject.isPending}
+						onClick={() => createProject.mutate({ name: name.trim(), description: description.trim() || undefined })}
+					>
+						{createProject.isPending ? "Creating..." : "Create Project"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

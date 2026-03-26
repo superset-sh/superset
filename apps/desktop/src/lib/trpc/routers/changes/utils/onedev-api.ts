@@ -149,7 +149,7 @@ export function createOnedevClient(config: OnedevConfig) {
 			const res = await fetch(`${baseUrl}/~api/pulls/${prId}/merge`, {
 				method: "POST",
 				headers: {
-					Authorization: `Bearer ${accessToken}`,
+					...headers,
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
