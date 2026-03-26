@@ -21,7 +21,7 @@ interface FileListTreeVirtualizedProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -287,7 +287,7 @@ export function FileListTreeVirtualized({
 									isSelected={
 										selectedFile?.path === row.file.path && !selectedCommitHash
 									}
-									onClick={() => onFileSelect(row.file)}
+									onClick={(openInNewTab) => onFileSelect(row.file, openInNewTab)}
 									showStats={showStats}
 									level={row.level}
 									onStage={onStage ? () => onStage(row.file) : undefined}

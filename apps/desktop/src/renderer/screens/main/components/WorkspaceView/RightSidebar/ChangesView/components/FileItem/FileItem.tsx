@@ -30,7 +30,8 @@ import { RowHoverActions } from "../RowHoverActions";
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
-	onClick: () => void;
+	/** Called when the file row is clicked. Passes `true` when cmd/ctrl was held (open in new tab). */
+	onClick: (openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	level?: number;
 	onStage?: () => void;
@@ -111,17 +112,22 @@ export function FileItem({
 
 	const fileDragProps = useFileDrag({ absolutePath });
 
-	const handleClick = useCallback(() => {
-		if (clickTimeoutRef.current) {
-			clearTimeout(clickTimeoutRef.current);
-			clickTimeoutRef.current = null;
-		}
+	const handleClick = useCallback(
+		(e: React.MouseEvent) => {
+			const openInNewTab = e.metaKey || e.ctrlKey ? true : undefined;
 
-		clickTimeoutRef.current = setTimeout(() => {
-			clickTimeoutRef.current = null;
-			onClick();
-		}, 300);
-	}, [onClick]);
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+
+			clickTimeoutRef.current = setTimeout(() => {
+				clickTimeoutRef.current = null;
+				onClick(openInNewTab);
+			}, 300);
+		},
+		[onClick],
+	);
 
 	const handleDoubleClick = useCallback(
 		(e: React.MouseEvent) => {

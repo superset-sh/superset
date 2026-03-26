@@ -8,7 +8,7 @@ interface FileListGroupedProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -66,7 +66,7 @@ function groupFilesByFolder(files: ChangedFile[]): FolderGroup[] {
 interface FolderGroupItemProps {
 	group: FolderGroup;
 	selectedFile: ChangedFile | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -151,7 +151,7 @@ function FolderGroupItem({
 					key={file.path}
 					file={file}
 					isSelected={selectedFile?.path === file.path}
-					onClick={() => onFileSelect(file)}
+					onClick={(openInNewTab) => onFileSelect(file, openInNewTab)}
 					showStats={showStats}
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}

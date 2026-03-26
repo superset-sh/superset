@@ -41,10 +41,12 @@ import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
+	/** Called when a file is selected. Receives `openInNewTab` when cmd/ctrl+click requests a new pinned tab. */
 	onFileOpen?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
+		openInNewTab?: boolean,
 	) => void;
 	isExpandedView?: boolean;
 	isActive?: boolean;
@@ -473,7 +475,11 @@ export function ChangesView({
 		[status?.unstaged, status?.untracked],
 	);
 
-	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
+	const handleFileSelect = (
+		file: ChangedFile,
+		category: ChangeCategory,
+		openInNewTab?: boolean,
+	) => {
 		if (!workspaceId || !worktreePath) return;
 		selectFile(
 			workspaceId,
@@ -482,10 +488,14 @@ export function ChangesView({
 			category,
 			null,
 		);
-		onFileOpen?.(file, category);
+		onFileOpen?.(file, category, undefined, openInNewTab);
 	};
 
-	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
+	const handleCommitFileSelect = (
+		file: ChangedFile,
+		commitHash: string,
+		openInNewTab?: boolean,
+	) => {
 		if (!workspaceId || !worktreePath) return;
 		selectFile(
 			workspaceId,
@@ -494,7 +504,7 @@ export function ChangesView({
 			"committed",
 			commitHash,
 		);
-		onFileOpen?.(file, "committed", commitHash);
+		onFileOpen?.(file, "committed", commitHash, openInNewTab);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -602,13 +612,13 @@ export function ChangesView({
 		projectId,
 		isExpandedView,
 		againstBaseFiles,
-		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
+		onAgainstBaseFileSelect: (file, openInNewTab) => handleFileSelect(file, "against-base", openInNewTab),
 		commitsWithFiles,
 		expandedCommits,
 		onCommitToggle: handleCommitToggle,
 		onCommitFileSelect: handleCommitFileSelect,
 		stagedFiles,
-		onStagedFileSelect: (file) => handleFileSelect(file, "staged"),
+		onStagedFileSelect: (file, openInNewTab) => handleFileSelect(file, "staged", openInNewTab),
 		onUnstageFile: (file) =>
 			unstageFileMutation.mutate({
 				worktreePath: worktreePath || "",
@@ -632,7 +642,7 @@ export function ChangesView({
 			unstageAllMutation.isPending ||
 			discardAllStagedMutation.isPending,
 		unstagedFiles: combinedUnstaged,
-		onUnstagedFileSelect: (file) => handleFileSelect(file, "unstaged"),
+		onUnstagedFileSelect: (file, openInNewTab) => handleFileSelect(file, "unstaged", openInNewTab),
 		onStageFile: (file) =>
 			stageFileMutation.mutate({
 				worktreePath: worktreePath || "",

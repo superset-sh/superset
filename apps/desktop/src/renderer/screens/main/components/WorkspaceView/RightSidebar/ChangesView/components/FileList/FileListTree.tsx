@@ -33,7 +33,7 @@ interface FileListTreeProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -106,7 +106,7 @@ interface TreeNodeComponentProps {
 	level?: number;
 	selectedPath: string | null;
 	selectedCommitHash: string | null;
-	onFileSelect: (file: ChangedFile) => void;
+	onFileSelect: (file: ChangedFile, openInNewTab?: boolean) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -227,7 +227,7 @@ function TreeNodeComponent({
 			<FileItem
 				file={file}
 				isSelected={isSelected}
-				onClick={() => onFileSelect(file)}
+				onClick={(openInNewTab) => onFileSelect(file, openInNewTab)}
 				showStats={showStats}
 				level={level}
 				onStage={onStage ? () => onStage(file) : undefined}
