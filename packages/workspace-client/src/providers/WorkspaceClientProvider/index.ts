@@ -1,6 +1,7 @@
 export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
+	useWorkspaceSessionToken,
 	type WorkspaceClientContextValue,
 	WorkspaceClientProvider,
 	type WorkspaceFsSubscriptionInput,

@@ -36,9 +36,10 @@ export function V2WorkspaceOpenInButton({
 		[collections, deviceInfo?.deviceId, workspace?.organizationId],
 	);
 	const currentDevice = currentDevices[0] ?? null;
-	const hostUrl = workspace
-		? (services.get(workspace.organizationId)?.url ?? null)
+	const localHostService = workspace
+		? (services.get(workspace.organizationId) ?? null)
 		: null;
+	const hostUrl = localHostService?.url ?? null;
 	const isLocalWorkspace =
 		Boolean(workspace) && workspace.deviceId === currentDevice?.id;
 
@@ -51,6 +52,7 @@ export function V2WorkspaceOpenInButton({
 			branch={workspace.branch}
 			hostUrl={hostUrl}
 			projectId={workspace.projectId}
+			sessionToken={localHostService?.sessionToken ?? null}
 			workspaceId={workspace.id}
 		/>
 	);

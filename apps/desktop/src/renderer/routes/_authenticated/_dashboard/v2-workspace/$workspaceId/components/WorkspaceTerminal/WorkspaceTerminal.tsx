@@ -3,7 +3,10 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useWorkspaceHostUrl } from "../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import {
+	useWorkspaceHostUrl,
+	useWorkspaceSessionToken,
+} from "../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 
 interface WorkspaceTerminalProps {
 	workspaceId: string;
@@ -26,6 +29,7 @@ type TerminalServerMessage =
 
 export function WorkspaceTerminal({ workspaceId }: WorkspaceTerminalProps) {
 	const hostUrl = useWorkspaceHostUrl();
+	const sessionToken = useWorkspaceSessionToken();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [connectionState, setConnectionState] = useState<
 		"connecting" | "open" | "closed"
@@ -36,8 +40,11 @@ export function WorkspaceTerminal({ workspaceId }: WorkspaceTerminalProps) {
 		const url = new URL(`/terminal/${workspaceId}`, hostUrl);
 		url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 		url.searchParams.set("reconnect", String(reconnectKey));
+		if (sessionToken) {
+			url.searchParams.set("sessionToken", sessionToken);
+		}
 		return url.toString();
-	}, [hostUrl, reconnectKey, workspaceId]);
+	}, [hostUrl, reconnectKey, sessionToken, workspaceId]);
 
 	useEffect(() => {
 		const container = containerRef.current;

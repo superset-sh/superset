@@ -6,6 +6,7 @@ interface V2OpenInMenuButtonProps {
 	branch: string;
 	hostUrl: string;
 	projectId: string;
+	sessionToken: string | null;
 	workspaceId: string;
 }
 
@@ -13,12 +14,16 @@ export function V2OpenInMenuButton({
 	branch,
 	hostUrl,
 	projectId,
+	sessionToken,
 	workspaceId,
 }: V2OpenInMenuButtonProps) {
 	const workspaceQuery = useQuery({
-		queryKey: ["v2-open-in-workspace", hostUrl, workspaceId],
+		queryKey: ["v2-open-in-workspace", hostUrl, sessionToken, workspaceId],
 		queryFn: () =>
-			getHostServiceClientByUrl(hostUrl).workspace.get.query({
+			getHostServiceClientByUrl(
+				hostUrl,
+				sessionToken ?? undefined,
+			).workspace.get.query({
 				id: workspaceId,
 			}),
 	});

@@ -11,6 +11,7 @@ type HostServiceStatus = "starting" | "running" | "crashed";
 interface HostServiceProcess {
 	process: ChildProcess | null;
 	port: number | null;
+	sessionToken: string | null;
 	status: HostServiceStatus;
 	restartCount: number;
 	lastCrash?: number;
@@ -91,6 +92,10 @@ export class HostServiceManager {
 		return this.instances.get(organizationId)?.port ?? null;
 	}
 
+	getSessionToken(organizationId: string): string | null {
+		return this.instances.get(organizationId)?.sessionToken ?? null;
+	}
+
 	getStatus(organizationId: string): HostServiceStatus | null {
 		if (this.pendingStarts.has(organizationId)) {
 			return "starting";
@@ -103,6 +108,7 @@ export class HostServiceManager {
 		const instance: HostServiceProcess = {
 			process: null,
 			port: null,
+			sessionToken: null,
 			status: "starting",
 			restartCount: 0,
 			organizationId,
@@ -233,17 +239,20 @@ export class HostServiceManager {
 				message === null ||
 				!("type" in message) ||
 				!("port" in message) ||
+				!("sessionToken" in message) ||
 				message.type !== "ready" ||
-				typeof message.port !== "number"
+				typeof message.port !== "number" ||
+				typeof message.sessionToken !== "string"
 			) {
 				return;
 			}
 
 			this.clearPendingStart(instance.organizationId, pendingStart);
 			instance.port = message.port;
+			instance.sessionToken = message.sessionToken;
 			instance.status = "running";
 			console.log(
-				`[host-service:${instance.organizationId}] listening on port ${message.port}`,
+				`[host-service:${instance.organizationId}] listening on port ${message.port} with secure session token`,
 			);
 			pendingStart.resolve(message.port);
 		};
@@ -254,7 +263,7 @@ export class HostServiceManager {
 			this.failStartup(
 				instance,
 				pendingStart,
-				new Error("Timeout waiting for host-service port"),
+				new Error("Timeout waiting for host-service port and session token"),
 			);
 		}, 10_000);
 	}

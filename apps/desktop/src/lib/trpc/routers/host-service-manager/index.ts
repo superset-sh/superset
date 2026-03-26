@@ -16,7 +16,8 @@ export const createHostServiceManagerRouter = () => {
 				}
 				manager.setCloudApiUrl(env.NEXT_PUBLIC_API_URL);
 				const port = await manager.start(input.organizationId);
-				return { port };
+				const sessionToken = manager.getSessionToken(input.organizationId);
+				return { port, sessionToken };
 			}),
 
 		getStatus: publicProcedure

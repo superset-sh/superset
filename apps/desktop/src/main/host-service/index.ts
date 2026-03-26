@@ -4,9 +4,10 @@
  * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/host-service.js
  *
  * Starts the host-service HTTP server on a random local port.
- * The parent Electron process reads the port from the IPC channel.
+ * The parent Electron process reads the port and session token from the IPC channel.
  */
 
+import { randomBytes } from "node:crypto";
 import { serve } from "@hono/node-server";
 import {
 	createApp,
@@ -23,6 +24,10 @@ const deviceName = process.env.DEVICE_NAME;
 const auth =
 	authToken && cloudApiUrl ? new JwtAuthProvider(authToken) : undefined;
 
+// Generate a cryptographically secure session token
+// This token must be sent with every request to prevent unauthorized access
+const sessionToken = randomBytes(32).toString("hex");
+
 const { app, injectWebSocket } = createApp({
 	credentials: new LocalGitCredentialProvider(),
 	auth,
@@ -30,12 +35,14 @@ const { app, injectWebSocket } = createApp({
 	dbPath,
 	deviceClientId,
 	deviceName,
+	sessionToken,
 });
 
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
 	(info: { port: number }) => {
-		process.send?.({ type: "ready", port: info.port });
+		// Send both port and session token to parent Electron process
+		process.send?.({ type: "ready", port: info.port, sessionToken });
 	},
 );
 injectWebSocket(server);

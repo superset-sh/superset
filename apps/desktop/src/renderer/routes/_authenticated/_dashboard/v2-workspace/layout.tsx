@@ -49,9 +49,10 @@ function V2WorkspaceLayout() {
 		[collections, deviceInfo?.deviceId, workspace?.organizationId],
 	);
 	const currentDevice = currentDevices[0] ?? null;
-	const localHostUrl = workspace
-		? (services.get(workspace.organizationId)?.url ?? null)
+	const localHostService = workspace
+		? (services.get(workspace.organizationId) ?? null)
 		: null;
+	const localHostUrl = localHostService?.url ?? null;
 	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
 	const hostUrl =
 		!workspace || shouldWaitForDeviceInfo
@@ -59,6 +60,12 @@ function V2WorkspaceLayout() {
 			: workspace.deviceId === currentDevice?.id
 				? localHostUrl
 				: getWorkspaceHostUrlForWorkspace(workspace.id);
+	const sessionToken =
+		!workspace || shouldWaitForDeviceInfo
+			? null
+			: workspace.deviceId === currentDevice?.id
+				? (localHostService?.sessionToken ?? null)
+				: null;
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -91,8 +98,9 @@ function V2WorkspaceLayout() {
 	return (
 		<WorkspaceTrpcProvider
 			cacheKey={workspace.id}
-			key={`${workspace.id}:${hostUrl}`}
+			key={`${workspace.id}:${hostUrl}:${sessionToken ?? ""}`}
 			hostUrl={hostUrl}
+			sessionToken={sessionToken}
 		>
 			<Outlet />
 		</WorkspaceTrpcProvider>

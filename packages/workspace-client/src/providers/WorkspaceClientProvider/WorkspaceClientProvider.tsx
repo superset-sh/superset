@@ -18,6 +18,7 @@ export interface WorkspaceFsSubscriptionInput {
 
 export interface WorkspaceClientContextValue {
 	hostUrl: string;
+	sessionToken: string | null;
 	queryClient: QueryClient;
 	subscribeToWorkspaceFsEvents: (
 		input: WorkspaceFsSubscriptionInput,
@@ -27,6 +28,7 @@ export interface WorkspaceClientContextValue {
 interface WorkspaceClientProviderProps {
 	cacheKey: string;
 	hostUrl: string;
+	sessionToken?: string | null;
 	children: ReactNode;
 }
 
@@ -41,9 +43,13 @@ const WorkspaceClientContext =
 function toWorkspaceFilesystemEventsUrl(
 	hostUrl: string,
 	workspaceId: string,
+	sessionToken?: string | null,
 ): string {
 	const url = new URL(buildWorkspaceFilesystemEventsPath(workspaceId), hostUrl);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+	if (sessionToken) {
+		url.searchParams.set("sessionToken", sessionToken);
+	}
 	return url.toString();
 }
 
@@ -54,10 +60,11 @@ function toSubscriptionError(message: string, event?: CloseEvent): Error {
 
 function createWorkspaceFsSubscription(
 	hostUrl: string,
+	sessionToken: string | null,
 	input: WorkspaceFsSubscriptionInput,
 ): () => void {
 	const socket = new WebSocket(
-		toWorkspaceFilesystemEventsUrl(hostUrl, input.workspaceId),
+		toWorkspaceFilesystemEventsUrl(hostUrl, input.workspaceId, sessionToken),
 	);
 	let disposed = false;
 	let opened = false;
@@ -124,8 +131,9 @@ function createWorkspaceFsSubscription(
 function getWorkspaceClients(
 	cacheKey: string,
 	hostUrl: string,
+	sessionToken: string | null,
 ): WorkspaceClients {
-	const clientKey = `${cacheKey}:${hostUrl}`;
+	const clientKey = `${cacheKey}:${hostUrl}:${sessionToken ?? ""}`;
 	const cached = workspaceClientsCache.get(clientKey);
 	if (cached) {
 		return cached;
@@ -147,16 +155,23 @@ function getWorkspaceClients(
 			httpBatchLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
+				headers: () =>
+					sessionToken
+						? {
+								Authorization: `Bearer ${sessionToken}`,
+							}
+						: {},
 			}),
 		],
 	});
 
 	const clients: WorkspaceClients = {
 		hostUrl,
+		sessionToken,
 		queryClient,
 		trpcClient,
 		subscribeToWorkspaceFsEvents(input) {
-			return createWorkspaceFsSubscription(hostUrl, input);
+			return createWorkspaceFsSubscription(hostUrl, sessionToken, input);
 		},
 	};
 	workspaceClientsCache.set(clientKey, clients);
@@ -166,11 +181,13 @@ function getWorkspaceClients(
 export function WorkspaceClientProvider({
 	cacheKey,
 	hostUrl,
+	sessionToken = null,
 	children,
 }: WorkspaceClientProviderProps) {
-	const clients = getWorkspaceClients(cacheKey, hostUrl);
+	const clients = getWorkspaceClients(cacheKey, hostUrl, sessionToken);
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
+		sessionToken: clients.sessionToken,
 		queryClient: clients.queryClient,
 		subscribeToWorkspaceFsEvents: clients.subscribeToWorkspaceFsEvents,
 	};
@@ -202,4 +219,8 @@ export function useWorkspaceClient(): WorkspaceClientContextValue {
 
 export function useWorkspaceHostUrl(): string {
 	return useWorkspaceClient().hostUrl;
+}
+
+export function useWorkspaceSessionToken(): string | null {
+	return useWorkspaceClient().sessionToken;
 }
