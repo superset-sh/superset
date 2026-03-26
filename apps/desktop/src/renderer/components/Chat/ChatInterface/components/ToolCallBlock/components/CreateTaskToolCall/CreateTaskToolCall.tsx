@@ -1,7 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FilePlusIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { getArgs } from "../../../../utils/tool-helpers";
+import {
+	getToolResultData,
+	getToolResultObjectArray,
+} from "../../utils/getToolResultData";
 import {
 	formatTaskDate,
 	toRecord,
@@ -17,17 +21,8 @@ interface CreateTaskToolCallProps {
 export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 	const navigate = useNavigate();
 	const args = getArgs(part);
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
-	const created = Array.isArray(resultData.created)
-		? resultData.created.filter(
-				(item): item is Record<string, unknown> =>
-					typeof item === "object" && item !== null,
-			)
-		: [];
+	const resultData = getToolResultData(part);
+	const created = getToolResultObjectArray(resultData, "created");
 	const requestedTasks = Array.isArray(args.tasks)
 		? args.tasks
 				.map((task) => toRecord(task))

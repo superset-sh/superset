@@ -1,7 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FilePenIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { getArgs } from "../../../../utils/tool-helpers";
+import {
+	getToolResultData,
+	getToolResultObjectArray,
+} from "../../utils/getToolResultData";
 import {
 	formatTaskDate,
 	toRecord,
@@ -17,17 +21,8 @@ interface UpdateTaskToolCallProps {
 export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 	const navigate = useNavigate();
 	const args = getArgs(part);
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
-	const updated = Array.isArray(resultData.updated)
-		? resultData.updated.filter(
-				(item): item is Record<string, unknown> =>
-					typeof item === "object" && item !== null,
-			)
-		: [];
+	const resultData = getToolResultData(part);
+	const updated = getToolResultObjectArray(resultData, "updated");
 	const updates = Array.isArray(args.updates)
 		? args.updates
 				.map((update) => toRecord(update))

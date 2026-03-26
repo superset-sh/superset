@@ -5,7 +5,10 @@ import {
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getResult } from "../../../../utils/tool-helpers";
+import {
+	getToolResultData,
+	getToolResultObjectArray,
+} from "../../utils/getToolResultData";
 import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListTaskStatusesToolCallProps {
@@ -29,17 +32,8 @@ function normalizeStatusType(value: unknown): StatusType | null {
 export function ListTaskStatusesToolCall({
 	part,
 }: ListTaskStatusesToolCallProps) {
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
-	const statuses = Array.isArray(resultData.statuses)
-		? resultData.statuses.filter(
-				(item): item is Record<string, unknown> =>
-					typeof item === "object" && item !== null,
-			)
-		: [];
+	const resultData = getToolResultData(part);
+	const statuses = getToolResultObjectArray(resultData, "statuses");
 
 	return (
 		<SupersetToolCall

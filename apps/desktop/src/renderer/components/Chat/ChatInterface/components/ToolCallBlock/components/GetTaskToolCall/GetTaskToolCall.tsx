@@ -1,7 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FileSearchIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { getArgs } from "../../../../utils/tool-helpers";
+import { getToolResultData } from "../../utils/getToolResultData";
 import { formatTaskDate, toStringArray } from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
@@ -13,11 +14,7 @@ interface GetTaskToolCallProps {
 export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 	const navigate = useNavigate();
 	const args = getArgs(part);
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
+	const resultData = getToolResultData(part);
 	const task =
 		typeof resultData.task === "object" && resultData.task !== null
 			? (resultData.task as Record<string, unknown>)

@@ -1,6 +1,9 @@
 import { UsersIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getResult } from "../../../../utils/tool-helpers";
+import {
+	getToolResultData,
+	getToolResultObjectArray,
+} from "../../utils/getToolResultData";
 import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListMembersToolCallProps {
@@ -8,17 +11,8 @@ interface ListMembersToolCallProps {
 }
 
 export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
-	const members = Array.isArray(resultData.members)
-		? resultData.members.filter(
-				(item): item is Record<string, unknown> =>
-					typeof item === "object" && item !== null,
-			)
-		: [];
+	const resultData = getToolResultData(part);
+	const members = getToolResultObjectArray(resultData, "members");
 
 	return (
 		<SupersetToolCall

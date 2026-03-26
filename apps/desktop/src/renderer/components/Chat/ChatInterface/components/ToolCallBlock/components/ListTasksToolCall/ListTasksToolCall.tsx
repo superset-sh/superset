@@ -1,7 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getResult } from "../../../../utils/tool-helpers";
+import {
+	getToolResultData,
+	getToolResultObjectArray,
+} from "../../utils/getToolResultData";
 import { formatTaskDate, toStringArray } from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
@@ -12,17 +15,8 @@ interface ListTasksToolCallProps {
 
 export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 	const navigate = useNavigate();
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
-	const tasks = Array.isArray(resultData.tasks)
-		? resultData.tasks.filter(
-				(item): item is Record<string, unknown> =>
-					typeof item === "object" && item !== null,
-			)
-		: [];
+	const resultData = getToolResultData(part);
+	const tasks = getToolResultObjectArray(resultData, "tasks");
 	const count =
 		typeof resultData.count === "number"
 			? resultData.count
