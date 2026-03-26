@@ -1,5 +1,5 @@
 interface PRStatusBadgeProps {
-	state: "open" | "draft" | "merged" | "closed";
+	state: "open" | "draft" | "merged" | "closed" | "queued";
 }
 
 export function PRStatusBadge({ state }: PRStatusBadgeProps) {
@@ -8,6 +8,7 @@ export function PRStatusBadge({ state }: PRStatusBadgeProps) {
 		draft: "bg-muted text-muted-foreground",
 		merged: "bg-violet-500/15 text-violet-500",
 		closed: "bg-destructive/15 text-destructive-foreground",
+		queued: "bg-amber-500/15 text-amber-500",
 	};
 
 	const labels = {
@@ -15,6 +16,7 @@ export function PRStatusBadge({ state }: PRStatusBadgeProps) {
 		draft: "Draft",
 		merged: "Merged",
 		closed: "Closed",
+		queued: "Queued",
 	};
 
 	return (

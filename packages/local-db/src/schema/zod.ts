@@ -49,7 +49,7 @@ export const gitHubStatusSchema = z.object({
 			number: z.number(),
 			title: z.string(),
 			url: z.string(),
-			state: z.enum(["open", "draft", "merged", "closed"]),
+			state: z.enum(["open", "draft", "merged", "closed", "queued"]),
 			mergedAt: z.number().optional(),
 			additions: z.number(),
 			deletions: z.number(),

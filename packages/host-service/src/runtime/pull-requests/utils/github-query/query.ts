@@ -12,6 +12,9 @@ export const PULL_REQUESTS_QUERY = `
 					headRefOid
 					reviewDecision
 					updatedAt
+					mergeQueueEntry {
+						position
+					}
 					statusCheckRollup {
 						contexts(first: 50) {
 							nodes {

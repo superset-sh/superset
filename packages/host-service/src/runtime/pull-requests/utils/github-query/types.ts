@@ -36,6 +36,7 @@ export interface GraphQLPullRequestNode {
 	headRefOid: string;
 	reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
 	updatedAt: string;
+	mergeQueueEntry: { position: number } | null;
 	statusCheckRollup: {
 		contexts: {
 			nodes: GraphQLCheckContextNode[];
