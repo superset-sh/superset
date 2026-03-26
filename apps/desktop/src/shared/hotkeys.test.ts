@@ -134,16 +134,17 @@ describe("CLOSE_WORKSPACE hotkey", () => {
 	});
 
 	it("does not conflict with existing workspace hotkeys", () => {
-		const closeDefault = HOTKEYS.CLOSE_WORKSPACE.defaults.darwin;
+		const closeDefaults = HOTKEYS.CLOSE_WORKSPACE.defaults;
 		const workspaceHotkeys = Object.entries(HOTKEYS)
 			.filter(
 				([key, def]) =>
 					def.category === "Workspace" && key !== "CLOSE_WORKSPACE",
 			)
-			.map(([key, def]) => ({ key, darwin: def.defaults.darwin }));
+			.map(([key, def]) => ({ key, defaults: def.defaults }));
 
 		for (const hotkey of workspaceHotkeys) {
-			expect(hotkey.darwin).not.toBe(closeDefault);
+			expect(hotkey.defaults.darwin).not.toBe(closeDefaults.darwin);
+			expect(hotkey.defaults.linux).not.toBe(closeDefaults.linux);
 		}
 	});
 });

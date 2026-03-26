@@ -95,17 +95,25 @@ function DashboardLayout() {
 		[openNewWorkspaceModal, currentWorkspace?.projectId],
 	);
 
-	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState<{
+		workspaceId: string;
+		workspaceName: string;
+		workspaceType: "worktree" | "branch";
+	} | null>(null);
 
 	useAppHotkey(
 		"CLOSE_WORKSPACE",
 		() => {
-			if (currentWorkspaceId) {
-				setShowDeleteDialog(true);
+			if (currentWorkspaceId && currentWorkspace) {
+				setDeleteTarget({
+					workspaceId: currentWorkspaceId,
+					workspaceName: currentWorkspace.name,
+					workspaceType: currentWorkspace.type,
+				});
 			}
 		},
 		{ enabled: !!currentWorkspaceId },
-		[currentWorkspaceId],
+		[currentWorkspaceId, currentWorkspace],
 	);
 
 	return (
@@ -140,13 +148,15 @@ function DashboardLayout() {
 				<div className="flex flex-1 min-h-0 min-w-0">
 					<Outlet />
 				</div>
-				{currentWorkspaceId && currentWorkspace && (
+				{deleteTarget && (
 					<DeleteWorkspaceDialog
-						workspaceId={currentWorkspaceId}
-						workspaceName={currentWorkspace.name}
-						workspaceType={currentWorkspace.type}
-						open={showDeleteDialog}
-						onOpenChange={setShowDeleteDialog}
+						workspaceId={deleteTarget.workspaceId}
+						workspaceName={deleteTarget.workspaceName}
+						workspaceType={deleteTarget.workspaceType}
+						open={true}
+						onOpenChange={(open) => {
+							if (!open) setDeleteTarget(null);
+						}}
 					/>
 				)}
 			</div>
