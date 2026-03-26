@@ -137,6 +137,31 @@ export function createOnedevClient(config: OnedevConfig) {
 			};
 		},
 
+		async transitionIssueState(issueId: number, state: string): Promise<void> {
+			const res = await fetch(`${baseUrl}/~api/issues/${issueId}/state-transitions`, {
+				method: "POST",
+				headers: { ...headers, "Content-Type": "application/json" },
+				body: JSON.stringify({ state }),
+			});
+			if (!res.ok) {
+				console.warn(`[onedev] Failed to transition issue ${issueId} to ${state}: ${res.status}`);
+			}
+		},
+
+		async findReferencedOpenIssues(text: string, projectId: number): Promise<{ id: number; number: number }[]> {
+			const matches = new Set<number>();
+			const hashPattern = /#(\d+)/g;
+			const slugPattern = /\b[a-zA-Z]+-(\d+)\b/g;
+			let m: RegExpExecArray | null;
+			while ((m = hashPattern.exec(text)) !== null) matches.add(Number(m[1]));
+			while ((m = slugPattern.exec(text)) !== null) matches.add(Number(m[1]));
+			if (matches.size === 0) return [];
+			const allIssues = await apiGet<OnedevIssue[]>("/~api/issues?offset=0&count=100");
+			return allIssues
+				.filter((i) => i.projectId === projectId && matches.has(i.number) && i.state !== "Closed")
+				.map((i) => ({ id: i.id, number: i.number }));
+		},
+
 		async findAllPRsForBranch(sourceBranch: string): Promise<{ id: number; status: string; title: string }[]> {
 			const query = encodeURIComponent(`"Source Branch" is "${sourceBranch}"`);
 			const prs = await apiGet<OnedevPullRequest[]>(

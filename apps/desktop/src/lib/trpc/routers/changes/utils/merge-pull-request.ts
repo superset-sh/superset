@@ -51,6 +51,21 @@ export async function mergePullRequest({
 					throw new Error(`No PR found for branch "${branch}". Create a PR first using "Create Pull Request".`);
 				}
 				await client.mergePR(existingPR.id);
+
+				// Auto-transition referenced issues to Closed
+				try {
+					const referencedIssues = await client.findReferencedOpenIssues(
+						`${existingPR.title} ${branch}`,
+						projectInfo.id,
+					);
+					for (const issue of referencedIssues) {
+						await client.transitionIssueState(issue.id, "Closed");
+						console.log(`[merge] Closed issue #${issue.number} after PR merge`);
+					}
+				} catch (err) {
+					console.warn("[merge] Failed to auto-close issues:", err);
+				}
+
 				clearWorktreeStatusCaches(worktreePath);
 				return { success: true, mergedAt: new Date().toISOString() };
 			}
