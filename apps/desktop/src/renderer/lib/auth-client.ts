@@ -21,13 +21,17 @@ function parseAuthTokenExpiresAtMs(expiresAt: string | null): number | null {
 	return Number.isFinite(parsedExpiresAtMs) ? parsedExpiresAtMs : 0;
 }
 
+export function clearAuthTokenState() {
+	authToken = null;
+	authTokenExpiresAtMs = null;
+}
+
 function isAuthTokenExpired(): boolean {
 	return authTokenExpiresAtMs !== null && authTokenExpiresAtMs <= Date.now();
 }
 
 export function clearAuthState() {
-	authToken = null;
-	authTokenExpiresAtMs = null;
+	clearAuthTokenState();
 	jwt = null;
 }
 
@@ -36,7 +40,7 @@ export function setAuthToken(
 	expiresAt: string | null = null,
 ) {
 	if (!token) {
-		clearAuthState();
+		clearAuthTokenState();
 		return;
 	}
 

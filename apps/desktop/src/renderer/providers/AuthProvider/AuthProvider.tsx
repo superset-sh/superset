@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useEffectEvent, useState } from "react";
 import {
 	authClient,
 	clearAuthState,
+	clearAuthTokenState,
 	getAuthTokenExpiresAtMs,
 	setAuthToken,
 	setJwt,
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			expiresAt: string,
 			reason: string,
 		): Promise<boolean> => {
-			clearAuthState();
+			clearAuthTokenState();
 			setAuthToken(token, expiresAt);
 			const expiresAtMs = getAuthTokenExpiresAtMs();
 			if (expiresAtMs === null) {
@@ -93,9 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 
 			setAuthExpiresAtMs(expiresAtMs);
+			await refreshJwtFor(reason);
 			await syncHostServiceAuth(token, expiresAt, reason);
 			await refetchSessionFor(reason);
-			await refreshJwtFor(reason);
 			return true;
 		},
 	);
@@ -127,7 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {
-				clearAuthState();
 				setAuthExpiresAtMs(null);
 				await authClient.signOut({ fetchOptions: { throw: false } });
 				await applyStoredAuth(data.token, data.expiresAt, "after token change");
