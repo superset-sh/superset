@@ -231,13 +231,15 @@ When done: commit your changes. Do NOT push or create PRs.`;
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);
 
-			if (result.wasExisting && launchRequestTemplate) {
+			if (launchRequestTemplate) {
 				const launchRequest: AgentLaunchRequest = { ...launchRequestTemplate, workspaceId: result.workspace.id };
-				await launchAgentSession(launchRequest, {
-					source: "open-in-workspace",
-					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
-					write: (input) => terminalWrite.mutateAsync(input),
-				});
+				if (result.wasExisting) {
+					await launchAgentSession(launchRequest, {
+						source: "open-in-workspace",
+						createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
+						write: (input) => terminalWrite.mutateAsync(input),
+					});
+				}
 			}
 
 			// Transition to In Progress

@@ -496,8 +496,30 @@ export async function createWorktree(
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
 
-		// If branch already exists, reuse it instead of failing
+		// If branch or worktree already exists, reuse it instead of failing
 		if (lowerError.includes("already exists")) {
+			// Check if the worktree directory already exists and is valid
+			const worktreeAlreadySetUp = await isWorktreeRegistered({ mainRepoPath, worktreePath });
+			if (worktreeAlreadySetUp) {
+				console.log(
+					`Worktree at ${worktreePath} already exists and is registered, reusing`,
+				);
+				return;
+			}
+
+			// Worktree dir exists but is not registered — clean it up and retry
+			try {
+				const { rm } = await import("node:fs/promises");
+				await rm(worktreePath, { recursive: true, force: true }).catch(() => {});
+				// Also prune stale worktree entries
+				await execGitWithShellPath(
+					["-C", mainRepoPath, "worktree", "prune"],
+					{ timeout: 10_000 },
+				).catch(() => {});
+			} catch {
+				// ignore cleanup errors
+			}
+
 			console.log(
 				`Branch ${branch} already exists, reusing with createWorktreeFromExistingBranch`,
 			);

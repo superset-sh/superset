@@ -346,15 +346,15 @@ export function CommitInput({
 							</DropdownMenuItem>
 						) : null}
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={() => handleMergePR?.("squash")} className="text-xs">
+						<DropdownMenuItem onClick={() => hasExistingPR && handleMergePR?.("squash")} className={`text-xs ${!hasExistingPR ? "opacity-40 cursor-not-allowed" : ""}`}>
 							<VscGitMerge className="size-3.5" />
 							Squash & Merge
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => handleMergePR?.("merge")} className="text-xs">
+						<DropdownMenuItem onClick={() => hasExistingPR && handleMergePR?.("merge")} className={`text-xs ${!hasExistingPR ? "opacity-40 cursor-not-allowed" : ""}`}>
 							<VscGitMerge className="size-3.5" />
 							Merge Commit
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => handleMergePR?.("rebase")} className="text-xs">
+						<DropdownMenuItem onClick={() => hasExistingPR && handleMergePR?.("rebase")} className={`text-xs ${!hasExistingPR ? "opacity-40 cursor-not-allowed" : ""}`}>
 							<VscGitMerge className="size-3.5" />
 							Rebase & Merge
 						</DropdownMenuItem>
