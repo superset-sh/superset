@@ -822,6 +822,8 @@ export const createSettingsRouter = () => {
 					projectPath: z.string(),
 					title: z.string(),
 					description: z.string().optional(),
+					type: z.string().optional(),
+					priority: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -860,6 +862,22 @@ export const createSettingsRouter = () => {
 					);
 				}
 				const issueId = await response.json();
+
+				// Set Type and Priority if provided
+				if (input.type || input.priority) {
+					const fields: Record<string, string> = {};
+					if (input.type) fields.Type = input.type;
+					if (input.priority) fields.Priority = input.priority;
+					await fetch(`${baseUrl}/~api/issues/${issueId}/fields`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(fields),
+					});
+				}
+
 				return { issueId, projectId: project.id };
 			}),
 
@@ -1083,6 +1101,53 @@ export const createSettingsRouter = () => {
 		getTelemetryEnabled: publicProcedure.query(() => {
 			return true;
 		}),
+
+		getOnedevIssueComments: publicProcedure
+			.input(z.object({ issueId: z.number() }))
+			.query(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) return [];
+				try {
+					const res = await fetch(`${url}/~api/issues/${input.issueId}/comments`, {
+						headers: { Authorization: `Bearer ${accessToken}` },
+					});
+					if (!res.ok) return [];
+					return (await res.json()) as { id: number; content: string; date: string; userId: number }[];
+				} catch {
+					return [];
+				}
+			}),
+
+		createOnedevIssueComment: publicProcedure
+			.input(z.object({ issueId: z.number(), content: z.string() }))
+			.mutation(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) throw new Error("OneDev not configured");
+				// Get issue to find submitterId for the userId field
+				const issueRes = await fetch(`${url}/~api/issues/${input.issueId}`, {
+					headers: { Authorization: `Bearer ${accessToken}` },
+				});
+				if (!issueRes.ok) throw new Error("Failed to fetch issue");
+				const issue = (await issueRes.json()) as { submitterId: number };
+				const res = await fetch(`${url}/~api/issue-comments`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						issueId: input.issueId,
+						content: input.content,
+						userId: issue.submitterId,
+					}),
+				});
+				if (!res.ok) throw new Error(`Failed to create comment: ${res.status}`);
+				return { success: true };
+			}),
 
 		setTelemetryEnabled: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))

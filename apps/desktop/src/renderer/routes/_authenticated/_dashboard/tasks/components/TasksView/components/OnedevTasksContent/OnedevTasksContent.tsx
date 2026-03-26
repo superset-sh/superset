@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HiPlus } from "react-icons/hi2";
 import { VscIssues } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { IssueDetailSidebar } from "./IssueDetailSidebar";
 
 interface OnedevIssue {
 	id: number;
@@ -69,6 +70,8 @@ export function OnedevTasksContent({
 	const { data: onedevConfig } = electronTrpc.settings.getOnedevConfig.useQuery();
 	const { data: onedevProjectPaths, isLoading } = electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
 	const isConfigured = !!onedevConfig?.url && !!onedevConfig?.accessToken;
+	const [selectedIssue, setSelectedIssue] = useState<{ projectPath: string; issueNumber: number } | null>(null);
+	const [sidebarWidth, setSidebarWidth] = useState(320);
 
 	if (!isConfigured) {
 		return (
@@ -108,17 +111,32 @@ export function OnedevTasksContent({
 	}
 
 	return (
-		<div className="flex-1 overflow-hidden flex flex-col">
-			{onedevProjectPaths.map((path) => (
-				<OnedevProjectView
-					key={path}
-					projectPath={path}
-					searchQuery={searchQuery}
-					viewMode={viewMode}
-					allProjectPaths={onedevProjectPaths}
-					stateFilter={stateFilter}
+		<div className="flex-1 overflow-hidden flex">
+			<div className="flex-1 overflow-hidden flex flex-col min-w-0">
+				{onedevProjectPaths.map((path) => (
+					<OnedevProjectView
+						key={path}
+						projectPath={path}
+						searchQuery={searchQuery}
+						viewMode={viewMode}
+						allProjectPaths={onedevProjectPaths}
+						stateFilter={stateFilter}
+						onIssueClick={(num: number) =>
+							setSelectedIssue({ projectPath: path, issueNumber: num })
+						}
+					/>
+				))}
+			</div>
+			{selectedIssue !== null && (
+				<IssueDetailSidebar
+					key={`${selectedIssue.projectPath}-${String(selectedIssue.issueNumber)}`}
+					projectPath={selectedIssue.projectPath}
+					issueNumber={selectedIssue.issueNumber}
+					onClose={() => setSelectedIssue(null)}
+					width={sidebarWidth}
+					onWidthChange={setSidebarWidth}
 				/>
-			))}
+			)}
 		</div>
 	);
 }
@@ -129,12 +147,14 @@ function OnedevProjectView({
 	viewMode,
 	allProjectPaths,
 	stateFilter,
+	onIssueClick,
 }: {
 	projectPath: string;
 	searchQuery: string;
 	viewMode: "table" | "board";
 	allProjectPaths: string[];
 	stateFilter: StateFilter;
+	onIssueClick: (n: number) => void;
 }) {
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
@@ -204,9 +224,10 @@ function OnedevProjectView({
 					projectPath={projectPath}
 					navigate={navigate}
 					onStateChange={(id, state) => updateState.mutate({ issueId: id, state })}
+					onIssueClick={onIssueClick}
 				/>
 			) : (
-				<ListView issues={filteredIssues} projectKey={projectKey} projectPath={projectPath} navigate={navigate} />
+				<ListView issues={filteredIssues} projectKey={projectKey} projectPath={projectPath} navigate={navigate} onIssueClick={onIssueClick} />
 			)}
 			<CreateOnedevIssueDialog
 				open={isCreateOpen}
@@ -226,6 +247,7 @@ function KanbanBoard({
 	projectPath,
 	navigate,
 	onStateChange,
+	onIssueClick,
 }: {
 	issues: OnedevIssue[];
 	columns: readonly string[];
@@ -234,6 +256,7 @@ function KanbanBoard({
 	projectPath: string;
 	navigate: ReturnType<typeof useNavigate>;
 	onStateChange: (issueId: number, newState: string) => void;
+	onIssueClick: (n: number) => void;
 }) {
 	const [draggedIssue, setDraggedIssue] = useState<OnedevIssue | null>(null);
 
@@ -270,6 +293,7 @@ function KanbanBoard({
 							setDraggedIssue(null);
 						}}
 						navigate={navigate}
+						onIssueClick={onIssueClick}
 					/>
 				))}
 			</div>
@@ -286,6 +310,7 @@ function KanbanColumn({
 	onDragStart,
 	onDrop,
 	navigate,
+	onIssueClick,
 }: {
 	state: string;
 	issues: OnedevIssue[];
@@ -295,6 +320,7 @@ function KanbanColumn({
 	onDragStart: (issue: OnedevIssue) => void;
 	onDrop: (targetState: string) => void;
 	navigate: ReturnType<typeof useNavigate>;
+	onIssueClick: (n: number) => void;
 }) {
 	const [isDragOver, setIsDragOver] = useState(false);
 
@@ -345,12 +371,7 @@ function KanbanColumn({
 								e.dataTransfer.setData("text/plain", String(issue.id));
 								onDragStart(issue);
 							}}
-							onClick={() =>
-								navigate({
-									to: "/tasks/onedev/$projectPath/$issueNumber",
-									params: { projectPath: encodeURIComponent(projectPath), issueNumber: String(issue.number) },
-								})
-							}
+							onClick={() => onIssueClick(issue.number)}
 							className={`text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing ${
 								draggedIssue?.id === issue.id ? "opacity-50" : ""
 							}`}
@@ -375,11 +396,13 @@ function ListView({
 	projectKey,
 	projectPath,
 	navigate,
+	onIssueClick,
 }: {
 	issues: OnedevIssue[];
 	projectKey: string;
 	projectPath: string;
 	navigate: ReturnType<typeof useNavigate>;
+	onIssueClick: (n: number) => void;
 }) {
 	return (
 		<div className="flex-1 overflow-y-auto">
@@ -395,12 +418,7 @@ function ListView({
 								key={issue.id}
 								type="button"
 								className="group flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer w-full text-left"
-								onClick={() =>
-									navigate({
-										to: "/tasks/onedev/$projectPath/$issueNumber",
-										params: { projectPath: encodeURIComponent(projectPath), issueNumber: String(issue.number) },
-									})
-								}
+								onClick={() => onIssueClick(issue.number)}
 							>
 								<VscIssues className={`size-4 shrink-0 ${stateColor(issue.state)}`} />
 								<span className="text-xs text-muted-foreground tabular-nums shrink-0 w-20">{slug}</span>
@@ -429,6 +447,8 @@ export function CreateOnedevIssueDialog({
 }) {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
+	const [type, setType] = useState("Task");
+	const [priority, setPriority] = useState("Normal");
 	const [selectedProject, setSelectedProject] = useState(initialProject ?? projectPaths[0] ?? "");
 
 	useEffect(() => {
@@ -474,18 +494,38 @@ export function CreateOnedevIssueDialog({
 						autoFocus
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && title.trim()) {
-								createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined });
+								createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined, type, priority });
 							}
 						}}
 					/>
 					<Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+					<div className="flex gap-2">
+						<div className="flex-1">
+							<label className="text-xs text-muted-foreground mb-1 block">Type</label>
+							<select value={type} onChange={(e) => setType(e.target.value)} className="h-8 w-full rounded-md border bg-transparent px-2 text-sm">
+								<option value="Task">Task</option>
+								<option value="Bug">Bug</option>
+								<option value="New Feature">New Feature</option>
+								<option value="Improvement">Improvement</option>
+							</select>
+						</div>
+						<div className="flex-1">
+							<label className="text-xs text-muted-foreground mb-1 block">Priority</label>
+							<select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-8 w-full rounded-md border bg-transparent px-2 text-sm">
+								<option value="Normal">Normal</option>
+								<option value="Low">Low</option>
+								<option value="High">High</option>
+								<option value="Critical">Critical</option>
+							</select>
+						</div>
+					</div>
 				</div>
 				<DialogFooter>
 					<Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
 					<Button
 						size="sm"
 						disabled={!title.trim() || createIssue.isPending}
-						onClick={() => createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined })}
+						onClick={() => createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined, type, priority })}
 					>
 						{createIssue.isPending ? "Creating..." : "Create"}
 					</Button>
