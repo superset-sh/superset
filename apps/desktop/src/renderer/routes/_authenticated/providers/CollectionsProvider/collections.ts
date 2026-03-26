@@ -1,4 +1,4 @@
-import { snakeCamelMapper } from "@electric-sql/client";
+import { FetchError, snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectChatSession,
@@ -34,7 +34,12 @@ import {
 } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
-import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import {
+	authClient,
+	getAuthToken,
+	getJwt,
+	setJwt,
+} from "renderer/lib/auth-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -138,15 +143,65 @@ const electricHeaders = {
 	},
 };
 
+let electricJwtRefreshPromise: Promise<string | null> | null = null;
+
+async function refreshElectricJwt(): Promise<string | null> {
+	if (electricJwtRefreshPromise) {
+		return electricJwtRefreshPromise;
+	}
+
+	electricJwtRefreshPromise = (async () => {
+		try {
+			const res = await authClient.token();
+			const token = res.data?.token ?? null;
+			setJwt(token);
+			return token;
+		} catch (error) {
+			console.warn(
+				"[collections] Failed to refresh Electric JWT after collection auth error",
+				error,
+			);
+			setJwt(null);
+			return null;
+		} finally {
+			electricJwtRefreshPromise = null;
+		}
+	})();
+
+	return electricJwtRefreshPromise;
+}
+
+async function handleElectricShapeError(error: Error) {
+	if (!(error instanceof FetchError) || error.status !== 401) {
+		return;
+	}
+
+	const token = await refreshElectricJwt();
+	if (!token) {
+		return;
+	}
+
+	return {
+		headers: electricHeaders,
+	};
+}
+
+function createElectricShapeOptions<TParams extends Record<string, string>>(
+	params: TParams,
+) {
+	return {
+		url: electricUrl,
+		params,
+		headers: electricHeaders,
+		columnMapper,
+		onError: handleElectricShapeError,
+	};
+}
+
 const organizationsCollection = createCollection(
 	electricCollectionOptions<SelectOrganization>({
 		id: "organizations",
-		shapeOptions: {
-			url: electricUrl,
-			params: { table: "auth.organizations" },
-			headers: electricHeaders,
-			columnMapper,
-		},
+		shapeOptions: createElectricShapeOptions({ table: "auth.organizations" }),
 		getKey: (item) => item.id,
 	}),
 );
@@ -155,15 +210,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "tasks",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "tasks",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
 				const item = transaction.mutations[0].modified;
@@ -189,15 +239,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const taskStatuses = createCollection(
 		electricCollectionOptions<SelectTaskStatus>({
 			id: `task_statuses-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "task_statuses",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "task_statuses",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -205,15 +250,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const projects = createCollection(
 		electricCollectionOptions<SelectProject>({
 			id: `projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "projects",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -221,15 +261,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2Projects = createCollection(
 		electricCollectionOptions<SelectV2Project>({
 			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "v2_projects",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -237,15 +272,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2Devices = createCollection(
 		electricCollectionOptions<SelectV2Device>({
 			id: `v2_devices-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_devices",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "v2_devices",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -253,15 +283,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2DevicePresence = createCollection(
 		electricCollectionOptions<SelectV2DevicePresence>({
 			id: `v2_device_presence-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_device_presence",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "v2_device_presence",
+				organizationId,
+			}),
 			getKey: (item) => item.deviceId,
 		}),
 	);
@@ -269,15 +294,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2UsersDevices = createCollection(
 		electricCollectionOptions<SelectV2UsersDevices>({
 			id: `v2_users_devices-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_users_devices",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "v2_users_devices",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -285,15 +305,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2Workspaces = createCollection(
 		electricCollectionOptions<SelectV2Workspace>({
 			id: `v2_workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "v2_workspaces",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -301,15 +316,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const workspaces = createCollection(
 		electricCollectionOptions<SelectWorkspace>({
 			id: `workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "workspaces",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -317,15 +327,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const members = createCollection(
 		electricCollectionOptions<SelectMember>({
 			id: `members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.members",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "auth.members",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -333,15 +338,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const users = createCollection(
 		electricCollectionOptions<SelectUser>({
 			id: `users-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.users",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "auth.users",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -349,15 +349,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const invitations = createCollection(
 		electricCollectionOptions<SelectInvitation>({
 			id: `invitations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.invitations",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "auth.invitations",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -365,15 +360,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const agentCommands = createCollection(
 		electricCollectionOptions<SelectAgentCommand>({
 			id: `agent_commands-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "agent_commands",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "agent_commands",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
@@ -389,15 +379,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const devicePresence = createCollection(
 		electricCollectionOptions<SelectDevicePresence>({
 			id: `device_presence-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "device_presence",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "device_presence",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -405,15 +390,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const integrationConnections = createCollection(
 		electricCollectionOptions<IntegrationConnectionDisplay>({
 			id: `integration_connections-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "integration_connections",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "integration_connections",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -421,15 +401,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const subscriptions = createCollection(
 		electricCollectionOptions<SelectSubscription>({
 			id: `subscriptions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "subscriptions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "subscriptions",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -437,15 +412,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const apiKeys = createCollection(
 		electricCollectionOptions<ApiKeyDisplay>({
 			id: `apikeys-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.apikeys",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "auth.apikeys",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -453,15 +423,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const chatSessions = createCollection(
 		electricCollectionOptions<SelectChatSession>({
 			id: `chat_sessions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "chat_sessions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "chat_sessions",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -469,15 +434,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const sessionHosts = createCollection(
 		electricCollectionOptions<SelectSessionHost>({
 			id: `session_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "session_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "session_hosts",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -485,15 +445,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const githubRepositories = createCollection(
 		electricCollectionOptions<SelectGithubRepository>({
 			id: `github_repositories-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_repositories",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "github_repositories",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
@@ -501,15 +456,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const githubPullRequests = createCollection(
 		electricCollectionOptions<SelectGithubPullRequest>({
 			id: `github_pull_requests-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_pull_requests",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
+			shapeOptions: createElectricShapeOptions({
+				table: "github_pull_requests",
+				organizationId,
+			}),
 			getKey: (item) => item.id,
 		}),
 	);
