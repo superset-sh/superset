@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
@@ -36,6 +36,27 @@ interface ExecFileException extends Error {
 	cmd?: string;
 	stdout?: string;
 	stderr?: string;
+}
+
+/**
+ * Ensures a pattern exists in the .gitignore of a repo/worktree.
+ * Creates .gitignore if it doesn't exist.
+ */
+async function ensureGitignoreEntry(repoPath: string, pattern: string): Promise<void> {
+	const gitignorePath = join(repoPath, ".gitignore");
+	try {
+		const content = await readFile(gitignorePath, "utf-8").catch(() => "");
+		if (content.split("\n").some((line) => line.trim() === pattern)) {
+			return; // already present
+		}
+		const newContent = content.endsWith("\n") || content === ""
+			? `${content}# Superset workspace files\n${pattern}\n`
+			: `${content}\n\n# Superset workspace files\n${pattern}\n`;
+		await writeFile(gitignorePath, newContent, "utf-8");
+		console.log(`[gitignore] Added "${pattern}" to ${gitignorePath}`);
+	} catch (error) {
+		console.warn(`[gitignore] Failed to update ${gitignorePath}:`, error);
+	}
 }
 
 function isExecFileException(error: unknown): error is ExecFileException {
@@ -489,6 +510,9 @@ export async function createWorktree(
 			{ timeout: 10_000 },
 		);
 
+		// Ensure .superset/ is in .gitignore (Superset creates workspace files there)
+		await ensureGitignoreEntry(worktreePath, ".superset/");
+
 		console.log(
 			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
 		);
@@ -612,6 +636,8 @@ export async function createWorktreeFromExistingBranch({
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ timeout: 10_000 },
 		);
+
+		await ensureGitignoreEntry(worktreePath, ".superset/");
 
 		console.log(
 			`Created worktree at ${worktreePath} using existing branch ${branch}`,
