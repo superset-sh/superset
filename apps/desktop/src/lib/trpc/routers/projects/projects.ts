@@ -360,6 +360,71 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 			}),
 
+		searchPullRequests: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					query: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) return [];
+
+				try {
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						[
+							"pr",
+							"list",
+							"--search",
+							input.query,
+							"--limit",
+							"100",
+							"--json",
+							"number,title,url,state,isDraft",
+						],
+						{ cwd: project.mainRepoPath },
+					);
+					const raw: unknown = JSON.parse(stdout.trim() || "[]");
+					if (!Array.isArray(raw)) return [];
+					return raw
+						.filter(
+							(
+								item: unknown,
+							): item is {
+								number: number;
+								title: string;
+								url: string;
+								state: string;
+								isDraft: boolean;
+							} =>
+								typeof item === "object" &&
+								item !== null &&
+								"number" in item &&
+								"title" in item &&
+								"url" in item,
+						)
+						.map((pr) => ({
+							prNumber: pr.number,
+							title: pr.title,
+							url: pr.url,
+							state: pr.isDraft
+								? "draft"
+								: pr.state === "OPEN"
+									? "open"
+									: pr.state.toLowerCase(),
+						}));
+				} catch (err) {
+					console.warn("[searchPullRequests] Failed to search PRs:", err);
+					return [];
+				}
+			}),
+
 		listIssues: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(async ({ input }) => {
