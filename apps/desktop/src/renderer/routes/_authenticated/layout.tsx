@@ -17,7 +17,7 @@ import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { authClient, hasAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
@@ -47,7 +47,7 @@ function AuthenticatedLayout() {
 		isRefetching,
 		refetch,
 	} = authClient.useSession();
-	const hasLocalToken = !!getAuthToken();
+	const hasLocalToken = hasAuthToken();
 	const isOnline = useOnlineStatus();
 	const navigate = useNavigate();
 	const location = useLocation();

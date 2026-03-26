@@ -58,6 +58,18 @@ export class HostServiceManager {
 		this.cloudApiUrl = url;
 	}
 
+	syncAuth(token: string | null, cloudApiUrl: string | null): void {
+		const changed =
+			this.authToken !== token || this.cloudApiUrl !== cloudApiUrl;
+
+		this.authToken = token;
+		this.cloudApiUrl = cloudApiUrl;
+
+		if (changed) {
+			this.stopAll();
+		}
+	}
+
 	async start(organizationId: string): Promise<number> {
 		const existing = this.instances.get(organizationId);
 		if (existing?.status === "running" && existing.port !== null) {

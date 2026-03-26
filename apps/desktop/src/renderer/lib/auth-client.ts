@@ -10,13 +10,64 @@ import { createAuthClient } from "better-auth/react";
 import { env } from "renderer/env.renderer";
 
 let authToken: string | null = null;
+let authTokenExpiresAtMs: number | null = null;
 
-export function setAuthToken(token: string | null) {
+function parseAuthTokenExpiresAtMs(expiresAt: string | null): number | null {
+	if (!expiresAt) {
+		return null;
+	}
+
+	const parsedExpiresAtMs = new Date(expiresAt).getTime();
+	return Number.isFinite(parsedExpiresAtMs) ? parsedExpiresAtMs : 0;
+}
+
+export function clearAuthTokenState() {
+	authToken = null;
+	authTokenExpiresAtMs = null;
+}
+
+function isAuthTokenExpired(): boolean {
+	return authTokenExpiresAtMs !== null && authTokenExpiresAtMs <= Date.now();
+}
+
+export function clearAuthState() {
+	clearAuthTokenState();
+	jwt = null;
+}
+
+export function setAuthToken(
+	token: string | null,
+	expiresAt: string | null = null,
+) {
+	if (!token) {
+		clearAuthTokenState();
+		return;
+	}
+
 	authToken = token;
+	authTokenExpiresAtMs = parseAuthTokenExpiresAtMs(expiresAt);
+	if (isAuthTokenExpired()) {
+		clearAuthState();
+	}
 }
 
 export function getAuthToken(): string | null {
+	if (isAuthTokenExpired()) {
+		clearAuthState();
+		return null;
+	}
 	return authToken;
+}
+
+export function hasAuthToken(): boolean {
+	return getAuthToken() !== null;
+}
+
+export function getAuthTokenExpiresAtMs(): number | null {
+	if (!getAuthToken()) {
+		return null;
+	}
+	return authTokenExpiresAtMs;
 }
 
 let jwt: string | null = null;
