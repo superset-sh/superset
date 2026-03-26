@@ -1154,6 +1154,66 @@ export const createSettingsRouter = () => {
 				}
 			}),
 
+		getOnedevRecentCommits: publicProcedure
+			.input(z.object({ projectPath: z.string() }))
+			.query(async ({ input }) => {
+				const { projects } = await import("@superset/local-db");
+				const allProjects = localDb.select().from(projects).all();
+				// Find matching project by checking git remote
+				for (const project of allProjects) {
+					try {
+						const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+						const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+						const remotes = await git.getRemotes(true);
+						const origin = remotes.find((r) => r.name === "origin");
+						if (!origin?.refs?.fetch?.includes(input.projectPath)) continue;
+						const log = await git.log({ maxCount: 5 });
+						return log.all.map((c) => ({
+							hash: c.hash.slice(0, 7),
+							message: c.message,
+							author: c.author_name,
+							date: c.date,
+						}));
+					} catch {
+						continue;
+					}
+				}
+				return [];
+			}),
+
+		getOnedevPullRequests: publicProcedure
+			.input(z.object({ projectPath: z.string() }))
+			.query(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) return [];
+				try {
+					const { createOnedevClient } = await import("../changes/utils/onedev-api");
+					const client = createOnedevClient({ url, accessToken });
+					const project = await client.getProjectByPath(input.projectPath);
+					if (!project) return [];
+					const res = await fetch(`${url}/~api/pulls?offset=0&count=10`, {
+						headers: { Authorization: `Bearer ${accessToken}` },
+					});
+					if (!res.ok) return [];
+					const pulls = (await res.json()) as { id: number; number: number; title: string; sourceBranch: string; targetBranch: string; status: string; submitDate: string; projectId: number }[];
+					return pulls
+						.filter((p) => p.projectId === project.id)
+						.map((p) => ({
+							id: p.id,
+							number: p.number,
+							title: p.title,
+							sourceBranch: p.sourceBranch,
+							status: p.status,
+							submitDate: p.submitDate,
+							url: `${url}/${input.projectPath}/~pulls/${p.id}`,
+						}));
+				} catch {
+					return [];
+				}
+			}),
+
 		getOnedevUsers: publicProcedure.query(async () => {
 				const row = getSettings();
 				const url = row.onedevUrl;
