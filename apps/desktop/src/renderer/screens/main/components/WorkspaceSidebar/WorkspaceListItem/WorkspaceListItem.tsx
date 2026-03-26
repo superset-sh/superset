@@ -462,7 +462,7 @@ export function WorkspaceListItem({
 				onCopyPath={handleCopyPath}
 				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
 				onResetStatus={() => resetWorkspaceStatus(id)}
-				onClose={handleDeleteClick}
+				onDelete={handleDeleteClick}
 			>
 				{content}
 			</WorkspaceContextMenu>
