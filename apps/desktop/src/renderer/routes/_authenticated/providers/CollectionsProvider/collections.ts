@@ -172,18 +172,28 @@ async function refreshElectricJwt(): Promise<string | null> {
 }
 
 async function handleElectricShapeError(error: Error) {
-	if (!(error instanceof FetchError) || error.status !== 401) {
+	if (error instanceof FetchError) {
+		if (error.status === 401) {
+			const token = await refreshElectricJwt();
+			if (!token) {
+				return;
+			}
+
+			return {
+				headers: electricHeaders,
+			};
+		}
+
+		if (error.status === 429 || error.status >= 500) {
+			return {};
+		}
+
 		return;
 	}
 
-	const token = await refreshElectricJwt();
-	if (!token) {
-		return;
+	if (error.name === "FetchBackoffAbortError") {
+		return {};
 	}
-
-	return {
-		headers: electricHeaders,
-	};
 }
 
 function createElectricShapeOptions<TParams extends Record<string, string>>(
