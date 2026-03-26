@@ -1,3 +1,7 @@
+/**
+ * GraphQL query that fetches the latest 100 pull requests for a given repository.
+ * Includes PR metadata, review decisions, merge queue status, and CI check results.
+ */
 export const PULL_REQUESTS_QUERY = `
 	query PullRequestsForSidebar($owner: String!, $repo: String!) {
 		repository(owner: $owner, name: $repo) {

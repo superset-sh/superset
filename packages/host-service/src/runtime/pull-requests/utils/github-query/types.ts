@@ -1,3 +1,4 @@
+/** Represents a GitHub Actions check run node returned by the GraphQL API. */
 export interface GraphQLCheckRunNode {
 	__typename: "CheckRun";
 	name: string;
@@ -13,6 +14,7 @@ export interface GraphQLCheckRunNode {
 	} | null;
 }
 
+/** Represents a commit status context node returned by the GraphQL API. */
 export interface GraphQLStatusContextNode {
 	__typename: "StatusContext";
 	context: string;
@@ -21,11 +23,13 @@ export interface GraphQLStatusContextNode {
 	createdAt: string | null;
 }
 
+/** Union of possible check context nodes - either a CheckRun, a StatusContext, or null. */
 export type GraphQLCheckContextNode =
 	| GraphQLCheckRunNode
 	| GraphQLStatusContextNode
 	| null;
 
+/** Shape of a single pull request node as returned by the GitHub GraphQL API. */
 export interface GraphQLPullRequestNode {
 	number: number;
 	title: string;
@@ -44,6 +48,7 @@ export interface GraphQLPullRequestNode {
 	} | null;
 }
 
+/** Top-level shape of the GraphQL response for the pull requests query. */
 export interface PullRequestsGraphQLResult {
 	repository?: {
 		pullRequests?: {

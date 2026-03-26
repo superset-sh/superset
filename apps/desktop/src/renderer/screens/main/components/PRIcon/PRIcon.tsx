@@ -1,8 +1,10 @@
 import { cn } from "@superset/ui/utils";
 import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
 
+/** Possible visual states for a pull request icon. Includes "queued" for merge queue entries. */
 export type PRState = "open" | "merged" | "closed" | "draft" | "queued";
 
+/** Props accepted by the {@link PRIcon} component. */
 interface PRIconProps {
 	state: PRState;
 	className?: string;

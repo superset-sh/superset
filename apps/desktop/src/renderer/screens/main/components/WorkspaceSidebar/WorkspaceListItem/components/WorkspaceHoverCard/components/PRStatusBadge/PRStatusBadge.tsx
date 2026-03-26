@@ -1,7 +1,9 @@
+/** Props accepted by the {@link PRStatusBadge} component. */
 interface PRStatusBadgeProps {
 	state: "open" | "draft" | "merged" | "closed" | "queued";
 }
 
+/** Renders a small coloured badge showing the current pull request state label (e.g. "Open", "Queued"). */
 export function PRStatusBadge({ state }: PRStatusBadgeProps) {
 	const styles = {
 		open: "bg-emerald-500/15 text-emerald-500",

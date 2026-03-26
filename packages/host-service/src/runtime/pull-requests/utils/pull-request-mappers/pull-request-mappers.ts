@@ -3,21 +3,30 @@ import type {
 	GraphQLPullRequestNode,
 } from "../github-query";
 
+/** Normalized pull request state used across the application. Includes "queued" for PRs that are in a merge queue. */
 export type PullRequestState = "open" | "draft" | "merged" | "closed" | "queued";
+/** Normalized review decision value. Null means no review decision is available. */
 export type ReviewDecision =
 	| "approved"
 	| "changes_requested"
 	| "pending"
 	| null;
+/** Aggregated status of all CI checks on a pull request. "none" when there are no checks at all. */
 export type ChecksStatus = "success" | "failure" | "pending" | "none";
 type CheckStatus = "success" | "failure" | "pending" | "skipped" | "cancelled";
 
+/** Single CI check associated with a pull request, combining CheckRun and StatusContext into one shape. */
 export interface PullRequestCheck {
 	name: string;
 	status: CheckStatus;
 	url: string | null;
 }
 
+/**
+ * Maps the raw GitHub PR state into a normalized {@link PullRequestState}.
+ * When {@link mergeQueueEntry} is present the PR is considered "queued",
+ * which takes priority over the regular "open" state.
+ */
 export function mapPullRequestState(
 	state: GraphQLPullRequestNode["state"],
 	isDraft: boolean,
@@ -30,6 +39,7 @@ export function mapPullRequestState(
 	return "open";
 }
 
+/** Converts a GitHub GraphQL review decision value into a normalized lowercase form. */
 export function mapReviewDecision(
 	value: GraphQLPullRequestNode["reviewDecision"],
 ): ReviewDecision {
@@ -39,6 +49,10 @@ export function mapReviewDecision(
 	return null;
 }
 
+/**
+ * Parses raw GraphQL check context nodes into a deduplicated list of {@link PullRequestCheck}.
+ * When the same check name appears more than once, only the most recent run is kept.
+ */
 export function parseCheckContexts(
 	nodes: GraphQLCheckContextNode[],
 ): PullRequestCheck[] {
@@ -82,6 +96,7 @@ export function parseCheckContexts(
 	);
 }
 
+/** Derives an aggregated {@link ChecksStatus} from a list of individual checks. */
 export function computeChecksStatus(checks: PullRequestCheck[]): ChecksStatus {
 	if (checks.length === 0) return "none";
 	if (checks.some((check) => check.status === "failure")) return "failure";
@@ -89,6 +104,7 @@ export function computeChecksStatus(checks: PullRequestCheck[]): ChecksStatus {
 	return "success";
 }
 
+/** Safely coerces an arbitrary string into a valid {@link PullRequestState}, defaulting to "open". */
 export function coercePullRequestState(value: string | null): PullRequestState {
 	if (value === "merged" || value === "closed" || value === "draft" || value === "queued") {
 		return value;
@@ -96,6 +112,7 @@ export function coercePullRequestState(value: string | null): PullRequestState {
 	return "open";
 }
 
+/** Safely coerces an arbitrary string into a valid {@link ReviewDecision}, defaulting to null. */
 export function coerceReviewDecision(value: string | null): ReviewDecision {
 	if (
 		value === "approved" ||
@@ -107,6 +124,7 @@ export function coerceReviewDecision(value: string | null): ReviewDecision {
 	return null;
 }
 
+/** Safely coerces an arbitrary string into a valid {@link ChecksStatus}, defaulting to "none". */
 export function coerceChecksStatus(value: string | null): ChecksStatus {
 	if (value === "success" || value === "failure" || value === "pending") {
 		return value;
@@ -114,6 +132,7 @@ export function coerceChecksStatus(value: string | null): ChecksStatus {
 	return "none";
 }
 
+/** Parses a JSON string into an array of {@link PullRequestCheck}. Returns an empty array on invalid input. */
 export function parseChecksJson(value: string | null): PullRequestCheck[] {
 	if (!value) return [];
 
