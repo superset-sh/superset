@@ -87,6 +87,26 @@ export function IssueDetailSidebar({
 	});
 
 	const [commentDraft, setCommentDraft] = useState("");
+	const [isEditingTitle, setIsEditingTitle] = useState(false);
+	const [titleDraft, setTitleDraft] = useState("");
+	const [isEditingDesc, setIsEditingDesc] = useState(false);
+	const [descDraft, setDescDraft] = useState("");
+
+	const updateTitle = electronTrpc.settings.updateOnedevIssueTitle.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
+			utils.settings.getOnedevIssues.invalidate();
+			setIsEditingTitle(false);
+		},
+		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Error"),
+	});
+	const updateDesc = electronTrpc.settings.updateOnedevIssueDescription.useMutation({
+		onSuccess: () => {
+			utils.settings.getOnedevIssue.invalidate();
+			setIsEditingDesc(false);
+		},
+		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Error"),
+	});
 	const isResizing = useRef(false);
 
 	const handleMouseDown = useCallback(() => {
@@ -267,7 +287,37 @@ When done: commit your changes. Do NOT push or create PRs.`;
 			<div className="flex-1 overflow-y-auto">
 				{/* Title */}
 				<div className="px-3 py-3 border-b border-border">
-					<h3 className="text-sm font-semibold">{String(issue.title)}</h3>
+					{isEditingTitle ? (
+						<input
+							type="text"
+							value={titleDraft}
+							onChange={(e) => setTitleDraft(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && titleDraft.trim()) {
+									updateTitle.mutate({ issueId: issue.id, title: titleDraft.trim() });
+								}
+								if (e.key === "Escape") {
+									setIsEditingTitle(false);
+								}
+							}}
+							onBlur={() => {
+								if (titleDraft.trim() && titleDraft !== issue.title) {
+									updateTitle.mutate({ issueId: issue.id, title: titleDraft.trim() });
+								} else {
+									setIsEditingTitle(false);
+								}
+							}}
+							className="text-sm font-semibold w-full bg-transparent border-b border-primary outline-none"
+							autoFocus
+						/>
+					) : (
+						<h3
+							className="text-sm font-semibold cursor-pointer hover:text-muted-foreground transition-colors"
+							onClick={() => { setTitleDraft(issue.title); setIsEditingTitle(true); }}
+						>
+							{String(issue.title)}
+						</h3>
+					)}
 				</div>
 
 				{/* Properties */}
@@ -401,12 +451,32 @@ When done: commit your changes. Do NOT push or create PRs.`;
 				</div>
 
 				{/* Description */}
-				{issue.description ? (
-					<div className="px-3 py-3 border-b border-border">
-						<h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Description</h4>
-						<p className="text-xs text-muted-foreground whitespace-pre-wrap">{String(issue.description)}</p>
-					</div>
-				) : null}
+				<div className="px-3 py-3 border-b border-border">
+					<h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Description</h4>
+					{isEditingDesc ? (
+						<div className="flex flex-col gap-1">
+							<textarea
+								value={descDraft}
+								onChange={(e) => setDescDraft(e.target.value)}
+								className="text-xs w-full bg-transparent border rounded-md px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary min-h-[60px] resize-y"
+								autoFocus
+							/>
+							<div className="flex gap-1 justify-end">
+								<button type="button" onClick={() => setIsEditingDesc(false)} className="text-xs text-muted-foreground hover:text-foreground px-2 py-0.5">Cancel</button>
+								<Button size="sm" className="h-6 text-xs px-2" onClick={() => updateDesc.mutate({ issueId: issue.id, description: descDraft })} disabled={updateDesc.isPending}>
+									{updateDesc.isPending ? "..." : "Save"}
+								</Button>
+							</div>
+						</div>
+					) : (
+						<p
+							className="text-xs text-muted-foreground whitespace-pre-wrap cursor-pointer hover:text-foreground transition-colors"
+							onClick={() => { setDescDraft(issue.description ?? ""); setIsEditingDesc(true); }}
+						>
+							{issue.description ? String(issue.description) : "Click to add description..."}
+						</p>
+					)}
+				</div>
 
 				{/* Activity / Comments */}
 				<div className="px-3 py-3">

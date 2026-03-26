@@ -73,39 +73,65 @@ export function OnedevTasksContent({
 	const [selectedIssue, setSelectedIssue] = useState<{ projectPath: string; issueNumber: number } | null>(null);
 	const [sidebarWidth, setSidebarWidth] = useState(320);
 
+	const emptySidebar = (
+		<div className="border-l border-border shrink-0 flex items-center justify-center text-muted-foreground text-xs p-4" style={{ width: sidebarWidth }}>
+			{!isConfigured ? "Configure OneDev in Settings > Git" : isLoading ? "Loading..." : "Select an issue to view details"}
+		</div>
+	);
+
+	const sidebar = selectedIssue !== null ? (
+		<IssueDetailSidebar
+			key={`${selectedIssue.projectPath}-${String(selectedIssue.issueNumber)}`}
+			projectPath={selectedIssue.projectPath}
+			issueNumber={selectedIssue.issueNumber}
+			onClose={() => setSelectedIssue(null)}
+			width={sidebarWidth}
+			onWidthChange={setSidebarWidth}
+		/>
+	) : emptySidebar;
+
 	if (!isConfigured) {
 		return (
-			<div className="flex-1 flex items-center justify-center p-6">
-				<div className="flex flex-col items-center gap-4 max-w-md text-center">
-					<div className="flex size-16 items-center justify-center rounded-xl border bg-muted/50">
-						<VscIssues className="size-8" />
+			<div className="flex-1 flex">
+				<div className="flex-1 flex items-center justify-center p-6">
+					<div className="flex flex-col items-center gap-4 max-w-md text-center">
+						<div className="flex size-16 items-center justify-center rounded-xl border bg-muted/50">
+							<VscIssues className="size-8" />
+						</div>
+						<div className="space-y-2">
+							<h3 className="text-lg font-semibold">Connect OneDev</h3>
+							<p className="text-sm text-muted-foreground">
+								Configure your OneDev server in Settings &gt; Git to view and manage issues.
+							</p>
+						</div>
+						<Button onClick={() => navigate({ to: "/settings/git" })}>Configure OneDev</Button>
 					</div>
-					<div className="space-y-2">
-						<h3 className="text-lg font-semibold">Connect OneDev</h3>
-						<p className="text-sm text-muted-foreground">
-							Configure your OneDev server in Settings &gt; Git to view and manage issues.
-						</p>
-					</div>
-					<Button onClick={() => navigate({ to: "/settings/git" })}>Configure OneDev</Button>
 				</div>
+				{emptySidebar}
 			</div>
 		);
 	}
 
 	if (isLoading) {
 		return (
-			<div className="flex-1 flex items-center justify-center">
-				<p className="text-sm text-muted-foreground">Loading projects...</p>
+			<div className="flex-1 flex">
+				<div className="flex-1 flex items-center justify-center">
+					<p className="text-sm text-muted-foreground">Loading projects...</p>
+				</div>
+				{emptySidebar}
 			</div>
 		);
 	}
 
 	if (!onedevProjectPaths || onedevProjectPaths.length === 0) {
 		return (
-			<div className="flex-1 flex items-center justify-center">
-				<p className="text-sm text-muted-foreground">
-					No OneDev projects found. Add a project with a OneDev remote first.
-				</p>
+			<div className="flex-1 flex">
+				<div className="flex-1 flex items-center justify-center">
+					<p className="text-sm text-muted-foreground">
+						No OneDev projects found. Add a project with a OneDev remote first.
+					</p>
+				</div>
+				{emptySidebar}
 			</div>
 		);
 	}
@@ -127,16 +153,7 @@ export function OnedevTasksContent({
 					/>
 				))}
 			</div>
-			{selectedIssue !== null && (
-				<IssueDetailSidebar
-					key={`${selectedIssue.projectPath}-${String(selectedIssue.issueNumber)}`}
-					projectPath={selectedIssue.projectPath}
-					issueNumber={selectedIssue.issueNumber}
-					onClose={() => setSelectedIssue(null)}
-					width={sidebarWidth}
-					onWidthChange={setSidebarWidth}
-				/>
-			)}
+			{sidebar}
 		</div>
 	);
 }

@@ -130,11 +130,24 @@ export function ChangesView({
 	} = electronTrpc.workspaces.getOnedevPRStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
 		{
-			enabled: !!workspaceId && isActive && !githubStatus?.pr,
+			enabled: !!workspaceId && isActive,
 			refetchInterval: isActive ? GITHUB_STATUS_REFETCH_INTERVAL_MS : false,
 			staleTime: GITHUB_STATUS_STALE_TIME_MS,
 		},
 	);
+
+	const mergePRMutation = electronTrpc.changes.mergePR.useMutation({
+		onMutate: () => {
+			const toastId = toast.loading("Merging PR...");
+			return { toastId };
+		},
+		onSuccess: (_data, _variables, context) => {
+			toast.success("PR merged successfully", { id: context?.toastId });
+			handleRefresh();
+		},
+		onError: (error, _variables, context) =>
+			toast.error(`Merge failed: ${error.message}`, { id: context?.toastId }),
+	});
 
 	const stageAllMutation = electronTrpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
@@ -814,6 +827,7 @@ export function ChangesView({
 							shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
 							prUrl={prUrl}
 							onRefresh={handleRefresh}
+							handleMergePR={(strategy) => mergePRMutation.mutate({ worktreePath, strategy })}
 						/>
 					</div>
 

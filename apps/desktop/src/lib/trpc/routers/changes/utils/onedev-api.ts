@@ -14,6 +14,7 @@ interface OnedevPullRequest {
 	title: string;
 	sourceBranch: string;
 	targetBranch: string;
+	status: string;
 }
 
 export interface OnedevIssue {
@@ -117,7 +118,7 @@ export function createOnedevClient(config: OnedevConfig) {
 			_projectId: number,
 			sourceBranch: string,
 			projectPath: string,
-		): Promise<string | null> {
+		): Promise<{ id: number; number: number; url: string; title: string } | null> {
 			const query = encodeURIComponent(
 				`"Source Branch" is "${sourceBranch}" and open`,
 			);
@@ -127,7 +128,39 @@ export function createOnedevClient(config: OnedevConfig) {
 			if (prs.length === 0) {
 				return null;
 			}
-			return `${baseUrl}/${projectPath}/~pulls/${prs[0].id}`;
+			const pr = prs[0];
+			return {
+				id: pr.id,
+				number: pr.number ?? pr.id,
+				url: `${baseUrl}/${projectPath}/~pulls/${pr.id}`,
+				title: pr.title ?? "",
+			};
+		},
+
+		async findAllPRsForBranch(sourceBranch: string): Promise<{ id: number; status: string; title: string }[]> {
+			const query = encodeURIComponent(`"Source Branch" is "${sourceBranch}"`);
+			const prs = await apiGet<OnedevPullRequest[]>(
+				`/~api/pulls?query=${query}&offset=0&count=5`,
+			);
+			return prs.map((pr) => ({ id: pr.id, status: pr.status ?? "UNKNOWN", title: pr.title ?? "" }));
+		},
+
+		async mergePR(prId: number, commitMessage?: string): Promise<void> {
+			const res = await fetch(`${baseUrl}/~api/pulls/${prId}/merge`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					commitMessage: commitMessage ?? "",
+					deleteSourceBranch: false,
+				}),
+			});
+			if (!res.ok) {
+				const text = await res.text().catch(() => "");
+				throw new Error(`Merge failed: ${res.status} ${text}`);
+			}
 		},
 
 		async createPR(

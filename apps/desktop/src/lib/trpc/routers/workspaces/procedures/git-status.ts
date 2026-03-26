@@ -176,6 +176,51 @@ export const createGitStatusProcedures = () => {
 						.set({ githubStatus: freshStatus })
 						.where(eq(worktrees.id, worktree.id))
 						.run();
+					return freshStatus;
+				}
+
+				// Fallback: check OneDev for PRs
+				try {
+					const settingsRow = localDb.select().from(settings).get();
+					const onedevUrl = settingsRow?.onedevUrl ?? null;
+					const onedevToken = settingsRow?.onedevAccessToken ?? null;
+					if (onedevUrl && onedevToken) {
+						const git = await getSimpleGitWithShellPath(worktree.path);
+						const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+						const provider = detectGitProvider(remoteUrl, onedevUrl);
+						if (provider === "onedev") {
+							const projectPath = extractOnedevProjectPath(remoteUrl);
+							if (projectPath) {
+								const { createOnedevClient } = await import("../../changes/utils/onedev-api");
+								const client = createOnedevClient({ url: onedevUrl, accessToken: onedevToken });
+								const projectInfo = await client.getProjectByPath(projectPath);
+								if (projectInfo) {
+									const branch = worktree.branch;
+									const existingPR = await client.findOpenPRWithUrl(projectInfo.id, branch, projectPath);
+									if (existingPR) {
+										return {
+											pr: {
+												number: existingPR.number,
+												state: "open" as const,
+												url: existingPR.url,
+												title: existingPR.title ?? "",
+												additions: 0,
+												deletions: 0,
+												reviewDecision: "pending" as const,
+												checksStatus: "none" as const,
+												checks: [],
+											},
+											repoUrl: `${onedevUrl}/${projectPath}`,
+											branchExistsOnRemote: true,
+											lastRefreshed: Date.now(),
+										};
+									}
+								}
+							}
+						}
+					}
+				} catch (err) {
+					console.error("[getGitHubStatus] OneDev fallback error:", err);
 				}
 
 				return freshStatus;
@@ -283,6 +328,76 @@ export const createGitStatusProcedures = () => {
 			console.log(`[onedev] Found ${results.length} OneDev projects`);
 			return results;
 		}),
+
+		getOnedevPRStatus: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				console.log("[getOnedevPRStatus] Called with workspaceId:", input.workspaceId);
+				const settingsRow = localDb.select().from(settings).get();
+				const onedevUrl = settingsRow?.onedevUrl ?? null;
+				const onedevToken = settingsRow?.onedevAccessToken ?? null;
+				if (!onedevUrl || !onedevToken) {
+					console.log("[getOnedevPRStatus] No OneDev config");
+					return null;
+				}
+
+				// Find workspace and its project
+				const workspace = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, input.workspaceId))
+					.get();
+				if (!workspace) return null;
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+				if (!project) return null;
+
+				try {
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const remotes = await git.getRemotes(true);
+					const origin = remotes.find((r) => r.name === "origin");
+					if (!origin?.refs?.fetch) return null;
+
+					const provider = detectGitProvider(origin.refs.fetch, onedevUrl);
+					if (provider !== "onedev") return null;
+
+					const projectPath = extractOnedevProjectPath(origin.refs.fetch);
+					if (!projectPath) return null;
+
+					// Find open PR for this branch
+					const branch = workspace.branch;
+					const baseUrl = onedevUrl.replace(/\/+$/, "");
+					const { createOnedevClient } = await import("../../changes/utils/onedev-api");
+					const client = createOnedevClient({ url: onedevUrl, accessToken: onedevToken });
+					const projectInfo = await client.getProjectByPath(projectPath);
+					if (!projectInfo) return null;
+
+					const existingPR = await client.findOpenPRWithUrl(
+						projectInfo.id,
+						branch,
+						projectPath,
+					);
+
+					console.log("[getOnedevPRStatus] existingPR:", existingPR ? `#${existingPR.number}` : "null");
+					if (!existingPR) return null;
+
+					return {
+						pr: {
+							number: existingPR.number,
+							state: "open" as const,
+							url: existingPR.url,
+							title: existingPR.title ?? "",
+						},
+					};
+				} catch (error) {
+					console.error("[getOnedevPRStatus] Error:", String(error));
+					return null;
+				}
+			}),
 
 		getGitHubPRComments: publicProcedure
 			.input(gitHubPRCommentsInputSchema)

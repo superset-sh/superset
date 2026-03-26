@@ -16,6 +16,7 @@ import {
 	VscArrowUp,
 	VscCheck,
 	VscChevronDown,
+	VscGitMerge,
 	VscLinkExternal,
 	VscRefresh,
 	VscSync,
@@ -35,6 +36,7 @@ interface CommitInputProps {
 	shouldAutoCreatePRAfterPublish: boolean;
 	prUrl?: string;
 	onRefresh: () => void;
+	handleMergePR?: (strategy: "merge" | "squash" | "rebase") => void;
 }
 
 export function CommitInput({
@@ -48,6 +50,7 @@ export function CommitInput({
 	shouldAutoCreatePRAfterPublish,
 	prUrl,
 	onRefresh,
+	handleMergePR,
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
@@ -342,6 +345,19 @@ export function CommitInput({
 								Create Pull Request
 							</DropdownMenuItem>
 						) : null}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={() => handleMergePR?.("squash")} className="text-xs">
+							<VscGitMerge className="size-3.5" />
+							Squash & Merge
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => handleMergePR?.("merge")} className="text-xs">
+							<VscGitMerge className="size-3.5" />
+							Merge Commit
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => handleMergePR?.("rebase")} className="text-xs">
+							<VscGitMerge className="size-3.5" />
+							Rebase & Merge
+						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</ButtonGroup>
