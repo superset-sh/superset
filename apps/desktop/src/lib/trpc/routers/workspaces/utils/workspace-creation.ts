@@ -12,7 +12,7 @@ import {
 	touchWorkspace,
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
-import { listExternalWorktrees, worktreeExists } from "./git";
+import { listGitWorktrees, worktreeExists } from "./git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -109,11 +109,11 @@ export async function createWorkspaceFromExternalWorktree({
 		throw new Error(`Project ${projectId} not found`);
 	}
 
-	// Check for external worktree (exists on disk but not tracked in DB)
-	const externalWorktrees = await listExternalWorktrees(project.mainRepoPath);
+	// Check for existing git worktrees, then filter down to importable external ones.
+	const gitWorktrees = await listGitWorktrees(project.mainRepoPath);
 
 	// Filter candidates: exclude main repo, bare, and detached
-	const candidates = externalWorktrees.filter(
+	const candidates = gitWorktrees.filter(
 		(wt) =>
 			wt.branch === branch &&
 			!wt.isBare &&

@@ -60,7 +60,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const defaultRestartCommandRef = useRef<string | undefined>(undefined);
 	defaultRestartCommandRef.current =
 		(isWorkspaceRunPane
-			? (buildTerminalCommand(workspaceRunConfig?.commands) ?? undefined)
+			? buildTerminalCommand(workspaceRunConfig?.commands)
 			: undefined) ?? pane?.workspaceRun?.command;
 
 	const utils = electronTrpc.useUtils();

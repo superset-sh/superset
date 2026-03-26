@@ -811,22 +811,22 @@ export async function worktreeExists(
 	}
 }
 
-export interface ExternalWorktree {
+export interface GitWorktreeEntry {
 	path: string;
 	branch: string | null;
 	isDetached: boolean;
 	isBare: boolean;
 }
 
-export async function listExternalWorktrees(
+export async function listGitWorktrees(
 	mainRepoPath: string,
-): Promise<ExternalWorktree[]> {
+): Promise<GitWorktreeEntry[]> {
 	try {
 		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const output = await git.raw(["worktree", "list", "--porcelain"]);
 
-		const result: ExternalWorktree[] = [];
-		let current: Partial<ExternalWorktree> = {};
+		const result: GitWorktreeEntry[] = [];
+		let current: Partial<GitWorktreeEntry> = {};
 
 		for (const line of output.split("\n")) {
 			if (line.startsWith("worktree ")) {
@@ -859,7 +859,7 @@ export async function listExternalWorktrees(
 
 		return result;
 	} catch (error) {
-		console.error(`Failed to list external worktrees: ${error}`);
+		console.error(`Failed to list git worktrees: ${error}`);
 		throw error;
 	}
 }

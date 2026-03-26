@@ -15,7 +15,7 @@ import {
 	fetchDefaultBranch,
 	getAheadBehindCount,
 	getDefaultBranch,
-	listExternalWorktrees,
+	listGitWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
 import {
@@ -296,7 +296,7 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
-				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
+				const allGitWorktrees = await listGitWorktrees(project.mainRepoPath);
 
 				const trackedWorktrees = localDb
 					.select({ path: worktrees.path })
@@ -305,7 +305,7 @@ export const createGitStatusProcedures = () => {
 					.all();
 				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
 
-				return allWorktrees
+				return allGitWorktrees
 					.filter((wt) => {
 						if (wt.path === project.mainRepoPath) return false;
 						if (wt.isBare) return false;

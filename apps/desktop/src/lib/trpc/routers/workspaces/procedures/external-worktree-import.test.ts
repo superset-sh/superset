@@ -112,26 +112,28 @@ describe("External worktree detection and import", () => {
 		expect(worktreeList).toContain("feature-external");
 	});
 
-	test("listExternalWorktrees detects external worktree", async () => {
+	test("listGitWorktrees returns the main repo and registered worktrees", async () => {
 		// Create external worktree
 		createExternalWorktree(mainRepoPath, "feature-test", externalWorktreePath);
 
-		// Import the listExternalWorktrees function
-		const { listExternalWorktrees } = await import("../utils/git");
+		// Import the listGitWorktrees function
+		const { listGitWorktrees } = await import("../utils/git");
 
-		// List external worktrees
-		const externalWorktrees = await listExternalWorktrees(mainRepoPath);
+		// List registered git worktrees
+		const gitWorktrees = await listGitWorktrees(mainRepoPath);
 
-		// Find our external worktree
-		const found = externalWorktrees.find((wt) => wt.branch === "feature-test");
+		// The helper includes the main repo entry and the added worktree
+		const mainRepoEntry = gitWorktrees.find((wt) => wt.path === mainRepoPath);
+		const found = gitWorktrees.find((wt) => wt.branch === "feature-test");
 
+		expect(mainRepoEntry).toBeDefined();
 		expect(found).toBeDefined();
 		expect(found?.path).toBe(externalWorktreePath);
 		expect(found?.isBare).toBe(false);
 		expect(found?.isDetached).toBe(false);
 	});
 
-	test("external worktree data survives simulated deletion", () => {
+	test("external worktree can contain user data before import or deletion", () => {
 		// Create external worktree with important data
 		createExternalWorktree(
 			mainRepoPath,
@@ -153,12 +155,6 @@ describe("External worktree detection and import", () => {
 		expect(existsSync(join(externalWorktreePath, "important-data.txt"))).toBe(
 			true,
 		);
-
-		// This test verifies that external worktrees are NOT deleted
-		// In the actual implementation, the delete procedure will check
-		// the createdBySuperset flag and skip disk deletion for external worktrees
-
-		// Verify data still exists (would be deleted if we didn't have protection)
 		expect(existsSync(join(externalWorktreePath, "important-data.txt"))).toBe(
 			true,
 		);

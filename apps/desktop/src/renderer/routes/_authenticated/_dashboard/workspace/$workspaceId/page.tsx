@@ -91,15 +91,16 @@ function WorkspacePage() {
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
+	const isDraftWorkspace = workspace?.isDraft ?? false;
 	useWorkspaceFileEventBridge(
 		workspaceId,
 		workspace?.worktreePath,
-		Boolean(workspace?.worktreePath),
+		Boolean(workspace?.worktreePath) && !isDraftWorkspace,
 	);
 	useWorkspaceRenameReconciliation({
 		workspaceId,
 		worktreePath: workspace?.worktreePath,
-		enabled: Boolean(workspace?.worktreePath),
+		enabled: Boolean(workspace?.worktreePath) && !isDraftWorkspace,
 	});
 	const navigate = useNavigate();
 	const routeNavigate = Route.useNavigate();

@@ -7,9 +7,14 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
+import {
+	buildDraftWorkspaceRow,
+	buildDraftWorktreeRow,
+} from "../utils/draft-workspace";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
 import { computeVisualOrder } from "../utils/visual-order";
@@ -30,10 +35,21 @@ function getWorkspacesInVisualOrder(): string[] {
 		.from(workspaces)
 		.where(isNull(workspaces.deletingAt))
 		.all();
+	const draftWorkspaces = workspaceInitManager
+		.getAllDraftJobs()
+		.filter(
+			(draft) =>
+				!allWorkspaces.some((workspace) => workspace.id === draft.workspaceId),
+		)
+		.map((draft) => buildDraftWorkspaceRow(draft));
 
 	const allSections = localDb.select().from(workspaceSections).all();
 
-	return computeVisualOrder(activeProjects, allWorkspaces, allSections);
+	return computeVisualOrder(
+		activeProjects,
+		[...allWorkspaces, ...draftWorkspaces],
+		allSections,
+	);
 }
 
 export const createQueryProcedures = () => {
@@ -42,30 +58,43 @@ export const createQueryProcedures = () => {
 			.input(z.object({ id: z.string() }))
 			.query(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
-				if (!workspace) {
+				const draftJob = workspace
+					? null
+					: workspaceInitManager.getDraftJob(input.id);
+				if (!workspace && !draftJob) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Workspace ${input.id} not found`,
 					});
 				}
+				const resolvedWorkspace =
+					workspace ??
+					buildDraftWorkspaceRow(draftJob as NonNullable<typeof draftJob>);
 
 				const project = localDb
 					.select()
 					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
+					.where(eq(projects.id, resolvedWorkspace.projectId))
 					.get();
-				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
-					: null;
+				const worktree = workspace
+					? workspace.worktreeId
+						? localDb
+								.select()
+								.from(worktrees)
+								.where(eq(worktrees.id, workspace.worktreeId))
+								.get()
+						: null
+					: draftJob
+						? buildDraftWorktreeRow(draftJob)
+						: null;
 
 				return {
-					...workspace,
-					type: workspace.type as "worktree" | "branch",
-					worktreePath: getWorkspacePath(workspace) ?? "",
+					...resolvedWorkspace,
+					type: resolvedWorkspace.type as "worktree" | "branch",
+					worktreePath: workspace
+						? (getWorkspacePath(workspace) ?? "")
+						: (draftJob?.worktreePath ?? ""),
+					isDraft: draftJob !== null,
 					project: project
 						? {
 								id: project.id,
@@ -87,11 +116,23 @@ export const createQueryProcedures = () => {
 			}),
 
 		getAll: publicProcedure.query(() => {
-			return localDb
+			const persistedWorkspaces = localDb
 				.select()
 				.from(workspaces)
 				.where(isNull(workspaces.deletingAt))
-				.all()
+				.all();
+			const draftWorkspaces = workspaceInitManager
+				.getAllDraftJobs()
+				.filter(
+					(draft) =>
+						!persistedWorkspaces.some(
+							(workspace) => workspace.id === draft.workspaceId,
+						),
+				)
+				.map((draft) => buildDraftWorkspaceRow(draft));
+
+			return persistedWorkspaces
+				.concat(draftWorkspaces)
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
@@ -112,6 +153,7 @@ export const createQueryProcedures = () => {
 				isUnread: boolean;
 				isUnnamed: boolean;
 				createdBySuperset: boolean | null;
+				isDraft: boolean;
 			};
 
 			type SectionItem = {
@@ -224,6 +266,7 @@ export const createQueryProcedures = () => {
 						createdBySuperset: workspace.worktreeId
 							? (worktreeCreatedBySupersetMap.get(workspace.worktreeId) ?? null)
 							: null,
+						isDraft: false,
 					};
 
 					if (workspace.sectionId) {
@@ -240,6 +283,29 @@ export const createQueryProcedures = () => {
 						group.workspaces.push(item);
 					}
 				}
+			}
+
+			for (const draft of workspaceInitManager
+				.getAllDraftJobs()
+				.filter(
+					(job) =>
+						getWorkspace(job.workspaceId) === undefined &&
+						groupsMap.has(job.projectId),
+				)
+				.sort((a, b) => a.startedAt - b.startedAt)) {
+				const group = groupsMap.get(draft.projectId);
+				if (!group) continue;
+
+				group.workspaces.push({
+					...buildDraftWorkspaceRow(draft),
+					sectionId: null,
+					type: "worktree",
+					worktreePath: draft.worktreePath,
+					isUnread: false,
+					isUnnamed: draft.isUnnamed,
+					createdBySuperset: true,
+					isDraft: true,
+				});
 			}
 
 			return Array.from(groupsMap.values())

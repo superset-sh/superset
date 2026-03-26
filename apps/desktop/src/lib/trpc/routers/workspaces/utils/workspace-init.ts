@@ -1,12 +1,20 @@
-import { projects, worktrees } from "@superset/local-db";
+import { projects, workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
-import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import {
+	type DraftWorkspaceProvisioningJob,
+	workspaceInitManager,
+} from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
 import { attemptWorkspaceAutoRenameFromPrompt } from "./ai-name";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
+import {
+	activateProject,
+	getMaxProjectChildTabOrder,
+	setLastActiveWorkspace,
+} from "./db-helpers";
 import {
 	branchExistsOnRemote,
 	createWorktree,
@@ -33,6 +41,8 @@ export interface WorkspaceInitParams {
 	useExistingBranch?: boolean;
 	/** If true, skip worktree creation (worktree already exists on disk) */
 	skipWorktreeCreation?: boolean;
+	/** If provided, persist the workspace/worktree rows only after git acquisition succeeds */
+	draftJob?: DraftWorkspaceProvisioningJob;
 }
 
 /**
@@ -52,8 +62,10 @@ export async function initializeWorkspaceWorktree({
 	namingPrompt,
 	useExistingBranch,
 	skipWorktreeCreation,
+	draftJob,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
+	let workspacePersisted = false;
 	const completeReadyState = async (): Promise<void> => {
 		let warning: string | undefined;
 		try {
@@ -101,13 +113,79 @@ export async function initializeWorkspaceWorktree({
 			branch,
 		});
 		let effectiveCompareBaseBranch =
+			draftJob?.compareBaseBranch ||
 			configuredCompareBaseBranch ||
 			resolveWorkspaceBaseBranch({
 				workspaceBaseBranch: project?.workspaceBaseBranch,
 				defaultBranch: project?.defaultBranch,
 			});
-		const requestedStartPoint = startPointBranch?.trim() || null;
+		const requestedStartPoint =
+			startPointBranch?.trim() || draftJob?.startPointBranch?.trim() || null;
 		let effectiveStartPoint = requestedStartPoint ?? effectiveCompareBaseBranch;
+		const compareBaseWasExplicit =
+			draftJob?.compareBaseBranchIsExplicit ?? compareBaseBranchWasExplicit;
+
+		const persistDraftWorkspaceIfNeeded = async (): Promise<void> => {
+			if (!draftJob) return;
+
+			const existingWorkspace = localDb
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, workspaceId))
+				.get();
+
+			if (!existingWorkspace) {
+				localDb
+					.insert(worktrees)
+					.values({
+						id: draftJob.worktreeId,
+						projectId,
+						path: worktreePath,
+						branch,
+						baseBranch: effectiveCompareBaseBranch,
+						gitStatus: null,
+						createdBySuperset: true,
+					})
+					.run();
+
+				const maxTabOrder = getMaxProjectChildTabOrder(projectId);
+				localDb
+					.insert(workspaces)
+					.values({
+						id: workspaceId,
+						projectId,
+						worktreeId: draftJob.worktreeId,
+						type: "worktree",
+						branch,
+						name: draftJob.workspaceName,
+						isUnnamed: draftJob.isUnnamed,
+						tabOrder: maxTabOrder + 1,
+					})
+					.run();
+
+				setLastActiveWorkspace(workspaceId);
+				if (project) {
+					activateProject(project);
+				}
+
+				track("workspace_created", {
+					workspace_id: workspaceId,
+					project_id: projectId,
+					branch,
+					base_branch: effectiveCompareBaseBranch,
+					use_existing_branch: useExistingBranch ?? false,
+				});
+			}
+
+			await setBranchBaseConfig({
+				repoPath: mainRepoPath,
+				branch,
+				compareBaseBranch: effectiveCompareBaseBranch,
+				isExplicit: draftJob.compareBaseBranchIsExplicit,
+			});
+
+			workspacePersisted = true;
+		};
 
 		if (useExistingBranch) {
 			if (skipWorktreeCreation) {
@@ -158,6 +236,7 @@ export async function initializeWorkspaceWorktree({
 			}
 
 			manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
+			await persistDraftWorkspaceIfNeeded();
 			localDb
 				.update(worktrees)
 				.set({
@@ -242,7 +321,7 @@ export async function initializeWorkspaceWorktree({
 				return null;
 			}
 
-			if (compareBaseBranchWasExplicit) {
+			if (compareBaseWasExplicit) {
 				console.log(
 					`[workspace-init] ${reason}. Compare base "${effectiveCompareBaseBranch}" was explicitly set, not using fallback.`,
 				);
@@ -291,17 +370,19 @@ export async function initializeWorkspaceWorktree({
 				);
 				effectiveCompareBaseBranch = result.fallbackBranch;
 				effectiveStartPoint = result.fallbackBranch;
-				await setBranchBaseConfig({
-					repoPath: mainRepoPath,
-					branch,
-					compareBaseBranch: result.fallbackBranch,
-					isExplicit: false,
-				});
-				localDb
-					.update(worktrees)
-					.set({ baseBranch: result.fallbackBranch })
-					.where(eq(worktrees.id, worktreeId))
-					.run();
+				if (!draftJob) {
+					await setBranchBaseConfig({
+						repoPath: mainRepoPath,
+						branch,
+						compareBaseBranch: result.fallbackBranch,
+						isExplicit: false,
+					});
+					localDb
+						.update(worktrees)
+						.set({ baseBranch: result.fallbackBranch })
+						.where(eq(worktrees.id, worktreeId))
+						.run();
+				}
 				manager.updateProgress(
 					workspaceId,
 					progressStep,
@@ -348,7 +429,7 @@ export async function initializeWorkspaceWorktree({
 							workspaceId,
 							"failed",
 							"No local reference available",
-							requestedStartPoint || compareBaseBranchWasExplicit
+							requestedStartPoint || compareBaseWasExplicit
 								? `Branch "${effectiveStartPoint}" exists on remote but has not been fetched yet, and no local branch exists. Please run "git fetch origin ${effectiveStartPoint}" and try again.`
 								: `Branch "${effectiveStartPoint}" not found locally. Please run "git fetch" and try again.`,
 						);
@@ -387,7 +468,7 @@ export async function initializeWorkspaceWorktree({
 						workspaceId,
 						"failed",
 						"No local reference available",
-						requestedStartPoint || compareBaseBranchWasExplicit
+						requestedStartPoint || compareBaseWasExplicit
 							? `${failureDetail} and branch "${effectiveStartPoint}" doesn't exist locally.${isNetworkError ? " Please check your network connection and try again." : " Please try again with a different base branch."}`
 							: `${failureDetail} and no local ref for "${effectiveStartPoint}" exists.${isNetworkError ? " Please check your network connection and try again." : ""}`,
 					);
@@ -406,7 +487,7 @@ export async function initializeWorkspaceWorktree({
 					workspaceId,
 					"failed",
 					"No local reference available",
-					requestedStartPoint || compareBaseBranchWasExplicit
+					requestedStartPoint || compareBaseWasExplicit
 						? `No remote configured and branch "${effectiveStartPoint}" doesn't exist locally.`
 						: `No remote configured and no local ref for "${effectiveStartPoint}" exists.`,
 				);
@@ -503,6 +584,7 @@ export async function initializeWorkspaceWorktree({
 		}
 
 		manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
+		await persistDraftWorkspaceIfNeeded();
 
 		localDb
 			.update(worktrees)
@@ -533,7 +615,7 @@ export async function initializeWorkspaceWorktree({
 			errorMessage,
 		);
 
-		if (manager.wasWorktreeCreated(workspaceId)) {
+		if (manager.wasWorktreeCreated(workspaceId) && !workspacePersisted) {
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
 				console.log(

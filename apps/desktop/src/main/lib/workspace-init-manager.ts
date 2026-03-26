@@ -4,12 +4,30 @@ import type {
 	WorkspaceInitStep,
 } from "shared/types/workspace-init";
 
+export interface DraftWorkspaceProvisioningJob {
+	workspaceId: string;
+	worktreeId: string;
+	projectId: string;
+	branch: string;
+	workspaceName: string;
+	isUnnamed: boolean;
+	worktreePath: string;
+	mainRepoPath: string;
+	compareBaseBranch: string;
+	compareBaseBranchIsExplicit: boolean;
+	startPointBranch?: string;
+	namingPrompt?: string;
+	useExistingBranch?: boolean;
+	startedAt: number;
+}
+
 interface InitJob {
 	workspaceId: string;
 	projectId: string;
 	progress: WorkspaceInitProgress;
 	cancelled: boolean;
 	worktreeCreated: boolean; // Track for cleanup on failure
+	draft: DraftWorkspaceProvisioningJob | null;
 }
 
 /**
@@ -66,10 +84,46 @@ class WorkspaceInitManager extends EventEmitter {
 		return Array.from(this.jobs.values()).map((job) => job.progress);
 	}
 
+	hasJob(workspaceId: string): boolean {
+		return this.jobs.has(workspaceId);
+	}
+
+	getDraftJob(workspaceId: string): DraftWorkspaceProvisioningJob | null {
+		return this.jobs.get(workspaceId)?.draft ?? null;
+	}
+
+	getAllDraftJobs(): DraftWorkspaceProvisioningJob[] {
+		return Array.from(this.jobs.values())
+			.map((job) => job.draft)
+			.filter(
+				(draft): draft is DraftWorkspaceProvisioningJob => draft !== null,
+			);
+	}
+
+	updateDraftJob(
+		workspaceId: string,
+		patch: Partial<DraftWorkspaceProvisioningJob>,
+	): void {
+		const job = this.jobs.get(workspaceId);
+		if (!job?.draft) {
+			console.warn(`[workspace-init] No draft job found for ${workspaceId}`);
+			return;
+		}
+
+		job.draft = {
+			...job.draft,
+			...patch,
+		};
+	}
+
 	/**
 	 * Start tracking a new initialization job
 	 */
-	startJob(workspaceId: string, projectId: string): void {
+	startJob(
+		workspaceId: string,
+		projectId: string,
+		draft?: DraftWorkspaceProvisioningJob,
+	): void {
 		if (this.jobs.has(workspaceId)) {
 			console.warn(
 				`[workspace-init] Job already exists for ${workspaceId}, clearing old job`,
@@ -102,6 +156,7 @@ class WorkspaceInitManager extends EventEmitter {
 			progress,
 			cancelled: false,
 			worktreeCreated: false,
+			draft: draft ?? null,
 		});
 
 		this.emit("progress", progress);

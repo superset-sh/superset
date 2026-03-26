@@ -2,7 +2,10 @@ import { workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import {
+	type DraftWorkspaceProvisioningJob,
+	workspaceInitManager,
+} from "main/lib/workspace-init-manager";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { deduplicateBranchName } from "shared/utils/branch";
 import { z } from "zod";
@@ -18,28 +21,49 @@ type WorkspaceRelations = NonNullable<
 	ReturnType<typeof getWorkspaceWithRelations>
 >;
 
-function getRetryInitRelations(workspaceId: string): {
-	workspace: WorkspaceRelations["workspace"];
-	worktree: NonNullable<WorkspaceRelations["worktree"]>;
-	project: NonNullable<WorkspaceRelations["project"]>;
-} {
+type RetryInitTarget =
+	| {
+			kind: "persisted";
+			workspace: WorkspaceRelations["workspace"];
+			worktree: NonNullable<WorkspaceRelations["worktree"]>;
+			project: NonNullable<WorkspaceRelations["project"]>;
+	  }
+	| {
+			kind: "draft";
+			draftJob: DraftWorkspaceProvisioningJob;
+			project: NonNullable<ReturnType<typeof getProject>>;
+	  };
+
+function getRetryInitTarget(workspaceId: string): RetryInitTarget {
 	const relations = getWorkspaceWithRelations(workspaceId);
-	if (!relations) {
+	if (relations) {
+		const { workspace, worktree, project } = relations;
+		if (workspace.deletingAt) {
+			throw new Error(
+				"Cannot retry initialization on a workspace being deleted",
+			);
+		}
+		if (!worktree) {
+			throw new Error("Worktree not found");
+		}
+		if (!project) {
+			throw new Error("Project not found");
+		}
+
+		return { kind: "persisted", workspace, worktree, project };
+	}
+
+	const draftJob = workspaceInitManager.getDraftJob(workspaceId);
+	if (!draftJob) {
 		throw new Error("Workspace not found");
 	}
 
-	const { workspace, worktree, project } = relations;
-	if (workspace.deletingAt) {
-		throw new Error("Cannot retry initialization on a workspace being deleted");
-	}
-	if (!worktree) {
-		throw new Error("Worktree not found");
-	}
+	const project = getProject(draftJob.projectId);
 	if (!project) {
 		throw new Error("Project not found");
 	}
 
-	return { workspace, worktree, project };
+	return { kind: "draft", draftJob, project };
 }
 
 function persistRetryBranchUpdate({
@@ -70,38 +94,38 @@ function persistRetryBranchUpdate({
 }
 
 async function resolveRetryTarget({
-	workspace,
-	worktree,
+	currentBranch,
+	currentPath,
 	project,
 	deduplicateBranchName: shouldDeduplicateBranchName,
+	applyUpdate,
 }: {
-	workspace: WorkspaceRelations["workspace"];
-	worktree: NonNullable<WorkspaceRelations["worktree"]>;
-	project: NonNullable<WorkspaceRelations["project"]>;
+	currentBranch: string;
+	currentPath: string;
+	project: NonNullable<ReturnType<typeof getProject>>;
 	deduplicateBranchName: boolean;
+	applyUpdate: (next: { branch: string; worktreePath: string }) => void;
 }): Promise<{ branch: string; worktreePath: string }> {
-	const currentBranch = worktree.branch;
-	const currentPath = worktree.path;
+	const branch = currentBranch;
+	const path = currentPath;
 
 	if (!shouldDeduplicateBranchName) {
-		return { branch: currentBranch, worktreePath: currentPath };
+		return { branch, worktreePath: path };
 	}
 
 	const { local, remote } = await listBranches(project.mainRepoPath);
-	const deduplicatedBranch = deduplicateBranchName(currentBranch, [
+	const deduplicatedBranch = deduplicateBranchName(branch, [
 		...local,
 		...remote,
 	]);
-	if (deduplicatedBranch === currentBranch) {
-		return { branch: currentBranch, worktreePath: currentPath };
+	if (deduplicatedBranch === branch) {
+		return { branch, worktreePath: path };
 	}
 
 	const deduplicatedPath = resolveWorktreePath(project, deduplicatedBranch);
-	persistRetryBranchUpdate({
-		workspace,
-		worktreeId: worktree.id,
+	applyUpdate({
 		branch: deduplicatedBranch,
-		path: deduplicatedPath,
+		worktreePath: deduplicatedPath,
 	});
 
 	return { branch: deduplicatedBranch, worktreePath: deduplicatedPath };
@@ -150,27 +174,81 @@ export const createInitProcedures = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const { workspace, worktree, project } = getRetryInitRelations(
-					input.workspaceId,
-				);
-				const { branch, worktreePath } = await resolveRetryTarget({
-					workspace,
-					worktree,
-					project,
-					deduplicateBranchName: input.deduplicateBranchName,
-				});
+				const target = getRetryInitTarget(input.workspaceId);
 
-				workspaceInitManager.clearJob(input.workspaceId);
-				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
+				if (target.kind === "persisted") {
+					const { workspace, worktree, project } = target;
+					const { branch, worktreePath } = await resolveRetryTarget({
+						currentBranch: worktree.branch,
+						currentPath: worktree.path,
+						project,
+						deduplicateBranchName: input.deduplicateBranchName,
+						applyUpdate: (next) => {
+							persistRetryBranchUpdate({
+								workspace,
+								worktreeId: worktree.id,
+								branch: next.branch,
+								path: next.worktreePath,
+							});
+						},
+					});
 
-				initializeWorkspaceWorktree({
-					workspaceId: input.workspaceId,
-					projectId: workspace.projectId,
-					worktreeId: worktree.id,
-					worktreePath,
-					branch,
-					mainRepoPath: project.mainRepoPath,
-				});
+					workspaceInitManager.clearJob(input.workspaceId);
+					workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
+
+					initializeWorkspaceWorktree({
+						workspaceId: input.workspaceId,
+						projectId: workspace.projectId,
+						worktreeId: worktree.id,
+						worktreePath,
+						branch,
+						mainRepoPath: project.mainRepoPath,
+					});
+				} else {
+					const { draftJob, project } = target;
+					const { branch, worktreePath } = await resolveRetryTarget({
+						currentBranch: draftJob.branch,
+						currentPath: draftJob.worktreePath,
+						project,
+						deduplicateBranchName: input.deduplicateBranchName,
+						applyUpdate: (next) => {
+							workspaceInitManager.updateDraftJob(input.workspaceId, {
+								branch: next.branch,
+								worktreePath: next.worktreePath,
+								workspaceName: draftJob.isUnnamed
+									? next.branch
+									: draftJob.workspaceName,
+							});
+						},
+					});
+					const nextDraftJob = {
+						...(workspaceInitManager.getDraftJob(input.workspaceId) ??
+							draftJob),
+						branch,
+						worktreePath,
+						workspaceName: draftJob.isUnnamed ? branch : draftJob.workspaceName,
+					};
+
+					workspaceInitManager.clearJob(input.workspaceId);
+					workspaceInitManager.startJob(
+						input.workspaceId,
+						nextDraftJob.projectId,
+						nextDraftJob,
+					);
+
+					initializeWorkspaceWorktree({
+						workspaceId: input.workspaceId,
+						projectId: nextDraftJob.projectId,
+						worktreeId: nextDraftJob.worktreeId,
+						worktreePath,
+						branch,
+						mainRepoPath: project.mainRepoPath,
+						startPointBranch: nextDraftJob.startPointBranch,
+						namingPrompt: nextDraftJob.namingPrompt,
+						useExistingBranch: nextDraftJob.useExistingBranch,
+						draftJob: nextDraftJob,
+					});
+				}
 
 				return { success: true };
 			}),
