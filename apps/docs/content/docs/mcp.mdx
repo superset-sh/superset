@@ -209,7 +209,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 | Tool | Description |
 |------|-------------|
 | `create_task` | Create one or more tasks (batch up to 25) |
-| `update_task` | Update existing tasks |
+| `update_task` | Update existing tasks, including moving them between status sections by `statusId` or `statusName` |
 | `list_tasks` | List tasks with filters (status, assignee, priority, labels) |
 | `get_task` | Get a single task by ID or slug |
 | `delete_task` | Soft delete tasks |
@@ -252,6 +252,7 @@ Once connected, you can ask your AI agent to:
 
 - "Create a task for fixing the login bug"
 - "List all my assigned tasks"
+- "Move SUPER-123 to In Progress"
 - "Create a new workspace for the auth feature"
 - "Show me who's online in my team"
 - "Start a Claude session on my MacBook to work on the auth task"
