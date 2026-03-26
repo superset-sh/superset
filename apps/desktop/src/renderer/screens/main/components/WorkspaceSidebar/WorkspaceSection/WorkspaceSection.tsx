@@ -182,10 +182,9 @@ export function WorkspaceSection({
 				ref={sectionContainerRef}
 				{...dropZone.handlers}
 				className={cn(
-					"relative flex flex-col -ml-0.5",
+					"relative flex flex-col items-center",
 					isSectionDragging && "opacity-30",
 				)}
-				style={sectionBorderStyle}
 			>
 				<div
 					ref={sectionDragHandleRef}
