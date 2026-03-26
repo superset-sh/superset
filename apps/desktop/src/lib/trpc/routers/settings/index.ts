@@ -1102,6 +1102,58 @@ export const createSettingsRouter = () => {
 			return true;
 		}),
 
+		getOnedevBuilds: publicProcedure
+			.input(z.object({ projectPath: z.string() }))
+			.query(async ({ input }) => {
+				const row = getSettings();
+				const url = row.onedevUrl;
+				const accessToken = row.onedevAccessToken;
+				if (!url || !accessToken) return [];
+				try {
+					// First resolve projectPath to projectId
+					const { createOnedevClient } = await import("../changes/utils/onedev-api");
+					const client = createOnedevClient({ url, accessToken });
+					const project = await client.getProjectByPath(input.projectPath);
+					if (!project) return [];
+
+					const res = await fetch(`${url}/~api/builds?offset=0&count=5&query=${encodeURIComponent(`"Project" is "${input.projectPath}"`)}`, {
+						headers: { Authorization: `Bearer ${accessToken}` },
+					});
+					if (!res.ok) {
+						// Fallback: load all builds and filter client-side
+						const allRes = await fetch(`${url}/~api/builds?offset=0&count=20`, {
+							headers: { Authorization: `Bearer ${accessToken}` },
+						});
+						if (!allRes.ok) return [];
+						const allBuilds = (await allRes.json()) as { id: number; jobName: string; status: string; refName: string; submitDate: string; number: number; projectId: number; commitHash: string }[];
+						return allBuilds
+							.filter((b) => b.projectId === project.id)
+							.slice(0, 5)
+							.map((b) => ({
+								id: b.id,
+								jobName: b.jobName,
+								status: b.status,
+								refName: b.refName,
+								submitDate: b.submitDate,
+								number: b.number,
+								commitHash: b.commitHash?.slice(0, 7) ?? "",
+							}));
+					}
+					const builds = (await res.json()) as { id: number; jobName: string; status: string; refName: string; submitDate: string; number: number; commitHash: string }[];
+					return builds.slice(0, 5).map((b) => ({
+						id: b.id,
+						jobName: b.jobName,
+						status: b.status,
+						refName: b.refName,
+						submitDate: b.submitDate,
+						number: b.number,
+						commitHash: b.commitHash?.slice(0, 7) ?? "",
+					}));
+				} catch {
+					return [];
+				}
+			}),
+
 		getOnedevUsers: publicProcedure.query(async () => {
 				const row = getSettings();
 				const url = row.onedevUrl;

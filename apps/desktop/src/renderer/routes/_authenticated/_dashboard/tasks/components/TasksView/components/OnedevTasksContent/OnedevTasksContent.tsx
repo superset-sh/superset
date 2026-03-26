@@ -182,6 +182,11 @@ function OnedevProjectView({
 	const updateState = electronTrpc.settings.updateOnedevIssueState.useMutation({
 		onSuccess: () => utils.settings.getOnedevIssues.invalidate(),
 	});
+	const { data: builds } = electronTrpc.settings.getOnedevBuilds.useQuery(
+		{ projectPath },
+		{ refetchInterval: 60000 },
+	);
+	const latestBuild = builds?.[0] ?? null;
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -230,6 +235,18 @@ function OnedevProjectView({
 				<span className="text-xs text-muted-foreground">
 					{filteredIssues.length}{" "}issues
 				</span>
+				{latestBuild && (
+					<span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+						latestBuild.status === "SUCCESSFUL" ? "bg-green-500/20 text-green-500" :
+						latestBuild.status === "FAILED" ? "bg-red-500/20 text-red-500" :
+						latestBuild.status === "RUNNING" ? "bg-blue-500/20 text-blue-500" :
+						"bg-yellow-500/20 text-yellow-500"
+					}`} title={`${latestBuild.jobName} #${latestBuild.number} — ${latestBuild.commitHash}`}>
+						{latestBuild.status === "SUCCESSFUL" ? "✓ Build" :
+						 latestBuild.status === "FAILED" ? "✗ Build" :
+						 latestBuild.status === "RUNNING" ? "⟳ Build" : "⏳ Build"}
+					</span>
+				)}
 				<button
 					type="button"
 					onClick={() => setIsCreateOpen(true)}
