@@ -320,6 +320,7 @@ async function createWorkspace(
 			name: params.name ?? branch,
 		});
 		if (externalResult) {
+			activateProject(project);
 			return { workspaceId: externalResult.workspace.id };
 		}
 	}

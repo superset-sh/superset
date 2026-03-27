@@ -38,10 +38,10 @@ USE_EXISTING=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --project|-p) PROJECT="$2"; shift 2 ;;
-    --branch|-b)  BRANCH="$2"; shift 2 ;;
-    --name|-n)    WS_NAME="$2"; WS_NAME_PROVIDED=1; shift 2 ;;
-    --base)       BASE_BRANCH="$2"; shift 2 ;;
+    --project|-p) [[ $# -ge 2 ]] || die "$1 requires a value"; PROJECT="$2"; shift 2 ;;
+    --branch|-b)  [[ $# -ge 2 ]] || die "$1 requires a value"; BRANCH="$2"; shift 2 ;;
+    --name|-n)    [[ $# -ge 2 ]] || die "$1 requires a value"; WS_NAME="$2"; WS_NAME_PROVIDED=1; shift 2 ;;
+    --base)       [[ $# -ge 2 ]] || die "$1 requires a value"; BASE_BRANCH="$2"; shift 2 ;;
     --existing|-e) USE_EXISTING=true; shift ;;
     --help|-h)
       sed -n '2,/^$/s/^# //p' "$0"
