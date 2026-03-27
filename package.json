@@ -8,6 +8,8 @@
 		"@biomejs/biome": "2.4.2",
 		"dotenv-cli": "^11.0.0",
 		"sherif": "^1.10.0",
+		"@agent-relay/sdk": "^3.2.17",
+		"tsx": "^4.21.0",
 		"turbo": "^2.8.7"
 	},
 	"description": "Superset Monorepo",

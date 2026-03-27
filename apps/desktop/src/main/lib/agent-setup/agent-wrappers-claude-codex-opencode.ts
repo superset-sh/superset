@@ -2,9 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	buildRelayWrapExecLine,
 	buildWrapperScript,
 	createWrapper,
+	escapeForSingleQuotedShell,
 	isSupersetManagedHookCommand,
+	resolveRelayBrokerPath,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -271,7 +274,10 @@ export function createClaudeWrapper(): void {
 	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
 	// We still create the wrapper so SUPERSET_* env vars flow through
 	// and the notify script can identify the Superset terminal context.
-	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript(
+		"claude",
+		buildRelayWrapExecLine("claude", 'exec "$REAL_BIN" "$@"'),
+	);
 	createWrapper("claude", script);
 }
 
@@ -292,7 +298,18 @@ export function createCodexWrapper(): void {
  */
 export function buildCodexWrapperExecLine(notifyPath: string): string {
 	const template = fs.readFileSync(CODEX_WRAPPER_EXEC_TEMPLATE_PATH, "utf-8");
-	return template.replaceAll("{{NOTIFY_PATH}}", notifyPath);
+	const notifyConfig = `notify=${JSON.stringify(["bash", notifyPath])}`;
+	const brokerPath = resolveRelayBrokerPath() ?? "";
+	return template
+		.replaceAll("{{NOTIFY_PATH}}", notifyPath)
+		.replaceAll(
+			"{{NOTIFY_CONFIG_SHELL_ARG}}",
+			`'${escapeForSingleQuotedShell(notifyConfig)}'`,
+		)
+		.replaceAll(
+			"{{RELAY_BROKER_PATH_SHELL_ARG}}",
+			`'${escapeForSingleQuotedShell(brokerPath)}'`,
+		);
 }
 
 // ---------------------------------------------------------------------------

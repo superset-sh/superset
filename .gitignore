@@ -8,6 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
+# Agent Relay runtime files (created when agents communicate)
+.agent-relay/
+.trajectories/
 dist
 dist-ssr
 dist-electron

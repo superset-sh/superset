@@ -3,6 +3,7 @@ import {
 	buildSafeEnv,
 	buildTerminalEnv,
 	FALLBACK_SHELL,
+	generateAgentName,
 	getLocale,
 	normalizeDefaultShell,
 	removeAppEnvVars,
@@ -86,6 +87,14 @@ describe("env", () => {
 			expect(getLocale({ LANG: "de_DE.UTF-8" })).toBe("de_DE.UTF-8");
 			expect(getLocale({ LANG: "ja_JP.UTF-8" })).toBe("ja_JP.UTF-8");
 			expect(getLocale({ LANG: "zh_CN.UTF-8" })).toBe("zh_CN.UTF-8");
+		});
+	});
+
+	describe("generateAgentName", () => {
+		it("increments counters per cli type", () => {
+			expect(generateAgentName("claude")).toBe("claude-1");
+			expect(generateAgentName("claude")).toBe("claude-2");
+			expect(generateAgentName("codex")).toBe("codex-1");
 		});
 	});
 
@@ -586,6 +595,7 @@ describe("env", () => {
 			"NODE_OPTIONS",
 			"NODE_PATH",
 			"ELECTRON_RUN_AS_NODE",
+			"RELAY_API_KEY",
 			"GOOGLE_API_KEY",
 			"VITE_TEST_VAR",
 			"NEXT_PUBLIC_TEST",
@@ -600,6 +610,7 @@ describe("env", () => {
 			for (const key of varsToTrack) {
 				originalEnvVars[key] = process.env[key];
 			}
+			delete process.env.RELAY_API_KEY;
 		});
 
 		afterEach(() => {
@@ -614,70 +625,70 @@ describe("env", () => {
 		});
 
 		describe("excludes non-allowlisted vars from terminals", () => {
-			it("should exclude NODE_ENV from Electron's process.env", () => {
+			it("should exclude NODE_ENV from Electron's process.env", async () => {
 				process.env.NODE_ENV = "production";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.NODE_ENV).toBeUndefined();
 			});
 
-			it("should exclude NODE_OPTIONS from Electron's process.env", () => {
+			it("should exclude NODE_OPTIONS from Electron's process.env", async () => {
 				process.env.NODE_OPTIONS = "--inspect";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.NODE_OPTIONS).toBeUndefined();
 			});
 
-			it("should exclude VITE_* vars from Electron's process.env", () => {
+			it("should exclude VITE_* vars from Electron's process.env", async () => {
 				process.env.VITE_TEST_VAR = "test-value";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.VITE_TEST_VAR).toBeUndefined();
 			});
 
-			it("should exclude NEXT_PUBLIC_* vars from Electron's process.env", () => {
+			it("should exclude NEXT_PUBLIC_* vars from Electron's process.env", async () => {
 				process.env.NEXT_PUBLIC_TEST = "test-value";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.NEXT_PUBLIC_TEST).toBeUndefined();
 			});
 
-			it("should exclude GOOGLE_API_KEY from Electron's process.env", () => {
+			it("should exclude GOOGLE_API_KEY from Electron's process.env", async () => {
 				process.env.GOOGLE_API_KEY = "secret-key";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.GOOGLE_API_KEY).toBeUndefined();
 			});
 
-			it("should exclude DATABASE_URL from Electron's process.env", () => {
+			it("should exclude DATABASE_URL from Electron's process.env", async () => {
 				process.env.DATABASE_URL = "postgres://user:pass@host/db";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.DATABASE_URL).toBeUndefined();
 			});
 
-			it("should exclude CLERK_SECRET_KEY from Electron's process.env", () => {
+			it("should exclude CLERK_SECRET_KEY from Electron's process.env", async () => {
 				process.env.CLERK_SECRET_KEY = "sk_test_xxx";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.CLERK_SECRET_KEY).toBeUndefined();
 			});
 		});
 
 		describe("terminal metadata", () => {
-			it("should set TERM_PROGRAM to Superset", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should set TERM_PROGRAM to Superset", async () => {
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.TERM_PROGRAM).toBe("Superset");
 			});
 
-			it("should set COLORTERM to truecolor", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should set COLORTERM to truecolor", async () => {
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.COLORTERM).toBe("truecolor");
 			});
 
-			it("should set Superset-specific env vars", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should set Superset-specific env vars", async () => {
+				const result = await buildTerminalEnv(baseParams);
 
 				expect(result.SUPERSET_PANE_ID).toBe("pane-1");
 				expect(result.SUPERSET_TAB_ID).toBe("tab-1");
 				expect(result.SUPERSET_WORKSPACE_ID).toBe("ws-1");
 			});
 
-			it("should handle optional workspace params", () => {
-				const result = buildTerminalEnv({
+			it("should handle optional workspace params", async () => {
+				const result = await buildTerminalEnv({
 					...baseParams,
 					workspaceName: "my-workspace",
 					workspacePath: "/path/to/workspace",
@@ -689,76 +700,104 @@ describe("env", () => {
 				expect(result.SUPERSET_ROOT_PATH).toBe("/root/path");
 			});
 
-			it("should default optional params to empty string", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should default optional params to empty string", async () => {
+				const result = await buildTerminalEnv(baseParams);
 
 				expect(result.SUPERSET_WORKSPACE_NAME).toBe("");
 				expect(result.SUPERSET_WORKSPACE_PATH).toBe("");
 				expect(result.SUPERSET_ROOT_PATH).toBe("");
 			});
 
-			it("should set LANG to a UTF-8 locale", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should set LANG to a UTF-8 locale", async () => {
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.LANG).toContain("UTF-8");
 			});
 
-			it("should include SUPERSET_PORT", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should include SUPERSET_PORT", async () => {
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.SUPERSET_PORT).toBeDefined();
 				expect(typeof result.SUPERSET_PORT).toBe("string");
 			});
 
-			it("should preserve SUPERSET_HOME_DIR for app-launched hooks", () => {
+			it("should preserve SUPERSET_HOME_DIR for app-launched hooks", async () => {
 				process.env.SUPERSET_HOME_DIR = "/tmp/superset-home";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.SUPERSET_HOME_DIR).toBe("/tmp/superset-home");
 			});
 		});
 
-		it("should include SUPERSET_ENV for dev/prod separation", () => {
-			const result = buildTerminalEnv(baseParams);
+		it("should include SUPERSET_ENV for dev/prod separation", async () => {
+			const result = await buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_ENV).toBeDefined();
 			expect(["development", "production"]).toContain(result.SUPERSET_ENV);
 		});
 
-		it("should include SUPERSET_HOOK_VERSION for protocol versioning", () => {
-			const result = buildTerminalEnv(baseParams);
+		it("should include SUPERSET_HOOK_VERSION for protocol versioning", async () => {
+			const result = await buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
 		});
 
+		it("should register a relay agent and include its credentials when RELAY_API_KEY is available", async () => {
+			const originalFetch = globalThis.fetch;
+			process.env.RELAY_API_KEY = "rk_test_123";
+			const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
+
+			globalThis.fetch = (async (url, init) => {
+				fetchCalls.push({ url: String(url), init });
+				return new Response(
+					JSON.stringify({ data: { token: "at_live_test_token" } }),
+					{
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}) as typeof fetch;
+
+			try {
+				const result = await buildTerminalEnv(baseParams);
+				expect(result.RELAY_API_KEY).toBe("rk_test_123");
+				expect(result.RELAY_AGENT_NAME).toBe("agent-1");
+				expect(result.RELAY_AGENT_TOKEN).toBe("at_live_test_token");
+				expect(fetchCalls).toHaveLength(1);
+				expect(fetchCalls[0]?.url).toBe("https://api.relaycast.dev/v1/agents");
+			} finally {
+				globalThis.fetch = originalFetch;
+			}
+		});
+
 		describe("SSL_CERT_FILE fallback on macOS", () => {
-			it("should set SSL_CERT_FILE to system cert bundle on macOS when not already set", () => {
+			it("should set SSL_CERT_FILE to system cert bundle on macOS when not already set", async () => {
 				delete process.env.SSL_CERT_FILE;
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				if (process.platform === "darwin") {
 					expect(result.SSL_CERT_FILE).toBe("/etc/ssl/cert.pem");
 				}
 			});
 
-			it("should not override user-set SSL_CERT_FILE", () => {
+			it("should not override user-set SSL_CERT_FILE", async () => {
 				process.env.SSL_CERT_FILE = "/custom/certs/ca-bundle.crt";
-				const result = buildTerminalEnv(baseParams);
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.SSL_CERT_FILE).toBe("/custom/certs/ca-bundle.crt");
 			});
 		});
 
 		describe("COLORFGBG for light mode detection", () => {
-			it("should set COLORFGBG to dark mode by default", () => {
-				const result = buildTerminalEnv(baseParams);
+			it("should set COLORFGBG to dark mode by default", async () => {
+				const result = await buildTerminalEnv(baseParams);
 				expect(result.COLORFGBG).toBe("15;0");
 			});
 
-			it("should set COLORFGBG to dark mode when themeType is dark", () => {
-				const result = buildTerminalEnv({
+			it("should set COLORFGBG to dark mode when themeType is dark", async () => {
+				const result = await buildTerminalEnv({
 					...baseParams,
 					themeType: "dark",
 				});
 				expect(result.COLORFGBG).toBe("15;0");
 			});
 
-			it("should set COLORFGBG to light mode when themeType is light", () => {
-				const result = buildTerminalEnv({
+			it("should set COLORFGBG to light mode when themeType is light", async () => {
+				const result = await buildTerminalEnv({
 					...baseParams,
 					themeType: "light",
 				});

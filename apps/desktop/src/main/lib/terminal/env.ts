@@ -1,13 +1,167 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 import defaultShell from "default-shell";
+import { createWorkspace, registerAgent } from "@agent-relay/sdk/http";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
 let localeProbeInFlight = false;
+
+// ── Relay workspace key (shared across all terminal sessions) ────
+let cachedRelayApiKey: string | null = null;
+const relayAgentNameCounters = new Map<string, number>();
+const relayAgentRegistrations = new Map<string, { name: string; token: string }>();
+const relayAgentRegistrationPromises = new Map<
+	string,
+	Promise<{ name: string; token: string } | null>
+>();
+
+/**
+ * Ensure a shared Relay workspace key exists for agent-to-agent communication.
+ * Creates a workspace on first call, caches the key for all subsequent sessions.
+ */
+export async function ensureRelayApiKey(): Promise<string | null> {
+	if (cachedRelayApiKey) return cachedRelayApiKey;
+
+	// Check if already set in environment
+	const envKey = process.env.RELAY_API_KEY;
+	if (envKey) {
+		cachedRelayApiKey = envKey;
+		return cachedRelayApiKey;
+	}
+
+	try {
+		console.log("[relay] creating workspace...");
+		const name = `superset-${os
+			.hostname()
+			.replace(/[^a-z0-9-]/gi, "")
+			.slice(0, 20)}-${Date.now().toString(36)}`;
+		const result = await createWorkspace(name);
+		const apiKey = result.api_key;
+		if (apiKey) {
+			cachedRelayApiKey = apiKey;
+			process.env.RELAY_API_KEY = cachedRelayApiKey;
+			console.log("[relay] workspace created, key:", `${apiKey.slice(0, 15)}...`);
+		} else {
+			console.warn("[relay] no api_key in response:", JSON.stringify(result));
+		}
+	} catch (error) {
+		console.warn("[relay] failed to create workspace:", error);
+	}
+
+	return cachedRelayApiKey;
+}
+
+export function generateAgentName(cliType: string): string {
+	const normalizedCliType = cliType.trim().toLowerCase() || "agent";
+	const nextCount = (relayAgentNameCounters.get(normalizedCliType) ?? 0) + 1;
+	relayAgentNameCounters.set(normalizedCliType, nextCount);
+	return `${normalizedCliType}-${nextCount}`;
+}
+
+async function registerRelayAgent(name: string): Promise<string | null> {
+	const relayApiKey = cachedRelayApiKey ?? process.env.RELAY_API_KEY ?? null;
+	if (!relayApiKey) return null;
+
+	if (!cachedRelayApiKey) {
+		cachedRelayApiKey = relayApiKey;
+	}
+
+	try {
+		const result = await registerAgent(cachedRelayApiKey, name);
+		return result.token ?? null;
+	} catch (error) {
+		console.warn("[relay] failed to register agent:", error);
+		return null;
+	}
+}
+
+const relayMcpConfigCache = new Map<string, string>();
+
+/**
+ * Ensure the project's .mcp.json includes the Relaycast MCP server with
+ * the shared RELAY_API_KEY so Claude's MCP tools use the same workspace
+ * as all other agents.
+ */
+function ensureRelayMcpConfig(
+	projectDir: string,
+	relayEnv?: {
+		RELAY_AGENT_NAME?: string;
+		RELAY_AGENT_TOKEN?: string;
+		RELAY_SKIP_BOOTSTRAP?: string;
+	},
+): void {
+	const relayApiKey = cachedRelayApiKey ?? process.env.RELAY_API_KEY;
+	if (!relayApiKey || !projectDir) return;
+
+	try {
+		const mcpPath = `${projectDir}/.mcp.json`;
+		const configSignature = JSON.stringify({
+			RELAY_API_KEY: relayApiKey,
+			RELAY_AGENT_NAME: relayEnv?.RELAY_AGENT_NAME ?? "",
+			RELAY_AGENT_TOKEN: relayEnv?.RELAY_AGENT_TOKEN ?? "",
+			RELAY_SKIP_BOOTSTRAP: relayEnv?.RELAY_SKIP_BOOTSTRAP ?? "",
+		});
+		if (relayMcpConfigCache.get(projectDir) === configSignature) {
+			return;
+		}
+
+		const relaycastEntry = {
+			command: "npx",
+			args: ["-y", "@relaycast/mcp"],
+			env: {
+				RELAY_API_KEY: relayApiKey,
+				RELAY_BASE_URL: "https://api.relaycast.dev",
+			},
+		};
+		const agentRelayEntry = {
+			command: "npx",
+			args: ["-y", "@relaycast/mcp"],
+			env: {
+				RELAY_API_KEY: relayApiKey,
+				RELAY_BASE_URL: "https://api.relaycast.dev",
+				...(relayEnv?.RELAY_AGENT_NAME
+					? { RELAY_AGENT_NAME: relayEnv.RELAY_AGENT_NAME }
+					: {}),
+				...(relayEnv?.RELAY_AGENT_TOKEN
+					? { RELAY_AGENT_TOKEN: relayEnv.RELAY_AGENT_TOKEN }
+					: {}),
+				...(relayEnv?.RELAY_SKIP_BOOTSTRAP
+					? { RELAY_SKIP_BOOTSTRAP: relayEnv.RELAY_SKIP_BOOTSTRAP }
+					: {}),
+				RELAY_STRICT_AGENT_NAME: "1",
+			},
+		};
+
+		let config: Record<string, unknown> = { mcpServers: {} };
+		if (fs.existsSync(mcpPath)) {
+			try {
+				config = JSON.parse(fs.readFileSync(mcpPath, "utf-8"));
+			} catch {
+				// Corrupted file — overwrite
+			}
+		}
+
+		const servers = (config.mcpServers ?? {}) as Record<string, unknown>;
+		// Use both names: "relaycast" for codex/gemini and "agent-relay" to
+		// override Claude's global marketplace plugin with the shared key
+		servers.relaycast = relaycastEntry;
+		servers["agent-relay"] = agentRelayEntry;
+		config.mcpServers = servers;
+
+		fs.writeFileSync(mcpPath, JSON.stringify(config, null, 2));
+		relayMcpConfigCache.set(projectDir, configSignature);
+		console.log(
+			`[relay] wrote .mcp.json with shared workspace key in ${projectDir}`,
+		);
+	} catch (error) {
+		console.warn("[relay] failed to write .mcp.json:", error);
+	}
+}
 const PROCESS_ENV_SNAPSHOT_CACHE_TTL_MS = 1_000;
 
 let cachedProcessEnvSnapshot: {
@@ -174,6 +328,68 @@ export function resetTerminalEnvCachesForTests(): void {
 	cachedMacosSystemCertAvailable = null;
 	cachedUtf8Locale = null;
 	localeProbeInFlight = false;
+	cachedRelayApiKey = null;
+	relayMcpConfigCache.clear();
+	relayAgentNameCounters.clear();
+	relayAgentRegistrations.clear();
+	relayAgentRegistrationPromises.clear();
+}
+
+function detectCliTypeFromShell(shell: string): string {
+	const shellBasename = path.basename(shell).replace(/\.exe$/i, "").toLowerCase();
+	switch (shellBasename) {
+		case "":
+		case "bash":
+		case "cmd":
+		case "fish":
+		case "powershell":
+		case "pwsh":
+		case "sh":
+		case "zsh":
+			return "agent";
+		default:
+			return shellBasename;
+	}
+}
+
+async function getOrRegisterRelayAgent(params: {
+	tabId: string;
+	shell: string;
+}): Promise<{ name: string; token: string } | null> {
+	const relayApiKey = cachedRelayApiKey ?? process.env.RELAY_API_KEY ?? null;
+	if (!relayApiKey) return null;
+
+	if (!cachedRelayApiKey) {
+		cachedRelayApiKey = relayApiKey;
+	}
+
+	const existingRegistration = relayAgentRegistrations.get(params.tabId);
+	if (existingRegistration) {
+		return existingRegistration;
+	}
+
+	const inFlightRegistration = relayAgentRegistrationPromises.get(params.tabId);
+	if (inFlightRegistration) {
+		return inFlightRegistration;
+	}
+
+	const registrationPromise = (async () => {
+		const name = generateAgentName(detectCliTypeFromShell(params.shell));
+		const token = await registerRelayAgent(name);
+		if (!token) return null;
+
+		const registration = { name, token };
+		relayAgentRegistrations.set(params.tabId, registration);
+		return registration;
+	})();
+
+	relayAgentRegistrationPromises.set(params.tabId, registrationPromise);
+
+	try {
+		return await registrationPromise;
+	} finally {
+		relayAgentRegistrationPromises.delete(params.tabId);
+	}
 }
 
 /**
@@ -350,6 +566,7 @@ const ALLOWED_ENV_VARS = new Set([
 const ALLOWED_PREFIXES = [
 	"SUPERSET_", // Our own metadata vars
 	"LC_", // Locale settings
+	"RELAY_", // Agent Relay workspace/auth vars
 ];
 
 /**
@@ -428,7 +645,7 @@ export function removeAppEnvVars(
 	return buildSafeEnv(env);
 }
 
-export function buildTerminalEnv(params: {
+export async function buildTerminalEnv(params: {
 	shell: string;
 	paneId: string;
 	tabId: string;
@@ -437,7 +654,7 @@ export function buildTerminalEnv(params: {
 	workspacePath?: string;
 	rootPath?: string;
 	themeType?: "dark" | "light";
-}): Record<string, string> {
+}): Promise<Record<string, string>> {
 	const {
 		shell,
 		paneId,
@@ -460,10 +677,17 @@ export function buildTerminalEnv(params: {
 
 	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
 	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
+	const relayAgentRegistration = await getOrRegisterRelayAgent({ tabId, shell });
 
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
+		// Relay workspace key for agent-to-agent communication
+		...(cachedRelayApiKey
+			? { RELAY_API_KEY: cachedRelayApiKey }
+			: process.env.RELAY_API_KEY
+				? { RELAY_API_KEY: process.env.RELAY_API_KEY }
+				: {}),
 		TERM_PROGRAM: "Superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
@@ -480,7 +704,24 @@ export function buildTerminalEnv(params: {
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility
 		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
+		...(relayAgentRegistration
+			? {
+					RELAY_AGENT_NAME: relayAgentRegistration.name,
+					RELAY_AGENT_TOKEN: relayAgentRegistration.token,
+					RELAY_SKIP_BOOTSTRAP: "1",
+				}
+			: {}),
 	};
+
+	// Write .mcp.json with shared relay key so Claude's MCP tools
+	// use the same workspace as all other agents.
+	if (workspacePath) {
+		ensureRelayMcpConfig(workspacePath, {
+			RELAY_AGENT_NAME: terminalEnv.RELAY_AGENT_NAME,
+			RELAY_AGENT_TOKEN: terminalEnv.RELAY_AGENT_TOKEN,
+			RELAY_SKIP_BOOTSTRAP: terminalEnv.RELAY_SKIP_BOOTSTRAP,
+		});
+	}
 
 	delete terminalEnv.GOOGLE_API_KEY;
 

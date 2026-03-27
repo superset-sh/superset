@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getBrokerBinaryPath } from "@agent-relay/sdk/broker-path";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
@@ -84,6 +85,19 @@ export function reconcileManagedEntries<T>({
 	return { entries, replacedManagedEntries };
 }
 
+export function escapeForSingleQuotedShell(value: string): string {
+	return value.replaceAll("'", `'"'"'`);
+}
+
+function buildRelayBrokerResolutionShell(): string {
+	const brokerPath = resolveRelayBrokerPath();
+	const brokerFallback = brokerPath
+		? `'${escapeForSingleQuotedShell(brokerPath)}'`
+		: "''";
+
+	return `_RELAY_BROKER="$(command -v agent-relay-broker 2>/dev/null || printf '%s\\n' ${brokerFallback})"`;
+}
+
 function buildRealBinaryResolver(): string {
 	return `find_real_binary() {
   local name="$1"
@@ -102,6 +116,34 @@ function buildRealBinaryResolver(): string {
   return 1
 }
 `;
+}
+
+/**
+ * Resolve the agent-relay-broker binary path at wrapper generation time.
+ * Returns the absolute path if found, or null if not installed.
+ */
+export function resolveRelayBrokerPath(): string | null {
+	return getBrokerBinaryPath();
+}
+
+/**
+ * Build the relay broker wrapper block for a given CLI name.
+ * If the broker is not found, returns a plain exec of $REAL_BIN.
+ */
+export function buildRelayWrapExecLine(
+	cliName: string,
+	execFallback: string,
+): string {
+	return `${buildRelayBrokerResolutionShell()}
+if [ -n "$_RELAY_BROKER" ] && [ -x "$_RELAY_BROKER" ]; then
+  export RELAY_AGENT_NAME="\${RELAY_AGENT_NAME:-\${SUPERSET_TAB_ID:-${cliName}-$$}}"
+  export RELAY_CHANNELS="general"
+  export RUST_LOG="\${RUST_LOG:-error}"
+  export RELAY_SKIP_PROMPT=1
+  exec "$_RELAY_BROKER" wrap "$REAL_BIN" -- "$@"
+else
+  ${execFallback}
+fi`;
 }
 
 function getMissingBinaryMessage(name: string): string {

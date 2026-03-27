@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { env } from "shared/env.shared";
 import {
+	buildRelayWrapExecLine,
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
@@ -126,7 +127,10 @@ export function createGeminiHookScript(): void {
 }
 
 export function createGeminiWrapper(): void {
-	const script = buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript(
+		"gemini",
+		buildRelayWrapExecLine("gemini", 'exec "$REAL_BIN" "$@"'),
+	);
 	createWrapper("gemini", script);
 }
 

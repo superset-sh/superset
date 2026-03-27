@@ -111,7 +111,7 @@ export async function createSession(
 		});
 	}
 
-	const env = buildTerminalEnv({
+	const env = await buildTerminalEnv({
 		shell,
 		paneId,
 		tabId,
