@@ -174,7 +174,7 @@ export class TerminalHost {
 
 				throwIfAborted(pendingAttach.abortController.signal);
 
-				if (!session.isAlive) {
+				if (!session.isAlive || session.pid === null) {
 					void session.dispose();
 					throw new Error(
 						"Session spawn failed: PTY process exited immediately",

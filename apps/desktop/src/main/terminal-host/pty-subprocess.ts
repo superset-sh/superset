@@ -336,6 +336,10 @@ function handleSpawn(payload: Buffer): void {
 		sendError(
 			`Spawn failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
+		// Exit so the daemon's session.isAlive correctly returns false.
+		// Without this, the subprocess stays alive with no PTY, leaving the
+		// session in a zombie state that blocks new terminal creation (#2960).
+		setTimeout(() => process.exit(1), 100);
 	}
 }
 
