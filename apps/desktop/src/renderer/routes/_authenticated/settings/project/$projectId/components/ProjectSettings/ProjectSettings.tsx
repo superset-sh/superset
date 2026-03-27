@@ -691,7 +691,9 @@ function OnedevSection({ projectId }: { projectId: string }) {
 				</div>
 				<div className="flex items-center justify-between">
 					<Label className="text-sm font-medium">Remote URL</Label>
-					<code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded max-w-[300px] truncate">{info.remoteUrl}</code>
+					<code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded max-w-[300px] truncate">
+						{info.remoteUrl.replace(/\/\/[^@]+@/, "//***@")}
+					</code>
 				</div>
 				{isOnedev && info.onedevProjectPath && (
 					<>

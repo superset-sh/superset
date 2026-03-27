@@ -1048,11 +1048,24 @@ export async function getAheadBehindCount({
 	}
 }
 
+const IGNORED_DIRTY_FILES = [".gitignore", "package-lock.json", "bun.lock", ".superset"];
+
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {
 	const status = await getStatusNoLock(worktreePath);
-	return !status.isClean();
+	if (status.isClean()) return false;
+	const allChanged = [
+		...status.modified,
+		...status.created,
+		...status.deleted,
+		...status.renamed.map((r) => r.to),
+		...status.not_added,
+	];
+	const meaningful = allChanged.filter(
+		(f) => !IGNORED_DIRTY_FILES.some((p) => f === p || f.endsWith(`/${p}`) || f.startsWith(`${p}/`)),
+	);
+	return meaningful.length > 0;
 }
 
 export async function hasUnpushedCommits(

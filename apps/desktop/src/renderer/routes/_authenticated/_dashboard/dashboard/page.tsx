@@ -14,6 +14,7 @@ import {
 	VscIssues,
 } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { CreateOnedevIssueDialog } from "../tasks/components/TasksView/components/OnedevTasksContent";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/dashboard/")({
 	component: DashboardPage,
@@ -77,10 +78,14 @@ function timeAgo(dateStr: string): string {
 function ProjectCard({ projectPath, onedevUrl }: { projectPath: string; onedevUrl: string }) {
 	const navigate = useNavigate();
 	const [isCollapsed, setIsCollapsed] = useState(false);
+	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const { data: issuesData } = electronTrpc.settings.getOnedevIssues.useQuery({ projectPath }, { refetchInterval: 60000 });
 	const { data: builds = [] } = electronTrpc.settings.getOnedevBuilds.useQuery({ projectPath }, { refetchInterval: 60000 });
 	const { data: prs = [] } = electronTrpc.settings.getOnedevPullRequests.useQuery({ projectPath }, { refetchInterval: 60000 });
-	const { data: commits = [] } = electronTrpc.settings.getOnedevRecentCommits.useQuery({ projectPath }, { refetchInterval: 60000 });
+	const { data: commitData } = electronTrpc.settings.getOnedevRecentCommits.useQuery({ projectPath }, { refetchInterval: 60000 });
+	const commits = commitData?.commits ?? [];
+	const totalCommits = commitData?.totalCount ?? 0;
+	const contributors = commitData?.contributors ?? [];
 
 	const issues = issuesData?.issues ?? [];
 	const projectKey = issuesData?.projectKey ?? projectPath;
@@ -121,6 +126,21 @@ function ProjectCard({ projectPath, onedevUrl }: { projectPath: string; onedevUr
 					)}
 					<span className="text-sm font-semibold">{projectPath}</span>
 				</button>
+				{/* Summary counts */}
+				<div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+					<span>{issues.length} issues ({issues.filter((i) => i.state !== "Closed").length} active)</span>
+					<span>{prs.length} PRs ({openPRs.length} open)</span>
+					<span>{builds.length} builds</span>
+					<span>{totalCommits} commits</span>
+				</div>
+				{/* Contributors (from git history, per project) */}
+				{contributors.length > 0 && (
+					<div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
+						{contributors.map((name) => (
+							<span key={name} className="px-1.5 py-0.5 rounded bg-muted">{name}</span>
+						))}
+					</div>
+				)}
 				<a
 					href={`${onedevUrl}/${projectPath}`}
 					target="_blank"
@@ -138,8 +158,9 @@ function ProjectCard({ projectPath, onedevUrl }: { projectPath: string; onedevUr
 						<VscIssues className="size-3.5 text-muted-foreground" />
 						<span className="text-xs font-medium text-muted-foreground">Issues</span>
 						{(issueCounts.open + issueCounts.inProgress + issueCounts.inReview) > 0 && (
-							<span className="text-[10px] text-muted-foreground ml-auto">{issueCounts.open + issueCounts.inProgress + issueCounts.inReview} active</span>
+							<span className="text-[10px] text-muted-foreground">{issueCounts.open + issueCounts.inProgress + issueCounts.inReview} active</span>
 						)}
+						<button type="button" onClick={() => setIsCreateOpen(true)} className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors">+ New</button>
 					</div>
 					<div className="flex flex-col gap-1.5">
 						{issues.filter((i) => i.state !== "Closed").slice(0, 5).map((issue) => {
@@ -236,6 +257,12 @@ function ProjectCard({ projectPath, onedevUrl }: { projectPath: string; onedevUr
 					</div>
 				</div>
 			</div>}
+			<CreateOnedevIssueDialog
+				open={isCreateOpen}
+				onOpenChange={setIsCreateOpen}
+				projectPaths={[projectPath]}
+				initialProject={projectPath}
+			/>
 		</div>
 	);
 }

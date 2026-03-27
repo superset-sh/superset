@@ -15,6 +15,7 @@ import {
 	AGENT_PRESET_DESCRIPTIONS,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
@@ -1116,12 +1117,12 @@ export const createSettingsRouter = () => {
 					const project = await client.getProjectByPath(input.projectPath);
 					if (!project) return [];
 
-					const res = await fetch(`${url}/~api/builds?offset=0&count=5&query=${encodeURIComponent(`"Project" is "${input.projectPath}"`)}`, {
+					const res = await fetch(`${url}/~api/builds?offset=0&count=50&query=${encodeURIComponent(`"Project" is "${input.projectPath}"`)}`, {
 						headers: { Authorization: `Bearer ${accessToken}` },
 					});
 					if (!res.ok) {
 						// Fallback: load all builds and filter client-side
-						const allRes = await fetch(`${url}/~api/builds?offset=0&count=20`, {
+						const allRes = await fetch(`${url}/~api/builds?offset=0&count=100`, {
 							headers: { Authorization: `Bearer ${accessToken}` },
 						});
 						if (!allRes.ok) return [];
@@ -1183,6 +1184,30 @@ export const createSettingsRouter = () => {
 				}
 			}),
 
+		getOnedevActiveBranches: publicProcedure
+			.input(z.object({ projectPath: z.string() }))
+			.query(async ({ input }) => {
+				const { projects } = await import("@superset/local-db");
+				const allProjects = localDb.select().from(projects).all();
+				for (const project of allProjects) {
+					try {
+						const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+						const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+						const remotes = await git.getRemotes(true);
+						const origin = remotes.find((r) => r.name === "origin");
+						if (!origin?.refs?.fetch?.includes(input.projectPath)) continue;
+						const branches = await git.branch(["-r", "--sort=-committerdate"]);
+						return branches.all.slice(0, 10).map((name) => {
+							const clean = name.replace("origin/", "");
+							return { name: clean };
+						});
+					} catch {
+						continue;
+					}
+				}
+				return [];
+			}),
+
 		getOnedevRecentCommits: publicProcedure
 			.input(z.object({ projectPath: z.string() }))
 			.query(async ({ input }) => {
@@ -1196,18 +1221,27 @@ export const createSettingsRouter = () => {
 						const remotes = await git.getRemotes(true);
 						const origin = remotes.find((r) => r.name === "origin");
 						if (!origin?.refs?.fetch?.includes(input.projectPath)) continue;
-						const log = await git.log({ maxCount: 5 });
-						return log.all.map((c) => ({
-							hash: c.hash.slice(0, 7),
-							message: c.message,
-							author: c.author_name,
-							date: c.date,
-						}));
+						// Fetch latest from remote before reading log
+						await git.fetch(["origin"]).catch(() => {});
+						const log = await git.log({ maxCount: 10 });
+						const allLog = await git.raw(["rev-list", "--count", "HEAD"]);
+						const totalCount = Number.parseInt(allLog.trim(), 10) || 0;
+						const contributors = [...new Set(log.all.map((c) => c.author_name).filter(Boolean))];
+						return {
+							commits: log.all.map((c) => ({
+								hash: c.hash.slice(0, 7),
+								message: c.message,
+								author: c.author_name,
+								date: c.date,
+							})),
+							totalCount,
+							contributors,
+						};
 					} catch {
 						continue;
 					}
 				}
-				return [];
+				return { commits: [], totalCount: 0, contributors: [] };
 			}),
 
 		getOnedevPullRequests: publicProcedure
