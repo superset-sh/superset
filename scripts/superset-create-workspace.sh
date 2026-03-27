@@ -178,8 +178,11 @@ NOW_MS=$(($(date +%s) * 1000))
 
 if ! sqlite3 "$DB" "INSERT INTO workspaces (id, project_id, worktree_id, type, branch, name, is_unnamed, tab_order, created_at, updated_at, last_opened_at) VALUES ('$WS_ID', '$PROJECT_ID_ESC', '$WT_ID', 'worktree', '$BRANCH_ESC', '$WS_NAME_ESC', $IS_UNNAMED, $TAB_ORDER, $NOW_MS, $NOW_MS, $NOW_MS);"; then
   echo "warning: workspace insert failed, rolling back worktree..." >&2
-  sqlite3 "$DB" "DELETE FROM worktrees WHERE id = '$WT_ID';" 2>/dev/null || true
-  git -C "$MAIN_REPO" worktree remove "${WT_PATH:-$WORKTREE_PATH}" 2>/dev/null || true
+  if [[ -z "$EXISTING_WT" ]]; then
+    WT_ESC=$(sql_escape "$WT_ID")
+    sqlite3 "$DB" "DELETE FROM worktrees WHERE id = '$WT_ESC';" 2>/dev/null || true
+    git -C "$MAIN_REPO" worktree remove "$WORKTREE_PATH" 2>/dev/null || true
+  fi
   die "Failed to insert workspace record"
 fi
 
