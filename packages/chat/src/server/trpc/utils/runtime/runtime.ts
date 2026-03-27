@@ -488,7 +488,9 @@ export async function generateAndSetTitle(
 
 		const mode = runtime.harness.getCurrentMode();
 		const agent =
-			typeof mode.agent === "function" ? mode.agent({}) : mode.agent;
+			typeof mode.agent === "function"
+				? mode.agent(runtime.harness.getState())
+				: mode.agent;
 
 		const title = await generateTitleFromMessage({
 			agent,
