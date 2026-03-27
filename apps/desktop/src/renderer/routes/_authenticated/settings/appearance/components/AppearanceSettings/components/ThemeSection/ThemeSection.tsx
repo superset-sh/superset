@@ -173,6 +173,15 @@ export function ThemeSection() {
 						Download Base File
 					</Button>
 					<a
+						href={`${COMPANY.MARKETING_URL}/marketplace/themes`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+					>
+						Theme marketplace
+						<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+					</a>
+					<a
 						href={`${COMPANY.DOCS_URL}/custom-themes`}
 						target="_blank"
 						rel="noopener noreferrer"
