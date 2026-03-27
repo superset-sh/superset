@@ -78,7 +78,7 @@ describe("getGitHubStatusQueryPolicy", () => {
 		});
 	});
 
-	test("keeps workspace list items cheaper than full-page PR surfaces", () => {
+	test("keeps workspace list items aligned with batch polling interval", () => {
 		expect(
 			getGitHubStatusQueryPolicy("workspace-list-item", {
 				hasWorkspaceId: true,
@@ -88,7 +88,7 @@ describe("getGitHubStatusQueryPolicy", () => {
 			enabled: true,
 			refetchInterval: false,
 			refetchOnWindowFocus: false,
-			staleTime: 30_000,
+			staleTime: 15_000,
 		});
 	});
 

@@ -41,11 +41,8 @@ export function WorkspaceRow({
 		useWorkspaceDeleteHandler();
 	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy("workspace-row", {
 		hasWorkspaceId: !!workspace.workspaceId,
-		isActive:
-			hasHovered && workspace.type === "worktree" && !!workspace.workspaceId,
+		isActive: workspace.type === "worktree" && !!workspace.workspaceId,
 	});
-
-	// Lazy-load GitHub status on hover to avoid N+1 queries
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: workspace.workspaceId ?? "" },

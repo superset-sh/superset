@@ -19,6 +19,7 @@ import {
 	refreshDefaultBranch,
 } from "../utils/git";
 import {
+	batchFetchGitHubPRStatuses,
 	fetchGitHubPRComments,
 	fetchGitHubPRStatus,
 	type PullRequestCommentsTarget,
@@ -205,6 +206,68 @@ export const createGitStatusProcedures = () => {
 
 				return freshStatus;
 			}),
+
+		batchGetGitHubStatuses: publicProcedure.query(async () => {
+			const allWorkspaceRows = localDb
+				.select()
+				.from(workspaces)
+				.where(isNull(workspaces.deletingAt))
+				.all();
+
+			const allWorktreeRows = localDb.select().from(worktrees).all();
+			const worktreeMap = new Map(allWorktreeRows.map((wt) => [wt.id, wt]));
+			const workspaceMap = new Map(
+				allWorkspaceRows.map((ws) => [ws.id, ws]),
+			);
+
+			const entries = allWorkspaceRows
+				.filter((ws) => ws.type === "worktree" && ws.worktreeId)
+				.map((ws) => {
+					// biome-ignore lint/style/noNonNullAssertion: filtered above
+					const wt = worktreeMap.get(ws.worktreeId!);
+					if (!wt) return null;
+					return {
+						workspaceId: ws.id,
+						worktreePath: wt.path,
+						branch: wt.branch,
+					};
+				})
+				.filter((e): e is NonNullable<typeof e> => e !== null);
+
+			const batchResults = await batchFetchGitHubPRStatuses(entries);
+
+			const result: Record<string, GitHubStatus | null> = {};
+
+			for (const [workspaceId, freshStatus] of batchResults) {
+				result[workspaceId] = freshStatus;
+
+				const ws = workspaceMap.get(workspaceId);
+				if (!ws?.worktreeId) continue;
+				const wt = worktreeMap.get(ws.worktreeId);
+				if (!wt) continue;
+
+				if (
+					hasMeaningfulGitHubStatusChange({
+						current: wt.githubStatus,
+						next: freshStatus,
+					})
+				) {
+					localDb
+						.update(worktrees)
+						.set({ githubStatus: freshStatus })
+						.where(eq(worktrees.id, wt.id))
+						.run();
+				}
+			}
+
+			for (const ws of allWorkspaceRows) {
+				if (!(ws.id in result)) {
+					result[ws.id] = null;
+				}
+			}
+
+			return result;
+		}),
 
 		getGitHubPRComments: publicProcedure
 			.input(gitHubPRCommentsInputSchema)

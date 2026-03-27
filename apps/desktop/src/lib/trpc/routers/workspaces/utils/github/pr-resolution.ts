@@ -124,7 +124,7 @@ export function shouldAcceptPRMatch({
 	return true;
 }
 
-function sortPRCandidates(
+export function sortPRCandidates(
 	candidates: GHPRResponse[],
 	headSha?: string,
 ): GHPRResponse[] {
@@ -358,7 +358,7 @@ function parsePRListResponse(stdout: string): GHPRResponse[] {
 	return parsed;
 }
 
-function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
+export function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
 	return {
 		number: data.number,
 		title: data.title,

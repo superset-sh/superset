@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
+import { useBatchGitHubStatus } from "renderer/hooks/useBatchGitHubStatus";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -21,6 +22,7 @@ export function WorkspaceSidebar({
 	activeProjectName,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
+	useBatchGitHubStatus();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
 
 	const projectShortcutIndices = useMemo(

@@ -146,7 +146,7 @@ export function WorkspaceListItem({
 		"workspace-list-item",
 		{
 			hasWorkspaceId: !!id,
-			isActive: hasHovered && type === "worktree",
+			isActive: type === "worktree",
 		},
 	);
 

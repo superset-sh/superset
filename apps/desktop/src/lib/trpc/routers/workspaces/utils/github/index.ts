@@ -11,3 +11,7 @@ export {
 	getRepoContext,
 	normalizeGitHubUrl,
 } from "./repo-context";
+export {
+	batchFetchGitHubPRStatuses,
+	type BatchWorkspaceEntry,
+} from "./batch-pr-status";
