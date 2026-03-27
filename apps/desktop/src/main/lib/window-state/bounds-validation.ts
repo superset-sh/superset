@@ -75,6 +75,7 @@ export interface InitialWindowBounds {
 	height: number;
 	center: boolean;
 	isMaximized: boolean;
+	isFullScreen: boolean;
 }
 
 /**
@@ -96,6 +97,7 @@ export function getInitialWindowBounds(
 			height: workAreaSize.height,
 			center: true,
 			isMaximized: false,
+			isFullScreen: false,
 		};
 	}
 
@@ -111,6 +113,8 @@ export function getInitialWindowBounds(
 		height,
 	};
 
+	const isFullScreen = savedState.isFullScreen ?? false;
+
 	// Saved position visible on a connected display → restore exactly
 	if (isVisibleOnAnyDisplay(savedBounds)) {
 		return {
@@ -120,6 +124,7 @@ export function getInitialWindowBounds(
 			height,
 			center: false,
 			isMaximized: savedState.isMaximized,
+			isFullScreen,
 		};
 	}
 
@@ -129,5 +134,6 @@ export function getInitialWindowBounds(
 		height,
 		center: true,
 		isMaximized: savedState.isMaximized,
+		isFullScreen,
 	};
 }
