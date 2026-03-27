@@ -2,37 +2,102 @@ import { dbWs } from "@superset/db/client";
 import { githubRepositories, v2Projects } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import {
+	requireActiveOrgId,
+	requireActiveOrgMembership,
+} from "../utils/active-org";
+import {
+	requireOrgResourceAccess,
+	requireOrgScopedResource,
+} from "../utils/org-resource-access";
+
+async function getScopedGithubRepository(
+	organizationId: string,
+	githubRepositoryId: string,
+) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.githubRepositories.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(githubRepositories.id, githubRepositoryId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "GitHub repository not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Projects.id, projectId),
+			}),
+		{
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getProjectAccess(
+	userId: string,
+	projectId: string,
+	options?: {
+		access?: "admin" | "member";
+		organizationId?: string;
+	},
+) {
+	return requireOrgResourceAccess(
+		userId,
+		() =>
+			dbWs.query.v2Projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Projects.id, projectId),
+			}),
+		{
+			access: options?.access,
+			message: "Project not found",
+			organizationId: options?.organizationId,
+		},
+	);
+}
 
 export const v2ProjectRouter = {
 	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
-
-			const row = await dbWs.query.v2Projects.findFirst({
-				where: and(
-					eq(v2Projects.id, input.id),
-					eq(v2Projects.organizationId, organizationId),
-				),
-				with: { githubRepository: true },
-			});
-			if (!row) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
+			const organizationId = requireActiveOrgId(
+				ctx.session,
+				"No active organization",
+			);
+			const row = await requireOrgResourceAccess(
+				ctx.session.user.id,
+				() =>
+					dbWs.query.v2Projects.findFirst({
+						where: eq(v2Projects.id, input.id),
+						with: { githubRepository: true },
+					}),
+				{
 					message: "Project not found",
-				});
-			}
+					organizationId,
+				},
+			);
 			const repoCloneUrl = row.githubRepository
 				? `https://github.com/${row.githubRepository.fullName}.git`
 				: null;
@@ -48,27 +113,15 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
+			const organizationId = await requireActiveOrgMembership(
+				ctx.session,
+				"No active organization",
+			);
 
-			const repo = await dbWs.query.githubRepositories.findFirst({
-				where: and(
-					eq(githubRepositories.id, input.githubRepositoryId),
-					eq(githubRepositories.organizationId, organizationId),
-				),
-			});
-			if (!repo) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "GitHub repository not found in this organization",
-				});
-			}
+			const repo = await getScopedGithubRepository(
+				organizationId,
+				input.githubRepositoryId,
+			);
 
 			const [project] = await dbWs
 				.insert(v2Projects)
@@ -76,7 +129,7 @@ export const v2ProjectRouter = {
 					organizationId,
 					name: input.name,
 					slug: input.slug,
-					githubRepositoryId: input.githubRepositoryId,
+					githubRepositoryId: repo.id,
 				})
 				.returning();
 			if (!project) {
@@ -98,31 +151,26 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
+			const organizationId = requireActiveOrgId(
+				ctx.session,
+				"No active organization",
+			);
+			const project = await getProjectAccess(ctx.session.user.id, input.id, {
+				organizationId,
+			});
 
 			if (input.githubRepositoryId) {
-				const repo = await dbWs.query.githubRepositories.findFirst({
-					where: and(
-						eq(githubRepositories.id, input.githubRepositoryId),
-						eq(githubRepositories.organizationId, organizationId),
-					),
-				});
-				if (!repo) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "GitHub repository not found in this organization",
-					});
-				}
+				await getScopedGithubRepository(
+					project.organizationId,
+					input.githubRepositoryId,
+				);
 			}
 
-			const { id, ...data } = input;
+			const data = {
+				githubRepositoryId: input.githubRepositoryId,
+				name: input.name,
+				slug: input.slug,
+			};
 			if (
 				Object.keys(data).every(
 					(k) => data[k as keyof typeof data] === undefined,
@@ -136,12 +184,7 @@ export const v2ProjectRouter = {
 			const [updated] = await dbWs
 				.update(v2Projects)
 				.set(data)
-				.where(
-					and(
-						eq(v2Projects.id, id),
-						eq(v2Projects.organizationId, organizationId),
-					),
-				)
+				.where(eq(v2Projects.id, project.id))
 				.returning();
 			if (!updated) {
 				throw new TRPCError({
@@ -155,22 +198,12 @@ export const v2ProjectRouter = {
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgAdmin(ctx.session.user.id, organizationId);
-			await dbWs
-				.delete(v2Projects)
-				.where(
-					and(
-						eq(v2Projects.id, input.id),
-						eq(v2Projects.organizationId, organizationId),
-					),
-				);
+			const organizationId = await requireActiveOrgMembership(
+				ctx.session,
+				"No active organization",
+			);
+			const project = await getScopedProject(organizationId, input.id);
+			await dbWs.delete(v2Projects).where(eq(v2Projects.id, project.id));
 			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;

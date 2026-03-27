@@ -97,6 +97,8 @@ export function FileTreeItem({
 				item.expand();
 				onSelect(entry);
 			}
+		} else if (e.metaKey || e.ctrlKey) {
+			onOpenInEditor(entry);
 		} else {
 			onSelect(entry);
 			onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);

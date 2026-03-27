@@ -1,1 +1,1 @@
-export { DeviceKeyAuthProvider } from "./DeviceKeyAuthProvider";
+export { DeviceKeyApiAuthProvider } from "./DeviceKeyAuthProvider";

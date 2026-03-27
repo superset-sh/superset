@@ -1,11 +1,15 @@
 import { db, dbWs } from "@superset/db/client";
-import { secrets } from "@superset/db/schema";
+import { projects, secrets } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgMembership } from "../../integration/utils";
+import {
+	requireOrgResourceAccess,
+	requireOrgScopedResource,
+} from "../../utils/org-resource-access";
 import { decryptSecret, encryptSecret } from "./utils/crypto";
 import {
 	MAX_SECRETS_PER_PROJECT,
@@ -13,6 +17,48 @@ import {
 	validateSecretKey,
 	validateSecretValue,
 } from "./utils/secrets-validation";
+
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			db.query.projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(projects.id, projectId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getSecretAccess(
+	userId: string,
+	secretId: string,
+	organizationId?: string,
+) {
+	return requireOrgResourceAccess(
+		userId,
+		() =>
+			db.query.secrets.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(secrets.id, secretId),
+			}),
+		{
+			message: organizationId
+				? "Secret not found in this organization"
+				: "Secret not found",
+			organizationId,
+		},
+	);
+}
 
 export const secretsRouter = {
 	upsert: protectedProcedure
@@ -27,6 +73,10 @@ export const secretsRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const project = await getScopedProject(
+				input.organizationId,
+				input.projectId,
+			);
 
 			const keyValidation = validateSecretKey(input.key);
 			if (!keyValidation.valid) {
@@ -46,8 +96,8 @@ export const secretsRouter = {
 
 			const existing = await db.query.secrets.findMany({
 				where: and(
-					eq(secrets.projectId, input.projectId),
-					eq(secrets.organizationId, input.organizationId),
+					eq(secrets.projectId, project.id),
+					eq(secrets.organizationId, project.organizationId),
 				),
 			});
 
@@ -76,8 +126,8 @@ export const secretsRouter = {
 			const [result] = await dbWs
 				.insert(secrets)
 				.values({
-					projectId: input.projectId,
-					organizationId: input.organizationId,
+					projectId: project.id,
+					organizationId: project.organizationId,
 					key: input.key,
 					encryptedValue,
 					sensitive: input.sensitive ?? false,
@@ -99,15 +149,12 @@ export const secretsRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			await dbWs
-				.delete(secrets)
-				.where(
-					and(
-						eq(secrets.id, input.id),
-						eq(secrets.organizationId, input.organizationId),
-					),
-				);
+			const secret = await getSecretAccess(
+				ctx.session.user.id,
+				input.id,
+				input.organizationId,
+			);
+			await dbWs.delete(secrets).where(eq(secrets.id, secret.id));
 			return { success: true };
 		}),
 
@@ -120,10 +167,14 @@ export const secretsRouter = {
 		)
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const project = await getScopedProject(
+				input.organizationId,
+				input.projectId,
+			);
 			const rows = await db.query.secrets.findMany({
 				where: and(
-					eq(secrets.projectId, input.projectId),
-					eq(secrets.organizationId, input.organizationId),
+					eq(secrets.projectId, project.id),
+					eq(secrets.organizationId, project.organizationId),
 				),
 				with: {
 					createdBy: { columns: { id: true, name: true, image: true } },

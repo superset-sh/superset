@@ -1,3 +1,3 @@
-export interface AuthProvider {
+export interface ApiAuthProvider {
 	getHeaders(): Promise<Record<string, string>>;
 }

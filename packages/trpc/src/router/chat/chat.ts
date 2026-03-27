@@ -40,6 +40,105 @@ export const chatRouter = {
 		return { models: AVAILABLE_MODELS };
 	}),
 
+	createSession: protectedProcedure
+		.input(
+			z.object({
+				sessionId: z.uuid(),
+				v2WorkspaceId: z.uuid(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
+			await db
+				.insert(chatSessions)
+				.values({
+					id: input.sessionId,
+					organizationId,
+					createdBy: ctx.session.user.id,
+					v2WorkspaceId: input.v2WorkspaceId,
+				})
+				.onConflictDoNothing();
+
+			return {
+				sessionId: input.sessionId,
+			};
+		}),
+
+	updateSession: protectedProcedure
+		.input(
+			z.object({
+				sessionId: z.uuid(),
+				title: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
+			const updates: Partial<typeof chatSessions.$inferInsert> = {};
+			if (input.title !== undefined) {
+				updates.title = input.title;
+			}
+
+			if (Object.keys(updates).length === 0) {
+				return { updated: false };
+			}
+
+			const [updated] = await db
+				.update(chatSessions)
+				.set(updates)
+				.where(
+					and(
+						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.organizationId, organizationId),
+						eq(chatSessions.createdBy, ctx.session.user.id),
+					),
+				)
+				.returning({ id: chatSessions.id });
+
+			return { updated: !!updated };
+		}),
+
+	deleteSession: protectedProcedure
+		.input(z.object({ sessionId: z.uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.session.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
+			const [deleted] = await db
+				.delete(chatSessions)
+				.where(
+					and(
+						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.organizationId, organizationId),
+						eq(chatSessions.createdBy, ctx.session.user.id),
+					),
+				)
+				.returning({ id: chatSessions.id });
+
+			return { deleted: !!deleted };
+		}),
+
 	uploadAttachment: protectedProcedure
 		.input(
 			z.object({
@@ -85,6 +184,7 @@ export const chatRouter = {
 					),
 				)
 				.returning({ id: chatSessions.id });
+
 			return { updated: !!updated };
 		}),
 } satisfies TRPCRouterRecord;

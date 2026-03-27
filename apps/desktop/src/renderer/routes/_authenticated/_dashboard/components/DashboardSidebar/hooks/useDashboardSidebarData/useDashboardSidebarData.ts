@@ -8,6 +8,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { usePendingWorkspace } from "renderer/stores/new-workspace-modal";
 import { MOCK_ORG_ID } from "shared/constants";
 import type {
 	DashboardSidebarProject,
@@ -16,12 +17,16 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 
+// Pending workspaces are always rendered at the end of the project's workspace list
+const PENDING_WORKSPACE_TAB_ORDER = Number.MAX_SAFE_INTEGER;
+
 export function useDashboardSidebarData() {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { services } = useHostService();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const pendingWorkspace = usePendingWorkspace();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
@@ -30,7 +35,7 @@ export function useDashboardSidebarData() {
 			? (services.get(activeOrganizationId) ?? null)
 			: null;
 
-	const { data: sidebarProjects = [] } = useLiveQuery(
+	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
@@ -58,6 +63,16 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
+	const sidebarProjects = useMemo(
+		() =>
+			rawSidebarProjects.map((project) => ({
+				...project,
+				githubOwner: project.githubOwner ?? null,
+				githubRepoName: project.githubRepoName ?? null,
+			})),
+		[rawSidebarProjects],
+	);
+
 	const { data: sidebarSections = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -78,7 +93,7 @@ export function useDashboardSidebarData() {
 	const { data: sidebarWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ sidebarWorkspaces: collections.v2SidebarWorkspaces })
+				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
 				.innerJoin(
 					{ workspaces: collections.v2Workspaces },
 					({ sidebarWorkspaces, workspaces }) =>
@@ -88,10 +103,13 @@ export function useDashboardSidebarData() {
 					{ devices: collections.v2Devices },
 					({ workspaces, devices }) => eq(workspaces.deviceId, devices.id),
 				)
-				.orderBy(({ sidebarWorkspaces }) => sidebarWorkspaces.tabOrder, "asc")
+				.orderBy(
+					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
+					"asc",
+				)
 				.select(({ sidebarWorkspaces, workspaces, devices }) => ({
 					id: workspaces.id,
-					projectId: sidebarWorkspaces.projectId,
+					projectId: sidebarWorkspaces.sidebarState.projectId,
 					deviceId: workspaces.deviceId,
 					deviceType: devices?.type ?? null,
 					deviceClientId: devices?.clientId ?? null,
@@ -99,8 +117,8 @@ export function useDashboardSidebarData() {
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
-					tabOrder: sidebarWorkspaces.tabOrder,
-					sectionId: sidebarWorkspaces.sectionId,
+					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
+					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 				})),
 		[collections],
 	);
@@ -254,6 +272,47 @@ export function useDashboardSidebarData() {
 			});
 		}
 
+		// Inject pending workspace if it exists
+		if (pendingWorkspace && deviceInfo?.deviceId) {
+			const project = projectsById.get(pendingWorkspace.projectId);
+			if (!project) {
+				// Log warning if pending workspace references non-existent project
+				console.warn(
+					`Pending workspace ${pendingWorkspace.id} references non-existent project ${pendingWorkspace.projectId}`,
+				);
+			} else {
+				const pendingItem: DashboardSidebarWorkspace = {
+					id: pendingWorkspace.id,
+					projectId: pendingWorkspace.projectId,
+					deviceId: deviceInfo.deviceId,
+					hostType: "local-device",
+					accentColor: null,
+					name: pendingWorkspace.name,
+					branch: "",
+					pullRequest: null,
+					repoUrl:
+						project.githubOwner && project.githubRepoName
+							? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
+							: null,
+					branchExistsOnRemote: false,
+					previewUrl: null,
+					needsRebase: null,
+					behindCount: null,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					creationStatus: pendingWorkspace.status,
+				};
+
+				project.childEntries.push({
+					tabOrder: PENDING_WORKSPACE_TAB_ORDER,
+					child: {
+						type: "workspace",
+						workspace: pendingItem,
+					},
+				});
+			}
+		}
+
 		return sidebarProjects.flatMap((project) => {
 			const resolvedProject = projectsById.get(project.id);
 			if (!resolvedProject) return [];
@@ -270,6 +329,7 @@ export function useDashboardSidebarData() {
 	}, [
 		deviceInfo?.deviceId,
 		localPullRequestsByWorkspaceId,
+		pendingWorkspace,
 		sidebarProjects,
 		sidebarSections,
 		sidebarWorkspaces,

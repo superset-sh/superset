@@ -1,3 +1,4 @@
+import { createPaneWorkspaceState } from "@superset/pane-layout";
 import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -31,30 +32,37 @@ function ensureSidebarProjectRecord(
 function ensureSidebarWorkspaceRecord(
 	collections: Pick<
 		AppCollections,
-		"v2SidebarSections" | "v2SidebarWorkspaces"
+		"v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
 	workspaceId: string,
 	projectId: string,
 ): void {
-	if (collections.v2SidebarWorkspaces.get(workspaceId)) {
+	if (collections.v2WorkspaceLocalState.get(workspaceId)) {
 		return;
 	}
 
 	const topLevelOrders = [
-		...Array.from(collections.v2SidebarWorkspaces.state.values()).filter(
-			(item) => item.projectId === projectId && item.sectionId === null,
-		),
+		...Array.from(collections.v2WorkspaceLocalState.state.values())
+			.filter(
+				(item) =>
+					item.sidebarState.projectId === projectId &&
+					item.sidebarState.sectionId === null,
+			)
+			.map((item) => ({ tabOrder: item.sidebarState.tabOrder })),
 		...Array.from(collections.v2SidebarSections.state.values()).filter(
 			(item) => item.projectId === projectId,
 		),
 	];
 
-	collections.v2SidebarWorkspaces.insert({
+	collections.v2WorkspaceLocalState.insert({
 		workspaceId,
-		projectId,
 		createdAt: new Date(),
-		tabOrder: getNextTabOrder(topLevelOrders),
-		sectionId: null,
+		sidebarState: {
+			projectId,
+			tabOrder: getNextTabOrder(topLevelOrders),
+			sectionId: null,
+		},
+		paneLayout: createPaneWorkspaceState({ roots: [] }),
 	});
 }
 
@@ -102,9 +110,9 @@ export function useDashboardSidebarState() {
 	const reorderWorkspaces = useCallback(
 		(workspaceIds: string[]) => {
 			workspaceIds.forEach((workspaceId, index) => {
-				if (!collections.v2SidebarWorkspaces.get(workspaceId)) return;
-				collections.v2SidebarWorkspaces.update(workspaceId, (draft) => {
-					draft.tabOrder = index + 1;
+				if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					draft.sidebarState.tabOrder = index + 1;
 				});
 			});
 		},
@@ -167,21 +175,23 @@ export function useDashboardSidebarState() {
 
 	const moveWorkspaceToSection = useCallback(
 		(workspaceId: string, projectId: string, sectionId: string | null) => {
-			const existing = collections.v2SidebarWorkspaces.get(workspaceId);
+			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
 
 			const siblingRows = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
-			).filter(
-				(item) =>
-					item.projectId === projectId &&
-					item.workspaceId !== workspaceId &&
-					item.sectionId === sectionId,
-			);
+				collections.v2WorkspaceLocalState.state.values(),
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === projectId &&
+						item.workspaceId !== workspaceId &&
+						item.sidebarState.sectionId === sectionId,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
-			collections.v2SidebarWorkspaces.update(workspaceId, (draft) => {
-				draft.sectionId = sectionId;
-				draft.tabOrder = getNextTabOrder(siblingRows);
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.sectionId = sectionId;
+				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
 			});
 		},
 		[collections],
@@ -193,20 +203,23 @@ export function useDashboardSidebarState() {
 			if (!section) return;
 
 			const siblingTopLevelRows = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
-			).filter(
-				(item) =>
-					item.projectId === section.projectId && item.sectionId === null,
-			);
+				collections.v2WorkspaceLocalState.state.values(),
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === section.projectId &&
+						item.sidebarState.sectionId === null,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
 			let nextOrder = getNextTabOrder(siblingTopLevelRows);
-			for (const workspace of collections.v2SidebarWorkspaces.state.values()) {
-				if (workspace.sectionId !== sectionId) continue;
-				collections.v2SidebarWorkspaces.update(
+			for (const workspace of collections.v2WorkspaceLocalState.state.values()) {
+				if (workspace.sidebarState.sectionId !== sectionId) continue;
+				collections.v2WorkspaceLocalState.update(
 					workspace.workspaceId,
 					(draft) => {
-						draft.sectionId = null;
-						draft.tabOrder = nextOrder;
+						draft.sidebarState.sectionId = null;
+						draft.sidebarState.tabOrder = nextOrder;
 					},
 				);
 				nextOrder += 1;
@@ -219,8 +232,8 @@ export function useDashboardSidebarState() {
 
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
-			if (!collections.v2SidebarWorkspaces.get(workspaceId)) return;
-			collections.v2SidebarWorkspaces.delete(workspaceId);
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.delete(workspaceId);
 		},
 		[collections],
 	);
@@ -228,9 +241,9 @@ export function useDashboardSidebarState() {
 	const removeProjectFromSidebar = useCallback(
 		(projectId: string) => {
 			const workspaceIds = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
+				collections.v2WorkspaceLocalState.state.values(),
 			)
-				.filter((item) => item.projectId === projectId)
+				.filter((item) => item.sidebarState.projectId === projectId)
 				.map((item) => item.workspaceId);
 			const sectionIds = Array.from(
 				collections.v2SidebarSections.state.values(),
@@ -239,7 +252,7 @@ export function useDashboardSidebarState() {
 				.map((item) => item.sectionId);
 
 			if (workspaceIds.length > 0) {
-				collections.v2SidebarWorkspaces.delete(workspaceIds);
+				collections.v2WorkspaceLocalState.delete(workspaceIds);
 			}
 			if (sectionIds.length > 0) {
 				collections.v2SidebarSections.delete(sectionIds);

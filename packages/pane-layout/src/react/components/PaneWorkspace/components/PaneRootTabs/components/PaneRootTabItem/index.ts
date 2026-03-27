@@ -1,0 +1,1 @@
+export { PaneRootTabItem } from "./PaneRootTabItem";

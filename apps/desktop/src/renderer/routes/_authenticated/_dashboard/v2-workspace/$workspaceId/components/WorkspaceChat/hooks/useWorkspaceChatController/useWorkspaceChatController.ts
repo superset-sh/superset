@@ -1,14 +1,11 @@
-import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
-import { env } from "renderer/env.renderer";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { useCallback, useMemo } from "react";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
 import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-
-const apiUrl = env.NEXT_PUBLIC_API_URL;
 
 interface SessionSelectorItem {
 	sessionId: string;
@@ -36,64 +33,37 @@ function toSessionSelectorItem(session: {
 	};
 }
 
-async function getHttpErrorDetail(response: Response): Promise<string> {
-	const errorBody = await response
-		.text()
-		.then((text) => text.trim())
-		.catch(() => "");
-	const statusText = response.statusText ? ` ${response.statusText}` : "";
-	const detail = errorBody ? ` - ${errorBody.slice(0, 500)}` : "";
-	return `${response.status}${statusText}${detail}`;
-}
-
 async function createSessionRecord(input: {
 	sessionId: string;
-	organizationId: string;
-	workspaceId: string;
+	v2WorkspaceId: string;
 }): Promise<void> {
-	const token = getAuthToken();
-	const response = await fetch(`${apiUrl}/api/chat/${input.sessionId}`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
-		},
-		body: JSON.stringify({
-			organizationId: input.organizationId,
-			workspaceId: input.workspaceId,
-		}),
+	await apiTrpcClient.chat.createSession.mutate({
+		sessionId: input.sessionId,
+		v2WorkspaceId: input.v2WorkspaceId,
 	});
-
-	if (!response.ok) {
-		const detail = await getHttpErrorDetail(response);
-		throw new Error(`Failed to create session ${input.sessionId}: ${detail}`);
-	}
 }
 
 async function deleteSessionRecord(sessionId: string): Promise<void> {
-	const token = getAuthToken();
-	const response = await fetch(`${apiUrl}/api/chat/${sessionId}/stream`, {
-		method: "DELETE",
-		headers: token ? { Authorization: `Bearer ${token}` } : {},
+	const result = await apiTrpcClient.chat.deleteSession.mutate({
+		sessionId,
 	});
-
-	if (!response.ok) {
-		const detail = await getHttpErrorDetail(response);
-		throw new Error(`Failed to delete session ${sessionId}: ${detail}`);
+	if (!result.deleted) {
+		throw new Error(`Failed to delete session ${sessionId}`);
 	}
 }
 
 export function useWorkspaceChatController({
+	sessionId,
+	onSessionIdChange,
 	workspaceId,
 }: {
+	sessionId: string | null;
+	onSessionIdChange: (sessionId: string | null) => void;
 	workspaceId: string;
 }) {
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 	const collections = useCollections();
-	const [sessionId, setSessionId] = useState<string | null>(null);
-	const [isSessionInitializing, setIsSessionInitializing] = useState(false);
-	const legacySessionBootstrapRef = useRef(false);
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId },
@@ -104,89 +74,25 @@ export function useWorkspaceChatController({
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
+				.where(({ chatSessions }) =>
+					eq(chatSessions.v2WorkspaceId, workspaceId),
+				)
 				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
 				.select(({ chatSessions }) => ({ ...chatSessions })),
-		[collections.chatSessions],
+		[collections.chatSessions, workspaceId],
 	);
-	const allSessions = allSessionsData ?? [];
-	const sessions = useMemo(() => {
-		const scopedOrUnscoped = allSessions.filter(
-			(item) => item.workspaceId === workspaceId || item.workspaceId === null,
-		);
-		return scopedOrUnscoped.length > 0 ? scopedOrUnscoped : allSessions;
-	}, [allSessions, workspaceId]);
+	const sessions = allSessionsData ?? [];
 
-	useEffect(() => {
-		if (sessionId && sessions.some((item) => item.id === sessionId)) return;
-		setSessionId(sessions[0]?.id ?? null);
-	}, [sessionId, sessions]);
-
-	const hasCurrentSessionRecord = Boolean(
-		sessionId && sessions.some((item) => item.id === sessionId),
-	);
-
-	const handleSelectSession = useCallback((nextSessionId: string) => {
-		setSessionId(nextSessionId);
-	}, []);
-
-	const createAndActivateSession = useCallback(
-		async ({
-			targetOrganizationId,
-			newSessionId,
-		}: {
-			targetOrganizationId: string;
-			newSessionId: string;
-		}): Promise<StartFreshSessionResult> => {
-			try {
-				await createSessionRecord({
-					sessionId: newSessionId,
-					organizationId: targetOrganizationId,
-					workspaceId,
-				});
-				setSessionId(newSessionId);
-				posthog.capture("chat_session_created", {
-					workspace_id: workspaceId,
-					session_id: newSessionId,
-					organization_id: targetOrganizationId,
-				});
-				return { created: true, sessionId: newSessionId };
-			} catch (error) {
-				return {
-					created: false,
-					errorMessage:
-						error instanceof Error
-							? error.message
-							: "Failed to create a new chat session",
-				};
-			}
+	const handleSelectSession = useCallback(
+		(nextSessionId: string) => {
+			onSessionIdChange(nextSessionId);
 		},
-		[workspaceId],
+		[onSessionIdChange],
 	);
 
 	const handleNewChat = useCallback(async () => {
-		if (!organizationId) return;
-		const createResult = await createAndActivateSession({
-			targetOrganizationId: organizationId,
-			newSessionId: crypto.randomUUID(),
-		});
-		if (!createResult.created) {
-			toast.error("Failed to create session");
-		}
-	}, [createAndActivateSession, organizationId]);
-
-	const handleStartFreshSession = useCallback(async () => {
-		if (!organizationId) {
-			return {
-				created: false,
-				errorMessage: "No active organization selected",
-			};
-		}
-
-		return createAndActivateSession({
-			targetOrganizationId: organizationId,
-			newSessionId: crypto.randomUUID(),
-		});
-	}, [createAndActivateSession, organizationId]);
+		onSessionIdChange(null);
+	}, [onSessionIdChange]);
 
 	const handleDeleteSession = useCallback(
 		async (sessionIdToDelete: string) => {
@@ -197,41 +103,42 @@ export function useWorkspaceChatController({
 				organization_id: organizationId,
 			});
 			if (sessionIdToDelete === sessionId) {
-				setSessionId(null);
+				onSessionIdChange(null);
 			}
 		},
-		[organizationId, sessionId, workspaceId],
+		[onSessionIdChange, organizationId, sessionId, workspaceId],
 	);
 
-	const ensureCurrentSessionRecord = useCallback(async (): Promise<boolean> => {
-		if (hasCurrentSessionRecord) return true;
-		if (!sessionId || !organizationId) return false;
-		try {
-			setIsSessionInitializing(true);
+	const getOrCreateSession = useCallback(async (): Promise<string> => {
+		if (!organizationId) {
+			throw new Error("No active organization selected");
+		}
+
+		if (sessionId) {
+			if (sessions.some((item) => item.id === sessionId)) {
+				return sessionId;
+			}
+
 			await createSessionRecord({
 				sessionId,
-				organizationId,
-				workspaceId,
+				v2WorkspaceId: workspaceId,
 			});
-			return true;
-		} catch {
-			return false;
-		} finally {
-			setIsSessionInitializing(false);
+			return sessionId;
 		}
-	}, [hasCurrentSessionRecord, organizationId, sessionId, workspaceId]);
 
-	useEffect(() => {
-		if (sessionId || sessions.length > 0 || !organizationId) return;
-		if (legacySessionBootstrapRef.current) return;
-		legacySessionBootstrapRef.current = true;
-
-		void handleNewChat()
-			.catch(() => {})
-			.finally(() => {
-				legacySessionBootstrapRef.current = false;
-			});
-	}, [handleNewChat, organizationId, sessionId, sessions.length]);
+		const nextSessionId = crypto.randomUUID();
+		await createSessionRecord({
+			sessionId: nextSessionId,
+			v2WorkspaceId: workspaceId,
+		});
+		onSessionIdChange(nextSessionId);
+		posthog.capture("chat_session_created", {
+			workspace_id: workspaceId,
+			session_id: nextSessionId,
+			organization_id: organizationId,
+		});
+		return nextSessionId;
+	}, [onSessionIdChange, organizationId, sessionId, sessions, workspaceId]);
 
 	const sessionItems = useMemo(
 		() => sessions.map((item) => toSessionSelectorItem(item)),
@@ -240,17 +147,12 @@ export function useWorkspaceChatController({
 
 	return {
 		sessionId,
-		launchConfig: null,
 		organizationId,
 		workspacePath: workspace?.worktreePath ?? "",
-		isSessionInitializing,
-		hasCurrentSessionRecord,
 		sessionItems,
 		handleSelectSession,
 		handleNewChat,
-		handleStartFreshSession,
 		handleDeleteSession,
-		ensureCurrentSessionRecord,
-		consumeLaunchConfig: () => {},
+		getOrCreateSession,
 	};
 }

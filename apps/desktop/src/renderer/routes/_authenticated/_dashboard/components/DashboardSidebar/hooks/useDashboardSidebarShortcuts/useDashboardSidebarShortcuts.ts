@@ -13,9 +13,9 @@ export function useDashboardSidebarShortcuts(
 	const navigate = useNavigate();
 	const flattenedWorkspaces = useMemo(
 		() =>
-			groups.flatMap((project) =>
-				getProjectChildrenWorkspaces(project.children),
-			),
+			groups
+				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
+				.filter((workspace) => !workspace.creationStatus),
 		[groups],
 	);
 	const workspaceShortcutLabels = useMemo(

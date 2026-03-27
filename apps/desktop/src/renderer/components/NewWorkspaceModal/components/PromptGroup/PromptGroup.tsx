@@ -262,8 +262,8 @@ function ProjectPickerPill({
 	);
 }
 
-function BaseBranchPickerInline({
-	effectiveBaseBranch,
+function CompareBaseBranchPickerInline({
+	effectiveCompareBaseBranch,
 	defaultBranch,
 	isBranchesLoading,
 	isBranchesError,
@@ -273,11 +273,11 @@ function BaseBranchPickerInline({
 	activeWorkspacesByBranch,
 	externalWorktreeBranches,
 	modKey,
-	onSelectBaseBranch,
+	onSelectCompareBaseBranch,
 	onOpenWorktree,
 	onOpenActiveWorkspace,
 }: {
-	effectiveBaseBranch: string | null;
+	effectiveCompareBaseBranch: string | null;
 	defaultBranch?: string;
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
@@ -287,7 +287,7 @@ function BaseBranchPickerInline({
 	activeWorkspacesByBranch: Map<string, string>;
 	externalWorktreeBranches: Set<string>;
 	modKey: string;
-	onSelectBaseBranch: (branchName: string) => void;
+	onSelectCompareBaseBranch: (branchName: string) => void;
 	onOpenWorktree: (action: OpenableWorktreeAction) => void;
 	onOpenActiveWorkspace: (workspaceId: string) => void;
 }) {
@@ -337,7 +337,7 @@ function BaseBranchPickerInline({
 						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
 					) : (
 						<span className="font-mono truncate">
-							{effectiveBaseBranch || "..."}
+							{effectiveCompareBaseBranch || "..."}
 						</span>
 					)}
 					<HiChevronUpDown className="size-3 shrink-0" />
@@ -418,7 +418,7 @@ function BaseBranchPickerInline({
 										} else if (openAction) {
 											onOpenWorktree(openAction);
 										} else {
-											onSelectBaseBranch(branch.name);
+											onSelectCompareBaseBranch(branch.name);
 										}
 										setOpen(false);
 									}}
@@ -455,7 +455,7 @@ function BaseBranchPickerInline({
 
 										{/* Show checkmark for selected base branch when not hovering */}
 										{!hasExistingWorkspace &&
-											effectiveBaseBranch === branch.name && (
+											effectiveCompareBaseBranch === branch.name && (
 												<HiCheck className="size-4 text-primary group-data-[selected=true]:hidden" />
 											)}
 
@@ -486,7 +486,7 @@ function BaseBranchPickerInline({
 												className="h-7 px-2.5 text-xs font-medium"
 												onClick={(e) => {
 													e.stopPropagation();
-													onSelectBaseBranch(branch.name);
+													onSelectCompareBaseBranch(branch.name);
 													setOpen(false);
 												}}
 											>
@@ -548,7 +548,7 @@ function PromptGroupInner({
 	const setPendingWorkspace = useSetPendingWorkspace();
 	const setPendingWorkspaceStatus = useSetPendingWorkspaceStatus();
 	const {
-		baseBranch,
+		compareBaseBranch,
 		prompt,
 		runSetupScript,
 		workspaceName,
@@ -666,8 +666,8 @@ function PromptGroupInner({
 		return set;
 	}, [externalWorktrees]);
 
-	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
-		explicitBaseBranch: baseBranch,
+	const effectiveCompareBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: compareBaseBranch,
 		workspaceBaseBranch: project?.workspaceBaseBranch,
 		defaultBranch: branchData?.defaultBranch,
 		branches: branchData?.branches,
@@ -680,7 +680,7 @@ function PromptGroupInner({
 			return;
 		}
 		previousProjectIdRef.current = projectId;
-		updateDraft({ baseBranch: null });
+		updateDraft({ compareBaseBranch: null });
 	}, [projectId, updateDraft]);
 
 	const buildLaunchRequest = useCallback(
@@ -988,7 +988,7 @@ ${sanitizeText(truncatedBody)}`;
 										},
 									)
 								: aiBranchName) || undefined,
-						baseBranch: baseBranch || undefined,
+						compareBaseBranch: compareBaseBranch || undefined,
 					},
 					{
 						agentLaunchRequest: launchRequest ?? undefined,
@@ -1016,7 +1016,7 @@ ${sanitizeText(truncatedBody)}`;
 		}
 	}, [
 		attachments,
-		baseBranch,
+		compareBaseBranch,
 		branchName,
 		branchNameEdited,
 		buildLaunchRequest,
@@ -1043,8 +1043,8 @@ ${sanitizeText(truncatedBody)}`;
 		void handleCreate();
 	}, [handleCreate]);
 
-	const handleBaseBranchSelect = (selectedBaseBranch: string) => {
-		updateDraft({ baseBranch: selectedBaseBranch });
+	const handleCompareBaseBranchSelect = (selectedBaseBranch: string) => {
+		updateDraft({ compareBaseBranch: selectedBaseBranch });
 	};
 
 	const handleOpenWorktree = useCallback(
@@ -1151,7 +1151,7 @@ ${sanitizeText(truncatedBody)}`;
 		<div className="p-3 space-y-2">
 			<div className="flex items-center">
 				<Input
-					className="border-none bg-transparent text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
+					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder="Workspace name (optional)"
 					value={workspaceName}
 					onChange={(e) =>
@@ -1165,11 +1165,17 @@ ${sanitizeText(truncatedBody)}`;
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
 						}
 					}}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+							e.preventDefault();
+							void handleCreate();
+						}
+					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
 						className={cn(
-							"border-none bg-transparent text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder="branch name"
 						value={branchName}
@@ -1189,6 +1195,12 @@ ${sanitizeText(truncatedBody)}`;
 								updateDraft({ branchName: "", branchNameEdited: false });
 							} else {
 								updateDraft({ branchName: sanitized });
+							}
+						}}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+								e.preventDefault();
+								void handleCreate();
 							}
 						}}
 					/>
@@ -1368,8 +1380,8 @@ ${sanitizeText(truncatedBody)}`;
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<BaseBranchPickerInline
-									effectiveBaseBranch={effectiveBaseBranch}
+								<CompareBaseBranchPickerInline
+									effectiveCompareBaseBranch={effectiveCompareBaseBranch}
 									defaultBranch={branchData?.defaultBranch}
 									isBranchesLoading={isBranchesLoading}
 									isBranchesError={isBranchesError}
@@ -1379,7 +1391,7 @@ ${sanitizeText(truncatedBody)}`;
 									activeWorkspacesByBranch={activeWorkspacesByBranch}
 									externalWorktreeBranches={externalWorktreeBranches}
 									modKey={modKey}
-									onSelectBaseBranch={handleBaseBranchSelect}
+									onSelectCompareBaseBranch={handleCompareBaseBranchSelect}
 									onOpenWorktree={handleOpenWorktree}
 									onOpenActiveWorkspace={handleOpenActiveWorkspace}
 								/>

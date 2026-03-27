@@ -1,6 +1,6 @@
-import type { AuthProvider } from "../types";
+import type { ApiAuthProvider } from "../types";
 
-export class DeviceKeyAuthProvider implements AuthProvider {
+export class DeviceKeyApiAuthProvider implements ApiAuthProvider {
 	private apiKey: string;
 
 	constructor(apiKey: string) {

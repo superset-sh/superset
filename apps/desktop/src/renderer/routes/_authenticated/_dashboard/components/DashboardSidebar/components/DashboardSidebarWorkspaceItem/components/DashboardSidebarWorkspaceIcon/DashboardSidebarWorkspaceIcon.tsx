@@ -10,6 +10,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
 	workspaceStatus?: ActivePaneStatus | null;
+	creationStatus?: "preparing" | "generating-branch" | "creating";
 }
 
 const OVERLAY_POSITION = {
@@ -22,12 +23,13 @@ export function DashboardSidebarWorkspaceIcon({
 	isActive,
 	variant,
 	workspaceStatus = null,
+	creationStatus,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
 
 	return (
 		<>
-			{workspaceStatus === "working" ? (
+			{creationStatus || workspaceStatus === "working" ? (
 				<AsciiSpinner className="text-base" />
 			) : hostType === "cloud" ? (
 				<LuCloud

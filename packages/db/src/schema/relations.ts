@@ -325,24 +325,28 @@ export const v2DevicePresenceRelations = relations(
 	}),
 );
 
-export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
-	organization: one(organizations, {
-		fields: [v2Workspaces.organizationId],
-		references: [organizations.id],
+export const v2WorkspacesRelations = relations(
+	v2Workspaces,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [v2Workspaces.organizationId],
+			references: [organizations.id],
+		}),
+		project: one(v2Projects, {
+			fields: [v2Workspaces.projectId],
+			references: [v2Projects.id],
+		}),
+		device: one(v2Devices, {
+			fields: [v2Workspaces.deviceId],
+			references: [v2Devices.id],
+		}),
+		createdBy: one(users, {
+			fields: [v2Workspaces.createdByUserId],
+			references: [users.id],
+		}),
+		chatSessions: many(chatSessions),
 	}),
-	project: one(v2Projects, {
-		fields: [v2Workspaces.projectId],
-		references: [v2Projects.id],
-	}),
-	device: one(v2Devices, {
-		fields: [v2Workspaces.deviceId],
-		references: [v2Devices.id],
-	}),
-	createdBy: one(users, {
-		fields: [v2Workspaces.createdByUserId],
-		references: [users.id],
-	}),
-}));
+);
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
 	organization: one(organizations, {
@@ -400,6 +404,10 @@ export const chatSessionsRelations = relations(
 		workspace: one(workspaces, {
 			fields: [chatSessions.workspaceId],
 			references: [workspaces.id],
+		}),
+		v2Workspace: one(v2Workspaces, {
+			fields: [chatSessions.v2WorkspaceId],
+			references: [v2Workspaces.id],
 		}),
 		sessionHosts: many(sessionHosts),
 	}),

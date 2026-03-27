@@ -1,0 +1,32 @@
+{
+	"name": "@superset/pane-layout",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@superset/ui": "workspace:*",
+		"lucide-react": "^0.563.0",
+		"zustand": "^5.0.8"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/bun": "^1.2.17",
+		"@types/react": "~19.2.2",
+		"react": "19.2.0",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"react": "19.2.0"
+	}
+}

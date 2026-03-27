@@ -1,3 +1,4 @@
+import type { PaneWorkspaceState } from "@superset/pane-layout";
 import { z } from "zod";
 
 const persistedDateSchema = z
@@ -11,12 +12,17 @@ export const dashboardSidebarProjectSchema = z.object({
 	tabOrder: z.number().int().default(0),
 });
 
-export const dashboardSidebarWorkspaceSchema = z.object({
+const paneWorkspaceStateSchema = z.custom<PaneWorkspaceState<unknown>>();
+
+export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
-	projectId: z.string().uuid(),
 	createdAt: persistedDateSchema,
-	tabOrder: z.number().int().default(0),
-	sectionId: z.string().uuid().nullable().default(null),
+	sidebarState: z.object({
+		projectId: z.string().uuid(),
+		tabOrder: z.number().int().default(0),
+		sectionId: z.string().uuid().nullable().default(null),
+	}),
+	paneLayout: paneWorkspaceStateSchema,
 });
 
 export const dashboardSidebarSectionSchema = z.object({
@@ -32,9 +38,7 @@ export const dashboardSidebarSectionSchema = z.object({
 export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
 >;
-export type DashboardSidebarWorkspaceRow = z.infer<
-	typeof dashboardSidebarWorkspaceSchema
->;
+export type WorkspaceLocalStateRow = z.infer<typeof workspaceLocalStateSchema>;
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;

@@ -33,9 +33,9 @@ export function PromptGroup({
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const { closeModal, draft, runAsyncAction, updateDraft } =
 		useDashboardNewWorkspaceDraft();
-	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
+	const [compareBaseBranchOpen, setCompareBaseBranchOpen] = useState(false);
 	const {
-		baseBranch,
+		compareBaseBranch,
 		branchName,
 		branchNameEdited,
 		branchSearch,
@@ -96,8 +96,8 @@ export function PromptGroup({
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
-		explicitBaseBranch: baseBranch,
+	const effectiveCompareBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: compareBaseBranch,
 		workspaceBaseBranch: project?.workspaceBaseBranch,
 		defaultBranch: branchData?.defaultBranch,
 		branches: branchData?.branches,
@@ -124,10 +124,10 @@ export function PromptGroup({
 		}
 		previousProjectIdRef.current = localProjectId;
 		updateDraft({
-			baseBranch: null,
+			compareBaseBranch: null,
 			branchSearch: "",
 		});
-		setBaseBranchOpen(false);
+		setCompareBaseBranchOpen(false);
 	}, [localProjectId, updateDraft]);
 
 	const handleCreate = () => {
@@ -169,12 +169,12 @@ export function PromptGroup({
 		}
 	};
 
-	const handleBaseBranchSelect = (selectedBaseBranch: string) => {
+	const handleCompareBaseBranchSelect = (selectedBaseBranch: string) => {
 		updateDraft({
-			baseBranch: selectedBaseBranch,
+			compareBaseBranch: selectedBaseBranch,
 			branchSearch: "",
 		});
-		setBaseBranchOpen(false);
+		setCompareBaseBranchOpen(false);
 	};
 
 	return (
@@ -206,14 +206,14 @@ export function PromptGroup({
 					}}
 					isBranchesError={isBranchesError}
 					isBranchesLoading={isBranchesLoading}
-					baseBranchOpen={baseBranchOpen}
-					onBaseBranchOpenChange={setBaseBranchOpen}
-					effectiveBaseBranch={effectiveBaseBranch}
+					compareBaseBranchOpen={compareBaseBranchOpen}
+					onCompareBaseBranchOpenChange={setCompareBaseBranchOpen}
+					effectiveCompareBaseBranch={effectiveCompareBaseBranch}
 					defaultBranch={branchData?.defaultBranch}
 					branchSearch={branchSearch}
 					onBranchSearchChange={(branchSearch) => updateDraft({ branchSearch })}
 					filteredBranches={filteredBranches}
-					onSelectBaseBranch={handleBaseBranchSelect}
+					onSelectCompareBaseBranch={handleCompareBaseBranchSelect}
 					runSetupScript={false}
 					onRunSetupScriptChange={() => {}}
 					hideSetupScript

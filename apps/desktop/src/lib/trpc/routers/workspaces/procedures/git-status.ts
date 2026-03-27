@@ -65,6 +65,30 @@ function resolveCommentsPullRequestTarget({
 	};
 }
 
+function stripGitHubStatusTimestamp(
+	status: GitHubStatus | null | undefined,
+): Omit<GitHubStatus, "lastRefreshed"> | null {
+	if (!status) {
+		return null;
+	}
+
+	const { lastRefreshed: _lastRefreshed, ...rest } = status;
+	return rest;
+}
+
+function hasMeaningfulGitHubStatusChange({
+	current,
+	next,
+}: {
+	current: GitHubStatus | null | undefined;
+	next: GitHubStatus;
+}): boolean {
+	return (
+		JSON.stringify(stripGitHubStatusTimestamp(current)) !==
+		JSON.stringify(stripGitHubStatusTimestamp(next))
+	);
+}
+
 export const createGitStatusProcedures = () => {
 	return router({
 		refreshGitStatus: publicProcedure
@@ -165,7 +189,13 @@ export const createGitStatusProcedures = () => {
 
 				const freshStatus = await fetchGitHubPRStatus(worktree.path);
 
-				if (freshStatus) {
+				if (
+					freshStatus &&
+					hasMeaningfulGitHubStatusChange({
+						current: worktree.githubStatus,
+						next: freshStatus,
+					})
+				) {
 					localDb
 						.update(worktrees)
 						.set({ githubStatus: freshStatus })

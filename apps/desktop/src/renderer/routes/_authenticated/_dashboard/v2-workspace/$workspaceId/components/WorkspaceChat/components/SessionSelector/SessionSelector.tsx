@@ -7,11 +7,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useEffect, useMemo, useState } from "react";
-import {
-	HiMiniArrowPath,
-	HiMiniChevronDown,
-	HiMiniPlus,
-} from "react-icons/hi2";
+import { HiMiniChevronDown, HiMiniPlus } from "react-icons/hi2";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { SessionSelectorItem } from "./components/SessionSelectorItem";
 
@@ -25,7 +21,6 @@ interface SessionSelectorProps {
 	currentSessionId: string | null;
 	sessions: SessionItem[];
 	fallbackTitle?: string;
-	isSessionInitializing?: boolean;
 	onSelectSession: (sessionId: string) => void;
 	onNewChat: () => Promise<void>;
 	onDeleteSession: (sessionId: string) => Promise<void>;
@@ -80,7 +75,6 @@ export function SessionSelector({
 	currentSessionId,
 	sessions,
 	fallbackTitle,
-	isSessionInitializing = false,
 	onSelectSession,
 	onNewChat,
 	onDeleteSession,
@@ -114,26 +108,19 @@ export function SessionSelector({
 	);
 	const resolvedFallbackTitle =
 		fallbackTitle && fallbackTitle !== "New Chat" ? fallbackTitle : null;
-	const currentTitle =
-		current?.title ||
-		resolvedFallbackTitle ||
-		(isSessionInitializing ? "Creating Chat" : "New Chat");
+	const currentTitle = current?.title || resolvedFallbackTitle || "New Chat";
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					aria-busy={isSessionInitializing}
-					className="flex w-full min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<HiMiniChevronDown className="size-3" />
 					<span className="min-w-0 flex-1 truncate text-left">
 						{currentTitle}
 					</span>
-					{isSessionInitializing && (
-						<HiMiniArrowPath className="size-3 animate-spin" />
-					)}
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-80">

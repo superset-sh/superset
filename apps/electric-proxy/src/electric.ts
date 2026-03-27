@@ -31,9 +31,17 @@ export function buildUpstreamUrl(
 	whereClause: WhereClause,
 	env: Env,
 ): URL {
-	const upstream = new URL("/v1/shape", env.ELECTRIC_CLOUD_URL);
-	upstream.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID);
-	upstream.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET);
+	const hasSourceCredentials =
+		Boolean(env.ELECTRIC_SOURCE_ID) && Boolean(env.ELECTRIC_SOURCE_SECRET);
+
+	const upstream = new URL(env.ELECTRIC_SHAPE_URL ?? "");
+
+	if (hasSourceCredentials) {
+		upstream.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID ?? "");
+		upstream.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET ?? "");
+	} else {
+		upstream.searchParams.set("secret", env.ELECTRIC_SECRET ?? "");
+	}
 
 	for (const [key, value] of clientUrl.searchParams) {
 		if (PROTOCOL_PARAMS.has(key)) {

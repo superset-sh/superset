@@ -3,6 +3,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getHostServiceHeaders,
+	getHostServiceWsToken,
+} from "renderer/lib/host-service-auth";
 import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -53,12 +57,14 @@ function V2WorkspaceLayout() {
 		? (services.get(workspace.organizationId)?.url ?? null)
 		: null;
 	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
+	const isLocal = workspace?.deviceId === currentDevice?.id;
 	const hostUrl =
 		!workspace || shouldWaitForDeviceInfo
 			? null
-			: workspace.deviceId === currentDevice?.id
+			: isLocal
 				? localHostUrl
 				: getWorkspaceHostUrlForWorkspace(workspace.id);
+
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -93,6 +99,8 @@ function V2WorkspaceLayout() {
 			cacheKey={workspace.id}
 			key={`${workspace.id}:${hostUrl}`}
 			hostUrl={hostUrl}
+			headers={() => getHostServiceHeaders(hostUrl)}
+			wsToken={() => getHostServiceWsToken(hostUrl)}
 		>
 			<Outlet />
 		</WorkspaceTrpcProvider>

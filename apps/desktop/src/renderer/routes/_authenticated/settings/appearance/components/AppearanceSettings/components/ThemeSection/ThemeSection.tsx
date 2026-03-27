@@ -9,12 +9,17 @@ import {
 } from "react-icons/hi2";
 import {
 	SYSTEM_THEME_ID,
+	useSetSystemThemePreference,
 	useSetTheme,
+	useSystemDarkThemeId,
+	useSystemLightThemeId,
 	useThemeId,
 	useThemeStore,
 } from "renderer/stores";
 import {
 	builtInThemes,
+	darkTheme as defaultDarkTheme,
+	lightTheme as defaultLightTheme,
 	getTerminalColors,
 	parseThemeConfigFile,
 } from "shared/themes";
@@ -31,8 +36,22 @@ export function ThemeSection() {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const customThemes = useThemeStore((state) => state.customThemes);
 	const upsertCustomThemes = useThemeStore((state) => state.upsertCustomThemes);
+	const systemLightThemeId = useSystemLightThemeId();
+	const systemDarkThemeId = useSystemDarkThemeId();
+	const setSystemThemePreference = useSetSystemThemePreference();
 
 	const allThemes = [...builtInThemes, ...customThemes];
+
+	// Resolve system theme preference IDs to actual theme objects.
+	// Fallback chain ensures we always get a theme with terminal colors.
+	const systemLightTheme =
+		allThemes.find((t) => t.id === systemLightThemeId) ??
+		builtInThemes.find((t) => t.id === "light") ??
+		defaultLightTheme;
+	const systemDarkTheme =
+		allThemes.find((t) => t.id === systemDarkThemeId) ??
+		builtInThemes.find((t) => t.id === "dark") ??
+		defaultDarkTheme;
 
 	const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -164,10 +183,14 @@ export function ThemeSection() {
 					</a>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 				<SystemThemeCard
 					isSelected={activeThemeId === SYSTEM_THEME_ID}
 					onSelect={() => setTheme(SYSTEM_THEME_ID)}
+					darkTheme={systemDarkTheme}
+					lightTheme={systemLightTheme}
+					allThemes={allThemes}
+					onSystemThemePreferenceChange={setSystemThemePreference}
 				/>
 				{allThemes.map((theme) => (
 					<ThemeCard

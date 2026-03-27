@@ -1,9 +1,34 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { SelectMember } from "@superset/db/schema/auth";
-import {
-	type ResolveSessionOrganizationDeps,
-	resolveSessionOrganizationState,
-} from "./resolve-session-organization-state";
+import type { ResolveSessionOrganizationDeps } from "./resolve-session-organization-state";
+
+mock.module("@superset/db/client", () => ({
+	db: {
+		query: {
+			members: {
+				findMany: mock(async () => []),
+			},
+		},
+		select: mock(() => ({
+			from: mock(() => ({
+				where: mock(() => ({
+					limit: mock(async () => []),
+				})),
+			})),
+		})),
+		update: mock(() => ({
+			set: mock(() => ({
+				where: mock(() => ({
+					returning: mock(async () => []),
+				})),
+			})),
+		})),
+	},
+}));
+
+const { resolveSessionOrganizationState } = await import(
+	"./resolve-session-organization-state"
+);
 
 function createMember(
 	organizationId: string,

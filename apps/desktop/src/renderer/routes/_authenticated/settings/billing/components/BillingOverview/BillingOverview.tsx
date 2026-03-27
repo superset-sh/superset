@@ -13,6 +13,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import type { PlanTier } from "../../constants";
+import { BillingDetails } from "./components/BillingDetails";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
 import { RecentInvoices } from "./components/RecentInvoices";
 import { UpgradeCard } from "./components/UpgradeCard";
@@ -29,6 +30,13 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const [isRestoring, setIsRestoring] = useState(false);
 
 	const activeOrgId = session?.session?.activeOrganizationId;
+
+	const { data: activeOrg } = authClient.useActiveOrganization();
+	const currentUserId = session?.user?.id;
+	const currentMember = activeOrg?.members?.find(
+		(m) => m.userId === currentUserId,
+	);
+	const isOwner = currentMember?.role === "owner";
 
 	// Get subscription from Electric (preloaded, instant)
 	const { data: subscriptionsData } = useLiveQuery(
@@ -167,6 +175,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 						)}
 					</>
 				)}
+				{showOverview && isOwner && plan !== "free" && <BillingDetails />}
 				<RecentInvoices />
 			</div>
 		</div>

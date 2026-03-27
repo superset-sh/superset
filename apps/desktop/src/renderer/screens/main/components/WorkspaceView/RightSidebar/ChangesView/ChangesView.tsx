@@ -13,6 +13,10 @@ import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getGitHubPRCommentsQueryPolicy,
+	getGitHubStatusQueryPolicy,
+} from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import {
 	checkSummaryIconConfig,
@@ -47,10 +51,6 @@ interface ChangesViewProps {
 }
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
-const GITHUB_STATUS_STALE_TIME_MS = 10_000;
-const GITHUB_STATUS_REFETCH_INTERVAL_MS = 10_000;
-const GITHUB_PR_COMMENTS_STALE_TIME_MS = 30_000;
-const GITHUB_PR_COMMENTS_REFETCH_INTERVAL_MS = 30_000;
 
 interface PendingChangesRefresh {
 	invalidateBranches: boolean;
@@ -98,6 +98,16 @@ export function ChangesView({
 	);
 	const worktreePath = workspace?.worktreePath;
 	const projectId = workspace?.projectId;
+	const activeTab = useChangesStore((s) => s.activeTab);
+	const isReviewTabActive = isActive && activeTab === "review";
+	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy(
+		"changes-sidebar",
+		{
+			hasWorkspaceId: !!workspaceId,
+			isActive,
+			isReviewTabActive,
+		},
+	);
 
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
@@ -116,11 +126,7 @@ export function ChangesView({
 		refetch: refetchGithubStatus,
 	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
-		{
-			enabled: !!workspaceId && isActive,
-			refetchInterval: isActive ? GITHUB_STATUS_REFETCH_INTERVAL_MS : false,
-			staleTime: GITHUB_STATUS_STALE_TIME_MS,
-		},
+		githubStatusQueryPolicy,
 	);
 
 	const stageAllMutation = electronTrpc.changes.stageAll.useMutation({
@@ -260,6 +266,12 @@ export function ChangesView({
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
 	const activePullRequest = githubStatus?.pr ?? null;
+	const githubPRCommentsQueryPolicy = getGitHubPRCommentsQueryPolicy({
+		hasWorkspaceId: !!workspaceId,
+		hasActivePullRequest: !!activePullRequest,
+		isActive,
+		isReviewTabActive,
+	});
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingRefreshRef = useRef<PendingChangesRefresh>({
 		invalidateBranches: false,
@@ -281,15 +293,7 @@ export function ChangesView({
 					}
 				: {}),
 		},
-		{
-			enabled: !!workspaceId && isActive && !!activePullRequest,
-			refetchInterval:
-				isActive && activePullRequest
-					? GITHUB_PR_COMMENTS_REFETCH_INTERVAL_MS
-					: false,
-			staleTime: GITHUB_PR_COMMENTS_STALE_TIME_MS,
-			refetchOnWindowFocus: false,
-		},
+		githubPRCommentsQueryPolicy,
 	);
 
 	useBranchSyncInvalidation({
@@ -322,7 +326,6 @@ export function ChangesView({
 	};
 
 	const {
-		activeTab,
 		expandedSections,
 		fileListViewMode,
 		sectionOrder,

@@ -1,12 +1,12 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
-import type { AuthProvider } from "../../providers/auth";
+import type { ApiAuthProvider } from "../../providers/auth";
 import type { ApiClient } from "../../types";
 
 export function createApiClient(
 	baseUrl: string,
-	authProvider: AuthProvider,
+	authProvider: ApiAuthProvider,
 ): ApiClient {
 	return createTRPCClient<AppRouter>({
 		links: [

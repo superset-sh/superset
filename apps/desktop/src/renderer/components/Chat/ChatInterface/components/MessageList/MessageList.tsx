@@ -123,7 +123,7 @@ export function MessageList({
 							return (
 								<div
 									key={msg.id}
-									className="flex flex-col items-end gap-2"
+									className="flex max-w-full min-w-0 flex-col items-end gap-2"
 									data-chat-user-message="true"
 									data-message-id={msg.id}
 								>
@@ -167,7 +167,7 @@ export function MessageList({
 										</div>
 									)}
 									{hasNonTaskContent && (
-										<div className="max-w-[85%] rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
+										<div className="max-w-[85%] overflow-x-auto rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
 											{otherSegments.map((segment, segIdx) => {
 												if (segment.type === "text") {
 													return (

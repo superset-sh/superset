@@ -1,3 +1,7 @@
+import {
+	getCurrentBranch,
+	isUnbornHeadError,
+} from "../../workspaces/utils/git";
 import { execGitWithShellPath } from "../../workspaces/utils/git-client";
 import {
 	getPRForBranch,
@@ -36,15 +40,20 @@ export async function mergePullRequest({
 
 	let pr: Awaited<ReturnType<typeof getPRForBranch>> = null;
 	try {
-		const [{ stdout: branchOutput }, { stdout: headOutput }] =
-			await Promise.all([
-				execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
-					cwd: worktreePath,
-				}),
-				execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
-			]);
-		const localBranch = branchOutput.trim();
-		const headSha = headOutput.trim();
+		const localBranch = await getCurrentBranch(worktreePath);
+		if (!localBranch) {
+			return runMerge(legacyMergeArgs);
+		}
+		const { stdout: headOutput } = await execGitWithShellPath(
+			["rev-parse", "HEAD"],
+			{ cwd: worktreePath },
+		).catch((error) => {
+			if (isUnbornHeadError(error)) {
+				return { stdout: "", stderr: "" };
+			}
+			throw error;
+		});
+		const headSha = headOutput.trim() || undefined;
 
 		pr = await getPRForBranch(worktreePath, localBranch, repoContext, headSha);
 	} catch (error) {

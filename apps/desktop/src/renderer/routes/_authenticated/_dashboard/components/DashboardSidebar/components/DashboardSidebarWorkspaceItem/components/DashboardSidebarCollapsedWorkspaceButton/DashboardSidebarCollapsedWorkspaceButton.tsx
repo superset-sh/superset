@@ -9,6 +9,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	hostType: DashboardSidebarWorkspaceHostType;
 	isActive: boolean;
 	workspaceStatus?: ActivePaneStatus | null;
+	creationStatus?: "preparing" | "generating-branch" | "creating";
 }
 
 export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
@@ -16,7 +17,14 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 	DashboardSidebarCollapsedWorkspaceButtonProps
 >(
 	(
-		{ hostType, isActive, workspaceStatus = null, className, ...props },
+		{
+			hostType,
+			isActive,
+			workspaceStatus = null,
+			creationStatus,
+			className,
+			...props
+		},
 		ref,
 	) => {
 		return (
@@ -36,6 +44,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 					isActive={isActive}
 					variant="collapsed"
 					workspaceStatus={workspaceStatus}
+					creationStatus={creationStatus}
 				/>
 			</button>
 		);

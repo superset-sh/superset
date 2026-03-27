@@ -1,27 +1,44 @@
 ---
-title: Setup & Teardown Scripts
-description: Automate workspace initialization
+title: Setup, Teardown & Run Scripts
+description: Automate workspace initialization and dev servers
 ---
 
 ## Overview
 
-Run commands automatically when creating or deleting workspaces.
+Run commands automatically when creating or deleting workspaces, and define dev server commands that launch via the Run button.
 
 Create `.superset/config.json` in your project:
 
 ```json
 {
   "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
-  "teardown": ["docker-compose down"]
+  "teardown": ["docker-compose down"],
+  "run": ["./.superset/run.sh"]
 }
 ```
 
 ## How It Works
 
-1. Create workspace → setup commands run
-2. Delete workspace → teardown commands run
+1. Create workspace → **setup** commands run in a terminal
+2. Delete workspace → **teardown** commands run
+3. Click the **Run** button → **run** commands execute in a dedicated pane
 
-Commands run sequentially in the workspace directory.
+Setup and teardown commands run sequentially in the workspace directory.
+
+## Run Script
+
+The `run` field defines commands that start your dev server or other long-running processes. Unlike setup/teardown, run commands are:
+
+- **On-demand** — triggered by the Run button, not automatically on workspace creation
+- **Restartable** — stop and restart from the UI without recreating the workspace
+- **Dedicated pane** — runs in its own terminal pane separate from your shell
+
+```json
+{
+  "setup": ["npm install"],
+  "run": ["./.superset/run.sh"]
+}
+```
 
 ## Environment Variables
 
@@ -29,6 +46,7 @@ Commands run sequentially in the workspace directory.
 |----------|-------------|
 | `SUPERSET_ROOT_PATH` | Path to root repository |
 | `SUPERSET_WORKSPACE_NAME` | Current workspace name |
+| `SUPERSET_WORKSPACE_PATH` | Path to the workspace worktree |
 
 ## Examples
 
@@ -45,9 +63,18 @@ Commands run sequentially in the workspace directory.
 }
 ```
 
+**Full config:**
+```json
+{
+  "setup": ["./.superset/setup.sh"],
+  "teardown": ["./.superset/teardown.sh"],
+  "run": ["./.superset/run.sh"]
+}
+```
+
 ## User Overrides
 
-Override project setup/teardown scripts without modifying the repo by placing a `config.json` in your home directory:
+Override project scripts without modifying the repo by placing a `config.json` in your home directory:
 
 ```
 ~/.superset/projects/<project-id>/config.json
@@ -57,7 +84,7 @@ Where `<project-id>` is your project's unique ID in Superset (visible in the app
 
 ### Priority Order
 
-Config is resolved in this order (first found wins, for both setup and teardown):
+Config is resolved in this order (first found wins, for setup, teardown, and run):
 1. `~/.superset/projects/<project-id>/config.json` — user override
 2. `<worktree>/.superset/config.json` — worktree-specific
 3. `<repo>/.superset/config.json` — project default
@@ -142,3 +169,4 @@ When teardown fails:
 - Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`
 - Use `config.local.json` to add personal steps without touching the team's config
 - Use user overrides (`~/.superset/projects/`) to replace scripts entirely per-project
+- Use `run` for dev servers instead of putting them in `setup`—run scripts are restartable and don't block workspace creation

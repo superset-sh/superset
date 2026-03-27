@@ -24,6 +24,7 @@ function addCorsHeaders(response: Response): Response {
 	for (const [key, value] of Object.entries(CORS_HEADERS)) {
 		headers.set(key, value);
 	}
+	headers.set("Vary", "Authorization");
 	return new Response(response.body, {
 		status: response.status,
 		statusText: response.statusText,

@@ -1,4 +1,5 @@
 AUTH_URL=http://localhost:3141
-ELECTRIC_CLOUD_URL=https://api.electric-sql.cloud
+ELECTRIC_SHAPE_URL=http://localhost:3069/v1/shape
+ELECTRIC_SECRET=local_electric_dev_secret
 ELECTRIC_SOURCE_ID=
 ELECTRIC_SOURCE_SECRET=

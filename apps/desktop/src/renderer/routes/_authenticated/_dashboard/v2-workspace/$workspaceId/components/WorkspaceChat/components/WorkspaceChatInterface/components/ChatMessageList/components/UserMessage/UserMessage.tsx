@@ -103,7 +103,7 @@ export function UserMessage({
 
 	return (
 		<div
-			className="group/msg flex flex-col items-end gap-2"
+			className="group/msg flex max-w-full flex-col items-end gap-2"
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>

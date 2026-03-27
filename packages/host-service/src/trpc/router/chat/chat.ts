@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 const thinkingLevelSchema = z.enum(["off", "low", "medium", "high", "xhigh"]);
 
@@ -22,17 +22,19 @@ const sendMessagePayloadSchema = z.object({
 });
 
 export const chatRouter = router({
-	getDisplayState: publicProcedure
+	getDisplayState: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
 			return ctx.runtime.chat.getDisplayState(input);
 		}),
 
-	listMessages: publicProcedure.input(sessionInput).query(({ ctx, input }) => {
-		return ctx.runtime.chat.listMessages(input);
-	}),
+	listMessages: protectedProcedure
+		.input(sessionInput)
+		.query(({ ctx, input }) => {
+			return ctx.runtime.chat.listMessages(input);
+		}),
 
-	sendMessage: publicProcedure
+	sendMessage: protectedProcedure
 		.input(
 			sessionInput.extend({
 				payload: sendMessagePayloadSchema,
@@ -48,7 +50,7 @@ export const chatRouter = router({
 			return ctx.runtime.chat.sendMessage(input);
 		}),
 
-	restartFromMessage: publicProcedure
+	restartFromMessage: protectedProcedure
 		.input(
 			sessionInput.extend({
 				messageId: z.string().min(1),
@@ -65,11 +67,11 @@ export const chatRouter = router({
 			return ctx.runtime.chat.restartFromMessage(input);
 		}),
 
-	stop: publicProcedure.input(sessionInput).mutation(({ ctx, input }) => {
+	stop: protectedProcedure.input(sessionInput).mutation(({ ctx, input }) => {
 		return ctx.runtime.chat.stop(input);
 	}),
 
-	respondToApproval: publicProcedure
+	respondToApproval: protectedProcedure
 		.input(
 			sessionInput.extend({
 				payload: z.object({
@@ -81,7 +83,7 @@ export const chatRouter = router({
 			return ctx.runtime.chat.respondToApproval(input);
 		}),
 
-	respondToQuestion: publicProcedure
+	respondToQuestion: protectedProcedure
 		.input(
 			sessionInput.extend({
 				payload: z.object({
@@ -94,7 +96,7 @@ export const chatRouter = router({
 			return ctx.runtime.chat.respondToQuestion(input);
 		}),
 
-	respondToPlan: publicProcedure
+	respondToPlan: protectedProcedure
 		.input(
 			sessionInput.extend({
 				payload: z.object({
@@ -110,13 +112,13 @@ export const chatRouter = router({
 			return ctx.runtime.chat.respondToPlan(input);
 		}),
 
-	getSlashCommands: publicProcedure
+	getSlashCommands: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
 			return ctx.runtime.chat.getSlashCommands(input);
 		}),
 
-	resolveSlashCommand: publicProcedure
+	resolveSlashCommand: protectedProcedure
 		.input(
 			sessionInput.extend({
 				text: z.string(),
@@ -126,7 +128,7 @@ export const chatRouter = router({
 			return ctx.runtime.chat.resolveSlashCommand(input);
 		}),
 
-	previewSlashCommand: publicProcedure
+	previewSlashCommand: protectedProcedure
 		.input(
 			sessionInput.extend({
 				text: z.string(),
@@ -136,7 +138,7 @@ export const chatRouter = router({
 			return ctx.runtime.chat.previewSlashCommand(input);
 		}),
 
-	getMcpOverview: publicProcedure
+	getMcpOverview: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
 			return ctx.runtime.chat.getMcpOverview(input);

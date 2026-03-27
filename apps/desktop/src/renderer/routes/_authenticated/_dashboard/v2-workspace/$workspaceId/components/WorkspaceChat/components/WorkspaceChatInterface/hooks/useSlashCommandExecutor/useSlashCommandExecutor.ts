@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import type {
 	McpOverviewPayload,
 	ModelOption,
-	StartFreshSessionResult,
 } from "renderer/components/Chat/ChatInterface/types";
 import {
 	findModelByQuery,
@@ -17,7 +16,7 @@ interface UseSlashCommandExecutorOptions {
 	cwd: string;
 	availableModels: ModelOption[];
 	canAbort: boolean;
-	onStartFreshSession: () => Promise<StartFreshSessionResult>;
+	onResetSession: () => Promise<void>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onOpenModelPicker: () => void;
@@ -39,7 +38,7 @@ export function useSlashCommandExecutor({
 	cwd,
 	availableModels,
 	canAbort,
-	onStartFreshSession,
+	onResetSession,
 	onStopActiveResponse,
 	onSelectModel,
 	onOpenModelPicker,
@@ -61,16 +60,12 @@ export function useSlashCommandExecutor({
 			if (!sessionId) {
 				if (text === "/new" || text === "/clear") {
 					onClearError();
-					const startResult = await onStartFreshSession();
-					if (startResult.created) {
-						toast.success(
-							text === "/clear"
-								? "Context cleared in a new chat session"
-								: "Started a new chat session",
-						);
-					} else if (startResult.errorMessage) {
-						toast.error(startResult.errorMessage);
-					}
+					await onResetSession();
+					toast.success(
+						text === "/clear"
+							? "Context cleared in a new chat session"
+							: "Started a new chat session",
+					);
 					return { handled: true, nextText: "" };
 				}
 
@@ -86,16 +81,12 @@ export function useSlashCommandExecutor({
 					case "new":
 					case "clear": {
 						onClearError();
-						const startResult = await onStartFreshSession();
-						if (startResult.created) {
-							toast.success(
-								commandName === "clear"
-									? "Context cleared in a new chat session"
-									: "Started a new chat session",
-							);
-						} else if (startResult.errorMessage) {
-							toast.error(startResult.errorMessage);
-						}
+						await onResetSession();
+						toast.success(
+							commandName === "clear"
+								? "Context cleared in a new chat session"
+								: "Started a new chat session",
+						);
 						onTrackEvent?.("chat_slash_command_used", {
 							command_name: commandName,
 							command_type: "new_session",
@@ -196,7 +187,7 @@ export function useSlashCommandExecutor({
 			onShowMcpOverview,
 			onTrackEvent,
 			loadMcpOverview,
-			onStartFreshSession,
+			onResetSession,
 			onStopActiveResponse,
 			sessionId,
 			workspaceId,

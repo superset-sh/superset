@@ -1,1 +1,1 @@
-export { JwtAuthProvider } from "./JwtAuthProvider";
+export { JwtApiAuthProvider } from "./JwtAuthProvider";

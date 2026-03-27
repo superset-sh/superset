@@ -478,18 +478,18 @@ step_write_env() {
     echo ""
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
-    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
+    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric SSE streams)"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
   } >> .env
 
   success "Workspace .env written"
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
-  # Caddy proxies to the API server which handles auth and forwards to Electric Docker
+  # Caddy proxies to the local Wrangler worker, which handles auth and forwards upstream appropriately.
   cat > Caddyfile <<-CADDYEOF
 	https://localhost:{\$CADDY_ELECTRIC_PORT} {
-		reverse_proxy localhost:{\$API_PORT} {
+		reverse_proxy localhost:{\$WRANGLER_PORT} {
 			flush_interval -1
 		}
 	}
@@ -522,7 +522,8 @@ PORTSJSON
 
   cat > apps/electric-proxy/.dev.vars <<DEVVARS
 AUTH_URL=http://localhost:$API_PORT
-ELECTRIC_CLOUD_URL=${ELECTRIC_CLOUD_URL:-https://api.electric-sql.cloud}
+ELECTRIC_SHAPE_URL=http://localhost:$ELECTRIC_PORT/v1/shape
+ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
 ELECTRIC_SOURCE_ID=${ELECTRIC_SOURCE_ID:-}
 ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}
 DEVVARS

@@ -4,99 +4,133 @@ import { members, organizations } from "@superset/db/schema";
 import {
 	sessions as authSessions,
 	invitations,
+	verifications,
 } from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
+import { verifyOrgAdmin } from "../integration/utils";
+
+async function getInvitationById(invitationId: string) {
+	const invitation = await db.query.invitations.findFirst({
+		where: eq(invitations.id, invitationId),
+		with: {
+			organization: true,
+			inviter: true,
+		},
+	});
+
+	if (!invitation) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Invitation not found",
+		});
+	}
+
+	return invitation;
+}
+
+function isInvitationExpired(expiresAt: Date) {
+	return new Date(expiresAt) < new Date();
+}
+
+function verificationMatchesInvitation({
+	verificationIdentifier,
+	invitationId,
+	invitationEmail,
+}: {
+	verificationIdentifier: string;
+	invitationId: string;
+	invitationEmail: string;
+}) {
+	return (
+		verificationIdentifier === invitationId ||
+		verificationIdentifier.toLowerCase() === invitationEmail.toLowerCase()
+	);
+}
 
 export const organizationRouter = {
-	all: publicProcedure.query(() => {
-		return db.query.organizations.findMany({
-			orderBy: desc(organizations.createdAt),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
+	getInvitation: protectedProcedure
+		.input(z.uuid())
+		.query(async ({ ctx, input }) => {
+			const invitation = await getInvitationById(input);
+			const isInvitee =
+				ctx.session.user.email.toLowerCase() === invitation.email.toLowerCase();
+
+			if (!isInvitee) {
+				await verifyOrgAdmin(ctx.session.user.id, invitation.organizationId);
+			}
+
+			return {
+				id: invitation.id,
+				email: invitation.email,
+				role: invitation.role,
+				status: invitation.status,
+				expiresAt: invitation.expiresAt,
+				isExpired: isInvitationExpired(invitation.expiresAt),
+				organization: {
+					id: invitation.organization.id,
+					name: invitation.organization.name,
+					slug: invitation.organization.slug,
+					logo: invitation.organization.logo,
 				},
-			},
-		});
-	}),
-
-	byId: publicProcedure.input(z.string().uuid()).query(({ input }) => {
-		return db.query.organizations.findFirst({
-			where: eq(organizations.id, input),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
+				inviter: {
+					id: invitation.inviter.id,
+					name: invitation.inviter.name,
+					email: invitation.inviter.email,
+					image: invitation.inviter.image,
 				},
-				projects: true,
-			},
-		});
-	}),
+			};
+		}),
 
-	bySlug: publicProcedure.input(z.string()).query(({ input }) => {
-		return db.query.organizations.findFirst({
-			where: eq(organizations.slug, input),
-			with: {
-				members: {
-					with: {
-						user: true,
-					},
-				},
-				projects: true,
-			},
-		});
-	}),
-
-	getInvitation: publicProcedure.input(z.uuid()).query(async ({ input }) => {
-		const invitation = await db.query.invitations.findFirst({
-			where: eq(invitations.id, input),
-			with: {
-				organization: true,
-				inviter: true,
-			},
-		});
-
-		if (!invitation) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Invitation not found",
+	getInvitationPreview: publicProcedure
+		.input(
+			z.object({
+				invitationId: z.uuid(),
+				token: z.string().min(1),
+			}),
+		)
+		.query(async ({ input }) => {
+			const invitation = await getInvitationById(input.invitationId);
+			const verification = await db.query.verifications.findFirst({
+				where: eq(verifications.value, input.token),
 			});
-		}
 
-		// Check if invitation is expired
-		const isExpired = new Date(invitation.expiresAt) < new Date();
+			const hasValidToken =
+				verification &&
+				new Date() <= new Date(verification.expiresAt) &&
+				verificationMatchesInvitation({
+					verificationIdentifier: verification.identifier,
+					invitationId: invitation.id,
+					invitationEmail: invitation.email,
+				});
 
-		return {
-			id: invitation.id,
-			email: invitation.email,
-			role: invitation.role,
-			status: invitation.status,
-			expiresAt: invitation.expiresAt,
-			isExpired,
-			organization: {
-				id: invitation.organization.id,
-				name: invitation.organization.name,
-				slug: invitation.organization.slug,
-				logo: invitation.organization.logo,
-			},
-			inviter: {
-				id: invitation.inviter.id,
-				name: invitation.inviter.name,
-				email: invitation.inviter.email,
-				image: invitation.inviter.image,
-			},
-		};
-	}),
+			if (!hasValidToken) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invitation not found",
+				});
+			}
 
+			return {
+				role: invitation.role,
+				status: invitation.status,
+				expiresAt: invitation.expiresAt,
+				isExpired: isInvitationExpired(invitation.expiresAt),
+				organization: {
+					name: invitation.organization.name,
+					logo: invitation.organization.logo,
+				},
+				inviter: {
+					name: invitation.inviter.name,
+				},
+			};
+		}),
 	create: protectedProcedure
 		.input(
 			z.object({
@@ -291,13 +325,6 @@ export const organizationRouter = {
 			}
 		}),
 
-	delete: protectedProcedure
-		.input(z.string().uuid())
-		.mutation(async ({ input }) => {
-			await db.delete(organizations).where(eq(organizations.id, input));
-			return { success: true };
-		}),
-
 	addMember: protectedProcedure
 		.input(
 			z.object({
@@ -306,6 +333,7 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 			const member = await ctx.auth.api.addMember({
 				body: {
 					organizationId: input.organizationId,

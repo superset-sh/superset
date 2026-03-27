@@ -96,7 +96,7 @@ function DashboardLayout() {
 	return (
 		<div className="flex flex-col h-full w-full">
 			<TopBar />
-			<div className="flex flex-1 overflow-hidden">
+			<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 				{isWorkspaceSidebarOpen && (
 					<ResizablePanel
 						width={workspaceSidebarWidth}
@@ -122,7 +122,9 @@ function DashboardLayout() {
 						)}
 					</ResizablePanel>
 				)}
-				<Outlet />
+				<div className="flex flex-1 min-h-0 min-w-0">
+					<Outlet />
+				</div>
 			</div>
 		</div>
 	);

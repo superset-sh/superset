@@ -147,6 +147,7 @@ const DEFAULT_PRESET_AGENTS = [
 	"claude",
 	"codex",
 	"copilot",
+	"mastracode",
 	"opencode",
 	"pi",
 	"gemini",
