@@ -179,6 +179,8 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 					</div>
 				)}
 
+				<OnedevConnectionSection />
+
 				{showSignOut && (
 					<div className={showProfile ? "pt-6 border-t" : ""}>
 						<h3 className="text-sm font-medium mb-2">Sign Out</h3>
@@ -191,6 +193,62 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 					</div>
 				)}
 			</div>
+		</div>
+	);
+}
+
+function OnedevConnectionSection() {
+	const { data: onedevConfig } = electronTrpc.settings.getOnedevConfig.useQuery();
+	const { data: projectPaths } = electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
+	const { data: users } = electronTrpc.settings.getOnedevUsers.useQuery();
+
+	const isConfigured = !!onedevConfig?.url && !!onedevConfig?.accessToken;
+	const url = onedevConfig?.url ?? "";
+
+	return (
+		<div className="pt-6 border-t">
+			<h3 className="text-sm font-medium mb-2">OneDev</h3>
+			<p className="text-sm text-muted-foreground mb-4">
+				Your OneDev server connection.
+			</p>
+			<Card>
+				<CardContent>
+					<ul className="divide-y">
+						<li className="flex items-center justify-between py-3">
+							<span className="text-sm font-medium">Status</span>
+							{isConfigured ? (
+								<span className="flex items-center gap-1.5 text-sm">
+									<span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+									Connected
+								</span>
+							) : (
+								<span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+									<span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+									Not configured
+								</span>
+							)}
+						</li>
+						{isConfigured && (
+							<>
+								<li className="flex items-center justify-between py-3">
+									<span className="text-sm font-medium">Server</span>
+									<a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+										{url.replace(/^https?:\/\//, "")}
+									</a>
+								</li>
+								<li className="flex items-center justify-between py-3">
+									<span className="text-sm font-medium">Projects</span>
+									<span className="text-sm text-muted-foreground">{projectPaths?.length ?? 0} connected</span>
+								</li>
+								<li className="flex items-center justify-between py-3">
+									<span className="text-sm font-medium">Users</span>
+									<span className="text-sm text-muted-foreground">{users?.length ?? 0} active</span>
+								</li>
+							</>
+						)}
+					</ul>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

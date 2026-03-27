@@ -1154,6 +1154,35 @@ export const createSettingsRouter = () => {
 				}
 			}),
 
+		getOnedevProjectInfo: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const row = getSettings();
+				const onedevUrl = row.onedevUrl;
+				const onedevToken = row.onedevAccessToken;
+				if (!onedevUrl || !onedevToken) return null;
+				try {
+					const { projects } = await import("@superset/local-db");
+					const project = localDb.select().from(projects).where(eq(projects.id, input.projectId)).get();
+					if (!project) return null;
+					const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
+					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+					const { detectGitProvider, extractOnedevProjectPath } = await import("../changes/utils/git-provider");
+					const provider = detectGitProvider(remoteUrl, onedevUrl);
+					if (provider !== "onedev") return { provider, remoteUrl, onedevProjectPath: null, onedevUrl: null };
+					const projectPath = extractOnedevProjectPath(remoteUrl);
+					return {
+						provider: "onedev",
+						remoteUrl,
+						onedevProjectPath: projectPath,
+						onedevUrl: projectPath ? `${onedevUrl}/${projectPath}` : null,
+					};
+				} catch {
+					return null;
+				}
+			}),
+
 		getOnedevRecentCommits: publicProcedure
 			.input(z.object({ projectPath: z.string() }))
 			.query(async ({ input }) => {

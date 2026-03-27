@@ -27,11 +27,13 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	HiArrowTopRightOnSquare,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
+import { VscGitMerge } from "react-icons/vsc";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -299,6 +301,8 @@ export function ProjectSettings({
 			</ProjectSettingsHeader>
 
 			<div className="space-y-4">
+				<OnedevSection projectId={projectId} />
+
 				<SettingsSection
 					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
 					title="Branch Prefix"
@@ -656,5 +660,57 @@ export function ProjectSettings({
 				</SettingsSection>
 			</div>
 		</div>
+	);
+}
+
+function OnedevSection({ projectId }: { projectId: string }) {
+	const { data: info } = electronTrpc.settings.getOnedevProjectInfo.useQuery({ projectId });
+
+	if (!info) {
+		return (
+			<SettingsSection icon={<VscGitMerge className="h-4 w-4" />} title="OneDev" description="Git server integration.">
+				<div className="flex items-center gap-2">
+					<span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30" />
+					<span className="text-sm text-muted-foreground">Loading...</span>
+				</div>
+			</SettingsSection>
+		);
+	}
+
+	const isOnedev = info.provider === "onedev";
+
+	return (
+		<SettingsSection icon={<VscGitMerge className="h-4 w-4" />} title="OneDev" description="Git server integration.">
+			<div className="space-y-3">
+				<div className="flex items-center justify-between">
+					<Label className="text-sm font-medium">Provider</Label>
+					<div className="flex items-center gap-2">
+						<span className={`inline-block w-2 h-2 rounded-full ${isOnedev ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+						<span className="text-sm">{isOnedev ? "OneDev" : info.provider === "github" ? "GitHub" : "Unknown"}</span>
+					</div>
+				</div>
+				<div className="flex items-center justify-between">
+					<Label className="text-sm font-medium">Remote URL</Label>
+					<code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded max-w-[300px] truncate">{info.remoteUrl}</code>
+				</div>
+				{isOnedev && info.onedevProjectPath && (
+					<>
+						<div className="flex items-center justify-between">
+							<Label className="text-sm font-medium">OneDev Project</Label>
+							<span className="text-sm">{info.onedevProjectPath}</span>
+						</div>
+						{info.onedevUrl && (
+							<div className="flex items-center justify-between">
+								<Label className="text-sm font-medium">Web</Label>
+								<a href={info.onedevUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+									{info.onedevUrl.replace(/^https?:\/\//, "")}
+									<HiArrowTopRightOnSquare className="size-3" />
+								</a>
+							</div>
+						)}
+					</>
+				)}
+			</div>
+		</SettingsSection>
 	);
 }
