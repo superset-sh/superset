@@ -3,6 +3,7 @@ import { router } from "..";
 import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
+import { createAutomationRouter } from "./automation";
 import { createBrowserRouter } from "./browser/browser";
 import { createBrowserHistoryRouter } from "./browser-history";
 import { createCacheRouter } from "./cache";
@@ -30,6 +31,7 @@ import { createWorkspacesRouter } from "./workspaces";
 
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
+		automation: createAutomationRouter(getWindow),
 		chatRuntimeService: createChatRuntimeServiceRouter(),
 		chatService: createChatServiceRouter(),
 		analytics: createAnalyticsRouter(),

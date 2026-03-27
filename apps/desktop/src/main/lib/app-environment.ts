@@ -1,12 +1,16 @@
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { IS_DESKTOP_TEST_MODE } from "lib/electron-app/test-mode";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 
 const SUPERSET_HOME_DIR_ENV = "SUPERSET_HOME_DIR";
+const DEFAULT_SUPERSET_HOME_DIR = IS_DESKTOP_TEST_MODE
+	? join(tmpdir(), SUPERSET_DIR_NAME, "desktop-test", String(process.pid))
+	: join(homedir(), SUPERSET_DIR_NAME);
 
 export const SUPERSET_HOME_DIR =
-	process.env[SUPERSET_HOME_DIR_ENV] || join(homedir(), SUPERSET_DIR_NAME);
+	process.env[SUPERSET_HOME_DIR_ENV] || DEFAULT_SUPERSET_HOME_DIR;
 process.env[SUPERSET_HOME_DIR_ENV] = SUPERSET_HOME_DIR;
 
 export const SUPERSET_HOME_DIR_MODE = 0o700;

@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { app, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
+import {
+	DEFAULT_DESKTOP_TEST_WINDOW_BOUNDS,
+	IS_DESKTOP_TEST_MODE,
+} from "lib/electron-app/test-mode";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
@@ -88,8 +92,15 @@ app.on("child-process-gone", (_event, details) => {
 });
 
 export async function MainWindow() {
-	const savedWindowState = loadWindowState();
-	const initialBounds = getInitialWindowBounds(savedWindowState);
+	const savedWindowState = IS_DESKTOP_TEST_MODE ? null : loadWindowState();
+	const initialBounds = IS_DESKTOP_TEST_MODE
+		? {
+				width: DEFAULT_DESKTOP_TEST_WINDOW_BOUNDS.width,
+				height: DEFAULT_DESKTOP_TEST_WINDOW_BOUNDS.height,
+				center: true,
+				isMaximized: false,
+			}
+		: getInitialWindowBounds(savedWindowState);
 
 	const isDev = env.NODE_ENV === "development";
 	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
@@ -227,6 +238,7 @@ export async function MainWindow() {
 	let initialized = false;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	const debouncedSave = () => {
+		if (IS_DESKTOP_TEST_MODE) return;
 		if (!initialized || window.isDestroyed()) return;
 		if (saveTimeout) clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(() => {
@@ -283,18 +295,22 @@ export async function MainWindow() {
 	});
 
 	window.on("close", () => {
-		// Save window state first, before any cleanup
-		const isMaximized = window.isMaximized();
-		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
-		const zoomLevel = window.webContents.getZoomLevel();
-		saveWindowState({
-			x: bounds.x,
-			y: bounds.y,
-			width: bounds.width,
-			height: bounds.height,
-			isMaximized,
-			zoomLevel,
-		});
+		if (!IS_DESKTOP_TEST_MODE) {
+			// Save window state first, before any cleanup
+			const isMaximized = window.isMaximized();
+			const bounds = isMaximized
+				? window.getNormalBounds()
+				: window.getBounds();
+			const zoomLevel = window.webContents.getZoomLevel();
+			saveWindowState({
+				x: bounds.x,
+				y: bounds.y,
+				width: bounds.width,
+				height: bounds.height,
+				isMaximized,
+				zoomLevel,
+			});
+		}
 
 		browserManager.unregisterAll();
 		server.close();

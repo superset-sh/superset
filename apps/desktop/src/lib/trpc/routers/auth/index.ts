@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
 import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
@@ -12,10 +11,10 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	authEvents,
+	clearToken,
 	loadToken,
 	saveToken,
 	stateStore,
-	TOKEN_FILE,
 } from "./utils/auth-functions";
 
 export const createAuthRouter = () => {
@@ -110,8 +109,7 @@ export const createAuthRouter = () => {
 
 		signOut: publicProcedure.mutation(async () => {
 			getHostServiceManager().stopAll();
-			await fs.unlink(TOKEN_FILE).catch(() => {});
-			authEvents.emit("token-cleared");
+			await clearToken();
 			return { success: true };
 		}),
 	});

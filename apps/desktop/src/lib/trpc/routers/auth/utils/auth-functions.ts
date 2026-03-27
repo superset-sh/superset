@@ -55,6 +55,14 @@ export async function saveToken({
 }
 
 /**
+ * Remove the persisted token and notify subscribers.
+ */
+export async function clearToken(): Promise<void> {
+	await fs.unlink(TOKEN_FILE).catch(() => {});
+	authEvents.emit("token-cleared");
+}
+
+/**
  * Handle OAuth callback from deep link.
  * Validates CSRF state and saves token.
  */

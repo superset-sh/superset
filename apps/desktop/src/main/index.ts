@@ -11,6 +11,7 @@ import {
 	session,
 } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { IS_DESKTOP_TEST_MODE } from "lib/electron-app/test-mode";
 import {
 	handleAuthCallback,
 	parseAuthDeepLink,
@@ -36,6 +37,8 @@ import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
+import { seedDesktopTestAuthFromEnv } from "./lib/test-auth";
+import { registerDesktopTestAutomationIpc } from "./lib/test-automation-ipc";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
@@ -173,7 +176,10 @@ app.on("before-quit", async (event) => {
 
 	const isDev = process.env.NODE_ENV === "development";
 	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+		!skipConfirmation &&
+		!isDev &&
+		!IS_DESKTOP_TEST_MODE &&
+		getConfirmOnQuitSetting();
 
 	if (shouldConfirm) {
 		event.preventDefault();
@@ -280,8 +286,13 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
-		registerWithMacOSNotificationCenter();
-		requestAppleEventsAccess();
+		registerDesktopTestAutomationIpc(
+			() => BrowserWindow.getAllWindows()[0] ?? null,
+		);
+		if (!IS_DESKTOP_TEST_MODE) {
+			registerWithMacOSNotificationCenter();
+			requestAppleEventsAccess();
+		}
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
@@ -330,8 +341,13 @@ if (!gotTheLock) {
 
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
-		initSentry();
+		if (!IS_DESKTOP_TEST_MODE) {
+			initSentry();
+		}
 		await initAppState();
+		if (IS_DESKTOP_TEST_MODE) {
+			await seedDesktopTestAuthFromEnv();
+		}
 
 		await loadWebviewBrowserExtension();
 
@@ -339,15 +355,19 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 
-		try {
-			setupAgentHooks();
-		} catch (error) {
-			console.error("[main] Failed to set up agent hooks:", error);
+		if (!IS_DESKTOP_TEST_MODE) {
+			try {
+				setupAgentHooks();
+			} catch (error) {
+				console.error("[main] Failed to set up agent hooks:", error);
+			}
 		}
 
 		await makeAppSetup(() => MainWindow());
-		setupAutoUpdater();
-		initTray();
+		if (!IS_DESKTOP_TEST_MODE) {
+			setupAutoUpdater();
+			initTray();
+		}
 
 		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);

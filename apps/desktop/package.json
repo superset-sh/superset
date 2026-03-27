@@ -31,6 +31,14 @@
 		"clean:dev": "rimraf ./node_modules/.dev",
 		"generate:routes": "tsr generate",
 		"pretypecheck": "bun run generate:icons && bun run generate:routes",
+		"e2e:prepare": "bun run generate:icons && bun run generate:routes && cross-env DESKTOP_E2E_BUILD=1 SKIP_SENTRY_UPLOAD=1 bun run compile:app",
+		"e2e:auth": "bun run scripts/mint-e2e-auth-session.ts",
+		"e2e:run": "playwright test -c e2e/playwright.config.mjs",
+		"e2e:scenario": "bun run scripts/run-e2e-scenario.ts",
+		"e2e:smoke": "bun run e2e:scenario smoke",
+		"e2e:preview:signed-in": "bun run scripts/capture-authenticated-preview.ts",
+		"e2e:preview:cdp": "bun run scripts/capture-cdp-preview.ts",
+		"e2e": "bun run e2e:prepare && bun run e2e:run",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
 	},
@@ -221,6 +229,7 @@
 		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.56.1",
 		"@sentry/vite-plugin": "^4.7.0",
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",

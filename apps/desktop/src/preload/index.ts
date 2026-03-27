@@ -1,7 +1,12 @@
 import "@sentry/electron/preload";
 
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import {
+	DESKTOP_TEST_AUTOMATION_CHANNEL,
+	type DesktopTestAutomationCommand,
+} from "lib/electron-app/test-automation-ipc";
 import { exposeElectronTRPC } from "trpc-electron/main";
+import { IS_DESKTOP_TEST_MODE } from "../lib/electron-app/test-mode";
 
 declare const __APP_VERSION__: string;
 
@@ -15,11 +20,86 @@ declare global {
 	}
 }
 
+// Expose electron-trpc IPC channel before any renderer client initializes.
+exposeElectronTRPC();
+
+const automationAPI = {
+	ping: () =>
+		invokeDesktopTestAutomation({
+			type: "ping",
+		}) as Promise<{
+			ok: boolean;
+			testMode: boolean;
+			pid: number;
+			appVersion: string;
+		}>,
+	getEnvironment: () =>
+		invokeDesktopTestAutomation({
+			type: "getEnvironment",
+		}) as Promise<{
+			testMode: boolean;
+			nodeEnv: string;
+			supersetHomeDir: string;
+			artifactsDir: string | null;
+		}>,
+	getWindowInfo: () =>
+		invokeDesktopTestAutomation({
+			type: "getWindowInfo",
+		}) as Promise<{
+			title: string;
+			url: string;
+			isFocused: boolean;
+			isVisible: boolean;
+			bounds: {
+				x: number;
+				y: number;
+				width: number;
+				height: number;
+			};
+		} | null>,
+	getAuthState: () =>
+		invokeDesktopTestAutomation({
+			type: "getAuthState",
+		}) as Promise<{
+			tokenPresent: boolean;
+			expiresAt: string | null;
+		}>,
+	getStoredAuthToken: () =>
+		invokeDesktopTestAutomation({
+			type: "getStoredAuthToken",
+		}) as Promise<{
+			token: string | null;
+			expiresAt: string | null;
+		}>,
+	seedAuthToken: (input: { token: string; expiresAt: string }) =>
+		invokeDesktopTestAutomation({
+			type: "seedAuthToken",
+			token: input.token,
+			expiresAt: input.expiresAt,
+		}) as Promise<{
+			tokenPresent: boolean;
+			expiresAt: string | null;
+		}>,
+	clearAuthToken: () =>
+		invokeDesktopTestAutomation({
+			type: "clearAuthToken",
+		}) as Promise<{
+			tokenPresent: boolean;
+			expiresAt: string | null;
+		}>,
+};
+
 const API = {
 	sayHelloFromBridge: () => console.log("\nHello from bridgeAPI! 👋\n\n"),
 	username: process.env.USER,
 	appVersion: __APP_VERSION__,
+	testMode: IS_DESKTOP_TEST_MODE,
+	automation: automationAPI,
 };
+
+function invokeDesktopTestAutomation(command: DesktopTestAutomationCommand) {
+	return ipcRenderer.invoke(DESKTOP_TEST_AUTOMATION_CHANNEL, command);
+}
 
 // Store mapping of user listeners to wrapped listeners for proper cleanup
 type IpcListener = (...args: unknown[]) => void;
@@ -57,9 +137,6 @@ const ipcRendererAPI = {
 		}
 	},
 };
-
-// Expose electron-trpc IPC channel FIRST (must be before contextBridge calls)
-exposeElectronTRPC();
 
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);

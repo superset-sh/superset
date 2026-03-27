@@ -21,6 +21,13 @@ import {
 config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
+const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+function readBooleanEnv(name: string): boolean {
+	const value = process.env[name];
+	if (!value) return false;
+	return TRUE_ENV_VALUES.has(value.toLowerCase());
+}
 
 // Validate required env vars at build time using the Zod schema (single source of truth)
 await import("./src/main/env.main");
@@ -33,8 +40,14 @@ const workspaceDependencies = Object.keys(dependencies).filter((dependency) =>
 	dependency.startsWith("@superset/"),
 );
 
-// Sentry plugin for uploading sourcemaps (only in CI with auth token)
-const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
+const shouldUploadSentrySourcemaps =
+	Boolean(process.env.SENTRY_AUTH_TOKEN) &&
+	!readBooleanEnv("DESKTOP_E2E_BUILD") &&
+	!readBooleanEnv("DESKTOP_TEST_MODE") &&
+	!readBooleanEnv("SKIP_SENTRY_UPLOAD");
+
+// Sentry plugin for uploading sourcemaps in normal builds.
+const sentryPlugin = shouldUploadSentrySourcemaps
 	? sentryVitePlugin({
 			org: "superset-sh",
 			project: "desktop",
