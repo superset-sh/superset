@@ -75,7 +75,7 @@ export async function handleWorkspaceCreateDeepLink(
 	const project = resolveProject(params);
 	if (!project) {
 		return {
-			error: `Project not found. Specify projectId or projectName. ${params.projectId ? `projectId="${params.projectId}"` : `projectName="${params.projectName}"`}`,
+			error: `Project not found. Specify projectId or projectName. ${params.projectId ? `projectId="${params.projectId}"` : params.projectName ? `projectName="${params.projectName}"` : "neither projectId nor projectName was provided"}`,
 		};
 	}
 
@@ -151,6 +151,7 @@ async function createFromPr(
 			branch: localBranchName,
 			name: workspaceName,
 		});
+		setLastActiveWorkspace(workspace.id);
 		activateProject(project);
 		return { workspaceId: workspace.id };
 	}
@@ -201,6 +202,7 @@ async function createFromPr(
 		name: workspaceName,
 	});
 
+	setLastActiveWorkspace(workspace.id);
 	activateProject(project);
 
 	await setBranchBaseConfig({
@@ -310,6 +312,7 @@ async function createWorkspace(
 				branch,
 				name: params.name ?? branch,
 			});
+			setLastActiveWorkspace(workspace.id);
 			activateProject(project);
 			return { workspaceId: workspace.id };
 		}
@@ -320,6 +323,7 @@ async function createWorkspace(
 			name: params.name ?? branch,
 		});
 		if (externalResult) {
+			setLastActiveWorkspace(externalResult.workspace.id);
 			activateProject(project);
 			return { workspaceId: externalResult.workspace.id };
 		}

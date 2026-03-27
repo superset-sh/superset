@@ -134,6 +134,7 @@ EXISTING_WT=$(sqlite3 "$DB" "SELECT id, path FROM worktrees WHERE project_id = '
 
 if [[ -n "$EXISTING_WT" ]]; then
   IFS='|' read -r WT_ID WT_PATH <<< "$EXISTING_WT"
+  [[ -e "$WT_PATH/.git" ]] || die "Stale worktree record: $WT_PATH no longer exists on disk. Remove the worktree from Superset and retry."
   echo "Found existing worktree $WT_ID at $WT_PATH, creating workspace..."
 else
   # Create git worktree
@@ -175,7 +176,12 @@ fi
 WS_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 NOW_MS=$(($(date +%s) * 1000))
 
-sqlite3 "$DB" "INSERT INTO workspaces (id, project_id, worktree_id, type, branch, name, is_unnamed, tab_order, created_at, updated_at, last_opened_at) VALUES ('$WS_ID', '$PROJECT_ID_ESC', '$WT_ID', 'worktree', '$BRANCH_ESC', '$WS_NAME_ESC', $IS_UNNAMED, $TAB_ORDER, $NOW_MS, $NOW_MS, $NOW_MS);"
+if ! sqlite3 "$DB" "INSERT INTO workspaces (id, project_id, worktree_id, type, branch, name, is_unnamed, tab_order, created_at, updated_at, last_opened_at) VALUES ('$WS_ID', '$PROJECT_ID_ESC', '$WT_ID', 'worktree', '$BRANCH_ESC', '$WS_NAME_ESC', $IS_UNNAMED, $TAB_ORDER, $NOW_MS, $NOW_MS, $NOW_MS);"; then
+  echo "warning: workspace insert failed, rolling back worktree..." >&2
+  sqlite3 "$DB" "DELETE FROM worktrees WHERE id = '$WT_ID';" 2>/dev/null || true
+  git -C "$MAIN_REPO" worktree remove "${WT_PATH:-$WORKTREE_PATH}" 2>/dev/null || true
+  die "Failed to insert workspace record"
+fi
 
 echo ""
 echo "Workspace created successfully!"
