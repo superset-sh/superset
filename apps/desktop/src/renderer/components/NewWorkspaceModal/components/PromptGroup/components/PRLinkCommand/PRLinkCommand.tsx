@@ -45,27 +45,28 @@ export function PRLinkCommand({
 }: PRLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
-	const trimmedQuery = debouncedQuery.trim();
+	const trimmedQuery = searchQuery.trim(); // Immediate trim for UI decisions
+	const debouncedTrimmed = debouncedQuery.trim(); // Debounced trim for RPC calls
 
-	// Extract PR number from GitHub URL if pasted
+	// Extract PR number from GitHub URL if pasted (use debounced for RPC)
 	const prNumberFromUrl = useMemo(() => {
-		const match = trimmedQuery.match(
+		const match = debouncedTrimmed.match(
 			/github\.com\/[\w-]+\/[\w.-]+\/pull\/(\d+)/i,
 		);
 		return match ? match[1] : null;
-	}, [trimmedQuery]);
+	}, [debouncedTrimmed]);
 
 	// Use PR number for search if URL was pasted, otherwise use the query as-is
-	const effectiveQuery = prNumberFromUrl ?? trimmedQuery;
+	const effectiveQuery = prNumberFromUrl ?? debouncedTrimmed;
 
-	// Fetch recent PRs for browsing (only when no search query)
+	// Fetch recent PRs for browsing (only when no search query - use immediate trim)
 	const { data: recentPRs, isLoading: isLoadingRecent } =
 		electronTrpc.projects.listPullRequests.useQuery(
 			{ projectId: projectId ?? "" },
 			{ enabled: !!projectId && open && !trimmedQuery },
 		);
 
-	// Server-side search when user types
+	// Server-side search when user types (use debounced for RPC)
 	const { data: searchResults, isLoading: isSearching } =
 		electronTrpc.projects.searchPullRequests.useQuery(
 			{ projectId: projectId ?? "", query: effectiveQuery },
