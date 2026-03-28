@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FileXIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getResult } from "../../../../utils/tool-helpers";
+import { getToolResultData } from "../../utils/getToolResultData";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
@@ -11,11 +11,7 @@ interface DeleteTaskToolCallProps {
 
 export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 	const navigate = useNavigate();
-	const result = getResult(part);
-	const resultData =
-		typeof result.result === "object" && result.result !== null
-			? (result.result as Record<string, unknown>)
-			: result;
+	const resultData = getToolResultData(part);
 	const deleted = Array.isArray(resultData.deleted)
 		? resultData.deleted.map((item) => String(item))
 		: [];
