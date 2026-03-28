@@ -42,6 +42,8 @@ function ThemePreviewCard({
 	className,
 	...props
 }: ThemePreviewCardProps) {
+	const paletteCounts = new Map<string, number>();
+
 	return (
 		<div
 			data-slot="theme-preview-card"
@@ -82,13 +84,18 @@ function ThemePreviewCard({
 				</div>
 
 				<div className="mt-2 flex gap-1">
-					{palette.map((color) => (
-						<div
-							key={color}
-							className={cn("h-2 w-5 rounded-sm", paletteItemClassName)}
-							style={{ backgroundColor: color }}
-						/>
-					))}
+					{palette.map((color) => {
+						const occurrence = (paletteCounts.get(color) ?? 0) + 1;
+						paletteCounts.set(color, occurrence);
+
+						return (
+							<div
+								key={`${color}-${occurrence}`}
+								className={cn("h-2 w-5 rounded-sm", paletteItemClassName)}
+								style={{ backgroundColor: color }}
+							/>
+						);
+					})}
 				</div>
 			</div>
 

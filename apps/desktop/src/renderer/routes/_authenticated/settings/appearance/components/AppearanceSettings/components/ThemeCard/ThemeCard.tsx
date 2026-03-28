@@ -21,7 +21,12 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
 	];
 
 	return (
-		<button type="button" onClick={onSelect} className="w-full text-left">
+		<button
+			type="button"
+			onClick={onSelect}
+			aria-pressed={isSelected}
+			className="w-full text-left"
+		>
 			<ThemePreviewCard
 				name={theme.name}
 				subtitle={theme.author}
