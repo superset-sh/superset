@@ -54,6 +54,7 @@ const updateTaskInput = z.object({
   priority: z.enum(["urgent", "high", "medium", "low", "none"]).optional(),
   assigneeId: z.string().uuid().nullable().optional().describe("New assignee (null to unassign)"),
   statusId: z.string().uuid().optional().describe("New status ID"),
+  statusName: z.string().optional().describe('New status/section name (for example "Todo", "In Progress", or "In Review")'),
   labels: z.array(z.string()).optional().describe("Replace labels"),
   dueDate: z.string().datetime().nullable().optional().describe("New due date (null to clear)"),
   estimate: z.number().int().positive().nullable().optional(),
