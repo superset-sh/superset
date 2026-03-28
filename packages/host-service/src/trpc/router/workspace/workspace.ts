@@ -74,13 +74,6 @@ export const workspaceRouter = router({
 				localProject = inserted;
 			}
 
-			if (!localProject) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to resolve local project",
-				});
-			}
-
 			const worktreePath = join(
 				localProject.repoPath,
 				".worktrees",

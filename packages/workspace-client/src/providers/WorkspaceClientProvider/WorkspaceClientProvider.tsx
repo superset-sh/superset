@@ -62,8 +62,7 @@ function toWorkspaceFilesystemEventsUrl(
 }
 
 function toSubscriptionError(message: string, event?: CloseEvent): Error {
-	const suffix = event ? ` (code ${event.code})` : "";
-	return new Error(`${message}${suffix}`);
+	return new Error(event ? `${message} (code ${event.code})` : message);
 }
 
 function createWorkspaceFsSubscription(

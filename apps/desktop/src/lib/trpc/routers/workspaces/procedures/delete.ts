@@ -29,11 +29,6 @@ import {
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
 
-/**
- * Normalize a filesystem path for comparison.
- * Uses realpathSync to resolve symlinks and get canonical path.
- * Falls back to resolve if realpathSync fails (e.g., path doesn't exist).
- */
 const normalizePath = (p: string): string => {
 	try {
 		return realpathSync(p);
@@ -270,14 +265,11 @@ export const createDeleteProcedures = () => {
 					await workspaceInitManager.acquireProjectLock(project.id);
 
 					try {
-						// Safety: Check if this worktree is tracked in our database
-						// Prevents deletion of worktrees that were never properly imported
-						// Get all git worktrees
+						// Safety: prevent deletion of worktrees not tracked in our DB
 						const allGitWorktrees = await listExternalWorktrees(
 							project.mainRepoPath,
 						);
 
-						// Get all tracked worktree paths from database for this project
 						const trackedWorktrees = localDb
 							.select({ path: worktrees.path })
 							.from(worktrees)
@@ -287,7 +279,6 @@ export const createDeleteProcedures = () => {
 							trackedWorktrees.map((wt) => normalizePath(wt.path)),
 						);
 
-						// Check if this worktree exists in git but is NOT tracked in our DB
 						const worktreePathNorm = normalizePath(worktree.path);
 						const existsInGit = allGitWorktrees.some(
 							(wt) => normalizePath(wt.path) === worktreePathNorm,
@@ -306,7 +297,6 @@ export const createDeleteProcedures = () => {
 								reason: "untracked_worktree_detected",
 							});
 						} else {
-							// Safe to delete - worktree is tracked in our database
 							const removeResult = await removeWorktreeFromDisk({
 								mainRepoPath: project.mainRepoPath,
 								worktreePath: worktree.path,
@@ -497,14 +487,11 @@ export const createDeleteProcedures = () => {
 						worktree.path,
 					);
 
-					// Safety: Check if this worktree is tracked in our database
-					// Prevents deletion of worktrees that were never properly imported
-					// Get all git worktrees
+					// Safety: prevent deletion of worktrees not tracked in our DB
 					const allGitWorktrees = await listExternalWorktrees(
 						project.mainRepoPath,
 					);
 
-					// Get all tracked worktree paths from database for this project
 					const trackedWorktrees = localDb
 						.select({ path: worktrees.path })
 						.from(worktrees)
@@ -514,7 +501,6 @@ export const createDeleteProcedures = () => {
 						trackedWorktrees.map((wt) => normalizePath(wt.path)),
 					);
 
-					// Check if this worktree exists in git but is NOT tracked in our DB
 					const worktreePathNorm = normalizePath(worktree.path);
 					const existsInGit = allGitWorktrees.some(
 						(wt) => normalizePath(wt.path) === worktreePathNorm,
@@ -532,7 +518,6 @@ export const createDeleteProcedures = () => {
 							reason: "untracked_worktree_detected",
 						});
 					} else {
-						// Safe to delete - worktree is tracked in our database
 						if (exists) {
 							const teardownResult = await runTeardown({
 								mainRepoPath: project.mainRepoPath,

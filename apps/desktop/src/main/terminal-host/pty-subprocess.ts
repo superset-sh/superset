@@ -91,10 +91,6 @@ function sendError(message: string): void {
 	send(PtySubprocessIpcType.Error, Buffer.from(message, "utf8"));
 }
 
-/**
- * Queue PTY output for batched sending.
- * Flushes immediately if batch exceeds MAX_OUTPUT_BATCH_SIZE_BYTES.
- */
 function queueOutput(data: string): void {
 	outputChunks.push(data);
 	outputBytesQueued += Buffer.byteLength(data, "utf8");
@@ -281,7 +277,6 @@ function handleSpawn(payload: Buffer): void {
 	}
 
 	if (DEBUG_OUTPUT_BATCHING) {
-		// Debug: Log spawn parameters
 		console.error("[pty-subprocess] Spawning PTY:", {
 			shell: msg.shell,
 			args: msg.args,
@@ -336,9 +331,7 @@ function handleSpawn(payload: Buffer): void {
 		sendError(
 			`Spawn failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
-		// Exit so the daemon's session.isAlive correctly returns false.
-		// Without this, the subprocess stays alive with no PTY, leaving the
-		// session in a zombie state that blocks new terminal creation (#2960).
+		// Exit so the daemon does not keep a live subprocess with no PTY.
 		setTimeout(() => process.exit(1), 100);
 	}
 }

@@ -21,6 +21,13 @@ const sendMessagePayloadSchema = z.object({
 		.optional(),
 });
 
+const messageMetadataSchema = z
+	.object({
+		model: z.string().optional(),
+		thinkingLevel: thinkingLevelSchema.optional(),
+	})
+	.optional();
+
 export const chatRouter = router({
 	getDisplayState: protectedProcedure
 		.input(sessionInput)
@@ -38,12 +45,7 @@ export const chatRouter = router({
 		.input(
 			sessionInput.extend({
 				payload: sendMessagePayloadSchema,
-				metadata: z
-					.object({
-						model: z.string().optional(),
-						thinkingLevel: thinkingLevelSchema.optional(),
-					})
-					.optional(),
+				metadata: messageMetadataSchema,
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -55,12 +57,7 @@ export const chatRouter = router({
 			sessionInput.extend({
 				messageId: z.string().min(1),
 				payload: sendMessagePayloadSchema,
-				metadata: z
-					.object({
-						model: z.string().optional(),
-						thinkingLevel: thinkingLevelSchema.optional(),
-					})
-					.optional(),
+				metadata: messageMetadataSchema,
 			}),
 		)
 		.mutation(({ ctx, input }) => {
