@@ -25,10 +25,27 @@ export const START_AGENT_SESSION_TOOL_NAMES = [
 	START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
 ] as const;
 
+export const DEFAULT_STARTABLE_AGENT = "claude" as const;
+
 export type StartAgentSessionToolName =
 	(typeof START_AGENT_SESSION_TOOL_NAMES)[number];
 
 export const nonEmptyString = z.string().trim().min(1);
+
+function formatQuotedList(values: readonly string[]): string {
+	if (values.length === 0) return "";
+
+	const quotedValues = values.map((value) => `"${value}"`);
+	if (quotedValues.length === 1) return quotedValues[0] ?? "";
+	if (quotedValues.length === 2) {
+		return `${quotedValues[0]} or ${quotedValues[1]}`;
+	}
+
+	const lastValue = quotedValues[quotedValues.length - 1];
+	return `${quotedValues.slice(0, -1).join(", ")}, or ${lastValue}`;
+}
+
+const agentDescription = `AI agent to use: ${formatQuotedList(STARTABLE_AGENT_TYPES)}. Defaults to "${DEFAULT_STARTABLE_AGENT}".`;
 
 export const commonInputSchemaShape = {
 	deviceId: nonEmptyString.describe("Target device ID"),
@@ -40,12 +57,7 @@ export const commonInputSchemaShape = {
 		.describe(
 			"Optional pane ID. When provided, launches relative to the tab containing this pane.",
 		),
-	agent: z
-		.enum(STARTABLE_AGENT_TYPES)
-		.optional()
-		.describe(
-			'AI agent to use: "claude", "codex", "gemini", "opencode", "pi", "copilot", "cursor-agent", or "superset-chat". Defaults to "claude".',
-		),
+	agent: z.enum(STARTABLE_AGENT_TYPES).optional().describe(agentDescription),
 };
 
 export const taskInputSchemaShape = {

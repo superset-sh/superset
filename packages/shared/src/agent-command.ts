@@ -12,6 +12,7 @@ export const AGENT_TYPES = [
 	"pi",
 	"copilot",
 	"cursor-agent",
+	"kilocode",
 ] as const;
 
 export type AgentType = (typeof AGENT_TYPES)[number];
@@ -25,6 +26,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 	pi: "Pi",
 	copilot: "Copilot",
 	"cursor-agent": "Cursor Agent",
+	kilocode: "Kilo Code",
 };
 
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
@@ -38,6 +40,7 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	pi: ["pi"],
 	copilot: ["copilot --allow-all"],
 	"cursor-agent": ["cursor-agent"],
+	kilocode: ["kilo"],
 };
 
 export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
@@ -55,6 +58,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 		"GitHub's coding agent for planning, editing, and building in your repo.",
 	"cursor-agent":
 		"Cursor's coding agent for editing, running, and debugging code in parallel.",
+	kilocode: "Kilo Code's coding agent for terminal workflows.",
 };
 
 export interface AgentPromptCommandDefaults {
@@ -92,6 +96,9 @@ export const AGENT_PROMPT_COMMANDS: Record<
 	"cursor-agent": {
 		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
 		suffix: "--yolo",
+	},
+	kilocode: {
+		command: "kilo --prompt",
 	},
 };
 
