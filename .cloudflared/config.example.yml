@@ -1,0 +1,17 @@
+# Copy to .cloudflared/config.yml and replace the placeholders below.
+#
+# First-time setup:
+#   cloudflared tunnel login
+#   cloudflared tunnel create superset-api-<engineer>
+#   cloudflared tunnel route dns superset-api-<engineer> api-<engineer>.dev.superset.sh
+#
+# Then run:
+#   bun run dev:tunnel
+
+tunnel: superset-api-<engineer>
+credentials-file: /Users/<you>/.cloudflared/<tunnel-uuid>.json
+
+ingress:
+  - hostname: api-<engineer>.dev.superset.sh
+    service: http://localhost:3001
+  - service: http_status:404

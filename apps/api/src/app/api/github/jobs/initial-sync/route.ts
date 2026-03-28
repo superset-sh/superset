@@ -9,6 +9,7 @@ import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { githubApp } from "../../octokit";
 
 const receiver = new Receiver({
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 			.verify({
 				body,
 				signature,
-				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
+				url: getExternalApiUrl("/api/github/jobs/initial-sync"),
 			})
 			.catch((error) => {
 				console.error(

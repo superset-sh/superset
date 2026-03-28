@@ -2,6 +2,7 @@ import { auth } from "@superset/auth/server";
 import { findOrgMembership } from "@superset/db/utils";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { createSignedState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
 	installUrl.searchParams.set("state", state);
 	installUrl.searchParams.set(
 		"redirect_url",
-		`${env.NEXT_PUBLIC_API_URL}/api/github/callback`,
+		getExternalApiUrl("/api/github/callback"),
 	);
 
 	return Response.redirect(installUrl.toString());

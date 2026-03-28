@@ -10,6 +10,7 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
+import { getExternalApiUrl } from "../../../lib/external-api-url";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 
@@ -70,7 +71,7 @@ export const githubRouter = {
 				});
 			}
 
-			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+			const syncUrl = getExternalApiUrl("/api/github/jobs/initial-sync");
 			const syncBody = {
 				installationDbId: installation.id,
 				organizationId: input.organizationId,

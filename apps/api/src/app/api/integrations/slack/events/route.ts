@@ -1,6 +1,7 @@
 import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { verifySlackSignature } from "../verify-signature";
 import { processAppHomeOpened } from "./process-app-home-opened";
 import { processEntityDetails } from "./process-entity-details";
@@ -38,7 +39,9 @@ export async function POST(request: Request) {
 		if (event.type === "app_mention") {
 			try {
 				await qstash.publishJSON({
-					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
+					url: getExternalApiUrl(
+						"/api/integrations/slack/jobs/process-mention",
+					),
 					body: {
 						event,
 						teamId: team_id,
@@ -59,7 +62,9 @@ export async function POST(request: Request) {
 
 			try {
 				await qstash.publishJSON({
-					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
+					url: getExternalApiUrl(
+						"/api/integrations/slack/jobs/process-assistant-message",
+					),
 					body: {
 						event,
 						teamId: team_id,

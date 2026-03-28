@@ -12,6 +12,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
 		const isValid = await receiver.verify({
 			body,
 			signature,
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
+			url: getExternalApiUrl("/api/integrations/linear/jobs/initial-sync"),
 		});
 
 		if (!isValid) {

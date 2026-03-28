@@ -48,6 +48,10 @@
 			"cache": false,
 			"persistent": true
 		},
+		"//#dev:tunnel": {
+			"cache": false,
+			"persistent": true
+		},
 		"test": {
 			"dependsOn": ["^build"],
 			"outputs": ["coverage/**"]

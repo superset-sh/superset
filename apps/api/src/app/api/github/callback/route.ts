@@ -4,6 +4,7 @@ import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { verifySignedState } from "@/lib/oauth-state";
 import { githubApp } from "../octokit";
 
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
 		// Queue initial sync job
 		try {
 			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
+				url: getExternalApiUrl("/api/github/jobs/initial-sync"),
 				body: {
 					installationDbId: savedInstallation.id,
 					organizationId,

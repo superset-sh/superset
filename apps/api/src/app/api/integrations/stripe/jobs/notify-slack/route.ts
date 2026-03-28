@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 
 import {
 	type EnrichedSubscription,
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`,
+		url: getExternalApiUrl("/api/integrations/stripe/jobs/notify-slack"),
 	});
 
 	if (!isValid) {

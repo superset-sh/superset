@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 
 export function generateConnectUrl({
 	slackUserId,
@@ -17,5 +18,8 @@ export function generateConnectUrl({
 		.update(payload)
 		.digest("hex");
 	const token = Buffer.from(payload).toString("base64url");
-	return `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/link?token=${token}&sig=${signature}`;
+	const connectUrl = new URL(getExternalApiUrl("/api/integrations/slack/link"));
+	connectUrl.searchParams.set("token", token);
+	connectUrl.searchParams.set("sig", signature);
+	return connectUrl.toString();
 }

@@ -2,6 +2,7 @@ import { auth } from "@superset/auth/server";
 import { findOrgMembership } from "@superset/db/utils";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { createSignedState } from "@/lib/oauth-state";
 
 const SLACK_SCOPES = [
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 		userId,
 	});
 
-	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
+	const redirectUri = getExternalApiUrl("/api/integrations/slack/callback");
 
 	const slackAuthUrl = new URL("https://slack.com/oauth/v2/authorize");
 	slackAuthUrl.searchParams.set("client_id", env.SLACK_CLIENT_ID);

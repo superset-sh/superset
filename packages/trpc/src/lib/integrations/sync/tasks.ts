@@ -3,6 +3,7 @@ import { integrationConnections, tasks } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import { env } from "../../../env";
+import { getExternalApiUrl } from "../../external-api-url";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -25,8 +26,6 @@ export async function syncTask(taskId: string) {
 		columns: { provider: true },
 	});
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
-
 	const results = await Promise.allSettled(
 		connections.map(async (conn) => {
 			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
@@ -34,7 +33,7 @@ export async function syncTask(taskId: string) {
 				return { provider: conn.provider, skipped: true };
 			}
 
-			const syncUrl = `${qstashBaseUrl}${endpoint}`;
+			const syncUrl = getExternalApiUrl(endpoint);
 
 			await qstash.publishJSON({
 				url: syncUrl,

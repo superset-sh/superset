@@ -47,6 +47,10 @@
 		"./vercel-preview-origins": {
 			"types": "./src/vercel-preview-origins.ts",
 			"default": "./src/vercel-preview-origins.ts"
+		},
+		"./external-api-url": {
+			"types": "./src/external-api-url.ts",
+			"default": "./src/external-api-url.ts"
 		}
 	},
 	"scripts": {

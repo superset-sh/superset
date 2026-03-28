@@ -16,6 +16,7 @@ import { Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -255,7 +256,7 @@ export async function POST(request: Request) {
 		const isValid = await receiver.verify({
 			body,
 			signature,
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/sync-task`,
+			url: getExternalApiUrl("/api/integrations/linear/jobs/sync-task"),
 		});
 
 		if (!isValid) {

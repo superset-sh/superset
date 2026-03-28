@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { verifySignedState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
+	const redirectUri = getExternalApiUrl("/api/integrations/slack/callback");
 	const client = new WebClient();
 
 	try {

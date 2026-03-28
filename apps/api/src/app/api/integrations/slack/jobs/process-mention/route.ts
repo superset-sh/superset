@@ -2,6 +2,7 @@ import { Receiver } from "@upstash/qstash";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { getExternalApiUrl } from "@/lib/external-api-url";
 import { processSlackMention } from "../../events/process-mention";
 
 const receiver = new Receiver({
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
+		url: getExternalApiUrl("/api/integrations/slack/jobs/process-mention"),
 	});
 
 	if (!isValid) {
