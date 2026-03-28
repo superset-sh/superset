@@ -5,15 +5,14 @@ export {
 	buildWorkspaceFilesystemEventsPath,
 	type WorkspaceFilesystemServerMessage,
 } from "./filesystem";
-export type { AuthProvider } from "./providers/auth";
-export {
-	DeviceKeyAuthProvider,
-	JwtAuthProvider,
-} from "./providers/auth";
+export type { ApiAuthProvider } from "./providers/auth";
+export { DeviceKeyApiAuthProvider, JwtApiAuthProvider } from "./providers/auth";
 export {
 	CloudGitCredentialProvider,
 	LocalGitCredentialProvider,
 } from "./providers/git";
+export type { HostAuthProvider } from "./providers/host-auth";
+export { PskHostAuthProvider } from "./providers/host-auth";
 export type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 export {
 	CloudModelProvider,

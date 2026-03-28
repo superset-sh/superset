@@ -10,8 +10,9 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
-	JwtAuthProvider,
+	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
+	PskHostAuthProvider,
 } from "@superset/host-service";
 
 const authToken = process.env.AUTH_TOKEN;
@@ -19,17 +20,23 @@ const cloudApiUrl = process.env.CLOUD_API_URL;
 const dbPath = process.env.HOST_DB_PATH;
 const deviceClientId = process.env.DEVICE_CLIENT_ID;
 const deviceName = process.env.DEVICE_NAME;
+const hostServiceSecret = process.env.HOST_SERVICE_SECRET;
 
 const auth =
-	authToken && cloudApiUrl ? new JwtAuthProvider(authToken) : undefined;
+	authToken && cloudApiUrl ? new JwtApiAuthProvider(authToken) : undefined;
+const hostAuth = hostServiceSecret
+	? new PskHostAuthProvider(hostServiceSecret)
+	: undefined;
 
 const { app, injectWebSocket } = createApp({
 	credentials: new LocalGitCredentialProvider(),
 	auth,
+	hostAuth,
 	cloudApiUrl,
 	dbPath,
 	deviceClientId,
 	deviceName,
+	allowedOrigins: ["http://127.0.0.1"],
 });
 
 const server = serve(

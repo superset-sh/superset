@@ -22,16 +22,25 @@ export interface WorkspaceClientContextValue {
 	subscribeToWorkspaceFsEvents: (
 		input: WorkspaceFsSubscriptionInput,
 	) => () => void;
+	getWsToken: () => string | null;
 }
 
 interface WorkspaceClientProviderProps {
 	cacheKey: string;
 	hostUrl: string;
 	children: ReactNode;
+	headers?: () => Record<string, string>;
+	wsToken?: () => string | null;
 }
 
-interface WorkspaceClients extends WorkspaceClientContextValue {
+interface WorkspaceClients {
+	hostUrl: string;
+	queryClient: QueryClient;
 	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
+	subscribeToWorkspaceFsEvents: (
+		input: WorkspaceFsSubscriptionInput,
+	) => () => void;
+	getWsToken: () => string | null;
 }
 
 const workspaceClientsCache = new Map<string, WorkspaceClients>();
@@ -41,23 +50,28 @@ const WorkspaceClientContext =
 function toWorkspaceFilesystemEventsUrl(
 	hostUrl: string,
 	workspaceId: string,
+	getWsToken?: () => string | null,
 ): string {
 	const url = new URL(buildWorkspaceFilesystemEventsPath(workspaceId), hostUrl);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+	const token = getWsToken?.();
+	if (token) {
+		url.searchParams.set("token", token);
+	}
 	return url.toString();
 }
 
 function toSubscriptionError(message: string, event?: CloseEvent): Error {
-	const suffix = event ? ` (code ${event.code})` : "";
-	return new Error(`${message}${suffix}`);
+	return new Error(event ? `${message} (code ${event.code})` : message);
 }
 
 function createWorkspaceFsSubscription(
 	hostUrl: string,
 	input: WorkspaceFsSubscriptionInput,
+	getWsToken?: () => string | null,
 ): () => void {
 	const socket = new WebSocket(
-		toWorkspaceFilesystemEventsUrl(hostUrl, input.workspaceId),
+		toWorkspaceFilesystemEventsUrl(hostUrl, input.workspaceId, getWsToken),
 	);
 	let disposed = false;
 	let opened = false;
@@ -124,6 +138,8 @@ function createWorkspaceFsSubscription(
 function getWorkspaceClients(
 	cacheKey: string,
 	hostUrl: string,
+	headers?: () => Record<string, string>,
+	wsToken?: () => string | null,
 ): WorkspaceClients {
 	const clientKey = `${cacheKey}:${hostUrl}`;
 	const cached = workspaceClientsCache.get(clientKey);
@@ -147,16 +163,19 @@ function getWorkspaceClients(
 			httpBatchLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
+				headers: headers ?? (() => ({})),
 			}),
 		],
 	});
 
+	const getWsToken = wsToken ?? (() => null);
 	const clients: WorkspaceClients = {
 		hostUrl,
 		queryClient,
 		trpcClient,
+		getWsToken,
 		subscribeToWorkspaceFsEvents(input) {
-			return createWorkspaceFsSubscription(hostUrl, input);
+			return createWorkspaceFsSubscription(hostUrl, input, getWsToken);
 		},
 	};
 	workspaceClientsCache.set(clientKey, clients);
@@ -166,13 +185,16 @@ function getWorkspaceClients(
 export function WorkspaceClientProvider({
 	cacheKey,
 	hostUrl,
+	headers,
+	wsToken,
 	children,
 }: WorkspaceClientProviderProps) {
-	const clients = getWorkspaceClients(cacheKey, hostUrl);
+	const clients = getWorkspaceClients(cacheKey, hostUrl, headers, wsToken);
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
 		queryClient: clients.queryClient,
 		subscribeToWorkspaceFsEvents: clients.subscribeToWorkspaceFsEvents,
+		getWsToken: clients.getWsToken,
 	};
 
 	return (
@@ -202,4 +224,23 @@ export function useWorkspaceClient(): WorkspaceClientContextValue {
 
 export function useWorkspaceHostUrl(): string {
 	return useWorkspaceClient().hostUrl;
+}
+
+export function useWorkspaceWsUrl(
+	path: string,
+	params?: Record<string, string>,
+): string {
+	const { hostUrl, getWsToken } = useWorkspaceClient();
+	const url = new URL(path, hostUrl);
+	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+	if (params) {
+		for (const [key, value] of Object.entries(params)) {
+			url.searchParams.set(key, value);
+		}
+	}
+	const token = getWsToken();
+	if (token) {
+		url.searchParams.set("token", token);
+	}
+	return url.toString();
 }

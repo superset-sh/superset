@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 // TODO: Remove this test router in favor of product-led endpoints (i.e. workspace.create())
 export const gitRouter = router({
-	status: publicProcedure
+	status: protectedProcedure
 		.input(z.object({ path: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const git = await ctx.git(input.path);

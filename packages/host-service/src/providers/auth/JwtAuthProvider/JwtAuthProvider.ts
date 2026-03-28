@@ -1,6 +1,6 @@
-import type { AuthProvider } from "../types";
+import type { ApiAuthProvider } from "../types";
 
-export class JwtAuthProvider implements AuthProvider {
+export class JwtApiAuthProvider implements ApiAuthProvider {
 	private token: string;
 
 	constructor(token: string) {
