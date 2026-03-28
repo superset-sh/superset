@@ -14,6 +14,7 @@ export { useWorkspaceFsEvents } from "./hooks/useWorkspaceFsEvents";
 export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
+	useWorkspaceWsUrl,
 	type WorkspaceClientContextValue,
 	WorkspaceClientProvider,
 	type WorkspaceFsSubscriptionInput,

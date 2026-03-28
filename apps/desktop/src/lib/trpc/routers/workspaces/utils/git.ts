@@ -1,14 +1,10 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { realpathSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
-import { worktrees } from "@superset/local-db";
-import { eq } from "drizzle-orm";
 import friendlyWords from "friendly-words";
-import { localDb } from "main/lib/local-db";
 import {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
@@ -815,19 +811,6 @@ export async function worktreeExists(
 	}
 }
 
-/**
- * Normalize a filesystem path for comparison.
- * Uses realpathSync to resolve symlinks and get canonical path.
- * Falls back to resolve if realpathSync fails (e.g., path doesn't exist).
- */
-export const normalizePath = (p: string): string => {
-	try {
-		return realpathSync(p);
-	} catch {
-		return resolve(p);
-	}
-};
-
 export interface ExternalWorktree {
 	path: string;
 	branch: string | null;
@@ -835,7 +818,7 @@ export interface ExternalWorktree {
 	isBare: boolean;
 }
 
-export async function listAllGitWorktrees(
+export async function listExternalWorktrees(
 	mainRepoPath: string,
 ): Promise<ExternalWorktree[]> {
 	try {
@@ -876,40 +859,9 @@ export async function listAllGitWorktrees(
 
 		return result;
 	} catch (error) {
-		console.error(`Failed to list all git worktrees: ${error}`);
+		console.error(`Failed to list external worktrees: ${error}`);
 		throw error;
 	}
-}
-
-/**
- * Lists worktrees that exist on disk but are NOT tracked in the database.
- * This is the proper "external worktrees" - ones created outside of Superset.
- * @param mainRepoPath - Path to the main repository
- * @param projectId - Project ID to check against database records
- * @returns Array of external worktrees (not tracked in DB)
- */
-export async function listExternalWorktrees(
-	mainRepoPath: string,
-	projectId: string,
-): Promise<ExternalWorktree[]> {
-	// Get all git worktrees
-	const allGitWorktrees = await listAllGitWorktrees(mainRepoPath);
-
-	// Get all tracked worktree paths from database
-	const trackedWorktrees = localDb
-		.select({ path: worktrees.path })
-		.from(worktrees)
-		.where(eq(worktrees.projectId, projectId))
-		.all();
-
-	const trackedPaths = new Set(
-		trackedWorktrees.map((wt: { path: string }) => normalizePath(wt.path)),
-	);
-
-	// Filter to only worktrees NOT in database
-	return allGitWorktrees.filter(
-		(wt) => !trackedPaths.has(normalizePath(wt.path)),
-	);
 }
 
 /**

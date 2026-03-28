@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 // TODO: Remove this test router in favor of product-led endpoints
 export const cloudRouter = router({
-	whoami: publicProcedure.query(async ({ ctx }) => {
+	whoami: protectedProcedure.query(async ({ ctx }) => {
 		if (!ctx.api) {
 			throw new TRPCError({
 				code: "PRECONDITION_FAILED",

@@ -866,7 +866,6 @@ export const createCreateProcedures = () => {
 				// 2. Import external worktrees (on disk, not tracked in DB)
 				const allExternalWorktrees = await listExternalWorktrees(
 					project.mainRepoPath,
-					project.id,
 				);
 				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
 

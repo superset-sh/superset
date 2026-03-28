@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 export const pullRequestsRouter = router({
-	getByWorkspaces: publicProcedure
+	getByWorkspaces: protectedProcedure
 		.input(
 			z.object({
 				workspaceIds: z.array(z.string()),
@@ -15,7 +15,7 @@ export const pullRequestsRouter = router({
 				);
 			return { workspaces };
 		}),
-	refreshByWorkspaces: publicProcedure
+	refreshByWorkspaces: protectedProcedure
 		.input(
 			z.object({
 				workspaceIds: z.array(z.string()),

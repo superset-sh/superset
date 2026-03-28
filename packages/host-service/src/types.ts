@@ -23,4 +23,5 @@ export interface HostServiceContext {
 	runtime: HostServiceRuntime;
 	deviceClientId: string | null;
 	deviceName: string | null;
+	isAuthenticated: boolean;
 }
