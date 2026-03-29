@@ -34,13 +34,31 @@ interface PRLinkCommandProps {
 	anchorRef: RefObject<HTMLElement | null>;
 }
 
+function parseGitHubPullRequestUrl(query: string): {
+	owner: string;
+	repo: string;
+	prNumber: string;
+} | null {
+	const match = query.match(
+		/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i,
+	);
+
+	if (!match) return null;
+
+	return {
+		owner: match[1],
+		repo: match[2],
+		prNumber: match[3],
+	};
+}
+
 export function PRLinkCommand({
 	open,
 	onOpenChange,
 	onSelect,
 	projectId,
-	githubOwner: _githubOwner,
-	repoName: _repoName,
+	githubOwner,
+	repoName,
 	anchorRef,
 }: PRLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
@@ -51,16 +69,32 @@ export function PRLinkCommand({
 	// Detect if we're in the pending debounce state
 	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
 
-	// Extract PR number from GitHub URL if pasted (use debounced for RPC)
-	const prNumberFromUrl = useMemo(() => {
-		const match = debouncedTrimmed.match(
-			/github\.com\/[\w-]+\/[\w.-]+\/pull\/(\d+)/i,
-		);
-		return match ? match[1] : null;
+	const parsedPullRequestUrl = useMemo(() => {
+		return parseGitHubPullRequestUrl(debouncedTrimmed);
 	}, [debouncedTrimmed]);
 
-	// Use PR number for search if URL was pasted, otherwise use the query as-is
-	const effectiveQuery = prNumberFromUrl ?? debouncedTrimmed;
+	const selectedRepositoryLabel = useMemo(() => {
+		if (!githubOwner || !repoName) return null;
+		return `${githubOwner}/${repoName}`;
+	}, [githubOwner, repoName]);
+
+	const pastedRepository = useMemo(() => {
+		if (!parsedPullRequestUrl) return null;
+		return `${parsedPullRequestUrl.owner}/${parsedPullRequestUrl.repo}`.toLowerCase();
+	}, [parsedPullRequestUrl]);
+
+	const isCrossRepositoryUrl = Boolean(
+		selectedRepositoryLabel &&
+			pastedRepository &&
+			pastedRepository !== selectedRepositoryLabel.toLowerCase(),
+	);
+
+	// Search by PR number when the pasted URL matches the selected repository.
+	const effectiveQuery = parsedPullRequestUrl
+		? isCrossRepositoryUrl
+			? ""
+			: parsedPullRequestUrl.prNumber
+		: debouncedTrimmed;
 
 	// Fetch recent PRs for browsing (only when no search query)
 	const { data: recentPRs, isLoading: isLoadingRecent } =
@@ -73,20 +107,29 @@ export function PRLinkCommand({
 	const { data: searchResults, isLoading: isSearching } =
 		electronTrpc.projects.searchPullRequests.useQuery(
 			{ projectId: projectId ?? "", query: effectiveQuery },
-			{ enabled: !!projectId && open && !!effectiveQuery },
+			{
+				enabled:
+					!!projectId && open && !!effectiveQuery && !isCrossRepositoryUrl,
+			},
 		);
 
 	const pullRequests = useMemo(() => {
+		if (isCrossRepositoryUrl) {
+			return [];
+		}
+
 		// Use debounced value for mode decision to avoid empty gap
 		if (debouncedTrimmed) {
 			return searchResults ?? [];
 		}
 		return recentPRs ?? [];
-	}, [debouncedTrimmed, searchResults, recentPRs]);
+	}, [debouncedTrimmed, isCrossRepositoryUrl, searchResults, recentPRs]);
 
-	const isLoading = debouncedTrimmed
-		? isSearching || isPendingDebounce
-		: isLoadingRecent;
+	const isLoading = isCrossRepositoryUrl
+		? false
+		: debouncedTrimmed
+			? isSearching || isPendingDebounce
+			: isLoadingRecent;
 
 	const handleClose = () => {
 		setSearchQuery("");
@@ -128,9 +171,11 @@ export function PRLinkCommand({
 									? debouncedTrimmed
 										? "Searching..."
 										: "Loading pull requests..."
-									: debouncedTrimmed
-										? "No pull requests found."
-										: "No open pull requests."}
+									: isCrossRepositoryUrl
+										? `PR URL must match ${selectedRepositoryLabel}.`
+										: debouncedTrimmed
+											? "No pull requests found."
+											: "No open pull requests."}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (
