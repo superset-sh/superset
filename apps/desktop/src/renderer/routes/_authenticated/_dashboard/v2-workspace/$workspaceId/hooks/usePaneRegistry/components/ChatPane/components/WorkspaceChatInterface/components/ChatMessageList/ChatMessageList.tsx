@@ -18,7 +18,6 @@ import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
-import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
@@ -46,7 +45,6 @@ export function ChatMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
-	activeSubagents,
 	pendingApproval,
 	isApprovalSubmitting,
 	onApprovalRespond,
@@ -105,12 +103,6 @@ export function ChatMessageList({
 			}),
 		[activeTools, toolInputBuffers],
 	);
-	const activeSubagentEntries = useMemo(
-		() => (activeSubagents ? [...activeSubagents.entries()] : []),
-		[activeSubagents],
-	);
-	const hasSubagentActivity = activeSubagentEntries.length > 0;
-
 	const pendingPlanToolCallId = useMemo(() => {
 		const anchorMessages: ChatMessage[] = [...renderedMessages];
 		if (interruptedPreview) {
@@ -144,7 +136,6 @@ export function ChatMessageList({
 	const canShowPendingAssistantUi =
 		isAwaitingAssistant &&
 		!currentMessage &&
-		!hasSubagentActivity &&
 		!pendingApproval &&
 		!pendingQuestion;
 	const shouldShowThinking =
@@ -258,9 +249,6 @@ export function ChatMessageList({
 							isPlanSubmitting={isPlanSubmitting}
 							onPlanRespond={onPlanRespond}
 						/>
-					) : null}
-					{hasSubagentActivity ? (
-						<SubagentExecutionMessage subagents={activeSubagentEntries} />
 					) : null}
 					{pendingApproval && (
 						<PendingApprovalMessage
