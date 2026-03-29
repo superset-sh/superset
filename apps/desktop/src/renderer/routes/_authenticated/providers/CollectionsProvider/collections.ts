@@ -2,7 +2,6 @@ import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectChatSession,
-	SelectDevicePresence,
 	SelectGithubPullRequest,
 	SelectGithubRepository,
 	SelectIntegrationConnection,
@@ -16,7 +15,6 @@ import type {
 	SelectTaskStatus,
 	SelectUser,
 	SelectV2Device,
-	SelectV2DevicePresence,
 	SelectV2Project,
 	SelectV2UsersDevices,
 	SelectV2Workspace,
@@ -70,7 +68,6 @@ export interface OrgCollections {
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
 	v2Devices: Collection<SelectV2Device>;
-	v2DevicePresence: Collection<SelectV2DevicePresence>;
 	v2Projects: Collection<SelectV2Project>;
 	v2UsersDevices: Collection<SelectV2UsersDevices>;
 	v2Workspaces: Collection<SelectV2Workspace>;
@@ -79,7 +76,6 @@ export interface OrgCollections {
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
 	agentCommands: Collection<SelectAgentCommand>;
-	devicePresence: Collection<SelectDevicePresence>;
 	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
@@ -250,22 +246,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2DevicePresence = createCollection(
-		electricCollectionOptions<SelectV2DevicePresence>({
-			id: `v2_device_presence-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_device_presence",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
-			getKey: (item) => item.deviceId,
-		}),
-	);
-
 	const v2UsersDevices = createCollection(
 		electricCollectionOptions<SelectV2UsersDevices>({
 			id: `v2_users_devices-${organizationId}`,
@@ -383,22 +363,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				});
 				return { txid: result.txid };
 			},
-		}),
-	);
-
-	const devicePresence = createCollection(
-		electricCollectionOptions<SelectDevicePresence>({
-			id: `device_presence-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "device_presence",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
 		}),
 	);
 
@@ -546,7 +510,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		taskStatuses,
 		projects,
 		v2Devices,
-		v2DevicePresence,
 		v2Projects,
 		v2UsersDevices,
 		v2Workspaces,
@@ -555,7 +518,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		users,
 		invitations,
 		agentCommands,
-		devicePresence,
 		integrationConnections,
 		subscriptions,
 		apiKeys,

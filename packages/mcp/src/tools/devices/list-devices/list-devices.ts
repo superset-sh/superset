@@ -1,28 +1,31 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
-import { devicePresence, users } from "@superset/db/schema";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { devicePresence, deviceTypeValues, users } from "@superset/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { DEVICE_ONLINE_THRESHOLD_MS, getMcpContext } from "../../utils";
+import { getMcpContext } from "../../utils";
+
+const DEVICE_ONLINE_WINDOW_MS = 60_000;
 
 export function register(server: McpServer) {
 	server.registerTool(
 		"list_devices",
 		{
-			description: "List online devices in the organization",
+			description:
+				"List devices in the organization. By default, only devices seen within the last 60 seconds are returned.",
 			inputSchema: {
 				includeOffline: z
 					.boolean()
 					.default(false)
-					.describe("Include recently offline devices"),
+					.describe("Include devices that have not checked in recently"),
 			},
 			outputSchema: {
 				devices: z.array(
 					z.object({
 						deviceId: z.string(),
 						deviceName: z.string().nullable(),
-						deviceType: z.string(),
-						lastSeenAt: z.string(),
+						deviceType: z.enum(deviceTypeValues),
+						lastSeenAt: z.string().datetime(),
 						ownerId: z.string(),
 						ownerName: z.string().nullable(),
 						ownerEmail: z.string(),
@@ -33,21 +36,8 @@ export function register(server: McpServer) {
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
-			const includeOffline = args.includeOffline as boolean;
-			const threshold = new Date(Date.now() - DEVICE_ONLINE_THRESHOLD_MS);
-			const offlineThreshold = new Date(
-				Date.now() - DEVICE_ONLINE_THRESHOLD_MS * 10,
-			);
-
-			const conditions = [
-				eq(devicePresence.organizationId, ctx.organizationId),
-			];
-
-			if (!includeOffline) {
-				conditions.push(gt(devicePresence.lastSeenAt, threshold));
-			} else {
-				conditions.push(gt(devicePresence.lastSeenAt, offlineThreshold));
-			}
+			const includeOffline = args.includeOffline === true;
+			const onlineCutoff = Date.now() - DEVICE_ONLINE_WINDOW_MS;
 
 			const devices = await db
 				.select({
@@ -61,21 +51,27 @@ export function register(server: McpServer) {
 				})
 				.from(devicePresence)
 				.innerJoin(users, eq(devicePresence.userId, users.id))
-				.where(and(...conditions))
+				.where(eq(devicePresence.organizationId, ctx.organizationId))
 				.orderBy(desc(devicePresence.lastSeenAt));
 
-			const devicesWithStatus = devices.map((d) => ({
-				...d,
-				lastSeenAt: d.lastSeenAt.toISOString(),
-				isOnline: d.lastSeenAt > threshold,
-			}));
+			const result = devices
+				.map((d) => {
+					const isOnline = d.lastSeenAt.getTime() >= onlineCutoff;
+
+					return {
+						...d,
+						lastSeenAt: d.lastSeenAt.toISOString(),
+						isOnline,
+					};
+				})
+				.filter((device) => includeOffline || device.isOnline);
 
 			return {
-				structuredContent: { devices: devicesWithStatus },
+				structuredContent: { devices: result },
 				content: [
 					{
 						type: "text",
-						text: JSON.stringify({ devices: devicesWithStatus }, null, 2),
+						text: JSON.stringify({ devices: result }, null, 2),
 					},
 				],
 			};

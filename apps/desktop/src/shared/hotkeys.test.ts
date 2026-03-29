@@ -3,8 +3,10 @@ import {
 	canonicalizeHotkey,
 	canonicalizeHotkeyForPlatform,
 	deriveNonMacDefault,
+	HOTKEYS,
 	hotkeyFromKeyboardEvent,
 	isTerminalReservedEvent,
+	matchesHotkeyEvent,
 	toElectronAccelerator,
 } from "./hotkeys";
 
@@ -90,5 +92,59 @@ describe("isTerminalReservedEvent", () => {
 				metaKey: false,
 			}),
 		).toBe(true);
+	});
+});
+
+describe("CLOSE_WORKSPACE hotkey", () => {
+	it("is defined in HOTKEYS with correct properties", () => {
+		expect(HOTKEYS.CLOSE_WORKSPACE).toBeDefined();
+		expect(HOTKEYS.CLOSE_WORKSPACE.label).toBe("Close Workspace");
+		expect(HOTKEYS.CLOSE_WORKSPACE.category).toBe("Workspace");
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe("meta+backspace");
+	});
+
+	it("matches ⌘+Backspace keyboard event", () => {
+		const matches = matchesHotkeyEvent(
+			{
+				key: "Backspace",
+				code: "Backspace",
+				metaKey: true,
+				ctrlKey: false,
+				altKey: false,
+				shiftKey: false,
+			},
+			HOTKEYS.CLOSE_WORKSPACE.defaults.darwin ?? "",
+		);
+		expect(matches).toBe(true);
+	});
+
+	it("does not match Backspace without meta", () => {
+		const matches = matchesHotkeyEvent(
+			{
+				key: "Backspace",
+				code: "Backspace",
+				metaKey: false,
+				ctrlKey: false,
+				altKey: false,
+				shiftKey: false,
+			},
+			HOTKEYS.CLOSE_WORKSPACE.defaults.darwin ?? "",
+		);
+		expect(matches).toBe(false);
+	});
+
+	it("does not conflict with existing workspace hotkeys", () => {
+		const closeDefaults = HOTKEYS.CLOSE_WORKSPACE.defaults;
+		const workspaceHotkeys = Object.entries(HOTKEYS)
+			.filter(
+				([key, def]) =>
+					def.category === "Workspace" && key !== "CLOSE_WORKSPACE",
+			)
+			.map(([key, def]) => ({ key, defaults: def.defaults }));
+
+		for (const hotkey of workspaceHotkeys) {
+			expect(hotkey.defaults.darwin).not.toBe(closeDefaults.darwin);
+			expect(hotkey.defaults.linux).not.toBe(closeDefaults.linux);
+		}
 	});
 });

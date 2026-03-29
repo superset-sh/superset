@@ -5,10 +5,10 @@ import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 export const workspaceRouter = router({
-	get: publicProcedure
+	get: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(({ ctx, input }) => {
 			const localWorkspace = ctx.db.query.workspaces
@@ -25,7 +25,7 @@ export const workspaceRouter = router({
 			return localWorkspace;
 		}),
 
-	create: publicProcedure
+	create: protectedProcedure
 		.input(
 			z.object({
 				projectId: z.string(),
@@ -72,13 +72,6 @@ export const workspaceRouter = router({
 					.get();
 
 				localProject = inserted;
-			}
-
-			if (!localProject) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to resolve local project",
-				});
 			}
 
 			const worktreePath = join(
@@ -139,7 +132,7 @@ export const workspaceRouter = router({
 			return cloudRow;
 		}),
 
-	gitStatus: publicProcedure
+	gitStatus: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const localWorkspace = ctx.db.query.workspaces
@@ -168,7 +161,7 @@ export const workspaceRouter = router({
 			};
 		}),
 
-	delete: publicProcedure
+	delete: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			if (!ctx.api) {

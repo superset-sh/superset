@@ -10,6 +10,7 @@ import {
 	branchMatchesPR,
 	getPRHeadBranchCandidates,
 	prMatchesLocalBranch,
+	shouldAcceptPRMatch,
 } from "./pr-resolution";
 import {
 	getPullRequestRepoArgs,
@@ -404,6 +405,53 @@ describe("prMatchesLocalBranch", () => {
 				headRepositoryOwner: null,
 			}),
 		).toBe(false);
+	});
+});
+
+describe("shouldAcceptPRMatch", () => {
+	test("keeps open PR matches even when local HEAD differs", () => {
+		expect(
+			shouldAcceptPRMatch({
+				localBranch: "feature/my-thing",
+				headSha: "local-head-sha",
+				pr: {
+					headRefName: "feature/my-thing",
+					headRefOid: "remote-head-sha",
+					headRepositoryOwner: null,
+					state: "OPEN",
+				},
+			}),
+		).toBe(true);
+	});
+
+	test("rejects historical PR matches when the head commit differs", () => {
+		expect(
+			shouldAcceptPRMatch({
+				localBranch: "feature/my-thing",
+				headSha: "new-head-sha",
+				pr: {
+					headRefName: "feature/my-thing",
+					headRefOid: "old-pr-head-sha",
+					headRepositoryOwner: null,
+					state: "MERGED",
+				},
+			}),
+		).toBe(false);
+	});
+
+	test("accepts historical PR matches when the head commit still matches", () => {
+		expect(
+			shouldAcceptPRMatch({
+				localBranch: "feature/my-thing",
+				headSha: "same-head-sha",
+				pr: {
+					headRefName: "feature/my-thing",
+					headRefOid: "same-head-sha",
+					headRepositoryOwner: null,
+					state: "MERGED",
+				},
+			}),
+		).toBe(true);
 	});
 });
 

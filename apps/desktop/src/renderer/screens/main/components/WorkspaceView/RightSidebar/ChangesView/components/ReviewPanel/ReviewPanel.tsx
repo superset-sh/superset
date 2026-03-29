@@ -8,7 +8,6 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
@@ -20,13 +19,11 @@ import {
 	buildCommentClipboardText,
 	checkIconConfig,
 	checkSummaryIconConfig,
-	countOpenPullRequestComments,
 	formatShortAge,
 	getCommentAvatarFallback,
 	getCommentCopyActionKey,
 	getCommentKindText,
 	getCommentPreviewText,
-	prStateLabel,
 	resolveCheckDestinationUrl,
 	reviewDecisionConfig,
 	splitPullRequestComments,
@@ -47,7 +44,6 @@ export function ReviewPanel({
 }: ReviewPanelProps) {
 	const [checksOpen, setChecksOpen] = useState(true);
 	const [commentsOpen, setCommentsOpen] = useState(true);
-	const [openCommentsGroupOpen, setOpenCommentsGroupOpen] = useState(true);
 	const [resolvedCommentsGroupOpen, setResolvedCommentsGroupOpen] =
 		useState(false);
 	const [copiedActionKey, setCopiedActionKey] = useState<string | null>(null);
@@ -104,39 +100,8 @@ export function ReviewPanel({
 
 	if (isLoading && !pr) {
 		return (
-			<div className="flex h-full flex-col overflow-y-auto px-2 py-2">
-				<div className="border-b border-border/70 px-0 pb-2">
-					<div className="flex items-center gap-2 px-2">
-						<Skeleton className="h-4 w-4 rounded-sm" />
-						<Skeleton className="h-4 flex-1" />
-						<Skeleton className="h-3 w-10" />
-					</div>
-					<div className="mt-2 flex items-center gap-2 px-2">
-						<Skeleton className="h-4 w-24 rounded-sm" />
-						<Skeleton className="h-3 w-28" />
-					</div>
-				</div>
-				<div className="border-b border-border/60 px-0 py-2">
-					<div className="flex items-center justify-between px-2 pb-1">
-						<Skeleton className="h-3 w-10" />
-						<Skeleton className="h-3 w-24" />
-					</div>
-					<div className="space-y-1 px-1">
-						<Skeleton className="h-8 w-full rounded-sm" />
-						<Skeleton className="h-8 w-full rounded-sm" />
-					</div>
-				</div>
-				<div className="px-0 py-2">
-					<div className="flex items-center justify-between px-2 pb-1">
-						<Skeleton className="h-3 w-14" />
-						<Skeleton className="h-3 w-6" />
-					</div>
-					<div className="space-y-1 px-1">
-						<Skeleton className="h-11 w-full rounded-sm" />
-						<Skeleton className="h-11 w-full rounded-sm" />
-						<Skeleton className="h-11 w-full rounded-sm" />
-					</div>
-				</div>
+			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+				Loading review...
 			</div>
 		);
 	}
@@ -150,10 +115,6 @@ export function ReviewPanel({
 	}
 
 	const requestedReviewers = pr.requestedReviewers ?? [];
-	const reviewLabel =
-		pr.reviewDecision === "pending" && requestedReviewers.length > 0
-			? `Awaiting ${requestedReviewers.join(", ")}`
-			: reviewDecisionConfig[pr.reviewDecision].label;
 
 	const relevantChecks = pr.checks.filter(
 		(check) => check.status !== "skipped" && check.status !== "cancelled",
@@ -170,9 +131,7 @@ export function ReviewPanel({
 	const ChecksStatusIcon = checksStatusConfig.icon;
 	const { active: activeComments, resolved: resolvedComments } =
 		splitPullRequestComments(comments);
-	const commentsCountLabel = isCommentsLoading
-		? "..."
-		: countOpenPullRequestComments(comments);
+	const commentsCountLabel = isCommentsLoading ? "..." : comments.length;
 	const copyAllCommentsLabel =
 		copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? "Copied" : "Copy all";
 
@@ -207,6 +166,7 @@ export function ReviewPanel({
 							<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
 								{getCommentKindText(comment)}
 							</span>
+							<span className="flex-1" />
 							{age ? (
 								<span className="shrink-0 text-[10px] text-muted-foreground">
 									{age}
@@ -223,7 +183,7 @@ export function ReviewPanel({
 			return (
 				<div
 					key={comment.id}
-					className="group flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50"
+					className="group relative flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50"
 				>
 					{comment.url ? (
 						<a
@@ -239,7 +199,7 @@ export function ReviewPanel({
 							{content}
 						</div>
 					)}
-					<div className="mt-0.5 flex shrink-0 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+					<div className="absolute right-1 top-1 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{comment.url ? (
 							<a
 								href={comment.url}
@@ -272,91 +232,48 @@ export function ReviewPanel({
 			);
 		});
 
-	const renderCommentSection = ({
-		title,
-		comments,
-		isOpen,
-		onOpenChange,
-		action,
-	}: {
-		title: string;
-		comments: PullRequestComment[];
-		isOpen: boolean;
-		onOpenChange: (open: boolean) => void;
-		action?: ReactNode;
-	}) => (
-		<Collapsible
-			open={isOpen}
-			onOpenChange={onOpenChange}
-			className="min-w-0 overflow-hidden"
-		>
-			<div className="group flex min-w-0 items-center">
-				<CollapsibleTrigger
-					className={cn(
-						"flex w-full min-w-0 items-center gap-1.5 px-1.5 py-1 text-left",
-						"hover:bg-accent/30 cursor-pointer transition-colors",
-					)}
-				>
-					<VscChevronRight
-						className={cn(
-							"size-3 text-muted-foreground shrink-0 transition-transform duration-150",
-							isOpen && "rotate-90",
-						)}
-					/>
-					<span className="text-xs font-medium truncate">{title}</span>
-					<span className="text-[10px] text-muted-foreground shrink-0">
-						{comments.length}
-					</span>
-				</CollapsibleTrigger>
-				{action ? <div className="mr-1 shrink-0">{action}</div> : null}
-			</div>
-			<CollapsibleContent className="min-w-0 overflow-hidden">
-				{renderCommentList(comments)}
-			</CollapsibleContent>
-		</Collapsible>
-	);
-
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-y-auto">
-			<div className="border-b border-border/70 px-2 py-2">
-				<div className="flex items-center gap-1.5">
+			<div className="px-2 py-2 space-y-1.5">
+				<a
+					href={pr.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="group flex items-center gap-1.5 cursor-pointer"
+				>
 					<PRIcon state={pr.state} className="size-4 shrink-0" />
-					<a
-						href={pr.url}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="min-w-0 flex-1 truncate text-xs font-medium text-foreground hover:underline"
+					<span
+						className="min-w-0 flex-1 truncate text-xs font-medium text-foreground"
 						title={pr.title}
 					>
 						{pr.title}
-					</a>
-					<span className="shrink-0 font-mono text-[10px] text-muted-foreground">
-						#{pr.number}
 					</span>
-				</div>
-
-				<div className="mt-1.5 flex items-center gap-1.5">
+					<LuArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/70 opacity-0 transition-opacity group-hover:opacity-100" />
+				</a>
+				<div className="flex items-center gap-1.5">
 					<span
 						className={cn(
-							"shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+							"shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
 							reviewDecisionConfig[pr.reviewDecision].className,
 						)}
 					>
 						{reviewDecisionConfig[pr.reviewDecision].label}
 					</span>
-					<span className="truncate text-[10px] text-muted-foreground">
-						{requestedReviewers.length > 0
-							? reviewLabel
-							: prStateLabel[pr.state]}
-					</span>
+					{requestedReviewers.length > 0 && (
+						<span className="truncate text-[10px] text-muted-foreground">
+							Awaiting {requestedReviewers.join(", ")}
+						</span>
+					)}
 				</div>
 			</div>
+
+			<div className="border-b border-border/70 my-1" />
 
 			<Collapsible open={checksOpen} onOpenChange={setChecksOpen}>
 				<CollapsibleTrigger
 					className={cn(
-						"group flex w-full min-w-0 items-center justify-between gap-2 px-2 py-1 text-left",
-						"hover:bg-accent/50 cursor-pointer transition-colors",
+						"flex w-full min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-left",
+						"hover:bg-accent/30 cursor-pointer transition-colors",
 					)}
 				>
 					<div className="flex min-w-0 items-center gap-1.5">
@@ -388,10 +305,10 @@ export function ReviewPanel({
 						</span>
 					</div>
 				</CollapsibleTrigger>
-				<CollapsibleContent className="min-w-0 px-0.5 pb-1 overflow-hidden">
+				<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
 					{relevantChecks.length === 0 ? (
 						<div className="px-1.5 py-1 text-xs text-muted-foreground">
-							No active checks reported for this pull request yet.
+							No checks reported.
 						</div>
 					) : (
 						relevantChecks.map((check) => {
@@ -451,16 +368,18 @@ export function ReviewPanel({
 				</CollapsibleContent>
 			</Collapsible>
 
+			<div className="border-b border-border/70 my-1" />
+
 			<Collapsible
 				open={commentsOpen}
 				onOpenChange={setCommentsOpen}
 				className="min-w-0"
 			>
-				<div className="group flex min-w-0 items-center">
+				<div className="flex min-w-0 items-center">
 					<CollapsibleTrigger
 						className={cn(
-							"flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left",
-							"hover:bg-accent/50 cursor-pointer transition-colors",
+							"flex flex-1 min-w-0 items-center gap-1.5 px-2 py-1.5 text-left",
+							"hover:bg-accent/30 cursor-pointer transition-colors",
 						)}
 					>
 						<VscChevronRight
@@ -474,62 +393,66 @@ export function ReviewPanel({
 							{commentsCountLabel}
 						</span>
 					</CollapsibleTrigger>
+					{activeComments.length > 0 && (
+						<button
+							type="button"
+							className="mr-1.5 shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+							onClick={handleCopyCommentsList}
+						>
+							{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
+								<LuCheck className="size-3" />
+							) : (
+								<LuCopy className="size-3" />
+							)}
+							<span>{copyAllCommentsLabel}</span>
+						</button>
+					)}
 				</div>
-				<CollapsibleContent className="min-w-0 overflow-hidden">
-					<div className="px-0.5 py-1">
-						{isCommentsLoading ? (
-							<div className="space-y-1 px-1">
-								<Skeleton className="h-11 w-full rounded-sm" />
-								<Skeleton className="h-11 w-full rounded-sm" />
-								<Skeleton className="h-11 w-full rounded-sm" />
-							</div>
-						) : comments.length === 0 ? (
-							<div className="px-1.5 py-1.5 text-xs text-muted-foreground">
-								No comments yet.
-							</div>
-						) : (
-							<>
-								{activeComments.length > 0
-									? renderCommentSection({
-											title: "Open",
-											comments: activeComments,
-											isOpen: openCommentsGroupOpen,
-											onOpenChange: setOpenCommentsGroupOpen,
-											action: (
-												<button
-													type="button"
-													className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-													onClick={(event) => {
-														event.preventDefault();
-														event.stopPropagation();
-														handleCopyCommentsList();
-													}}
-												>
-													{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
-														<LuCheck className="size-3" />
-													) : (
-														<LuCopy className="size-3" />
-													)}
-													<span>{copyAllCommentsLabel}</span>
-												</button>
-											),
-										})
-									: null}
-								{resolvedComments.length > 0 ? (
-									<div className="pt-1">
-										{renderCommentSection({
-											title: "Resolved",
-											comments: resolvedComments,
-											isOpen: resolvedCommentsGroupOpen,
-											onOpenChange: setResolvedCommentsGroupOpen,
-										})}
-									</div>
-								) : null}
-							</>
-						)}
-					</div>
+				<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
+					{isCommentsLoading ? (
+						<div className="space-y-1 px-1">
+							<Skeleton className="h-11 w-full rounded-sm" />
+							<Skeleton className="h-11 w-full rounded-sm" />
+							<Skeleton className="h-11 w-full rounded-sm" />
+						</div>
+					) : comments.length === 0 ? (
+						<div className="px-1.5 py-1 text-xs text-muted-foreground">
+							No comments yet.
+						</div>
+					) : (
+						renderCommentList(activeComments)
+					)}
 				</CollapsibleContent>
 			</Collapsible>
+
+			{resolvedComments.length > 0 && (
+				<Collapsible
+					open={resolvedCommentsGroupOpen}
+					onOpenChange={setResolvedCommentsGroupOpen}
+					className="min-w-0"
+				>
+					<CollapsibleTrigger
+						className={cn(
+							"flex w-full min-w-0 items-center gap-1.5 px-2 py-1.5 text-left",
+							"hover:bg-accent/30 cursor-pointer transition-colors",
+						)}
+					>
+						<VscChevronRight
+							className={cn(
+								"size-3 text-muted-foreground shrink-0 transition-transform duration-150",
+								resolvedCommentsGroupOpen && "rotate-90",
+							)}
+						/>
+						<span className="text-xs font-medium truncate">Resolved</span>
+						<span className="text-[10px] text-muted-foreground shrink-0">
+							{resolvedComments.length}
+						</span>
+					</CollapsibleTrigger>
+					<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
+						{renderCommentList(resolvedComments)}
+					</CollapsibleContent>
+				</Collapsible>
+			)}
 		</div>
 	);
 }

@@ -1,5 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import * as childProcess from "node:child_process";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
@@ -11,6 +12,7 @@ type HostServiceStatus = "starting" | "running" | "crashed";
 interface HostServiceProcess {
 	process: ChildProcess | null;
 	port: number | null;
+	secret: string | null;
 	status: HostServiceStatus;
 	restartCount: number;
 	lastCrash?: number;
@@ -91,6 +93,10 @@ export class HostServiceManager {
 		return this.instances.get(organizationId)?.port ?? null;
 	}
 
+	getSecret(organizationId: string): string | null {
+		return this.instances.get(organizationId)?.secret ?? null;
+	}
+
 	getStatus(organizationId: string): HostServiceStatus | null {
 		if (this.pendingStarts.has(organizationId)) {
 			return "starting";
@@ -100,9 +106,11 @@ export class HostServiceManager {
 
 	private async spawn(organizationId: string): Promise<number> {
 		const pendingStart = createPortDeferred();
+		const secret = randomBytes(32).toString("hex");
 		const instance: HostServiceProcess = {
 			process: null,
 			port: null,
+			secret,
 			status: "starting",
 			restartCount: 0,
 			organizationId,
@@ -111,7 +119,7 @@ export class HostServiceManager {
 		this.pendingStarts.set(organizationId, pendingStart);
 
 		try {
-			const env = await this.buildHostServiceEnv(organizationId);
+			const env = await this.buildHostServiceEnv(organizationId, secret);
 			if (this.authToken) {
 				env.AUTH_TOKEN = this.authToken;
 			}
@@ -152,6 +160,7 @@ export class HostServiceManager {
 
 	private async buildHostServiceEnv(
 		organizationId: string,
+		secret: string,
 	): Promise<Record<string, string>> {
 		return getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
@@ -159,6 +168,7 @@ export class HostServiceManager {
 			ORGANIZATION_ID: organizationId,
 			DEVICE_CLIENT_ID: getHashedDeviceId(),
 			DEVICE_NAME: getDeviceName(),
+			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: path.join(
 				SUPERSET_HOME_DIR,
 				"host",

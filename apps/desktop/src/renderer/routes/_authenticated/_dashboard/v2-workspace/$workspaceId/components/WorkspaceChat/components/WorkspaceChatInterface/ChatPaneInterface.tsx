@@ -15,6 +15,10 @@ import type {
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import {
+	getDesktopChatModelOptions,
+	isDesktopChatDevMode,
+} from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import {
@@ -128,12 +132,14 @@ function useAvailableModels(): {
 	models: ModelOption[];
 	defaultModel: ModelOption | null;
 } {
+	const localModels = getDesktopChatModelOptions();
 	const { data } = useQuery({
 		queryKey: ["chat", "models"],
 		queryFn: () => apiTrpcClient.chat.getModels.query(),
+		enabled: !isDesktopChatDevMode(),
 		staleTime: Number.POSITIVE_INFINITY,
 	});
-	const models = data?.models ?? [];
+	const models = localModels.length > 0 ? localModels : (data?.models ?? []);
 	return { models, defaultModel: models[0] ?? null };
 }
 

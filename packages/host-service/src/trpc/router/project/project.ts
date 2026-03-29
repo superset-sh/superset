@@ -2,11 +2,11 @@ import { rmSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 export const projectRouter = router({
 	// TODO: remove
-	removeFromDevice: publicProcedure
+	removeFromDevice: protectedProcedure
 		.input(z.object({ projectId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const localProject = ctx.db.query.projects

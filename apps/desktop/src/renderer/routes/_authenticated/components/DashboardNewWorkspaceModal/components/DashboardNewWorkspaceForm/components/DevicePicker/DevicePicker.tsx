@@ -9,7 +9,6 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { cn } from "@superset/ui/utils";
 import {
 	HiCheck,
 	HiChevronUpDown,
@@ -141,20 +140,7 @@ export function DevicePicker({
 												{device.type}
 											</div>
 										</div>
-										<div className="flex items-center gap-2">
-											<span
-												className={cn(
-													"size-2 rounded-full",
-													device.isOnline
-														? "bg-emerald-500"
-														: "bg-muted-foreground/40",
-												)}
-											/>
-											<span className="text-xs text-muted-foreground">
-												{device.isOnline ? "Online" : "Offline"}
-											</span>
-											{isSelected && <HiCheck className="size-4" />}
-										</div>
+										{isSelected && <HiCheck className="size-4" />}
 									</DropdownMenuItem>
 								);
 							})

@@ -3,10 +3,11 @@ import { useEffect } from "react";
 
 export function useFocusPromptOnPane(isFocused: boolean) {
 	const { textInput } = usePromptInputController();
+	const focusPrompt = textInput.focus;
 
 	useEffect(() => {
 		if (isFocused) {
-			textInput.focus();
+			focusPrompt();
 		}
-	}, [isFocused, textInput]);
+	}, [focusPrompt, isFocused]);
 }

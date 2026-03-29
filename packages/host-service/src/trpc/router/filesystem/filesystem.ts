@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../types";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 function getFilesystemService(ctx: HostServiceContext, workspaceId: string) {
 	try {
@@ -29,7 +29,7 @@ const writeFileContentSchema = z.union([
 ]);
 
 export const filesystemRouter = router({
-	listDirectory: publicProcedure
+	listDirectory: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -42,7 +42,7 @@ export const filesystemRouter = router({
 			return await service.listDirectory(serviceInput);
 		}),
 
-	readFile: publicProcedure
+	readFile: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -67,7 +67,7 @@ export const filesystemRouter = router({
 			return result;
 		}),
 
-	getMetadata: publicProcedure
+	getMetadata: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -80,7 +80,7 @@ export const filesystemRouter = router({
 			return await service.getMetadata(serviceInput);
 		}),
 
-	writeFile: publicProcedure
+	writeFile: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -114,7 +114,7 @@ export const filesystemRouter = router({
 			});
 		}),
 
-	createDirectory: publicProcedure
+	createDirectory: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -128,7 +128,7 @@ export const filesystemRouter = router({
 			return await service.createDirectory(serviceInput);
 		}),
 
-	deletePath: publicProcedure
+	deletePath: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -142,7 +142,7 @@ export const filesystemRouter = router({
 			return await service.deletePath(serviceInput);
 		}),
 
-	movePath: publicProcedure
+	movePath: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -156,7 +156,7 @@ export const filesystemRouter = router({
 			return await service.movePath(serviceInput);
 		}),
 
-	copyPath: publicProcedure
+	copyPath: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -170,7 +170,7 @@ export const filesystemRouter = router({
 			return await service.copyPath(serviceInput);
 		}),
 
-	searchFiles: publicProcedure
+	searchFiles: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -195,7 +195,7 @@ export const filesystemRouter = router({
 			});
 		}),
 
-	searchContent: publicProcedure
+	searchContent: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),

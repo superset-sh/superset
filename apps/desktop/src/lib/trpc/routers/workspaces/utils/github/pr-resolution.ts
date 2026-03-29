@@ -17,7 +17,11 @@ export async function getPRForBranch(
 	repoContext?: RepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
-	const byTracking = await getPRByBranchTracking(worktreePath, localBranch);
+	const byTracking = await getPRByBranchTracking(
+		worktreePath,
+		localBranch,
+		headSha,
+	);
 	if (byTracking) {
 		return byTracking;
 	}
@@ -90,6 +94,36 @@ export function prMatchesLocalBranch(
 	return pr.headRepositoryOwner?.login?.toLowerCase() === ownerPrefix;
 }
 
+function isHistoricalPullRequestState(state: GHPRResponse["state"]): boolean {
+	return state === "CLOSED" || state === "MERGED";
+}
+
+export function shouldAcceptPRMatch({
+	localBranch,
+	pr,
+	headSha,
+}: {
+	localBranch: string;
+	pr: Pick<
+		GHPRResponse,
+		"headRefName" | "headRefOid" | "headRepositoryOwner" | "state"
+	>;
+	headSha?: string;
+}): boolean {
+	if (!prMatchesLocalBranch(localBranch, pr)) {
+		return false;
+	}
+
+	// Historical PRs should only attach when this workspace still points at the
+	// exact PR head commit. Otherwise, reusing a branch name can surface an old,
+	// unrelated closed or merged PR.
+	if (headSha && isHistoricalPullRequestState(pr.state)) {
+		return pr.headRefOid === headSha;
+	}
+
+	return true;
+}
+
 function sortPRCandidates(
 	candidates: GHPRResponse[],
 	headSha?: string,
@@ -133,6 +167,7 @@ function sortPRCandidates(
 async function getPRByBranchTracking(
 	worktreePath: string,
 	localBranch: string,
+	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		const { stdout } = await execWithShellEnv(
@@ -150,7 +185,7 @@ async function getPRByBranchTracking(
 		// `gh pr view` can match via stale tracking refs (e.g. refs/pull/N/head)
 		// left over from a previous `gh pr checkout`, causing a new workspace
 		// to incorrectly show an old, unrelated PR.
-		if (!prMatchesLocalBranch(localBranch, data)) {
+		if (!shouldAcceptPRMatch({ localBranch, pr: data, headSha })) {
 			return null;
 		}
 
@@ -199,7 +234,7 @@ async function findPRByHeadBranch(
 			);
 
 			for (const candidate of parsePRListResponse(stdout)) {
-				if (prMatchesLocalBranch(localBranch, candidate)) {
+				if (shouldAcceptPRMatch({ localBranch, pr: candidate, headSha })) {
 					matches.set(candidate.number, candidate);
 				}
 			}

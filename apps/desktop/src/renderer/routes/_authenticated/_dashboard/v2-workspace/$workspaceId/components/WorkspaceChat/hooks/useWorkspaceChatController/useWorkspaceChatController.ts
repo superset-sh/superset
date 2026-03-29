@@ -4,6 +4,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import {
+	isDesktopChatDevMode,
+	resolveDesktopChatOrganizationId,
+} from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
@@ -37,6 +41,7 @@ async function createSessionRecord(input: {
 	sessionId: string;
 	v2WorkspaceId: string;
 }): Promise<void> {
+	if (isDesktopChatDevMode()) return;
 	await apiTrpcClient.chat.createSession.mutate({
 		sessionId: input.sessionId,
 		v2WorkspaceId: input.v2WorkspaceId,
@@ -44,6 +49,7 @@ async function createSessionRecord(input: {
 }
 
 async function deleteSessionRecord(sessionId: string): Promise<void> {
+	if (isDesktopChatDevMode()) return;
 	const result = await apiTrpcClient.chat.deleteSession.mutate({
 		sessionId,
 	});
@@ -62,7 +68,9 @@ export function useWorkspaceChatController({
 	workspaceId: string;
 }) {
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = resolveDesktopChatOrganizationId(
+		session?.session?.activeOrganizationId,
+	);
 	const collections = useCollections();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
@@ -140,10 +148,24 @@ export function useWorkspaceChatController({
 		return nextSessionId;
 	}, [onSessionIdChange, organizationId, sessionId, sessions, workspaceId]);
 
-	const sessionItems = useMemo(
-		() => sessions.map((item) => toSessionSelectorItem(item)),
-		[sessions],
-	);
+	const sessionItems = useMemo(() => {
+		const nextItems = sessions.map((item) => toSessionSelectorItem(item));
+		if (
+			!isDesktopChatDevMode() ||
+			!sessionId ||
+			nextItems.some((item) => item.sessionId === sessionId)
+		) {
+			return nextItems;
+		}
+		return [
+			{
+				sessionId,
+				title: "",
+				updatedAt: new Date(),
+			},
+			...nextItems,
+		];
+	}, [sessionId, sessions]);
 
 	return {
 		sessionId,

@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, router } from "../../index";
 
 export const githubRouter = router({
-	getPRStatus: publicProcedure
+	getPRStatus: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -21,7 +21,7 @@ export const githubRouter = router({
 			return data[0] ?? null;
 		}),
 
-	getPR: publicProcedure
+	getPR: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -39,7 +39,7 @@ export const githubRouter = router({
 			return data;
 		}),
 
-	listPRs: publicProcedure
+	listPRs: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -67,7 +67,7 @@ export const githubRouter = router({
 			return data;
 		}),
 
-	getRepo: publicProcedure
+	getRepo: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -83,7 +83,7 @@ export const githubRouter = router({
 			return data;
 		}),
 
-	listDeployments: publicProcedure
+	listDeployments: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -105,7 +105,7 @@ export const githubRouter = router({
 			return data;
 		}),
 
-	listDeploymentStatuses: publicProcedure
+	listDeploymentStatuses: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
@@ -125,13 +125,13 @@ export const githubRouter = router({
 			return data;
 		}),
 
-	getUser: publicProcedure.query(async ({ ctx }) => {
+	getUser: protectedProcedure.query(async ({ ctx }) => {
 		const octokit = await ctx.github();
 		const { data } = await octokit.users.getAuthenticated();
 		return data;
 	}),
 
-	mergePR: publicProcedure
+	mergePR: protectedProcedure
 		.input(
 			z.object({
 				owner: z.string(),
