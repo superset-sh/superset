@@ -571,7 +571,6 @@ export function ChangesView({
 
 	const hasStagedChanges = stagedFiles.length > 0;
 	const hasExistingPR = !!activePullRequest;
-	const prUrl = activePullRequest?.url;
 	const hasGitHubRepo = !!githubStatus?.repoUrl;
 	const defaultBranch =
 		branchData?.defaultBranch ?? status?.defaultBranch ?? "";
@@ -786,10 +785,9 @@ export function ChangesView({
 							pushCount={status.pushCount}
 							pullCount={status.pullCount}
 							hasUpstream={status.hasUpstream}
-							hasExistingPR={hasExistingPR}
+							pullRequest={activePullRequest ?? null}
 							canCreatePR={prActionState.canCreatePR}
 							shouldAutoCreatePRAfterPublish={shouldAutoCreatePR}
-							prUrl={prUrl}
 							onRefresh={handleRefresh}
 						/>
 					</div>

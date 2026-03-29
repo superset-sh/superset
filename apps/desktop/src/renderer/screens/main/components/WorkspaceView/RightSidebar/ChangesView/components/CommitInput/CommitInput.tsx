@@ -1,3 +1,4 @@
+import type { GitHubStatus } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import {
@@ -23,6 +24,9 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
 import { getPrimaryAction } from "./utils/getPrimaryAction";
+import { getPushActionCopy } from "./utils/getPushActionCopy";
+
+type CommitInputPullRequest = NonNullable<GitHubStatus["pr"]>;
 
 interface CommitInputProps {
 	worktreePath: string;
@@ -30,10 +34,9 @@ interface CommitInputProps {
 	pushCount: number;
 	pullCount: number;
 	hasUpstream: boolean;
-	hasExistingPR: boolean;
+	pullRequest?: CommitInputPullRequest | null;
 	canCreatePR: boolean;
 	shouldAutoCreatePRAfterPublish: boolean;
-	prUrl?: string;
 	onRefresh: () => void;
 }
 
@@ -43,10 +46,9 @@ export function CommitInput({
 	pushCount,
 	pullCount,
 	hasUpstream,
-	hasExistingPR,
+	pullRequest,
 	canCreatePR,
 	shouldAutoCreatePRAfterPublish,
-	prUrl,
 	onRefresh,
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
@@ -108,6 +110,13 @@ export function CommitInput({
 		fetchMutation.isPending;
 
 	const canCommit = hasStagedChanges && commitMessage.trim();
+	const hasExistingPR = Boolean(pullRequest);
+	const prUrl = pullRequest?.url;
+	const pushActionCopy = getPushActionCopy({
+		hasUpstream,
+		pushCount,
+		pullRequest,
+	});
 
 	const handleCommit = () => {
 		if (!canCommit) return;
@@ -176,7 +185,7 @@ export function CommitInput({
 		pushCount,
 		pullCount,
 		hasUpstream,
-		hasExistingPR,
+		pushActionCopy,
 	});
 
 	const primary = {
@@ -290,9 +299,7 @@ export function CommitInput({
 							className="text-xs"
 						>
 							<VscArrowUp className="size-3.5" />
-							<span className="flex-1">
-								{hasUpstream || hasExistingPR ? "Push" : "Publish Branch"}
-							</span>
+							<span className="flex-1">{pushActionCopy.menuLabel}</span>
 							{pushCount > 0 && (
 								<span className="text-[10px] text-muted-foreground">
 									{pushCount}
