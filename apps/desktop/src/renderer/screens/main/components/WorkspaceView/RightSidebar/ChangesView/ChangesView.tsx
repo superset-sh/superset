@@ -1,10 +1,10 @@
 import {
 	AlertDialog,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -838,7 +838,7 @@ export function ChangesView({
 				open={showDiscardUnstagedDialog}
 				onOpenChange={setShowDiscardUnstagedDialog}
 			>
-				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+				<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
 							Discard all unstaged changes?
@@ -858,6 +858,7 @@ export function ChangesView({
 							Cancel
 						</Button>
 						<Button
+							data-alert-dialog-primary-action
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
@@ -871,14 +872,14 @@ export function ChangesView({
 							Discard All
 						</Button>
 					</AlertDialogFooter>
-				</AlertDialogContent>
+				</EnterEnabledAlertDialogContent>
 			</AlertDialog>
 
 			<AlertDialog
 				open={showDiscardStagedDialog}
 				onOpenChange={setShowDiscardStagedDialog}
 			>
-				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+				<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
 							Discard all staged changes?
@@ -898,6 +899,7 @@ export function ChangesView({
 							Cancel
 						</Button>
 						<Button
+							data-alert-dialog-primary-action
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
@@ -911,7 +913,7 @@ export function ChangesView({
 							Discard All
 						</Button>
 					</AlertDialogFooter>
-				</AlertDialogContent>
+				</EnterEnabledAlertDialogContent>
 			</AlertDialog>
 		</div>
 	);

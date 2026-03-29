@@ -1,10 +1,10 @@
 import {
 	AlertDialog,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 
@@ -29,7 +29,7 @@ export function DiscardConfirmDialog({
 }: DiscardConfirmDialogProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">{title}</AlertDialogTitle>
 					<AlertDialogDescription>{description}</AlertDialogDescription>
@@ -44,6 +44,7 @@ export function DiscardConfirmDialog({
 						Cancel
 					</Button>
 					<Button
+						data-alert-dialog-primary-action
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -56,7 +57,7 @@ export function DiscardConfirmDialog({
 						{confirmLabel}
 					</Button>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

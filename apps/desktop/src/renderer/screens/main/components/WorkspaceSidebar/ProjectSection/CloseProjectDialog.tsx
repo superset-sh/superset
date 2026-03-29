@@ -1,10 +1,10 @@
 import {
 	AlertDialog,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 
@@ -30,7 +30,7 @@ export function CloseProjectDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						Close project "{projectName}"?
@@ -59,6 +59,7 @@ export function CloseProjectDialog({
 						Cancel
 					</Button>
 					<Button
+						data-alert-dialog-primary-action
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -67,7 +68,7 @@ export function CloseProjectDialog({
 						Close Project
 					</Button>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

@@ -2,11 +2,11 @@ import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { LuLoader } from "react-icons/lu";
@@ -48,7 +48,7 @@ export function UnsavedChangesDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
-			<AlertDialogContent>
+			<EnterEnabledAlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
 					<AlertDialogDescription>{description}</AlertDialogDescription>
@@ -56,6 +56,7 @@ export function UnsavedChangesDialog({
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
 					<Button
+						data-alert-dialog-primary-action
 						variant="outline"
 						onClick={handleDiscardAndSwitch}
 						disabled={isSaving}
@@ -74,7 +75,7 @@ export function UnsavedChangesDialog({
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }
