@@ -69,11 +69,9 @@ export function registerWorkspaceTerminalRoute({
 		"/terminal/:workspaceId",
 		upgradeWebSocket((c) => {
 			const workspaceId = c.req.param("workspaceId");
-			const workspace = workspaceId
-				? db.query.workspaces
-						.findFirst({ where: eq(workspaces.id, workspaceId) })
-						.sync()
-				: null;
+			const workspace = db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, workspaceId) })
+				.sync();
 
 			let terminal: IPty | null = null;
 			let disposed = false;
@@ -89,15 +87,6 @@ export function registerWorkspaceTerminalRoute({
 
 			return {
 				onOpen: (_event, ws) => {
-					if (!workspaceId) {
-						sendMessage(ws, {
-							type: "error",
-							message: "Workspace id is required",
-						});
-						ws.close(1008, "Workspace id is required");
-						return;
-					}
-
 					if (!workspace || !existsSync(workspace.worktreePath)) {
 						sendMessage(ws, {
 							type: "error",
