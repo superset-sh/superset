@@ -170,9 +170,9 @@ describe("patchSearchIndexesForRoot", () => {
 			oldPathResults.some(
 				(result) => result.relativePath === "old-dir/target.ts",
 			),
-		).toBeFalse();
-		expect(newPathResults[0]?.absolutePath).toBe(newFilePath);
-		expect(newPathResults[0]?.relativePath).toBe("new-dir/target.ts");
+		).toEqual(false);
+		expect(newPathResults[0]?.absolutePath).toEqual(newFilePath);
+		expect(newPathResults[0]?.relativePath).toEqual("new-dir/target.ts");
 	});
 });
 
@@ -192,7 +192,7 @@ describe("searchFiles", () => {
 			limit: 5,
 		});
 
-		expect(results[0]?.absolutePath).toBe(exactMatchPath);
+		expect(results[0]?.absolutePath).toEqual(exactMatchPath);
 		expect(results).toHaveLength(1);
 
 		const fuzzyResults = await searchFiles({
@@ -201,6 +201,6 @@ describe("searchFiles", () => {
 			limit: 5,
 		});
 
-		expect(fuzzyResults[0]?.absolutePath).toBe(fuzzyMatchPath);
+		expect(fuzzyResults[0]?.absolutePath).toEqual(fuzzyMatchPath);
 	});
 });
