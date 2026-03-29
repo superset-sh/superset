@@ -37,7 +37,15 @@ export async function hasUpstreamBranch(git: SimpleGit): Promise<boolean> {
 	try {
 		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
 		return true;
-	} catch {
+	} catch (error) {
+		// Expected for branches without a tracking upstream; log unexpected errors.
+		const msg = error instanceof Error ? error.message : String(error);
+		if (
+			!msg.includes("no upstream configured") &&
+			!msg.includes("@{upstream}")
+		) {
+			console.warn("[git] Unexpected error checking upstream branch:", msg);
+		}
 		return false;
 	}
 }
