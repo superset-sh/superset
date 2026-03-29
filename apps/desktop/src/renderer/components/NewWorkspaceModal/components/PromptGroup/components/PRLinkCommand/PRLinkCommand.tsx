@@ -48,6 +48,9 @@ export function PRLinkCommand({
 	const trimmedQuery = searchQuery.trim(); // Immediate trim for UI decisions
 	const debouncedTrimmed = debouncedQuery.trim(); // Debounced trim for RPC calls
 
+	// Detect if we're in the pending debounce state
+	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
+
 	// Extract PR number from GitHub URL if pasted (use debounced for RPC)
 	const prNumberFromUrl = useMemo(() => {
 		const match = debouncedTrimmed.match(
@@ -59,11 +62,11 @@ export function PRLinkCommand({
 	// Use PR number for search if URL was pasted, otherwise use the query as-is
 	const effectiveQuery = prNumberFromUrl ?? debouncedTrimmed;
 
-	// Fetch recent PRs for browsing (only when no search query - use immediate trim)
+	// Fetch recent PRs for browsing (only when no search query)
 	const { data: recentPRs, isLoading: isLoadingRecent } =
 		electronTrpc.projects.listPullRequests.useQuery(
 			{ projectId: projectId ?? "" },
-			{ enabled: !!projectId && open && !trimmedQuery },
+			{ enabled: !!projectId && open && !debouncedTrimmed },
 		);
 
 	// Server-side search when user types (use debounced for RPC)
@@ -74,13 +77,16 @@ export function PRLinkCommand({
 		);
 
 	const pullRequests = useMemo(() => {
-		if (trimmedQuery) {
+		// Use debounced value for mode decision to avoid empty gap
+		if (debouncedTrimmed) {
 			return searchResults ?? [];
 		}
 		return recentPRs ?? [];
-	}, [trimmedQuery, searchResults, recentPRs]);
+	}, [debouncedTrimmed, searchResults, recentPRs]);
 
-	const isLoading = trimmedQuery ? isSearching : isLoadingRecent;
+	const isLoading = debouncedTrimmed
+		? isSearching || isPendingDebounce
+		: isLoadingRecent;
 
 	const handleClose = () => {
 		setSearchQuery("");
@@ -119,10 +125,10 @@ export function PRLinkCommand({
 						{pullRequests.length === 0 && (
 							<CommandEmpty>
 								{isLoading
-									? trimmedQuery
+									? debouncedTrimmed
 										? "Searching..."
 										: "Loading pull requests..."
-									: trimmedQuery
+									: debouncedTrimmed
 										? "No pull requests found."
 										: "No open pull requests."}
 							</CommandEmpty>
@@ -130,7 +136,7 @@ export function PRLinkCommand({
 						{pullRequests.length > 0 && (
 							<CommandGroup
 								heading={
-									trimmedQuery
+									debouncedTrimmed
 										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
 										: "Recent pull requests"
 								}
