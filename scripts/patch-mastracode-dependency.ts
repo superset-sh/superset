@@ -2,29 +2,56 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
-const MASRTA_CORE_VERSION = "1.8.0-superset.2";
 const requireFromCwd = createRequire(join(process.cwd(), "package.json"));
 
-function main(): void {
-	const packageJsonPath = requireFromCwd.resolve("mastracode/package.json");
-	const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
-		dependencies?: Record<string, string>;
-		name?: string;
-		version?: string;
-	};
+type PackageJson = {
+	dependencies?: Record<string, string>;
+	name?: string;
+	version?: string;
+};
 
-	if (packageJson.dependencies?.["@mastra/core"] === MASRTA_CORE_VERSION) {
+function resolvePackageJsonPath(specifier: string): string | null {
+	try {
+		return requireFromCwd.resolve(`${specifier}/package.json`);
+	} catch {
+		return null;
+	}
+}
+
+function patchDependencyVersion(
+	packageName: string,
+	dependencyName: string,
+): void {
+	const packageJsonPath = resolvePackageJsonPath(packageName);
+	const dependencyJsonPath = resolvePackageJsonPath(dependencyName);
+
+	if (!packageJsonPath || !dependencyJsonPath) {
 		return;
 	}
 
-	if (!packageJson.dependencies || packageJson.name !== "mastracode") {
+	const packageJson = JSON.parse(
+		readFileSync(packageJsonPath, "utf8"),
+	) as PackageJson;
+	if (!packageJson.dependencies || packageJson.name !== packageName) {
+		throw new Error(`Unexpected package metadata at ${packageJsonPath}`);
+	}
+
+	const dependencyJson = JSON.parse(
+		readFileSync(dependencyJsonPath, "utf8"),
+	) as PackageJson;
+	if (!dependencyJson.version) {
 		throw new Error(
-			`Unexpected mastracode package metadata at ${packageJsonPath}`,
+			`Missing version in dependency metadata at ${dependencyJsonPath}`,
 		);
 	}
 
-	packageJson.dependencies["@mastra/core"] = MASRTA_CORE_VERSION;
+	if (packageJson.dependencies[dependencyName] === dependencyJson.version) {
+		return;
+	}
+
+	packageJson.dependencies[dependencyName] = dependencyJson.version;
 	writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
-main();
+patchDependencyVersion("mastracode", "@mastra/core");
+patchDependencyVersion("libsql", "detect-libc");

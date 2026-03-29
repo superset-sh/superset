@@ -81,8 +81,6 @@ const packagedSupportModules = [
 	copyWholeModule("detect-libc"),
 	copyWholeModule("is-glob"),
 	copyWholeModule("is-extglob"),
-	copyWholeModule("@mastra/core"),
-	copyWholeModule("mastracode"),
 	copyWholeModule("picomatch"),
 	copyWholeModule("node-addon-api"),
 ];
@@ -110,8 +108,6 @@ export const requiredMaterializedNodeModules = [
 	"detect-libc",
 	"is-glob",
 	"is-extglob",
-	"@mastra/core",
-	"mastracode",
 	"picomatch",
 	"node-addon-api",
 ];
