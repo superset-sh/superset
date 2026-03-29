@@ -43,8 +43,8 @@ interface FileSearchIndex {
 	fuse: Fuse<SearchIndexEntry>;
 	itemsByLowerName: Map<string, SearchIndexEntry[]>;
 	itemsByCompactName: Map<string, SearchIndexEntry[]>;
-	itemsByLowerRelativePath: Map<string, SearchIndexEntry>;
-	itemsByCompactRelativePath: Map<string, SearchIndexEntry>;
+	itemsByLowerRelativePath: Map<string, SearchIndexEntry[]>;
+	itemsByCompactRelativePath: Map<string, SearchIndexEntry[]>;
 }
 
 interface FileSearchCacheEntry {
@@ -167,14 +167,22 @@ function addSearchIndexMapEntry(
 function createFileSearchIndex(items: SearchIndexEntry[]): FileSearchIndex {
 	const itemsByLowerName = new Map<string, SearchIndexEntry[]>();
 	const itemsByCompactName = new Map<string, SearchIndexEntry[]>();
-	const itemsByLowerRelativePath = new Map<string, SearchIndexEntry>();
-	const itemsByCompactRelativePath = new Map<string, SearchIndexEntry>();
+	const itemsByLowerRelativePath = new Map<string, SearchIndexEntry[]>();
+	const itemsByCompactRelativePath = new Map<string, SearchIndexEntry[]>();
 
 	for (const item of items) {
 		addSearchIndexMapEntry(itemsByLowerName, item.lowerName, item);
 		addSearchIndexMapEntry(itemsByCompactName, item.compactName, item);
-		itemsByLowerRelativePath.set(item.lowerRelativePath, item);
-		itemsByCompactRelativePath.set(item.compactRelativePath, item);
+		addSearchIndexMapEntry(
+			itemsByLowerRelativePath,
+			item.lowerRelativePath,
+			item,
+		);
+		addSearchIndexMapEntry(
+			itemsByCompactRelativePath,
+			item.compactRelativePath,
+			item,
+		);
 	}
 
 	return {
@@ -449,10 +457,10 @@ function collectExactFileSearchMatches({
 	>();
 
 	const addMatches = (
-		items: SearchIndexEntry[] | SearchIndexEntry | undefined,
+		items: SearchIndexEntry[] | undefined,
 		score: number,
 	): void => {
-		const candidates = Array.isArray(items) ? items : items ? [items] : [];
+		const candidates = items ?? [];
 
 		for (const item of candidates) {
 			if (

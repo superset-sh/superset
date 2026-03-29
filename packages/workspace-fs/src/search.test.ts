@@ -203,4 +203,25 @@ describe("searchFiles", () => {
 
 		expect(fuzzyResults[0]?.absolutePath).toEqual(fuzzyMatchPath);
 	});
+
+	it("returns every compact path collision instead of dropping later entries", async () => {
+		const rootPath = await createTempRoot();
+		const nestedPath = path.join(rootPath, "foo", "bar.ts");
+		const flatPath = path.join(rootPath, "foo-bar.ts");
+
+		await fs.mkdir(path.dirname(nestedPath), { recursive: true });
+		await fs.writeFile(nestedPath, "export const nested = true;\n");
+		await fs.writeFile(flatPath, "export const flat = true;\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "foobarts",
+			limit: 5,
+		});
+
+		expect(results.map((result) => result.absolutePath)).toEqual([
+			flatPath,
+			nestedPath,
+		]);
+	});
 });
