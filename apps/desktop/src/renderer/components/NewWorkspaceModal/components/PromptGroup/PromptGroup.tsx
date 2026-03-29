@@ -1416,7 +1416,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}+↵ to create
+					{modKey}↵ to create
 				</span>
 			</div>
 		</div>
