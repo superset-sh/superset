@@ -784,13 +784,6 @@ export const HOTKEYS = {
 		category: "Navigation",
 		description: "Search and open files in the current workspace",
 	}),
-	KEYWORD_SEARCH: defineHotkey({
-		keys: "meta+shift+f",
-		label: "Keyword Search",
-		category: "Navigation",
-		description:
-			"Search for keyword matches across files in the current workspace",
-	}),
 
 	// Chat
 	FIND_IN_CHAT: defineHotkey({

@@ -16,10 +16,6 @@ import {
 	CommandPalette,
 	useCommandPalette,
 } from "renderer/screens/main/components/CommandPalette";
-import {
-	KeywordSearch,
-	useKeywordSearch,
-} from "renderer/screens/main/components/KeywordSearch";
 import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
@@ -420,21 +416,10 @@ function WorkspacePage() {
 		workspaceId,
 		navigate,
 	});
-	const keywordSearch = useKeywordSearch({
-		workspaceId,
-	});
 	const handleQuickOpen = useCallback(() => {
-		keywordSearch.handleOpenChange(false);
 		commandPalette.toggle();
-	}, [commandPalette.toggle, keywordSearch.handleOpenChange]);
-	const handleKeywordSearch = useCallback(() => {
-		commandPalette.handleOpenChange(false);
-		keywordSearch.toggle();
-	}, [commandPalette.handleOpenChange, keywordSearch.toggle]);
+	}, [commandPalette.toggle]);
 	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
-	useAppHotkey("KEYWORD_SEARCH", handleKeywordSearch, undefined, [
-		handleKeywordSearch,
-	]);
 
 	// Toggle changes sidebar (⌘L)
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
@@ -677,21 +662,6 @@ function WorkspacePage() {
 							)
 						: undefined
 				}
-			/>
-			<KeywordSearch
-				open={keywordSearch.open}
-				onOpenChange={keywordSearch.handleOpenChange}
-				query={keywordSearch.query}
-				onQueryChange={keywordSearch.setQuery}
-				filtersOpen={keywordSearch.filtersOpen}
-				onFiltersOpenChange={keywordSearch.setFiltersOpen}
-				includePattern={keywordSearch.includePattern}
-				onIncludePatternChange={keywordSearch.setIncludePattern}
-				excludePattern={keywordSearch.excludePattern}
-				onExcludePatternChange={keywordSearch.setExcludePattern}
-				isLoading={keywordSearch.isFetching}
-				searchResults={keywordSearch.searchResults}
-				onSelectMatch={keywordSearch.selectMatch}
 			/>
 			<UnsavedChangesDialog
 				open={pendingTabClose !== null}

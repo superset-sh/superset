@@ -90,6 +90,7 @@ app.on("child-process-gone", (_event, details) => {
 export async function MainWindow() {
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
+	let persistedZoomLevel = savedWindowState?.zoomLevel;
 
 	const isDev = env.NODE_ENV === "development";
 	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
@@ -225,6 +226,7 @@ export async function MainWindow() {
 	// Gated by `initialized` so the initial maximize() doesn't immediately
 	// write isMaximized: true back to disk before the user touches the window.
 	let initialized = false;
+	let hasCompletedFirstLoad = false;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	const debouncedSave = () => {
 		if (!initialized || window.isDestroyed()) return;
@@ -243,21 +245,31 @@ export async function MainWindow() {
 				isMaximized,
 				zoomLevel: window.webContents.getZoomLevel(),
 			});
+			persistedZoomLevel = window.webContents.getZoomLevel();
 		}, 500);
 	};
 	window.on("move", debouncedSave);
 	window.on("resize", debouncedSave);
+	window.webContents.on("zoom-changed", () => {
+		persistedZoomLevel = window.webContents.getZoomLevel();
+		debouncedSave();
+	});
 
-	window.webContents.once("did-finish-load", async () => {
+	window.webContents.on("did-finish-load", () => {
 		console.log("[main-window] Renderer loaded successfully");
-		if (initialBounds.isMaximized) {
-			window.maximize();
+
+		if (persistedZoomLevel !== undefined) {
+			window.webContents.setZoomLevel(persistedZoomLevel);
 		}
-		if (savedWindowState?.zoomLevel !== undefined) {
-			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
+
+		if (!hasCompletedFirstLoad) {
+			if (initialBounds.isMaximized) {
+				window.maximize();
+			}
+			window.show();
+			initialized = true;
+			hasCompletedFirstLoad = true;
 		}
-		window.show();
-		initialized = true;
 	});
 
 	window.webContents.on(
@@ -295,6 +307,7 @@ export async function MainWindow() {
 			isMaximized,
 			zoomLevel,
 		});
+		persistedZoomLevel = zoomLevel;
 
 		browserManager.unregisterAll();
 		server.close();
