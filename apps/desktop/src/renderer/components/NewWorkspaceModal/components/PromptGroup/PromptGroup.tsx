@@ -21,12 +21,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@superset/ui/command";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
@@ -40,7 +35,6 @@ import {
 	PlusIcon,
 } from "lucide-react";
 import {
-	forwardRef,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -123,46 +117,68 @@ export function PromptGroup(props: PromptGroupProps) {
 	return <PromptGroupInner {...props} />;
 }
 
-const PlusMenu = forwardRef<
-	HTMLDivElement,
-	{
-		onOpenIssueLink: () => void;
-		onOpenGitHubIssue: () => void;
-		onOpenPRLink: () => void;
-	}
->(function PlusMenu({ onOpenIssueLink, onOpenGitHubIssue, onOpenPRLink }, ref) {
+function AttachmentButtons({
+	anchorRef,
+	onOpenIssueLink,
+	onOpenGitHubIssue,
+	onOpenPRLink,
+}: {
+	anchorRef: React.RefObject<HTMLDivElement | null>;
+	onOpenIssueLink: () => void;
+	onOpenGitHubIssue: () => void;
+	onOpenPRLink: () => void;
+}) {
 	const attachments = usePromptInputAttachments();
 
 	return (
-		<div ref={ref}>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<PromptInputButton className={`${PILL_BUTTON_CLASS} w-[22px]`}>
-						<PlusIcon className="size-3.5" />
+		<div ref={anchorRef} className="flex items-center gap-1">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={() => attachments.openFileDialog()}
+					>
+						<PaperclipIcon className="size-3.5" />
 					</PromptInputButton>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent side="bottom" align="start" className="w-52">
-					<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
-						<PaperclipIcon className="size-4" />
-						Add attachment
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenIssueLink}>
-						<SiLinear className="size-4" />
-						Link issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenGitHubIssue}>
-						<GoIssueOpened className="size-4" />
-						Link GitHub issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenPRLink}>
-						<LuGitPullRequest className="size-4" />
-						Link pull request
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Add attachment</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenIssueLink}
+					>
+						<SiLinear className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link issue</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenGitHubIssue}
+					>
+						<GoIssueOpened className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link GitHub issue</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenPRLink}
+					>
+						<LuGitPullRequest className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link pull request</TooltipContent>
+			</Tooltip>
 		</div>
 	);
-});
+}
 
 function ProjectPickerPill({
 	selectedProject,
@@ -1296,8 +1312,8 @@ ${sanitizeText(truncatedBody)}`;
 						/>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
-						<PlusMenu
-							ref={plusMenuRef}
+						<AttachmentButtons
+							anchorRef={plusMenuRef}
 							onOpenIssueLink={() =>
 								requestAnimationFrame(() => setIssueLinkOpen(true))
 							}
