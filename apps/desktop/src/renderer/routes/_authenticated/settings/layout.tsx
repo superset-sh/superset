@@ -9,6 +9,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
 	useSettingsSearchQuery,
+	useSettingsStore,
 } from "renderer/stores/settings-state";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 import { getMatchCountBySection } from "./utils/settings-search";
@@ -102,6 +103,8 @@ function SettingsLayout() {
 			);
 			if (firstMatch) {
 				navigate({ to: getPathFromSection(firstMatch), replace: true });
+			} else {
+				useSettingsStore.getState().setSearchQuery("");
 			}
 		}
 	}, [searchQuery, location.pathname, navigate]);
