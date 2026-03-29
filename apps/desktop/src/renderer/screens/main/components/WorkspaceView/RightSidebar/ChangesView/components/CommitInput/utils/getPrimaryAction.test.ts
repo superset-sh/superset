@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getPrimaryAction } from "./getPrimaryAction";
+import { getPushActionCopy } from "./getPushActionCopy";
 
 describe("getPrimaryAction", () => {
 	test("prioritizes commit when commit is possible", () => {
@@ -10,7 +11,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 3,
 			pullCount: 2,
 			hasUpstream: true,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: true,
+				pushCount: 3,
+			}),
 		});
 
 		expect(state.action).toBe("commit");
@@ -27,7 +31,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 2,
 			pullCount: 1,
 			hasUpstream: true,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: true,
+				pushCount: 2,
+			}),
 		});
 
 		expect(state.action).toBe("sync");
@@ -43,7 +50,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 2,
 			pullCount: 0,
 			hasUpstream: true,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: true,
+				pushCount: 2,
+			}),
 		});
 
 		expect(state.action).toBe("push");
@@ -59,7 +69,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 0,
 			pullCount: 2,
 			hasUpstream: true,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: true,
+				pushCount: 0,
+			}),
 		});
 
 		expect(state.action).toBe("pull");
@@ -75,7 +88,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 0,
 			pullCount: 0,
 			hasUpstream: false,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: false,
+				pushCount: 0,
+			}),
 		});
 
 		expect(state.action).toBe("push");
@@ -91,12 +107,19 @@ describe("getPrimaryAction", () => {
 			pushCount: 0,
 			pullCount: 0,
 			hasUpstream: false,
-			hasExistingPR: true,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: false,
+				pushCount: 0,
+				pullRequest: {
+					headRefName: "feature/pr-branch",
+					headRepositoryOwner: "Kitenite",
+				},
+			}),
 		});
 
 		expect(state.action).toBe("push");
-		expect(state.label).toBe("Push");
-		expect(state.tooltip).toBe("Push branch changes");
+		expect(state.label).toBe("Push to PR");
+		expect(state.tooltip).toBe("Push changes to Kitenite:feature/pr-branch");
 	});
 
 	test("falls back to disabled commit state", () => {
@@ -107,7 +130,10 @@ describe("getPrimaryAction", () => {
 			pushCount: 0,
 			pullCount: 0,
 			hasUpstream: true,
-			hasExistingPR: false,
+			pushActionCopy: getPushActionCopy({
+				hasUpstream: true,
+				pushCount: 0,
+			}),
 		});
 
 		expect(state.action).toBe("commit");

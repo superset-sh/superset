@@ -33,6 +33,10 @@ export interface RawEditorPosition {
 	column: number;
 }
 
+function getLineCount(lines: number | string[]): number {
+	return typeof lines === "number" ? lines : lines.length;
+}
+
 function isSupportedLineType(lineType: string): lineType is LineTypes {
 	return (
 		lineType === "context" ||
@@ -44,7 +48,59 @@ function isSupportedLineType(lineType: string): lineType is LineTypes {
 
 function clampLineNumber(lineNumber: number, modifiedLines: string[]): number {
 	if (modifiedLines.length === 0) return 1;
+	if (!Number.isFinite(lineNumber)) return 1;
 	return Math.max(1, Math.min(lineNumber, modifiedLines.length));
+}
+
+function parseHunkStartLines(hunkSpecs: string | undefined): {
+	additionStart: number | null;
+	deletionStart: number | null;
+} {
+	if (!hunkSpecs) {
+		return {
+			additionStart: null,
+			deletionStart: null,
+		};
+	}
+
+	const match = /@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(hunkSpecs);
+	if (!match) {
+		return {
+			additionStart: null,
+			deletionStart: null,
+		};
+	}
+
+	const deletionStart = Number.parseInt(match[1], 10);
+	const additionStart = Number.parseInt(match[2], 10);
+
+	return {
+		additionStart: Number.isFinite(additionStart) ? additionStart : null,
+		deletionStart: Number.isFinite(deletionStart) ? deletionStart : null,
+	};
+}
+
+function resolveHunkStartLine(
+	hunk: {
+		additionStart?: number;
+		deletionStart?: number;
+		hunkSpecs?: string;
+	},
+	side: "addition" | "deletion",
+): number {
+	const directStart =
+		side === "addition" ? hunk.additionStart : hunk.deletionStart;
+	if (typeof directStart === "number" && Number.isFinite(directStart)) {
+		return directStart;
+	}
+
+	const parsedStartLines = parseHunkStartLines(hunk.hunkSpecs);
+	const parsedStart =
+		side === "addition"
+			? parsedStartLines.additionStart
+			: parsedStartLines.deletionStart;
+
+	return parsedStart ?? 1;
 }
 
 function clampColumn(
@@ -139,16 +195,21 @@ function mapOldSideLineToRawLine(
 	let lineDelta = 0;
 
 	for (const hunk of diff.hunks) {
-		if (lineNumber < hunk.deletionStart) {
+		const deletionStart = resolveHunkStartLine(hunk, "deletion");
+		const additionStart = resolveHunkStartLine(hunk, "addition");
+
+		if (lineNumber < deletionStart) {
 			return clampLineNumber(lineNumber + lineDelta, modifiedLines);
 		}
 
-		let currentOldLine = hunk.deletionStart;
-		let currentNewLine = hunk.additionStart;
+		let currentOldLine = deletionStart;
+		let currentNewLine = additionStart;
 
 		for (const chunk of hunk.hunkContent) {
 			if (chunk.type === "context") {
-				for (let index = 0; index < chunk.lines.length; index += 1) {
+				const contextLineCount = getLineCount(chunk.lines);
+
+				for (let index = 0; index < contextLineCount; index += 1) {
 					if (currentOldLine === lineNumber) {
 						return clampLineNumber(currentNewLine, modifiedLines);
 					}
@@ -160,15 +221,17 @@ function mapOldSideLineToRawLine(
 			}
 
 			const insertionLine = clampLineNumber(currentNewLine, modifiedLines);
+			const deletionLineCount = getLineCount(chunk.deletions);
+			const additionLineCount = getLineCount(chunk.additions);
 
-			for (let index = 0; index < chunk.deletions.length; index += 1) {
+			for (let index = 0; index < deletionLineCount; index += 1) {
 				if (currentOldLine === lineNumber) {
 					return insertionLine;
 				}
 				currentOldLine += 1;
 			}
 
-			currentNewLine += chunk.additions.length;
+			currentNewLine += additionLineCount;
 		}
 
 		lineDelta = currentNewLine - currentOldLine;

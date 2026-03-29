@@ -488,7 +488,11 @@ export async function generateAndSetTitle(
 
 		const mode = runtime.harness.getCurrentMode();
 		const agent =
-			typeof mode.agent === "function" ? mode.agent({}) : mode.agent;
+			typeof mode.agent === "function"
+				? // Upstream types the agent factory against the schema type, but the
+					// runtime implementation receives the current state values.
+					mode.agent(runtime.harness.getState() as never)
+				: mode.agent;
 
 		const title = await generateTitleFromMessage({
 			agent,

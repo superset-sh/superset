@@ -7,11 +7,14 @@
  * 3) required native runtime packages are missing from apps/desktop/node_modules
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
 import ts from "typescript";
-import { mainExternalizedDependencies } from "../runtime-dependencies";
+import {
+	mainExternalizedDependencies,
+	requiredMaterializedNodeModules,
+} from "../runtime-dependencies";
 
 const projectRoot = join(import.meta.dirname, "..");
 const allowedBareRequirePackages = new Set([
@@ -358,6 +361,24 @@ function validateNativeModulesPrepared(): void {
 			join(nodeModulesDir, modulePath),
 			"Required native runtime dependency is missing.",
 		);
+	}
+
+	for (const moduleName of requiredMaterializedNodeModules) {
+		const modulePath = join(nodeModulesDir, moduleName);
+		assertExists(
+			modulePath,
+			"Required materialized runtime dependency is missing.",
+		);
+		if (lstatSync(modulePath).isSymbolicLink()) {
+			fail(
+				[
+					"Required materialized runtime dependency is still a symlink.",
+					`Dependency: ${moduleName}`,
+					`Path: ${modulePath}`,
+					"Run `bun run copy:native-modules` and ensure Bun store symlinks are replaced with real files.",
+				].join("\n"),
+			);
+		}
 	}
 
 	const platformCandidates = getPlatformLibsqlCandidates();

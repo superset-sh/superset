@@ -6,6 +6,7 @@ import {
 import {
 	getExistingPRHeadRepoUrl,
 	resolveRemoteNameForExistingPRHead,
+	shouldRetargetPushToExistingPRHead,
 } from "./utils/existing-pr-push-target";
 
 describe("git-operations error handling", () => {
@@ -182,5 +183,50 @@ describe("existing PR push target resolution", () => {
 				isCrossRepository: true,
 			}),
 		).toBe("https://github.com/kitenite/superset");
+	});
+
+	test("retargets push when the tracked branch differs from the linked PR head", () => {
+		expect(
+			shouldRetargetPushToExistingPRHead({
+				trackingRef: {
+					remoteName: "origin",
+					branchName: "feature/local-branch",
+				},
+				target: {
+					remote: "origin",
+					targetBranch: "feature/pr-branch",
+				},
+			}),
+		).toBe(true);
+	});
+
+	test("retargets push when the tracked remote differs from the linked PR head repo", () => {
+		expect(
+			shouldRetargetPushToExistingPRHead({
+				trackingRef: {
+					remoteName: "origin",
+					branchName: "feature/pr-branch",
+				},
+				target: {
+					remote: "kitenite",
+					targetBranch: "feature/pr-branch",
+				},
+			}),
+		).toBe(true);
+	});
+
+	test("keeps plain push when tracking already matches the linked PR head", () => {
+		expect(
+			shouldRetargetPushToExistingPRHead({
+				trackingRef: {
+					remoteName: "kitenite",
+					branchName: "feature/pr-branch",
+				},
+				target: {
+					remote: "kitenite",
+					targetBranch: "feature/pr-branch",
+				},
+			}),
+		).toBe(false);
 	});
 });
