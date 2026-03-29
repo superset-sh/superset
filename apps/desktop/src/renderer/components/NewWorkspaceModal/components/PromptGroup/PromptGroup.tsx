@@ -1059,6 +1059,18 @@ ${sanitizeText(truncatedBody)}`;
 		void handleCreate();
 	}, [handleCreate]);
 
+	useEffect(() => {
+		if (!isNewWorkspaceModalOpen) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+				e.preventDefault();
+				void handleCreate();
+			}
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [isNewWorkspaceModalOpen, handleCreate]);
+
 	const handleCompareBaseBranchSelect = (selectedBaseBranch: string) => {
 		updateDraft({ compareBaseBranch: selectedBaseBranch });
 	};
@@ -1181,12 +1193,6 @@ ${sanitizeText(truncatedBody)}`;
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
 						}
 					}}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
@@ -1211,12 +1217,6 @@ ${sanitizeText(truncatedBody)}`;
 								updateDraft({ branchName: "", branchNameEdited: false });
 							} else {
 								updateDraft({ branchName: sanitized });
-							}
-						}}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								void handleCreate();
 							}
 						}}
 					/>
@@ -1289,12 +1289,6 @@ ${sanitizeText(truncatedBody)}`;
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
