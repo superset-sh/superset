@@ -77,6 +77,15 @@ export function registerWorkspaceFilesystemEventsRoute({
 
 			return {
 				onOpen: (_event, ws) => {
+					if (!workspaceId) {
+						sendMessage(ws, {
+							type: "error",
+							message: "Workspace id is required",
+						});
+						ws.close(1008, "Workspace id is required");
+						return;
+					}
+
 					let rootPath: string;
 					try {
 						rootPath = filesystem.resolveWorkspaceRoot(workspaceId);
