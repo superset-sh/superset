@@ -134,19 +134,22 @@ function createSearchIndexEntry(
 	rootPath: string,
 	relativePath: string,
 ): SearchIndexEntry {
-	const absolutePath = path.join(rootPath, relativePath);
-	const name = path.basename(relativePath);
+	const normalizedRelativePath = normalizePathForGlob(relativePath);
+	const absolutePath = normalizeAbsolutePath(
+		path.join(rootPath, normalizedRelativePath),
+	);
+	const name = path.basename(normalizedRelativePath);
 	const lowerName = name.toLowerCase();
-	const lowerRelativePath = relativePath.toLowerCase();
+	const lowerRelativePath = normalizedRelativePath.toLowerCase();
 
 	return {
 		absolutePath,
-		relativePath,
+		relativePath: normalizedRelativePath,
 		name,
 		lowerName,
 		lowerRelativePath,
 		compactName: normalizeSearchText(name),
-		compactRelativePath: normalizeSearchText(relativePath),
+		compactRelativePath: normalizeSearchText(normalizedRelativePath),
 	};
 }
 
