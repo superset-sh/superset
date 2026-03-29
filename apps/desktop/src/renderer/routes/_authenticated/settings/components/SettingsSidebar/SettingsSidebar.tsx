@@ -19,7 +19,11 @@ export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const matchCounts = searchQuery ? getMatchCountBySection(searchQuery) : null;
+	const normalizedSearchQuery = searchQuery.trim();
+	const isSearchActive = normalizedSearchQuery.length > 0;
+	const matchCounts = isSearchActive
+		? getMatchCountBySection(normalizedSearchQuery)
+		: null;
 
 	return (
 		<div className="w-56 flex flex-col p-3 overflow-hidden">
@@ -58,7 +62,10 @@ export function SettingsSidebar() {
 
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
-				<ProjectsSettings searchQuery={searchQuery} matchCounts={matchCounts} />
+				<ProjectsSettings
+					isSearchActive={isSearchActive}
+					matchCounts={matchCounts}
+				/>
 			</div>
 
 			<div className="pt-3 mt-3 border-t border-border">

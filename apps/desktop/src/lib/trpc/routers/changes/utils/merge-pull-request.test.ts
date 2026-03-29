@@ -1,61 +1,142 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	spyOn,
+	test,
+} from "bun:test";
+
+type GetCurrentBranch =
+	typeof import("../../workspaces/utils/git").getCurrentBranch;
+type ExecGitWithShellPath =
+	typeof import("../../workspaces/utils/git-client").execGitWithShellPath;
+type GetPRForBranch =
+	typeof import("../../workspaces/utils/github").getPRForBranch;
+type GetPullRequestRepoArgs =
+	typeof import("../../workspaces/utils/github").getPullRequestRepoArgs;
+type GetRepoContext =
+	typeof import("../../workspaces/utils/github").getRepoContext;
+type ExecWithShellEnv =
+	typeof import("../../workspaces/utils/shell-env").execWithShellEnv;
+type IsNoPullRequestFoundMessage =
+	typeof import("../git-utils").isNoPullRequestFoundMessage;
+type ClearWorktreeStatusCaches =
+	typeof import("./worktree-status-caches").clearWorktreeStatusCaches;
 
 const getCurrentBranchMock = mock(
-	(async () => null) as (...args: unknown[]) => Promise<string | null>,
+	(async (..._args: Parameters<GetCurrentBranch>) => null) as GetCurrentBranch,
 );
-const execGitWithShellPathMock = mock((async () => ({
+const execGitWithShellPathMock = mock((async (
+	..._args: Parameters<ExecGitWithShellPath>
+) => ({
 	stdout: "",
 	stderr: "",
-})) as (...args: unknown[]) => Promise<{ stdout: string; stderr: string }>);
+})) as ExecGitWithShellPath);
 const getRepoContextMock = mock(
-	(async () => null) as (...args: unknown[]) => Promise<{
-		isFork: boolean;
-		repoUrl: string;
-		upstreamUrl: string;
-	} | null>,
+	(async (..._args: Parameters<GetRepoContext>) => null) as GetRepoContext,
 );
 const getPRForBranchMock = mock(
-	(async () => null) as (...args: unknown[]) => Promise<{
-		number: number;
-		state: "open" | "closed" | "merged";
-	} | null>,
+	(async (..._args: Parameters<GetPRForBranch>) => null) as GetPRForBranch,
 );
-const getPullRequestRepoArgsMock = mock(() => [] as string[]);
-const execWithShellEnvMock = mock(
-	(async () => undefined) as (...args: unknown[]) => Promise<void>,
+const getPullRequestRepoArgsMock = mock(((
+	..._args: Parameters<GetPullRequestRepoArgs>
+) => []) as GetPullRequestRepoArgs);
+const execWithShellEnvMock = mock((async (
+	..._args: Parameters<ExecWithShellEnv>
+) => ({
+	stdout: "",
+	stderr: "",
+})) as ExecWithShellEnv);
+const isNoPullRequestFoundMessageMock = mock(
+	((..._args: Parameters<IsNoPullRequestFoundMessage>) =>
+		false) as IsNoPullRequestFoundMessage,
 );
-const isNoPullRequestFoundMessageMock = mock(() => false);
-const clearWorktreeStatusCachesMock = mock(() => undefined);
-
-mock.module("../../workspaces/utils/git", () => ({
-	getCurrentBranch: getCurrentBranchMock,
-}));
-
-mock.module("../../workspaces/utils/git-client", () => ({
-	execGitWithShellPath: execGitWithShellPathMock,
-}));
-
-mock.module("../../workspaces/utils/github", () => ({
-	getPRForBranch: getPRForBranchMock,
-	getPullRequestRepoArgs: getPullRequestRepoArgsMock,
-	getRepoContext: getRepoContextMock,
-}));
-
-mock.module("../../workspaces/utils/shell-env", () => ({
-	execWithShellEnv: execWithShellEnvMock,
-}));
-
-mock.module("../git-utils", () => ({
-	isNoPullRequestFoundMessage: isNoPullRequestFoundMessageMock,
-}));
-
-mock.module("./worktree-status-caches", () => ({
-	clearWorktreeStatusCaches: clearWorktreeStatusCachesMock,
-}));
-
-const { mergePullRequest } = await import("./merge-pull-request");
+const clearWorktreeStatusCachesMock = mock(
+	((..._args: Parameters<ClearWorktreeStatusCaches>) =>
+		undefined) as ClearWorktreeStatusCaches,
+);
+const openPullRequest = {
+	number: 42,
+	title: "Test PR",
+	url: "https://github.com/superset-sh/superset/pull/42",
+	state: "open" as const,
+	additions: 0,
+	deletions: 0,
+	reviewDecision: "pending" as const,
+	checksStatus: "none" as const,
+	checks: [],
+};
+let mergePullRequest: typeof import("./merge-pull-request").mergePullRequest;
 
 describe("mergePullRequest", () => {
+	beforeAll(async () => {
+		const gitModule = await import("../../workspaces/utils/git");
+		const gitClientModule = await import("../../workspaces/utils/git-client");
+		const githubModule = await import("../../workspaces/utils/github");
+		const shellEnvModule = await import("../../workspaces/utils/shell-env");
+		const gitUtilsModule = await import("../git-utils");
+		const worktreeStatusCachesModule = await import("./worktree-status-caches");
+
+		spyOn(gitModule, "getCurrentBranch").mockImplementation(((
+			...args: Parameters<typeof gitModule.getCurrentBranch>
+		) => getCurrentBranchMock(...args)) as typeof gitModule.getCurrentBranch);
+		spyOn(gitModule, "isUnbornHeadError").mockImplementation(
+			((error: unknown) =>
+				error instanceof Error &&
+				error.message.includes(
+					"ambiguous argument 'HEAD'",
+				)) as typeof gitModule.isUnbornHeadError,
+		);
+		spyOn(gitClientModule, "execGitWithShellPath").mockImplementation(((
+			...args: Parameters<typeof gitClientModule.execGitWithShellPath>
+		) =>
+			execGitWithShellPathMock(
+				...args,
+			)) as typeof gitClientModule.execGitWithShellPath);
+		spyOn(githubModule, "getPRForBranch").mockImplementation(((
+			...args: Parameters<typeof githubModule.getPRForBranch>
+		) => getPRForBranchMock(...args)) as typeof githubModule.getPRForBranch);
+		spyOn(githubModule, "getPullRequestRepoArgs").mockImplementation(((
+			...args: Parameters<typeof githubModule.getPullRequestRepoArgs>
+		) =>
+			getPullRequestRepoArgsMock(
+				...args,
+			)) as typeof githubModule.getPullRequestRepoArgs);
+		spyOn(githubModule, "getRepoContext").mockImplementation(((
+			...args: Parameters<typeof githubModule.getRepoContext>
+		) => getRepoContextMock(...args)) as typeof githubModule.getRepoContext);
+		spyOn(shellEnvModule, "execWithShellEnv").mockImplementation(((
+			...args: Parameters<typeof shellEnvModule.execWithShellEnv>
+		) =>
+			execWithShellEnvMock(...args)) as typeof shellEnvModule.execWithShellEnv);
+		spyOn(gitUtilsModule, "isNoPullRequestFoundMessage").mockImplementation(((
+			...args: Parameters<typeof gitUtilsModule.isNoPullRequestFoundMessage>
+		) =>
+			isNoPullRequestFoundMessageMock(
+				...args,
+			)) as typeof gitUtilsModule.isNoPullRequestFoundMessage);
+		spyOn(
+			worktreeStatusCachesModule,
+			"clearWorktreeStatusCaches",
+		).mockImplementation(((
+			...args: Parameters<
+				typeof worktreeStatusCachesModule.clearWorktreeStatusCaches
+			>
+		) =>
+			clearWorktreeStatusCachesMock(
+				...args,
+			)) as typeof worktreeStatusCachesModule.clearWorktreeStatusCaches);
+
+		({ mergePullRequest } = await import("./merge-pull-request"));
+	});
+
+	afterAll(() => {
+		mock.restore();
+	});
+
 	beforeEach(() => {
 		getCurrentBranchMock.mockReset();
 		getCurrentBranchMock.mockResolvedValue(null);
@@ -75,7 +156,10 @@ describe("mergePullRequest", () => {
 		getPullRequestRepoArgsMock.mockReset();
 		getPullRequestRepoArgsMock.mockReturnValue([]);
 		execWithShellEnvMock.mockReset();
-		execWithShellEnvMock.mockResolvedValue(undefined);
+		execWithShellEnvMock.mockResolvedValue({
+			stdout: "",
+			stderr: "",
+		});
 		isNoPullRequestFoundMessageMock.mockReset();
 		isNoPullRequestFoundMessageMock.mockReturnValue(false);
 		clearWorktreeStatusCachesMock.mockReset();
@@ -108,10 +192,7 @@ describe("mergePullRequest", () => {
 		execGitWithShellPathMock.mockRejectedValueOnce(
 			new Error("fatal: ambiguous argument 'HEAD'"),
 		);
-		getPRForBranchMock.mockResolvedValue({
-			number: 42,
-			state: "open",
-		});
+		getPRForBranchMock.mockResolvedValue(openPullRequest);
 
 		const result = await mergePullRequest({
 			worktreePath: "/tmp/unborn-worktree",
@@ -155,8 +236,4 @@ describe("mergePullRequest", () => {
 		);
 		expect(result.success).toBe(true);
 	});
-});
-
-afterAll(() => {
-	mock.restore();
 });

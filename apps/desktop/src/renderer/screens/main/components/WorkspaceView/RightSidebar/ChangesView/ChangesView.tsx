@@ -1,13 +1,3 @@
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	EnterEnabledAlertDialogContent,
-} from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -37,6 +27,7 @@ import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
+import { DiscardConfirmDialog } from "./components/DiscardConfirmDialog";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
@@ -835,83 +826,31 @@ export function ChangesView({
 				</TabsContent>
 			</Tabs>
 
-			<AlertDialog
+			<DiscardConfirmDialog
 				open={showDiscardUnstagedDialog}
 				onOpenChange={setShowDiscardUnstagedDialog}
-			>
-				<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							Discard all unstaged changes?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will revert all unstaged modifications and delete untracked
-							files. This action cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => setShowDiscardUnstagedDialog(false)}
-						>
-							Cancel
-						</Button>
-						<AlertDialogAction
-							variant="destructive"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => {
-								discardAllUnstagedMutation.mutate({
-									worktreePath: worktreePath || "",
-								});
-							}}
-						>
-							Discard All
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</EnterEnabledAlertDialogContent>
-			</AlertDialog>
+				title="Discard all unstaged changes?"
+				description="This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+				onConfirm={() =>
+					discardAllUnstagedMutation.mutate({
+						worktreePath: worktreePath || "",
+					})
+				}
+				confirmLabel="Discard All"
+			/>
 
-			<AlertDialog
+			<DiscardConfirmDialog
 				open={showDiscardStagedDialog}
 				onOpenChange={setShowDiscardStagedDialog}
-			>
-				<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							Discard all staged changes?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will unstage and revert all staged changes. Staged new files
-							will be deleted. This action cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => setShowDiscardStagedDialog(false)}
-						>
-							Cancel
-						</Button>
-						<AlertDialogAction
-							variant="destructive"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => {
-								discardAllStagedMutation.mutate({
-									worktreePath: worktreePath || "",
-								});
-							}}
-						>
-							Discard All
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</EnterEnabledAlertDialogContent>
-			</AlertDialog>
+				title="Discard all staged changes?"
+				description="This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+				onConfirm={() =>
+					discardAllStagedMutation.mutate({
+						worktreePath: worktreePath || "",
+					})
+				}
+				confirmLabel="Discard All"
+			/>
 		</div>
 	);
 }
