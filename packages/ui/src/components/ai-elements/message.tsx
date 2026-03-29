@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
+import type { PluginConfig } from "streamdown";
 import { Streamdown } from "streamdown";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -21,7 +22,9 @@ import {
 	TooltipTrigger,
 } from "../ui/tooltip";
 
-const streamdownPlugins = { mermaid };
+const streamdownPlugins: PluginConfig = {
+	mermaid: mermaid as unknown as PluginConfig["mermaid"],
+};
 const defaultMessageAnimation = {
 	animation: "blurIn",
 	sep: "char",
