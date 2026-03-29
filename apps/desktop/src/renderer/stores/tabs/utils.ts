@@ -315,6 +315,41 @@ export const createDevToolsPane = (
 };
 
 /**
+ * Options for creating a review pane
+ */
+export interface CreateReviewPaneOptions {
+	prNumber: number;
+	prTitle: string;
+	prUrl: string;
+	comments: import("@superset/local-db").PullRequestComment[];
+	highlightCommentId?: string;
+}
+
+/**
+ * Creates a new review pane for displaying PR comments
+ */
+export const createReviewPane = (
+	tabId: string,
+	options: CreateReviewPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+
+	return {
+		id,
+		tabId,
+		type: "review",
+		name: `PR #${options.prNumber}: ${options.prTitle}`,
+		review: {
+			prNumber: options.prNumber,
+			prTitle: options.prTitle,
+			prUrl: options.prUrl,
+			comments: options.comments,
+			highlightCommentId: options.highlightCommentId,
+		},
+	};
+};
+
+/**
  * Creates a new tab with a browser pane atomically
  */
 export const createBrowserTabWithPane = (

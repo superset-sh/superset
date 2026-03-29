@@ -21,6 +21,7 @@ import {
 } from "./actions/move-pane";
 import type {
 	AddFileViewerPaneOptions,
+	AddReviewPaneOptions,
 	AddTabWithMultiplePanesOptions,
 	TabsState,
 	TabsStore,
@@ -37,6 +38,7 @@ import {
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
+	createReviewPane,
 	createTabWithPane,
 	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
@@ -1026,6 +1028,101 @@ export const useTabsStore = create<TabsStore>()(
 
 					posthog.capture("panel_opened", {
 						panel_type: "file_viewer",
+						workspace_id: activeTab.workspaceId,
+						pane_id: newPane.id,
+					});
+
+					return newPane.id;
+				},
+
+				addReviewPane: (workspaceId: string, options: AddReviewPaneOptions) => {
+					const state = get();
+					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
+						workspaceId,
+						tabs: state.tabs,
+						activeTabIds: state.activeTabIds,
+						tabHistoryStacks: state.tabHistoryStacks,
+					});
+					const activeTab = resolvedActiveTabId
+						? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						: null;
+
+					// If no active tab, create a new one
+					if (!activeTab) {
+						const tabId = generateId("tab");
+						const newPane = createReviewPane(tabId, options);
+
+						const newTab = {
+							id: tabId,
+							workspaceId,
+							name: newPane.name,
+							layout: newPane.id as MosaicNode<string>,
+							createdAt: Date.now(),
+						};
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						set({
+							tabs: [...state.tabs, newTab],
+							panes: { ...state.panes, [newPane.id]: newPane },
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: newTab.id,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[newTab.id]: newPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+
+						posthog.capture("panel_opened", {
+							panel_type: "review",
+							workspace_id: workspaceId,
+							pane_id: newPane.id,
+						});
+
+						return newPane.id;
+					}
+
+					// Add to active tab
+					const newPane = createReviewPane(activeTab.id, options);
+
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: activeTab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, activeTab.id);
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === activeTab.id
+								? { ...t, layout: newLayout, name: tabName }
+								: t,
+						),
+						panes: newPanes,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[activeTab.id]: newPane.id,
+						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "review",
 						workspace_id: activeTab.workspaceId,
 						pane_id: newPane.id,
 					});

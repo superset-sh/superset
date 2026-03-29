@@ -24,6 +24,7 @@ import { ChatPane } from "./ChatPane";
 import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
+import { ReviewPane } from "./ReviewPane";
 import { TabPane } from "./TabPane";
 
 export const MOSAIC_ID = "superset-mosaic";
@@ -242,6 +243,23 @@ export function TabView({ tab }: TabViewProps) {
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route review panes
+			if (paneInfo.type === "review") {
+				return (
+					<ReviewPane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+						availableTabs={workspaceTabs}
+						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
+						onMoveToNewTab={() => movePaneToNewTab(paneId)}
 					/>
 				);
 			}

@@ -3,6 +3,7 @@
  * Renderer extends these with MosaicNode layout specifics.
  */
 
+import type { PullRequestComment } from "@superset/local-db";
 import type { ChangeCategory } from "./changes-types";
 
 /**
@@ -13,7 +14,8 @@ export type PaneType =
 	| "webview"
 	| "file-viewer"
 	| "chat"
-	| "devtools";
+	| "devtools"
+	| "review";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -142,6 +144,13 @@ export interface Pane {
 	chat?: ChatPaneState; // For chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
+	review?: {
+		prNumber: number;
+		prTitle: string;
+		prUrl: string;
+		comments: PullRequestComment[];
+		highlightCommentId?: string;
+	}; // For review panes
 	workspaceRun?: {
 		workspaceId: string;
 		state: "running" | "stopped-by-user" | "stopped-by-exit";

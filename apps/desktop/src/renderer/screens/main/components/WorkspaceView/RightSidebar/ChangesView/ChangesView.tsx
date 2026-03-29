@@ -828,6 +828,7 @@ export function ChangesView({
 					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
 				>
 					<ReviewPanel
+						workspaceId={workspaceId ?? ""}
 						pr={isGitHubStatusLoading ? null : activePullRequest}
 						comments={githubComments}
 						isLoading={isGitHubStatusLoading}

@@ -25,7 +25,10 @@
 	},
 	"linter": {
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"a11y": {
+				"useSemanticElements": "warn"
+			}
 		}
 	},
 	"overrides": [

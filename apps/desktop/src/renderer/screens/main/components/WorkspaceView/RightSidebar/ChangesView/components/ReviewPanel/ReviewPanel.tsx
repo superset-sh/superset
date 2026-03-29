@@ -14,6 +14,8 @@ import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Pane } from "shared/tabs-types";
 import {
 	ALL_COMMENTS_COPY_ACTION_KEY,
 	buildAllCommentsClipboardText,
@@ -37,6 +39,7 @@ interface ReviewPanelProps {
 	comments?: PullRequestComment[];
 	isLoading?: boolean;
 	isCommentsLoading?: boolean;
+	workspaceId: string;
 }
 
 export function ReviewPanel({
@@ -44,6 +47,7 @@ export function ReviewPanel({
 	comments = [],
 	isLoading = false,
 	isCommentsLoading = false,
+	workspaceId,
 }: ReviewPanelProps) {
 	const [checksOpen, setChecksOpen] = useState(true);
 	const [commentsOpen, setCommentsOpen] = useState(true);
@@ -100,6 +104,54 @@ export function ReviewPanel({
 			actionKey: getCommentCopyActionKey(comment.id),
 			errorLabel: "Failed to copy comment",
 		});
+	};
+
+	const handleOpenReviewPane = (commentId: string) => {
+		if (!pr) return;
+
+		const store = useTabsStore.getState();
+		const { active } = splitPullRequestComments(comments);
+
+		// Find existing review pane for this PR
+		const existingPane = Object.values(store.panes).find(
+			(pane) =>
+				pane.type === "review" &&
+				pane.review?.prNumber === pr.number &&
+				store.tabs.find((t) => t.id === pane.tabId)?.workspaceId ===
+					workspaceId,
+		);
+
+		if (existingPane?.review) {
+			// Update highlight and focus existing pane
+			const updatedPane: Pane = {
+				...existingPane,
+				review: {
+					...existingPane.review,
+					highlightCommentId: commentId,
+				},
+			};
+			useTabsStore.setState((state) => ({
+				panes: {
+					...state.panes,
+					[existingPane.id]: updatedPane,
+				},
+			}));
+			// Focus the pane's tab
+			const tab = store.tabs.find((t) => t.id === existingPane.tabId);
+			if (tab) {
+				store.setActiveTab(workspaceId, tab.id);
+				store.setFocusedPane(tab.id, existingPane.id);
+			}
+		} else {
+			// Create new review pane
+			store.addReviewPane(workspaceId, {
+				prNumber: pr.number,
+				prTitle: pr.title,
+				prUrl: pr.url,
+				comments: active,
+				highlightCommentId: commentId,
+			});
+		}
 	};
 
 	if (isLoading && !pr) {
@@ -221,24 +273,21 @@ export function ReviewPanel({
 			);
 
 			return (
+				// biome-ignore lint/a11y/useSemanticElements: div needed for complex layout with nested interactive elements
 				<div
 					key={comment.id}
-					className="group flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50"
+					className="group flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50 cursor-pointer"
+					onClick={() => handleOpenReviewPane(comment.id)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							handleOpenReviewPane(comment.id);
+						}
+					}}
+					role="button"
+					tabIndex={0}
 				>
-					{comment.url ? (
-						<a
-							href={comment.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex min-w-0 flex-1 items-start gap-2"
-						>
-							{content}
-						</a>
-					) : (
-						<div className="flex min-w-0 flex-1 items-start gap-2">
-							{content}
-						</div>
-					)}
+					<div className="flex min-w-0 flex-1 items-start gap-2">{content}</div>
 					<div className="mt-0.5 flex shrink-0 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{comment.url ? (
 							<a

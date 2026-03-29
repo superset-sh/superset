@@ -93,6 +93,17 @@ export interface AddFileViewerPaneOptions {
 }
 
 /**
+ * Options for opening a review pane
+ */
+export interface AddReviewPaneOptions {
+	prNumber: number;
+	prTitle: string;
+	prUrl: string;
+	comments: import("@superset/local-db").PullRequestComment[];
+	highlightCommentId?: string;
+}
+
+/**
  * Actions available on the tabs store
  */
 export interface TabsStore extends TabsState {
@@ -132,6 +143,7 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options: AddFileViewerPaneOptions,
 	) => string;
+	addReviewPane: (workspaceId: string, options: AddReviewPaneOptions) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
