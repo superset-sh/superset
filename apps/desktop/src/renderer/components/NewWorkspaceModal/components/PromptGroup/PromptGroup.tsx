@@ -21,15 +21,10 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@superset/ui/command";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -39,14 +34,7 @@ import {
 	PaperclipIcon,
 	PlusIcon,
 } from "lucide-react";
-import {
-	forwardRef,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	GoArrowUpRight,
 	GoGitBranch,
@@ -123,46 +111,68 @@ export function PromptGroup(props: PromptGroupProps) {
 	return <PromptGroupInner {...props} />;
 }
 
-const PlusMenu = forwardRef<
-	HTMLDivElement,
-	{
-		onOpenIssueLink: () => void;
-		onOpenGitHubIssue: () => void;
-		onOpenPRLink: () => void;
-	}
->(function PlusMenu({ onOpenIssueLink, onOpenGitHubIssue, onOpenPRLink }, ref) {
+function AttachmentButtons({
+	anchorRef,
+	onOpenIssueLink,
+	onOpenGitHubIssue,
+	onOpenPRLink,
+}: {
+	anchorRef: React.RefObject<HTMLDivElement | null>;
+	onOpenIssueLink: () => void;
+	onOpenGitHubIssue: () => void;
+	onOpenPRLink: () => void;
+}) {
 	const attachments = usePromptInputAttachments();
 
 	return (
-		<div ref={ref}>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<PromptInputButton className={`${PILL_BUTTON_CLASS} w-[22px]`}>
-						<PlusIcon className="size-3.5" />
+		<div ref={anchorRef} className="flex items-center gap-1">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={() => attachments.openFileDialog()}
+					>
+						<PaperclipIcon className="size-3.5" />
 					</PromptInputButton>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent side="bottom" align="start" className="w-52">
-					<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
-						<PaperclipIcon className="size-4" />
-						Add attachment
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenIssueLink}>
-						<SiLinear className="size-4" />
-						Link issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenGitHubIssue}>
-						<GoIssueOpened className="size-4" />
-						Link GitHub issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenPRLink}>
-						<LuGitPullRequest className="size-4" />
-						Link pull request
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Add attachment</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenIssueLink}
+					>
+						<SiLinear className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link issue</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenGitHubIssue}
+					>
+						<GoIssueOpened className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link GitHub issue</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenPRLink}
+					>
+						<LuGitPullRequest className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link pull request</TooltipContent>
+			</Tooltip>
 		</div>
 	);
-});
+}
 
 function ProjectPickerPill({
 	selectedProject,
@@ -1043,6 +1053,18 @@ ${sanitizeText(truncatedBody)}`;
 		void handleCreate();
 	}, [handleCreate]);
 
+	useEffect(() => {
+		if (!isNewWorkspaceModalOpen) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+				e.preventDefault();
+				void handleCreate();
+			}
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [isNewWorkspaceModalOpen, handleCreate]);
+
 	const handleCompareBaseBranchSelect = (selectedBaseBranch: string) => {
 		updateDraft({ compareBaseBranch: selectedBaseBranch });
 	};
@@ -1165,12 +1187,6 @@ ${sanitizeText(truncatedBody)}`;
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
 						}
 					}}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
@@ -1195,12 +1211,6 @@ ${sanitizeText(truncatedBody)}`;
 								updateDraft({ branchName: "", branchNameEdited: false });
 							} else {
 								updateDraft({ branchName: sanitized });
-							}
-						}}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								void handleCreate();
 							}
 						}}
 					/>
@@ -1273,12 +1283,6 @@ ${sanitizeText(truncatedBody)}`;
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
@@ -1296,8 +1300,8 @@ ${sanitizeText(truncatedBody)}`;
 						/>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
-						<PlusMenu
-							ref={plusMenuRef}
+						<AttachmentButtons
+							anchorRef={plusMenuRef}
 							onOpenIssueLink={() =>
 								requestAnimationFrame(() => setIssueLinkOpen(true))
 							}
@@ -1400,7 +1404,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}+↵ to create
+					{modKey}↵ to create
 				</span>
 			</div>
 		</div>

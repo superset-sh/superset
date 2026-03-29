@@ -29,7 +29,6 @@ const SECTION_ORDER: SettingsSection[] = [
 	"organization",
 	"integrations",
 	"billing",
-	"devices",
 	"apikeys",
 	"permissions",
 ];

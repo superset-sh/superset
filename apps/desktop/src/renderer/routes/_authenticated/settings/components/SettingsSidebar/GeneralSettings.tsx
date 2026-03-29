@@ -6,7 +6,6 @@ import {
 	HiOutlineCommandLine,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
-	HiOutlineDevicePhoneMobile,
 	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
@@ -35,7 +34,6 @@ type SettingsRoute =
 	| "/settings/models"
 	| "/settings/integrations"
 	| "/settings/billing"
-	| "/settings/devices"
 	| "/settings/api-keys"
 	| "/settings/permissions";
 
@@ -137,12 +135,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "billing",
 				label: "Billing",
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
-			},
-			{
-				id: "/settings/devices",
-				section: "devices",
-				label: "Devices",
-				icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/api-keys",

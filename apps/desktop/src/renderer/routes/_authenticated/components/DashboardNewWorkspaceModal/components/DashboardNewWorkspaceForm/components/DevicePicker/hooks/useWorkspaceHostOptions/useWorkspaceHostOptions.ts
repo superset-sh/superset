@@ -11,26 +11,16 @@ import {
 } from "renderer/routes/_authenticated/providers/HostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
-const ONLINE_THRESHOLD_MS = 30_000;
-
 export interface WorkspaceHostDeviceOption {
 	id: string;
 	name: string;
 	type: "host" | "cloud" | "viewer";
-	isOnline: boolean;
 }
 
 interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
 	localHostService: OrgService | null;
 	otherDevices: WorkspaceHostDeviceOption[];
-}
-
-function isDeviceOnline(lastSeenAt: Date | null): boolean {
-	return (
-		lastSeenAt !== null &&
-		Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS
-	);
 }
 
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
@@ -57,22 +47,17 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					{ devices: collections.v2Devices },
 					({ userDevices, devices }) => eq(userDevices.deviceId, devices.id),
 				)
-				.leftJoin(
-					{ presence: collections.v2DevicePresence },
-					({ devices, presence }) => eq(devices.id, presence.deviceId),
-				)
 				.where(({ userDevices, devices }) =>
 					and(
 						eq(userDevices.userId, currentUserId ?? ""),
 						eq(devices.organizationId, activeOrganizationId ?? ""),
 					),
 				)
-				.select(({ devices, presence }) => ({
+				.select(({ devices }) => ({
 					id: devices.id,
 					clientId: devices.clientId,
 					name: devices.name,
 					type: devices.type,
-					lastSeenAt: presence?.lastSeenAt ?? null,
 				})),
 		[activeOrganizationId, collections, currentUserId],
 	);
@@ -85,7 +70,6 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					id: device.id,
 					name: device.name,
 					type: device.type,
-					isOnline: isDeviceOnline(device.lastSeenAt ?? null),
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
 		[accessibleDevices, deviceInfo?.deviceId],
