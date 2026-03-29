@@ -109,8 +109,8 @@ export function GitHubIssueLinkCommand({
 			<PopoverAnchor virtualRef={anchorRef as React.RefObject<Element>} />
 			<PopoverContent
 				className="w-80 p-0"
-				align="end"
-				side="top"
+				align="start"
+				side="bottom"
 				onWheel={(event) => event.stopPropagation()}
 				onPointerDownOutside={handleClose}
 				onEscapeKeyDown={handleClose}
