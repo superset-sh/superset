@@ -1,5 +1,5 @@
 export const alertDialogPrimaryActionSelector =
-	"[data-alert-dialog-primary-action]:not([disabled])";
+	"[data-slot='alert-dialog-action']:not([disabled])";
 
 interface FocusableLike {
 	focus: () => void;

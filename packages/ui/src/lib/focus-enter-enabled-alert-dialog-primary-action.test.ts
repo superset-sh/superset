@@ -6,7 +6,7 @@ import {
 } from "./focus-enter-enabled-alert-dialog-primary-action";
 
 describe("focusEnterEnabledAlertDialogPrimaryAction", () => {
-	test("focuses the marked primary action and prevents default autofocus", () => {
+	test("focuses the alert dialog action and prevents default autofocus", () => {
 		let prevented = false;
 		let focused = false;
 		let queriedSelector: string | null = null;

@@ -1,5 +1,6 @@
 import {
 	AlertDialog,
+	AlertDialogAction,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
@@ -43,19 +44,15 @@ export function DiscardConfirmDialog({
 					>
 						Cancel
 					</Button>
-					<Button
-						data-alert-dialog-primary-action
+					<AlertDialogAction
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
 						disabled={confirmDisabled}
-						onClick={() => {
-							onOpenChange(false);
-							onConfirm();
-						}}
+						onClick={onConfirm}
 					>
 						{confirmLabel}
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>
 		</AlertDialog>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
 
 import { focusEnterEnabledAlertDialogPrimaryAction } from "../../lib/focus-enter-enabled-alert-dialog-primary-action";
@@ -142,11 +143,15 @@ function AlertDialogDescription({
 
 function AlertDialogAction({
 	className,
+	size,
+	variant,
 	...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action> &
+	VariantProps<typeof buttonVariants>) {
 	return (
 		<AlertDialogPrimitive.Action
-			className={cn(buttonVariants(), className)}
+			data-slot="alert-dialog-action"
+			className={cn(buttonVariants({ variant, size, className }))}
 			{...props}
 		/>
 	);

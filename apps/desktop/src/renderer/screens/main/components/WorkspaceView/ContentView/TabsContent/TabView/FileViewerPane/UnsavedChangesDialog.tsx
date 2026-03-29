@@ -34,16 +34,12 @@ export function UnsavedChangesDialog({
 	discardLabel = "Discard & Continue",
 	saveLabel = "Save & Continue",
 }: UnsavedChangesDialogProps) {
-	const handleSaveAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
+	const handleSaveAndSwitch = () => {
 		onSave();
-		// Don't close dialog - parent will close on success
 	};
 
-	const handleDiscardAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
+	const handleDiscardAndSwitch = () => {
 		onDiscard();
-		onOpenChange(false);
 	};
 
 	return (
@@ -55,16 +51,15 @@ export function UnsavedChangesDialog({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
-					<Button
-						data-alert-dialog-primary-action
+					<AlertDialogAction
 						variant="outline"
 						onClick={handleDiscardAndSwitch}
 						disabled={isSaving}
 						className="border-destructive/50 text-destructive hover:bg-destructive/10"
 					>
 						{discardLabel}
-					</Button>
-					<AlertDialogAction onClick={handleSaveAndSwitch} disabled={isSaving}>
+					</AlertDialogAction>
+					<Button onClick={handleSaveAndSwitch} disabled={isSaving}>
 						{isSaving ? (
 							<>
 								<LuLoader className="mr-2 h-4 w-4 animate-spin" />
@@ -73,7 +68,7 @@ export function UnsavedChangesDialog({
 						) : (
 							saveLabel
 						)}
-					</AlertDialogAction>
+					</Button>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>
 		</AlertDialog>

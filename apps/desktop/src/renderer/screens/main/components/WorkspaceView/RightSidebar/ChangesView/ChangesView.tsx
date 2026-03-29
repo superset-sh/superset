@@ -1,5 +1,6 @@
 import {
 	AlertDialog,
+	AlertDialogAction,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
@@ -857,20 +858,18 @@ export function ChangesView({
 						>
 							Cancel
 						</Button>
-						<Button
-							data-alert-dialog-primary-action
+						<AlertDialogAction
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
 							onClick={() => {
-								setShowDiscardUnstagedDialog(false);
 								discardAllUnstagedMutation.mutate({
 									worktreePath: worktreePath || "",
 								});
 							}}
 						>
 							Discard All
-						</Button>
+						</AlertDialogAction>
 					</AlertDialogFooter>
 				</EnterEnabledAlertDialogContent>
 			</AlertDialog>
@@ -898,20 +897,18 @@ export function ChangesView({
 						>
 							Cancel
 						</Button>
-						<Button
-							data-alert-dialog-primary-action
+						<AlertDialogAction
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
 							onClick={() => {
-								setShowDiscardStagedDialog(false);
 								discardAllStagedMutation.mutate({
 									worktreePath: worktreePath || "",
 								});
 							}}
 						>
 							Discard All
-						</Button>
+						</AlertDialogAction>
 					</AlertDialogFooter>
 				</EnterEnabledAlertDialogContent>
 			</AlertDialog>

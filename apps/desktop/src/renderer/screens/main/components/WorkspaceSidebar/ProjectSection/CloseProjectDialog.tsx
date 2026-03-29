@@ -1,5 +1,6 @@
 import {
 	AlertDialog,
+	AlertDialogAction,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
@@ -23,11 +24,6 @@ export function CloseProjectDialog({
 	onOpenChange,
 	onConfirm,
 }: CloseProjectDialogProps) {
-	const handleConfirm = () => {
-		onOpenChange(false);
-		onConfirm();
-	};
-
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
@@ -58,15 +54,14 @@ export function CloseProjectDialog({
 					>
 						Cancel
 					</Button>
-					<Button
-						data-alert-dialog-primary-action
+					<AlertDialogAction
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						onClick={handleConfirm}
+						onClick={onConfirm}
 					>
 						Close Project
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
