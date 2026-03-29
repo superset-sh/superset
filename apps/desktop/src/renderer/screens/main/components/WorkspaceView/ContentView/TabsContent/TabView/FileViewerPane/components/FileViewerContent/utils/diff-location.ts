@@ -33,6 +33,10 @@ export interface RawEditorPosition {
 	column: number;
 }
 
+function getLineCount(lines: number | string[]): number {
+	return typeof lines === "number" ? lines : lines.length;
+}
+
 function isSupportedLineType(lineType: string): lineType is LineTypes {
 	return (
 		lineType === "context" ||
@@ -203,7 +207,9 @@ function mapOldSideLineToRawLine(
 
 		for (const chunk of hunk.hunkContent) {
 			if (chunk.type === "context") {
-				for (let index = 0; index < chunk.lines.length; index += 1) {
+				const contextLineCount = getLineCount(chunk.lines);
+
+				for (let index = 0; index < contextLineCount; index += 1) {
 					if (currentOldLine === lineNumber) {
 						return clampLineNumber(currentNewLine, modifiedLines);
 					}
@@ -215,15 +221,17 @@ function mapOldSideLineToRawLine(
 			}
 
 			const insertionLine = clampLineNumber(currentNewLine, modifiedLines);
+			const deletionLineCount = getLineCount(chunk.deletions);
+			const additionLineCount = getLineCount(chunk.additions);
 
-			for (let index = 0; index < chunk.deletions.length; index += 1) {
+			for (let index = 0; index < deletionLineCount; index += 1) {
 				if (currentOldLine === lineNumber) {
 					return insertionLine;
 				}
 				currentOldLine += 1;
 			}
 
-			currentNewLine += chunk.additions.length;
+			currentNewLine += additionLineCount;
 		}
 
 		lineDelta = currentNewLine - currentOldLine;
