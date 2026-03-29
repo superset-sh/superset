@@ -1018,6 +1018,15 @@ export function getMatchingItemsForSection(
 	return searchSettings(query).filter((item) => item.section === section);
 }
 
+export function getVisibleSettingIdsForSection(
+	query: string,
+	section: SettingsSection,
+): SettingItemId[] | null {
+	if (!query.trim()) return null;
+	const matches = getMatchingItemsForSection(query, section);
+	return matches.length > 0 ? matches.map((item) => item.id) : null;
+}
+
 export function isItemVisible(
 	itemId: SettingItemId,
 	visibleItems: SettingItemId[] | null | undefined,
