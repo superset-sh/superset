@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import path from "node:path";
@@ -12,7 +12,14 @@ import "./xterm-env-polyfill";
 
 const { Session } = await import("./session");
 
-class FakeStdout extends EventEmitter {}
+class FakeStdout extends EventEmitter {
+	pause() {
+		return this;
+	}
+	resume() {
+		return this;
+	}
+}
 
 class FakeStdin extends EventEmitter {
 	readonly writes: Buffer[] = [];
@@ -217,5 +224,196 @@ describe("Terminal Host Session shell args", () => {
 		).broadcastEvent("data", { type: "data", data: "hello" });
 
 		expect(writes.some((message) => message.includes('"hello"'))).toBe(true);
+	});
+});
+
+// =============================================================================
+// Backpressure tests (#2968 + #2961)
+// =============================================================================
+
+describe("Terminal Host Session backpressure", () => {
+	let warnSpy: ReturnType<typeof mock>;
+
+	beforeEach(() => {
+		warnSpy = mock();
+		console.warn = warnSpy;
+	});
+
+	afterEach(() => {
+		warnSpy.mockRestore?.();
+	});
+
+	class FakeSocket extends EventEmitter {
+		readonly writes: string[] = [];
+		remoteAddress = "127.0.0.1";
+		remotePort = 9999;
+		private writeFn: (message: string) => boolean;
+
+		constructor(writeFn: (message: string, writes: string[]) => boolean) {
+			super();
+			this.writeFn = (msg) => writeFn(msg, this.writes);
+		}
+
+		write(message: string): boolean {
+			this.writes.push(message);
+			return this.writeFn(message);
+		}
+
+		destroy() {}
+	}
+
+	function createSessionWithSocket(
+		writeFn: (message: string, writes: string[]) => boolean,
+	) {
+		const child = new FakeChildProcess();
+		const session = new Session({
+			sessionId: "session-bp",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			spawnProcess: () => child as unknown as ChildProcess,
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		// Emit Ready so we can attach
+		child.stdout.emit("data", createFrameHeader(PtySubprocessIpcType.Ready, 0));
+
+		const fakeSocket = new FakeSocket(
+			writeFn,
+		) as unknown as import("node:net").Socket;
+
+		// Directly inject the socket as an attached client
+		(
+			session as unknown as {
+				attachedClients: Map<
+					import("node:net").Socket,
+					{ socket: import("node:net").Socket }
+				>;
+			}
+		).attachedClients.set(fakeSocket, { socket: fakeSocket });
+
+		const broadcast = (data: string) => {
+			(
+				session as unknown as {
+					broadcastEvent: (
+						eventType: string,
+						payload: { type: "data"; data: string },
+					) => void;
+				}
+			).broadcastEvent("data", { type: "data", data });
+		};
+
+		return { session, socket: fakeSocket, broadcast };
+	}
+
+	it("stops writing to a backpressured socket instead of growing the buffer", () => {
+		// First write succeeds, subsequent ones signal backpressure
+		const { socket, broadcast } = createSessionWithSocket(
+			(_msg, writes) => writes.length <= 1,
+		);
+		const fakeSocket = socket as unknown as FakeSocket;
+
+		// First broadcast: write succeeds
+		broadcast("frame-1");
+		expect(fakeSocket.writes).toHaveLength(1);
+
+		// Second broadcast: write returns false → socket becomes backpressured
+		broadcast("frame-2");
+		expect(fakeSocket.writes).toHaveLength(2);
+
+		// Subsequent broadcasts should be SKIPPED — not written to the socket
+		broadcast("frame-3");
+		broadcast("frame-4");
+		broadcast("frame-5");
+		expect(fakeSocket.writes).toHaveLength(2);
+	});
+
+	it("resumes writing after the socket drains", () => {
+		// First write succeeds, second backpressures, after drain writes succeed again
+		const { socket, broadcast } = createSessionWithSocket(
+			(_msg, writes) => writes.length !== 2,
+		);
+		const fakeSocket = socket as unknown as FakeSocket;
+
+		broadcast("frame-1"); // write #1 → succeeds (length 1 !== 2)
+		broadcast("frame-2"); // write #2 → returns false (length 2 === 2)
+
+		// Skipped during backpressure
+		broadcast("frame-3");
+		broadcast("frame-4");
+		expect(fakeSocket.writes).toHaveLength(2);
+
+		// Simulate drain — triggers the once("drain") handler which removes
+		// the socket from clientSocketsWaitingForDrain
+		fakeSocket.emit("drain");
+
+		// After drain, new broadcasts write again (write #3 → succeeds)
+		broadcast("frame-5");
+		expect(fakeSocket.writes).toHaveLength(3);
+		expect(fakeSocket.writes[2]).toContain("frame-5");
+	});
+
+	it("emits only one backpressure warning within the rate-limit window", () => {
+		const { broadcast } = createSessionWithSocket(() => false);
+
+		for (let i = 0; i < 1000; i++) {
+			broadcast(`chunk-${i}`);
+		}
+
+		const backpressureWarns = (warnSpy.mock.calls as unknown[][]).filter(
+			(call) =>
+				typeof call[0] === "string" &&
+				call[0].includes("Client socket buffer full"),
+		);
+
+		// Should emit exactly 1 warning, not 1000
+		expect(backpressureWarns.length).toBe(1);
+	});
+
+	it("includes suppressed count when warning resumes after interval", () => {
+		// Write always returns false so every non-skipped write triggers backpressure.
+		// We need to drain between writes to avoid the skip-backpressured-socket optimization.
+		const { session, socket, broadcast } = createSessionWithSocket(() => false);
+		const fakeSocket = socket as unknown as FakeSocket;
+
+		// First broadcast: writes, gets backpressured, warns immediately
+		broadcast("first");
+
+		// Drain + re-broadcast many times within the rate-limit window to
+		// accumulate suppressed warnings
+		for (let i = 0; i < 50; i++) {
+			fakeSocket.emit("drain");
+			broadcast(`suppressed-${i}`);
+		}
+
+		// Advance past the rate-limit window
+		(
+			session as unknown as { backpressureWarnLastAt: number }
+		).backpressureWarnLastAt = Date.now() - 10_000;
+
+		// Drain once more, then broadcast — should emit with suppressed count
+		fakeSocket.emit("drain");
+		broadcast("after-interval");
+
+		const backpressureWarns = (warnSpy.mock.calls as unknown[][]).filter(
+			(call) =>
+				typeof call[0] === "string" &&
+				call[0].includes("Client socket buffer full"),
+		);
+
+		expect(backpressureWarns.length).toBe(2);
+		const lastWarn = backpressureWarns[1]?.[0] as string;
+		expect(lastWarn).toContain("suppressed");
+		expect(lastWarn).toContain("50");
 	});
 });
