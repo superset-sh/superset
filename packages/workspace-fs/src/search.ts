@@ -449,7 +449,7 @@ function collectExactFileSearchMatches({
 	limit: number;
 }): Array<{ item: SearchIndexEntry; score: number }> {
 	const lowerQuery = query.toLowerCase();
-	const normalizedPathQuery = lowerQuery.replace(/\\/g, "/");
+	const normalizedPathQuery = normalizePathForGlob(lowerQuery);
 	const compactQuery = normalizeSearchText(query);
 	const matchesByPath = new Map<
 		string,

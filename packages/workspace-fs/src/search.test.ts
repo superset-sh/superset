@@ -204,6 +204,23 @@ describe("searchFiles", () => {
 		expect(fuzzyResults[0]?.absolutePath).toEqual(fuzzyMatchPath);
 	});
 
+	it("normalizes exact relative path queries before lookup", async () => {
+		const rootPath = await createTempRoot();
+		const targetPath = path.join(rootPath, "src", "file.ts");
+
+		await fs.mkdir(path.dirname(targetPath), { recursive: true });
+		await fs.writeFile(targetPath, "export const value = true;\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "./src/file.ts",
+			limit: 5,
+		});
+
+		expect(results[0]?.absolutePath).toEqual(targetPath);
+		expect(results[0]?.relativePath).toEqual("src/file.ts");
+	});
+
 	it("returns every compact path collision instead of dropping later entries", async () => {
 		const rootPath = await createTempRoot();
 		const nestedPath = path.join(rootPath, "foo", "bar.ts");

@@ -237,22 +237,26 @@ export async function MainWindow() {
 			const bounds = isMaximized
 				? window.getNormalBounds()
 				: window.getBounds();
+			const zoomLevel = window.webContents.getZoomLevel();
 			saveWindowState({
 				x: bounds.x,
 				y: bounds.y,
 				width: bounds.width,
 				height: bounds.height,
 				isMaximized,
-				zoomLevel: window.webContents.getZoomLevel(),
+				zoomLevel,
 			});
-			persistedZoomLevel = window.webContents.getZoomLevel();
+			persistedZoomLevel = zoomLevel;
 		}, 500);
 	};
 	window.on("move", debouncedSave);
 	window.on("resize", debouncedSave);
 	window.webContents.on("zoom-changed", () => {
-		persistedZoomLevel = window.webContents.getZoomLevel();
-		debouncedSave();
+		setTimeout(() => {
+			if (window.isDestroyed()) return;
+			persistedZoomLevel = window.webContents.getZoomLevel();
+			debouncedSave();
+		}, 0);
 	});
 
 	window.webContents.on("did-finish-load", () => {
