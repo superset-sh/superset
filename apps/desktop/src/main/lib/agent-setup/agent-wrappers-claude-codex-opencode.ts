@@ -339,14 +339,14 @@ export function getCodexGlobalHooksJsonPath(): string {
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  *
- * Superset intentionally keeps this native Codex hook registration narrow.
- * The primary integration path is still the wrapper + notify/session-log
- * watcher, which works inside Superset-managed terminal sessions and covers
- * richer lifecycle events like per-turn Start and PermissionRequest.
+ * Superset uses Codex's native UserPromptSubmit + Stop hooks as the
+ * authoritative loading-state path because those are part of Codex's public
+ * hook surface. The wrapper/session-log watcher remains as a compatibility
+ * fallback for older Codex builds and any extra lifecycle hints it can still
+ * derive inside Superset-managed terminals.
  *
- * This hooks.json merge is only a fallback for cases where the wrapper is
- * bypassed, so we only register the minimal SessionStart + Stop notifications
- * here rather than trying to mirror Codex's full native hook surface.
+ * We still keep this merge narrower than Claude's full hook surface because
+ * Superset only needs the prompt-start and turn-stop transitions here.
  */
 export function getCodexGlobalHooksJsonContent(
 	notifyScriptPath: string,
@@ -360,11 +360,17 @@ export function getCodexGlobalHooksJsonContent(
 	}
 
 	const managedEvents: Array<{
-		eventName: "SessionStart" | "Stop";
+		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
 			eventName: "SessionStart",
+			definition: {
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
+		{
+			eventName: "UserPromptSubmit",
 			definition: {
 				hooks: [{ type: "command", command: notifyScriptPath }],
 			},
@@ -399,14 +405,12 @@ export function getCodexGlobalHooksJsonContent(
 
 /**
  * Writes Superset hook definitions directly into ~/.codex/hooks.json.
- * This provides a fallback notification path that works even when the
- * binary wrapper is not in PATH (e.g. user runs codex from outside
- * a Superset terminal).
+ * This provides a notification path that works even when the binary wrapper is
+ * not in PATH (e.g. user runs codex from outside a Superset terminal).
  *
- * The wrapper remains the primary integration path for Superset-managed
- * terminals because it can synthesize richer lifecycle events from Codex's
- * notify callback and session log (task_started, approval_request,
- * exec_command_begin) without mutating project-local CODEX_HOME state.
+ * The wrapper remains useful for compatibility and any extra lifecycle hints it
+ * can synthesize from older session-log formats, but loading state should not
+ * depend on those internal Codex details.
  */
 export function createCodexHooksJson(): void {
 	const notifyScriptPath = getNotifyScriptPath();

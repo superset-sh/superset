@@ -836,7 +836,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("creates Codex hooks.json with SessionStart and Stop when no file exists", () => {
+	it("creates Codex hooks.json with SessionStart, UserPromptSubmit, and Stop when no file exists", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getCodexGlobalHooksJsonContent(notifyPath);
 		expect(content).not.toBeNull();
@@ -852,7 +852,11 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of ["SessionStart", "Stop"] as const) {
+		for (const eventName of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"Stop",
+		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
@@ -909,7 +913,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		// Also creates SessionStart
+		// Also creates SessionStart + UserPromptSubmit
 		expect(
 			parsed.hooks.SessionStart.some(
 				(def: { hooks: Array<{ command: string }> }) =>
@@ -918,9 +922,17 @@ describe("agent-wrappers codex hooks.json", () => {
 					),
 			),
 		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
 	});
 
-	it("does not add UserPromptSubmit to the Codex fallback hooks.json merge", () => {
+	it("adds UserPromptSubmit to the Codex hooks.json merge for loading-state notifications", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getCodexGlobalHooksJsonContent(notifyPath);
 		expect(content).not.toBeNull();
@@ -936,7 +948,12 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		expect(parsed.hooks.UserPromptSubmit).toBeUndefined();
+		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
+		expect(
+			parsed.hooks.UserPromptSubmit.some((def) =>
+				def.hooks.some((hook) => hook.command === notifyPath),
+			),
+		).toBe(true);
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
@@ -988,7 +1005,11 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of ["SessionStart", "Stop"] as const) {
+		for (const eventName of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"Stop",
+		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
