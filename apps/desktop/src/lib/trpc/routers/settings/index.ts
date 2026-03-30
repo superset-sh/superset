@@ -26,6 +26,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_SWAP_PANELS,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
@@ -793,6 +794,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { defaultEditor: input.editor },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getSwapPanels: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.swapPanels ?? DEFAULT_SWAP_PANELS;
+		}),
+
+		setSwapPanels: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, swapPanels: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { swapPanels: input.enabled },
 					})
 					.run();
 

@@ -6,6 +6,7 @@ import {
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { SwapPanelsSection } from "./components/SwapPanelsSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -54,6 +55,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showSwapPanels = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -74,6 +79,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				{showTerminalFont && (
 					<FontSettingSection key="terminal-font" variant="terminal" />
 				)}
+				{showSwapPanels && <SwapPanelsSection key="swap-panels" />}
 			</SectionList>
 		</div>
 	);

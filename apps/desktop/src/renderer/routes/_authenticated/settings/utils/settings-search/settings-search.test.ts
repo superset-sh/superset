@@ -9,6 +9,28 @@ function getIds(items: SettingsItem[]): string[] {
 	return items.map((item) => item.id);
 }
 
+describe("settings search - swap panels", () => {
+	it('searching "swap" returns BEHAVIOR_SWAP_PANELS', () => {
+		const results = searchSettings("swap");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS);
+	});
+
+	it('searching "sidebar" returns BEHAVIOR_SWAP_PANELS', () => {
+		const results = searchSettings("sidebar");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS);
+	});
+
+	it("swap panels item has correct section", () => {
+		const results = searchSettings("swap");
+		const item = results.find(
+			(r) => r.id === SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS,
+		);
+		expect(item?.section).toBe("appearance");
+	});
+});
+
 describe("settings search - font settings", () => {
 	it('searching "font" returns both APPEARANCE_EDITOR_FONT and APPEARANCE_TERMINAL_FONT', () => {
 		const results = searchSettings("font");
