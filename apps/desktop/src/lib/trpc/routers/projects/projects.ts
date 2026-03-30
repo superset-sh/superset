@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { access, mkdir, rm } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
 	EXTERNAL_APPS,
@@ -336,6 +336,16 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				.where(isNotNull(projects.tabOrder))
 				.orderBy(desc(projects.lastOpenedAt))
 				.all();
+		}),
+
+		getLastProjectDir: publicProcedure.query((): string | null => {
+			const row = localDb
+				.select({ mainRepoPath: projects.mainRepoPath })
+				.from(projects)
+				.orderBy(desc(projects.lastOpenedAt))
+				.limit(1)
+				.get();
+			return row ? dirname(row.mainRepoPath) : null;
 		}),
 
 		listPullRequests: publicProcedure
@@ -1054,9 +1064,19 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			if (!window) {
 				return { canceled: false, error: "No window available" };
 			}
+
+			const lastRow = localDb
+				.select({ mainRepoPath: projects.mainRepoPath })
+				.from(projects)
+				.orderBy(desc(projects.lastOpenedAt))
+				.limit(1)
+				.get();
+			const defaultPath = lastRow ? dirname(lastRow.mainRepoPath) : undefined;
+
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory", "multiSelections"],
 				title: "Open Project",
+				defaultPath,
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
