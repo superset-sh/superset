@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	CheckIcon,
 	ChevronDownIcon,
 	ChevronRightIcon,
 	XIcon,
@@ -14,8 +13,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../ui/collapsible";
-import { Loader } from "./loader";
-import { ShimmerLabel } from "./shimmer-label";
+import { BrailleSpinner } from "./braille-spinner";
 
 export type ToolCallRowProps = {
 	/** Icon shown in the header (replaced by chevron on hover when expandable). */
@@ -33,9 +31,8 @@ export type ToolCallRowProps = {
 	/** When true the default status shows an X icon. */
 	isError?: boolean;
 	/**
-	 * Overrides the default status icon slot (spinner / check / X).
-	 * Pass `null` to render nothing in the status slot.
-	 * Omit (undefined) to use the default behaviour.
+	 * Overrides the default status slot (X on error, nothing otherwise).
+	 * Pass `null` to render nothing. Omit (undefined) to use the default.
 	 */
 	statusNode?: ReactNode;
 	/**
@@ -71,26 +68,11 @@ export function ToolCallRow({
 	const [isHovered, setIsHovered] = useState(false);
 	const hasDetails = children != null && children !== false;
 
-	const defaultStatus = (
-		<div className="flex h-6 w-6 items-center justify-center">
-			{isPending ? (
-				<Loader size={12} />
-			) : isError ? (
-				<XIcon className="h-3 w-3" />
-			) : (
-				<CheckIcon className="h-3 w-3" />
-			)}
-		</div>
-	);
+	const defaultStatus = null;
 
 	const titleContent =
 		typeof title === "string" ? (
-			<ShimmerLabel
-				className="shrink-0 text-xs text-foreground"
-				isShimmering={isPending}
-			>
-				{title}
-			</ShimmerLabel>
+			<span className="shrink-0 text-xs text-foreground">{title}</span>
 		) : (
 			title
 		);
@@ -121,6 +103,12 @@ export function ToolCallRow({
 								) : (
 									<ChevronRightIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
 								)
+							) : isPending ? (
+								<span className="flex h-3 w-3 shrink-0 items-center justify-center overflow-hidden">
+									<BrailleSpinner />
+								</span>
+							) : isError ? (
+								<XIcon className="h-3 w-3 shrink-0 text-red-500" />
 							) : (
 								<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
 							)}
