@@ -1,3 +1,4 @@
+import { hasAnsweredQuestionToolCall } from "renderer/components/Chat/ChatInterface/utils/messageHelpers";
 import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import type {
@@ -100,7 +101,10 @@ export function getVisibleMessages({
 	const previousTurns = messages.slice(0, turnStartIndex);
 	const activeTurnNonAssistant = messages
 		.slice(turnStartIndex)
-		.filter((message) => message.role !== "assistant");
+		.filter(
+			(message) =>
+				message.role !== "assistant" || hasAnsweredQuestionToolCall(message),
+		);
 
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
