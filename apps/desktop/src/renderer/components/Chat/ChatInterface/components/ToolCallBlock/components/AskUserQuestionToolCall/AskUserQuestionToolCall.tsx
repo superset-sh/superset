@@ -121,7 +121,6 @@ export function AskUserQuestionToolCall({
 	result,
 	outputObject,
 	nestedResultObject,
-	isStreaming,
 }: AskUserQuestionToolCallProps) {
 	const questions = useMemo(
 		() => toQuestionToolQuestions(args.questions),
@@ -138,45 +137,82 @@ export function AskUserQuestionToolCall({
 		[nestedResultObject?.answers, outputObject?.answers, result.answers],
 	);
 
+	// Fallback for plain-string results: getResult() wraps them as { text: "..." }
+	const answerFallbackText = useMemo(() => {
+		if (typeof result.text === "string" && result.text.trim())
+			return result.text.trim();
+		if (typeof result.answer === "string" && result.answer.trim())
+			return result.answer.trim();
+		return undefined;
+	}, [result.text, result.answer]);
+
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
 	const isError = part.state === "output-error";
+	const hasAnswers =
+		Object.keys(answers).length > 0 || answerFallbackText !== undefined;
 
-	// Hide while the overlay is actively showing (streaming = question is live)
-	if (isPending && isStreaming !== false) return null;
+	// No args available (tool_result-only path with input: {}) — nothing useful to show
+	if (questions.length === 0 && !isError) return null;
+
+	const isAnswered = !isPending && !isError && hasAnswers;
+	// Skipped = pending-but-stopped, or result with no answers
+	const isSkipped = !isPending && !isError && !hasAnswers;
 
 	const description =
 		questions.length > 1
 			? `${questions.length} questions`
 			: (questions[0]?.question ?? undefined);
 
+	const answerTexts = useMemo(
+		() =>
+			questions
+				.map((q) =>
+					findAnswerForQuestion({ answers, questionText: q.question }),
+				)
+				.filter((a): a is string => a !== undefined),
+		[questions, answers],
+	);
+
+	const questionContent =
+		questions.length > 0 ? (
+			<div className="space-y-2.5 py-1.5 pl-2">
+				{questions.map((q, i) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: questions don't have unique keys
+					<div key={i} className="text-xs text-muted-foreground">
+						{q.question}
+					</div>
+				))}
+			</div>
+		) : undefined;
+
 	return (
-		<ToolCallRow
-			description={description}
-			icon={MessageCircleQuestionIcon}
-			isError={isError}
-			isPending={isPending}
-			title="Question"
-		>
-			{questions.length > 0 ? (
-				<div className="space-y-2.5 py-1.5 pl-2">
-					{questions.map((q, i) => {
-						const answer = findAnswerForQuestion({
-							answers,
-							questionText: q.question,
-						});
-						return (
-							// biome-ignore lint/suspicious/noArrayIndexKey: questions don't have unique keys
-							<div key={i} className="space-y-0.5">
-								<div className="text-xs text-muted-foreground">{q.question}</div>
-								{answer && (
-									<div className="text-xs text-foreground">{answer}</div>
-								)}
-							</div>
-						);
-					})}
+		<>
+			<ToolCallRow
+				description={description}
+				icon={MessageCircleQuestionIcon}
+				isError={isError}
+				isPending={false}
+				title="Question"
+			>
+				{questionContent}
+			</ToolCallRow>
+			{isSkipped && (
+				<div className="flex items-center gap-2 px-1 py-0.5 text-xs text-muted-foreground">
+					<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+						Question skipped
+					</span>
 				</div>
-			) : undefined}
-		</ToolCallRow>
+			)}
+			{isAnswered && (answerTexts.length > 0 || answerFallbackText) && (
+				<div className="flex flex-col items-end">
+					<div className="rounded-lg bg-secondary px-4 py-2.5 text-sm text-foreground">
+						{answerTexts.length > 0
+							? answerTexts.join("\n")
+							: answerFallbackText}
+					</div>
+				</div>
+			)}
+		</>
 	);
 }
