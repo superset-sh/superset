@@ -58,9 +58,9 @@ export function QuestionInputOverlay({
 	const handleSkip = () => handleSubmitAnswer("skip", "__skip__");
 
 	return (
-		<div className="overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]">
-			{/* Question */}
-			<div className="flex items-start gap-2 px-3 pt-3 pb-3">
+		<div className="flex max-h-[300px] flex-col overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]">
+			{/* Question — pinned header */}
+			<div className="flex shrink-0 items-start gap-2 px-3 pt-3 pb-3">
 				<p className="flex-1 text-sm leading-snug text-foreground">
 					{question.question}
 				</p>
@@ -74,11 +74,11 @@ export function QuestionInputOverlay({
 				</button>
 			</div>
 
-			{/* Options */}
+			{/* Options — scrollable */}
 			{options.length > 0 && (
 				<div
 					className={cn(
-						"px-2 transition-opacity duration-200",
+						"overflow-y-auto px-2 transition-opacity duration-200",
 						hasCustomText && !submitted && "opacity-25",
 					)}
 				>
@@ -120,10 +120,10 @@ export function QuestionInputOverlay({
 				</div>
 			)}
 
-			{/* Text input / skip */}
+			{/* Text input / skip — pinned footer */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-focus affordance */}
 			<form
-				className="mx-2 mb-2 mt-px flex cursor-text items-center gap-3 rounded-lg bg-black/20 px-2.5 py-2 ring-1 ring-inset ring-border/60"
+				className="mx-2 mb-2 mt-px shrink-0 flex cursor-text items-center gap-3 rounded-lg bg-black/20 px-2.5 py-2 ring-1 ring-inset ring-border/60"
 				onSubmit={(e) => {
 					e.preventDefault();
 					handleCustom();
