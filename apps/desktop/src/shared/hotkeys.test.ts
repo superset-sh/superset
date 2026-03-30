@@ -100,7 +100,9 @@ describe("CLOSE_WORKSPACE hotkey", () => {
 		expect(HOTKEYS.CLOSE_WORKSPACE).toBeDefined();
 		expect(HOTKEYS.CLOSE_WORKSPACE.label).toBe("Close Workspace");
 		expect(HOTKEYS.CLOSE_WORKSPACE.category).toBe("Workspace");
-		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe("meta+shift+backspace");
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe(
+			"meta+shift+backspace",
+		);
 	});
 
 	it("matches ⌘+Shift+Backspace keyboard event", () => {
