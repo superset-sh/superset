@@ -228,6 +228,7 @@ export function ChatPaneInterface({
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
+	const [answeredQuestionId, setAnsweredQuestionId] = useState<string | null>(null);
 	const [editingUserMessageId, setEditingUserMessageId] = useState<
 		string | null
 	>(null);
@@ -473,6 +474,13 @@ export function ChatPaneInterface({
 		previousSessionIdRef.current = sessionId;
 		clearDraftInStore();
 	}, [clearDraftInStore, sessionId]);
+
+	// Reset optimistic hide when a new question arrives
+	useEffect(() => {
+		if (pendingQuestion && pendingQuestion.questionId !== answeredQuestionId) {
+			setAnsweredQuestionId(null);
+		}
+	}, [pendingQuestion, answeredQuestionId]);
 
 	useEffect(() => {
 		if (
@@ -974,6 +982,7 @@ export function ChatPaneInterface({
 			const trimmedAnswer = answer.trim();
 			if (!trimmedQuestionId || !trimmedAnswer) return;
 			clearRuntimeError();
+			setAnsweredQuestionId(trimmedQuestionId);
 			setQuestionResponsePending(true);
 			try {
 				await commands.respondToQuestion({
@@ -1026,6 +1035,8 @@ export function ChatPaneInterface({
 					onCancelEditUserMessage={() => setEditingUserMessageId(null)}
 					onSubmitEditedUserMessage={handleSubmitEditedUserMessage}
 					onRestartUserMessage={handleResendUserMessage}
+					pendingQuestion={pendingQuestion}
+					answeredQuestionId={answeredQuestionId}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatUploadFooter
@@ -1050,7 +1061,11 @@ export function ChatPaneInterface({
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
-					pendingQuestion={pendingQuestion}
+					pendingQuestion={
+						pendingQuestion?.questionId === answeredQuestionId
+							? null
+							: pendingQuestion
+					}
 					isQuestionSubmitting={questionResponsePending}
 					onQuestionRespond={handleQuestionResponse}
 					onQuestionCancel={() => void stopActiveResponse()}

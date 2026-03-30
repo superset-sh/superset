@@ -30,6 +30,8 @@ export type ChatPendingApproval = UseChatDisplayReturn["pendingApproval"];
 export type ChatPendingPlanApproval =
 	UseChatDisplayReturn["pendingPlanApproval"];
 
+export type ChatPendingQuestion = UseChatDisplayReturn["pendingQuestion"];
+
 export interface InterruptedMessagePreview {
 	id: string;
 	sourceMessageId: string;
@@ -78,6 +80,8 @@ export interface ChatMessageListProps {
 		action: "approved" | "rejected";
 		feedback?: string;
 	}) => Promise<void>;
+	pendingQuestion: ChatPendingQuestion;
+	answeredQuestionId: string | null;
 	editingUserMessageId: string | null;
 	isEditSubmitting: boolean;
 	onStartEditUserMessage: (messageId: string) => void;

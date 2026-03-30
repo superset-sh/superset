@@ -181,6 +181,8 @@ function createBaseProps(
 		pendingPlanApproval: null,
 		isPlanSubmitting: false,
 		onPlanRespond: async () => {},
+		pendingQuestion: null,
+		answeredQuestionId: null,
 		editingUserMessageId: null,
 		isEditSubmitting: false,
 		onStartEditUserMessage: () => {},
