@@ -85,16 +85,19 @@ export function MessageList({
 			const toolPart = part as ToolPart;
 			const toolName = normalizeToolName(getToolName(toolPart));
 			if (toolName !== "ask_user_question") return false;
+			// Pending (awaiting response when run was stopped)
+			if (
+				toolPart.state !== "output-available" &&
+				toolPart.state !== "output-error"
+			)
+				return true;
 			if (toolPart.state === "output-error") return true;
-			if (toolPart.state === "output-available") {
-				const out = toolPart.output;
-				return (
-					typeof out === "object" &&
-					out !== null &&
-					(out as Record<string, unknown>).isError === true
-				);
-			}
-			return false;
+			const out = toolPart.output;
+			return (
+				typeof out === "object" &&
+				out !== null &&
+				(out as Record<string, unknown>).isError === true
+			);
 		}) ?? false;
 
 	return (
@@ -260,18 +263,17 @@ export function MessageList({
 								parts={interruptedMessage.parts}
 								isLastAssistant={false}
 								isStreaming={false}
+								isInterrupted
 								workspaceId={workspaceId}
 								workspaceCwd={workspaceCwd}
 								onAnswer={onAnswer}
 							/>
-							{!interruptedByAbortedQuestion && (
-								<div className="flex items-center gap-2 text-xs text-muted-foreground">
-									<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
-										Interrupted
-									</span>
-									<span>Response stopped</span>
-								</div>
-							)}
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+									Interrupted
+								</span>
+								<span>Response stopped</span>
+							</div>
 						</MessageContent>
 					</Message>
 				)}

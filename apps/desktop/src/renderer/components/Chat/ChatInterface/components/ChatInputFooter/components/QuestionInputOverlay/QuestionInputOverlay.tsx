@@ -1,4 +1,9 @@
 import { cn } from "@superset/ui/lib/utils";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@superset/ui/tooltip";
 import { ArrowUpIcon, Loader2Icon, PencilIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -64,14 +69,19 @@ export function QuestionInputOverlay({
 				<p className="flex-1 text-sm leading-snug text-foreground">
 					{question.question}
 				</p>
-				<button
-					type="button"
-					className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted/40 hover:text-muted-foreground"
-					onClick={onCancel}
-					aria-label="Stop"
-				>
-					<XIcon className="h-3.5 w-3.5" />
-				</button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted/40 hover:text-muted-foreground"
+							onClick={onCancel}
+							aria-label="Cancel"
+						>
+							<XIcon className="h-3.5 w-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>Cancel</TooltipContent>
+				</Tooltip>
 			</div>
 
 			{/* Options — scrollable */}

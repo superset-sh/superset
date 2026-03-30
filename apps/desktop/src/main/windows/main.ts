@@ -188,6 +188,7 @@ export async function MainWindow() {
 		},
 	);
 
+
 	// Forward low-volume terminal lifecycle events to the renderer via the existing
 	// notifications subscription. This is used only for correctness (e.g. clearing
 	// stuck agent lifecycle statuses when terminal panes aren't mounted).

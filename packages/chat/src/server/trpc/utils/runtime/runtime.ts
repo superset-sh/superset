@@ -175,7 +175,7 @@ export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 
 export interface LifecycleEvent {
 	sessionId: string;
-	eventType: "Start" | "Stop" | "PermissionRequest";
+	eventType: "Start" | "Stop" | "PermissionRequest" | "PendingQuestion";
 }
 
 /**
@@ -200,6 +200,13 @@ export function subscribeToSessionEvents(
 		}
 		if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
 			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
+			return;
+		}
+		if (isHarnessAskQuestionEvent(event)) {
+			onLifecycleEvent?.({
+				sessionId: runtime.sessionId,
+				eventType: "PendingQuestion",
+			});
 			return;
 		}
 		if (isHarnessSandboxAccessRequestEvent(event)) {
@@ -282,6 +289,16 @@ function isHarnessSandboxAccessRequestEvent(event: unknown): event is {
 		typeof event.questionId === "string" &&
 		typeof event.path === "string" &&
 		typeof event.reason === "string"
+	);
+}
+
+function isHarnessAskQuestionEvent(
+	event: unknown,
+): event is { type: "ask_question"; questionId: string } {
+	return (
+		isObjectRecord(event) &&
+		event.type === "ask_question" &&
+		typeof event.questionId === "string"
 	);
 }
 

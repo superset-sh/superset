@@ -64,7 +64,10 @@ export function useAgentHookListener() {
 
 				if (eventType === "Start") {
 					state.setPaneStatus(paneId, "working");
-				} else if (eventType === "PermissionRequest") {
+				} else if (
+					eventType === "PermissionRequest" ||
+					eventType === "PendingQuestion"
+				) {
 					state.setPaneStatus(paneId, "permission");
 				} else if (eventType === "Stop") {
 					const activeTabId = state.activeTabIds[workspaceId];

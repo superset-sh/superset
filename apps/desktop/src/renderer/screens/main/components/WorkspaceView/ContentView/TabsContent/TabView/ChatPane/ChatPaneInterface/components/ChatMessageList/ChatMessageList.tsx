@@ -30,6 +30,7 @@ import {
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
+import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 
 function ScrollAnchor({
 	questionId,
@@ -166,6 +167,22 @@ export function ChatMessageList({
 		renderedMessages,
 	]);
 
+	const interruptedByAbortedQuestion = useMemo(() => {
+		if (!interruptedPreview) return false;
+		const content = interruptedPreview.content;
+		const answeredIds = new Set(
+			content
+				.filter((p) => p.type === "tool_result")
+				.map((p) => p.id),
+		);
+		return content.some(
+			(p) =>
+				p.type === "tool_call" &&
+				normalizeToolName(p.name) === "ask_user_question" &&
+				!answeredIds.has(p.id),
+		);
+	}, [interruptedPreview]);
+
 	const shouldShowStandalonePendingPlan = Boolean(
 		pendingPlanApproval && !pendingPlanToolCallId,
 	);
@@ -255,6 +272,7 @@ export function ChatMessageList({
 							organizationId={organizationId}
 							workspaceCwd={workspaceCwd}
 							isStreaming={false}
+							isInterrupted
 							previewToolParts={[]}
 							{...inlineToolStateProps}
 							footer={<InterruptedFooter />}

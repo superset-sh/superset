@@ -51,6 +51,7 @@ interface ToolCallBlockProps {
 	sessionId?: string | null;
 	organizationId?: string | null;
 	isStreaming?: boolean;
+	isInterrupted?: boolean;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -70,6 +71,7 @@ export function ToolCallBlock({
 	sessionId,
 	organizationId,
 	isStreaming,
+	isInterrupted,
 	onAnswer,
 }: ToolCallBlockProps) {
 	const args = getArgs(part);
@@ -496,6 +498,7 @@ export function ToolCallBlock({
 				outputObject={outputObject}
 				nestedResultObject={nestedResultObject}
 				isStreaming={isStreaming}
+				isInterrupted={isInterrupted}
 				onAnswer={onAnswer}
 			/>
 		);

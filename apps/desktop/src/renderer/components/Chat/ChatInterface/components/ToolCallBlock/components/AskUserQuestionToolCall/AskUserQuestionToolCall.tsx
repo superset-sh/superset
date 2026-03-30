@@ -22,6 +22,7 @@ interface AskUserQuestionToolCallProps {
 	outputObject?: Record<string, unknown>;
 	nestedResultObject?: Record<string, unknown>;
 	isStreaming?: boolean;
+	isInterrupted?: boolean;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -164,6 +165,7 @@ export function AskUserQuestionToolCall({
 	result,
 	outputObject,
 	nestedResultObject,
+	isInterrupted,
 }: AskUserQuestionToolCallProps) {
 	const questions = useMemo(
 		() =>
@@ -203,17 +205,26 @@ export function AskUserQuestionToolCall({
 		return undefined;
 	}, [isResultError, result.text, result.answer, result.content]);
 
+	const isCancelledByStop =
+		!!isInterrupted &&
+		part.state !== "output-available" &&
+		part.state !== "output-error";
 	const isPending =
-		part.state !== "output-available" && part.state !== "output-error";
+		!isCancelledByStop &&
+		part.state !== "output-available" &&
+		part.state !== "output-error";
 	const isCancelledByError = part.state === "output-error" || isResultError;
 	const hasAnswers =
 		Object.keys(answers).length > 0 || answerFallbackText !== undefined;
 
 	// No args available (tool_result-only path with input: {}) — nothing useful to show
-	if (questions.length === 0 && !isCancelledByError) return null;
+	if (questions.length === 0 && !isCancelledByError && !isCancelledByStop)
+		return null;
 
-	const isAnswered = !isPending && !isCancelledByError && hasAnswers;
-	const isCancelled = !isPending && !isCancelledByError && !hasAnswers;
+	const isAnswered =
+		!isPending && !isCancelledByError && !isCancelledByStop && hasAnswers;
+	const isCancelled =
+		!isPending && !isCancelledByError && !isCancelledByStop && !hasAnswers;
 
 	const answeredQAs = useMemo(
 		() =>
@@ -247,7 +258,7 @@ export function AskUserQuestionToolCall({
 					<QuestionStatusDescription status="awaiting" />
 				) : isAnswered ? (
 					<QuestionStatusDescription status="answered" />
-				) : (isCancelled || isCancelledByError) ? (
+				) : (isCancelled || isCancelledByError || isCancelledByStop) ? (
 					<QuestionStatusDescription status="cancelled" />
 				) : undefined
 			}
@@ -259,7 +270,7 @@ export function AskUserQuestionToolCall({
 							<div className="text-sm text-foreground">{qa.answer}</div>
 						</div>
 					))
-				: isCancelledByError && questions.length > 0
+				: (isCancelledByError || isCancelledByStop) && questions.length > 0
 				? questions.map((q) => (
 						<div key={q.question} className="space-y-1 px-3 py-2">
 							<div className="text-xs text-muted-foreground">{q.question}</div>
