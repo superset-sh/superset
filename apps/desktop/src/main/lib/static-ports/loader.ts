@@ -73,13 +73,20 @@ function validatePortEntry(
 				error: `ports[${index}].host must be a string`,
 			};
 		}
-		if (host.trim() === "") {
+		const trimmedHost = host.trim();
+		if (trimmedHost === "") {
 			return {
 				valid: false,
 				error: `ports[${index}].host cannot be empty`,
 			};
 		}
-		return { valid: true, port, label: label.trim(), host: host.trim() };
+		if (/[/:?#@]/.test(trimmedHost)) {
+			return {
+				valid: false,
+				error: `ports[${index}].host contains invalid characters`,
+			};
+		}
+		return { valid: true, port, label: label.trim(), host: trimmedHost };
 	}
 
 	return { valid: true, port, label: label.trim() };

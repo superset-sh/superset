@@ -364,6 +364,54 @@ describe("loadStaticPorts", () => {
 			host: "api.localhost",
 		});
 	});
+
+	test("returns error when host contains URL path", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "app.localhost/path" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains query string", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "app.localhost?x=1" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains userinfo", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "user@host" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains colon", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "localhost:8080" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
 });
 
 describe("hasStaticPortsConfig", () => {

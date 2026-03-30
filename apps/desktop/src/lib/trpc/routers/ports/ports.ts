@@ -48,8 +48,15 @@ export const createPortsRouter = () => {
 				}
 
 				const staticPorts = staticCache.get(port.workspaceId);
-				const matches =
-					staticPorts?.filter((sp) => sp.port === port.port) ?? [];
+				const matchesByHost = new Map<string, StaticPortInfo>();
+				for (const sp of staticPorts ?? []) {
+					if (sp.port !== port.port) continue;
+					const key = (sp.host ?? "localhost").toLowerCase();
+					if (!matchesByHost.has(key)) {
+						matchesByHost.set(key, sp);
+					}
+				}
+				const matches = [...matchesByHost.values()];
 
 				if (matches.length === 0) {
 					enriched.push({ ...port, label: null, host: null });
