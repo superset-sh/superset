@@ -1113,10 +1113,17 @@ export class Session {
 		this.clientSocketsWaitingForDrain.add(socket);
 		this.updateSubprocessStdoutFlow();
 
-		socket.once("drain", () => {
+		const clearBackpressure = () => {
+			socket.off("drain", clearBackpressure);
+			socket.off("close", clearBackpressure);
+			socket.off("error", clearBackpressure);
 			this.clientSocketsWaitingForDrain.delete(socket);
 			this.updateSubprocessStdoutFlow();
-		});
+		};
+
+		socket.once("drain", clearBackpressure);
+		socket.once("close", clearBackpressure);
+		socket.once("error", clearBackpressure);
 	}
 
 	private maybePauseSubprocessStdoutForEmulatorBackpressure(): void {

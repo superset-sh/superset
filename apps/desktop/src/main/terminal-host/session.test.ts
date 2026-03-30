@@ -390,6 +390,54 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 
+	it("resumes subprocess stdout when a backpressured client disconnects before drain", () => {
+		for (const eventName of ["close", "error"] as const) {
+			fakeChildProcess = new FakeChildProcess();
+			spawnCalls = [];
+
+			const session = new Session({
+				sessionId: `session-${eventName}-backpressure`,
+				workspaceId: "workspace-1",
+				paneId: "pane-1",
+				tabId: "tab-1",
+				cols: 80,
+				rows: 24,
+				cwd: "/tmp",
+				shell: "/bin/zsh",
+				spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+			});
+
+			spawnAndReadySession(session);
+
+			const socket = new EventEmitter() as import("node:net").Socket;
+			const internals = session as unknown as {
+				enqueueEmulatorWrite: (data: string) => void;
+				emulatorWriteQueuedBytes: number;
+				handleClientBackpressure: (socket: import("node:net").Socket) => void;
+				maybeResumeSubprocessStdoutForEmulatorBackpressure: () => void;
+			};
+
+			internals.enqueueEmulatorWrite("x".repeat(1_100_000));
+			expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+
+			internals.handleClientBackpressure(socket);
+			internals.emulatorWriteQueuedBytes = 0;
+			internals.maybeResumeSubprocessStdoutForEmulatorBackpressure();
+			expect(fakeChildProcess.stdout.resumeCalls).toBe(0);
+
+			if (eventName === "error") {
+				socket.emit("error", new Error("socket closed"));
+			} else {
+				socket.emit("close");
+			}
+
+			socket.emit("drain");
+			socket.emit("close");
+
+			expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
+		}
+	});
+
 	it("resumes subprocess stdout when the last backpressured client throws during broadcast", () => {
 		const session = new Session({
 			sessionId: "session-dead-socket-backpressure",
