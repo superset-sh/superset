@@ -53,7 +53,7 @@ Example questions:
 
 When authoring an executable specification (ExecPlan), follow this guide to the letter. Be thorough in reading (and re-reading) source material to produce an accurate specification. When creating a spec, start from the skeleton and flesh it out as you do your research.
 
-When implementing an executable specification (ExecPlan), do not prompt the user for "next steps"; simply proceed to the next milestone. Keep all sections up to date, add or split entries in the list at every stopping point to affirmatively state the progress made and next steps. Resolve ambiguities autonomously, and commit frequently.
+When implementing an executable specification (ExecPlan), do not prompt the user for "next steps" after each milestone — once the plan is approved, proceed to the next milestone autonomously. However, do not begin implementation until the Approval Gate (step 5) is complete and all Open Questions are resolved. Keep all sections up to date, add or split entries in the list at every stopping point to affirmatively state the progress made and next steps. Commit frequently.
 
 When discussing an executable specification (ExecPlan), record decisions in a log in the spec for posterity; it should be unambiguously clear why any change to the specification was made. ExecPlans are living documents, and it should always be possible to restart from _only_ the ExecPlan and no other work.
 
@@ -74,9 +74,7 @@ NON-NEGOTIABLE REQUIREMENTS:
 * Every ExecPlan is a living document. Contributors are required to revise it as progress is made, as discoveries occur, and as design decisions are finalized. Each revision must remain fully self-contained.
 * Every ExecPlan must enable a complete novice to implement the feature end-to-end without prior knowledge of this repo.
 * Every ExecPlan must produce a demonstrably working behavior, not merely code changes to "meet a definition".
-* Every ExecPlan must define every term of art in plain language or do not use it.
-* Every ExecPlan must reference AGENTS.md conventions for this repository.
-* Every ExecPlan must follow the design standards and coding conventions documented in AGENTS.md.
+* Every ExecPlan must define every term of art in plain language (or not use it), reference AGENTS.md conventions, and follow the design standards and coding conventions documented in AGENTS.md.
 
 Purpose and intent come first. Begin by explaining, in a few sentences, why the work matters from a user's perspective: what someone can do after this change that they could not do before, and how to see it working. Then guide the reader through the exact steps to achieve that outcome, including what to edit, what to run, and what they should observe.
 
@@ -103,11 +101,11 @@ The agent executing your plan can list files, read files, search, run the projec
     bun run lint:fix           # Fix auto-fixable lint issues
     bun run typecheck          # Type check all packages
 
-    # Database (reference only — never run without explicit user approval)
+    # Database (REFERENCE ONLY — see safety note below)
     bun run db:push            # Apply schema changes
     bun run db:migrate         # Run migrations
 
-> **⚠ DB Safety**: These commands mutate the database. Never execute them without explicit user confirmation. Always follow the migration constraints in AGENTS.md (spin up a Neon branch, modify schema files only, never edit generated migration files).
+> **⚠ DB Safety**: The commands above are **reference only** and must **never** be executed without explicit user approval. Before running any DB mutation: (1) get explicit confirmation from the user, (2) follow the migration constraints in AGENTS.md (spin up a Neon branch, modify schema files only, never edit generated migration files), and (3) link to the relevant AGENTS.md section in your plan.
 
 ### Desktop App Rules
 For Electron/desktop work, remember:

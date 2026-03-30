@@ -17,7 +17,7 @@ Run the file-mutating fixers **sequentially** (they both write to the working tr
 
 ### Parallel (read-only)
 3. `bun run typecheck` — TypeScript type checking across all packages
-4. `bun test` — Run all tests
+4. `bun run test` — Run all tests
 
 ## Output
 
