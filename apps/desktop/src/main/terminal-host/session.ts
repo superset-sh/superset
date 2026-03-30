@@ -1089,13 +1089,13 @@ export class Session {
 				if (!canWrite) {
 					this.handleClientBackpressure(socket);
 				}
-				} catch {
-					this.attachedClients.delete(socket);
-					this.clientSocketsWaitingForDrain.delete(socket);
-					this.updateSubprocessStdoutFlow();
-				}
+			} catch {
+				this.attachedClients.delete(socket);
+				this.clientSocketsWaitingForDrain.delete(socket);
+				this.updateSubprocessStdoutFlow();
 			}
 		}
+	}
 
 	private handleClientBackpressure(socket: Socket): void {
 		if (this.clientSocketsWaitingForDrain.has(socket)) return;
