@@ -35,6 +35,7 @@ yarn.lock
 # Env variables
 .env
 .env.*
+!.bun-version
 
 mise.toml
 

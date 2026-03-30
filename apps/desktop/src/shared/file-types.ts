@@ -27,6 +27,19 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 	ico: "image/x-icon",
 };
 
+/** Extensions for supported image MIME types */
+const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
+	"image/png": "png",
+	"image/jpeg": "jpg",
+	"image/jpg": "jpg",
+	"image/gif": "gif",
+	"image/webp": "webp",
+	"image/svg+xml": "svg",
+	"image/bmp": "bmp",
+	"image/x-icon": "ico",
+	"image/vnd.microsoft.icon": "ico",
+};
+
 /** Markdown extensions */
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
@@ -51,6 +64,38 @@ export function isImageFile(filePath: string): boolean {
 export function getImageMimeType(filePath: string): string | null {
 	const ext = getExtension(filePath);
 	return IMAGE_MIME_TYPES[ext] ?? null;
+}
+
+/**
+ * Gets the preferred file extension for an image MIME type.
+ * Returns null if not a supported image type.
+ */
+export function getImageExtensionFromMimeType(mimeType: string): string | null {
+	return IMAGE_MIME_TYPE_EXTENSIONS[mimeType.toLowerCase()] ?? null;
+}
+
+/**
+ * Parses a base64 data URL and returns its MIME type and base64 payload.
+ */
+export function parseBase64DataUrl(dataUrl: string): {
+	base64Data: string;
+	mimeType: string;
+} {
+	const separatorIndex = dataUrl.indexOf(",");
+	if (separatorIndex === -1) {
+		throw new Error("Invalid data URL format");
+	}
+
+	const header = dataUrl.slice(0, separatorIndex);
+	const base64Data = dataUrl.slice(separatorIndex + 1);
+	const mimeMatch = header.match(/^data:([^;,]+)(?:;[^,]*)*;base64$/i);
+	const mimeType = mimeMatch?.[1]?.toLowerCase();
+
+	if (!mimeType) {
+		throw new Error("Invalid data URL format");
+	}
+
+	return { base64Data, mimeType };
 }
 
 /**

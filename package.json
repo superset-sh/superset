@@ -8,7 +8,7 @@
 		"@biomejs/biome": "2.4.2",
 		"dotenv-cli": "^11.0.0",
 		"sherif": "^1.10.0",
-		"turbo": "^2.8.7"
+		"turbo": "2.8.21"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
