@@ -1,0 +1,154 @@
+import { cn } from "@superset/ui/lib/utils";
+import { ArrowUpIcon, PencilIcon, XIcon } from "lucide-react";
+import { useRef, useState } from "react";
+
+type QuestionOption = { label: string; description?: string };
+
+interface QuestionInputOverlayProps {
+	question: {
+		questionId: string;
+		question: string;
+		options?: QuestionOption[];
+	};
+	isSubmitting: boolean;
+	onRespond: (questionId: string, answer: string) => Promise<void>;
+	onCancel: () => void;
+}
+
+export function QuestionInputOverlay({
+	question,
+	isSubmitting,
+	onRespond,
+	onCancel,
+}: QuestionInputOverlayProps) {
+	const [customText, setCustomText] = useState("");
+	const [activeLabel, setActiveLabel] = useState<string | null>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const options = question.options ?? [];
+
+	const isDisabled = isSubmitting || Boolean(activeLabel);
+	const hasCustomText = customText.trim().length > 0;
+
+	const handleOption = async (label: string) => {
+		if (isDisabled) return;
+		setActiveLabel(label);
+		try {
+			await onRespond(question.questionId, label);
+		} catch {
+			setActiveLabel(null);
+		}
+	};
+
+	const handleCustom = async () => {
+		const trimmed = customText.trim();
+		if (!trimmed || isDisabled) return;
+		setActiveLabel(trimmed);
+		try {
+			await onRespond(question.questionId, trimmed);
+		} catch {
+			setActiveLabel(null);
+			setCustomText("");
+		}
+	};
+
+	return (
+		<div className="overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]">
+			{/* Question */}
+			<div className="flex items-start gap-2 px-3 pt-3 pb-3">
+				<p className="flex-1 text-sm leading-snug text-foreground">
+					{question.question}
+				</p>
+				<button
+					type="button"
+					className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted/40 hover:text-muted-foreground"
+					onClick={onCancel}
+					aria-label="Stop"
+				>
+					<XIcon className="h-3.5 w-3.5" />
+				</button>
+			</div>
+
+			{/* Options */}
+			{options.length > 0 && (
+				<div
+					className={cn(
+						"px-2 transition-opacity duration-200",
+						hasCustomText && "opacity-25",
+					)}
+				>
+					{options.map((option, i) => (
+						<div key={option.label} className="border-t border-border/60">
+							<button
+								type="button"
+								className={cn(
+									"group flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
+									activeLabel === option.label
+										? "bg-foreground/5"
+										: "hover:bg-muted/40",
+									isDisabled &&
+										activeLabel !== option.label &&
+										"cursor-not-allowed opacity-40",
+								)}
+								disabled={isDisabled}
+								onClick={() => void handleOption(option.label)}
+							>
+								<span className="flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-muted/60 font-mono text-xs leading-none text-muted-foreground/70">
+									{i + 1}
+								</span>
+								<span className="text-sm text-muted-foreground transition-colors group-hover:text-foreground">{option.label}</span>
+							</button>
+						</div>
+					))}
+				</div>
+			)}
+
+			{/* Something else */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-focus affordance */}
+			<form
+				className="mx-2 mb-2 mt-px flex cursor-text items-center gap-3 rounded-lg bg-black/20 px-2.5 py-2 ring-1 ring-inset ring-border/60"
+				onSubmit={(e) => {
+					e.preventDefault();
+					void handleCustom();
+				}}
+				onClick={() => inputRef.current?.focus()}
+			>
+				<span className="flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-muted/60">
+					<PencilIcon className="size-3.5 text-muted-foreground/70" />
+				</span>
+				<input
+					ref={inputRef}
+					value={customText}
+					onChange={(e) => setCustomText(e.target.value)}
+					placeholder="Something else"
+					disabled={isDisabled}
+					className="flex-1 cursor-text bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed"
+				/>
+				{!isDisabled && (
+					<div className="relative shrink-0">
+						<button
+							type="button"
+							className={cn(
+								"rounded-sm border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-all duration-150 hover:border-foreground/30 hover:text-foreground",
+								hasCustomText ? "pointer-events-none opacity-0" : "opacity-100",
+							)}
+							onClick={(e) => { e.stopPropagation(); onCancel(); }}
+						>
+							Skip
+						</button>
+						<button
+							type="submit"
+							className={cn(
+								"absolute right-0 top-1/2 -translate-y-1/2 size-[23px] rounded-full bg-foreground p-[5px] transition-all duration-150 hover:bg-foreground/80",
+								hasCustomText ? "opacity-100" : "pointer-events-none opacity-0",
+							)}
+							aria-label="Submit"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<ArrowUpIcon className="size-3.5 text-background" />
+						</button>
+					</div>
+				)}
+			</form>
+		</div>
+	);
+}

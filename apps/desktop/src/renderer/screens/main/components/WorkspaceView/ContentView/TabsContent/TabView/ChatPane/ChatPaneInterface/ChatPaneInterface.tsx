@@ -1020,9 +1020,6 @@ export function ChatPaneInterface({
 					pendingPlanApproval={pendingPlanApproval}
 					isPlanSubmitting={planResponsePending}
 					onPlanRespond={handlePlanResponse}
-					pendingQuestion={pendingQuestion}
-					isQuestionSubmitting={questionResponsePending}
-					onQuestionRespond={handleQuestionResponse}
 					editingUserMessageId={editingUserMessageId}
 					isEditSubmitting={isAwaitingAssistant}
 					onStartEditUserMessage={setEditingUserMessageId}
@@ -1053,6 +1050,10 @@ export function ChatPaneInterface({
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
+					pendingQuestion={pendingQuestion}
+					isQuestionSubmitting={questionResponsePending}
+					onQuestionRespond={handleQuestionResponse}
+					onQuestionCancel={() => void stopActiveResponse()}
 				/>
 			</div>
 		</PromptInputProvider>

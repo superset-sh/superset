@@ -17,7 +17,6 @@ import { InterruptedFooter } from "./components/InterruptedFooter";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
-import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
@@ -51,9 +50,6 @@ export function ChatMessageList({
 	pendingPlanApproval,
 	isPlanSubmitting,
 	onPlanRespond,
-	pendingQuestion,
-	isQuestionSubmitting,
-	onQuestionRespond,
 	editingUserMessageId,
 	isEditSubmitting,
 	onStartEditUserMessage,
@@ -136,8 +132,7 @@ export function ChatMessageList({
 	const canShowPendingAssistantUi =
 		isAwaitingAssistant &&
 		!currentMessage &&
-		!pendingApproval &&
-		!pendingQuestion;
+		!pendingApproval;
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&
@@ -262,13 +257,6 @@ export function ChatMessageList({
 							planApproval={pendingPlanApproval}
 							isSubmitting={isPlanSubmitting}
 							onRespond={onPlanRespond}
-						/>
-					)}
-					{pendingQuestion && (
-						<PendingQuestionMessage
-							question={pendingQuestion}
-							isSubmitting={isQuestionSubmitting}
-							onRespond={onQuestionRespond}
 						/>
 					)}
 				</div>

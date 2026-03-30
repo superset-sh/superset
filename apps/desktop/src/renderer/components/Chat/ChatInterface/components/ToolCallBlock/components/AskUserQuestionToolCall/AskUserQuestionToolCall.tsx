@@ -1,9 +1,7 @@
-import { MessageResponse } from "@superset/ui/ai-elements/message";
-import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
+import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { MessageCircleQuestionIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { SupersetToolCall } from "../SupersetToolCall";
 
 interface QuestionToolOption {
 	label: string;
@@ -61,7 +59,6 @@ function toQuestionToolQuestions(value: unknown): QuestionToolQuestion[] {
 								typeof optionRecord.description === "string"
 									? optionRecord.description.trim()
 									: "";
-
 							return description ? { label, description } : { label };
 						})
 						.filter((option): option is QuestionToolOption => option !== null)
@@ -70,9 +67,7 @@ function toQuestionToolQuestions(value: unknown): QuestionToolQuestion[] {
 			const header =
 				typeof record.header === "string" ? record.header.trim() : "";
 			const multiSelect =
-				typeof record.multiSelect === "boolean"
-					? record.multiSelect
-					: undefined;
+				typeof record.multiSelect === "boolean" ? record.multiSelect : undefined;
 
 			return {
 				question,
@@ -119,151 +114,64 @@ function findAnswerForQuestion({
 	return undefined;
 }
 
-function buildQuestionMarkdown({
-	questions,
-	answers,
-}: {
-	questions: QuestionToolQuestion[];
-	answers: Record<string, string>;
-}): string {
-	if (questions.length === 0) return "";
-
-	const lines: string[] = ["### Agent question"];
-	for (const [index, question] of questions.entries()) {
-		lines.push("");
-		if (questions.length > 1) {
-			lines.push(`#### ${index + 1}`);
-		}
-		if (question.header) {
-			lines.push(`_${question.header}_`);
-		}
-		lines.push(question.question);
-
-		const answer = findAnswerForQuestion({
-			answers,
-			questionText: question.question,
-		});
-		if (answer) {
-			lines.push("");
-			lines.push(`**Answer:** ${answer}`);
-		}
-	}
-
-	return lines.join("\n").trim();
-}
-
 export function AskUserQuestionToolCall({
 	part,
 	args,
 	result,
 	outputObject,
 	nestedResultObject,
-	onAnswer,
 }: AskUserQuestionToolCallProps) {
-	const [optimisticAnswers, setOptimisticAnswers] = useState<Record<
-		string,
-		string
-	> | null>(null);
-	const [isSubmittingLocally, setIsSubmittingLocally] = useState(false);
+	const questions = useMemo(
+		() => toQuestionToolQuestions(args.questions),
+		[args.questions],
+	);
 
-	useEffect(() => {
-		if (part.state === "output-available" || part.state === "output-error") {
-			setIsSubmittingLocally(false);
-		}
-	}, [part.state]);
+	const answers = useMemo(
+		() =>
+			toQuestionToolAnswers(
+				toRecord(result.answers) ??
+					toRecord(outputObject?.answers) ??
+					toRecord(nestedResultObject?.answers),
+			),
+		[nestedResultObject?.answers, outputObject?.answers, result.answers],
+	);
 
-	const questions = useMemo(() => {
-		return toQuestionToolQuestions(args.questions);
-	}, [args.questions]);
+	const isPending =
+		part.state !== "output-available" && part.state !== "output-error";
+	const isError = part.state === "output-error";
 
-	const serverAnswers = useMemo(() => {
-		return toQuestionToolAnswers(
-			toRecord(result.answers) ??
-				toRecord(outputObject?.answers) ??
-				toRecord(nestedResultObject?.answers),
-		);
-	}, [nestedResultObject?.answers, outputObject?.answers, result.answers]);
-
-	const answers = optimisticAnswers ?? serverAnswers;
-	const markdown = buildQuestionMarkdown({ questions, answers });
-	const hasOutput =
-		part.state === "output-available" || part.state === "output-error";
-	const hasQuestions = questions.length > 0;
-	const canRespond = Boolean(onAnswer) && !hasOutput && !isSubmittingLocally;
-
-	const messageBlock = markdown ? (
-		<div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-			<MessageResponse
-				animated={false}
-				isAnimating={false}
-				mermaid={{
-					config: {
-						theme: "default",
-					},
-				}}
-			>
-				{markdown}
-			</MessageResponse>
-		</div>
-	) : null;
-
-	const handleSubmit = (submittedAnswers: Record<string, string>): void => {
-		if (!onAnswer || isSubmittingLocally) return;
-		setOptimisticAnswers(submittedAnswers);
-		setIsSubmittingLocally(true);
-
-		void Promise.resolve(onAnswer(part.toolCallId, submittedAnswers)).catch(
-			() => {
-				setOptimisticAnswers(null);
-				setIsSubmittingLocally(false);
-			},
-		);
-	};
-
-	if (!hasQuestions) {
-		return (
-			<SupersetToolCall
-				part={part}
-				toolName="Question"
-				icon={MessageCircleQuestionIcon}
-			/>
-		);
-	}
-
-	if (hasOutput || !onAnswer || optimisticAnswers) {
-		return (
-			<div className="space-y-2">
-				{messageBlock}
-				<SupersetToolCall
-					part={part}
-					toolName="Question"
-					icon={MessageCircleQuestionIcon}
-				/>
-			</div>
-		);
-	}
-
-	if (!canRespond) {
-		return (
-			<div className="space-y-2">
-				{messageBlock}
-				<SupersetToolCall
-					part={part}
-					toolName="Question"
-					icon={MessageCircleQuestionIcon}
-				/>
-			</div>
-		);
-	}
+	const description =
+		questions.length > 1
+			? `${questions.length} questions`
+			: (questions[0]?.question ?? undefined);
 
 	return (
-		<div className="space-y-2">
-			{messageBlock}
-			<UserQuestionTool
-				questions={questions}
-				onAnswer={handleSubmit}
-				onSkip={() => handleSubmit({})}
-			/>
-		</div>
+		<ToolCallRow
+			description={description}
+			icon={MessageCircleQuestionIcon}
+			isError={isError}
+			isPending={isPending}
+			title="Question"
+		>
+			{questions.length > 0 ? (
+				<div className="space-y-2.5 py-1.5 pl-2">
+					{questions.map((q, i) => {
+						const answer = findAnswerForQuestion({
+							answers,
+							questionText: q.question,
+						});
+						return (
+							// biome-ignore lint/suspicious/noArrayIndexKey: questions don't have unique keys
+							<div key={i} className="space-y-0.5">
+								<div className="text-xs text-muted-foreground">{q.question}</div>
+								{answer && (
+									<div className="text-xs text-foreground">{answer}</div>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 }
