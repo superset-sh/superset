@@ -620,6 +620,42 @@ function WorkspacePage() {
 		[getNextWorkspace.data, navigate],
 	);
 
+	// Navigate to next unread workspace (⌘⌥N)
+	const getNextUnreadWorkspace =
+		electronTrpc.workspaces.getNextUnreadWorkspace.useQuery(
+			{ id: workspaceId },
+			{ enabled: !!workspaceId },
+		);
+	useAppHotkey(
+		"NEXT_UNREAD_WORKSPACE",
+		() => {
+			const nextId = getNextUnreadWorkspace.data;
+			if (nextId) {
+				navigateToWorkspace(nextId, navigate);
+			}
+		},
+		undefined,
+		[getNextUnreadWorkspace.data, navigate],
+	);
+
+	// Navigate to previous unread workspace (⌘⌥P)
+	const getPrevUnreadWorkspace =
+		electronTrpc.workspaces.getPrevUnreadWorkspace.useQuery(
+			{ id: workspaceId },
+			{ enabled: !!workspaceId },
+		);
+	useAppHotkey(
+		"PREV_UNREAD_WORKSPACE",
+		() => {
+			const prevId = getPrevUnreadWorkspace.data;
+			if (prevId) {
+				navigateToWorkspace(prevId, navigate);
+			}
+		},
+		undefined,
+		[getPrevUnreadWorkspace.data, navigate],
+	);
+
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
 			<div className="flex-1 min-h-0 flex overflow-hidden">
