@@ -347,7 +347,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			emulatorWriteQueuedBytes: number;
 		};
 
-		internals.enqueueEmulatorWrite("x".repeat(8191) + "😀");
+		internals.enqueueEmulatorWrite(`${"x".repeat(8191)}😀`);
 		internals.processEmulatorWriteQueue();
 
 		expect(internals.emulatorWriteQueue).toEqual([]);
