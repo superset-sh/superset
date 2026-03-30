@@ -1,5 +1,5 @@
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
-import { CheckIcon, ClockIcon, MessageCircleQuestionIcon, XIcon } from "lucide-react";
+import { CheckIcon, CircleXIcon, ClockIcon, MessageCircleQuestionIcon, XIcon } from "lucide-react";
 import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 
@@ -183,8 +183,13 @@ export function AskUserQuestionToolCall({
 		[nestedResultObject?.answers, outputObject?.answers, result.answers],
 	);
 
+	// Mastracode sends { isError: true, content: "..." } for aborted questions
+	const isResultError = result.isError === true;
+
 	// Fallback for plain-string results and mastracode's { content: "User answered: <answer>" } format
 	const answerFallbackText = useMemo(() => {
+		// Error results are not answers
+		if (isResultError) return undefined;
 		if (typeof result.text === "string" && result.text.trim())
 			return result.text.trim();
 		if (typeof result.answer === "string" && result.answer.trim())
@@ -196,19 +201,19 @@ export function AskUserQuestionToolCall({
 			return raw.startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
 		}
 		return undefined;
-	}, [result.text, result.answer, result.content]);
+	}, [isResultError, result.text, result.answer, result.content]);
 
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
-	const isError = part.state === "output-error";
+	const isCancelledByError = part.state === "output-error" || isResultError;
 	const hasAnswers =
 		Object.keys(answers).length > 0 || answerFallbackText !== undefined;
 
 	// No args available (tool_result-only path with input: {}) — nothing useful to show
-	if (questions.length === 0 && !isError) return null;
+	if (questions.length === 0 && !isCancelledByError) return null;
 
-	const isAnswered = !isPending && !isError && hasAnswers;
-	const isCancelled = !isPending && !isError && !hasAnswers;
+	const isAnswered = !isPending && !isCancelledByError && hasAnswers;
+	const isCancelled = !isPending && !isCancelledByError && !hasAnswers;
 
 	const answeredQAs = useMemo(
 		() =>
@@ -235,14 +240,14 @@ export function AskUserQuestionToolCall({
 		<ToolCallRow
 			icon={MessageCircleQuestionIcon}
 			isPending={false}
-			isError={isError}
+			isError={false}
 			title="Question"
 			description={
 				isPending ? (
 					<QuestionStatusDescription status="awaiting" />
 				) : isAnswered ? (
 					<QuestionStatusDescription status="answered" />
-				) : isCancelled ? (
+				) : (isCancelled || isCancelledByError) ? (
 					<QuestionStatusDescription status="cancelled" />
 				) : undefined
 			}
@@ -252,6 +257,16 @@ export function AskUserQuestionToolCall({
 						<div key={qa.question} className="space-y-1 px-3 py-2">
 							<div className="text-xs text-muted-foreground">{qa.question}</div>
 							<div className="text-sm text-foreground">{qa.answer}</div>
+						</div>
+					))
+				: isCancelledByError && questions.length > 0
+				? questions.map((q) => (
+						<div key={q.question} className="space-y-1 px-3 py-2">
+							<div className="text-xs text-muted-foreground">{q.question}</div>
+							<div className="flex items-center gap-1 text-sm text-destructive">
+								<CircleXIcon className="h-3 w-3 shrink-0" />
+								Aborted by the user
+							</div>
 						</div>
 					))
 				: undefined}

@@ -6,6 +6,7 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
+import { getToolName, isToolUIPart } from "ai";
 import type { ChatStatus, UIMessage } from "ai";
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
@@ -16,6 +17,8 @@ import { parseUserMentions } from "renderer/components/Chat/utils/parseUserMenti
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { InterruptedMessagePreview } from "../../types";
 import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
+import { normalizeToolName } from "../../utils/tool-helpers";
+import type { ToolPart } from "../../utils/tool-helpers";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 
@@ -75,6 +78,24 @@ export function MessageList({
 		},
 		[workspaceId, addFileViewerPane],
 	);
+
+	const interruptedByAbortedQuestion =
+		interruptedMessage?.parts.some((part) => {
+			if (!isToolUIPart(part)) return false;
+			const toolPart = part as ToolPart;
+			const toolName = normalizeToolName(getToolName(toolPart));
+			if (toolName !== "ask_user_question") return false;
+			if (toolPart.state === "output-error") return true;
+			if (toolPart.state === "output-available") {
+				const out = toolPart.output;
+				return (
+					typeof out === "object" &&
+					out !== null &&
+					(out as Record<string, unknown>).isError === true
+				);
+			}
+			return false;
+		}) ?? false;
 
 	return (
 		<Conversation className="flex-1">
@@ -243,12 +264,14 @@ export function MessageList({
 								workspaceCwd={workspaceCwd}
 								onAnswer={onAnswer}
 							/>
-							<div className="flex items-center gap-2 text-xs text-muted-foreground">
-								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
-									Interrupted
-								</span>
-								<span>Response stopped</span>
-							</div>
+							{!interruptedByAbortedQuestion && (
+								<div className="flex items-center gap-2 text-xs text-muted-foreground">
+									<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+										Interrupted
+									</span>
+									<span>Response stopped</span>
+								</div>
+							)}
 						</MessageContent>
 					</Message>
 				)}
