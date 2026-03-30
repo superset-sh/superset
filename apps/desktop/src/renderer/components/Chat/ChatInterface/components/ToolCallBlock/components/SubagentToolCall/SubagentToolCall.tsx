@@ -1,8 +1,8 @@
+import { MessageResponse } from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { cn } from "@superset/ui/lib/utils";
 import { BotIcon } from "lucide-react";
-import { useId, useMemo, useState } from "react";
-import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
+import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 
@@ -23,8 +23,6 @@ export function SubagentToolCall({
 	args,
 	result,
 }: SubagentToolCallProps) {
-	const [renderMarkdown, setRenderMarkdown] = useState(true);
-	const markdownToggleId = useId();
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
 	const isError =
@@ -85,14 +83,15 @@ export function SubagentToolCall({
 						</div>
 					) : null}
 					{parsed.text ? (
-						<MarkdownToggleContent
-							toggleId={markdownToggleId}
-							checked={renderMarkdown}
-							onCheckedChange={setRenderMarkdown}
-							content={parsed.text}
-							markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
-							plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
-						/>
+						<div className="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2">
+							<MessageResponse
+								animated={false}
+								isAnimating={false}
+								mermaid={{ config: { theme: "default" } }}
+							>
+								{parsed.text}
+							</MessageResponse>
+						</div>
 					) : null}
 				</div>
 			) : undefined}

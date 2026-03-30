@@ -1,7 +1,5 @@
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
-import { useState } from "react";
-import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
 import {
 	type SubagentEntries,
 	toSubagentViewModels,
@@ -32,9 +30,6 @@ export function SubagentExecutionMessage({
 	subagents,
 	inline = false,
 }: SubagentExecutionMessageProps) {
-	const [markdownBySubagent, setMarkdownBySubagent] = useState<
-		Record<string, boolean>
-	>({});
 	if (subagents.length === 0) return null;
 	const viewModels = toSubagentViewModels(subagents);
 
@@ -70,20 +65,15 @@ export function SubagentExecutionMessage({
 								: ""}
 						</div>
 						{subagent.text ? (
-							<MarkdownToggleContent
-								toggleId={`subagent-markdown-${subagent.toolCallId}`}
-								checked={markdownBySubagent[subagent.toolCallId] ?? true}
-								onCheckedChange={(checked) =>
-									setMarkdownBySubagent((previous) => ({
-										...previous,
-										[subagent.toolCallId]: checked,
-									}))
-								}
-								content={subagent.text}
-								labelClassName="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
-								markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
-								plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
-							/>
+							<div className="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2">
+								<MessageResponse
+									animated={false}
+									isAnimating={false}
+									mermaid={{ config: { theme: "default" } }}
+								>
+									{subagent.text}
+								</MessageResponse>
+							</div>
 						) : null}
 						{subagent.toolCalls.length > 0 ? (
 							<div className="flex flex-wrap items-center gap-1.5">

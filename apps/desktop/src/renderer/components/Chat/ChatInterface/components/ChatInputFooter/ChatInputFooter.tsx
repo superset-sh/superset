@@ -4,12 +4,13 @@ import {
 	PromptInputAttachments,
 	type PromptInputMessage,
 	PromptInputTextarea,
+	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
@@ -89,6 +90,21 @@ export function ChatInputFooter({
 	onQuestionCancel,
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
+
+	// Focus the prompt when the question overlay dismisses (pendingQuestion → null).
+	// Uses rAF so the textarea has time to mount, register its ref, and browser
+	// focus-stealing from the unmounting overlay has settled.
+	const { textInput } = usePromptInputController();
+	const prevPendingQuestionRef = useRef(pendingQuestion);
+	useEffect(() => {
+		const prev = prevPendingQuestionRef.current;
+		prevPendingQuestionRef.current = pendingQuestion;
+		if (prev != null && pendingQuestion == null) {
+			const id = requestAnimationFrame(() => textInput.focus());
+			return () => cancelAnimationFrame(id);
+		}
+	}, [pendingQuestion, textInput]);
+
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);

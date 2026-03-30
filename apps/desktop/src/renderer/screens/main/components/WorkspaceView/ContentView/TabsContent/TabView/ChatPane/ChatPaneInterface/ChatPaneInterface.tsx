@@ -984,6 +984,8 @@ export function ChatPaneInterface({
 			clearRuntimeError();
 			setAnsweredQuestionId(trimmedQuestionId);
 			setQuestionResponsePending(true);
+			// Clear the orange dot immediately when the user submits their answer
+			useTabsStore.getState().setPaneStatus(paneId, "idle");
 			try {
 				await commands.respondToQuestion({
 					payload: {
