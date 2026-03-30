@@ -1,5 +1,7 @@
 export type UsageSeverity = "normal" | "elevated" | "high";
 
+export type SortOption = "memory" | "cpu" | "name" | "sidebar";
+
 export interface UsageValues {
 	cpu: number;
 	memory: number;
