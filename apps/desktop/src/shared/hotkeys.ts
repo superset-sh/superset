@@ -464,6 +464,10 @@ export const HOTKEYS = {
 		label: "Close Workspace",
 		category: "Workspace",
 		description: "Close or delete the current workspace",
+		defaults: {
+			win32: "ctrl+shift+backspace",
+			linux: "ctrl+shift+backspace",
+		},
 	}),
 
 	// Layout
