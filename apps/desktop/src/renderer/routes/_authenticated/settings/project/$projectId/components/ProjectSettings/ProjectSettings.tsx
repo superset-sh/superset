@@ -133,6 +133,7 @@ export function ProjectSettings({
 	const setProjectIcon = electronTrpc.projects.setProjectIcon.useMutation({
 		onError: (err) => {
 			console.error("[project-settings/setProjectIcon] Failed:", err);
+			toast.error(err.message || "Failed to update project icon");
 		},
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
@@ -621,7 +622,7 @@ export function ProjectSettings({
 							<input
 								ref={fileInputRef}
 								type="file"
-								accept="image/png,image/jpeg,image/svg+xml,image/x-icon"
+								accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
 								className="hidden"
 								onChange={handleFileChange}
 							/>
