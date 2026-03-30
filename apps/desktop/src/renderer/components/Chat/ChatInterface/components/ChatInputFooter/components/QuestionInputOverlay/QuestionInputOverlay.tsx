@@ -119,7 +119,7 @@ export function QuestionInputOverlay({
 					ref={inputRef}
 					value={customText}
 					onChange={(e) => setCustomText(e.target.value)}
-					placeholder="Something else"
+					placeholder={options.length > 0 ? "Something else" : "Type your answer..."}
 					disabled={isDisabled}
 					className="flex-1 cursor-text bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed"
 				/>

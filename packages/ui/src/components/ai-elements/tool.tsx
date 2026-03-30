@@ -162,6 +162,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 export type ToolOutputProps = ComponentProps<"div"> & {
 	output?: unknown;
 	errorText?: string;
+	label?: string;
 };
 
 function formatOutput(output: unknown): string {
@@ -177,16 +178,19 @@ export const ToolOutput = ({
 	className,
 	output,
 	errorText,
+	label,
 	...props
 }: ToolOutputProps) => {
 	if (!(output || errorText)) {
 		return null;
 	}
 
+	const heading = errorText ? "Error" : (label ?? "Output");
+
 	return (
 		<div className={cn("space-y-1", className)} {...props}>
 			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-				{errorText ? "Error" : "Output"}
+				{heading}
 			</h4>
 			<pre
 				className={cn(

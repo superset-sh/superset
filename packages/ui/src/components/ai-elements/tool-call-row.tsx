@@ -79,7 +79,7 @@ export function ToolCallRow({
 
 	return (
 		<Collapsible
-			className={cn("overflow-hidden rounded-md font-mono", className)}
+			className={cn("-mx-1 rounded-md font-mono", className)}
 			onOpenChange={(open) => hasDetails && setIsOpen(open)}
 			open={hasDetails ? isOpen : false}
 		>
@@ -87,7 +87,7 @@ export function ToolCallRow({
 				<CollapsibleTrigger asChild>
 					<button
 						className={cn(
-							"flex h-7 min-w-0 flex-1 items-center justify-between rounded-b-md px-1 text-left",
+							"flex h-7 min-w-0 flex-1 items-center justify-between rounded-md px-1 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
 							hasDetails && "transition-colors duration-150 hover:bg-muted/30",
 						)}
 						data-tool-trigger
@@ -113,7 +113,7 @@ export function ToolCallRow({
 								<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
 							)}
 							{titleContent}
-							{description != null && (
+							{description != null && !isOpen && (
 								<span className="min-w-0 truncate text-xs text-muted-foreground">
 									{description}
 								</span>
@@ -128,7 +128,7 @@ export function ToolCallRow({
 			</div>
 			{hasDetails && (
 				<CollapsibleContent className="outline-none">
-					<div className="ml-2.5 mt-0.5 border-l border-border">{children}</div>
+					<div className="ml-2.5 border-l border-border">{children}</div>
 				</CollapsibleContent>
 			)}
 		</Collapsible>
