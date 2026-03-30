@@ -54,17 +54,18 @@ function NewProjectPage() {
 	const [parentDir, setParentDir] = useState("");
 
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
-	const { data: lastProjectDir } =
+	const { data: lastProjectDir, isFetched: lastProjectDirFetched } =
 		electronTrpc.projects.getLastProjectDir.useQuery();
 
 	useEffect(() => {
 		if (parentDir) return;
+		if (!lastProjectDirFetched) return;
 		if (lastProjectDir) {
 			setParentDir(lastProjectDir);
 		} else if (homeDir) {
 			setParentDir(`${homeDir}/.superset/projects`);
 		}
-	}, [homeDir, lastProjectDir, parentDir]);
+	}, [homeDir, lastProjectDir, lastProjectDirFetched, parentDir]);
 
 	return (
 		<div className="flex flex-col h-full w-full relative overflow-hidden bg-background">
