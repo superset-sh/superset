@@ -1,15 +1,9 @@
 "use client";
 
-import { CheckIcon, TerminalIcon, XIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { TerminalIcon } from "lucide-react";
+import { useMemo } from "react";
 import { cn } from "../../lib/utils";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "../ui/collapsible";
-import { Loader } from "./loader";
-import { ShimmerLabel } from "./shimmer-label";
+import { ToolCallRow } from "./tool-call-row";
 
 type BashToolState =
 	| "input-streaming"
@@ -46,10 +40,7 @@ export const BashTool = ({
 	state,
 	className,
 }: BashToolProps) => {
-	const [isOutputExpanded, setIsOutputExpanded] = useState(false);
-
 	const isPending = state === "input-streaming" || state === "input-available";
-	const isSuccess = exitCode === 0;
 	const isError = exitCode !== undefined && exitCode !== 0;
 
 	const commandSummary = useMemo(
@@ -60,89 +51,48 @@ export const BashTool = ({
 	const hasOutput = Boolean(command || stdout || stderr);
 
 	return (
-		<Collapsible
-			className={cn("overflow-hidden rounded-md", className)}
-			onOpenChange={(open) => hasOutput && setIsOutputExpanded(open)}
-			open={hasOutput ? isOutputExpanded : false}
+		<ToolCallRow
+			className={className}
+			description={commandSummary || undefined}
+			icon={TerminalIcon}
+			isError={isError}
+			isPending={isPending}
+			title="Bash"
 		>
-			<CollapsibleTrigger asChild>
-				<button
-					className={cn(
-						"flex h-7 w-full items-center justify-between px-2.5 text-left",
-						hasOutput
-							? "cursor-pointer transition-colors duration-150 hover:bg-muted/30"
-							: "cursor-default",
+			{hasOutput ? (
+				<div className="pl-2 py-1.5">
+					{/* Command */}
+					{command && (
+						<div className="font-mono text-xs">
+							<span className="text-amber-600 dark:text-amber-400">$ </span>
+							<span className="whitespace-pre-wrap break-all text-foreground">
+								{command}
+							</span>
+						</div>
 					)}
-					disabled={!hasOutput}
-					type="button"
-				>
-					<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-						<TerminalIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-						{isPending ? (
-							<ShimmerLabel className="text-xs text-muted-foreground">
-								{commandSummary ? "Running command" : "Generating command"}
-							</ShimmerLabel>
-						) : (
-							<span className="text-xs text-muted-foreground">Ran command</span>
-						)}
-						{commandSummary && (
-							<span className="truncate text-foreground">{commandSummary}</span>
-						)}
-					</div>
 
-					{/* Status */}
-					<div className="ml-2 flex h-6 w-6 shrink-0 items-center justify-center text-muted-foreground">
-						{isPending ? (
-							<Loader size={12} />
-						) : isError ? (
-							<XIcon className="h-3 w-3" />
-						) : isSuccess ? (
-							<CheckIcon className="h-3 w-3" />
-						) : null}
-					</div>
-				</button>
-			</CollapsibleTrigger>
-
-			{hasOutput && (
-				<CollapsibleContent
-					className={cn(
-						"data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+					{/* Stdout */}
+					{stdout && (
+						<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+							{stdout}
+						</div>
 					)}
-				>
-					<div className="mt-0.5 px-2.5 py-1.5">
-						{/* Command */}
-						{command && (
-							<div className="font-mono text-xs">
-								<span className="text-amber-600 dark:text-amber-400">$ </span>
-								<span className="whitespace-pre-wrap break-all text-foreground">
-									{command}
-								</span>
-							</div>
-						)}
 
-						{/* Stdout */}
-						{stdout && (
-							<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
-								{stdout}
-							</div>
-						)}
-
-						{/* Stderr */}
-						{stderr && (
-							<div
-								className={cn(
-									"mt-1.5 whitespace-pre-wrap break-all font-mono text-xs",
-									exitCode === 0 || exitCode === undefined
-										? "text-amber-600 dark:text-amber-400"
-										: "text-rose-500 dark:text-rose-400",
-								)}
-							>
-								{stderr}
-							</div>
-						)}
-					</div>
-				</CollapsibleContent>
-			)}
-		</Collapsible>
+					{/* Stderr */}
+					{stderr && (
+						<div
+							className={cn(
+								"mt-1.5 whitespace-pre-wrap break-all font-mono text-xs",
+								exitCode === 0 || exitCode === undefined
+									? "text-amber-600 dark:text-amber-400"
+									: "text-rose-500 dark:text-rose-400",
+							)}
+						>
+							{stderr}
+						</div>
+					)}
+				</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 };

@@ -1,10 +1,8 @@
 "use client";
 
 import { GlobeIcon } from "lucide-react";
-import { useState } from "react";
-import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
-import { ShimmerLabel } from "./shimmer-label";
+import { ToolCallRow } from "./tool-call-row";
 
 type WebFetchToolState =
 	| "input-streaming"
@@ -43,66 +41,41 @@ export const WebFetchTool = ({
 	state,
 	className,
 }: WebFetchToolProps) => {
-	const [isExpanded, setIsExpanded] = useState(false);
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isError = state === "output-error";
 	const isSuccess = statusCode === 200;
 	const hasContent = Boolean(content);
 	const hostname = url ? extractHostname(url) : "";
 
+	const statusNode = isPending ? (
+		<div className="flex h-6 w-6 items-center justify-center">
+			<Loader size={12} />
+		</div>
+	) : isError || !isSuccess ? (
+		<span className="text-xs text-destructive">
+			{statusCode ? `Error ${statusCode}` : "Failed"}
+		</span>
+	) : bytes !== undefined ? (
+		<span className="text-xs text-muted-foreground">{formatBytes(bytes)}</span>
+	) : null;
+
 	return (
-		<div className={cn("overflow-hidden rounded-md", className)}>
-			{/* Header */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
-			<div
-				className={cn(
-					"flex h-7 items-center justify-between px-2.5",
-					hasContent &&
-						!isPending &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/30",
-				)}
-				onClick={() => hasContent && !isPending && setIsExpanded(!isExpanded)}
-			>
-				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
-					<GlobeIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-					{isPending ? (
-						<ShimmerLabel className="text-xs text-muted-foreground">
-							Fetching
-						</ShimmerLabel>
-					) : (
-						<span className="text-xs text-muted-foreground">Fetched</span>
-					)}
-					{hostname && (
-						<span className="truncate text-foreground">{hostname}</span>
-					)}
-				</div>
-
-				{/* Status */}
-				<div className="ml-2 flex shrink-0 items-center gap-2">
-					<div className="flex items-center gap-1.5 text-xs">
-						{isPending ? (
-							<Loader size={12} />
-						) : isError || !isSuccess ? (
-							<span className="text-destructive">
-								{statusCode ? `Error ${statusCode}` : "Failed"}
-							</span>
-						) : bytes !== undefined ? (
-							<span className="text-muted-foreground">
-								{formatBytes(bytes)}
-							</span>
-						) : null}
-					</div>
-				</div>
-			</div>
-
-			{/* Content */}
-			{hasContent && isExpanded && (
-				<div className="mt-0.5 max-h-[300px] overflow-y-auto">
+		<ToolCallRow
+			className={className}
+			description={hostname || undefined}
+			icon={GlobeIcon}
+			isError={isError}
+			isPending={isPending}
+			statusNode={statusNode}
+			title="Web Fetch"
+		>
+			{hasContent ? (
+				<div className="max-h-[300px] overflow-y-auto">
 					<pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-xs text-foreground">
 						{content}
 					</pre>
 				</div>
-			)}
-		</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 };
