@@ -55,6 +55,21 @@ const ATTACH_FLUSH_TIMEOUT_MS = 500;
 const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
 
 /**
+ * Emulator backlog high-water mark.
+ * Once crossed, pause reading PTY output until the headless emulator catches up.
+ *
+ * This keeps PTY -> daemon -> renderer backpressure end-to-end instead of
+ * letting Session accumulate unbounded terminal output in memory.
+ */
+const EMULATOR_WRITE_QUEUE_HIGH_WATERMARK_BYTES = 1_000_000;
+
+/**
+ * Emulator backlog low-water mark for resuming PTY reads after a pause.
+ * Kept well below the high-water mark to avoid pause/resume thrash.
+ */
+const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
+
+/**
  * How long to wait for the shell-ready marker before unblocking writes.
  * 15s covers heavy setups like Nix-based devenv via direnv. On timeout,
  * buffered writes flush immediately (same behavior as before this feature).
@@ -136,6 +151,7 @@ export class Session {
 	private subprocessStdinQueuedBytes = 0;
 	private subprocessStdinDrainArmed = false;
 	private ptyPid: number | null = null;
+	private emulatorWriteBackpressured = false;
 
 	// Promise that resolves when PTY is ready to accept writes
 	private ptyReadyPromise: Promise<void>;
@@ -586,7 +602,8 @@ export class Session {
 
 	private enqueueEmulatorWrite(data: string): void {
 		this.emulatorWriteQueue.push(data);
-		this.emulatorWriteQueuedBytes += data.length;
+		this.emulatorWriteQueuedBytes += Buffer.byteLength(data, "utf8");
+		this.maybePauseSubprocessStdoutForEmulatorBackpressure();
 		this.scheduleEmulatorWrite();
 	}
 
@@ -635,9 +652,11 @@ export class Session {
 				this.resolveReachedSnapshotBoundaryWaiters();
 			}
 
-			this.emulatorWriteQueuedBytes -= chunk.length;
+			this.emulatorWriteQueuedBytes -= Buffer.byteLength(chunk, "utf8");
 			this.emulator.write(chunk);
 		}
+
+		this.maybeResumeSubprocessStdoutForEmulatorBackpressure();
 
 		if (this.emulatorWriteQueue.length > 0) {
 			setImmediate(() => {
@@ -831,7 +850,7 @@ export class Session {
 		}
 		this.attachedClients.delete(socket);
 		this.clientSocketsWaitingForDrain.delete(socket);
-		this.maybeResumeSubprocessStdout();
+		this.updateSubprocessStdoutFlow();
 	}
 
 	/**
@@ -992,6 +1011,7 @@ export class Session {
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
 		this.subprocessStdoutPaused = false;
+		this.emulatorWriteBackpressured = false;
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
@@ -1082,30 +1102,61 @@ export class Session {
 	}
 
 	private handleClientBackpressure(socket: Socket): void {
-		// If the client can’t keep up, pause reading from the subprocess stdout.
-		// This will backpressure the subprocess stdout pipe, which in turn pauses
-		// PTY reads inside the subprocess (preventing runaway buffering/CPU).
-		if (!this.subprocessStdoutPaused && this.subprocess?.stdout) {
-			this.subprocessStdoutPaused = true;
-			this.subprocess.stdout.pause();
-		}
-
 		if (this.clientSocketsWaitingForDrain.has(socket)) return;
 		this.clientSocketsWaitingForDrain.add(socket);
+		this.updateSubprocessStdoutFlow();
 
 		socket.once("drain", () => {
 			this.clientSocketsWaitingForDrain.delete(socket);
-			this.maybeResumeSubprocessStdout();
+			this.updateSubprocessStdoutFlow();
 		});
 	}
 
-	private maybeResumeSubprocessStdout(): void {
-		if (this.clientSocketsWaitingForDrain.size > 0) return;
-		if (!this.subprocessStdoutPaused) return;
-		if (!this.subprocess?.stdout) return;
+	private maybePauseSubprocessStdoutForEmulatorBackpressure(): void {
+		if (this.emulatorWriteBackpressured) return;
+		if (
+			this.emulatorWriteQueuedBytes < EMULATOR_WRITE_QUEUE_HIGH_WATERMARK_BYTES
+		) {
+			return;
+		}
 
+		this.emulatorWriteBackpressured = true;
+		console.warn(
+			`[Session ${this.sessionId}] Emulator backlog reached ${this.emulatorWriteQueuedBytes} bytes, pausing PTY reads`,
+		);
+		this.updateSubprocessStdoutFlow();
+	}
+
+	private maybeResumeSubprocessStdoutForEmulatorBackpressure(): void {
+		if (!this.emulatorWriteBackpressured) return;
+		if (
+			this.emulatorWriteQueuedBytes > EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES
+		) {
+			return;
+		}
+
+		this.emulatorWriteBackpressured = false;
+		this.updateSubprocessStdoutFlow();
+	}
+
+	private updateSubprocessStdoutFlow(): void {
+		const stdout = this.subprocess?.stdout;
+		if (!stdout) return;
+
+		const shouldPause =
+			this.clientSocketsWaitingForDrain.size > 0 ||
+			this.emulatorWriteBackpressured;
+
+		if (shouldPause) {
+			if (this.subprocessStdoutPaused) return;
+			this.subprocessStdoutPaused = true;
+			stdout.pause();
+			return;
+		}
+
+		if (!this.subprocessStdoutPaused) return;
 		this.subprocessStdoutPaused = false;
-		this.subprocess.stdout.resume();
+		stdout.resume();
 	}
 
 	/**
