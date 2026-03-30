@@ -3,15 +3,11 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db/schema/zod";
-import { AGENT_PRESET_COMMANDS } from "@superset/shared/agent-command";
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
 	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
-
-const LEGACY_CODEX_PRESET_COMMAND =
-	'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true';
 
 function createPreset(mode?: unknown): PresetWithUnknownMode {
 	return {
@@ -96,21 +92,10 @@ describe("normalizeTerminalPresets", () => {
 		expect(normalized.applyOnNewTab).toBe(true);
 		expect("isDefault" in normalized).toBe(false);
 	});
-
-	it("migrates legacy codex preset commands to enable hooks", () => {
-		const [normalized] = normalizeTerminalPresets([
-			{
-				...createPreset("new-tab"),
-				commands: [LEGACY_CODEX_PRESET_COMMAND],
-			},
-		]);
-
-		expect(normalized.commands).toEqual(AGENT_PRESET_COMMANDS.codex);
-	});
 });
 
 describe("shouldPersistNormalizedTerminalPresets", () => {
-	it("returns true when legacy mode, commands, project targeting, or default state exists", () => {
+	it("returns true when legacy mode, project targeting, or default state exists", () => {
 		expect(
 			shouldPersistNormalizedTerminalPresets([createPreset("parallel")]),
 		).toBe(true);
@@ -122,14 +107,6 @@ describe("shouldPersistNormalizedTerminalPresets", () => {
 				{
 					...createPreset("new-tab"),
 					projectIds: [],
-				},
-			]),
-		).toBe(true);
-		expect(
-			shouldPersistNormalizedTerminalPresets([
-				{
-					...createPreset("new-tab"),
-					commands: [LEGACY_CODEX_PRESET_COMMAND],
 				},
 			]),
 		).toBe(true);
