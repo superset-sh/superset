@@ -55,12 +55,6 @@ const ATTACH_FLUSH_TIMEOUT_MS = 500;
 const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
 
 /**
- * Minimum interval (ms) between backpressure warnings per session.
- * Prevents log flooding when a high-output pane keeps the socket buffer full.
- */
-const BACKPRESSURE_WARN_INTERVAL_MS = 5_000;
-
-/**
  * How long to wait for the shell-ready marker before unblocking writes.
  * 15s covers heavy setups like Nix-based devenv via direnv. On timeout,
  * buffered writes flush immediately (same behavior as before this feature).
@@ -133,8 +127,6 @@ export class Session {
 	private attachedClients: Map<Socket, AttachedClient> = new Map();
 	private clientSocketsWaitingForDrain: Set<Socket> = new Set();
 	private subprocessStdoutPaused = false;
-	private backpressureWarnLastAt = 0;
-	private backpressureWarnSuppressed = 0;
 	private lastAttachedAt: Date;
 	private exitCode: number | null = null;
 	private disposed = false;
@@ -1000,8 +992,6 @@ export class Session {
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
 		this.subprocessStdoutPaused = false;
-		this.backpressureWarnLastAt = 0;
-		this.backpressureWarnSuppressed = 0;
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
@@ -1077,7 +1067,6 @@ export class Session {
 			try {
 				const canWrite = socket.write(message);
 				if (!canWrite) {
-					this.warnBackpressure();
 					this.handleClientBackpressure(socket);
 				}
 			} catch {
@@ -1112,31 +1101,6 @@ export class Session {
 
 		this.subprocessStdoutPaused = false;
 		this.subprocess.stdout.resume();
-	}
-
-	/**
-	 * Rate-limited backpressure warning to prevent log flooding.
-	 * Emits at most one warning per BACKPRESSURE_WARN_INTERVAL_MS,
-	 * reporting how many warnings were suppressed since the last emission.
-	 */
-	private warnBackpressure(): void {
-		const now = Date.now();
-		if (now - this.backpressureWarnLastAt < BACKPRESSURE_WARN_INTERVAL_MS) {
-			this.backpressureWarnSuppressed++;
-			return;
-		}
-
-		const suppressed = this.backpressureWarnSuppressed;
-		this.backpressureWarnSuppressed = 0;
-		this.backpressureWarnLastAt = now;
-
-		const suffix =
-			suppressed > 0
-				? ` (${suppressed} similar warning${suppressed === 1 ? "" : "s"} suppressed)`
-				: "";
-		console.warn(
-			`[Session ${this.sessionId}] Client socket buffer full, output may be delayed${suffix}`,
-		);
 	}
 
 	/**
