@@ -28,21 +28,16 @@ export const ConversationContent = ({
 	className,
 	...props
 }: ConversationContentProps) => {
-	const { isAtBottom, stopScroll } = useStickToBottomContext();
+	const { stopScroll } = useStickToBottomContext();
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
-			const toolTrigger = (e.target as Element).closest("[data-tool-trigger]");
-			if (toolTrigger) {
-				const isOpening = toolTrigger.getAttribute("data-state") === "closed";
-				// If pinned to the bottom and about to expand, don't unpin — let
-				// stick-to-bottom's resize handler auto-scroll to reveal the new content.
-				if (!isAtBottom || !isOpening) {
-					stopScroll();
-				}
+			if ((e.target as Element).closest("[data-tool-trigger]")) {
+				// Unpin from bottom so the resize handler never jumps the scroll position.
+				stopScroll();
 			}
 		},
-		[isAtBottom, stopScroll],
+		[stopScroll],
 	);
 
 	return (
