@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
@@ -348,6 +351,35 @@ export class ChatRuntimeManager {
 		});
 	}
 
+	/**
+	 * Ensures ~/.mastracode/AGENTS.md exists with Superset-specific instructions.
+	 * Only writes when the file is absent or was previously written by us (identified
+	 * by the managed-by marker). Skips silently on any filesystem error.
+	 */
+	private ensureGlobalAgentInstructions(): void {
+		const MANAGED_MARKER = "<!-- managed-by: superset -->";
+		const INSTRUCTIONS = `${MANAGED_MARKER}
+## Question Tool
+
+When you need to ask the user ANY question — including simple yes/no, confirmations, and clarifications — ALWAYS use the \`ask_user\` tool. Never ask questions in plain text. The Superset UI renders \`ask_user\` calls as an interactive overlay with clickable option buttons; plain-text questions will not be surfaced to the user in the same way.
+`;
+		try {
+			const dir = join(homedir(), ".mastracode");
+			const filePath = join(dir, "AGENTS.md");
+			if (existsSync(filePath)) {
+				const existing = readFileSync(filePath, "utf-8");
+				if (!existing.includes(MANAGED_MARKER)) {
+					// User-managed file — don't overwrite
+					return;
+				}
+			}
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(filePath, INSTRUCTIONS, "utf-8");
+		} catch {
+			// Non-fatal — instructions enhancement is best-effort
+		}
+	}
+
 	private async createRuntime(
 		sessionId: string,
 		workspaceId: string,
@@ -366,6 +398,7 @@ export class ChatRuntimeManager {
 
 		const cwd = workspace.worktreePath;
 
+		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
 
 		const runtime = await createMastraCode({
