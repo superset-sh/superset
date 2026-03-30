@@ -325,6 +325,35 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 
+	it("keeps queued byte accounting exact when chunking across a surrogate pair boundary", () => {
+		const session = new Session({
+			sessionId: "session-surrogate-pair-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		const internals = session as unknown as {
+			enqueueEmulatorWrite: (data: string) => void;
+			processEmulatorWriteQueue: () => void;
+			emulatorWriteQueue: string[];
+			emulatorWriteQueuedBytes: number;
+		};
+
+		internals.enqueueEmulatorWrite("x".repeat(8191) + "😀");
+		internals.processEmulatorWriteQueue();
+
+		expect(internals.emulatorWriteQueue).toEqual([]);
+		expect(internals.emulatorWriteQueuedBytes).toBe(0);
+	});
+
 	it("keeps subprocess stdout paused until client drain clears too", () => {
 		const session = new Session({
 			sessionId: "session-combined-backpressure",

@@ -644,8 +644,19 @@ export class Session {
 
 			let chunk = this.emulatorWriteQueue[0];
 			if (chunk.length > MAX_CHUNK_CHARS) {
-				this.emulatorWriteQueue[0] = chunk.slice(MAX_CHUNK_CHARS);
-				chunk = chunk.slice(0, MAX_CHUNK_CHARS);
+				let splitAt = MAX_CHUNK_CHARS;
+				const prev = chunk.charCodeAt(splitAt - 1);
+				const next = chunk.charCodeAt(splitAt);
+				if (
+					prev >= 0xd800 &&
+					prev <= 0xdbff &&
+					next >= 0xdc00 &&
+					next <= 0xdfff
+				) {
+					splitAt--;
+				}
+				this.emulatorWriteQueue[0] = chunk.slice(splitAt);
+				chunk = chunk.slice(0, splitAt);
 			} else {
 				this.emulatorWriteQueue.shift();
 				this.emulatorWriteProcessedItems++;
