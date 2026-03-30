@@ -21,6 +21,7 @@ interface AskUserQuestionToolCallProps {
 	result: Record<string, unknown>;
 	outputObject?: Record<string, unknown>;
 	nestedResultObject?: Record<string, unknown>;
+	isStreaming?: boolean;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -120,6 +121,7 @@ export function AskUserQuestionToolCall({
 	result,
 	outputObject,
 	nestedResultObject,
+	isStreaming,
 }: AskUserQuestionToolCallProps) {
 	const questions = useMemo(
 		() => toQuestionToolQuestions(args.questions),
@@ -139,6 +141,9 @@ export function AskUserQuestionToolCall({
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
 	const isError = part.state === "output-error";
+
+	// Hide while the overlay is actively showing (streaming = question is live)
+	if (isPending && isStreaming !== false) return null;
 
 	const description =
 		questions.length > 1

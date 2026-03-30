@@ -50,6 +50,7 @@ interface ToolCallBlockProps {
 	workspaceCwd?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
+	isStreaming?: boolean;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -68,6 +69,7 @@ export function ToolCallBlock({
 	workspaceCwd,
 	sessionId,
 	organizationId,
+	isStreaming,
 	onAnswer,
 }: ToolCallBlockProps) {
 	const args = getArgs(part);
@@ -493,6 +495,7 @@ export function ToolCallBlock({
 				result={result}
 				outputObject={outputObject}
 				nestedResultObject={nestedResultObject}
+				isStreaming={isStreaming}
 				onAnswer={onAnswer}
 			/>
 		);
