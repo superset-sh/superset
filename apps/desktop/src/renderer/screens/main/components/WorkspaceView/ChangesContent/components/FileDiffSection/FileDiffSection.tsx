@@ -176,8 +176,6 @@ export function FileDiffSection({
 			setFileViewed(fileKey, checked);
 			if (checked && isExpanded) {
 				onToggleExpanded();
-			} else if (!checked && !isExpanded) {
-				onToggleExpanded();
 			}
 		},
 		[fileKey, setFileViewed, isExpanded, onToggleExpanded],
