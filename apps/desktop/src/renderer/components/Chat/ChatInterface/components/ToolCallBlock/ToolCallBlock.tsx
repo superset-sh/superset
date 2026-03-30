@@ -3,7 +3,7 @@ import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
-import { FileIcon, FolderIcon } from "lucide-react";
+import { FileIcon, FolderIcon, GlobeIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { posthog } from "renderer/lib/posthog";
 import { useChangesStore } from "renderer/stores/changes";
@@ -445,10 +445,20 @@ export function ToolCallBlock({
 		);
 	}
 
-	// --- Web search → WebSearchTool ---
-	if (toolName === "web_search") {
+	// --- Web search → WebSearchTool (with results) or GenericToolCall (without) ---
+	if (toolName === "web_search" || toolName.includes("web_search")) {
 		const { query, results } = getWebSearchViewModel({ args, result });
-		return <WebSearchTool query={query} results={results} state={state} />;
+		if (results.length > 0) {
+			return <WebSearchTool query={query} results={results} state={state} />;
+		}
+		return (
+			<GenericToolCall
+				part={part}
+				toolName="Web Search"
+				subtitle={query || undefined}
+				icon={GlobeIcon}
+			/>
+		);
 	}
 
 	// --- Web fetch → WebFetchTool ---
