@@ -1000,6 +1000,8 @@ export class Session {
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
 		this.subprocessStdoutPaused = false;
+		this.backpressureWarnLastAt = 0;
+		this.backpressureWarnSuppressed = 0;
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
@@ -1073,12 +1075,15 @@ export class Session {
 
 		for (const { socket } of this.attachedClients.values()) {
 			try {
-				// Skip sockets that are already backpressured. Continuing to write
-				// would grow Node's internal buffer without bound, and the massive
-				// flush on drain causes a visible freeze / catch-up stall (#2968).
-				// The emulator still processes all data so snapshot state stays
-				// consistent — the next TUI repaint after drain resyncs the display.
-				if (this.clientSocketsWaitingForDrain.has(socket)) {
+				// Skip terminal data while a client is backpressured. Continuing
+				// to queue screen updates would grow Node's internal buffer without
+				// bound, and the massive flush on drain causes a visible freeze /
+				// catch-up stall (#2968). Lifecycle events still need to be
+				// delivered even if the client is temporarily behind.
+				if (
+					eventType === "data" &&
+					this.clientSocketsWaitingForDrain.has(socket)
+				) {
 					continue;
 				}
 

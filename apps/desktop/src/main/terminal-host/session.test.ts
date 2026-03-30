@@ -233,14 +233,16 @@ describe("Terminal Host Session shell args", () => {
 
 describe("Terminal Host Session backpressure", () => {
 	let warnSpy: ReturnType<typeof mock>;
+	let originalWarn: typeof console.warn;
 
 	beforeEach(() => {
+		originalWarn = console.warn;
 		warnSpy = mock();
 		console.warn = warnSpy;
 	});
 
 	afterEach(() => {
-		warnSpy.mockRestore?.();
+		console.warn = originalWarn;
 	});
 
 	class FakeSocket extends EventEmitter {
@@ -265,6 +267,11 @@ describe("Terminal Host Session backpressure", () => {
 	function createSessionWithSocket(
 		writeFn: (message: string, writes: string[]) => boolean,
 	) {
+		type BroadcastPayload =
+			| { type: "data"; data: string }
+			| { type: "error"; error: string; code?: string }
+			| { type: "exit"; exitCode: number; signal?: number };
+
 		const child = new FakeChildProcess();
 		const session = new Session({
 			sessionId: "session-bp",
@@ -297,23 +304,38 @@ describe("Terminal Host Session backpressure", () => {
 			session as unknown as {
 				attachedClients: Map<
 					import("node:net").Socket,
-					{ socket: import("node:net").Socket }
+					{
+						socket: import("node:net").Socket;
+						attachedAt: number;
+						attachToken: symbol;
+					}
 				>;
 			}
-		).attachedClients.set(fakeSocket, { socket: fakeSocket });
+		).attachedClients.set(fakeSocket, {
+			socket: fakeSocket,
+			attachedAt: Date.now(),
+			attachToken: Symbol("test-attach"),
+		});
 
-		const broadcast = (data: string) => {
+		const broadcastEvent = (
+			eventType: BroadcastPayload["type"],
+			payload: BroadcastPayload,
+		) => {
 			(
 				session as unknown as {
 					broadcastEvent: (
 						eventType: string,
-						payload: { type: "data"; data: string },
+						payload: BroadcastPayload,
 					) => void;
 				}
-			).broadcastEvent("data", { type: "data", data });
+			).broadcastEvent(eventType, payload);
 		};
 
-		return { session, socket: fakeSocket, broadcast };
+		const broadcast = (data: string) => {
+			broadcastEvent("data", { type: "data", data });
+		};
+
+		return { session, socket: fakeSocket, broadcast, broadcastEvent };
 	}
 
 	it("stops writing to a backpressured socket instead of growing the buffer", () => {
@@ -363,7 +385,27 @@ describe("Terminal Host Session backpressure", () => {
 		expect(fakeSocket.writes[2]).toContain("frame-5");
 	});
 
-	it("emits only one backpressure warning within the rate-limit window", () => {
+	it("still delivers exit and error events while socket is waiting for drain", () => {
+		const { socket, broadcast, broadcastEvent } = createSessionWithSocket(
+			(_msg, writes) => writes.length <= 1,
+		);
+		const fakeSocket = socket as unknown as FakeSocket;
+
+		broadcast("frame-1");
+		broadcast("frame-2");
+		expect(fakeSocket.writes).toHaveLength(2);
+
+		broadcastEvent("exit", { type: "exit", exitCode: 0 });
+		broadcastEvent("error", { type: "error", error: "boom" });
+
+		expect(fakeSocket.writes).toHaveLength(4);
+		expect(fakeSocket.writes[2]).toContain('"event":"exit"');
+		expect(fakeSocket.writes[2]).toContain('"exitCode":0');
+		expect(fakeSocket.writes[3]).toContain('"event":"error"');
+		expect(fakeSocket.writes[3]).toContain('"error":"boom"');
+	});
+
+	it("emits only one backpressure warning while socket remains backpressured", () => {
 		const { broadcast } = createSessionWithSocket(() => false);
 
 		for (let i = 0; i < 1000; i++) {
