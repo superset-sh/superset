@@ -67,6 +67,8 @@ interface ClaudeSettingsJson {
 
 const CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
 const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
+const CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
+const CODEX_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -117,16 +119,16 @@ function readExistingClaudeSettings(
 	}
 }
 
-function removeManagedClaudeHooksFromDefinition(
+function removeManagedHooksFromDefinition(
 	definition: ClaudeHookDefinition,
-	notifyScriptPath: string,
+	isManagedCommand: (command: string | undefined) => boolean,
 ): ClaudeHookDefinition | null {
 	if (!Array.isArray(definition.hooks)) {
 		return definition;
 	}
 
 	const filteredHooks = definition.hooks.filter(
-		(hook) => !isManagedClaudeHookCommand(hook.command, notifyScriptPath),
+		(hook) => !isManagedCommand(hook.command),
 	);
 
 	if (filteredHooks.length === definition.hooks.length) {
@@ -218,9 +220,8 @@ export function getClaudeGlobalSettingsJsonContent(
 		const current = existing.hooks[eventName];
 		if (Array.isArray(current)) {
 			const filtered = current.flatMap((def: ClaudeHookDefinition) => {
-				const cleaned = removeManagedClaudeHooksFromDefinition(
-					def,
-					notifyScriptPath,
+				const cleaned = removeManagedHooksFromDefinition(def, (command) =>
+					isManagedClaudeHookCommand(command, notifyScriptPath),
 				);
 				return cleaned ? [cleaned] : [];
 			});
@@ -295,6 +296,26 @@ export function buildCodexWrapperExecLine(notifyPath: string): string {
 	return template.replaceAll("{{NOTIFY_PATH}}", notifyPath);
 }
 
+/**
+ * Returns the shell command written into Codex's global hook config.
+ * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
+ * shared ~/.codex/hooks.json works for both dev and prod installs.
+ */
+export function getCodexManagedHookCommand(): string {
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
+}
+
+function isManagedCodexHookCommand(
+	command: string | undefined,
+	notifyScriptPath: string,
+): boolean {
+	return (
+		command?.includes(notifyScriptPath) ||
+		command?.includes(CODEX_DYNAMIC_NOTIFY_PATH_MARKER) ||
+		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Codex ~/.codex/hooks.json direct merge
 // ---------------------------------------------------------------------------
@@ -354,9 +375,29 @@ export function getCodexGlobalHooksJsonContent(
 	const globalPath = getCodexGlobalHooksJsonPath();
 	const existing = readExistingCodexHooks(globalPath);
 	if (!existing) return null;
+	const managedHookCommand = getCodexManagedHookCommand();
 
 	if (!existing.hooks || typeof existing.hooks !== "object") {
 		existing.hooks = {};
+	}
+
+	// Remove all stale Superset-managed Codex hook commands, including events we
+	// no longer manage natively (for example UserPromptSubmit from older builds).
+	for (const [eventName, current] of Object.entries(existing.hooks)) {
+		if (!Array.isArray(current)) continue;
+		const filtered = current.flatMap((def: ClaudeHookDefinition) => {
+			const cleaned = removeManagedHooksFromDefinition(def, (command) =>
+				isManagedCodexHookCommand(command, notifyScriptPath),
+			);
+			return cleaned ? [cleaned] : [];
+		});
+
+		if (filtered.length === 0) {
+			delete existing.hooks[eventName];
+			continue;
+		}
+
+		existing.hooks[eventName] = filtered;
 	}
 
 	const managedEvents: Array<{
@@ -366,13 +407,13 @@ export function getCodexGlobalHooksJsonContent(
 		{
 			eventName: "SessionStart",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "Stop",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 	];
@@ -380,15 +421,8 @@ export function getCodexGlobalHooksJsonContent(
 	for (const { eventName, definition } of managedEvents) {
 		const current = existing.hooks[eventName];
 		if (Array.isArray(current)) {
-			const filtered = current.flatMap((def: ClaudeHookDefinition) => {
-				const cleaned = removeManagedClaudeHooksFromDefinition(
-					def,
-					notifyScriptPath,
-				);
-				return cleaned ? [cleaned] : [];
-			});
-			filtered.push(definition);
-			existing.hooks[eventName] = filtered;
+			current.push(definition);
+			existing.hooks[eventName] = current;
 		} else {
 			existing.hooks[eventName] = [definition];
 		}

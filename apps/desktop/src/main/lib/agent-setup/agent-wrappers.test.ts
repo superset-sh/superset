@@ -68,6 +68,7 @@ const {
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
+	getCodexManagedHookCommand,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
@@ -77,6 +78,7 @@ const {
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
+const managedCodexHookCommand = getCodexManagedHookCommand();
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -897,7 +899,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === notifyPath),
+					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 				),
 			).toBe(true);
 		}
@@ -944,7 +946,8 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
 				def.hooks.some(
-					(hook: { command: string }) => hook.command === notifyPath,
+					(hook: { command: string }) =>
+						hook.command === managedCodexHookCommand,
 				),
 			),
 		).toBe(true);
@@ -954,7 +957,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			parsed.hooks.SessionStart.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
-						(hook: { command: string }) => hook.command === notifyPath,
+						(hook: { command: string }) =>
+							hook.command === managedCodexHookCommand,
 					),
 			),
 		).toBe(true);
@@ -1033,7 +1037,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === currentHookPath),
+					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 				),
 			).toBe(true);
 			expect(
@@ -1053,6 +1057,70 @@ describe("agent-wrappers codex hooks.json", () => {
 		// Idempotent
 		expect(content2).not.toBeNull();
 		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
+	});
+
+	it("removes stale Superset-managed UserPromptSubmit hooks without touching user hooks", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const staleHookPath =
+			"/Users/test/.superset/worktrees/repo/superset-dev-data/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(
+			codexHooksPath,
+			JSON.stringify(
+				{
+					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{
+										type: "command",
+										command: "/opt/my-custom-prompt-hook.sh",
+									},
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getCodexGlobalHooksJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some(
+					(hook) => hook.command === "/opt/my-custom-prompt-hook.sh",
+				),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+			),
+		).toBe(false);
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some((hook) => hook.command === managedCodexHookCommand),
+			),
+		).toBe(false);
 	});
 
 	it("skips Codex hooks writes when existing JSON is invalid", () => {
