@@ -1075,18 +1075,6 @@ export class Session {
 
 		for (const { socket } of this.attachedClients.values()) {
 			try {
-				// Skip terminal data while a client is backpressured. Continuing
-				// to queue screen updates would grow Node's internal buffer without
-				// bound, and the massive flush on drain causes a visible freeze /
-				// catch-up stall (#2968). Lifecycle events still need to be
-				// delivered even if the client is temporarily behind.
-				if (
-					eventType === "data" &&
-					this.clientSocketsWaitingForDrain.has(socket)
-				) {
-					continue;
-				}
-
 				const canWrite = socket.write(message);
 				if (!canWrite) {
 					this.warnBackpressure();

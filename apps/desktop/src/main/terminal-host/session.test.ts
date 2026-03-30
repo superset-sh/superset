@@ -338,9 +338,9 @@ describe("Terminal Host Session backpressure", () => {
 		return { session, socket: fakeSocket, broadcast, broadcastEvent };
 	}
 
-	it("stops writing to a backpressured socket instead of growing the buffer", () => {
+	it("marks the socket backpressured after a write returns false", () => {
 		// First write succeeds, subsequent ones signal backpressure
-		const { socket, broadcast } = createSessionWithSocket(
+		const { session, socket, broadcast } = createSessionWithSocket(
 			(_msg, writes) => writes.length <= 1,
 		);
 		const fakeSocket = socket as unknown as FakeSocket;
@@ -353,39 +353,53 @@ describe("Terminal Host Session backpressure", () => {
 		broadcast("frame-2");
 		expect(fakeSocket.writes).toHaveLength(2);
 
-		// Subsequent broadcasts should be SKIPPED — not written to the socket
-		broadcast("frame-3");
-		broadcast("frame-4");
-		broadcast("frame-5");
-		expect(fakeSocket.writes).toHaveLength(2);
+		expect(
+			(
+				session as unknown as {
+					clientSocketsWaitingForDrain: Set<import("node:net").Socket>;
+				}
+			).clientSocketsWaitingForDrain.has(socket),
+		).toBe(true);
 	});
 
 	it("resumes writing after the socket drains", () => {
-		// First write succeeds, second backpressures, after drain writes succeed again
-		const { socket, broadcast } = createSessionWithSocket(
+		// First write succeeds, second backpressures, after drain the session
+		// clears the waiting state so the stdout pause can be lifted.
+		const { session, socket, broadcast } = createSessionWithSocket(
 			(_msg, writes) => writes.length !== 2,
 		);
 		const fakeSocket = socket as unknown as FakeSocket;
 
 		broadcast("frame-1"); // write #1 → succeeds (length 1 !== 2)
 		broadcast("frame-2"); // write #2 → returns false (length 2 === 2)
-
-		// Skipped during backpressure
-		broadcast("frame-3");
-		broadcast("frame-4");
 		expect(fakeSocket.writes).toHaveLength(2);
+		expect(
+			(
+				session as unknown as {
+					clientSocketsWaitingForDrain: Set<import("node:net").Socket>;
+				}
+			).clientSocketsWaitingForDrain.has(socket),
+		).toBe(true);
 
 		// Simulate drain — triggers the once("drain") handler which removes
 		// the socket from clientSocketsWaitingForDrain
 		fakeSocket.emit("drain");
 
-		// After drain, new broadcasts write again (write #3 → succeeds)
+		expect(
+			(
+				session as unknown as {
+					clientSocketsWaitingForDrain: Set<import("node:net").Socket>;
+				}
+			).clientSocketsWaitingForDrain.has(socket),
+		).toBe(false);
+
+		// After drain, new broadcasts write again
 		broadcast("frame-5");
 		expect(fakeSocket.writes).toHaveLength(3);
 		expect(fakeSocket.writes[2]).toContain("frame-5");
 	});
 
-	it("still delivers exit and error events while socket is waiting for drain", () => {
+	it("continues delivering data, exit, and error events while waiting for drain", () => {
 		const { socket, broadcast, broadcastEvent } = createSessionWithSocket(
 			(_msg, writes) => writes.length <= 1,
 		);
@@ -393,16 +407,18 @@ describe("Terminal Host Session backpressure", () => {
 
 		broadcast("frame-1");
 		broadcast("frame-2");
-		expect(fakeSocket.writes).toHaveLength(2);
+		broadcast("frame-3");
+		expect(fakeSocket.writes).toHaveLength(3);
+		expect(fakeSocket.writes[2]).toContain("frame-3");
 
 		broadcastEvent("exit", { type: "exit", exitCode: 0 });
 		broadcastEvent("error", { type: "error", error: "boom" });
 
-		expect(fakeSocket.writes).toHaveLength(4);
-		expect(fakeSocket.writes[2]).toContain('"event":"exit"');
-		expect(fakeSocket.writes[2]).toContain('"exitCode":0');
-		expect(fakeSocket.writes[3]).toContain('"event":"error"');
-		expect(fakeSocket.writes[3]).toContain('"error":"boom"');
+		expect(fakeSocket.writes).toHaveLength(5);
+		expect(fakeSocket.writes[3]).toContain('"event":"exit"');
+		expect(fakeSocket.writes[3]).toContain('"exitCode":0');
+		expect(fakeSocket.writes[4]).toContain('"event":"error"');
+		expect(fakeSocket.writes[4]).toContain('"error":"boom"');
 	});
 
 	it("emits only one backpressure warning while socket remains backpressured", () => {
@@ -423,8 +439,8 @@ describe("Terminal Host Session backpressure", () => {
 	});
 
 	it("includes suppressed count when warning resumes after interval", () => {
-		// Write always returns false so every non-skipped write triggers backpressure.
-		// We need to drain between writes to avoid the skip-backpressured-socket optimization.
+		// Write always returns false so every broadcast triggers backpressure.
+		// Drain between writes to simulate a client that repeatedly falls behind.
 		const { session, socket, broadcast } = createSessionWithSocket(() => false);
 		const fakeSocket = socket as unknown as FakeSocket;
 
