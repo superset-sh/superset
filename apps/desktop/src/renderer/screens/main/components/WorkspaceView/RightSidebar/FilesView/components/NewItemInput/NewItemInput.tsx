@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuCheck, LuFile, LuFolder, LuX } from "react-icons/lu";
 import { TREE_INDENT } from "../../constants";
 import type { NewItemMode } from "../../types";
@@ -20,6 +20,16 @@ export function NewItemInput({
 	level = 0,
 }: NewItemInputProps) {
 	const [value, setValue] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (inputRef.current) {
+				inputRef.current.focus();
+			}
+		}, 50);
+		return () => clearTimeout(timer);
+	}, []);
 
 	const handleSubmit = () => {
 		const trimmed = value.trim();
@@ -53,10 +63,12 @@ export function NewItemInput({
 			<span className="w-4 h-4 shrink-0" />
 			<Icon className="size-4 shrink-0 text-amber-500" />
 			<input
+				ref={inputRef}
 				type="text"
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				onKeyDown={handleKeyDown}
+				onBlur={handleSubmit}
 				placeholder={isFolder ? "folder name" : "file name"}
 				className={cn(
 					"flex-1 min-w-0 px-1 py-0 text-xs",
