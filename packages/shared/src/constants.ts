@@ -51,6 +51,8 @@ export const POSTHOG_COOKIE_NAME = "superset";
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
+	/** Gates access to the experimental mobile-first agents UI on web. */
+	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to GitHub integration (currently buggy, internal only). */
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 	/** Gates access to Slack integration (internal only). */
