@@ -20,8 +20,16 @@ describe("notifications/server", () => {
 			expect(mapEventType("UserPromptSubmit")).toBe("Start");
 		});
 
+		it("should map Codex 'userPromptSubmit' to 'Start'", () => {
+			expect(mapEventType("userPromptSubmit")).toBe("Start");
+		});
+
 		it("should map 'Stop' to 'Stop'", () => {
 			expect(mapEventType("Stop")).toBe("Stop");
+		});
+
+		it("should map Codex 'stop' to 'Stop'", () => {
+			expect(mapEventType("stop")).toBe("Stop");
 		});
 
 		it("should map 'agent-turn-complete' to 'Stop'", () => {
