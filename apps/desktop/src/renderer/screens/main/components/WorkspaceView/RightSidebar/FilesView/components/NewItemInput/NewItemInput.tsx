@@ -77,6 +77,7 @@ export function NewItemInput({
 			/>
 			<button
 				type="button"
+				onMouseDown={(e) => e.preventDefault()}
 				onClick={handleSubmit}
 				className="p-0.5 hover:bg-background/50 rounded"
 			>
