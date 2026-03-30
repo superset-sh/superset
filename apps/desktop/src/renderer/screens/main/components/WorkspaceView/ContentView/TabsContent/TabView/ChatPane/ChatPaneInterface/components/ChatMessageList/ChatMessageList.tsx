@@ -4,8 +4,9 @@ import {
 	ConversationEmptyState,
 	ConversationLoadingState,
 	ConversationScrollButton,
+	useConversationContext,
 } from "@superset/ui/ai-elements/conversation";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import type {
 	ChatMessage,
@@ -30,6 +31,44 @@ import {
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
 
+function ScrollAnchor({
+	questionId,
+	answeredQuestionId,
+	isAwaitingAssistant,
+}: {
+	questionId: string | null | undefined;
+	answeredQuestionId: string | null;
+	isAwaitingAssistant: boolean;
+}) {
+	const { scrollToBottom } = useConversationContext();
+
+	// Scroll to bottom whenever the assistant starts responding (new message
+	// sent or question answered), so "Thinking…" and the response are visible.
+	useEffect(() => {
+		if (!isAwaitingAssistant) return;
+		void scrollToBottom("instant");
+	}, [isAwaitingAssistant, scrollToBottom]);
+
+	// Scroll to bottom when a new question arrives.
+	useEffect(() => {
+		if (!questionId) return;
+		void scrollToBottom("instant");
+	}, [questionId, scrollToBottom]);
+
+	// When an answer is submitted the overlay hides, shrinking the footer and
+	// growing the Conversation container. The browser clamps scrollTop, which
+	// the library interprets as "user scrolled up" (setIsAtBottom(false)) via
+	// its 1ms setTimeout. We run after that timer with a 10ms delay so our
+	// scrollToBottom fires AFTER the library has reset the pin, restoring it.
+	useEffect(() => {
+		if (!answeredQuestionId) return;
+		const id = setTimeout(() => void scrollToBottom("instant"), 10);
+		return () => clearTimeout(id);
+	}, [answeredQuestionId, scrollToBottom]);
+
+	return null;
+}
+
 export function ChatMessageList({
 	messages,
 	isFocused,
@@ -50,6 +89,8 @@ export function ChatMessageList({
 	pendingPlanApproval,
 	isPlanSubmitting,
 	onPlanRespond,
+	pendingQuestion,
+	answeredQuestionId,
 	editingUserMessageId,
 	isEditSubmitting,
 	onStartEditUserMessage,
@@ -136,6 +177,7 @@ export function ChatMessageList({
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&
+		!pendingQuestion &&
 		previewToolParts.length === 0;
 	const shouldShowToolPreview =
 		canShowPendingAssistantUi &&
@@ -275,6 +317,7 @@ export function ChatMessageList({
 			/>
 			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
+			<ScrollAnchor questionId={pendingQuestion?.questionId} answeredQuestionId={answeredQuestionId} isAwaitingAssistant={isAwaitingAssistant} />
 		</Conversation>
 	);
 }
