@@ -4,8 +4,9 @@ import {
 	ConversationEmptyState,
 	ConversationLoadingState,
 	ConversationScrollButton,
+	useConversationContext,
 } from "@superset/ui/ai-elements/conversation";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import type {
 	ChatMessage,
@@ -29,6 +30,20 @@ import {
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
+
+function ScrollAnchor({ trigger }: { trigger: number }) {
+	const { scrollToBottom, isAtBottom } = useConversationContext();
+	const isAtBottomRef = useRef(isAtBottom);
+	isAtBottomRef.current = isAtBottom;
+
+	useEffect(() => {
+		if (isAtBottomRef.current) {
+			scrollToBottom("instant");
+		}
+	}, [trigger, scrollToBottom]);
+
+	return null;
+}
 
 export function ChatMessageList({
 	messages,
@@ -56,6 +71,7 @@ export function ChatMessageList({
 	onCancelEditUserMessage,
 	onSubmitEditedUserMessage,
 	onRestartUserMessage,
+	footerScrollTrigger = 0,
 }: ChatMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -273,6 +289,7 @@ export function ChatMessageList({
 				onFindPrevious={chatSearch.findPrevious}
 				onClose={chatSearch.closeSearch}
 			/>
+			<ScrollAnchor trigger={footerScrollTrigger} />
 			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
 		</Conversation>

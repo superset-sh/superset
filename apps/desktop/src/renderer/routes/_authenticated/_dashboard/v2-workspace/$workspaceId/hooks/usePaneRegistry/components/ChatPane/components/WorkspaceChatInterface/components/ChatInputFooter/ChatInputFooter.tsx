@@ -148,6 +148,7 @@ export function ChatInputFooter({
 					)}
 					{pendingQuestion && onQuestionRespond && onQuestionCancel ? (
 						<QuestionInputOverlay
+							key={pendingQuestion.questionId}
 							question={pendingQuestion}
 							isSubmitting={isQuestionSubmitting ?? false}
 							onRespond={onQuestionRespond}

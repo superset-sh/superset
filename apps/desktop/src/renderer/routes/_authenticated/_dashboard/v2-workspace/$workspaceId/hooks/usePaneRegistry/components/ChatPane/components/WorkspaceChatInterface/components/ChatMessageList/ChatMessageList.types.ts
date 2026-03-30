@@ -86,4 +86,5 @@ export interface ChatMessageListProps {
 		request: UserMessageRestartRequest,
 	) => Promise<void>;
 	onRestartUserMessage: (request: UserMessageRestartRequest) => Promise<void>;
+	footerScrollTrigger?: number;
 }
