@@ -88,7 +88,9 @@ export function ToolCallRow({
 					<button
 						className={cn(
 							"flex h-7 min-w-0 flex-1 items-center justify-between rounded-md px-1 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-							hasDetails && "transition-colors duration-150 hover:bg-muted/30",
+							hasDetails
+							? "cursor-pointer transition-colors duration-150 hover:bg-muted/30"
+							: "cursor-text",
 						)}
 						data-tool-trigger
 						disabled={!hasDetails}

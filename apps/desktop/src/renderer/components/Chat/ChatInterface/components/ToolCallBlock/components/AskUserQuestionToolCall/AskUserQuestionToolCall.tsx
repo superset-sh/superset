@@ -1,5 +1,5 @@
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
-import { MessageCircleQuestionIcon } from "lucide-react";
+import { CheckIcon, ClockIcon, MessageCircleQuestionIcon, XIcon } from "lucide-react";
 import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 
@@ -115,6 +115,49 @@ function findAnswerForQuestion({
 	return undefined;
 }
 
+type QuestionStatus = "awaiting" | "answered" | "cancelled";
+
+const QUESTION_STATUS_CONFIG: Record<
+	QuestionStatus,
+	{ label: string; icon: typeof ClockIcon }
+> = {
+	awaiting: { label: "Awaiting Response", icon: ClockIcon },
+	answered: { label: "Answered", icon: CheckIcon },
+	cancelled: { label: "Cancelled", icon: XIcon },
+};
+
+function QuestionStatusDescription({ status }: { status: QuestionStatus }) {
+	const { label, icon: Icon } = QUESTION_STATUS_CONFIG[status];
+	return (
+		<span className="ml-2 flex items-center gap-1 font-medium uppercase tracking-wide">
+			<Icon className="h-3 w-3 shrink-0" />
+			{label}
+		</span>
+	);
+}
+
+function toSingleQuestion(args: Record<string, unknown>): QuestionToolQuestion[] {
+	const question =
+		typeof args.question === "string" ? args.question.trim() : "";
+	if (!question) return [];
+
+	const options = Array.isArray(args.options)
+		? args.options
+				.map((opt): QuestionToolOption | null => {
+					if (typeof opt !== "object" || opt === null) return null;
+					const o = opt as Record<string, unknown>;
+					const label = typeof o.label === "string" ? o.label.trim() : "";
+					if (!label) return null;
+					const description =
+						typeof o.description === "string" ? o.description.trim() : "";
+					return description ? { label, description } : { label };
+				})
+				.filter((o): o is QuestionToolOption => o !== null)
+		: [];
+
+	return [{ question, options }];
+}
+
 export function AskUserQuestionToolCall({
 	part,
 	args,
@@ -123,8 +166,11 @@ export function AskUserQuestionToolCall({
 	nestedResultObject,
 }: AskUserQuestionToolCallProps) {
 	const questions = useMemo(
-		() => toQuestionToolQuestions(args.questions),
-		[args.questions],
+		() =>
+			Array.isArray(args.questions)
+				? toQuestionToolQuestions(args.questions)
+				: toSingleQuestion(args),
+		[args],
 	);
 
 	const answers = useMemo(
@@ -137,14 +183,20 @@ export function AskUserQuestionToolCall({
 		[nestedResultObject?.answers, outputObject?.answers, result.answers],
 	);
 
-	// Fallback for plain-string results: getResult() wraps them as { text: "..." }
+	// Fallback for plain-string results and mastracode's { content: "User answered: <answer>" } format
 	const answerFallbackText = useMemo(() => {
 		if (typeof result.text === "string" && result.text.trim())
 			return result.text.trim();
 		if (typeof result.answer === "string" && result.answer.trim())
 			return result.answer.trim();
+		// ask_user tool returns { content: "User answered: <answer>", isError: false }
+		if (typeof result.content === "string" && result.content.trim()) {
+			const raw = result.content.trim();
+			const prefix = "User answered: ";
+			return raw.startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
+		}
 		return undefined;
-	}, [result.text, result.answer]);
+	}, [result.text, result.answer, result.content]);
 
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
@@ -156,63 +208,53 @@ export function AskUserQuestionToolCall({
 	if (questions.length === 0 && !isError) return null;
 
 	const isAnswered = !isPending && !isError && hasAnswers;
-	// Skipped = pending-but-stopped, or result with no answers
-	const isSkipped = !isPending && !isError && !hasAnswers;
+	const isCancelled = !isPending && !isError && !hasAnswers;
 
-	const description =
-		questions.length > 1
-			? `${questions.length} questions`
-			: (questions[0]?.question ?? undefined);
-
-	const answerTexts = useMemo(
+	const answeredQAs = useMemo(
 		() =>
 			questions
-				.map((q) =>
-					findAnswerForQuestion({ answers, questionText: q.question }),
-				)
-				.filter((a): a is string => a !== undefined),
+				.map((q) => ({
+					question: q.question,
+					answer: findAnswerForQuestion({ answers, questionText: q.question }),
+				}))
+				.filter((qa): qa is { question: string; answer: string } =>
+					qa.answer !== undefined,
+				),
 		[questions, answers],
 	);
 
-	const questionContent =
-		questions.length > 0 ? (
-			<div className="space-y-2.5 py-1.5 pl-2">
-				{questions.map((q, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: questions don't have unique keys
-					<div key={i} className="text-xs text-muted-foreground">
-						{q.question}
-					</div>
-				))}
-			</div>
-		) : undefined;
+	// Fallback for plain-string result when questions array has one entry
+	const fallbackQA =
+		answeredQAs.length === 0 && answerFallbackText && questions[0]
+			? { question: questions[0].question, answer: answerFallbackText }
+			: null;
+
+	const qasToShow = answeredQAs.length > 0 ? answeredQAs : fallbackQA ? [fallbackQA] : [];
 
 	return (
-		<>
-			<ToolCallRow
-				description={description}
-				icon={MessageCircleQuestionIcon}
-				isError={isError}
-				isPending={false}
-				title="Question"
-			>
-				{questionContent}
-			</ToolCallRow>
-			{isSkipped && (
-				<div className="flex items-center gap-2 px-1 py-0.5 text-xs text-muted-foreground">
-					<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
-						Question skipped
-					</span>
-				</div>
-			)}
-			{isAnswered && (answerTexts.length > 0 || answerFallbackText) && (
-				<div className="flex flex-col items-end">
-					<div className="rounded-lg bg-secondary px-4 py-2.5 text-sm text-foreground">
-						{answerTexts.length > 0
-							? answerTexts.join("\n")
-							: answerFallbackText}
-					</div>
-				</div>
-			)}
-		</>
+		<ToolCallRow
+			icon={MessageCircleQuestionIcon}
+			isPending={false}
+			isError={isError}
+			title="Question"
+			description={
+				isPending ? (
+					<QuestionStatusDescription status="awaiting" />
+				) : isAnswered ? (
+					<QuestionStatusDescription status="answered" />
+				) : isCancelled ? (
+					<QuestionStatusDescription status="cancelled" />
+				) : undefined
+			}
+		>
+			{isAnswered && qasToShow.length > 0
+				? qasToShow.map((qa) => (
+						<div key={qa.question} className="space-y-1 px-3 py-2">
+							<div className="text-xs text-muted-foreground">{qa.question}</div>
+							<div className="text-sm text-foreground">{qa.answer}</div>
+						</div>
+					))
+				: undefined}
+		</ToolCallRow>
 	);
 }
