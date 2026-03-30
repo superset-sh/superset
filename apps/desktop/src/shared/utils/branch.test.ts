@@ -148,6 +148,12 @@ describe("sanitizeBranchName", () => {
 	test("handles only slashes", () => {
 		expect(sanitizeBranchName("///")).toBe("");
 	});
+
+	test("preserves case in all segments when preserveCase is true", () => {
+		expect(sanitizeBranchName("feat/AAA-1_dummy", { preserveCase: true })).toBe(
+			"feat/AAA-1_dummy",
+		);
+	});
 });
 
 describe("truncateBranchName", () => {
@@ -183,6 +189,14 @@ describe("sanitizeBranchNameWithMaxLength", () => {
 				preserveFirstSegmentCase: true,
 			}),
 		).toBe("Fix_Bug");
+	});
+
+	test("preserves case in all segments when preserveCase is true", () => {
+		expect(
+			sanitizeBranchNameWithMaxLength("Kitenite/feat/AAA-1_dummy", 100, {
+				preserveCase: true,
+			}),
+		).toBe("Kitenite/feat/AAA-1_dummy");
 	});
 });
 

@@ -370,7 +370,7 @@ export const createCreateProcedures = () => {
 					branch = sanitizeBranchNameWithMaxLength(
 						withPrefix(input.branchName),
 						undefined,
-						{ preserveFirstSegmentCase: true },
+						{ preserveCase: true },
 					);
 				} else {
 					branch = generateBranchName({
