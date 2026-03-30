@@ -32,11 +32,19 @@ interface SearchIndexEntry {
 	absolutePath: string;
 	relativePath: string;
 	name: string;
+	lowerName: string;
+	lowerRelativePath: string;
+	compactName: string;
+	compactRelativePath: string;
 }
 
 interface FileSearchIndex {
 	items: SearchIndexEntry[];
 	fuse: Fuse<SearchIndexEntry>;
+	itemsByLowerName: Map<string, SearchIndexEntry[]>;
+	itemsByCompactName: Map<string, SearchIndexEntry[]>;
+	itemsByLowerRelativePath: Map<string, SearchIndexEntry[]>;
+	itemsByCompactRelativePath: Map<string, SearchIndexEntry[]>;
 }
 
 interface FileSearchCacheEntry {
@@ -109,11 +117,85 @@ function createFileSearchFuse(
 		keys: [
 			{ name: "name", weight: 2 },
 			{ name: "relativePath", weight: 1 },
+			{ name: "compactName", weight: 1.8 },
+			{ name: "compactRelativePath", weight: 0.9 },
 		],
 		threshold: 0.4,
 		includeScore: true,
 		ignoreLocation: true,
 	});
+}
+
+function normalizeSearchText(input: string): string {
+	return input.toLowerCase().replace(/[\\/\s._-]+/g, "");
+}
+
+function createSearchIndexEntry(
+	rootPath: string,
+	relativePath: string,
+): SearchIndexEntry {
+	const normalizedRelativePath = normalizePathForGlob(relativePath);
+	const absolutePath = normalizeAbsolutePath(
+		path.join(rootPath, normalizedRelativePath),
+	);
+	const name = path.basename(normalizedRelativePath);
+	const lowerName = name.toLowerCase();
+	const lowerRelativePath = normalizedRelativePath.toLowerCase();
+
+	return {
+		absolutePath,
+		relativePath: normalizedRelativePath,
+		name,
+		lowerName,
+		lowerRelativePath,
+		compactName: normalizeSearchText(name),
+		compactRelativePath: normalizeSearchText(normalizedRelativePath),
+	};
+}
+
+function addSearchIndexMapEntry(
+	index: Map<string, SearchIndexEntry[]>,
+	key: string,
+	item: SearchIndexEntry,
+): void {
+	const existing = index.get(key);
+	if (existing) {
+		existing.push(item);
+		return;
+	}
+
+	index.set(key, [item]);
+}
+
+function createFileSearchIndex(items: SearchIndexEntry[]): FileSearchIndex {
+	const itemsByLowerName = new Map<string, SearchIndexEntry[]>();
+	const itemsByCompactName = new Map<string, SearchIndexEntry[]>();
+	const itemsByLowerRelativePath = new Map<string, SearchIndexEntry[]>();
+	const itemsByCompactRelativePath = new Map<string, SearchIndexEntry[]>();
+
+	for (const item of items) {
+		addSearchIndexMapEntry(itemsByLowerName, item.lowerName, item);
+		addSearchIndexMapEntry(itemsByCompactName, item.compactName, item);
+		addSearchIndexMapEntry(
+			itemsByLowerRelativePath,
+			item.lowerRelativePath,
+			item,
+		);
+		addSearchIndexMapEntry(
+			itemsByCompactRelativePath,
+			item.compactRelativePath,
+			item,
+		);
+	}
+
+	return {
+		items,
+		fuse: createFileSearchFuse(items),
+		itemsByLowerName,
+		itemsByCompactName,
+		itemsByLowerRelativePath,
+		itemsByCompactRelativePath,
+	};
 }
 
 function getSearchCacheKey({
@@ -272,16 +354,11 @@ async function buildSearchIndex({
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
 
-	const items: SearchIndexEntry[] = entries.map((relativePath) => ({
-		absolutePath: path.join(normalizedRootPath, relativePath),
-		relativePath,
-		name: path.basename(relativePath),
-	}));
+	const items: SearchIndexEntry[] = entries.map((relativePath) =>
+		createSearchIndexEntry(normalizedRootPath, relativePath),
+	);
 
-	return {
-		items,
-		fuse: createFileSearchFuse(items),
-	};
+	return createFileSearchIndex(items);
 }
 
 async function getSearchIndex(
@@ -342,6 +419,78 @@ async function getSearchIndex(
 
 function safeSearchLimit(limit: number | undefined): number {
 	return Math.max(1, Math.min(limit ?? 20, MAX_SEARCH_RESULTS));
+}
+
+function compareFileSearchMatches(
+	left: { item: SearchIndexEntry; score: number },
+	right: { item: SearchIndexEntry; score: number },
+): number {
+	if (left.score !== right.score) {
+		return right.score - left.score;
+	}
+
+	if (left.item.name.length !== right.item.name.length) {
+		return left.item.name.length - right.item.name.length;
+	}
+
+	if (left.item.relativePath.length !== right.item.relativePath.length) {
+		return left.item.relativePath.length - right.item.relativePath.length;
+	}
+
+	return left.item.relativePath.localeCompare(right.item.relativePath);
+}
+
+function collectExactFileSearchMatches({
+	index,
+	query,
+	pathMatcher,
+	limit,
+}: {
+	index: FileSearchIndex;
+	query: string;
+	pathMatcher: PathFilterMatcher;
+	limit: number;
+}): Array<{ item: SearchIndexEntry; score: number }> {
+	const lowerQuery = query.toLowerCase();
+	const normalizedPathQuery = normalizePathForGlob(lowerQuery);
+	const compactQuery = normalizeSearchText(query);
+	const matchesByPath = new Map<
+		string,
+		{ item: SearchIndexEntry; score: number }
+	>();
+
+	const addMatches = (
+		items: SearchIndexEntry[] | undefined,
+		score: number,
+	): void => {
+		const candidates = items ?? [];
+
+		for (const item of candidates) {
+			if (
+				pathMatcher.hasFilters &&
+				!matchesPathFilters(item.relativePath, pathMatcher)
+			) {
+				continue;
+			}
+
+			const existing = matchesByPath.get(item.absolutePath);
+			if (!existing || existing.score < score) {
+				matchesByPath.set(item.absolutePath, { item, score });
+			}
+		}
+	};
+
+	addMatches(index.itemsByLowerName.get(lowerQuery), 1);
+	addMatches(index.itemsByLowerRelativePath.get(normalizedPathQuery), 0.995);
+
+	if (compactQuery.length > 0) {
+		addMatches(index.itemsByCompactName.get(compactQuery), 0.99);
+		addMatches(index.itemsByCompactRelativePath.get(compactQuery), 0.985);
+	}
+
+	return Array.from(matchesByPath.values())
+		.sort(compareFileSearchMatches)
+		.slice(0, limit);
 }
 
 function isBinaryContent(buffer: Buffer): boolean {
@@ -678,11 +827,10 @@ function applySearchPatchEvent({
 		}
 
 		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
-		itemsByPath.set(nextAbsolutePath, {
-			absolutePath: nextAbsolutePath,
-			relativePath: nextRelativePath,
-			name: path.basename(nextAbsolutePath),
-		});
+		itemsByPath.set(
+			nextAbsolutePath,
+			createSearchIndexEntry(rootPath, nextRelativePath),
+		);
 		return;
 	}
 
@@ -698,11 +846,7 @@ function applySearchPatchEvent({
 		return;
 	}
 
-	itemsByPath.set(absolutePath, {
-		absolutePath,
-		relativePath,
-		name: path.basename(absolutePath),
-	});
+	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
@@ -735,6 +879,11 @@ export function patchSearchIndexesForRoot(
 	events: SearchPatchEvent[],
 ): void {
 	if (events.length === 0) {
+		return;
+	}
+
+	if (events.some((event) => event.isDirectory)) {
+		invalidateSearchIndexesForRoot(rootPath);
 		return;
 	}
 
@@ -772,10 +921,7 @@ export function patchSearchIndexesForRoot(
 		const nextItems = Array.from(nextItemsByPath.values());
 
 		searchIndexCache.set(cacheKey, {
-			index: {
-				items: nextItems,
-				fuse: createFileSearchFuse(nextItems),
-			},
+			index: createFileSearchIndex(nextItems),
 			builtAt: Date.now(),
 		});
 	}
@@ -802,6 +948,24 @@ export async function searchFiles({
 		includePattern,
 		excludePattern,
 	});
+	const safeLimit = safeSearchLimit(limit);
+
+	const exactMatches = collectExactFileSearchMatches({
+		index,
+		query: trimmedQuery,
+		pathMatcher,
+		limit: safeLimit,
+	});
+	if (exactMatches.length > 0) {
+		return exactMatches.map((result) => ({
+			absolutePath: result.item.absolutePath,
+			relativePath: result.item.relativePath,
+			name: result.item.name,
+			kind: "file" as const,
+			score: result.score,
+		}));
+	}
+
 	const searchableItems = pathMatcher.hasFilters
 		? index.items.filter((item) =>
 				matchesPathFilters(item.relativePath, pathMatcher),
@@ -816,7 +980,7 @@ export async function searchFiles({
 		? createFileSearchFuse(searchableItems)
 		: index.fuse;
 	const results = fuse.search(trimmedQuery, {
-		limit: safeSearchLimit(limit),
+		limit: safeLimit,
 	});
 
 	return results.map((result) => ({

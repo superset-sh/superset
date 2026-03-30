@@ -1067,11 +1067,6 @@ export class Session {
 			try {
 				const canWrite = socket.write(message);
 				if (!canWrite) {
-					// Socket buffer full - data will be queued but may cause memory pressure
-					// In production, could track this and pause PTY output temporarily
-					console.warn(
-						`[Session ${this.sessionId}] Client socket buffer full, output may be delayed`,
-					);
 					this.handleClientBackpressure(socket);
 				}
 			} catch {

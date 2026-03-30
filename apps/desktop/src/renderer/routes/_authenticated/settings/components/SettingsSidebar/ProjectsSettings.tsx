@@ -7,12 +7,12 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface ProjectsSettingsProps {
-	searchQuery: string;
+	isSearchActive: boolean;
 	matchCounts: Partial<Record<SettingsSection, number>> | null;
 }
 
 export function ProjectsSettings({
-	searchQuery,
+	isSearchActive,
 	matchCounts,
 }: ProjectsSettingsProps) {
 	const { data: groups = [] } =
@@ -22,7 +22,7 @@ export function ProjectsSettings({
 
 	const hasProjectMatches = (matchCounts?.project ?? 0) > 0;
 
-	if (searchQuery && !hasProjectMatches) {
+	if (isSearchActive && !hasProjectMatches) {
 		return null;
 	}
 

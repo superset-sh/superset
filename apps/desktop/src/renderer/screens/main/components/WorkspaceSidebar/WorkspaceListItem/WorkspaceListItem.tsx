@@ -135,6 +135,10 @@ export function WorkspaceListItem({
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
+	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
+		onError: (error) =>
+			toast.error(`Failed to open in editor: ${error.message}`),
+	});
 	const setUnread = electronTrpc.workspaces.setUnread.useMutation({
 		onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
 		onError: (error) =>
@@ -233,6 +237,11 @@ export function WorkspaceListItem({
 
 	const handleOpenInFinder = () => {
 		if (worktreePath) openInFinder.mutate(worktreePath);
+	};
+
+	const handleOpenInEditor = () => {
+		if (worktreePath)
+			openFileInEditor.mutate({ path: worktreePath, projectId });
 	};
 
 	const { copyToClipboard } = useCopyToClipboard();
@@ -463,6 +472,7 @@ export function WorkspaceListItem({
 				sections={sections}
 				onRename={rename.startRename}
 				onOpenInFinder={handleOpenInFinder}
+				onOpenInEditor={handleOpenInEditor}
 				onCopyPath={handleCopyPath}
 				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
 				onResetStatus={() => resetWorkspaceStatus(id)}

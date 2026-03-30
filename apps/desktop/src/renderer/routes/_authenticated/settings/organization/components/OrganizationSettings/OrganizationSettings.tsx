@@ -26,6 +26,10 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	getImageExtensionFromMimeType,
+	parseBase64DataUrl,
+} from "shared/file-types";
 import { MemberActions } from "../../../members/components/MembersSettings/components/MemberActions";
 import { PendingInvitations } from "../../../members/components/PendingInvitations";
 import type { TeamMember } from "../../../members/types";
@@ -140,9 +144,8 @@ export function OrganizationSettings({
 			const result = await selectImageMutation.mutateAsync();
 			if (result.canceled || !result.dataUrl) return;
 
-			const mimeMatch = result.dataUrl.match(/^data:([^;]+);/);
-			const mimeType = mimeMatch?.[1] || "image/png";
-			const ext = mimeType.split("/")[1] || "png";
+			const { mimeType } = parseBase64DataUrl(result.dataUrl);
+			const ext = getImageExtensionFromMimeType(mimeType) ?? "png";
 
 			const uploadResult = await apiTrpcClient.organization.uploadLogo.mutate({
 				organizationId: organization.id,

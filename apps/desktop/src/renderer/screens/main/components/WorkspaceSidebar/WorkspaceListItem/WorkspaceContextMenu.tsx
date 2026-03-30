@@ -18,6 +18,7 @@ import {
 	LuArrowRightLeft,
 	LuBellOff,
 	LuCopy,
+	LuExternalLink,
 	LuEye,
 	LuEyeOff,
 	LuFolderOpen,
@@ -47,6 +48,7 @@ interface WorkspaceContextMenuProps {
 	sections: { id: string; name: string }[];
 	onRename: () => void;
 	onOpenInFinder: () => void;
+	onOpenInEditor: () => void;
 	onCopyPath: () => void;
 	onSetUnread: (isUnread: boolean) => void;
 	onResetStatus: () => void;
@@ -64,6 +66,7 @@ export function WorkspaceContextMenu({
 	sections,
 	onRename,
 	onOpenInFinder,
+	onOpenInEditor,
 	onCopyPath,
 	onSetUnread,
 	onResetStatus,
@@ -138,6 +141,10 @@ export function WorkspaceContextMenu({
 			<ContextMenuItem onSelect={onOpenInFinder}>
 				<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Open in Finder
+			</ContextMenuItem>
+			<ContextMenuItem onSelect={onOpenInEditor}>
+				<LuExternalLink className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Open in Editor
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={onCopyPath}>
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

@@ -1338,6 +1338,8 @@ ${sanitizeText(truncatedBody)}`;
 							onOpenChange={setPRLinkOpen}
 							onSelect={setLinkedPR}
 							projectId={projectId}
+							githubOwner={project?.githubOwner ?? null}
+							repoName={project?.mainRepoPath.split("/").pop() ?? null}
 							anchorRef={plusMenuRef}
 						/>
 						<PromptInputSubmit

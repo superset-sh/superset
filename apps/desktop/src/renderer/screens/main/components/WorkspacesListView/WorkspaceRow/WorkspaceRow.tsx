@@ -4,11 +4,13 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import {
 	LuArrowRight,
+	LuExternalLink,
 	LuFolder,
 	LuFolderGit2,
 	LuRotateCw,
@@ -39,6 +41,19 @@ export function WorkspaceRow({
 	const [hasHovered, setHasHovered] = useState(false);
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
+		onError: (error) =>
+			toast.error(`Failed to open in editor: ${error.message}`),
+	});
+
+	const handleOpenInEditor = () => {
+		if (workspace.worktreePath) {
+			openFileInEditor.mutate({
+				path: workspace.worktreePath,
+				projectId: workspace.projectId,
+			});
+		}
+	};
 	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy("workspace-row", {
 		hasWorkspaceId: !!workspace.workspaceId,
 		isActive:
@@ -193,6 +208,13 @@ export function WorkspaceRow({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
 				<ContextMenuContent>
+					<ContextMenuItem onSelect={handleOpenInEditor}>
+						<LuExternalLink
+							className="size-4 mr-2"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						Open in Editor
+					</ContextMenuItem>
 					<ContextMenuItem
 						onSelect={() => handleDeleteClick()}
 						className="text-destructive focus:text-destructive"

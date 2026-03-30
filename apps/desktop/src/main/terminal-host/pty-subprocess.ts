@@ -57,6 +57,7 @@ const INPUT_QUEUE_HARD_LIMIT_BYTES = 64 * 1024 * 1024; // 64MB
 let outputChunks: string[] = [];
 let outputBytesQueued = 0;
 let outputFlushScheduled = false;
+const OUTPUT_FLUSH_INTERVAL_MS = 16; // Match terminal-style frame batching (~60fps)
 const MAX_OUTPUT_BATCH_SIZE_BYTES = 128 * 1024; // 128KB max per flush
 
 // Backpressure - track if stdout is draining
@@ -103,9 +104,9 @@ function queueOutput(data: string): void {
 
 	if (!outputFlushScheduled) {
 		outputFlushScheduled = true;
-		// Flush on the next event-loop turn so interactive echo feels immediate,
-		// while still coalescing bursts that arrive in the same PTY callback cycle.
-		setImmediate(flushOutput);
+		// Timed batching keeps TUI redraws coherent and avoids flooding the renderer
+		// with tiny per-turn frames while still staying under a single display frame.
+		setTimeout(flushOutput, OUTPUT_FLUSH_INTERVAL_MS);
 	}
 }
 
