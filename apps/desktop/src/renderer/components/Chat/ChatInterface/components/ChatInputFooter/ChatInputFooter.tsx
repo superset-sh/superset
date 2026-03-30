@@ -128,7 +128,7 @@ export function ChatInputFooter({
 	);
 
 	return (
-		<ChatInputDropZone className="relative bg-background px-4 pb-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-8 before:h-8 before:bg-gradient-to-t before:from-background before:to-transparent">
+		<ChatInputDropZone className="relative bg-background px-4 pb-3 before:pointer-events-none before:absolute before:left-0 before:right-3 before:-top-8 before:h-8 before:bg-gradient-to-t before:from-background before:to-transparent">
 			{(dragType) => (
 				<div className="mx-auto w-full max-w-[680px]">
 					{errorMessage && (
