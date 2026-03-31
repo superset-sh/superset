@@ -242,6 +242,10 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.daemonSessionIdsHydrated = false;
 			for (const [paneId, session] of this.sessions.entries()) {
 				if (session.isAlive) {
+					session.isAlive = false;
+					session.pid = null;
+					portManager.unregisterDaemonSession(paneId);
+					this.historyManager.closeHistoryWriter(paneId);
 					this.emit(
 						`disconnect:${paneId}`,
 						"Connection to terminal daemon lost",
@@ -256,6 +260,10 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.daemonSessionIdsHydrated = false;
 			for (const [paneId, session] of this.sessions.entries()) {
 				if (session.isAlive) {
+					session.isAlive = false;
+					session.pid = null;
+					portManager.unregisterDaemonSession(paneId);
+					this.historyManager.closeHistoryWriter(paneId);
 					this.emit(`disconnect:${paneId}`, error.message);
 				}
 			}

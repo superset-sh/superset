@@ -205,6 +205,12 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					// Drop stale error/disconnect events queued during reconnection
+					// to prevent them from triggering a spurious retry cycle
+					pendingEventsRef.current = pendingEventsRef.current.filter(
+						(e) => e.type === "data",
+					);
+
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
