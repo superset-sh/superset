@@ -67,31 +67,28 @@ export const AGENT_PROMPT_COMMANDS: Record<
 	AgentPromptCommandDefaults
 > = {
 	claude: {
-		command: AGENT_PRESET_COMMANDS.claude[0] ?? "claude",
+		command: `${AGENT_PRESET_COMMANDS.claude[0] ?? "claude"} --`,
 	},
 	codex: {
 		command: `${AGENT_PRESET_COMMANDS.codex[0] ?? "codex"} --`,
 	},
 	gemini: {
-		command: "gemini",
-		suffix: "--yolo",
+		command: "gemini --yolo --",
 	},
 	mastracode: {
-		command: AGENT_PRESET_COMMANDS.mastracode[0] ?? "mastracode",
+		command: `${AGENT_PRESET_COMMANDS.mastracode[0] ?? "mastracode"} --`,
 	},
 	opencode: {
 		command: "opencode --prompt",
 	},
 	pi: {
-		command: AGENT_PRESET_COMMANDS.pi[0] ?? "pi",
+		command: `${AGENT_PRESET_COMMANDS.pi[0] ?? "pi"} --`,
 	},
 	copilot: {
-		command: "copilot -i --allow-all",
-		suffix: "--yolo",
+		command: "copilot -i --allow-all --yolo --",
 	},
 	"cursor-agent": {
-		command: AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent",
-		suffix: "--yolo",
+		command: `${AGENT_PRESET_COMMANDS["cursor-agent"][0] ?? "cursor-agent"} --yolo --`,
 	},
 };
 
