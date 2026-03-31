@@ -78,8 +78,36 @@ export function ToolCallBlock({
 		(store) => store.hideUnchangedRegions,
 	);
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
-	const panes = useTabsStore((store) => store.panes);
-	const tabs = useTabsStore((store) => store.tabs);
+	// Digest of file-viewer diff panes in this workspace. Computed directly in the
+	// selector so each ToolCallBlock (one per tool call rendered in chat) only
+	// re-renders when a diff pane is opened or closed — not on every status/CWD tick.
+	const diffPanesDigest = useTabsStore(
+		useCallback(
+			(store) => {
+				if (!workspaceId) return "";
+				const workspaceTabIds = new Set(
+					store.tabs
+						.filter((t) => t.workspaceId === workspaceId)
+						.map((t) => t.id),
+				);
+				return Object.values(store.panes)
+					.filter(
+						(p) =>
+							p?.type === "file-viewer" &&
+							workspaceTabIds.has(p.tabId) &&
+							p.fileViewer?.filePath &&
+							p.fileViewer?.diffCategory,
+					)
+					.map(
+						(p) =>
+							`${p.id}:${p.fileViewer!.filePath}:${p.fileViewer!.diffCategory}:${p.fileViewer!.commitHash ?? ""}:${p.fileViewer!.oldPath ?? ""}`,
+					)
+					.sort()
+					.join("|");
+			},
+			[workspaceId],
+		),
+	);
 	const toolDisplayName = toolName
 		.replace("mastra_workspace_", "")
 		.replaceAll("_", " ");
@@ -119,14 +147,15 @@ export function ToolCallBlock({
 	const workspaceDiffPaneByFilePath = useMemo(() => {
 		if (!workspaceId) return new Map<string, DiffPaneTarget>();
 
+		const store = useTabsStore.getState();
 		const workspaceTabIds = new Set(
-			tabs
+			store.tabs
 				.filter((tab) => tab.workspaceId === workspaceId)
 				.map((tab) => tab.id),
 		);
 		const diffPaneByFilePath = new Map<string, DiffPaneTarget>();
 
-		for (const pane of Object.values(panes)) {
+		for (const pane of Object.values(store.panes)) {
 			if (pane?.type !== "file-viewer") continue;
 			if (!workspaceTabIds.has(pane.tabId)) continue;
 
@@ -142,7 +171,7 @@ export function ToolCallBlock({
 		}
 
 		return diffPaneByFilePath;
-	}, [panes, tabs, workspaceId]);
+	}, [diffPanesDigest, workspaceId]);
 	const getDiffPaneTargetForFile = useCallback(
 		(filePath: string) => {
 			const normalizedPath = normalizeFilePath(filePath);

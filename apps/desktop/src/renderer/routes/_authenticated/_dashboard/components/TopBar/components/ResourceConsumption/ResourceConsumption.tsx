@@ -61,7 +61,6 @@ export function ResourceConsumption() {
 	);
 
 	const navigate = useNavigate();
-	const panes = useTabsStore((state) => state.panes);
 	const setActiveTab = useTabsStore((state) => state.setActiveTab);
 	const setFocusedPane = useTabsStore((state) => state.setFocusedPane);
 	const collections = useCollections();
@@ -114,7 +113,8 @@ export function ResourceConsumption() {
 	const normalizedSnapshot = normalizeResourceMetricsSnapshot(snapshot);
 
 	const getPaneName = (paneId: string): string => {
-		const pane = panes[paneId];
+		// Read fresh state — pane names rarely change and this is a display callback
+		const pane = useTabsStore.getState().panes[paneId];
 		return pane?.name || `Pane ${paneId.slice(0, 6)}`;
 	};
 
@@ -124,7 +124,8 @@ export function ResourceConsumption() {
 	};
 
 	const navigateToPane = (workspaceId: string, paneId: string) => {
-		const pane = panes[paneId];
+		// Read fresh state — this is a click handler, stale closure is not a concern
+		const pane = useTabsStore.getState().panes[paneId];
 		if (pane) {
 			setActiveTab(workspaceId, pane.tabId);
 			setFocusedPane(pane.tabId, paneId);

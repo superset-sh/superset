@@ -257,7 +257,10 @@ export function FilesView() {
 			}
 		}
 		void trpcUtils.filesystem.searchFiles.invalidate();
-	}, [tree, trpcUtils]);
+	// trpcUtils excluded — tRPC proxy returns new refs on every property access;
+	// stable via QueryClient, invalidate calls work correctly without it in deps.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tree]);
 
 	const invalidateDirectoryByPath = useCallback(
 		(directoryPath: string) => {
@@ -356,7 +359,10 @@ export function FilesView() {
 				void restoreExpandedDirectories(tree, pending.expandedPathsToRestore);
 			}, 75);
 		},
-		[invalidateDirectoryByPath, refreshVisibleDirectories, tree, trpcUtils],
+		// trpcUtils excluded — tRPC proxy returns new refs on every property access;
+		// stable via QueryClient, invalidate calls work correctly without it in deps.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[invalidateDirectoryByPath, refreshVisibleDirectories, tree],
 	);
 
 	useEffect(() => {

@@ -11,8 +11,10 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
  * Handles ⌘1-9 workspace switching shortcuts (global).
  */
 export function useWorkspaceShortcuts() {
-	const { data: groups = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const { data: groups = [] } = electronTrpc.workspaces.getAllGrouped.useQuery(
+		undefined,
+		{ refetchOnWindowFocus: false },
+	);
 	const navigate = useNavigate();
 
 	const allWorkspaces = groups.flatMap((group) => {

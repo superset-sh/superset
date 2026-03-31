@@ -375,7 +375,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, historicalMessages, sessionCommandInput, sessionId, utils],
+		// utils excluded — tRPC proxy returns new refs on every property access;
+		// including it recreates commands on every render during 16ms polling cycles.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[cwd, historicalMessages, sessionCommandInput, sessionId],
 	);
 
 	return {

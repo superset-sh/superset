@@ -122,7 +122,10 @@ export function RightSidebar() {
 				);
 			});
 		},
-		[workspaceId, worktreePath, trpcUtils],
+		// trpcUtils excluded — tRPC proxy returns new refs on every property access;
+		// stable via QueryClient, invalidate calls work correctly without it in deps.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[workspaceId, worktreePath],
 	);
 
 	const handleFileOpenPane = useCallback(

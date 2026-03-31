@@ -176,6 +176,9 @@ export function useSlashCommandExecutor({
 				return { handled: false, nextText: text };
 			}
 		},
+		// workspaceTrpcUtils.chat.getMcpOverview excluded — tRPC proxy property
+		// access returns a new function reference on every render.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[
 			availableModels,
 			canAbort,
@@ -191,7 +194,6 @@ export function useSlashCommandExecutor({
 			onStopActiveResponse,
 			sessionId,
 			workspaceId,
-			workspaceTrpcUtils.chat.getMcpOverview,
 		],
 	);
 

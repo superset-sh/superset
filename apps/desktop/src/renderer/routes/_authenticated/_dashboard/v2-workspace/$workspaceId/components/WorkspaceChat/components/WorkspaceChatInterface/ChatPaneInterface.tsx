@@ -372,7 +372,10 @@ export function ChatPaneInterface({
 				workspaceId,
 			});
 		},
-		[workspaceTrpcUtils.chat.getMcpOverview, sessionId, workspaceId],
+		// workspaceTrpcUtils.chat.getMcpOverview excluded — tRPC proxy property
+		// access returns a new function reference on every render.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[sessionId, workspaceId],
 	);
 	const mcpUi = useMcpUi({
 		cwd,
