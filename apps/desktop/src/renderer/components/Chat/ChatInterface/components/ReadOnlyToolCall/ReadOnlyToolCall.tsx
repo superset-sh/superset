@@ -176,7 +176,7 @@ export function ReadOnlyToolCall({
 		>
 			{hasDetails ? (
 				isReadFileTool && !isError && fileContent ? (
-					<div className="pl-2">
+					<div className="py-1.5 pl-2">
 						<div className="overflow-hidden rounded-md border border-border">
 							<div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-1.5 font-mono text-xs">
 								<span className="text-foreground">
