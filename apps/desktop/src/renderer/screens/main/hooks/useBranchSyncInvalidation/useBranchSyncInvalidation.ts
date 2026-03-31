@@ -45,6 +45,11 @@ export function useBranchSyncInvalidation({
 						utils.workspaces.getWorktreeInfo.invalidate({
 							workspaceId,
 						});
+						// Reset so a future branch change can trigger a new sync.
+						// Without this, syncingRef stays set to the old branch value after
+						// a successful changed-sync, causing the dedup guard to suppress
+						// re-syncs if the branch later flips back to this value.
+						syncingRef.current = null;
 					},
 					onError: () => {
 						syncingRef.current = null;

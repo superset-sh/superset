@@ -138,7 +138,22 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync Electric session titles → tab and pane names for chat panes in this workspace
+	// Stable digest of chat pane → session relationships. Excludes pane.status
+	// and pane.workspaceRun so that terminal status ticks don't invalidate it.
+	// Only changes when a chat pane is added/removed or its sessionId/tabId changes.
+	const chatPaneDigest = useMemo(
+		() =>
+			Object.values(panes)
+				.filter((p) => p.type === "chat" && p.chat?.sessionId)
+				.map((p) => `${p.id}:${p.chat!.sessionId}:${p.tabId}`)
+				.sort()
+				.join("|"),
+		[panes],
+	);
+
+	// Sync Electric session titles → tab and pane names for chat panes in this workspace.
+	// Depends on chatPaneDigest (not panes directly) so that status/workspaceRun
+	// changes don't recreate the Map and fire the title-sync effect every render.
 	const chatSessionTargets = useMemo(() => {
 		const map = new Map<
 			string,
@@ -159,7 +174,13 @@ export function GroupStrip() {
 			}
 		}
 		return map;
-	}, [panes, tabs]);
+	// chatPaneDigest is a stable string key — only changes when chat pane to
+	// session/tab relationships change, not on unrelated pane field updates
+	// (status, workspaceRun). Using it instead of panes prevents this memo from
+	// invalidating on every terminal status tick, which would fire the title-sync
+	// useEffect below on every running-agent render cycle.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [chatPaneDigest, tabs]);
 	const targetSessionIds = useMemo(
 		() => Array.from(chatSessionTargets.keys()),
 		[chatSessionTargets],
