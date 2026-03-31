@@ -164,6 +164,8 @@ export function MessagePartsRenderer({
 							<ReadOnlyToolCall
 								key={part.toolCallId}
 								part={part as ToolPart}
+								workspaceId={workspaceId}
+								workspaceCwd={workspaceCwd}
 								onOpenFileInPane={openFileInPane}
 							/>,
 						);
@@ -192,6 +194,8 @@ export function MessagePartsRenderer({
 							<ReadOnlyToolCall
 								key={groupParts[0].toolCallId}
 								part={groupParts[0]}
+								workspaceId={workspaceId}
+								workspaceCwd={workspaceCwd}
 								onOpenFileInPane={openFileInPane}
 							/>,
 						);
