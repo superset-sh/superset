@@ -67,8 +67,6 @@ interface ClaudeSettingsJson {
 
 const CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
 const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
-const CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
-const CODEX_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -296,22 +294,12 @@ export function buildCodexWrapperExecLine(notifyPath: string): string {
 	return template.replaceAll("{{NOTIFY_PATH}}", notifyPath);
 }
 
-/**
- * Returns the shell command written into Codex's global hook config.
- * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
- * shared ~/.codex/hooks.json works for both dev and prod installs.
- */
-export function getCodexManagedHookCommand(): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${CODEX_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
-}
-
 function isManagedCodexHookCommand(
 	command: string | undefined,
 	notifyScriptPath: string,
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
-		command?.includes(CODEX_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -375,7 +363,6 @@ export function getCodexGlobalHooksJsonContent(
 	const globalPath = getCodexGlobalHooksJsonPath();
 	const existing = readExistingCodexHooks(globalPath);
 	if (!existing) return null;
-	const managedHookCommand = getCodexManagedHookCommand();
 
 	if (!existing.hooks || typeof existing.hooks !== "object") {
 		existing.hooks = {};
@@ -407,13 +394,13 @@ export function getCodexGlobalHooksJsonContent(
 		{
 			eventName: "SessionStart",
 			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
+				hooks: [{ type: "command", command: notifyScriptPath }],
 			},
 		},
 		{
 			eventName: "Stop",
 			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
+				hooks: [{ type: "command", command: notifyScriptPath }],
 			},
 		},
 	];

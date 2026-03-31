@@ -47,9 +47,10 @@ its hook entries into these files while preserving user-defined entries:
 For Codex specifically, this global `hooks.json` is a fallback path only. The
 primary Superset integration is the wrapper in `~/.superset[-{workspace}]/bin/codex`,
 which injects `notify` and watches the Codex session log for richer lifecycle
-events without mutating project-local `.codex/` state. The fallback hook command
-also resolves `notify.sh` via `SUPERSET_HOME_DIR` at runtime so one shared
-`~/.codex/hooks.json` can work across dev and prod installs.
+events without mutating project-local `.codex/` state. On startup, Superset
+rewrites only its own fallback hook entries in `~/.codex/hooks.json` to point
+at the current environment's `notify.sh`, while preserving any user-defined
+Codex hooks.
 
 ### `zsh/` and `bash/` - Shell Integration
 

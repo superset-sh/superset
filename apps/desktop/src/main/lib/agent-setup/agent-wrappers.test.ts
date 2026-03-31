@@ -68,7 +68,6 @@ const {
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
-	getCodexManagedHookCommand,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
@@ -78,7 +77,6 @@ const {
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
-const managedCodexHookCommand = getCodexManagedHookCommand();
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -899,7 +897,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
+					def.hooks.some((hook) => hook.command === notifyPath),
 				),
 			).toBe(true);
 		}
@@ -946,8 +944,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
 				def.hooks.some(
-					(hook: { command: string }) =>
-						hook.command === managedCodexHookCommand,
+					(hook: { command: string }) => hook.command === notifyPath,
 				),
 			),
 		).toBe(true);
@@ -957,8 +954,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			parsed.hooks.SessionStart.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
-						(hook: { command: string }) =>
-							hook.command === managedCodexHookCommand,
+						(hook: { command: string }) => hook.command === notifyPath,
 					),
 			),
 		).toBe(true);
@@ -1037,7 +1033,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
+					def.hooks.some((hook) => hook.command === currentHookPath),
 				),
 			).toBe(true);
 			expect(
@@ -1118,7 +1114,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(false);
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
-				def.hooks.some((hook) => hook.command === managedCodexHookCommand),
+				def.hooks.some((hook) => hook.command === currentHookPath),
 			),
 		).toBe(false);
 	});

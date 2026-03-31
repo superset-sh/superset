@@ -12,7 +12,6 @@ export {
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
 	getCodexGlobalHooksJsonPath,
-	getCodexManagedHookCommand,
 	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
 	getOpenCodePluginPath,
