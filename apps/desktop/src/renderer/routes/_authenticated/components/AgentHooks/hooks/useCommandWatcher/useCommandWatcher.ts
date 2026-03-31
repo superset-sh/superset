@@ -258,6 +258,18 @@ export function useCommandWatcher() {
 		const handledCommands = handledCommandsRef.current;
 		const processingCommands = processingCommandsRef.current;
 
+		// Prune handledCommands to prevent unbounded growth — only keep IDs
+		// that still appear in the pendingCommands list (or are being persisted).
+		const MAX_HANDLED_COMMANDS = 500;
+		if (handledCommands.size > MAX_HANDLED_COMMANDS) {
+			const pendingIds = new Set(pendingCommands.map((c) => c.id));
+			for (const id of handledCommands) {
+				if (!pendingIds.has(id) && !pendingPersistenceRef.current.has(id)) {
+					handledCommands.delete(id);
+				}
+			}
+		}
+
 		// Expire timed-out commands before filtering for execution
 		for (const cmd of pendingCommands) {
 			if (cmd.targetDeviceId !== deviceInfo.deviceId) continue;

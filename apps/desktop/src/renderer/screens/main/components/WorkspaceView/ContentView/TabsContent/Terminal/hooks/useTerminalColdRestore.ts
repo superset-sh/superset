@@ -2,7 +2,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
-import { coldRestoreState } from "../state";
+import { coldRestoreState, setColdRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -100,7 +100,7 @@ export function useTerminalColdRestore({
 					if (result.isColdRestore) {
 						const scrollback =
 							result.snapshot?.snapshotAnsi ?? result.scrollback;
-						coldRestoreState.set(paneId, {
+						setColdRestoreState(paneId, {
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,

@@ -22,7 +22,7 @@ import {
 	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import { coldRestoreState, pendingDetaches, setColdRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -574,7 +574,7 @@ export function useTerminalLifecycle({
 								if (result.isColdRestore) {
 									const scrollback =
 										result.snapshot?.snapshotAnsi ?? result.scrollback;
-									coldRestoreState.set(paneId, {
+									setColdRestoreState(paneId, {
 										isRestored: true,
 										cwd: result.previousCwd || null,
 										scrollback,

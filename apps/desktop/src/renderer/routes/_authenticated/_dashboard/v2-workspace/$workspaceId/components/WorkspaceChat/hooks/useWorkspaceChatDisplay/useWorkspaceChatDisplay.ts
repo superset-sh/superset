@@ -114,13 +114,20 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		sessionId === null ? undefined : { sessionId, workspaceId };
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
+	// Only poll at high frequency while the agent is actively running.
+	// When idle, fall back to a low-frequency poll to catch state changes.
+	// The original 16ms (60fps) interval was causing ~125 IPC serialization
+	// round-trips per second, which is a primary driver of CPU/memory growth.
+	const displayQueryResult = useRef<DisplayStateOutput | null>(null);
+	const isCurrentlyRunning = displayQueryResult.current?.isRunning ?? false;
+	const activeRefetchInterval = isCurrentlyRunning ? refetchIntervalMs : 2_000;
 	const queryOptions = {
 		enabled: isQueryEnabled && queryInput !== undefined,
-		refetchInterval: refetchIntervalMs,
-		refetchIntervalInBackground: true,
+		refetchInterval: activeRefetchInterval,
+		refetchIntervalInBackground: false,
 		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
+		staleTime: isCurrentlyRunning ? 0 : 1_000,
+		gcTime: isCurrentlyRunning ? 0 : 5_000,
 	} as const;
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
@@ -142,6 +149,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const respondToPlanMutation = workspaceTrpc.chat.respondToPlan.useMutation();
 
 	const displayState = displayQuery.data ?? null;
+	displayQueryResult.current = displayState;
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()

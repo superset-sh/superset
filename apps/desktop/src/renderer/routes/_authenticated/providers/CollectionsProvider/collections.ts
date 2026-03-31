@@ -106,11 +106,24 @@ export interface OrgCollections {
 	>;
 }
 
-// Per-org collections cache
+// Per-org collections cache — limited to MAX_CACHED_ORGS to prevent unbounded
+// growth. Each entry holds 20+ Electric SQL ShapeStream connections with live
+// HTTP long-polling, so stale entries leak both memory and network resources.
+const MAX_CACHED_ORGS = 2;
 const collectionsCache = new Map<string, OrgCollections>();
 
 function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
+}
+
+function evictStaleCacheEntries(activeKey: string): void {
+	if (collectionsCache.size <= MAX_CACHED_ORGS) return;
+	for (const key of collectionsCache.keys()) {
+		if (key === activeKey) continue;
+		collectionsCache.delete(key);
+		collectionsReturnCache.delete(key);
+		if (collectionsCache.size <= MAX_CACHED_ORGS) break;
+	}
 }
 
 // Singleton API client with dynamic auth headers
@@ -549,6 +562,11 @@ export async function preloadCollections(
 	);
 }
 
+// Memoized return values per org — avoids creating a new object reference on
+// every call, which would cause unnecessary React context re-renders across
+// all 100+ useLiveQuery consumers.
+const collectionsReturnCache = new Map<string, ReturnType<typeof getCollections>>();
+
 /**
  * Get collections for an organization, creating them if needed.
  * Collections are cached per org for instant switching.
@@ -560,6 +578,10 @@ export function getCollections(organizationId: string) {
 	// Get or create org-specific collections
 	if (!collectionsCache.has(cacheKey)) {
 		collectionsCache.set(cacheKey, createOrgCollections(organizationId));
+		// Evict stale orgs to prevent unbounded ShapeStream accumulation
+		evictStaleCacheEntries(cacheKey);
+		// Invalidate memoized return value
+		collectionsReturnCache.delete(cacheKey);
 	}
 
 	const orgCollections = collectionsCache.get(cacheKey);
@@ -567,10 +589,16 @@ export function getCollections(organizationId: string) {
 		throw new Error(`Collections not found for org: ${organizationId}`);
 	}
 
-	return {
-		...orgCollections,
-		organizations: organizationsCollection,
-	};
+	// Return memoized value to preserve referential equality
+	let cached = collectionsReturnCache.get(cacheKey);
+	if (!cached) {
+		cached = {
+			...orgCollections,
+			organizations: organizationsCollection,
+		};
+		collectionsReturnCache.set(cacheKey, cached);
+	}
+	return cached;
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;
