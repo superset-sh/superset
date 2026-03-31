@@ -4,6 +4,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
@@ -59,12 +60,17 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		? getCollections(activeOrganizationId)
 		: null;
 
-	if (!collections || isSwitching) {
+	const contextValue = useMemo(
+		() => (collections ? { ...collections, switchOrganization } : null),
+		[collections, switchOrganization],
+	);
+
+	if (!contextValue || isSwitching) {
 		return null;
 	}
 
 	return (
-		<CollectionsContext.Provider value={{ ...collections, switchOrganization }}>
+		<CollectionsContext.Provider value={contextValue}>
 			{children}
 		</CollectionsContext.Provider>
 	);

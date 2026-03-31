@@ -125,8 +125,9 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	// When idle, fall back to a low-frequency poll to catch state changes.
 	// The original 16ms (60fps) interval causes ~125 IPC serialization
 	// round-trips per second, which is a primary driver of CPU/memory growth.
-	const displayQueryResult = useRef<DisplayStateOutput | null>(null);
-	const isCurrentlyRunning = displayQueryResult.current?.isRunning ?? false;
+	// Uses useState (not useRef) so the idle→running transition triggers a
+	// re-render that immediately updates queryOptions.
+	const [isCurrentlyRunning, setIsCurrentlyRunning] = useState(false);
 	const activeRefetchInterval = isCurrentlyRunning ? refetchIntervalMs : 2_000;
 	const queryOptions = {
 		enabled: isQueryEnabled,
@@ -148,7 +149,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	);
 
 	const displayState = displayQuery.data ?? null;
-	displayQueryResult.current = displayState;
+	const nextIsRunning = displayState?.isRunning ?? false;
+	if (nextIsRunning !== isCurrentlyRunning) {
+		setIsCurrentlyRunning(nextIsRunning);
+	}
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()

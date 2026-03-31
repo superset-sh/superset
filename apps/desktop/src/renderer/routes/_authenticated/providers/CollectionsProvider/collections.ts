@@ -116,13 +116,37 @@ function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 
-function evictStaleCacheEntries(activeKey: string): void {
+// Track access order for LRU eviction
+const cacheAccessOrder: string[] = [];
+
+function touchCacheKey(key: string): void {
+	const idx = cacheAccessOrder.indexOf(key);
+	if (idx !== -1) cacheAccessOrder.splice(idx, 1);
+	cacheAccessOrder.push(key);
+}
+
+function evictStaleCacheEntries(...protectedKeys: string[]): void {
 	if (collectionsCache.size <= MAX_CACHED_ORGS) return;
-	for (const key of collectionsCache.keys()) {
-		if (key === activeKey) continue;
+	const protectedSet = new Set(protectedKeys);
+	// Evict least-recently-used first
+	for (const key of [...cacheAccessOrder]) {
+		if (protectedSet.has(key)) continue;
+		if (collectionsCache.size <= MAX_CACHED_ORGS) break;
+		const evicted = collectionsCache.get(key);
 		collectionsCache.delete(key);
 		collectionsReturnCache.delete(key);
-		if (collectionsCache.size <= MAX_CACHED_ORGS) break;
+		const idx = cacheAccessOrder.indexOf(key);
+		if (idx !== -1) cacheAccessOrder.splice(idx, 1);
+		// Best-effort cleanup of Electric SQL ShapeStream connections
+		if (evicted) {
+			for (const collection of Object.values(evicted)) {
+				try {
+					(collection as { cleanup?: () => Promise<void> }).cleanup?.();
+				} catch {
+					// Ignore — collection may already be torn down
+				}
+			}
+		}
 	}
 }
 
@@ -586,6 +610,7 @@ export function getCollections(organizationId: string) {
 		// Invalidate memoized return value
 		collectionsReturnCache.delete(cacheKey);
 	}
+	touchCacheKey(cacheKey);
 
 	const orgCollections = collectionsCache.get(cacheKey);
 	if (!orgCollections) {

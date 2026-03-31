@@ -23,7 +23,8 @@ import {
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import {
-	coldRestoreState,
+	deleteColdRestoreState,
+	getColdRestoreState,
 	pendingDetaches,
 	setColdRestoreState,
 } from "../state";
@@ -561,7 +562,7 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
 
-								const storedColdRestore = coldRestoreState.get(paneId);
+								const storedColdRestore = getColdRestoreState(paneId);
 								if (storedColdRestore?.isRestored) {
 									setIsRestoredMode(true);
 									setRestoredCwd(storedColdRestore.cwd);
@@ -897,7 +898,7 @@ export function useTerminalLifecycle({
 			if (paneDestroyed) {
 				// Pane was explicitly destroyed, so kill the session.
 				killTerminalForPane(paneId);
-				coldRestoreState.delete(paneId);
+				deleteColdRestoreState(paneId);
 				pendingDetaches.delete(paneId);
 			} else if (hasWorkspaceRun) {
 				// Keep workspace-run panes attached while hidden
@@ -906,7 +907,7 @@ export function useTerminalLifecycle({
 				const detachTimeout = setTimeout(() => {
 					detachRef.current({ paneId });
 					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
+					deleteColdRestoreState(paneId);
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
 			}

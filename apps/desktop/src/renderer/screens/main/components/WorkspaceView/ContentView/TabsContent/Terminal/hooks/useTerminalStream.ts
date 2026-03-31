@@ -158,19 +158,19 @@ export function useTerminalStream({
 						`[Terminal] Queuing event (not ready): ${paneId}, type=${event.type}, bytes=${event.data.length}`,
 					);
 				}
-				// Cap pending events to prevent unbounded memory growth during
-				// connection errors or slow restore. Keep control events (exit,
-				// error, disconnect) and only drop data events when over limit.
+				// Hard cap on pending events to prevent unbounded memory growth
+				// during connection errors or slow restore. Prefer dropping data
+				// events first; if none remain, drop the oldest event regardless.
 				const MAX_PENDING_EVENTS = 10_000;
 				if (pendingEventsRef.current.length >= MAX_PENDING_EVENTS) {
-					if (event.type === "data") {
-						// Drop oldest data events to make room
-						const dropIndex = pendingEventsRef.current.findIndex(
-							(e) => e.type === "data",
-						);
-						if (dropIndex !== -1) {
-							pendingEventsRef.current.splice(dropIndex, 1);
-						}
+					const dropIndex = pendingEventsRef.current.findIndex(
+						(e) => e.type === "data",
+					);
+					if (dropIndex !== -1) {
+						pendingEventsRef.current.splice(dropIndex, 1);
+					} else {
+						// No data events left — drop oldest event unconditionally
+						pendingEventsRef.current.shift();
 					}
 				}
 				pendingEventsRef.current.push(event);

@@ -2,7 +2,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
-import { coldRestoreState, setColdRestoreState } from "../state";
+import { deleteColdRestoreState, setColdRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -209,7 +209,7 @@ export function useTerminalColdRestore({
 					maybeApplyInitialState();
 
 					setIsRestoredMode(false);
-					coldRestoreState.delete(paneId);
+					deleteColdRestoreState(paneId);
 
 					setTimeout(() => {
 						const currentXterm = xtermRef.current;
@@ -225,7 +225,7 @@ export function useTerminalColdRestore({
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
-					coldRestoreState.delete(paneId);
+					deleteColdRestoreState(paneId);
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
 				},
