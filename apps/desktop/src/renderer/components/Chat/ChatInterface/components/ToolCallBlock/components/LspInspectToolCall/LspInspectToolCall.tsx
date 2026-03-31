@@ -1,4 +1,4 @@
-import { ActivityIcon } from "lucide-react";
+import { FileSearchIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
@@ -20,7 +20,7 @@ export function LspInspectToolCall({ part }: LspInspectToolCallProps) {
 		<SupersetToolCall
 			part={part}
 			toolName="LSP Inspect"
-			icon={ActivityIcon}
+			icon={FileSearchIcon}
 			subtitle={fileName}
 		/>
 	);
