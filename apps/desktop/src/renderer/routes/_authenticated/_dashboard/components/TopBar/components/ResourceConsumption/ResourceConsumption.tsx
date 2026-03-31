@@ -106,6 +106,7 @@ export function ResourceConsumption() {
 		{
 			enabled: enabled === true,
 			refetchInterval: open ? 2000 : 15000,
+			refetchIntervalInBackground: false,
 		},
 	);
 
