@@ -137,14 +137,17 @@ function evictStaleCacheEntries(...protectedKeys: string[]): void {
 		collectionsReturnCache.delete(key);
 		const idx = cacheAccessOrder.indexOf(key);
 		if (idx !== -1) cacheAccessOrder.splice(idx, 1);
-		// Best-effort cleanup of Electric SQL ShapeStream connections
+		// Best-effort cleanup of Electric SQL ShapeStream connections.
+		// Fire-and-forget since eviction runs in a synchronous context — we
+		// can't await here. Attach .catch() so rejections surface as logged
+		// errors instead of unhandled promise rejections that silently drop.
 		if (evicted) {
 			for (const collection of Object.values(evicted)) {
-				try {
-					(collection as { cleanup?: () => Promise<void> }).cleanup?.();
-				} catch {
-					// Ignore — collection may already be torn down
-				}
+				(collection as { cleanup?: () => Promise<void> })
+					.cleanup?.()
+					?.catch((err: unknown) => {
+						console.error("[CollectionsProvider] ShapeStream cleanup failed:", err);
+					});
 			}
 		}
 	}

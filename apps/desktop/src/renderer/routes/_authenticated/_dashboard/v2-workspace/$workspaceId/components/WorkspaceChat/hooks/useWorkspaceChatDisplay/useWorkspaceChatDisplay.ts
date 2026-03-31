@@ -110,8 +110,13 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const { sessionId, workspaceId, enabled = true, fps = 60 } = options;
 	const utils = workspaceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
-	const queryInput =
-		sessionId === null ? undefined : { sessionId, workspaceId };
+	// Memoized to preserve referential equality across renders — a new object
+	// literal on every render would cause the invalidation useEffect below to
+	// fire continuously, creating an IPC serialization loop under gcTime:0.
+	const queryInput = useMemo(
+		() => (sessionId === null ? undefined : { sessionId, workspaceId }),
+		[sessionId, workspaceId],
+	);
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
 	// Only poll at high frequency while the agent is actively running.
@@ -122,14 +127,22 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	// re-render that immediately updates queryOptions.
 	const [isCurrentlyRunning, setIsCurrentlyRunning] = useState(false);
 	const activeRefetchInterval = isCurrentlyRunning ? refetchIntervalMs : 2_000;
-	const queryOptions = {
-		enabled: isQueryEnabled && queryInput !== undefined,
-		refetchInterval: activeRefetchInterval,
-		refetchIntervalInBackground: false,
-		refetchOnWindowFocus: false,
-		staleTime: isCurrentlyRunning ? 0 : 1_000,
-		gcTime: isCurrentlyRunning ? 0 : 5_000,
-	} as const;
+	// Memoized so React Query only calls setOptions (and resets the interval
+	// timer) when values actually change — not on every render. gcTime floor
+	// of 1s prevents cache thrash when concurrent rendering transiently
+	// unmounts the observer (gcTime:0 evicts immediately, forcing a full
+	// re-fetch on remount rather than serving from cache).
+	const queryOptions = useMemo(
+		() => ({
+			enabled: isQueryEnabled && queryInput !== undefined,
+			refetchInterval: activeRefetchInterval,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: false,
+			staleTime: isCurrentlyRunning ? 0 : 1_000,
+			gcTime: isCurrentlyRunning ? 1_000 : 5_000,
+		}),
+		[isQueryEnabled, queryInput, activeRefetchInterval, isCurrentlyRunning],
+	);
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
@@ -370,12 +383,12 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			utils.chat.getDisplayState.invalidate(queryInput),
 			utils.chat.listMessages.invalidate(queryInput),
 		]);
-	}, [
-		isRunning,
-		queryInput,
-		utils.chat.getDisplayState,
-		utils.chat.listMessages,
-	]);
+	// utils.chat.* are tRPC proxy accessors — imperative action methods, not
+	// reactive values. They produce new object references on every property
+	// access, so including them fires this effect on every render during agent
+	// runs, creating an invalidate → refetch → re-render IPC loop.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isRunning, queryInput]);
 
 	return {
 		...displayState,

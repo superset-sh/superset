@@ -423,13 +423,17 @@ export function WorkspaceInitEffects() {
 					processingRef.current.delete(workspaceId);
 				});
 		}
+	// utils.workspaces.getSetupCommands is a tRPC proxy accessor — it produces
+	// a new object reference on every property access, causing this effect to
+	// re-run on every render and fire terminal/agent launch IPC calls repeatedly.
+	// It is an imperative fetch method, not a reactive value.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		initProgress,
 		pendingTerminalSetups,
 		removePendingTerminalSetup,
 		clearProgress,
 		handleTerminalSetup,
-		utils.workspaces.getSetupCommands,
 	]);
 
 	return null;

@@ -52,7 +52,13 @@ export function useBranchSyncInvalidation({
 				},
 			);
 		},
-		[mutate, workspaceId, utils],
+		// utils is excluded — tRPC's useUtils() proxy produces new references
+		// on every render, which would make doSync a new function every render,
+		// causing the useEffect below to fire a syncBranch IPC mutation on every
+		// render when gitBranch !== workspaceBranch. utils is backed by a stable
+		// QueryClient and is safe to access via closure without listing as a dep.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[mutate, workspaceId],
 	);
 
 	useEffect(() => {
