@@ -1,5 +1,6 @@
 import { Message, MessageContent, MessageResponse } from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
+import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import {
 	type SubagentEntries,
 	toSubagentViewModels,
@@ -57,40 +58,28 @@ export function SubagentExecutionMessage({
 								{getStatusLabel(subagent.status)}
 							</span>
 						</div>
-						<div className="text-xs text-muted-foreground">
-							{subagent.agentType}
-							{subagent.modelId ? ` • ${subagent.modelId}` : ""}
-							{subagent.durationMs !== undefined
-								? ` • ${Math.round(subagent.durationMs)} ms`
-								: ""}
-						</div>
-						{subagent.text ? (
-							<div className="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2">
-								<MessageResponse
-									animated={false}
-									isAnimating={false}
-									mermaid={{ config: { theme: "default" } }}
-								>
-									{subagent.text}
-								</MessageResponse>
-							</div>
-						) : null}
 						{subagent.toolCalls.length > 0 ? (
-							<div className="flex flex-wrap items-center gap-1.5">
+							<div className="space-y-1">
 								{subagent.toolCalls.map((tool, index) => (
-									<span
+									<SubagentInnerToolCall
 										key={`${subagent.toolCallId}-${tool.name}-${index}`}
-										className={cn(
-											"rounded-full border px-2 py-0.5 text-xs",
-											tool.isError
-												? "border-destructive/40 bg-destructive/10 text-destructive"
-												: "border-muted-foreground/30 bg-background/80 text-muted-foreground",
-										)}
-									>
-										{tool.name}
-									</span>
+										name={tool.name}
+										isError={tool.isError}
+										isPending={subagent.status === "running" && index === subagent.toolCalls.length - 1}
+										args={tool.args}
+										result={tool.result}
+									/>
 								))}
 							</div>
+						) : null}
+						{subagent.text ? (
+							<MessageResponse
+								animated={false}
+								isAnimating={false}
+								mermaid={{ config: { theme: "default" } }}
+							>
+								{subagent.text}
+							</MessageResponse>
 						) : null}
 					</div>
 				))}

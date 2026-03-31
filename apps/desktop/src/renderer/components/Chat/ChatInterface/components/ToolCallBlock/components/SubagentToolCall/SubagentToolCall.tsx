@@ -1,8 +1,8 @@
 import { MessageResponse } from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
-import { cn } from "@superset/ui/lib/utils";
 import { BotIcon } from "lucide-react";
 import { useMemo } from "react";
+import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 
@@ -36,9 +36,7 @@ export function SubagentToolCall({
 	const hasDetails =
 		task.length > 0 ||
 		parsed.text.length > 0 ||
-		parsed.tools.length > 0 ||
-		Boolean(parsed.modelId) ||
-		parsed.durationMs !== undefined;
+		parsed.tools.length > 0;
 
 	// Title: "Agent" (foreground) — agentType goes in description (muted)
 	const titleNode = (
@@ -57,41 +55,36 @@ export function SubagentToolCall({
 		>
 			{hasDetails ? (
 				<div className="space-y-2 pl-2 text-xs">
-					<div className="font-medium text-foreground">{task}</div>
-					<div className="text-muted-foreground">
-						{agentType}
-						{parsed.modelId ? ` • ${parsed.modelId}` : ""}
-						{parsed.durationMs !== undefined
-							? ` • ${Math.round(parsed.durationMs)} ms`
-							: ""}
-					</div>
+					<MessageResponse
+						animated={false}
+						className="font-medium"
+						isAnimating={false}
+						mermaid={{ config: { theme: "default" } }}
+					>
+						{task}
+					</MessageResponse>
 					{parsed.tools.length > 0 ? (
-						<div className="flex flex-wrap gap-1.5">
+						<div className="space-y-1">
 							{parsed.tools.map((tool, index) => (
-								<span
+								<SubagentInnerToolCall
 									key={`${tool.name}-${index}`}
-									className={cn(
-										"rounded-full border px-2 py-0.5",
-										tool.isError
-											? "border-destructive/40 bg-destructive/10 text-destructive"
-											: "border-muted-foreground/30 bg-background/80 text-muted-foreground",
-									)}
-								>
-									{tool.name}
-								</span>
+									name={tool.name}
+									isError={tool.isError}
+									args={tool.args}
+									result={tool.result}
+								/>
 							))}
 						</div>
 					) : null}
 					{parsed.text ? (
-						<div className="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2">
-							<MessageResponse
-								animated={false}
-								isAnimating={false}
-								mermaid={{ config: { theme: "default" } }}
-							>
-								{parsed.text}
-							</MessageResponse>
-						</div>
+						<MessageResponse
+							animated={false}
+							className="[&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs"
+							isAnimating={false}
+							mermaid={{ config: { theme: "default" } }}
+						>
+							{parsed.text}
+						</MessageResponse>
 					) : null}
 				</div>
 			) : undefined}

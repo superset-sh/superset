@@ -1,5 +1,7 @@
+import { CodeBlock } from "@superset/ui/ai-elements/code-block";
 import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
+import type { BundledLanguage } from "shiki";
 import { getToolName } from "ai";
 import {
 	ExternalLinkIcon,
@@ -38,6 +40,65 @@ function toStringValue(value: unknown): string | undefined {
 		return String(value);
 	}
 	return undefined;
+}
+
+function getLanguageFromPath(filePath: string): BundledLanguage {
+	const ext = filePath.split(".").pop()?.toLowerCase();
+	const languageMap: Partial<Record<string, BundledLanguage>> = {
+		ts: "typescript",
+		tsx: "tsx",
+		js: "javascript",
+		jsx: "jsx",
+		json: "json",
+		md: "markdown",
+		mdx: "mdx",
+		css: "css",
+		html: "html",
+		py: "python",
+		rb: "ruby",
+		rs: "rust",
+		go: "go",
+		java: "java",
+		sh: "bash",
+		bash: "bash",
+		zsh: "bash",
+		yaml: "yaml",
+		yml: "yaml",
+		toml: "toml",
+		sql: "sql",
+		graphql: "graphql",
+		gql: "graphql",
+		xml: "xml",
+		svg: "xml",
+		prisma: "prisma",
+		swift: "swift",
+		kt: "kotlin",
+		cs: "csharp",
+		cpp: "cpp",
+		c: "c",
+		php: "php",
+	};
+	return (ext && languageMap[ext]) ?? "plaintext";
+}
+
+function stripReadToolMetadata(content: string): string {
+	const lines = content.split("\n");
+	let startIdx = 0;
+
+	// Skip header line like "filename.ext (8111 bytes)"
+	if (lines.length > 0 && /^.+\s+\(\d+\s+bytes\)$/.test(lines[0])) {
+		startIdx = 1;
+	}
+
+	const contentLines = lines.slice(startIdx);
+
+	// Strip "N→" line number prefixes if present
+	const lineNumberPattern = /^\d+→/;
+	if (contentLines.some((line) => lineNumberPattern.test(line))) {
+		return contentLines.map((line) => line.replace(lineNumberPattern, "")).join("\n");
+	}
+
+	return contentLines.join("\n");
 }
 
 function extractReadFileContent(output: unknown): string | undefined {
@@ -166,11 +227,20 @@ export function ReadOnlyToolCall({
 		>
 			{hasDetails ? (
 				isReadFileTool && !isError && readFileContent ? (
-					<div className="max-h-[300px] overflow-y-auto">
-						<pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-xs text-foreground">
-							{readFileContent}
-						</pre>
-					</div>
+					<CodeBlock
+						className="max-h-[300px] overflow-x-auto overflow-y-auto"
+						code={stripReadToolMetadata(readFileContent)}
+						language={getLanguageFromPath(
+							String(
+								args.path ??
+									args.filePath ??
+									args.file_path ??
+									args.file ??
+									"",
+							),
+						)}
+						showLineNumbers
+					/>
 				) : (
 					<div className="space-y-2 pl-2">
 						{part.input != null && <ToolInput input={part.input} />}
