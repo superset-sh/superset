@@ -127,6 +127,7 @@ export function setupTerminalHostSignalHandlers({
 			timeoutMessage: "Forced exit after SIGTERM shutdown timeout",
 		});
 	});
+
 	process.on("SIGHUP", () => {
 		shutdownOnce({
 			exitCode: 0,

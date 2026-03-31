@@ -26,6 +26,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
+	getSocketPath,
+	isFileBasedSocket,
+	socketMayExist,
+} from "../lib/terminal-host/paths";
+import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -60,7 +65,7 @@ const DAEMON_VERSION = "1.0.0";
 const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 
 // Socket and token paths
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
+const SOCKET_PATH = getSocketPath(SUPERSET_DIR_NAME, SUPERSET_HOME_DIR);
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 
@@ -658,7 +663,7 @@ function handleConnection(socket: Socket) {
  */
 function isSocketLive(): Promise<boolean> {
 	return new Promise((resolve) => {
-		if (!existsSync(SOCKET_PATH)) {
+		if (!socketMayExist(SOCKET_PATH)) {
 			resolve(false);
 			return;
 		}
@@ -700,7 +705,7 @@ async function startServer(): Promise<void> {
 
 	// Check if socket is live before removing it
 	// This prevents orphaning a running daemon
-	if (existsSync(SOCKET_PATH)) {
+	if (socketMayExist(SOCKET_PATH)) {
 		const isLive = await isSocketLive();
 		if (isLive) {
 			log("error", "Another daemon is already running and responsive");
@@ -708,11 +713,14 @@ async function startServer(): Promise<void> {
 		}
 
 		// Socket exists but not responsive - safe to remove
-		try {
-			unlinkSync(SOCKET_PATH);
-			log("info", "Removed stale socket file");
-		} catch (error) {
-			throw new Error(`Failed to remove stale socket: ${error}`);
+		// On Windows, named pipes are managed by the OS and don't need manual cleanup
+		if (isFileBasedSocket() && existsSync(SOCKET_PATH)) {
+			try {
+				unlinkSync(SOCKET_PATH);
+				log("info", "Removed stale socket file");
+			} catch (error) {
+				throw new Error(`Failed to remove stale socket: ${error}`);
+			}
 		}
 	}
 
@@ -799,7 +807,8 @@ async function stopServer(): Promise<void> {
 	});
 
 	try {
-		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
+		if (isFileBasedSocket() && existsSync(SOCKET_PATH))
+			unlinkSync(SOCKET_PATH);
 		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
 	} catch {
 		// Best effort cleanup

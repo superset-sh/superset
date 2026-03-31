@@ -103,6 +103,13 @@ function getPreferredRenderer(): PreferredRenderer {
 		// ignore
 	}
 
+	// On Windows, WebGL context creation (D3D11 via ANGLE) is significantly
+	// slower than on macOS/Linux, causing noticeable lag when switching workspaces.
+	// Default to DOM renderer unless the user has explicitly opted into WebGL.
+	if (getCurrentPlatform() === "win32") {
+		return "dom";
+	}
+
 	return "auto";
 }
 
@@ -201,6 +208,7 @@ export function createTerminalInstance(
 	// Track cleanup state to prevent operations on disposed terminal
 	let isDisposed = false;
 	let rafId: number | null = null;
+	let ligaturesTimeoutId: NodeJS.Timeout | null = null;
 
 	// Use a ref pattern so the renderer can be updated after rAF.
 	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
@@ -233,13 +241,27 @@ export function createTerminalInstance(
 		rendererRef.current = loadRenderer(xterm);
 	});
 
-	try {
-		if (!isDisposed) {
+	// Defer ligature addon initialization to avoid blocking the first render.
+	// LigaturesAddon reads and parses font files from disk during construction,
+	// which is slow (especially on Windows). Ligatures are visual-only and not
+	// needed for the terminal to be interactive.
+	//
+	// setTimeout(0) is intentional — it schedules a macrotask, which runs AFTER
+	// the current rendering pipeline completes:
+	//   Task (mount) → rAF (WebGL load) → Layout → Paint → [setTimeout fires here]
+	//
+	// requestAnimationFrame would run in the same render tick as WebGL, before
+	// the first paint. requestIdleCallback is not guaranteed to fire. setTimeout(0)
+	// is the only option that ensures ligatures load after the terminal is visible.
+	ligaturesTimeoutId = setTimeout(() => {
+		ligaturesTimeoutId = null;
+		if (isDisposed) return;
+		try {
 			xterm.loadAddon(new LigaturesAddon());
+		} catch {
+			// Ligatures not supported by current font
 		}
-	} catch {
-		// Ligatures not supported by current font
-	}
+	}, 0);
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -298,6 +320,10 @@ export function createTerminalInstance(
 			isDisposed = true;
 			if (rafId !== null) {
 				cancelAnimationFrame(rafId);
+			}
+			if (ligaturesTimeoutId !== null) {
+				clearTimeout(ligaturesTimeoutId);
+				ligaturesTimeoutId = null;
 			}
 			cleanupQuerySuppression();
 			rendererRef.current.dispose();

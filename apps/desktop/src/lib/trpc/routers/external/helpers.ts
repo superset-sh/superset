@@ -43,7 +43,7 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 };
 
 /** Map of app IDs to their Linux CLI commands */
-const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
+const CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "code",
 	"vscode-insiders": "code-insiders",
@@ -77,7 +77,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
  * JetBrains Toolbox typically creates `idea`/`pycharm` launchers,
  * while package managers may use edition-specific names.
  */
-const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
+const CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["idea", "intellij-idea-ultimate", "intellij-idea-community"],
 	pycharm: ["pycharm", "pycharm-professional", "pycharm-community"],
 };
@@ -109,8 +109,25 @@ export function getAppCommand(
 		return [{ command: "open", args: ["-a", appName, targetPath] }];
 	}
 
-	// Linux (and other non-macOS platforms)
-	const linuxCandidates = LINUX_CLI_CANDIDATES[app];
+	if (platform === "win32") {
+		if (app === "finder") {
+			return [{ command: "explorer.exe", args: [targetPath] }];
+		}
+
+		const winCandidates = CLI_CANDIDATES[app];
+		if (winCandidates) {
+			return winCandidates.map((cmd) => ({
+				command: cmd,
+				args: [targetPath],
+			}));
+		}
+
+		const winCommand = CLI_COMMANDS[app];
+		if (!winCommand) return null;
+		return [{ command: winCommand, args: [targetPath] }];
+	}
+
+	const linuxCandidates = CLI_CANDIDATES[app];
 	if (linuxCandidates) {
 		return linuxCandidates.map((cmd) => ({
 			command: cmd,
@@ -118,7 +135,7 @@ export function getAppCommand(
 		}));
 	}
 
-	const cliCommand = LINUX_CLI_COMMANDS[app];
+	const cliCommand = CLI_COMMANDS[app];
 	if (!cliCommand) return null;
 	return [{ command: cliCommand, args: [targetPath] }];
 }
@@ -149,9 +166,11 @@ const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 function looksLikePath(str: string): boolean {
 	return (
 		str.includes("/") ||
+		str.includes("\\") ||
 		str.startsWith(".") ||
 		str.startsWith("~") ||
-		str.startsWith("/")
+		str.startsWith("/") ||
+		/^[A-Za-z]:/.test(str)
 	);
 }
 

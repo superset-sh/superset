@@ -274,6 +274,7 @@ export class Session {
 		const electronPath = process.execPath;
 		this.subprocess = this.spawnProcess(electronPath, [subprocessPath], {
 			stdio: ["pipe", "pipe", "inherit"],
+			windowsHide: true,
 			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
 		});
 

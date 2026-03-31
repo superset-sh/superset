@@ -60,6 +60,10 @@ interface GetShellEnvironmentOptions {
 export async function getShellEnvironment(
 	options?: GetShellEnvironmentOptions,
 ): Promise<Record<string, string>> {
+	if (process.platform === "win32") {
+		return copyStringEnv();
+	}
+
 	const now = Date.now();
 	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
 	if (!options?.forceRefresh && cachedEnv && now - cacheTime < ttl) {

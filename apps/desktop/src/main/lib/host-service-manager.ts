@@ -136,6 +136,7 @@ export class HostServiceManager {
 
 			const child = childProcess.spawn(process.execPath, [this.scriptPath], {
 				stdio: ["ignore", "pipe", "pipe", "ipc"],
+				windowsHide: true,
 				env,
 			});
 			instance.process = child;
