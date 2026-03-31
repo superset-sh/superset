@@ -205,11 +205,11 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
-					// Drop stale error/disconnect events queued during reconnection
-					// to prevent them from triggering a spurious retry cycle
-					pendingEventsRef.current = pendingEventsRef.current.filter(
-						(e) => e.type === "data",
-					);
+					// Drop all events queued during reconnection — they belong to
+					// the dead session or the reconnection window and cannot be
+					// reliably attributed to the new attach.  The snapshot in
+					// `result` already contains the authoritative initial content.
+					pendingEventsRef.current = [];
 
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
