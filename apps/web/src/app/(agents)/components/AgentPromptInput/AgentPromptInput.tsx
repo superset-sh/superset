@@ -1,10 +1,5 @@
 "use client";
 
-import { PreviewPromptComposer } from "../PreviewPromptComposer";
-import { BranchSelector } from "./components/BranchSelector";
-import { ModelPicker } from "./components/ModelPicker";
-import { RepoSelector } from "./components/RepoSelector";
-import { useAgentPrompt } from "./hooks/useAgentPrompt";
 import {
 	type MockModel,
 	type MockRepo,
@@ -13,6 +8,11 @@ import {
 	mockModels,
 	mockRepos,
 } from "../../mock-data";
+import { PreviewPromptComposer } from "../PreviewPromptComposer";
+import { BranchSelector } from "./components/BranchSelector";
+import { ModelPicker } from "./components/ModelPicker";
+import { RepoSelector } from "./components/RepoSelector";
+import { useAgentPrompt } from "./hooks/useAgentPrompt";
 
 type AgentPromptInputProps = {
 	branches?: string[];
@@ -55,19 +55,19 @@ export function AgentPromptInput({
 					disabled
 				/>
 			}
-				afterComposer={
-					<div className="flex items-center gap-2 border-t border-border/50 px-3 py-2">
-						<RepoSelector
-							repos={repos}
-							selectedRepo={selectedRepo}
-							onRepoChange={setSelectedRepo}
-							disabled
-						/>
-						<BranchSelector
-							branches={branches}
-							selectedBranch={selectedBranch}
-							onBranchChange={setSelectedBranch}
-							disabled
+			afterComposer={
+				<div className="flex items-center gap-2 border-t border-border/50 px-3 py-2">
+					<RepoSelector
+						repos={repos}
+						selectedRepo={selectedRepo}
+						onRepoChange={setSelectedRepo}
+						disabled
+					/>
+					<BranchSelector
+						branches={branches}
+						selectedBranch={selectedBranch}
+						onBranchChange={setSelectedBranch}
+						disabled
 					/>
 				</div>
 			}

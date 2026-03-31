@@ -3,8 +3,8 @@ import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
 import { redirect } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
-import { getDefaultMockWorkspace } from "./mock-data";
 import { ProductDemo } from "../(dashboard-legacy)/components/ProductDemo";
+import { getDefaultMockWorkspace } from "./mock-data";
 import { getAgentsUiAccess } from "./utils/getAgentsUiAccess";
 
 export default async function AgentsPage() {

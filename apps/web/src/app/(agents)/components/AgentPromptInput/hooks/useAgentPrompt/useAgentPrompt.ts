@@ -29,7 +29,8 @@ export function useAgentPrompt({
 	const initialBranch = useMemo(
 		() =>
 			branches.find((branch) => branch === workspace.branch) ??
-			(branches[0] ?? workspace.branch),
+			branches[0] ??
+			workspace.branch,
 		[branches, workspace.branch],
 	);
 	const [selectedModel, setSelectedModel] = useState<MockModel>(

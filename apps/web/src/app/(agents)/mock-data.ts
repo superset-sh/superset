@@ -202,7 +202,9 @@ export function getMockWorkspaceById(
 	return mockWorkspaces.find((workspace) => workspace.id === workspaceId);
 }
 
-export function getMockSessionsByWorkspaceId(workspaceId: string): MockSession[] {
+export function getMockSessionsByWorkspaceId(
+	workspaceId: string,
+): MockSession[] {
 	return mockSessions.filter((session) => session.workspaceId === workspaceId);
 }
 
