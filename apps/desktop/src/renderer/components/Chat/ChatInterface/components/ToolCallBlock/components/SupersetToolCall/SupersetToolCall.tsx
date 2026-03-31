@@ -1,3 +1,4 @@
+import { MessageResponse } from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { WrenchIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
@@ -9,6 +10,7 @@ type SupersetToolCallProps = {
 	toolName: string;
 	icon?: ComponentType<{ className?: string }>;
 	details?: ReactNode;
+	subtitle?: string;
 };
 
 function stringifyValue(value: unknown): string {
@@ -25,6 +27,7 @@ export function SupersetToolCall({
 	toolName,
 	icon: Icon = WrenchIcon,
 	details,
+	subtitle,
 }: SupersetToolCallProps) {
 	const output =
 		"output" in part ? (part as { output?: unknown }).output : undefined;
@@ -46,7 +49,17 @@ export function SupersetToolCall({
 		return "Tool failed";
 	}, [isError, output, outputError, outputObject?.message]);
 
-	const hasDetails = Boolean(details) || isError;
+	const contentText = (() => {
+		if (isPending || isError) return null;
+		if (typeof output === "string" && output.trim()) return output.trim();
+		if (outputObject) {
+			const c = outputObject.content ?? outputObject.text;
+			if (typeof c === "string" && c.trim()) return c.trim();
+		}
+		return null;
+	})();
+
+	const hasDetails = Boolean(details) || isError || contentText != null;
 
 	return (
 		<ToolCallRow
@@ -54,6 +67,7 @@ export function SupersetToolCall({
 			isError={isError}
 			isPending={isPending}
 			title={toolName}
+			description={subtitle}
 		>
 			{hasDetails ? (
 				<div className="space-y-1 pl-2">
@@ -66,6 +80,10 @@ export function SupersetToolCall({
 						<div className="rounded border border-destructive/40 bg-destructive/10 ps-2 text-xs text-destructive">
 							{errorText}
 						</div>
+					) : contentText != null ? (
+						<MessageResponse animated={false} isAnimating={false}>
+							{contentText}
+						</MessageResponse>
 					) : null}
 				</div>
 			) : undefined}

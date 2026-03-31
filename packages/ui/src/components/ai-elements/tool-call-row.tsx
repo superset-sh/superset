@@ -3,7 +3,7 @@
 import {
 	ChevronDownIcon,
 	ChevronRightIcon,
-	XIcon,
+	XCircleIcon,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useState } from "react";
@@ -70,6 +70,15 @@ export function ToolCallRow({
 
 	const defaultStatus = null;
 
+	const resolvedDescription =
+		description ??
+		(isError ? (
+			<span className="ml-2 flex items-center gap-1 font-medium uppercase tracking-wide text-red-500">
+				<XCircleIcon className="h-3 w-3 shrink-0" />
+				Error
+			</span>
+		) : null);
+
 	const titleContent =
 		typeof title === "string" ? (
 			<span className="shrink-0 text-xs text-foreground">{title}</span>
@@ -109,15 +118,13 @@ export function ToolCallRow({
 								<span className="flex h-3 w-3 shrink-0 items-center justify-center overflow-hidden">
 									<BrailleSpinner />
 								</span>
-							) : isError ? (
-								<XIcon className="h-3 w-3 shrink-0 text-red-500" />
 							) : (
 								<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
 							)}
 							{titleContent}
-							{description != null && !isOpen && (
+							{resolvedDescription != null && !isOpen && (
 								<span className="min-w-0 truncate text-xs text-muted-foreground">
-									{description}
+									{resolvedDescription}
 								</span>
 							)}
 						</div>

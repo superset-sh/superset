@@ -37,6 +37,7 @@ import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
 import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
+import { TaskWriteToolCall } from "./components/TaskWriteToolCall";
 import { SupersetToolCall } from "./components/SupersetToolCall";
 import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
 import { UpdateTaskToolCall } from "./components/UpdateTaskToolCall";
@@ -616,7 +617,7 @@ export function ToolCallBlock({
 	}
 
 	if (toolName === "task_write") {
-		return <SupersetToolCall part={part} toolName="Write task list" />;
+		return <TaskWriteToolCall part={part} />;
 	}
 
 	if (toolName === "task_check") {
