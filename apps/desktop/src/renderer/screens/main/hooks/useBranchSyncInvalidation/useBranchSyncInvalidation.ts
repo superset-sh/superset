@@ -45,6 +45,11 @@ export function useBranchSyncInvalidation({
 						utils.workspaces.getWorktreeInfo.invalidate({
 							workspaceId,
 						});
+						// Reset so a future branch change can trigger a new sync.
+						// Without this, syncingRef stays set to the old branch value after
+						// a successful changed-sync, causing the dedup guard to suppress
+						// re-syncs if the branch later flips back to this value.
+						syncingRef.current = null;
 					},
 					onError: () => {
 						syncingRef.current = null;
@@ -52,7 +57,13 @@ export function useBranchSyncInvalidation({
 				},
 			);
 		},
-		[mutate, workspaceId, utils],
+		// utils is excluded — tRPC's useUtils() proxy produces new references
+		// on every render, which would make doSync a new function every render,
+		// causing the useEffect below to fire a syncBranch IPC mutation on every
+		// render when gitBranch !== workspaceBranch. utils is backed by a stable
+		// QueryClient and is safe to access via closure without listing as a dep.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[mutate, workspaceId],
 	);
 
 	useEffect(() => {

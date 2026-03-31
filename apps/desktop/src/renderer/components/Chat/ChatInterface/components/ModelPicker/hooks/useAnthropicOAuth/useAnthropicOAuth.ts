@@ -190,10 +190,13 @@ export function useAnthropicOAuth({
 				);
 			}
 		},
+		// electronUtils.modelProviders.getStatuses.invalidate excluded — tRPC proxy
+		// property access returns a new function reference on every render.
+		// electronUtils itself (from useUtils()) is stable via the QueryClient.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[
 			clearAutoSubmitTimeout,
 			completeAnthropicOAuthMutation,
-			electronUtils.modelProviders.getStatuses.invalidate,
 			onAuthStateChange,
 			onModelSelectorOpenChange,
 			refetchAnthropicStatus,
@@ -235,9 +238,11 @@ export function useAnthropicOAuth({
 				error,
 			);
 		}
+	// electronUtils.modelProviders.getStatuses.invalidate excluded — tRPC proxy
+	// property access returns a new function reference on every render.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		disconnectAnthropicOAuthMutation,
-		electronUtils.modelProviders.getStatuses.invalidate,
 		onAuthStateChange,
 		onModelSelectorOpenChange,
 		refetchAnthropicStatus,

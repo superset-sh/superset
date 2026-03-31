@@ -34,7 +34,6 @@ export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 
 	const allTabs = useTabsStore((s) => s.tabs);
-	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const addChatTab = useTabsStore((s) => s.addChatTab);
@@ -125,26 +124,56 @@ export function GroupStrip() {
 		});
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	// Compute aggregate status per tab using shared priority logic
-	const tabStatusMap = useMemo(() => {
-		const result = new Map<string, ActivePaneStatus>();
-		for (const pane of Object.values(panes)) {
-			if (!pane.status || pane.status === "idle") continue;
-			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
-			if (higher !== "idle") {
-				result.set(pane.tabId, higher);
+	// Compute aggregate status per tab directly in the selector with custom
+	// equality — GroupStrip only re-renders when a tab's aggregate status
+	// actually changes, not on every terminal status tick.
+	const tabStatusMap = useTabsStore(
+		useCallback((s) => {
+			const result = new Map<string, ActivePaneStatus>();
+			for (const pane of Object.values(s.panes)) {
+				if (!pane.status || pane.status === "idle") continue;
+				const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
+				if (higher !== "idle") {
+					result.set(pane.tabId, higher);
+				}
 			}
-		}
-		return result;
-	}, [panes]);
+			return result;
+		}, []),
+		(a, b) => {
+			if (a.size !== b.size) return false;
+			for (const [k, v] of a) {
+				if (b.get(k) !== v) return false;
+			}
+			return true;
+		},
+	);
 
-	// Sync Electric session titles → tab and pane names for chat panes in this workspace
+	// Stable digest of chat pane → session relationships. Excludes pane.status
+	// and pane.workspaceRun so that terminal status ticks don't invalidate it.
+	// Only changes when a chat pane is added/removed or its sessionId/tabId changes.
+	// Computed directly in the selector so GroupStrip doesn't re-render on every
+	// pane write — only when the chat pane structure actually changes.
+	const chatPaneDigest = useTabsStore(
+		useCallback(
+			(s) =>
+				Object.values(s.panes)
+					.filter((p) => p.type === "chat" && p.chat?.sessionId)
+					.map((p) => `${p.id}:${p.chat!.sessionId}:${p.tabId}`)
+					.sort()
+					.join("|"),
+			[],
+		),
+	);
+
+	// Sync Electric session titles → tab and pane names for chat panes in this workspace.
+	// Depends on chatPaneDigest (not panes directly) so that status/workspaceRun
+	// changes don't recreate the Map and fire the title-sync effect every render.
 	const chatSessionTargets = useMemo(() => {
 		const map = new Map<
 			string,
 			{ tabIds: Set<string>; paneIds: Set<string> }
 		>();
-		for (const pane of Object.values(panes)) {
+		for (const pane of Object.values(useTabsStore.getState().panes)) {
 			if (pane.type === "chat" && pane.chat?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
 				if (!tab) continue;
@@ -159,7 +188,13 @@ export function GroupStrip() {
 			}
 		}
 		return map;
-	}, [panes, tabs]);
+	// chatPaneDigest is a stable string key — only changes when chat pane to
+	// session/tab relationships change, not on unrelated pane field updates
+	// (status, workspaceRun). Using it instead of panes prevents this memo from
+	// invalidating on every terminal status tick, which would fire the title-sync
+	// useEffect below on every running-agent render cycle.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [chatPaneDigest, tabs]);
 	const targetSessionIds = useMemo(
 		() => Array.from(chatSessionTargets.keys()),
 		[chatSessionTargets],
@@ -259,7 +294,7 @@ export function GroupStrip() {
 	};
 
 	const handleMarkTabAsUnread = (tabId: string) => {
-		for (const pane of Object.values(panes)) {
+		for (const pane of Object.values(useTabsStore.getState().panes)) {
 			if (pane.tabId === tabId) {
 				setPaneStatus(pane.id, "review");
 			}
@@ -308,7 +343,8 @@ export function GroupStrip() {
 	}, [updateOverflow]);
 
 	useEffect(() => {
-		requestAnimationFrame(updateOverflow);
+		const frameId = requestAnimationFrame(updateOverflow);
+		return () => cancelAnimationFrame(frameId);
 	}, [updateOverflow]);
 
 	const useCompactAddButton =

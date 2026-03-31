@@ -116,19 +116,39 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatRuntimeServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
-	const sessionCommandInput =
-		sessionId === null ? null : { sessionId, ...(cwd ? { cwd } : {}) };
+	// Stable reference — an inline object literal creates a new reference every
+	// render, which React Query's setOptions detects as changed, tearing down
+	// and restarting the refetchInterval timer on every render cycle.
+	const sessionCommandInput = useMemo(
+		() => (sessionId === null ? null : { sessionId, ...(cwd ? { cwd } : {}) }),
+		[sessionId, cwd],
+	);
 	const queryInput = sessionCommandInput ?? skipToken;
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
-	const queryOptions = {
-		enabled: isQueryEnabled,
-		refetchInterval: refetchIntervalMs,
-		refetchIntervalInBackground: true,
-		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
-	} as const;
+	// Only poll at high frequency while the agent is actively running.
+	// When idle, fall back to a low-frequency poll to catch state changes.
+	// The original 16ms (60fps) interval causes ~125 IPC serialization
+	// round-trips per second, which is a primary driver of CPU/memory growth.
+	// Uses useState (not useRef) so the idle→running transition triggers a
+	// re-render that immediately updates queryOptions.
+	const [isCurrentlyRunning, setIsCurrentlyRunning] = useState(false);
+	// Memoized so React Query only calls setOptions (and resets the interval
+	// timer) when values actually change — not on every render. gcTime floor
+	// of 1s prevents cache thrash when concurrent rendering transiently
+	// unmounts the observer (gcTime:0 evicts immediately, forcing a full
+	// re-fetch on remount rather than serving from cache).
+	const queryOptions = useMemo(
+		() => ({
+			enabled: isQueryEnabled,
+			refetchInterval: isCurrentlyRunning ? refetchIntervalMs : 2_000,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: false,
+			staleTime: isCurrentlyRunning ? 0 : 1_000,
+			gcTime: isCurrentlyRunning ? 1_000 : 5_000,
+		}),
+		[isQueryEnabled, isCurrentlyRunning, refetchIntervalMs],
+	);
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(
 		queryInput,
@@ -141,12 +161,23 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	);
 
 	const displayState = displayQuery.data ?? null;
+	const nextIsRunning = displayState?.isRunning ?? false;
+	// Intentionally set during render (not useEffect) to update queryOptions
+	// in the same render cycle, avoiding one extra slow-poll (2s) cycle before
+	// the fast-poll interval kicks in when the agent transitions to running.
+	if (nextIsRunning !== isCurrentlyRunning) {
+		setIsCurrentlyRunning(nextIsRunning);
+	}
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()
 			? displayState.errorMessage
 			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
+	// isRunning is a plain derived value used for message filtering and error
+	// display. It is intentionally separate from isCurrentlyRunning (React
+	// state) — isCurrentlyRunning exists solely to trigger a re-render when
+	// the running state changes, so the poll interval updates immediately.
 	const isRunning = displayState?.isRunning ?? false;
 	const isConversationLoading =
 		isQueryEnabled &&
@@ -344,7 +375,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, historicalMessages, sessionCommandInput, sessionId, utils],
+		// utils excluded — tRPC proxy returns new refs on every property access;
+		// including it recreates commands on every render during 16ms polling cycles.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[cwd, historicalMessages, sessionCommandInput, sessionId],
 	);
 
 	return {

@@ -3,6 +3,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { getHostServiceHeaders } from "./host-service-auth";
 
+const MAX_CLIENT_CACHE_SIZE = 10;
 const clientCache = new Map<
 	string,
 	ReturnType<typeof createTRPCClient<AppRouter>>
@@ -29,5 +30,12 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 	});
 
 	clientCache.set(hostUrl, client);
+	// Evict oldest entries to prevent unbounded cache growth from port recycling
+	if (clientCache.size > MAX_CLIENT_CACHE_SIZE) {
+		const oldest = clientCache.keys().next().value;
+		if (oldest !== undefined && oldest !== hostUrl) {
+			clientCache.delete(oldest);
+		}
+	}
 	return client;
 }

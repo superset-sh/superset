@@ -28,7 +28,10 @@ export function NewWorkspaceModalContent({
 		void utils.projects.getBranches.invalidate();
 		void utils.projects.getBranchesLocal.invalidate();
 		void utils.projects.searchBranches.invalidate();
-	}, [isOpen, utils]);
+	// utils excluded — tRPC proxy returns new refs on every property access; including it
+	// would fire this effect (and re-invalidate branch queries) on every render when isOpen.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isOpen]);
 
 	const appliedPreSelectionRef = useRef<string | null>(null);
 

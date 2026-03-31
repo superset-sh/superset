@@ -61,7 +61,10 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 					);
 				});
 		}
-	}, [orgIds, utils]);
+	// utils excluded — tRPC proxy returns new refs on every property access; including it
+	// fires this effect (and re-calls ensureData for every org) on every render.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [orgIds]);
 
 	// Query the active org's port reactively
 	const { data: activePortData } =
@@ -109,7 +112,10 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 		}
 
 		return map;
-	}, [orgIds, utils, activeOrganizationId, activePortData]);
+	// utils excluded — getData() reads from the stable QueryClient cache; including utils
+	// recreates this Map (and the context value) on every render, re-rendering all consumers.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [orgIds, activeOrganizationId, activePortData]);
 
 	const value = useMemo(() => ({ services }), [services]);
 

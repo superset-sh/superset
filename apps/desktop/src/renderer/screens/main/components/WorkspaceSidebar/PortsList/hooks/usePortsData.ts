@@ -20,6 +20,7 @@ export function usePortsData() {
 		{
 			// Keep a low-frequency safety net in case subscription events are missed.
 			refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
+			refetchIntervalInBackground: false,
 		},
 	);
 

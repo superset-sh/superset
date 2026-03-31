@@ -49,7 +49,7 @@ export function PermissionsSettings({
 }: PermissionsSettingsProps) {
 	const { data: status } = electronTrpc.permissions.getStatus.useQuery(
 		undefined,
-		{ refetchInterval: 2000 },
+		{ refetchInterval: 2000, refetchIntervalInBackground: false },
 	);
 
 	const requestFDA =

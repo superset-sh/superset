@@ -122,7 +122,10 @@ export function useOpenAIOAuth({
 				);
 			}
 		},
-		[electronUtils.modelProviders.getStatuses.invalidate, refetchOpenAIStatus],
+		// electronUtils.modelProviders.getStatuses.invalidate excluded — tRPC proxy
+		// property access returns a new function reference on every render.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[refetchOpenAIStatus],
 	);
 
 	const completeOpenAIOAuth = useCallback(async () => {

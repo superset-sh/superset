@@ -68,7 +68,9 @@ export function useFileDiffEdit({
 
 			return undefined;
 		},
-		[absolutePath, workspaceId, writeFileMutation, utils],
+		// utils excluded — tRPC proxy returns new refs on every property access; stable via QueryClient.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[absolutePath, workspaceId, writeFileMutation],
 	);
 
 	const toggleEdit = editable ? () => setIsEditing((prev) => !prev) : undefined;

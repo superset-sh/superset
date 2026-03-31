@@ -30,6 +30,7 @@ export function useGitChangesStatus({
 		{
 			enabled: enabled && !!worktreePath,
 			refetchInterval: branchRefetchInterval,
+			refetchIntervalInBackground: false,
 			refetchOnWindowFocus: branchRefetchOnWindowFocus,
 			staleTime: BRANCH_QUERY_STALE_TIME_MS,
 		},
@@ -66,6 +67,7 @@ export function useGitChangesStatus({
 
 				return refetchInterval;
 			},
+			refetchIntervalInBackground: false,
 			refetchOnWindowFocus,
 			staleTime: staleTime ?? STATUS_QUERY_STALE_TIME_MS,
 		},

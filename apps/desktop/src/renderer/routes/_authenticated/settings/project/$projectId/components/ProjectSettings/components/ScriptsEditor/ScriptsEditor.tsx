@@ -279,7 +279,9 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		} finally {
 			saveInFlightRef.current = false;
 		}
-	}, [buildPayload, updateConfigMutation, projectId, serializePayload, utils]);
+	// utils excluded — tRPC proxy returns new refs on every property access; stable via QueryClient.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [buildPayload, updateConfigMutation, projectId, serializePayload]);
 
 	const debouncedSave = useCallback(() => {
 		// Clear any existing timer

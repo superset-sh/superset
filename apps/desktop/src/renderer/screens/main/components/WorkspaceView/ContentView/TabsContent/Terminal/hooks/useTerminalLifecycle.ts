@@ -22,7 +22,12 @@ import {
 	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import {
+	deleteColdRestoreState,
+	getColdRestoreState,
+	pendingDetaches,
+	setColdRestoreState,
+} from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -556,7 +561,7 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
 
-								const storedColdRestore = coldRestoreState.get(paneId);
+								const storedColdRestore = getColdRestoreState(paneId);
 								if (storedColdRestore?.isRestored) {
 									setIsRestoredMode(true);
 									setRestoredCwd(storedColdRestore.cwd);
@@ -573,7 +578,7 @@ export function useTerminalLifecycle({
 								if (result.isColdRestore) {
 									const scrollback =
 										result.snapshot?.snapshotAnsi ?? result.scrollback;
-									coldRestoreState.set(paneId, {
+									setColdRestoreState(paneId, {
 										isRestored: true,
 										cwd: result.previousCwd || null,
 										scrollback,
@@ -876,13 +881,13 @@ export function useTerminalLifecycle({
 			if (paneDestroyed) {
 				// Pane was explicitly destroyed, so kill the session.
 				killTerminalForPane(paneId);
-				coldRestoreState.delete(paneId);
+				deleteColdRestoreState(paneId);
 				pendingDetaches.delete(paneId);
 			} else {
 				const detachTimeout = setTimeout(() => {
 					detachRef.current({ paneId });
 					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
+					deleteColdRestoreState(paneId);
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
 			}

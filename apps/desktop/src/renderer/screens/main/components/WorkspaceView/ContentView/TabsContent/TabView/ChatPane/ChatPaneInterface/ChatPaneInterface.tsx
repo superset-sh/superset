@@ -362,7 +362,10 @@ export function ChatPaneInterface({
 				cwd: rootCwd,
 			});
 		},
-		[chatRuntimeServiceTrpcUtils.workspace.getMcpOverview, sessionId],
+		// chatRuntimeServiceTrpcUtils.workspace.getMcpOverview excluded — tRPC proxy
+		// property access returns a new function reference on every render.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[sessionId],
 	);
 	const authenticateMcpServer = useCallback(
 		async (rootCwd: string, serverName: string) => {

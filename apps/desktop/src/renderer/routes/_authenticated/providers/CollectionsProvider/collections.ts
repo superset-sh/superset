@@ -106,11 +106,51 @@ export interface OrgCollections {
 	>;
 }
 
-// Per-org collections cache
+// Per-org collections cache — limited to MAX_CACHED_ORGS to prevent unbounded
+// growth. Each entry holds 20+ Electric SQL ShapeStream connections with live
+// HTTP long-polling, so stale entries leak both memory and network resources.
+const MAX_CACHED_ORGS = 2;
 const collectionsCache = new Map<string, OrgCollections>();
 
 function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
+}
+
+// Track access order for LRU eviction
+const cacheAccessOrder: string[] = [];
+
+function touchCacheKey(key: string): void {
+	const idx = cacheAccessOrder.indexOf(key);
+	if (idx !== -1) cacheAccessOrder.splice(idx, 1);
+	cacheAccessOrder.push(key);
+}
+
+function evictStaleCacheEntries(...protectedKeys: string[]): void {
+	if (collectionsCache.size <= MAX_CACHED_ORGS) return;
+	const protectedSet = new Set(protectedKeys);
+	// Evict least-recently-used first
+	for (const key of [...cacheAccessOrder]) {
+		if (protectedSet.has(key)) continue;
+		if (collectionsCache.size <= MAX_CACHED_ORGS) break;
+		const evicted = collectionsCache.get(key);
+		collectionsCache.delete(key);
+		collectionsReturnCache.delete(key);
+		const idx = cacheAccessOrder.indexOf(key);
+		if (idx !== -1) cacheAccessOrder.splice(idx, 1);
+		// Best-effort cleanup of Electric SQL ShapeStream connections.
+		// Fire-and-forget since eviction runs in a synchronous context — we
+		// can't await here. Attach .catch() so rejections surface as logged
+		// errors instead of unhandled promise rejections that silently drop.
+		if (evicted) {
+			for (const collection of Object.values(evicted)) {
+				(collection as { cleanup?: () => Promise<void> })
+					.cleanup?.()
+					?.catch((err: unknown) => {
+						console.error("[CollectionsProvider] ShapeStream cleanup failed:", err);
+					});
+			}
+		}
+	}
 }
 
 // Singleton API client with dynamic auth headers
@@ -549,6 +589,14 @@ export async function preloadCollections(
 	);
 }
 
+// Memoized return values per org — avoids creating a new object reference on
+// every call, which would cause unnecessary React context re-renders across
+// all 100+ useLiveQuery consumers.
+type CollectionsWithOrgs = OrgCollections & {
+	organizations: typeof organizationsCollection;
+};
+const collectionsReturnCache = new Map<string, CollectionsWithOrgs>();
+
 /**
  * Get collections for an organization, creating them if needed.
  * Collections are cached per org for instant switching.
@@ -560,17 +608,28 @@ export function getCollections(organizationId: string) {
 	// Get or create org-specific collections
 	if (!collectionsCache.has(cacheKey)) {
 		collectionsCache.set(cacheKey, createOrgCollections(organizationId));
+		// Evict stale orgs to prevent unbounded ShapeStream accumulation
+		evictStaleCacheEntries(cacheKey);
+		// Invalidate memoized return value
+		collectionsReturnCache.delete(cacheKey);
 	}
+	touchCacheKey(cacheKey);
 
 	const orgCollections = collectionsCache.get(cacheKey);
 	if (!orgCollections) {
 		throw new Error(`Collections not found for org: ${organizationId}`);
 	}
 
-	return {
-		...orgCollections,
-		organizations: organizationsCollection,
-	};
+	// Return memoized value to preserve referential equality
+	let cached = collectionsReturnCache.get(cacheKey);
+	if (!cached) {
+		cached = {
+			...orgCollections,
+			organizations: organizationsCollection,
+		};
+		collectionsReturnCache.set(cacheKey, cached);
+	}
+	return cached;
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;

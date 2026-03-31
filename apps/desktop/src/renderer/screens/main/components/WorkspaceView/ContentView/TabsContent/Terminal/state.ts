@@ -13,5 +13,33 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
  * the unmount/remount that StrictMode causes. Without this, the first mount
  * detects cold restore and sets state, but StrictMode unmounts and remounts
  * with fresh state, losing the cold restore detection.
+ *
+ * Private — all access goes through the helpers below to enforce the cap.
  */
-export const coldRestoreState = new Map<string, ColdRestoreState>();
+const MAX_COLD_RESTORE_ENTRIES = 20;
+const coldRestoreState = new Map<string, ColdRestoreState>();
+
+export function getColdRestoreState(
+	paneId: string,
+): ColdRestoreState | undefined {
+	return coldRestoreState.get(paneId);
+}
+
+export function setColdRestoreState(
+	paneId: string,
+	state: ColdRestoreState,
+): void {
+	coldRestoreState.set(paneId, state);
+	// Evict oldest entries to prevent unbounded growth from large scrollback strings
+	if (coldRestoreState.size > MAX_COLD_RESTORE_ENTRIES) {
+		const iterator = coldRestoreState.keys();
+		const oldest = iterator.next().value;
+		if (oldest !== undefined && oldest !== paneId) {
+			coldRestoreState.delete(oldest);
+		}
+	}
+}
+
+export function deleteColdRestoreState(paneId: string): void {
+	coldRestoreState.delete(paneId);
+}

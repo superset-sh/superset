@@ -41,7 +41,6 @@ export function TabView({ tab }: TabViewProps) {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const allTabs = useTabsStore((s) => s.tabs);
-	const allPanes = useTabsStore((s) => s.panes);
 
 	// Get workspace path for file viewer panes
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
@@ -64,8 +63,27 @@ export function TabView({ tab }: TabViewProps) {
 		[tab.layout],
 	);
 
-	// Memoize the filtered panes to avoid creating new objects on every render
+	// Digest of pane type/devtools for this tab's layout panes. Computed directly
+	// in the selector so TabView only re-renders when pane types actually change
+	// (e.g. a terminal becomes a chat), not on every status/CWD tick.
+	const tabPanesKey = useTabsStore(
+		useCallback(
+			(s) =>
+				layoutPaneIds
+					.map((id) => {
+						const pane = s.panes[id];
+						if (!pane || pane.tabId !== tab.id) return "";
+						return `${id}:${pane.type}:${pane.devtools?.targetPaneId ?? ""}`;
+					})
+					.join("|"),
+			[layoutPaneIds, tab.id],
+		),
+	);
+
+	// Memoize the filtered panes; reads fresh state keyed by tabPanesKey so it
+	// only recalculates when pane types change, not on every pane status tick.
 	const tabPanes = useMemo(() => {
+		const freshPanes = useTabsStore.getState().panes;
 		const result: Record<
 			string,
 			{
@@ -75,7 +93,7 @@ export function TabView({ tab }: TabViewProps) {
 			}
 		> = {};
 		for (const paneId of layoutPaneIds) {
-			const pane = allPanes[paneId];
+			const pane = freshPanes[paneId];
 			if (pane?.tabId === tab.id) {
 				result[paneId] = {
 					tabId: pane.tabId,
@@ -85,7 +103,7 @@ export function TabView({ tab }: TabViewProps) {
 			}
 		}
 		return result;
-	}, [layoutPaneIds, allPanes, tab.id]);
+	}, [tabPanesKey, layoutPaneIds, tab.id]);
 
 	const validPaneIds = new Set(Object.keys(tabPanes));
 	const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
