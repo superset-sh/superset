@@ -66,7 +66,11 @@ export function useWorkspaceDnD({
 				);
 			}
 		},
-		[reorderProjectChildren, reorderWorkspacesInSection, utils],
+		// utils excluded — tRPC proxy returns new refs on every property access;
+		// stable via QueryClient. Including it recreates handleReorder every render,
+		// cascading into useDrag recreating its config for all WorkspaceListItem instances.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[reorderProjectChildren, reorderWorkspacesInSection],
 	);
 
 	const [{ isDragging }, drag] = useDrag(

@@ -41,14 +41,9 @@ export function useHandleOpenedWorktree() {
 
 			navigateToWorkspace(data.workspace.id, navigate);
 		},
-		[
-			addTab,
-			createOrAttach,
-			navigate,
-			setTabAutoTitle,
-			utils.projects.getRecents,
-			utils.workspaces,
-			writeToTerminal,
-		],
+		// utils is excluded — tRPC proxy produces new refs on every property access;
+		// utils is backed by a stable QueryClient and is safe to omit from deps.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[addTab, createOrAttach, navigate, setTabAutoTitle, writeToTerminal],
 	);
 }
