@@ -6,7 +6,7 @@ import type {
 	MockMessage,
 	MockSession,
 	MockWorkspace,
-} from "../../../mock-data";
+} from "../../../../../mock-data";
 import { FollowUpInput } from "../FollowUpInput";
 import { SessionChat } from "../SessionChat";
 import { SessionDiff } from "../SessionDiff";

@@ -6,7 +6,7 @@ import {
 	getMockWorkspaceById,
 } from "../../../mock-data";
 import { getAgentsUiAccess } from "../../../utils/getAgentsUiAccess";
-import { SessionPageContent } from "../../../[sessionId]/components/SessionPageContent";
+import { SessionPageContent } from "./components/SessionPageContent";
 
 export default async function WorkspaceSessionPage({
 	params,

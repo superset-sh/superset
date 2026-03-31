@@ -1,6 +1,6 @@
 "use client";
 
-import { PreviewPromptComposer } from "../../../components/PreviewPromptComposer";
+import { PreviewPromptComposer } from "../../../../../components/PreviewPromptComposer";
 
 type FollowUpInputProps = {
 	modelName: string;
