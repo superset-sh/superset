@@ -47,7 +47,9 @@ export function WorkspaceLayout({
 			minWidth={MIN_SIDEBAR_WIDTH}
 			maxWidth={MAX_SIDEBAR_WIDTH}
 			handleSide={isSwapped ? "right" : "left"}
-			className={isExpanded ? (isSwapped ? "border-r-0" : "border-l-0") : undefined}
+			className={
+				isExpanded ? (isSwapped ? "border-r-0" : "border-l-0") : undefined
+			}
 			onDoubleClickHandle={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
 		>
 			<RightSidebar />
