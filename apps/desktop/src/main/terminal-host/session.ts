@@ -225,20 +225,16 @@ export class Session {
 		this.emulator.setCwd(options.cwd);
 
 		// The headless emulator responds to terminal queries (e.g. DA1,
-		// DSR) when no renderer client is attached. These responses must
-		// be forwarded to the subprocess immediately — even during shell
-		// init — because shells like fish send DA1 at startup and wait
-		// up to 10 seconds for a reply before disabling optional features.
+		// DSR). These responses must be forwarded to the subprocess
+		// regardless of whether renderer clients are attached, because
+		// shells like fish send DA1 at startup and wait up to 10 seconds
+		// for a reply before disabling optional features.
 		// Unlike renderer-generated responses (which go through write()
 		// and are correctly dropped during init to avoid appearing as
 		// typed text), headless emulator responses are written directly
 		// to the PTY and consumed by the shell as protocol data.
 		this.emulator.onData((data) => {
-			if (
-				this.attachedClients.size === 0 &&
-				this.subprocess &&
-				this.subprocessReady
-			) {
+			if (this.subprocess && this.subprocessReady) {
 				this.sendWriteToSubprocess(data);
 			}
 		});
