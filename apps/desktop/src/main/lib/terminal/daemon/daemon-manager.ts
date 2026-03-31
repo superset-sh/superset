@@ -79,6 +79,40 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.killedSessionTombstones.delete(paneId);
 	}
 
+	/**
+	 * Tear down all sessions and daemon registrations on disconnect/error.
+	 * Covers both locally-tracked sessions and daemon-only pane IDs that
+	 * were seeded by reconcileOnStartup() but never locally attached.
+	 */
+	private teardownAllSessions(reason: string): void {
+		// Collect daemon-only pane IDs before clearing
+		const daemonOnlyPaneIds = new Set<string>();
+		for (const paneId of this.daemonAliveSessionIds) {
+			if (!this.sessions.has(paneId)) {
+				daemonOnlyPaneIds.add(paneId);
+			}
+		}
+
+		this.daemonAliveSessionIds.clear();
+		this.daemonSessionIdsHydrated = false;
+
+		// Tear down locally-tracked sessions
+		for (const [paneId, session] of this.sessions.entries()) {
+			if (session.isAlive) {
+				session.isAlive = false;
+				session.pid = null;
+				portManager.unregisterDaemonSession(paneId);
+				this.historyManager.closeHistoryWriter(paneId);
+				this.emit(`disconnect:${paneId}`, reason);
+			}
+		}
+
+		// Unregister daemon-only panes (seeded by reconcileOnStartup)
+		for (const paneId of daemonOnlyPaneIds) {
+			portManager.unregisterDaemonSession(paneId);
+		}
+	}
+
 	private initializeClient(): void {
 		this.client = getTerminalHostClient();
 		this.setupClientEventHandlers();
@@ -238,35 +272,12 @@ export class DaemonTerminalManager extends EventEmitter {
 			track("terminal_daemon_disconnected", {
 				active_session_count: activeSessionCount,
 			});
-			this.daemonAliveSessionIds.clear();
-			this.daemonSessionIdsHydrated = false;
-			for (const [paneId, session] of this.sessions.entries()) {
-				if (session.isAlive) {
-					session.isAlive = false;
-					session.pid = null;
-					portManager.unregisterDaemonSession(paneId);
-					this.historyManager.closeHistoryWriter(paneId);
-					this.emit(
-						`disconnect:${paneId}`,
-						"Connection to terminal daemon lost",
-					);
-				}
-			}
+			this.teardownAllSessions("Connection to terminal daemon lost");
 		});
 
 		this.client.on("error", (error: Error) => {
 			console.error("[DaemonTerminalManager] Client error:", error.message);
-			this.daemonAliveSessionIds.clear();
-			this.daemonSessionIdsHydrated = false;
-			for (const [paneId, session] of this.sessions.entries()) {
-				if (session.isAlive) {
-					session.isAlive = false;
-					session.pid = null;
-					portManager.unregisterDaemonSession(paneId);
-					this.historyManager.closeHistoryWriter(paneId);
-					this.emit(`disconnect:${paneId}`, error.message);
-				}
-			}
+			this.teardownAllSessions(error.message);
 		});
 
 		this.client.on(
