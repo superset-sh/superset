@@ -76,11 +76,23 @@ export function withoutActiveTurnAssistantHistory({
 
 	const turnStartIndex = findLastUserMessageIndex(messages) + 1;
 	const previousTurns = messages.slice(0, turnStartIndex);
-	const activeTurnNonAssistant = messages
-		.slice(turnStartIndex)
-		.filter((message: HistoryMessage) => message.role !== "assistant");
+	const activeTurnMessages = messages.slice(turnStartIndex);
 
-	return [...previousTurns, ...activeTurnNonAssistant];
+	// Keep a historical assistant message only when it is both:
+	//   1. Fully completed (has a stopReason) — a completed prior phase such as
+	//      the read-file + ask_user message before a question answer.
+	//   2. Not the message currently being streamed (different id from currentMessage)
+	//      — guards the brief transition window where the same message is committed
+	//      to history while currentMessage still references it.
+	const currentMessageId = (currentMessage as { id?: string }).id;
+	const deduped = activeTurnMessages.filter((message: HistoryMessage) => {
+		if (message.role !== "assistant") return true;
+		const stopReason = (message as unknown as { stopReason?: string }).stopReason;
+		const messageId = (message as unknown as { id?: string }).id;
+		return !!stopReason && messageId !== currentMessageId;
+	});
+
+	return [...previousTurns, ...deduped];
 }
 
 function hasFileOrImagePart(message: HistoryMessage): boolean {

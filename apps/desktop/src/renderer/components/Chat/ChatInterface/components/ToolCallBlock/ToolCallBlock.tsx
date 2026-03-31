@@ -584,7 +584,14 @@ export function ToolCallBlock({
 
 	// --- Read-only exploration tools ---
 	if (READ_ONLY_TOOLS.has(toolName)) {
-		return <ReadOnlyToolCall part={part} onOpenFileInPane={openFileInPane} />;
+		return (
+			<ReadOnlyToolCall
+				part={part}
+				workspaceId={workspaceId}
+				workspaceCwd={workspaceCwd}
+				onOpenFileInPane={openFileInPane}
+			/>
+		);
 	}
 
 	// --- Destructive workspace tools ---
