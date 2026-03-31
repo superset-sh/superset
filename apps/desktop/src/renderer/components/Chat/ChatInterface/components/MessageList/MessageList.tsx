@@ -6,18 +6,8 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
-import { getToolName, isToolUIPart } from "ai";
+import { isToolUIPart } from "ai";
 import type { ChatStatus, UIMessage } from "ai";
-
-function hasRenderableParts(parts: UIMessage["parts"]): boolean {
-	return parts.some(
-		(p) =>
-			p.type === "text" ||
-			p.type === "reasoning" ||
-			(p as { type: string }).type === "error" ||
-			isToolUIPart(p),
-	);
-}
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
@@ -27,10 +17,18 @@ import { parseUserMentions } from "renderer/components/Chat/utils/parseUserMenti
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { InterruptedMessagePreview } from "../../types";
 import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
-import { normalizeToolName } from "../../utils/tool-helpers";
-import type { ToolPart } from "../../utils/tool-helpers";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+
+function hasRenderableParts(parts: UIMessage["parts"]): boolean {
+	return parts.some(
+		(p) =>
+			p.type === "text" ||
+			p.type === "reasoning" ||
+			(p as { type: string }).type === "error" || // "error" part type exists at runtime but is not yet in the UIMessage union
+			isToolUIPart(p),
+	);
+}
 
 interface MessageListProps {
 	messages: UIMessage[];
@@ -88,27 +86,6 @@ export function MessageList({
 		},
 		[workspaceId, addFileViewerPane],
 	);
-
-	const interruptedByAbortedQuestion =
-		interruptedMessage?.parts.some((part) => {
-			if (!isToolUIPart(part)) return false;
-			const toolPart = part as ToolPart;
-			const toolName = normalizeToolName(getToolName(toolPart));
-			if (toolName !== "ask_user_question") return false;
-			// Pending (awaiting response when run was stopped)
-			if (
-				toolPart.state !== "output-available" &&
-				toolPart.state !== "output-error"
-			)
-				return true;
-			if (toolPart.state === "output-error") return true;
-			const out = toolPart.output;
-			return (
-				typeof out === "object" &&
-				out !== null &&
-				(out as Record<string, unknown>).isError === true
-			);
-		}) ?? false;
 
 	return (
 		<Conversation className="flex-1">
