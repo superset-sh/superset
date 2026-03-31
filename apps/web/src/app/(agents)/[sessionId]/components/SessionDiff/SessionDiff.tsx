@@ -2,9 +2,9 @@
 
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { useMemo } from "react";
-import { mockDiffFiles } from "../../../mock-data";
+import type { MockDiffFile } from "../../../mock-data";
 
-function calculateTotalStats(files: typeof mockDiffFiles): {
+function calculateTotalStats(files: MockDiffFile[]): {
 	totalAdditions: number;
 	totalDeletions: number;
 } {
@@ -19,17 +19,21 @@ function calculateTotalStats(files: typeof mockDiffFiles): {
 	return { totalAdditions, totalDeletions };
 }
 
-export function SessionDiff() {
+type SessionDiffProps = {
+	diffFiles: MockDiffFile[];
+};
+
+export function SessionDiff({ diffFiles }: SessionDiffProps) {
 	const { totalAdditions, totalDeletions } = useMemo(
-		() => calculateTotalStats(mockDiffFiles),
-		[],
+		() => calculateTotalStats(diffFiles),
+		[diffFiles],
 	);
 
 	return (
 		<div className="flex h-full flex-col overflow-y-auto px-4 py-4">
 			<div className="mb-4 flex items-center gap-2 text-sm">
 				<span className="font-medium">
-					{mockDiffFiles.length} file{mockDiffFiles.length !== 1 ? "s" : ""}{" "}
+					{diffFiles.length} file{diffFiles.length !== 1 ? "s" : ""}{" "}
 					changed
 				</span>
 				<span className="text-green-500">+{totalAdditions}</span>
@@ -37,7 +41,7 @@ export function SessionDiff() {
 			</div>
 
 			<div className="flex flex-col gap-2">
-				{mockDiffFiles.map((file) => (
+				{diffFiles.map((file) => (
 					<FileDiffTool
 						key={file.filePath}
 						filePath={file.filePath}

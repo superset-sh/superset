@@ -336,7 +336,7 @@ export function AgentsHeader() {
 					{navItems.map((item) => {
 						const isActive =
 							item.href === "/"
-								? pathname === "/"
+								? pathname === "/" || pathname.startsWith("/workspace/")
 								: pathname.startsWith(item.href);
 
 						return (

@@ -5,8 +5,28 @@ import { BranchSelector } from "./components/BranchSelector";
 import { ModelPicker } from "./components/ModelPicker";
 import { RepoSelector } from "./components/RepoSelector";
 import { useAgentPrompt } from "./hooks/useAgentPrompt";
+import {
+	type MockModel,
+	type MockRepo,
+	type MockWorkspace,
+	mockBranches,
+	mockModels,
+	mockRepos,
+} from "../../mock-data";
 
-export function AgentPromptInput() {
+type AgentPromptInputProps = {
+	branches?: string[];
+	models?: MockModel[];
+	repos?: MockRepo[];
+	workspace: MockWorkspace;
+};
+
+export function AgentPromptInput({
+	branches = mockBranches,
+	models = mockModels,
+	repos = mockRepos,
+	workspace,
+}: AgentPromptInputProps) {
 	const {
 		selectedModel,
 		setSelectedModel,
@@ -14,7 +34,12 @@ export function AgentPromptInput() {
 		setSelectedRepo,
 		selectedBranch,
 		setSelectedBranch,
-	} = useAgentPrompt();
+	} = useAgentPrompt({
+		branches,
+		models,
+		repos,
+		workspace,
+	});
 
 	return (
 		<PreviewPromptComposer
@@ -24,22 +49,25 @@ export function AgentPromptInput() {
 			footerToolsClassName="gap-1.5"
 			footerTools={
 				<ModelPicker
+					models={models}
 					selectedModel={selectedModel}
 					onModelChange={setSelectedModel}
 					disabled
 				/>
 			}
-			afterComposer={
-				<div className="flex items-center gap-2 border-t border-border/50 px-3 py-2">
-					<RepoSelector
-						selectedRepo={selectedRepo}
-						onRepoChange={setSelectedRepo}
-						disabled
-					/>
-					<BranchSelector
-						selectedBranch={selectedBranch}
-						onBranchChange={setSelectedBranch}
-						disabled
+				afterComposer={
+					<div className="flex items-center gap-2 border-t border-border/50 px-3 py-2">
+						<RepoSelector
+							repos={repos}
+							selectedRepo={selectedRepo}
+							onRepoChange={setSelectedRepo}
+							disabled
+						/>
+						<BranchSelector
+							branches={branches}
+							selectedBranch={selectedBranch}
+							onBranchChange={setSelectedBranch}
+							disabled
 					/>
 				</div>
 			}

@@ -1,16 +1,17 @@
 "use client";
 
 import { ChevronDown, GitBranch } from "lucide-react";
-import { mockBranches } from "../../../../mock-data";
 import { ResponsiveDropdown } from "../../../ResponsiveDropdown";
 
 type BranchSelectorProps = {
+	branches: string[];
 	selectedBranch: string;
 	onBranchChange: (branch: string) => void;
 	disabled?: boolean;
 };
 
 export function BranchSelector({
+	branches,
 	selectedBranch,
 	onBranchChange,
 	disabled = false,
@@ -18,7 +19,7 @@ export function BranchSelector({
 	return (
 		<ResponsiveDropdown
 			title="Select branch"
-			items={mockBranches.map((branch) => ({
+			items={branches.map((branch) => ({
 				label: branch,
 				icon: <GitBranch className="size-3" />,
 				onSelect: () => onBranchChange(branch),

@@ -11,13 +11,18 @@ import {
 	MessageContent,
 	MessageResponse,
 } from "@superset/ui/ai-elements/message";
-import { mockDiffFiles, mockMessages } from "../../../mock-data";
+import type { MockDiffFile, MockMessage } from "../../../mock-data";
 
-export function SessionChat() {
+type SessionChatProps = {
+	diffFiles: MockDiffFile[];
+	messages: MockMessage[];
+};
+
+export function SessionChat({ diffFiles, messages }: SessionChatProps) {
 	return (
 		<Conversation className="h-full">
 			<ConversationContent className="gap-6 px-4 py-4">
-				{mockMessages.map((msg, index) => (
+				{messages.map((msg, index) => (
 					<div key={msg.id} className="flex flex-col gap-3">
 						{msg.role === "assistant" && index > 0 && (
 							<p className="text-xs text-muted-foreground">Worked for 39s</p>
@@ -33,9 +38,9 @@ export function SessionChat() {
 								)}
 							</MessageContent>
 						</Message>
-						{msg.role === "assistant" && index === mockMessages.length - 1 && (
+						{msg.role === "assistant" && index === messages.length - 1 && (
 							<div className="flex flex-col gap-1">
-								{mockDiffFiles.map((file) => (
+								{diffFiles.map((file) => (
 									<FileDiffTool
 										key={file.filePath}
 										filePath={file.filePath}

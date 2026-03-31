@@ -1,11 +1,10 @@
 import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
+import { redirect } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
+import { getDefaultMockWorkspace } from "./mock-data";
 import { ProductDemo } from "../(dashboard-legacy)/components/ProductDemo";
-import { AgentPromptInput } from "./components/AgentPromptInput";
-import { AgentsHeader } from "./components/AgentsHeader";
-import { SessionList } from "./components/SessionList";
 import { getAgentsUiAccess } from "./utils/getAgentsUiAccess";
 
 export default async function AgentsPage() {
@@ -47,13 +46,5 @@ export default async function AgentsPage() {
 		);
 	}
 
-	return (
-		<>
-			<AgentsHeader />
-			<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
-				<AgentPromptInput />
-				<SessionList />
-			</div>
-		</>
-	);
+	redirect(`/workspace/${getDefaultMockWorkspace().id}`);
 }

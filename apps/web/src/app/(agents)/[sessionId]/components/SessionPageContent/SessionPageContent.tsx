@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { MockSession } from "../../../mock-data";
+import type {
+	MockDiffFile,
+	MockMessage,
+	MockSession,
+	MockWorkspace,
+} from "../../../mock-data";
 import { FollowUpInput } from "../FollowUpInput";
 import { SessionChat } from "../SessionChat";
 import { SessionDiff } from "../SessionDiff";
@@ -11,7 +16,10 @@ import { SessionTabs } from "../SessionTabs";
 type ActiveTab = "chat" | "diff";
 
 type SessionPageContentProps = {
+	diffFiles: MockDiffFile[];
+	messages: MockMessage[];
 	session: MockSession;
+	workspace: MockWorkspace;
 };
 
 const panelIds = {
@@ -24,12 +32,20 @@ const tabIds = {
 	diff: "session-tab-diff",
 } as const;
 
-export function SessionPageContent({ session }: SessionPageContentProps) {
+export function SessionPageContent({
+	diffFiles,
+	messages,
+	session,
+	workspace,
+}: SessionPageContentProps) {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chat");
 
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			<SessionHeader session={session} />
+			<SessionHeader
+				backHref={`/workspace/${workspace.id}`}
+				session={session}
+			/>
 			<SessionTabs activeTab={activeTab} onTabChange={setActiveTab} />
 			<div
 				role="tabpanel"
@@ -37,9 +53,13 @@ export function SessionPageContent({ session }: SessionPageContentProps) {
 				aria-labelledby={tabIds[activeTab]}
 				className="flex-1 overflow-hidden"
 			>
-				{activeTab === "chat" ? <SessionChat /> : <SessionDiff />}
+				{activeTab === "chat" ? (
+					<SessionChat diffFiles={diffFiles} messages={messages} />
+				) : (
+					<SessionDiff diffFiles={diffFiles} />
+				)}
 			</div>
-			{activeTab === "chat" && <FollowUpInput />}
+			{activeTab === "chat" && <FollowUpInput modelName={session.modelName} />}
 		</div>
 	);
 }
