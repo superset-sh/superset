@@ -12,10 +12,12 @@ import {
 	TerminalIcon,
 	WrenchIcon,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import { useMemo, type ComponentType } from "react";
 import { getExecuteCommandViewModel } from "renderer/components/Chat/ChatInterface/components/ToolCallBlock/utils/getExecuteCommandViewModel";
+import { normalizeWorkspaceFilePath } from "renderer/components/Chat/ChatInterface/utils/file-paths";
 import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import { detectLanguage } from "shared/detect-language";
+import type { BundledLanguage } from "shiki";
 
 interface SubagentInnerToolCallProps {
 	name: string;
@@ -212,20 +214,28 @@ export function SubagentInnerToolCall({
 	const hasResult = result !== null && result.trim().length > 0;
 
 	// Read file: parse and display using the shared ReadFileTool component
-	if (normalized === "mastra_workspace_read_file" && hasResult && result) {
-		const parsed = parseReadFileResult(result);
+	const parsedReadFile = useMemo(
+		() =>
+			normalized === "mastra_workspace_read_file" && hasResult
+				? parseReadFileResult(result!)
+				: null,
+		[normalized, hasResult, result],
+	);
+	if (normalized === "mastra_workspace_read_file" && hasResult && parsedReadFile) {
+		const parsed = parsedReadFile;
 		if (parsed) {
 			const filename = parsed.filename.split("/").pop() ?? parsed.filename;
 			const lineRange = `1–${parsed.lineCount}`;
 			const openInPane = onOpenFileInPane
 				? () => {
-						const filePath = String(
+						const rawPath = String(
 							args?.path ?? args?.filePath ?? args?.file_path ?? args?.file ?? parsed.filename,
 						);
-						const normalized = workspaceCwd && !filePath.startsWith("/")
-							? `${workspaceCwd}/${filePath}`
-							: filePath;
-						onOpenFileInPane(normalized);
+						const resolvedPath = normalizeWorkspaceFilePath({
+							filePath: rawPath,
+							workspaceRoot: workspaceCwd,
+						}) ?? rawPath;
+						onOpenFileInPane(resolvedPath);
 					}
 				: undefined;
 			return (
@@ -233,7 +243,7 @@ export function SubagentInnerToolCall({
 					filename={filename}
 					content={parsed.content}
 					lineRange={lineRange}
-					language={detectLanguage(parsed.filename) as never}
+					language={detectLanguage(parsed.filename) as BundledLanguage}
 					isError={isError}
 					isPending={isPending}
 					onOpenInPane={openInPane}
