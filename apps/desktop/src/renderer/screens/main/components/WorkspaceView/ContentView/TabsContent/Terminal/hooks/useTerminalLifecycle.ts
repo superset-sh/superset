@@ -22,7 +22,11 @@ import {
 	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches, setColdRestoreState } from "../state";
+import {
+	coldRestoreState,
+	pendingDetaches,
+	setColdRestoreState,
+} from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,

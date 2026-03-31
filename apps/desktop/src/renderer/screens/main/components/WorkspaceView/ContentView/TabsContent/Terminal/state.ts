@@ -19,7 +19,10 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
 const MAX_COLD_RESTORE_ENTRIES = 20;
 export const coldRestoreState = new Map<string, ColdRestoreState>();
 
-export function setColdRestoreState(paneId: string, state: ColdRestoreState): void {
+export function setColdRestoreState(
+	paneId: string,
+	state: ColdRestoreState,
+): void {
 	coldRestoreState.set(paneId, state);
 	// Evict oldest entries to prevent unbounded growth from large scrollback strings
 	if (coldRestoreState.size > MAX_COLD_RESTORE_ENTRIES) {

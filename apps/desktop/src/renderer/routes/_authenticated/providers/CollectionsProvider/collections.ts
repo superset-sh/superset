@@ -565,7 +565,10 @@ export async function preloadCollections(
 // Memoized return values per org — avoids creating a new object reference on
 // every call, which would cause unnecessary React context re-renders across
 // all 100+ useLiveQuery consumers.
-const collectionsReturnCache = new Map<string, ReturnType<typeof getCollections>>();
+type CollectionsWithOrgs = OrgCollections & {
+	organizations: typeof organizationsCollection;
+};
+const collectionsReturnCache = new Map<string, CollectionsWithOrgs>();
 
 /**
  * Get collections for an organization, creating them if needed.
