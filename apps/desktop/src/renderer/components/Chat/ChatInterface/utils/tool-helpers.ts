@@ -33,6 +33,7 @@ const TOOL_NAME_ALIASES: Record<string, string> = {
 	task_write: "task_write",
 	task_check: "task_check",
 	submit_plan: "submit_plan",
+	lsp_inspect: "lsp_inspect",
 
 	// Legacy Superset MCP names
 	create_worktree: "create_workspace",

@@ -37,6 +37,7 @@ import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
 import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
+import { LspInspectToolCall } from "./components/LspInspectToolCall";
 import { TaskWriteToolCall } from "./components/TaskWriteToolCall";
 import { SupersetToolCall } from "./components/SupersetToolCall";
 import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
@@ -614,6 +615,10 @@ export function ToolCallBlock({
 
 	if (toolName === "request_sandbox_access") {
 		return <SupersetToolCall part={part} toolName="Request sandbox access" />;
+	}
+
+	if (toolName === "lsp_inspect") {
+		return <LspInspectToolCall part={part} />;
 	}
 
 	if (toolName === "task_write") {
