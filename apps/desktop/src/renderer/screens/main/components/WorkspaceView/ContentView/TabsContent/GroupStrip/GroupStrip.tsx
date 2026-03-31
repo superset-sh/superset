@@ -329,7 +329,8 @@ export function GroupStrip() {
 	}, [updateOverflow]);
 
 	useEffect(() => {
-		requestAnimationFrame(updateOverflow);
+		const frameId = requestAnimationFrame(updateOverflow);
+		return () => cancelAnimationFrame(frameId);
 	}, [updateOverflow]);
 
 	const useCompactAddButton =
