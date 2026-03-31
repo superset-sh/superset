@@ -10,13 +10,13 @@ function getIds(items: SettingsItem[]): string[] {
 }
 
 describe("settings search - swap panels", () => {
-	it('searching "swap" returns BEHAVIOR_SWAP_PANELS', () => {
+	it('searching "swap" returns APPEARANCE_SWAP_PANELS', () => {
 		const results = searchSettings("swap");
 		const ids = getIds(results);
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS);
 	});
 
-	it('searching "sidebar" returns BEHAVIOR_SWAP_PANELS', () => {
+	it('searching "sidebar" returns APPEARANCE_SWAP_PANELS', () => {
 		const results = searchSettings("sidebar");
 		const ids = getIds(results);
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS);
