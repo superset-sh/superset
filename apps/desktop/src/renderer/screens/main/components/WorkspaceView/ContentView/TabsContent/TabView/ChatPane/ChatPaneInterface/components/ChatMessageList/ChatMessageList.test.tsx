@@ -90,10 +90,6 @@ mock.module("./components/MessageScrollbackRail", () => ({
 	}) => <div data-rail-count={messages.length} />,
 }));
 
-mock.module("./components/SubagentExecutionMessage", () => ({
-	SubagentExecutionMessage: () => <div>SUBAGENT_EXECUTION_MESSAGE</div>,
-}));
-
 mock.module("./components/PendingApprovalMessage", () => ({
 	PendingApprovalMessage: () => null,
 }));
@@ -277,7 +273,7 @@ describe("ChatMessageList", () => {
 		expect(html).not.toContain("Response stopped");
 	});
 
-	it("renders subagent activity while keeping anchored pending plan inline", () => {
+	it("does not render standalone subagent panel; activity streams inline via SubagentToolCall", () => {
 		const html = renderListHtml({
 			messages: [
 				{
@@ -310,7 +306,9 @@ describe("ChatMessageList", () => {
 			} as never,
 		});
 
-		expect(html).toContain("SUBAGENT_EXECUTION_MESSAGE");
+		// Subagent activity is no longer rendered as a standalone panel
+		expect(html).not.toContain("SUBAGENT_EXECUTION_MESSAGE");
+		// The plan is still not shown standalone because it's anchored inline
 		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
 	});
 
