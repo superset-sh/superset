@@ -6,6 +6,18 @@ import { SubagentInnerToolCall } from "renderer/components/Chat/components/Subag
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 
+// Scale headings and fix list layout for the compact xs context.
+// [&_h*] selectors (specificity 0-1-1) beat Streamdown's direct element
+// classes (0-1-0) so no !important needed.
+const mdClassName =
+	"[&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-2 [&_h1]:mb-0.5 " +
+	"[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-2 [&_h2]:mb-0.5 " +
+	"[&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-1.5 [&_h3]:mb-0 " +
+	"[&_h4]:text-xs [&_h4]:font-semibold " +
+	"[&_h5]:text-xs [&_h5]:font-medium " +
+	"[&_h6]:text-xs [&_h6]:font-medium " +
+	"[&_li>p:first-child]:mt-0";
+
 interface SubagentToolCallProps {
 	part: ToolPart;
 	args: Record<string, unknown>;
@@ -57,7 +69,7 @@ export function SubagentToolCall({
 				<div className="space-y-2 pl-2 text-xs">
 					<MessageResponse
 						animated={false}
-						className="font-medium"
+						className={`font-medium ${mdClassName}`}
 						isAnimating={false}
 						mermaid={{ config: { theme: "default" } }}
 					>
@@ -79,7 +91,7 @@ export function SubagentToolCall({
 					{parsed.text ? (
 						<MessageResponse
 							animated={false}
-							className="[&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs"
+							className={`${mdClassName} [&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs`}
 							isAnimating={false}
 							mermaid={{ config: { theme: "default" } }}
 						>
