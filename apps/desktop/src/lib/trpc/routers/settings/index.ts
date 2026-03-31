@@ -688,6 +688,24 @@ export const createSettingsRouter = () => {
 				}
 			}),
 
+		getAllOnedevProjects: publicProcedure.query(async () => {
+			const row = getSettings();
+			const url = row.onedevUrl;
+			const accessToken = row.onedevAccessToken;
+			if (!url || !accessToken) {
+				return [];
+			}
+			try {
+				const { createOnedevClient } = await import(
+					"../changes/utils/onedev-api"
+				);
+				const client = createOnedevClient({ url, accessToken });
+				return await client.getAllProjects();
+			} catch {
+				return [];
+			}
+		}),
+
 		getOnedevIssues: publicProcedure
 			.input(
 				z.object({
@@ -1043,6 +1061,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { worktreeBaseDir: input.path },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getProjectsBaseDir: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.projectsBaseDir ?? null;
+		}),
+
+		setProjectsBaseDir: publicProcedure
+			.input(z.object({ path: z.string().nullable() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, projectsBaseDir: input.path })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { projectsBaseDir: input.path },
 					})
 					.run();
 

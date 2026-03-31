@@ -45,6 +45,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		SETTING_ITEM_ID.GIT_ONEDEV_CONFIG,
 		visibleItems,
 	);
+	const showProjectsDirectory = isItemVisible(
+		SETTING_ITEM_ID.GIT_PROJECTS_DIRECTORY,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -135,6 +139,30 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 			},
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
+
+	// Projects base dir
+	const { data: projectsBaseDir, isLoading: isProjectsBaseDirLoading } =
+		electronTrpc.settings.getProjectsBaseDir.useQuery();
+	const setProjectsBaseDir =
+		electronTrpc.settings.setProjectsBaseDir.useMutation({
+			onMutate: async ({ path }) => {
+				await utils.settings.getProjectsBaseDir.cancel();
+				const previous = utils.settings.getProjectsBaseDir.getData();
+				utils.settings.getProjectsBaseDir.setData(undefined, path);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getProjectsBaseDir.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getProjectsBaseDir.invalidate();
+			},
+		});
 
 	// OneDev config
 	const { data: onedevConfig, isLoading: isOnedevLoading } =
@@ -299,6 +327,25 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							}
 							onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
 							onReset={() => setWorktreeBaseDir.mutate({ path: null })}
+						/>
+					</div>
+				)}
+
+				{showProjectsDirectory && (
+					<div className="space-y-0.5">
+						<Label className="text-sm font-medium">Projects directory</Label>
+						<p className="text-xs text-muted-foreground">
+							Default directory where new projects are cloned
+						</p>
+						<WorktreeLocationPicker
+							currentPath={projectsBaseDir}
+							defaultPathLabel="Not set"
+							defaultBrowsePath={projectsBaseDir}
+							disabled={
+								isProjectsBaseDirLoading || setProjectsBaseDir.isPending
+							}
+							onSelect={(path) => setProjectsBaseDir.mutate({ path })}
+							onReset={() => setProjectsBaseDir.mutate({ path: null })}
 						/>
 					</div>
 				)}

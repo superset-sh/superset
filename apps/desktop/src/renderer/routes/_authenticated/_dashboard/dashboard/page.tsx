@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
 	HiArrowTopRightOnSquare,
@@ -8,6 +8,7 @@ import {
 	HiOutlineExclamationCircle,
 } from "react-icons/hi2";
 import {
+	VscCloudDownload,
 	VscGitCommit,
 	VscGitMerge,
 	VscGitPullRequest,
@@ -25,6 +26,17 @@ function DashboardPage() {
 	const { data: projectPaths = [], isLoading } = electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
 	const isConfigured = !!onedevConfig?.url && !!onedevConfig?.accessToken;
 	const onedevUrl = onedevConfig?.url ?? "";
+
+	const { data: allOnedevProjects = [] } = electronTrpc.settings.getAllOnedevProjects.useQuery(undefined, {
+		enabled: isConfigured,
+		refetchInterval: 120000,
+	});
+	const { data: projectsBaseDir } = electronTrpc.settings.getProjectsBaseDir.useQuery();
+
+	const remoteOnlyProjects = useMemo(() => {
+		const localPathSet = new Set(projectPaths.map((p) => p.toLowerCase()));
+		return allOnedevProjects.filter((p) => !localPathSet.has(p.path.toLowerCase()));
+	}, [allOnedevProjects, projectPaths]);
 
 	if (!isConfigured) {
 		return (
@@ -52,6 +64,35 @@ function DashboardPage() {
 				{projectPaths.map((path) => (
 					<ProjectCard key={path} projectPath={path} onedevUrl={onedevUrl} />
 				))}
+
+				{remoteOnlyProjects.length > 0 && (
+					<div className="border-t border-border pt-6">
+						<div className="flex items-center justify-between mb-4">
+							<div>
+								<h2 className="text-sm font-semibold">Available Projects</h2>
+								<p className="text-xs text-muted-foreground mt-0.5">
+									{remoteOnlyProjects.length} projects on OneDev not yet cloned locally
+								</p>
+							</div>
+						</div>
+						{!projectsBaseDir && (
+							<p className="text-xs text-muted-foreground mb-3">
+								Set a <Link to="/settings/git" className="underline hover:text-foreground">projects directory</Link> in Settings &gt; Git to subscribe to projects.
+							</p>
+						)}
+						<div className="flex flex-col gap-2">
+							{remoteOnlyProjects.map((project) => (
+								<RemoteProjectCard
+									key={project.id}
+									project={project}
+									onedevUrl={onedevUrl}
+									onedevToken={onedevConfig?.accessToken ?? ""}
+									projectsBaseDir={projectsBaseDir}
+								/>
+							))}
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);
@@ -263,6 +304,74 @@ function ProjectCard({ projectPath, onedevUrl }: { projectPath: string; onedevUr
 				projectPaths={[projectPath]}
 				initialProject={projectPath}
 			/>
+		</div>
+	);
+}
+
+interface RemoteProject {
+	id: number;
+	name: string;
+	path: string;
+}
+
+function RemoteProjectCard({
+	project,
+	onedevUrl,
+	onedevToken,
+	projectsBaseDir,
+}: {
+	project: RemoteProject;
+	onedevUrl: string;
+	onedevToken: string;
+	projectsBaseDir: string | null | undefined;
+}) {
+	const utils = electronTrpc.useUtils();
+	const [error, setError] = useState<string | null>(null);
+
+	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation({
+		onSuccess: (result) => {
+			if (result.success) {
+				setError(null);
+				utils.workspaces.getOnedevProjectPaths.invalidate();
+				utils.settings.getAllOnedevProjects.invalidate();
+				utils.projects.getRecents.invalidate();
+			} else if (!result.canceled && result.error) {
+				setError(result.error);
+			}
+		},
+		onError: (err) => {
+			setError(err.message);
+		},
+	});
+
+	const handleSubscribe = () => {
+		setError(null);
+		const host = new URL(onedevUrl).host;
+		const cloneUrl = `https://${onedevToken}@${host}/${project.path}.git`;
+		cloneRepo.mutate({
+			url: cloneUrl,
+			targetDirectory: projectsBaseDir ?? undefined,
+		});
+	};
+
+	return (
+		<div className="border border-border rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+			<div className="flex items-center gap-2 min-w-0">
+				<VscCloudDownload className="size-4 text-muted-foreground shrink-0" />
+				<div className="min-w-0">
+					<span className="text-sm font-medium">{project.name}</span>
+					<span className="text-xs text-muted-foreground ml-2">{project.path}</span>
+					{error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
+				</div>
+			</div>
+			<button
+				type="button"
+				className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+				onClick={handleSubscribe}
+				disabled={cloneRepo.isPending}
+			>
+				{cloneRepo.isPending ? "Cloning..." : "Subscribe"}
+			</button>
 		</div>
 	);
 }

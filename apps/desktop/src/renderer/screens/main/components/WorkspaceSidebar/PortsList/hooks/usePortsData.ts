@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { EnrichedPort } from "shared/types";
 
-const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 10_000;
+const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 2_500;
 
 export interface WorkspacePortGroup {
 	workspaceId: string;

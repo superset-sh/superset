@@ -30,6 +30,7 @@ export const SETTING_ITEM_ID = {
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
+	GIT_PROJECTS_DIRECTORY: "git-projects-directory",
 	GIT_ONEDEV_CONFIG: "git-onedev-config",
 
 	AGENTS_ENABLED: "agents-enabled",
@@ -468,6 +469,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"storage",
 			"base",
 			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.GIT_PROJECTS_DIRECTORY,
+		section: "git",
+		title: "Projects directory",
+		description: "Default directory where new projects are cloned",
+		keywords: [
+			"clone",
+			"projects",
+			"directory",
+			"folder",
+			"path",
+			"subscribe",
+			"download",
 		],
 	},
 	{

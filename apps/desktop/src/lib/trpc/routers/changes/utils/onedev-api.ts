@@ -94,6 +94,10 @@ export function createOnedevClient(config: OnedevConfig) {
 	}
 
 	return {
+		async getAllProjects(): Promise<OnedevProject[]> {
+			return apiGet<OnedevProject[]>("/~api/projects?offset=0&count=500");
+		},
+
 		async getProjectByPath(
 			projectPath: string,
 		): Promise<{ id: number; defaultBranch: string } | null> {

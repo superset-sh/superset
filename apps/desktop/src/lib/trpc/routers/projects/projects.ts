@@ -1253,8 +1253,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.returning()
 						.get();
 
-					// Auto-create main workspace if it doesn't exist
-					await ensureMainWorkspace(project);
+					// Auto-create main workspace if it doesn't exist (may fail for empty repos)
+					try {
+						await ensureMainWorkspace(project);
+					} catch {
+						// Empty repos have no branches — workspace will be created when first commit is pushed
+					}
 
 					track("project_opened", {
 						project_id: project.id,
