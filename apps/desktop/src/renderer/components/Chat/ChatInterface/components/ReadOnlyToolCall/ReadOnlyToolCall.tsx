@@ -78,6 +78,7 @@ export function ReadOnlyToolCall({
 				isReadFileTool && !isPending && !!absoluteFilePath && !!workspaceId,
 			retry: false,
 			refetchOnWindowFocus: false,
+			staleTime: Infinity,
 		},
 	);
 
@@ -164,6 +165,11 @@ export function ReadOnlyToolCall({
 				<ExternalLinkIcon className="h-3 w-3" />
 			</button>
 		) : undefined;
+
+	// Prevent a flash of raw output while the disk read is in flight
+	if (isReadFileTool && !isError && !isPending && !fileContent && fileQuery.isLoading) {
+		return <ToolCallRow icon={Icon} isPending title="Reading" description={subtitle} />;
+	}
 
 	if (isReadFileTool && !isError && fileContent) {
 		const displayPath = absoluteFilePath ?? rawFilePath;
