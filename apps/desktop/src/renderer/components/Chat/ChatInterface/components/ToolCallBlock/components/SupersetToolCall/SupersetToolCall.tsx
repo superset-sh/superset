@@ -1,4 +1,4 @@
-import { MessageResponse } from "@superset/ui/ai-elements/message";
+import { MessageResponse, TOOL_CALL_MD_CLASSNAME } from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { WrenchIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
@@ -81,7 +81,7 @@ export function SupersetToolCall({
 							{errorText}
 						</div>
 					) : contentText != null ? (
-						<MessageResponse animated={false} isAnimating={false}>
+						<MessageResponse animated={false} className={TOOL_CALL_MD_CLASSNAME} isAnimating={false}>
 							{contentText}
 						</MessageResponse>
 					) : null}

@@ -319,6 +319,24 @@ export const MessageBranchPage = ({
 	);
 };
 
+/**
+ * Compact Tailwind overrides for MessageResponse used inside tool call content.
+ * Apply this className to any MessageResponse rendered inside a collapsible
+ * tool call body so all markdown elements scale down to xs context.
+ */
+export const TOOL_CALL_MD_CLASSNAME =
+	// Headings
+	"[&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-2 [&_h1]:mb-0.5 " +
+	"[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-2 [&_h2]:mb-0.5 " +
+	"[&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-1.5 [&_h3]:mb-0 " +
+	"[&_h4]:text-xs [&_h4]:font-semibold " +
+	"[&_h5]:text-xs [&_h5]:font-medium " +
+	"[&_h6]:text-xs [&_h6]:font-medium " +
+	// Inline code
+	"[&_:not(pre)>code]:text-xs " +
+	// Lists
+	"[&_li>p:first-child]:mt-0";
+
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
