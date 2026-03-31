@@ -8,6 +8,16 @@ import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { getToolName, isToolUIPart } from "ai";
 import type { ChatStatus, UIMessage } from "ai";
+
+function hasRenderableParts(parts: UIMessage["parts"]): boolean {
+	return parts.some(
+		(p) =>
+			p.type === "text" ||
+			p.type === "reasoning" ||
+			(p as { type: string }).type === "error" ||
+			isToolUIPart(p),
+	);
+}
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
@@ -234,10 +244,14 @@ export function MessageList({
 							);
 						}
 
+						const showThinking =
+							isLastAssistant && isThinking && msg.parts.length === 0;
+						if (!showThinking && !hasRenderableParts(msg.parts)) return null;
+
 						return (
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
-									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
+									{showThinking ? (
 										<ShimmerLabel className="text-sm text-muted-foreground">
 											Thinking...
 										</ShimmerLabel>

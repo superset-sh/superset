@@ -1,4 +1,4 @@
-import { CodeBlock } from "@superset/ui/ai-elements/code-block";
+import { ReadFileTool } from "@superset/ui/ai-elements/read-file-tool";
 import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { getToolName } from "ai";
@@ -165,6 +165,22 @@ export function ReadOnlyToolCall({
 			</button>
 		) : undefined;
 
+	if (isReadFileTool && !isError && fileContent) {
+		const displayPath = absoluteFilePath ?? rawFilePath;
+		const filename = displayPath.split("/").pop() ?? displayPath;
+		return (
+			<ReadFileTool
+				filename={filename}
+				content={fileContent}
+				lineRange={lineRange ?? undefined}
+				language={detectLanguage(displayPath) as BundledLanguage}
+				isError={isError}
+				isPending={isPending}
+				onOpenInPane={canOpenFile && filePath ? () => onOpenFileInPane?.(filePath) : undefined}
+			/>
+		);
+	}
+
 	return (
 		<ToolCallRow
 			description={subtitle || undefined}
@@ -175,41 +191,17 @@ export function ReadOnlyToolCall({
 			title={title}
 		>
 			{hasDetails ? (
-				isReadFileTool && !isError && fileContent ? (
-					<div className="py-1.5 pl-2">
-						<div className="overflow-hidden rounded-md border border-border">
-							<div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-1.5 font-mono text-xs">
-								<span className="text-foreground">
-									{(absoluteFilePath ?? rawFilePath).split("/").pop()}
-								</span>
-								{lineRange && (
-									<span className="text-muted-foreground">{lineRange}</span>
-								)}
-							</div>
-							<CodeBlock
-								className="rounded-none border-0 [&>div>div]:max-h-[300px] [&_pre]:!p-2"
-								code={fileContent}
-								colorize={false}
-								language={
-									detectLanguage(absoluteFilePath ?? rawFilePath) as BundledLanguage
-								}
-								showLineNumbers
-							/>
-						</div>
-					</div>
-				) : (
-					<div className="space-y-2 pl-2">
-						{part.input != null && <ToolInput input={part.input} />}
-						{(output != null || isError) && (
-							<ToolOutput
-								output={!isError ? output : undefined}
-								errorText={
-									isError ? stringify(outputError ?? output) : undefined
-								}
-							/>
-						)}
-					</div>
-				)
+				<div className="space-y-2 pl-2">
+					{part.input != null && <ToolInput input={part.input} />}
+					{(output != null || isError) && (
+						<ToolOutput
+							output={!isError ? output : undefined}
+							errorText={
+								isError ? stringify(outputError ?? output) : undefined
+							}
+						/>
+					)}
+				</div>
 			) : undefined}
 		</ToolCallRow>
 	);

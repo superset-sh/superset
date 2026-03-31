@@ -634,7 +634,16 @@ export function ToolCallBlock({
 	}
 
 	if (toolName === "subagent") {
-		return <SubagentToolCall part={part} args={args} result={result} />;
+		return (
+			<SubagentToolCall
+				part={part}
+				args={args}
+				result={result}
+				workspaceId={workspaceId}
+				workspaceCwd={workspaceCwd}
+				onOpenFileInPane={openFileInPane}
+			/>
+		);
 	}
 
 	// --- Fallback: generic tool UI ---
