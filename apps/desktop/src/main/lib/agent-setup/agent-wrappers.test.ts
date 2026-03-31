@@ -924,6 +924,38 @@ describe("agent-wrappers codex hooks.json", () => {
 			JSON.stringify(
 				{
 					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-prompt-hook.sh",
+									},
+								],
+							},
+						],
+						PreToolUse: [
+							{
+								matcher: "*",
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-pre-tool-hook.sh",
+									},
+								],
+							},
+						],
+						PostToolUse: [
+							{
+								matcher: "*",
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-post-tool-hook.sh",
+									},
+								],
+							},
+						],
 						Stop: [
 							{
 								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
@@ -952,6 +984,33 @@ describe("agent-wrappers codex hooks.json", () => {
 				),
 			),
 		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-prompt-hook.sh",
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PreToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-pre-tool-hook.sh",
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PostToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-post-tool-hook.sh",
+					),
+			),
+		).toBe(true);
 
 		// Adds managed hook
 		expect(
@@ -973,6 +1032,22 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 		expect(
 			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PreToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PostToolUse.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
 						(hook: { command: string }) => hook.command === notifyPath,
