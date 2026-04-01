@@ -11,7 +11,7 @@ import {
 	MessageContent,
 	MessageResponse,
 } from "@superset/ui/ai-elements/message";
-import type { MockDiffFile, MockMessage } from "../../../../mock-data";
+import type { MockDiffFile, MockMessage } from "../../../../../mock-data";
 
 type SessionChatProps = {
 	diffFiles: MockDiffFile[];

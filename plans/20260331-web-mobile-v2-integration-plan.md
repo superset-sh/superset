@@ -15,7 +15,7 @@ Status: in progress
 - Use `/agents` as the current workspace screen.
 - Use agent-scoped routes for the active workspace flow:
   - `/agents`
-  - `/agents/[workspaceId]`
+  - `/agents/workspace/[workspaceId]`
 - Do not encode session identity in the route.
 - Keep workspace selection at the route level and keep session selection in UI state.
 - Pass workspace/session data into components instead of letting components resolve global mock state.
@@ -25,7 +25,7 @@ Exit criteria:
 - No `/[sessionId]` web route remains.
 - There is no raw `/workspace` route.
 - `/agents` is the current-workspace sessions screen.
-- `/agents/[workspaceId]` is the workspace detail route.
+- `/agents/workspace/[workspaceId]` is the workspace detail route.
 - The current UI still works with mock data.
 
 ## Phase 2: Backend Contract Alignment

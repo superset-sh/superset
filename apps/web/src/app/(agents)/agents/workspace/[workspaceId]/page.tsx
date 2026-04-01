@@ -4,8 +4,8 @@ import {
 	getMockDiffFilesForSession,
 	getMockMessagesForSession,
 	getMockWorkspaceById,
-} from "../../mock-data";
-import { getAgentsUiAccess } from "../../utils/getAgentsUiAccess";
+} from "../../../mock-data";
+import { getAgentsUiAccess } from "../../../utils/getAgentsUiAccess";
 import { SessionPageContent } from "./components/SessionPageContent";
 
 export default async function WorkspaceDetailPage({
