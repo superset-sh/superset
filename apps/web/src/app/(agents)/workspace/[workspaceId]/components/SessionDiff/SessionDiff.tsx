@@ -2,7 +2,7 @@
 
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { useMemo } from "react";
-import type { MockDiffFile } from "../../../../../mock-data";
+import type { MockDiffFile } from "../../../../mock-data";
 
 function calculateTotalStats(files: MockDiffFile[]): {
 	totalAdditions: number;

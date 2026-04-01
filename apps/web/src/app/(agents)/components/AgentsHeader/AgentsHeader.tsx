@@ -337,6 +337,7 @@ export function AgentsHeader() {
 						const isActive =
 							item.href === "/agents"
 								? pathname === "/agents" ||
+									pathname === "/workspace" ||
 									pathname.startsWith("/workspace/")
 								: pathname.startsWith(item.href);
 

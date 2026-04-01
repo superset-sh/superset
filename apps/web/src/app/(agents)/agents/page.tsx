@@ -46,5 +46,5 @@ export default async function AgentsPage() {
 		);
 	}
 
-	redirect(`/workspace/${getDefaultMockWorkspace().id}`);
+	redirect("/workspace");
 }

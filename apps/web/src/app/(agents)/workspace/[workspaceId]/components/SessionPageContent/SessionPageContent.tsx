@@ -5,8 +5,7 @@ import type {
 	MockDiffFile,
 	MockMessage,
 	MockSession,
-	MockWorkspace,
-} from "../../../../../mock-data";
+} from "../../../../mock-data";
 import { FollowUpInput } from "../FollowUpInput";
 import { SessionChat } from "../SessionChat";
 import { SessionDiff } from "../SessionDiff";
@@ -19,7 +18,6 @@ type SessionPageContentProps = {
 	diffFiles: MockDiffFile[];
 	messages: MockMessage[];
 	session: MockSession;
-	workspace: MockWorkspace;
 };
 
 const panelIds = {
@@ -36,16 +34,12 @@ export function SessionPageContent({
 	diffFiles,
 	messages,
 	session,
-	workspace,
 }: SessionPageContentProps) {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chat");
 
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			<SessionHeader
-				backHref={`/workspace/${workspace.id}`}
-				session={session}
-			/>
+			<SessionHeader backHref="/workspace" session={session} />
 			<SessionTabs activeTab={activeTab} onTabChange={setActiveTab} />
 			<div
 				role="tabpanel"

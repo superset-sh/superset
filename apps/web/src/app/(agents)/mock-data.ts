@@ -208,6 +208,20 @@ export function getMockSessionsByWorkspaceId(
 	return mockSessions.filter((session) => session.workspaceId === workspaceId);
 }
 
+export function getLatestMockSessionByWorkspaceId(
+	workspaceId: string,
+): MockSession | undefined {
+	const sessions = getMockSessionsByWorkspaceId(workspaceId);
+
+	return sessions.reduce<MockSession | undefined>((latest, session) => {
+		if (!latest || session.createdAt > latest.createdAt) {
+			return session;
+		}
+
+		return latest;
+	}, undefined);
+}
+
 export function getMockSessionById(sessionId: string): MockSession | undefined {
 	return mockSessions.find((session) => session.id === sessionId);
 }

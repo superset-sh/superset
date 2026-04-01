@@ -34,7 +34,7 @@ type SessionCardProps = {
 export function SessionCard({ session, workspaceId }: SessionCardProps) {
 	return (
 		<Link
-			href={`/workspace/${workspaceId}/${session.id}`}
+			href={`/workspace/${workspaceId}`}
 			className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
 		>
 			{statusIcons[session.status]}
