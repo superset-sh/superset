@@ -12,11 +12,10 @@ Goal: keep the new web mobile UI, but move it onto the same workspace/session sh
 Status: in progress
 
 - Keep the current mobile UI and mock-backed behavior.
-- Introduce `/agents` as the canonical entry route without changing the current screens yet.
-- Use workspace-scoped routes for the active workspace flow:
+- Use `/agents` as the current workspace screen.
+- Use agent-scoped routes for the active workspace flow:
   - `/agents`
-  - `/workspace`
-  - `/workspace/[workspaceId]`
+  - `/agents/[workspaceId]`
 - Do not encode session identity in the route.
 - Keep workspace selection at the route level and keep session selection in UI state.
 - Pass workspace/session data into components instead of letting components resolve global mock state.
@@ -24,9 +23,9 @@ Status: in progress
 
 Exit criteria:
 - No `/[sessionId]` web route remains.
-- `/agents` owns the agents entry path.
-- `/workspace` is the current-workspace sessions screen.
-- `/workspace/[workspaceId]` is the workspace detail route.
+- There is no raw `/workspace` route.
+- `/agents` is the current-workspace sessions screen.
+- `/agents/[workspaceId]` is the workspace detail route.
 - The current UI still works with mock data.
 
 ## Phase 2: Backend Contract Alignment

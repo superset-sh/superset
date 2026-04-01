@@ -39,7 +39,7 @@ export function SessionPageContent({
 
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			<SessionHeader backHref="/workspace" session={session} />
+			<SessionHeader backHref="/agents" session={session} />
 			<SessionTabs activeTab={activeTab} onTabChange={setActiveTab} />
 			<div
 				role="tabpanel"
