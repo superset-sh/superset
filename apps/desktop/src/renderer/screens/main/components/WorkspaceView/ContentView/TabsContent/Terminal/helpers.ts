@@ -367,6 +367,26 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 }
 
 /**
+ * Setup copy-on-select: automatically write selected text to the clipboard
+ * whenever the terminal selection changes (like Ghostty's copy-on-select = clipboard).
+ */
+export function setupCopyOnSelect(xterm: XTerm): () => void {
+	const disposable = xterm.onSelectionChange(() => {
+		const selection = xterm.getSelection();
+		if (!selection) return;
+
+		const trimmedText = selection
+			.split("\n")
+			.map((line) => line.trimEnd())
+			.join("\n");
+
+		void navigator.clipboard?.writeText(trimmedText).catch(() => {});
+	});
+
+	return () => disposable.dispose();
+}
+
+/**
  * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
  *
  * xterm.js's built-in paste handling via the textarea should work, but in some

@@ -47,6 +47,7 @@ const {
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
 	setupCopyHandler,
+	setupCopyOnSelect,
 	setupKeyboardHandler,
 	setupPasteHandler,
 } = await import("./helpers");
@@ -422,5 +423,74 @@ describe("setupPasteHandler", () => {
 		expect(onWrite).not.toHaveBeenCalled();
 		expect(preventDefault).not.toHaveBeenCalled();
 		expect(stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+});
+
+describe("setupCopyOnSelect", () => {
+	const originalNavigator = globalThis.navigator;
+
+	afterEach(() => {
+		globalThis.navigator = originalNavigator;
+	});
+
+	function createXtermStub(selection: string) {
+		let selectionCallback: (() => void) | null = null;
+		const xterm = {
+			getSelection: mock(() => selection),
+			onSelectionChange: mock((cb: () => void) => {
+				selectionCallback = cb;
+				return { dispose: mock(() => {}) };
+			}),
+		} as unknown as XTerm;
+		return { xterm, fireSelectionChange: () => selectionCallback?.() };
+	}
+
+	it("copies trimmed selection to clipboard on selection change", () => {
+		const writeText = mock(() => Promise.resolve());
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { clipboard: { writeText } };
+
+		const { xterm, fireSelectionChange } = createXtermStub("foo   \nbar  ");
+		setupCopyOnSelect(xterm);
+		fireSelectionChange();
+
+		expect(writeText).toHaveBeenCalledWith("foo\nbar");
+	});
+
+	it("does not copy when selection is empty", () => {
+		const writeText = mock(() => Promise.resolve());
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { clipboard: { writeText } };
+
+		const { xterm, fireSelectionChange } = createXtermStub("");
+		setupCopyOnSelect(xterm);
+		fireSelectionChange();
+
+		expect(writeText).not.toHaveBeenCalled();
+	});
+
+	it("does not throw when navigator.clipboard is unavailable", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = {};
+
+		const { xterm, fireSelectionChange } = createXtermStub("hello");
+		setupCopyOnSelect(xterm);
+
+		expect(() => fireSelectionChange()).not.toThrow();
+	});
+
+	it("returns a cleanup function that disposes the listener", () => {
+		const writeText = mock(() => Promise.resolve());
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { clipboard: { writeText } };
+
+		const { xterm } = createXtermStub("hello");
+		const cleanup = setupCopyOnSelect(xterm);
+
+		const disposable = (xterm.onSelectionChange as ReturnType<typeof mock>)
+			.mock.results[0]?.value;
+		cleanup();
+
+		expect(disposable.dispose).toHaveBeenCalled();
 	});
 });

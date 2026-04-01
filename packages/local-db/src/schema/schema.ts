@@ -199,6 +199,7 @@ export const settings = sqliteTable("settings", {
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
+	copyOnSelect: integer("copy_on_select", { mode: "boolean" }),
 	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
 		mode: "boolean",
 	}),

@@ -3,6 +3,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -15,6 +16,7 @@ import {
 	createTerminalInstance,
 	setupClickToMoveCursor,
 	setupCopyHandler,
+	setupCopyOnSelect,
 	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
@@ -910,6 +912,14 @@ export function useTerminalLifecycle({
 		setIsRestoredMode,
 		setRestoredCwd,
 	]);
+
+	const { data: copyOnSelect } =
+		electronTrpc.settings.getCopyOnSelect.useQuery();
+
+	useEffect(() => {
+		if (!xtermInstance || !copyOnSelect) return;
+		return setupCopyOnSelect(xtermInstance);
+	}, [xtermInstance, copyOnSelect]);
 
 	return { xtermInstance, restartTerminal };
 }

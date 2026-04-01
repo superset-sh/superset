@@ -654,6 +654,26 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getCopyOnSelect: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.copyOnSelect ?? false;
+		}),
+
+		setCopyOnSelect: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, copyOnSelect: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { copyOnSelect: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getFileOpenMode: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.fileOpenMode ?? DEFAULT_FILE_OPEN_MODE;
