@@ -31,6 +31,7 @@ interface FileDiffSectionProps {
 	baseBranch?: string;
 	isExpanded: boolean;
 	onToggleExpanded: () => void;
+	onResetFileToggle?: () => void;
 	onStage?: () => void;
 	onUnstage?: () => void;
 	onDiscard?: () => void;
@@ -74,6 +75,7 @@ export function FileDiffSection({
 	baseBranch,
 	isExpanded,
 	onToggleExpanded,
+	onResetFileToggle,
 	onStage,
 	onUnstage,
 	onDiscard,
@@ -82,13 +84,8 @@ export function FileDiffSection({
 	const { workspaceId } = useParams({ strict: false });
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const {
-		registerFileRef,
-		viewedFiles,
-		setFileViewed,
-		setActiveFileKey,
-		containerRef,
-	} = useScrollContext();
+	const { registerFileRef, viewedFiles, setFileViewed, setActiveFileKey, containerRef } =
+		useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
@@ -174,13 +171,9 @@ export function FileDiffSection({
 	const handleViewedChange = useCallback(
 		(checked: boolean) => {
 			setFileViewed(fileKey, checked);
-			if (checked && isExpanded) {
-				onToggleExpanded();
-			} else if (!checked && !isExpanded) {
-				onToggleExpanded();
-			}
+			onResetFileToggle?.();
 		},
-		[fileKey, setFileViewed, isExpanded, onToggleExpanded],
+		[fileKey, setFileViewed, onResetFileToggle],
 	);
 
 	const handleToggleEdit = useCallback(() => {
@@ -207,19 +200,6 @@ export function FileDiffSection({
 		const container = containerRef.current;
 		if (!element || !container) return;
 
-		const activeObserver = new IntersectionObserver(
-			([entry]) => {
-				if (entry.isIntersecting && entry.intersectionRatio > 0.1) {
-					setActiveFileKey(fileKey);
-				}
-			},
-			{
-				root: container,
-				rootMargin: "-100px 0px -60% 0px",
-				threshold: [0.1],
-			},
-		);
-
 		const visibilityObserver = new IntersectionObserver(
 			([entry]) => {
 				setIsInLoadRange(entry.isIntersecting);
@@ -230,14 +210,12 @@ export function FileDiffSection({
 			{ root: container, rootMargin: DIFF_LOAD_MARGIN },
 		);
 
-		activeObserver.observe(element);
 		visibilityObserver.observe(element);
 
 		return () => {
-			activeObserver.disconnect();
 			visibilityObserver.disconnect();
 		};
-	}, [fileKey, setActiveFileKey, containerRef]);
+	}, [fileKey, containerRef]);
 
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
@@ -409,7 +387,7 @@ export function FileDiffSection({
 	return (
 		<div
 			ref={sectionRef}
-			className="mx-2 my-2 border border-border rounded-lg overflow-hidden"
+			className="mx-2 my-2 border border-border rounded-lg"
 		>
 			<Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
 				<FileDiffHeader
@@ -433,7 +411,7 @@ export function FileDiffSection({
 					isActioning={isActioning}
 				/>
 
-				<CollapsibleContent>
+				<CollapsibleContent className="overflow-clip rounded-b-lg">
 					{isHiddenByDefault && !loadHiddenDiff ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-8 text-muted-foreground bg-muted/30">
 							<LuFileCode className="w-8 h-8" />

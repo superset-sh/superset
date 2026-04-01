@@ -8,7 +8,9 @@ interface CommitSectionProps {
 	commit: CommitInfo;
 	worktreePath: string;
 	collapsedFiles: Set<string>;
+	viewedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
+	onResetFileToggle: (key: string) => void;
 	scrollElementRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -16,7 +18,9 @@ export function CommitSection({
 	commit,
 	worktreePath,
 	collapsedFiles,
+	viewedFiles,
 	onToggleFile,
+	onResetFileToggle,
 	scrollElementRef,
 }: CommitSectionProps) {
 	const [isCommitExpanded, setIsCommitExpanded] = useState(false);
@@ -59,7 +63,9 @@ export function CommitSection({
 						commitHash={commit.hash}
 						worktreePath={worktreePath}
 						collapsedFiles={collapsedFiles}
+						viewedFiles={viewedFiles}
 						onToggleFile={onToggleFile}
+						onResetFileToggle={onResetFileToggle}
 						scrollElementRef={scrollElementRef}
 					/>
 				</div>

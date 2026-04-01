@@ -23,6 +23,18 @@ function createFileKey(
 	return `${category}:${commitHash ?? ""}:${canonicalPath}`;
 }
 
+export interface ActiveFileInfo {
+	file: ChangedFile;
+	category: ChangeCategory;
+	commitHash?: string;
+	worktreePath: string;
+}
+
+export interface FileEntry {
+	ref: HTMLDivElement;
+	info: ActiveFileInfo;
+}
+
 interface ScrollContextValue {
 	registerFileRef: (
 		file: ChangedFile,
@@ -37,12 +49,15 @@ interface ScrollContextValue {
 		commitHash?: string,
 		worktreePath?: string,
 	) => void;
+	fileEntries: RefObject<Map<string, FileEntry>>;
 	containerRef: RefObject<HTMLDivElement | null>;
 	viewedFiles: Set<string>;
 	setFileViewed: (key: string, viewed: boolean) => void;
 	viewedCount: number;
 	activeFileKey: string | null;
 	setActiveFileKey: (key: string | null) => void;
+	activeFileInfo: ActiveFileInfo | null;
+	setActiveFileInfo: (info: ActiveFileInfo | null) => void;
 	focusedFileKey: string | null;
 	setFocusedFileKey: (key: string | null) => void;
 }
@@ -50,10 +65,13 @@ interface ScrollContextValue {
 const ScrollContext = createContext<ScrollContextValue | null>(null);
 
 export function ScrollProvider({ children }: { children: ReactNode }) {
-	const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+	const fileEntries = useRef<Map<string, FileEntry>>(new Map());
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
 	const [activeFileKey, setActiveFileKey] = useState<string | null>(null);
+	const [activeFileInfo, setActiveFileInfo] = useState<ActiveFileInfo | null>(
+		null,
+	);
 	const [focusedFileKey, setFocusedFileKey] = useState<string | null>(null);
 
 	const registerFileRef = useCallback(
@@ -66,9 +84,12 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 		) => {
 			const key = createFileKey(file, category, commitHash, worktreePath);
 			if (ref) {
-				fileRefs.current.set(key, ref);
+				fileEntries.current.set(key, {
+					ref,
+					info: { file, category, commitHash, worktreePath },
+				});
 			} else {
-				fileRefs.current.delete(key);
+				fileEntries.current.delete(key);
 			}
 		},
 		[],
@@ -84,9 +105,9 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 			const key = createFileKey(file, category, commitHash, worktreePath);
 			setFocusedFileKey(key);
 			setActiveFileKey(key);
-			const element = fileRefs.current.get(key);
-			if (element) {
-				element.scrollIntoView({ behavior: "instant", block: "start" });
+			const entry = fileEntries.current.get(key);
+			if (entry) {
+				entry.ref.scrollIntoView({ behavior: "instant", block: "start" });
 			}
 		},
 		[],
@@ -110,12 +131,15 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 		() => ({
 			registerFileRef,
 			scrollToFile,
+			fileEntries,
 			containerRef,
 			viewedFiles,
 			setFileViewed,
 			viewedCount,
 			activeFileKey,
 			setActiveFileKey,
+			activeFileInfo,
+			setActiveFileInfo,
 			focusedFileKey,
 			setFocusedFileKey,
 		}),
@@ -126,6 +150,7 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 			setFileViewed,
 			viewedCount,
 			activeFileKey,
+			activeFileInfo,
 			focusedFileKey,
 		],
 	);

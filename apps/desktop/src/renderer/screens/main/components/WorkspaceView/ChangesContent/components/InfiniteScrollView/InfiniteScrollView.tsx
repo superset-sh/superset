@@ -1,16 +1,20 @@
 import { Button } from "@superset/ui/button";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChangesStore } from "renderer/stores/changes";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import type { GitChangesStatus } from "shared/changes-types";
-import { useScrollContext } from "../../context";
+import { type ActiveFileInfo, useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
 import { FileDiffSection } from "../FileDiffSection";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { DiffToolbar } from "./components/DiffToolbar";
+import { StickyFileHeader } from "./components/StickyFileHeader";
 import { useFileMutations } from "./hooks/useFileMutations";
 import { useFocusMode } from "./hooks/useFocusMode";
 import { useOrderedSections } from "./hooks/useOrderedSections";
+
+/** Offset from container top where we detect the "active" file */
+const STICKY_HEADER_OFFSET = 80;
 
 interface InfiniteScrollViewProps {
 	status: GitChangesStatus;
@@ -23,7 +27,63 @@ export function InfiniteScrollView({
 	worktreePath,
 	baseBranch,
 }: InfiniteScrollViewProps) {
-	const { containerRef, viewedCount } = useScrollContext();
+	const {
+		containerRef,
+		viewedCount,
+		viewedFiles,
+		fileEntries,
+		setActiveFileKey,
+		setActiveFileInfo,
+	} = useScrollContext();
+	const [stickyFile, setStickyFile] = useState<ActiveFileInfo | null>(null);
+	const activeKeyRef = useRef<string | null>(null);
+
+	// Scroll-based active file detection
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		let rafId: number | null = null;
+
+		const handleScroll = () => {
+			if (rafId !== null) return;
+			rafId = requestAnimationFrame(() => {
+				rafId = null;
+				const containerRect = container.getBoundingClientRect();
+				const threshold = containerRect.top + STICKY_HEADER_OFFSET;
+
+				let bestKey: string | null = null;
+				let bestInfo: ActiveFileInfo | null = null;
+				let bestTop = -Infinity;
+
+				for (const [key, entry] of fileEntries.current) {
+					const rect = entry.ref.getBoundingClientRect();
+					if (rect.top <= threshold && rect.bottom > threshold) {
+						if (rect.top > bestTop) {
+							bestTop = rect.top;
+							bestKey = key;
+							bestInfo = entry.info;
+						}
+					}
+				}
+
+				if (bestKey !== activeKeyRef.current) {
+					activeKeyRef.current = bestKey;
+					setActiveFileKey(bestKey);
+					setActiveFileInfo(bestInfo);
+					setStickyFile(bestInfo);
+				}
+			});
+		};
+
+		container.addEventListener("scroll", handleScroll, { passive: true });
+		handleScroll();
+
+		return () => {
+			container.removeEventListener("scroll", handleScroll);
+			if (rafId !== null) cancelAnimationFrame(rafId);
+		};
+	}, [containerRef, fileEntries, setActiveFileKey, setActiveFileInfo]);
 	const {
 		viewMode: diffViewMode,
 		setViewMode: setDiffViewMode,
@@ -89,6 +149,15 @@ export function InfiniteScrollView({
 		});
 	}, []);
 
+	const resetFileToggle = useCallback((key: string) => {
+		setCollapsedFiles((prev) => {
+			if (!prev.has(key)) return prev;
+			const next = new Set(prev);
+			next.delete(key);
+			return next;
+		});
+	}, []);
+
 	const sortedAgainstBase = useMemo(
 		() => sortFiles(status.againstBase, fileListViewMode),
 		[status.againstBase, fileListViewMode],
@@ -140,7 +209,9 @@ export function InfiniteScrollView({
 		worktreePath,
 		scrollElementRef: containerRef,
 		collapsedFiles,
+		viewedFiles,
 		onToggleFile: toggleFile,
+		onResetFileToggle: resetFileToggle,
 		expandedSections: expandedCategories,
 		toggleSection: toggleCategory,
 		againstBaseFiles: sortedAgainstBase,
@@ -180,29 +251,39 @@ export function InfiniteScrollView({
 
 	return (
 		<div ref={containerRef} className="h-full overflow-y-auto">
-			<DiffToolbar
-				viewedCount={viewedCount}
-				totalFiles={totals.fileCount}
-				totalAdditions={totals.additions}
-				totalDeletions={totals.deletions}
-				pushCount={status.pushCount}
-				pullCount={status.pullCount}
-				hasUpstream={status.hasUpstream}
-				diffViewMode={diffViewMode}
-				onDiffViewModeChange={setDiffViewMode}
-				hideUnchangedRegions={hideUnchangedRegions}
-				onToggleHideUnchangedRegions={toggleHideUnchangedRegions}
-				focusMode={focusMode}
-				onToggleFocusMode={handleToggleFocusMode}
-				sections={sections}
-				currentSection={currentSection}
-				indexWithinSection={indexWithinSection}
-				onNavigatePrev={navigatePrev}
-				onNavigateNext={navigateNext}
-				onNavigateToSection={navigateToSection}
-				isFirstFile={focusedIndex <= 0}
-				isLastFile={focusedIndex >= flatFileList.length - 1}
-			/>
+			<div className="sticky top-0 z-30">
+				<DiffToolbar
+					viewedCount={viewedCount}
+					totalFiles={totals.fileCount}
+					totalAdditions={totals.additions}
+					totalDeletions={totals.deletions}
+					pushCount={status.pushCount}
+					pullCount={status.pullCount}
+					hasUpstream={status.hasUpstream}
+					diffViewMode={diffViewMode}
+					onDiffViewModeChange={setDiffViewMode}
+					hideUnchangedRegions={hideUnchangedRegions}
+					onToggleHideUnchangedRegions={toggleHideUnchangedRegions}
+					focusMode={focusMode}
+					onToggleFocusMode={handleToggleFocusMode}
+					sections={sections}
+					currentSection={currentSection}
+					indexWithinSection={indexWithinSection}
+					onNavigatePrev={navigatePrev}
+					onNavigateNext={navigateNext}
+					onNavigateToSection={navigateToSection}
+					isFirstFile={focusedIndex <= 0}
+					isLastFile={focusedIndex >= flatFileList.length - 1}
+				/>
+				{stickyFile && !focusMode && (
+					<StickyFileHeader
+						file={stickyFile.file}
+						category={stickyFile.category}
+						commitHash={stickyFile.commitHash}
+						worktreePath={stickyFile.worktreePath}
+					/>
+				)}
+			</div>
 
 			{focusMode
 				? focusedEntry && (
@@ -217,8 +298,9 @@ export function InfiniteScrollView({
 									? baseBranch
 									: undefined
 							}
-							isExpanded={!collapsedFiles.has(focusedEntry.key)}
+							isExpanded={viewedFiles.has(focusedEntry.key) ? collapsedFiles.has(focusedEntry.key) : !collapsedFiles.has(focusedEntry.key)}
 							onToggleExpanded={() => toggleFile(focusedEntry.key)}
+							onResetFileToggle={() => resetFileToggle(focusedEntry.key)}
 							{...getFocusedFileActions(focusedEntry)}
 							isActioning={isActioning}
 						/>
