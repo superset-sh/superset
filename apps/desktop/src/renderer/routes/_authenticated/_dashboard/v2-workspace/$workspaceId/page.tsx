@@ -1,10 +1,11 @@
-import { Workspace, type PaneActionConfig } from "@superset/panes";
+import { type PaneActionConfig, Workspace } from "@superset/panes";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -12,7 +13,6 @@ import {
 	useCommandPalette,
 } from "renderer/screens/main/components/CommandPalette";
 import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
@@ -79,22 +79,24 @@ function WorkspaceContent({
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar, isLoading: isLoadingPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
-	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation({
-		onMutate: async ({ enabled }) => {
-			await utils.settings.getShowPresetsBar.cancel();
-			const previous = utils.settings.getShowPresetsBar.getData();
-			utils.settings.getShowPresetsBar.setData(undefined, enabled);
-			return { previous };
+	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
+		{
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowPresetsBar.cancel();
+				const previous = utils.settings.getShowPresetsBar.getData();
+				utils.settings.getShowPresetsBar.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_error, _variables, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowPresetsBar.setData(undefined, context.previous);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowPresetsBar.invalidate();
+			},
 		},
-		onError: (_error, _variables, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getShowPresetsBar.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getShowPresetsBar.invalidate();
-		},
-	});
+	);
 
 	const openFilePane = useCallback(
 		(filePath: string) => {
@@ -206,10 +208,7 @@ function WorkspaceContent({
 				key: "close",
 				icon: <HiMiniXMark className="size-3.5" />,
 				tooltip: (
-					<HotkeyTooltipContent
-						label="Close pane"
-						hotkeyId="CLOSE_TERMINAL"
-					/>
+					<HotkeyTooltipContent label="Close pane" hotkeyId="CLOSE_TERMINAL" />
 				),
 				onClick: (ctx) => ctx.actions.close(),
 			},

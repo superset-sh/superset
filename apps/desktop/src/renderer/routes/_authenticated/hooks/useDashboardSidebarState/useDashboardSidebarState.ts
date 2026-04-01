@@ -62,7 +62,11 @@ function ensureSidebarWorkspaceRecord(
 			tabOrder: getNextTabOrder(topLevelOrders),
 			sectionId: null,
 		},
-		paneLayout: { version: 1, tabs: [], activeTabId: null } satisfies WorkspaceState<unknown>,
+		paneLayout: {
+			version: 1,
+			tabs: [],
+			activeTabId: null,
+		} satisfies WorkspaceState<unknown>,
 	});
 }
 
