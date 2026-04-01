@@ -34,7 +34,6 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 import { createAttachRequestId } from "./attach-request-id";
-import { shouldKeepAttachAliveOnUnmount } from "./attach-unmount";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
@@ -843,34 +842,18 @@ export function useTerminalLifecycle({
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
 			const paneDestroyed = isPaneDestroyedInStore();
-			const hasWorkspaceRun = hasPaneWorkspaceRun(paneId);
-			const keepAttachAlive = shouldKeepAttachAliveOnUnmount({
-				paneDestroyed,
-				hasWorkspaceRun,
-				isStartingWorkspaceRun: isNewWorkspaceRun,
-				hasActiveAttachRequest: activeAttachRequestId !== null,
-			});
-
-			if (!keepAttachAlive) {
-				cancelInitialAttach();
-			}
+			cancelInitialAttach();
 			isUnmounted = true;
-			attachCanceled = !keepAttachAlive;
-			if (!keepAttachAlive) {
-				cancelAttachRequest(activeAttachRequestId);
-			}
+			attachCanceled = true;
+			cancelAttachRequest(activeAttachRequestId);
 			activeAttachRequestId = null;
-			const cleanupAttachId = !keepAttachAlive
-				? activeAttachId || undefined
-				: undefined;
+			const cleanupAttachId = activeAttachId || undefined;
 			activeAttachId = 0;
 			if (cancelAttachWait) {
 				cancelAttachWait();
 				cancelAttachWait = null;
 			}
-			if (!keepAttachAlive) {
-				clearAttachInFlight(paneId, cleanupAttachId);
-			}
+			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -894,9 +877,6 @@ export function useTerminalLifecycle({
 				// Pane was explicitly destroyed, so kill the session.
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
-				pendingDetaches.delete(paneId);
-			} else if (hasWorkspaceRun) {
-				// Keep workspace-run panes attached while hidden
 				pendingDetaches.delete(paneId);
 			} else {
 				const detachTimeout = setTimeout(() => {
