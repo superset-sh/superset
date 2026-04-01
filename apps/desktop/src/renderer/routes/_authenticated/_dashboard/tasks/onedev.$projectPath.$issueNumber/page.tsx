@@ -550,30 +550,10 @@ function OpenInWorkspaceSection({
 ---
 ## Instructions
 
-**IMPORTANT: Always create a plan first before implementing.** Analyze the task, explore the codebase, then present a step-by-step plan. Wait for confirmation before writing code.
+**IMPORTANT: Always create a plan first before implementing.**
 
-## OneDev Integration
-
-This project uses OneDev (NOT GitHub). Do NOT use \`gh\` CLI.
-
-### Create PR:
-\`\`\`bash
-curl -s -X POST "${onedevUrl}/~api/pulls" \\
-  -H "Authorization: Bearer ${onedevToken}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"targetProjectId": ${projectId}, "sourceProjectId": ${projectId}, "sourceBranch": "BRANCH", "targetBranch": "main", "title": "TITLE", "description": "DESC", "mergeStrategy": "CREATE_MERGE_COMMIT"}'
-\`\`\`
-
-### Update issue status (Issue #${issueId}):
-\`\`\`bash
-curl -s -X POST "${onedevUrl}/~api/issues/${issueId}/state-transitions" \\
-  -H "Authorization: Bearer ${onedevToken}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"state": "STATE"}'
-# States: "Open", "In Progress", "Closed"
-\`\`\`
-
-When done: push branch, create PR via OneDev API, set issue to "In Progress" or "Closed".`;
+This project uses OneDev (NOT GitHub). Do NOT use \`gh\` CLI. PRs and merges are handled via the Superset UI.
+When done: commit your changes. Do NOT push or create PRs.`;
 
 	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest | null =>
 		buildTaskAgentLaunchRequest({
