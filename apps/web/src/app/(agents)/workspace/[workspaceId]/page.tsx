@@ -3,7 +3,6 @@ import { AgentPromptInput } from "../../components/AgentPromptInput";
 import { AgentsHeader } from "../../components/AgentsHeader";
 import { SessionList } from "../../components/SessionList";
 import {
-	getMockProjectById,
 	getMockSessionsByWorkspaceId,
 	getMockWorkspaceById,
 } from "../../mock-data";
@@ -22,11 +21,8 @@ export default async function WorkspacePage({
 
 	const { workspaceId } = await params;
 	const workspace = getMockWorkspaceById(workspaceId);
-	const project = workspace
-		? getMockProjectById(workspace.projectId)
-		: undefined;
 
-	if (!workspace || !project) {
+	if (!workspace) {
 		notFound();
 	}
 
@@ -38,7 +34,7 @@ export default async function WorkspacePage({
 			<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
 				<div className="flex flex-col gap-1 px-1">
 					<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-						{project.name}
+						Workspace
 					</p>
 					<h1 className="text-lg font-medium">{workspace.name}</h1>
 					<p className="text-sm text-muted-foreground">

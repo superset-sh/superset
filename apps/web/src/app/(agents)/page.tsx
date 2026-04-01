@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { redirect } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
 import { ProductDemo } from "../(dashboard-legacy)/components/ProductDemo";
+import { getDefaultMockWorkspace } from "./mock-data";
 import { getAgentsUiAccess } from "./utils/getAgentsUiAccess";
 
 export default async function AgentsPage() {
@@ -45,5 +46,5 @@ export default async function AgentsPage() {
 		);
 	}
 
-	redirect("/agents");
+	redirect(`/workspace/${getDefaultMockWorkspace().id}`);
 }
