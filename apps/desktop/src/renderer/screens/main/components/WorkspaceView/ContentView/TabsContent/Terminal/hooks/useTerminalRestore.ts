@@ -120,13 +120,37 @@ export function useTerminalRestore({
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
 		try {
+			const termEl = xterm.element?.parentElement ?? xterm.element;
+			const isReattach = !result.isNew;
+
+			// Hide reattached terminals during snapshot restore to prevent
+			// visible scroll/width flicker while tmux repaints at new dimensions
+			if (termEl && isReattach) {
+				termEl.style.opacity = "0";
+				termEl.style.transition = "none";
+			}
+
+			// Fit BEFORE writing so createOrAttach sends correct cols/rows
+			fitAddon.fit();
+
 			const scheduleFitAndScroll = () => {
-				requestAnimationFrame(() => {
+				const reveal = () => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
 					fitAddon.fit();
 					scrollToBottom(xterm);
-				});
+					if (termEl && termEl.isConnected) {
+						termEl.style.opacity = "";
+						termEl.style.transition = "";
+					}
+				};
+				// Reattach: delay reveal 250ms to let TUI apps (tmux)
+				// repaint at correct dimensions after SIGWINCH
+				if (isReattach) {
+					setTimeout(reveal, 250);
+				} else {
+					requestAnimationFrame(reveal);
+				}
 			};
 
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback
