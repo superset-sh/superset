@@ -39,6 +39,7 @@ interface WorkspaceDeepLinkParams {
 	baseBranch?: string;
 	useExistingBranch?: string;
 	prUrl?: string;
+	prompt?: string;
 }
 
 function resolveProject(params: WorkspaceDeepLinkParams) {
@@ -70,6 +71,7 @@ export async function handleWorkspaceCreateDeepLink(
 		baseBranch: searchParams.get("baseBranch") ?? undefined,
 		useExistingBranch: searchParams.get("useExistingBranch") ?? undefined,
 		prUrl: searchParams.get("prUrl") ?? undefined,
+		prompt: searchParams.get("prompt") ?? undefined,
 	};
 
 	const project = resolveProject(params);
@@ -395,6 +397,7 @@ async function createWorkspace(
 		branch,
 		mainRepoPath: project.mainRepoPath,
 		useExistingBranch,
+		namingPrompt: params.prompt,
 	});
 
 	return { workspaceId: workspace.id };
