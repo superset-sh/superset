@@ -12,7 +12,9 @@ Goal: keep the new web mobile UI, but move it onto the same workspace/session sh
 Status: in progress
 
 - Keep the current mobile UI and mock-backed behavior.
-- Use workspace-scoped routes only:
+- Introduce `/agents` as the canonical entry route without changing the current screens yet.
+- Use workspace-scoped routes for the active workspace flow:
+  - `/agents`
   - `/workspace/[workspaceId]`
   - `/workspace/[workspaceId]/[sessionId]`
 - Keep workspace and session selection at the route level.
@@ -21,6 +23,7 @@ Status: in progress
 
 Exit criteria:
 - No `/[sessionId]` web route remains.
+- `/agents` owns the agents entry path.
 - Session detail components live under the workspace route tree.
 - The current UI still works with mock data.
 
