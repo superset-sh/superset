@@ -2,14 +2,23 @@ export type RoadmapCategory = "Desktop" | "Web" | "Mobile" | "Integrations";
 
 export type RoadmapStatus = "now" | "next" | "later" | "shipped";
 
-export interface RoadmapItem {
+interface RoadmapItemBase {
 	id: string;
 	title: string;
 	description: string;
 	category: RoadmapCategory;
-	status: RoadmapStatus;
-	shippedDate?: string;
 }
+
+interface ActiveRoadmapItem extends RoadmapItemBase {
+	status: "now" | "next" | "later";
+}
+
+interface ShippedRoadmapItem extends RoadmapItemBase {
+	status: "shipped";
+	shippedDate: string;
+}
+
+export type RoadmapItem = ActiveRoadmapItem | ShippedRoadmapItem;
 
 export const CATEGORIES: RoadmapCategory[] = [
 	"Desktop",

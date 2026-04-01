@@ -28,7 +28,7 @@ function RoadmapCard({ item }: { item: RoadmapItem }) {
 	);
 }
 
-function ShippedCard({ item }: { item: RoadmapItem }) {
+function ShippedCard({ item }: { item: RoadmapItem & { status: "shipped" } }) {
 	return (
 		<div className="group flex items-start gap-3 border border-border p-4 hover:border-foreground/20 transition-colors">
 			<div className="flex-1 min-w-0">
@@ -39,11 +39,9 @@ function ShippedCard({ item }: { item: RoadmapItem }) {
 					{item.description}
 				</p>
 			</div>
-			{item.shippedDate && (
-				<span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
-					{item.shippedDate}
-				</span>
-			)}
+			<span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
+				{item.shippedDate}
+			</span>
 		</div>
 	);
 }
@@ -69,7 +67,7 @@ export function RoadmapBoard() {
 				<button
 					type="button"
 					onClick={() => setActiveFilter(null)}
-					className={`text-sm transition-colors ${
+					className={`text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 ${
 						activeFilter === null
 							? "text-foreground"
 							: "text-muted-foreground hover:text-foreground"
@@ -83,7 +81,7 @@ export function RoadmapBoard() {
 						type="button"
 						key={cat}
 						onClick={() => setActiveFilter(activeFilter === cat ? null : cat)}
-						className={`text-sm transition-colors ${
+						className={`text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 ${
 							activeFilter === cat
 								? "text-foreground"
 								: "text-muted-foreground hover:text-foreground"
