@@ -417,10 +417,48 @@ export function FileViewerContent({
 		}
 
 		return (
-			<embed
-				src={pdfData.dataUrl}
-				type="application/pdf"
-				className="h-full w-full"
+			<div
+				ref={(el) => {
+					if (!el || el.dataset.pdfRendered) return;
+					el.dataset.pdfRendered = "1";
+					(async () => {
+						try {
+							if (!(window as Record<string, unknown>).pdfjsLib) {
+								const mod = await import(
+									/* webpackIgnore: true */ "../../../../../../../../../../resources/public/pdfjs/pdf.min.mjs"
+								);
+								(window as Record<string, unknown>).pdfjsLib = mod;
+								mod.GlobalWorkerOptions.workerSrc = new URL(
+									"../../../../../../../../../../resources/public/pdfjs/pdf.worker.min.mjs",
+									import.meta.url,
+								).href;
+							}
+							const pdfjsLib = (window as Record<string, unknown>).pdfjsLib as typeof import("pdfjs-dist");
+							const base64 = pdfData.dataUrl.split(",")[1];
+							const binary = atob(base64);
+							const bytes = new Uint8Array(binary.length);
+							for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+							const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+							el.innerHTML = "";
+							const scale = 1.5;
+							for (let p = 1; p <= pdf.numPages; p++) {
+								const page = await pdf.getPage(p);
+								const viewport = page.getViewport({ scale });
+								const canvas = document.createElement("canvas");
+								canvas.width = viewport.width;
+								canvas.height = viewport.height;
+								canvas.style.cssText = "display:block;margin:0 auto 16px;max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.3)";
+								const ctx = canvas.getContext("2d");
+								if (ctx) await page.render({ canvasContext: ctx, viewport }).promise;
+								el.appendChild(canvas);
+							}
+						} catch (err) {
+							el.innerHTML = `<p style="color:#f87171;padding:16px">Failed to render PDF: ${err instanceof Error ? err.message : String(err)}</p>`;
+						}
+					})();
+				}}
+				className="h-full w-full overflow-auto"
+				style={{ backgroundColor: "#0d0d0d", padding: 16 }}
 			/>
 		);
 	}
