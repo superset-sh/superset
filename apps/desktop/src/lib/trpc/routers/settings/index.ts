@@ -916,7 +916,7 @@ export const createSettingsRouter = () => {
 							Authorization: `Bearer ${accessToken}`,
 							"Content-Type": "application/json",
 						},
-						body: JSON.stringify(input.title),
+						body: input.title,
 					},
 				);
 				if (!response.ok) throw new Error(`Failed: ${response.status}`);
@@ -939,7 +939,7 @@ export const createSettingsRouter = () => {
 							Authorization: `Bearer ${accessToken}`,
 							"Content-Type": "application/json",
 						},
-						body: JSON.stringify(input.description),
+						body: input.description,
 					},
 				);
 				if (!response.ok) throw new Error(`Failed: ${response.status}`);
