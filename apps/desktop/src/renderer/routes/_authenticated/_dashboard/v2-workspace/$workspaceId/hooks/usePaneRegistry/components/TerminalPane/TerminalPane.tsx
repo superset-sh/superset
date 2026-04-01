@@ -161,7 +161,7 @@ export function TerminalPane({ workspaceId }: WorkspaceTerminalProps) {
 			</div>
 			<div
 				ref={containerRef}
-				className="h-[360px] overflow-hidden rounded-md border border-border bg-[#14100f] p-2"
+				className="h-90 overflow-hidden rounded-md border border-border bg-[#14100f] p-2"
 			/>
 		</div>
 	);
