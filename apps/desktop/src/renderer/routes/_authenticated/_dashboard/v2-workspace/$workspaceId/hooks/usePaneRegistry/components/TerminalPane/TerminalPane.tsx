@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { FitAddon } from "@xterm/addon-fit";
+import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
 import { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
@@ -53,6 +54,7 @@ export function TerminalPane({ workspaceId }: WorkspaceTerminalProps) {
 			},
 		});
 		terminal.loadAddon(fitAddon);
+		terminal.loadAddon(new UnicodeGraphemesAddon());
 		terminal.open(container);
 		fitAddon.fit();
 		terminal.focus();
