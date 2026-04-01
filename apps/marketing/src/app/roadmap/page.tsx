@@ -62,7 +62,7 @@ export default function RoadmapPage() {
 			</header>
 
 			{/* Content */}
-			<div className="relative max-w-3xl mx-auto px-6 py-12 md:py-16">
+			<div className="relative max-w-5xl mx-auto px-6 py-12 md:py-16">
 				<RoadmapBoard />
 			</div>
 		</main>

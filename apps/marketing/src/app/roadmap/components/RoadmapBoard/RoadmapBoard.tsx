@@ -10,18 +10,18 @@ import {
 	STATUS_LABELS,
 } from "../../data";
 
-const SECTIONS: RoadmapStatus[] = ["now", "next", "later"];
+const COLUMNS: RoadmapStatus[] = ["now", "next", "later"];
 
 function RoadmapCard({ item }: { item: RoadmapItem }) {
 	return (
-		<div className="group border border-border p-5 hover:border-foreground/20 transition-colors">
-			<h3 className="text-base font-medium text-foreground group-hover:text-foreground/80 transition-colors">
+		<div className="group border border-border p-4 hover:border-foreground/20 transition-colors">
+			<h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
 				{item.title}
 			</h3>
-			<p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
+			<p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
 				{item.description}
 			</p>
-			<span className="text-xs font-mono text-muted-foreground mt-3 block uppercase tracking-wider">
+			<span className="text-[11px] font-mono text-muted-foreground mt-2 block uppercase tracking-wider">
 				{item.category}
 			</span>
 		</div>
@@ -30,23 +30,20 @@ function RoadmapCard({ item }: { item: RoadmapItem }) {
 
 function ShippedCard({ item }: { item: RoadmapItem }) {
 	return (
-		<div className="group border border-border p-5 hover:border-foreground/20 transition-colors">
-			<div className="flex items-baseline justify-between gap-4">
-				<h3 className="text-base font-medium text-foreground group-hover:text-foreground/80 transition-colors">
+		<div className="group flex items-start gap-3 border border-border p-4 hover:border-foreground/20 transition-colors">
+			<div className="flex-1 min-w-0">
+				<h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
 					{item.title}
 				</h3>
-				{item.shippedDate && (
-					<span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-						{item.shippedDate}
-					</span>
-				)}
+				<p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+					{item.description}
+				</p>
 			</div>
-			<p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
-				{item.description}
-			</p>
-			<span className="text-xs font-mono text-muted-foreground mt-3 block uppercase tracking-wider">
-				{item.category}
-			</span>
+			{item.shippedDate && (
+				<span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
+					{item.shippedDate}
+				</span>
+			)}
 		</div>
 	);
 }
@@ -68,7 +65,7 @@ export function RoadmapBoard() {
 	return (
 		<div>
 			{/* Category filters */}
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-10">
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-8">
 				<button
 					type="button"
 					onClick={() => setActiveFilter(null)}
@@ -97,31 +94,51 @@ export function RoadmapBoard() {
 				))}
 			</div>
 
-			{/* Sections */}
-			{SECTIONS.map((status) => {
-				const items = itemsFor(status);
-				if (items.length === 0 && activeFilter) return null;
-				return (
-					<section key={status} className="mb-12 last:mb-0">
-						<h2 className="text-xl font-medium text-foreground mb-6">
-							{STATUS_LABELS[status]}
-						</h2>
-						<div className="flex flex-col gap-4">
-							{items.map((item) => (
-								<RoadmapCard key={item.id} item={item} />
-							))}
+			{/* Kanban columns */}
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-px md:gap-0 md:border md:border-border">
+				{COLUMNS.map((status, colIdx) => {
+					const items = itemsFor(status);
+					return (
+						<div
+							key={status}
+							className={`min-h-[200px] ${colIdx < COLUMNS.length - 1 ? "md:border-r md:border-border" : ""}`}
+						>
+							{/* Column header */}
+							<div className="border-b border-border px-4 py-3">
+								<h2 className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
+									{STATUS_LABELS[status]}
+									<span className="ml-2 text-muted-foreground/50">
+										{items.length}
+									</span>
+								</h2>
+							</div>
+
+							{/* Cards */}
+							<div className="flex flex-col">
+								{items.map((item) => (
+									<RoadmapCard key={item.id} item={item} />
+								))}
+								{items.length === 0 && (
+									<p className="text-xs text-muted-foreground/40 px-4 py-8 text-center">
+										No items
+									</p>
+								)}
+							</div>
 						</div>
-					</section>
-				);
-			})}
+					);
+				})}
+			</div>
 
 			{/* Shipped section */}
 			{shippedItems.length > 0 && (
-				<div className="border-t border-border mt-12 pt-12">
-					<h2 className="text-xl font-medium text-foreground mb-6">
+				<div className="mt-12">
+					<h2 className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground mb-4">
 						{STATUS_LABELS.shipped}
+						<span className="ml-2 text-muted-foreground/50">
+							{shippedItems.length}
+						</span>
 					</h2>
-					<div className="flex flex-col gap-4">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-px">
 						{shippedItems.map((item) => (
 							<ShippedCard key={item.id} item={item} />
 						))}
