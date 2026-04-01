@@ -100,10 +100,12 @@ describe("CLOSE_WORKSPACE hotkey", () => {
 		expect(HOTKEYS.CLOSE_WORKSPACE).toBeDefined();
 		expect(HOTKEYS.CLOSE_WORKSPACE.label).toBe("Close Workspace");
 		expect(HOTKEYS.CLOSE_WORKSPACE.category).toBe("Workspace");
-		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe("meta+backspace");
+		expect(HOTKEYS.CLOSE_WORKSPACE.defaults.darwin).toBe(
+			"meta+shift+backspace",
+		);
 	});
 
-	it("matches ⌘+Backspace keyboard event", () => {
+	it("matches ⌘+Shift+Backspace keyboard event", () => {
 		const matches = matchesHotkeyEvent(
 			{
 				key: "Backspace",
@@ -111,19 +113,19 @@ describe("CLOSE_WORKSPACE hotkey", () => {
 				metaKey: true,
 				ctrlKey: false,
 				altKey: false,
-				shiftKey: false,
+				shiftKey: true,
 			},
 			HOTKEYS.CLOSE_WORKSPACE.defaults.darwin ?? "",
 		);
 		expect(matches).toBe(true);
 	});
 
-	it("does not match Backspace without meta", () => {
+	it("does not match ⌘+Backspace without shift", () => {
 		const matches = matchesHotkeyEvent(
 			{
 				key: "Backspace",
 				code: "Backspace",
-				metaKey: false,
+				metaKey: true,
 				ctrlKey: false,
 				altKey: false,
 				shiftKey: false,

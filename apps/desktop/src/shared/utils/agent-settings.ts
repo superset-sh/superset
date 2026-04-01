@@ -10,10 +10,17 @@ import {
 	type AgentDefinition,
 	type AgentDefinitionId,
 	BUILTIN_AGENT_DEFINITIONS,
+	type ChatAgentDefinition,
 	isTerminalAgentDefinition,
 	type TerminalAgentDefinition,
 } from "@superset/shared/agent-catalog";
 import type { TaskInput } from "@superset/shared/agent-command";
+import { createTerminalAgentDefinition } from "@superset/shared/agent-definition";
+import {
+	buildPromptCommandString,
+	buildPromptFileCommandString,
+	type PromptTransport,
+} from "@superset/shared/agent-prompt-launch";
 import {
 	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
 	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
@@ -45,29 +52,16 @@ const EMPTY_AGENT_PRESET_OVERRIDE_ENVELOPE: AgentPresetOverrideEnvelope = {
 	presets: [],
 };
 
-export type TerminalResolvedAgentConfig = {
+export type TerminalResolvedAgentConfig = Omit<
+	TerminalAgentDefinition,
+	"id"
+> & {
 	id: AgentDefinitionId;
-	source: "builtin" | "user";
-	kind: "terminal";
-	label: string;
-	description?: string;
-	enabled: boolean;
-	command: string;
-	promptCommand: string;
-	promptCommandSuffix?: string;
-	taskPromptTemplate: string;
 	overriddenFields: AgentPresetField[];
 };
 
-export type ChatResolvedAgentConfig = {
+export type ChatResolvedAgentConfig = Omit<ChatAgentDefinition, "id"> & {
 	id: AgentDefinitionId;
-	source: "builtin" | "user";
-	kind: "chat";
-	label: string;
-	description?: string;
-	enabled: boolean;
-	taskPromptTemplate: string;
-	model?: string;
 	overriddenFields: AgentPresetField[];
 };
 
@@ -86,29 +80,58 @@ export type AgentPresetPatch = Partial<{
 	model: string | null;
 }>;
 
-function toCustomAgentDefinition(
+export type CustomAgentDefinitionPatch = Partial<{
+	enabled: boolean;
+	label: string;
+	description: string | null;
+	command: string;
+	promptCommand: string | null;
+	promptCommandSuffix: string | null;
+	promptTransport: PromptTransport | null;
+	taskPromptTemplate: string;
+}>;
+
+function toUserTerminalAgentDefinition(
 	customDefinition: AgentCustomDefinition,
 ): TerminalAgentDefinition {
-	return {
+	return createTerminalAgentDefinition({
 		id: customDefinition.id as `custom:${string}`,
 		source: "user",
 		kind: "terminal",
-		defaultLabel: customDefinition.label,
-		defaultDescription: customDefinition.description,
-		defaultCommand: customDefinition.command,
-		defaultPromptCommand: customDefinition.promptCommand,
-		defaultPromptCommandSuffix: customDefinition.promptCommandSuffix,
-		defaultTaskPromptTemplate: customDefinition.taskPromptTemplate,
-		defaultEnabled: customDefinition.enabled ?? true,
-	};
+		label: customDefinition.label,
+		description: customDefinition.description,
+		command: customDefinition.command,
+		promptCommand: customDefinition.promptCommand,
+		promptCommandSuffix: customDefinition.promptCommandSuffix,
+		promptTransport: customDefinition.promptTransport,
+		taskPromptTemplate: customDefinition.taskPromptTemplate,
+		enabled: customDefinition.enabled ?? true,
+	});
 }
 
-function readCustomDefinitions(
+function canonicalizeCustomAgentDefinition(
+	definition: AgentCustomDefinition,
+): AgentCustomDefinition {
+	const nextDefinition: AgentCustomDefinition = { ...definition };
+
+	if (nextDefinition.promptCommand === nextDefinition.command) {
+		nextDefinition.promptCommand = undefined;
+	}
+	if (nextDefinition.promptTransport === "argv") {
+		nextDefinition.promptTransport = undefined;
+	}
+
+	return agentCustomDefinitionSchema.parse(nextDefinition);
+}
+
+export function readAgentCustomDefinitions(
 	customDefinitions: AgentCustomDefinition[] | null | undefined,
 ): AgentCustomDefinition[] {
 	return (customDefinitions ?? []).flatMap((definition) => {
 		const parsed = agentCustomDefinitionSchema.safeParse(definition);
-		return parsed.success ? [parsed.data] : [];
+		return parsed.success
+			? [canonicalizeCustomAgentDefinition(parsed.data)]
+			: [];
 	});
 }
 
@@ -126,10 +149,102 @@ export function getAgentDefinitions(
 ): AgentDefinition[] {
 	return [
 		...BUILTIN_AGENT_DEFINITIONS,
-		...readCustomDefinitions(customDefinitions).map((definition) =>
-			toCustomAgentDefinition(definition),
+		...readAgentCustomDefinitions(customDefinitions).map((definition) =>
+			toUserTerminalAgentDefinition(definition),
 		),
 	];
+}
+
+export function getCustomAgentDefinitionById({
+	customDefinitions,
+	id,
+}: {
+	customDefinitions?: AgentCustomDefinition[] | null;
+	id: `custom:${string}`;
+}): AgentCustomDefinition | null {
+	return (
+		readAgentCustomDefinitions(customDefinitions).find(
+			(definition) => definition.id === id,
+		) ?? null
+	);
+}
+
+export function upsertCustomAgentDefinition({
+	currentDefinitions,
+	definition,
+}: {
+	currentDefinitions?: AgentCustomDefinition[] | null;
+	definition: AgentCustomDefinition;
+}): AgentCustomDefinition[] {
+	const definitions = readAgentCustomDefinitions(currentDefinitions);
+	const nextDefinition = canonicalizeCustomAgentDefinition(
+		agentCustomDefinitionSchema.parse(definition),
+	);
+	const index = definitions.findIndex(
+		(candidate) => candidate.id === nextDefinition.id,
+	);
+	if (index === -1) {
+		return [...definitions, nextDefinition];
+	}
+
+	return definitions.map((candidate, candidateIndex) =>
+		candidateIndex === index ? nextDefinition : candidate,
+	);
+}
+
+export function applyCustomAgentDefinitionPatch({
+	definition,
+	patch,
+}: {
+	definition: AgentCustomDefinition;
+	patch: CustomAgentDefinitionPatch;
+}): AgentCustomDefinition {
+	const nextDefinition: AgentCustomDefinition = { ...definition };
+
+	if (Object.hasOwn(patch, "enabled")) {
+		nextDefinition.enabled = patch.enabled;
+	}
+	if (Object.hasOwn(patch, "label") && patch.label !== undefined) {
+		nextDefinition.label = patch.label;
+	}
+	if (Object.hasOwn(patch, "description")) {
+		nextDefinition.description = patch.description ?? undefined;
+	}
+	if (Object.hasOwn(patch, "command") && patch.command !== undefined) {
+		nextDefinition.command = patch.command;
+	}
+	if (
+		Object.hasOwn(patch, "promptCommand") &&
+		patch.promptCommand !== undefined
+	) {
+		nextDefinition.promptCommand = patch.promptCommand ?? undefined;
+	}
+	if (Object.hasOwn(patch, "promptCommandSuffix")) {
+		nextDefinition.promptCommandSuffix = patch.promptCommandSuffix ?? undefined;
+	}
+	if (Object.hasOwn(patch, "promptTransport")) {
+		nextDefinition.promptTransport = patch.promptTransport ?? undefined;
+	}
+	if (
+		Object.hasOwn(patch, "taskPromptTemplate") &&
+		patch.taskPromptTemplate !== undefined
+	) {
+		nextDefinition.taskPromptTemplate = patch.taskPromptTemplate;
+	}
+
+	return agentCustomDefinitionSchema.parse(nextDefinition);
+}
+
+export function deleteCustomAgentDefinition({
+	currentDefinitions,
+	id,
+}: {
+	currentDefinitions?: AgentCustomDefinition[] | null;
+	id: `custom:${string}`;
+}): AgentCustomDefinition[] {
+	return readAgentCustomDefinitions(currentDefinitions).filter(
+		(definition) => definition.id !== id,
+	);
 }
 
 function getOverriddenFields(
@@ -147,11 +262,11 @@ function getOverriddenFields(
 }
 
 function resolveDescription(
-	defaultDescription: string | undefined,
+	description: string | undefined,
 	override: AgentPresetOverride | undefined,
 ): string | undefined {
 	if (!override || !Object.hasOwn(override, "description")) {
-		return defaultDescription;
+		return description;
 	}
 
 	return override.description ?? undefined;
@@ -169,11 +284,11 @@ function resolvePromptCommandSuffix(
 }
 
 function resolveModel(
-	defaultModel: string | undefined,
+	model: string | undefined,
 	override: AgentPresetOverride | undefined,
 ): string | undefined {
 	if (!override || !Object.hasOwn(override, "model")) {
-		return defaultModel;
+		return model;
 	}
 
 	return override.model?.trim() || undefined;
@@ -185,34 +300,32 @@ function resolveAgentConfig(
 ): ResolvedAgentConfig {
 	if (isTerminalAgentDefinition(definition)) {
 		return {
-			id: definition.id,
-			source: definition.source,
-			kind: "terminal",
-			label: override?.label ?? definition.defaultLabel,
-			description: resolveDescription(definition.defaultDescription, override),
-			enabled: override?.enabled ?? definition.defaultEnabled,
-			command: override?.command ?? definition.defaultCommand,
-			promptCommand: override?.promptCommand ?? definition.defaultPromptCommand,
+			...definition,
+			id: definition.id as AgentDefinitionId,
+			label: override?.label ?? definition.label,
+			description: resolveDescription(definition.description, override),
+			enabled: override?.enabled ?? definition.enabled,
+			command: override?.command ?? definition.command,
+			promptCommand: override?.promptCommand ?? definition.promptCommand,
 			promptCommandSuffix: resolvePromptCommandSuffix(
-				definition.defaultPromptCommandSuffix,
+				definition.promptCommandSuffix,
 				override,
 			),
 			taskPromptTemplate:
-				override?.taskPromptTemplate ?? definition.defaultTaskPromptTemplate,
+				override?.taskPromptTemplate ?? definition.taskPromptTemplate,
 			overriddenFields: getOverriddenFields(override, definition),
 		};
 	}
 
 	return {
-		id: definition.id,
-		source: definition.source,
-		kind: "chat",
-		label: override?.label ?? definition.defaultLabel,
-		description: resolveDescription(definition.defaultDescription, override),
-		enabled: override?.enabled ?? definition.defaultEnabled,
+		...definition,
+		id: definition.id as AgentDefinitionId,
+		label: override?.label ?? definition.label,
+		description: resolveDescription(definition.description, override),
+		enabled: override?.enabled ?? definition.enabled,
 		taskPromptTemplate:
-			override?.taskPromptTemplate ?? definition.defaultTaskPromptTemplate,
-		model: resolveModel(definition.defaultModel, override),
+			override?.taskPromptTemplate ?? definition.taskPromptTemplate,
+		model: resolveModel(definition.model, override),
 		overriddenFields: getOverriddenFields(override, definition),
 	};
 }
@@ -232,7 +345,12 @@ export function resolveAgentConfigs({
 	);
 
 	return getAgentDefinitions(customDefinitions).map((definition) =>
-		resolveAgentConfig(definition, overridesById.get(definition.id)),
+		resolveAgentConfig(
+			definition,
+			definition.source === "builtin"
+				? overridesById.get(definition.id)
+				: undefined,
+		),
 	);
 }
 
@@ -274,30 +392,6 @@ export function getFallbackAgentId(
 	return preferredClaude?.id ?? enabledConfigs[0]?.id ?? null;
 }
 
-function buildHeredoc(
-	prompt: string,
-	delimiter: string,
-	command: string,
-	suffix?: string,
-): string {
-	const closing = suffix ? `)" ${suffix}` : ')"';
-	return [
-		`${command} "$(cat <<'${delimiter}'`,
-		prompt,
-		delimiter,
-		closing,
-	].join("\n");
-}
-
-function buildFileCommand(
-	filePath: string,
-	command: string,
-	suffix?: string,
-): string {
-	const escapedPath = filePath.replaceAll("'", "'\\''");
-	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
-}
-
 export function getCommandFromAgentConfig(
 	config: TerminalResolvedAgentConfig,
 ): string | null {
@@ -317,13 +411,13 @@ export function buildPromptCommandFromAgentConfig({
 	const promptCommand = config.promptCommand.trim() || config.command.trim();
 	if (!promptCommand) return null;
 
-	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
-	while (prompt.includes(delimiter)) {
-		delimiter = `${delimiter}_X`;
-	}
-
-	const suffix = config.promptCommandSuffix?.trim() || undefined;
-	return buildHeredoc(prompt, delimiter, promptCommand, suffix);
+	return buildPromptCommandString({
+		prompt,
+		randomId,
+		command: promptCommand,
+		suffix: config.promptCommandSuffix?.trim() || undefined,
+		transport: config.promptTransport,
+	});
 }
 
 export function buildFileCommandFromAgentConfig({
@@ -336,8 +430,12 @@ export function buildFileCommandFromAgentConfig({
 	const promptCommand = config.promptCommand.trim() || config.command.trim();
 	if (!promptCommand) return null;
 
-	const suffix = config.promptCommandSuffix?.trim() || undefined;
-	return buildFileCommand(filePath, promptCommand, suffix);
+	return buildPromptFileCommandString({
+		filePath,
+		command: promptCommand,
+		suffix: config.promptCommandSuffix?.trim() || undefined,
+		transport: config.promptTransport,
+	});
 }
 
 export function buildDefaultTerminalTaskPrompt(task: TaskInput): string {
@@ -390,17 +488,13 @@ export function createOverrideEnvelopeWithPatch({
 		Object.hasOwn(patch, field);
 
 	if (hasField("enabled")) {
-		setOrDelete(
-			"enabled",
-			patch.enabled,
-			patch.enabled !== definition.defaultEnabled,
-		);
+		setOrDelete("enabled", patch.enabled, patch.enabled !== definition.enabled);
 	}
 	if (hasField("label")) {
-		setOrDelete("label", patch.label, patch.label !== definition.defaultLabel);
+		setOrDelete("label", patch.label, patch.label !== definition.label);
 	}
 	if (hasField("description")) {
-		const defaultDescription = definition.defaultDescription;
+		const defaultDescription = definition.description;
 		const shouldPersist =
 			patch.description === null
 				? defaultDescription !== undefined
@@ -411,7 +505,7 @@ export function createOverrideEnvelopeWithPatch({
 		setOrDelete(
 			"taskPromptTemplate",
 			patch.taskPromptTemplate,
-			patch.taskPromptTemplate !== definition.defaultTaskPromptTemplate,
+			patch.taskPromptTemplate !== definition.taskPromptTemplate,
 		);
 	}
 
@@ -420,21 +514,21 @@ export function createOverrideEnvelopeWithPatch({
 			setOrDelete(
 				"command",
 				patch.command,
-				patch.command !== definition.defaultCommand,
+				patch.command !== definition.command,
 			);
 		}
 		if (hasField("promptCommand")) {
 			setOrDelete(
 				"promptCommand",
 				patch.promptCommand,
-				patch.promptCommand !== definition.defaultPromptCommand,
+				patch.promptCommand !== definition.promptCommand,
 			);
 		}
 		if (hasField("promptCommandSuffix")) {
 			const shouldPersist =
 				patch.promptCommandSuffix === null
-					? definition.defaultPromptCommandSuffix !== undefined
-					: patch.promptCommandSuffix !== definition.defaultPromptCommandSuffix;
+					? definition.promptCommandSuffix !== undefined
+					: patch.promptCommandSuffix !== definition.promptCommandSuffix;
 			setOrDelete(
 				"promptCommandSuffix",
 				patch.promptCommandSuffix,
@@ -444,8 +538,8 @@ export function createOverrideEnvelopeWithPatch({
 	} else if (hasField("model")) {
 		const shouldPersist =
 			patch.model === null
-				? definition.defaultModel !== undefined
-				: patch.model !== definition.defaultModel;
+				? definition.model !== undefined
+				: patch.model !== definition.model;
 		setOrDelete("model", patch.model ?? undefined, shouldPersist);
 	}
 

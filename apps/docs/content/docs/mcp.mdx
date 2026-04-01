@@ -15,13 +15,18 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 | **Workspaces** | Create, update, switch, delete, list, navigate workspaces |
 | **Devices** | List devices, projects, and app context |
 | **Organization** | List members and task statuses |
-| **AI Sessions** | Start autonomous AI agent sessions (Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent) and subagents |
+| **AI Sessions** | Start autonomous AI agent sessions (Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent) and subagents |
 
 ## Setup
 
 ### CLI Options
 
-<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code"]}>
+<Tabs items={["Amp CLI", "Claude Code", "Codex", "Gemini CLI", "Open Code"]}>
+<Tab value="Amp CLI">
+```bash title="terminal"
+amp mcp add --workspace superset https://api.superset.sh/api/agent/mcp
+```
+</Tab>
 <Tab value="Claude Code">
 ```bash title="terminal"
 claude mcp add superset --transport http https://api.superset.sh/api/agent/mcp
@@ -72,7 +77,20 @@ opencode mcp add
 
 Alternatively, you can manually configure the MCP server for each client:
 
-<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code"]}>
+<Tabs items={["Amp CLI", "Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code"]}>
+<Tab value="Amp CLI">
+Add to `.amp/settings.json` in your project root:
+
+```json title=".amp/settings.json"
+{
+  "amp.mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
 <Tab value="Claude Code">
 Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
 
@@ -239,12 +257,12 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `start_agent_session` | Start an autonomous AI agent session for a task in an existing workspace. Requires `taskId`. Supports Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
-| `start_agent_session_with_prompt` | Start an autonomous AI agent session in an existing workspace using a direct `prompt` instead of a task. Supports Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
+| `start_agent_session` | Start an autonomous AI agent session for a task in an existing workspace. Requires `taskId`. Supports Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
+| `start_agent_session_with_prompt` | Start an autonomous AI agent session in an existing workspace using a direct `prompt` instead of a task. Supports Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
 
 ## Chat Integration
 
-In the built-in chat panel, use the `/mcp` slash command to see your workspace's configured MCP servers — their names, transport type (local/remote), and current state (enabled/disabled/invalid). This reads from your workspace MCP config (`.mastracode/mcp.json` or `.mcp.json`).
+In the built-in chat panel, use the `/mcp` slash command to see your workspace's configured MCP servers — their names, transport type (local/remote), and current state (enabled/disabled/invalid). This reads from your workspace MCP config (`.mastracode/mcp.json`, `.amp/settings.json`, or `.mcp.json`).
 
 ## Example Usage
 

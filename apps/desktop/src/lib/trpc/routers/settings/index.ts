@@ -13,6 +13,7 @@ import {
 import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
+	DEFAULT_TERMINAL_PRESET_AGENT_TYPES,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
@@ -37,18 +38,27 @@ import {
 } from "shared/ringtones";
 import {
 	type AgentDefinitionId,
+	applyCustomAgentDefinitionPatch,
 	createOverrideEnvelopeWithPatch,
+	deleteCustomAgentDefinition,
 	getAgentDefinitionById,
+	getCustomAgentDefinitionById,
 	readAgentPresetOverrides,
 	resetAgentPresetOverride,
+	resetAllAgentPresetOverrides,
 	resolveAgentConfigs,
+	upsertCustomAgentDefinition,
 } from "shared/utils/agent-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 import {
+	createCustomAgentInputSchema,
 	normalizeAgentPresetPatch,
+	normalizeCreateCustomAgentInput,
+	normalizeCustomAgentPatch,
 	updateAgentPresetInputSchema,
+	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
 import {
 	setFontSettingsSchema,
@@ -136,6 +146,29 @@ function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
 		.run();
 }
 
+function saveAgentCustomDefinitions(definitions: AgentCustomDefinition[]) {
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			agentCustomDefinitions: definitions,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { agentCustomDefinitions: definitions },
+		})
+		.run();
+}
+
+function clearCustomAgentPresetOverride(id: `custom:${string}`) {
+	saveAgentPresetOverrides(
+		resetAgentPresetOverride({
+			currentOverrides: readRawAgentPresetOverrides(),
+			id,
+		}),
+	);
+}
+
 function getResolvedAgentPresets() {
 	return resolveAgentConfigs({
 		customDefinitions: readRawAgentCustomDefinitions(),
@@ -143,24 +176,13 @@ function getResolvedAgentPresets() {
 	});
 }
 
-const DEFAULT_PRESET_AGENTS = [
-	"claude",
-	"codex",
-	"copilot",
-	"mastracode",
-	"opencode",
-	"pi",
-	"gemini",
-] as const;
-
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
-	(name) => ({
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] =
+	DEFAULT_TERMINAL_PRESET_AGENT_TYPES.map((name) => ({
 		name,
 		description: AGENT_PRESET_DESCRIPTIONS[name],
 		cwd: "",
 		commands: AGENT_PRESET_COMMANDS[name],
-	}),
-);
+	}));
 
 function initializeDefaultPresets() {
 	const row = getSettings();
@@ -204,6 +226,84 @@ export const createSettingsRouter = () => {
 			return getNormalizedTerminalPresets();
 		}),
 		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		createCustomAgent: publicProcedure
+			.input(createCustomAgentInputSchema)
+			.mutation(({ input }) => {
+				const definition = {
+					id: `custom:${crypto.randomUUID()}` as const,
+					kind: "terminal" as const,
+					...normalizeCreateCustomAgentInput(input),
+				};
+				const nextDefinitions = upsertCustomAgentDefinition({
+					currentDefinitions: readRawAgentCustomDefinitions(),
+					definition,
+				});
+
+				saveAgentCustomDefinitions(nextDefinitions);
+				clearCustomAgentPresetOverride(definition.id);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === definition.id,
+				);
+			}),
+		updateCustomAgent: publicProcedure
+			.input(updateCustomAgentInputSchema)
+			.mutation(({ input }) => {
+				const definition = getCustomAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as `custom:${string}`,
+				});
+				if (!definition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom agent ${input.id} not found`,
+					});
+				}
+
+				const nextDefinitions = upsertCustomAgentDefinition({
+					currentDefinitions: readRawAgentCustomDefinitions(),
+					definition: applyCustomAgentDefinitionPatch({
+						definition,
+						patch: normalizeCustomAgentPatch(input.patch),
+					}),
+				});
+
+				saveAgentCustomDefinitions(nextDefinitions);
+				clearCustomAgentPresetOverride(input.id as `custom:${string}`);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === input.id,
+				);
+			}),
+		deleteCustomAgent: publicProcedure
+			.input(z.object({ id: z.string().regex(/^custom:/) }))
+			.mutation(({ input }) => {
+				const existingDefinition = getCustomAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as `custom:${string}`,
+				});
+				if (!existingDefinition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom agent ${input.id} not found`,
+					});
+				}
+
+				saveAgentCustomDefinitions(
+					deleteCustomAgentDefinition({
+						currentDefinitions: readRawAgentCustomDefinitions(),
+						id: input.id as `custom:${string}`,
+					}),
+				);
+				saveAgentPresetOverrides(
+					resetAgentPresetOverride({
+						currentOverrides: readRawAgentPresetOverrides(),
+						id: input.id as AgentDefinitionId,
+					}),
+				);
+
+				return { success: true };
+			}),
 		updateAgentPreset: publicProcedure
 			.input(updateAgentPresetInputSchema)
 			.mutation(({ input }) => {
@@ -215,6 +315,12 @@ export const createSettingsRouter = () => {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Agent preset ${input.id} not found`,
+					});
+				}
+				if (definition.source === "user") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Custom agent ${input.id} must be edited through custom-agent settings`,
 					});
 				}
 
@@ -246,7 +352,7 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 		resetAllAgentPresets: publicProcedure.mutation(() => {
-			saveAgentPresetOverrides({ version: 1, presets: [] });
+			saveAgentPresetOverrides(resetAllAgentPresetOverrides());
 			return { success: true };
 		}),
 		createTerminalPreset: publicProcedure

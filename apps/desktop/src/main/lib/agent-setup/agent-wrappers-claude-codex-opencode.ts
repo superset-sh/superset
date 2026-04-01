@@ -117,16 +117,16 @@ function readExistingClaudeSettings(
 	}
 }
 
-function removeManagedClaudeHooksFromDefinition(
+function removeManagedHooksFromDefinition(
 	definition: ClaudeHookDefinition,
-	notifyScriptPath: string,
+	isManagedCommand: (command: string | undefined) => boolean,
 ): ClaudeHookDefinition | null {
 	if (!Array.isArray(definition.hooks)) {
 		return definition;
 	}
 
 	const filteredHooks = definition.hooks.filter(
-		(hook) => !isManagedClaudeHookCommand(hook.command, notifyScriptPath),
+		(hook) => !isManagedCommand(hook.command),
 	);
 
 	if (filteredHooks.length === definition.hooks.length) {
@@ -218,9 +218,8 @@ export function getClaudeGlobalSettingsJsonContent(
 		const current = existing.hooks[eventName];
 		if (Array.isArray(current)) {
 			const filtered = current.flatMap((def: ClaudeHookDefinition) => {
-				const cleaned = removeManagedClaudeHooksFromDefinition(
-					def,
-					notifyScriptPath,
+				const cleaned = removeManagedHooksFromDefinition(def, (command) =>
+					isManagedClaudeHookCommand(command, notifyScriptPath),
 				);
 				return cleaned ? [cleaned] : [];
 			});
@@ -295,6 +294,16 @@ export function buildCodexWrapperExecLine(notifyPath: string): string {
 	return template.replaceAll("{{NOTIFY_PATH}}", notifyPath);
 }
 
+function isManagedCodexHookCommand(
+	command: string | undefined,
+	notifyScriptPath: string,
+): boolean {
+	return (
+		command?.includes(notifyScriptPath) ||
+		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Codex ~/.codex/hooks.json direct merge
 // ---------------------------------------------------------------------------
@@ -339,14 +348,11 @@ export function getCodexGlobalHooksJsonPath(): string {
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  *
- * Superset intentionally keeps this native Codex hook registration narrow.
- * The primary integration path is still the wrapper + notify/session-log
- * watcher, which works inside Superset-managed terminal sessions and covers
- * richer lifecycle events like per-turn Start and PermissionRequest.
- *
- * This hooks.json merge is only a fallback for cases where the wrapper is
- * bypassed, so we only register the minimal SessionStart + Stop notifications
- * here rather than trying to mirror Codex's full native hook surface.
+ * Superset uses native Codex hooks as the durable lifecycle integration path.
+ * Recent Codex builds no longer emit the older session-log shapes our wrapper
+ * watcher depended on, so we register prompt/tool lifecycle hooks directly in
+ * ~/.codex/hooks.json and treat the wrapper session-log watcher as best-effort
+ * compatibility for older releases.
  */
 export function getCodexGlobalHooksJsonContent(
 	notifyScriptPath: string,
@@ -359,13 +365,57 @@ export function getCodexGlobalHooksJsonContent(
 		existing.hooks = {};
 	}
 
+	// Remove all stale Superset-managed Codex hook commands, including events we
+	// no longer manage natively (for example UserPromptSubmit from older builds).
+	for (const [eventName, current] of Object.entries(existing.hooks)) {
+		if (!Array.isArray(current)) continue;
+		const filtered = current.flatMap((def: ClaudeHookDefinition) => {
+			const cleaned = removeManagedHooksFromDefinition(def, (command) =>
+				isManagedCodexHookCommand(command, notifyScriptPath),
+			);
+			return cleaned ? [cleaned] : [];
+		});
+
+		if (filtered.length === 0) {
+			delete existing.hooks[eventName];
+			continue;
+		}
+
+		existing.hooks[eventName] = filtered;
+	}
+
 	const managedEvents: Array<{
-		eventName: "SessionStart" | "Stop";
+		eventName:
+			| "SessionStart"
+			| "UserPromptSubmit"
+			| "PreToolUse"
+			| "PostToolUse"
+			| "Stop";
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
 			eventName: "SessionStart",
 			definition: {
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
+		{
+			eventName: "UserPromptSubmit",
+			definition: {
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
+		{
+			eventName: "PreToolUse",
+			definition: {
+				matcher: "*",
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
+		{
+			eventName: "PostToolUse",
+			definition: {
+				matcher: "*",
 				hooks: [{ type: "command", command: notifyScriptPath }],
 			},
 		},
@@ -380,15 +430,8 @@ export function getCodexGlobalHooksJsonContent(
 	for (const { eventName, definition } of managedEvents) {
 		const current = existing.hooks[eventName];
 		if (Array.isArray(current)) {
-			const filtered = current.flatMap((def: ClaudeHookDefinition) => {
-				const cleaned = removeManagedClaudeHooksFromDefinition(
-					def,
-					notifyScriptPath,
-				);
-				return cleaned ? [cleaned] : [];
-			});
-			filtered.push(definition);
-			existing.hooks[eventName] = filtered;
+			current.push(definition);
+			existing.hooks[eventName] = current;
 		} else {
 			existing.hooks[eventName] = [definition];
 		}
@@ -403,10 +446,10 @@ export function getCodexGlobalHooksJsonContent(
  * binary wrapper is not in PATH (e.g. user runs codex from outside
  * a Superset terminal).
  *
- * The wrapper remains the primary integration path for Superset-managed
- * terminals because it can synthesize richer lifecycle events from Codex's
- * notify callback and session log (task_started, approval_request,
- * exec_command_begin) without mutating project-local CODEX_HOME state.
+ * The wrapper still injects Codex's native notify callback and keeps the
+ * session-log watcher as a best-effort bridge for older releases, but the
+ * native hooks.json registration is now the primary source for prompt/tool
+ * lifecycle events.
  */
 export function createCodexHooksJson(): void {
 	const notifyScriptPath = getNotifyScriptPath();

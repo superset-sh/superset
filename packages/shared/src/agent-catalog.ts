@@ -1,84 +1,53 @@
+import type {
+	AgentDefinition,
+	AgentDefinitionSource,
+	AgentKind,
+	ChatAgentDefinition,
+	TerminalAgentDefinition,
+} from "./agent-definition";
+import { DEFAULT_CHAT_TASK_PROMPT_TEMPLATE } from "./agent-prompt-template";
 import {
-	AGENT_LABELS,
-	AGENT_PRESET_COMMANDS,
-	AGENT_PRESET_DESCRIPTIONS,
-	AGENT_PROMPT_COMMANDS,
-	AGENT_TYPES,
-	type AgentType,
-} from "./agent-command";
-import {
-	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
-	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
-} from "./agent-prompt-template";
+	BUILTIN_TERMINAL_AGENT_TYPES,
+	BUILTIN_TERMINAL_AGENTS,
+} from "./builtin-terminal-agents";
 
-export const BUILTIN_AGENT_IDS = [...AGENT_TYPES, "superset-chat"] as const;
+export const BUILTIN_AGENT_IDS = [
+	...BUILTIN_TERMINAL_AGENT_TYPES,
+	"superset-chat",
+] as const;
 
 export type BuiltinAgentId = (typeof BUILTIN_AGENT_IDS)[number];
 export type AgentDefinitionId = BuiltinAgentId | `custom:${string}`;
-export type AgentDefinitionSource = "builtin" | "user";
-export type AgentKind = "terminal" | "chat";
 
-interface BaseAgentDefinition {
-	id: AgentDefinitionId;
-	source: AgentDefinitionSource;
-	kind: AgentKind;
-	defaultLabel: string;
-	defaultDescription?: string;
-	defaultEnabled: boolean;
-}
-
-export interface TerminalAgentDefinition extends BaseAgentDefinition {
-	kind: "terminal";
-	defaultCommand: string;
-	defaultPromptCommand: string;
-	defaultPromptCommandSuffix?: string;
-	defaultTaskPromptTemplate: string;
-}
-
-export interface ChatAgentDefinition extends BaseAgentDefinition {
-	kind: "chat";
-	defaultTaskPromptTemplate: string;
-	defaultModel?: string;
-}
-
-export type AgentDefinition = TerminalAgentDefinition | ChatAgentDefinition;
-
-export const BUILTIN_AGENT_LABELS: Record<BuiltinAgentId, string> = {
-	...AGENT_LABELS,
-	"superset-chat": "Superset Chat",
+export type {
+	AgentDefinition,
+	AgentDefinitionSource,
+	AgentKind,
+	ChatAgentDefinition,
+	TerminalAgentDefinition,
 };
 
-function createBuiltinTerminalAgentDefinition(
-	id: AgentType,
-): TerminalAgentDefinition {
-	const promptCommand = AGENT_PROMPT_COMMANDS[id];
+export const BUILTIN_AGENT_LABELS: Record<BuiltinAgentId, string> = {
+	...Object.fromEntries(
+		BUILTIN_TERMINAL_AGENTS.map((agent) => [agent.id, agent.label]),
+	),
+	"superset-chat": "Superset Chat",
+} as Record<BuiltinAgentId, string>;
 
-	return {
-		id,
-		source: "builtin",
-		kind: "terminal",
-		defaultLabel: AGENT_LABELS[id],
-		defaultDescription: AGENT_PRESET_DESCRIPTIONS[id],
-		defaultCommand: AGENT_PRESET_COMMANDS[id][0] ?? "",
-		defaultPromptCommand: promptCommand.command,
-		defaultPromptCommandSuffix: promptCommand.suffix,
-		defaultTaskPromptTemplate: DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
-		defaultEnabled: true,
-	};
-}
+const BUILTIN_CHAT_AGENT: ChatAgentDefinition = {
+	id: "superset-chat",
+	source: "builtin",
+	kind: "chat",
+	label: "Superset Chat",
+	description:
+		"Superset's built-in workspace chat for project-aware help and task launches.",
+	enabled: true,
+	taskPromptTemplate: DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+};
 
 export const BUILTIN_AGENT_DEFINITIONS: AgentDefinition[] = [
-	...AGENT_TYPES.map((id) => createBuiltinTerminalAgentDefinition(id)),
-	{
-		id: "superset-chat",
-		source: "builtin",
-		kind: "chat",
-		defaultLabel: BUILTIN_AGENT_LABELS["superset-chat"],
-		defaultDescription:
-			"Superset's built-in workspace chat for project-aware help and task launches.",
-		defaultTaskPromptTemplate: DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
-		defaultEnabled: true,
-	},
+	...BUILTIN_TERMINAL_AGENTS,
+	BUILTIN_CHAT_AGENT,
 ];
 
 export function getBuiltinAgentDefinition(id: BuiltinAgentId): AgentDefinition {

@@ -1,16 +1,36 @@
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
+import { useMemo, useState } from "react";
+import {
+	HiOutlineArrowPath,
+	HiOutlineBarsArrowDown,
+	HiOutlineCpuChip,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AppResourceSection } from "./components/AppResourceSection";
 import { MetricBadge } from "./components/MetricBadge";
 import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
-import type { UsageValues } from "./types";
+import type { SortOption, UsageValues } from "./types";
 import { formatCpu, formatMemory, formatPercent } from "./utils/formatters";
 import { normalizeResourceMetricsSnapshot } from "./utils/normalizeSnapshot";
+
+const SORT_LABELS: Record<SortOption, string> = {
+	memory: "Memory",
+	cpu: "CPU",
+	name: "Name",
+	sidebar: "Sidebar order",
+};
 
 function getTotalUsage(
 	cpu: number | undefined,
@@ -32,6 +52,7 @@ function getTrackedMemorySharePercent(
 
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
+	const [sortOption, setSortOption] = useState<SortOption>("memory");
 	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
 		new Set(),
 	);
@@ -43,9 +64,38 @@ export function ResourceConsumption() {
 	const panes = useTabsStore((state) => state.panes);
 	const setActiveTab = useTabsStore((state) => state.setActiveTab);
 	const setFocusedPane = useTabsStore((state) => state.setFocusedPane);
+	const collections = useCollections();
 
 	const { data: enabled } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
+
+	const { data: rawSidebarProjects = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sp: collections.v2SidebarProjects })
+				.orderBy(({ sp }) => sp.tabOrder, "asc")
+				.select(({ sp }) => ({ projectId: sp.projectId })),
+		[collections],
+	);
+
+	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ ws: collections.v2WorkspaceLocalState })
+				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
+				.select(({ ws }) => ({ workspaceId: ws.workspaceId })),
+		[collections],
+	);
+
+	const sidebarProjectOrder = useMemo(
+		() => rawSidebarProjects.map((p) => p.projectId),
+		[rawSidebarProjects],
+	);
+
+	const sidebarWorkspaceOrder = useMemo(
+		() => rawSidebarWorkspaces.map((w) => w.workspaceId),
+		[rawSidebarWorkspaces],
+	);
 
 	const {
 		data: snapshot,
@@ -154,16 +204,51 @@ export function ResourceConsumption() {
 						<h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
 							Resource Usage
 						</h4>
-						<button
-							type="button"
-							onClick={() => refetch()}
-							className="p-0.5 rounded hover:bg-muted transition-colors"
-							aria-label="Refresh metrics"
-						>
-							<HiOutlineArrowPath
-								className={`h-3.5 w-3.5 text-muted-foreground ${isFetching ? "animate-spin" : ""}`}
-							/>
-						</button>
+						<div className="flex items-center gap-0.5">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<button
+										type="button"
+										className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+										aria-label="Sort workspaces"
+									>
+										<HiOutlineBarsArrowDown className="h-3.5 w-3.5" />
+										<span>{SORT_LABELS[sortOption]}</span>
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-40">
+									<DropdownMenuRadioGroup
+										value={sortOption}
+										onValueChange={(value) =>
+											setSortOption(value as SortOption)
+										}
+									>
+										<DropdownMenuRadioItem value="memory">
+											Memory
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value="cpu">
+											CPU
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value="name">
+											Name
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value="sidebar">
+											Sidebar order
+										</DropdownMenuRadioItem>
+									</DropdownMenuRadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+							<button
+								type="button"
+								onClick={() => refetch()}
+								className="p-0.5 rounded hover:bg-muted transition-colors"
+								aria-label="Refresh metrics"
+							>
+								<HiOutlineArrowPath
+									className={`h-3.5 w-3.5 text-muted-foreground ${isFetching ? "animate-spin" : ""}`}
+								/>
+							</button>
+						</div>
 					</div>
 
 					{normalizedSnapshot && (
@@ -198,6 +283,9 @@ export function ResourceConsumption() {
 					{normalizedSnapshot && (
 						<WorkspaceResourceSection
 							workspaces={normalizedSnapshot.workspaces}
+							sortOption={sortOption}
+							sidebarProjectOrder={sidebarProjectOrder}
+							sidebarWorkspaceOrder={sidebarWorkspaceOrder}
 							collapsedProjects={collapsedProjects}
 							toggleProject={toggleProject}
 							collapsedWorkspaces={collapsedWorkspaces}

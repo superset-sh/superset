@@ -17,6 +17,7 @@ This separation prevents multiple instances from interfering with each other.
 
 | File | Purpose |
 |------|---------|
+| `amp` | Wrapper for Amp CLI that preserves Superset terminal context |
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
 | `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
@@ -41,13 +42,16 @@ its hook entries into these files while preserving user-defined entries:
 | File | Purpose |
 |------|---------|
 | `~/.claude/settings.json` | Claude Code hook registration merge |
-| `~/.codex/hooks.json` | Codex fallback hook registration merge (`SessionStart`, `Stop`) |
+| `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`) |
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
 
-For Codex specifically, this global `hooks.json` is a fallback path only. The
-primary Superset integration is the wrapper in `~/.superset[-{workspace}]/bin/codex`,
-which injects `notify` and watches the Codex session log for richer lifecycle
-events without mutating project-local `.codex/` state.
+For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
+registration for durable prompt/tool lifecycle events, while the wrapper in
+`~/.superset[-{workspace}]/bin/codex` still injects `notify` and keeps the
+session-log watcher as a best-effort compatibility bridge for older Codex
+releases. On startup, Superset rewrites only its own managed entries in
+`~/.codex/hooks.json` to point at the current environment's `notify.sh`, while
+preserving any user-defined Codex hooks.
 
 ### `zsh/` and `bash/` - Shell Integration
 

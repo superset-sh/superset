@@ -25,7 +25,7 @@ import { useState } from "react";
 import { useTRPC } from "@/trpc/react";
 
 const navItems = [
-	{ label: "Agents", href: "/" },
+	{ label: "Agents", href: "/agents" },
 	{ label: "Integrations", href: "/integrations" },
 ];
 
@@ -314,7 +314,7 @@ export function AgentsHeader() {
 	return (
 		<header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="mx-auto flex h-12 w-full items-center justify-between px-4">
-				<Link href="/" aria-label="Go to home">
+				<Link href="/agents" aria-label="Go to home">
 					<svg
 						width="282"
 						height="46"
@@ -335,8 +335,8 @@ export function AgentsHeader() {
 				<nav className="hidden items-center gap-1 sm:flex">
 					{navItems.map((item) => {
 						const isActive =
-							item.href === "/"
-								? pathname === "/"
+							item.href === "/agents"
+								? pathname === "/agents" || pathname.startsWith("/agents/")
 								: pathname.startsWith(item.href);
 
 						return (

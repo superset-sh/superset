@@ -85,6 +85,28 @@ describe("buildPromptAgentLaunchRequest", () => {
 			},
 		});
 	});
+
+	test("builds Amp prompt launches in interactive stdin mode", () => {
+		const configsById = indexResolvedAgentConfigs(resolveAgentConfigs({}));
+		const request = buildPromptAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "new-workspace",
+			selectedAgent: "amp",
+			prompt: "wasssup",
+			configsById,
+		});
+
+		expect(request).toMatchObject({
+			kind: "terminal",
+			agentType: "amp",
+		});
+		expect(request?.kind).toBe("terminal");
+		if (request?.kind !== "terminal") {
+			throw new Error("Expected terminal launch request");
+		}
+		expect(request.terminal.command).toStartWith("amp <<'SUPERSET_PROMPT_");
+		expect(request.terminal.command).not.toContain("amp -x");
+	});
 });
 
 describe("buildTaskAgentLaunchRequest", () => {
@@ -165,6 +187,34 @@ describe("buildTaskAgentLaunchRequest", () => {
 				autoExecute: false,
 			},
 		});
+	});
+
+	test("builds Amp task launches in interactive stdin mode", () => {
+		const configsById = indexResolvedAgentConfigs(resolveAgentConfigs({}));
+		const request = buildTaskAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "open-in-workspace",
+			selectedAgent: "amp",
+			task: TASK,
+			autoRun: false,
+			configsById,
+		});
+
+		expect(request).toMatchObject({
+			kind: "terminal",
+			agentType: "amp",
+			terminal: {
+				taskPromptFileName: "task-demo-task.md",
+				autoExecute: false,
+			},
+		});
+		expect(request?.kind).toBe("terminal");
+		if (request?.kind !== "terminal") {
+			throw new Error("Expected terminal launch request");
+		}
+		expect(request.terminal.command).toBe(
+			"amp < '.superset/task-demo-task.md'",
+		);
 	});
 
 	test("rejects disabled agents", () => {

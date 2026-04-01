@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/lib/utils";
 import { HiOutlineChevronDown, HiOutlineChevronRight } from "react-icons/hi2";
-import type { WorkspaceMetrics } from "../../types";
+import type { SortOption, WorkspaceMetrics } from "../../types";
 import { formatCpu, formatMemory } from "../../utils/formatters";
 import {
 	getUsageClasses,
@@ -22,6 +22,9 @@ interface ProjectResourceGroup {
 
 interface WorkspaceResourceSectionProps {
 	workspaces: WorkspaceMetrics[];
+	sortOption: SortOption;
+	sidebarProjectOrder: string[];
+	sidebarWorkspaceOrder: string[];
 	collapsedProjects: Set<string>;
 	toggleProject: (projectId: string) => void;
 	collapsedWorkspaces: Set<string>;
@@ -59,6 +62,68 @@ function groupWorkspacesByProject(
 	return [...projectMap.values()];
 }
 
+function sortWorkspaces(
+	workspaces: WorkspaceMetrics[],
+	sortOption: SortOption,
+	sidebarWorkspaceOrder: string[],
+): WorkspaceMetrics[] {
+	const sorted = [...workspaces];
+	switch (sortOption) {
+		case "memory":
+			sorted.sort((a, b) => b.memory - a.memory);
+			break;
+		case "cpu":
+			sorted.sort((a, b) => b.cpu - a.cpu);
+			break;
+		case "name":
+			sorted.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
+			break;
+		case "sidebar": {
+			const orderMap = new Map(
+				sidebarWorkspaceOrder.map((id, index) => [id, index]),
+			);
+			sorted.sort(
+				(a, b) =>
+					(orderMap.get(a.workspaceId) ?? Number.MAX_SAFE_INTEGER) -
+					(orderMap.get(b.workspaceId) ?? Number.MAX_SAFE_INTEGER),
+			);
+			break;
+		}
+	}
+	return sorted;
+}
+
+function sortProjectGroups(
+	groups: ProjectResourceGroup[],
+	sortOption: SortOption,
+	sidebarProjectOrder: string[],
+): ProjectResourceGroup[] {
+	const sorted = [...groups];
+	switch (sortOption) {
+		case "memory":
+			sorted.sort((a, b) => b.memory - a.memory);
+			break;
+		case "cpu":
+			sorted.sort((a, b) => b.cpu - a.cpu);
+			break;
+		case "name":
+			sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));
+			break;
+		case "sidebar": {
+			const orderMap = new Map(
+				sidebarProjectOrder.map((id, index) => [id, index]),
+			);
+			sorted.sort(
+				(a, b) =>
+					(orderMap.get(a.projectId) ?? Number.MAX_SAFE_INTEGER) -
+					(orderMap.get(b.projectId) ?? Number.MAX_SAFE_INTEGER),
+			);
+			break;
+		}
+	}
+	return sorted;
+}
+
 function getProjectTotals(projects: ProjectResourceGroup[]) {
 	return projects.reduce(
 		(acc, project) => ({
@@ -71,6 +136,9 @@ function getProjectTotals(projects: ProjectResourceGroup[]) {
 
 export function WorkspaceResourceSection({
 	workspaces,
+	sortOption,
+	sidebarProjectOrder,
+	sidebarWorkspaceOrder,
 	collapsedProjects,
 	toggleProject,
 	collapsedWorkspaces,
@@ -79,7 +147,20 @@ export function WorkspaceResourceSection({
 	navigateToPane,
 	getPaneName,
 }: WorkspaceResourceSectionProps) {
-	const projectGroups = groupWorkspacesByProject(workspaces);
+	const rawProjectGroups = groupWorkspacesByProject(workspaces);
+	const sortedProjectGroups = sortProjectGroups(
+		rawProjectGroups,
+		sortOption,
+		sidebarProjectOrder,
+	);
+	const projectGroups = sortedProjectGroups.map((group) => ({
+		...group,
+		workspaces: sortWorkspaces(
+			group.workspaces,
+			sortOption,
+			sidebarWorkspaceOrder,
+		),
+	}));
 	const projectTotals = getProjectTotals(projectGroups);
 
 	return projectGroups.map((project) => {

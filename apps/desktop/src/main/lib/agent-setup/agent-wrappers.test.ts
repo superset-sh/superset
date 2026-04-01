@@ -56,6 +56,7 @@ mock.module("node:os", () => ({
 }));
 
 const {
+	createAmpWrapper,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
@@ -257,6 +258,17 @@ exit 0
 
 		expect(wrapper).toContain("# Superset wrapper for mastracode");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates amp wrapper passthrough", () => {
+		createAmpWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "amp");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for amp");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "amp")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
@@ -876,7 +888,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("creates Codex hooks.json with SessionStart and Stop when no file exists", () => {
+	it("creates Codex hooks.json with prompt and tool lifecycle hooks when no file exists", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getCodexGlobalHooksJsonContent(notifyPath);
 		expect(content).not.toBeNull();
@@ -892,7 +904,13 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of ["SessionStart", "Stop"] as const) {
+		for (const eventName of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"PreToolUse",
+			"PostToolUse",
+			"Stop",
+		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
@@ -901,6 +919,13 @@ describe("agent-wrappers codex hooks.json", () => {
 				),
 			).toBe(true);
 		}
+
+		expect(parsed.hooks.PreToolUse?.every((def) => def.matcher === "*")).toBe(
+			true,
+		);
+		expect(parsed.hooks.PostToolUse?.every((def) => def.matcher === "*")).toBe(
+			true,
+		);
 	});
 
 	it("preserves user hooks when merging", () => {
@@ -911,6 +936,38 @@ describe("agent-wrappers codex hooks.json", () => {
 			JSON.stringify(
 				{
 					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-prompt-hook.sh",
+									},
+								],
+							},
+						],
+						PreToolUse: [
+							{
+								matcher: "*",
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-pre-tool-hook.sh",
+									},
+								],
+							},
+						],
+						PostToolUse: [
+							{
+								matcher: "*",
+								hooks: [
+									{
+										type: "command",
+										command: "/opt/my-custom-post-tool-hook.sh",
+									},
+								],
+							},
+						],
 						Stop: [
 							{
 								hooks: [{ type: "command", command: "/opt/my-custom-hook.sh" }],
@@ -939,6 +996,33 @@ describe("agent-wrappers codex hooks.json", () => {
 				),
 			),
 		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-prompt-hook.sh",
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PreToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-pre-tool-hook.sh",
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PostToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) =>
+							hook.command === "/opt/my-custom-post-tool-hook.sh",
+					),
+			),
+		).toBe(true);
 
 		// Adds managed hook
 		expect(
@@ -949,7 +1033,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		// Also creates SessionStart
+		// Also creates prompt + start hooks
 		expect(
 			parsed.hooks.SessionStart.some(
 				(def: { hooks: Array<{ command: string }> }) =>
@@ -958,9 +1042,33 @@ describe("agent-wrappers codex hooks.json", () => {
 					),
 			),
 		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PreToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.PostToolUse.some(
+				(def: { hooks: Array<{ command: string }> }) =>
+					def.hooks.some(
+						(hook: { command: string }) => hook.command === notifyPath,
+					),
+			),
+		).toBe(true);
 	});
 
-	it("does not add UserPromptSubmit to the Codex fallback hooks.json merge", () => {
+	it("adds UserPromptSubmit, PreToolUse, and PostToolUse to the Codex hooks.json merge", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getCodexGlobalHooksJsonContent(notifyPath);
 		expect(content).not.toBeNull();
@@ -976,7 +1084,18 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		expect(parsed.hooks.UserPromptSubmit).toBeUndefined();
+		for (const eventName of [
+			"UserPromptSubmit",
+			"PreToolUse",
+			"PostToolUse",
+		] as const) {
+			expect(parsed.hooks[eventName]).toBeDefined();
+			expect(
+				parsed.hooks[eventName]?.some((def) =>
+					def.hooks.some((hook) => hook.command === notifyPath),
+				),
+			).toBe(true);
+		}
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
@@ -1028,7 +1147,13 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		for (const eventName of ["SessionStart", "Stop"] as const) {
+		for (const eventName of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"PreToolUse",
+			"PostToolUse",
+			"Stop",
+		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
@@ -1053,6 +1178,70 @@ describe("agent-wrappers codex hooks.json", () => {
 		// Idempotent
 		expect(content2).not.toBeNull();
 		expect(JSON.parse(content2 as string)).toEqual(JSON.parse(content));
+	});
+
+	it("removes stale Superset-managed UserPromptSubmit hooks without touching user hooks", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const staleHookPath =
+			"/Users/test/.superset/worktrees/repo/superset-dev-data/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(
+			codexHooksPath,
+			JSON.stringify(
+				{
+					hooks: {
+						UserPromptSubmit: [
+							{
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{
+										type: "command",
+										command: "/opt/my-custom-prompt-hook.sh",
+									},
+								],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getCodexGlobalHooksJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some(
+					(hook) => hook.command === "/opt/my-custom-prompt-hook.sh",
+				),
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+			),
+		).toBe(false);
+		expect(
+			parsed.hooks.UserPromptSubmit?.some((def) =>
+				def.hooks.some((hook) => hook.command === currentHookPath),
+			),
+		).toBe(true);
 	});
 
 	it("skips Codex hooks writes when existing JSON is invalid", () => {

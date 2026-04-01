@@ -28,12 +28,13 @@ const statusIcons = {
 
 type SessionCardProps = {
 	session: MockSession;
+	workspaceId: string;
 };
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session, workspaceId }: SessionCardProps) {
 	return (
 		<Link
-			href={`/${session.id}`}
+			href={`/agents/workspace/${workspaceId}`}
 			className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
 		>
 			{statusIcons[session.status]}

@@ -27,11 +27,20 @@ export function AgentCard({
 	showTaskPrompts,
 }: AgentCardProps) {
 	const utils = electronTrpc.useUtils();
+	const isCustomTerminalAgent =
+		preset.source === "user" && preset.kind === "terminal";
 	const updatePreset = electronTrpc.settings.updateAgentPreset.useMutation({
 		onSuccess: async () => {
 			await utils.settings.getAgentPresets.invalidate();
 		},
 	});
+	const updateCustomAgent = electronTrpc.settings.updateCustomAgent.useMutation(
+		{
+			onSuccess: async () => {
+				await utils.settings.getAgentPresets.invalidate();
+			},
+		},
+	);
 	const resetPreset = electronTrpc.settings.resetAgentPreset.useMutation({
 		onSuccess: async () => {
 			await utils.settings.getAgentPresets.invalidate();
@@ -64,6 +73,11 @@ export function AgentCard({
 	const resetFieldInputs = () => {
 		setInputVersion((current) => current + 1);
 	};
+
+	const isMutating =
+		updatePreset.isPending ||
+		updateCustomAgent.isPending ||
+		resetPreset.isPending;
 
 	const mergePresetPatch = (
 		currentPreset: ResolvedAgentConfig,
@@ -116,10 +130,23 @@ export function AgentCard({
 		);
 
 		try {
-			const updatedPreset = await updatePreset.mutateAsync({
-				id: preset.id,
-				patch,
-			});
+			const updatedPreset = isCustomTerminalAgent
+				? await updateCustomAgent.mutateAsync({
+						id: preset.id,
+						patch: {
+							enabled: patch.enabled,
+							label: patch.label,
+							description: patch.description,
+							command: patch.command,
+							promptCommand: patch.promptCommand,
+							promptCommandSuffix: patch.promptCommandSuffix,
+							taskPromptTemplate: patch.taskPromptTemplate,
+						},
+					})
+				: await updatePreset.mutateAsync({
+						id: preset.id,
+						patch,
+					});
 			if (updatedPreset) {
 				utils.settings.getAgentPresets.setData(undefined, (currentPresets) =>
 					currentPresets?.map((candidate) =>
@@ -191,7 +218,7 @@ export function AgentCard({
 					isOpen={isOpen}
 					showEnabled={showEnabled}
 					enabled={preset.enabled}
-					isUpdatingEnabled={updatePreset.isPending || resetPreset.isPending}
+					isUpdatingEnabled={isMutating}
 					onEnabledChange={handleEnabledChange}
 					onToggle={() => handleOpenChange(!isOpen)}
 				/>
@@ -214,10 +241,9 @@ export function AgentCard({
 							onToggle={() => setShowPreview((current) => !current)}
 						/>
 					</CardContent>
-					<AgentCardActions
-						isResetting={resetPreset.isPending || updatePreset.isPending}
-						onReset={handleReset}
-					/>
+					{preset.source === "builtin" && (
+						<AgentCardActions isResetting={isMutating} onReset={handleReset} />
+					)}
 				</CollapsibleContent>
 			</Collapsible>
 		</Card>

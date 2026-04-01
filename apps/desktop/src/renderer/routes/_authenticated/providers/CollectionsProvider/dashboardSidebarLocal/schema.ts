@@ -1,4 +1,4 @@
-import type { PaneWorkspaceState } from "@superset/pane-layout";
+import type { WorkspaceState } from "@superset/panes";
 import { z } from "zod";
 
 const persistedDateSchema = z
@@ -12,7 +12,7 @@ export const dashboardSidebarProjectSchema = z.object({
 	tabOrder: z.number().int().default(0),
 });
 
-const paneWorkspaceStateSchema = z.custom<PaneWorkspaceState<unknown>>();
+const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
 
 export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
