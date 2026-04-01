@@ -1,12 +1,12 @@
 import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
+import { ProductDemo } from "../../(dashboard-legacy)/components/ProductDemo";
 import { AgentPromptInput } from "../components/AgentPromptInput";
 import { AgentsHeader } from "../components/AgentsHeader";
 import { SessionList } from "../components/SessionList";
-import { ProductDemo } from "../../(dashboard-legacy)/components/ProductDemo";
 import {
 	getDefaultMockWorkspace,
 	getMockSessionsByWorkspaceId,
