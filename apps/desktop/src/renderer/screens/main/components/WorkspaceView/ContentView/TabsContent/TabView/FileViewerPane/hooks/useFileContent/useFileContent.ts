@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
-import { getImageMimeType, isImageFile } from "shared/file-types";
+import { getImageMimeType, isImageFile, isPdfFile } from "shared/file-types";
 
 const BRANCH_QUERY_STALE_TIME_MS = 10_000;
 
@@ -55,9 +55,10 @@ export function useFileContent({
 		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
 
 	const isImage = isImageFile(filePath);
+	const isPdf = isPdfFile(filePath);
 
 	const rawReadEnabled =
-		!isRemote && viewMode !== "diff" && !isImage && !!filePath && !!workspaceId;
+		!isRemote && viewMode !== "diff" && !isImage && !isPdf && !!filePath && !!workspaceId;
 	const rawQuery = electronTrpc.filesystem.readFile.useQuery(
 		{
 			workspaceId: workspaceId ?? "",
@@ -141,6 +142,41 @@ export function useFileContent({
 		};
 	}, [imageQuery.data, imageQuery.error, filePath, isRemote]);
 
+	const pdfReadEnabled =
+		!isRemote &&
+		viewMode === "rendered" &&
+		isPdf &&
+		!!filePath &&
+		!!workspaceId;
+	const pdfQuery = electronTrpc.filesystem.readFile.useQuery(
+		{
+			workspaceId: workspaceId ?? "",
+			absolutePath: filePath,
+			maxBytes: MAX_IMAGE_SIZE,
+		},
+		{ enabled: pdfReadEnabled, retry: false },
+	);
+
+	const pdfData = useMemo(() => {
+		if (pdfQuery.error) {
+			const msg = pdfQuery.error.message;
+			if (msg.includes("EISDIR")) {
+				return { ok: false as const, reason: "is-directory" as const };
+			}
+			return { ok: false as const, reason: "not-found" as const };
+		}
+		if (!pdfQuery.data) return undefined;
+		const result = pdfQuery.data;
+		if (result.exceededLimit) {
+			return { ok: false as const, reason: "too-large" as const };
+		}
+		return {
+			ok: true as const,
+			dataUrl: `data:application/pdf;base64,${result.content}`,
+			byteLength: result.byteLength,
+		};
+	}, [pdfQuery.data, pdfQuery.error]);
+
 	const isUnstagedDiff = viewMode === "diff" && diffCategory === "unstaged";
 	const isGitDiff =
 		viewMode === "diff" && !!diffCategory && diffCategory !== "unstaged";
@@ -222,9 +258,11 @@ export function useFileContent({
 
 	return {
 		rawFileData,
-		isLoadingRaw: rawQuery.isLoading || (isImage && imageQuery.isLoading),
+		isLoadingRaw: rawQuery.isLoading || (isImage && imageQuery.isLoading) || (isPdf && pdfQuery.isLoading),
 		imageData,
 		isLoadingImage: isRemote ? false : imageQuery.isLoading,
+		pdfData,
+		isLoadingPdf: pdfQuery.isLoading,
 		diffData,
 		isLoadingDiff,
 		rawRevision: rawQuery.data?.revision ?? null,

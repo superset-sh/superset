@@ -38,7 +38,7 @@ import {
 	retargetAbsolutePath,
 	toAbsoluteWorkspacePath,
 } from "shared/absolute-paths";
-import { isImageFile, isMarkdownFile } from "shared/file-types";
+import { isImageFile, isMarkdownFile, isPdfFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import type { CodeEditorAdapter } from "../../../components";
 import { BasePaneWindow } from "../components";
@@ -210,6 +210,7 @@ export function FileViewerPane({
 		isLoadingRaw,
 		imageData,
 		isLoadingImage,
+		pdfData,
 		diffData,
 		isLoadingDiff,
 		rawRevision,
@@ -584,7 +585,7 @@ export function FileViewerPane({
 
 		return "";
 	}, [currentDocumentContent, documentKey, rawFileData]);
-	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
+	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath) || isPdfFile(filePath);
 	const hasDiff = !!diffCategory;
 	const unsavedDialogCopy = getUnsavedDialogCopy(
 		session?.pendingIntent ?? null,
@@ -683,6 +684,7 @@ export function FileViewerPane({
 							isLoadingDiff={isLoadingDiff}
 							rawFileData={rawFileData}
 							imageData={imageData}
+							pdfData={pdfData}
 							diffData={diffData}
 							editorRef={editorRef}
 							markdownEditorRef={markdownEditorRef}

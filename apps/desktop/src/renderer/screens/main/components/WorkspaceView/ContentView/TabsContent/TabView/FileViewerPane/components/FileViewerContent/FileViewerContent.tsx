@@ -15,7 +15,7 @@ import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/compo
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
-import { isImageFile } from "shared/file-types";
+import { isImageFile, isPdfFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { useScrollToFirstDiffChange } from "../../hooks/useScrollToFirstDiffChange";
 import { DiffScrollbarDecorations } from "../DiffScrollbarDecorations";
@@ -53,6 +53,19 @@ interface ImageError {
 }
 
 type ImageResult = ImageData | ImageError | undefined;
+
+interface PdfData {
+	ok: true;
+	dataUrl: string;
+	byteLength: number;
+}
+
+interface PdfError {
+	ok: false;
+	reason: "too-large" | "not-found" | "is-directory";
+}
+
+type PdfResult = PdfData | PdfError | undefined;
 
 interface DiffData {
 	original: string;
@@ -108,6 +121,7 @@ interface FileViewerContentProps {
 	isLoadingDiff: boolean;
 	rawFileData: RawFileResult;
 	imageData?: ImageResult;
+	pdfData?: PdfResult;
 	diffData: DiffData | undefined;
 	editorRef: MutableRefObject<CodeEditorAdapter | null>;
 	markdownEditorRef: MutableRefObject<MarkdownEditorAdapter | null>;
@@ -143,6 +157,7 @@ export function FileViewerContent({
 	isLoadingDiff,
 	rawFileData,
 	imageData,
+	pdfData,
 	diffData,
 	editorRef,
 	markdownEditorRef,
@@ -170,6 +185,7 @@ export function FileViewerContent({
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
+	const isPdf = isPdfFile(filePath);
 
 	useScrollToFirstDiffChange({
 		containerRef: diffContainerRef,
@@ -372,6 +388,40 @@ export function FileViewerContent({
 					<DiffScrollbarDecorations scrollContainerRef={diffContainerRef} />
 				</div>
 			</DiffViewerContextMenu>
+		);
+	}
+
+	if (viewMode === "rendered" && isPdf) {
+		if (!pdfData) {
+			return (
+				<div className="flex h-full items-center justify-center text-muted-foreground">
+					<LuLoader className="mr-2 h-4 w-4 animate-spin" />
+					<span>Loading PDF...</span>
+				</div>
+			);
+		}
+
+		if (!pdfData.ok) {
+			const errorMessage =
+				pdfData.reason === "too-large"
+					? "PDF is too large to preview (max 10MB)"
+					: pdfData.reason === "is-directory"
+						? "This path is a directory"
+						: "PDF not found";
+
+			return (
+				<div className="flex h-full items-center justify-center text-muted-foreground">
+					{errorMessage}
+				</div>
+			);
+		}
+
+		return (
+			<embed
+				src={pdfData.dataUrl}
+				type="application/pdf"
+				className="h-full w-full"
+			/>
 		);
 	}
 
