@@ -267,6 +267,13 @@
       "when": 1773824260645,
       "tag": "0037_add_created_by_superset_to_worktrees",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1774940026537,
+      "tag": "0038_add_notification_volume",
+      "breakpoints": true
     }
   ]
 }

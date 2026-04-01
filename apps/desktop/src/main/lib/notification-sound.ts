@@ -53,27 +53,46 @@ function getSelectedRingtonePath(): string | null {
 
 /**
  * Plays a sound file using platform-specific commands
+ * @param soundPath Path to the sound file
+ * @param volume Volume level from 0-100
  */
-function playSoundFile(soundPath: string): void {
+function playSoundFile(soundPath: string, volume: number = 100): void {
 	if (!existsSync(soundPath)) {
 		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
 		return;
 	}
 
+	// Convert volume from 0-100 to platform-specific values
+	const volumeDecimal = volume / 100; // 0.0 to 1.0
+
 	if (process.platform === "darwin") {
-		execFile("afplay", [soundPath]);
+		// macOS: afplay -v accepts volume from 0.0 to higher (1.0 is normal)
+		execFile("afplay", ["-v", volumeDecimal.toString(), soundPath]);
 	} else if (process.platform === "win32") {
+		// Windows: Media.SoundPlayer doesn't support volume control
 		execFile("powershell", [
 			"-c",
 			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
 		]);
 	} else {
-		// Linux - try common audio players
-		execFile("paplay", [soundPath], (error) => {
-			if (error) {
-				execFile("aplay", [soundPath]);
-			}
-		});
+		// Linux: paplay --volume accepts 0-65536 (65536 = 100%)
+		const paVolume = Math.round(volumeDecimal * 65536);
+		execFile(
+			"paplay",
+			["--volume", paVolume.toString(), soundPath],
+			(error) => {
+				if (error) {
+					// paplay failed, try aplay as fallback
+					// Note: aplay doesn't support volume control
+					// Respect volume=0 by not playing at all
+					if (volume === 0) {
+						return;
+					}
+					// For other volumes, play at system volume (can't be controlled)
+					execFile("aplay", [soundPath]);
+				}
+			},
+		);
 	}
 }
 
@@ -94,5 +113,15 @@ export function playNotificationSound(): void {
 		return;
 	}
 
-	playSoundFile(soundPath);
+	// Get volume from settings
+	let volume = 100;
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		volume = settingsRow?.notificationVolume ?? 100;
+	} catch {
+		// Use default volume if there's an error
+		volume = 100;
+	}
+
+	playSoundFile(soundPath, volume);
 }
