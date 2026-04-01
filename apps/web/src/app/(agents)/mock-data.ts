@@ -24,6 +24,13 @@ export type MockRepo = {
 	fullName: string;
 };
 
+export type MockProject = {
+	id: string;
+	name: string;
+	repoId: string;
+	repoFullName: string;
+};
+
 export type MockModel = {
 	id: string;
 	name: string;
@@ -33,6 +40,7 @@ export type MockModel = {
 export type MockWorkspace = {
 	id: string;
 	name: string;
+	projectId: string;
 	repoId: string;
 	repoFullName: string;
 	branch: string;
@@ -59,6 +67,39 @@ export const mockRepos: MockRepo[] = [
 	{ id: "5", name: "mobile-app", fullName: "supersetai/mobile-app" },
 ];
 
+export const mockProjects: MockProject[] = [
+	{
+		id: "project-1",
+		name: "Superset App",
+		repoId: "1",
+		repoFullName: "supersetai/superset",
+	},
+	{
+		id: "project-2",
+		name: "Marketing Site",
+		repoId: "3",
+		repoFullName: "supersetai/marketing",
+	},
+	{
+		id: "project-3",
+		name: "API Platform",
+		repoId: "4",
+		repoFullName: "supersetai/api-server",
+	},
+	{
+		id: "project-4",
+		name: "Docs",
+		repoId: "2",
+		repoFullName: "supersetai/docs",
+	},
+	{
+		id: "project-5",
+		name: "Mobile",
+		repoId: "5",
+		repoFullName: "supersetai/mobile-app",
+	},
+];
+
 export const mockBranches = [
 	"main",
 	"dev",
@@ -71,6 +112,7 @@ export const mockWorkspaces: MockWorkspace[] = [
 	{
 		id: "workspace-1",
 		name: "Superset Main",
+		projectId: "project-1",
 		repoId: "1",
 		repoFullName: "supersetai/superset",
 		branch: "main",
@@ -78,6 +120,7 @@ export const mockWorkspaces: MockWorkspace[] = [
 	{
 		id: "workspace-2",
 		name: "Marketing Refresh",
+		projectId: "project-2",
 		repoId: "3",
 		repoFullName: "supersetai/marketing",
 		branch: "feature/auth",
@@ -85,6 +128,7 @@ export const mockWorkspaces: MockWorkspace[] = [
 	{
 		id: "workspace-3",
 		name: "API Stripe",
+		projectId: "project-3",
 		repoId: "4",
 		repoFullName: "supersetai/api-server",
 		branch: "dev",
@@ -92,6 +136,7 @@ export const mockWorkspaces: MockWorkspace[] = [
 	{
 		id: "workspace-4",
 		name: "Docs Polish",
+		projectId: "project-4",
 		repoId: "2",
 		repoFullName: "supersetai/docs",
 		branch: "staging",
@@ -99,6 +144,7 @@ export const mockWorkspaces: MockWorkspace[] = [
 	{
 		id: "workspace-5",
 		name: "Mobile CI",
+		projectId: "project-5",
 		repoId: "5",
 		repoFullName: "supersetai/mobile-app",
 		branch: "main",
@@ -196,6 +242,22 @@ export function getDefaultMockWorkspace(): MockWorkspace {
 	return mockWorkspaces[0] as MockWorkspace;
 }
 
+export function getMockProjects(): MockProject[] {
+	return mockProjects;
+}
+
+export function getMockProjectById(projectId: string): MockProject | undefined {
+	return mockProjects.find((project) => project.id === projectId);
+}
+
+export function getMockWorkspaces(projectId?: string): MockWorkspace[] {
+	if (!projectId) {
+		return mockWorkspaces;
+	}
+
+	return mockWorkspaces.filter((workspace) => workspace.projectId === projectId);
+}
+
 export function getMockWorkspaceById(
 	workspaceId: string,
 ): MockWorkspace | undefined {
@@ -210,6 +272,10 @@ export function getMockSessionsByWorkspaceId(
 
 export function getMockSessionById(sessionId: string): MockSession | undefined {
 	return mockSessions.find((session) => session.id === sessionId);
+}
+
+export function getMockSessions(): MockSession[] {
+	return mockSessions;
 }
 
 export const mockMessages: MockMessage[] = [

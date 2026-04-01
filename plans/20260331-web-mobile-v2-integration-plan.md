@@ -12,15 +12,18 @@ Goal: keep the new web mobile UI, but move it onto the same workspace/session sh
 Status: in progress
 
 - Keep the current mobile UI and mock-backed behavior.
-- Use workspace-scoped routes only:
-  - `/workspace/[workspaceId]`
-  - `/workspace/[workspaceId]/[sessionId]`
+- Use a route split that matches the product model:
+  - `/agents` for browsing workspaces
+  - `/workspace/[workspaceId]` for the active workspace
+  - `/workspace/[workspaceId]/[sessionId]` for session detail
+- Make `/agents` a workspace browser filtered by project, similar to the desktop workspace sidebar.
 - Keep workspace and session selection at the route level.
 - Pass workspace/session data into components instead of letting components resolve global mock state.
 - Remove legacy session-only routing and compatibility shims.
 
 Exit criteria:
 - No `/[sessionId]` web route remains.
+- `/agents` is the entry point for workspace browsing.
 - Session detail components live under the workspace route tree.
 - The current UI still works with mock data.
 
