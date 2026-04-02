@@ -719,7 +719,7 @@ export function createWorkspaceStore<TData>(
 				if (fromIndex === toIndex) return s;
 				const nextTabs = [...s.tabs];
 				const [tab] = nextTabs.splice(fromIndex, 1);
-				nextTabs.splice(toIndex, 0, tab!);
+				nextTabs.splice(toIndex, 0, tab);
 				return { tabs: nextTabs };
 			});
 		},
