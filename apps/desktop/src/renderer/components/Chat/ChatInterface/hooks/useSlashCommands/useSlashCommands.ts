@@ -22,7 +22,7 @@ function getMatchRank(commandName: string, query: string): number | null {
 	return null;
 }
 
-function getCommandMatchRank(
+export function getCommandMatchRank(
 	command: SlashCommand,
 	query: string,
 ): number | null {

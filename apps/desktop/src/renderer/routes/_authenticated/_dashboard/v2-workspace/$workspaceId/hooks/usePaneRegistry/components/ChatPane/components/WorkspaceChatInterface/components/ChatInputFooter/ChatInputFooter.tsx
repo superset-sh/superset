@@ -3,7 +3,6 @@ import {
 	PromptInputAttachment,
 	PromptInputAttachments,
 	type PromptInputMessage,
-	PromptInputTextarea,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus, FileUIPart } from "ai";
@@ -12,7 +11,7 @@ import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { QuestionInputOverlay } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/QuestionInputOverlay";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
-import { SlashCommandInput } from "renderer/components/Chat/ChatInterface/components/SlashCommandInput";
+import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor";
 import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
@@ -155,83 +154,75 @@ export function ChatInputFooter({
 							onCancel={onQuestionCancel}
 						/>
 					) : (
-						<SlashCommandInput
-							onCommandSend={onSlashCommandSend}
-							commands={slashCommands}
+						<div
+							ref={inputRootRef}
+							className={
+								dragType === "path"
+									? "relative opacity-50 transition-opacity"
+									: "relative"
+							}
 						>
-							<MentionProvider cwd={cwd}>
-								<MentionAnchor>
-									<div
-										ref={inputRootRef}
-										className={
-											dragType === "path"
-												? "relative opacity-50 transition-opacity"
-												: "relative"
-										}
-									>
-										{showFocusHint && (
-											<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
-												{focusShortcutText} to focus
-											</span>
-										)}
-										<PromptInput
-											className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
-											onSubmitStart={onSubmitStart}
-											onSubmitEnd={onSubmitEnd}
-											onSubmit={handleSend}
-											multiple
-											maxFiles={5}
-											maxFileSize={10 * 1024 * 1024}
-											globalDrop
-										>
-											<ChatShortcuts
-												isFocused={isFocused}
-												setIssueLinkOpen={setIssueLinkOpen}
-											/>
-											<IssueLinkCommand
-												open={issueLinkOpen}
-												onOpenChange={setIssueLinkOpen}
-												onSelect={addLinkedIssue}
-											/>
-											<FileDropOverlay visible={dragType === "files"} />
-											<PromptInputAttachments>
-												{renderAttachment ??
-													((file) => <PromptInputAttachment data={file} />)}
-											</PromptInputAttachments>
-											<LinkedIssues
-												issues={linkedIssues}
-												onRemove={removeLinkedIssue}
-											/>
-											<SlashCommandPreview
-												sessionId={sessionId}
-												workspaceId={workspaceId}
-												slashCommands={slashCommands}
-											/>
-											<PromptInputTextarea
-												placeholder="Ask to make changes, @mention files, run /commands"
-												className="min-h-10"
-											/>
-											<ChatComposerControls
-												availableModels={availableModels}
-												selectedModel={selectedModel}
-												setSelectedModel={setSelectedModel}
-												modelSelectorOpen={modelSelectorOpen}
-												setModelSelectorOpen={setModelSelectorOpen}
-												permissionMode={permissionMode}
-												setPermissionMode={setPermissionMode}
-												thinkingLevel={thinkingLevel}
-												setThinkingLevel={setThinkingLevel}
-												canAbort={canAbort}
-												submitStatus={submitStatus}
-												submitDisabled={submitDisabled}
-												onStop={onStop}
-												onLinkIssue={() => setIssueLinkOpen(true)}
-											/>
-										</PromptInput>
-									</div>
-								</MentionAnchor>
-							</MentionProvider>
-						</SlashCommandInput>
+							{showFocusHint && (
+								<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
+									{focusShortcutText} to focus
+								</span>
+							)}
+							<PromptInput
+								className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+								onSubmitStart={onSubmitStart}
+								onSubmitEnd={onSubmitEnd}
+								onSubmit={handleSend}
+								multiple
+								maxFiles={5}
+								maxFileSize={10 * 1024 * 1024}
+								globalDrop
+							>
+								<ChatShortcuts
+									isFocused={isFocused}
+									setIssueLinkOpen={setIssueLinkOpen}
+								/>
+								<IssueLinkCommand
+									open={issueLinkOpen}
+									onOpenChange={setIssueLinkOpen}
+									onSelect={addLinkedIssue}
+								/>
+								<FileDropOverlay visible={dragType === "files"} />
+								<PromptInputAttachments>
+									{renderAttachment ??
+										((file) => <PromptInputAttachment data={file} />)}
+								</PromptInputAttachments>
+								<LinkedIssues
+									issues={linkedIssues}
+									onRemove={removeLinkedIssue}
+								/>
+								<SlashCommandPreview
+									sessionId={sessionId}
+									workspaceId={workspaceId}
+									slashCommands={slashCommands}
+								/>
+								<TiptapPromptEditor
+									cwd={cwd}
+									slashCommands={slashCommands}
+									placeholder="Ask to make changes, @mention files, run /commands"
+								/>
+								<ChatComposerControls
+									availableModels={availableModels}
+									selectedModel={selectedModel}
+									setSelectedModel={setSelectedModel}
+									modelSelectorOpen={modelSelectorOpen}
+									setModelSelectorOpen={setModelSelectorOpen}
+									permissionMode={permissionMode}
+									setPermissionMode={setPermissionMode}
+									thinkingLevel={thinkingLevel}
+									setThinkingLevel={setThinkingLevel}
+									canAbort={canAbort}
+									submitStatus={submitStatus}
+									submitDisabled={submitDisabled}
+									onStop={onStop}
+									onLinkIssue={() => setIssueLinkOpen(true)}
+								/>
+							</PromptInput>
+						</div>
 					)}
 					<div className="py-1.5" />
 				</div>
