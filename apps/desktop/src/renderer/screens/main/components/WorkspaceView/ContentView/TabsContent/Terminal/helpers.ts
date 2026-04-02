@@ -798,6 +798,12 @@ export function setupClickToMoveCursor(
 	xterm: XTerm,
 	options: ClickToMoveOptions,
 ): () => void {
+	const handleMouseDown = (event: MouseEvent) => {
+		if (event.button !== 0) return;
+		if (event.metaKey || event.ctrlKey || event.altKey) return;
+		xterm.focus();
+	};
+
 	const handleClick = (event: MouseEvent) => {
 		// Don't interfere with full-screen apps (vim, less, etc. use alternate buffer)
 		if (xterm.buffer.active !== xterm.buffer.normal) return;
@@ -823,9 +829,11 @@ export function setupClickToMoveCursor(
 		options.onWrite(arrowKey.repeat(Math.abs(delta)));
 	};
 
+	xterm.element?.addEventListener("mousedown", handleMouseDown);
 	xterm.element?.addEventListener("click", handleClick);
 
 	return () => {
+		xterm.element?.removeEventListener("mousedown", handleMouseDown);
 		xterm.element?.removeEventListener("click", handleClick);
 	};
 }
