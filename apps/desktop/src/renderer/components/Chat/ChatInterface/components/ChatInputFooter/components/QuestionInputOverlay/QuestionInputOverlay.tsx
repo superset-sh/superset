@@ -1,9 +1,5 @@
 import { cn } from "@superset/ui/lib/utils";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@superset/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { ArrowUpIcon, Loader2Icon, PencilIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -35,7 +31,7 @@ export function QuestionInputOverlay({
 	useEffect(() => {
 		setSubmittedLabel(null);
 		setCustomText("");
-	}, [question.questionId, question.question]);
+	}, []);
 
 	const options = question.options ?? [];
 	const submitted = submittedLabel !== null;
@@ -151,7 +147,9 @@ export function QuestionInputOverlay({
 					ref={inputRef}
 					value={customText}
 					onChange={(e) => setCustomText(e.target.value)}
-					placeholder={options.length > 0 ? "Something else" : "Type your answer..."}
+					placeholder={
+						options.length > 0 ? "Something else" : "Type your answer..."
+					}
 					disabled={isDisabled}
 					className="flex-1 cursor-text bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed"
 				/>

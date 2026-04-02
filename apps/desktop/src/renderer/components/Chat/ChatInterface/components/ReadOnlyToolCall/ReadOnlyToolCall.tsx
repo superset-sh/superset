@@ -64,7 +64,10 @@ export function ReadOnlyToolCall({
 		? String(args.path ?? args.filePath ?? args.file_path ?? args.file ?? "")
 		: "";
 	const absoluteFilePath = rawFilePath
-		? normalizeWorkspaceFilePath({ filePath: rawFilePath, workspaceRoot: workspaceCwd })
+		? normalizeWorkspaceFilePath({
+				filePath: rawFilePath,
+				workspaceRoot: workspaceCwd,
+			})
 		: null;
 
 	const fileQuery = electronTrpc.filesystem.readFile.useQuery(
@@ -167,8 +170,21 @@ export function ReadOnlyToolCall({
 		) : undefined;
 
 	// Prevent a flash of raw output while the disk read is in flight
-	if (isReadFileTool && !isError && !isPending && !fileContent && fileQuery.isLoading) {
-		return <ToolCallRow icon={Icon} isPending title="Reading" description={subtitle} />;
+	if (
+		isReadFileTool &&
+		!isError &&
+		!isPending &&
+		!fileContent &&
+		fileQuery.isLoading
+	) {
+		return (
+			<ToolCallRow
+				icon={Icon}
+				isPending
+				title="Reading"
+				description={subtitle}
+			/>
+		);
 	}
 
 	if (isReadFileTool && !isError && fileContent) {
@@ -182,7 +198,11 @@ export function ReadOnlyToolCall({
 				language={detectLanguage(displayPath) as BundledLanguage}
 				isError={isError}
 				isPending={isPending}
-				onOpenInPane={canOpenFile && filePath ? () => onOpenFileInPane?.(filePath) : undefined}
+				onOpenInPane={
+					canOpenFile && filePath
+						? () => onOpenFileInPane?.(filePath)
+						: undefined
+				}
 			/>
 		);
 	}
@@ -202,9 +222,7 @@ export function ReadOnlyToolCall({
 					{(output != null || isError) && (
 						<ToolOutput
 							output={!isError ? output : undefined}
-							errorText={
-								isError ? stringify(outputError ?? output) : undefined
-							}
+							errorText={isError ? stringify(outputError ?? output) : undefined}
 						/>
 					)}
 				</div>

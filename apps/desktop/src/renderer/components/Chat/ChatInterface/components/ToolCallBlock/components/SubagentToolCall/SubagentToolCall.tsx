@@ -1,11 +1,13 @@
-import { MessageResponse, TOOL_CALL_MD_CLASSNAME } from "@superset/ui/ai-elements/message";
+import {
+	MessageResponse,
+	TOOL_CALL_MD_CLASSNAME,
+} from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { BotIcon } from "lucide-react";
 import { useMemo } from "react";
 import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
-
 
 interface SubagentToolCallProps {
 	part: ToolPart;
@@ -41,9 +43,7 @@ export function SubagentToolCall({
 	const parsed = useMemo(() => parseSubagentToolResult(result), [result]);
 
 	const hasDetails =
-		task.length > 0 ||
-		parsed.text.length > 0 ||
-		parsed.tools.length > 0;
+		task.length > 0 || parsed.text.length > 0 || parsed.tools.length > 0;
 
 	// Title: "Agent" (foreground) — agentType goes in description (muted)
 	const titleNode = (

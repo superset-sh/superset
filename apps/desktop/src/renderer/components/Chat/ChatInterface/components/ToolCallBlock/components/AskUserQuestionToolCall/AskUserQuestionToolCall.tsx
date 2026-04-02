@@ -1,5 +1,11 @@
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
-import { CheckIcon, CircleXIcon, ClockIcon, MessageCircleQuestionIcon, XIcon } from "lucide-react";
+import {
+	CheckIcon,
+	CircleXIcon,
+	ClockIcon,
+	MessageCircleQuestionIcon,
+	XIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 
@@ -69,7 +75,9 @@ function toQuestionToolQuestions(value: unknown): QuestionToolQuestion[] {
 			const header =
 				typeof record.header === "string" ? record.header.trim() : "";
 			const multiSelect =
-				typeof record.multiSelect === "boolean" ? record.multiSelect : undefined;
+				typeof record.multiSelect === "boolean"
+					? record.multiSelect
+					: undefined;
 
 			return {
 				question,
@@ -137,7 +145,9 @@ function QuestionStatusDescription({ status }: { status: QuestionStatus }) {
 	);
 }
 
-function toSingleQuestion(args: Record<string, unknown>): QuestionToolQuestion[] {
+function toSingleQuestion(
+	args: Record<string, unknown>,
+): QuestionToolQuestion[] {
 	const question =
 		typeof args.question === "string" ? args.question.trim() : "";
 	if (!question) return [];
@@ -233,8 +243,9 @@ export function AskUserQuestionToolCall({
 					question: q.question,
 					answer: findAnswerForQuestion({ answers, questionText: q.question }),
 				}))
-				.filter((qa): qa is { question: string; answer: string } =>
-					qa.answer !== undefined,
+				.filter(
+					(qa): qa is { question: string; answer: string } =>
+						qa.answer !== undefined,
 				),
 		[questions, answers],
 	);
@@ -245,7 +256,8 @@ export function AskUserQuestionToolCall({
 			? { question: questions[0].question, answer: answerFallbackText }
 			: null;
 
-	const qasToShow = answeredQAs.length > 0 ? answeredQAs : fallbackQA ? [fallbackQA] : [];
+	const qasToShow =
+		answeredQAs.length > 0 ? answeredQAs : fallbackQA ? [fallbackQA] : [];
 
 	return (
 		<ToolCallRow
@@ -258,7 +270,7 @@ export function AskUserQuestionToolCall({
 					<QuestionStatusDescription status="awaiting" />
 				) : isAnswered ? (
 					<QuestionStatusDescription status="answered" />
-				) : (isCancelled || isCancelledByError || isCancelledByStop) ? (
+				) : isCancelled || isCancelledByError || isCancelledByStop ? (
 					<QuestionStatusDescription status="cancelled" />
 				) : undefined
 			}
@@ -271,16 +283,18 @@ export function AskUserQuestionToolCall({
 						</div>
 					))
 				: (isCancelledByError || isCancelledByStop) && questions.length > 0
-				? questions.map((q) => (
-						<div key={q.question} className="space-y-1 px-3 py-2">
-							<div className="text-xs text-muted-foreground">{q.question}</div>
-							<div className="flex items-center gap-1 text-sm text-destructive">
-								<CircleXIcon className="h-3 w-3 shrink-0" />
-								Aborted by the user
+					? questions.map((q) => (
+							<div key={q.question} className="space-y-1 px-3 py-2">
+								<div className="text-xs text-muted-foreground">
+									{q.question}
+								</div>
+								<div className="flex items-center gap-1 text-sm text-destructive">
+									<CircleXIcon className="h-3 w-3 shrink-0" />
+									Aborted by the user
+								</div>
 							</div>
-						</div>
-					))
-				: undefined}
+						))
+					: undefined}
 		</ToolCallRow>
 	);
 }

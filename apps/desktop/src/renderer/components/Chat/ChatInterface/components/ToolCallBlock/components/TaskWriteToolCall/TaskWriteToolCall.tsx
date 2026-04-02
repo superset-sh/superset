@@ -27,7 +27,9 @@ function buildDescription(todos: TodoItem[]): string | undefined {
 	const completed = todos.filter((t) => t.status === "completed").length;
 	const pending = todos.filter((t) => t.status === "pending").length;
 
-	const parts: string[] = [`${todos.length} task${todos.length === 1 ? "" : "s"}`];
+	const parts: string[] = [
+		`${todos.length} task${todos.length === 1 ? "" : "s"}`,
+	];
 	const statusParts: string[] = [];
 	if (inProgress > 0) statusParts.push(`${inProgress} in progress`);
 	if (completed > 0) statusParts.push(`${completed} completed`);

@@ -12,7 +12,7 @@ import {
 	TerminalIcon,
 	WrenchIcon,
 } from "lucide-react";
-import { useMemo, type ComponentType } from "react";
+import { type ComponentType, useMemo } from "react";
 import { getExecuteCommandViewModel } from "renderer/components/Chat/ChatInterface/components/ToolCallBlock/utils/getExecuteCommandViewModel";
 import { normalizeWorkspaceFilePath } from "renderer/components/Chat/ChatInterface/utils/file-paths";
 import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
@@ -221,7 +221,11 @@ export function SubagentInnerToolCall({
 				: null,
 		[normalized, hasResult, result],
 	);
-	if (normalized === "mastra_workspace_read_file" && hasResult && parsedReadFile) {
+	if (
+		normalized === "mastra_workspace_read_file" &&
+		hasResult &&
+		parsedReadFile
+	) {
 		const parsed = parsedReadFile;
 		if (parsed) {
 			const filename = parsed.filename.split("/").pop() ?? parsed.filename;
@@ -229,12 +233,17 @@ export function SubagentInnerToolCall({
 			const openInPane = onOpenFileInPane
 				? () => {
 						const rawPath = String(
-							args?.path ?? args?.filePath ?? args?.file_path ?? args?.file ?? parsed.filename,
+							args?.path ??
+								args?.filePath ??
+								args?.file_path ??
+								args?.file ??
+								parsed.filename,
 						);
-						const resolvedPath = normalizeWorkspaceFilePath({
-							filePath: rawPath,
-							workspaceRoot: workspaceCwd,
-						}) ?? rawPath;
+						const resolvedPath =
+							normalizeWorkspaceFilePath({
+								filePath: rawPath,
+								workspaceRoot: workspaceCwd,
+							}) ?? rawPath;
 						onOpenFileInPane(resolvedPath);
 					}
 				: undefined;
