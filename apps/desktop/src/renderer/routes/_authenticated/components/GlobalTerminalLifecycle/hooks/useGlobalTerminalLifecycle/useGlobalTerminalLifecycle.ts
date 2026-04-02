@@ -7,9 +7,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 /** Cross-workspace moves temporarily remove a paneId then re-add it. Wait before disposing. */
 const DISPOSE_DELAY_MS = 500;
 
-function extractTerminalPaneIds(
-	rows: { paneLayout: unknown }[],
-): Set<string> {
+function extractTerminalPaneIds(rows: { paneLayout: unknown }[]): Set<string> {
 	const ids = new Set<string>();
 	for (const row of rows) {
 		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;

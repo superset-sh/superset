@@ -27,9 +27,8 @@ export function TerminalPane({ paneId, workspaceId }: TerminalPaneProps) {
 		workspaceId,
 	});
 
-	const connectionState = useSyncExternalStore(
-		subscribeToState(paneId),
-		() => getConnectionState(paneId),
+	const connectionState = useSyncExternalStore(subscribeToState(paneId), () =>
+		getConnectionState(paneId),
 	);
 
 	useEffect(() => {

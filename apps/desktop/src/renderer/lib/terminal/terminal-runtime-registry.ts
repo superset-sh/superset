@@ -1,18 +1,18 @@
 import {
-	type TerminalRuntime,
 	attachToContainer,
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
+	type TerminalRuntime,
 } from "./terminal-runtime";
 import {
 	type ConnectionState,
-	type TerminalTransport,
 	connect,
 	createTransport,
 	disposeTransport,
 	sendDispose,
 	sendResize,
+	type TerminalTransport,
 } from "./terminal-ws-transport";
 
 interface RegistryEntry {
@@ -92,7 +92,9 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	getConnectionState(paneId: string): ConnectionState {
-		return this.entries.get(paneId)?.transport.connectionState ?? "disconnected";
+		return (
+			this.entries.get(paneId)?.transport.connectionState ?? "disconnected"
+		);
 	}
 
 	onStateChange(paneId: string, listener: () => void): () => void {

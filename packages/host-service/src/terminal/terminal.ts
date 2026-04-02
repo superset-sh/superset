@@ -223,9 +223,7 @@ export function registerWorkspaceTerminalRoute({
 
 					let message: TerminalClientMessage;
 					try {
-						message = JSON.parse(
-							String(event.data),
-						) as TerminalClientMessage;
+						message = JSON.parse(String(event.data)) as TerminalClientMessage;
 					} catch {
 						if (session.socket) {
 							sendMessage(session.socket, {
