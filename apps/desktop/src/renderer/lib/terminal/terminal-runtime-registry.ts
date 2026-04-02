@@ -43,17 +43,7 @@ class TerminalRuntimeRegistryImpl {
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
 		});
 
-		// Only connect/reconnect when the socket is not already open for this URL.
-		// On a simple tab-switch the transport stays alive, so we skip the reconnect
-		// and just send a resize to sync dimensions.
-		const isAlreadyConnected =
-			transport.connectionState === "open" && transport.currentUrl === wsUrl;
-
-		if (isAlreadyConnected) {
-			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
-		} else {
-			connect(transport, runtime.terminal, wsUrl);
-		}
+		connect(transport, runtime.terminal, wsUrl);
 	}
 
 	/**

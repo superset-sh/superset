@@ -42,6 +42,12 @@ export function connect(
 	terminal: XTerm,
 	wsUrl: string,
 ) {
+	// Idempotent: skip if already connected/connecting to the same endpoint.
+	const isActive =
+		transport.connectionState === "open" ||
+		transport.connectionState === "connecting";
+	if (isActive && transport.currentUrl === wsUrl) return;
+
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
