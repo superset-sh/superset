@@ -113,9 +113,11 @@ function getReviewThreadCommentId(
 function parseReviewThreadCommentNode({
 	comment,
 	isResolved,
+	threadId,
 }: {
 	comment: ReviewThreadCommentNode;
 	isResolved: boolean;
+	threadId?: string;
 }): PullRequestComment | null {
 	const id = getReviewThreadCommentId(comment);
 	const body = comment.body?.trim();
@@ -136,6 +138,7 @@ function parseReviewThreadCommentNode({
 		path: comment.path,
 		line: comment.line ?? comment.originalLine ?? undefined,
 		isResolved,
+		...(threadId ? { threadId } : {}),
 	};
 }
 
@@ -164,9 +167,11 @@ export function parsePaginatedApiArray(stdout: string): unknown[] {
 export function parseReviewThreadCommentsConnection({
 	comments,
 	isResolved,
+	threadId,
 }: {
 	comments: unknown;
 	isResolved: boolean;
+	threadId?: string;
 }): PullRequestComment[] {
 	const parsed = GHReviewThreadCommentsConnectionSchema.safeParse(comments);
 	if (!parsed.success) {
@@ -182,6 +187,7 @@ export function parseReviewThreadCommentsConnection({
 			const parsedComment = parseReviewThreadCommentNode({
 				comment,
 				isResolved,
+				threadId,
 			});
 			return parsedComment ? [parsedComment] : [];
 		}) ?? []
@@ -201,6 +207,7 @@ export function parseReviewThreadCommentsResponse(
 			return parseReviewThreadCommentsConnection({
 				comments: result.data.comments,
 				isResolved: result.data.isResolved === true,
+				threadId: result.data.id,
 			});
 		}),
 	);
@@ -252,6 +259,56 @@ export function mergePullRequestComments(
 	}
 
 	return sortPullRequestComments([...commentsById.values()]);
+}
+
+const RESOLVE_REVIEW_THREAD_MUTATION = `
+mutation ResolveReviewThread($threadId: ID!) {
+	resolveReviewThread(input: {threadId: $threadId}) {
+		thread {
+			id
+			isResolved
+		}
+	}
+}
+`;
+
+const UNRESOLVE_REVIEW_THREAD_MUTATION = `
+mutation UnresolveReviewThread($threadId: ID!) {
+	unresolveReviewThread(input: {threadId: $threadId}) {
+		thread {
+			id
+			isResolved
+		}
+	}
+}
+`;
+
+export async function resolveReviewThread({
+	worktreePath,
+	threadId,
+	resolve,
+}: {
+	worktreePath: string;
+	threadId: string;
+	resolve: boolean;
+}): Promise<void> {
+	const mutation = resolve
+		? RESOLVE_REVIEW_THREAD_MUTATION
+		: UNRESOLVE_REVIEW_THREAD_MUTATION;
+
+	const { stdout } = await execWithShellEnv(
+		"gh",
+		["api", "graphql", "-f", `query=${mutation}`, "-F", `threadId=${threadId}`],
+		{ cwd: worktreePath },
+	);
+
+	const json = JSON.parse(stdout.trim());
+	if (Array.isArray(json.errors) && json.errors.length > 0) {
+		const msg = json.errors
+			.map((e: { message?: string }) => e.message)
+			.join("; ");
+		throw new Error(msg || "GraphQL mutation failed");
+	}
 }
 
 async function fetchPaginatedCommentsEndpoint(
@@ -360,6 +417,7 @@ async function fetchAdditionalReviewThreadCommentsForThread({
 			...parseReviewThreadCommentsConnection({
 				comments,
 				isResolved,
+				threadId,
 			}),
 		);
 		afterCursor =
@@ -453,6 +511,7 @@ async function fetchReviewThreadCommentsForPullRequest(
 				...parseReviewThreadCommentsConnection({
 					comments: thread.comments,
 					isResolved,
+					threadId: thread.id,
 				}),
 			);
 

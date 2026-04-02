@@ -48,6 +48,8 @@ export interface PaneDefinition<TData> {
 	renderTitle?(context: RendererContext<TData>): ReactNode;
 	renderHeaderExtras?(context: RendererContext<TData>): ReactNode;
 	renderToolbar?(context: RendererContext<TData>): ReactNode;
+	onHeaderClick?(context: RendererContext<TData>): void;
+	onBeforeClose?(pane: Pane<TData>): boolean | Promise<boolean>;
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((

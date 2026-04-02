@@ -27,6 +27,7 @@ export function WorkspaceFilesTreeItem({
 
 	return (
 		<button
+			data-filepath={node.absolutePath}
 			aria-expanded={isFolder ? node.isExpanded : undefined}
 			className={cn(
 				"flex w-full cursor-pointer select-none items-center gap-1 px-1 text-left transition-colors hover:bg-accent/50",

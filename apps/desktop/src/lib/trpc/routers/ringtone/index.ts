@@ -1,6 +1,4 @@
 import type { ChildProcess } from "node:child_process";
-import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { BrowserWindow, OpenDialogOptions } from "electron";
 import { dialog } from "electron";
@@ -9,6 +7,7 @@ import {
 	getCustomRingtonePath,
 	importCustomRingtoneFromPath,
 } from "main/lib/custom-ringtones";
+import { playSoundFile } from "main/lib/play-sound";
 import { getSoundPath } from "main/lib/sound-paths";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -43,58 +42,32 @@ function stopCurrentSound(): void {
 }
 
 /**
- * Plays a sound file using platform-specific commands.
- * Uses session tracking to prevent race conditions with fallback audio players.
+ * Plays a sound file with session tracking for stop/race-condition safety.
  */
-function playSoundFile(soundPath: string): void {
-	if (!existsSync(soundPath)) {
-		console.warn(`[ringtone] Sound file not found: ${soundPath}`);
-		return;
-	}
-
-	// Stop any currently playing sound first
+function playWithTracking(soundPath: string, volume: number = 100): void {
 	stopCurrentSound();
 
-	// Create a new session for this play operation
 	const sessionId = nextSessionId++;
 	currentSession = { id: sessionId, process: null };
 
-	if (process.platform === "darwin") {
-		currentSession.process = execFile("afplay", [soundPath], () => {
-			// Only clear if this session is still active
+	const proc = playSoundFile(soundPath, volume, {
+		onComplete: () => {
 			if (currentSession?.id === sessionId) {
 				currentSession = null;
 			}
-		});
-	} else if (process.platform === "win32") {
-		currentSession.process = execFile(
-			"powershell",
-			["-c", `(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`],
-			() => {
-				if (currentSession?.id === sessionId) {
-					currentSession = null;
-				}
-			},
-		);
-	} else {
-		// Linux - try common audio players with race-safe fallback
-		currentSession.process = execFile("paplay", [soundPath], (error) => {
-			// Check if this session is still active before proceeding
-			if (currentSession?.id !== sessionId) {
-				return; // Session was stopped, don't start fallback
+		},
+		isCanceled: () => currentSession?.id !== sessionId,
+		onProcessChange: (newProc) => {
+			if (currentSession?.id === sessionId) {
+				currentSession.process = newProc;
 			}
+		},
+	});
 
-			if (error) {
-				// paplay failed, try aplay as fallback
-				currentSession.process = execFile("aplay", [soundPath], () => {
-					if (currentSession?.id === sessionId) {
-						currentSession = null;
-					}
-				});
-			} else {
-				currentSession = null;
-			}
-		});
+	if (proc) {
+		currentSession.process = proc;
+	} else {
+		currentSession = null;
 	}
 }
 
@@ -128,14 +101,19 @@ export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
 		 * Preview a ringtone by ringtone ID.
 		 */
 		preview: publicProcedure
-			.input(z.object({ ringtoneId: z.string() }))
+			.input(
+				z.object({
+					ringtoneId: z.string(),
+					volume: z.number().min(0).max(100).optional(),
+				}),
+			)
 			.mutation(({ input }) => {
 				const soundPath = getRingtoneSoundPath(input.ringtoneId);
 				if (!soundPath) {
 					return { success: true as const };
 				}
 
-				playSoundFile(soundPath);
+				playWithTracking(soundPath, input.volume ?? 100);
 				return { success: true as const };
 			}),
 

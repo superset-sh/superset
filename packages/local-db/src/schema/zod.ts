@@ -36,6 +36,7 @@ export const pullRequestCommentSchema = z.object({
 	path: z.string().optional(),
 	line: z.number().optional(),
 	isResolved: z.boolean().optional(),
+	threadId: z.string().optional(),
 });
 
 export type PullRequestComment = z.infer<typeof pullRequestCommentSchema>;

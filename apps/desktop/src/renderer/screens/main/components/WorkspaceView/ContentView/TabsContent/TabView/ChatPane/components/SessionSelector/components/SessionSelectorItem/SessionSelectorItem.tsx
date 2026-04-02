@@ -36,17 +36,23 @@ export function SessionSelectorItem({
 					className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
 					onClick={(event) => {
 						event.stopPropagation();
-						alert.destructive({
+						alert({
 							title: "Delete Chat Session",
 							description: "Are you sure you want to delete this session?",
-							confirmText: "Delete",
-							onConfirm: () => {
-								toast.promise(onDeleteSession(sessionId), {
-									loading: "Deleting session...",
-									success: "Session deleted",
-									error: "Failed to delete session",
-								});
-							},
+							actions: [
+								{ label: "Cancel", variant: "outline", onClick: () => {} },
+								{
+									label: "Delete",
+									variant: "destructive",
+									onClick: () => {
+										toast.promise(onDeleteSession(sessionId), {
+											loading: "Deleting session...",
+											success: "Session deleted",
+											error: "Failed to delete session",
+										});
+									},
+								},
+							],
 						});
 					}}
 				>

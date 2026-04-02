@@ -785,6 +785,26 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getNotificationVolume: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationVolume ?? 100;
+		}),
+
+		setNotificationVolume: publicProcedure
+			.input(z.object({ volume: z.number().min(0).max(100) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationVolume: input.volume })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationVolume: input.volume },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getFontSettings: publicProcedure.query(() => {
 			const row = getSettings();
 			return {
