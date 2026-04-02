@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useCollections } from "../../providers/CollectionsProvider";
 
-/** Delay before confirming a pane removal is permanent (handles cross-workspace moves). */
+/** Cross-workspace moves temporarily remove a paneId then re-add it. Wait before disposing. */
 const DISPOSE_DELAY_MS = 500;
 
 function extractTerminalPaneIds(
@@ -25,12 +25,6 @@ function extractTerminalPaneIds(
 	return ids;
 }
 
-/**
- * Global hook that watches all persisted workspace layouts and disposes
- * terminal runtimes only when their paneId disappears from every workspace.
- *
- * Must be mounted once, inside CollectionsProvider, above workspace routes.
- */
 export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
 	const prevPaneIdsRef = useRef<Set<string>>(new Set());
@@ -50,7 +44,6 @@ export function useGlobalTerminalLifecycle() {
 		const currentPaneIds = extractTerminalPaneIds(allWorkspaceRows);
 		const prevPaneIds = prevPaneIdsRef.current;
 
-		// Cancel pending disposals for paneIds that reappeared (cross-workspace move completed)
 		for (const paneId of currentPaneIds) {
 			const timer = pendingDisposals.current.get(paneId);
 			if (timer) {
@@ -59,16 +52,13 @@ export function useGlobalTerminalLifecycle() {
 			}
 		}
 
-		// Find paneIds that disappeared
 		for (const paneId of prevPaneIds) {
 			if (currentPaneIds.has(paneId)) continue;
 			if (pendingDisposals.current.has(paneId)) continue;
 
-			// Schedule disposal with delay to handle atomic cross-workspace moves
 			const timer = setTimeout(() => {
 				pendingDisposals.current.delete(paneId);
 
-				// Re-read current global state to confirm the pane is still gone
 				const freshRows = Array.from(
 					collections.v2WorkspaceLocalState.state.values(),
 				);
@@ -85,7 +75,6 @@ export function useGlobalTerminalLifecycle() {
 		prevPaneIdsRef.current = currentPaneIds;
 	}, [allWorkspaceRows, collections]);
 
-	// Cleanup pending timers on unmount
 	useEffect(() => {
 		return () => {
 			for (const timer of pendingDisposals.current.values()) {

@@ -24,15 +24,12 @@ type TerminalServerMessage =
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "replay"; data: string };
 
-/** Maximum bytes to buffer while a terminal is detached. */
 const MAX_BUFFER_BYTES = 64 * 1024;
 
 interface TerminalSession {
 	paneId: string;
 	pty: IPty;
-	/** Currently attached websocket, or null if detached. */
 	socket: { send: (data: string) => void; readyState: number } | null;
-	/** Output buffered while detached. */
 	buffer: string[];
 	bufferBytes: number;
 	exited: boolean;
@@ -40,7 +37,7 @@ interface TerminalSession {
 	exitSignal: number;
 }
 
-/** Server-side session registry. PTY lifetime is independent of socket lifetime. */
+/** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
 
 function sendMessage(
@@ -62,7 +59,6 @@ function bufferOutput(session: TerminalSession, data: string) {
 	session.buffer.push(data);
 	session.bufferBytes += data.length;
 
-	// Trim from front if over limit
 	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
 		const removed = session.buffer.shift();
 		if (removed) session.bufferBytes -= removed.length;
@@ -116,12 +112,10 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					// Check for existing session (reconnection)
 					const existing = sessions.get(paneId);
 					if (existing) {
 						existing.socket = ws;
 						replayBuffer(existing, ws);
-
 						if (existing.exited) {
 							sendMessage(ws, {
 								type: "exit",
@@ -132,7 +126,6 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					// New session — need workspaceId to look up cwd
 					if (!workspaceId) {
 						sendMessage(ws, {
 							type: "error",
@@ -195,10 +188,9 @@ export function registerWorkspaceTerminalRoute({
 					sessions.set(paneId, session);
 
 					pty.onData((data) => {
-						if (session.socket && session.socket.readyState === 1) {
+						if (session.socket?.readyState === 1) {
 							sendMessage(session.socket, { type: "data", data });
 						} else {
-							// Buffer output while detached
 							bufferOutput(session, data);
 						}
 					});
@@ -208,7 +200,7 @@ export function registerWorkspaceTerminalRoute({
 						session.exitCode = exitCode ?? 0;
 						session.exitSignal = signal ?? 0;
 
-						if (session.socket && session.socket.readyState === 1) {
+						if (session.socket?.readyState === 1) {
 							sendMessage(session.socket, {
 								type: "exit",
 								exitCode: session.exitCode,
@@ -257,7 +249,6 @@ export function registerWorkspaceTerminalRoute({
 				},
 
 				onClose: () => {
-					// Detach only — keep PTY alive
 					const session = sessions.get(paneId ?? "");
 					if (session) {
 						session.socket = null;

@@ -1,4 +1,5 @@
 import { FitAddon } from "@xterm/addon-fit";
+import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 
 type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -7,15 +8,14 @@ interface TerminalRuntime {
 	paneId: string;
 	terminal: XTerm;
 	fitAddon: FitAddon;
-	/** Persistent wrapper div that xterm renders into. Survives detach/reattach. */
+	serializeAddon: SerializeAddon;
+	/** xterm renders into this div. It is reparented between containers across attach/detach cycles. */
 	wrapper: HTMLDivElement;
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
-	/** The visible container element this runtime is currently attached to. */
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
 	onDataDisposable: { dispose(): void } | null;
-	/** Listeners notified when connectionState changes. */
 	stateListeners: Set<() => void>;
 }
 
@@ -25,8 +25,16 @@ type TerminalServerMessage =
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "replay"; data: string };
 
-function createTerminal(): { terminal: XTerm; fitAddon: FitAddon } {
+const SERIALIZE_SCROLLBACK = 1000;
+const STORAGE_KEY_PREFIX = "terminal-buffer:";
+
+function createTerminal(): {
+	terminal: XTerm;
+	fitAddon: FitAddon;
+	serializeAddon: SerializeAddon;
+} {
 	const fitAddon = new FitAddon();
+	const serializeAddon = new SerializeAddon();
 	const terminal = new XTerm({
 		cursorBlink: true,
 		fontFamily:
@@ -38,7 +46,28 @@ function createTerminal(): { terminal: XTerm; fitAddon: FitAddon } {
 		},
 	});
 	terminal.loadAddon(fitAddon);
-	return { terminal, fitAddon };
+	terminal.loadAddon(serializeAddon);
+	return { terminal, fitAddon, serializeAddon };
+}
+
+function persistBuffer(paneId: string, serializeAddon: SerializeAddon) {
+	try {
+		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
+		localStorage.setItem(`${STORAGE_KEY_PREFIX}${paneId}`, data);
+	} catch {}
+}
+
+function restoreBuffer(paneId: string, terminal: XTerm) {
+	try {
+		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${paneId}`);
+		if (data) terminal.write(data);
+	} catch {}
+}
+
+function clearPersistedBuffer(paneId: string) {
+	try {
+		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${paneId}`);
+	} catch {}
 }
 
 function setConnectionState(runtime: TerminalRuntime, state: ConnectionState) {
@@ -49,7 +78,6 @@ function setConnectionState(runtime: TerminalRuntime, state: ConnectionState) {
 }
 
 function connectSocket(runtime: TerminalRuntime, wsUrl: string) {
-	// Close any existing socket
 	if (runtime.socket) {
 		runtime.socket.close();
 		runtime.socket = null;
@@ -114,14 +142,12 @@ function connectSocket(runtime: TerminalRuntime, wsUrl: string) {
 		runtime.terminal.writeln("\r\n[terminal] websocket error");
 	});
 
-	// Wire terminal input → socket
 	runtime.onDataDisposable?.dispose();
 	runtime.onDataDisposable = runtime.terminal.onData((data) => {
 		if (socket.readyState !== WebSocket.OPEN) return;
 		socket.send(JSON.stringify({ type: "input", data }));
 	});
 
-	// Set up resize observer if attached
 	if (runtime.container) {
 		setupResizeObserver(runtime, sendResize);
 	}
@@ -150,27 +176,23 @@ function teardownResizeObserver(runtime: TerminalRuntime) {
 class TerminalRuntimeRegistryImpl {
 	private runtimes = new Map<string, TerminalRuntime>();
 
-	/**
-	 * Get or create a terminal runtime for the given paneId.
-	 * The xterm instance is created but not connected until attach().
-	 */
 	getOrCreate(paneId: string): TerminalRuntime {
 		let runtime = this.runtimes.get(paneId);
 		if (runtime) return runtime;
 
-		const { terminal, fitAddon } = createTerminal();
+		const { terminal, fitAddon, serializeAddon } = createTerminal();
 
-		// Create a persistent wrapper div that xterm renders into.
-		// This wrapper survives detach/reattach cycles.
 		const wrapper = document.createElement("div");
 		wrapper.style.width = "100%";
 		wrapper.style.height = "100%";
 		terminal.open(wrapper);
+		restoreBuffer(paneId, terminal);
 
 		runtime = {
 			paneId,
 			terminal,
 			fitAddon,
+			serializeAddon,
 			wrapper,
 			socket: null,
 			connectionState: "disconnected",
@@ -184,61 +206,42 @@ class TerminalRuntimeRegistryImpl {
 		return runtime;
 	}
 
-	/**
-	 * Attach a terminal runtime to a visible DOM container and connect its websocket.
-	 */
 	attach(paneId: string, container: HTMLDivElement, wsUrl: string) {
 		const runtime = this.getOrCreate(paneId);
 
-		// Move the persistent wrapper into the visible container
 		runtime.container = container;
 		container.appendChild(runtime.wrapper);
 		runtime.fitAddon.fit();
 		runtime.terminal.focus();
-
-		// Connect (or reconnect) the websocket
 		connectSocket(runtime, wsUrl);
 	}
 
-	/**
-	 * Detach a terminal runtime from the DOM and disconnect the websocket.
-	 * The xterm instance and its buffer are preserved in memory.
-	 */
 	detach(paneId: string) {
 		const runtime = this.runtimes.get(paneId);
 		if (!runtime) return;
 
-		// Disconnect socket — server will keep PTY alive
+		persistBuffer(paneId, runtime.serializeAddon);
+
 		if (runtime.socket) {
 			runtime.socket.close();
 			runtime.socket = null;
 		}
 		setConnectionState(runtime, "disconnected");
-
-		// Clean up DOM observers
 		teardownResizeObserver(runtime);
 		runtime.onDataDisposable?.dispose();
 		runtime.onDataDisposable = null;
-
-		// Remove wrapper from container (keeps wrapper + xterm in memory)
 		runtime.wrapper.remove();
 		runtime.container = null;
 	}
 
-	/**
-	 * Fully dispose a terminal runtime: send dispose to server, close socket,
-	 * destroy xterm, and remove from registry.
-	 */
 	dispose(paneId: string) {
 		const runtime = this.runtimes.get(paneId);
 		if (!runtime) return;
 
-		// Tell server to kill the PTY
-		if (runtime.socket && runtime.socket.readyState === WebSocket.OPEN) {
+		if (runtime.socket?.readyState === WebSocket.OPEN) {
 			runtime.socket.send(JSON.stringify({ type: "dispose" }));
 		}
 
-		// Clean up everything
 		if (runtime.socket) {
 			runtime.socket.close();
 			runtime.socket = null;
@@ -249,26 +252,23 @@ class TerminalRuntimeRegistryImpl {
 		runtime.wrapper.remove();
 		runtime.terminal.dispose();
 		runtime.stateListeners.clear();
+		clearPersistedBuffer(paneId);
 
 		this.runtimes.delete(paneId);
 	}
 
-	/** Get all paneIds currently in the registry. */
 	getAllPaneIds(): Set<string> {
 		return new Set(this.runtimes.keys());
 	}
 
-	/** Check whether a runtime exists for this paneId. */
 	has(paneId: string): boolean {
 		return this.runtimes.has(paneId);
 	}
 
-	/** Get the connection state for a runtime. */
 	getConnectionState(paneId: string): ConnectionState {
 		return this.runtimes.get(paneId)?.connectionState ?? "disconnected";
 	}
 
-	/** Subscribe to connection state changes for a runtime. Returns unsubscribe fn. */
 	onStateChange(paneId: string, listener: () => void): () => void {
 		const runtime = this.runtimes.get(paneId);
 		if (!runtime) return () => {};
