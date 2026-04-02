@@ -1,4 +1,4 @@
-import { useGlobalTerminalLifecycle } from "../../hooks/useGlobalTerminalLifecycle";
+import { useGlobalTerminalLifecycle } from "./hooks/useGlobalTerminalLifecycle";
 
 export function GlobalTerminalLifecycle() {
 	useGlobalTerminalLifecycle();

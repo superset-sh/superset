@@ -2,7 +2,7 @@ import type { WorkspaceState } from "@superset/panes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
-import { useCollections } from "../../providers/CollectionsProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 /** Cross-workspace moves temporarily remove a paneId then re-add it. Wait before disposing. */
 const DISPOSE_DELAY_MS = 500;
