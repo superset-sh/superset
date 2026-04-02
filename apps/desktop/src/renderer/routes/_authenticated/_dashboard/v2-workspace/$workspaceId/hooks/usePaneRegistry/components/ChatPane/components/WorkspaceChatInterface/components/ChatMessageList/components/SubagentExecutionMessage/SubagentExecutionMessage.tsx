@@ -1,4 +1,8 @@
-import { Message, MessageContent, MessageResponse } from "@superset/ui/ai-elements/message";
+import {
+	Message,
+	MessageContent,
+	MessageResponse,
+} from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
 import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import {
@@ -65,7 +69,10 @@ export function SubagentExecutionMessage({
 										key={`${subagent.toolCallId}-${tool.name}-${index}`}
 										name={tool.name}
 										isError={tool.isError}
-										isPending={subagent.status === "running" && index === subagent.toolCalls.length - 1}
+										isPending={
+											subagent.status === "running" &&
+											index === subagent.toolCalls.length - 1
+										}
 										args={tool.args}
 										result={tool.result}
 									/>

@@ -40,7 +40,7 @@ function ScrollAnchor({ trigger }: { trigger: number }) {
 		if (isAtBottomRef.current) {
 			scrollToBottom("instant");
 		}
-	}, [trigger, scrollToBottom]);
+	}, [scrollToBottom]);
 
 	return null;
 }
@@ -146,9 +146,7 @@ export function ChatMessageList({
 	);
 
 	const canShowPendingAssistantUi =
-		isAwaitingAssistant &&
-		!currentMessage &&
-		!pendingApproval;
+		isAwaitingAssistant && !currentMessage && !pendingApproval;
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&

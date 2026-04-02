@@ -228,7 +228,9 @@ export function ChatPaneInterface({
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
-	const [answeredQuestionId, setAnsweredQuestionId] = useState<string | null>(null);
+	const [answeredQuestionId, setAnsweredQuestionId] = useState<string | null>(
+		null,
+	);
 	const [editingUserMessageId, setEditingUserMessageId] = useState<
 		string | null
 	>(null);
@@ -997,7 +999,7 @@ export function ChatPaneInterface({
 				setQuestionResponsePending(false);
 			}
 		},
-		[clearRuntimeError, commands],
+		[clearRuntimeError, commands, paneId],
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);

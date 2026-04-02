@@ -87,7 +87,8 @@ export function withoutActiveTurnAssistantHistory({
 	const currentMessageId = (currentMessage as { id?: string }).id;
 	const deduped = activeTurnMessages.filter((message: HistoryMessage) => {
 		if (message.role !== "assistant") return true;
-		const stopReason = (message as unknown as { stopReason?: string }).stopReason;
+		const stopReason = (message as unknown as { stopReason?: string })
+			.stopReason;
 		const messageId = (message as unknown as { id?: string }).id;
 		return !!stopReason && messageId !== currentMessageId;
 	});

@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { useEffect, useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
+import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import type {
 	ChatMessage,
 	ChatMessageListProps,
@@ -30,7 +31,6 @@ import {
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
-import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 
 function ScrollAnchor({
 	questionId,
@@ -167,13 +167,11 @@ export function ChatMessageList({
 		renderedMessages,
 	]);
 
-	const interruptedByAbortedQuestion = useMemo(() => {
+	const _interruptedByAbortedQuestion = useMemo(() => {
 		if (!interruptedPreview) return false;
 		const content = interruptedPreview.content;
 		const answeredIds = new Set(
-			content
-				.filter((p) => p.type === "tool_result")
-				.map((p) => p.id),
+			content.filter((p) => p.type === "tool_result").map((p) => p.id),
 		);
 		return content.some(
 			(p) =>
@@ -188,9 +186,7 @@ export function ChatMessageList({
 	);
 
 	const canShowPendingAssistantUi =
-		isAwaitingAssistant &&
-		!currentMessage &&
-		!pendingApproval;
+		isAwaitingAssistant && !currentMessage && !pendingApproval;
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&
@@ -335,7 +331,11 @@ export function ChatMessageList({
 			/>
 			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
-			<ScrollAnchor questionId={pendingQuestion?.questionId} answeredQuestionId={answeredQuestionId} isAwaitingAssistant={isAwaitingAssistant} />
+			<ScrollAnchor
+				questionId={pendingQuestion?.questionId}
+				answeredQuestionId={answeredQuestionId}
+				isAwaitingAssistant={isAwaitingAssistant}
+			/>
 		</Conversation>
 	);
 }
