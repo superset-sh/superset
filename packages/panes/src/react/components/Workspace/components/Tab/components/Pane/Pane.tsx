@@ -204,7 +204,7 @@ export function Pane<TData>({
 		// biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior)
 		<div
 			ref={setRefs}
-			className="relative flex h-full w-full flex-col overflow-hidden border-[0.5px] border-border"
+			className="relative flex h-full w-full flex-col overflow-hidden"
 			onMouseDown={context.actions.focus}
 		>
 			<PaneHeader
