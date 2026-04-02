@@ -10,7 +10,6 @@ import {
 	type TerminalTransport,
 	connect,
 	createTransport,
-	disconnect,
 	disposeTransport,
 	sendDispose,
 	sendResize,
@@ -44,15 +43,33 @@ class TerminalRuntimeRegistryImpl {
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
 		});
 
-		connect(transport, runtime.terminal, wsUrl);
+		// Only connect/reconnect when the socket is not already open for this URL.
+		// On a simple tab-switch the transport stays alive, so we skip the reconnect
+		// and just send a resize to sync dimensions.
+		const isAlreadyConnected =
+			transport.connectionState === "open" && transport.currentUrl === wsUrl;
+
+		if (isAlreadyConnected) {
+			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
+		} else {
+			connect(transport, runtime.terminal, wsUrl);
+		}
 	}
 
+	/**
+	 * Detach the terminal from its DOM container.
+	 *
+	 * This only removes the DOM attachment (wrapper, resize observer, focus).
+	 * The WebSocket and xterm data flow are intentionally kept alive so output
+	 * written while the pane is hidden is not lost.  Disposal of the transport
+	 * happens exclusively through {@link dispose} when the paneId is removed
+	 * from persisted pane state.
+	 */
 	detach(paneId: string) {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
 
 		detachFromContainer(entry.runtime);
-		disconnect(entry.transport);
 	}
 
 	dispose(paneId: string) {

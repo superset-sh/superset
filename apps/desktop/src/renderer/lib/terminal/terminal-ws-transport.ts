@@ -11,6 +11,8 @@ type TerminalServerMessage =
 export interface TerminalTransport {
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
+	/** The URL the socket is currently connected (or connecting) to. */
+	currentUrl: string | null;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
 }
@@ -29,6 +31,7 @@ export function createTransport(): TerminalTransport {
 	return {
 		socket: null,
 		connectionState: "disconnected",
+		currentUrl: null,
 		onDataDisposable: null,
 		stateListeners: new Set(),
 	};
@@ -44,6 +47,7 @@ export function connect(
 		transport.socket = null;
 	}
 
+	transport.currentUrl = wsUrl;
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
@@ -104,6 +108,7 @@ export function disconnect(transport: TerminalTransport) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport.currentUrl = null;
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
@@ -130,6 +135,7 @@ export function disposeTransport(transport: TerminalTransport) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport.currentUrl = null;
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();

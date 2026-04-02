@@ -147,6 +147,10 @@ export function attachToContainer(
 	container.appendChild(runtime.wrapper);
 	measureAndResize(runtime);
 
+	// Force a full repaint — the renderer may have skipped paint frames while
+	// the wrapper was detached from the DOM and receiving background data.
+	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
+
 	runtime.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
 		measureAndResize(runtime);
