@@ -35,12 +35,13 @@ import { ListProjectsToolCall } from "./components/ListProjectsToolCall";
 import { ListTaskStatusesToolCall } from "./components/ListTaskStatusesToolCall";
 import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
-import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
-import { SubagentToolCall } from "./components/SubagentToolCall";
 import { LspInspectToolCall } from "./components/LspInspectToolCall";
-import { TaskWriteToolCall } from "./components/TaskWriteToolCall";
+import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
+import { SkillToolCall } from "./components/SkillToolCall";
+import { SubagentToolCall } from "./components/SubagentToolCall";
 import { SupersetToolCall } from "./components/SupersetToolCall";
 import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
+import { TaskWriteToolCall } from "./components/TaskWriteToolCall";
 import { UpdateTaskToolCall } from "./components/UpdateTaskToolCall";
 import { UpdateWorkspaceToolCall } from "./components/UpdateWorkspaceToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
@@ -644,6 +645,16 @@ export function ToolCallBlock({
 				onOpenFileInPane={openFileInPane}
 			/>
 		);
+	}
+
+	if (toolName === "skill" || toolName === "load_skill") {
+		const skillName =
+			typeof args.name === "string"
+				? args.name
+				: typeof args.command === "string"
+					? args.command
+					: toolDisplayName;
+		return <SkillToolCall part={part} skillName={skillName} />;
 	}
 
 	// --- Fallback: generic tool UI ---

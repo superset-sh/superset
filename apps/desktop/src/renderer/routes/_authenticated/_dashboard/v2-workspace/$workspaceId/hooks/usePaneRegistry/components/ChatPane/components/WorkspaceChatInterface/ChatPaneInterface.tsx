@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { findSlashCommandByNameOrAlias } from "@superset/chat/shared";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
@@ -504,7 +505,7 @@ export function ChatPaneInterface({
 	// Scroll chat to bottom whenever the footer question overlay appears, changes, or disappears
 	useEffect(() => {
 		bumpFooterScroll();
-	}, [pendingQuestion?.questionId, pendingQuestion?.question, bumpFooterScroll]);
+	}, [bumpFooterScroll]);
 
 	useEffect(() => {
 		onRawSnapshotChange?.({
@@ -530,6 +531,27 @@ export function ChatPaneInterface({
 	const handleSend = useCallback(
 		async (payload: { content: string; files?: HarnessFilePayload[] }) => {
 			let content = payload.content.trim();
+
+			// Extract custom skill chips (e.g. /redesign anywhere in message) before
+			// slash command resolution. Built-in commands at the start still go through
+			// the existing resolver; custom commands become preloadSkills metadata.
+			const skillNames: string[] = [];
+			const contentWithSkillsExtracted = content.replace(
+				/\/(\S+)/g,
+				(match, name: string) => {
+					const command = findSlashCommandByNameOrAlias(slashCommands, name);
+					if (command?.kind === "custom") {
+						if (!skillNames.includes(command.name)) {
+							skillNames.push(command.name);
+						}
+						return name; // strip the leading /
+					}
+					return match;
+				},
+			);
+			if (skillNames.length > 0) {
+				content = contentWithSkillsExtracted.trim();
+			}
 
 			const isSlashCommand = content.startsWith("/");
 			const slashCommandResult = await resolveSlashCommandInput(content);
@@ -588,6 +610,7 @@ export function ChatPaneInterface({
 				metadata: {
 					model: activeModel?.id,
 					thinkingLevel,
+					...(skillNames.length > 0 ? { skills: skillNames } : {}),
 				},
 			};
 
@@ -635,6 +658,7 @@ export function ChatPaneInterface({
 			sendMessageToSession,
 			setRuntimeErrorMessage,
 			onUserMessageSubmitted,
+			slashCommands,
 			thinkingLevel,
 		],
 	);
