@@ -40,8 +40,11 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-4" />,
 				getTitle: () => "Terminal",
-				renderPane: () => (
-					<TerminalPane workspaceId={workspaceId} />
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<TerminalPane
+						paneId={ctx.pane.id}
+						workspaceId={workspaceId}
+					/>
 				),
 			},
 			browser: {

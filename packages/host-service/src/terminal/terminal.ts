@@ -14,41 +14,40 @@ interface RegisterWorkspaceTerminalRouteOptions {
 }
 
 type TerminalClientMessage =
-	| {
-			type: "input";
-			data: string;
-	  }
-	| {
-			type: "resize";
-			cols: number;
-			rows: number;
-	  };
+	| { type: "input"; data: string }
+	| { type: "resize"; cols: number; rows: number }
+	| { type: "dispose" };
 
 type TerminalServerMessage =
-	| {
-			type: "data";
-			data: string;
-	  }
-	| {
-			type: "error";
-			message: string;
-	  }
-	| {
-			type: "exit";
-			exitCode: number;
-			signal: number;
-	  };
+	| { type: "data"; data: string }
+	| { type: "error"; message: string }
+	| { type: "exit"; exitCode: number; signal: number }
+	| { type: "replay"; data: string };
+
+/** Maximum bytes to buffer while a terminal is detached. */
+const MAX_BUFFER_BYTES = 64 * 1024;
+
+interface TerminalSession {
+	paneId: string;
+	pty: IPty;
+	/** Currently attached websocket, or null if detached. */
+	socket: { send: (data: string) => void; readyState: number } | null;
+	/** Output buffered while detached. */
+	buffer: string[];
+	bufferBytes: number;
+	exited: boolean;
+	exitCode: number;
+	exitSignal: number;
+}
+
+/** Server-side session registry. PTY lifetime is independent of socket lifetime. */
+const sessions = new Map<string, TerminalSession>();
 
 function sendMessage(
-	socket: {
-		send: (data: string) => void;
-		readyState: number;
-	},
+	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
 ) {
-	if (socket.readyState !== 1) {
-		return;
-	}
+	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
 }
 
@@ -56,8 +55,43 @@ function resolveShell(): string {
 	if (process.platform === "win32") {
 		return process.env.COMSPEC || "cmd.exe";
 	}
-
 	return process.env.SHELL || "/bin/zsh";
+}
+
+function bufferOutput(session: TerminalSession, data: string) {
+	session.buffer.push(data);
+	session.bufferBytes += data.length;
+
+	// Trim from front if over limit
+	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
+		const removed = session.buffer.shift();
+		if (removed) session.bufferBytes -= removed.length;
+	}
+}
+
+function replayBuffer(
+	session: TerminalSession,
+	socket: { send: (data: string) => void; readyState: number },
+) {
+	if (session.buffer.length === 0) return;
+	const combined = session.buffer.join("");
+	session.buffer.length = 0;
+	session.bufferBytes = 0;
+	sendMessage(socket, { type: "replay", data: combined });
+}
+
+function disposeSession(paneId: string) {
+	const session = sessions.get(paneId);
+	if (!session) return;
+
+	if (!session.exited) {
+		try {
+			session.pty.kill();
+		} catch {
+			// PTY may already be dead
+		}
+	}
+	sessions.delete(paneId);
 }
 
 export function registerWorkspaceTerminalRoute({
@@ -66,34 +100,53 @@ export function registerWorkspaceTerminalRoute({
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
 	app.get(
-		"/terminal/:workspaceId",
+		"/terminal/:paneId",
 		upgradeWebSocket((c) => {
-			const workspaceId = c.req.param("workspaceId");
-			const workspace = workspaceId
-				? db.query.workspaces
-						.findFirst({ where: eq(workspaces.id, workspaceId) })
-						.sync()
-				: null;
-
-			let terminal: IPty | null = null;
-			let disposed = false;
-
-			const disposeTerminal = () => {
-				if (disposed) {
-					return;
-				}
-				disposed = true;
-				terminal?.kill();
-				terminal = null;
-			};
+			const paneId = c.req.param("paneId");
+			const workspaceId = c.req.query("workspaceId") ?? null;
 
 			return {
 				onOpen: (_event, ws) => {
-					if (
-						!workspaceId ||
-						!workspace ||
-						!existsSync(workspace.worktreePath)
-					) {
+					if (!paneId) {
+						sendMessage(ws, {
+							type: "error",
+							message: "Missing paneId",
+						});
+						ws.close(1011, "Missing paneId");
+						return;
+					}
+
+					// Check for existing session (reconnection)
+					const existing = sessions.get(paneId);
+					if (existing) {
+						existing.socket = ws;
+						replayBuffer(existing, ws);
+
+						if (existing.exited) {
+							sendMessage(ws, {
+								type: "exit",
+								exitCode: existing.exitCode,
+								signal: existing.exitSignal,
+							});
+						}
+						return;
+					}
+
+					// New session — need workspaceId to look up cwd
+					if (!workspaceId) {
+						sendMessage(ws, {
+							type: "error",
+							message: "Missing workspaceId for new terminal session",
+						});
+						ws.close(1011, "Missing workspaceId");
+						return;
+					}
+
+					const workspace = db.query.workspaces
+						.findFirst({ where: eq(workspaces.id, workspaceId) })
+						.sync();
+
+					if (!workspace || !existsSync(workspace.worktreePath)) {
 						sendMessage(ws, {
 							type: "error",
 							message: "Workspace worktree not found",
@@ -102,8 +155,9 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					let pty: IPty;
 					try {
-						terminal = spawn(resolveShell(), [], {
+						pty = spawn(resolveShell(), [], {
 							name: "xterm-256color",
 							cwd: workspace.worktreePath,
 							cols: 120,
@@ -128,55 +182,93 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					terminal.onData((data) => {
-						sendMessage(ws, {
-							type: "data",
-							data,
-						});
+					const session: TerminalSession = {
+						paneId,
+						pty,
+						socket: ws,
+						buffer: [],
+						bufferBytes: 0,
+						exited: false,
+						exitCode: 0,
+						exitSignal: 0,
+					};
+					sessions.set(paneId, session);
+
+					pty.onData((data) => {
+						if (session.socket && session.socket.readyState === 1) {
+							sendMessage(session.socket, { type: "data", data });
+						} else {
+							// Buffer output while detached
+							bufferOutput(session, data);
+						}
 					});
 
-					terminal.onExit(({ exitCode, signal }) => {
-						sendMessage(ws, {
-							type: "exit",
-							exitCode: exitCode ?? 0,
-							signal: signal ?? 0,
-						});
-						ws.close(1000, "Terminal exited");
-						disposeTerminal();
+					pty.onExit(({ exitCode, signal }) => {
+						session.exited = true;
+						session.exitCode = exitCode ?? 0;
+						session.exitSignal = signal ?? 0;
+
+						if (session.socket && session.socket.readyState === 1) {
+							sendMessage(session.socket, {
+								type: "exit",
+								exitCode: session.exitCode,
+								signal: session.exitSignal,
+							});
+						}
 					});
 				},
-				onMessage: (event, ws) => {
-					if (!terminal) {
-						return;
-					}
+
+				onMessage: (event, _ws) => {
+					const session = sessions.get(paneId ?? "");
+					if (!session) return;
 
 					let message: TerminalClientMessage;
 					try {
-						message = JSON.parse(String(event.data)) as TerminalClientMessage;
+						message = JSON.parse(
+							String(event.data),
+						) as TerminalClientMessage;
 					} catch {
-						sendMessage(ws, {
-							type: "error",
-							message: "Invalid terminal message payload",
-						});
+						if (session.socket) {
+							sendMessage(session.socket, {
+								type: "error",
+								message: "Invalid terminal message payload",
+							});
+						}
 						return;
 					}
 
+					if (message.type === "dispose") {
+						disposeSession(paneId ?? "");
+						return;
+					}
+
+					if (session.exited) return;
+
 					if (message.type === "input") {
-						terminal.write(message.data);
+						session.pty.write(message.data);
 						return;
 					}
 
 					if (message.type === "resize") {
 						const cols = Math.max(20, Math.floor(message.cols));
 						const rows = Math.max(5, Math.floor(message.rows));
-						terminal.resize(cols, rows);
+						session.pty.resize(cols, rows);
 					}
 				},
+
 				onClose: () => {
-					disposeTerminal();
+					// Detach only — keep PTY alive
+					const session = sessions.get(paneId ?? "");
+					if (session) {
+						session.socket = null;
+					}
 				},
+
 				onError: () => {
-					disposeTerminal();
+					const session = sessions.get(paneId ?? "");
+					if (session) {
+						session.socket = null;
+					}
 				},
 			};
 		}),
