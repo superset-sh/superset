@@ -1,7 +1,4 @@
-import {
-	createWorkspaceStore,
-	type WorkspaceState,
-} from "@superset/panes";
+import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";

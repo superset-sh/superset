@@ -14,8 +14,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useDrop } from "react-dnd";
 import type { Tab } from "../../../../../types";
-import { TabItem } from "./components/TabItem";
+import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
+import { computeInsertIndex, TAB_WIDTH } from "./utils";
 
 interface TabBarProps<TData> {
 	tabs: Tab<TData>[];
@@ -25,6 +27,7 @@ interface TabBarProps<TData> {
 	onCloseOtherTabs: (tabId: string) => void;
 	onCloseAllTabs: () => void;
 	onRenameTab: (tabId: string, title: string) => void;
+	onReorderTab: (tabId: string, toIndex: number) => void;
 	getTabTitle: (tab: Tab<TData>) => string;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
@@ -68,6 +71,7 @@ export function TabBar<TData>({
 	onCloseOtherTabs,
 	onCloseAllTabs,
 	onRenameTab,
+	onReorderTab,
 	getTabTitle,
 	renderAddTabMenu,
 	renderTabAccessory,
@@ -75,6 +79,65 @@ export function TabBar<TData>({
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+
+	const insertIndexRef = useRef<number | null>(null);
+	const [insertIndex, setInsertIndex] = useState<number | null>(null);
+
+	const [{ isOver }, connectDrop] = useDrop(
+		() => ({
+			accept: TAB_DRAG_TYPE,
+			hover: (_item, monitor) => {
+				const track = tabsTrackRef.current;
+				const offset = monitor.getClientOffset();
+				if (!track || !offset) return;
+
+				const idx = computeInsertIndex(
+					offset.x,
+					track.getBoundingClientRect(),
+					tabs.length,
+				);
+				if (idx !== insertIndexRef.current) {
+					insertIndexRef.current = idx;
+					setInsertIndex(idx);
+				}
+			},
+			drop: (item: { tabId: string }) => {
+				const idx = insertIndexRef.current;
+				if (idx === null) return;
+
+				const dragIndex = tabs.findIndex((t) => t.id === item.tabId);
+				if (dragIndex === -1) return;
+
+				// Adjust for removal of dragged tab
+				let toIndex = idx;
+				if (dragIndex < toIndex) toIndex--;
+
+				insertIndexRef.current = null;
+				setInsertIndex(null);
+				onReorderTab(item.tabId, toIndex);
+			},
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+			}),
+		}),
+		[tabs, onReorderTab],
+	);
+
+	// Clear indicator when cursor leaves the tab bar
+	if (!isOver && insertIndexRef.current !== null) {
+		insertIndexRef.current = null;
+		if (insertIndex !== null) setInsertIndex(null);
+	}
+
+	const setScrollContainerRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			(
+				scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>
+			).current = node;
+			connectDrop(node);
+		},
+		[connectDrop],
+	);
 
 	const updateOverflow = useCallback(() => {
 		const container = scrollContainerRef.current;
@@ -104,6 +167,8 @@ export function TabBar<TData>({
 		requestAnimationFrame(updateOverflow);
 	}, [updateOverflow]);
 
+	const insertLineLeft = insertIndex !== null ? insertIndex * TAB_WIDTH : null;
+
 	if (tabs.length === 0) {
 		return (
 			<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
@@ -118,7 +183,7 @@ export function TabBar<TData>({
 	return (
 		<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
 			<div
-				ref={scrollContainerRef}
+				ref={setScrollContainerRef}
 				className={cn(
 					"flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
 					hasHorizontalOverflow
@@ -132,15 +197,16 @@ export function TabBar<TData>({
 						: "hide-scrollbar",
 				)}
 			>
-				<div ref={tabsTrackRef} className="flex h-full items-stretch">
-					{tabs.map((tab) => (
+				<div ref={tabsTrackRef} className="relative flex h-full items-stretch">
+					{tabs.map((tab, i) => (
 						<div
 							className="h-full shrink-0"
 							key={tab.id}
-							style={{ width: "160px" }}
+							style={{ width: TAB_WIDTH }}
 						>
 							<TabItem
 								tab={tab}
+								index={i}
 								isActive={tab.id === activeTabId}
 								onSelect={() => onSelectTab(tab.id)}
 								onClose={() => onCloseTab(tab.id)}
@@ -152,6 +218,12 @@ export function TabBar<TData>({
 							/>
 						</div>
 					))}
+					{insertLineLeft !== null && (
+						<div
+							className="pointer-events-none absolute top-0 z-10 h-full w-0.5 bg-primary opacity-85"
+							style={{ left: insertLineLeft }}
+						/>
+					)}
 					{!hasHorizontalOverflow && (
 						<div className="flex h-full w-10 shrink-0 items-stretch">
 							<AddTabButton renderAddTabMenu={renderAddTabMenu} />

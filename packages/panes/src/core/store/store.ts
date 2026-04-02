@@ -139,6 +139,14 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	}) => void;
 	equalizeSplit: (args: { tabId: string; splitId: string }) => void;
 
+	movePaneToSplit: (args: {
+		sourcePaneId: string;
+		targetPaneId: string;
+		position: SplitPosition;
+	}) => void;
+
+	reorderTab: (args: { tabId: string; toIndex: number }) => void;
+
 	replaceState: (
 		next:
 			| WorkspaceState<TData>
@@ -615,6 +623,105 @@ export function createWorkspaceStore<TData>(
 							: t,
 					),
 				};
+			});
+		},
+
+		movePaneToSplit: (args) => {
+			set((s) => {
+				// Find source and target tabs by pane ID
+				let sourceTab: Tab<TData> | undefined;
+				let sourcePane: Pane<TData> | undefined;
+				let targetTab: Tab<TData> | undefined;
+				for (const t of s.tabs) {
+					if (t.panes[args.sourcePaneId]) {
+						sourceTab = t;
+						sourcePane = t.panes[args.sourcePaneId];
+					}
+					if (t.panes[args.targetPaneId]) {
+						targetTab = t;
+					}
+				}
+				if (!sourceTab || !sourcePane) return s;
+				if (!targetTab || !targetTab.layout) return s;
+				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
+
+				// Don't drop on self
+				if (args.sourcePaneId === args.targetPaneId) return s;
+
+				// Remove from source layout
+				const nextSourceLayout = removePaneFromLayout(
+					sourceTab.layout,
+					args.sourcePaneId,
+				);
+				const { [args.sourcePaneId]: _, ...nextSourcePanes } = sourceTab.panes;
+
+				// Insert into target layout
+				const nextTargetLayout = splitPaneInLayout(
+					// If same tab, use the already-modified layout
+					sourceTab.id === targetTab.id && nextSourceLayout
+						? nextSourceLayout
+						: targetTab.layout,
+					args.targetPaneId,
+					sourcePane.id,
+					args.position,
+				);
+
+				const nextTabs = s.tabs
+					.map((t) => {
+						if (sourceTab.id === targetTab.id && t.id === sourceTab.id) {
+							// Same-tab move
+							if (!nextSourceLayout) return null; // shouldn't happen since we check targetPaneId != sourcePaneId
+							return {
+								...t,
+								layout: nextTargetLayout,
+								panes: { ...nextSourcePanes, [sourcePane.id]: sourcePane },
+								activePaneId: sourcePane.id,
+							};
+						}
+						if (t.id === sourceTab.id) {
+							// Source tab — pane removed
+							if (!nextSourceLayout) return null; // last pane removed, tab will be filtered
+							return {
+								...t,
+								layout: nextSourceLayout,
+								panes: nextSourcePanes,
+								activePaneId:
+									t.activePaneId === args.sourcePaneId
+										? findFirstPaneId(nextSourceLayout)
+										: t.activePaneId,
+							};
+						}
+						if (t.id === targetTab.id) {
+							// Target tab — pane added
+							return {
+								...t,
+								layout: nextTargetLayout,
+								panes: { ...t.panes, [sourcePane.id]: sourcePane },
+								activePaneId: sourcePane.id,
+							};
+						}
+						return t;
+					})
+					.filter((t): t is Tab<TData> => t !== null);
+
+				return {
+					tabs: nextTabs,
+					activeTabId: targetTab.id,
+				};
+			});
+		},
+
+		reorderTab: (args) => {
+			set((s) => {
+				const fromIndex = s.tabs.findIndex((t) => t.id === args.tabId);
+				if (fromIndex === -1) return s;
+				const toIndex = Math.max(0, Math.min(args.toIndex, s.tabs.length - 1));
+				if (fromIndex === toIndex) return s;
+				const nextTabs = [...s.tabs];
+				const [tab] = nextTabs.splice(fromIndex, 1);
+				if (!tab) return s;
+				nextTabs.splice(toIndex, 0, tab);
+				return { tabs: nextTabs };
 			});
 		},
 

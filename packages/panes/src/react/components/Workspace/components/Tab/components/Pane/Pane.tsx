@@ -1,15 +1,21 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useDrop } from "react-dnd";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
-import type { Pane as PaneType, Tab } from "../../../../../../../types";
+import type {
+	Pane as PaneType,
+	SplitPosition,
+	Tab,
+} from "../../../../../../../types";
 import type {
 	PaneActionConfig,
 	PaneRegistry,
 	RendererContext,
 } from "../../../../../../types";
 import { PaneHeaderActions } from "../../../../../PaneHeaderActions";
+import { DropZoneOverlay } from "./components/DropZoneOverlay";
 import { PaneContent } from "./components/PaneContent";
-import { PaneHeader } from "./components/PaneHeader";
+import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
 
 interface PaneComponentProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -37,6 +43,21 @@ function resolveActions<TData>(
 	if (!config) return defaults;
 	if (typeof config === "function") return config(context, defaults);
 	return config;
+}
+
+function getDropPosition(
+	clientX: number,
+	clientY: number,
+	rect: DOMRect,
+): SplitPosition {
+	const cx = rect.left + rect.width / 2;
+	const cy = rect.top + rect.height / 2;
+	const dx = clientX - cx;
+	const dy = clientY - cy;
+	if (Math.abs(dx) > Math.abs(dy)) {
+		return dx > 0 ? "right" : "left";
+	}
+	return dy > 0 ? "bottom" : "top";
 }
 
 export function Pane<TData>({
@@ -118,6 +139,57 @@ export function Pane<TData>({
 		tabPosition,
 	]);
 
+	const dropPositionRef = useRef<SplitPosition | null>(null);
+	const [dropPosition, setDropPosition] = useState<SplitPosition | null>(null);
+	const dropRef = useRef<HTMLDivElement>(null);
+
+	const [{ isOver, canDrop }, connectDrop] = useDrop(
+		() => ({
+			accept: PANE_DRAG_TYPE,
+			canDrop: (item: { paneId: string }) => item.paneId !== pane.id,
+			hover: (_item, monitor) => {
+				const offset = monitor.getClientOffset();
+				const el = dropRef.current;
+				if (!offset || !el) return;
+				const rect = el.getBoundingClientRect();
+				const pos = getDropPosition(offset.x, offset.y, rect);
+				if (pos !== dropPositionRef.current) {
+					dropPositionRef.current = pos;
+					setDropPosition(pos);
+				}
+			},
+			drop: (item: { paneId: string }) => {
+				const pos = dropPositionRef.current;
+				if (!pos) return;
+				store.getState().movePaneToSplit({
+					sourcePaneId: item.paneId,
+					targetPaneId: pane.id,
+					position: pos,
+				});
+			},
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+				canDrop: monitor.canDrop(),
+			}),
+		}),
+		[pane.id, tab.id, store],
+	);
+
+	// Merge refs: connectDrop needs a node, and we need dropRef for rect calculations
+	const setRefs = useCallback(
+		(node: HTMLDivElement | null) => {
+			(dropRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+			connectDrop(node);
+		},
+		[connectDrop],
+	);
+
+	// Clear drop position when not hovering
+	if (!isOver && dropPositionRef.current !== null) {
+		dropPositionRef.current = null;
+		if (dropPosition !== null) setDropPosition(null);
+	}
+
 	const title = definition
 		? (pane.titleOverride ?? definition.getTitle?.(context) ?? pane.id)
 		: `Unknown: ${pane.kind}`;
@@ -126,10 +198,13 @@ export function Pane<TData>({
 	const headerExtras = definition?.renderHeaderExtras?.(context);
 	const toolbar = definition?.renderToolbar?.(context);
 
+	const isDropTarget = isOver && canDrop;
+
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior)
 		<div
-			className="flex h-full w-full flex-col overflow-hidden border-[0.5px] border-border"
+			ref={setRefs}
+			className="relative flex h-full w-full flex-col overflow-hidden border-[0.5px] border-border"
 			onMouseDown={context.actions.focus}
 		>
 			<PaneHeader
@@ -140,6 +215,7 @@ export function Pane<TData>({
 				headerExtras={headerExtras}
 				toolbar={toolbar}
 				actionsContent={<context.components.PaneHeaderActions />}
+				paneId={pane.id}
 			/>
 			<PaneContent>
 				{definition ? (
@@ -150,6 +226,7 @@ export function Pane<TData>({
 					</div>
 				)}
 			</PaneContent>
+			{isDropTarget && <DropZoneOverlay position={dropPosition} />}
 		</div>
 	);
 }

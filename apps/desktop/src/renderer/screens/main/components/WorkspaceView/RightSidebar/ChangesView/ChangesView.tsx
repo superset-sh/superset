@@ -822,6 +822,8 @@ export function ChangesView({
 						comments={githubComments}
 						isLoading={isGitHubStatusLoading}
 						isCommentsLoading={isGitHubCommentsLoading}
+						workspaceId={workspaceId}
+						onCommentsChange={refetchGitHubComments}
 					/>
 				</TabsContent>
 			</Tabs>

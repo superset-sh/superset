@@ -19,9 +19,11 @@ import {
 	refreshDefaultBranch,
 } from "../utils/git";
 import {
+	clearGitHubCachesForWorktree,
 	fetchGitHubPRComments,
 	fetchGitHubPRStatus,
 	type PullRequestCommentsTarget,
+	resolveReviewThread,
 } from "../utils/github";
 
 const gitHubPRCommentsInputSchema = z.object({
@@ -230,6 +232,38 @@ export const createGitStatusProcedures = () => {
 						githubStatus: cachedGitHubStatus,
 					}),
 				});
+			}),
+
+		resolveReviewThread: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					threadId: z.string(),
+					resolve: z.boolean(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const workspace = getWorkspace(input.workspaceId);
+				if (!workspace) {
+					throw new Error(`Workspace ${input.workspaceId} not found`);
+				}
+
+				const worktree = workspace.worktreeId
+					? getWorktree(workspace.worktreeId)
+					: null;
+				if (!worktree) {
+					throw new Error(
+						`Worktree for workspace ${input.workspaceId} not found`,
+					);
+				}
+
+				await resolveReviewThread({
+					worktreePath: worktree.path,
+					threadId: input.threadId,
+					resolve: input.resolve,
+				});
+
+				clearGitHubCachesForWorktree(worktree.path);
 			}),
 
 		getWorktreeInfo: publicProcedure

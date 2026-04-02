@@ -9,7 +9,14 @@ import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
-import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
+import {
+	LuArrowUpRight,
+	LuCheck,
+	LuCheckCheck,
+	LuCopy,
+	LuLoaderCircle,
+	LuUndo2,
+} from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
@@ -34,6 +41,8 @@ interface ReviewPanelProps {
 	comments?: PullRequestComment[];
 	isLoading?: boolean;
 	isCommentsLoading?: boolean;
+	workspaceId?: string;
+	onCommentsChange?: () => void;
 }
 
 export function ReviewPanel({
@@ -41,16 +50,24 @@ export function ReviewPanel({
 	comments = [],
 	isLoading = false,
 	isCommentsLoading = false,
+	workspaceId,
+	onCommentsChange,
 }: ReviewPanelProps) {
 	const [checksOpen, setChecksOpen] = useState(true);
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedCommentsGroupOpen, setResolvedCommentsGroupOpen] =
 		useState(false);
 	const [copiedActionKey, setCopiedActionKey] = useState<string | null>(null);
+	const [resolvingThreadIds, setResolvingThreadIds] = useState<Set<string>>(
+		new Set(),
+	);
+	const [isResolvingAll, setIsResolvingAll] = useState(false);
 	const copiedActionResetTimeoutRef = useRef<ReturnType<
 		typeof setTimeout
 	> | null>(null);
 	const copyToClipboardMutation = electronTrpc.external.copyText.useMutation();
+	const resolveThreadMutation =
+		electronTrpc.workspaces.resolveReviewThread.useMutation();
 
 	useEffect(() => {
 		return () => {
@@ -98,6 +115,39 @@ export function ReviewPanel({
 		});
 	};
 
+	const handleToggleResolve = (comment: PullRequestComment) => {
+		const threadId = comment.threadId;
+		if (!workspaceId || !threadId) return;
+
+		setResolvingThreadIds((prev) => new Set(prev).add(threadId));
+		resolveThreadMutation.mutate(
+			{
+				workspaceId,
+				threadId,
+				resolve: !comment.isResolved,
+			},
+			{
+				onSuccess: () => {
+					onCommentsChange?.();
+				},
+				onError: (error) => {
+					const message =
+						error instanceof Error ? error.message : "Unknown error";
+					toast.error(
+						`Failed to ${comment.isResolved ? "undo" : "mark as done"}: ${message}`,
+					);
+				},
+				onSettled: () => {
+					setResolvingThreadIds((prev) => {
+						const next = new Set(prev);
+						next.delete(threadId);
+						return next;
+					});
+				},
+			},
+		);
+	};
+
 	if (isLoading && !pr) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -141,6 +191,49 @@ export function ReviewPanel({
 			actionKey: ALL_COMMENTS_COPY_ACTION_KEY,
 			errorLabel: "Failed to copy comments",
 		});
+	};
+
+	const uniqueResolvableThreadIds = [
+		...new Set(
+			activeComments.map((c) => c.threadId).filter((id): id is string => !!id),
+		),
+	];
+	const handleResolveAll = async () => {
+		if (!workspaceId || uniqueResolvableThreadIds.length === 0) return;
+
+		const batchIds = uniqueResolvableThreadIds;
+		setIsResolvingAll(true);
+		setResolvingThreadIds((prev) => new Set([...prev, ...batchIds]));
+
+		try {
+			const results = await Promise.allSettled(
+				batchIds.map((threadId) =>
+					resolveThreadMutation.mutateAsync({
+						workspaceId,
+						threadId,
+						resolve: true,
+					}),
+				),
+			);
+			const failed = results.filter((r) => r.status === "rejected");
+			if (results.some((r) => r.status === "fulfilled")) {
+				onCommentsChange?.();
+			}
+			if (failed.length > 0) {
+				toast.error(
+					`Failed to mark ${failed.length} thread${failed.length === 1 ? "" : "s"} as done`,
+				);
+			}
+		} finally {
+			setIsResolvingAll(false);
+			setResolvingThreadIds((prev) => {
+				const next = new Set(prev);
+				for (const id of batchIds) {
+					next.delete(id);
+				}
+				return next;
+			});
+		}
 	};
 
 	const renderCommentList = (list: PullRequestComment[]) =>
@@ -199,21 +292,31 @@ export function ReviewPanel({
 							{content}
 						</div>
 					)}
-					<div className="absolute right-1 top-1 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-						{comment.url ? (
-							<a
-								href={comment.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								aria-label="Open comment on GitHub"
+					<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+						{comment.threadId && workspaceId ? (
+							<button
+								type="button"
+								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								onClick={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
+									handleToggleResolve(comment);
+								}}
+								disabled={resolvingThreadIds.has(comment.threadId)}
+								aria-label={comment.isResolved ? "Undo done" : "Mark as done"}
 							>
-								<LuArrowUpRight className="size-3" />
-							</a>
+								{resolvingThreadIds.has(comment.threadId) ? (
+									<LuLoaderCircle className="size-3 animate-spin" />
+								) : comment.isResolved ? (
+									<LuUndo2 className="size-3" />
+								) : (
+									<LuCheckCheck className="size-3" />
+								)}
+							</button>
 						) : null}
 						<button
 							type="button"
-							className="inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onClick={(event) => {
 								event.preventDefault();
 								event.stopPropagation();
@@ -227,6 +330,17 @@ export function ReviewPanel({
 								<LuCopy className="size-3" />
 							)}
 						</button>
+						{comment.url ? (
+							<a
+								href={comment.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								aria-label="Open comment on GitHub"
+							>
+								<LuArrowUpRight className="size-3" />
+							</a>
+						) : null}
 					</div>
 				</div>
 			);
@@ -394,18 +508,35 @@ export function ReviewPanel({
 						</span>
 					</CollapsibleTrigger>
 					{activeComments.length > 0 && (
-						<button
-							type="button"
-							className="mr-1.5 shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-							onClick={handleCopyCommentsList}
-						>
-							{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
-								<LuCheck className="size-3" />
-							) : (
-								<LuCopy className="size-3" />
+						<div className="mr-1.5 flex items-center gap-1">
+							{uniqueResolvableThreadIds.length > 0 && workspaceId && (
+								<button
+									type="button"
+									className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
+									onClick={() => void handleResolveAll()}
+									disabled={isResolvingAll}
+								>
+									{isResolvingAll ? (
+										<LuLoaderCircle className="size-3 animate-spin" />
+									) : (
+										<LuCheckCheck className="size-3" />
+									)}
+									<span>Mark all done</span>
+								</button>
 							)}
-							<span>{copyAllCommentsLabel}</span>
-						</button>
+							<button
+								type="button"
+								className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								onClick={handleCopyCommentsList}
+							>
+								{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
+									<LuCheck className="size-3" />
+								) : (
+									<LuCopy className="size-3" />
+								)}
+								<span>{copyAllCommentsLabel}</span>
+							</button>
+						</div>
 					)}
 				</div>
 				<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">

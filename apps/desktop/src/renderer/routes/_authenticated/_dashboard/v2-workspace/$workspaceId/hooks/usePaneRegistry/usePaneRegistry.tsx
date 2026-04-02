@@ -1,9 +1,6 @@
 import type { PaneRegistry, RendererContext } from "@superset/panes";
 import { FileCode2, Globe, MessageSquare, TerminalSquare } from "lucide-react";
 import { useMemo } from "react";
-import { ChatPane } from "./components/ChatPane";
-import { WorkspaceFilePreview } from "./components/FilesPane/components/WorkspaceFilePreview/WorkspaceFilePreview";
-import { TerminalPane } from "./components/TerminalPane";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
@@ -11,6 +8,9 @@ import type {
 	FilePaneData,
 	PaneViewerData,
 } from "../../types";
+import { ChatPane } from "./components/ChatPane";
+import { WorkspaceFilePreview } from "./components/FilesPane/components/WorkspaceFilePreview/WorkspaceFilePreview";
+import { TerminalPane } from "./components/TerminalPane";
 
 function getFileTitle(filePath: string): string {
 	return filePath.split("/").pop() ?? filePath;

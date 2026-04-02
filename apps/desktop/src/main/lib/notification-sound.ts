@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
 import { settings } from "@superset/local-db";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -8,6 +6,7 @@ import {
 } from "../../shared/ringtones";
 import { getCustomRingtonePath } from "./custom-ringtones";
 import { localDb } from "./local-db";
+import { playSoundFile } from "./play-sound";
 import { getSoundPath } from "./sound-paths";
 
 /**
@@ -52,32 +51,6 @@ function getSelectedRingtonePath(): string | null {
 }
 
 /**
- * Plays a sound file using platform-specific commands
- */
-function playSoundFile(soundPath: string): void {
-	if (!existsSync(soundPath)) {
-		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
-		return;
-	}
-
-	if (process.platform === "darwin") {
-		execFile("afplay", [soundPath]);
-	} else if (process.platform === "win32") {
-		execFile("powershell", [
-			"-c",
-			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
-		]);
-	} else {
-		// Linux - try common audio players
-		execFile("paplay", [soundPath], (error) => {
-			if (error) {
-				execFile("aplay", [soundPath]);
-			}
-		});
-	}
-}
-
-/**
  * Plays the notification sound based on user's selected ringtone.
  * Uses platform-specific commands to play the audio file.
  */
@@ -94,5 +67,22 @@ export function playNotificationSound(): void {
 		return;
 	}
 
-	playSoundFile(soundPath);
+	// Get volume from settings
+	let volume = 100;
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		const raw = settingsRow?.notificationVolume;
+		volume =
+			typeof raw === "number" && Number.isFinite(raw)
+				? Math.max(0, Math.min(100, raw))
+				: 100;
+	} catch (err) {
+		console.warn(
+			"[notification-sound] Failed to read notification volume setting",
+			err,
+		);
+		volume = 100;
+	}
+
+	playSoundFile(soundPath, volume);
 }

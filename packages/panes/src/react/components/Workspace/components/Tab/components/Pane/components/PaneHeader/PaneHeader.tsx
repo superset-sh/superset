@@ -1,5 +1,7 @@
 import { cn } from "@superset/ui/utils";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useRef } from "react";
+import { useDrag } from "react-dnd";
+import { DefaultHeaderContent } from "./components/DefaultHeaderContent";
 
 interface PaneHeaderProps {
 	title: ReactNode;
@@ -9,7 +11,10 @@ interface PaneHeaderProps {
 	headerExtras?: ReactNode;
 	actionsContent: ReactNode;
 	toolbar?: ReactNode;
+	paneId?: string;
 }
+
+export const PANE_DRAG_TYPE = "pane";
 
 export function PaneHeader({
 	title,
@@ -19,41 +24,48 @@ export function PaneHeader({
 	headerExtras,
 	actionsContent,
 	toolbar,
+	paneId,
 }: PaneHeaderProps) {
-	const chrome = cn(
-		"flex h-7 shrink-0 items-center transition-[background-color] duration-150",
-		isActive ? "bg-secondary" : "bg-tertiary",
+	const [{ isDragging }, connectDrag] = useDrag(
+		() => ({
+			type: PANE_DRAG_TYPE,
+			item: { paneId },
+			canDrag: !!paneId,
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[paneId],
 	);
 
-	// Full eject — pane owns the entire toolbar content
-	if (toolbar) {
-		return <div className={chrome}>{toolbar}</div>;
-	}
+	const nodeRef = useRef<HTMLDivElement>(null);
+	const setRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			(nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+			connectDrag(node);
+		},
+		[connectDrag],
+	);
 
-	// Default layout — matches v1 BasePaneWindow toolbar pattern
 	return (
-		<div className={chrome}>
-			<div className="flex h-full w-full items-center justify-between px-3">
-				<div className="flex min-w-0 items-center gap-2">
-					{titleContent ?? (
-						<>
-							{icon && <span className="shrink-0">{icon}</span>}
-							<span
-								className={cn(
-									"truncate text-sm transition-colors duration-150",
-									isActive ? "text-foreground" : "text-muted-foreground",
-								)}
-							>
-								{title}
-							</span>
-						</>
-					)}
-				</div>
-				<div className="flex shrink-0 items-center gap-0.5">
-					{headerExtras}
-					{actionsContent}
-				</div>
-			</div>
+		<div
+			ref={setRef}
+			className={cn(
+				"flex h-7 shrink-0 items-center transition-[background-color] duration-150 cursor-grab",
+				isActive ? "bg-secondary" : "bg-tertiary",
+				isDragging && "opacity-30",
+			)}
+		>
+			{toolbar ?? (
+				<DefaultHeaderContent
+					title={title}
+					icon={icon}
+					isActive={isActive}
+					titleContent={titleContent}
+					headerExtras={headerExtras}
+					actionsContent={actionsContent}
+				/>
+			)}
 		</div>
 	);
 }

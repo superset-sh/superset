@@ -1,1 +1,1 @@
-export { PaneHeader } from "./PaneHeader";
+export { PANE_DRAG_TYPE, PaneHeader } from "./PaneHeader";
