@@ -9,7 +9,7 @@ interface TerminalRuntime {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
-	/** xterm renders into this div. It is reparented between containers across attach/detach cycles. */
+	/** Reparented between containers across attach/detach cycles — not recreated. */
 	wrapper: HTMLDivElement;
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
@@ -17,6 +17,9 @@ interface TerminalRuntime {
 	resizeObserver: ResizeObserver | null;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
+	/** Fallback grid size used when the host is not visible. */
+	lastCols: number;
+	lastRows: number;
 }
 
 type TerminalServerMessage =
@@ -27,8 +30,14 @@ type TerminalServerMessage =
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
+const DIMS_KEY_PREFIX = "terminal-dims:";
+const DEFAULT_COLS = 120;
+const DEFAULT_ROWS = 32;
 
-function createTerminal(): {
+function createTerminal(
+	cols: number,
+	rows: number,
+): {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
@@ -36,6 +45,8 @@ function createTerminal(): {
 	const fitAddon = new FitAddon();
 	const serializeAddon = new SerializeAddon();
 	const terminal = new XTerm({
+		cols,
+		rows,
 		cursorBlink: true,
 		fontFamily:
 			'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
@@ -70,6 +81,60 @@ function clearPersistedBuffer(paneId: string) {
 	} catch {}
 }
 
+function persistDimensions(paneId: string, cols: number, rows: number) {
+	try {
+		localStorage.setItem(
+			`${DIMS_KEY_PREFIX}${paneId}`,
+			JSON.stringify({ cols, rows }),
+		);
+	} catch {}
+}
+
+function loadSavedDimensions(
+	paneId: string,
+): { cols: number; rows: number } | null {
+	try {
+		const raw = localStorage.getItem(`${DIMS_KEY_PREFIX}${paneId}`);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		if (typeof parsed.cols === "number" && typeof parsed.rows === "number") {
+			return parsed;
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+function clearPersistedDimensions(paneId: string) {
+	try {
+		localStorage.removeItem(`${DIMS_KEY_PREFIX}${paneId}`);
+	} catch {}
+}
+
+function hostIsVisible(container: HTMLDivElement | null): boolean {
+	if (!container) return false;
+	return container.clientWidth > 0 && container.clientHeight > 0;
+}
+
+function measureAndResize(runtime: TerminalRuntime) {
+	if (!hostIsVisible(runtime.container)) return;
+	runtime.fitAddon.fit();
+	runtime.lastCols = runtime.terminal.cols;
+	runtime.lastRows = runtime.terminal.rows;
+}
+
+function sendResize(runtime: TerminalRuntime) {
+	if (!runtime.socket || runtime.socket.readyState !== WebSocket.OPEN) return;
+	runtime.socket.send(
+		JSON.stringify({
+			type: "resize",
+			cols: runtime.terminal.cols,
+			rows: runtime.terminal.rows,
+		}),
+	);
+}
+
 function setConnectionState(runtime: TerminalRuntime, state: ConnectionState) {
 	runtime.connectionState = state;
 	for (const listener of runtime.stateListeners) {
@@ -87,21 +152,10 @@ function connectSocket(runtime: TerminalRuntime, wsUrl: string) {
 	const socket = new WebSocket(wsUrl);
 	runtime.socket = socket;
 
-	const sendResize = () => {
-		if (socket.readyState !== WebSocket.OPEN) return;
-		socket.send(
-			JSON.stringify({
-				type: "resize",
-				cols: runtime.terminal.cols,
-				rows: runtime.terminal.rows,
-			}),
-		);
-	};
-
 	socket.addEventListener("open", () => {
 		if (runtime.socket !== socket) return;
 		setConnectionState(runtime, "open");
-		sendResize();
+		sendResize(runtime);
 	});
 
 	socket.addEventListener("message", (event) => {
@@ -147,22 +201,15 @@ function connectSocket(runtime: TerminalRuntime, wsUrl: string) {
 		if (socket.readyState !== WebSocket.OPEN) return;
 		socket.send(JSON.stringify({ type: "input", data }));
 	});
-
-	if (runtime.container) {
-		setupResizeObserver(runtime, sendResize);
-	}
 }
 
-function setupResizeObserver(
-	runtime: TerminalRuntime,
-	sendResize: () => void,
-) {
+function setupResizeObserver(runtime: TerminalRuntime) {
 	runtime.resizeObserver?.disconnect();
 	if (!runtime.container) return;
 
 	const observer = new ResizeObserver(() => {
-		runtime.fitAddon.fit();
-		sendResize();
+		measureAndResize(runtime);
+		sendResize(runtime);
 	});
 	observer.observe(runtime.container);
 	runtime.resizeObserver = observer;
@@ -180,7 +227,11 @@ class TerminalRuntimeRegistryImpl {
 		let runtime = this.runtimes.get(paneId);
 		if (runtime) return runtime;
 
-		const { terminal, fitAddon, serializeAddon } = createTerminal();
+		const savedDims = loadSavedDimensions(paneId);
+		const cols = savedDims?.cols ?? DEFAULT_COLS;
+		const rows = savedDims?.rows ?? DEFAULT_ROWS;
+
+		const { terminal, fitAddon, serializeAddon } = createTerminal(cols, rows);
 
 		const wrapper = document.createElement("div");
 		wrapper.style.width = "100%";
@@ -200,6 +251,8 @@ class TerminalRuntimeRegistryImpl {
 			resizeObserver: null,
 			onDataDisposable: null,
 			stateListeners: new Set(),
+			lastCols: cols,
+			lastRows: rows,
 		};
 
 		this.runtimes.set(paneId, runtime);
@@ -211,7 +264,10 @@ class TerminalRuntimeRegistryImpl {
 
 		runtime.container = container;
 		container.appendChild(runtime.wrapper);
-		runtime.fitAddon.fit();
+
+		measureAndResize(runtime);
+		setupResizeObserver(runtime);
+
 		runtime.terminal.focus();
 		connectSocket(runtime, wsUrl);
 	}
@@ -221,6 +277,7 @@ class TerminalRuntimeRegistryImpl {
 		if (!runtime) return;
 
 		persistBuffer(paneId, runtime.serializeAddon);
+		persistDimensions(paneId, runtime.lastCols, runtime.lastRows);
 
 		if (runtime.socket) {
 			runtime.socket.close();
@@ -253,6 +310,7 @@ class TerminalRuntimeRegistryImpl {
 		runtime.terminal.dispose();
 		runtime.stateListeners.clear();
 		clearPersistedBuffer(paneId);
+		clearPersistedDimensions(paneId);
 
 		this.runtimes.delete(paneId);
 	}
