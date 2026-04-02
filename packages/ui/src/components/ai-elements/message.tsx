@@ -9,13 +9,7 @@ import {
 	XIcon,
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-import {
-	createContext,
-	memo,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import { createContext, memo, useContext, useEffect, useState } from "react";
 import type { PluginConfig } from "streamdown";
 import { Streamdown } from "streamdown";
 import { cn } from "../../lib/utils";

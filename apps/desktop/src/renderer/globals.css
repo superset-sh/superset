@@ -280,4 +280,19 @@
 	[data-sonner-toast]:has(.update-toast) {
 		transform: translateY(0);
 	}
+
+	/* Tiptap chat input placeholder */
+	.tiptap-chat-input p.is-editor-empty:first-child::before {
+		content: attr(data-placeholder);
+		float: left;
+		color: var(--muted-foreground);
+		pointer-events: none;
+		height: 0;
+		opacity: 0.5;
+	}
+
+	/* Ensure Tiptap chat input paragraphs have no default margin */
+	.tiptap-chat-input p {
+		margin: 0;
+	}
 }

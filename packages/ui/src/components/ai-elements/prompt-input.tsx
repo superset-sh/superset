@@ -103,6 +103,8 @@ export type PromptInputControllerProps = {
 	) => void;
 	/** INTERNAL: Allows PromptInputTextarea to register its ref for instance-scoped focus */
 	__registerTextarea: (ref: RefObject<HTMLTextAreaElement | null>) => void;
+	/** INTERNAL: Allows TiptapPromptEditor (or similar) to override focus behavior */
+	__registerFocusCallback: (cb: (() => void) | null) => void;
 };
 
 const PromptInputController = createContext<PromptInputControllerProps | null>(
@@ -155,7 +157,13 @@ export function PromptInputProvider({
 	const [textInput, setTextInput] = useState(initialTextInput);
 	const clearInput = useCallback(() => setTextInput(""), []);
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const focusCallbackRef = useRef<(() => void) | null>(null);
 	const focus = useCallback(() => {
+		// Prefer a registered focus callback (e.g., from TiptapPromptEditor)
+		if (focusCallbackRef.current) {
+			focusCallbackRef.current();
+			return;
+		}
 		const el = textareaRef.current;
 		if (!el) return;
 		el.focus();
@@ -168,6 +176,9 @@ export function PromptInputProvider({
 		},
 		[],
 	);
+	const __registerFocusCallback = useCallback((cb: (() => void) | null) => {
+		focusCallbackRef.current = cb;
+	}, []);
 
 	// ----- attachments state (global when wrapped)
 	const [attachmentFiles, setAttachmentFiles] = useState<
@@ -292,6 +303,7 @@ export function PromptInputProvider({
 			attachments,
 			__registerFileInput,
 			__registerTextarea,
+			__registerFocusCallback,
 		}),
 		[
 			textInput,
@@ -300,6 +312,7 @@ export function PromptInputProvider({
 			attachments,
 			__registerFileInput,
 			__registerTextarea,
+			__registerFocusCallback,
 		],
 	);
 
