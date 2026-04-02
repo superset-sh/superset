@@ -79,11 +79,10 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	onStateChange(paneId: string, listener: () => void): () => void {
-		const entry = this.entries.get(paneId);
-		if (!entry) return () => {};
-		entry.transport.stateListeners.add(listener);
+		const { transport } = this.getOrCreate(paneId);
+		transport.stateListeners.add(listener);
 		return () => {
-			entry.transport.stateListeners.delete(listener);
+			transport.stateListeners.delete(listener);
 		};
 	}
 }

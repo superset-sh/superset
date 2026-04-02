@@ -29,7 +29,11 @@ const MAX_BUFFER_BYTES = 64 * 1024;
 interface TerminalSession {
 	paneId: string;
 	pty: IPty;
-	socket: { send: (data: string) => void; readyState: number } | null;
+	socket: {
+		send: (data: string) => void;
+		close: (code?: number, reason?: string) => void;
+		readyState: number;
+	} | null;
 	buffer: string[];
 	bufferBytes: number;
 	exited: boolean;
@@ -114,6 +118,9 @@ export function registerWorkspaceTerminalRoute({
 
 					const existing = sessions.get(paneId);
 					if (existing) {
+						if (existing.socket && existing.socket !== ws) {
+							existing.socket.close(4000, "Displaced by new connection");
+						}
 						existing.socket = ws;
 						replayBuffer(existing, ws);
 						if (existing.exited) {
@@ -210,9 +217,9 @@ export function registerWorkspaceTerminalRoute({
 					});
 				},
 
-				onMessage: (event, _ws) => {
+				onMessage: (event, ws) => {
 					const session = sessions.get(paneId ?? "");
-					if (!session) return;
+					if (!session || session.socket !== ws) return;
 
 					let message: TerminalClientMessage;
 					try {
@@ -248,16 +255,16 @@ export function registerWorkspaceTerminalRoute({
 					}
 				},
 
-				onClose: () => {
+				onClose: (_event, ws) => {
 					const session = sessions.get(paneId ?? "");
-					if (session) {
+					if (session?.socket === ws) {
 						session.socket = null;
 					}
 				},
 
-				onError: () => {
+				onError: (_event, ws) => {
 					const session = sessions.get(paneId ?? "");
-					if (session) {
+					if (session?.socket === ws) {
 						session.socket = null;
 					}
 				},
