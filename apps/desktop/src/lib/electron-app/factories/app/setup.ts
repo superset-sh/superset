@@ -50,7 +50,19 @@ export async function makeAppSetup(
 		});
 	});
 
-	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
+	app.on("window-all-closed", () => {
+		// On macOS, keep the app alive (standard behavior).
+		// On other platforms, keep alive only if host-service is running.
+		if (!PLATFORM.IS_MAC) {
+			const {
+				getHostServiceManager,
+			} = require("main/lib/host-service-manager");
+			const manager = getHostServiceManager();
+			if (!manager.hasActiveInstances()) {
+				app.quit();
+			}
+		}
+	});
 	app.on("before-quit", () => {});
 
 	return window;

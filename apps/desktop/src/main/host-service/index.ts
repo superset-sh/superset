@@ -21,6 +21,10 @@ const dbPath = process.env.HOST_DB_PATH;
 const deviceClientId = process.env.DEVICE_CLIENT_ID;
 const deviceName = process.env.DEVICE_NAME;
 const hostServiceSecret = process.env.HOST_SERVICE_SECRET;
+const serviceVersion = process.env.HOST_SERVICE_VERSION ?? null;
+const protocolVersion = process.env.HOST_SERVICE_PROTOCOL_VERSION
+	? Number(process.env.HOST_SERVICE_PROTOCOL_VERSION)
+	: null;
 const desktopVitePort = process.env.DESKTOP_VITE_PORT ?? "5173";
 
 const auth =
@@ -37,16 +41,26 @@ const { app, injectWebSocket } = createApp({
 	dbPath,
 	deviceClientId,
 	deviceName,
+	serviceVersion,
+	protocolVersion,
 	allowedOrigins: [
 		`http://localhost:${desktopVitePort}`,
 		`http://127.0.0.1:${desktopVitePort}`,
 	],
 });
 
+const startedAt = Date.now();
+
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
 	(info: { port: number }) => {
-		process.send?.({ type: "ready", port: info.port });
+		process.send?.({
+			type: "ready",
+			port: info.port,
+			serviceVersion,
+			protocolVersion,
+			startedAt,
+		});
 	},
 );
 injectWebSocket(server);

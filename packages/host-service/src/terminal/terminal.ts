@@ -229,6 +229,33 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({ terminalId: result.terminalId, status: "active" });
 	});
 
+	// REST dispose — does not require an open WebSocket
+	app.delete("/terminal/sessions/:terminalId", (c) => {
+		const terminalId = c.req.param("terminalId");
+		if (!terminalId) {
+			return c.json({ error: "Missing terminalId" }, 400);
+		}
+
+		const session = sessions.get(terminalId);
+		if (!session) {
+			return c.json({ error: "Session not found" }, 404);
+		}
+
+		disposeSession(terminalId, db);
+		return c.json({ terminalId, status: "disposed" });
+	});
+
+	// REST list — enumerate live terminal sessions
+	app.get("/terminal/sessions", (c) => {
+		const result = Array.from(sessions.values()).map((s) => ({
+			terminalId: s.terminalId,
+			exited: s.exited,
+			exitCode: s.exitCode,
+			attached: s.socket !== null,
+		}));
+		return c.json({ sessions: result });
+	});
+
 	app.get(
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {

@@ -1,13 +1,42 @@
 import type { ChildProcess } from "node:child_process";
 import * as childProcess from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { EventEmitter } from "node:events";
 import path from "node:path";
 import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { getDeviceName, getHashedDeviceId } from "./device-info";
 
-type HostServiceStatus = "starting" | "running" | "crashed";
+export type HostServiceStatus =
+	| "starting"
+	| "running"
+	| "degraded"
+	| "restarting"
+	| "stopped";
+
+export type CompatibilityResult =
+	| { compatible: true; updateAvailable: boolean }
+	| { compatible: false; reason: string };
+
+export interface HostServiceInfo {
+	organizationId: string;
+	status: HostServiceStatus;
+	port: number | null;
+	serviceVersion: string | null;
+	protocolVersion: number | null;
+	startedAt: number | null;
+	uptime: number | null;
+	restartCount: number;
+	pendingRestart: boolean;
+	compatibility: CompatibilityResult | null;
+}
+
+export interface HostServiceStatusEvent {
+	organizationId: string;
+	status: HostServiceStatus;
+	previousStatus: HostServiceStatus | null;
+}
 
 interface HostServiceProcess {
 	process: ChildProcess | null;
@@ -17,6 +46,10 @@ interface HostServiceProcess {
 	restartCount: number;
 	lastCrash?: number;
 	organizationId: string;
+	startedAt: number | null;
+	serviceVersion: string | null;
+	protocolVersion: number | null;
+	pendingRestart: boolean;
 }
 
 interface PendingStart {
@@ -29,6 +62,11 @@ interface PendingStart {
 
 const MAX_RESTART_DELAY = 30_000;
 const BASE_RESTART_DELAY = 1_000;
+
+/** Protocol version for the IPC contract between ElectronMain and HostService.
+ *  Bump this whenever the ready message shape, env contract, or health API
+ *  changes in a backwards-incompatible way. */
+export const HOST_SERVICE_PROTOCOL_VERSION = 1;
 
 function createPortDeferred(): {
 	promise: Promise<number>;
@@ -45,9 +83,10 @@ function createPortDeferred(): {
 	return { promise, resolve, reject };
 }
 
-export class HostServiceManager {
+export class HostServiceManager extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, PendingStart>();
+	private scheduledRestarts = new Map<string, ReturnType<typeof setTimeout>>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private authToken: string | null = null;
 	private cloudApiUrl: string | null = null;
@@ -70,23 +109,49 @@ export class HostServiceManager {
 			return pendingStart.promise;
 		}
 
+		// Cancel any scheduled restart since we're starting explicitly
+		this.cancelScheduledRestart(organizationId);
+
 		return this.spawn(organizationId);
 	}
 
 	stop(organizationId: string): void {
 		const instance = this.instances.get(organizationId);
+		this.cancelScheduledRestart(organizationId);
+		this.cancelPendingStart(organizationId, new Error("Host service stopped"));
+
 		if (!instance) return;
 
-		instance.status = "crashed"; // prevent restart
-		this.cancelPendingStart(organizationId, new Error("Host service stopped"));
+		const previousStatus = instance.status;
+		instance.status = "stopped";
 		instance.process?.kill("SIGTERM");
 		this.instances.delete(organizationId);
+		this.emitStatus(organizationId, "stopped", previousStatus);
 	}
 
 	stopAll(): void {
 		for (const [id] of this.instances) {
 			this.stop(id);
 		}
+	}
+
+	async restart(organizationId: string): Promise<number> {
+		const instance = this.instances.get(organizationId);
+		if (instance) {
+			const previousStatus = instance.status;
+			instance.status = "restarting";
+			this.emitStatus(organizationId, "restarting", previousStatus);
+
+			this.cancelScheduledRestart(organizationId);
+			this.cancelPendingStart(
+				organizationId,
+				new Error("Host service restarting"),
+			);
+			instance.process?.kill("SIGTERM");
+			this.instances.delete(organizationId);
+		}
+
+		return this.spawn(organizationId);
 	}
 
 	getPort(organizationId: string): number | null {
@@ -97,26 +162,134 @@ export class HostServiceManager {
 		return this.instances.get(organizationId)?.secret ?? null;
 	}
 
-	getStatus(organizationId: string): HostServiceStatus | null {
+	getStatus(organizationId: string): HostServiceStatus {
 		if (this.pendingStarts.has(organizationId)) {
 			return "starting";
 		}
-		return this.instances.get(organizationId)?.status ?? null;
+		return this.instances.get(organizationId)?.status ?? "stopped";
+	}
+
+	getServiceInfo(organizationId: string): HostServiceInfo {
+		const instance = this.instances.get(organizationId);
+		if (!instance) {
+			return {
+				organizationId,
+				status: this.pendingStarts.has(organizationId) ? "starting" : "stopped",
+				port: null,
+				serviceVersion: null,
+				protocolVersion: null,
+				startedAt: null,
+				uptime: null,
+				restartCount: 0,
+				pendingRestart: false,
+				compatibility: null,
+			};
+		}
+
+		return {
+			organizationId,
+			status: instance.status,
+			port: instance.port,
+			serviceVersion: instance.serviceVersion,
+			protocolVersion: instance.protocolVersion,
+			startedAt: instance.startedAt,
+			uptime: instance.startedAt
+				? Math.floor((Date.now() - instance.startedAt) / 1000)
+				: null,
+			restartCount: instance.restartCount,
+			pendingRestart: instance.pendingRestart,
+			compatibility: this.checkCompatibility(instance),
+		};
+	}
+
+	/** Returns true if any instance is in running or starting state */
+	hasActiveInstances(): boolean {
+		for (const instance of this.instances.values()) {
+			if (instance.status === "running" || instance.status === "starting") {
+				return true;
+			}
+		}
+		return this.pendingStarts.size > 0;
+	}
+
+	/** Returns all organization IDs with active host-service instances */
+	getActiveOrganizationIds(): string[] {
+		const ids: string[] = [];
+		for (const [id, instance] of this.instances) {
+			if (instance.status !== "stopped") {
+				ids.push(id);
+			}
+		}
+		return ids;
+	}
+
+	/** Check whether a running host-service is compatible with this app version.
+	 *  - protocol match + same version = compatible, no update
+	 *  - protocol match + older service = compatible, update available
+	 *  - protocol mismatch = incompatible, restart required */
+	checkCompatibility(
+		instance: Pick<HostServiceProcess, "protocolVersion" | "serviceVersion">,
+	): CompatibilityResult | null {
+		if (instance.protocolVersion === null) return null;
+
+		if (instance.protocolVersion !== HOST_SERVICE_PROTOCOL_VERSION) {
+			return {
+				compatible: false,
+				reason: `Protocol mismatch: service=${instance.protocolVersion}, app=${HOST_SERVICE_PROTOCOL_VERSION}`,
+			};
+		}
+
+		const currentVersion = app.getVersion();
+		const updateAvailable =
+			instance.serviceVersion !== null &&
+			instance.serviceVersion !== currentVersion;
+
+		return { compatible: true, updateAvailable };
+	}
+
+	/** Mark a host-service instance for restart when it becomes idle. */
+	markPendingRestart(organizationId: string): void {
+		const instance = this.instances.get(organizationId);
+		if (!instance) return;
+		instance.pendingRestart = true;
+		this.emitStatus(organizationId, instance.status, instance.status);
+	}
+
+	/** Check all instances for compatibility and mark incompatible ones for restart. */
+	checkAllCompatibility(): void {
+		for (const [orgId, instance] of this.instances) {
+			if (instance.status !== "running") continue;
+			const result = this.checkCompatibility(instance);
+			if (result && !result.compatible) {
+				console.log(`[host-service:${orgId}] Incompatible: ${result.reason}`);
+				instance.pendingRestart = true;
+				this.emitStatus(orgId, instance.status, instance.status);
+			}
+		}
 	}
 
 	private async spawn(organizationId: string): Promise<number> {
 		const pendingStart = createPortDeferred();
 		const secret = randomBytes(32).toString("hex");
+
+		const previousInstance = this.instances.get(organizationId);
+		const restartCount = previousInstance?.restartCount ?? 0;
+
 		const instance: HostServiceProcess = {
 			process: null,
 			port: null,
 			secret,
 			status: "starting",
-			restartCount: 0,
+			restartCount,
 			organizationId,
+			startedAt: null,
+			serviceVersion: null,
+			protocolVersion: null,
+			pendingRestart: false,
 		};
 		this.instances.set(organizationId, instance);
 		this.pendingStarts.set(organizationId, pendingStart);
+		this.emitStatus(organizationId, "starting", null);
 
 		try {
 			const env = await this.buildHostServiceEnv(organizationId, secret);
@@ -169,6 +342,8 @@ export class HostServiceManager {
 			DEVICE_CLIENT_ID: getHashedDeviceId(),
 			DEVICE_NAME: getDeviceName(),
 			HOST_SERVICE_SECRET: secret,
+			HOST_SERVICE_VERSION: app.getVersion(),
+			HOST_SERVICE_PROTOCOL_VERSION: String(HOST_SERVICE_PROTOCOL_VERSION),
 			HOST_DB_PATH: path.join(
 				SUPERSET_HOME_DIR,
 				"host",
@@ -203,7 +378,7 @@ export class HostServiceManager {
 			if (
 				!current ||
 				current.process !== child ||
-				current.status === "crashed"
+				current.status === "stopped"
 			) {
 				return;
 			}
@@ -214,8 +389,17 @@ export class HostServiceManager {
 					new Error("Host service exited before reporting port"),
 				);
 			}
-			current.status = "crashed";
+
+			const previousStatus = current.status;
+			// If we were restarting, a new spawn is already in flight — don't
+			// schedule another restart or overwrite the status.
+			if (previousStatus === "restarting") {
+				return;
+			}
+
+			current.status = "degraded";
 			current.lastCrash = Date.now();
+			this.emitStatus(organizationId, "degraded", previousStatus);
 			this.scheduleRestart(organizationId);
 		});
 	}
@@ -226,10 +410,12 @@ export class HostServiceManager {
 		error: Error,
 	): void {
 		this.clearPendingStart(instance.organizationId, pendingStart);
-		instance.status = "crashed";
+		const previousStatus = instance.status;
+		instance.status = "degraded";
 		pendingStart.reject(error);
 		instance.process?.kill("SIGTERM");
 		instance.lastCrash = Date.now();
+		this.emitStatus(instance.organizationId, "degraded", previousStatus);
 		this.scheduleRestart(instance.organizationId);
 	}
 
@@ -252,9 +438,37 @@ export class HostServiceManager {
 			this.clearPendingStart(instance.organizationId, pendingStart);
 			instance.port = message.port;
 			instance.status = "running";
+			instance.startedAt = Date.now();
+			instance.restartCount = 0;
+
+			// Pick up version info from the ready message if available
+			if (
+				"serviceVersion" in message &&
+				typeof message.serviceVersion === "string"
+			) {
+				instance.serviceVersion = message.serviceVersion;
+			}
+			if (
+				"protocolVersion" in message &&
+				typeof message.protocolVersion === "number"
+			) {
+				instance.protocolVersion = message.protocolVersion;
+			}
+
 			console.log(
-				`[host-service:${instance.organizationId}] listening on port ${message.port}`,
+				`[host-service:${instance.organizationId}] listening on port ${message.port} (v${instance.serviceVersion}, protocol=${instance.protocolVersion})`,
 			);
+
+			// Check compatibility on connect
+			const compat = this.checkCompatibility(instance);
+			if (compat && !compat.compatible) {
+				console.warn(
+					`[host-service:${instance.organizationId}] ${compat.reason} — marking for restart`,
+				);
+				instance.pendingRestart = true;
+			}
+
+			this.emitStatus(instance.organizationId, "running", "starting");
 			pendingStart.resolve(message.port);
 		};
 
@@ -296,9 +510,19 @@ export class HostServiceManager {
 		}
 	}
 
+	private cancelScheduledRestart(organizationId: string): void {
+		const timer = this.scheduledRestarts.get(organizationId);
+		if (timer) {
+			clearTimeout(timer);
+			this.scheduledRestarts.delete(organizationId);
+		}
+	}
+
 	private scheduleRestart(organizationId: string): void {
 		const instance = this.instances.get(organizationId);
 		if (!instance) return;
+
+		this.cancelScheduledRestart(organizationId);
 
 		const delay = Math.min(
 			BASE_RESTART_DELAY * 2 ** instance.restartCount,
@@ -310,9 +534,10 @@ export class HostServiceManager {
 			`[host-service:${organizationId}] restarting in ${delay}ms (attempt ${instance.restartCount})`,
 		);
 
-		setTimeout(() => {
+		const timer = setTimeout(() => {
+			this.scheduledRestarts.delete(organizationId);
 			const current = this.instances.get(organizationId);
-			if (current?.status === "crashed") {
+			if (current?.status === "degraded") {
 				this.instances.delete(organizationId);
 				this.spawn(organizationId).catch((err) => {
 					console.error(
@@ -322,6 +547,20 @@ export class HostServiceManager {
 				});
 			}
 		}, delay);
+		this.scheduledRestarts.set(organizationId, timer);
+	}
+
+	private emitStatus(
+		organizationId: string,
+		status: HostServiceStatus,
+		previousStatus: HostServiceStatus | null,
+	): void {
+		const event: HostServiceStatusEvent = {
+			organizationId,
+			status,
+			previousStatus,
+		};
+		this.emit("status-changed", event);
 	}
 }
 

@@ -267,6 +267,15 @@ export function setupAutoUpdater(): void {
 			`[auto-updater] Update downloaded: ${app.getVersion()} → ${info.version}. Ready to install.`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
+
+		// After an app update is ready, check if running host-service instances
+		// will need a restart once the new version is installed.
+		try {
+			const { getHostServiceManager } = require("../host-service-manager");
+			getHostServiceManager().checkAllCompatibility();
+		} catch {
+			// Host service manager may not be initialized yet
+		}
 	});
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);

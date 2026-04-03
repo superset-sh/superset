@@ -33,6 +33,8 @@ export interface CreateAppOptions {
 	dbPath?: string;
 	deviceClientId?: string;
 	deviceName?: string;
+	serviceVersion?: string | null;
+	protocolVersion?: number | null;
 	allowedOrigins?: string[];
 }
 
@@ -133,6 +135,8 @@ export function createApp(options?: CreateAppOptions): CreateAppResult {
 					runtime,
 					deviceClientId: options?.deviceClientId ?? null,
 					deviceName: options?.deviceName ?? null,
+					serviceVersion: options?.serviceVersion ?? null,
+					protocolVersion: options?.protocolVersion ?? null,
 					isAuthenticated,
 				} as Record<string, unknown>;
 			},

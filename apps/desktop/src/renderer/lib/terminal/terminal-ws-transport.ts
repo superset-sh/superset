@@ -15,6 +15,14 @@ export interface TerminalTransport {
 	currentUrl: string | null;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
+	/** Internal: auto-reconnect timer. */
+	_reconnectTimer: ReturnType<typeof setTimeout> | null;
+	/** Internal: reconnect attempt count for backoff. */
+	_reconnectAttempt: number;
+	/** The xterm instance used for reconnection. */
+	_terminal: XTerm | null;
+	/** Set when the server sends an exit message — no reconnect after this. */
+	_exited: boolean;
 }
 
 function setConnectionState(
@@ -27,6 +35,10 @@ function setConnectionState(
 	}
 }
 
+const MAX_RECONNECT_DELAY = 10_000;
+const BASE_RECONNECT_DELAY = 500;
+const MAX_RECONNECT_ATTEMPTS = 10;
+
 export function createTransport(): TerminalTransport {
 	return {
 		socket: null,
@@ -34,7 +46,42 @@ export function createTransport(): TerminalTransport {
 		currentUrl: null,
 		onDataDisposable: null,
 		stateListeners: new Set(),
+		_reconnectTimer: null,
+		_reconnectAttempt: 0,
+		_terminal: null,
+		_exited: false,
 	};
+}
+
+function scheduleReconnect(transport: TerminalTransport) {
+	if (transport._reconnectTimer) return;
+	if (transport._exited) return;
+	if (!transport.currentUrl || !transport._terminal) return;
+	if (transport._reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) return;
+
+	const delay = Math.min(
+		BASE_RECONNECT_DELAY * 2 ** transport._reconnectAttempt,
+		MAX_RECONNECT_DELAY,
+	);
+	transport._reconnectAttempt++;
+
+	transport._reconnectTimer = setTimeout(() => {
+		transport._reconnectTimer = null;
+		if (
+			transport.connectionState === "closed" &&
+			transport.currentUrl &&
+			transport._terminal
+		) {
+			connect(transport, transport._terminal, transport.currentUrl);
+		}
+	}, delay);
+}
+
+function cancelReconnect(transport: TerminalTransport) {
+	if (transport._reconnectTimer) {
+		clearTimeout(transport._reconnectTimer);
+		transport._reconnectTimer = null;
+	}
 }
 
 export function connect(
@@ -53,13 +100,16 @@ export function connect(
 		transport.socket = null;
 	}
 
+	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
+	transport._terminal = terminal;
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
 
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
+		transport._reconnectAttempt = 0;
 		setConnectionState(transport, "open");
 		sendResize(transport, terminal.cols, terminal.rows);
 	});
@@ -85,6 +135,8 @@ export function connect(
 		}
 
 		if (message.type === "exit") {
+			transport._exited = true;
+			cancelReconnect(transport);
 			terminal.writeln(
 				`\r\n[terminal] exited with code ${message.exitCode} (signal ${message.signal})`,
 			);
@@ -95,6 +147,8 @@ export function connect(
 		if (transport.socket !== socket) return;
 		setConnectionState(transport, "closed");
 		transport.socket = null;
+		// Auto-reconnect on unexpected close (host-service restart, network blip)
+		scheduleReconnect(transport);
 	});
 
 	socket.addEventListener("error", () => {
@@ -110,11 +164,14 @@ export function connect(
 }
 
 export function disconnect(transport: TerminalTransport) {
+	cancelReconnect(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
 	}
 	transport.currentUrl = null;
+	transport._terminal = null;
+	transport._reconnectAttempt = 0;
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
@@ -137,11 +194,14 @@ export function sendDispose(transport: TerminalTransport) {
 }
 
 export function disposeTransport(transport: TerminalTransport) {
+	cancelReconnect(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
 	}
 	transport.currentUrl = null;
+	transport._terminal = null;
+	transport._reconnectAttempt = 0;
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
