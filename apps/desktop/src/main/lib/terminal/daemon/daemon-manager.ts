@@ -98,11 +98,12 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		// Tear down locally-tracked sessions
 		for (const [paneId, session] of this.sessions.entries()) {
-			if (session.isAlive) {
-				session.isAlive = false;
-				session.pid = null;
-				portManager.unregisterDaemonSession(paneId);
-				this.historyManager.closeHistoryWriter(paneId);
+			const wasAlive = session.isAlive;
+			session.isAlive = false;
+			session.pid = null;
+			portManager.unregisterDaemonSession(paneId);
+			this.historyManager.closeHistoryWriter(paneId);
+			if (wasAlive) {
 				this.emit(`disconnect:${paneId}`, reason);
 			}
 		}

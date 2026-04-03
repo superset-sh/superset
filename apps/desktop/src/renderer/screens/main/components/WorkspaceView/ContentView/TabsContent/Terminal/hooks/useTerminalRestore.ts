@@ -119,8 +119,14 @@ export function useTerminalRestore({
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
+		const termEl = xterm.element?.parentElement ?? xterm.element;
+		const restoreVisibility = () => {
+			if (termEl && termEl.isConnected) {
+				termEl.style.opacity = "";
+				termEl.style.transition = "";
+			}
+		};
 		try {
-			const termEl = xterm.element?.parentElement ?? xterm.element;
 			const isReattach = !result.isNew;
 
 			// Hide reattached terminals during snapshot restore to prevent
@@ -139,10 +145,7 @@ export function useTerminalRestore({
 					if (restoreSequenceRef.current !== restoreSequence) return;
 					fitAddon.fit();
 					scrollToBottom(xterm);
-					if (termEl && termEl.isConnected) {
-						termEl.style.opacity = "";
-						termEl.style.transition = "";
-					}
+					restoreVisibility();
 				};
 				// Reattach: delay reveal 250ms to let TUI apps (tmux)
 				// repaint at correct dimensions after SIGWINCH
@@ -253,6 +256,7 @@ export function useTerminalRestore({
 				updateCwdRef.current(initialAnsi);
 			}
 		} catch (error) {
+			restoreVisibility();
 			console.error("[Terminal] Restoration failed:", error);
 			isStreamReadyRef.current = true;
 			flushPendingEvents();
