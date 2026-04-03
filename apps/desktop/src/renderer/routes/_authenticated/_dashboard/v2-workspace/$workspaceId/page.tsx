@@ -66,7 +66,6 @@ function V2WorkspacePage() {
 		<WorkspaceContent
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
-			workspaceName={workspace.name}
 		/>
 	);
 }
@@ -74,11 +73,9 @@ function V2WorkspacePage() {
 function WorkspaceContent({
 	projectId,
 	workspaceId,
-	workspaceName,
 }: {
 	projectId: string;
 	workspaceId: string;
-	workspaceName: string;
 }) {
 	const navigate = useNavigate();
 	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
@@ -360,7 +357,6 @@ function WorkspaceContent({
 				query={commandPalette.query}
 				scope={commandPalette.scope}
 				searchResults={commandPalette.searchResults}
-				workspaceName={workspaceName}
 			/>
 		</>
 	);
