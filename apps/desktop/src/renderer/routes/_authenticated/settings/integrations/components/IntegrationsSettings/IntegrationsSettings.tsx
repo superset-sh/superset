@@ -60,9 +60,6 @@ export function IntegrationsSettings({
 		useState<GithubInstallation | null>(null);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
 
-	const hasGithubAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
-	);
 	const hasSlackAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
 	);
@@ -71,9 +68,10 @@ export function IntegrationsSettings({
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		visibleItems,
 	);
-	const showGithub =
-		hasGithubAccess &&
-		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_GITHUB, visibleItems);
+	const showGithub = isItemVisible(
+		SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
+		visibleItems,
+	);
 
 	const fetchGithubInstallation = useCallback(async () => {
 		if (!activeOrganizationId) {
@@ -161,11 +159,7 @@ export function IntegrationsSettings({
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
 						isLoading={isLoadingGithub}
-						onManage={() =>
-							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
-								handleOpenWeb("/integrations/github"),
-							)
-						}
+						onManage={() => handleOpenWeb("/integrations/github")}
 					/>
 				)}
 

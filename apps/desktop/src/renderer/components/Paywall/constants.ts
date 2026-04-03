@@ -41,7 +41,7 @@ export const PRO_FEATURES: ProFeature[] = [
 		id: "integrations",
 		title: "Integrations",
 		description:
-			"Connect Linear, GitHub, and more to sync issues and PRs directly with your workspaces.",
+			"Connect Linear, Slack, and more to sync issues and conversations directly with your workspaces.",
 		icon: HiOutlinePuzzlePiece,
 		iconColor: "text-purple-500",
 		gradientColors: ["#7c3aed", "#6d28d9", "#4c1d95", "#1a1a2e"],

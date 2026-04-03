@@ -1,9 +1,15 @@
+import { FaSlack } from "react-icons/fa";
 import { HiArrowPath, HiCheck } from "react-icons/hi2";
-import { SiGithub, SiLinear } from "react-icons/si";
+import { SiLinear } from "react-icons/si";
 
 const SYNCED_ITEMS = [
 	{ id: "1", type: "issue", name: "SUP-142: Fix auth flow", status: "synced" },
-	{ id: "2", type: "pr", name: "PR #89: Add workspace sync", status: "synced" },
+	{
+		id: "2",
+		type: "message",
+		name: "#eng: Add workspace sync",
+		status: "synced",
+	},
 	{
 		id: "3",
 		type: "issue",
@@ -45,10 +51,10 @@ export function IntegrationsDemo() {
 							<div className="w-6 h-px bg-foreground/20" />
 						</div>
 						<div className="flex flex-col items-center gap-1.5">
-							<div className="w-10 h-10 rounded-lg bg-[#24292e] flex items-center justify-center">
-								<SiGithub className="w-5 h-5 text-white" />
+							<div className="w-10 h-10 rounded-lg bg-[#4A154B] flex items-center justify-center">
+								<FaSlack className="w-5 h-5 text-white" />
 							</div>
-							<span className="text-[10px] text-muted-foreground">GitHub</span>
+							<span className="text-[10px] text-muted-foreground">Slack</span>
 						</div>
 					</div>
 
