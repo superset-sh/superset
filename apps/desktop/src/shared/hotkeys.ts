@@ -459,6 +459,18 @@ export const HOTKEYS = {
 		label: "Next Workspace",
 		category: "Workspace",
 	}),
+	NEXT_UNREAD_WORKSPACE: defineHotkey({
+		keys: "meta+alt+n",
+		label: "Next Unread Workspace",
+		category: "Workspace",
+		description: "Jump to the next workspace with unread status",
+	}),
+	PREV_UNREAD_WORKSPACE: defineHotkey({
+		keys: "meta+alt+p",
+		label: "Previous Unread Workspace",
+		category: "Workspace",
+		description: "Jump to the previous workspace with unread status",
+	}),
 	CLOSE_WORKSPACE: defineHotkey({
 		keys: "meta+shift+backspace",
 		label: "Close Workspace",

@@ -297,6 +297,61 @@ export const createQueryProcedures = () => {
 				return orderedWorkspaceIds[nextIndex];
 			}),
 
+		getNextUnreadWorkspace: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(({ input }) => {
+				const orderedIds = getWorkspacesInVisualOrder();
+				if (orderedIds.length === 0) return null;
+
+				const currentIndex = orderedIds.indexOf(input.id);
+				if (currentIndex === -1) return null;
+
+				const unreadSet = new Set(
+					localDb
+						.select({ id: workspaces.id })
+						.from(workspaces)
+						.where(eq(workspaces.isUnread, true))
+						.all()
+						.map((w) => w.id),
+				);
+
+				for (let i = 1; i <= orderedIds.length; i++) {
+					const index = (currentIndex + i) % orderedIds.length;
+					if (unreadSet.has(orderedIds[index])) {
+						return orderedIds[index];
+					}
+				}
+				return null;
+			}),
+
+		getPrevUnreadWorkspace: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(({ input }) => {
+				const orderedIds = getWorkspacesInVisualOrder();
+				if (orderedIds.length === 0) return null;
+
+				const currentIndex = orderedIds.indexOf(input.id);
+				if (currentIndex === -1) return null;
+
+				const unreadSet = new Set(
+					localDb
+						.select({ id: workspaces.id })
+						.from(workspaces)
+						.where(eq(workspaces.isUnread, true))
+						.all()
+						.map((w) => w.id),
+				);
+
+				for (let i = 1; i <= orderedIds.length; i++) {
+					const index =
+						(currentIndex - i + orderedIds.length) % orderedIds.length;
+					if (unreadSet.has(orderedIds[index])) {
+						return orderedIds[index];
+					}
+				}
+				return null;
+			}),
+
 		getResolvedRunCommands: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
