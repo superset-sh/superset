@@ -5,27 +5,18 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
-// ---------------------------------------------------------------------------
-// WebGL failure tracking — shared across all runtimes (VS Code pattern).
-// Once WebGL fails, every subsequent runtime skips it to avoid repeated errors.
-// ---------------------------------------------------------------------------
+// Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
 /**
- * Load optional addons after the terminal is open. Returns a dispose function
- * that cleans up the WebGL renderer and cancels any pending rAF.
- *
- * Addons are split into two groups:
- *   1. Sync addons loaded immediately after open() — safe, lightweight.
- *   2. WebGL deferred to the next animation frame so xterm's internal
- *      setTimeout (Viewport.syncScrollArea) completes with the DOM renderer
- *      before we swap to GPU.
+ * Load optional addons onto an already-opened terminal. Returns a cleanup
+ * function. WebGL is deferred to the next rAF so xterm's post-open()
+ * setTimeout completes with the DOM renderer first.
  */
 export function loadAddons(terminal: XTerm): () => void {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 
-	// --- Sync addons ---
 	terminal.loadAddon(new ClipboardAddon());
 
 	const unicode11 = new Unicode11Addon();
@@ -36,14 +27,10 @@ export function loadAddons(terminal: XTerm): () => void {
 
 	try {
 		terminal.loadAddon(new LigaturesAddon());
-	} catch {
-		// Ligatures not supported by the current font — safe to ignore.
-	}
+	} catch {}
 
-	// --- Deferred GPU renderer ---
 	const rafId = requestAnimationFrame(() => {
-		if (disposed) return;
-		if (suggestedRendererType === "dom") return;
+		if (disposed || suggestedRendererType === "dom") return;
 
 		try {
 			webglAddon = new WebglAddon();
@@ -64,9 +51,7 @@ export function loadAddons(terminal: XTerm): () => void {
 		cancelAnimationFrame(rafId);
 		try {
 			webglAddon?.dispose();
-		} catch {
-			// ignore
-		}
+		} catch {}
 		webglAddon = null;
 	};
 }

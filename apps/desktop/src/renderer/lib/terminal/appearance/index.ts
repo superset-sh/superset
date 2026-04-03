@@ -6,10 +6,6 @@ import {
 	getTerminalColors,
 } from "shared/themes";
 
-/**
- * Plain value object describing the visual appearance of a terminal instance.
- * Shared by both creation and live-update paths so the contract is identical.
- */
 export interface TerminalAppearance {
 	theme: ITheme;
 	background: string;
@@ -35,10 +31,7 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 
-/**
- * Build a default appearance by reading the localStorage theme cache
- * (for flash-free first paint) and falling back to built-in defaults.
- */
+/** Reads localStorage theme cache for flash-free first paint. */
 export function getDefaultTerminalAppearance(): TerminalAppearance {
 	const theme = readCachedTerminalTheme();
 	return {
@@ -60,9 +53,7 @@ function readCachedTerminalTheme(): ITheme {
 		if (theme) {
 			return toXtermTheme(getTerminalColors(theme));
 		}
-	} catch {
-		// Fall through to default
-	}
+	} catch {}
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
 		? toXtermTheme(getTerminalColors(defaultTheme))

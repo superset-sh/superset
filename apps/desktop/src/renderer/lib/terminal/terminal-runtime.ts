@@ -16,20 +16,15 @@ export interface TerminalRuntime {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
-	/** Reparented between containers across attach/detach cycles — not recreated. */
+	/** Survives attach/detach cycles — reparented, never recreated. */
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
-	/** Fallback grid size used when the host is not visible. */
+	/** Grid size snapshot for off-screen terminals. */
 	lastCols: number;
 	lastRows: number;
-	/** Cleanup function for deferred addon loading + GPU renderer. */
 	_disposeAddons: (() => void) | null;
 }
-
-// ---------------------------------------------------------------------------
-// Terminal + addon creation
-// ---------------------------------------------------------------------------
 
 function createTerminal(
 	cols: number,
@@ -60,10 +55,6 @@ function createTerminal(
 	terminal.loadAddon(serializeAddon);
 	return { terminal, fitAddon, serializeAddon };
 }
-
-// ---------------------------------------------------------------------------
-// Buffer / dimension persistence
-// ---------------------------------------------------------------------------
 
 function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
 	try {
@@ -116,10 +107,6 @@ function clearPersistedDimensions(terminalId: string) {
 	} catch {}
 }
 
-// ---------------------------------------------------------------------------
-// Container helpers
-// ---------------------------------------------------------------------------
-
 function hostIsVisible(container: HTMLDivElement | null): boolean {
 	if (!container) return false;
 	return container.clientWidth > 0 && container.clientHeight > 0;
@@ -131,10 +118,6 @@ function measureAndResize(runtime: TerminalRuntime) {
 	runtime.lastCols = runtime.terminal.cols;
 	runtime.lastRows = runtime.terminal.rows;
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export function createRuntime(
 	terminalId: string,
@@ -181,8 +164,7 @@ export function attachToContainer(
 	container.appendChild(runtime.wrapper);
 	measureAndResize(runtime);
 
-	// Force a full repaint — the renderer may have skipped paint frames while
-	// the wrapper was detached from the DOM and receiving background data.
+	// Repaint — renderer may have skipped frames while detached.
 	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
 
 	runtime.resizeObserver?.disconnect();

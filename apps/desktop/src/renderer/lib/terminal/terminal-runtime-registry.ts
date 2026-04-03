@@ -18,7 +18,6 @@ import {
 } from "./terminal-ws-transport";
 
 interface RegistryEntry {
-	/** Null until the first real attach — avoids creating an xterm instance before appearance is known. */
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
 }

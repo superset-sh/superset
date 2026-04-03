@@ -43,8 +43,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		() => getConnectionState(terminalId),
 	);
 
-	// Attach/detach — appearance is read from ref so this effect only re-runs
-	// when the terminal identity or websocket endpoint changes.
+	// Appearance read from ref to avoid re-attach on theme/font change.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -61,7 +60,6 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		};
 	}, [terminalId, websocketUrl]);
 
-	// Live appearance updates — pushes theme/font changes without remounting.
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
 	}, [terminalId, appearance]);
