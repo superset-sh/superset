@@ -30,6 +30,20 @@ export type StartAgentSessionToolName =
 
 export const nonEmptyString = z.string().trim().min(1);
 
+function describeSupportedAgents(): string {
+	const quotedAgents = STARTABLE_AGENT_TYPES.map((agent) => `"${agent}"`);
+	const lastAgent = quotedAgents.at(-1);
+	if (!lastAgent) {
+		return 'AI agent to use. Defaults to "claude".';
+	}
+
+	if (quotedAgents.length === 1) {
+		return `AI agent to use: ${lastAgent}. Defaults to "claude".`;
+	}
+
+	return `AI agent to use: ${quotedAgents.slice(0, -1).join(", ")}, or ${lastAgent}. Defaults to "claude".`;
+}
+
 export const commonInputSchemaShape = {
 	deviceId: nonEmptyString.describe("Target device ID"),
 	workspaceId: nonEmptyString.describe(
@@ -43,9 +57,7 @@ export const commonInputSchemaShape = {
 	agent: z
 		.enum(STARTABLE_AGENT_TYPES)
 		.optional()
-		.describe(
-			'AI agent to use: "claude", "codex", "gemini", "opencode", "pi", "copilot", "cursor-agent", or "superset-chat". Defaults to "claude".',
-		),
+		.describe(describeSupportedAgents()),
 };
 
 export const taskInputSchemaShape = {

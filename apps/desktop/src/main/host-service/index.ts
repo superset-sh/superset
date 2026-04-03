@@ -21,6 +21,7 @@ const dbPath = process.env.HOST_DB_PATH;
 const deviceClientId = process.env.DEVICE_CLIENT_ID;
 const deviceName = process.env.DEVICE_NAME;
 const hostServiceSecret = process.env.HOST_SERVICE_SECRET;
+const desktopVitePort = process.env.DESKTOP_VITE_PORT ?? "5173";
 
 const auth =
 	authToken && cloudApiUrl ? new JwtApiAuthProvider(authToken) : undefined;
@@ -36,7 +37,10 @@ const { app, injectWebSocket } = createApp({
 	dbPath,
 	deviceClientId,
 	deviceName,
-	allowedOrigins: ["http://127.0.0.1"],
+	allowedOrigins: [
+		`http://localhost:${desktopVitePort}`,
+		`http://127.0.0.1:${desktopVitePort}`,
+	],
 });
 
 const server = serve(

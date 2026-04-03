@@ -2,16 +2,18 @@
 
 import { ModelSelectorLogo } from "@superset/ui/ai-elements/model-selector";
 import { ChevronDown } from "lucide-react";
-import { type MockModel, mockModels } from "../../../../mock-data";
+import type { MockModel } from "../../../../mock-data";
 import { ResponsiveDropdown } from "../../../ResponsiveDropdown";
 
 type ModelPickerProps = {
+	models: MockModel[];
 	selectedModel: MockModel;
 	onModelChange: (model: MockModel) => void;
 	disabled?: boolean;
 };
 
 export function ModelPicker({
+	models,
 	selectedModel,
 	onModelChange,
 	disabled = false,
@@ -19,7 +21,7 @@ export function ModelPicker({
 	return (
 		<ResponsiveDropdown
 			title="Select model"
-			items={mockModels.map((model) => ({
+			items={models.map((model) => ({
 				label: model.name,
 				icon: (
 					<ModelSelectorLogo provider={model.provider} className="size-3.5" />

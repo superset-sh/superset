@@ -175,8 +175,9 @@ const agentCustomDefinitionSchema = z.object({
 	label: z.string(),
 	description: z.string().optional(),
 	command: z.string(),
-	promptCommand: z.string(),
+	promptCommand: z.string().optional(),
 	promptCommandSuffix: z.string().optional(),
+	promptTransport: z.enum(["argv", "stdin"]).optional(),
 	taskPromptTemplate: z.string(),
 	enabled: z.boolean().optional(),
 });
@@ -194,6 +195,7 @@ const localDbMock = () => ({
 	agentPresetOverrideSchema,
 	agentPresetOverrideEnvelopeSchema,
 	agentCustomDefinitionSchema,
+	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
 	EXECUTION_MODES: ["sequential", "parallel"],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],

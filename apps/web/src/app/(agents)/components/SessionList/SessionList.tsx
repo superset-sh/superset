@@ -3,15 +3,15 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MS_PER_DAY } from "../../constants";
-import { mockSessions } from "../../mock-data";
+import type { MockSession } from "../../mock-data";
 import { SessionCard } from "./components/SessionCard";
 
-function groupSessionsByRecency(sessions: typeof mockSessions) {
+function groupSessionsByRecency(sessions: MockSession[]) {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today.getTime() - MS_PER_DAY);
 
-	const groups: { label: string; sessions: typeof sessions }[] = [
+	const groups: { label: string; sessions: MockSession[] }[] = [
 		{ label: "Today", sessions: [] },
 		{ label: "Yesterday", sessions: [] },
 		{ label: "Older", sessions: [] },
@@ -30,14 +30,21 @@ function groupSessionsByRecency(sessions: typeof mockSessions) {
 	return groups.filter((g) => g.sessions.length > 0);
 }
 
-export function SessionList() {
+type SessionListProps = {
+	sessions: MockSession[];
+	workspaceId: string;
+};
+
+export function SessionList({ sessions, workspaceId }: SessionListProps) {
 	const [search, setSearch] = useState("");
 
 	const filtered = useMemo(() => {
-		if (!search.trim()) return mockSessions;
+		if (!search.trim()) return sessions;
 		const q = search.toLowerCase();
-		return mockSessions.filter((s) => s.title.toLowerCase().includes(q));
-	}, [search]);
+		return sessions.filter((session) =>
+			session.title.toLowerCase().includes(q),
+		);
+	}, [search, sessions]);
 
 	const groups = useMemo(() => groupSessionsByRecency(filtered), [filtered]);
 
@@ -69,7 +76,11 @@ export function SessionList() {
 						</h3>
 						<div className="flex flex-col gap-1">
 							{group.sessions.map((session) => (
-								<SessionCard key={session.id} session={session} />
+								<SessionCard
+									key={session.id}
+									session={session}
+									workspaceId={workspaceId}
+								/>
 							))}
 						</div>
 					</div>

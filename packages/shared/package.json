@@ -24,6 +24,14 @@
 			"types": "./src/agent-command.ts",
 			"default": "./src/agent-command.ts"
 		},
+		"./agent-prompt-launch": {
+			"types": "./src/agent-prompt-launch.ts",
+			"default": "./src/agent-prompt-launch.ts"
+		},
+		"./agent-definition": {
+			"types": "./src/agent-definition.ts",
+			"default": "./src/agent-definition.ts"
+		},
 		"./agent-catalog": {
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"

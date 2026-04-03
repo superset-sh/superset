@@ -17,7 +17,7 @@ import {
 } from "renderer/components/OpenInExternalDropdown";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 
 interface OpenInMenuButtonProps {
 	worktreePath: string;
@@ -79,6 +79,10 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		if (openInApp.isPending || copyPath.isPending) return;
 		copyPath.mutate(worktreePath);
 	}, [worktreePath, copyPath, openInApp.isPending]);
+
+	useAppHotkey("OPEN_IN_APP", handleOpenInEditor, undefined, [
+		handleOpenInEditor,
+	]);
 
 	return (
 		<div className="flex items-center no-drag">

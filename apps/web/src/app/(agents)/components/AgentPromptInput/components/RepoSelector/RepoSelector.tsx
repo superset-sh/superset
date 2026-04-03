@@ -1,16 +1,18 @@
 "use client";
 
 import { ChevronDown, GitFork } from "lucide-react";
-import { type MockRepo, mockRepos } from "../../../../mock-data";
+import type { MockRepo } from "../../../../mock-data";
 import { ResponsiveDropdown } from "../../../ResponsiveDropdown";
 
 type RepoSelectorProps = {
+	repos: MockRepo[];
 	selectedRepo: MockRepo;
 	onRepoChange: (repo: MockRepo) => void;
 	disabled?: boolean;
 };
 
 export function RepoSelector({
+	repos,
 	selectedRepo,
 	onRepoChange,
 	disabled = false,
@@ -18,7 +20,7 @@ export function RepoSelector({
 	return (
 		<ResponsiveDropdown
 			title="Select repository"
-			items={mockRepos.map((repo) => ({
+			items={repos.map((repo) => ({
 				label: repo.fullName,
 				icon: <GitFork className="size-3" />,
 				onSelect: () => onRepoChange(repo),

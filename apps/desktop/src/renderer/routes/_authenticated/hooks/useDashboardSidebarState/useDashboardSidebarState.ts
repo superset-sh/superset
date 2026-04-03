@@ -1,4 +1,4 @@
-import { createPaneWorkspaceState } from "@superset/pane-layout";
+import type { WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -62,7 +62,11 @@ function ensureSidebarWorkspaceRecord(
 			tabOrder: getNextTabOrder(topLevelOrders),
 			sectionId: null,
 		},
-		paneLayout: createPaneWorkspaceState({ roots: [] }),
+		paneLayout: {
+			version: 1,
+			tabs: [],
+			activeTabId: null,
+		} satisfies WorkspaceState<unknown>,
 	});
 }
 

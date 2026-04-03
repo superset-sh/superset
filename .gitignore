@@ -85,3 +85,4 @@ superset-dev-data/
 !.codex/config.toml
 !.codex/commands
 !.codex/prompts
+.amp/*

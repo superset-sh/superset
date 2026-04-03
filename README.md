@@ -55,6 +55,7 @@ Superset works with any CLI-based coding agent, including:
 
 | Agent | Status |
 |:------|:-------|
+| [Amp Code](https://ampcode.com/) | Fully supported |
 | [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
 | [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
 | [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |

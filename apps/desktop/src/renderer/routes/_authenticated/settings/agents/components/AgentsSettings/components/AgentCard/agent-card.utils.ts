@@ -100,7 +100,9 @@ export function buildAgentFieldPatch({
 				};
 			}
 			if (!value.trim()) {
-				return { error: "Prompt command is required for terminal agents." };
+				return preset.source === "user"
+					? { patch: { promptCommand: "" } }
+					: { error: "Prompt command is required for terminal agents." };
 			}
 			return { patch: { promptCommand: value } };
 		case "promptCommandSuffix":

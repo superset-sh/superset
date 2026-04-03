@@ -1,5 +1,6 @@
 export type MockSession = {
 	id: string;
+	workspaceId: string;
 	title: string;
 	status: "completed" | "running" | "failed";
 	repoName: string;
@@ -27,6 +28,14 @@ export type MockModel = {
 	id: string;
 	name: string;
 	provider: string;
+};
+
+export type MockWorkspace = {
+	id: string;
+	name: string;
+	repoId: string;
+	repoFullName: string;
+	branch: string;
 };
 
 export type MockDiffFile = {
@@ -58,9 +67,48 @@ export const mockBranches = [
 	"staging",
 ];
 
+export const mockWorkspaces: MockWorkspace[] = [
+	{
+		id: "workspace-1",
+		name: "Superset Main",
+		repoId: "1",
+		repoFullName: "supersetai/superset",
+		branch: "main",
+	},
+	{
+		id: "workspace-2",
+		name: "Marketing Refresh",
+		repoId: "3",
+		repoFullName: "supersetai/marketing",
+		branch: "feature/auth",
+	},
+	{
+		id: "workspace-3",
+		name: "API Stripe",
+		repoId: "4",
+		repoFullName: "supersetai/api-server",
+		branch: "dev",
+	},
+	{
+		id: "workspace-4",
+		name: "Docs Polish",
+		repoId: "2",
+		repoFullName: "supersetai/docs",
+		branch: "staging",
+	},
+	{
+		id: "workspace-5",
+		name: "Mobile CI",
+		repoId: "5",
+		repoFullName: "supersetai/mobile-app",
+		branch: "main",
+	},
+];
+
 export const mockSessions: MockSession[] = [
 	{
 		id: "session-1",
+		workspaceId: "workspace-1",
 		title: "Add user authentication flow",
 		status: "completed",
 		repoName: "supersetai/superset",
@@ -72,6 +120,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-2",
+		workspaceId: "workspace-2",
 		title: "Fix navbar responsive layout",
 		status: "running",
 		repoName: "supersetai/marketing",
@@ -83,6 +132,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-3",
+		workspaceId: "workspace-3",
 		title: "Implement webhook handlers for Stripe",
 		status: "completed",
 		repoName: "supersetai/api-server",
@@ -94,6 +144,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-4",
+		workspaceId: "workspace-4",
 		title: "Update README with new API docs",
 		status: "failed",
 		repoName: "supersetai/docs",
@@ -105,6 +156,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-5",
+		workspaceId: "workspace-3",
 		title: "Refactor database connection pooling",
 		status: "completed",
 		repoName: "supersetai/api-server",
@@ -116,6 +168,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-6",
+		workspaceId: "workspace-1",
 		title: "Add dark mode toggle component",
 		status: "completed",
 		repoName: "supersetai/superset",
@@ -127,6 +180,7 @@ export const mockSessions: MockSession[] = [
 	},
 	{
 		id: "session-7",
+		workspaceId: "workspace-5",
 		title: "Setup CI/CD pipeline with GitHub Actions",
 		status: "completed",
 		repoName: "supersetai/mobile-app",
@@ -137,6 +191,40 @@ export const mockSessions: MockSession[] = [
 		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 35),
 	},
 ];
+
+export function getDefaultMockWorkspace(): MockWorkspace {
+	return mockWorkspaces[0] as MockWorkspace;
+}
+
+export function getMockWorkspaceById(
+	workspaceId: string,
+): MockWorkspace | undefined {
+	return mockWorkspaces.find((workspace) => workspace.id === workspaceId);
+}
+
+export function getMockSessionsByWorkspaceId(
+	workspaceId: string,
+): MockSession[] {
+	return mockSessions.filter((session) => session.workspaceId === workspaceId);
+}
+
+export function getLatestMockSessionByWorkspaceId(
+	workspaceId: string,
+): MockSession | undefined {
+	const sessions = getMockSessionsByWorkspaceId(workspaceId);
+
+	return sessions.reduce<MockSession | undefined>((latest, session) => {
+		if (!latest || session.createdAt > latest.createdAt) {
+			return session;
+		}
+
+		return latest;
+	}, undefined);
+}
+
+export function getMockSessionById(sessionId: string): MockSession | undefined {
+	return mockSessions.find((session) => session.id === sessionId);
+}
 
 export const mockMessages: MockMessage[] = [
 	{
@@ -190,3 +278,11 @@ export const mockDiffFiles: MockDiffFile[] = [
 			'export default function SignUpPage() {\n  return (\n    <div className="flex min-h-screen items-center justify-center">\n      <SignUpForm />\n    </div>\n  );\n}',
 	},
 ];
+
+export function getMockMessagesForSession(_sessionId: string): MockMessage[] {
+	return mockMessages;
+}
+
+export function getMockDiffFilesForSession(_sessionId: string): MockDiffFile[] {
+	return mockDiffFiles;
+}

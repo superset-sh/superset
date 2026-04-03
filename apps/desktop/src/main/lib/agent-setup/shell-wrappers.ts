@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SUPERSET_MANAGED_BINARIES } from "./agent-wrappers-common";
+import {
+	SUPERSET_MANAGED_BINARIES,
+	type SupersetManagedBinary,
+} from "./desktop-agent-capabilities";
 import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 
 export interface ShellWrapperPaths {
@@ -85,7 +88,7 @@ function buildManagedCommandPrelude(shellName: string, binDir: string): string {
 	if (shellName === "fish") {
 		const escapedBinDir = escapeFishDoubleQuoted(binDir);
 		return SUPERSET_MANAGED_BINARIES.map(
-			(name) =>
+			(name: SupersetManagedBinary) =>
 				`functions -q ${name}; and functions -e ${name}
 function ${name}
   set -l _superset_wrapper "${escapedBinDir}/${name}"
@@ -99,7 +102,7 @@ end`,
 	}
 
 	return SUPERSET_MANAGED_BINARIES.map(
-		(name) =>
+		(name: SupersetManagedBinary) =>
 			`unalias ${name} 2>/dev/null || true
 ${name}() {
   _superset_wrapper=${quoteShellLiteral(`${binDir}/${name}`)}

@@ -6,7 +6,6 @@ import {
 } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import {
 	clearPaneWorkspaceRunLaunchPending,
 	createWorkspaceRun,
@@ -33,9 +32,6 @@ export function useWorkspaceRunCommand({
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setPaneWorkspaceRun = useTabsStore((s) => s.setPaneWorkspaceRun);
-	const getRestartCallback = useTerminalCallbacksStore(
-		(s) => s.getRestartCallback,
-	);
 
 	// Derive run state from pane metadata (single source of truth)
 	const runPane = useTabsStore((s) => {
@@ -152,25 +148,12 @@ export function useWorkspaceRunCommand({
 				);
 
 				try {
-					const restartCallback = getRestartCallback(runPane.id);
-					if (restartCallback) {
-						await restartCallback({ command });
-					} else {
-						await launchWorkspaceRunInPane({
-							paneId: runPane.id,
-							tabId: runPane.tabId,
-							command,
-							cwd: initialCwd,
-						});
-						setPaneWorkspaceRun(
-							runPane.id,
-							createWorkspaceRun({
-								workspaceId,
-								state: "running",
-								command,
-							}),
-						);
-					}
+					await launchWorkspaceRunInPane({
+						paneId: runPane.id,
+						tabId: runPane.tabId,
+						command,
+						cwd: initialCwd,
+					});
 				} catch (error) {
 					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 					toast.error("Failed to run workspace command", {
@@ -221,7 +204,6 @@ export function useWorkspaceRunCommand({
 		}
 	}, [
 		addTab,
-		getRestartCallback,
 		isRunning,
 		launchWorkspaceRunInPane,
 		runPane,
