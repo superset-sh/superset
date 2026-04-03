@@ -91,13 +91,11 @@ export function ChangesView({
 	const worktreePath = workspace?.worktreePath;
 	const projectId = workspace?.projectId;
 	const activeTab = useChangesStore((s) => s.activeTab);
-	const isReviewTabActive = isActive && activeTab === "review";
 	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy(
 		"changes-sidebar",
 		{
 			hasWorkspaceId: !!workspaceId,
 			isActive,
-			isReviewTabActive,
 		},
 	);
 
@@ -262,7 +260,6 @@ export function ChangesView({
 		hasWorkspaceId: !!workspaceId,
 		hasActivePullRequest: !!activePullRequest,
 		isActive,
-		isReviewTabActive,
 	});
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingRefreshRef = useRef<PendingChangesRefresh>({
