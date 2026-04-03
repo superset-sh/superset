@@ -5,8 +5,11 @@ import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
-import { useWorkspaceWsUrl } from "../../../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
-import type { PaneViewerData, TerminalPaneData } from "../../../../types";
+import type {
+	PaneViewerData,
+	TerminalPaneData,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
