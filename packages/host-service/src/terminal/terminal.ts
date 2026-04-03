@@ -246,52 +246,70 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({ terminalId: result.terminalId, status: "active" });
 	});
 
-	// WebSocket attach endpoint — session must already exist (created via POST above)
+	// WebSocket endpoint — auto-creates session on first connect, reattaches on reconnect
 	app.get(
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
-			const terminalId = c.req.param("terminalId");
+			const terminalId = c.req.param("terminalId") ?? "";
+			const workspaceId = c.req.query("workspaceId") ?? null;
 
 			return {
 				onOpen: (_event, ws) => {
 					if (!terminalId) {
-						sendMessage(ws, {
-							type: "error",
-							message: "Missing terminalId",
-						});
 						ws.close(1011, "Missing terminalId");
 						return;
 					}
 
 					const existing = sessions.get(terminalId);
-					if (!existing) {
-						sendMessage(ws, {
-							type: "error",
-							message:
-								"No session found for terminalId — create via POST /terminal/sessions first",
-						});
-						ws.close(1011, "No session found");
+					if (existing) {
+						if (existing.socket && existing.socket !== ws) {
+							existing.socket.close(4000, "Displaced by new connection");
+						}
+						existing.socket = ws;
+
+						db.update(terminalSessions)
+							.set({ lastAttachedAt: Date.now() })
+							.where(eq(terminalSessions.id, terminalId))
+							.run();
+
+						replayBuffer(existing, ws);
+						if (existing.exited) {
+							sendMessage(ws, {
+								type: "exit",
+								exitCode: existing.exitCode,
+								signal: existing.exitSignal,
+							});
+						}
 						return;
 					}
 
-					if (existing.socket && existing.socket !== ws) {
-						existing.socket.close(4000, "Displaced by new connection");
+					if (!workspaceId) {
+						sendMessage(ws, {
+							type: "error",
+							message: "Missing workspaceId for new terminal session",
+						});
+						ws.close(1011, "Missing workspaceId");
+						return;
 					}
-					existing.socket = ws;
+
+					const result = createTerminalSessionInternal({
+						terminalId,
+						workspaceId,
+						db,
+					});
+
+					if ("error" in result) {
+						sendMessage(ws, { type: "error", message: result.error });
+						ws.close(1011, result.error);
+						return;
+					}
+
+					result.socket = ws;
 
 					db.update(terminalSessions)
 						.set({ lastAttachedAt: Date.now() })
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
-
-					replayBuffer(existing, ws);
-					if (existing.exited) {
-						sendMessage(ws, {
-							type: "exit",
-							exitCode: existing.exitCode,
-							signal: existing.exitSignal,
-						});
-					}
 				},
 
 				onMessage: (event, ws) => {
