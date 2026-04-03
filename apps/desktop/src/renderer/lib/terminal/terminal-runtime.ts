@@ -1,7 +1,9 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
+import { loadAddons } from "./terminal-addons";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -21,7 +23,13 @@ export interface TerminalRuntime {
 	/** Fallback grid size used when the host is not visible. */
 	lastCols: number;
 	lastRows: number;
+	/** Cleanup function for deferred addon loading + GPU renderer. */
+	_disposeAddons: (() => void) | null;
 }
+
+// ---------------------------------------------------------------------------
+// Terminal + addon creation
+// ---------------------------------------------------------------------------
 
 function createTerminal(
 	cols: number,
@@ -41,11 +49,21 @@ function createTerminal(
 		fontFamily: appearance.fontFamily,
 		fontSize: appearance.fontSize,
 		theme: appearance.theme,
+		allowProposedApi: true,
+		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
+		macOptionIsMeta: false,
+		cursorStyle: "block",
+		cursorInactiveStyle: "outline",
+		scrollbar: { showScrollbar: false },
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
 	return { terminal, fitAddon, serializeAddon };
 }
+
+// ---------------------------------------------------------------------------
+// Buffer / dimension persistence
+// ---------------------------------------------------------------------------
 
 function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
 	try {
@@ -98,6 +116,10 @@ function clearPersistedDimensions(terminalId: string) {
 	} catch {}
 }
 
+// ---------------------------------------------------------------------------
+// Container helpers
+// ---------------------------------------------------------------------------
+
 function hostIsVisible(container: HTMLDivElement | null): boolean {
 	if (!container) return false;
 	return container.clientWidth > 0 && container.clientHeight > 0;
@@ -109,6 +131,10 @@ function measureAndResize(runtime: TerminalRuntime) {
 	runtime.lastCols = runtime.terminal.cols;
 	runtime.lastRows = runtime.terminal.rows;
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export function createRuntime(
 	terminalId: string,
@@ -130,6 +156,8 @@ export function createRuntime(
 	terminal.open(wrapper);
 	restoreBuffer(terminalId, terminal);
 
+	const disposeAddons = loadAddons(terminal);
+
 	return {
 		terminalId,
 		terminal,
@@ -140,6 +168,7 @@ export function createRuntime(
 		resizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
+		_disposeAddons: disposeAddons,
 	};
 }
 
@@ -199,6 +228,8 @@ export function updateRuntimeAppearance(
 }
 
 export function disposeRuntime(runtime: TerminalRuntime) {
+	runtime._disposeAddons?.();
+	runtime._disposeAddons = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
