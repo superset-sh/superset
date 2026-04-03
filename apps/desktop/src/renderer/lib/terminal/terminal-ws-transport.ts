@@ -1,4 +1,4 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as GhosttyTerminal } from "ghostty-web";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -17,7 +17,7 @@ export interface TerminalTransport {
 	stateListeners: Set<() => void>;
 }
 
-function setConnectionState(
+export function setConnectionState(
 	transport: TerminalTransport,
 	state: ConnectionState,
 ) {
@@ -39,7 +39,7 @@ export function createTransport(): TerminalTransport {
 
 export function connect(
 	transport: TerminalTransport,
-	terminal: XTerm,
+	terminal: GhosttyTerminal,
 	wsUrl: string,
 ) {
 	// Idempotent: skip if already connected/connecting to the same endpoint.

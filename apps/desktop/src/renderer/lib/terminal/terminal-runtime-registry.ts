@@ -12,63 +12,112 @@ import {
 	disposeTransport,
 	sendDispose,
 	sendResize,
+	setConnectionState,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 
 interface RegistryEntry {
-	runtime: TerminalRuntime;
+	runtime: TerminalRuntime | null;
+	runtimePromise: Promise<TerminalRuntime>;
 	transport: TerminalTransport;
+	attachVersion: number;
+	disposed: boolean;
 }
 
 class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 
 	private getOrCreate(paneId: string): RegistryEntry {
-		let entry = this.entries.get(paneId);
+		const entry = this.entries.get(paneId);
 		if (entry) return entry;
 
-		entry = {
-			runtime: createRuntime(paneId),
+		const nextEntry: RegistryEntry = {
+			runtime: null,
+			runtimePromise: Promise.resolve(null as never),
 			transport: createTransport(),
+			attachVersion: 0,
+			disposed: false,
 		};
+		nextEntry.runtimePromise = createRuntime(paneId).then((runtime) => {
+			nextEntry.runtime = runtime;
+			return runtime;
+		});
 
-		this.entries.set(paneId, entry);
-		return entry;
+		this.entries.set(paneId, nextEntry);
+		return nextEntry;
 	}
 
 	attach(paneId: string, container: HTMLDivElement, wsUrl: string) {
-		const { runtime, transport } = this.getOrCreate(paneId);
+		const entry = this.getOrCreate(paneId);
+		const attachVersion = ++entry.attachVersion;
 
-		attachToContainer(runtime, container, () => {
-			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
-		});
+		void entry.runtimePromise
+			.then((runtime) => {
+				if (entry.disposed) {
+					disposeRuntime(runtime);
+					return;
+				}
+				if (this.entries.get(paneId) !== entry) return;
+				if (attachVersion !== entry.attachVersion) return;
 
-		connect(transport, runtime.terminal, wsUrl);
+				attachToContainer(runtime, container, () => {
+					sendResize(
+						entry.transport,
+						runtime.terminal.cols,
+						runtime.terminal.rows,
+					);
+				});
+
+				connect(entry.transport, runtime.terminal, wsUrl);
+			})
+			.catch((error) => {
+				console.error(
+					"[terminal-v2] Failed to initialize Ghostty runtime:",
+					error,
+				);
+				if (this.entries.get(paneId) !== entry) return;
+				setConnectionState(entry.transport, "closed");
+			});
 	}
 
 	/**
 	 * Detach the terminal from its DOM container.
 	 *
 	 * This only removes the DOM attachment (wrapper, resize observer, focus).
-	 * The WebSocket and xterm data flow are intentionally kept alive so output
-	 * written while the pane is hidden is not lost.  Disposal of the transport
+	 * The WebSocket and terminal data flow are intentionally kept alive so output
+	 * written while the pane is hidden is not lost. Disposal of the transport
 	 * happens exclusively through {@link dispose} when the paneId is removed
 	 * from persisted pane state.
 	 */
 	detach(paneId: string) {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
+		entry.attachVersion += 1;
 
-		detachFromContainer(entry.runtime);
+		if (entry.runtime) {
+			detachFromContainer(entry.runtime);
+		}
 	}
 
 	dispose(paneId: string) {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
+		entry.disposed = true;
+		entry.attachVersion += 1;
 
 		sendDispose(entry.transport);
 		disposeTransport(entry.transport);
-		disposeRuntime(entry.runtime);
+		if (entry.runtime) {
+			disposeRuntime(entry.runtime);
+		} else {
+			void entry.runtimePromise
+				.then((runtime) => {
+					disposeRuntime(runtime);
+				})
+				.catch(() => {
+					// Initialization failed; nothing else to clean up.
+				});
+		}
 
 		this.entries.delete(paneId);
 	}

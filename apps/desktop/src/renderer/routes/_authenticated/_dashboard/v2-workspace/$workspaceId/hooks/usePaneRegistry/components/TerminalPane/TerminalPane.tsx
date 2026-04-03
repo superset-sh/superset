@@ -1,4 +1,3 @@
-import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import {
 	type ConnectionState,

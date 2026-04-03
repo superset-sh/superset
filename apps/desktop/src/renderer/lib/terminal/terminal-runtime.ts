@@ -1,18 +1,14 @@
-import { FitAddon } from "@xterm/addon-fit";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal as XTerm } from "@xterm/xterm";
+import { FitAddon, Terminal as GhosttyTerminal } from "ghostty-web";
+import { getGhosttyInstance } from "./ghostty-vt";
 
-const SERIALIZE_SCROLLBACK = 1000;
-const STORAGE_KEY_PREFIX = "terminal-buffer:";
 const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 
 export interface TerminalRuntime {
 	paneId: string;
-	terminal: XTerm;
+	terminal: GhosttyTerminal;
 	fitAddon: FitAddon;
-	serializeAddon: SerializeAddon;
 	/** Reparented between containers across attach/detach cycles — not recreated. */
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
@@ -22,51 +18,31 @@ export interface TerminalRuntime {
 	lastRows: number;
 }
 
-function createTerminal(
+async function createTerminal(
 	cols: number,
 	rows: number,
-): {
-	terminal: XTerm;
+): Promise<{
+	terminal: GhosttyTerminal;
 	fitAddon: FitAddon;
-	serializeAddon: SerializeAddon;
-} {
+}> {
+	const ghostty = await getGhosttyInstance();
 	const fitAddon = new FitAddon();
-	const serializeAddon = new SerializeAddon();
-	const terminal = new XTerm({
+	const terminal = new GhosttyTerminal({
+		ghostty,
 		cols,
 		rows,
 		cursorBlink: true,
 		fontFamily:
 			'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
 		fontSize: 12,
+		scrollback: 10_000,
 		theme: {
 			background: "#14100f",
 			foreground: "#f5efe9",
 		},
 	});
 	terminal.loadAddon(fitAddon);
-	terminal.loadAddon(serializeAddon);
-	return { terminal, fitAddon, serializeAddon };
-}
-
-function persistBuffer(paneId: string, serializeAddon: SerializeAddon) {
-	try {
-		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
-		localStorage.setItem(`${STORAGE_KEY_PREFIX}${paneId}`, data);
-	} catch {}
-}
-
-function restoreBuffer(paneId: string, terminal: XTerm) {
-	try {
-		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${paneId}`);
-		if (data) terminal.write(data);
-	} catch {}
-}
-
-function clearPersistedBuffer(paneId: string) {
-	try {
-		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${paneId}`);
-	} catch {}
+	return { terminal, fitAddon };
 }
 
 function persistDimensions(paneId: string, cols: number, rows: number) {
@@ -112,24 +88,23 @@ function measureAndResize(runtime: TerminalRuntime) {
 	runtime.lastRows = runtime.terminal.rows;
 }
 
-export function createRuntime(paneId: string): TerminalRuntime {
+export async function createRuntime(paneId: string): Promise<TerminalRuntime> {
 	const savedDims = loadSavedDimensions(paneId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
 	const rows = savedDims?.rows ?? DEFAULT_ROWS;
 
-	const { terminal, fitAddon, serializeAddon } = createTerminal(cols, rows);
+	const { terminal, fitAddon } = await createTerminal(cols, rows);
 
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
+	wrapper.style.overflow = "hidden";
 	terminal.open(wrapper);
-	restoreBuffer(paneId, terminal);
 
 	return {
 		paneId,
 		terminal,
 		fitAddon,
-		serializeAddon,
 		wrapper,
 		container: null,
 		resizeObserver: null,
@@ -147,10 +122,6 @@ export function attachToContainer(
 	container.appendChild(runtime.wrapper);
 	measureAndResize(runtime);
 
-	// Force a full repaint — the renderer may have skipped paint frames while
-	// the wrapper was detached from the DOM and receiving background data.
-	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
-
 	runtime.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
 		measureAndResize(runtime);
@@ -163,7 +134,6 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.paneId, runtime.serializeAddon);
 	persistDimensions(runtime.paneId, runtime.lastCols, runtime.lastRows);
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
@@ -176,6 +146,5 @@ export function disposeRuntime(runtime: TerminalRuntime) {
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	clearPersistedBuffer(runtime.paneId);
 	clearPersistedDimensions(runtime.paneId);
 }
