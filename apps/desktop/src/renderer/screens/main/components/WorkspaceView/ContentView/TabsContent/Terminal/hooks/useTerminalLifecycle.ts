@@ -556,20 +556,6 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
 
-								requestAnimationFrame(() => {
-									if (!isAttachActive()) return;
-									const prevCols = xterm.cols;
-									const prevRows = xterm.rows;
-									fitAddon.fit();
-									if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-										resizeRef.current({
-											paneId,
-											cols: xterm.cols,
-											rows: xterm.rows,
-										});
-									}
-								});
-
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
 									setIsRestoredMode(true);
@@ -600,6 +586,20 @@ export function useTerminalLifecycle({
 									didFirstRenderRef.current = true;
 									return;
 								}
+
+								requestAnimationFrame(() => {
+									if (!isAttachActive()) return;
+									const prevCols = xterm.cols;
+									const prevRows = xterm.rows;
+									fitAddon.fit();
+									if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+										resizeRef.current({
+											paneId,
+											cols: xterm.cols,
+											rows: xterm.rows,
+										});
+									}
+								});
 
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
