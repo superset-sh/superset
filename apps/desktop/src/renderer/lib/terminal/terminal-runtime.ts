@@ -16,11 +16,9 @@ export interface TerminalRuntime {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
-	/** Survives attach/detach cycles — reparented, never recreated. */
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
-	/** Grid size snapshot for off-screen terminals. */
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
@@ -164,7 +162,7 @@ export function attachToContainer(
 	container.appendChild(runtime.wrapper);
 	measureAndResize(runtime);
 
-	// Repaint — renderer may have skipped frames while detached.
+	// Renderer may have skipped frames while the wrapper was detached.
 	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
 
 	runtime.resizeObserver?.disconnect();

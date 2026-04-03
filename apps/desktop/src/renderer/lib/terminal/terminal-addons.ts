@@ -10,8 +10,8 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
 
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
- * function. WebGL is deferred to the next rAF so xterm's post-open()
- * setTimeout completes with the DOM renderer first.
+ * function. WebGL is deferred to rAF to avoid racing with xterm's post-open
+ * viewport sync.
  */
 export function loadAddons(terminal: XTerm): () => void {
 	let disposed = false;

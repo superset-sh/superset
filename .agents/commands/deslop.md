@@ -17,9 +17,13 @@ Apply clean code philosophy to the code, with special emphasis on comments:
 
 **Keep or add comments only when:**
 - Explaining *why* a non-obvious decision was made
+- Documenting design intent or architectural decisions (e.g., "shared by X and Y paths", "deferred because Z")
 - Documenting external constraints or business rules not evident from code
 - Warning about non-intuitive behavior or edge cases
+- Noting the origin of a pattern when it aids future maintenance (e.g., "VS Code pattern")
 - Required for public API documentation (JSDoc, docstrings)
+
+**When in doubt, keep the comment.** Removing a comment that captured intent is destructive — the reasoning is lost and cannot be recovered from code alone. Only remove a comment when you are confident the code *fully* communicates the same information.
 
 ## Code Simplification
 

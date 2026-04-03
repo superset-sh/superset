@@ -13,7 +13,33 @@ export interface TerminalAppearance {
 	fontSize: number;
 }
 
-export const DEFAULT_TERMINAL_FONT_FAMILY = [
+const GENERIC_FONT_FAMILIES = new Set([
+	"serif",
+	"sans-serif",
+	"monospace",
+	"cursive",
+	"fantasy",
+	"system-ui",
+	"ui-serif",
+	"ui-sans-serif",
+	"ui-monospace",
+	"ui-rounded",
+	"emoji",
+	"math",
+	"fangsong",
+]);
+
+function serializeFontFamilyList(families: string[]): string {
+	return families
+		.map((family) =>
+			GENERIC_FONT_FAMILIES.has(family)
+				? family
+				: `"${family.replaceAll('"', '\\"')}"`,
+		)
+		.join(", ");
+}
+
+export const DEFAULT_TERMINAL_FONT_FAMILIES = [
 	"JetBrains Mono",
 	"JetBrainsMono Nerd Font",
 	"MesloLGM Nerd Font",
@@ -25,9 +51,13 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	"CaskaydiaCove Nerd Font",
 	"Menlo",
 	"Monaco",
-	'"Courier New"',
+	"Courier New",
 	"monospace",
-].join(", ");
+] as const;
+
+export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
+	...DEFAULT_TERMINAL_FONT_FAMILIES,
+]);
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 

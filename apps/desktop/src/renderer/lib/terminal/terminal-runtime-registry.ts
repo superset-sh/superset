@@ -48,6 +48,10 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
+		} else {
+			// Runtime already exists (reattach) — apply current appearance so
+			// the first fit uses up-to-date font metrics.
+			updateRuntimeAppearance(entry.runtime, appearance);
 		}
 
 		const { runtime, transport } = entry;
@@ -69,7 +73,18 @@ class TerminalRuntimeRegistryImpl {
 	updateAppearance(terminalId: string, appearance: TerminalAppearance) {
 		const entry = this.entries.get(terminalId);
 		if (!entry?.runtime) return;
+
+		const prevCols = entry.runtime.terminal.cols;
+		const prevRows = entry.runtime.terminal.rows;
+
 		updateRuntimeAppearance(entry.runtime, appearance);
+
+		// Font changes can alter the grid size — forward to the PTY so the
+		// backend shell and TUIs see the correct cols/rows.
+		const { cols, rows } = entry.runtime.terminal;
+		if (cols !== prevCols || rows !== prevRows) {
+			sendResize(entry.transport, cols, rows);
+		}
 	}
 
 	dispose(terminalId: string) {
