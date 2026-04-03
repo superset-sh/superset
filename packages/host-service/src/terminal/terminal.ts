@@ -130,9 +130,12 @@ function createTerminalSessionInternal({
 	const shell = resolveShell();
 	const cwd = workspace.worktreePath;
 
+	// When launchMode is "command", run the command via shell -c
+	const spawnArgs = launchMode === "command" && command ? ["-c", command] : [];
+
 	let pty: IPty;
 	try {
-		pty = spawn(shell, [], {
+		pty = spawn(shell, spawnArgs, {
 			name: "xterm-256color",
 			cwd,
 			cols: 120,

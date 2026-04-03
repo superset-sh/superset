@@ -6,9 +6,9 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 
 /**
  * Cross-workspace moves temporarily remove a terminalId then re-add it.
- * Wait before detaching the renderer runtime.
+ * Wait before disposing the renderer runtime.
  */
-const DETACH_DELAY_MS = 500;
+const DISPOSE_DELAY_MS = 500;
 
 interface TerminalPaneData {
 	terminalId: string;
@@ -36,16 +36,16 @@ function extractTerminalIds(rows: { paneLayout: unknown }[]): Set<string> {
 /**
  * Manages renderer-side terminal runtime lifecycle.
  *
- * When a terminal pane is removed from workspace state, the renderer runtime
- * (xterm + DOM wrapper) is detached but NOT disposed. The terminal session
- * in host-service stays alive independently — pane removal does not kill
- * the terminal. Only an explicit dispose action (e.g. user kills terminal)
- * should call terminalRuntimeRegistry.dispose().
+ * terminalId is the session key (independent of paneId). When no pane
+ * references a given terminalId, the renderer runtime AND the host-service
+ * session are disposed. The identity split means terminals *could* outlive
+ * panes (e.g. for a future "reattach" UI), but the default policy for this
+ * cut is dispose-on-unreferenced to avoid leaking hidden sessions.
  */
 export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
 	const prevTerminalIdsRef = useRef<Set<string>>(new Set());
-	const pendingDetaches = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+	const pendingDisposals = useRef<Map<string, ReturnType<typeof setTimeout>>>(
 		new Map(),
 	);
 
@@ -61,22 +61,22 @@ export function useGlobalTerminalLifecycle() {
 		const currentTerminalIds = extractTerminalIds(allWorkspaceRows);
 		const prevTerminalIds = prevTerminalIdsRef.current;
 
-		// Cancel pending detach for terminals that reappeared (cross-workspace move)
+		// Cancel pending dispose for terminals that reappeared (cross-workspace move)
 		for (const terminalId of currentTerminalIds) {
-			const timer = pendingDetaches.current.get(terminalId);
+			const timer = pendingDisposals.current.get(terminalId);
 			if (timer) {
 				clearTimeout(timer);
-				pendingDetaches.current.delete(terminalId);
+				pendingDisposals.current.delete(terminalId);
 			}
 		}
 
-		// Schedule detach (not dispose) for terminals whose pane was removed
+		// Schedule dispose for terminals whose last pane reference was removed
 		for (const terminalId of prevTerminalIds) {
 			if (currentTerminalIds.has(terminalId)) continue;
-			if (pendingDetaches.current.has(terminalId)) continue;
+			if (pendingDisposals.current.has(terminalId)) continue;
 
 			const timer = setTimeout(() => {
-				pendingDetaches.current.delete(terminalId);
+				pendingDisposals.current.delete(terminalId);
 
 				const freshRows = Array.from(
 					collections.v2WorkspaceLocalState.state.values(),
@@ -84,14 +84,13 @@ export function useGlobalTerminalLifecycle() {
 				const freshIds = extractTerminalIds(freshRows);
 
 				if (!freshIds.has(terminalId)) {
-					// Detach renderer runtime only — terminal session stays alive
-					// in host-service. The xterm instance and DOM wrapper are kept
-					// so a future pane can reattach without losing scrollback.
-					terminalRuntimeRegistry.detach(terminalId);
+					// Dispose renderer runtime (xterm + transport) and send dispose
+					// to host-service which kills the PTY and marks the DB row.
+					terminalRuntimeRegistry.dispose(terminalId);
 				}
-			}, DETACH_DELAY_MS);
+			}, DISPOSE_DELAY_MS);
 
-			pendingDetaches.current.set(terminalId, timer);
+			pendingDisposals.current.set(terminalId, timer);
 		}
 
 		prevTerminalIdsRef.current = currentTerminalIds;
@@ -99,10 +98,10 @@ export function useGlobalTerminalLifecycle() {
 
 	useEffect(() => {
 		return () => {
-			for (const timer of pendingDetaches.current.values()) {
+			for (const timer of pendingDisposals.current.values()) {
 				clearTimeout(timer);
 			}
-			pendingDetaches.current.clear();
+			pendingDisposals.current.clear();
 		};
 	}, []);
 }
