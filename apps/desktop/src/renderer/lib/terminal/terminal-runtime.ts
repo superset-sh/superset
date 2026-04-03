@@ -1,6 +1,7 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
+import type { TerminalAppearance } from "./appearance";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -25,6 +26,7 @@ export interface TerminalRuntime {
 function createTerminal(
 	cols: number,
 	rows: number,
+	appearance: TerminalAppearance,
 ): {
 	terminal: XTerm;
 	fitAddon: FitAddon;
@@ -36,13 +38,9 @@ function createTerminal(
 		cols,
 		rows,
 		cursorBlink: true,
-		fontFamily:
-			'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-		fontSize: 12,
-		theme: {
-			background: "#14100f",
-			foreground: "#f5efe9",
-		},
+		fontFamily: appearance.fontFamily,
+		fontSize: appearance.fontSize,
+		theme: appearance.theme,
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
@@ -112,12 +110,19 @@ function measureAndResize(runtime: TerminalRuntime) {
 	runtime.lastRows = runtime.terminal.rows;
 }
 
-export function createRuntime(terminalId: string): TerminalRuntime {
+export function createRuntime(
+	terminalId: string,
+	appearance: TerminalAppearance,
+): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
 	const rows = savedDims?.rows ?? DEFAULT_ROWS;
 
-	const { terminal, fitAddon, serializeAddon } = createTerminal(cols, rows);
+	const { terminal, fitAddon, serializeAddon } = createTerminal(
+		cols,
+		rows,
+		appearance,
+	);
 
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
@@ -169,6 +174,28 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
 	runtime.container = null;
+}
+
+export function updateRuntimeAppearance(
+	runtime: TerminalRuntime,
+	appearance: TerminalAppearance,
+) {
+	const { terminal, fitAddon } = runtime;
+	terminal.options.theme = appearance.theme;
+
+	const fontChanged =
+		terminal.options.fontFamily !== appearance.fontFamily ||
+		terminal.options.fontSize !== appearance.fontSize;
+
+	if (fontChanged) {
+		terminal.options.fontFamily = appearance.fontFamily;
+		terminal.options.fontSize = appearance.fontSize;
+		if (hostIsVisible(runtime.container)) {
+			fitAddon.fit();
+			runtime.lastCols = terminal.cols;
+			runtime.lastRows = terminal.rows;
+		}
+	}
 }
 
 export function disposeRuntime(runtime: TerminalRuntime) {
