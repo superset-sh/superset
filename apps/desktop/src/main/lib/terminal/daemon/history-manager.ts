@@ -145,6 +145,27 @@ export class HistoryManager {
 		this.pendingHistoryData.delete(paneId);
 	}
 
+	/**
+	 * Close a history writer for an abnormal termination (daemon crash/disconnect).
+	 * Unlike closeHistoryWriter, this does NOT set metadata.endedAt so the next
+	 * attach can detect the unclean shutdown and offer cold restore.
+	 */
+	closeHistoryWriterAsCrash(paneId: string): void {
+		const writer = this.historyWriters.get(paneId);
+		if (writer) {
+			writer.closeAsCrash().catch((error) => {
+				console.error(
+					`[HistoryManager] Failed to crash-close history writer for ${paneId}:`,
+					error,
+				);
+			});
+			this.historyWriters.delete(paneId);
+		}
+
+		this.historyInitializing.delete(paneId);
+		this.pendingHistoryData.delete(paneId);
+	}
+
 	async cleanupHistory(paneId: string, workspaceId: string): Promise<void> {
 		this.closeHistoryWriter(paneId);
 

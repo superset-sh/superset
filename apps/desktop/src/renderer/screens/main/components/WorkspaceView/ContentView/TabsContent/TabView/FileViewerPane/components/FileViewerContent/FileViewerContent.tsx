@@ -67,6 +67,29 @@ interface PdfError {
 
 type PdfResult = PdfData | PdfError | undefined;
 
+interface PDFViewport {
+	width: number;
+	height: number;
+}
+
+interface PDFPage {
+	getViewport(params: { scale: number }): PDFViewport;
+	render(params: {
+		canvasContext: CanvasRenderingContext2D;
+		viewport: PDFViewport;
+	}): { promise: Promise<void> };
+}
+
+interface PDFDocument {
+	numPages: number;
+	getPage(pageNumber: number): Promise<PDFPage>;
+}
+
+interface PDFJSLib {
+	getDocument(params: { data: Uint8Array }): { promise: Promise<PDFDocument> };
+	GlobalWorkerOptions: { workerSrc: string };
+}
+
 interface DiffData {
 	original: string;
 	modified: string;
@@ -418,9 +441,9 @@ export function FileViewerContent({
 
 		return (
 			<div
+				key={filePath}
 				ref={(el) => {
-					if (!el || el.dataset.pdfRendered) return;
-					el.dataset.pdfRendered = "1";
+					if (!el) return;
 					(async () => {
 						try {
 							if (!(window as Record<string, unknown>).pdfjsLib) {
@@ -433,7 +456,7 @@ export function FileViewerContent({
 									import.meta.url,
 								).href;
 							}
-							const pdfjsLib = (window as Record<string, unknown>).pdfjsLib as typeof import("pdfjs-dist");
+							const pdfjsLib = (window as Record<string, unknown>).pdfjsLib as PDFJSLib;
 							const base64 = pdfData.dataUrl.split(",")[1];
 							const binary = atob(base64);
 							const bytes = new Uint8Array(binary.length);

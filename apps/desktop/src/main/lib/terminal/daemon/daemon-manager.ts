@@ -102,7 +102,9 @@ export class DaemonTerminalManager extends EventEmitter {
 			session.isAlive = false;
 			session.pid = null;
 			portManager.unregisterDaemonSession(paneId);
-			this.historyManager.closeHistoryWriter(paneId);
+			// Use crash close: do not set endedAt so cold restore can detect
+			// the unclean shutdown on the next attach.
+			this.historyManager.closeHistoryWriterAsCrash(paneId);
 			if (wasAlive) {
 				this.emit(`disconnect:${paneId}`, reason);
 			}

@@ -76,6 +76,11 @@ export function useFileContent({
 	);
 
 	const rawFileData = useMemo(() => {
+		// PDFs are binary; synthesize the expected binary error for the raw tab
+		// without attempting to read the file as text.
+		if (isPdf && viewMode === "raw") {
+			return { ok: false as const, reason: "binary" as const };
+		}
 		if (rawQuery.error) {
 			const msg = rawQuery.error.message;
 			if (msg.includes("EISDIR")) {
@@ -98,7 +103,7 @@ export function useFileContent({
 			truncated: false,
 			byteLength: result.byteLength,
 		};
-	}, [rawQuery.data, rawQuery.error]);
+	}, [isPdf, viewMode, rawQuery.data, rawQuery.error]);
 
 	const imageReadEnabled =
 		!isRemote &&
@@ -158,6 +163,10 @@ export function useFileContent({
 	);
 
 	const pdfData = useMemo(() => {
+		// Remote PDFs: treat the URL as a directly embeddable data source
+		if (isRemote && viewMode === "rendered" && isPdf && filePath) {
+			return { ok: true as const, dataUrl: filePath, byteLength: 0 };
+		}
 		if (pdfQuery.error) {
 			const msg = pdfQuery.error.message;
 			if (msg.includes("EISDIR")) {
@@ -175,7 +184,7 @@ export function useFileContent({
 			dataUrl: `data:application/pdf;base64,${result.content}`,
 			byteLength: result.byteLength,
 		};
-	}, [pdfQuery.data, pdfQuery.error]);
+	}, [isRemote, viewMode, isPdf, filePath, pdfQuery.data, pdfQuery.error]);
 
 	const isUnstagedDiff = viewMode === "diff" && diffCategory === "unstaged";
 	const isGitDiff =
