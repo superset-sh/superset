@@ -65,7 +65,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	return (
-		<div className="flex h-full w-full flex-col">
+		<div className="flex h-full w-full flex-col p-2">
 			<div
 				ref={containerRef}
 				className="min-h-0 flex-1 overflow-hidden"
