@@ -9,7 +9,7 @@ const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 
 export interface TerminalRuntime {
-	paneId: string;
+	terminalId: string;
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
@@ -49,40 +49,40 @@ function createTerminal(
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(paneId: string, serializeAddon: SerializeAddon) {
+function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
-		localStorage.setItem(`${STORAGE_KEY_PREFIX}${paneId}`, data);
+		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
 	} catch {}
 }
 
-function restoreBuffer(paneId: string, terminal: XTerm) {
+function restoreBuffer(terminalId: string, terminal: XTerm) {
 	try {
-		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${paneId}`);
+		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 		if (data) terminal.write(data);
 	} catch {}
 }
 
-function clearPersistedBuffer(paneId: string) {
+function clearPersistedBuffer(terminalId: string) {
 	try {
-		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${paneId}`);
+		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
-function persistDimensions(paneId: string, cols: number, rows: number) {
+function persistDimensions(terminalId: string, cols: number, rows: number) {
 	try {
 		localStorage.setItem(
-			`${DIMS_KEY_PREFIX}${paneId}`,
+			`${DIMS_KEY_PREFIX}${terminalId}`,
 			JSON.stringify({ cols, rows }),
 		);
 	} catch {}
 }
 
 function loadSavedDimensions(
-	paneId: string,
+	terminalId: string,
 ): { cols: number; rows: number } | null {
 	try {
-		const raw = localStorage.getItem(`${DIMS_KEY_PREFIX}${paneId}`);
+		const raw = localStorage.getItem(`${DIMS_KEY_PREFIX}${terminalId}`);
 		if (!raw) return null;
 		const parsed = JSON.parse(raw);
 		if (typeof parsed.cols === "number" && typeof parsed.rows === "number") {
@@ -94,9 +94,9 @@ function loadSavedDimensions(
 	}
 }
 
-function clearPersistedDimensions(paneId: string) {
+function clearPersistedDimensions(terminalId: string) {
 	try {
-		localStorage.removeItem(`${DIMS_KEY_PREFIX}${paneId}`);
+		localStorage.removeItem(`${DIMS_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
@@ -112,8 +112,8 @@ function measureAndResize(runtime: TerminalRuntime) {
 	runtime.lastRows = runtime.terminal.rows;
 }
 
-export function createRuntime(paneId: string): TerminalRuntime {
-	const savedDims = loadSavedDimensions(paneId);
+export function createRuntime(terminalId: string): TerminalRuntime {
+	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
 	const rows = savedDims?.rows ?? DEFAULT_ROWS;
 
@@ -123,10 +123,10 @@ export function createRuntime(paneId: string): TerminalRuntime {
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
 	terminal.open(wrapper);
-	restoreBuffer(paneId, terminal);
+	restoreBuffer(terminalId, terminal);
 
 	return {
-		paneId,
+		terminalId,
 		terminal,
 		fitAddon,
 		serializeAddon,
@@ -163,8 +163,8 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.paneId, runtime.serializeAddon);
-	persistDimensions(runtime.paneId, runtime.lastCols, runtime.lastRows);
+	persistBuffer(runtime.terminalId, runtime.serializeAddon);
+	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
@@ -176,6 +176,6 @@ export function disposeRuntime(runtime: TerminalRuntime) {
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	clearPersistedBuffer(runtime.paneId);
-	clearPersistedDimensions(runtime.paneId);
+	clearPersistedBuffer(runtime.terminalId);
+	clearPersistedDimensions(runtime.terminalId);
 }

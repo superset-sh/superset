@@ -7,17 +7,14 @@ import {
 } from "@superset/ui/resizable";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useMemo, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	CommandPalette,
-	useCommandPalette,
-} from "renderer/screens/main/components/CommandPalette";
+import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useStore } from "zustand";
@@ -66,7 +63,6 @@ function V2WorkspacePage() {
 		<WorkspaceContent
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
-			workspaceName={workspace.name}
 		/>
 	);
 }
@@ -74,13 +70,10 @@ function V2WorkspacePage() {
 function WorkspaceContent({
 	projectId,
 	workspaceId,
-	workspaceName,
 }: {
 	projectId: string;
 	workspaceId: string;
-	workspaceName: string;
 }) {
-	const navigate = useNavigate();
 	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
 		projectId,
 		workspaceId,
@@ -150,14 +143,12 @@ function WorkspaceContent({
 				{
 					kind: "terminal",
 					data: {
-						sessionKey: `${workspaceId}:${crypto.randomUUID()}`,
-						cwd: `/workspace/${workspaceName}`,
-						launchMode: "workspace-shell",
+						terminalId: crypto.randomUUID(),
 					} as TerminalPaneData,
 				},
 			],
 		});
-	}, [store, workspaceId, workspaceName]);
+	}, [store]);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({
@@ -186,25 +177,8 @@ function WorkspaceContent({
 		});
 	}, [store]);
 
-	const commandPalette = useCommandPalette({
-		workspaceId,
-		navigate,
-		onSelectFile: ({ close, filePath, targetWorkspaceId }) => {
-			close();
-			if (targetWorkspaceId !== workspaceId) {
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: targetWorkspaceId },
-				});
-				return;
-			}
-			openFilePane(filePath);
-		},
-	});
-
-	const handleQuickOpen = useCallback(() => {
-		commandPalette.toggle();
-	}, [commandPalette]);
+	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 
 	const defaultPaneActions = useMemo<PaneActionConfig<PaneViewerData>[]>(
 		() => [
@@ -225,9 +199,7 @@ function WorkspaceContent({
 					ctx.actions.split(position, {
 						kind: "terminal",
 						data: {
-							sessionKey: `${workspaceId}:${crypto.randomUUID()}`,
-							cwd: `/workspace/${workspaceName}`,
-							launchMode: "workspace-shell",
+							terminalId: crypto.randomUUID(),
 						} as TerminalPaneData,
 					});
 				},
@@ -241,7 +213,7 @@ function WorkspaceContent({
 				onClick: (ctx) => ctx.actions.close(),
 			},
 		],
-		[workspaceId, workspaceName],
+		[],
 	);
 
 	const collections = useCollections();
@@ -349,22 +321,11 @@ function WorkspaceContent({
 				)}
 			</ResizablePanelGroup>
 			<CommandPalette
-				excludePattern={commandPalette.excludePattern}
-				filtersOpen={commandPalette.filtersOpen}
-				includePattern={commandPalette.includePattern}
-				isLoading={commandPalette.isFetching}
-				onExcludePatternChange={commandPalette.setExcludePattern}
-				onFiltersOpenChange={commandPalette.setFiltersOpen}
-				onIncludePatternChange={commandPalette.setIncludePattern}
-				onOpenChange={commandPalette.handleOpenChange}
-				onQueryChange={commandPalette.setQuery}
-				onScopeChange={commandPalette.setScope}
-				onSelectFile={commandPalette.selectFile}
-				open={commandPalette.open}
-				query={commandPalette.query}
-				scope={commandPalette.scope}
-				searchResults={commandPalette.searchResults}
-				workspaceName={workspaceName}
+				workspaceId={workspaceId}
+				open={quickOpenOpen}
+				onOpenChange={setQuickOpenOpen}
+				onSelectFile={openFilePane}
+				variant="v2"
 			/>
 		</>
 	);

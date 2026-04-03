@@ -1,10 +1,9 @@
 import type { ExternalApp } from "@superset/local-db";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -12,10 +11,7 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { NotFound } from "renderer/routes/not-found";
-import {
-	CommandPalette,
-	useCommandPalette,
-} from "renderer/screens/main/components/CommandPalette";
+import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
@@ -412,13 +408,8 @@ function WorkspacePage() {
 		[pr?.url, createOrOpenPR],
 	);
 
-	const commandPalette = useCommandPalette({
-		workspaceId,
-		navigate,
-	});
-	const handleQuickOpen = useCallback(() => {
-		commandPalette.toggle();
-	}, [commandPalette.toggle]);
+	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
 
 	// Toggle changes sidebar (⌘L)
@@ -638,29 +629,11 @@ function WorkspacePage() {
 				)}
 			</div>
 			<CommandPalette
-				open={commandPalette.open}
-				onOpenChange={commandPalette.handleOpenChange}
-				query={commandPalette.query}
-				onQueryChange={commandPalette.setQuery}
-				filtersOpen={commandPalette.filtersOpen}
-				onFiltersOpenChange={commandPalette.setFiltersOpen}
-				includePattern={commandPalette.includePattern}
-				onIncludePatternChange={commandPalette.setIncludePattern}
-				excludePattern={commandPalette.excludePattern}
-				onExcludePatternChange={commandPalette.setExcludePattern}
-				isLoading={commandPalette.isFetching}
-				searchResults={commandPalette.searchResults}
-				onSelectFile={commandPalette.selectFile}
-				scope={commandPalette.scope}
-				onScopeChange={commandPalette.setScope}
-				workspaceName={
-					workspace
-						? getWorkspaceDisplayName(
-								workspace.name,
-								workspace.type,
-								workspace.project?.name,
-							)
-						: undefined
+				workspaceId={workspaceId}
+				open={quickOpenOpen}
+				onOpenChange={setQuickOpenOpen}
+				onSelectFile={(filePath) =>
+					useTabsStore.getState().addFileViewerPane(workspaceId, { filePath })
 				}
 			/>
 			<UnsavedChangesDialog

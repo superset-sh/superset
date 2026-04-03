@@ -38,9 +38,6 @@ const integrations: IntegrationCardProps[] = [
 ];
 
 export default function IntegrationsPage() {
-	const hasGithubAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
-	);
 	const hasSlackAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
 	);
@@ -48,11 +45,10 @@ export default function IntegrationsPage() {
 	const visibleIntegrations = useMemo(
 		() =>
 			integrations.filter((i) => {
-				if (i.id === "github") return hasGithubAccess;
 				if (i.id === "slack") return hasSlackAccess;
 				return true;
 			}),
-		[hasGithubAccess, hasSlackAccess],
+		[hasSlackAccess],
 	);
 
 	return (

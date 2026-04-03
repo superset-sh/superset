@@ -240,7 +240,7 @@
 		"@vitejs/plugin-react": "^5.0.1",
 		"code-inspector-plugin": "^1.2.2",
 		"cross-env": "^10.0.0",
-		"electron": "40.2.1",
+		"electron": "40.8.5",
 		"electron-builder": "^26.4.0",
 		"electron-vite": "^4.0.0",
 		"material-icon-theme": "^5.32.0",
