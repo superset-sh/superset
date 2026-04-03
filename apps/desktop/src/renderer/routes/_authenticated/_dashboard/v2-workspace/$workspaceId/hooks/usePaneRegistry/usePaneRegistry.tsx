@@ -9,7 +9,6 @@ import type {
 	DevtoolsPaneData,
 	FilePaneData,
 	PaneViewerData,
-	TerminalPaneData,
 } from "../../types";
 import { ChatPane } from "./components/ChatPane";
 import { FilePane } from "./components/FilePane";
@@ -83,15 +82,9 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-4" />,
 				getTitle: () => "Terminal",
-				renderPane: (ctx: RendererContext<PaneViewerData>) => {
-					const data = ctx.pane.data as TerminalPaneData;
-					return (
-						<TerminalPane
-							terminalId={data.terminalId}
-							workspaceId={workspaceId}
-						/>
-					);
-				},
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<TerminalPane ctx={ctx} workspaceId={workspaceId} />
+				),
 			},
 			browser: {
 				getIcon: () => <Globe className="size-4" />,
