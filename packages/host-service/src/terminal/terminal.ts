@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
-import { workspaces } from "../db/schema";
+import { terminalSessions, workspaces } from "../db/schema";
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -27,7 +27,7 @@ type TerminalServerMessage =
 const MAX_BUFFER_BYTES = 64 * 1024;
 
 interface TerminalSession {
-	paneId: string;
+	terminalId: string;
 	pty: IPty;
 	socket: {
 		send: (data: string) => void;
@@ -80,8 +80,8 @@ function replayBuffer(
 	sendMessage(socket, { type: "replay", data: combined });
 }
 
-function disposeSession(paneId: string) {
-	const session = sessions.get(paneId);
+function disposeSession(terminalId: string, db: HostDb) {
+	const session = sessions.get(terminalId);
 	if (!session) return;
 
 	if (!session.exited) {
@@ -91,7 +91,123 @@ function disposeSession(paneId: string) {
 			// PTY may already be dead
 		}
 	}
-	sessions.delete(paneId);
+	sessions.delete(terminalId);
+
+	db.update(terminalSessions)
+		.set({ status: "disposed", endedAt: Date.now() })
+		.where(eq(terminalSessions.id, terminalId))
+		.run();
+}
+
+interface CreateTerminalSessionOptions {
+	terminalId: string;
+	workspaceId: string;
+	db: HostDb;
+	launchMode?: string;
+	command?: string;
+}
+
+function createTerminalSessionInternal({
+	terminalId,
+	workspaceId,
+	db,
+	launchMode = "workspace-shell",
+	command,
+}: CreateTerminalSessionOptions): TerminalSession | { error: string } {
+	const existing = sessions.get(terminalId);
+	if (existing) {
+		return existing;
+	}
+
+	const workspace = db.query.workspaces
+		.findFirst({ where: eq(workspaces.id, workspaceId) })
+		.sync();
+
+	if (!workspace || !existsSync(workspace.worktreePath)) {
+		return { error: "Workspace worktree not found" };
+	}
+
+	const shell = resolveShell();
+	const cwd = workspace.worktreePath;
+
+	let pty: IPty;
+	try {
+		pty = spawn(shell, [], {
+			name: "xterm-256color",
+			cwd,
+			cols: 120,
+			rows: 32,
+			env: {
+				...process.env,
+				TERM: "xterm-256color",
+				COLORTERM: "truecolor",
+				HOME: process.env.HOME || homedir(),
+				PWD: cwd,
+			},
+		});
+	} catch (error) {
+		return {
+			error:
+				error instanceof Error ? error.message : "Failed to start terminal",
+		};
+	}
+
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			workspaceId,
+			cwd,
+			shell,
+			launchMode,
+			command: command ?? null,
+			status: "active",
+		})
+		.onConflictDoUpdate({
+			target: terminalSessions.id,
+			set: { status: "active", endedAt: null },
+		})
+		.run();
+
+	const session: TerminalSession = {
+		terminalId,
+		pty,
+		socket: null,
+		buffer: [],
+		bufferBytes: 0,
+		exited: false,
+		exitCode: 0,
+		exitSignal: 0,
+	};
+	sessions.set(terminalId, session);
+
+	pty.onData((data) => {
+		if (session.socket?.readyState === 1) {
+			sendMessage(session.socket, { type: "data", data });
+		} else {
+			bufferOutput(session, data);
+		}
+	});
+
+	pty.onExit(({ exitCode, signal }) => {
+		session.exited = true;
+		session.exitCode = exitCode ?? 0;
+		session.exitSignal = signal ?? 0;
+
+		db.update(terminalSessions)
+			.set({ status: "exited", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
+
+		if (session.socket?.readyState === 1) {
+			sendMessage(session.socket, {
+				type: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+			});
+		}
+	});
+
+	return session;
 }
 
 export function registerWorkspaceTerminalRoute({
@@ -99,126 +215,84 @@ export function registerWorkspaceTerminalRoute({
 	db,
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
+	// Explicit terminal session creation endpoint
+	app.post("/terminal/sessions", async (c) => {
+		const body = await c.req.json<{
+			terminalId: string;
+			workspaceId: string;
+			launchMode?: string;
+			command?: string;
+		}>();
+
+		if (!body.terminalId || !body.workspaceId) {
+			return c.json({ error: "Missing terminalId or workspaceId" }, 400);
+		}
+
+		const result = createTerminalSessionInternal({
+			terminalId: body.terminalId,
+			workspaceId: body.workspaceId,
+			db,
+			launchMode: body.launchMode,
+			command: body.command,
+		});
+
+		if ("error" in result) {
+			return c.json({ error: result.error }, 500);
+		}
+
+		return c.json({ terminalId: result.terminalId, status: "active" });
+	});
+
+	// WebSocket attach endpoint — session must already exist (created via POST above)
 	app.get(
-		"/terminal/:paneId",
+		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
-			const paneId = c.req.param("paneId");
-			const workspaceId = c.req.query("workspaceId") ?? null;
+			const terminalId = c.req.param("terminalId");
 
 			return {
 				onOpen: (_event, ws) => {
-					if (!paneId) {
+					if (!terminalId) {
 						sendMessage(ws, {
 							type: "error",
-							message: "Missing paneId",
+							message: "Missing terminalId",
 						});
-						ws.close(1011, "Missing paneId");
+						ws.close(1011, "Missing terminalId");
 						return;
 					}
 
-					const existing = sessions.get(paneId);
-					if (existing) {
-						if (existing.socket && existing.socket !== ws) {
-							existing.socket.close(4000, "Displaced by new connection");
-						}
-						existing.socket = ws;
-						replayBuffer(existing, ws);
-						if (existing.exited) {
-							sendMessage(ws, {
-								type: "exit",
-								exitCode: existing.exitCode,
-								signal: existing.exitSignal,
-							});
-						}
-						return;
-					}
-
-					if (!workspaceId) {
-						sendMessage(ws, {
-							type: "error",
-							message: "Missing workspaceId for new terminal session",
-						});
-						ws.close(1011, "Missing workspaceId");
-						return;
-					}
-
-					const workspace = db.query.workspaces
-						.findFirst({ where: eq(workspaces.id, workspaceId) })
-						.sync();
-
-					if (!workspace || !existsSync(workspace.worktreePath)) {
-						sendMessage(ws, {
-							type: "error",
-							message: "Workspace worktree not found",
-						});
-						ws.close(1011, "Workspace worktree not found");
-						return;
-					}
-
-					let pty: IPty;
-					try {
-						pty = spawn(resolveShell(), [], {
-							name: "xterm-256color",
-							cwd: workspace.worktreePath,
-							cols: 120,
-							rows: 32,
-							env: {
-								...process.env,
-								TERM: "xterm-256color",
-								COLORTERM: "truecolor",
-								HOME: process.env.HOME || homedir(),
-								PWD: workspace.worktreePath,
-							},
-						});
-					} catch (error) {
+					const existing = sessions.get(terminalId);
+					if (!existing) {
 						sendMessage(ws, {
 							type: "error",
 							message:
-								error instanceof Error
-									? error.message
-									: "Failed to start terminal",
+								"No session found for terminalId — create via POST /terminal/sessions first",
 						});
-						ws.close(1011, "Failed to start terminal");
+						ws.close(1011, "No session found");
 						return;
 					}
 
-					const session: TerminalSession = {
-						paneId,
-						pty,
-						socket: ws,
-						buffer: [],
-						bufferBytes: 0,
-						exited: false,
-						exitCode: 0,
-						exitSignal: 0,
-					};
-					sessions.set(paneId, session);
+					if (existing.socket && existing.socket !== ws) {
+						existing.socket.close(4000, "Displaced by new connection");
+					}
+					existing.socket = ws;
 
-					pty.onData((data) => {
-						if (session.socket?.readyState === 1) {
-							sendMessage(session.socket, { type: "data", data });
-						} else {
-							bufferOutput(session, data);
-						}
-					});
+					db.update(terminalSessions)
+						.set({ lastAttachedAt: Date.now() })
+						.where(eq(terminalSessions.id, terminalId))
+						.run();
 
-					pty.onExit(({ exitCode, signal }) => {
-						session.exited = true;
-						session.exitCode = exitCode ?? 0;
-						session.exitSignal = signal ?? 0;
-
-						if (session.socket?.readyState === 1) {
-							sendMessage(session.socket, {
-								type: "exit",
-								exitCode: session.exitCode,
-								signal: session.exitSignal,
-							});
-						}
-					});
+					replayBuffer(existing, ws);
+					if (existing.exited) {
+						sendMessage(ws, {
+							type: "exit",
+							exitCode: existing.exitCode,
+							signal: existing.exitSignal,
+						});
+					}
 				},
 
 				onMessage: (event, ws) => {
-					const session = sessions.get(paneId ?? "");
+					const session = sessions.get(terminalId ?? "");
 					if (!session || session.socket !== ws) return;
 
 					let message: TerminalClientMessage;
@@ -235,7 +309,7 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					if (message.type === "dispose") {
-						disposeSession(paneId ?? "");
+						disposeSession(terminalId ?? "", db);
 						return;
 					}
 
@@ -254,14 +328,14 @@ export function registerWorkspaceTerminalRoute({
 				},
 
 				onClose: (_event, ws) => {
-					const session = sessions.get(paneId ?? "");
+					const session = sessions.get(terminalId ?? "");
 					if (session?.socket === ws) {
 						session.socket = null;
 					}
 				},
 
 				onError: (_event, ws) => {
-					const session = sessions.get(paneId ?? "");
+					const session = sessions.get(terminalId ?? "");
 					if (session?.socket === ws) {
 						session.socket = null;
 					}

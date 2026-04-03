@@ -1,46 +1,81 @@
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
-import { useWorkspaceWsUrl } from "../../../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import {
+	useWorkspaceHostUrl,
+	useWorkspaceWsUrl,
+} from "../../../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 
 interface TerminalPaneProps {
-	paneId: string;
+	terminalId: string;
 	workspaceId: string;
 }
 
-function subscribeToState(paneId: string) {
+function subscribeToState(terminalId: string) {
 	return (callback: () => void) =>
-		terminalRuntimeRegistry.onStateChange(paneId, callback);
+		terminalRuntimeRegistry.onStateChange(terminalId, callback);
 }
 
-function getConnectionState(paneId: string): ConnectionState {
-	return terminalRuntimeRegistry.getConnectionState(paneId);
+function getConnectionState(terminalId: string): ConnectionState {
+	return terminalRuntimeRegistry.getConnectionState(terminalId);
 }
 
-export function TerminalPane({ paneId, workspaceId }: TerminalPaneProps) {
+export function TerminalPane({ terminalId, workspaceId }: TerminalPaneProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	const hostUrl = useWorkspaceHostUrl();
+	const [sessionReady, setSessionReady] = useState(false);
+	const createAttemptedRef = useRef(false);
 
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${paneId}`, {
+	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
 		workspaceId,
 	});
 
-	const connectionState = useSyncExternalStore(subscribeToState(paneId), () =>
-		getConnectionState(paneId),
+	const connectionState = useSyncExternalStore(
+		subscribeToState(terminalId),
+		() => getConnectionState(terminalId),
 	);
 
+	// Create the terminal session in host-service before attaching via websocket
 	useEffect(() => {
+		if (createAttemptedRef.current) return;
+		createAttemptedRef.current = true;
+
+		fetch(new URL("/terminal/sessions", hostUrl).href, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				terminalId,
+				workspaceId,
+			}),
+		})
+			.then((res) => {
+				if (!res.ok) {
+					return res.json().then((body) => {
+						console.error("[TerminalPane] session create failed:", body);
+					});
+				}
+				setSessionReady(true);
+			})
+			.catch((err) => {
+				console.error("[TerminalPane] session create error:", err);
+			});
+	}, [terminalId, workspaceId, hostUrl]);
+
+	// Attach to the terminal runtime only after the session has been created
+	useEffect(() => {
+		if (!sessionReady) return;
 		const container = containerRef.current;
 		if (!container) return;
 
-		terminalRuntimeRegistry.attach(paneId, container, websocketUrl);
+		terminalRuntimeRegistry.attach(terminalId, container, websocketUrl);
 
 		return () => {
-			terminalRuntimeRegistry.detach(paneId);
+			terminalRuntimeRegistry.detach(terminalId);
 		};
-	}, [paneId, websocketUrl]);
+	}, [terminalId, websocketUrl, sessionReady]);
 
 	return (
 		<div className="flex h-full w-full flex-col">

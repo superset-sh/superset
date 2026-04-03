@@ -150,14 +150,12 @@ function WorkspaceContent({
 				{
 					kind: "terminal",
 					data: {
-						sessionKey: `${workspaceId}:${crypto.randomUUID()}`,
-						cwd: `/workspace/${workspaceName}`,
-						launchMode: "workspace-shell",
+						terminalId: crypto.randomUUID(),
 					} as TerminalPaneData,
 				},
 			],
 		});
-	}, [store, workspaceId, workspaceName]);
+	}, [store]);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({
@@ -225,9 +223,7 @@ function WorkspaceContent({
 					ctx.actions.split(position, {
 						kind: "terminal",
 						data: {
-							sessionKey: `${workspaceId}:${crypto.randomUUID()}`,
-							cwd: `/workspace/${workspaceName}`,
-							launchMode: "workspace-shell",
+							terminalId: crypto.randomUUID(),
 						} as TerminalPaneData,
 					});
 				},
@@ -241,7 +237,7 @@ function WorkspaceContent({
 				onClick: (ctx) => ctx.actions.close(),
 			},
 		],
-		[workspaceId, workspaceName],
+		[],
 	);
 
 	const collections = useCollections();
