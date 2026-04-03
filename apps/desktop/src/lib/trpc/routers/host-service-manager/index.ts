@@ -11,7 +11,12 @@ import { loadToken } from "../auth/utils/auth-functions";
 export const createHostServiceManagerRouter = () => {
 	return router({
 		getLocalPort: publicProcedure
-			.input(z.object({ organizationId: z.string() }))
+			.input(
+				z.object({
+					organizationId: z.string(),
+					organizationName: z.string().optional(),
+				}),
+			)
 			.query(async ({ input }) => {
 				const manager = getHostServiceManager();
 				const { token } = await loadToken();
@@ -19,6 +24,12 @@ export const createHostServiceManagerRouter = () => {
 					manager.setAuthToken(token);
 				}
 				manager.setCloudApiUrl(env.NEXT_PUBLIC_API_URL);
+				if (input.organizationName) {
+					manager.setOrganizationName(
+						input.organizationId,
+						input.organizationName,
+					);
+				}
 				const port = await manager.start(input.organizationId);
 				const secret = manager.getSecret(input.organizationId);
 				return { port, secret };

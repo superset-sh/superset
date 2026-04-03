@@ -21,6 +21,7 @@ export type CompatibilityResult =
 
 export interface HostServiceInfo {
 	organizationId: string;
+	organizationName: string | null;
 	status: HostServiceStatus;
 	port: number | null;
 	serviceVersion: string | null;
@@ -87,6 +88,7 @@ export class HostServiceManager extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, PendingStart>();
 	private scheduledRestarts = new Map<string, ReturnType<typeof setTimeout>>();
+	private organizationNames = new Map<string, string>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private authToken: string | null = null;
 	private cloudApiUrl: string | null = null;
@@ -97,6 +99,14 @@ export class HostServiceManager extends EventEmitter {
 
 	setCloudApiUrl(url: string | null): void {
 		this.cloudApiUrl = url;
+	}
+
+	setOrganizationName(organizationId: string, name: string): void {
+		this.organizationNames.set(organizationId, name);
+	}
+
+	getOrganizationName(organizationId: string): string | null {
+		return this.organizationNames.get(organizationId) ?? null;
 	}
 
 	async start(organizationId: string): Promise<number> {
@@ -170,10 +180,12 @@ export class HostServiceManager extends EventEmitter {
 	}
 
 	getServiceInfo(organizationId: string): HostServiceInfo {
+		const organizationName = this.getOrganizationName(organizationId);
 		const instance = this.instances.get(organizationId);
 		if (!instance) {
 			return {
 				organizationId,
+				organizationName,
 				status: this.pendingStarts.has(organizationId) ? "starting" : "stopped",
 				port: null,
 				serviceVersion: null,
@@ -188,6 +200,7 @@ export class HostServiceManager extends EventEmitter {
 
 		return {
 			organizationId,
+			organizationName,
 			status: instance.status,
 			port: instance.port,
 			serviceVersion: instance.serviceVersion,

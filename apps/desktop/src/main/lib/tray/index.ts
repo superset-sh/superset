@@ -124,15 +124,27 @@ function buildHostServiceSubmenu(): MenuItemConstructorOptions[] {
 	if (orgIds.length === 0) {
 		menuItems.push({ label: "No active services", enabled: false });
 	} else {
+		let isFirst = true;
 		for (const orgId of orgIds) {
+			if (!isFirst) {
+				menuItems.push({ type: "separator" });
+			}
+			isFirst = false;
+
 			const info = manager.getServiceInfo(orgId);
+			const orgName = info.organizationName ?? orgId.slice(0, 8);
 			const statusLabel = formatStatusLabel(info.status);
 			const versionSuffix = info.serviceVersion
 				? ` (v${info.serviceVersion})`
 				: "";
 
 			menuItems.push({
-				label: `${statusLabel}${versionSuffix}`,
+				label: orgName,
+				enabled: false,
+			});
+
+			menuItems.push({
+				label: `  ${statusLabel}${versionSuffix}`,
 				enabled: false,
 			});
 

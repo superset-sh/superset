@@ -52,8 +52,12 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 	// Start a host service for every org
 	useEffect(() => {
 		for (const orgId of orgIds) {
+			const org = organizations?.find((o) => o.id === orgId);
 			utils.hostServiceManager.getLocalPort
-				.ensureData({ organizationId: orgId })
+				.ensureData({
+					organizationId: orgId,
+					organizationName: org?.name ?? undefined,
+				})
 				.catch((err) => {
 					console.error(
 						`[host-service] Failed to start for org ${orgId}:`,
@@ -61,12 +65,18 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 					);
 				});
 		}
-	}, [orgIds, utils]);
+	}, [orgIds, organizations, utils]);
 
 	// Query the active org's port reactively
+	const activeOrgName = organizations?.find(
+		(o) => o.id === activeOrganizationId,
+	)?.name;
 	const { data: activePortData } =
 		electronTrpc.hostServiceManager.getLocalPort.useQuery(
-			{ organizationId: activeOrganizationId as string },
+			{
+				organizationId: activeOrganizationId as string,
+				organizationName: activeOrgName ?? undefined,
+			},
 			{ enabled: !!activeOrganizationId },
 		);
 
