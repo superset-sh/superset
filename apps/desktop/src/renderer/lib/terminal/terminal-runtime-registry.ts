@@ -1,9 +1,11 @@
+import type { TerminalAppearance } from "./appearance";
 import {
 	attachToContainer,
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
 	type TerminalRuntime,
+	updateRuntimeAppearance,
 } from "./terminal-runtime";
 import {
 	type ConnectionState,
@@ -16,19 +18,19 @@ import {
 } from "./terminal-ws-transport";
 
 interface RegistryEntry {
-	runtime: TerminalRuntime;
+	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
 }
 
 class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 
-	private getOrCreate(terminalId: string): RegistryEntry {
+	private getOrCreateEntry(terminalId: string): RegistryEntry {
 		let entry = this.entries.get(terminalId);
 		if (entry) return entry;
 
 		entry = {
-			runtime: createRuntime(terminalId),
+			runtime: null,
 			transport: createTransport(),
 		};
 
@@ -36,8 +38,23 @@ class TerminalRuntimeRegistryImpl {
 		return entry;
 	}
 
-	attach(terminalId: string, container: HTMLDivElement, wsUrl: string) {
-		const { runtime, transport } = this.getOrCreate(terminalId);
+	attach(
+		terminalId: string,
+		container: HTMLDivElement,
+		wsUrl: string,
+		appearance: TerminalAppearance,
+	) {
+		const entry = this.getOrCreateEntry(terminalId);
+
+		if (!entry.runtime) {
+			entry.runtime = createRuntime(terminalId, appearance);
+		} else {
+			// Runtime already exists (reattach) — apply current appearance so
+			// the first fit uses up-to-date font metrics.
+			updateRuntimeAppearance(entry.runtime, appearance);
+		}
+
+		const { runtime, transport } = entry;
 
 		attachToContainer(runtime, container, () => {
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
@@ -48,9 +65,26 @@ class TerminalRuntimeRegistryImpl {
 
 	detach(terminalId: string) {
 		const entry = this.entries.get(terminalId);
-		if (!entry) return;
+		if (!entry?.runtime) return;
 
 		detachFromContainer(entry.runtime);
+	}
+
+	updateAppearance(terminalId: string, appearance: TerminalAppearance) {
+		const entry = this.entries.get(terminalId);
+		if (!entry?.runtime) return;
+
+		const prevCols = entry.runtime.terminal.cols;
+		const prevRows = entry.runtime.terminal.rows;
+
+		updateRuntimeAppearance(entry.runtime, appearance);
+
+		// Font changes can alter the grid size — forward to the PTY so the
+		// backend shell and TUIs see the correct cols/rows.
+		const { cols, rows } = entry.runtime.terminal;
+		if (cols !== prevCols || rows !== prevRows) {
+			sendResize(entry.transport, cols, rows);
+		}
 	}
 
 	dispose(terminalId: string) {
@@ -59,7 +93,7 @@ class TerminalRuntimeRegistryImpl {
 
 		sendDispose(entry.transport);
 		disposeTransport(entry.transport);
-		disposeRuntime(entry.runtime);
+		if (entry.runtime) disposeRuntime(entry.runtime);
 
 		this.entries.delete(terminalId);
 	}
@@ -79,10 +113,10 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	onStateChange(terminalId: string, listener: () => void): () => void {
-		const { transport } = this.getOrCreate(terminalId);
-		transport.stateListeners.add(listener);
+		const entry = this.getOrCreateEntry(terminalId);
+		entry.transport.stateListeners.add(listener);
 		return () => {
-			transport.stateListeners.delete(listener);
+			entry.transport.stateListeners.delete(listener);
 		};
 	}
 }

@@ -10,6 +10,7 @@ import type {
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
@@ -29,6 +30,10 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	const { terminalId } = ctx.pane.data as TerminalPaneData;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
+	const appearance = useTerminalAppearance();
+	const appearanceRef = useRef(appearance);
+	appearanceRef.current = appearance;
+
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
 		workspaceId,
 	});
@@ -38,22 +43,33 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		() => getConnectionState(terminalId),
 	);
 
+	// Appearance read from ref to avoid re-attach on theme/font change.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
-		terminalRuntimeRegistry.attach(terminalId, container, websocketUrl);
+		terminalRuntimeRegistry.attach(
+			terminalId,
+			container,
+			websocketUrl,
+			appearanceRef.current,
+		);
 
 		return () => {
 			terminalRuntimeRegistry.detach(terminalId);
 		};
 	}, [terminalId, websocketUrl]);
 
+	useEffect(() => {
+		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
+	}, [terminalId, appearance]);
+
 	return (
-		<div className="flex h-full w-full flex-col">
+		<div className="flex h-full w-full flex-col p-2">
 			<div
 				ref={containerRef}
-				className="min-h-0 flex-1 overflow-hidden bg-[#14100f]"
+				className="min-h-0 flex-1 overflow-hidden"
+				style={{ backgroundColor: appearance.background }}
 			/>
 			{connectionState === "closed" && (
 				<div className="flex items-center gap-2 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
