@@ -46,15 +46,6 @@ class TerminalRuntimeRegistryImpl {
 		connect(transport, runtime.terminal, wsUrl);
 	}
 
-	/**
-	 * Detach the terminal from its DOM container.
-	 *
-	 * This only removes the DOM attachment (wrapper, resize observer, focus).
-	 * The WebSocket and xterm data flow are intentionally kept alive so output
-	 * written while the pane is hidden is not lost.  Disposal of the transport
-	 * happens exclusively through {@link dispose} when the terminalId is removed
-	 * from persisted pane state.
-	 */
 	detach(terminalId: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry) return;

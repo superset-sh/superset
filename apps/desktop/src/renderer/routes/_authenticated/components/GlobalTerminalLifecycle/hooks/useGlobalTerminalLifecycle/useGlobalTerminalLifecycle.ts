@@ -4,10 +4,7 @@ import { useEffect, useRef } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
-/**
- * Cross-workspace moves temporarily remove a terminalId then re-add it.
- * Wait before disposing the renderer runtime.
- */
+/** Grace period for cross-workspace pane moves before disposing. */
 const DISPOSE_DELAY_MS = 500;
 
 interface TerminalPaneData {
@@ -33,15 +30,6 @@ function extractTerminalIds(rows: { paneLayout: unknown }[]): Set<string> {
 	return ids;
 }
 
-/**
- * Manages renderer-side terminal runtime lifecycle.
- *
- * terminalId is the session key (independent of paneId). When no pane
- * references a given terminalId, the renderer runtime AND the host-service
- * session are disposed. The identity split means terminals *could* outlive
- * panes (e.g. for a future "reattach" UI), but the default policy for this
- * cut is dispose-on-unreferenced to avoid leaking hidden sessions.
- */
 export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
 	const prevTerminalIdsRef = useRef<Set<string>>(new Set());
@@ -61,7 +49,6 @@ export function useGlobalTerminalLifecycle() {
 		const currentTerminalIds = extractTerminalIds(allWorkspaceRows);
 		const prevTerminalIds = prevTerminalIdsRef.current;
 
-		// Cancel pending dispose for terminals that reappeared (cross-workspace move)
 		for (const terminalId of currentTerminalIds) {
 			const timer = pendingDisposals.current.get(terminalId);
 			if (timer) {
@@ -70,7 +57,6 @@ export function useGlobalTerminalLifecycle() {
 			}
 		}
 
-		// Schedule dispose for terminals whose last pane reference was removed
 		for (const terminalId of prevTerminalIds) {
 			if (currentTerminalIds.has(terminalId)) continue;
 			if (pendingDisposals.current.has(terminalId)) continue;
@@ -84,8 +70,6 @@ export function useGlobalTerminalLifecycle() {
 				const freshIds = extractTerminalIds(freshRows);
 
 				if (!freshIds.has(terminalId)) {
-					// Dispose renderer runtime (xterm + transport) and send dispose
-					// to host-service which kills the PTY and marks the DB row.
 					terminalRuntimeRegistry.dispose(terminalId);
 				}
 			}, DISPOSE_DELAY_MS);

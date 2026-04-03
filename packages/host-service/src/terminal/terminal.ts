@@ -206,7 +206,6 @@ export function registerWorkspaceTerminalRoute({
 	db,
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
-	// Explicit terminal session creation endpoint
 	app.post("/terminal/sessions", async (c) => {
 		const body = await c.req.json<{
 			terminalId: string;
@@ -230,7 +229,6 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({ terminalId: result.terminalId, status: "active" });
 	});
 
-	// WebSocket endpoint — auto-creates session on first connect, reattaches on reconnect
 	app.get(
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
