@@ -556,12 +556,6 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
 
-								// After attach, the container may have finished layout
-								// at its final size while the PTY was spawned with stale
-								// dimensions (from before the container was fully laid out).
-								// Re-fit and send correct dimensions so TUI apps (e.g.
-								// Claude Code / ink) receive SIGWINCH before their initial
-								// render commits to the wrong width.
 								requestAnimationFrame(() => {
 									if (!isAttachActive()) return;
 									const prevCols = xterm.cols;
