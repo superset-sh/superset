@@ -1,10 +1,10 @@
 import type { ITheme } from "@xterm/xterm";
+import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
-	DEFAULT_THEME_ID,
 	builtInThemes,
+	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { toXtermTheme } from "renderer/stores/theme/utils";
 
 /**
  * Plain value object describing the visual appearance of a terminal instance.

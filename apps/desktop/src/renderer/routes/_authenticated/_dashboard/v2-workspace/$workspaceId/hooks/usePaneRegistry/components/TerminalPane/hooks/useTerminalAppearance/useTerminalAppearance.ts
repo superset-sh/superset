@@ -12,10 +12,12 @@ const fallbackTheme = getDefaultTerminalAppearance().theme;
 
 export function useTerminalAppearance(): TerminalAppearance {
 	const terminalTheme = useTerminalTheme();
-	const { data: fontSettings } =
-		electronTrpc.settings.getFontSettings.useQuery(undefined, {
+	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
+		undefined,
+		{
 			staleTime: 30_000,
-		});
+		},
+	);
 
 	return useMemo(() => {
 		const theme = terminalTheme ?? fallbackTheme;
