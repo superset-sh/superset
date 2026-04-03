@@ -22,7 +22,7 @@ function TabsList({
 	return (
 		<TabsPrimitive.List
 			className={cn(
-				"bg-muted flex h-9 flex-row items-center justify-center rounded-lg p-[3px]",
+				"bg-background flex h-9 flex-row items-center justify-center rounded-lg p-[3px]",
 				Platform.select({ web: "inline-flex w-fit", native: "mr-auto" }),
 				className,
 			)}
@@ -51,7 +51,7 @@ function TabsTrigger({
 					}),
 					props.disabled && "opacity-50",
 					props.value === value &&
-						"bg-background dark:border-foreground/10 dark:bg-input/30",
+						"bg-muted dark:border-foreground/10 dark:bg-input/30",
 					className,
 				)}
 				{...props}
