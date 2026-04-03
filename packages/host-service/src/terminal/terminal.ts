@@ -103,16 +103,12 @@ interface CreateTerminalSessionOptions {
 	terminalId: string;
 	workspaceId: string;
 	db: HostDb;
-	launchMode?: string;
-	command?: string;
 }
 
 function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
 	db,
-	launchMode = "workspace-shell",
-	command,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -127,15 +123,11 @@ function createTerminalSessionInternal({
 		return { error: "Workspace worktree not found" };
 	}
 
-	const shell = resolveShell();
 	const cwd = workspace.worktreePath;
-
-	// When launchMode is "command", run the command via shell -c
-	const spawnArgs = launchMode === "command" && command ? ["-c", command] : [];
 
 	let pty: IPty;
 	try {
-		pty = spawn(shell, spawnArgs, {
+		pty = spawn(resolveShell(), [], {
 			name: "xterm-256color",
 			cwd,
 			cols: 120,
@@ -158,11 +150,7 @@ function createTerminalSessionInternal({
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
-			workspaceId,
-			cwd,
-			shell,
-			launchMode,
-			command: command ?? null,
+			originWorkspaceId: workspaceId,
 			status: "active",
 		})
 		.onConflictDoUpdate({
@@ -223,8 +211,6 @@ export function registerWorkspaceTerminalRoute({
 		const body = await c.req.json<{
 			terminalId: string;
 			workspaceId: string;
-			launchMode?: string;
-			command?: string;
 		}>();
 
 		if (!body.terminalId || !body.workspaceId) {
@@ -235,8 +221,6 @@ export function registerWorkspaceTerminalRoute({
 			terminalId: body.terminalId,
 			workspaceId: body.workspaceId,
 			db,
-			launchMode: body.launchMode,
-			command: body.command,
 		});
 
 		if ("error" in result) {

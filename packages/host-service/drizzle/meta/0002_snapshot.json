@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "79567b7e-1bbb-4654-97e9-a54b29d33205",
+  "id": "a2434e05-3865-4783-9247-7bda589c8806",
   "prevId": "f5887d62-b5ad-4441-9648-d4456be25acb",
   "tables": {
     "projects": {
@@ -276,37 +276,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "cwd": {
-          "name": "cwd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "shell": {
-          "name": "shell",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "launch_mode": {
-          "name": "launch_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'workspace-shell'"
-        },
-        "command": {
-          "name": "command",
+        "origin_workspace_id": {
+          "name": "origin_workspace_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -343,10 +314,10 @@
         }
       },
       "indexes": {
-        "terminal_sessions_workspace_id_idx": {
-          "name": "terminal_sessions_workspace_id_idx",
+        "terminal_sessions_origin_workspace_id_idx": {
+          "name": "terminal_sessions_origin_workspace_id_idx",
           "columns": [
-            "workspace_id"
+            "origin_workspace_id"
           ],
           "isUnique": false
         },
@@ -359,12 +330,12 @@
         }
       },
       "foreignKeys": {
-        "terminal_sessions_workspace_id_workspaces_id_fk": {
-          "name": "terminal_sessions_workspace_id_workspaces_id_fk",
+        "terminal_sessions_origin_workspace_id_workspaces_id_fk": {
+          "name": "terminal_sessions_origin_workspace_id_workspaces_id_fk",
           "tableFrom": "terminal_sessions",
           "tableTo": "workspaces",
           "columnsFrom": [
-            "workspace_id"
+            "origin_workspace_id"
           ],
           "columnsTo": [
             "id"

@@ -10,13 +10,10 @@ export const terminalSessions = sqliteTable(
 	"terminal_sessions",
 	{
 		id: text().primaryKey(),
-		workspaceId: text("workspace_id").references(() => workspaces.id, {
-			onDelete: "set null",
-		}),
-		cwd: text().notNull(),
-		shell: text().notNull(),
-		launchMode: text("launch_mode").notNull().default("workspace-shell"),
-		command: text(),
+		originWorkspaceId: text("origin_workspace_id").references(
+			() => workspaces.id,
+			{ onDelete: "set null" },
+		),
 		status: text().notNull().default("active"),
 		createdAt: integer("created_at")
 			.notNull()
@@ -25,7 +22,9 @@ export const terminalSessions = sqliteTable(
 		endedAt: integer("ended_at"),
 	},
 	(table) => [
-		index("terminal_sessions_workspace_id_idx").on(table.workspaceId),
+		index("terminal_sessions_origin_workspace_id_idx").on(
+			table.originWorkspaceId,
+		),
 		index("terminal_sessions_status_idx").on(table.status),
 	],
 );
