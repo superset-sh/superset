@@ -3,13 +3,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import fg from "fast-glob";
-import Fuse from "fuse.js";
+import {
+	compareItemsByFuzzyScore,
+	type FuzzyScorerCache,
+	type IItemAccessor,
+	prepareQuery,
+	scoreFuzzy,
+	scoreItemFuzzy,
+} from "./fuzzy-scorer";
 import { normalizeAbsolutePath, toRelativePath } from "./paths";
 import type { FsContentMatch, FsSearchMatch } from "./types";
 
 const execFileAsync = promisify(execFile);
 
-const SEARCH_INDEX_TTL_MS = 30_000;
+// No TTL — index is kept current via patchSearchIndexesForRoot from file watcher
 const MAX_SEARCH_RESULTS = 500;
 const MAX_KEYWORD_FILE_SIZE_BYTES = 1024 * 1024;
 const BINARY_CHECK_SIZE = 8192;
@@ -32,24 +39,8 @@ interface SearchIndexEntry {
 	absolutePath: string;
 	relativePath: string;
 	name: string;
-	lowerName: string;
-	lowerRelativePath: string;
-	compactName: string;
-	compactRelativePath: string;
-}
-
-interface FileSearchIndex {
-	items: SearchIndexEntry[];
-	fuse: Fuse<SearchIndexEntry>;
-	itemsByLowerName: Map<string, SearchIndexEntry[]>;
-	itemsByCompactName: Map<string, SearchIndexEntry[]>;
-	itemsByLowerRelativePath: Map<string, SearchIndexEntry[]>;
-	itemsByCompactRelativePath: Map<string, SearchIndexEntry[]>;
-}
-
-interface FileSearchCacheEntry {
-	index: FileSearchIndex;
-	builtAt: number;
+	/** Parent directory path (pre-computed for scorer). */
+	description: string | undefined;
 }
 
 interface PathFilterMatcher {
@@ -106,29 +97,8 @@ export interface SearchContentOptions {
 	) => Promise<{ stdout: string }>;
 }
 
-const searchIndexCache = new Map<string, FileSearchCacheEntry>();
-const searchIndexBuilds = new Map<string, Promise<FileSearchIndex>>();
-const searchIndexVersions = new Map<string, number>();
-
-function createFileSearchFuse(
-	items: SearchIndexEntry[],
-): Fuse<SearchIndexEntry> {
-	return new Fuse(items, {
-		keys: [
-			{ name: "name", weight: 2 },
-			{ name: "relativePath", weight: 1 },
-			{ name: "compactName", weight: 1.8 },
-			{ name: "compactRelativePath", weight: 0.9 },
-		],
-		threshold: 0.4,
-		includeScore: true,
-		ignoreLocation: true,
-	});
-}
-
-function normalizeSearchText(input: string): string {
-	return input.toLowerCase().replace(/[\\/\s._-]+/g, "");
-}
+const searchIndexCache = new Map<string, SearchIndexEntry[]>();
+const searchIndexBuilds = new Map<string, Promise<SearchIndexEntry[]>>();
 
 function createSearchIndexEntry(
 	rootPath: string,
@@ -139,62 +109,12 @@ function createSearchIndexEntry(
 		path.join(rootPath, normalizedRelativePath),
 	);
 	const name = path.basename(normalizedRelativePath);
-	const lowerName = name.toLowerCase();
-	const lowerRelativePath = normalizedRelativePath.toLowerCase();
-
+	const dir = normalizedRelativePath.slice(0, -(name.length + 1));
 	return {
 		absolutePath,
 		relativePath: normalizedRelativePath,
 		name,
-		lowerName,
-		lowerRelativePath,
-		compactName: normalizeSearchText(name),
-		compactRelativePath: normalizeSearchText(normalizedRelativePath),
-	};
-}
-
-function addSearchIndexMapEntry(
-	index: Map<string, SearchIndexEntry[]>,
-	key: string,
-	item: SearchIndexEntry,
-): void {
-	const existing = index.get(key);
-	if (existing) {
-		existing.push(item);
-		return;
-	}
-
-	index.set(key, [item]);
-}
-
-function createFileSearchIndex(items: SearchIndexEntry[]): FileSearchIndex {
-	const itemsByLowerName = new Map<string, SearchIndexEntry[]>();
-	const itemsByCompactName = new Map<string, SearchIndexEntry[]>();
-	const itemsByLowerRelativePath = new Map<string, SearchIndexEntry[]>();
-	const itemsByCompactRelativePath = new Map<string, SearchIndexEntry[]>();
-
-	for (const item of items) {
-		addSearchIndexMapEntry(itemsByLowerName, item.lowerName, item);
-		addSearchIndexMapEntry(itemsByCompactName, item.compactName, item);
-		addSearchIndexMapEntry(
-			itemsByLowerRelativePath,
-			item.lowerRelativePath,
-			item,
-		);
-		addSearchIndexMapEntry(
-			itemsByCompactRelativePath,
-			item.compactRelativePath,
-			item,
-		);
-	}
-
-	return {
-		items,
-		fuse: createFileSearchFuse(items),
-		itemsByLowerName,
-		itemsByCompactName,
-		itemsByLowerRelativePath,
-		itemsByCompactRelativePath,
+		description: dir || undefined,
 	};
 }
 
@@ -203,16 +123,6 @@ function getSearchCacheKey({
 	includeHidden,
 }: SearchIndexKeyOptions): string {
 	return `${normalizeAbsolutePath(rootPath)}::${includeHidden ? "hidden" : "visible"}`;
-}
-
-function getSearchIndexVersion(cacheKey: string): number {
-	return searchIndexVersions.get(cacheKey) ?? 0;
-}
-
-function advanceSearchIndexVersion(cacheKey: string): number {
-	const nextVersion = getSearchIndexVersion(cacheKey) + 1;
-	searchIndexVersions.set(cacheKey, nextVersion);
-	return nextVersion;
 }
 
 function parseGlobPatterns(input: string): string[] {
@@ -342,7 +252,7 @@ function matchesPathFilters(
 async function buildSearchIndex({
 	rootPath,
 	includeHidden,
-}: SearchIndexKeyOptions): Promise<FileSearchIndex> {
+}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
 	const entries = await fg("**/*", {
 		cwd: normalizedRootPath,
@@ -354,59 +264,31 @@ async function buildSearchIndex({
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
 
-	const items: SearchIndexEntry[] = entries.map((relativePath) =>
+	return entries.map((relativePath) =>
 		createSearchIndexEntry(normalizedRootPath, relativePath),
 	);
-
-	return createFileSearchIndex(items);
 }
 
-async function getSearchIndex(
+export async function getSearchIndex(
 	options: SearchIndexKeyOptions,
-): Promise<FileSearchIndex> {
+): Promise<SearchIndexEntry[]> {
 	const cacheKey = getSearchCacheKey(options);
+
 	const cached = searchIndexCache.get(cacheKey);
-	const now = Date.now();
-	const inFlight = searchIndexBuilds.get(cacheKey);
-
-	if (cached && now - cached.builtAt < SEARCH_INDEX_TTL_MS) {
-		return cached.index;
-	}
-
-	if (cached && !inFlight) {
-		const buildVersion = getSearchIndexVersion(cacheKey);
-		const buildPromise = buildSearchIndex(options)
-			.then((index) => {
-				if (getSearchIndexVersion(cacheKey) === buildVersion) {
-					searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
-				}
-				searchIndexBuilds.delete(cacheKey);
-				return index;
-			})
-			.catch((error) => {
-				searchIndexBuilds.delete(cacheKey);
-				throw error;
-			});
-		searchIndexBuilds.set(cacheKey, buildPromise);
-		return cached.index;
-	}
-
 	if (cached) {
-		return cached.index;
+		return cached;
 	}
 
+	const inFlight = searchIndexBuilds.get(cacheKey);
 	if (inFlight) {
 		return await inFlight;
 	}
 
-	const buildVersion = getSearchIndexVersion(cacheKey);
 	const buildPromise = buildSearchIndex(options)
-		.then((index) => {
-			if (getSearchIndexVersion(cacheKey) === buildVersion) {
-				searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
-			}
+		.then((items) => {
+			searchIndexCache.set(cacheKey, items);
 			searchIndexBuilds.delete(cacheKey);
-			return index;
+			return items;
 		})
 		.catch((error) => {
 			searchIndexBuilds.delete(cacheKey);
@@ -419,78 +301,6 @@ async function getSearchIndex(
 
 function safeSearchLimit(limit: number | undefined): number {
 	return Math.max(1, Math.min(limit ?? 20, MAX_SEARCH_RESULTS));
-}
-
-function compareFileSearchMatches(
-	left: { item: SearchIndexEntry; score: number },
-	right: { item: SearchIndexEntry; score: number },
-): number {
-	if (left.score !== right.score) {
-		return right.score - left.score;
-	}
-
-	if (left.item.name.length !== right.item.name.length) {
-		return left.item.name.length - right.item.name.length;
-	}
-
-	if (left.item.relativePath.length !== right.item.relativePath.length) {
-		return left.item.relativePath.length - right.item.relativePath.length;
-	}
-
-	return left.item.relativePath.localeCompare(right.item.relativePath);
-}
-
-function collectExactFileSearchMatches({
-	index,
-	query,
-	pathMatcher,
-	limit,
-}: {
-	index: FileSearchIndex;
-	query: string;
-	pathMatcher: PathFilterMatcher;
-	limit: number;
-}): Array<{ item: SearchIndexEntry; score: number }> {
-	const lowerQuery = query.toLowerCase();
-	const normalizedPathQuery = normalizePathForGlob(lowerQuery);
-	const compactQuery = normalizeSearchText(query);
-	const matchesByPath = new Map<
-		string,
-		{ item: SearchIndexEntry; score: number }
-	>();
-
-	const addMatches = (
-		items: SearchIndexEntry[] | undefined,
-		score: number,
-	): void => {
-		const candidates = items ?? [];
-
-		for (const item of candidates) {
-			if (
-				pathMatcher.hasFilters &&
-				!matchesPathFilters(item.relativePath, pathMatcher)
-			) {
-				continue;
-			}
-
-			const existing = matchesByPath.get(item.absolutePath);
-			if (!existing || existing.score < score) {
-				matchesByPath.set(item.absolutePath, { item, score });
-			}
-		}
-	};
-
-	addMatches(index.itemsByLowerName.get(lowerQuery), 1);
-	addMatches(index.itemsByLowerRelativePath.get(normalizedPathQuery), 0.995);
-
-	if (compactQuery.length > 0) {
-		addMatches(index.itemsByCompactName.get(compactQuery), 0.99);
-		addMatches(index.itemsByCompactRelativePath.get(compactQuery), 0.985);
-	}
-
-	return Array.from(matchesByPath.values())
-		.sort(compareFileSearchMatches)
-		.slice(0, limit);
 }
 
 function isBinaryContent(buffer: Buffer): boolean {
@@ -524,20 +334,17 @@ function rankContentMatches(
 	}
 
 	const safeLimit = safeSearchLimit(limit);
-	const fuse = new Fuse(matches, {
-		keys: [
-			{ name: "preview", weight: 2 },
-			{ name: "name", weight: 1.2 },
-			{ name: "relativePath", weight: 1 },
-		],
-		threshold: 0.45,
-		includeScore: true,
-		ignoreLocation: true,
+	const queryLower = query.toLowerCase();
+
+	const scored = matches.map((match) => {
+		const target = `${match.name} ${match.preview}`;
+		const [score] = scoreFuzzy(target, query, queryLower, true);
+		return { match, score };
 	});
 
-	const ranked = fuse
-		.search(query, { limit: safeLimit })
-		.map((result) => result.item);
+	scored.sort((a, b) => b.score - a.score);
+
+	const ranked = scored.slice(0, safeLimit).map((s) => s.match);
 	return ranked.length > 0 ? ranked : matches.slice(0, safeLimit);
 }
 
@@ -720,7 +527,7 @@ async function searchContentWithScan({
 	pathMatcher,
 	limit,
 }: {
-	index: FileSearchIndex;
+	index: SearchIndexEntry[];
 	query: string;
 	pathMatcher: PathFilterMatcher;
 	limit: number;
@@ -730,7 +537,7 @@ async function searchContentWithScan({
 	const lowerNeedle = query.toLowerCase();
 	const matches: InternalContentMatch[] = [];
 
-	for (const item of index.items) {
+	for (const item of index) {
 		if (matches.length >= maxCandidates) {
 			break;
 		}
@@ -851,7 +658,6 @@ function applySearchPatchEvent({
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
 	const cacheKey = getSearchCacheKey(options);
-	advanceSearchIndexVersion(cacheKey);
 	searchIndexCache.delete(cacheKey);
 	searchIndexBuilds.delete(cacheKey);
 }
@@ -863,13 +669,6 @@ export function invalidateSearchIndexesForRoot(rootPath: string): void {
 }
 
 export function invalidateAllSearchIndexes(): void {
-	for (const cacheKey of new Set([
-		...searchIndexCache.keys(),
-		...searchIndexBuilds.keys(),
-		...searchIndexVersions.keys(),
-	])) {
-		advanceSearchIndexVersion(cacheKey);
-	}
 	searchIndexCache.clear();
 	searchIndexBuilds.clear();
 }
@@ -895,20 +694,14 @@ export function patchSearchIndexesForRoot(
 			includeHidden,
 		});
 		const cached = searchIndexCache.get(cacheKey);
-		const hasInFlightBuild = searchIndexBuilds.has(cacheKey);
-		if (!cached && !hasInFlightBuild) {
-			continue;
-		}
-
-		advanceSearchIndexVersion(cacheKey);
-		searchIndexBuilds.delete(cacheKey);
-
 		if (!cached) {
+			// No cached index — also cancel any in-flight build since it'll be stale
+			searchIndexBuilds.delete(cacheKey);
 			continue;
 		}
 
 		const nextItemsByPath = new Map(
-			cached.index.items.map((item) => [item.absolutePath, item]),
+			cached.map((item) => [item.absolutePath, item]),
 		);
 		for (const event of events) {
 			applySearchPatchEvent({
@@ -918,14 +711,26 @@ export function patchSearchIndexesForRoot(
 				event,
 			});
 		}
-		const nextItems = Array.from(nextItemsByPath.values());
 
-		searchIndexCache.set(cacheKey, {
-			index: createFileSearchIndex(nextItems),
-			builtAt: Date.now(),
-		});
+		searchIndexCache.set(cacheKey, Array.from(nextItemsByPath.values()));
 	}
 }
+
+/**
+ * IItemAccessor for SearchIndexEntry — maps to VS Code's label/description/path model.
+ * label = filename, description = parent directory path, path = full relative path.
+ */
+const searchEntryAccessor: IItemAccessor<SearchIndexEntry> = {
+	getItemLabel(item) {
+		return item.name;
+	},
+	getItemDescription(item) {
+		return item.description;
+	},
+	getItemPath(item) {
+		return item.relativePath;
+	},
+};
 
 export async function searchFiles({
 	rootPath,
@@ -935,7 +740,7 @@ export async function searchFiles({
 	excludePattern = "",
 	limit = 20,
 }: SearchFilesOptions): Promise<FsSearchMatch[]> {
-	const trimmedQuery = query.trim();
+	const trimmedQuery = normalizePathForGlob(query.trim());
 	if (!trimmedQuery) {
 		return [];
 	}
@@ -949,46 +754,46 @@ export async function searchFiles({
 		excludePattern,
 	});
 	const safeLimit = safeSearchLimit(limit);
-
-	const exactMatches = collectExactFileSearchMatches({
-		index,
-		query: trimmedQuery,
-		pathMatcher,
-		limit: safeLimit,
-	});
-	if (exactMatches.length > 0) {
-		return exactMatches.map((result) => ({
-			absolutePath: result.item.absolutePath,
-			relativePath: result.item.relativePath,
-			name: result.item.name,
-			kind: "file" as const,
-			score: result.score,
-		}));
-	}
+	const prepared = prepareQuery(trimmedQuery);
+	const cache: FuzzyScorerCache = {};
 
 	const searchableItems = pathMatcher.hasFilters
-		? index.items.filter((item) =>
-				matchesPathFilters(item.relativePath, pathMatcher),
-			)
-		: index.items;
+		? index.filter((item) => matchesPathFilters(item.relativePath, pathMatcher))
+		: index;
 
-	if (searchableItems.length === 0) {
-		return [];
+	// Score all items using VS Code's item scorer, then filter non-matches
+	const scored: Array<{ item: SearchIndexEntry; score: number }> = [];
+	for (const item of searchableItems) {
+		const itemScore = scoreItemFuzzy(
+			item,
+			prepared,
+			true,
+			searchEntryAccessor,
+			cache,
+		);
+		if (itemScore.score > 0) {
+			scored.push({ item, score: itemScore.score });
+		}
 	}
 
-	const fuse = pathMatcher.hasFilters
-		? createFileSearchFuse(searchableItems)
-		: index.fuse;
-	const results = fuse.search(trimmedQuery, {
-		limit: safeLimit,
-	});
+	// Sort using VS Code's full comparator
+	scored.sort((a, b) =>
+		compareItemsByFuzzyScore(
+			a.item,
+			b.item,
+			prepared,
+			true,
+			searchEntryAccessor,
+			cache,
+		),
+	);
 
-	return results.map((result) => ({
+	return scored.slice(0, safeLimit).map((result) => ({
 		absolutePath: result.item.absolutePath,
 		relativePath: result.item.relativePath,
 		name: result.item.name,
 		kind: "file" as const,
-		score: 1 - (result.score ?? 0),
+		score: result.score,
 	}));
 }
 

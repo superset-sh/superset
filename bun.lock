@@ -110,7 +110,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -317,7 +317,7 @@
         "@vitejs/plugin-react": "^5.0.1",
         "code-inspector-plugin": "^1.2.2",
         "cross-env": "^10.0.0",
-        "electron": "40.2.1",
+        "electron": "40.8.5",
         "electron-builder": "^26.4.0",
         "electron-vite": "^4.0.0",
         "material-icon-theme": "^5.32.0",
@@ -919,7 +919,6 @@
       "dependencies": {
         "@parcel/watcher": "^2.5.6",
         "fast-glob": "^3.3.3",
-        "fuse.js": "^7.1.0",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -3453,7 +3452,7 @@
 
     "electric-proxy": ["electric-proxy@workspace:apps/electric-proxy"],
 
-    "electron": ["electron@40.2.1", "", { "dependencies": { "@electron/get": "^2.0.0", "@types/node": "^24.9.0", "extract-zip": "^2.0.1" }, "bin": { "electron": "cli.js" } }, "sha512-0zOeyN8LB1KHIjVV5jyMmQmkqx3J8OkkVlab3p7vOM28jI46blxW7M52Tcdi6X2m5o2jj8ejOlAh5+boL3w8aQ=="],
+    "electron": ["electron@40.8.5", "", { "dependencies": { "@electron/get": "^2.0.0", "@types/node": "^24.9.0", "extract-zip": "^2.0.1" }, "bin": { "electron": "cli.js" } }, "sha512-pgTY/VPQKaiU4sTjfU96iyxCXrFm4htVPCMRT4b7q9ijNTRgtLmLvcmzp2G4e7xDrq9p7OLHSmu1rBKFf6Y1/A=="],
 
     "electron-builder": ["electron-builder@26.8.1", "", { "dependencies": { "app-builder-lib": "26.8.1", "builder-util": "26.8.1", "builder-util-runtime": "9.5.1", "chalk": "^4.1.2", "ci-info": "^4.2.0", "dmg-builder": "26.8.1", "fs-extra": "^10.1.0", "lazy-val": "^1.0.5", "simple-update-notifier": "2.0.0", "yargs": "^17.6.2" }, "bin": { "electron-builder": "cli.js", "install-app-deps": "install-app-deps.js" } }, "sha512-uWhx1r74NGpCagG0ULs/P9Nqv2nsoo+7eo4fLUOB8L8MdWltq9odW/uuLXMFCDGnPafknYLZgjNX0ZIFRzOQAw=="],
 
