@@ -5,13 +5,35 @@
 Electron main owns app lifecycle, tray, and host-service management. Host-services run as child processes that can outlive the app via manifest-based adoption.
 
 ```
-Electron Main
-├── Quit policy (requestQuit / prepareQuit / exitImmediately)
-├── Tray (macOS only — status, restart, stop, quit)
-├── HostServiceManager (start, stop, adopt, restart per org)
-│   └── host-service child processes (survive app quit)
-│       └── manifest.json (on-disk handoff for re-adoption)
-└── Windows (disposable — hide to tray on macOS)
+┌─────────────────────────────────────────────────────┐
+│ Electron Main Process                               │
+│                                                     │
+│  ┌──────────┐  ┌──────────────────────┐  ┌───────┐ │
+│  │   Tray   │  │ HostServiceManager   │  │Windows│ │
+│  │ (macOS)  │  │                      │  │       │ │
+│  │          │◄─┤ status events        │  │ hide/ │ │
+│  │ restart  │  │ start/stop/adopt     │  │ show  │ │
+│  │ stop     │  │ per org              │  │       │ │
+│  │ quit ────┼──┼──► requestQuit(mode) │  │       │ │
+│  └──────────┘  └──────┬───────────────┘  └───────┘ │
+└───────────────────────┼─────────────────────────────┘
+                        │ IPC + stdio
+          ┌─────────────┼─────────────┐
+          │             │             │
+          ▼             ▼             ▼
+   ┌────────────┐ ┌────────────┐ ┌────────────┐
+   │host-service│ │host-service│ │host-service│
+   │  (org A)   │ │  (org B)   │ │  (org C)   │
+   │            │ │            │ │            │
+   │ HTTP/tRPC  │ │ HTTP/tRPC  │ │ HTTP/tRPC  │
+   │ port:rand  │ │ port:rand  │ │ port:rand  │
+   │            │ │            │ │            │
+   │ writes     │ │ writes     │ │ writes     │
+   │ manifest   │ │ manifest   │ │ manifest   │
+   └────────────┘ └────────────┘ └────────────┘
+        │              │              │
+        ▼              ▼              ▼
+   ~/.superset/host/{orgId}/manifest.json
 ```
 
 ### Quit modes
@@ -22,9 +44,22 @@ All quit paths use a single `QuitMode` (`"release" | "stop"`):
 - **stop** — SIGTERM all services, then exit
 - **implicit** (Cmd+Q with active services on macOS) — hide windows to tray
 
-### Service adoption
+### Manifest adoption
 
-On startup, the manager scans `~/.superset/host/*/manifest.json`, health-checks each endpoint, and reconnects to surviving services. Incompatible or unreachable services are cleaned up and respawned.
+Each host-service child writes `~/.superset/host/{orgId}/manifest.json` on startup (pid, endpoint, authToken, version). It's a pidfile extended with connection info.
+
+- **Release quit** — children keep running, manifests stay on disk
+- **Next launch** — `discoverAndAdoptAll()` scans manifests, health-checks each pid/endpoint, reconnects if healthy, removes and respawns if not
+- **Stop quit** — SIGTERM children, they remove their own manifests on shutdown
+
+```
+App Launch                          App Quit (release)          Next Launch
+─────────                          ──────────────────          ───────────
+spawn child ──► child writes        parent detaches             scan manifests
+               manifest.json        manifests stay on disk      health-check pid/endpoint
+               {pid, endpoint,      child keeps running         ├─ healthy → reconnect
+                authToken, ...}                                 └─ dead/bad → remove, respawn
+```
 
 ### v1 vs v2 terminal paths
 
