@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
+import { resolvePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
 import type { HotkeyId } from "shared/hotkeys";
 
@@ -49,7 +49,7 @@ export function PresetBarItem({
 	onPersistReorder,
 }: PresetBarItemProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const icon = getPresetIcon(preset.name, isDark);
+	const icon = resolvePresetIcon(preset.name, isDark, preset.icon);
 	const label = preset.description || preset.name || "default";
 
 	const [{ isDragging }, drag] = useDrag(
@@ -102,8 +102,16 @@ export function PresetBarItem({
 								className="h-6 px-2 gap-1.5 text-xs shrink-0"
 								onClick={() => onOpenDefault(preset)}
 							>
-								{icon ? (
-									<img src={icon} alt="" className="size-3.5 object-contain" />
+								{icon?.type === "image" ? (
+									<img
+										src={icon.value}
+										alt=""
+										className="size-3.5 object-contain"
+									/>
+								) : icon?.type === "emoji" ? (
+									<span className="size-3.5 text-[11px] leading-[14px] text-center">
+										{icon.value}
+									</span>
 								) : (
 									<HiMiniCommandLine className="size-3.5" />
 								)}

@@ -168,14 +168,29 @@ export function PresetEditorSheet({
 										htmlFor="preset-name"
 										tooltip="The preset name shown in your presets list and launch surfaces."
 									/>
-									<Input
-										id="preset-name"
-										value={preset.name}
-										onChange={(e) => onFieldChange("name", e.target.value)}
-										onBlur={() => onFieldBlur("name")}
-										className={fieldClassName}
-										placeholder="e.g. Dev Server"
-									/>
+									<div className="flex items-center gap-2">
+										<Input
+											id="preset-icon"
+											value={preset.icon ?? ""}
+											onChange={(e) => onFieldChange("icon", e.target.value)}
+											onBlur={() => onFieldBlur("icon")}
+											className={`${fieldClassName} w-12 text-center px-1`}
+											placeholder="🚀"
+											maxLength={4}
+											aria-label="Icon emoji"
+										/>
+										<Input
+											id="preset-name"
+											value={preset.name}
+											onChange={(e) => onFieldChange("name", e.target.value)}
+											onBlur={() => onFieldBlur("name")}
+											className={`${fieldClassName} flex-1`}
+											placeholder="e.g. Dev Server"
+										/>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Add an emoji to visually distinguish this preset in the bar.
+									</p>
 								</div>
 
 								<div className="space-y-2">

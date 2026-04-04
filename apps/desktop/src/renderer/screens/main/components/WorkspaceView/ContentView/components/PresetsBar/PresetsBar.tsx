@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
 import { LuCirclePlus, LuPin } from "react-icons/lu";
 import {
-	getPresetIcon,
+	resolvePresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
@@ -376,7 +376,11 @@ export function PresetsBar() {
 				</Tooltip>
 				<DropdownMenuContent align="start" className="w-56">
 					{managedPresets.map((item) => {
-						const icon = getPresetIcon(item.iconName, isDark);
+						const icon = resolvePresetIcon(
+							item.iconName,
+							isDark,
+							item.preset?.icon,
+						);
 						const isPinned = item.preset
 							? isPresetPinnedToBar(item.preset.pinnedToBar)
 							: false;
@@ -409,8 +413,16 @@ export function PresetsBar() {
 									});
 								}}
 							>
-								{icon ? (
-									<img src={icon} alt="" className="size-4 object-contain" />
+								{icon?.type === "image" ? (
+									<img
+										src={icon.value}
+										alt=""
+										className="size-4 object-contain"
+									/>
+								) : icon?.type === "emoji" ? (
+									<span className="size-4 text-sm leading-4 text-center">
+										{icon.value}
+									</span>
 								) : (
 									<HiMiniCommandLine className="size-4" />
 								)}
