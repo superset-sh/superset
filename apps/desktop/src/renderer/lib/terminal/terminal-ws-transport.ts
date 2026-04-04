@@ -103,6 +103,7 @@ export function connect(
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
+	transport._exited = false;
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;

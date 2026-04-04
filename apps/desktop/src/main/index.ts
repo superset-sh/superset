@@ -186,14 +186,14 @@ function getConfirmOnQuitSetting(): boolean {
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
+	// Consume the quit mode so it doesn't persist across aborted quits
+	const quitMode = pendingQuitMode;
+	pendingQuitMode = null;
+
 	const manager = getHostServiceManager();
 
 	// macOS: no explicit quit requested → hide windows if services are active
-	if (
-		PLATFORM.IS_MAC &&
-		pendingQuitMode === null &&
-		manager.hasActiveInstances()
-	) {
+	if (PLATFORM.IS_MAC && quitMode === null && manager.hasActiveInstances()) {
 		event.preventDefault();
 		for (const win of BrowserWindow.getAllWindows()) {
 			win.hide();
@@ -203,7 +203,7 @@ app.on("before-quit", async (event) => {
 
 	// Show confirmation only for implicit quit in production with setting enabled
 	const isDev = process.env.NODE_ENV === "development";
-	if (pendingQuitMode === null && !isDev && getConfirmOnQuitSetting()) {
+	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -225,7 +225,7 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	if (pendingQuitMode === "stop") {
+	if (quitMode === "stop") {
 		manager.stopAll();
 	} else {
 		manager.releaseAll();

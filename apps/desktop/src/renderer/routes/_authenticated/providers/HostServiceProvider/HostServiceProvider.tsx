@@ -97,8 +97,10 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 		};
 
 		for (const orgId of orgIds) {
+			const org = organizations?.find((o) => o.id === orgId);
 			const cached = utils.hostServiceManager.getLocalPort.getData({
 				organizationId: orgId,
+				organizationName: org?.name ?? undefined,
 			});
 			if (cached?.port) {
 				addOrg(orgId, cached.port, cached.secret ?? null);
@@ -119,7 +121,7 @@ export function HostServiceProvider({ children }: { children: ReactNode }) {
 		}
 
 		return map;
-	}, [orgIds, utils, activeOrganizationId, activePortData]);
+	}, [orgIds, organizations, utils, activeOrganizationId, activePortData]);
 
 	const value = useMemo(() => ({ services }), [services]);
 

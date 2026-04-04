@@ -769,7 +769,7 @@ export class HostServiceManager extends EventEmitter {
 			this.scheduledRestarts.delete(organizationId);
 			const current = this.instances.get(organizationId);
 			if (current?.status === "degraded") {
-				this.instances.delete(organizationId);
+				// Don't delete the instance — spawn() reads restartCount from it
 				this.spawn(organizationId).catch((err) => {
 					console.error(
 						`[host-service:${organizationId}] restart failed:`,
