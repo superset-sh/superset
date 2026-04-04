@@ -281,7 +281,6 @@ export function initTray(): void {
 
 		updateTrayMenu();
 
-		// Rebuild menu on host-service status changes
 		const manager = getHostServiceManager();
 		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
 			updateTrayMenu();

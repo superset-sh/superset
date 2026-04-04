@@ -343,7 +343,6 @@ export class HostServiceManager extends EventEmitter {
 		};
 	}
 
-	/** Returns true if any instance is in running or starting state */
 	hasActiveInstances(): boolean {
 		for (const instance of this.instances.values()) {
 			if (instance.status === "running" || instance.status === "starting") {
@@ -353,7 +352,6 @@ export class HostServiceManager extends EventEmitter {
 		return this.pendingStarts.size > 0;
 	}
 
-	/** Returns all organization IDs with active host-service instances */
 	getActiveOrganizationIds(): string[] {
 		const ids: string[] = [];
 		for (const [id, instance] of this.instances) {
@@ -387,10 +385,7 @@ export class HostServiceManager extends EventEmitter {
 
 	// ── Discovery / Adoption ──────────────────────────────────────────
 
-	/**
-	 * Try to adopt an already-running host-service from its on-disk manifest.
-	 * Returns the port if adoption succeeds, null otherwise.
-	 */
+	/** Try to adopt an already-running host-service from its on-disk manifest. */
 	private async tryAdopt(organizationId: string): Promise<number | null> {
 		const manifest = readManifest(organizationId);
 		if (!manifest) return null;
@@ -682,7 +677,6 @@ export class HostServiceManager extends EventEmitter {
 			instance.startedAt = Date.now();
 			instance.restartCount = 0;
 
-			// Pick up version info from the ready message if available
 			if (
 				"serviceVersion" in message &&
 				typeof message.serviceVersion === "string"
@@ -700,7 +694,6 @@ export class HostServiceManager extends EventEmitter {
 				`[host-service:${instance.organizationId}] listening on port ${message.port} (v${instance.serviceVersion}, protocol=${instance.protocolVersion})`,
 			);
 
-			// Check compatibility on connect
 			const compat = checkCompatibility(instance);
 			if (compat && !compat.compatible) {
 				console.warn(

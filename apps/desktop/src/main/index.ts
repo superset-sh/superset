@@ -201,7 +201,6 @@ app.on("before-quit", async (event) => {
 		return;
 	}
 
-	// Show confirmation only for implicit quit in production with setting enabled
 	const isDev = process.env.NODE_ENV === "development";
 	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
@@ -349,7 +348,7 @@ if (!gotTheLock) {
 					try {
 						return await net.fetch(pathToFileURL(fontPath).toString());
 					} catch {
-						// Font not in this directory, try next
+						// Not in this directory
 					}
 				}
 				return new Response("Not found", { status: 404 });
@@ -385,7 +384,6 @@ if (!gotTheLock) {
 		setupAutoUpdater();
 		initTray();
 
-		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);
