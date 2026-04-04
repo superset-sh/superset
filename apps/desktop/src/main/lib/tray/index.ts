@@ -2,13 +2,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
 	app,
-	BrowserWindow,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
 	Tray,
 } from "electron";
-import { setForceQuit, setStopServicesOnQuit } from "main/index";
+import { focusMainWindow, requestQuit } from "main/index";
 import {
 	getHostServiceManager,
 	type HostServiceStatus,
@@ -81,24 +80,8 @@ function createTrayIcon(): Electron.NativeImage | null {
 	}
 }
 
-function showWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
-		}
-		mainWindow.show();
-		mainWindow.focus();
-	} else {
-		// Triggers window creation via makeAppSetup's activate handler
-		app.emit("activate");
-	}
-}
-
 function openSettings(): void {
-	showWindow();
+	focusMainWindow();
 	menuEmitter.emit("open-settings");
 }
 
@@ -238,7 +221,7 @@ function updateTrayMenu(): void {
 		{ type: "separator" },
 		{
 			label: "Open Superset",
-			click: showWindow,
+			click: focusMainWindow,
 		},
 		{
 			label: "Settings",
@@ -257,27 +240,17 @@ function updateTrayMenu(): void {
 			? [
 					{
 						label: "Quit (Keep Services Running)",
-						click: () => {
-							setForceQuit();
-							app.quit();
-						},
+						click: () => requestQuit("release"),
 					},
 					{
 						label: "Quit & Stop Services",
-						click: () => {
-							setForceQuit();
-							setStopServicesOnQuit();
-							app.quit();
-						},
+						click: () => requestQuit("stop"),
 					},
 				]
 			: [
 					{
 						label: "Quit",
-						click: () => {
-							setForceQuit();
-							app.quit();
-						},
+						click: () => requestQuit("release"),
 					},
 				]),
 	]);

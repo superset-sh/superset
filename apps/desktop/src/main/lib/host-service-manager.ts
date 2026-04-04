@@ -5,12 +5,12 @@ import { EventEmitter } from "node:events";
 import path from "node:path";
 import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
-import { SUPERSET_HOME_DIR } from "./app-environment";
 import { getDeviceName, getHashedDeviceId } from "./device-info";
 import {
 	type HostServiceManifest,
 	isProcessAlive,
 	listManifests,
+	manifestDir,
 	readManifest,
 	removeManifest,
 } from "./host-service-manifest";
@@ -98,6 +98,51 @@ function createPortDeferred(): {
 	});
 
 	return { promise, resolve, reject };
+}
+
+/** Check whether a host-service instance is compatible with this app version. */
+export function checkCompatibility(instance: {
+	protocolVersion: number | null;
+	serviceVersion: string | null;
+}): CompatibilityResult | null {
+	if (instance.protocolVersion === null) return null;
+
+	if (instance.protocolVersion !== HOST_SERVICE_PROTOCOL_VERSION) {
+		return {
+			compatible: false,
+			reason: `Protocol mismatch: service=${instance.protocolVersion}, app=${HOST_SERVICE_PROTOCOL_VERSION}`,
+		};
+	}
+
+	const currentVersion = app.getVersion();
+	const updateAvailable =
+		instance.serviceVersion !== null &&
+		instance.serviceVersion !== currentVersion;
+
+	return { compatible: true, updateAvailable };
+}
+
+async function buildHostServiceEnv(
+	organizationId: string,
+	secret: string,
+): Promise<Record<string, string>> {
+	const orgDir = manifestDir(organizationId);
+	return getProcessEnvWithShellPath({
+		...(process.env as Record<string, string>),
+		ELECTRON_RUN_AS_NODE: "1",
+		ORGANIZATION_ID: organizationId,
+		DEVICE_CLIENT_ID: getHashedDeviceId(),
+		DEVICE_NAME: getDeviceName(),
+		HOST_SERVICE_SECRET: secret,
+		HOST_SERVICE_VERSION: app.getVersion(),
+		HOST_SERVICE_PROTOCOL_VERSION: String(HOST_SERVICE_PROTOCOL_VERSION),
+		HOST_MANIFEST_DIR: orgDir,
+		KEEP_ALIVE_AFTER_PARENT: "1",
+		HOST_DB_PATH: path.join(orgDir, "host.db"),
+		HOST_MIGRATIONS_PATH: app.isPackaged
+			? path.join(process.resourcesPath, "resources/host-migrations")
+			: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
+	});
 }
 
 export class HostServiceManager extends EventEmitter {
@@ -285,7 +330,7 @@ export class HostServiceManager extends EventEmitter {
 				: null,
 			restartCount: instance.restartCount,
 			pendingRestart: instance.pendingRestart,
-			compatibility: this.checkCompatibility(instance),
+			compatibility: checkCompatibility(instance),
 			adopted: instance.adopted,
 		};
 	}
@@ -311,30 +356,6 @@ export class HostServiceManager extends EventEmitter {
 		return ids;
 	}
 
-	/** Check whether a running host-service is compatible with this app version.
-	 *  - protocol match + same version = compatible, no update
-	 *  - protocol match + older service = compatible, update available
-	 *  - protocol mismatch = incompatible, restart required */
-	checkCompatibility(
-		instance: Pick<HostServiceProcess, "protocolVersion" | "serviceVersion">,
-	): CompatibilityResult | null {
-		if (instance.protocolVersion === null) return null;
-
-		if (instance.protocolVersion !== HOST_SERVICE_PROTOCOL_VERSION) {
-			return {
-				compatible: false,
-				reason: `Protocol mismatch: service=${instance.protocolVersion}, app=${HOST_SERVICE_PROTOCOL_VERSION}`,
-			};
-		}
-
-		const currentVersion = app.getVersion();
-		const updateAvailable =
-			instance.serviceVersion !== null &&
-			instance.serviceVersion !== currentVersion;
-
-		return { compatible: true, updateAvailable };
-	}
-
 	/** Mark a host-service instance for restart when it becomes idle. */
 	markPendingRestart(organizationId: string): void {
 		const instance = this.instances.get(organizationId);
@@ -347,7 +368,7 @@ export class HostServiceManager extends EventEmitter {
 	checkAllCompatibility(): void {
 		for (const [orgId, instance] of this.instances) {
 			if (instance.status !== "running") continue;
-			const result = this.checkCompatibility(instance);
+			const result = checkCompatibility(instance);
 			if (result && !result.compatible) {
 				console.log(`[host-service:${orgId}] Incompatible: ${result.reason}`);
 				instance.pendingRestart = true;
@@ -383,7 +404,7 @@ export class HostServiceManager extends EventEmitter {
 			return null;
 		}
 
-		const compat = this.checkCompatibility({
+		const compat = checkCompatibility({
 			protocolVersion: manifest.protocolVersion,
 			serviceVersion: manifest.serviceVersion,
 		});
@@ -527,7 +548,7 @@ export class HostServiceManager extends EventEmitter {
 		this.emitStatus(organizationId, "starting", null);
 
 		try {
-			const env = await this.buildHostServiceEnv(organizationId, secret);
+			const env = await buildHostServiceEnv(organizationId, secret);
 			if (this.authToken) {
 				env.AUTH_TOKEN = this.authToken;
 			}
@@ -564,37 +585,6 @@ export class HostServiceManager extends EventEmitter {
 			);
 			throw error;
 		}
-	}
-
-	private manifestDir(organizationId: string): string {
-		return path.join(SUPERSET_HOME_DIR, "host", organizationId);
-	}
-
-	private async buildHostServiceEnv(
-		organizationId: string,
-		secret: string,
-	): Promise<Record<string, string>> {
-		return getProcessEnvWithShellPath({
-			...(process.env as Record<string, string>),
-			ELECTRON_RUN_AS_NODE: "1",
-			ORGANIZATION_ID: organizationId,
-			DEVICE_CLIENT_ID: getHashedDeviceId(),
-			DEVICE_NAME: getDeviceName(),
-			HOST_SERVICE_SECRET: secret,
-			HOST_SERVICE_VERSION: app.getVersion(),
-			HOST_SERVICE_PROTOCOL_VERSION: String(HOST_SERVICE_PROTOCOL_VERSION),
-			HOST_MANIFEST_DIR: this.manifestDir(organizationId),
-			KEEP_ALIVE_AFTER_PARENT: "1",
-			HOST_DB_PATH: path.join(
-				SUPERSET_HOME_DIR,
-				"host",
-				organizationId,
-				"host.db",
-			),
-			HOST_MIGRATIONS_PATH: app.isPackaged
-				? path.join(process.resourcesPath, "resources/host-migrations")
-				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
-		});
 	}
 
 	private attachProcessHandlers(
@@ -701,7 +691,7 @@ export class HostServiceManager extends EventEmitter {
 			);
 
 			// Check compatibility on connect
-			const compat = this.checkCompatibility(instance);
+			const compat = checkCompatibility(instance);
 			if (compat && !compat.compatible) {
 				console.warn(
 					`[host-service:${instance.organizationId}] ${compat.reason} — marking for restart`,

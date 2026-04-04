@@ -94,7 +94,7 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
-function focusMainWindow(): void {
+export function focusMainWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		const mainWindow = windows[0];
@@ -103,6 +103,9 @@ function focusMainWindow(): void {
 		}
 		mainWindow.show();
 		mainWindow.focus();
+	} else {
+		// Triggers window creation via makeAppSetup's activate handler
+		app.emit("activate");
 	}
 }
 
@@ -147,22 +150,28 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
+export type QuitMode = "release" | "stop";
+let pendingQuitMode: QuitMode | null = null;
 let isQuitting = false;
-let skipConfirmation = false;
-let stopServicesOnQuit = false;
-let forceQuit = false;
 
-/** Call before app.quit() to also stop all host-service instances.
- *  Without this, services are released (detached) so they survive the app
- *  exit and can be re-adopted on next launch. */
-export function setStopServicesOnQuit(): void {
-	stopServicesOnQuit = true;
+/** Request the app to quit.
+ *  - "release": keep services running (re-adoptable on next launch)
+ *  - "stop": terminate all services before exit */
+export function requestQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+	app.quit();
 }
 
-/** Call before app.quit() to bypass the macOS hide-to-tray behavior
- *  and actually exit the process. Used by tray quit actions. */
-export function setForceQuit(): void {
-	forceQuit = true;
+/** Set quit mode without triggering quit.
+ *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
+export function prepareQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+}
+
+/** Exit the process immediately, bypassing before-quit.
+ *  Services are left running for adoption on next launch. */
+export function exitImmediately(): void {
+	app.exit(0);
 }
 
 function getConfirmOnQuitSetting(): boolean {
@@ -174,23 +183,17 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
-export function setSkipQuitConfirmation(): void {
-	skipConfirmation = true;
-}
-
-export function quitWithoutConfirmation(): void {
-	skipConfirmation = true;
-	app.exit(0);
-}
-
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const manager = getHostServiceManager();
 
-	// macOS: when services are active and this isn't an explicit tray quit,
-	// just hide all windows. The tray and services stay alive.
-	if (PLATFORM.IS_MAC && !forceQuit && manager.hasActiveInstances()) {
+	// macOS: no explicit quit requested → hide windows if services are active
+	if (
+		PLATFORM.IS_MAC &&
+		pendingQuitMode === null &&
+		manager.hasActiveInstances()
+	) {
 		event.preventDefault();
 		for (const win of BrowserWindow.getAllWindows()) {
 			win.hide();
@@ -198,11 +201,9 @@ app.on("before-quit", async (event) => {
 		return;
 	}
 
+	// Show confirmation only for implicit quit in production with setting enabled
 	const isDev = process.env.NODE_ENV === "development";
-	const shouldConfirm =
-		!skipConfirmation && !forceQuit && !isDev && getConfirmOnQuitSetting();
-
-	if (shouldConfirm) {
+	if (pendingQuitMode === null && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -216,8 +217,6 @@ app.on("before-quit", async (event) => {
 			});
 
 			if (response === 1) {
-				stopServicesOnQuit = false;
-				forceQuit = false;
 				return;
 			}
 		} catch (error) {
@@ -226,7 +225,7 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	if (stopServicesOnQuit) {
+	if (pendingQuitMode === "stop") {
 		manager.stopAll();
 	} else {
 		manager.releaseAll();

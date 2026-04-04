@@ -1,8 +1,8 @@
 import {
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	readdirSync,
+	readFileSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
@@ -19,7 +19,7 @@ export interface HostServiceManifest {
 	organizationId: string;
 }
 
-function manifestDir(organizationId: string): string {
+export function manifestDir(organizationId: string): string {
 	return join(SUPERSET_HOME_DIR, "host", organizationId);
 }
 

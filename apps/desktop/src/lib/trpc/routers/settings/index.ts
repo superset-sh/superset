@@ -17,7 +17,7 @@ import {
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
-import { quitWithoutConfirmation } from "main/index";
+import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
@@ -696,7 +696,7 @@ export const createSettingsRouter = () => {
 
 		restartApp: publicProcedure.mutation(() => {
 			app.relaunch();
-			quitWithoutConfirmation();
+			exitImmediately();
 			return { success: true };
 		}),
 
