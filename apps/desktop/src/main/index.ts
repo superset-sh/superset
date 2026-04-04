@@ -192,11 +192,15 @@ app.on("before-quit", async (event) => {
 
 	const manager = getHostServiceManager();
 
-	// macOS: no explicit quit requested → hide windows if services are active
-	if (PLATFORM.IS_MAC && quitMode === null && manager.hasActiveInstances()) {
+	// macOS: close windows & keep tray alive when services should stay running
+	if (
+		PLATFORM.IS_MAC &&
+		(quitMode === null || quitMode === "release") &&
+		manager.hasActiveInstances()
+	) {
 		event.preventDefault();
 		for (const win of BrowserWindow.getAllWindows()) {
-			win.hide();
+			win.destroy();
 		}
 		return;
 	}
