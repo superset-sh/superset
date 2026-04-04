@@ -10,6 +10,11 @@ interface UseChatDisplayOptions {
 	fps?: number;
 }
 
+const IDLE_POLL_MS = 1000;
+const IDLE_STALE_TIME_MS = 10_000;
+const DISPLAY_GC_TIME_MS = 30_000;
+const MESSAGES_GC_TIME_MS = 60_000;
+
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
@@ -114,11 +119,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		sessionId === null ? undefined : { sessionId, workspaceId };
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
-
-	const IDLE_POLL_MS = 1000;
-	const IDLE_STALE_TIME_MS = 10_000;
-	const DISPLAY_GC_TIME_MS = 30_000;
-	const MESSAGES_GC_TIME_MS = 60_000;
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
@@ -371,10 +371,18 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const wasRunningRef = useRef(false);
 	useEffect(() => {
 		if (wasRunningRef.current && !isRunning && queryInput) {
-			void utils.chat.listMessages.invalidate(queryInput);
+			void Promise.all([
+				utils.chat.getDisplayState.invalidate(queryInput),
+				utils.chat.listMessages.invalidate(queryInput),
+			]);
 		}
 		wasRunningRef.current = isRunning;
-	}, [isRunning, queryInput, utils.chat.listMessages]);
+	}, [
+		isRunning,
+		queryInput,
+		utils.chat.getDisplayState,
+		utils.chat.listMessages,
+	]);
 
 	return {
 		...displayState,
