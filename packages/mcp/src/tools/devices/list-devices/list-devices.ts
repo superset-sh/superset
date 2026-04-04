@@ -5,14 +5,14 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
-const DEVICE_ONLINE_WINDOW_MS = 60_000;
+const DEVICE_ONLINE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 export function register(server: McpServer) {
 	server.registerTool(
 		"list_devices",
 		{
 			description:
-				"List devices in the organization. By default, only devices seen within the last 60 seconds are returned.",
+				"List devices in the organization. By default, only devices seen within the last 10 minutes are returned.",
 			inputSchema: {
 				includeOffline: z
 					.boolean()

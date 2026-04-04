@@ -14,7 +14,7 @@ API key passed via `X-API-Key` header. Key encodes:
 Device commands can target **any device in the organization**:
 - If `deviceId` not specified, defaults to `defaultDeviceId` from API key
 - Any org member can run commands on any org device (permissions can be added later)
-- Device must be online (heartbeat within last 60s) to receive commands
+- Device must be online (seen within last 10 minutes) to receive commands
 
 ## Tool Categories
 
