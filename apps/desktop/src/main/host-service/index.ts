@@ -17,7 +17,11 @@ import {
 	LocalGitCredentialProvider,
 	PskHostAuthProvider,
 } from "@superset/host-service";
-import { removeManifest, writeManifest } from "main/lib/host-service-manifest";
+import {
+	HOST_SERVICE_PROTOCOL_VERSION,
+	removeManifest,
+	writeManifest,
+} from "main/lib/host-service-manifest";
 
 const authToken = process.env.AUTH_TOKEN;
 const cloudApiUrl = process.env.CLOUD_API_URL;
@@ -26,9 +30,7 @@ const deviceClientId = process.env.DEVICE_CLIENT_ID;
 const deviceName = process.env.DEVICE_NAME;
 const hostServiceSecret = process.env.HOST_SERVICE_SECRET;
 const serviceVersion = process.env.HOST_SERVICE_VERSION ?? null;
-const protocolVersion = process.env.HOST_SERVICE_PROTOCOL_VERSION
-	? Number(process.env.HOST_SERVICE_PROTOCOL_VERSION)
-	: null;
+const protocolVersion = HOST_SERVICE_PROTOCOL_VERSION;
 const organizationId = process.env.ORGANIZATION_ID ?? "";
 const desktopVitePort = process.env.DESKTOP_VITE_PORT ?? "5173";
 const keepAliveAfterParent = process.env.KEEP_ALIVE_AFTER_PARENT === "1";

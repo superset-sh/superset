@@ -9,6 +9,11 @@ import {
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
+/** Protocol version for the IPC contract between manager and host-service.
+ *  Bump when the ready message shape, env contract, or health API
+ *  changes in a backwards-incompatible way. */
+export const HOST_SERVICE_PROTOCOL_VERSION = 1;
+
 export interface HostServiceManifest {
 	pid: number;
 	endpoint: string;

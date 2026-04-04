@@ -40,7 +40,7 @@ const spawnMock = mock((..._args: unknown[]) => {
 });
 let HostServiceManager: typeof import("./host-service-manager").HostServiceManager;
 let checkCompatibility: typeof import("./host-service-manager").checkCompatibility;
-let HOST_SERVICE_PROTOCOL_VERSION: typeof import("./host-service-manager").HOST_SERVICE_PROTOCOL_VERSION;
+let HOST_SERVICE_PROTOCOL_VERSION: typeof import("./host-service-manifest").HOST_SERVICE_PROTOCOL_VERSION;
 
 describe("HostServiceManager", () => {
 	beforeAll(async () => {
@@ -66,8 +66,12 @@ describe("HostServiceManager", () => {
 			},
 		}));
 
-		({ HostServiceManager, checkCompatibility, HOST_SERVICE_PROTOCOL_VERSION } =
-			await import("./host-service-manager"));
+		({ HostServiceManager, checkCompatibility } = await import(
+			"./host-service-manager"
+		));
+		({ HOST_SERVICE_PROTOCOL_VERSION } = await import(
+			"./host-service-manifest"
+		));
 	});
 
 	afterAll(() => {

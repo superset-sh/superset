@@ -7,6 +7,7 @@ import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { getDeviceName, getHashedDeviceId } from "./device-info";
 import {
+	HOST_SERVICE_PROTOCOL_VERSION,
 	type HostServiceManifest,
 	isProcessAlive,
 	listManifests,
@@ -80,11 +81,6 @@ const BASE_RESTART_DELAY = 1_000;
 /** Interval for checking liveness of adopted (non-child) processes. */
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
 
-/** Protocol version for the IPC contract between ElectronMain and HostService.
- *  Bump this whenever the ready message shape, env contract, or health API
- *  changes in a backwards-incompatible way. */
-export const HOST_SERVICE_PROTOCOL_VERSION = 1;
-
 function createPortDeferred(): {
 	promise: Promise<number>;
 	resolve: (port: number) => void;
@@ -135,7 +131,6 @@ async function buildHostServiceEnv(
 		DEVICE_NAME: getDeviceName(),
 		HOST_SERVICE_SECRET: secret,
 		HOST_SERVICE_VERSION: app.getVersion(),
-		HOST_SERVICE_PROTOCOL_VERSION: String(HOST_SERVICE_PROTOCOL_VERSION),
 		HOST_MANIFEST_DIR: orgDir,
 		KEEP_ALIVE_AFTER_PARENT: "1",
 		HOST_DB_PATH: path.join(orgDir, "host.db"),
