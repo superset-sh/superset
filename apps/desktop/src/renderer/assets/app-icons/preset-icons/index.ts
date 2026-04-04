@@ -1,8 +1,15 @@
-import { getPresetIcon, PRESET_ICONS } from "@superset/ui/icons/preset-icons";
+import {
+	getPresetIcon,
+	PRESET_ICONS,
+	resolvePresetIcon,
+} from "@superset/ui/icons/preset-icons";
 import { useThemeStore } from "renderer/stores/theme/store";
 
-export { PRESET_ICONS, getPresetIcon };
-export type { PresetIconSet } from "@superset/ui/icons/preset-icons";
+export { PRESET_ICONS, getPresetIcon, resolvePresetIcon };
+export type {
+	PresetIconSet,
+	ResolvedPresetIcon,
+} from "@superset/ui/icons/preset-icons";
 
 export function usePresetIcon(presetName: string): string | undefined {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
