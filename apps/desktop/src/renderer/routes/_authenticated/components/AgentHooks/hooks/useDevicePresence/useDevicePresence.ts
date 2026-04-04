@@ -26,7 +26,9 @@ export function useDevicePresence() {
 					deviceName: deviceInfo.deviceName,
 					deviceType: "desktop",
 				})
-				.catch(() => {});
+				.catch((err) => {
+					console.debug("[device-presence] Registration failed:", err);
+				});
 		};
 
 		register();
