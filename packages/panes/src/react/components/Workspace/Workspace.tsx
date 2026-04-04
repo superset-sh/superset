@@ -1,6 +1,4 @@
 import { cn } from "@superset/ui/utils";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { useStore } from "zustand";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
@@ -31,53 +29,49 @@ export function Workspace<TData>({
 	};
 
 	return (
-		<DndProvider backend={HTML5Backend}>
-			<div
-				className={cn(
-					"flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background text-foreground",
-					className,
-				)}
-			>
-				<TabBar
-					tabs={tabs}
-					activeTabId={activeTabId}
-					onSelectTab={(tabId) => store.getState().setActiveTab(tabId)}
-					onCloseTab={closeTab}
-					onCloseOtherTabs={(tabId) => {
-						for (const tab of tabs) {
-							if (tab.id !== tabId) closeTab(tab.id);
-						}
-					}}
-					onCloseAllTabs={() => {
-						for (const tab of tabs) {
-							closeTab(tab.id);
-						}
-					}}
-					onRenameTab={(tabId, title) =>
-						store
-							.getState()
-							.setTabTitleOverride({ tabId, titleOverride: title })
+		<div
+			className={cn(
+				"flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background text-foreground",
+				className,
+			)}
+		>
+			<TabBar
+				tabs={tabs}
+				activeTabId={activeTabId}
+				onSelectTab={(tabId) => store.getState().setActiveTab(tabId)}
+				onCloseTab={closeTab}
+				onCloseOtherTabs={async (tabId) => {
+					for (const tab of tabs) {
+						if (tab.id !== tabId) await closeTab(tab.id);
 					}
-					onReorderTab={(tabId, toIndex) =>
-						store.getState().reorderTab({ tabId, toIndex })
+				}}
+				onCloseAllTabs={async () => {
+					for (const tab of tabs) {
+						await closeTab(tab.id);
 					}
-					getTabTitle={(tab) => tab.titleOverride ?? tab.id}
-					renderAddTabMenu={renderAddTabMenu}
-					renderTabAccessory={renderTabAccessory}
+				}}
+				onRenameTab={(tabId, title) =>
+					store.getState().setTabTitleOverride({ tabId, titleOverride: title })
+				}
+				onReorderTab={(tabId, toIndex) =>
+					store.getState().reorderTab({ tabId, toIndex })
+				}
+				getTabTitle={(tab) => tab.titleOverride ?? tab.id}
+				renderAddTabMenu={renderAddTabMenu}
+				renderTabAccessory={renderTabAccessory}
+			/>
+			{activeTab ? (
+				<Tab
+					store={store}
+					tab={activeTab}
+					registry={registry}
+					paneActions={paneActions}
 				/>
-				{activeTab ? (
-					<Tab
-						store={store}
-						tab={activeTab}
-						registry={registry}
-						paneActions={paneActions}
-					/>
-				) : (
-					<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-						{renderEmptyState?.() ?? "No tabs open"}
-					</div>
-				)}
-			</div>
-		</DndProvider>
+			) : (
+				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+					{renderEmptyState?.() ?? "No tabs open"}
+				</div>
+			)}
+		</div>
 	);
 }

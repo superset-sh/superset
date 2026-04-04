@@ -767,7 +767,6 @@
         "@superset/ui": "workspace:*",
         "lucide-react": "^0.563.0",
         "react-dnd": "^16.0.1",
-        "react-dnd-html5-backend": "^16.0.1",
         "zustand": "^5.0.8",
       },
       "devDependencies": {
