@@ -5,8 +5,13 @@
  *
  * Starts the host-service HTTP server on a random local port.
  * The parent Electron process reads the port from the IPC channel.
+ *
+ * When KEEP_ALIVE_AFTER_PARENT=1, the service stays running even if the
+ * parent Electron process exits (out-of-app durability mode).
  */
 
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { serve } from "@hono/node-server";
 import {
 	createApp,
@@ -25,7 +30,10 @@ const serviceVersion = process.env.HOST_SERVICE_VERSION ?? null;
 const protocolVersion = process.env.HOST_SERVICE_PROTOCOL_VERSION
 	? Number(process.env.HOST_SERVICE_PROTOCOL_VERSION)
 	: null;
+const organizationId = process.env.ORGANIZATION_ID ?? "";
 const desktopVitePort = process.env.DESKTOP_VITE_PORT ?? "5173";
+const manifestDir = process.env.HOST_MANIFEST_DIR ?? null;
+const keepAliveAfterParent = process.env.KEEP_ALIVE_AFTER_PARENT === "1";
 
 const auth =
 	authToken && cloudApiUrl ? new JwtApiAuthProvider(authToken) : undefined;
@@ -51,9 +59,47 @@ const { app, injectWebSocket } = createApp({
 
 const startedAt = Date.now();
 
+function writeManifest(port: number) {
+	if (!manifestDir) return;
+	try {
+		if (!existsSync(manifestDir)) {
+			mkdirSync(manifestDir, { recursive: true });
+		}
+		const manifest = {
+			pid: process.pid,
+			endpoint: `http://127.0.0.1:${port}`,
+			authToken: hostServiceSecret ?? "",
+			serviceVersion: serviceVersion ?? "",
+			protocolVersion: protocolVersion ?? 0,
+			startedAt,
+			organizationId,
+		};
+		writeFileSync(
+			join(manifestDir, "manifest.json"),
+			JSON.stringify(manifest),
+			"utf-8",
+		);
+	} catch (error) {
+		console.error("[host-service] Failed to write manifest:", error);
+	}
+}
+
+function removeManifest() {
+	if (!manifestDir) return;
+	try {
+		const filePath = join(manifestDir, "manifest.json");
+		if (existsSync(filePath)) {
+			unlinkSync(filePath);
+		}
+	} catch {
+		// Best-effort
+	}
+}
+
 const server = serve(
 	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
 	(info: { port: number }) => {
+		writeManifest(info.port);
 		process.send?.({
 			type: "ready",
 			port: info.port,
@@ -66,6 +112,7 @@ const server = serve(
 injectWebSocket(server);
 
 const shutdown = () => {
+	removeManifest();
 	server.close();
 	process.exit(0);
 };
@@ -73,15 +120,18 @@ const shutdown = () => {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-// Orphan cleanup: exit if parent Electron process dies
-const parentPid = process.ppid;
-const parentCheck = setInterval(() => {
-	try {
-		process.kill(parentPid, 0);
-	} catch {
-		clearInterval(parentCheck);
-		console.log("[host-service] Parent process exited, shutting down");
-		shutdown();
-	}
-}, 2000);
-parentCheck.unref();
+// Orphan cleanup: exit if parent Electron process dies.
+// Disabled in keep-alive mode so the service survives app quit.
+if (!keepAliveAfterParent) {
+	const parentPid = process.ppid;
+	const parentCheck = setInterval(() => {
+		try {
+			process.kill(parentPid, 0);
+		} catch {
+			clearInterval(parentCheck);
+			console.log("[host-service] Parent process exited, shutting down");
+			shutdown();
+		}
+	}, 2000);
+	parentCheck.unref();
+}

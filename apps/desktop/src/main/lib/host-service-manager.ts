@@ -7,6 +7,13 @@ import { app } from "electron";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { getDeviceName, getHashedDeviceId } from "./device-info";
+import {
+	type HostServiceManifest,
+	isProcessAlive,
+	listManifests,
+	readManifest,
+	removeManifest,
+} from "./host-service-manifest";
 
 export type HostServiceStatus =
 	| "starting"
@@ -31,6 +38,7 @@ export interface HostServiceInfo {
 	restartCount: number;
 	pendingRestart: boolean;
 	compatibility: CompatibilityResult | null;
+	adopted: boolean;
 }
 
 export interface HostServiceStatusEvent {
@@ -40,6 +48,7 @@ export interface HostServiceStatusEvent {
 }
 
 interface HostServiceProcess {
+	/** null when the instance was adopted from a manifest (no child handle). */
 	process: ChildProcess | null;
 	port: number | null;
 	secret: string | null;
@@ -51,6 +60,10 @@ interface HostServiceProcess {
 	serviceVersion: string | null;
 	protocolVersion: number | null;
 	pendingRestart: boolean;
+	/** True when this instance was adopted from a running manifest rather than spawned. */
+	adopted: boolean;
+	/** PID of the adopted process (for liveness checks). */
+	adoptedPid: number | null;
 }
 
 interface PendingStart {
@@ -63,6 +76,9 @@ interface PendingStart {
 
 const MAX_RESTART_DELAY = 30_000;
 const BASE_RESTART_DELAY = 1_000;
+
+/** Interval for checking liveness of adopted (non-child) processes. */
+const ADOPTED_LIVENESS_INTERVAL = 5_000;
 
 /** Protocol version for the IPC contract between ElectronMain and HostService.
  *  Bump this whenever the ready message shape, env contract, or health API
@@ -88,6 +104,10 @@ export class HostServiceManager extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, PendingStart>();
 	private scheduledRestarts = new Map<string, ReturnType<typeof setTimeout>>();
+	private adoptedLivenessTimers = new Map<
+		string,
+		ReturnType<typeof setInterval>
+	>();
 	private organizationNames = new Map<string, string>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private authToken: string | null = null;
@@ -114,14 +134,28 @@ export class HostServiceManager extends EventEmitter {
 		if (existing?.status === "running" && existing.port !== null) {
 			return existing.port;
 		}
-		const pendingStart = this.pendingStarts.get(organizationId);
-		if (pendingStart) {
-			return pendingStart.promise;
+		const existingPending = this.pendingStarts.get(organizationId);
+		if (existingPending) {
+			return existingPending.promise;
 		}
 
-		// Cancel any scheduled restart since we're starting explicitly
 		this.cancelScheduledRestart(organizationId);
 
+		// Register a pending start BEFORE the async tryAdopt so that concurrent
+		// callers see it and dedupe instead of racing through adoption + spawn.
+		const deferred = createPortDeferred();
+		this.pendingStarts.set(organizationId, deferred);
+
+		const adopted = await this.tryAdopt(organizationId);
+		if (adopted !== null) {
+			if (this.pendingStarts.get(organizationId) === deferred) {
+				this.pendingStarts.delete(organizationId);
+			}
+			deferred.resolve(adopted);
+			return adopted;
+		}
+
+		// Adoption failed — spawn() will reuse the deferred already in pendingStarts.
 		return this.spawn(organizationId);
 	}
 
@@ -129,19 +163,47 @@ export class HostServiceManager extends EventEmitter {
 		const instance = this.instances.get(organizationId);
 		this.cancelScheduledRestart(organizationId);
 		this.cancelPendingStart(organizationId, new Error("Host service stopped"));
+		this.stopAdoptedLivenessCheck(organizationId);
 
 		if (!instance) return;
 
 		const previousStatus = instance.status;
 		instance.status = "stopped";
-		instance.process?.kill("SIGTERM");
+		if (instance.adopted && instance.adoptedPid) {
+			try {
+				process.kill(instance.adoptedPid, "SIGTERM");
+			} catch {
+				// Already dead
+			}
+		} else {
+			instance.process?.kill("SIGTERM");
+		}
 		this.instances.delete(organizationId);
+		removeManifest(organizationId);
 		this.emitStatus(organizationId, "stopped", previousStatus);
 	}
 
 	stopAll(): void {
 		for (const [id] of this.instances) {
 			this.stop(id);
+		}
+	}
+
+	/** Release all instances without killing the underlying processes.
+	 *  The services keep running and can be re-adopted on next app start. */
+	releaseAll(): void {
+		for (const [id] of this.instances) {
+			this.release(id);
+		}
+	}
+
+	/** Scan for on-disk manifests and adopt any running services.
+	 *  Call during startup so the tray shows accurate state immediately. */
+	async discoverAndAdoptAll(): Promise<void> {
+		const manifests = listManifests();
+		for (const manifest of manifests) {
+			if (this.instances.has(manifest.organizationId)) continue;
+			await this.tryAdopt(manifest.organizationId);
 		}
 	}
 
@@ -157,8 +219,19 @@ export class HostServiceManager extends EventEmitter {
 				organizationId,
 				new Error("Host service restarting"),
 			);
-			instance.process?.kill("SIGTERM");
+			this.stopAdoptedLivenessCheck(organizationId);
+
+			if (instance.adopted && instance.adoptedPid) {
+				try {
+					process.kill(instance.adoptedPid, "SIGTERM");
+				} catch {
+					// Already dead
+				}
+			} else {
+				instance.process?.kill("SIGTERM");
+			}
 			this.instances.delete(organizationId);
+			removeManifest(organizationId);
 		}
 
 		return this.spawn(organizationId);
@@ -195,6 +268,7 @@ export class HostServiceManager extends EventEmitter {
 				restartCount: 0,
 				pendingRestart: false,
 				compatibility: null,
+				adopted: false,
 			};
 		}
 
@@ -212,6 +286,7 @@ export class HostServiceManager extends EventEmitter {
 			restartCount: instance.restartCount,
 			pendingRestart: instance.pendingRestart,
 			compatibility: this.checkCompatibility(instance),
+			adopted: instance.adopted,
 		};
 	}
 
@@ -281,8 +356,153 @@ export class HostServiceManager extends EventEmitter {
 		}
 	}
 
+	// ── Discovery / Adoption ──────────────────────────────────────────
+
+	/**
+	 * Try to adopt an already-running host-service from its on-disk manifest.
+	 * Returns the port if adoption succeeds, null otherwise.
+	 */
+	private async tryAdopt(organizationId: string): Promise<number | null> {
+		const manifest = readManifest(organizationId);
+		if (!manifest) return null;
+
+		if (!isProcessAlive(manifest.pid)) {
+			console.log(
+				`[host-service:${organizationId}] Manifest process ${manifest.pid} is dead, removing stale manifest`,
+			);
+			removeManifest(organizationId);
+			return null;
+		}
+
+		const healthy = await this.healthCheck(manifest);
+		if (!healthy) {
+			console.log(
+				`[host-service:${organizationId}] Manifest endpoint ${manifest.endpoint} not reachable, removing stale manifest`,
+			);
+			removeManifest(organizationId);
+			return null;
+		}
+
+		const compat = this.checkCompatibility({
+			protocolVersion: manifest.protocolVersion,
+			serviceVersion: manifest.serviceVersion,
+		});
+
+		if (compat && !compat.compatible) {
+			console.log(
+				`[host-service:${organizationId}] Manifest service incompatible: ${compat.reason}. Will kill and respawn.`,
+			);
+			try {
+				process.kill(manifest.pid, "SIGTERM");
+			} catch {
+				// Already dead
+			}
+			removeManifest(organizationId);
+			return null;
+		}
+
+		const url = new URL(manifest.endpoint);
+		const port = Number(url.port);
+		const pendingRestart =
+			compat !== null && "updateAvailable" in compat && compat.updateAvailable;
+
+		const instance: HostServiceProcess = {
+			process: null,
+			port,
+			secret: manifest.authToken,
+			status: "running",
+			restartCount: 0,
+			organizationId,
+			startedAt: manifest.startedAt,
+			serviceVersion: manifest.serviceVersion,
+			protocolVersion: manifest.protocolVersion,
+			pendingRestart,
+			adopted: true,
+			adoptedPid: manifest.pid,
+		};
+		this.instances.set(organizationId, instance);
+		this.startAdoptedLivenessCheck(organizationId, manifest.pid);
+
+		console.log(
+			`[host-service:${organizationId}] Adopted existing service pid=${manifest.pid} port=${port} v${manifest.serviceVersion}`,
+		);
+		this.emitStatus(organizationId, "running", null);
+		return port;
+	}
+
+	private async healthCheck(manifest: HostServiceManifest): Promise<boolean> {
+		try {
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 3_000);
+			const res = await fetch(`${manifest.endpoint}/trpc/health.check`, {
+				signal: controller.signal,
+				headers: {
+					Authorization: `Bearer ${manifest.authToken}`,
+				},
+			});
+			clearTimeout(timeout);
+			return res.ok;
+		} catch {
+			return false;
+		}
+	}
+
+	private startAdoptedLivenessCheck(organizationId: string, pid: number): void {
+		this.stopAdoptedLivenessCheck(organizationId);
+
+		const timer = setInterval(() => {
+			if (!isProcessAlive(pid)) {
+				console.log(
+					`[host-service:${organizationId}] Adopted process ${pid} died`,
+				);
+				this.stopAdoptedLivenessCheck(organizationId);
+
+				const current = this.instances.get(organizationId);
+				if (current?.adopted && current.status !== "stopped") {
+					current.status = "degraded";
+					current.lastCrash = Date.now();
+					this.emitStatus(organizationId, "degraded", "running");
+					this.scheduleRestart(organizationId);
+				}
+			}
+		}, ADOPTED_LIVENESS_INTERVAL);
+		timer.unref();
+		this.adoptedLivenessTimers.set(organizationId, timer);
+	}
+
+	private stopAdoptedLivenessCheck(organizationId: string): void {
+		const timer = this.adoptedLivenessTimers.get(organizationId);
+		if (timer) {
+			clearInterval(timer);
+			this.adoptedLivenessTimers.delete(organizationId);
+		}
+	}
+
+	/** Release an instance without killing it. Allows the process to keep running. */
+	private release(organizationId: string): void {
+		this.cancelScheduledRestart(organizationId);
+		this.cancelPendingStart(organizationId, new Error("Host service released"));
+		this.stopAdoptedLivenessCheck(organizationId);
+
+		const instance = this.instances.get(organizationId);
+		if (!instance) return;
+
+		if (instance.process) {
+			instance.process.disconnect?.();
+			instance.process.unref?.();
+			instance.process = null;
+		}
+		this.instances.delete(organizationId);
+		// Leave the manifest on disk — next app start will adopt it.
+	}
+
+	// ── Spawn ─────────────────────────────────────────────────────────
+
 	private async spawn(organizationId: string): Promise<number> {
-		const pendingStart = createPortDeferred();
+		// Reuse a pending start registered by start(), or create a fresh one
+		// (e.g. when called directly from restart/scheduleRestart).
+		const pendingStart =
+			this.pendingStarts.get(organizationId) ?? createPortDeferred();
 		const secret = randomBytes(32).toString("hex");
 
 		const previousInstance = this.instances.get(organizationId);
@@ -299,6 +519,8 @@ export class HostServiceManager extends EventEmitter {
 			serviceVersion: null,
 			protocolVersion: null,
 			pendingRestart: false,
+			adopted: false,
+			adoptedPid: null,
 		};
 		this.instances.set(organizationId, instance);
 		this.pendingStarts.set(organizationId, pendingStart);
@@ -344,6 +566,10 @@ export class HostServiceManager extends EventEmitter {
 		}
 	}
 
+	private manifestDir(organizationId: string): string {
+		return path.join(SUPERSET_HOME_DIR, "host", organizationId);
+	}
+
 	private async buildHostServiceEnv(
 		organizationId: string,
 		secret: string,
@@ -357,6 +583,8 @@ export class HostServiceManager extends EventEmitter {
 			HOST_SERVICE_SECRET: secret,
 			HOST_SERVICE_VERSION: app.getVersion(),
 			HOST_SERVICE_PROTOCOL_VERSION: String(HOST_SERVICE_PROTOCOL_VERSION),
+			HOST_MANIFEST_DIR: this.manifestDir(organizationId),
+			KEEP_ALIVE_AFTER_PARENT: "1",
 			HOST_DB_PATH: path.join(
 				SUPERSET_HOME_DIR,
 				"host",

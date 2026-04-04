@@ -33,8 +33,10 @@ export async function makeAppSetup(
 		if (!windows.length) {
 			window = await createWindow();
 		} else {
+			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
 			for (window of windows.reverse()) {
-				window.restore();
+				window.show();
+				window.focus();
 			}
 		}
 	});
@@ -50,20 +52,10 @@ export async function makeAppSetup(
 		});
 	});
 
-	app.on("window-all-closed", () => {
-		// On macOS, keep the app alive (standard behavior).
-		// On other platforms, keep alive only if host-service is running.
-		if (!PLATFORM.IS_MAC) {
-			const {
-				getHostServiceManager,
-			} = require("main/lib/host-service-manager");
-			const manager = getHostServiceManager();
-			if (!manager.hasActiveInstances()) {
-				app.quit();
-			}
-		}
-	});
-	app.on("before-quit", () => {});
+	// macOS: keep the app alive (standard behavior) — tray/dock provide re-entry.
+	// Windows/Linux: quit the app UI. Host-services survive via releaseAll()
+	// and will be re-adopted on next launch.
+	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
 
 	return window;
 }

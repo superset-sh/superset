@@ -8,6 +8,7 @@ import {
 	nativeImage,
 	Tray,
 } from "electron";
+import { setForceQuit, setStopServicesOnQuit } from "main/index";
 import {
 	getHostServiceManager,
 	type HostServiceStatus,
@@ -137,6 +138,7 @@ function buildHostServiceSubmenu(): MenuItemConstructorOptions[] {
 			const versionSuffix = info.serviceVersion
 				? ` (v${info.serviceVersion})`
 				: "";
+			const isRunning = info.status === "running";
 
 			menuItems.push({
 				label: orgName,
@@ -178,39 +180,31 @@ function buildHostServiceSubmenu(): MenuItemConstructorOptions[] {
 					enabled: false,
 				});
 			}
-		}
-	}
 
-	menuItems.push({ type: "separator" });
-
-	const hasRunning = orgIds.some((id) => manager.getStatus(id) === "running");
-
-	menuItems.push({
-		label: "Restart Host Service",
-		enabled: hasRunning,
-		click: () => {
-			for (const orgId of orgIds) {
-				if (manager.getStatus(orgId) === "running") {
+			menuItems.push({
+				label: "  Restart",
+				enabled: isRunning,
+				click: () => {
 					manager.restart(orgId).catch((err) => {
 						console.error(
 							`[Tray] Failed to restart host-service for ${orgId}:`,
 							err,
 						);
 					});
-				}
-			}
-			updateTrayMenu();
-		},
-	});
+					updateTrayMenu();
+				},
+			});
 
-	menuItems.push({
-		label: "Stop Host Service",
-		enabled: hasRunning,
-		click: () => {
-			manager.stopAll();
-			updateTrayMenu();
-		},
-	});
+			menuItems.push({
+				label: "  Stop",
+				enabled: isRunning,
+				click: () => {
+					manager.stop(orgId);
+					updateTrayMenu();
+				},
+			});
+		}
+	}
 
 	return menuItems;
 }
@@ -259,10 +253,33 @@ function updateTrayMenu(): void {
 			},
 		},
 		{ type: "separator" },
-		{
-			label: "Quit",
-			click: () => app.quit(),
-		},
+		...(hasActive
+			? [
+					{
+						label: "Quit (Keep Services Running)",
+						click: () => {
+							setForceQuit();
+							app.quit();
+						},
+					},
+					{
+						label: "Quit & Stop Services",
+						click: () => {
+							setForceQuit();
+							setStopServicesOnQuit();
+							app.quit();
+						},
+					},
+				]
+			: [
+					{
+						label: "Quit",
+						click: () => {
+							setForceQuit();
+							app.quit();
+						},
+					},
+				]),
 	]);
 
 	tray.setContextMenu(menu);

@@ -149,6 +149,21 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipConfirmation = false;
+let stopServicesOnQuit = false;
+let forceQuit = false;
+
+/** Call before app.quit() to also stop all host-service instances.
+ *  Without this, services are released (detached) so they survive the app
+ *  exit and can be re-adopted on next launch. */
+export function setStopServicesOnQuit(): void {
+	stopServicesOnQuit = true;
+}
+
+/** Call before app.quit() to bypass the macOS hide-to-tray behavior
+ *  and actually exit the process. Used by tray quit actions. */
+export function setForceQuit(): void {
+	forceQuit = true;
+}
 
 function getConfirmOnQuitSetting(): boolean {
 	try {
@@ -171,9 +186,21 @@ export function quitWithoutConfirmation(): void {
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
+	const manager = getHostServiceManager();
+
+	// macOS: when services are active and this isn't an explicit tray quit,
+	// just hide all windows. The tray and services stay alive.
+	if (PLATFORM.IS_MAC && !forceQuit && manager.hasActiveInstances()) {
+		event.preventDefault();
+		for (const win of BrowserWindow.getAllWindows()) {
+			win.hide();
+		}
+		return;
+	}
+
 	const isDev = process.env.NODE_ENV === "development";
 	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+		!skipConfirmation && !forceQuit && !isDev && getConfirmOnQuitSetting();
 
 	if (shouldConfirm) {
 		event.preventDefault();
@@ -188,16 +215,22 @@ app.on("before-quit", async (event) => {
 				message: "Are you sure you want to quit?",
 			});
 
-			if (response === 1) return;
+			if (response === 1) {
+				stopServicesOnQuit = false;
+				forceQuit = false;
+				return;
+			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
-	getHostServiceManager().stopAll();
+	if (stopServicesOnQuit) {
+		manager.stopAll();
+	} else {
+		manager.releaseAll();
+	}
 	disposeTray();
 	app.exit(0);
 });
@@ -344,6 +377,10 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
 		}
+
+		// Discover and adopt host-services that survived a previous quit
+		// before the tray initializes, so it shows accurate status immediately.
+		await getHostServiceManager().discoverAndAdoptAll();
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();

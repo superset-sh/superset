@@ -58,6 +58,7 @@ describe("HostServiceManager", () => {
 			app: {
 				isPackaged: false,
 				getAppPath: () => "/tmp/app",
+				getVersion: () => "1.0.0-test",
 			},
 		}));
 
@@ -90,6 +91,9 @@ describe("HostServiceManager", () => {
 		const secondStart = manager.start("org-1");
 
 		expect(manager.getStatus("org-1")).toBe("starting");
+
+		// Flush microtasks so tryAdopt completes (no manifest → falls through to spawn)
+		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(getProcessEnvWithShellPathMock.mock.calls).toHaveLength(1);
 
 		pendingEnv.resolve({ PATH: "/usr/bin:/bin" });
