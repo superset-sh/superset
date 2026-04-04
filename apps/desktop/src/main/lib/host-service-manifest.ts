@@ -30,12 +30,15 @@ function manifestPath(organizationId: string): string {
 export function writeManifest(manifest: HostServiceManifest): void {
 	const dir = manifestDir(manifest.organizationId);
 	if (!existsSync(dir)) {
-		mkdirSync(dir, { recursive: true });
+		mkdirSync(dir, { recursive: true, mode: 0o700 });
 	}
 	writeFileSync(
 		manifestPath(manifest.organizationId),
 		JSON.stringify(manifest),
-		"utf-8",
+		{
+			encoding: "utf-8",
+			mode: 0o600,
+		},
 	);
 }
 
