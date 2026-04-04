@@ -19,7 +19,7 @@ type AlertActionVariant = NonNullable<
 interface AlertAction {
 	label: string;
 	variant?: AlertActionVariant;
-	onClick: () => void | Promise<void>;
+	onClick?: () => void | Promise<void>;
 }
 
 type AlertOptions = {
@@ -44,7 +44,7 @@ const Alerter = () => {
 	const handleAction = async (action: AlertAction, index: number) => {
 		setLoadingIndex(index);
 		try {
-			await action.onClick();
+			await action.onClick?.();
 			setIsOpen(false);
 		} catch (error) {
 			console.error("[alert] Action failed:", error);

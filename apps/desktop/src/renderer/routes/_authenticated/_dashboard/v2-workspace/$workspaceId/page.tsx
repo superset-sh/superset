@@ -19,9 +19,9 @@ import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/Conte
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useStore } from "zustand";
 import { AddTabMenu } from "./components/AddTabMenu";
-import { RightSidebar } from "./components/RightSidebar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
+import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import type {
@@ -63,6 +63,7 @@ function V2WorkspacePage() {
 		<WorkspaceContent
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
+			workspaceName={workspace.name}
 		/>
 	);
 }
@@ -70,9 +71,11 @@ function V2WorkspacePage() {
 function WorkspaceContent({
 	projectId,
 	workspaceId,
+	workspaceName,
 }: {
 	projectId: string;
 	workspaceId: string;
+	workspaceName: string;
 }) {
 	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
 		projectId,
@@ -311,9 +314,11 @@ function WorkspaceContent({
 					<>
 						<ResizableHandle />
 						<ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-							<RightSidebar
+							<WorkspaceSidebar
 								workspaceId={workspaceId}
+								workspaceName={workspaceName}
 								onSelectFile={openFilePane}
+								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 							/>
 						</ResizablePanel>
