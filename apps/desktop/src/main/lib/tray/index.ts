@@ -22,35 +22,47 @@ import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
 const POLL_INTERVAL_MS = 5000;
 
-/** Must have "Template" suffix for macOS dark/light mode support */
+/**
+ * Single icon asset for all platforms.
+ * macOS template behavior is controlled via setTemplateImage(true) at runtime,
+ * so the "Template" suffix in the filename is what macOS needs to auto-detect it.
+ */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
 
 function getTrayIconPath(): string | null {
-	if (app.isPackaged) {
-		const prodPath = join(
-			process.resourcesPath,
-			"app.asar.unpacked/resources/tray",
-			TRAY_ICON_FILENAME,
-		);
-		if (existsSync(prodPath)) return prodPath;
-		return null;
+	const filename = TRAY_ICON_FILENAME;
+	const isLinux = process.platform === "linux";
+
+	// Build candidate paths in priority order (packaged vs dev, then Linux fallback)
+	const candidates: string[] = app.isPackaged
+		? [
+				join(
+					process.resourcesPath,
+					"app.asar.unpacked/resources/tray",
+					filename,
+				),
+				...(isLinux
+					? [
+							join(
+								process.resourcesPath,
+								"app.asar/resources/build/icons/icon.png",
+							),
+						]
+					: []),
+			]
+		: [
+				join(__dirname, "../resources/tray", filename),
+				join(app.getAppPath(), "src/resources/tray", filename),
+				...(isLinux
+					? [join(app.getAppPath(), "src/resources/build/icons/icon.png")]
+					: []),
+			];
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) return candidate;
 	}
 
-	const previewPath = join(__dirname, "../resources/tray", TRAY_ICON_FILENAME);
-	if (existsSync(previewPath)) {
-		return previewPath;
-	}
-
-	const devPath = join(
-		app.getAppPath(),
-		"src/resources/tray",
-		TRAY_ICON_FILENAME,
-	);
-	if (existsSync(devPath)) {
-		return devPath;
-	}
-
-	console.warn("[Tray] Icon not found at:", previewPath, "or", devPath);
+	console.warn("[Tray] Icon not found, tried:", candidates);
 	return null;
 }
 
@@ -73,11 +85,14 @@ function createTrayIcon(): Electron.NativeImage | null {
 			return null;
 		}
 
-		// 16x16 is standard menu bar size, auto-scales for Retina
-		if (size.width > 22 || size.height > 22) {
-			image = image.resize({ width: 16, height: 16 });
+		if (process.platform === "darwin") {
+			// 16x16 is standard macOS menu bar size, auto-scales for Retina
+			if (size.width > 22 || size.height > 22) {
+				image = image.resize({ width: 16, height: 16 });
+			}
+			// Template images are a macOS concept for menu bar icons
+			image.setTemplateImage(true);
 		}
-		image.setTemplateImage(true);
 		return image;
 	} catch (error) {
 		console.warn("[Tray] Failed to load icon:", error);
@@ -306,7 +321,8 @@ export function initTray(): void {
 		return;
 	}
 
-	if (process.platform !== "darwin") {
+	// Tray is supported on macOS and Linux (Windows uses the taskbar)
+	if (process.platform === "win32") {
 		return;
 	}
 

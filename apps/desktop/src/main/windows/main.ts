@@ -115,8 +115,14 @@ export async function MainWindow() {
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
 		frame: false,
-		titleBarStyle: "hidden",
-		trafficLightPosition: { x: 16, y: 16 },
+		// macOS: hidden titleBarStyle gives native traffic light controls
+		// Linux/Windows: frame: false is sufficient; custom WindowControls are rendered in the TopBar
+		...(PLATFORM.IS_MAC
+			? {
+					titleBarStyle: "hidden" as const,
+					trafficLightPosition: { x: 16, y: 16 },
+				}
+			: {}),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,

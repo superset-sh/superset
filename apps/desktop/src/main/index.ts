@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
@@ -300,12 +301,52 @@ if (!gotTheLock) {
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
-		if (process.platform === "darwin") {
-			const SYSTEM_FONT_DIRS = [
-				"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
-				"/System/Library/Fonts",
-				"/Library/Fonts",
-			];
+		{
+			const SYSTEM_FONT_DIRS =
+				process.platform === "darwin"
+					? [
+							"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
+							"/System/Library/Fonts",
+							"/Library/Fonts",
+						]
+					: process.platform === "linux"
+						? [
+								"/usr/share/fonts",
+								"/usr/local/share/fonts",
+								`${path.join(app.getPath("home"), ".local/share/fonts")}`,
+							]
+						: [];
+			/** Recursively search for a font file in a directory tree */
+			async function findFontFile(
+				dir: string,
+				filename: string,
+			): Promise<string | null> {
+				const direct = path.join(dir, filename);
+				try {
+					await fs.promises.access(direct);
+					return direct;
+				} catch {
+					// Not found at this level, search subdirectories
+				}
+				try {
+					const entries = await fs.promises.readdir(dir, {
+						withFileTypes: true,
+					});
+					for (const entry of entries) {
+						if (entry.isDirectory()) {
+							const found = await findFontFile(
+								path.join(dir, entry.name),
+								filename,
+							);
+							if (found) return found;
+						}
+					}
+				} catch (err) {
+					console.warn(`[fonts] Failed to read directory ${dir}:`, err);
+				}
+				return null;
+			}
+
 			const fontProtocolHandler = async (request: Request) => {
 				const url = new URL(request.url);
 				const filename = path.basename(url.pathname);
@@ -313,11 +354,13 @@ if (!gotTheLock) {
 					return new Response("Not found", { status: 404 });
 				}
 				for (const dir of SYSTEM_FONT_DIRS) {
-					const fontPath = path.join(dir, filename);
-					try {
-						return await net.fetch(pathToFileURL(fontPath).toString());
-					} catch {
-						// Font not in this directory, try next
+					const fontPath = await findFontFile(dir, filename);
+					if (fontPath) {
+						try {
+							return await net.fetch(pathToFileURL(fontPath).toString());
+						} catch {
+							// Font file exists but couldn't be read, try next
+						}
 					}
 				}
 				return new Response("Not found", { status: 404 });

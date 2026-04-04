@@ -29,6 +29,12 @@ export const COMPANY = {
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 } as const;
 
+/**
+ * Inline script that strips Katalon browser extension attributes from <html>.
+ * Used in layout files to prevent hydration mismatches caused by the extension.
+ */
+export const STRIP_KATALON_ATTRS_SCRIPT = `(function(){try{var attrs=document.documentElement.attributes;for(var i=attrs.length-1;i>=0;i--){var name=attrs[i].name;if(name&&name.toLowerCase().indexOf('katalon')!==-1){document.documentElement.removeAttribute(name);}}}catch(e){console.warn('strip-katalon-attrs failed',e)}})();`;
+
 // Theme
 export const THEME_STORAGE_KEY = "superset-theme";
 

@@ -415,7 +415,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		let text: string;
 		if (files.length > 0) {
 			// Native file drop (from Finder, etc.)
-			const paths = files.map((file) => window.webUtils.getPathForFile(file));
+			const paths = files
+				.map((file) => window.webUtils.getPathForFile(file))
+				.filter((p): p is string => !!p);
 			text = shellEscapePaths(paths);
 		} else {
 			// Internal drag (from file tree) - path is in text/plain

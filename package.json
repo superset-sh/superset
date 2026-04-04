@@ -17,8 +17,9 @@
 	"private": true,
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
+		"dev:no-caddy": "turbo run dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:all": "turbo dev",
-		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
+		"dev:caddy": "dotenv -- sh -c 'caddy reload --config Caddyfile || caddy run --config Caddyfile'",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
 		"build": "turbo build --filter=@superset/desktop",
