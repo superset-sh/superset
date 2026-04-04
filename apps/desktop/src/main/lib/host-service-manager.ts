@@ -248,7 +248,15 @@ export class HostServiceManager extends EventEmitter {
 		const manifests = listManifests();
 		for (const manifest of manifests) {
 			if (this.instances.has(manifest.organizationId)) continue;
-			await this.tryAdopt(manifest.organizationId);
+			try {
+				await this.tryAdopt(manifest.organizationId);
+			} catch (error) {
+				console.error(
+					`[host-service:${manifest.organizationId}] Failed to adopt, removing bad manifest:`,
+					error,
+				);
+				removeManifest(manifest.organizationId);
+			}
 		}
 	}
 
@@ -644,7 +652,9 @@ export class HostServiceManager extends EventEmitter {
 		const previousStatus = instance.status;
 		instance.status = "degraded";
 		pendingStart.reject(error);
-		instance.process?.kill("SIGTERM");
+		const child = instance.process;
+		instance.process = null;
+		child?.kill("SIGTERM");
 		instance.lastCrash = Date.now();
 		this.emitStatus(instance.organizationId, "degraded", previousStatus);
 		this.scheduleRestart(instance.organizationId);
