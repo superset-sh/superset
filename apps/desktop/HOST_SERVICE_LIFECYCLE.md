@@ -26,6 +26,12 @@ All quit paths use a single `QuitMode` (`"release" | "stop"`):
 
 On startup, the manager scans `~/.superset/host/*/manifest.json`, health-checks each endpoint, and reconnects to surviving services. Incompatible or unreachable services are cleaned up and respawned.
 
+### v1 vs v2 terminal paths
+
+v1 terminals run on a separate **terminal-host daemon** (`src/main/terminal-host/`) — a persistent background process that owns PTYs over a Unix domain socket. It has its own survival and reconnection model independent of host-service.
+
+v2 terminals run through **host-service** child processes. The quit/adopt/tray lifecycle described here only applies to host-service instances.
+
 ### Design decisions
 
 - **No supervisor process.** Electron main owns everything. Simpler while v1 and v2 coexist.
