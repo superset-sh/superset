@@ -25,6 +25,7 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
 import { CategorySection } from "./components/CategorySection";
+import { HistorySection } from "./components/HistorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { DiscardConfirmDialog } from "./components/DiscardConfirmDialog";
@@ -486,6 +487,18 @@ export function ChangesView({
 		onFileOpen?.(file, "committed", commitHash);
 	};
 
+	const handleHistoryFileSelect = (file: ChangedFile, commitHash: string) => {
+		if (!workspaceId || !worktreePath) return;
+		selectFile(
+			workspaceId,
+			toAbsoluteWorkspacePath(worktreePath, file.path),
+			file,
+			"committed",
+			commitHash,
+		);
+		onFileOpen?.(file, "committed", commitHash);
+	};
+
 	const handleCommitToggle = (hash: string) => {
 		setExpandedCommits((prev) => {
 			const next = new Set(prev);
@@ -781,33 +794,45 @@ export function ChangesView({
 						/>
 					</div>
 
-					{!hasChanges ? (
-						<div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+					{!hasChanges && (
+						<div className="flex items-center justify-center px-4 py-4 text-center text-sm text-muted-foreground">
 							No changes detected
 						</div>
-					) : (
-						<div
-							className="flex-1 overflow-y-auto"
-							data-changes-scroll-container
-						>
-							{orderedSections
-								.filter((section) => section.count > 0)
-								.map((section) => (
-									<CategorySection
-										key={section.id}
-										id={section.id}
-										title={section.title}
-										count={section.count}
-										isExpanded={section.isExpanded}
-										onToggle={section.onToggle}
-										actions={section.actions}
-										onMove={moveSection}
-									>
-										{section.content}
-									</CategorySection>
-								))}
-						</div>
 					)}
+					<div
+						className="flex-1 overflow-y-auto"
+						data-changes-scroll-container
+					>
+						{orderedSections
+							.filter((section) => section.count > 0)
+							.map((section) => (
+								<CategorySection
+									key={section.id}
+									id={section.id}
+									title={section.title}
+									count={section.count}
+									isExpanded={section.isExpanded}
+									onToggle={section.onToggle}
+									actions={section.actions}
+									onMove={moveSection}
+								>
+									{section.content}
+								</CategorySection>
+							))}
+						{worktreePath && workspaceId && (
+							<HistorySection
+								worktreePath={worktreePath}
+								workspaceId={workspaceId}
+								fileListViewMode={fileListViewMode}
+								selectedFile={selectedFile}
+								selectedCommitHash={selectedCommitHash}
+								onCommitFileSelect={handleHistoryFileSelect}
+								projectId={projectId}
+								isExpandedView={isExpandedView}
+								isActive={isActive}
+							/>
+						)}
+					</div>
 				</TabsContent>
 
 				<TabsContent
