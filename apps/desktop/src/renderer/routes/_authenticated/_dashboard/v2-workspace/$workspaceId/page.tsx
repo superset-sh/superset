@@ -23,6 +23,7 @@ import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
+import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
@@ -214,19 +215,9 @@ function WorkspaceContent({
 		[],
 	);
 
-	const collections = useCollections();
 	const sidebarOpen = localWorkspaceState?.rightSidebarOpen ?? false;
-	const toggleSidebar = useCallback(() => {
-		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.rightSidebarOpen = !draft.rightSidebarOpen;
-		});
-	}, [collections, workspaceId]);
 
-	useHotkey("TOGGLE_SIDEBAR", toggleSidebar);
-	useHotkey("NEW_GROUP", addTerminalTab);
-	useHotkey("NEW_CHAT", addChatTab);
-	useHotkey("NEW_BROWSER", addBrowserTab);
+	useWorkspaceHotkeys({ store, workspaceId });
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (

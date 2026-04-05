@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -47,6 +47,34 @@ export function useDashboardSidebarShortcuts(
 	useHotkey("JUMP_TO_WORKSPACE_7", () => switchToWorkspace(6));
 	useHotkey("JUMP_TO_WORKSPACE_8", () => switchToWorkspace(7));
 	useHotkey("JUMP_TO_WORKSPACE_9", () => switchToWorkspace(8));
+
+	// Prev/next workspace navigation (cycles)
+	const matchRoute = useMatchRoute();
+	const currentWorkspaceMatch = matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const currentWorkspaceId =
+		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
+
+	useHotkey("PREV_WORKSPACE", () => {
+		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		const index = flattenedWorkspaces.findIndex(
+			(w) => w.id === currentWorkspaceId,
+		);
+		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
+		navigateToV2Workspace(flattenedWorkspaces[prevIndex].id, navigate);
+	});
+
+	useHotkey("NEXT_WORKSPACE", () => {
+		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		const index = flattenedWorkspaces.findIndex(
+			(w) => w.id === currentWorkspaceId,
+		);
+		const nextIndex =
+			index >= flattenedWorkspaces.length - 1 || index === -1 ? 0 : index + 1;
+		navigateToV2Workspace(flattenedWorkspaces[nextIndex].id, navigate);
+	});
 
 	return workspaceShortcutLabels;
 }
