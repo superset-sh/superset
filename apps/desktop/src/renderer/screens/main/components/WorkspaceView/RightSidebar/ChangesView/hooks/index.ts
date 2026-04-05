@@ -1,3 +1,4 @@
+export { applyCommitFiles, useCommitFiles } from "./useCommitFiles";
 export { useFileDrag } from "./useFileDrag";
 export { useOrderedSections } from "./useOrderedSections";
 export { usePathActions } from "./usePathActions";

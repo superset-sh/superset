@@ -9,6 +9,7 @@ import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
+import { applyCommitFiles, useCommitFiles } from "../../hooks";
 import type { ChangesViewMode } from "../../types";
 import { CommitListVirtualized } from "../CommitListVirtualized";
 
@@ -40,7 +41,7 @@ export function HistorySection({
 	const [nextSkip, setNextSkip] = useState(0);
 	const [hasMore, setHasMore] = useState(true);
 	const isFetchingRef = useRef(false);
-	const lastAppendedPageRef = useRef<CommitInfo[] | null>(null);
+	const lastAppendedSkipRef = useRef<number | null>(null);
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
@@ -52,15 +53,18 @@ export function HistorySection({
 		setNextSkip(0);
 		setHasMore(true);
 		setExpandedCommits(new Set());
-		lastAppendedPageRef.current = null;
+		lastAppendedSkipRef.current = null;
 	}, [worktreePath]);
 
 	// First page query — only runs when section is expanded
-	const { data: firstPage, isLoading } =
-		electronTrpc.changes.getHistory.useQuery(
-			{ worktreePath, maxCount: PAGE_SIZE, skip: 0 },
-			{ enabled: !!worktreePath && historyExpanded && isActive },
-		);
+	const {
+		data: firstPage,
+		isLoading,
+		isError,
+	} = electronTrpc.changes.getHistory.useQuery(
+		{ worktreePath, maxCount: PAGE_SIZE, skip: 0 },
+		{ enabled: !!worktreePath && historyExpanded && isActive },
+	);
 
 	// Store first page when it arrives
 	useEffect(() => {
@@ -86,14 +90,14 @@ export function HistorySection({
 		},
 	);
 
-	// Append next page when it arrives (guard against stale data)
+	// Append next page when it arrives (guard against duplicate appends by tracking skip value)
 	useEffect(() => {
 		if (
 			nextPage &&
 			fetchSkip !== null &&
-			nextPage !== lastAppendedPageRef.current
+			fetchSkip !== lastAppendedSkipRef.current
 		) {
-			lastAppendedPageRef.current = nextPage;
+			lastAppendedSkipRef.current = fetchSkip;
 			setPages((prev) => [...prev, nextPage]);
 			setHasMore(nextPage.length >= PAGE_SIZE);
 			setNextSkip((prev) => prev + nextPage.length);
@@ -110,7 +114,7 @@ export function HistorySection({
 		setFetchSkip(nextSkip);
 	}, [hasMore, nextSkip]);
 
-	const handleCommitToggle = (hash: string) => {
+	const handleCommitToggle = useCallback((hash: string) => {
 		setExpandedCommits((prev) => {
 			const next = new Set(prev);
 			if (next.has(hash)) {
@@ -120,9 +124,8 @@ export function HistorySection({
 			}
 			return next;
 		});
-	};
+	}, []);
 
-	// Fetch files for expanded commits (reuse existing getCommitFiles)
 	const expandedCommitHashes = useMemo(
 		() =>
 			isActive && historyExpanded
@@ -131,28 +134,8 @@ export function HistorySection({
 		[isActive, historyExpanded, expandedCommits],
 	);
 
-	const commitFilesQueries = electronTrpc.useQueries((t) =>
-		expandedCommitHashes.map((hash) =>
-			t.changes.getCommitFiles({
-				worktreePath,
-				commitHash: hash,
-			}),
-		),
-	);
-
-	const commitsWithFiles = useMemo(() => {
-		const filesMap = new Map<string, ChangedFile[]>();
-		expandedCommitHashes.forEach((hash, index) => {
-			const query = commitFilesQueries[index];
-			if (query?.data) {
-				filesMap.set(hash, query.data);
-			}
-		});
-		return allCommits.map((commit) => ({
-			...commit,
-			files: filesMap.get(commit.hash) || commit.files,
-		}));
-	}, [allCommits, expandedCommitHashes, commitFilesQueries]);
+	const commitFilesMap = useCommitFiles(worktreePath, expandedCommitHashes);
+	const commitsWithFiles = applyCommitFiles(allCommits, commitFilesMap);
 
 	const totalCount = allCommits.length;
 
@@ -182,7 +165,11 @@ export function HistorySection({
 			</div>
 
 			<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
-				{isLoading ? (
+				{isError ? (
+					<div className="flex items-center justify-center py-2 text-xs text-destructive">
+						Failed to load history
+					</div>
+				) : isLoading ? (
 					<div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
 						Loading history...
 					</div>

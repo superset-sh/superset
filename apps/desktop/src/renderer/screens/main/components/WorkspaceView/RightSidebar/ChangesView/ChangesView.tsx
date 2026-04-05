@@ -30,7 +30,7 @@ import { CommitInput } from "./components/CommitInput";
 import { DiscardConfirmDialog } from "./components/DiscardConfirmDialog";
 import { HistorySection } from "./components/HistorySection";
 import { ReviewPanel } from "./components/ReviewPanel";
-import { useOrderedSections } from "./hooks";
+import { applyCommitFiles, useCommitFiles, useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
 
 interface ChangesViewProps {
@@ -318,6 +318,7 @@ export function ChangesView({
 	const {
 		expandedSections,
 		fileListViewMode,
+		historyExpanded,
 		sectionOrder,
 		selectFile,
 		getSelectedFile,
@@ -435,25 +436,10 @@ export function ChangesView({
 		[isActive, expandedSections.committed, expandedCommits],
 	);
 
-	const commitFilesQueries = electronTrpc.useQueries((t) =>
-		expandedCommitHashes.map((hash) =>
-			t.changes.getCommitFiles({
-				worktreePath: worktreePath || "",
-				commitHash: hash,
-			}),
-		),
+	const commitFilesMap = useCommitFiles(
+		worktreePath ?? "",
+		expandedCommitHashes,
 	);
-
-	const commitFilesMap = useMemo(() => {
-		const map = new Map<string, ChangedFile[]>();
-		expandedCommitHashes.forEach((hash, index) => {
-			const query = commitFilesQueries[index];
-			if (query?.data) {
-				map.set(hash, query.data);
-			}
-		});
-		return map;
-	}, [expandedCommitHashes, commitFilesQueries]);
 
 	const combinedUnstaged = useMemo(
 		() =>
@@ -512,10 +498,7 @@ export function ChangesView({
 		unstagedFiles.length > 0 ||
 		untrackedFiles.length > 0;
 
-	const commitsWithFiles = commits.map((commit) => ({
-		...commit,
-		files: commitFilesMap.get(commit.hash) || commit.files,
-	}));
+	const commitsWithFiles = applyCommitFiles(commits, commitFilesMap);
 
 	useEffect(() => {
 		if (!workspaceId || !worktreePath || !selectedFileState) {
@@ -782,7 +765,7 @@ export function ChangesView({
 						/>
 					</div>
 
-					{!hasChanges && (
+					{!hasChanges && !historyExpanded && (
 						<div className="flex items-center justify-center px-4 py-4 text-center text-sm text-muted-foreground">
 							No changes detected
 						</div>

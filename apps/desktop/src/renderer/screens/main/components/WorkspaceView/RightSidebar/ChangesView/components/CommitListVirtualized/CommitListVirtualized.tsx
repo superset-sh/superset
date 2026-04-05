@@ -54,6 +54,7 @@ export function CommitListVirtualized({
 
 	const lastItem = items.at(-1);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: lastItem is a new object ref each render; only lastItem.index matters
 	useEffect(() => {
 		if (
 			lastItem &&
@@ -63,7 +64,7 @@ export function CommitListVirtualized({
 		) {
 			onLoadMore();
 		}
-	}, [lastItem?.index, commits.length, hasMore, onLoadMore, lastItem]);
+	}, [lastItem?.index, commits.length, hasMore, onLoadMore]);
 
 	return (
 		<div ref={listRef}>
