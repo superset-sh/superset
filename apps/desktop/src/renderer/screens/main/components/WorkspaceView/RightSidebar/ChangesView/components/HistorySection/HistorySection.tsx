@@ -16,7 +16,6 @@ const PAGE_SIZE = 50;
 
 interface HistorySectionProps {
 	worktreePath: string;
-	workspaceId: string;
 	fileListViewMode: ChangesViewMode;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
@@ -28,7 +27,6 @@ interface HistorySectionProps {
 
 export function HistorySection({
 	worktreePath,
-	workspaceId,
 	fileListViewMode,
 	selectedFile,
 	selectedCommitHash,
@@ -42,6 +40,7 @@ export function HistorySection({
 	const [nextSkip, setNextSkip] = useState(0);
 	const [hasMore, setHasMore] = useState(true);
 	const isFetchingRef = useRef(false);
+	const lastAppendedPageRef = useRef<CommitInfo[] | null>(null);
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
@@ -53,6 +52,7 @@ export function HistorySection({
 		setNextSkip(0);
 		setHasMore(true);
 		setExpandedCommits(new Set());
+		lastAppendedPageRef.current = null;
 	}, [worktreePath]);
 
 	// First page query — only runs when section is expanded
@@ -86,9 +86,10 @@ export function HistorySection({
 		},
 	);
 
-	// Append next page when it arrives
+	// Append next page when it arrives (guard against stale data)
 	useEffect(() => {
-		if (nextPage && fetchSkip !== null) {
+		if (nextPage && fetchSkip !== null && nextPage !== lastAppendedPageRef.current) {
+			lastAppendedPageRef.current = nextPage;
 			setPages((prev) => [...prev, nextPage]);
 			setHasMore(nextPage.length >= PAGE_SIZE);
 			setNextSkip((prev) => prev + nextPage.length);

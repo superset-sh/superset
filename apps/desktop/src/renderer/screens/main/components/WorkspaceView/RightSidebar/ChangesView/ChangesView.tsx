@@ -487,18 +487,6 @@ export function ChangesView({
 		onFileOpen?.(file, "committed", commitHash);
 	};
 
-	const handleHistoryFileSelect = (file: ChangedFile, commitHash: string) => {
-		if (!workspaceId || !worktreePath) return;
-		selectFile(
-			workspaceId,
-			toAbsoluteWorkspacePath(worktreePath, file.path),
-			file,
-			"committed",
-			commitHash,
-		);
-		onFileOpen?.(file, "committed", commitHash);
-	};
-
 	const handleCommitToggle = (hash: string) => {
 		setExpandedCommits((prev) => {
 			const next = new Set(prev);
@@ -822,11 +810,10 @@ export function ChangesView({
 						{worktreePath && workspaceId && (
 							<HistorySection
 								worktreePath={worktreePath}
-								workspaceId={workspaceId}
 								fileListViewMode={fileListViewMode}
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
-								onCommitFileSelect={handleHistoryFileSelect}
+								onCommitFileSelect={handleCommitFileSelect}
 								projectId={projectId}
 								isExpandedView={isExpandedView}
 								isActive={isActive}
