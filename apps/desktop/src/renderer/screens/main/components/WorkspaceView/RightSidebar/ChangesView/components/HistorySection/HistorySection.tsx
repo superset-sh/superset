@@ -40,20 +40,23 @@ export function HistorySection({
 	const [pages, setPages] = useState<CommitInfo[][]>([]);
 	const [nextSkip, setNextSkip] = useState(0);
 	const [hasMore, setHasMore] = useState(true);
+	const [fetchSkip, setFetchSkip] = useState<number | null>(null);
 	const isFetchingRef = useRef(false);
 	const lastAppendedSkipRef = useRef<number | null>(null);
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
 
-	// Reset when worktree changes
+	// Reset all state when worktree changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
 	useEffect(() => {
 		setPages([]);
 		setNextSkip(0);
 		setHasMore(true);
 		setExpandedCommits(new Set());
+		setFetchSkip(null);
 		lastAppendedSkipRef.current = null;
+		isFetchingRef.current = false;
 	}, [worktreePath]);
 
 	// First page query — only runs when section is expanded
@@ -76,19 +79,19 @@ export function HistorySection({
 		}
 	}, [firstPage]);
 
-	// Subsequent page query — enabled only when isFetchingRef is true and nextSkip > 0
-	const [fetchSkip, setFetchSkip] = useState<number | null>(null);
-	const { data: nextPage } = electronTrpc.changes.getHistory.useQuery(
-		{ worktreePath, maxCount: PAGE_SIZE, skip: fetchSkip ?? 0 },
-		{
-			enabled:
-				!!worktreePath &&
-				historyExpanded &&
-				isActive &&
-				fetchSkip !== null &&
-				fetchSkip > 0,
-		},
-	);
+	// Subsequent page query — enabled only when fetchSkip is set
+	const { data: nextPage, isError: isNextPageError } =
+		electronTrpc.changes.getHistory.useQuery(
+			{ worktreePath, maxCount: PAGE_SIZE, skip: fetchSkip ?? 0 },
+			{
+				enabled:
+					!!worktreePath &&
+					historyExpanded &&
+					isActive &&
+					fetchSkip !== null &&
+					fetchSkip > 0,
+			},
+		);
 
 	// Append next page when it arrives (guard against duplicate appends by tracking skip value)
 	useEffect(() => {
@@ -105,6 +108,14 @@ export function HistorySection({
 			isFetchingRef.current = false;
 		}
 	}, [nextPage, fetchSkip]);
+
+	// Clear fetch lock on paginated query error so infinite scroll can retry
+	useEffect(() => {
+		if (isNextPageError && fetchSkip !== null) {
+			setFetchSkip(null);
+			isFetchingRef.current = false;
+		}
+	}, [isNextPageError, fetchSkip]);
 
 	const allCommits = useMemo(() => pages.flat(), [pages]);
 

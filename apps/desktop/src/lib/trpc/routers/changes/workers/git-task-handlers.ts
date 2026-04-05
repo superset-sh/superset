@@ -273,7 +273,7 @@ async function computeHistory({
 		return parseGitLog(logOutput);
 	} catch (error) {
 		logWorkerDebug("failed to compute history", error);
-		return [];
+		throw error;
 	}
 }
 
