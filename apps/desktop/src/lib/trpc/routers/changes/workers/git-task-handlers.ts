@@ -1,6 +1,6 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import type { ChangedFile, CommitInfo, GitChangesStatus } from "shared/changes-types";
 import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
@@ -251,6 +251,28 @@ async function computeCommitFiles({
 	return files;
 }
 
+async function computeHistory({
+	worktreePath,
+	maxCount,
+	skip,
+}: GitTaskPayloadMap["getHistory"]): Promise<CommitInfo[]> {
+	const git = await getSimpleGitWithShellPath(worktreePath);
+
+	try {
+		const logOutput = await git.raw([
+			"log",
+			"HEAD",
+			`--max-count=${maxCount}`,
+			`--skip=${skip}`,
+			"--format=%H|%h|%s|%an|%aI",
+		]);
+		return parseGitLog(logOutput);
+	} catch (error) {
+		logWorkerDebug("failed to compute history", error);
+		return [];
+	}
+}
+
 export async function executeGitTask<TTask extends GitTaskType>(
 	taskType: TTask,
 	payload: GitTaskPayloadMap[TTask],
@@ -263,6 +285,10 @@ export async function executeGitTask<TTask extends GitTaskType>(
 		case "getCommitFiles":
 			return computeCommitFiles(
 				payload as GitTaskPayloadMap["getCommitFiles"],
+			) as Promise<GitTaskResultMap[TTask]>;
+		case "getHistory":
+			return computeHistory(
+				payload as GitTaskPayloadMap["getHistory"],
 			) as Promise<GitTaskResultMap[TTask]>;
 		default: {
 			const exhaustive: never = taskType;
