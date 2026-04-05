@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	buildSafeEnv,
 	buildTerminalEnv,
+	buildV2TerminalEnv,
 	FALLBACK_SHELL,
 	getLocale,
 	normalizeDefaultShell,
@@ -9,6 +10,7 @@ import {
 	resetTerminalEnvCachesForTests,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
+	stripV2InternalVars,
 } from "./env";
 
 describe("env", () => {
@@ -764,6 +766,310 @@ describe("env", () => {
 				});
 				expect(result.COLORFGBG).toBe("0;15");
 			});
+		});
+	});
+
+	describe("stripV2InternalVars", () => {
+		it("should strip ELECTRON_ prefixed vars", () => {
+			const env = {
+				ELECTRON_RUN_AS_NODE: "1",
+				ELECTRON_IS_DEV: "0",
+				PATH: "/usr/bin",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
+			expect(result.ELECTRON_IS_DEV).toBeUndefined();
+			expect(result.PATH).toBe("/usr/bin");
+		});
+
+		it("should strip SUPERSET_ prefixed vars", () => {
+			const env = {
+				SUPERSET_PANE_ID: "pane-1",
+				SUPERSET_TAB_ID: "tab-1",
+				SUPERSET_PORT: "3000",
+				SUPERSET_HOOK_VERSION: "2",
+				PATH: "/usr/bin",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.SUPERSET_PANE_ID).toBeUndefined();
+			expect(result.SUPERSET_TAB_ID).toBeUndefined();
+			expect(result.SUPERSET_PORT).toBeUndefined();
+			expect(result.SUPERSET_HOOK_VERSION).toBeUndefined();
+			expect(result.PATH).toBe("/usr/bin");
+		});
+
+		it("should strip VITE_ and NEXT_PUBLIC_ prefixed vars", () => {
+			const env = {
+				VITE_API_URL: "http://localhost",
+				NEXT_PUBLIC_KEY: "pk_test",
+				HOME: "/home/user",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.VITE_API_URL).toBeUndefined();
+			expect(result.NEXT_PUBLIC_KEY).toBeUndefined();
+			expect(result.HOME).toBe("/home/user");
+		});
+
+		it("should strip TURBO_ and npm_ prefixed vars", () => {
+			const env = {
+				TURBO_TOKEN: "token",
+				npm_package_version: "1.0.0",
+				npm_config_registry: "https://registry.npmjs.org",
+				SHELL: "/bin/zsh",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.TURBO_TOKEN).toBeUndefined();
+			expect(result.npm_package_version).toBeUndefined();
+			expect(result.npm_config_registry).toBeUndefined();
+			expect(result.SHELL).toBe("/bin/zsh");
+		});
+
+		it("should strip CHROME_ prefixed vars", () => {
+			const env = {
+				CHROME_CRASHPAD_PIPE_NAME: "pipe",
+				PATH: "/usr/bin",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.CHROME_CRASHPAD_PIPE_NAME).toBeUndefined();
+			expect(result.PATH).toBe("/usr/bin");
+		});
+
+		it("should strip host-service runtime config", () => {
+			const env = {
+				HOST_SERVICE_SECRET: "secret",
+				HOST_DB_PATH: "/path/to/db",
+				HOST_MIGRATIONS_PATH: "/path/to/migrations",
+				AUTH_TOKEN: "token",
+				CLOUD_API_URL: "https://api.example.com",
+				ORGANIZATION_ID: "org-1",
+				DEVICE_CLIENT_ID: "device-1",
+				DEVICE_NAME: "my-laptop",
+				CORS_ORIGINS: "http://localhost:5173",
+				DESKTOP_VITE_PORT: "5173",
+				PATH: "/usr/bin",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.HOST_SERVICE_SECRET).toBeUndefined();
+			expect(result.HOST_DB_PATH).toBeUndefined();
+			expect(result.HOST_MIGRATIONS_PATH).toBeUndefined();
+			expect(result.AUTH_TOKEN).toBeUndefined();
+			expect(result.CLOUD_API_URL).toBeUndefined();
+			expect(result.ORGANIZATION_ID).toBeUndefined();
+			expect(result.DEVICE_CLIENT_ID).toBeUndefined();
+			expect(result.DEVICE_NAME).toBeUndefined();
+			expect(result.CORS_ORIGINS).toBeUndefined();
+			expect(result.DESKTOP_VITE_PORT).toBeUndefined();
+			expect(result.PATH).toBe("/usr/bin");
+		});
+
+		it("should strip Electron/Node internals", () => {
+			const env = {
+				GOOGLE_API_KEY: "key",
+				NODE_OPTIONS: "--inspect",
+				NODE_ENV: "production",
+				NODE_PATH: "/custom/modules",
+				ORIGINAL_XDG_CURRENT_DESKTOP: "GNOME",
+				HOME: "/home/user",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result.GOOGLE_API_KEY).toBeUndefined();
+			expect(result.NODE_OPTIONS).toBeUndefined();
+			expect(result.NODE_ENV).toBeUndefined();
+			expect(result.NODE_PATH).toBeUndefined();
+			expect(result.ORIGINAL_XDG_CURRENT_DESKTOP).toBeUndefined();
+			expect(result.HOME).toBe("/home/user");
+		});
+
+		it("should preserve user shell env vars", () => {
+			const env = {
+				PATH: "/usr/local/bin:/usr/bin",
+				HOME: "/home/user",
+				SHELL: "/bin/zsh",
+				USER: "testuser",
+				LANG: "en_US.UTF-8",
+				SSH_AUTH_SOCK: "/tmp/ssh-agent.sock",
+				NVM_DIR: "/home/user/.nvm",
+				GOPATH: "/home/user/go",
+				HOMEBREW_PREFIX: "/opt/homebrew",
+				EDITOR: "vim",
+				HTTP_PROXY: "http://proxy:8080",
+				KUBECONFIG: "/home/user/.kube/config",
+			};
+			const result = stripV2InternalVars(env);
+			expect(result).toEqual(env);
+		});
+	});
+
+	describe("buildV2TerminalEnv", () => {
+		const shellEnv: Record<string, string> = {
+			PATH: "/usr/local/bin:/usr/bin:/bin",
+			HOME: "/home/user",
+			SHELL: "/bin/zsh",
+			USER: "testuser",
+			LANG: "en_US.UTF-8",
+			SSH_AUTH_SOCK: "/tmp/ssh-agent.sock",
+			NVM_DIR: "/home/user/.nvm",
+		};
+
+		it("should include TERM_PROGRAM=Superset", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+			});
+			expect(result.TERM_PROGRAM).toBe("Superset");
+		});
+
+		it("should include TERM_PROGRAM_VERSION", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+				appVersion: "2.5.0",
+			});
+			expect(result.TERM_PROGRAM_VERSION).toBe("2.5.0");
+		});
+
+		it("should set TERM=xterm-256color", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+			});
+			expect(result.TERM).toBe("xterm-256color");
+		});
+
+		it("should set COLORTERM=truecolor", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+			});
+			expect(result.COLORTERM).toBe("truecolor");
+		});
+
+		it("should set PWD to the provided cwd", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/path/to/workspace",
+			});
+			expect(result.PWD).toBe("/path/to/workspace");
+		});
+
+		it("should set LANG to a UTF-8 locale", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+			});
+			expect(result.LANG).toContain("UTF-8");
+		});
+
+		it("should preserve user shell env vars", () => {
+			const result = buildV2TerminalEnv({
+				shellEnv,
+				cwd: "/workspace",
+			});
+			expect(result.PATH).toBe("/usr/local/bin:/usr/bin:/bin");
+			expect(result.HOME).toBe("/home/user");
+			expect(result.SHELL).toBe("/bin/zsh");
+			expect(result.USER).toBe("testuser");
+			expect(result.SSH_AUTH_SOCK).toBe("/tmp/ssh-agent.sock");
+			expect(result.NVM_DIR).toBe("/home/user/.nvm");
+		});
+
+		it("should NOT include SUPERSET_PANE_ID", () => {
+			const envWithSuperset = {
+				...shellEnv,
+				SUPERSET_PANE_ID: "pane-1",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSuperset,
+				cwd: "/workspace",
+			});
+			expect(result.SUPERSET_PANE_ID).toBeUndefined();
+		});
+
+		it("should NOT include SUPERSET_TAB_ID", () => {
+			const envWithSuperset = {
+				...shellEnv,
+				SUPERSET_TAB_ID: "tab-1",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSuperset,
+				cwd: "/workspace",
+			});
+			expect(result.SUPERSET_TAB_ID).toBeUndefined();
+		});
+
+		it("should NOT include SUPERSET_PORT", () => {
+			const envWithSuperset = {
+				...shellEnv,
+				SUPERSET_PORT: "3000",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSuperset,
+				cwd: "/workspace",
+			});
+			expect(result.SUPERSET_PORT).toBeUndefined();
+		});
+
+		it("should NOT include SUPERSET_HOOK_VERSION", () => {
+			const envWithSuperset = {
+				...shellEnv,
+				SUPERSET_HOOK_VERSION: "2",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSuperset,
+				cwd: "/workspace",
+			});
+			expect(result.SUPERSET_HOOK_VERSION).toBeUndefined();
+		});
+
+		it("should NOT include SUPERSET_ENV", () => {
+			const envWithSuperset = {
+				...shellEnv,
+				SUPERSET_ENV: "production",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSuperset,
+				cwd: "/workspace",
+			});
+			expect(result.SUPERSET_ENV).toBeUndefined();
+		});
+
+		it("should strip host-service secrets from env", () => {
+			const envWithSecrets = {
+				...shellEnv,
+				HOST_SERVICE_SECRET: "secret-key",
+				AUTH_TOKEN: "jwt-token",
+				GOOGLE_API_KEY: "api-key",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithSecrets,
+				cwd: "/workspace",
+			});
+			expect(result.HOST_SERVICE_SECRET).toBeUndefined();
+			expect(result.AUTH_TOKEN).toBeUndefined();
+			expect(result.GOOGLE_API_KEY).toBeUndefined();
+		});
+
+		it("should strip Electron internals from env", () => {
+			const envWithElectron = {
+				...shellEnv,
+				ELECTRON_RUN_AS_NODE: "1",
+				ELECTRON_IS_DEV: "0",
+				NODE_OPTIONS: "--inspect",
+			};
+			const result = buildV2TerminalEnv({
+				shellEnv: envWithElectron,
+				cwd: "/workspace",
+			});
+			expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
+			expect(result.ELECTRON_IS_DEV).toBeUndefined();
+			expect(result.NODE_OPTIONS).toBeUndefined();
+		});
+
+		it("should not mutate the input shellEnv", () => {
+			const input = { ...shellEnv };
+			const originalKeys = Object.keys(input);
+			buildV2TerminalEnv({ shellEnv: input, cwd: "/workspace" });
+			expect(Object.keys(input)).toEqual(originalKeys);
 		});
 	});
 });

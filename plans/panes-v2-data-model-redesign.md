@@ -146,7 +146,6 @@ Dragging always creates a split. No "add as tab within group" drop zone (groups 
           "id": "pane_term",
           "kind": "terminal",
           "data": {
-            "sessionKey": "workspace-123:abc",
             "cwd": "/workspace/my-repo",
             "launchMode": "workspace-shell"
           }

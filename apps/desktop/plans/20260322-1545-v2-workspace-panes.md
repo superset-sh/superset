@@ -228,7 +228,6 @@ Notes:
 type TerminalPane = PaneBase<
   "terminal",
   {
-    sessionKey: string;
     cwd?: string;
     launchMode: "workspace-shell" | "command" | "agent";
     command?: string;
@@ -238,9 +237,100 @@ type TerminalPane = PaneBase<
 
 Notes:
 
-- Persist the terminal identity, not the PTY internals
-- Restore by `attachOrCreate(sessionKey)`
+- Persist launch config, not PTY internals
 - Terminal buffer and websocket state stay runtime-only
+
+### Terminal env contract
+
+For v2 terminal env injection, follow the shape used by mature terminals rather
+than carrying forward the old desktop hook contract.
+
+GitHub research summary:
+
+- VS Code does not use a strict allowlist for terminal env. It starts from the
+  inherited process environment, strips VS Code / Electron runtime internals
+  such as `ELECTRON_*`, most `VSCODE_*`, `SNAP*`, and `GDK_PIXBUF_*`, then
+  injects shell-integration bootstrap vars such as `VSCODE_INJECTION`,
+  `VSCODE_NONCE`, `VSCODE_SHELL_ENV_REPORTING`, `VSCODE_PATH_PREFIX`,
+  `VSCODE_SHELL_LOGIN`, `VSCODE_A11Y_MODE`, and temporary `ZDOTDIR` /
+  `USER_ZDOTDIR`.
+- kitty follows the same pattern: small public detection plus shell-specific
+  bootstrap. Its docs describe `KITTY_SHELL_INTEGRATION`, temporary `ZDOTDIR`
+  for zsh, and prepending `XDG_DATA_DIRS` for fish, with cleanup after startup.
+- WezTerm keeps the public terminal env small. Its docs default `TERM` to
+  `xterm-256color`, only recommend `term = "wezterm"` once terminfo is
+  installed, and forward `TERM`, `COLORTERM`, `TERM_PROGRAM`, and
+  `TERM_PROGRAM_VERSION` across WSL. It uses OSC sequences for dynamic shell
+  state such as cwd and prompt boundaries instead of env vars.
+- Windows Terminal explicitly documents that env vars are not a reliable sole
+  terminal detection mechanism because some launch paths start the shell before
+  Terminal can inject `WT_SESSION`, `TERM`, `TERM_PROGRAM`, or `COLORTERM`.
+
+Design rules for v2:
+
+1. Start from the user's resolved shell env, not raw host-service
+   `process.env` passthrough.
+2. Follow VS Code's shape: use that shell-derived env as the PTY base env, then
+   strip only Superset / Electron / host-service internals before spawn. Do not
+   add a broad second allowlist layer on top of an already shell-derived base
+   env.
+3. Add only a small public terminal surface:
+
+   ```sh
+   TERM=xterm-256color
+   TERM_PROGRAM=Superset
+   TERM_PROGRAM_VERSION=<app version>
+   COLORTERM=truecolor
+   LANG=<utf8 locale>
+   PWD=<cwd>
+   ```
+
+4. Support the user's shell out of the box, similar to VS Code. V2 should
+   launch the user's configured/default shell and preserve the startup behavior
+   users expect from that shell so PATH, version managers, aliases, and shell
+   config work without manual terminal setup.
+5. Only set a custom `TERM` value or `TERMINFO_DIRS` if Superset actually ships
+   and maintains a terminfo entry.
+6. Do not inject pane, tab, or terminal identity into the initial v2 shell
+   contract. Do not carry over `SUPERSET_PANE_ID`, `SUPERSET_TAB_ID`,
+   `SUPERSET_PORT`, or similar localhost hook metadata without a concrete v2
+   consumer.
+7. If v2 later adds shell integration, use private bootstrap vars per shell
+   only for startup and cleanup, similar to VS Code and kitty. Examples:
+   temporary `ZDOTDIR`, `BASH_ENV`, or `XDG_DATA_DIRS`.
+8. Do not use env vars for dynamic terminal state such as cwd tracking, prompt
+   boundaries, command start/end, or exit status. Use shell integration and OSC
+   sequences for that.
+9. When crossing boundaries such as SSH or WSL, only forward the narrow subset
+   terminals already converge on: `TERM`, `COLORTERM`, `TERM_PROGRAM`,
+   `TERM_PROGRAM_VERSION`, locale vars, `SSH_AUTH_SOCK`, and `TERMINFO_DIRS`
+   when needed.
+
+Implementation notes:
+
+- Extract a shared v2 terminal env builder instead of spreading `process.env`
+  inside host-service.
+- Use the resolved shell env snapshot from
+  `apps/desktop/src/lib/trpc/routers/workspaces/utils/shell-env.ts` as the PTY
+  base env.
+- Reuse the existing shell resolution logic so v2 launches the user's
+  configured/default shell, not a hard-coded fallback except as a last resort.
+- Add targeted stripping for Superset / Electron / host-service internals
+  instead of a broad allowlist. At minimum, audit and exclude app-specific
+  runtime vars that should never leak to user terminals.
+- Do not reuse `buildTerminalEnv()` as-is because it still injects the old
+  hook metadata contract.
+- Add tests that prove user-needed vars survive, app secrets do not leak, and
+  v1-only metadata is absent from v2 sessions.
+
+GitHub sources:
+
+- [VS Code terminal env injection source](https://github.com/microsoft/vscode/blob/main/src/vs/platform/terminal/node/terminalEnvironment.ts)
+- [VS Code process env sanitization source](https://github.com/microsoft/vscode/blob/main/src/vs/base/common/processes.ts)
+- [kitty shell integration docs](https://github.com/kovidgoyal/kitty/blob/master/docs/shell-integration.rst)
+- [WezTerm TERM config docs](https://github.com/wezterm/wezterm/blob/main/docs/config/lua/config/term.md)
+- [WezTerm shell integration docs](https://github.com/wezterm/wezterm/blob/main/docs/shell-integration.md)
+- [Windows Terminal FAQ](https://github.com/microsoft/terminal/wiki/Frequently-Asked-Questions-%28FAQ%29)
 
 ### Browser pane
 
@@ -382,7 +472,7 @@ That order gives the highest-value workspace behavior first and defers the trick
 
 Add small adapters:
 
-- terminal pane -> attach/create session by `sessionKey`
+- terminal pane -> create or attach runtime from pane launch config
 - browser pane -> create/restore browser surface for `url`
 - chat pane -> bind to `sessionId`
 - devtools pane -> attach to target browser pane if present

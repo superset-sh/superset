@@ -496,3 +496,110 @@ export function buildTerminalEnv(params: {
 
 	return terminalEnv;
 }
+
+// ---------------------------------------------------------------------------
+// V2 Terminal Env
+// ---------------------------------------------------------------------------
+
+/**
+ * Prefixes of environment variables to strip from the shell-derived base
+ * env before passing to v2 terminal PTYs. These are Superset / Electron /
+ * build-system internals that should not leak into user terminals.
+ */
+const V2_STRIPPED_PREFIXES = [
+	"ELECTRON_",
+	"SUPERSET_",
+	"VITE_",
+	"NEXT_PUBLIC_",
+	"TURBO_",
+	"npm_",
+	"CHROME_",
+];
+
+/**
+ * Specific environment variables to strip from the shell-derived base env.
+ * Host-service runtime config + Electron / Node / Chromium internals.
+ */
+const V2_STRIPPED_VARS = new Set([
+	// Host-service runtime config
+	"HOST_SERVICE_SECRET",
+	"HOST_DB_PATH",
+	"HOST_MIGRATIONS_PATH",
+	"AUTH_TOKEN",
+	"CLOUD_API_URL",
+	"ORGANIZATION_ID",
+	"DEVICE_CLIENT_ID",
+	"DEVICE_NAME",
+	"CORS_ORIGINS",
+	"DESKTOP_VITE_PORT",
+	// Electron / Node / Chromium internals
+	"GOOGLE_API_KEY",
+	"NODE_OPTIONS",
+	"NODE_ENV",
+	"NODE_PATH",
+	"ORIGINAL_XDG_CURRENT_DESKTOP",
+]);
+
+/**
+ * Strip Superset / Electron / host-service internal vars from the env.
+ * Uses a denylist approach on the already shell-derived base env.
+ */
+export function stripV2InternalVars(
+	env: Record<string, string>,
+): Record<string, string> {
+	const result: Record<string, string> = {};
+	for (const [key, value] of Object.entries(env)) {
+		if (V2_STRIPPED_VARS.has(key)) continue;
+		if (V2_STRIPPED_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;
+		result[key] = value;
+	}
+	return result;
+}
+
+/**
+ * Build the v2 terminal PTY environment.
+ *
+ * Takes a shell-derived base env (from getShellEnvironment), strips
+ * internal vars, and injects the small public terminal contract.
+ *
+ * Does NOT inject legacy hook metadata (SUPERSET_PANE_ID, SUPERSET_TAB_ID,
+ * SUPERSET_PORT, SUPERSET_HOOK_VERSION, etc.).
+ *
+ * Contract:
+ *   TERM=xterm-256color
+ *   TERM_PROGRAM=Superset
+ *   TERM_PROGRAM_VERSION=<version>
+ *   COLORTERM=truecolor
+ *   LANG=<utf8 locale>
+ *   PWD=<cwd>
+ */
+export function buildV2TerminalEnv(params: {
+	shellEnv: Record<string, string>;
+	cwd: string;
+	appVersion?: string;
+}): Record<string, string> {
+	const { shellEnv, cwd, appVersion } = params;
+	const baseEnv = stripV2InternalVars(shellEnv);
+	const locale = getLocale(shellEnv);
+
+	const terminalEnv: Record<string, string> = {
+		...baseEnv,
+		TERM: "xterm-256color",
+		TERM_PROGRAM: "Superset",
+		TERM_PROGRAM_VERSION: appVersion || process.env.npm_package_version || "1.0.0",
+		COLORTERM: "truecolor",
+		LANG: locale,
+		PWD: cwd,
+	};
+
+	// Electron child processes can't access macOS Keychain for TLS cert verification.
+	if (
+		os.platform() === "darwin" &&
+		!terminalEnv.SSL_CERT_FILE &&
+		hasMacosSystemCertBundle()
+	) {
+		terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+	}
+
+	return terminalEnv;
+}
