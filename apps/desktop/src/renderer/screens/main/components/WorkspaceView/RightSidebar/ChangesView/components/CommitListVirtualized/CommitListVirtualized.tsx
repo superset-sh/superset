@@ -1,11 +1,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { CommitItem } from "../CommitItem";
 
 const ESTIMATED_ROW_HEIGHT = 28;
 const OVERSCAN = 10;
+const LOAD_MORE_THRESHOLD = 10;
 
 interface CommitListVirtualizedProps {
 	commits: CommitInfo[];
@@ -18,6 +19,8 @@ interface CommitListVirtualizedProps {
 	worktreePath: string;
 	projectId?: string;
 	isExpandedView?: boolean;
+	onLoadMore?: () => void;
+	hasMore?: boolean;
 }
 
 export function CommitListVirtualized({
@@ -31,6 +34,8 @@ export function CommitListVirtualized({
 	worktreePath,
 	projectId,
 	isExpandedView,
+	onLoadMore,
+	hasMore,
 }: CommitListVirtualizedProps) {
 	const listRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +51,19 @@ export function CommitListVirtualized({
 	});
 
 	const items = virtualizer.getVirtualItems();
+
+	const lastItem = items.at(-1);
+
+	useEffect(() => {
+		if (
+			lastItem &&
+			lastItem.index >= commits.length - LOAD_MORE_THRESHOLD &&
+			hasMore &&
+			onLoadMore
+		) {
+			onLoadMore();
+		}
+	}, [lastItem?.index, commits.length, hasMore, onLoadMore]);
 
 	return (
 		<div ref={listRef}>
