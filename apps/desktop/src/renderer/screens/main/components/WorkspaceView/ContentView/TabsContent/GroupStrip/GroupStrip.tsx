@@ -30,7 +30,12 @@ import { GroupItem } from "./GroupItem";
 
 const NO_WORKSPACE_MATCH = "__no_workspace__";
 
-export function GroupStrip() {
+interface GroupStripProps {
+	orientation?: "horizontal" | "vertical";
+}
+
+export function GroupStrip({ orientation = "horizontal" }: GroupStripProps) {
+	const isVertical = orientation === "vertical";
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 
 	const allTabs = useTabsStore((s) => s.tabs);
@@ -287,8 +292,12 @@ export function GroupStrip() {
 		const container = scrollContainerRef.current;
 		const track = tabsTrackRef.current;
 		if (!container || !track) return;
-		setHasHorizontalOverflow(track.scrollWidth > container.clientWidth + 1);
-	}, []);
+		if (isVertical) {
+			setHasHorizontalOverflow(track.scrollHeight > container.clientHeight + 1);
+		} else {
+			setHasHorizontalOverflow(track.scrollWidth > container.clientWidth + 1);
+		}
+	}, [isVertical]);
 
 	useLayoutEffect(() => {
 		const container = scrollContainerRef.current;
@@ -319,6 +328,7 @@ export function GroupStrip() {
 			useCompactAddButton={useCompactAddButton}
 			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
+			orientation={orientation}
 			onDropToNewTab={movePaneToNewTab}
 			isLastPaneInTab={checkIsLastPaneInTab}
 			onAddTerminal={handleAddGroup}
@@ -336,27 +346,49 @@ export function GroupStrip() {
 	);
 
 	return (
-		<div className="flex h-10 min-w-0 flex-1 items-stretch">
+		<div
+			className={
+				isVertical
+					? "flex flex-col w-full min-h-0 flex-1"
+					: "flex h-10 min-w-0 flex-1 items-stretch"
+			}
+		>
 			<div
 				ref={scrollContainerRef}
-				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
+				className={
+					isVertical
+						? "flex flex-col min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+						: "flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
+				}
 				style={{ scrollbarWidth: "none" }}
 			>
-				<div ref={tabsTrackRef} className="flex items-stretch">
+				<div
+					ref={tabsTrackRef}
+					className={isVertical ? "flex flex-col" : "flex items-stretch"}
+				>
 					{tabs.length > 0 && (
-						<div className="flex items-stretch h-full shrink-0">
+						<div
+							className={
+								isVertical
+									? "flex flex-col w-full shrink-0"
+									: "flex items-stretch h-full shrink-0"
+							}
+						>
 							{tabs.map((tab, index) => {
 								return (
 									<div
 										key={tab.id}
-										className="h-full shrink-0"
-										style={{ width: "160px" }}
+										className={
+											isVertical ? "w-full shrink-0" : "h-full shrink-0"
+										}
+										style={isVertical ? undefined : { width: "160px" }}
 									>
 										<GroupItem
 											tab={tab}
 											index={index}
 											isActive={tab.id === activeTabId}
 											status={tabStatusMap.get(tab.id) ?? null}
+											orientation={orientation}
 											onSelect={() => handleSelectGroup(tab.id)}
 											onClose={() => handleCloseGroup(tab.id)}
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
@@ -371,9 +403,13 @@ export function GroupStrip() {
 					)}
 					{hasHorizontalOverflow ? (
 						<div
-							className={`h-full shrink-0 ${
-								!useCompactAddButton ? "w-[220px]" : "w-10"
-							}`}
+							className={
+								isVertical
+									? "w-full shrink-0 h-10"
+									: `h-full shrink-0 ${
+											!useCompactAddButton ? "w-[220px]" : "w-10"
+										}`
+							}
 						/>
 					) : (
 						<div className="shrink-0">{plusControl}</div>
@@ -381,7 +417,15 @@ export function GroupStrip() {
 				</div>
 			</div>
 			{hasHorizontalOverflow && (
-				<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
+				<div
+					className={
+						isVertical
+							? "shrink-0 bg-background/95 pb-1 flex justify-center"
+							: "shrink-0 bg-background/95 pr-1"
+					}
+				>
+					{plusControl}
+				</div>
 			)}
 		</div>
 	);

@@ -6,6 +6,7 @@ import {
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { TabPlacementSection } from "./components/TabPlacementSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -55,6 +56,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		visibleItems,
 	);
 	const showThemeSection = showTheme || showCustomThemes;
+	const showTabPlacement = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_TAB_PLACEMENT,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -67,6 +72,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 
 			<SectionList>
 				{showThemeSection && <ThemeSection key="theme" />}
+				{showTabPlacement && <TabPlacementSection key="tab-placement" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
 				{showEditorFont && (
 					<FontSettingSection key="editor-font" variant="editor" />

@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `tab_placement` text;

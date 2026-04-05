@@ -15,6 +15,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
+	APPEARANCE_TAB_PLACEMENT: "appearance-tab-placement",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
 
@@ -300,6 +301,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"typography",
 			"custom",
 			"nerd",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_TAB_PLACEMENT,
+		section: "appearance",
+		title: "Tab Placement",
+		description:
+			"Position tabs horizontally across the top or vertically on the left",
+		keywords: [
+			"appearance",
+			"tab",
+			"placement",
+			"position",
+			"horizontal",
+			"vertical",
+			"sidebar",
+			"layout",
+			"orientation",
 		],
 	},
 	{

@@ -1,3 +1,4 @@
+import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { useDrop } from "react-dnd";
 import { MosaicDragType } from "react-mosaic-component";
@@ -6,14 +7,17 @@ import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 interface NewTabDropZoneProps {
 	onDrop: (paneId: string) => void;
 	isLastPaneInTab: (paneId: string) => boolean;
+	orientation?: "horizontal" | "vertical";
 	children: ReactNode;
 }
 
 export function NewTabDropZone({
 	onDrop,
 	isLastPaneInTab,
+	orientation = "horizontal",
 	children,
 }: NewTabDropZoneProps) {
+	const isVertical = orientation === "vertical";
 	const [{ isOver, canDrop }, drop] = useDrop<
 		unknown,
 		{ handled: true },
@@ -47,10 +51,18 @@ export function NewTabDropZone({
 			ref={(node) => {
 				drop(node);
 			}}
-			className="relative flex items-center h-full shrink-0 pl-2"
+			className={cn(
+				"relative flex items-center shrink-0 pl-2",
+				isVertical ? "w-full pt-2" : "h-full",
+			)}
 		>
 			{isOver && canDrop && (
-				<div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/20" />
+				<div
+					className={cn(
+						"absolute left-0 top-0 bg-primary/20",
+						isVertical ? "right-0 h-1" : "bottom-0 w-1",
+					)}
+				/>
 			)}
 			{children}
 		</div>
