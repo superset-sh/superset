@@ -63,7 +63,7 @@ export function CommitListVirtualized({
 		) {
 			onLoadMore();
 		}
-	}, [lastItem?.index, commits.length, hasMore, onLoadMore]);
+	}, [lastItem?.index, commits.length, hasMore, onLoadMore, lastItem]);
 
 	return (
 		<div ref={listRef}>

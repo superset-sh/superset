@@ -1,6 +1,10 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import type { ChangedFile, CommitInfo, GitChangesStatus } from "shared/changes-types";
+import type {
+	ChangedFile,
+	CommitInfo,
+	GitChangesStatus,
+} from "shared/changes-types";
 import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";

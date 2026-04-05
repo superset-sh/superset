@@ -5,12 +5,12 @@ import {
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
-import { VscChevronRight } from "react-icons/vsc";
-import { CommitListVirtualized } from "../CommitListVirtualized";
 import type { ChangesViewMode } from "../../types";
+import { CommitListVirtualized } from "../CommitListVirtualized";
 
 const PAGE_SIZE = 50;
 
@@ -88,7 +88,11 @@ export function HistorySection({
 
 	// Append next page when it arrives (guard against stale data)
 	useEffect(() => {
-		if (nextPage && fetchSkip !== null && nextPage !== lastAppendedPageRef.current) {
+		if (
+			nextPage &&
+			fetchSkip !== null &&
+			nextPage !== lastAppendedPageRef.current
+		) {
 			lastAppendedPageRef.current = nextPage;
 			setPages((prev) => [...prev, nextPage]);
 			setHasMore(nextPage.length >= PAGE_SIZE);
@@ -170,7 +174,8 @@ export function HistorySection({
 					<span className="text-xs font-medium truncate">History</span>
 					{totalCount > 0 && (
 						<span className="text-[10px] text-muted-foreground shrink-0">
-							{totalCount}{hasMore ? "+" : ""}
+							{totalCount}
+							{hasMore ? "+" : ""}
 						</span>
 					)}
 				</CollapsibleTrigger>

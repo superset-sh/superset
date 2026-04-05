@@ -25,10 +25,10 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
 import { CategorySection } from "./components/CategorySection";
-import { HistorySection } from "./components/HistorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { DiscardConfirmDialog } from "./components/DiscardConfirmDialog";
+import { HistorySection } from "./components/HistorySection";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { useOrderedSections } from "./hooks";
 import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
@@ -787,10 +787,7 @@ export function ChangesView({
 							No changes detected
 						</div>
 					)}
-					<div
-						className="flex-1 overflow-y-auto"
-						data-changes-scroll-container
-					>
+					<div className="flex-1 overflow-y-auto" data-changes-scroll-container>
 						{orderedSections
 							.filter((section) => section.count > 0)
 							.map((section) => (
