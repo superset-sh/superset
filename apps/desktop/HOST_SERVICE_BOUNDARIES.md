@@ -230,18 +230,11 @@ From coordinator (in-process):
 ### Actions
 
 ```
-Restart  → coordinator.restart(organizationId)
+Restart  → coordinator.restart(organizationId, config)
 Stop     → coordinator.stop(organizationId)
-Quit (keep services)   → requestQuit("release") → handled in `before-quit`
-Quit (stop services)   → requestQuit("stop")    → handled in `before-quit`
+Quit (keep services)   → coordinator.releaseAll() + app.exit()
+Quit (stop services)   → coordinator.stopAll() + app.exit()
 ```
-
-The tray does not directly call `releaseAll()` or `stopAll()`. Current quit semantics live in
-`apps/desktop/src/main/index.ts` and are platform/state dependent:
-
-- macOS + active services + `null`/`"release"` quit mode → destroy windows, keep tray/app alive
-- final `"release"` exit path → `releaseAll()` + `disposeTray()` + `app.exit(0)`
-- final `"stop"` exit path → `stopAll()` + `disposeTray()` + `app.exit(0)`
 
 ### Menu structure
 

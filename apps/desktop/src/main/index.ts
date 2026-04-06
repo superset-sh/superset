@@ -29,7 +29,6 @@ import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceManager } from "./lib/host-service-manager";
-import { consumeIntent, isExiting, markExiting } from "./lib/lifecycle";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -151,6 +150,30 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
+export type QuitMode = "release" | "stop";
+let pendingQuitMode: QuitMode | null = null;
+let isQuitting = false;
+
+/** Request the app to quit.
+ *  - "release": keep services running (re-adoptable on next launch)
+ *  - "stop": terminate all services before exit */
+export function requestQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+	app.quit();
+}
+
+/** Set quit mode without triggering quit.
+ *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
+export function prepareQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+}
+
+/** Exit the process immediately, bypassing before-quit.
+ *  Services are left running for adoption on next launch. */
+export function exitImmediately(): void {
+	app.exit(0);
+}
+
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -161,61 +184,52 @@ function getConfirmOnQuitSetting(): boolean {
 }
 
 app.on("before-quit", async (event) => {
-	if (isExiting()) return;
+	if (isQuitting) return;
 
-	// Consume the intent so it doesn't persist across aborted quits
-	const intent = consumeIntent();
+	// Consume the quit mode so it doesn't persist across aborted quits
+	const quitMode = pendingQuitMode;
+	pendingQuitMode = null;
 
-	// Implicit quit (no explicit intent): optionally confirm before exiting
-	if (intent === null) {
-		const isDev = process.env.NODE_ENV === "development";
-		if (!isDev && getConfirmOnQuitSetting()) {
-			event.preventDefault();
+	const isDev = process.env.NODE_ENV === "development";
+	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
+		event.preventDefault();
 
-			try {
-				const { response } = await dialog.showMessageBox({
-					type: "question",
-					buttons: ["Quit", "Cancel"],
-					defaultId: 0,
-					cancelId: 1,
-					title: "Quit Superset",
-					message: "Are you sure you want to quit?",
-				});
+		try {
+			const { response } = await dialog.showMessageBox({
+				type: "question",
+				buttons: ["Quit", "Cancel"],
+				defaultId: 0,
+				cancelId: 1,
+				title: "Quit Superset",
+				message: "Are you sure you want to quit?",
+			});
 
-				if (response === 1) {
-					return;
-				}
-			} catch (error) {
-				console.error("[main] Quit confirmation dialog failed:", error);
+			if (response === 1) {
+				return;
 			}
+		} catch (error) {
+			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	markExiting();
+	isQuitting = true;
 	const manager = getHostServiceManager();
-
-	if (intent === "exit_stop") {
+	if (quitMode === "stop") {
 		manager.stopAll();
 	} else {
 		manager.releaseAll();
 	}
-
 	disposeTray();
-
-	if (intent === "restart") {
-		app.relaunch();
-	}
-
 	app.exit(0);
 });
 
 process.on("uncaughtException", (error) => {
-	if (isExiting()) return;
+	if (isQuitting) return;
 	console.error("[main] Uncaught exception:", error);
 });
 
 process.on("unhandledRejection", (reason) => {
-	if (isExiting()) return;
+	if (isQuitting) return;
 	console.error("[main] Unhandled rejection:", reason);
 });
 
