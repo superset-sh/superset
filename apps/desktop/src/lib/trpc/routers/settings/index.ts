@@ -16,8 +16,7 @@ import {
 	DEFAULT_TERMINAL_PRESET_AGENT_TYPES,
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
-import { app } from "electron";
-import { exitImmediately } from "main/index";
+import { requestExit } from "main/lib/lifecycle";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
@@ -695,8 +694,7 @@ export const createSettingsRouter = () => {
 			}),
 
 		restartApp: publicProcedure.mutation(() => {
-			app.relaunch();
-			exitImmediately();
+			requestExit("restart");
 			return { success: true };
 		}),
 

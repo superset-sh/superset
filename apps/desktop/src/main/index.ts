@@ -29,6 +29,12 @@ import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceManager } from "./lib/host-service-manager";
+import {
+	consumeIntent,
+	isExiting,
+	isFullExitIntent,
+	markExiting,
+} from "./lib/lifecycle";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -150,30 +156,6 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
-export type QuitMode = "release" | "stop";
-let pendingQuitMode: QuitMode | null = null;
-let isQuitting = false;
-
-/** Request the app to quit.
- *  - "release": keep services running (re-adoptable on next launch)
- *  - "stop": terminate all services before exit */
-export function requestQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
-	app.quit();
-}
-
-/** Set quit mode without triggering quit.
- *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
-export function prepareQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
-}
-
-/** Exit the process immediately, bypassing before-quit.
- *  Services are left running for adoption on next launch. */
-export function exitImmediately(): void {
-	app.exit(0);
-}
-
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -184,20 +166,14 @@ function getConfirmOnQuitSetting(): boolean {
 }
 
 app.on("before-quit", async (event) => {
-	if (isQuitting) return;
+	if (isExiting()) return;
 
-	// Consume the quit mode so it doesn't persist across aborted quits
-	const quitMode = pendingQuitMode;
-	pendingQuitMode = null;
+	// Consume the intent so it doesn't persist across aborted quits
+	const intent = consumeIntent();
 
-	const manager = getHostServiceManager();
-
-	// macOS: close windows & keep tray alive when services should stay running
-	if (
-		PLATFORM.IS_MAC &&
-		(quitMode === null || quitMode === "release") &&
-		manager.hasActiveInstances()
-	) {
+	// macOS: implicit quit (no intent) backgrounds to tray.
+	// Destroy all windows but keep the tray and process alive.
+	if (PLATFORM.IS_MAC && !isFullExitIntent(intent)) {
 		event.preventDefault();
 		for (const win of BrowserWindow.getAllWindows()) {
 			win.destroy();
@@ -205,45 +181,63 @@ app.on("before-quit", async (event) => {
 		return;
 	}
 
-	const isDev = process.env.NODE_ENV === "development";
-	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
-		event.preventDefault();
+	// Windows/Linux implicit quit: optionally confirm before exiting
+	if (!isFullExitIntent(intent)) {
+		const isDev = process.env.NODE_ENV === "development";
+		if (!isDev && getConfirmOnQuitSetting()) {
+			event.preventDefault();
 
-		try {
-			const { response } = await dialog.showMessageBox({
-				type: "question",
-				buttons: ["Quit", "Cancel"],
-				defaultId: 0,
-				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
-			});
+			try {
+				const { response } = await dialog.showMessageBox({
+					type: "question",
+					buttons: ["Quit", "Cancel"],
+					defaultId: 0,
+					cancelId: 1,
+					title: "Quit Superset",
+					message: "Are you sure you want to quit?",
+				});
 
-			if (response === 1) {
-				return;
+				if (response === 1) {
+					return;
+				}
+			} catch (error) {
+				console.error("[main] Quit confirmation dialog failed:", error);
 			}
-		} catch (error) {
-			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	isQuitting = true;
-	if (quitMode === "stop") {
+	// Full exit path
+	markExiting();
+	const manager = getHostServiceManager();
+
+	if (intent === "exit_stop") {
 		manager.stopAll();
 	} else {
 		manager.releaseAll();
 	}
+
 	disposeTray();
+
+	if (intent === "install_update") {
+		// Let the updater own the final quit/install sequence.
+		// Don't call app.exit(0) — autoUpdater.quitAndInstall() handles it.
+		return;
+	}
+
+	if (intent === "restart") {
+		app.relaunch();
+	}
+
 	app.exit(0);
 });
 
 process.on("uncaughtException", (error) => {
-	if (isQuitting) return;
+	if (isExiting()) return;
 	console.error("[main] Uncaught exception:", error);
 });
 
 process.on("unhandledRejection", (reason) => {
-	if (isQuitting) return;
+	if (isExiting()) return;
 	console.error("[main] Unhandled rejection:", reason);
 });
 

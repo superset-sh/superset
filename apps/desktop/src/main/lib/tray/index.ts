@@ -7,7 +7,8 @@ import {
 	nativeImage,
 	Tray,
 } from "electron";
-import { focusMainWindow, requestQuit } from "main/index";
+import { focusMainWindow } from "main/index";
+import { requestExit } from "main/lib/lifecycle";
 import {
 	getHostServiceManager,
 	type HostServiceStatus,
@@ -239,18 +240,18 @@ function updateTrayMenu(): void {
 		...(hasActive
 			? [
 					{
-						label: "Quit (Keep Services Running)",
-						click: () => requestQuit("release"),
+						label: "Quit Superset",
+						click: () => requestExit("exit_release"),
 					},
 					{
 						label: "Quit & Stop Services",
-						click: () => requestQuit("stop"),
+						click: () => requestExit("exit_stop"),
 					},
 				]
 			: [
 					{
-						label: "Quit",
-						click: () => requestQuit("release"),
+						label: "Quit Superset",
+						click: () => requestExit("exit_release"),
 					},
 				]),
 	]);

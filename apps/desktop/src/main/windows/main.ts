@@ -38,6 +38,13 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 
+// Notification HTTP server survives window lifecycle — only created once.
+let notificationServer: ReturnType<typeof import("node:http").createServer> | null =
+	null;
+
+// Tracked for cleanup when the window is destroyed and recreated.
+let activeNotificationManager: NotificationManager | null = null;
+
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	if (!workspaceId) return "Workspace";
 	try {
@@ -144,15 +151,28 @@ export async function MainWindow() {
 		});
 	}
 
-	const server = notificationsApp.listen(
-		env.DESKTOP_NOTIFICATIONS_PORT,
-		"127.0.0.1",
-		() => {
-			console.log(
-				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
-			);
-		},
-	);
+	// Notification server is a long-lived singleton that survives window destruction.
+	// On macOS, windows are destroyed on background-to-tray and recreated on reopen.
+	if (!notificationServer) {
+		notificationServer = notificationsApp.listen(
+			env.DESKTOP_NOTIFICATIONS_PORT,
+			"127.0.0.1",
+			() => {
+				console.log(
+					`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
+				);
+			},
+		);
+	}
+
+	// Dispose previous notification manager from a destroyed window
+	if (activeNotificationManager) {
+		activeNotificationManager.dispose();
+		activeNotificationManager = null;
+	}
+
+	// Clear stale event listeners from previous window lifecycle
+	notificationsEmitter.removeAllListeners();
 
 	const notificationManager = new NotificationManager({
 		isSupported: () => Notification.isSupported(),
@@ -180,6 +200,7 @@ export async function MainWindow() {
 			}),
 	});
 	notificationManager.start();
+	activeNotificationManager = notificationManager;
 
 	notificationsEmitter.on(
 		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
@@ -297,8 +318,10 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
-	window.on("close", (event) => {
-		// Save window state first, before any cleanup
+	// Save window state on close (fires for normal close, not for destroy).
+	// The debounced save on move/resize already persists state continuously,
+	// so the destroy path (Cmd+Q background) still has recent state.
+	window.on("close", () => {
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
 		const zoomLevel = window.webContents.getZoomLevel();
@@ -311,19 +334,18 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
+	});
 
-		// macOS: hide instead of destroy so "Open Superset" can reshow instantly.
-		// The quit flow uses app.exit(0) which bypasses close events entirely,
-		// so this hide path only runs for Cmd+W / red-X.
-		if (PLATFORM.IS_MAC) {
-			event.preventDefault();
-			window.hide();
-			return;
-		}
-
+	// Clean up resources when the window is destroyed.
+	// Fires for both normal close and destroy() (background-to-tray).
+	// The notification server is intentionally NOT closed — it survives
+	// window lifecycle so it's available immediately on window recreation.
+	window.on("closed", () => {
 		browserManager.unregisterAll();
-		server.close();
-		notificationManager.dispose();
+		if (activeNotificationManager) {
+			activeNotificationManager.dispose();
+			activeNotificationManager = null;
+		}
 		notificationsEmitter.removeAllListeners();
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		ipcHandler?.detachWindow(window);
