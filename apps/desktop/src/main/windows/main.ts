@@ -38,13 +38,6 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 
-// Notification HTTP server survives window lifecycle — only created once.
-let notificationServer: ReturnType<typeof import("node:http").createServer> | null =
-	null;
-
-// Tracked for cleanup when the window is destroyed and recreated.
-let activeNotificationManager: NotificationManager | null = null;
-
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	if (!workspaceId) return "Workspace";
 	try {
@@ -151,28 +144,15 @@ export async function MainWindow() {
 		});
 	}
 
-	// Notification server is a long-lived singleton that survives window destruction.
-	// On macOS, windows are destroyed on background-to-tray and recreated on reopen.
-	if (!notificationServer) {
-		notificationServer = notificationsApp.listen(
-			env.DESKTOP_NOTIFICATIONS_PORT,
-			"127.0.0.1",
-			() => {
-				console.log(
-					`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
-				);
-			},
-		);
-	}
-
-	// Dispose previous notification manager from a destroyed window
-	if (activeNotificationManager) {
-		activeNotificationManager.dispose();
-		activeNotificationManager = null;
-	}
-
-	// Clear stale event listeners from previous window lifecycle
-	notificationsEmitter.removeAllListeners();
+	const server = notificationsApp.listen(
+		env.DESKTOP_NOTIFICATIONS_PORT,
+		"127.0.0.1",
+		() => {
+			console.log(
+				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
+			);
+		},
+	);
 
 	const notificationManager = new NotificationManager({
 		isSupported: () => Notification.isSupported(),
@@ -200,7 +180,6 @@ export async function MainWindow() {
 			}),
 	});
 	notificationManager.start();
-	activeNotificationManager = notificationManager;
 
 	notificationsEmitter.on(
 		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
@@ -343,12 +322,8 @@ export async function MainWindow() {
 		}
 
 		browserManager.unregisterAll();
-		notificationServer?.close();
-		notificationServer = null;
-		if (activeNotificationManager) {
-			activeNotificationManager.dispose();
-			activeNotificationManager = null;
-		}
+		server.close();
+		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		ipcHandler?.detachWindow(window);

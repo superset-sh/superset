@@ -1,30 +1,22 @@
 import { app } from "electron";
 
 /**
- * Lifecycle intents determine how quit requests are handled.
+ * Lifecycle intents for explicit quit actions.
  *
- * When no intent is set, macOS implicit quit (Cmd+Q, Dock Quit, window close)
- * backgrounds to tray by destroying windows and keeping the process alive.
+ * When no intent is set, implicit quit (Cmd+Q, Dock Quit) goes through
+ * the default before-quit path (confirm dialog, release services, exit).
  *
- * Explicit intents trigger full process termination:
  * - exit_release: release host services (re-adoptable on next launch), full exit
  * - exit_stop: stop host services, full exit
- * - install_update: release services, let updater handle shutdown/install
  * - restart: release services, relaunch app, full exit
  */
-export type LifecycleIntent =
-	| "exit_release"
-	| "exit_stop"
-	| "install_update"
-	| "restart";
+export type LifecycleIntent = "exit_release" | "exit_stop" | "restart";
 
 let pendingIntent: LifecycleIntent | null = null;
 let exiting = false;
 
 /** Request a full exit with the given intent. Triggers app.quit(). */
-export function requestExit(
-	intent: "exit_release" | "exit_stop" | "restart",
-): void {
+export function requestExit(intent: LifecycleIntent): void {
 	pendingIntent = intent;
 	app.quit();
 }
@@ -50,11 +42,4 @@ export function markExiting(): void {
 
 export function isExiting(): boolean {
 	return exiting;
-}
-
-/** Any non-null intent requires full process termination. */
-export function isFullExitIntent(
-	intent: LifecycleIntent | null,
-): intent is LifecycleIntent {
-	return intent !== null;
 }

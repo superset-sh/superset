@@ -29,12 +29,7 @@ import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceManager } from "./lib/host-service-manager";
-import {
-	consumeIntent,
-	isExiting,
-	isFullExitIntent,
-	markExiting,
-} from "./lib/lifecycle";
+import { consumeIntent, isExiting, markExiting } from "./lib/lifecycle";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -171,8 +166,8 @@ app.on("before-quit", async (event) => {
 	// Consume the intent so it doesn't persist across aborted quits
 	const intent = consumeIntent();
 
-	// Implicit quit (no intent): optionally confirm before exiting
-	if (!isFullExitIntent(intent)) {
+	// Implicit quit (no explicit intent): optionally confirm before exiting
+	if (intent === null) {
 		const isDev = process.env.NODE_ENV === "development";
 		if (!isDev && getConfirmOnQuitSetting()) {
 			event.preventDefault();
@@ -196,7 +191,6 @@ app.on("before-quit", async (event) => {
 		}
 	}
 
-	// Full exit path
 	markExiting();
 	const manager = getHostServiceManager();
 
@@ -207,12 +201,6 @@ app.on("before-quit", async (event) => {
 	}
 
 	disposeTray();
-
-	if (intent === "install_update") {
-		// Let the updater own the final quit/install sequence.
-		// Don't call app.exit(0) — autoUpdater.quitAndInstall() handles it.
-		return;
-	}
 
 	if (intent === "restart") {
 		app.relaunch();

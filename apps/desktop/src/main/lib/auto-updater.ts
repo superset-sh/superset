@@ -92,8 +92,8 @@ export function installUpdate(): void {
 		return;
 	}
 	// quitAndInstall internally calls app.quit() — set intent beforehand
-	// so before-quit skips background-to-tray and performs a real exit.
-	prepareIntent("install_update");
+	// so before-quit skips the confirm dialog and exits cleanly.
+	prepareIntent("exit_release");
 	autoUpdater.quitAndInstall(false, true);
 }
 
