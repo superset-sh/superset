@@ -39,6 +39,7 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightSidebarOpen: z.boolean().default(false),
+	defaultOpenInApp: z.string().nullable().default(null),
 });
 
 export const dashboardSidebarSectionSchema = z.object({
