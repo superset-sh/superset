@@ -7,11 +7,7 @@ import {
 import { HotkeyLabel } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
-export function RightSidebarToggle({
-	workspaceId,
-}: {
-	workspaceId: string;
-}) {
+export function RightSidebarToggle({ workspaceId }: { workspaceId: string }) {
 	const collections = useCollections();
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
 	const isOpen = localState?.rightSidebarOpen ?? false;

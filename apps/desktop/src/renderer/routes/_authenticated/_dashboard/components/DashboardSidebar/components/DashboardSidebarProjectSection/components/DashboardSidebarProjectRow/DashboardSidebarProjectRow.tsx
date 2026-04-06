@@ -121,7 +121,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 						New workspace
 					</TooltipContent>
 				</Tooltip>
-
 			</div>
 		);
 	},
