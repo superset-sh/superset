@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { LuPlus } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
@@ -18,6 +19,8 @@ export function DashboardSidebarHeader({
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
+				<OrganizationDropdown variant="collapsed" />
+
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
@@ -38,6 +41,8 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+			<OrganizationDropdown variant="expanded" />
+
 			<button
 				type="button"
 				onClick={() => openModal()}

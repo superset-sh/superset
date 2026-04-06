@@ -1,4 +1,6 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useMatchRoute, useParams } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -29,6 +31,8 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
+	const isV2CloudEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 
@@ -83,7 +87,7 @@ export function TopBar() {
 						projectId={workspace.project?.id}
 					/>
 				) : null}
-				<OrganizationDropdown />
+				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && (
 					<RightSidebarToggle workspaceId={v2WorkspaceId} />
 				)}
