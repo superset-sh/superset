@@ -22,33 +22,23 @@ interface OpenInMenuButtonProps {
 	worktreePath: string;
 	branch?: string;
 	projectId?: string;
-	/** Override the default app instead of querying via tRPC. */
-	defaultAppOverride?: ExternalApp | null;
-	/** Called when user selects a different app (for external persistence). */
-	onDefaultAppChange?: (app: ExternalApp) => void;
 }
 
 export const OpenInMenuButton = memo(function OpenInMenuButton({
 	worktreePath,
 	branch,
 	projectId,
-	defaultAppOverride,
-	onDefaultAppChange,
 }: OpenInMenuButtonProps) {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const utils = electronTrpc.useUtils();
-	const useOverride = defaultAppOverride !== undefined;
 	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
 		{ projectId: projectId as string },
-		{ enabled: !!projectId && !useOverride, staleTime: 30000 },
+		{ enabled: !!projectId, staleTime: 30000 },
 	);
-	const resolvedApp: ExternalApp =
-		(useOverride ? defaultAppOverride : defaultApp) ?? "finder";
+	const resolvedApp: ExternalApp = defaultApp ?? "finder";
 	const openInApp = electronTrpc.external.openInApp.useMutation({
-		onSuccess: (_data, variables) => {
-			if (onDefaultAppChange) {
-				onDefaultAppChange(variables.app);
-			} else if (projectId) {
+		onSuccess: () => {
+			if (projectId) {
 				utils.projects.getDefaultApp.invalidate({ projectId });
 			}
 		},
