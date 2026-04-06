@@ -70,10 +70,20 @@ export const DashboardSidebarProjectRow = forwardRef<
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<ProjectThumbnail
-						projectName={projectName}
-						githubOwner={githubOwner}
-					/>
+					<div className="relative shrink-0 size-5 flex items-center justify-center">
+						<span className="group-hover:opacity-0 transition-opacity duration-150">
+							<ProjectThumbnail
+								projectName={projectName}
+								githubOwner={githubOwner}
+							/>
+						</span>
+						<HiChevronRight
+							className={cn(
+								"absolute inset-0 m-auto size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150",
+								!isCollapsed && "rotate-90",
+							)}
+						/>
+					</div>
 					{isRenaming ? (
 						<RenameInput
 							value={renameValue}
@@ -126,23 +136,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 					</TooltipContent>
 				</Tooltip>
 
-				<button
-					type="button"
-					onClick={(event) => {
-						event.stopPropagation();
-						onToggleCollapse();
-					}}
-					onContextMenu={(event) => event.stopPropagation()}
-					aria-expanded={!isCollapsed}
-					className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-				>
-					<HiChevronRight
-						className={cn(
-							"size-3.5 text-muted-foreground transition-transform duration-150",
-							!isCollapsed && "rotate-90",
-						)}
-					/>
-				</button>
 			</div>
 		);
 	},
