@@ -318,10 +318,8 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
-	// Save window state on close (fires for normal close, not for destroy).
-	// The debounced save on move/resize already persists state continuously,
-	// so the destroy path (Cmd+Q background) still has recent state.
-	window.on("close", () => {
+	window.on("close", (event) => {
+		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
 		const zoomLevel = window.webContents.getZoomLevel();
@@ -334,14 +332,19 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
-	});
 
-	// Clean up resources when the window is destroyed.
-	// Fires for both normal close and destroy() (background-to-tray).
-	// The notification server is intentionally NOT closed — it survives
-	// window lifecycle so it's available immediately on window recreation.
-	window.on("closed", () => {
+		// macOS: hide instead of destroy so "Open Superset" can reshow instantly.
+		// The quit flow uses app.exit(0) which bypasses close events entirely,
+		// so this hide path only runs for Cmd+W / red-X.
+		if (PLATFORM.IS_MAC) {
+			event.preventDefault();
+			window.hide();
+			return;
+		}
+
 		browserManager.unregisterAll();
+		notificationServer?.close();
+		notificationServer = null;
 		if (activeNotificationManager) {
 			activeNotificationManager.dispose();
 			activeNotificationManager = null;

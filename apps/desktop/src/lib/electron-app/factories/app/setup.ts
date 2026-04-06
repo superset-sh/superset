@@ -33,7 +33,7 @@ export async function makeAppSetup(
 		if (!windows.length) {
 			window = await createWindow();
 		} else {
-			// Focus existing windows (e.g. minimized or behind other apps)
+			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
 			for (window of windows.reverse()) {
 				window.show();
 				window.focus();

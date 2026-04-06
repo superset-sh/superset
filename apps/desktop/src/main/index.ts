@@ -171,17 +171,7 @@ app.on("before-quit", async (event) => {
 	// Consume the intent so it doesn't persist across aborted quits
 	const intent = consumeIntent();
 
-	// macOS: implicit quit (no intent) backgrounds to tray.
-	// Destroy all windows but keep the tray and process alive.
-	if (PLATFORM.IS_MAC && !isFullExitIntent(intent)) {
-		event.preventDefault();
-		for (const win of BrowserWindow.getAllWindows()) {
-			win.destroy();
-		}
-		return;
-	}
-
-	// Windows/Linux implicit quit: optionally confirm before exiting
+	// Implicit quit (no intent): optionally confirm before exiting
 	if (!isFullExitIntent(intent)) {
 		const isDev = process.env.NODE_ENV === "development";
 		if (!isDev && getConfirmOnQuitSetting()) {
