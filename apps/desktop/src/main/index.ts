@@ -48,6 +48,7 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { worktreeSyncService } from "./lib/worktree-sync";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -214,6 +215,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
+		worktreeSyncService.stopAll();
 		if (isDev) {
 			await runDevQuitCleanup();
 		} else {
@@ -405,6 +407,17 @@ if (!gotTheLock) {
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 		initTray();
+
+		// Start watching all active projects for external worktree changes
+		worktreeSyncService.startWatchingAllActiveProjects();
+
+		// Re-sync worktrees when the app regains focus (catches changes made while app was in background)
+		app.on("browser-window-focus", () => {
+			worktreeSyncService.syncAllActiveProjects().catch((error) => {
+				console.error("[worktree-sync] Focus sync failed:", error);
+			});
+		});
+
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {

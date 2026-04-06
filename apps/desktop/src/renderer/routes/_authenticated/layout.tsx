@@ -145,6 +145,17 @@ function AuthenticatedLayout() {
 		},
 	});
 
+	// Worktree auto-sync subscription — invalidate queries when worktrees are
+	// created or destroyed outside of Superset (e.g. via CLI scripts)
+	electronTrpc.workspaces.onWorktreeSync.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.imported > 0 || event.removed > 0) {
+				utils.workspaces.invalidate();
+				utils.projects.getRecents.invalidate();
+			}
+		},
+	});
+
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
