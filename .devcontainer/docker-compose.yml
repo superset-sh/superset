@@ -1,0 +1,21 @@
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: superset-dev
+    volumes:
+      - ..:/workspace
+      - ${HOME}/.secrets:/home/vscode/.secrets:ro
+      - ${HOME}/.secrets/superset-fork:/workspace/.env-secrets:ro
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "3002:3002"
+      - "3003:3003"
+      - "3004:3004"
+    environment:
+      TURBO_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+    command: sleep infinity
+    restart: unless-stopped
