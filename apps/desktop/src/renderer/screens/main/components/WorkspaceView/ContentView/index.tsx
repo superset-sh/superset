@@ -27,9 +27,11 @@ export function ContentView({
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
-	const { data: tabPlacement } =
+	const { data: tabPlacement, isLoading: isTabPlacementLoading } =
 		electronTrpc.settings.getTabPlacement.useQuery();
 	const isVertical = (tabPlacement ?? DEFAULT_TAB_PLACEMENT) === "vertical";
+
+	if (isTabPlacementLoading) return null;
 
 	if (isVertical) {
 		return (
