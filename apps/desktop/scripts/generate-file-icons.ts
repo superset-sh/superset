@@ -72,8 +72,9 @@ function run() {
 		js: "javascript",
 		php: "php",
 		tex: "tex",
-		matlab: "matlab",
+		m: "matlab",
 		diff: "diff",
+		patch: "diff",
 	};
 
 	for (const [ext, icon] of Object.entries(languageIdExtensionMap)) {
