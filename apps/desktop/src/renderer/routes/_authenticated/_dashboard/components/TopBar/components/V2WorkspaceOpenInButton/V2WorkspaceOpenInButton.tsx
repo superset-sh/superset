@@ -47,7 +47,7 @@ export function V2WorkspaceOpenInButton({
 	const workspaceQuery = useQuery({
 		queryKey: ["v2-open-in-workspace", hostUrl, workspaceId],
 		queryFn: () =>
-			getHostServiceClientByUrl(hostUrl!).workspace.get.query({
+			getHostServiceClientByUrl(hostUrl as string).workspace.get.query({
 				id: workspaceId,
 			}),
 		enabled: !!workspace && !!hostUrl && isLocalWorkspace,
