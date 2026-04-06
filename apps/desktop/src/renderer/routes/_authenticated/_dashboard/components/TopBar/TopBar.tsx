@@ -7,6 +7,7 @@ import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
+import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
@@ -83,6 +84,9 @@ export function TopBar() {
 					/>
 				) : null}
 				<OrganizationDropdown />
+				{isV2WorkspaceRoute && (
+					<RightSidebarToggle workspaceId={v2WorkspaceId} />
+				)}
 				{!isMac && <WindowControls />}
 			</div>
 		</div>
