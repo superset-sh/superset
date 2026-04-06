@@ -6,15 +6,14 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { NavigationControls } from "./components/NavigationControls";
-import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
-import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceSearchBarTrigger } from "./components/V2WorkspaceSearchBarTrigger";
 import { WindowControls } from "./components/WindowControls";
+import { WorkspaceOpenInButton } from "./components/WorkspaceOpenInButton";
 
 export function TopBar() {
 	const matchRoute = useMatchRoute();
@@ -78,15 +77,10 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
-				{isV2WorkspaceRoute ? (
-					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
-				) : workspace?.worktreePath ? (
-					<OpenInMenuButton
-						worktreePath={workspace.worktreePath}
-						branch={workspace.worktree?.branch}
-						projectId={workspace.project?.id}
-					/>
-				) : null}
+				<WorkspaceOpenInButton
+					v1WorkspaceId={!isV2WorkspaceRoute ? (workspaceId ?? null) : null}
+					v2WorkspaceId={v2WorkspaceId}
+				/>
 				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && (
 					<RightSidebarToggle workspaceId={v2WorkspaceId} />

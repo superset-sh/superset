@@ -86,16 +86,16 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+				className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
 				aria-label="Organization menu"
 			>
 				<Avatar
 					size="xs"
 					fullName={activeOrganization?.name}
 					image={activeOrganization?.logo}
-					className="rounded size-4"
+					className="rounded size-4 shrink-0"
 				/>
-				<span className="flex-1 text-left truncate">{displayName}</span>
+				<span className="truncate">{displayName}</span>
 				<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 			</button>
 		) : (
