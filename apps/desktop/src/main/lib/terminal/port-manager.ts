@@ -33,9 +33,15 @@ function containsPortHint(data: string): boolean {
 	return portPatterns.some((pattern) => pattern.test(data));
 }
 
+// After a port hint, keep the session eligible for periodic scanning for this
+// long even if no further hints arrive, so we catch transient port changes.
+const HINT_ACTIVE_WINDOW_MS = 60_000;
+
 interface RegisteredSession {
 	session: TerminalSession;
 	workspaceId: string;
+	/** Timestamp of the last port-hint output, or null if none seen */
+	lastHintAt: number | null;
 }
 
 /**
@@ -47,6 +53,8 @@ interface DaemonSession {
 	workspaceId: string;
 	/** PTY process ID - null if not yet spawned or exited */
 	pid: number | null;
+	/** Timestamp of the last port-hint output, or null if none seen */
+	lastHintAt: number | null;
 }
 
 interface ScanState {
@@ -74,7 +82,7 @@ class PortManager extends EventEmitter {
 	 * Register a terminal session for port scanning
 	 */
 	registerSession(session: TerminalSession, workspaceId: string): void {
-		this.sessions.set(session.paneId, { session, workspaceId });
+		this.sessions.set(session.paneId, { session, workspaceId, lastHintAt: null });
 	}
 
 	/**
@@ -96,7 +104,12 @@ class PortManager extends EventEmitter {
 		workspaceId: string,
 		pid: number | null,
 	): void {
-		this.daemonSessions.set(paneId, { workspaceId, pid });
+		const existing = this.daemonSessions.get(paneId);
+		this.daemonSessions.set(paneId, {
+			workspaceId,
+			pid,
+			lastHintAt: existing?.lastHintAt ?? null,
+		});
 	}
 
 	/**
@@ -110,7 +123,46 @@ class PortManager extends EventEmitter {
 
 	checkOutputForHint(data: string, paneId: string): void {
 		if (!containsPortHint(data)) return;
+		// Record activity so this session stays in the periodic scan window.
+		const now = Date.now();
+		const session = this.sessions.get(paneId);
+		if (session) session.lastHintAt = now;
+		const daemonSession = this.daemonSessions.get(paneId);
+		if (daemonSession) daemonSession.lastHintAt = now;
 		this.scheduleHintScan(paneId);
+	}
+
+	/**
+	 * Return true if a session should be included in the periodic background scan.
+	 *
+	 * A session needs scanning only when:
+	 *  - it currently has detected ports (we need to notice when they go away), OR
+	 *  - it had a port hint within the last HINT_ACTIVE_WINDOW_MS (a server may
+	 *    still be starting up, or we may have missed a close event).
+	 *
+	 * Sessions that have never produced a port hint and have no detected ports are
+	 * purely idle and don't need ps/lsof scans — hint scans will fire if they
+	 * ever start a dev server.
+	 */
+	private isPeriodicallyEligible(paneId: string): boolean {
+		// Has detected ports → must keep scanning to catch port-close events.
+		for (const port of this.ports.values()) {
+			if (port.paneId === paneId) return true;
+		}
+		// Recent hint activity → server may still be starting.
+		const session = this.sessions.get(paneId);
+		if (session?.lastHintAt !== null && session?.lastHintAt !== undefined) {
+			if (Date.now() - session.lastHintAt < HINT_ACTIVE_WINDOW_MS) return true;
+		}
+		const daemonSession = this.daemonSessions.get(paneId);
+		if (
+			daemonSession?.lastHintAt !== null &&
+			daemonSession?.lastHintAt !== undefined
+		) {
+			if (Date.now() - daemonSession.lastHintAt < HINT_ACTIVE_WINDOW_MS)
+				return true;
+		}
+		return false;
 	}
 
 	private startPeriodicScan(): void {
@@ -224,6 +276,7 @@ class PortManager extends EventEmitter {
 		const tasks: Promise<void>[] = [];
 		for (const [paneId, { session, workspaceId }] of this.sessions) {
 			if (!session.isAlive) continue;
+			if (!this.isPeriodicallyEligible(paneId)) continue;
 			tasks.push(
 				this.collectPidTree({
 					paneId,
@@ -240,6 +293,7 @@ class PortManager extends EventEmitter {
 		const tasks: Promise<void>[] = [];
 		for (const [paneId, { workspaceId, pid }] of this.daemonSessions) {
 			if (pid === null) continue;
+			if (!this.isPeriodicallyEligible(paneId)) continue;
 			tasks.push(
 				this.collectPidTree({
 					paneId,
