@@ -3,7 +3,6 @@ import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useEffectEvent, useMemo } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getRemoteHostUrl } from "renderer/lib/v2-workspace-host";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -76,7 +75,6 @@ export function useWorkspaceEvent(
 export function useWorkspaceHostUrl(workspaceId: string): string | null {
 	const collections = useCollections();
 	const { services } = useHostService();
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 
 	const { data: workspaceWithHost = [] } = useLiveQuery(
 		(q) =>
@@ -88,7 +86,6 @@ export function useWorkspaceHostUrl(workspaceId: string): string | null {
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
 				.select(({ workspaces, hosts }) => ({
 					hostId: workspaces.hostId,
-					hostMachineId: hosts.machineId,
 					hostOrgId: hosts.organizationId,
 				})),
 		[collections, workspaceId],
@@ -98,9 +95,10 @@ export function useWorkspaceHostUrl(workspaceId: string): string | null {
 
 	return useMemo(() => {
 		if (!match) return null;
-		if (match.hostMachineId === deviceInfo?.deviceId) {
-			return services.get(match.hostOrgId)?.url ?? null;
-		}
+		// If we have a local host-service for this org, use it directly
+		const localService = services.get(match.hostOrgId);
+		if (localService) return localService.url;
+		// Otherwise route through the relay proxy
 		return getRemoteHostUrl(match.hostId);
-	}, [match, deviceInfo?.deviceId, services]);
+	}, [match, services]);
 }

@@ -43,9 +43,9 @@ export function CodeRenderer({
 	}, [onSave]);
 
 	return (
-		<div className="flex h-full flex-col">
+		<div className="flex h-full w-full flex-col">
 			{hasExternalChange && <ExternalChangeBar onReload={onReload} />}
-			<div className="min-h-0 flex-1">
+			<div className="min-h-0 min-w-0 flex-1">
 				<CodeEditor
 					value={content}
 					language={language}
