@@ -1,7 +1,15 @@
 import type { AppRouter } from "@superset/host-service";
 import type { inferRouterOutputs } from "@trpc/server";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
+import {
+	VscCopy,
+	VscDiffAdded,
+	VscDiffModified,
+	VscDiffRemoved,
+	VscDiffRenamed,
+} from "react-icons/vsc";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 type ChangedFile =
@@ -10,24 +18,34 @@ type FileStatus = ChangedFile["status"];
 type ChangeCategory = "against-base" | "staged" | "unstaged";
 
 const STATUS_COLORS: Record<FileStatus, string> = {
-	added: "text-green-400",
-	copied: "text-purple-400",
-	changed: "text-yellow-400",
-	deleted: "text-red-400",
-	modified: "text-yellow-400",
-	renamed: "text-blue-400",
-	untracked: "text-green-400",
+	added: "text-green-600 dark:text-green-400",
+	copied: "text-purple-600 dark:text-purple-400",
+	changed: "text-yellow-600 dark:text-yellow-400",
+	deleted: "text-red-600 dark:text-red-400",
+	modified: "text-yellow-600 dark:text-yellow-400",
+	renamed: "text-blue-600 dark:text-blue-400",
+	untracked: "text-green-600 dark:text-green-400",
 };
 
-const STATUS_LETTERS: Record<FileStatus, string> = {
-	added: "A",
-	copied: "C",
-	changed: "T",
-	deleted: "D",
-	modified: "M",
-	renamed: "R",
-	untracked: "U",
-};
+function getStatusIcon(status: FileStatus): ReactNode {
+	const iconClass = "w-3 h-3";
+	switch (status) {
+		case "added":
+		case "untracked":
+			return <VscDiffAdded className={iconClass} />;
+		case "modified":
+		case "changed":
+			return <VscDiffModified className={iconClass} />;
+		case "deleted":
+			return <VscDiffRemoved className={iconClass} />;
+		case "renamed":
+			return <VscDiffRenamed className={iconClass} />;
+		case "copied":
+			return <VscCopy className={iconClass} />;
+		default:
+			return null;
+	}
+}
 
 function groupByFolder(
 	files: ChangedFile[],
@@ -48,8 +66,8 @@ function groupByFolder(
 
 function StatusIndicator({ status }: { status: FileStatus }) {
 	return (
-		<span className={`shrink-0 text-[10px] font-bold ${STATUS_COLORS[status]}`}>
-			{STATUS_LETTERS[status]}
+		<span className={`shrink-0 flex items-center ${STATUS_COLORS[status]}`}>
+			{getStatusIcon(status)}
 		</span>
 	);
 }
