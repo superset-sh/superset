@@ -4,6 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
 import type { PaneViewerData } from "../../types";
 
 const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
@@ -96,6 +97,26 @@ export function useV2WorkspacePaneLayout({
 			unsubscribe();
 		};
 	}, [collections, ensureWorkspaceInSidebar, projectId, store, workspaceId]);
+
+	// Sync pane IDs into the v2 pane status store for notification indicators.
+	// We intentionally do NOT unregister on unmount — pane entries must persist
+	// so the global listener and sidebar can process events when navigated away.
+	useEffect(() => {
+		const extractPaneIds = () =>
+			store.getState().tabs.flatMap((tab) => Object.keys(tab.panes));
+
+		useV2PaneStatusStore.getState().registerPanes(workspaceId, extractPaneIds());
+
+		const unsubscribe = store.subscribe(() => {
+			useV2PaneStatusStore
+				.getState()
+				.registerPanes(workspaceId, extractPaneIds());
+		});
+
+		return () => {
+			unsubscribe();
+		};
+	}, [store, workspaceId]);
 
 	return {
 		localWorkspaceState,

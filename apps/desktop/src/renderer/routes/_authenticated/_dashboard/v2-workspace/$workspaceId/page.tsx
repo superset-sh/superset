@@ -1,4 +1,4 @@
-import { type PaneActionConfig, Workspace } from "@superset/panes";
+import { type PaneActionConfig, type Tab, Workspace } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import {
 	ResizableHandle,
@@ -15,7 +15,10 @@ import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
+import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
+import { getHighestPriorityStatus } from "shared/tabs-types";
 import { useStore } from "zustand";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
@@ -295,6 +298,7 @@ function WorkspaceContent({
 									});
 								});
 							}}
+							renderTabAccessory={(tab) => <TabStatusAccessory tab={tab} />}
 							store={store}
 						/>
 					</div>
@@ -323,4 +327,16 @@ function WorkspaceContent({
 			/>
 		</>
 	);
+}
+
+function TabStatusAccessory({ tab }: { tab: Tab<PaneViewerData> }) {
+	const status = useV2PaneStatusStore((state) => {
+		const paneIds = Object.keys(tab.panes);
+		return getHighestPriorityStatus(
+			paneIds.map((id) => state.statuses[id]),
+		);
+	});
+
+	if (!status) return null;
+	return <StatusIndicator status={status} />;
 }

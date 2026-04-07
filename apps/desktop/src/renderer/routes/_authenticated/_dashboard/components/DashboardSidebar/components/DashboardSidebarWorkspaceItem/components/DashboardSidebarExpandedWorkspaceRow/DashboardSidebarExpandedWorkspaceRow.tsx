@@ -10,6 +10,7 @@ import {
 import { HiMiniXMark } from "react-icons/hi2";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { ActivePaneStatus } from "shared/tabs-types";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import type { WorkspaceRowMockData } from "../../utils";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
@@ -25,6 +26,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	renameValue: string;
 	shortcutLabel?: string;
 	mockData: WorkspaceRowMockData;
+	workspaceStatus: ActivePaneStatus | null;
 	onClick?: () => void;
 	onDoubleClick?: () => void;
 	onDeleteClick: () => void;
@@ -45,6 +47,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			renameValue,
 			shortcutLabel,
 			mockData,
+			workspaceStatus,
 			onClick,
 			onDoubleClick,
 			onDeleteClick,
@@ -124,7 +127,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								hostType={hostType}
 								isActive={isActive}
 								variant="expanded"
-								workspaceStatus={mockData.workspaceStatus}
+								workspaceStatus={workspaceStatus}
 								creationStatus={creationStatus}
 							/>
 						</div>

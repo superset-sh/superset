@@ -1,3 +1,7 @@
+import {
+	selectWorkspaceStatus,
+	useV2PaneStatusStore,
+} from "renderer/stores/v2-pane-status";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
@@ -31,6 +35,9 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		creationStatus,
 	} = workspace;
+	const workspaceStatus = useV2PaneStatusStore((s) =>
+		selectWorkspaceStatus(s, id),
+	);
 	const mockData = getWorkspaceRowMocks(id);
 	const {
 		cancelRename,
@@ -73,7 +80,7 @@ export function DashboardSidebarWorkspaceItem({
 					hostType={hostType}
 					isActive={isActive}
 					onClick={isCreating ? undefined : handleClick}
-					workspaceStatus={isCreating ? null : mockData.workspaceStatus}
+					workspaceStatus={isCreating ? null : workspaceStatus}
 					creationStatus={creationStatus}
 					disabled={isCreating}
 					aria-label={
@@ -135,7 +142,8 @@ export function DashboardSidebarWorkspaceItem({
 			isRenaming={isRenaming}
 			renameValue={renameValue}
 			shortcutLabel={shortcutLabel}
-			mockData={isCreating ? { ...mockData, workspaceStatus: null } : mockData}
+			mockData={mockData}
+			workspaceStatus={isCreating ? null : workspaceStatus}
 			onClick={isCreating ? undefined : handleClick}
 			onDoubleClick={isCreating ? undefined : startRename}
 			onDeleteClick={() => setIsDeleteDialogOpen(true)}

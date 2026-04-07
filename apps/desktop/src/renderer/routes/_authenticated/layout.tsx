@@ -29,6 +29,7 @@ import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
+import { useV2AgentHookListener } from "renderer/stores/v2-pane-status";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
@@ -64,6 +65,7 @@ function AuthenticatedLayout() {
 		: session?.session?.activeOrganizationId;
 
 	useAgentHookListener();
+	useV2AgentHookListener();
 	useUpdateListener();
 
 	// One-time migration from old hotkey storage to new localStorage-based store
