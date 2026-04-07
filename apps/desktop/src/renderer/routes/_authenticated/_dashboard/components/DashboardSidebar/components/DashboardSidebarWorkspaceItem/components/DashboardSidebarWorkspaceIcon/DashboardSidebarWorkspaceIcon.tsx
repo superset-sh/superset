@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { LuCloud, LuGitMerge, LuLaptop } from "react-icons/lu";
+import { LuCloud, LuFolderGit2, LuLaptop } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { ActivePaneStatus } from "shared/tabs-types";
@@ -50,7 +50,7 @@ export function DashboardSidebarWorkspaceIcon({
 					strokeWidth={1.75}
 				/>
 			) : (
-				<LuGitMerge
+				<LuFolderGit2
 					className={cn(
 						"size-4 transition-colors",
 						variant === "expanded" && "transition-colors",

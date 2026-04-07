@@ -1,5 +1,5 @@
 {
-  "id": "39c7746a-9827-47ff-b502-a9f75a9af94a",
+  "id": "117b93c3-ed88-4d67-8d8e-71b79af2f3af",
   "prevId": "b4f3b2ee-8405-448f-b162-948895af940c",
   "version": "7",
   "dialect": "postgresql",
@@ -4464,7 +4464,7 @@
           "name": "machine_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",

@@ -22,7 +22,7 @@ import {
 } from "./utils/pull-request-mappers";
 
 const BRANCH_SYNC_INTERVAL_MS = 30_000;
-const PROJECT_REFRESH_INTERVAL_MS = 30_000;
+const PROJECT_REFRESH_INTERVAL_MS = 10_000;
 const UNBORN_HEAD_ERROR_PATTERNS = [
 	"ambiguous argument 'head'",
 	"unknown revision or path not in the working tree",

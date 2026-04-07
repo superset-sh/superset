@@ -15,7 +15,7 @@ CREATE TABLE "v2_clients" (
 CREATE TABLE "v2_hosts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
-	"machine_id" text,
+	"machine_id" text NOT NULL,
 	"name" text NOT NULL,
 	"last_seen_at" timestamp with time zone,
 	"created_by_user_id" uuid,

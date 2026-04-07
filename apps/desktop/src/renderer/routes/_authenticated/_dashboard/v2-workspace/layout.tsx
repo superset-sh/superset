@@ -7,7 +7,7 @@ import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
-import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import { getRemoteHostUrl } from "renderer/lib/v2-workspace-host";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
@@ -63,7 +63,7 @@ function V2WorkspaceLayout() {
 			? null
 			: isLocal
 				? localHostUrl
-				: getWorkspaceHostUrlForWorkspace(workspace.id);
+				: getRemoteHostUrl(workspace.hostId);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 

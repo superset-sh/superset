@@ -45,7 +45,7 @@ function getSelectedLabel(
 	}
 
 	return (
-		otherHosts.find((host) => host.id === hostTarget.deviceId)?.name ??
+		otherHosts.find((host) => host.id === hostTarget.hostId)?.name ??
 		"Unknown Host"
 	);
 }
@@ -112,16 +112,15 @@ export function DevicePicker({
 							otherHosts.map((host) => {
 								const HostIcon = getHostIcon(host);
 								const isSelected =
-									hostTarget.kind === "device" &&
-									hostTarget.deviceId === host.id;
+									hostTarget.kind === "host" && hostTarget.hostId === host.id;
 
 								return (
 									<DropdownMenuItem
 										key={host.id}
 										onSelect={() =>
 											onSelectHostTarget({
-												kind: "device",
-												deviceId: host.id,
+												kind: "host",
+												hostId: host.id,
 											})
 										}
 									>
