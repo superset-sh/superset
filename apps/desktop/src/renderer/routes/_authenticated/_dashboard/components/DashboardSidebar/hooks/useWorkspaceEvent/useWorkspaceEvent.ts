@@ -1,6 +1,5 @@
 import { getEventBus } from "@superset/workspace-client";
-// biome-ignore lint/style/noRestrictedImports: type-only import, no Node runtime dependency
-import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useEffectEvent, useMemo } from "react";
