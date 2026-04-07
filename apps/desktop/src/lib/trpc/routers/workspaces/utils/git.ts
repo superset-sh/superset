@@ -1805,7 +1805,7 @@ export async function createWorktreeFromPr({
 					"-C",
 					worktreePath,
 					"checkout",
-					"-b",
+					"-B",
 					localBranchName,
 					"--no-track",
 					"FETCH_HEAD",
