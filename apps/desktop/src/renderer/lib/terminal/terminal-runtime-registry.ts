@@ -1,4 +1,11 @@
 import type { TerminalAppearance } from "./appearance";
+import type { DetectedLink } from "./links";
+import {
+	LinkDetectorAdapter,
+	LocalLinkDetector,
+	TerminalLinkResolver,
+	type StatCallback,
+} from "./links";
 import {
 	attachToContainer,
 	createRuntime,
@@ -17,9 +24,29 @@ import {
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 
+/**
+ * Link handler callbacks for the v2 terminal.
+ */
+export interface TerminalLinkHandlers {
+	/** Called when a file path link is activated (Cmd/Ctrl+click). */
+	onFileLinkClick?: (
+		event: MouseEvent,
+		link: DetectedLink,
+	) => void;
+	/** Called when a URL link is activated. */
+	onUrlClick?: (url: string) => void;
+	/** Stat callback to validate file paths exist (called from main process). */
+	stat?: StatCallback;
+	/** The initial CWD for resolving relative paths. */
+	initialCwd?: string;
+	/** The user's home directory for resolving ~ paths. */
+	userHome?: string;
+}
+
 interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
+	linkHandlers?: TerminalLinkHandlers;
 }
 
 class TerminalRuntimeRegistryImpl {
@@ -48,6 +75,8 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
+			// Register link providers on first creation
+			this._registerLinkProviders(entry);
 		} else {
 			// Runtime already exists (reattach) — apply current appearance so
 			// the first fit uses up-to-date font metrics.
@@ -61,6 +90,43 @@ class TerminalRuntimeRegistryImpl {
 		});
 
 		connect(transport, runtime.terminal, wsUrl);
+	}
+
+	/**
+	 * Set link handler callbacks for a terminal. Should be called before or
+	 * after attach() — if the runtime already exists, link providers are
+	 * re-registered with the new handlers.
+	 */
+	setLinkHandlers(terminalId: string, handlers: TerminalLinkHandlers) {
+		const entry = this.getOrCreateEntry(terminalId);
+		entry.linkHandlers = handlers;
+		if (entry.runtime) {
+			this._registerLinkProviders(entry);
+		}
+	}
+
+	private _registerLinkProviders(entry: RegistryEntry) {
+		const { runtime, linkHandlers } = entry;
+		if (!runtime || !linkHandlers?.stat) return;
+
+		const terminal = runtime.terminal;
+		const resolver = new TerminalLinkResolver(linkHandlers.stat);
+		const detector = new LocalLinkDetector(resolver, {
+			initialCwd: linkHandlers.initialCwd,
+			userHome: linkHandlers.userHome,
+		});
+
+		const adapter = new LinkDetectorAdapter(
+			terminal,
+			detector,
+			linkHandlers.onFileLinkClick,
+		);
+		terminal.registerLinkProvider(adapter);
+
+		// URL link provider is registered separately via the existing
+		// UrlLinkProvider from the v1 link-providers module, which handles
+		// hard-wrapped URLs. That registration should be done by the caller
+		// (TerminalPane) since it needs access to app-level URL open logic.
 	}
 
 	detach(terminalId: string) {
