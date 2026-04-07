@@ -218,6 +218,27 @@
       "when": 1775419931545,
       "tag": "0030_better_auth_1_5_upgrade",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1774529150979,
+      "tag": "0031_add_external_project_and_cycle_to_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1774532621715,
+      "tag": "0032_add_external_cycle_id_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1774533627053,
+      "tag": "0033_add_external_project_name_index",
+      "breakpoints": true
     }
   ]
 }

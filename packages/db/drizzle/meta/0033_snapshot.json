@@ -1,6 +1,6 @@
 {
-  "id": "2caf98e6-81de-4eda-b363-3f32bfa55ba3",
-  "prevId": "c53a587e-4f66-4b0a-8356-1172ae835f28",
+  "id": "3a904c4f-8486-477c-94fa-f7b31fb58788",
+  "prevId": "e2171726-c316-49d0-83ea-068b112cfa78",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -139,6 +139,13 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "config_id": {
+          "name": "config_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'default'"
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -151,6 +158,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "reference_id": {
+          "name": "reference_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "prefix": {
           "name": "prefix",
           "type": "text",
@@ -160,12 +173,6 @@
         "key": {
           "name": "key",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -268,6 +275,36 @@
         }
       },
       "indexes": {
+        "apikeys_configId_idx": {
+          "name": "apikeys_configId_idx",
+          "columns": [
+            {
+              "expression": "config_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "apikeys_referenceId_idx": {
+          "name": "apikeys_referenceId_idx",
+          "columns": [
+            {
+              "expression": "reference_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "apikeys_key_idx": {
           "name": "apikeys_key_idx",
           "columns": [
@@ -282,39 +319,83 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "auth.device_codes": {
+      "name": "device_codes",
+      "schema": "auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "apikeys_user_id_idx": {
-          "name": "apikeys_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+        "device_code": {
+          "name": "device_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_code": {
+          "name": "user_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_polled_at": {
+          "name": "last_polled_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "polling_interval": {
+          "name": "polling_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "foreignKeys": {
-        "apikeys_user_id_users_id_fk": {
-          "name": "apikeys_user_id_users_id_fk",
-          "tableFrom": "apikeys",
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3853,30 +3934,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "external_project_id": {
-          "name": "external_project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_project_name": {
-          "name": "external_project_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_id": {
-          "name": "external_cycle_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_name": {
-          "name": "external_cycle_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "assignee_external_id": {
           "name": "assignee_external_id",
           "type": "text",
@@ -3926,6 +3983,30 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "external_project_id": {
+          "name": "external_project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_project_name": {
+          "name": "external_project_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_cycle_id": {
+          "name": "external_cycle_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_cycle_name": {
+          "name": "external_cycle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -4034,6 +4115,21 @@
           "method": "btree",
           "with": {}
         },
+        "tasks_assignee_external_id_idx": {
+          "name": "tasks_assignee_external_id_idx",
+          "columns": [
+            {
+              "expression": "assignee_external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "tasks_external_project_id_idx": {
           "name": "tasks_external_project_id_idx",
           "columns": [
@@ -4049,11 +4145,26 @@
           "method": "btree",
           "with": {}
         },
-        "tasks_assignee_external_id_idx": {
-          "name": "tasks_assignee_external_id_idx",
+        "tasks_external_cycle_id_idx": {
+          "name": "tasks_external_cycle_id_idx",
           "columns": [
             {
-              "expression": "assignee_external_id",
+              "expression": "external_cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_external_project_name_idx": {
+          "name": "tasks_external_project_name_idx",
+          "columns": [
+            {
+              "expression": "external_project_name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

@@ -1,8 +1,20 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
+import { type TaskPriority, taskPriorityValues } from "@superset/db/enums";
 import { taskStatuses, tasks, users } from "@superset/db/schema";
 import type { SQL } from "drizzle-orm";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	ilike,
+	isNull,
+	lte,
+	or,
+	sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -14,11 +26,8 @@ type TaskStatusType =
 	| "completed"
 	| "canceled";
 
-const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
-type TaskPriority = (typeof PRIORITIES)[number];
-
 function isPriority(value: unknown): value is TaskPriority {
-	return PRIORITIES.includes(value as TaskPriority);
+	return (taskPriorityValues as readonly string[]).includes(value as string);
 }
 
 export function register(server: McpServer) {
@@ -42,14 +51,46 @@ export function register(server: McpServer) {
 					.boolean()
 					.optional()
 					.describe("Filter to tasks created by current user"),
-				priority: z
-					.enum(["urgent", "high", "medium", "low", "none"])
-					.optional(),
+				priority: z.enum(taskPriorityValues).optional(),
 				labels: z
 					.array(z.string())
 					.optional()
 					.describe("Filter by labels (tasks must have ALL specified labels)"),
 				search: z.string().optional().describe("Search in title/description"),
+				externalProjectId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear project ID"),
+				externalProjectName: z
+					.string()
+					.optional()
+					.describe("Filter by Linear project name (prefix, case-insensitive)"),
+				externalCycleId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear cycle ID"),
+				dueDateFrom: z
+					.string()
+					.datetime({ offset: true })
+					.optional()
+					.describe(
+						"Tasks due on or after this date (ISO datetime, normalized to UTC day start)",
+					),
+				dueDateTo: z
+					.string()
+					.datetime({ offset: true })
+					.optional()
+					.describe(
+						"Tasks due on or before this date (ISO datetime, normalized to UTC day end)",
+					),
+				sortBy: z
+					.enum(["createdAt", "updatedAt", "dueDate", "priority"])
+					.optional()
+					.describe("Sort field (default: createdAt)"),
+				sortOrder: z
+					.enum(["asc", "desc"])
+					.optional()
+					.describe("Sort direction (default: desc)"),
 				includeDeleted: z
 					.boolean()
 					.optional()
@@ -78,6 +119,10 @@ export function register(server: McpServer) {
 						labels: z.array(z.string()),
 						dueDate: z.string().nullable(),
 						estimate: z.number().nullable(),
+						externalProjectId: z.string().nullable(),
+						externalProjectName: z.string().nullable(),
+						externalCycleId: z.string().nullable(),
+						externalCycleName: z.string().nullable(),
 						deletedAt: z.string().nullable(),
 					}),
 				),
@@ -96,6 +141,36 @@ export function register(server: McpServer) {
 			const priority = args.priority;
 			const labels = args.labels as string[] | undefined;
 			const search = args.search as string | undefined;
+			const externalProjectId = args.externalProjectId as string | undefined;
+			const externalProjectName = args.externalProjectName as
+				| string
+				| undefined;
+			const externalCycleId = args.externalCycleId as string | undefined;
+			const dueDateFrom = args.dueDateFrom as string | undefined;
+			const dueDateTo = args.dueDateTo as string | undefined;
+			const toDueDay = (value: string) =>
+				new Date(value).toISOString().slice(0, 10);
+			const toDueDateStart = (value: string) =>
+				new Date(`${toDueDay(value)}T00:00:00.000Z`);
+			const toDueDateEnd = (value: string) =>
+				new Date(`${toDueDay(value)}T23:59:59.999Z`);
+			if (
+				dueDateFrom &&
+				dueDateTo &&
+				toDueDay(dueDateFrom) > toDueDay(dueDateTo)
+			) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: dueDateFrom must be before or equal to dueDateTo",
+						},
+					],
+					isError: true,
+				};
+			}
+			const sortBy = (args.sortBy as string | undefined) ?? "createdAt";
+			const sortOrder = (args.sortOrder as string | undefined) ?? "desc";
 			const includeDeleted = args.includeDeleted as boolean | undefined;
 			const limit = args.limit as number;
 			const offset = args.offset as number;
@@ -146,6 +221,28 @@ export function register(server: McpServer) {
 				if (searchCondition) {
 					conditions.push(searchCondition);
 				}
+			}
+
+			if (externalProjectId) {
+				conditions.push(eq(tasks.externalProjectId, externalProjectId));
+			}
+
+			if (externalProjectName) {
+				conditions.push(
+					ilike(tasks.externalProjectName, `${externalProjectName}%`),
+				);
+			}
+
+			if (externalCycleId) {
+				conditions.push(eq(tasks.externalCycleId, externalCycleId));
+			}
+
+			if (dueDateFrom) {
+				conditions.push(gte(tasks.dueDate, toDueDateStart(dueDateFrom)));
+			}
+
+			if (dueDateTo) {
+				conditions.push(lte(tasks.dueDate, toDueDateEnd(dueDateTo)));
 			}
 
 			if (statusType) {
@@ -202,6 +299,10 @@ export function register(server: McpServer) {
 					labels: tasks.labels,
 					dueDate: tasks.dueDate,
 					estimate: tasks.estimate,
+					externalProjectId: tasks.externalProjectId,
+					externalProjectName: tasks.externalProjectName,
+					externalCycleId: tasks.externalCycleId,
+					externalCycleName: tasks.externalCycleName,
 					deletedAt: tasks.deletedAt,
 				})
 				.from(tasks)
@@ -209,7 +310,30 @@ export function register(server: McpServer) {
 				.leftJoin(creator, eq(tasks.creatorId, creator.id))
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(and(...conditions))
-				.orderBy(desc(tasks.createdAt))
+				.orderBy(
+					(() => {
+						const dir = sortOrder === "asc" ? asc : desc;
+						switch (sortBy) {
+							case "updatedAt":
+								return dir(tasks.updatedAt);
+							case "dueDate":
+								return sql`${tasks.dueDate} ${sortOrder === "asc" ? sql`ASC NULLS LAST` : sql`DESC NULLS LAST`}`;
+							case "priority":
+								return dir(
+									sql`CASE ${tasks.priority}
+										WHEN 'urgent' THEN 4
+										WHEN 'high' THEN 3
+										WHEN 'medium' THEN 2
+										WHEN 'low' THEN 1
+										WHEN 'none' THEN 0
+									END`,
+								);
+							default:
+								return dir(tasks.createdAt);
+						}
+					})(),
+					asc(tasks.id),
+				)
 				.limit(limit)
 				.offset(offset);
 
