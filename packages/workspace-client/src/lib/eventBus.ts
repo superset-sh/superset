@@ -29,7 +29,7 @@ interface ConnectionState {
 	socket: WebSocket | null;
 	refCount: number;
 	listeners: Set<ListenerEntry>;
-	fsWatchedWorkspaces: Set<string>;
+	fsWatchedWorkspaces: Map<string, number>;
 	reconnectAttempts: number;
 	reconnectTimer: ReturnType<typeof setTimeout> | null;
 	disposed: boolean;
@@ -110,7 +110,7 @@ function connect(
 		state.reconnectAttempts = 0;
 
 		// Re-send all active fs:watch commands
-		for (const workspaceId of state.fsWatchedWorkspaces) {
+		for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
 			sendCommand(state, { type: "fs:watch", workspaceId });
 		}
 	};
@@ -163,7 +163,7 @@ function getOrCreateConnection(
 		socket: null,
 		refCount: 0,
 		listeners: new Set(),
-		fsWatchedWorkspaces: new Set(),
+		fsWatchedWorkspaces: new Map(),
 		reconnectAttempts: 0,
 		reconnectTimer: null,
 		disposed: false,
@@ -237,15 +237,21 @@ export function getEventBus(
 		},
 
 		watchFs(workspaceId: string): void {
-			if (state.fsWatchedWorkspaces.has(workspaceId)) return;
-			state.fsWatchedWorkspaces.add(workspaceId);
-			sendCommand(state, { type: "fs:watch", workspaceId });
+			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
+			state.fsWatchedWorkspaces.set(workspaceId, count + 1);
+			if (count === 0) {
+				sendCommand(state, { type: "fs:watch", workspaceId });
+			}
 		},
 
 		unwatchFs(workspaceId: string): void {
-			if (!state.fsWatchedWorkspaces.has(workspaceId)) return;
-			state.fsWatchedWorkspaces.delete(workspaceId);
-			sendCommand(state, { type: "fs:unwatch", workspaceId });
+			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
+			if (count <= 1) {
+				state.fsWatchedWorkspaces.delete(workspaceId);
+				sendCommand(state, { type: "fs:unwatch", workspaceId });
+			} else {
+				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
+			}
 		},
 
 		/**
