@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPanelLeft, LuPanelLeftClose, LuPanelLeftOpen } from "react-icons/lu";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { HotkeyLabel } from "renderer/hotkeys";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 
 export function SidebarToggle() {
@@ -37,10 +37,7 @@ export function SidebarToggle() {
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="right">
-				<HotkeyTooltipContent
-					label="Toggle sidebar"
-					hotkeyId="TOGGLE_WORKSPACE_SIDEBAR"
-				/>
+				<HotkeyLabel label="Toggle sidebar" id="TOGGLE_WORKSPACE_SIDEBAR" />
 			</TooltipContent>
 		</Tooltip>
 	);

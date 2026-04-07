@@ -1,58 +1,55 @@
 import { describe, expect, it } from "bun:test";
 import type { LayoutNode } from "../../../types";
 import {
+	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
+	getNodeAtPath,
+	getOtherBranch,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
 	splitPaneInLayout,
-	updateSplitInLayout,
+	updateAtPath,
 } from "./utils";
 
 const SINGLE: LayoutNode = { type: "pane", paneId: "a" };
 
 const TWO_SPLIT: LayoutNode = {
 	type: "split",
-	id: "s1",
 	direction: "horizontal",
-	children: [
-		{ type: "pane", paneId: "a" },
-		{ type: "pane", paneId: "b" },
-	],
-	weights: [1, 1],
-};
-
-const THREE_SPLIT: LayoutNode = {
-	type: "split",
-	id: "s1",
-	direction: "horizontal",
-	children: [
-		{ type: "pane", paneId: "a" },
-		{ type: "pane", paneId: "b" },
-		{ type: "pane", paneId: "c" },
-	],
-	weights: [3, 2, 1],
+	first: { type: "pane", paneId: "a" },
+	second: { type: "pane", paneId: "b" },
 };
 
 const NESTED: LayoutNode = {
 	type: "split",
-	id: "s1",
 	direction: "horizontal",
-	children: [
-		{ type: "pane", paneId: "a" },
-		{
+	first: { type: "pane", paneId: "a" },
+	second: {
+		type: "split",
+		direction: "vertical",
+		first: { type: "pane", paneId: "b" },
+		second: { type: "pane", paneId: "c" },
+	},
+};
+
+const DEEP: LayoutNode = {
+	type: "split",
+	direction: "vertical",
+	first: { type: "pane", paneId: "a" },
+	second: {
+		type: "split",
+		direction: "vertical",
+		first: { type: "pane", paneId: "b" },
+		second: {
 			type: "split",
-			id: "s2",
 			direction: "vertical",
-			children: [
-				{ type: "pane", paneId: "b" },
-				{ type: "pane", paneId: "c" },
-			],
-			weights: [1, 1],
+			first: { type: "pane", paneId: "c" },
+			second: { type: "pane", paneId: "d" },
 		},
-	],
-	weights: [1, 1],
+	},
+	splitPercentage: 30,
 };
 
 describe("findPaneInLayout", () => {
@@ -92,34 +89,39 @@ describe("removePaneFromLayout", () => {
 		expect(removePaneFromLayout(SINGLE, "a")).toBeNull();
 	});
 
-	it("returns the remaining pane when removing from a 2-pane split", () => {
+	it("promotes sibling when removing from a 2-pane split", () => {
 		const result = removePaneFromLayout(TWO_SPLIT, "a");
 		expect(result).toEqual({ type: "pane", paneId: "b" });
 	});
 
-	it("preserves weights when removing from a 3-pane split", () => {
-		const result = removePaneFromLayout(THREE_SPLIT, "b");
+	it("promotes sibling (other direction)", () => {
+		const result = removePaneFromLayout(TWO_SPLIT, "b");
+		expect(result).toEqual({ type: "pane", paneId: "a" });
+	});
+
+	it("collapses nested split — sibling promotion preserves parent", () => {
+		// NESTED: { h: [a, { v: [b, c] }] } — remove b → { h: [a, c] }
+		const result = removePaneFromLayout(NESTED, "b");
 		expect(result).toMatchObject({
 			type: "split",
-			weights: [3, 1],
-			children: [
-				{ type: "pane", paneId: "a" },
-				{ type: "pane", paneId: "c" },
-			],
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "c" },
 		});
 	});
 
-	it("collapses nested split when child is removed", () => {
-		const result = removePaneFromLayout(NESTED, "b");
-		// s2 had [b, c], removing b leaves just c — s2 collapses
-		// s1 now has [a, c]
+	it("preserves parent splitPercentage when descendant is removed", () => {
+		// DEEP: { v(30%): [a, { v: [b, { v: [c, d] }] }] } — remove c
+		const result = removePaneFromLayout(DEEP, "c");
 		expect(result).toMatchObject({
 			type: "split",
-			id: "s1",
-			children: [
-				{ type: "pane", paneId: "a" },
-				{ type: "pane", paneId: "c" },
-			],
+			splitPercentage: 30,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "d" },
+			},
 		});
 	});
 
@@ -139,17 +141,14 @@ describe("replacePaneIdInLayout", () => {
 	it("replaces a pane id inside a split", () => {
 		const result = replacePaneIdInLayout(TWO_SPLIT, "b", "x");
 		if (result.type === "split") {
-			expect(result.children[1]).toEqual({ type: "pane", paneId: "x" });
+			expect(result.second).toEqual({ type: "pane", paneId: "x" });
 		}
 	});
 
 	it("replaces in nested splits", () => {
 		const result = replacePaneIdInLayout(NESTED, "c", "x");
-		if (result.type === "split" && result.children[1]?.type === "split") {
-			expect(result.children[1].children[1]).toEqual({
-				type: "pane",
-				paneId: "x",
-			});
+		if (result.type === "split" && result.second.type === "split") {
+			expect(result.second.second).toEqual({ type: "pane", paneId: "x" });
 		}
 	});
 
@@ -161,20 +160,23 @@ describe("replacePaneIdInLayout", () => {
 describe("splitPaneInLayout", () => {
 	it("wraps a leaf in a new split", () => {
 		const result = splitPaneInLayout(SINGLE, "a", "b", "right");
-		expect(result.type).toBe("split");
+		expect(result).toMatchObject({
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		});
+		// splitPercentage should be absent (defaults to 50)
 		if (result.type === "split") {
-			expect(result.direction).toBe("horizontal");
-			expect(result.weights).toEqual([1, 1]);
-			expect(result.children[0]).toEqual({ type: "pane", paneId: "a" });
-			expect(result.children[1]).toEqual({ type: "pane", paneId: "b" });
+			expect(result.splitPercentage).toBeUndefined();
 		}
 	});
 
 	it("left/top puts new pane first", () => {
 		const result = splitPaneInLayout(SINGLE, "a", "b", "left");
 		if (result.type === "split") {
-			expect(result.children[0]).toEqual({ type: "pane", paneId: "b" });
-			expect(result.children[1]).toEqual({ type: "pane", paneId: "a" });
+			expect(result.first).toEqual({ type: "pane", paneId: "b" });
+			expect(result.second).toEqual({ type: "pane", paneId: "a" });
 		}
 	});
 
@@ -185,73 +187,125 @@ describe("splitPaneInLayout", () => {
 		}
 	});
 
-	it("inserts into existing same-direction split and halves weight", () => {
-		const result = splitPaneInLayout(THREE_SPLIT, "b", "d", "right");
+	it("always creates nested binary split (no flattening)", () => {
+		const result = splitPaneInLayout(TWO_SPLIT, "b", "c", "right");
 		if (result.type === "split") {
-			expect(result.children).toHaveLength(4);
-			expect(result.weights).toEqual([3, 1, 1, 1]);
-			expect(result.children[1]).toEqual({ type: "pane", paneId: "b" });
-			expect(result.children[2]).toEqual({ type: "pane", paneId: "d" });
-		}
-	});
-
-	it("inserts left into existing same-direction split", () => {
-		const result = splitPaneInLayout(THREE_SPLIT, "b", "d", "left");
-		if (result.type === "split") {
-			expect(result.children).toHaveLength(4);
-			expect(result.children[1]).toEqual({ type: "pane", paneId: "d" });
-			expect(result.children[2]).toEqual({ type: "pane", paneId: "b" });
-		}
-	});
-
-	it("creates nested split for cross-direction split", () => {
-		const result = splitPaneInLayout(TWO_SPLIT, "b", "c", "bottom");
-		if (result.type === "split") {
-			expect(result.children).toHaveLength(2);
-			expect(result.children[0]).toEqual({ type: "pane", paneId: "a" });
-			const nested = result.children[1];
-			expect(nested?.type).toBe("split");
-			if (nested?.type === "split") {
-				expect(nested.direction).toBe("vertical");
-				expect(nested.children[0]).toEqual({ type: "pane", paneId: "b" });
-				expect(nested.children[1]).toEqual({ type: "pane", paneId: "c" });
+			expect(result.first).toEqual({ type: "pane", paneId: "a" });
+			// b is now wrapped in a nested split with c
+			expect(result.second.type).toBe("split");
+			if (result.second.type === "split") {
+				expect(result.second.first).toEqual({ type: "pane", paneId: "b" });
+				expect(result.second.second).toEqual({ type: "pane", paneId: "c" });
 			}
 		}
 	});
 
-	it("uses custom weights", () => {
-		const result = splitPaneInLayout(SINGLE, "a", "b", "right", [3, 1]);
+	it("creates cross-direction nested split", () => {
+		const result = splitPaneInLayout(TWO_SPLIT, "b", "c", "bottom");
 		if (result.type === "split") {
-			expect(result.weights).toEqual([3, 1]);
+			expect(result.direction).toBe("horizontal"); // parent unchanged
+			const nested = result.second;
+			expect(nested.type).toBe("split");
+			if (nested.type === "split") {
+				expect(nested.direction).toBe("vertical");
+				expect(nested.first).toEqual({ type: "pane", paneId: "b" });
+				expect(nested.second).toEqual({ type: "pane", paneId: "c" });
+			}
 		}
 	});
 });
 
-describe("updateSplitInLayout", () => {
-	it("updates a split by id", () => {
-		const result = updateSplitInLayout(TWO_SPLIT, "s1", (split) => ({
-			...split,
-			weights: [3, 7],
-		}));
-		if (result.type === "split") {
-			expect(result.weights).toEqual([3, 7]);
-		}
+describe("getNodeAtPath", () => {
+	it("returns root for empty path", () => {
+		expect(getNodeAtPath(TWO_SPLIT, [])).toEqual(TWO_SPLIT);
 	});
 
-	it("updates a nested split", () => {
-		const result = updateSplitInLayout(NESTED, "s2", (split) => ({
-			...split,
-			weights: [3, 1],
-		}));
-		if (result.type === "split" && result.children[1]?.type === "split") {
-			expect(result.children[1].weights).toEqual([3, 1]);
-		}
+	it("returns first child", () => {
+		expect(getNodeAtPath(TWO_SPLIT, ["first"])).toEqual({
+			type: "pane",
+			paneId: "a",
+		});
 	});
 
-	it("returns unchanged layout for missing id", () => {
-		expect(updateSplitInLayout(TWO_SPLIT, "missing", (s) => s)).toEqual(
-			TWO_SPLIT,
+	it("returns nested node", () => {
+		expect(getNodeAtPath(NESTED, ["second", "first"])).toEqual({
+			type: "pane",
+			paneId: "b",
+		});
+	});
+
+	it("returns null for invalid path", () => {
+		expect(getNodeAtPath(SINGLE, ["first"])).toBeNull();
+	});
+});
+
+describe("updateAtPath", () => {
+	it("updates root", () => {
+		const result = updateAtPath(TWO_SPLIT, [], (node) =>
+			node.type === "split" ? { ...node, splitPercentage: 75 } : node,
 		);
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(75);
+		}
+	});
+
+	it("updates nested node", () => {
+		const result = updateAtPath(NESTED, ["second"], (node) =>
+			node.type === "split" ? { ...node, splitPercentage: 30 } : node,
+		);
+		if (result.type === "split" && result.second.type === "split") {
+			expect(result.second.splitPercentage).toBe(30);
+		}
+	});
+});
+
+describe("getOtherBranch", () => {
+	it("returns second for first", () => {
+		expect(getOtherBranch("first")).toBe("second");
+	});
+
+	it("returns first for second", () => {
+		expect(getOtherBranch("second")).toBe("first");
+	});
+});
+
+describe("equalizeAllSplits", () => {
+	it("returns pane unchanged", () => {
+		expect(equalizeAllSplits(SINGLE)).toEqual(SINGLE);
+	});
+
+	it("sets splitPercentage to 50 for equal leaves", () => {
+		const result = equalizeAllSplits(TWO_SPLIT);
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(50);
+		}
+	});
+
+	it("sets splitPercentage by leaf count ratio", () => {
+		// NESTED: [a, [b, c]] → first has 1 leaf, second has 2 → 33.33%
+		const result = equalizeAllSplits(NESTED);
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBeCloseTo(33.33, 1);
+			// Nested split should be 50/50
+			if (result.second.type === "split") {
+				expect(result.second.splitPercentage).toBe(50);
+			}
+		}
+	});
+
+	it("equalizes deep tree so all panes get equal space", () => {
+		// DEEP: [a, [b, [c, d]]] → 4 panes
+		// Root: 1/4 = 25%, second: 1/3 = 33.33%, innermost: 1/2 = 50%
+		const result = equalizeAllSplits(DEEP);
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(25);
+			if (result.second.type === "split") {
+				expect(result.second.splitPercentage).toBeCloseTo(33.33, 1);
+				if (result.second.second.type === "split") {
+					expect(result.second.second.splitPercentage).toBe(50);
+				}
+			}
+		}
 	});
 });
 

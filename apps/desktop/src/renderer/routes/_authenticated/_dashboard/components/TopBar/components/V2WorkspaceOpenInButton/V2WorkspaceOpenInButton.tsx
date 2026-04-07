@@ -1,6 +1,8 @@
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "../../../../../providers/CollectionsProvider";
 import { useHostService } from "../../../../../providers/HostServiceProvider/HostServiceProvider";
 import { V2OpenInMenuButton } from "../V2OpenInMenuButton";
@@ -42,15 +44,27 @@ export function V2WorkspaceOpenInButton({
 	const isLocalWorkspace =
 		Boolean(workspace) && workspace.deviceId === currentDevice?.id;
 
+	const workspaceQuery = useQuery({
+		queryKey: ["v2-open-in-workspace", hostUrl, workspaceId],
+		queryFn: () =>
+			getHostServiceClientByUrl(hostUrl as string).workspace.get.query({
+				id: workspaceId,
+			}),
+		enabled: !!workspace && !!hostUrl && isLocalWorkspace,
+	});
+
 	if (!workspace || !hostUrl || !isLocalWorkspace) {
+		return null;
+	}
+
+	if (!workspaceQuery.data?.worktreePath) {
 		return null;
 	}
 
 	return (
 		<V2OpenInMenuButton
 			branch={workspace.branch}
-			hostUrl={hostUrl}
-			projectId={workspace.projectId}
+			worktreePath={workspaceQuery.data.worktreePath}
 			workspaceId={workspace.id}
 		/>
 	);

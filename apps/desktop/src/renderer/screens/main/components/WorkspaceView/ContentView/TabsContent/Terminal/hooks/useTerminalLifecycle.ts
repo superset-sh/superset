@@ -587,6 +587,20 @@ export function useTerminalLifecycle({
 									return;
 								}
 
+								requestAnimationFrame(() => {
+									if (!isAttachActive()) return;
+									const prevCols = xterm.cols;
+									const prevRows = xterm.rows;
+									fitAddon.fit();
+									if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+										resizeRef.current({
+											paneId,
+											cols: xterm.cols,
+											rows: xterm.rows,
+										});
+									}
+								});
+
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
 

@@ -3,12 +3,19 @@
 import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
 export default function SignInPage() {
+	const searchParams = useSearchParams();
+	const redirect = searchParams.get("redirect");
+	const callbackURL = redirect
+		? `${env.NEXT_PUBLIC_WEB_URL}${redirect}`
+		: env.NEXT_PUBLIC_WEB_URL;
+
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -20,7 +27,7 @@ export default function SignInPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "google",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
@@ -36,7 +43,7 @@ export default function SignInPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "github",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);

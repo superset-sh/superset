@@ -88,14 +88,20 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	};
 
 	const handleRevokeKey = (id: string, name: string | null) => {
-		alert.destructive({
+		alert({
 			title: "Revoke API Key",
 			description: `Are you sure you want to revoke "${name ?? "Unnamed Key"}"? This action cannot be undone.`,
-			confirmText: "Revoke",
-			onConfirm: async () => {
-				await authClient.apiKey.delete({ keyId: id });
-				toast.success("API key revoked");
-			},
+			actions: [
+				{ label: "Cancel", variant: "outline", onClick: () => {} },
+				{
+					label: "Revoke",
+					variant: "destructive",
+					onClick: async () => {
+						await authClient.apiKey.delete({ keyId: id });
+						toast.success("API key revoked");
+					},
+				},
+			],
 		});
 	};
 

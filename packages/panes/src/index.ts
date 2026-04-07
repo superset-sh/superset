@@ -6,6 +6,7 @@ export type {
 } from "./core/store";
 export { createWorkspaceStore } from "./core/store";
 export type {
+	ContextMenuActionConfig,
 	PaneActionConfig,
 	PaneContext,
 	PaneDefinition,
@@ -18,7 +19,9 @@ export { Workspace } from "./react";
 export type {
 	LayoutNode,
 	Pane,
+	SplitBranch,
 	SplitDirection,
+	SplitPath,
 	SplitPosition,
 	Tab,
 	WorkspaceState,

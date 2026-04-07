@@ -2,14 +2,18 @@ export type SplitDirection = "horizontal" | "vertical";
 
 export type SplitPosition = "top" | "right" | "bottom" | "left";
 
+export type SplitBranch = "first" | "second";
+
+export type SplitPath = SplitBranch[];
+
 export type LayoutNode =
 	| { type: "pane"; paneId: string }
 	| {
 			type: "split";
-			id: string;
 			direction: SplitDirection;
-			children: LayoutNode[];
-			weights: number[];
+			first: LayoutNode;
+			second: LayoutNode;
+			splitPercentage?: number;
 	  };
 
 export interface Pane<TData> {

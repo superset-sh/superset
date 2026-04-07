@@ -7,12 +7,12 @@ import {
 } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useState } from "react";
+import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
-import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
@@ -57,42 +57,17 @@ function DashboardLayout() {
 	} = useWorkspaceSidebarStore();
 
 	// Global hotkeys for dashboard
-	useAppHotkey(
-		"OPEN_SETTINGS",
-		() => navigate({ to: "/settings/account" }),
-		undefined,
-		[navigate],
-	);
-
-	useAppHotkey(
-		"SHOW_HOTKEYS",
-		() => navigate({ to: "/settings/keyboard" }),
-		undefined,
-		[navigate],
-	);
-
-	useAppHotkey(
-		"TOGGLE_WORKSPACE_SIDEBAR",
-		() => {
-			if (!isWorkspaceSidebarOpen) {
-				setWorkspaceSidebarOpen(true);
-			} else {
-				toggleWorkspaceSidebarCollapsed();
-			}
-		},
-		undefined,
-		[
-			isWorkspaceSidebarOpen,
-			setWorkspaceSidebarOpen,
-			toggleWorkspaceSidebarCollapsed,
-		],
-	);
-
-	useAppHotkey(
-		"NEW_WORKSPACE",
-		() => openNewWorkspaceModal(currentWorkspace?.projectId),
-		undefined,
-		[openNewWorkspaceModal, currentWorkspace?.projectId],
+	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
+	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }));
+	useHotkey("TOGGLE_WORKSPACE_SIDEBAR", () => {
+		if (!isWorkspaceSidebarOpen) {
+			setWorkspaceSidebarOpen(true);
+		} else {
+			toggleWorkspaceSidebarCollapsed();
+		}
+	});
+	useHotkey("NEW_WORKSPACE", () =>
+		openNewWorkspaceModal(currentWorkspace?.projectId),
 	);
 
 	const [deleteTarget, setDeleteTarget] = useState<{
@@ -101,7 +76,7 @@ function DashboardLayout() {
 		workspaceType: "worktree" | "branch";
 	} | null>(null);
 
-	useAppHotkey(
+	useHotkey(
 		"CLOSE_WORKSPACE",
 		() => {
 			if (currentWorkspaceId && currentWorkspace) {
@@ -113,7 +88,6 @@ function DashboardLayout() {
 			}
 		},
 		{ enabled: !!currentWorkspaceId },
-		[currentWorkspaceId, currentWorkspace],
 	);
 
 	return (

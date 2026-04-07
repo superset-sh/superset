@@ -27,9 +27,10 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.4.18",
-		"@better-auth/oauth-provider": "1.4.18",
-		"@better-auth/stripe": "1.4.18",
+		"@better-auth/api-key": "1.5.6",
+		"@better-auth/expo": "1.5.6",
+		"@better-auth/oauth-provider": "1.5.6",
+		"@better-auth/stripe": "1.5.6",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
@@ -38,7 +39,7 @@
 		"@upstash/qstash": "^2.8.4",
 		"@upstash/ratelimit": "^2.0.4",
 		"@upstash/redis": "^1.34.3",
-		"better-auth": "1.4.18",
+		"better-auth": "1.5.6",
 		"dotenv": "^17.3.1",
 		"drizzle-orm": "0.45.1",
 		"resend": "^4.0.1",

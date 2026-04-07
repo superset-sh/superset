@@ -48,12 +48,12 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
+import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
 	useClearPendingWorkspace,
 	useNewWorkspaceModalOpen,
@@ -538,8 +538,7 @@ function PromptGroupInner({
 	onNewProject,
 }: PromptGroupProps) {
 	const navigate = useNavigate();
-	const platform = useHotkeysStore((state) => state.platform);
-	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
+	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const utils = electronTrpc.useUtils();
 	const {

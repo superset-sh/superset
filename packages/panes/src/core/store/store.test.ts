@@ -137,11 +137,7 @@ describe("pane operations", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
 
-		store.getState().setPanePinned({
-			tabId: "t1",
-			paneId: "p1",
-			pinned: true,
-		});
+		store.getState().setPanePinned({ paneId: "p1", pinned: true });
 
 		expect(store.getState().getPane("p1")?.pane.pinned).toBe(true);
 	});
@@ -161,7 +157,6 @@ describe("pane operations", () => {
 		});
 
 		const tab = store.getState().tabs[0];
-		expect(tab).toBeDefined();
 		expect(tab?.panes.p1).toBeUndefined();
 		expect(tab?.panes.p2?.data.label).toBe("new");
 		expect(tab?.activePaneId).toBe("p2");
@@ -195,7 +190,7 @@ describe("pane operations", () => {
 });
 
 describe("split operations", () => {
-	it("splits a single pane into a split with weights [1, 1]", () => {
+	it("splits a single pane into a binary split", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
 
@@ -210,10 +205,9 @@ describe("split operations", () => {
 		expect(layout?.type).toBe("split");
 		if (layout?.type === "split") {
 			expect(layout.direction).toBe("horizontal");
-			expect(layout.weights).toEqual([1, 1]);
-			expect(layout.children).toHaveLength(2);
-			expect(layout.children[0]).toEqual({ type: "pane", paneId: "p1" });
-			expect(layout.children[1]).toEqual({ type: "pane", paneId: "p2" });
+			expect(layout.splitPercentage).toBeUndefined();
+			expect(layout.first).toEqual({ type: "pane", paneId: "p1" });
+			expect(layout.second).toEqual({ type: "pane", paneId: "p2" });
 		}
 	});
 
@@ -231,8 +225,8 @@ describe("split operations", () => {
 		const layout = store.getState().tabs[0]?.layout;
 		if (layout?.type === "split") {
 			expect(layout.direction).toBe("horizontal");
-			expect(layout.children[0]).toEqual({ type: "pane", paneId: "p2" });
-			expect(layout.children[1]).toEqual({ type: "pane", paneId: "p1" });
+			expect(layout.first).toEqual({ type: "pane", paneId: "p2" });
+			expect(layout.second).toEqual({ type: "pane", paneId: "p1" });
 		}
 	});
 
@@ -250,70 +244,36 @@ describe("split operations", () => {
 		const layout = store.getState().tabs[0]?.layout;
 		if (layout?.type === "split") {
 			expect(layout.direction).toBe("vertical");
-			expect(layout.children[0]).toEqual({ type: "pane", paneId: "p1" });
-			expect(layout.children[1]).toEqual({ type: "pane", paneId: "p2" });
+			expect(layout.first).toEqual({ type: "pane", paneId: "p1" });
+			expect(layout.second).toEqual({ type: "pane", paneId: "p2" });
 		}
 	});
 
-	it("split within same-direction split halves target weight and inserts adjacent", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p1",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-							{ type: "pane", paneId: "p3" },
-						],
-						weights: [3, 2, 1],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-						p3: { id: "p3", kind: "test", data: { label: "p3" } },
-					},
-				},
-			],
-			activeTabId: "t1",
-		});
-
-		store.getState().splitPane({
-			tabId: "t1",
-			paneId: "p2",
-			position: "right",
-			newPane: tp("p4"),
-		});
-
-		const layout = store.getState().tabs[0]?.layout;
-		if (layout?.type === "split") {
-			expect(layout.weights).toEqual([3, 1, 1, 1]);
-			expect(layout.children).toHaveLength(4);
-			expect(layout.children[2]).toEqual({ type: "pane", paneId: "p4" });
-		}
-	});
-
-	it("split with custom weights", () => {
+	it("split creates nested binary split (no flattening)", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
-
 		store.getState().splitPane({
 			tabId: "t1",
 			paneId: "p1",
 			position: "right",
 			newPane: tp("p2"),
-			weights: [3, 1],
+		});
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p2",
+			position: "right",
+			newPane: tp("p3"),
 		});
 
 		const layout = store.getState().tabs[0]?.layout;
 		if (layout?.type === "split") {
-			expect(layout.weights).toEqual([3, 1]);
+			expect(layout.first).toEqual({ type: "pane", paneId: "p1" });
+			// p2 is now in a nested split with p3
+			expect(layout.second.type).toBe("split");
+			if (layout.second.type === "split") {
+				expect(layout.second.first).toEqual({ type: "pane", paneId: "p2" });
+				expect(layout.second.second).toEqual({ type: "pane", paneId: "p3" });
+			}
 		}
 	});
 
@@ -336,155 +296,107 @@ describe("split operations", () => {
 		expect(store.getState().tabs[0]?.activePaneId).toBe("p1");
 	});
 
-	it("resizes a split", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p1",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-						],
-						weights: [1, 1],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-					},
-				},
-			],
-			activeTabId: "t1",
+	it("resizes a split via path", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
 		});
 
 		store.getState().resizeSplit({
 			tabId: "t1",
-			splitId: "s1",
-			weights: [3, 7],
+			path: [],
+			splitPercentage: 30,
 		});
 
 		const layout = store.getState().tabs[0]?.layout;
 		if (layout?.type === "split") {
-			expect(layout.weights).toEqual([3, 7]);
+			expect(layout.splitPercentage).toBe(30);
 		}
 	});
 
-	it("equalizes a split — all weights become 1", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p1",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-							{ type: "pane", paneId: "p3" },
-						],
-						weights: [10, 30, 60],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-						p3: { id: "p3", kind: "test", data: { label: "p3" } },
-					},
-				},
-			],
-			activeTabId: "t1",
+	it("equalizes all splits in a tab by leaf count", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
+		});
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p2",
+			position: "bottom",
+			newPane: tp("p3"),
 		});
 
-		store.getState().equalizeSplit({ tabId: "t1", splitId: "s1" });
+		// Resize root to skewed
+		store.getState().resizeSplit({
+			tabId: "t1",
+			path: [],
+			splitPercentage: 80,
+		});
+
+		store.getState().equalizeTab({ tabId: "t1" });
 
 		const layout = store.getState().tabs[0]?.layout;
+		// Root: [p1, [p2, p3]] → 1 leaf vs 2 leaves → 33.33%
 		if (layout?.type === "split") {
-			expect(layout.weights).toEqual([1, 1, 1]);
+			expect(layout.splitPercentage).toBeCloseTo(33.33, 1);
+			if (layout.second.type === "split") {
+				expect(layout.second.splitPercentage).toBe(50);
+			}
 		}
 	});
 });
 
 describe("collapsing", () => {
-	it("close pane in 2-pane split collapses to remaining leaf", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p1",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-						],
-						weights: [1, 1],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-					},
-				},
-			],
-			activeTabId: "t1",
+	it("close pane in 2-pane split — sibling promotion", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
 		});
 
 		store.getState().closePane({ tabId: "t1", paneId: "p1" });
 
 		const tab = store.getState().tabs[0];
-		expect(tab).toBeDefined();
 		expect(tab?.layout).toEqual({ type: "pane", paneId: "p2" });
 		expect(tab?.activePaneId).toBe("p2");
 		expect(tab?.panes.p1).toBeUndefined();
 	});
 
-	it("close pane in 3-pane split removes child + weight", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p2",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-							{ type: "pane", paneId: "p3" },
-						],
-						weights: [3, 2, 1],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-						p3: { id: "p3", kind: "test", data: { label: "p3" } },
-					},
-				},
-			],
-			activeTabId: "t1",
+	it("close pane in nested split — only sibling affected", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
+		});
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p2",
+			position: "bottom",
+			newPane: tp("p3"),
 		});
 
-		store.getState().closePane({ tabId: "t1", paneId: "p2" });
+		// Layout: [p1, [p2, p3]]
+		// Close p3 → [p1, p2] (sibling promotion of p2)
+		store.getState().closePane({ tabId: "t1", paneId: "p3" });
 
 		const layout = store.getState().tabs[0]?.layout;
 		if (layout?.type === "split") {
-			expect(layout.children).toHaveLength(2);
-			expect(layout.weights).toEqual([3, 1]);
+			expect(layout.first).toEqual({ type: "pane", paneId: "p1" });
+			expect(layout.second).toEqual({ type: "pane", paneId: "p2" });
 		}
 	});
 
@@ -499,31 +411,16 @@ describe("collapsing", () => {
 	});
 
 	it("activePaneId falls back to sibling after close", () => {
-		const store = makeStore({
-			version: 1,
-			tabs: [
-				{
-					id: "t1",
-					createdAt: Date.now(),
-					activePaneId: "p1",
-					layout: {
-						type: "split",
-						id: "s1",
-						direction: "horizontal",
-						children: [
-							{ type: "pane", paneId: "p1" },
-							{ type: "pane", paneId: "p2" },
-						],
-						weights: [1, 1],
-					},
-					panes: {
-						p1: { id: "p1", kind: "test", data: { label: "p1" } },
-						p2: { id: "p2", kind: "test", data: { label: "p2" } },
-					},
-				},
-			],
-			activeTabId: "t1",
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
 		});
+		// Make p1 active
+		store.getState().setActivePane({ tabId: "t1", paneId: "p1" });
 
 		store.getState().closePane({ tabId: "t1", paneId: "p1" });
 		expect(store.getState().tabs[0]?.activePaneId).toBe("p2");
@@ -571,9 +468,83 @@ describe("openPane", () => {
 
 		const layout = store.getState().tabs[0]?.layout;
 		expect(layout?.type).toBe("split");
-		if (layout?.type === "split") {
-			expect(layout.children).toHaveLength(2);
-		}
+	});
+});
+
+describe("movePaneToSplit", () => {
+	it("moves a pane within the same tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
+		});
+
+		store.getState().movePaneToSplit({
+			sourcePaneId: "p1",
+			targetPaneId: "p2",
+			position: "bottom",
+		});
+
+		const tab = store.getState().tabs[0];
+		expect(tab?.panes.p1).toBeDefined();
+		expect(tab?.panes.p2).toBeDefined();
+		expect(tab?.activePaneId).toBe("p1");
+	});
+
+	it("moves a pane across tabs", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p3")] });
+
+		store.getState().movePaneToSplit({
+			sourcePaneId: "p1",
+			targetPaneId: "p3",
+			position: "right",
+		});
+
+		// Source tab should have p2 only
+		const t1 = store.getState().tabs.find((t) => t.id === "t1");
+		expect(t1?.panes.p1).toBeUndefined();
+		expect(t1?.layout).toEqual({ type: "pane", paneId: "p2" });
+
+		// Target tab should have p3 + p1
+		const t2 = store.getState().tabs.find((t) => t.id === "t2");
+		expect(t2?.panes.p1).toBeDefined();
+		expect(t2?.panes.p3).toBeDefined();
+		expect(t2?.activePaneId).toBe("p1");
+		expect(store.getState().activeTabId).toBe("t2");
+	});
+
+	it("is a no-op when dropping on self", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+
+		const before = structuredClone({
+			version: store.getState().version,
+			tabs: store.getState().tabs,
+			activeTabId: store.getState().activeTabId,
+		});
+
+		store.getState().movePaneToSplit({
+			sourcePaneId: "p1",
+			targetPaneId: "p1",
+			position: "right",
+		});
+
+		expect({
+			version: store.getState().version,
+			tabs: store.getState().tabs,
+			activeTabId: store.getState().activeTabId,
+		}).toEqual(before);
 	});
 });
 
@@ -591,11 +562,6 @@ describe("edge cases", () => {
 		store.getState().setActiveTab("missing");
 		store.getState().setActivePane({ tabId: "t1", paneId: "missing" });
 		store.getState().closePane({ tabId: "t1", paneId: "missing" });
-		store.getState().resizeSplit({
-			tabId: "t1",
-			splitId: "missing",
-			weights: [1],
-		});
 
 		expect({
 			version: store.getState().version,
@@ -613,5 +579,50 @@ describe("edge cases", () => {
 		}));
 
 		expect(store.getState().activeTabId).toBe("injected");
+	});
+});
+
+describe("reorderTab", () => {
+	it("moves a tab forward", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+
+		store.getState().reorderTab({ tabId: "t1", toIndex: 2 });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t3", "t1"]);
+	});
+
+	it("moves a tab backward", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+
+		store.getState().reorderTab({ tabId: "t3", toIndex: 0 });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t3", "t1", "t2"]);
+	});
+
+	it("is a no-op when moving to same index", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		const before = store.getState().tabs.map((t) => t.id);
+		store.getState().reorderTab({ tabId: "t1", toIndex: 0 });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(before);
+	});
+
+	it("clamps toIndex to valid range", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().reorderTab({ tabId: "t1", toIndex: 100 });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
 	});
 });

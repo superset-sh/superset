@@ -7,7 +7,6 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
 import {
 	LuArrowRight,
 	LuExternalLink,
@@ -16,7 +15,7 @@ import {
 	LuRotateCw,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getGitHubStatusQueryPolicy } from "renderer/lib/githubQueryPolicy";
+import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
@@ -38,7 +37,12 @@ export function WorkspaceRow({
 	isOpening,
 }: WorkspaceRowProps) {
 	const isBranch = workspace.type === "branch";
-	const [hasHovered, setHasHovered] = useState(false);
+	const { githubStatus, onMouseEnter: onGithubMouseEnter } =
+		useHoverGitHubStatus({
+			workspaceId: workspace.workspaceId,
+			surface: "workspace-row",
+			isWorktree: workspace.type === "worktree",
+		});
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
@@ -54,18 +58,6 @@ export function WorkspaceRow({
 			});
 		}
 	};
-	const githubStatusQueryPolicy = getGitHubStatusQueryPolicy("workspace-row", {
-		hasWorkspaceId: !!workspace.workspaceId,
-		isActive:
-			hasHovered && workspace.type === "worktree" && !!workspace.workspaceId,
-	});
-
-	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } =
-		electronTrpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: workspace.workspaceId ?? "" },
-			githubStatusQueryPolicy,
-		);
 
 	const pr = githubStatus?.pr;
 	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
@@ -87,7 +79,7 @@ export function WorkspaceRow({
 			type="button"
 			onClick={handleClick}
 			disabled={isOpening}
-			onMouseEnter={() => !hasHovered && setHasHovered(true)}
+			onMouseEnter={onGithubMouseEnter}
 			className={cn(
 				"flex items-center gap-3 w-full px-4 py-2 group text-left",
 				"hover:bg-background/50 transition-colors",

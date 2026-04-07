@@ -17,7 +17,7 @@ import {
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
-import { quitWithoutConfirmation } from "main/index";
+import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
@@ -696,7 +696,7 @@ export const createSettingsRouter = () => {
 
 		restartApp: publicProcedure.mutation(() => {
 			app.relaunch();
-			quitWithoutConfirmation();
+			exitImmediately();
 			return { success: true };
 		}),
 
@@ -779,6 +779,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNotificationVolume: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationVolume ?? 100;
+		}),
+
+		setNotificationVolume: publicProcedure
+			.input(z.object({ volume: z.number().min(0).max(100) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationVolume: input.volume })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationVolume: input.volume },
 					})
 					.run();
 

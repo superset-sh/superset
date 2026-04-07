@@ -1,20 +1,47 @@
-import type { LayoutNode, SplitDirection, SplitPosition } from "../../../types";
+import type {
+	LayoutNode,
+	SplitBranch,
+	SplitDirection,
+	SplitPath,
+	SplitPosition,
+} from "../../../types";
 
 export function findPaneInLayout(node: LayoutNode, paneId: string): boolean {
 	if (node.type === "pane") {
 		return node.paneId === paneId;
 	}
-	return node.children.some((child) => findPaneInLayout(child, paneId));
+	return (
+		findPaneInLayout(node.first, paneId) ||
+		findPaneInLayout(node.second, paneId)
+	);
 }
 
 export function findFirstPaneId(node: LayoutNode): string | null {
 	if (node.type === "pane") {
 		return node.paneId;
 	}
-	for (const child of node.children) {
-		const id = findFirstPaneId(child);
-		if (id) return id;
+	return findFirstPaneId(node.first) ?? findFirstPaneId(node.second);
+}
+
+export function findSiblingPaneId(
+	node: LayoutNode,
+	paneId: string,
+): string | null {
+	if (node.type === "pane") return null;
+
+	const inFirst = findPaneInLayout(node.first, paneId);
+	const inSecond = findPaneInLayout(node.second, paneId);
+
+	if (inFirst && !inSecond) {
+		// Target is in the first branch — sibling is the nearest pane in second
+		const deeper = findSiblingPaneId(node.first, paneId);
+		return deeper ?? findFirstPaneId(node.second);
 	}
+	if (inSecond && !inFirst) {
+		const deeper = findSiblingPaneId(node.second, paneId);
+		return deeper ?? findFirstPaneId(node.first);
+	}
+
 	return null;
 }
 
@@ -26,33 +53,16 @@ export function removePaneFromLayout(
 		return node.paneId === paneId ? null : node;
 	}
 
-	const nextChildren: LayoutNode[] = [];
-	const nextWeights: number[] = [];
+	const newFirst = removePaneFromLayout(node.first, paneId);
+	const newSecond = removePaneFromLayout(node.second, paneId);
 
-	for (let i = 0; i < node.children.length; i++) {
-		const child = node.children[i];
-		if (!child) continue;
+	// Both removed (shouldn't happen in practice)
+	if (!newFirst && !newSecond) return null;
+	// Sibling promotion — one child removed, promote the other
+	if (!newFirst) return newSecond;
+	if (!newSecond) return newFirst;
 
-		const result = removePaneFromLayout(child, paneId);
-		if (result) {
-			nextChildren.push(result);
-			nextWeights.push(node.weights[i] ?? 1);
-		}
-	}
-
-	if (nextChildren.length === 0) {
-		return null;
-	}
-
-	if (nextChildren.length === 1) {
-		return nextChildren[0] ?? null;
-	}
-
-	return {
-		...node,
-		children: nextChildren,
-		weights: nextWeights,
-	};
+	return { ...node, first: newFirst, second: newSecond };
 }
 
 export function replacePaneIdInLayout(
@@ -68,9 +78,8 @@ export function replacePaneIdInLayout(
 
 	return {
 		...node,
-		children: node.children.map((child) =>
-			replacePaneIdInLayout(child, oldPaneId, newPaneId),
-		),
+		first: replacePaneIdInLayout(node.first, oldPaneId, newPaneId),
+		second: replacePaneIdInLayout(node.second, oldPaneId, newPaneId),
 	};
 }
 
@@ -79,7 +88,6 @@ export function splitPaneInLayout(
 	targetPaneId: string,
 	newPaneId: string,
 	position: SplitPosition,
-	weights?: number[],
 ): LayoutNode {
 	if (node.type === "pane") {
 		if (node.paneId !== targetPaneId) return node;
@@ -90,76 +98,65 @@ export function splitPaneInLayout(
 
 		return {
 			type: "split",
-			id: generateId("split"),
 			direction,
-			children: isFirst ? [newPaneNode, node] : [node, newPaneNode],
-			weights: weights ?? [1, 1],
-		};
-	}
-
-	const parentInfo = findDirectChild(node, targetPaneId);
-
-	if (parentInfo && node.direction === positionToDirection(position)) {
-		const { childIndex } = parentInfo;
-		const currentWeight = node.weights[childIndex] ?? 1;
-		const halfWeight = currentWeight / 2;
-		const newPaneNode: LayoutNode = { type: "pane", paneId: newPaneId };
-		const isFirst = position === "left" || position === "top";
-
-		const nextChildren = [...node.children];
-		const nextWeights = [...node.weights];
-
-		nextWeights[childIndex] = halfWeight;
-
-		if (isFirst) {
-			nextChildren.splice(childIndex, 0, newPaneNode);
-			nextWeights.splice(childIndex, 0, halfWeight);
-		} else {
-			nextChildren.splice(childIndex + 1, 0, newPaneNode);
-			nextWeights.splice(childIndex + 1, 0, halfWeight);
-		}
-
-		return {
-			...node,
-			children: nextChildren,
-			weights: nextWeights,
+			first: isFirst ? newPaneNode : node,
+			second: isFirst ? node : newPaneNode,
 		};
 	}
 
 	return {
 		...node,
-		children: node.children.map((child) =>
-			splitPaneInLayout(child, targetPaneId, newPaneId, position, weights),
-		),
+		first: splitPaneInLayout(node.first, targetPaneId, newPaneId, position),
+		second: splitPaneInLayout(node.second, targetPaneId, newPaneId, position),
 	};
 }
 
-function findDirectChild(
-	split: LayoutNode & { type: "split" },
-	paneId: string,
-): { childIndex: number } | null {
-	for (let i = 0; i < split.children.length; i++) {
-		const child = split.children[i];
-		if (child?.type === "pane" && child.paneId === paneId) {
-			return { childIndex: i };
-		}
-	}
-	return null;
+export function getNodeAtPath(
+	node: LayoutNode,
+	path: SplitPath,
+): LayoutNode | null {
+	if (path.length === 0) return node;
+	if (node.type === "pane") return null;
+
+	const [branch, ...rest] = path as [SplitBranch, ...SplitBranch[]];
+	return getNodeAtPath(node[branch], rest);
 }
 
-export function updateSplitInLayout(
+export function updateAtPath(
 	node: LayoutNode,
-	splitId: string,
-	updater: (split: LayoutNode & { type: "split" }) => LayoutNode,
+	path: SplitPath,
+	updater: (node: LayoutNode) => LayoutNode,
 ): LayoutNode {
+	if (path.length === 0) return updater(node);
 	if (node.type === "pane") return node;
-	if (node.id === splitId) return updater(node);
+
+	const [branch, ...rest] = path as [SplitBranch, ...SplitBranch[]];
+	return {
+		...node,
+		[branch]: updateAtPath(node[branch], rest, updater),
+	};
+}
+
+export function getOtherBranch(branch: SplitBranch): SplitBranch {
+	return branch === "first" ? "second" : "first";
+}
+
+function countLeaves(node: LayoutNode): number {
+	if (node.type === "pane") return 1;
+	return countLeaves(node.first) + countLeaves(node.second);
+}
+
+export function equalizeAllSplits(node: LayoutNode): LayoutNode {
+	if (node.type === "pane") return node;
+
+	const firstLeaves = countLeaves(node.first);
+	const secondLeaves = countLeaves(node.second);
 
 	return {
 		...node,
-		children: node.children.map((child) =>
-			updateSplitInLayout(child, splitId, updater),
-		),
+		splitPercentage: (firstLeaves / (firstLeaves + secondLeaves)) * 100,
+		first: equalizeAllSplits(node.first),
+		second: equalizeAllSplits(node.second),
 	};
 }
 

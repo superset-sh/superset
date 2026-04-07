@@ -9,15 +9,9 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
+import { getBinding, isTerminalReservedEvent } from "renderer/hotkeys";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
-import {
-	getCurrentPlatform,
-	hotkeyFromKeyboardEvent,
-	isTerminalReservedEvent,
-	matchesHotkeyEvent,
-} from "shared/hotkeys";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -524,6 +518,17 @@ export function setupPasteHandler(
  *
  * Returns a cleanup function to remove the handler.
  */
+function matchesKey(event: KeyboardEvent, keys: string): boolean {
+	const parts = keys.toLowerCase().split("+");
+	const modifiers = new Set(parts.slice(0, -1));
+	const key = parts[parts.length - 1];
+	if (modifiers.has("meta") !== event.metaKey) return false;
+	if (modifiers.has("ctrl") !== event.ctrlKey) return false;
+	if (modifiers.has("alt") !== event.altKey) return false;
+	if (modifiers.has("shift") !== event.shiftKey) return false;
+	return event.key.toLowerCase() === key;
+}
+
 export function setupKeyboardHandler(
 	xterm: XTerm,
 	options: KeyboardHandlerOptions = {},
@@ -659,31 +664,21 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Terminal-reserved chords (ctrl+c/d/z/s/q) always go to xterm
 		if (isTerminalReservedEvent(event)) return true;
 
-		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
-		const isClearShortcut =
-			clearKeys !== null && matchesHotkeyEvent(event, clearKeys);
-
-		if (isClearShortcut) {
+		// CLEAR_TERMINAL is handled here (xterm needs to call onClear)
+		const clearKeys = getBinding("CLEAR_TERMINAL");
+		if (clearKeys && matchesKey(event, clearKeys)) {
 			if (event.type === "keydown" && options.onClear) {
 				options.onClear();
 			}
 			return false;
 		}
 
-		if (event.type !== "keydown") return true;
-		const potentialHotkey = hotkeyFromKeyboardEvent(
-			event,
-			getCurrentPlatform(),
-		);
-		if (!potentialHotkey) return true;
-
-		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent xterm from processing the key.
-			// The original event bubbles to document where useAppHotkey handles it.
+		// Any other ctrl/meta combo → let it bubble to document for react-hotkeys-hook
+		if (event.type === "keydown" && (event.metaKey || event.ctrlKey))
 			return false;
-		}
 
 		return true;
 	};

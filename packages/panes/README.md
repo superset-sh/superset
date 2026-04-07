@@ -330,6 +330,25 @@ Pin from inside a pane component (e.g. on first edit):
 context.actions.pin();
 ```
 
+## Drag-and-Drop
+
+`Workspace` uses `react-dnd` internally for tab reordering and pane dragging but does **not** include its own `DndProvider`. You must wrap `<Workspace>` in a `DndProvider` yourself:
+
+```tsx
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+function App() {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <Workspace store={store} registry={registry} />
+    </DndProvider>
+  );
+}
+```
+
+This is intentional — embedding a provider inside `Workspace` would conflict with any parent `DndProvider` in your app (the HTML5 backend cannot be instantiated twice). Keeping it external lets you share a single backend across your entire component tree.
+
 ## Workspace Props
 
 ```ts

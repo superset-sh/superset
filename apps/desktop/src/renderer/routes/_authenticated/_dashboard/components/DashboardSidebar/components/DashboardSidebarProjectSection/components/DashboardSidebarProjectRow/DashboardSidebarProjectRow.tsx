@@ -2,7 +2,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
-import { LuPencil } from "react-icons/lu";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 
@@ -52,6 +51,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 				role={isRenaming ? undefined : "button"}
 				tabIndex={isRenaming ? undefined : 0}
 				onClick={isRenaming ? undefined : onToggleCollapse}
+				onDoubleClick={isRenaming ? undefined : onStartRename}
 				onKeyDown={
 					isRenaming
 						? undefined
@@ -70,10 +70,21 @@ export const DashboardSidebarProjectRow = forwardRef<
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<ProjectThumbnail
-						projectName={projectName}
-						githubOwner={githubOwner}
-					/>
+					<div className="relative shrink-0 size-5 flex items-center justify-center">
+						<span className="group-hover:opacity-0 transition-opacity duration-150">
+							<ProjectThumbnail
+								projectName={projectName}
+								githubOwner={githubOwner}
+								className="size-4"
+							/>
+						</span>
+						<HiChevronRight
+							className={cn(
+								"absolute inset-0 m-auto size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150",
+								!isCollapsed && "rotate-90",
+							)}
+						/>
+					</div>
 					{isRenaming ? (
 						<RenameInput
 							value={renameValue}
@@ -85,26 +96,11 @@ export const DashboardSidebarProjectRow = forwardRef<
 					) : (
 						<span className="truncate">{projectName}</span>
 					)}
-					<div className="grid shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
-						{!isRenaming && (
-							<span className="text-xs font-normal tabular-nums text-muted-foreground transition-all duration-150 group-hover:scale-95 group-hover:opacity-0">
-								({totalWorkspaceCount})
-							</span>
-						)}
-						{!isRenaming && (
-							<button
-								type="button"
-								onClick={(event) => {
-									event.stopPropagation();
-									onStartRename();
-								}}
-								className="flex items-center justify-center opacity-0 scale-90 text-muted-foreground transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 hover:text-foreground"
-								aria-label="Rename project"
-							>
-								<LuPencil className="size-3.5 transition-transform duration-150 group-hover:rotate-[-8deg]" />
-							</button>
-						)}
-					</div>
+					{!isRenaming && (
+						<span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
+							({totalWorkspaceCount})
+						</span>
+					)}
 				</div>
 
 				<Tooltip delayDuration={500}>
@@ -125,24 +121,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 						New workspace
 					</TooltipContent>
 				</Tooltip>
-
-				<button
-					type="button"
-					onClick={(event) => {
-						event.stopPropagation();
-						onToggleCollapse();
-					}}
-					onContextMenu={(event) => event.stopPropagation()}
-					aria-expanded={!isCollapsed}
-					className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-				>
-					<HiChevronRight
-						className={cn(
-							"size-3.5 text-muted-foreground transition-transform duration-150",
-							!isCollapsed && "rotate-90",
-						)}
-					/>
-				</button>
 			</div>
 		);
 	},

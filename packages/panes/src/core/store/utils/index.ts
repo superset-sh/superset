@@ -1,9 +1,14 @@
 export {
+	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
+	findSiblingPaneId,
 	generateId,
+	getNodeAtPath,
+	getOtherBranch,
+	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
 	splitPaneInLayout,
-	updateSplitInLayout,
+	updateAtPath,
 } from "./utils";

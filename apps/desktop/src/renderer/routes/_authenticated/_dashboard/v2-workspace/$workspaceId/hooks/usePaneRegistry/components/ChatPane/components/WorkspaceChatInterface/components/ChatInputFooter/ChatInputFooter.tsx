@@ -18,7 +18,7 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
@@ -87,7 +87,7 @@ export function ChatInputFooter({
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
-	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
+	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
 	const addLinkedIssue = useCallback(

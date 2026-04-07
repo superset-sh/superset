@@ -3,7 +3,7 @@ import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
 import { LuExternalLink, LuGlobe, LuTriangleAlert } from "react-icons/lu";
-import { useHotkeyDisplay } from "renderer/stores/hotkeys";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import type { WorkspaceRowMockData } from "../../utils";
 import { ChecksList } from "./components/ChecksList";
@@ -31,7 +31,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 		behindCount,
 		createdAt,
 	} = workspace;
-	const openPRDisplay = useHotkeyDisplay("OPEN_PR");
+	const { keys: openPRDisplay } = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(
 		openPRDisplay.length === 1 && openPRDisplay[0] === "Unassigned"
 	);

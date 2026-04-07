@@ -1,4 +1,8 @@
 import type { ITerminalOptions } from "@xterm/xterm";
+import {
+	DEFAULT_TERMINAL_FONT_FAMILY as SHARED_DEFAULT_TERMINAL_FONT_FAMILY,
+	DEFAULT_TERMINAL_FONT_SIZE as SHARED_DEFAULT_TERMINAL_FONT_SIZE,
+} from "renderer/lib/terminal/appearance";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
@@ -13,23 +17,10 @@ export const DEBUG_TERMINAL =
 	typeof localStorage !== "undefined" &&
 	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
 
-// Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
-export const DEFAULT_TERMINAL_FONT_FAMILY = [
-	"MesloLGM Nerd Font",
-	"MesloLGM NF",
-	"MesloLGS NF",
-	"MesloLGS Nerd Font",
-	"Hack Nerd Font",
-	"FiraCode Nerd Font",
-	"JetBrainsMono Nerd Font",
-	"CaskaydiaCove Nerd Font",
-	"Menlo",
-	"Monaco",
-	'"Courier New"',
-	"monospace",
-].join(", ");
+// Shared terminal font defaults are serialized as a valid CSS font-family value.
+export const DEFAULT_TERMINAL_FONT_FAMILY = SHARED_DEFAULT_TERMINAL_FONT_FAMILY;
 
-export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+export const DEFAULT_TERMINAL_FONT_SIZE = SHARED_DEFAULT_TERMINAL_FONT_SIZE;
 
 export const TERMINAL_OPTIONS: ITerminalOptions = {
 	cursorBlink: true,

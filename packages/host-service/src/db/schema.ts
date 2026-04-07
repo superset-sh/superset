@@ -6,6 +6,29 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
+export const terminalSessions = sqliteTable(
+	"terminal_sessions",
+	{
+		id: text().primaryKey(),
+		originWorkspaceId: text("origin_workspace_id").references(
+			() => workspaces.id,
+			{ onDelete: "set null" },
+		),
+		status: text().notNull().default("active"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		lastAttachedAt: integer("last_attached_at"),
+		endedAt: integer("ended_at"),
+	},
+	(table) => [
+		index("terminal_sessions_origin_workspace_id_idx").on(
+			table.originWorkspaceId,
+		),
+		index("terminal_sessions_status_idx").on(table.status),
+	],
+);
+
 export const projects = sqliteTable(
 	"projects",
 	{

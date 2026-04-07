@@ -48,7 +48,7 @@
 .default-markdown p {
 	margin-top: 0;
 	margin-bottom: 1rem;
-	line-height: 1.7;
+	line-height: 1.5;
 }
 
 .default-markdown ul,
@@ -60,7 +60,7 @@
 
 .default-markdown li {
 	margin-bottom: 0.25rem;
-	line-height: 1.6;
+	line-height: 1.5;
 }
 
 .default-markdown ul {

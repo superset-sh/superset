@@ -8,9 +8,9 @@ import {
 	LuLoaderCircle,
 	LuTriangleAlert,
 } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePRStatus } from "renderer/screens/main/hooks";
-import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -40,7 +40,7 @@ export function WorkspaceHoverCardContent({
 		isLoading: isLoadingGithub,
 	} = usePRStatus({ workspaceId, surface: "workspace-hover-card" });
 
-	const openPRDisplay = useHotkeyDisplay("OPEN_PR");
+	const { keys: openPRDisplay } = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(
 		openPRDisplay.length === 1 && openPRDisplay[0] === "Unassigned"
 	);

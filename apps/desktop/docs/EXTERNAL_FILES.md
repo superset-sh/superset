@@ -42,7 +42,7 @@ its hook entries into these files while preserving user-defined entries:
 | File | Purpose |
 |------|---------|
 | `~/.claude/settings.json` | Claude Code hook registration merge |
-| `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`) |
+| `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `Stop`) |
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
 
 For Codex specifically, Superset now relies on native `~/.codex/hooks.json`

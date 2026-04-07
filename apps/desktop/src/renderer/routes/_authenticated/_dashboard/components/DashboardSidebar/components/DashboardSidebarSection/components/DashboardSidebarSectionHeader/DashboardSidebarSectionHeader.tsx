@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight } from "react-icons/hi2";
-import { LuPencil } from "react-icons/lu";
+import { LuGripVertical, LuPencil } from "react-icons/lu";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { DashboardSidebarSection } from "../../../../types";
 
@@ -54,12 +54,16 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-2 pr-2 py-1.5 text-[11px] font-medium",
+					"group flex min-h-8 w-full items-center pl-0.5 pr-2 py-1.5 text-[11px] font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
 				{...props}
 			>
+				<div className="flex shrink-0 items-center justify-center w-5 h-5 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab active:cursor-grabbing">
+					<LuGripVertical className="size-3" />
+				</div>
+
 				<div className="flex min-w-0 flex-1 items-center gap-1.5">
 					{isRenaming ? (
 						<RenameInput

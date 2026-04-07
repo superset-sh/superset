@@ -12,8 +12,8 @@ import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
-import type { HotkeyId } from "shared/hotkeys";
+import type { HotkeyId } from "renderer/hotkeys";
+import { HotkeyLabel } from "renderer/hotkeys";
 
 const PRESET_BAR_ITEM_TYPE = "PRESET_BAR_ITEM";
 
@@ -113,7 +113,7 @@ export function PresetBarItem({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" sideOffset={4}>
-							<HotkeyTooltipContent label={label} hotkeyId={hotkeyId} />
+							<HotkeyLabel label={label} id={hotkeyId} />
 						</TooltipContent>
 					</Tooltip>
 				</div>

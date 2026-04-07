@@ -4,10 +4,10 @@ import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
-import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
@@ -28,8 +28,7 @@ export function PromptGroup({
 	hostTarget,
 }: PromptGroupProps) {
 	const navigate = useNavigate();
-	const platform = useHotkeysStore((state) => state.platform);
-	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
+	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const { closeModal, draft, runAsyncAction, updateDraft } =
 		useDashboardNewWorkspaceDraft();

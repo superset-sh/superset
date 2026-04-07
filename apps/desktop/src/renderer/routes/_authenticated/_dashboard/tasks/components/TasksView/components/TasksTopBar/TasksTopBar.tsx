@@ -10,7 +10,7 @@ import {
 	HiOutlineViewColumns,
 	HiXMark,
 } from "react-icons/hi2";
-import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useHotkey } from "renderer/hotkeys";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
@@ -69,7 +69,7 @@ export function TasksTopBar({
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
-	useAppHotkey(
+	useHotkey(
 		"FOCUS_TASK_SEARCH",
 		() => {
 			searchInputRef.current?.focus();

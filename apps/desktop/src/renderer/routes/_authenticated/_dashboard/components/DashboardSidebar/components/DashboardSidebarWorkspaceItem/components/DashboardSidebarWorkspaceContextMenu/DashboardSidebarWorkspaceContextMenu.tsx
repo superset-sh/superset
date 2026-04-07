@@ -18,10 +18,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
 import {
 	LuArrowRightLeft,
+	LuArrowUp,
 	LuCopy,
 	LuFolderOpen,
 	LuFolderPlus,
-	LuMinus,
 	LuPencil,
 	LuTrash2,
 	LuX,
@@ -31,6 +31,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 interface DashboardSidebarWorkspaceContextMenuProps {
 	hoverCardContent?: React.ReactNode;
 	projectId: string;
+	isInSection?: boolean;
 	onHoverCardOpen?: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -44,6 +45,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 
 export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
+	isInSection,
 	onHoverCardOpen,
 	hoverCardContent,
 	onCreateSection,
@@ -68,6 +70,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
 					name: sidebarSections.name,
+					color: sidebarSections.color,
 				})),
 		[collections, projectId],
 	);
@@ -98,20 +101,29 @@ export function DashboardSidebarWorkspaceContextMenu({
 						<LuFolderPlus className="size-4 mr-2" />
 						New Section
 					</ContextMenuItem>
-					<ContextMenuItem onSelect={() => onMoveToSection(null)}>
-						<LuMinus className="size-4 mr-2" />
-						Ungrouped
-					</ContextMenuItem>
+					{sections.length > 0 && <ContextMenuSeparator />}
 					{sections.map((section) => (
 						<ContextMenuItem
 							key={section.id}
 							onSelect={() => onMoveToSection(section.id)}
 						>
+							{section.color && (
+								<span
+									className="size-2 shrink-0 rounded-full mr-2"
+									style={{ backgroundColor: section.color }}
+								/>
+							)}
 							{section.name}
 						</ContextMenuItem>
 					))}
 				</ContextMenuSubContent>
 			</ContextMenuSub>
+			{isInSection && (
+				<ContextMenuItem onSelect={() => onMoveToSection(null)}>
+					<LuArrowUp className="size-4 mr-2" />
+					Remove from Group
+				</ContextMenuItem>
+			)}
 			<ContextMenuSeparator />
 			<ContextMenuItem
 				onSelect={onRemoveFromSidebar}

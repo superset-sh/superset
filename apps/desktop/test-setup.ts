@@ -33,6 +33,8 @@ const mockHead = {
 
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
+	addEventListener: mock(() => {}),
+	removeEventListener: mock(() => {}),
 	documentElement: {
 		style: {
 			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
@@ -64,6 +66,19 @@ const mockHead = {
 		textContent: text,
 	})),
 };
+
+// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
+if (typeof globalThis.window !== "undefined") {
+	const win = globalThis.window as Record<string, unknown>;
+	if (!win.addEventListener) win.addEventListener = mock(() => {});
+	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
+} else {
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+	(globalThis as any).window = {
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
+	};
+}
 
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)

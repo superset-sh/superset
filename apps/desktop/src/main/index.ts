@@ -94,7 +94,7 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
-function focusMainWindow(): void {
+export function focusMainWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		const mainWindow = windows[0];
@@ -103,6 +103,9 @@ function focusMainWindow(): void {
 		}
 		mainWindow.show();
 		mainWindow.focus();
+	} else {
+		// Triggers window creation via makeAppSetup's activate handler
+		app.emit("activate");
 	}
 }
 
@@ -147,8 +150,29 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
+export type QuitMode = "release" | "stop";
+let pendingQuitMode: QuitMode | null = null;
 let isQuitting = false;
-let skipConfirmation = false;
+
+/** Request the app to quit.
+ *  - "release": keep services running (re-adoptable on next launch)
+ *  - "stop": terminate all services before exit */
+export function requestQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+	app.quit();
+}
+
+/** Set quit mode without triggering quit.
+ *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
+export function prepareQuit(mode: QuitMode): void {
+	pendingQuitMode = mode;
+}
+
+/** Exit the process immediately, bypassing before-quit.
+ *  Services are left running for adoption on next launch. */
+export function exitImmediately(): void {
+	app.exit(0);
+}
 
 function getConfirmOnQuitSetting(): boolean {
 	try {
@@ -159,23 +183,15 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
-export function setSkipQuitConfirmation(): void {
-	skipConfirmation = true;
-}
-
-export function quitWithoutConfirmation(): void {
-	skipConfirmation = true;
-	app.exit(0);
-}
-
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
-	const isDev = process.env.NODE_ENV === "development";
-	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+	// Consume the quit mode so it doesn't persist across aborted quits
+	const quitMode = pendingQuitMode;
+	pendingQuitMode = null;
 
-	if (shouldConfirm) {
+	const isDev = process.env.NODE_ENV === "development";
+	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -188,16 +204,21 @@ app.on("before-quit", async (event) => {
 				message: "Are you sure you want to quit?",
 			});
 
-			if (response === 1) return;
+			if (response === 1) {
+				return;
+			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
-	getHostServiceManager().stopAll();
+	const manager = getHostServiceManager();
+	if (quitMode === "stop") {
+		manager.stopAll();
+	} else {
+		manager.releaseAll();
+	}
 	disposeTray();
 	app.exit(0);
 });
@@ -317,7 +338,7 @@ if (!gotTheLock) {
 					try {
 						return await net.fetch(pathToFileURL(fontPath).toString());
 					} catch {
-						// Font not in this directory, try next
+						// Not in this directory
 					}
 				}
 				return new Response("Not found", { status: 404 });
@@ -345,11 +366,14 @@ if (!gotTheLock) {
 			console.error("[main] Failed to set up agent hooks:", error);
 		}
 
+		// Discover and adopt host-services that survived a previous quit
+		// before the tray initializes, so it shows accurate status immediately.
+		await getHostServiceManager().discoverAndAdoptAll();
+
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 		initTray();
 
-		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);

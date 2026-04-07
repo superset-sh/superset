@@ -1,0 +1,1 @@
+export { HotkeyLabel } from "./HotkeyLabel";

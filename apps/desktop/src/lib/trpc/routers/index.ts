@@ -13,7 +13,6 @@ import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createFilesystemRouter } from "./filesystem";
 import { createHostServiceManagerRouter } from "./host-service-manager";
-import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createModelProvidersRouter } from "./model-providers";
 import { createNotificationsRouter } from "./notifications";
@@ -50,7 +49,6 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		ports: createPortsRouter(),
 		resourceMetrics: createResourceMetricsRouter(),
 		menu: createMenuRouter(),
-		hotkeys: createHotkeysRouter(getWindow),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),

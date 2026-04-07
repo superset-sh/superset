@@ -3,9 +3,9 @@ import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuSearch } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import supersetEmptyStateWordmark from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/assets/superset-empty-state-wordmark.svg";
 import { EmptyTabActionButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/components/EmptyTabActionButton";
-import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { useTheme } from "renderer/stores/theme";
 
 interface WorkspaceEmptyStateProps {
@@ -30,10 +30,10 @@ export function WorkspaceEmptyState({
 	onOpenTerminal,
 }: WorkspaceEmptyStateProps) {
 	const activeTheme = useTheme();
-	const newGroupDisplay = useHotkeyDisplay("NEW_GROUP");
-	const newChatDisplay = useHotkeyDisplay("NEW_CHAT");
-	const newBrowserDisplay = useHotkeyDisplay("NEW_BROWSER");
-	const quickOpenDisplay = useHotkeyDisplay("QUICK_OPEN");
+	const { keys: newGroupDisplay } = useHotkeyDisplay("NEW_GROUP");
+	const { keys: newChatDisplay } = useHotkeyDisplay("NEW_CHAT");
+	const { keys: newBrowserDisplay } = useHotkeyDisplay("NEW_BROWSER");
+	const { keys: quickOpenDisplay } = useHotkeyDisplay("QUICK_OPEN");
 
 	const actions = useMemo<Array<WorkspaceEmptyStateAction>>(
 		() => [

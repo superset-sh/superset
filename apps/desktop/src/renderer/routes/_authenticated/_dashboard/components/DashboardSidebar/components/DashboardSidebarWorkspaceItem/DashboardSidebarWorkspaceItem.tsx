@@ -12,6 +12,7 @@ interface DashboardSidebarWorkspaceItemProps {
 	onHoverCardOpen?: () => void;
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
+	isInSection?: boolean;
 }
 
 export function DashboardSidebarWorkspaceItem({
@@ -19,6 +20,7 @@ export function DashboardSidebarWorkspaceItem({
 	onHoverCardOpen,
 	shortcutLabel,
 	isCollapsed = false,
+	isInSection = false,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
 		id,
@@ -88,6 +90,7 @@ export function DashboardSidebarWorkspaceItem({
 				) : (
 					<DashboardSidebarWorkspaceContextMenu
 						projectId={projectId}
+						isInSection={isInSection}
 						onHoverCardOpen={
 							hostType === "local-device" ? onHoverCardOpen : undefined
 						}
@@ -149,6 +152,7 @@ export function DashboardSidebarWorkspaceItem({
 			) : (
 				<DashboardSidebarWorkspaceContextMenu
 					projectId={projectId}
+					isInSection={isInSection}
 					onHoverCardOpen={
 						hostType === "local-device" ? onHoverCardOpen : undefined
 					}

@@ -136,7 +136,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "GitHub integration",
-				values: [null, true, true],
+				values: [true, true, true],
 			},
 			{
 				label: "Cloud workspaces",
@@ -150,6 +150,10 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "Linear integration",
+				values: [null, true, true],
+			},
+			{
+				label: "Slack integration",
 				values: [null, true, true],
 			},
 			{

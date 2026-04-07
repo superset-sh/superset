@@ -27,18 +27,22 @@ import {
 } from "react-icons/hi2";
 import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHotkeyText } from "renderer/stores/hotkeys";
 
-export function OrganizationDropdown() {
+export function OrganizationDropdown({
+	variant = "topbar",
+}: {
+	variant?: "topbar" | "expanded" | "collapsed";
+}) {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 	const navigate = useNavigate();
-	const settingsHotkey = useHotkeyText("OPEN_SETTINGS");
-	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
+	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
+	const shortcutsHotkey = useHotkeyDisplay("SHOW_HOTKEYS").text;
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -65,27 +69,60 @@ export function OrganizationDropdown() {
 	const userName = session?.user?.name;
 	const displayName = activeOrganization?.name ?? userName ?? "Organization";
 
+	const triggerButton =
+		variant === "collapsed" ? (
+			<button
+				type="button"
+				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+				aria-label="Organization menu"
+			>
+				<Avatar
+					size="xs"
+					fullName={activeOrganization?.name}
+					image={activeOrganization?.logo}
+					className="rounded size-4"
+				/>
+			</button>
+		) : variant === "expanded" ? (
+			<button
+				type="button"
+				className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
+				aria-label="Organization menu"
+			>
+				<Avatar
+					size="xs"
+					fullName={activeOrganization?.name}
+					image={activeOrganization?.logo}
+					className="rounded size-4 shrink-0"
+				/>
+				<span className="truncate">{displayName}</span>
+				<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+			</button>
+		) : (
+			<button
+				type="button"
+				className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+				aria-label="Organization menu"
+			>
+				<Avatar
+					size="xs"
+					fullName={activeOrganization?.name}
+					image={activeOrganization?.logo}
+					className="rounded size-4"
+				/>
+				<span className="text-xs font-medium truncate max-w-32">
+					{displayName}
+				</span>
+				<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+			</button>
+		);
+
+	const contentAlign = variant === "topbar" ? "end" : "start";
+
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<button
-					type="button"
-					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
-					aria-label="Organization menu"
-				>
-					<Avatar
-						size="xs"
-						fullName={activeOrganization?.name}
-						image={activeOrganization?.logo}
-						className="rounded size-4"
-					/>
-					<span className="text-xs font-medium truncate max-w-32">
-						{displayName}
-					</span>
-					<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-56">
+			<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+			<DropdownMenuContent align={contentAlign} className="w-56">
 				{/* Organization */}
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/account" })}

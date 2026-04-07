@@ -3,7 +3,7 @@ import {
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type React from "react";
-import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useHotkey } from "renderer/hotkeys";
 
 interface ChatShortcutsProps {
 	isFocused: boolean;
@@ -17,7 +17,7 @@ export function ChatShortcuts({
 	const attachments = usePromptInputAttachments();
 	const { textInput } = usePromptInputController();
 
-	useAppHotkey(
+	useHotkey(
 		"CHAT_ADD_ATTACHMENT",
 		() => {
 			attachments.openFileDialog();
@@ -25,7 +25,7 @@ export function ChatShortcuts({
 		{ enabled: isFocused, preventDefault: true },
 	);
 
-	useAppHotkey(
+	useHotkey(
 		"CHAT_LINK_ISSUE",
 		() => {
 			setIssueLinkOpen((prev) => !prev);
@@ -33,7 +33,7 @@ export function ChatShortcuts({
 		{ enabled: isFocused, preventDefault: true },
 	);
 
-	useAppHotkey(
+	useHotkey(
 		"FOCUS_CHAT_INPUT",
 		() => {
 			textInput.focus();

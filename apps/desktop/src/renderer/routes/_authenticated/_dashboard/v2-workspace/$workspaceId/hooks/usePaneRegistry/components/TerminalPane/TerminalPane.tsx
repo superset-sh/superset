@@ -1,170 +1,113 @@
-import { Button } from "@superset/ui/button";
-import { FitAddon } from "@xterm/addon-fit";
-import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
-import { Terminal as XTerm } from "@xterm/xterm";
+import type { RendererContext } from "@superset/panes";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
-import { useWorkspaceWsUrl } from "../../../../../providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useHotkey } from "renderer/hotkeys";
+import {
+	type ConnectionState,
+	terminalRuntimeRegistry,
+} from "renderer/lib/terminal/terminal-runtime-registry";
+import type {
+	PaneViewerData,
+	TerminalPaneData,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
+import { useTheme } from "renderer/stores/theme";
+import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 
-interface WorkspaceTerminalProps {
+interface TerminalPaneProps {
+	ctx: RendererContext<PaneViewerData>;
 	workspaceId: string;
 }
 
-type TerminalServerMessage =
-	| {
-			type: "data";
-			data: string;
-	  }
-	| {
-			type: "error";
-			message: string;
-	  }
-	| {
-			type: "exit";
-			exitCode: number;
-			signal: number;
-	  };
+function subscribeToState(terminalId: string) {
+	return (callback: () => void) =>
+		terminalRuntimeRegistry.onStateChange(terminalId, callback);
+}
 
-export function TerminalPane({ workspaceId }: WorkspaceTerminalProps) {
+function getConnectionState(terminalId: string): ConnectionState {
+	return terminalRuntimeRegistry.getConnectionState(terminalId);
+}
+
+export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
+	const { terminalId } = ctx.pane.data as TerminalPaneData;
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const [connectionState, setConnectionState] = useState<
-		"connecting" | "open" | "closed"
-	>("connecting");
-	const [reconnectKey, setReconnectKey] = useState(0);
+	const activeTheme = useTheme();
 
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${workspaceId}`, {
-		reconnect: String(reconnectKey),
+	const appearance = useTerminalAppearance();
+	const appearanceRef = useRef(appearance);
+	appearanceRef.current = appearance;
+	const initialThemeTypeRef = useRef<
+		ReturnType<typeof resolveTerminalThemeType>
+	>(
+		resolveTerminalThemeType({
+			activeThemeType: activeTheme?.type,
+		}),
+	);
+	const initialThemeType = initialThemeTypeRef.current;
+
+	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
+		workspaceId,
+		themeType: initialThemeType,
 	});
 
+	const connectionState = useSyncExternalStore(
+		subscribeToState(terminalId),
+		() => getConnectionState(terminalId),
+	);
+
+	// Appearance read from ref to avoid re-attach on theme/font change.
 	useEffect(() => {
 		const container = containerRef.current;
-		if (!container) {
-			return;
-		}
+		if (!container) return;
 
-		const fitAddon = new FitAddon();
-		const terminal = new XTerm({
-			cursorBlink: true,
-			fontFamily:
-				'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-			fontSize: 12,
-			theme: {
-				background: "#14100f",
-				foreground: "#f5efe9",
-			},
-		});
-		terminal.loadAddon(fitAddon);
-		terminal.loadAddon(new UnicodeGraphemesAddon());
-		terminal.open(container);
-		fitAddon.fit();
-		terminal.focus();
-
-		setConnectionState("connecting");
-		const socket = new WebSocket(websocketUrl);
-
-		const sendResize = () => {
-			if (socket.readyState !== WebSocket.OPEN) {
-				return;
-			}
-
-			socket.send(
-				JSON.stringify({
-					type: "resize",
-					cols: terminal.cols,
-					rows: terminal.rows,
-				}),
-			);
-		};
-
-		const resizeObserver = new ResizeObserver(() => {
-			fitAddon.fit();
-			sendResize();
-		});
-		resizeObserver.observe(container);
-
-		const onTerminalDataDispose = terminal.onData((data) => {
-			if (socket.readyState !== WebSocket.OPEN) {
-				return;
-			}
-
-			socket.send(
-				JSON.stringify({
-					type: "input",
-					data,
-				}),
-			);
-		});
-
-		socket.addEventListener("open", () => {
-			setConnectionState("open");
-			sendResize();
-		});
-
-		socket.addEventListener("message", (event) => {
-			let message: TerminalServerMessage;
-			try {
-				message = JSON.parse(String(event.data)) as TerminalServerMessage;
-			} catch {
-				terminal.writeln("\r\n[terminal] invalid server payload");
-				return;
-			}
-
-			if (message.type === "data") {
-				terminal.write(message.data);
-				return;
-			}
-
-			if (message.type === "error") {
-				terminal.writeln(`\r\n[terminal] ${message.message}`);
-				return;
-			}
-
-			terminal.writeln(
-				`\r\n[terminal] exited with code ${message.exitCode} (signal ${message.signal})`,
-			);
-		});
-
-		socket.addEventListener("close", () => {
-			setConnectionState("closed");
-		});
-
-		socket.addEventListener("error", () => {
-			terminal.writeln("\r\n[terminal] websocket error");
-		});
+		terminalRuntimeRegistry.attach(
+			terminalId,
+			container,
+			websocketUrl,
+			appearanceRef.current,
+		);
 
 		return () => {
-			resizeObserver.disconnect();
-			onTerminalDataDispose.dispose();
-			socket.close();
-			terminal.dispose();
+			terminalRuntimeRegistry.detach(terminalId);
 		};
-	}, [websocketUrl]);
+	}, [terminalId, websocketUrl]);
+
+	useEffect(() => {
+		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
+	}, [terminalId, appearance]);
+
+	useHotkey("CLEAR_TERMINAL", () => {
+		terminalRuntimeRegistry.clear(terminalId);
+	});
+
+	useHotkey("SCROLL_TO_BOTTOM", () => {
+		terminalRuntimeRegistry.scrollToBottom(terminalId);
+	});
+
+	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
+	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
+	const terminal = useMemo(
+		() => terminalRuntimeRegistry.getTerminal(terminalId),
+		[terminalId, connectionState],
+	);
 
 	return (
-		<div className="w-full rounded-lg border border-border p-4">
-			<div className="mb-3 flex items-center justify-between gap-3">
-				<div>
-					<h2 className="text-sm font-medium">terminal</h2>
-					<p className="text-xs text-muted-foreground">
-						{connectionState === "open"
-							? "Connected"
-							: connectionState === "connecting"
-								? "Connecting..."
-								: "Disconnected"}
-					</p>
-				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => setReconnectKey((value) => value + 1)}
-				>
-					Reconnect
-				</Button>
+		<div className="flex h-full w-full flex-col p-2">
+			<div className="relative min-h-0 flex-1 overflow-hidden">
+				<div
+					ref={containerRef}
+					className="h-full w-full"
+					style={{ backgroundColor: appearance.background }}
+				/>
+				<ScrollToBottomButton terminal={terminal} />
 			</div>
-			<div
-				ref={containerRef}
-				className="h-[360px] overflow-hidden rounded-md border border-border bg-[#14100f] p-2"
-			/>
+			{connectionState === "closed" && (
+				<div className="flex items-center gap-2 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
+					<span>Disconnected</span>
+				</div>
+			)}
 		</div>
 	);
 }

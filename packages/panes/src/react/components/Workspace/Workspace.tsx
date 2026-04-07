@@ -13,6 +13,7 @@ export function Workspace<TData>({
 	renderAddTabMenu,
 	onBeforeCloseTab,
 	paneActions,
+	contextMenuActions,
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
@@ -40,18 +41,21 @@ export function Workspace<TData>({
 				activeTabId={activeTabId}
 				onSelectTab={(tabId) => store.getState().setActiveTab(tabId)}
 				onCloseTab={closeTab}
-				onCloseOtherTabs={(tabId) => {
+				onCloseOtherTabs={async (tabId) => {
 					for (const tab of tabs) {
-						if (tab.id !== tabId) closeTab(tab.id);
+						if (tab.id !== tabId) await closeTab(tab.id);
 					}
 				}}
-				onCloseAllTabs={() => {
+				onCloseAllTabs={async () => {
 					for (const tab of tabs) {
-						closeTab(tab.id);
+						await closeTab(tab.id);
 					}
 				}}
 				onRenameTab={(tabId, title) =>
 					store.getState().setTabTitleOverride({ tabId, titleOverride: title })
+				}
+				onReorderTab={(tabId, toIndex) =>
+					store.getState().reorderTab({ tabId, toIndex })
 				}
 				getTabTitle={(tab) => tab.titleOverride ?? tab.id}
 				renderAddTabMenu={renderAddTabMenu}
@@ -63,6 +67,7 @@ export function Workspace<TData>({
 					tab={activeTab}
 					registry={registry}
 					paneActions={paneActions}
+					contextMenuActions={contextMenuActions}
 				/>
 			) : (
 				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">

@@ -2,8 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { useAppHotkey } from "renderer/stores/hotkeys";
+import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { HistoryDropdown } from "./components/HistoryDropdown";
 
 export function NavigationControls() {
@@ -13,8 +12,8 @@ export function NavigationControls() {
 	const canGoBack = router.history.canGoBack();
 	const canGoForward = location.state.__TSR_index < router.history.length - 1;
 
-	useAppHotkey("NAVIGATE_BACK", () => router.history.back());
-	useAppHotkey("NAVIGATE_FORWARD", () => router.history.forward());
+	useHotkey("NAVIGATE_BACK", () => router.history.back());
+	useHotkey("NAVIGATE_FORWARD", () => router.history.forward());
 
 	useEffect(() => {
 		const handleMouseUp = (event: MouseEvent) => {
@@ -45,7 +44,7 @@ export function NavigationControls() {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<HotkeyTooltipContent label="Go back" hotkeyId="NAVIGATE_BACK" />
+					<HotkeyLabel label="Go back" id="NAVIGATE_BACK" />
 				</TooltipContent>
 			</Tooltip>
 
@@ -61,10 +60,7 @@ export function NavigationControls() {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<HotkeyTooltipContent
-						label="Go forward"
-						hotkeyId="NAVIGATE_FORWARD"
-					/>
+					<HotkeyLabel label="Go forward" id="NAVIGATE_FORWARD" />
 				</TooltipContent>
 			</Tooltip>
 

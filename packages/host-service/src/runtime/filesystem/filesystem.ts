@@ -2,6 +2,7 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
+	getSearchIndex,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
@@ -41,6 +42,8 @@ export class WorkspaceFilesystemManager {
 				watcherManager: this.watcherManager,
 			});
 			this.serviceCache.set(rootPath, service);
+			// Pre-warm search index so first search is instant
+			getSearchIndex({ rootPath, includeHidden: false }).catch(() => {});
 		}
 		return service;
 	}

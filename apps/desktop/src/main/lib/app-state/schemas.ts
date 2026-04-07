@@ -1,7 +1,6 @@
 /**
  * UI state schemas (persisted from renderer zustand stores)
  */
-import { createDefaultHotkeysState, type HotkeysState } from "shared/hotkeys";
 import type { BaseTabsState } from "shared/tabs-types";
 import type { Theme } from "shared/themes";
 
@@ -15,10 +14,16 @@ export interface ThemeState {
 	systemDarkThemeId?: string;
 }
 
+/** Legacy hotkeys state shape (kept for reading old app-state.json during migration) */
+interface LegacyHotkeysState {
+	version: number;
+	byPlatform: Record<string, Record<string, string | null>>;
+}
+
 export interface AppState {
 	tabsState: BaseTabsState;
 	themeState: ThemeState;
-	hotkeysState: HotkeysState;
+	hotkeysState: LegacyHotkeysState;
 }
 
 export const defaultAppState: AppState = {
@@ -35,5 +40,8 @@ export const defaultAppState: AppState = {
 		systemLightThemeId: "light",
 		systemDarkThemeId: "dark",
 	},
-	hotkeysState: createDefaultHotkeysState(),
+	hotkeysState: {
+		version: 1,
+		byPlatform: { darwin: {}, win32: {}, linux: {} },
+	},
 };

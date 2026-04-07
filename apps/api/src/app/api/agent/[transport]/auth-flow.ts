@@ -19,7 +19,7 @@ interface SessionResponse {
 }
 
 interface VerifiedApiKey {
-	userId?: string | null;
+	referenceId?: string | null;
 	metadata?: unknown;
 }
 
@@ -124,10 +124,10 @@ function parseApiKeyMetadata(
 }
 
 function buildApiKeyAuthInfo(apiKey: VerifiedApiKey): AuthInfo | undefined {
-	const userId = apiKey.userId;
+	const userId = apiKey.referenceId;
 
 	if (!userId) {
-		console.error("[mcp/auth] API key missing userId");
+		console.error("[mcp/auth] API key missing referenceId");
 		return undefined;
 	}
 

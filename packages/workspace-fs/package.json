@@ -31,8 +31,7 @@
 	},
 	"dependencies": {
 		"@parcel/watcher": "^2.5.6",
-		"fast-glob": "^3.3.3",
-		"fuse.js": "^7.1.0"
+		"fast-glob": "^3.3.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

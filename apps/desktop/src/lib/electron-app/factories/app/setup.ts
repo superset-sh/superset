@@ -33,8 +33,10 @@ export async function makeAppSetup(
 		if (!windows.length) {
 			window = await createWindow();
 		} else {
+			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
 			for (window of windows.reverse()) {
-				window.restore();
+				window.show();
+				window.focus();
 			}
 		}
 	});
@@ -50,8 +52,10 @@ export async function makeAppSetup(
 		});
 	});
 
+	// macOS: keep the app alive (standard behavior) — tray/dock provide re-entry.
+	// Windows/Linux: quit the app UI. Host-services survive via releaseAll()
+	// and will be re-adopted on next launch.
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
-	app.on("before-quit", () => {});
 
 	return window;
 }
