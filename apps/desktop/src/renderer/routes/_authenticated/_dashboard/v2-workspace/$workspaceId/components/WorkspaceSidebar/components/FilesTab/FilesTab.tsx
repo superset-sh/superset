@@ -5,12 +5,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { FilePlus, FolderPlus, FoldVertical, RefreshCw } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { useWorkspaceEvent } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useWorkspaceEvent";
+import {
+	type FileTreeNode,
+	useFileTree,
+} from "renderer/hooks/host-service/useFileTree";
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import {
 	ROW_HEIGHT,
 	TREE_INDENT,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
-import { type FileTreeNode, useFileTree } from "../../../../hooks/useFileTree";
 import { NewItemInput } from "./components/NewItemInput";
 import { WorkspaceFilesTreeItem } from "./components/WorkspaceFilesTreeItem";
 

@@ -8,9 +8,9 @@ import {
 	useRef,
 } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
+import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
-import type { DiffStats } from "../../../../hooks/useDashboardDiffStats";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";

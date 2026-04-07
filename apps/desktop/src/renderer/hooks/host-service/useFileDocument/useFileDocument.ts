@@ -1,6 +1,6 @@
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWorkspaceEvent } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useWorkspaceEvent";
+import { useWorkspaceEvent } from "../useWorkspaceEvent";
 
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
 const BINARY_CHECK_SIZE = 8192;

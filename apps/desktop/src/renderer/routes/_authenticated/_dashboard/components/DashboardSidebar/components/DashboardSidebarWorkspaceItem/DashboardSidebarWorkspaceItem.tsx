@@ -1,4 +1,4 @@
-import { useDiffStats } from "../../hooks/useDashboardDiffStats";
+import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";

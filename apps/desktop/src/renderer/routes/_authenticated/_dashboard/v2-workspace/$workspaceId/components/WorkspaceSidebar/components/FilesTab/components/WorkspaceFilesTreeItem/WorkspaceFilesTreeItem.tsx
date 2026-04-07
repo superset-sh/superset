@@ -1,8 +1,8 @@
 import { ContextMenu, ContextMenuTrigger } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import type { FileTreeNode } from "renderer/hooks/host-service/useFileTree";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import type { FileTreeNode } from "../../../../../../hooks/useFileTree";
 
 import { FileContextMenu } from "./components/FileContextMenu";
 import { FolderContextMenu } from "./components/FolderContextMenu";

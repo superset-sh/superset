@@ -4,7 +4,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { GitBranch, Pencil } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useWorkspaceEvent } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useWorkspaceEvent";
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { SidebarTabDefinition } from "../../types";

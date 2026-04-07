@@ -1,7 +1,7 @@
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { FsEntry, FsEntryKind } from "@superset/workspace-fs/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWorkspaceEvent } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useWorkspaceEvent";
+import { useWorkspaceEvent } from "../useWorkspaceEvent";
 
 export interface FileTreeNode {
 	absolutePath: string;

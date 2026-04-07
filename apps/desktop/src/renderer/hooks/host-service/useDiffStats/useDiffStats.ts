@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useWorkspaceEvent, useWorkspaceHostUrl } from "../useWorkspaceEvent";
+import { useWorkspaceEvent } from "../useWorkspaceEvent";
+import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
 export interface DiffStats {
 	additions: number;
