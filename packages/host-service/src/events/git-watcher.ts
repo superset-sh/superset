@@ -7,6 +7,7 @@ import { workspaces } from "../db/schema";
 const execFileAsync = promisify(execFile);
 
 const RESCAN_INTERVAL_MS = 30_000;
+const DEBOUNCE_MS = 300;
 
 export type GitChangedListener = (workspaceId: string) => void;
 
@@ -26,6 +27,10 @@ export class GitWatcher {
 	private readonly db: HostDb;
 	private readonly listeners = new Set<GitChangedListener>();
 	private readonly watched = new Map<string, WatchedWorkspace>();
+	private readonly debounceTimers = new Map<
+		string,
+		ReturnType<typeof setTimeout>
+	>();
 	private rescanTimer: ReturnType<typeof setInterval> | null = null;
 	private closed = false;
 
@@ -54,16 +59,28 @@ export class GitWatcher {
 			clearInterval(this.rescanTimer);
 			this.rescanTimer = null;
 		}
+		for (const timer of this.debounceTimers.values()) {
+			clearTimeout(timer);
+		}
+		this.debounceTimers.clear();
 		for (const entry of this.watched.values()) {
 			entry.watcher.close();
 		}
 		this.watched.clear();
 	}
 
-	private emit(workspaceId: string): void {
-		for (const listener of this.listeners) {
-			listener(workspaceId);
-		}
+	private debouncedEmit(workspaceId: string): void {
+		const existing = this.debounceTimers.get(workspaceId);
+		if (existing) clearTimeout(existing);
+		this.debounceTimers.set(
+			workspaceId,
+			setTimeout(() => {
+				this.debounceTimers.delete(workspaceId);
+				for (const listener of this.listeners) {
+					listener(workspaceId);
+				}
+			}, DEBOUNCE_MS),
+		);
 	}
 
 	private async rescan(): Promise<void> {
@@ -126,7 +143,7 @@ export class GitWatcher {
 
 		try {
 			const watcher = watch(gitDir, { recursive: true }, () => {
-				this.emit(workspaceId);
+				this.debouncedEmit(workspaceId);
 			});
 
 			watcher.on("error", () => {

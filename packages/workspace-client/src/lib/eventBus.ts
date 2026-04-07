@@ -37,10 +37,6 @@ interface ConnectionState {
 
 const connections = new Map<string, ConnectionState>();
 
-function getConnectionKey(hostUrl: string): string {
-	return hostUrl;
-}
-
 function buildEventBusUrl(hostUrl: string, wsToken: string | null): string {
 	const url = new URL("/events", hostUrl);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -155,7 +151,7 @@ function getOrCreateConnection(
 	hostUrl: string,
 	getWsToken: () => string | null,
 ): ConnectionState {
-	const key = getConnectionKey(hostUrl);
+	const key = hostUrl;
 	const existing = connections.get(key);
 	if (existing) return existing;
 
@@ -174,7 +170,7 @@ function getOrCreateConnection(
 }
 
 function maybeCleanupConnection(hostUrl: string): void {
-	const key = getConnectionKey(hostUrl);
+	const key = hostUrl;
 	const state = connections.get(key);
 	if (!state) return;
 

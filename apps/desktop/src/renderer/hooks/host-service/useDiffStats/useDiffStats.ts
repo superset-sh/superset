@@ -22,17 +22,24 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 			const client = getHostServiceClientByUrl(hostUrl);
 			const status = await client.git.getStatus.query({ workspaceId });
 
-			let additions = 0;
-			let deletions = 0;
+			// Deduplicate by path — a file can appear in multiple categories
+			const byPath = new Map<
+				string,
+				{ additions: number; deletions: number }
+			>();
 			for (const file of status.againstBase) {
-				additions += file.additions;
-				deletions += file.deletions;
+				byPath.set(file.path, file);
 			}
 			for (const file of status.staged) {
-				additions += file.additions;
-				deletions += file.deletions;
+				byPath.set(file.path, file);
 			}
 			for (const file of status.unstaged) {
+				byPath.set(file.path, file);
+			}
+
+			let additions = 0;
+			let deletions = 0;
+			for (const file of byPath.values()) {
 				additions += file.additions;
 				deletions += file.deletions;
 			}
