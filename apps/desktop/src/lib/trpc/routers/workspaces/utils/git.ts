@@ -1800,6 +1800,9 @@ export async function createWorktreeFromPr({
 			if (!ghMsg.includes("is not a branch")) {
 				throw ghError;
 			}
+			console.log(
+				`[git] gh pr checkout failed with tracking error for PR #${prInfo.number}, falling back to FETCH_HEAD checkout`,
+			);
 			await execGitWithShellPath(
 				[
 					"-C",
