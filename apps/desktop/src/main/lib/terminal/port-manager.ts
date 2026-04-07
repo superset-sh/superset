@@ -8,8 +8,10 @@ import {
 } from "./port-scanner";
 import type { TerminalSession } from "./types";
 
-// How often to poll for port changes (in ms)
-const SCAN_INTERVAL_MS = 2500;
+// How often to poll for port changes (in ms).
+// The hint scan handles prompt detection — this is a safety-net sweep, so a
+// longer interval is fine and reduces process-spawn noise for security agents.
+const SCAN_INTERVAL_MS = 10_000;
 
 // Delay before scanning after a port hint is detected (in ms)
 const HINT_SCAN_DELAY_MS = 500;
@@ -354,6 +356,8 @@ class PortManager extends EventEmitter {
 
 	private async scanAllSessions(): Promise<void> {
 		if (this.isScanning) return;
+		// Nothing to scan — skip to avoid spawning ps/lsof unnecessarily.
+		if (this.sessions.size === 0 && this.daemonSessions.size === 0) return;
 		this.isScanning = true;
 
 		try {
