@@ -1,6 +1,6 @@
 ---
 description: Create a Superset workspace via deep link
-allowed-tools: Bash(open superset://*), Bash(sqlite3 ~/.superset/local.db *)
+allowed-tools: Bash(open superset://*), Bash(sqlite3 ~/.superset/local.db *), Bash(git remote get-url origin), Bash(pwd)
 ---
 
 Create a new Superset workspace by opening a deep link that triggers the app's native workspace creation flow.
@@ -13,6 +13,7 @@ Parse `$ARGUMENTS` for:
 - **branch** (optional): Specific branch name. If omitted, one is auto-generated
 - **base** (optional): Base branch to branch from. Defaults to project's configured base branch
 - **existing** (optional): If the user says "existing branch" or "use existing", set `useExistingBranch=true`
+- **prUrl** (optional): A GitHub pull request URL (e.g. `https://github.com/owner/repo/pull/123`). When provided, the workspace is created from the PR branch
 
 ## Steps
 
@@ -21,10 +22,10 @@ Parse `$ARGUMENTS` for:
 If no project was specified, detect it from the current repo:
 
 ```bash
-sqlite3 ~/.superset/local.db "SELECT id, name FROM projects;"
+sqlite3 ~/.superset/local.db "SELECT id, name, main_repo_path FROM projects;"
 ```
 
-Match against the current git remote or working directory to find the right project. If multiple projects exist and it's ambiguous, ask the user.
+Compare each project's `main_repo_path` against the current working directory (`pwd`) or git remote (`git remote get-url origin`) to find the right project. If multiple projects match or it's ambiguous, ask the user.
 
 ### 2. Build the deep link URL
 
@@ -37,6 +38,9 @@ Parameters (URL-encode all values):
 - `branchName=<branch>` — optional, if user specified one
 - `baseBranch=<base>` — optional, if user specified one
 - `useExistingBranch=true` — only if user requested existing branch
+- `prUrl=<url>` — optional, if user provided a PR URL
+
+If a `prUrl` is provided, omit `branchName`, `baseBranch`, and `useExistingBranch` — the app resolves those from the PR.
 
 If no `name` is provided but a `prompt` is, generate a short workspace name (3-5 words) from the prompt.
 

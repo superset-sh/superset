@@ -42,6 +42,7 @@ interface WorkspaceDeepLinkParams {
 	prompt?: string;
 }
 
+/** Looks up a project by ID or name from the local database. */
 function resolveProject(params: WorkspaceDeepLinkParams) {
 	if (params.projectId) {
 		return localDb
@@ -60,6 +61,11 @@ function resolveProject(params: WorkspaceDeepLinkParams) {
 	return undefined;
 }
 
+/**
+ * Handles `superset://workspaces/create` deep links by resolving the target
+ * project and creating (or reusing) a workspace. Supports branch-based and
+ * PR-based creation flows.
+ */
 export async function handleWorkspaceCreateDeepLink(
 	searchParams: URLSearchParams,
 ): Promise<{ workspaceId: string } | { error: string }> {
@@ -95,6 +101,10 @@ export async function handleWorkspaceCreateDeepLink(
 
 type Project = typeof projects.$inferSelect;
 
+/**
+ * Creates a workspace from a GitHub pull request URL. Fetches PR metadata,
+ * checks out the PR branch as a worktree, and registers the workspace.
+ */
 async function createFromPr(
 	project: Project,
 	prUrl: string,
@@ -229,6 +239,10 @@ async function createFromPr(
 	return { workspaceId: workspace.id };
 }
 
+/**
+ * Creates a workspace from branch parameters. Handles new branch creation,
+ * existing branch checkout, branch reuse, and orphaned worktree recovery.
+ */
 async function createWorkspace(
 	project: Project,
 	params: WorkspaceDeepLinkParams,
