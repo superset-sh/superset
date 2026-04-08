@@ -1,5 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
+import { useWorkspaceClient } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
@@ -82,6 +83,13 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	// --- Link handlers ---
+	// Use the host-service trpc client for filesystem validation — v2 terminals
+	// run on a (potentially remote) host, so stat calls must go through the
+	// host service, not Electron IPC.
+	const { trpcClient: hostTrpcClient } = useWorkspaceClient();
+	const hostTrpcClientRef = useRef(hostTrpcClient);
+	hostTrpcClientRef.current = hostTrpcClient;
+
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
 
@@ -90,9 +98,19 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 
 		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
 			stat: async (path) => {
-				return electronTrpcClient.external.statPath.query(path);
+				try {
+					const metadata =
+						await hostTrpcClientRef.current.filesystem.getMetadata.query({
+							workspaceId,
+							absolutePath: path,
+						});
+					if (!metadata) return null;
+					return { isDirectory: metadata.kind === "directory" };
+				} catch {
+					return null;
+				}
 			},
-			initialCwd: undefined, // v2 terminals resolve CWD server-side
+			initialCwd: undefined, // v2 terminals resolve CWD server-side via host
 			userHome,
 			onFileLinkClick: (_event, link) => {
 				if (!_event.metaKey && !_event.ctrlKey) return;
@@ -109,15 +127,10 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 					});
 			},
 			onUrlClick: (url) => {
-				if (openLinksInApp) {
-					// Could open in in-app browser if v2 supports it; for now external
-					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
-				} else {
-					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
-				}
+				electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
 			},
 		});
-	}, [terminalId, openLinksInApp]);
+	}, [terminalId, workspaceId, openLinksInApp]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
 		terminalRuntimeRegistry.clear(terminalId);
