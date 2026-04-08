@@ -89,11 +89,26 @@ export function connect(
 	terminal: XTerm,
 	wsUrl: string,
 ) {
-	// Idempotent: skip if already connected/connecting to the same endpoint.
+	// IMPORTANT: Compare origin+pathname only — query params (workspaceId, token)
+	// change during workspace switches without meaning the terminal session changed.
+	// Full URL comparison causes spurious reconnects that garble rendering via replay.
+	const baseUrl = (url: string) => {
+		try {
+			const u = new URL(url);
+			return u.origin + u.pathname;
+		} catch {
+			return url;
+		}
+	};
 	const isActive =
 		transport.connectionState === "open" ||
 		transport.connectionState === "connecting";
-	if (isActive && transport.currentUrl === wsUrl) return;
+	if (
+		isActive &&
+		transport.currentUrl &&
+		baseUrl(transport.currentUrl) === baseUrl(wsUrl)
+	)
+		return;
 
 	if (transport.socket) {
 		transport.socket.close();

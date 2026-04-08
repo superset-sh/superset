@@ -59,8 +59,11 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		() => getConnectionState(terminalId),
 	);
 
-	// Attach/detach only when terminalId changes — not when the URL changes.
-	// The URL is read from a ref so workspace switches don't trigger DOM detach/attach.
+	// IMPORTANT: deps must be [terminalId] only. Adding websocketUrl here causes
+	// DOM detach/attach on workspace switches, which destroys the WebGL context
+	// and garbles terminal rendering. URL changes are handled by the reconnect
+	// effect below.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: websocketUrl intentionally excluded — read from ref
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
