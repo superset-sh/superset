@@ -14,13 +14,32 @@ import { LocalLinkDetector } from "./local-link-detector";
 // Mock terminal buffer
 // ---------------------------------------------------------------------------
 
-function createMockTerminal(lineTexts: string[], cols = 80) {
-	const lines = lineTexts.map((text, _i) => ({
-		translateToString: (_trim?: boolean, _start?: number, _end?: number) =>
-			text,
-		isWrapped: false,
+function createMockTerminal(
+	lineDescriptors: { text: string; isWrapped?: boolean }[],
+	cols = 80,
+) {
+	const lines = lineDescriptors.map((desc) => ({
+		translateToString: (
+			_trim?: boolean,
+			startColumn?: number,
+			endColumn?: number,
+		) => {
+			const start = startColumn ?? 0;
+			const end = endColumn ?? cols;
+			let result = desc.text;
+			// Pad to cols width for consistency
+			result = result.padEnd(cols);
+			result = result.substring(start, end);
+			if (_trim) result = result.replace(/\s+$/, "");
+			return result;
+		},
+		isWrapped: desc.isWrapped ?? false,
 		length: cols,
-		getCell: () => ({ getChars: () => "", getWidth: () => 1 }) as never,
+		getCell: (x: number) =>
+			({
+				getChars: () => (x < desc.text.length ? desc.text[x] : " "),
+				getWidth: () => 1,
+			}) as never,
 	}));
 
 	return {
@@ -36,10 +55,13 @@ function createMockTerminal(lineTexts: string[], cols = 80) {
 }
 
 function createAdapter(
-	lineTexts: string[],
+	lineDescriptors: (string | { text: string; isWrapped?: boolean })[],
 	validPaths: string[],
 	opts?: { initialCwd?: string; userHome?: string; cols?: number },
 ) {
+	const descriptors = lineDescriptors.map((d) =>
+		typeof d === "string" ? { text: d } : d,
+	);
 	const statMock: StatCallback = async (path) => {
 		if (validPaths.includes(path)) {
 			return { isDirectory: false };
@@ -47,7 +69,8 @@ function createAdapter(
 		return null;
 	};
 	const resolver = new TerminalLinkResolver(statMock);
-	const terminal = createMockTerminal(lineTexts, opts?.cols ?? 80);
+	const cols = opts?.cols ?? 80;
+	const terminal = createMockTerminal(descriptors, cols);
 	const detector = new LocalLinkDetector(resolver, {
 		initialCwd: opts?.initialCwd ?? "/parent/cwd",
 		userHome: opts?.userHome ?? "/home",
@@ -73,7 +96,7 @@ describe("LinkDetectorAdapter", () => {
 		});
 
 		expect(links).toBeDefined();
-		expect(links!).toHaveLength(1);
+		expect(links).toHaveLength(1);
 		expect(links?.[0]?.text).toBe("/foo/bar.ts");
 	});
 
@@ -115,7 +138,7 @@ describe("LinkDetectorAdapter", () => {
 			adapter.provideLinks(1, resolve);
 		});
 
-		expect(links!).toHaveLength(2);
+		expect(links).toHaveLength(2);
 	});
 
 	it("should handle multi-line buffer (only detect for requested line)", async () => {
@@ -129,7 +152,7 @@ describe("LinkDetectorAdapter", () => {
 			adapter.provideLinks(2, resolve);
 		});
 
-		expect(links!).toHaveLength(1);
+		expect(links).toHaveLength(1);
 		expect(links?.[0]?.text).toBe("/foo/bar.ts");
 	});
 
@@ -150,8 +173,35 @@ describe("LinkDetectorAdapter", () => {
 			adapter.provideLinks(1, resolve);
 		});
 
-		expect(links!).toHaveLength(1);
+		expect(links).toHaveLength(1);
 		// The full text includes the suffix
 		expect(links?.[0]?.text).toBe("/foo/bar.ts:42:10");
+	});
+
+	it("should detect paths spanning wrapped lines", async () => {
+		// Simulate a 30-col terminal where a long path wraps
+		const { adapter } = createAdapter(
+			[
+				// Line 1: "see /parent/cwd/apps/web/sr" (30 chars)
+				{ text: "see /parent/cwd/apps/web/sr" },
+				// Line 2 (wrapped): "c/app/page.tsx:1 for info" (continues from line 1)
+				{ text: "c/app/page.tsx:1 for info", isWrapped: true },
+			],
+			["/parent/cwd/apps/web/src/app/page.tsx"],
+			{ cols: 30, initialCwd: "/parent/cwd" },
+		);
+
+		// Request line 1 (the start of the wrapped path)
+		const links = await new Promise<ILink[] | undefined>((resolve) => {
+			adapter.provideLinks(1, resolve);
+		});
+
+		expect(links).toBeDefined();
+		expect(links?.length).toBeGreaterThanOrEqual(1);
+		// The detected text should be the full path including suffix
+		const pathLink = links?.find((l) =>
+			l.text.includes("apps/web/src/app/page.tsx"),
+		);
+		expect(pathLink).toBeDefined();
 	});
 });
