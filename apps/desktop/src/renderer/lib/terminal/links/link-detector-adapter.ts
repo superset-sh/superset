@@ -81,12 +81,13 @@ export class LinkDetectorAdapter implements ILinkProvider {
 		if (!currentLine) return [];
 		lines.push(currentLine);
 
-		const maxLineContext = Math.ceil(Math.max(MAX_LINK_LENGTH, cols) / cols);
+		const maxCharacterContext = Math.max(MAX_LINK_LENGTH, cols);
+		const maxLineContext = Math.ceil(maxCharacterContext / cols);
 		const minStartLine = Math.max(startLine - maxLineContext, 0);
-		const maxEndLine = Math.min(endLine + maxLineContext, buffer.length - 1);
+		const maxEndLine = Math.min(endLine + maxLineContext, buffer.length);
 
 		// Walk backward through wrapped lines
-		while (startLine > minStartLine && buffer.getLine(startLine)?.isWrapped) {
+		while (startLine >= minStartLine && buffer.getLine(startLine)?.isWrapped) {
 			const prevLine = buffer.getLine(startLine - 1);
 			if (!prevLine) break;
 			lines.unshift(prevLine);
