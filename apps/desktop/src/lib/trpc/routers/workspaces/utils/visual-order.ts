@@ -62,13 +62,25 @@ export function computeVisualOrder(
 	return orderedIds;
 }
 
+/**
+ * Compares two activity timestamps in descending order (most recent first).
+ * null values sort after non-null values. Returns 0 when both are null.
+ */
+export function compareActivityDesc(
+	a: number | null,
+	b: number | null,
+): number {
+	if (a !== null && b !== null) return b - a;
+	if (a !== null) return -1;
+	if (b !== null) return 1;
+	return 0;
+}
+
 export function compareByActivity(a: WorkspaceLike, b: WorkspaceLike): number {
-	if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
-		return b.lastActivityAt - a.lastActivityAt;
-	}
-	if (a.lastActivityAt !== null) return -1;
-	if (b.lastActivityAt !== null) return 1;
-	return a.tabOrder - b.tabOrder;
+	return (
+		compareActivityDesc(a.lastActivityAt, b.lastActivityAt) ||
+		a.tabOrder - b.tabOrder
+	);
 }
 
 /**
@@ -97,10 +109,10 @@ export function computeActivityOrder(
 	const sortedProjects = activeProjects.sort((a, b) => {
 		const aMax = projectMaxActivity.get(a.id) ?? null;
 		const bMax = projectMaxActivity.get(b.id) ?? null;
-		if (aMax !== null && bMax !== null) return bMax - aMax;
-		if (aMax !== null) return -1;
-		if (bMax !== null) return 1;
-		return (a.tabOrder ?? 0) - (b.tabOrder ?? 0);
+		return (
+			compareActivityDesc(aMax, bMax) ||
+			(a.tabOrder ?? 0) - (b.tabOrder ?? 0)
+		);
 	});
 
 	const orderedIds: string[] = [];

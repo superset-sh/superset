@@ -337,9 +337,6 @@ export function ChatPaneInterface({
 					...(cwd ? { cwd } : {}),
 					...input,
 				});
-				if (workspaceId) {
-					updateLastActivityAt(workspaceId);
-				}
 			} catch (error) {
 				if (optimisticMessage) {
 					chatRuntimeServiceTrpcUtils.session.listMessages.setData(
@@ -353,7 +350,7 @@ export function ChatPaneInterface({
 				throw error;
 			}
 		},
-		[chatRuntimeServiceTrpcUtils, cwd, updateLastActivityAt, workspaceId],
+		[chatRuntimeServiceTrpcUtils, cwd],
 	);
 
 	const canAbort = Boolean(isRunning);
@@ -634,6 +631,9 @@ export function ChatPaneInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
+				if (workspaceId) {
+					updateLastActivityAt(workspaceId);
+				}
 				if (content) {
 					onUserMessageSubmitted?.(content);
 				}
@@ -751,6 +751,9 @@ export function ChatPaneInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				if (workspaceId) {
+					updateLastActivityAt(workspaceId);
+				}
 				if (prompt) {
 					onUserMessageSubmitted?.(prompt);
 				}

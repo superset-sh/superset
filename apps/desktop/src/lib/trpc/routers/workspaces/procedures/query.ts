@@ -20,6 +20,7 @@ import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
 import {
 	compareByActivity,
+	compareActivityDesc,
 	computeActivityOrder,
 	computeVisualOrder,
 } from "../utils/visual-order";
@@ -322,63 +323,85 @@ export const createQueryProcedures = () => {
 			const settingsRow = localDb.select().from(settings).get();
 			const sortMode = settingsRow?.sidebarSortMode ?? "manual";
 
-			const result = Array.from(groupsMap.values()).map((group) => {
-				const projectWorkspaces = [
-					...group.workspaces,
-					...group.sections.flatMap((section) => section.workspaces),
-				];
+			const groups = Array.from(groupsMap.values());
 
-				return {
-					...group,
-					topLevelItems: getProjectChildItems(
-						group.project.id,
-						projectWorkspaces,
-						group.sections,
-					).map((item) => ({
-						id: item.id,
-						kind: item.kind,
-						tabOrder: item.tabOrder,
-					})),
-				};
-			});
+			const getMaxActivity = (
+				workspaces: { lastActivityAt: number | null }[],
+			): number | null =>
+				workspaces.reduce<number | null>((max, w) => {
+					if (w.lastActivityAt === null) return max;
+					return max === null
+						? w.lastActivityAt
+						: Math.max(max, w.lastActivityAt);
+				}, null);
 
 			if (sortMode === "recent") {
-				for (const group of result) {
+				for (const group of groups) {
 					group.workspaces.sort(compareByActivity);
 					for (const section of group.sections) {
 						section.workspaces.sort(compareByActivity);
 					}
 				}
 
-				result.sort((a, b) => {
-					const maxActivity = (
-						workspaces: { lastActivityAt: number | null }[],
-					) =>
-						workspaces.reduce<number | null>((max, w) => {
-							if (w.lastActivityAt === null) return max;
-							return max === null
-								? w.lastActivityAt
-								: Math.max(max, w.lastActivityAt);
-						}, null);
-
-					const maxA = maxActivity([
+				groups.sort((a, b) => {
+					const maxA = getMaxActivity([
 						...a.workspaces,
 						...a.sections.flatMap((s) => s.workspaces),
 					]);
-					const maxB = maxActivity([
+					const maxB = getMaxActivity([
 						...b.workspaces,
 						...b.sections.flatMap((s) => s.workspaces),
 					]);
-					if (maxA !== null && maxB !== null) return maxB - maxA;
-					if (maxA !== null) return -1;
-					if (maxB !== null) return 1;
-					return a.project.tabOrder - b.project.tabOrder;
+					return (
+						compareActivityDesc(maxA, maxB) ||
+						a.project.tabOrder - b.project.tabOrder
+					);
 				});
 
-				return result;
+				return groups.map((group) => ({
+					...group,
+					topLevelItems: [
+						...group.workspaces.map((w) => ({
+							id: w.id,
+							kind: "workspace" as const,
+							activity: w.lastActivityAt,
+						})),
+						...group.sections.map((s) => ({
+							id: s.id,
+							kind: "section" as const,
+							activity: getMaxActivity(s.workspaces),
+						})),
+					]
+						.sort((a, b) => compareActivityDesc(a.activity, b.activity))
+						.map((entry, index) => ({
+							id: entry.id,
+							kind: entry.kind,
+							tabOrder: index,
+						})),
+				}));
 			}
 
-			return result.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
+			return groups
+				.map((group) => {
+					const projectWorkspaces = [
+						...group.workspaces,
+						...group.sections.flatMap((section) => section.workspaces),
+					];
+
+					return {
+						...group,
+						topLevelItems: getProjectChildItems(
+							group.project.id,
+							projectWorkspaces,
+							group.sections,
+						).map((item) => ({
+							id: item.id,
+							kind: item.kind,
+							tabOrder: item.tabOrder,
+						})),
+					};
+				})
+				.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
 		}),
 
 		getPreviousWorkspace: publicProcedure
