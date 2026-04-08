@@ -678,7 +678,9 @@ export const createSettingsRouter = () => {
 
 		getSidebarSortMode: publicProcedure.query((): SidebarSortMode => {
 			const row = getSettings();
-			return row.sidebarSortMode ?? "manual";
+			const mode = row.sidebarSortMode;
+			if (mode && SIDEBAR_SORT_MODES.includes(mode)) return mode;
+			return "manual";
 		}),
 
 		setSidebarSortMode: publicProcedure
