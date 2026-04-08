@@ -63,7 +63,6 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	// DOM detach/attach on workspace switches, which destroys the WebGL context
 	// and garbles terminal rendering. URL changes are handled by the reconnect
 	// effect below.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: websocketUrl intentionally excluded — read from ref
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
