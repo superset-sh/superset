@@ -153,14 +153,12 @@ app.on("open-url", async (event, url) => {
 let isQuitting = false;
 let skipQuitConfirmation = false;
 
-/** Skip the confirmation dialog and quit immediately. */
 export function quitApp(): void {
 	skipQuitConfirmation = true;
 	app.quit();
 }
 
-/** Exit the process immediately, bypassing before-quit.
- *  Services are left running for adoption on next launch. */
+/** Bypasses before-quit — services are left running for re-adoption on next launch. */
 export function exitImmediately(): void {
 	app.exit(0);
 }

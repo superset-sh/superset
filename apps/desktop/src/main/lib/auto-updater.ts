@@ -92,10 +92,8 @@ export function installUpdate(): void {
 		return;
 	}
 	autoUpdater.quitAndInstall(false, true);
-	// quitAndInstall handles the update installation then triggers quit.
-	// On macOS, MacUpdater.quitAndInstall() may not trigger a quit if
-	// Squirrel hasn't finished its internal download — exit directly.
-	// Services survive as detached processes and are re-adopted on relaunch.
+	// MacUpdater.quitAndInstall() may not quit if Squirrel hasn't
+	// finished its internal download from the localhost proxy.
 	exitImmediately();
 }
 
