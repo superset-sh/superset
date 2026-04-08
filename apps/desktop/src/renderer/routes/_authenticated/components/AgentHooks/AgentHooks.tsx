@@ -4,10 +4,7 @@ import { useCommandWatcher } from "./hooks/useCommandWatcher";
 import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
 import { useDevicePresence } from "./hooks/useDevicePresence";
 
-/**
- * Component that runs agent-related hooks requiring CollectionsProvider context.
- * useCommandWatcher and useAgentHookListener use useCollections which must be inside the provider.
- */
+/** Must be rendered inside CollectionsProvider — child hooks depend on useCollections. */
 export function AgentHooks() {
 	const { activeHostUrl } = useLocalHostService();
 	useDevicePresence();

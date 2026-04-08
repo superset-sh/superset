@@ -19,6 +19,7 @@ import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
 import {
+	compareByActivity,
 	computeActivityOrder,
 	computeVisualOrder,
 } from "../utils/visual-order";
@@ -84,7 +85,6 @@ function getWorkspaceRunDefinition(workspaceId: string) {
 	});
 }
 
-/** Returns workspace IDs in sidebar visual order, respecting the user's sort mode setting. */
 function getWorkspacesInVisualOrder(): string[] {
 	const activeProjects = localDb
 		.select()
@@ -344,47 +344,31 @@ export const createQueryProcedures = () => {
 
 			if (sortMode === "recent") {
 				for (const group of result) {
-					group.workspaces.sort((a, b) => {
-						if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
-							return b.lastActivityAt - a.lastActivityAt;
-						}
-						if (a.lastActivityAt !== null) return -1;
-						if (b.lastActivityAt !== null) return 1;
-						return a.tabOrder - b.tabOrder;
-					});
+					group.workspaces.sort(compareByActivity);
 					for (const section of group.sections) {
-						section.workspaces.sort((a, b) => {
-							if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
-								return b.lastActivityAt - a.lastActivityAt;
-							}
-							if (a.lastActivityAt !== null) return -1;
-							if (b.lastActivityAt !== null) return 1;
-							return a.tabOrder - b.tabOrder;
-						});
+						section.workspaces.sort(compareByActivity);
 					}
 				}
 
 				result.sort((a, b) => {
-					const allA = [
+					const maxActivity = (
+						workspaces: { lastActivityAt: number | null }[],
+					) =>
+						workspaces.reduce<number | null>((max, w) => {
+							if (w.lastActivityAt === null) return max;
+							return max === null
+								? w.lastActivityAt
+								: Math.max(max, w.lastActivityAt);
+						}, null);
+
+					const maxA = maxActivity([
 						...a.workspaces,
 						...a.sections.flatMap((s) => s.workspaces),
-					];
-					const allB = [
+					]);
+					const maxB = maxActivity([
 						...b.workspaces,
 						...b.sections.flatMap((s) => s.workspaces),
-					];
-					const maxA = allA.reduce<number | null>((max, w) => {
-						if (w.lastActivityAt === null) return max;
-						return max === null
-							? w.lastActivityAt
-							: Math.max(max, w.lastActivityAt);
-					}, null);
-					const maxB = allB.reduce<number | null>((max, w) => {
-						if (w.lastActivityAt === null) return max;
-						return max === null
-							? w.lastActivityAt
-							: Math.max(max, w.lastActivityAt);
-					}, null);
+					]);
 					if (maxA !== null && maxB !== null) return maxB - maxA;
 					if (maxA !== null) return -1;
 					if (maxB !== null) return 1;

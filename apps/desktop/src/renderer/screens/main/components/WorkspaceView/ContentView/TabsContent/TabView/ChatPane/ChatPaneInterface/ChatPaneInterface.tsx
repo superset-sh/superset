@@ -20,13 +20,12 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import {
 	getDesktopChatModelOptions,
 	isDesktopChatDevMode,
 } from "renderer/lib/dev-chat";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -250,23 +249,7 @@ export function ChatPaneInterface({
 	const chatRuntimeServiceTrpcUtils = chatRuntimeServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatRuntimeServiceTrpc.workspace.authenticateMcpServer.useMutation();
-	const collections = useCollections();
-	const electronTrpcUtils = electronTrpc.useUtils();
-	const updateLastActivityAtMutation =
-		electronTrpc.workspaces.updateLastActivityAt.useMutation({
-			onSuccess: () => electronTrpcUtils.workspaces.getAllGrouped.invalidate(),
-		});
-	const updateLastActivityAt = useCallback(
-		(wId: string) => {
-			if (collections.v2WorkspaceLocalState.get(wId)) {
-				collections.v2WorkspaceLocalState.update(wId, (draft) => {
-					draft.lastActivityAt = new Date();
-				});
-			}
-			updateLastActivityAtMutation.mutate({ workspaceId: wId });
-		},
-		[collections, updateLastActivityAtMutation],
-	);
+	const updateLastActivityAt = useUpdateLastActivityAt();
 	const captureChatEvent = useCallback(
 		(event: string, properties?: ChatAnalyticsProperties) => {
 			posthog.capture(event, {
@@ -370,12 +353,7 @@ export function ChatPaneInterface({
 				throw error;
 			}
 		},
-		[
-			chatRuntimeServiceTrpcUtils,
-			cwd,
-			updateLastActivityAt.mutate,
-			workspaceId,
-		],
+		[chatRuntimeServiceTrpcUtils, cwd, updateLastActivityAt, workspaceId],
 	);
 
 	const canAbort = Boolean(isRunning);
