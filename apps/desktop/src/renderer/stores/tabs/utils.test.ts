@@ -258,6 +258,21 @@ describe("getPaneIdInDirection", () => {
 			"pane-top-right",
 		);
 	});
+
+	it("does not move to diagonal panes when no pane exists in that direction", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-left",
+			second: {
+				direction: "column",
+				first: "pane-top-right",
+				second: "pane-bottom-right",
+			},
+		};
+
+		expect(getPaneIdInDirection(layout, "pane-left", "up")).toBeNull();
+		expect(getPaneIdInDirection(layout, "pane-left", "down")).toBeNull();
+	});
 });
 
 describe("resolveActiveTabIdForWorkspace", () => {

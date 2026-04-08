@@ -665,42 +665,11 @@ function isInDirectionByEdge(
 	}
 }
 
-function isInDirectionByCenter(
-	current: PaneBounds,
-	candidate: PaneBounds,
-	direction: PaneFocusDirection,
-): boolean {
-	switch (direction) {
-		case "up":
-			return candidate.centerY < current.centerY;
-		case "down":
-			return candidate.centerY > current.centerY;
-		case "left":
-			return candidate.centerX < current.centerX;
-		case "right":
-			return candidate.centerX > current.centerX;
-	}
-}
-
 function getDirectionalGap(
 	current: PaneBounds,
 	candidate: PaneBounds,
 	direction: PaneFocusDirection,
-	useCenters: boolean,
 ): number {
-	if (useCenters) {
-		switch (direction) {
-			case "up":
-				return current.centerY - candidate.centerY;
-			case "down":
-				return candidate.centerY - current.centerY;
-			case "left":
-				return current.centerX - candidate.centerX;
-			case "right":
-				return candidate.centerX - current.centerX;
-		}
-	}
-
 	switch (direction) {
 		case "up":
 			return current.top - candidate.bottom;
@@ -739,29 +708,18 @@ export const getPaneIdInDirection = (
 			candidate.paneId !== currentPaneId &&
 			isInDirectionByEdge(current, candidate, direction),
 	);
-	const candidates =
-		edgeCandidates.length > 0
-			? edgeCandidates
-			: paneBounds.filter(
-					(candidate) =>
-						candidate.paneId !== currentPaneId &&
-						isInDirectionByCenter(current, candidate, direction),
-				);
+	if (edgeCandidates.length === 0) return null;
 
-	if (candidates.length === 0) return null;
-
-	const overlappingCandidates = candidates.filter(
+	const overlappingCandidates = edgeCandidates.filter(
 		(candidate) => getOrthogonalOverlap(current, candidate, direction) > 0,
 	);
-	const preferredCandidates =
-		overlappingCandidates.length > 0 ? overlappingCandidates : candidates;
-	const useCenters = edgeCandidates.length === 0;
+	if (overlappingCandidates.length === 0) return null;
 
 	return (
-		preferredCandidates.slice().sort((a, b) => {
+		overlappingCandidates.slice().sort((a, b) => {
 			const gapDifference =
-				getDirectionalGap(current, a, direction, useCenters) -
-				getDirectionalGap(current, b, direction, useCenters);
+				getDirectionalGap(current, a, direction) -
+				getDirectionalGap(current, b, direction);
 			if (gapDifference !== 0) return gapDifference;
 
 			const crossAxisDifference =

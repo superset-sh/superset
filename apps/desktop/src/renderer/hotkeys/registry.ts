@@ -389,7 +389,7 @@ export const HOTKEYS_REGISTRY = {
 	FOCUS_PANE_UP: {
 		key: {
 			mac: "meta+ctrl+up",
-			windows: "ctrl+alt+up",
+			windows: "alt+shift+up",
 			linux: "ctrl+alt+up",
 		},
 		label: "Focus Pane Up",
@@ -399,7 +399,7 @@ export const HOTKEYS_REGISTRY = {
 	FOCUS_PANE_DOWN: {
 		key: {
 			mac: "meta+ctrl+down",
-			windows: "ctrl+alt+down",
+			windows: "alt+shift+down",
 			linux: "ctrl+alt+down",
 		},
 		label: "Focus Pane Down",
@@ -409,7 +409,7 @@ export const HOTKEYS_REGISTRY = {
 	FOCUS_PANE_LEFT: {
 		key: {
 			mac: "meta+ctrl+left",
-			windows: "ctrl+alt+left",
+			windows: "alt+shift+left",
 			linux: "ctrl+alt+left",
 		},
 		label: "Focus Pane Left",
@@ -419,7 +419,7 @@ export const HOTKEYS_REGISTRY = {
 	FOCUS_PANE_RIGHT: {
 		key: {
 			mac: "meta+ctrl+right",
-			windows: "ctrl+alt+right",
+			windows: "alt+shift+right",
 			linux: "ctrl+alt+right",
 		},
 		label: "Focus Pane Right",
