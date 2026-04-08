@@ -64,6 +64,7 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
+	lastActivityAt: persistedDateSchema.nullable().default(null),
 	recentlyViewedFiles: z
 		.array(
 			z.object({

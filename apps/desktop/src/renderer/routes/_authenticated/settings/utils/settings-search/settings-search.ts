@@ -28,6 +28,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_SIDEBAR_SORT: "behavior-sidebar-sort",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -618,6 +619,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_SIDEBAR_SORT,
+		section: "behavior",
+		title: "Sidebar sort order",
+		description:
+			"Sort sidebar projects and workspaces by manual order or recent activity",
+		keywords: [
+			"sidebar",
+			"sort",
+			"order",
+			"recent",
+			"activity",
+			"projects",
+			"workspaces",
+			"manual",
+			"drag",
+			"reorder",
 		],
 	},
 	{

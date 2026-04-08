@@ -89,6 +89,10 @@ export const Terminal = memo(function Terminal({
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
+	const lastActivityUpdateRef = useRef<number>(0);
+	const ACTIVITY_DEBOUNCE_MS = 30_000;
+	const updateLastActivityAt =
+		electronTrpc.workspaces.updateLastActivityAt.useMutation();
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
 	);

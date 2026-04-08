@@ -1,4 +1,4 @@
-import type { FileOpenMode } from "@superset/local-db";
+import type { FileOpenMode, SidebarSortMode } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -34,6 +34,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
+	const showSidebarSort = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_SIDEBAR_SORT,
 		visibleItems,
 	);
 
@@ -124,6 +128,30 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: sidebarSortMode, isLoading: isSidebarSortLoading } =
+		electronTrpc.settings.getSidebarSortMode.useQuery();
+	const setSidebarSortMode =
+		electronTrpc.settings.setSidebarSortMode.useMutation({
+			onMutate: async ({ mode }) => {
+				await utils.settings.getSidebarSortMode.cancel();
+				const previous = utils.settings.getSidebarSortMode.getData();
+				utils.settings.getSidebarSortMode.setData(undefined, mode);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getSidebarSortMode.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getSidebarSortMode.invalidate();
+				utils.workspaces.getAllGrouped.invalidate();
+			},
+		});
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -227,6 +255,35 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						/>
 					</div>
 				)}
+
+				{showSidebarSort && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Sidebar sort order</Label>
+							<p className="text-xs text-muted-foreground">
+								Choose how projects and workspaces are ordered in the sidebar
+							</p>
+						</div>
+						<Select
+							value={sidebarSortMode ?? "manual"}
+							onValueChange={(value) =>
+								setSidebarSortMode.mutate({
+									mode: value as SidebarSortMode,
+								})
+							}
+							disabled={isSidebarSortLoading || setSidebarSortMode.isPending}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="manual">Manual</SelectItem>
+								<SelectItem value="recent">Recent activity</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				)}
+
 			</div>
 		</div>
 	);

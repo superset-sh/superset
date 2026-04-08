@@ -6,6 +6,8 @@ import {
 	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
+	SIDEBAR_SORT_MODES,
+	type SidebarSortMode,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -672,6 +674,25 @@ export const createSettingsRouter = () => {
 				});
 
 				return { restartedOrgCount };
+			}),
+
+		getSidebarSortMode: publicProcedure.query((): SidebarSortMode => {
+			const row = getSettings();
+			return row.sidebarSortMode ?? "manual";
+		}),
+
+		setSidebarSortMode: publicProcedure
+			.input(z.object({ mode: z.enum(SIDEBAR_SORT_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, sidebarSortMode: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { sidebarSortMode: input.mode },
+					})
+					.run();
+				return { success: true };
 			}),
 
 		getShowPresetsBar: publicProcedure.query(() => {
