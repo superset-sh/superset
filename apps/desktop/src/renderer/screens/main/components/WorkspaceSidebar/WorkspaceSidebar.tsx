@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
+import { useModifierKeyListener } from "renderer/hooks/useModifierKeyListener";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
 import { PortsList } from "./PortsList";
@@ -22,6 +24,10 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
+
+	const { data: showNumbersOnModifier = false } =
+		electronTrpc.settings.getShowWorkspaceNumbersOnModifier.useQuery();
+	useModifierKeyListener(showNumbersOnModifier);
 
 	const projectShortcutIndices = useMemo(
 		() =>
