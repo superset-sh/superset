@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { GitBranch, Pencil } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -232,10 +232,28 @@ export function useChangesTab({
 		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
 
-	useWorkspaceEvent("git:changed", workspaceId, () => {
+	const invalidateGitQueries = useCallback(() => {
 		void statusUtils.git.getStatus.invalidate({ workspaceId });
 		void statusUtils.git.listCommits.invalidate({ workspaceId });
+	}, [statusUtils, workspaceId]);
+
+	useWorkspaceEvent("git:changed", workspaceId, invalidateGitQueries);
+
+	// Working-tree edits don't touch .git, so git:changed won't fire for them.
+	// Debounce fs:events to catch unstaged changes without spamming git status.
+	const fsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useWorkspaceEvent("fs:events", workspaceId, () => {
+		if (fsDebounceRef.current) clearTimeout(fsDebounceRef.current);
+		fsDebounceRef.current = setTimeout(() => {
+			fsDebounceRef.current = null;
+			invalidateGitQueries();
+		}, 300);
 	});
+	useEffect(() => {
+		return () => {
+			if (fsDebounceRef.current) clearTimeout(fsDebounceRef.current);
+		};
+	}, []);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();
 
