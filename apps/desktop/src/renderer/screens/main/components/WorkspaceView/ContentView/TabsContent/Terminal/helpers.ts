@@ -237,7 +237,7 @@ export function createTerminalInstance(
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
-	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+	const openUrl = (_event: MouseEvent, uri: string) => {
 		const handler = urlClickRef?.current;
 		if (handler) {
 			handler(uri);
@@ -252,7 +252,13 @@ export function createTerminalInstance(
 						: "Could not open URL in browser",
 			});
 		});
-	});
+	};
+
+	// Handle OSC 8 hyperlinks (terminal escape sequences from CLIs like Claude Code, git, etc.)
+	// Without this, xterm's default handler shows a scary confirm() dialog that doesn't work in Electron.
+	xterm.options.linkHandler = { activate: openUrl };
+
+	const urlLinkProvider = new UrlLinkProvider(xterm, openUrl);
 	xterm.registerLinkProvider(urlLinkProvider);
 
 	const filePathLinkProvider = new FilePathLinkProvider(
