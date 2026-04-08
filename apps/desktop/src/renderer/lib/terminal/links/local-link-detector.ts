@@ -111,6 +111,7 @@ export class LocalLinkDetector {
 				allCandidates,
 				resolverOpts,
 			);
+
 			if (resolved) {
 				const linkStart = parsedLink.prefix?.index ?? parsedLink.path.index;
 				const linkEnd = parsedLink.suffix
