@@ -234,6 +234,7 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	showWorkspaceNumbersOnModifier: integer("show_workspace_numbers_on_modifier", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
