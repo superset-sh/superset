@@ -82,8 +82,11 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	// --- Link handlers ---
-	// Uses workspaceTrpc.useUtils() for imperative calls to the host service.
-	// Fetches workspace root path to resolve relative file paths in terminal output.
+	// Stat validation uses Electron IPC (not host-service HTTP) because:
+	// 1. IPC avoids URL encoding issues with paths containing ()
+	// 2. No dependency on host service being rebuilt/restarted
+	// 3. The desktop app runs on the same machine as the terminal
+	// The workspace root is fetched from the host service once for CWD resolution.
 	const hostUtils = workspaceTrpc.useUtils();
 	const hostUtilsRef = useRef(hostUtils);
 	hostUtilsRef.current = hostUtils;
@@ -96,13 +99,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 			terminalRuntimeRegistry.setLinkHandlers(terminalId, {
 				stat: async (path) => {
 					try {
-						const metadata =
-							await hostUtilsRef.current.filesystem.getMetadata.fetch({
-								workspaceId,
-								absolutePath: path,
-							});
-						if (!metadata) return null;
-						return { isDirectory: metadata.kind === "directory" };
+						return await electronTrpcClient.external.statPath.query(path);
 					} catch {
 						return null;
 					}
