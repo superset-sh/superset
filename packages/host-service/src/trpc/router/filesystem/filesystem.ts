@@ -99,7 +99,7 @@ export const filesystemRouter = router({
 				path: z.string(),
 			}),
 		)
-		.query(
+		.mutation(
 			async ({
 				ctx,
 				input,

@@ -82,61 +82,56 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	// --- Link handlers ---
-	// Stat validation uses Electron IPC (not host-service HTTP) because:
-	// 1. IPC avoids URL encoding issues with paths containing ()
-	// 2. No dependency on host service being rebuilt/restarted
-	// 3. The desktop app runs on the same machine as the terminal
-	// The workspace root is fetched from the host service once for CWD resolution.
-	const hostUtils = workspaceTrpc.useUtils();
-	const hostUtilsRef = useRef(hostUtils);
-	hostUtilsRef.current = hostUtils;
-	const workspaceRootRef = useRef<string | undefined>(undefined);
+	// All filesystem operations go through the host service.
+	// statPath is a mutation (POST) to avoid tRPC GET URL encoding issues
+	// with paths containing special characters like ().
+	const statPathMutation = workspaceTrpc.filesystem.statPath.useMutation();
+	const statPathRef = useRef(statPathMutation.mutateAsync);
+	statPathRef.current = statPathMutation.mutateAsync;
 
 	useEffect(() => {
 		const userHome = process.env.HOME ?? process.env.USERPROFILE;
 
-		const setHandlers = () => {
-			terminalRuntimeRegistry.setLinkHandlers(terminalId, {
-				stat: async (path) => {
-					try {
-						return await electronTrpcClient.external.statPath.query(path);
-					} catch {
-						return null;
-					}
-				},
-				initialCwd: workspaceRootRef.current,
-				userHome,
-				onFileLinkClick: (_event, link) => {
-					if (!_event.metaKey && !_event.ctrlKey) return;
-					_event.preventDefault();
-					electronTrpcClient.external.openFileInEditor
-						.mutate({
-							path: link.resolvedPath,
-							line: link.row,
-							column: link.col,
-						})
-						.catch((error) => {
-							console.error("[v2 Terminal] Failed to open file:", error);
-							toast.error("Failed to open file in editor");
-						});
-				},
-				onUrlClick: (url) => {
-					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
-				},
-			});
-		};
-
-		// Register immediately (absolute paths work without CWD)
-		setHandlers();
-
-		// Fetch workspace root for relative path resolution, then re-register
-		hostUtilsRef.current.workspace.get
-			.fetch({ id: workspaceId })
-			.then((ws) => {
-				workspaceRootRef.current = ws.worktreePath;
-				setHandlers();
-			})
-			.catch(() => {});
+		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
+			stat: async (path) => {
+				try {
+					// statPath resolves relative paths against the workspace root
+					// on the host, then stats the result. Uses POST (mutation) to
+					// avoid URL encoding issues with () in paths.
+					const result = await statPathRef.current({
+						workspaceId,
+						path,
+					});
+					if (!result) return null;
+					return {
+						isDirectory: result.isDirectory,
+						resolvedPath: result.resolvedPath,
+					};
+				} catch {
+					return null;
+				}
+			},
+			// Path resolution happens on the host in statPath — no local CWD needed
+			initialCwd: undefined,
+			userHome,
+			onFileLinkClick: (_event, link) => {
+				if (!_event.metaKey && !_event.ctrlKey) return;
+				_event.preventDefault();
+				electronTrpcClient.external.openFileInEditor
+					.mutate({
+						path: link.resolvedPath,
+						line: link.row,
+						column: link.col,
+					})
+					.catch((error) => {
+						console.error("[v2 Terminal] Failed to open file:", error);
+						toast.error("Failed to open file in editor");
+					});
+			},
+			onUrlClick: (url) => {
+				electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
+			},
+		});
 	}, [terminalId, workspaceId]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
