@@ -213,13 +213,17 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	const manager = getHostServiceManager();
-	if (quitMode === "stop") {
-		manager.stopAll();
-	} else {
-		manager.releaseAll();
+	try {
+		const manager = getHostServiceManager();
+		if (quitMode === "stop") {
+			manager.stopAll();
+		} else {
+			manager.releaseAll();
+		}
+		disposeTray();
+	} catch (error) {
+		console.error("[main] Cleanup during quit failed:", error);
 	}
-	disposeTray();
 	app.exit(0);
 });
 
