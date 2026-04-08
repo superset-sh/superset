@@ -3,6 +3,7 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
+import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
@@ -190,6 +191,7 @@ export function createTerminalInstance(
 
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
+	const unicodeGraphemesAddon = new UnicodeGraphemesAddon();
 	const imageAddon = new ImageAddon();
 
 	// Track cleanup state to prevent operations on disposed terminal
@@ -212,6 +214,7 @@ export function createTerminalInstance(
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
+	xterm.loadAddon(unicodeGraphemesAddon);
 	xterm.loadAddon(imageAddon);
 
 	// Defer GPU renderer loading to next animation frame.
@@ -281,7 +284,6 @@ export function createTerminalInstance(
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
 
-	xterm.unicode.activeVersion = "11";
 	fitAddon.fit();
 
 	return {

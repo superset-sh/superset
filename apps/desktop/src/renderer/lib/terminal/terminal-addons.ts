@@ -1,7 +1,7 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
-import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
@@ -19,9 +19,7 @@ export function loadAddons(terminal: XTerm): () => void {
 
 	terminal.loadAddon(new ClipboardAddon());
 
-	const unicode11 = new Unicode11Addon();
-	terminal.loadAddon(unicode11);
-	terminal.unicode.activeVersion = "11";
+	terminal.loadAddon(new UnicodeGraphemesAddon());
 
 	terminal.loadAddon(new ImageAddon());
 
