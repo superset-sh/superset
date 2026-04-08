@@ -17,13 +17,13 @@ type FileStatus = ChangedFile["status"];
 type ChangeCategory = "against-base" | "staged" | "unstaged";
 
 const STATUS_COLORS: Record<FileStatus, string> = {
-	added: "text-green-600 dark:text-green-400",
-	copied: "text-purple-600 dark:text-purple-400",
-	changed: "text-yellow-600 dark:text-yellow-400",
-	deleted: "text-red-600 dark:text-red-400",
-	modified: "text-yellow-600 dark:text-yellow-400",
-	renamed: "text-blue-600 dark:text-blue-400",
-	untracked: "text-green-600 dark:text-green-400",
+	added: "text-diff-added",
+	copied: "text-diff-copied",
+	changed: "text-diff-modified",
+	deleted: "text-diff-deleted",
+	modified: "text-diff-modified",
+	renamed: "text-diff-renamed",
+	untracked: "text-diff-added",
 };
 
 function getStatusIcon(status: FileStatus): ReactNode {
