@@ -10,6 +10,7 @@ interface PortEntry {
 
 interface PortsConfig {
 	ports: unknown;
+	hideUnmapped?: unknown;
 }
 
 /**
@@ -81,7 +82,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 	);
 
 	if (!existsSync(portsPath)) {
-		return { exists: false, ports: null, error: null };
+		return { exists: false, ports: null, hideUnmapped: false, error: null };
 	}
 
 	let content: string;
@@ -92,6 +93,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			hideUnmapped: false,
 			error: `Failed to read ports.json: ${message}`,
 		};
 	}
@@ -104,6 +106,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			hideUnmapped: false,
 			error: `Invalid JSON in ports.json: ${message}`,
 		};
 	}
@@ -112,6 +115,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			hideUnmapped: false,
 			error: "ports.json must contain a JSON object",
 		};
 	}
@@ -120,6 +124,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			hideUnmapped: false,
 			error: "ports.json is missing required field 'ports'",
 		};
 	}
@@ -128,6 +133,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		return {
 			exists: true,
 			ports: null,
+			hideUnmapped: false,
 			error: "'ports' field must be an array",
 		};
 	}
@@ -139,13 +145,23 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		const result = validatePortEntry(entry, i);
 
 		if (!result.valid) {
-			return { exists: true, ports: null, error: result.error };
+			return { exists: true, ports: null, hideUnmapped: false, error: result.error };
 		}
 
 		validatedPorts.push({ port: result.port, label: result.label });
 	}
 
-	return { exists: true, ports: validatedPorts, error: null };
+	const hideUnmapped = parsed.hideUnmapped ?? false;
+	if (typeof hideUnmapped !== "boolean") {
+		return {
+			exists: true,
+			ports: null,
+			hideUnmapped: false,
+			error: "'hideUnmapped' field must be a boolean",
+		};
+	}
+
+	return { exists: true, ports: validatedPorts, hideUnmapped, error: null };
 }
 
 /**

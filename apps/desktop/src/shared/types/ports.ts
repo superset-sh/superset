@@ -17,6 +17,7 @@ export interface StaticPort {
 export interface StaticPortsResult {
 	exists: boolean;
 	ports: Omit<StaticPort, "workspaceId">[] | null;
+	hideUnmapped: boolean;
 	error: string | null;
 }
 
