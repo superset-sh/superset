@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
-import { app, dialog } from "electron";
+import { BrowserWindow, app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
-import { exitImmediately } from "main/index";
+import { quitApp } from "main/index";
 import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
@@ -91,10 +91,8 @@ export function installUpdate(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 		return;
 	}
+	setSkipQuitConfirmation();
 	autoUpdater.quitAndInstall(false, true);
-	// MacUpdater.quitAndInstall() may not quit if Squirrel hasn't
-	// finished its internal download from the localhost proxy.
-	exitImmediately();
 }
 
 export function dismissUpdate(): void {
