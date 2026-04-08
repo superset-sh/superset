@@ -107,9 +107,6 @@ export const filesystemRouter = router({
 				resolvedPath: string;
 				isDirectory: boolean;
 			} | null> => {
-				// Use getFilesystemService to get proper TRPCError NOT_FOUND
-				// for missing workspaces (consistent with other fs endpoints).
-				getFilesystemService(ctx, input.workspaceId);
 				const resolvedRoot = ctx.runtime.filesystem.resolveWorkspaceRoot(
 					input.workspaceId,
 				);
