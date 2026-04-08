@@ -247,7 +247,7 @@ export function useChangesTab({
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current);
 		};
-	}, []);
+	}, [workspaceId]);
 
 	useWorkspaceEvent("git:changed", workspaceId, debouncedInvalidate);
 	useWorkspaceEvent("fs:events", workspaceId, debouncedInvalidate);
