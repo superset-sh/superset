@@ -90,7 +90,13 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			/>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ChangesFileList
-					files={filteredFiles}
+					files={filter.kind === "uncommitted" ? [] : filteredFiles}
+					staged={
+						filter.kind === "uncommitted" ? status.data.staged : undefined
+					}
+					unstaged={
+						filter.kind === "uncommitted" ? status.data.unstaged : undefined
+					}
 					isLoading={
 						filter.kind === "commit" || filter.kind === "range"
 							? commitFiles.isLoading
