@@ -97,12 +97,12 @@ describe("LinkDetectorAdapter", () => {
 			adapter.provideLinks(1, resolve);
 		});
 
-		expect(links?.[0]?.range).toBeDefined();
 		const range = links?.[0]?.range;
+		expect(range).toBeDefined();
 		// "/foo/bar.ts" starts at index 4 in "see /foo/bar.ts for details"
-		expect(range.start.y).toBe(1);
-		expect(range.start.x).toBe(5); // 1-based: index 4 + 1
-		expect(range.end.x).toBe(15); // 1-based: index 4 + 11
+		expect(range?.start.y).toBe(1);
+		expect(range?.start.x).toBe(5); // 1-based: index 4 + 1
+		expect(range?.end.x).toBe(15); // 1-based: index 4 + 11
 	});
 
 	it("should detect multiple links", async () => {

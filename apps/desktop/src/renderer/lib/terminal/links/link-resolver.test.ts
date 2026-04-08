@@ -12,7 +12,12 @@ import {
 describe("TerminalLinkResolver", () => {
 	let resolver: TerminalLinkResolver;
 	let statMock: jest.Mock<
-		(path: string) => Promise<{ isDirectory: boolean } | null>
+		(
+			path: string,
+		) => Promise<{
+			isDirectory: boolean;
+			resolvedPath?: string;
+		} | null>
 	>;
 
 	beforeEach(() => {

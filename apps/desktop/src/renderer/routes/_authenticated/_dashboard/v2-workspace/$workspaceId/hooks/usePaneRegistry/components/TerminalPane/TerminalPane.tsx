@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
-import { useWorkspaceClient } from "@superset/workspace-client";
+import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
@@ -82,12 +82,11 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	// --- Link handlers ---
-	// Fetch the workspace root path from the host service so we can resolve
-	// relative file paths in terminal output. Uses existing endpoints only
-	// (workspace.get + filesystem.getMetadata) — no new host service endpoints.
-	const { trpcClient: hostTrpcClient } = useWorkspaceClient();
-	const hostTrpcClientRef = useRef(hostTrpcClient);
-	hostTrpcClientRef.current = hostTrpcClient;
+	// Uses workspaceTrpc.useUtils() for imperative calls to the host service.
+	// Fetches workspace root path to resolve relative file paths in terminal output.
+	const hostUtils = workspaceTrpc.useUtils();
+	const hostUtilsRef = useRef(hostUtils);
+	hostUtilsRef.current = hostUtils;
 	const workspaceRootRef = useRef<string | undefined>(undefined);
 
 	useEffect(() => {
@@ -98,7 +97,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 				stat: async (path) => {
 					try {
 						const metadata =
-							await hostTrpcClientRef.current.filesystem.getMetadata.query({
+							await hostUtilsRef.current.filesystem.getMetadata.fetch({
 								workspaceId,
 								absolutePath: path,
 							});
@@ -134,8 +133,8 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		setHandlers();
 
 		// Fetch workspace root for relative path resolution, then re-register
-		hostTrpcClientRef.current.workspace.get
-			.query({ id: workspaceId })
+		hostUtilsRef.current.workspace.get
+			.fetch({ id: workspaceId })
 			.then((ws) => {
 				workspaceRootRef.current = ws.worktreePath;
 				setHandlers();
