@@ -41,10 +41,18 @@ export interface TerminalLinkHandlers {
 	userHome?: string;
 }
 
+interface LinkProviderDisposable {
+	dispose(): void;
+}
+
 interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
 	linkHandlers?: TerminalLinkHandlers;
+	/** Disposables for registered link providers (to avoid duplicates on re-register). */
+	linkDisposables: LinkProviderDisposable[];
+	/** Cached resolver instance (preserves stat cache across re-registrations). */
+	linkResolver?: TerminalLinkResolver;
 }
 
 class TerminalRuntimeRegistryImpl {
@@ -57,6 +65,7 @@ class TerminalRuntimeRegistryImpl {
 		entry = {
 			runtime: null,
 			transport: createTransport(),
+			linkDisposables: [],
 		};
 
 		this.entries.set(terminalId, entry);
@@ -107,9 +116,20 @@ class TerminalRuntimeRegistryImpl {
 		const { runtime, linkHandlers } = entry;
 		if (!runtime || !linkHandlers?.stat) return;
 
+		// Dispose old providers to prevent duplicates
+		for (const d of entry.linkDisposables) d.dispose();
+		entry.linkDisposables = [];
+
 		const terminal = runtime.terminal;
-		const resolver = new TerminalLinkResolver(linkHandlers.stat);
-		const detector = new LocalLinkDetector(resolver, {
+
+		// Reuse resolver to preserve stat cache across re-registrations
+		// (e.g. when initialCwd is updated after workspace.get resolves).
+		// Only recreate if the stat callback changed.
+		if (!entry.linkResolver) {
+			entry.linkResolver = new TerminalLinkResolver(linkHandlers.stat);
+		}
+
+		const detector = new LocalLinkDetector(entry.linkResolver, {
 			initialCwd: linkHandlers.initialCwd,
 			userHome: linkHandlers.userHome,
 		});
@@ -119,7 +139,7 @@ class TerminalRuntimeRegistryImpl {
 			detector,
 			linkHandlers.onFileLinkClick,
 		);
-		terminal.registerLinkProvider(adapter);
+		entry.linkDisposables.push(terminal.registerLinkProvider(adapter));
 
 		// Register the URL link provider (handles hard-wrapped URLs).
 		// The UrlLinkProvider already gates activation on Cmd/Ctrl+click.
@@ -128,7 +148,7 @@ class TerminalRuntimeRegistryImpl {
 			const urlProvider = new UrlLinkProvider(terminal, (_event, uri) => {
 				onUrlClick(uri);
 			});
-			terminal.registerLinkProvider(urlProvider);
+			entry.linkDisposables.push(terminal.registerLinkProvider(urlProvider));
 		}
 	}
 
@@ -159,6 +179,10 @@ class TerminalRuntimeRegistryImpl {
 	dispose(terminalId: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry) return;
+
+		for (const d of entry.linkDisposables) d.dispose();
+		entry.linkDisposables = [];
+		entry.linkResolver?.clearCache();
 
 		sendDispose(entry.transport);
 		disposeTransport(entry.transport);

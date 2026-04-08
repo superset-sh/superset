@@ -4,6 +4,7 @@
  *
  *  Bridges LocalLinkDetector to xterm's ILinkProvider interface.
  *  Handles multi-line wrapped paths by gathering context lines.
+ *  Deduplicates in-flight requests per buffer line (VSCode pattern).
  *--------------------------------------------------------------------------------------------*/
 
 import type { IBufferLine, ILink, ILinkProvider, Terminal } from "@xterm/xterm";
@@ -20,13 +21,21 @@ const MAX_LINK_LENGTH = 500;
  * Adapts a LocalLinkDetector into xterm's ILinkProvider.
  *
  * When xterm calls `provideLinks(bufferLineNumber)`, this adapter:
- * 1. Gathers wrapped context lines (previous + current + next)
- * 2. Concatenates them into a single text block
- * 3. Delegates to LocalLinkDetector.detect()
- * 4. Maps detected ranges back to buffer coordinates using
+ * 1. Deduplicates in-flight requests for the same line
+ * 2. Gathers wrapped context lines (previous + current + next)
+ * 3. Concatenates them into a single text block
+ * 4. Delegates to LocalLinkDetector.detect()
+ * 5. Maps detected ranges back to buffer coordinates using
  *    convertLinkRangeToBuffer (handles wide chars correctly)
  */
 export class LinkDetectorAdapter implements ILinkProvider {
+	/**
+	 * Cache of in-flight link detection requests per buffer line.
+	 * Prevents duplicate async work when xterm requests the same line
+	 * multiple times during rapid mouse movement (VSCode pattern).
+	 */
+	private _activeRequests = new Map<number, Promise<ILink[]>>();
+
 	constructor(
 		private readonly _terminal: Terminal,
 		private readonly _detector: LocalLinkDetector,
@@ -40,9 +49,21 @@ export class LinkDetectorAdapter implements ILinkProvider {
 		bufferLineNumber: number,
 		callback: (links: ILink[] | undefined) => void,
 	): void {
-		this._provideLinks(bufferLineNumber).then(
-			(links) => callback(links.length > 0 ? links : undefined),
-			() => callback(undefined),
+		// Reuse in-flight request for this line if one exists
+		let request = this._activeRequests.get(bufferLineNumber);
+		if (!request) {
+			request = this._provideLinks(bufferLineNumber);
+			this._activeRequests.set(bufferLineNumber, request);
+		}
+		request.then(
+			(links) => {
+				this._activeRequests.delete(bufferLineNumber);
+				callback(links.length > 0 ? links : undefined);
+			},
+			() => {
+				this._activeRequests.delete(bufferLineNumber);
+				callback(undefined);
+			},
 		);
 	}
 
