@@ -68,21 +68,8 @@ describe("detectFallbackLinks", () => {
 		});
 	});
 
-	it("matches any non-empty line with the whole-line fallback", () => {
-		// The whole-line fallback matcher (from VSCode) catches any remaining text
-		// as a last resort. Validation against the filesystem happens later.
-		const result = detectFallbackLinks("just some regular text");
-		expect(result).toHaveLength(1);
-		expect(result[0]).toEqual({
-			link: "just some regular text",
-			path: "just some regular text",
-			line: undefined,
-			col: undefined,
-			index: 0,
-		});
-	});
-
-	it("returns empty array for empty lines", () => {
+	it("returns empty array for non-matching lines", () => {
+		expect(detectFallbackLinks("just some regular text")).toEqual([]);
 		expect(detectFallbackLinks("")).toEqual([]);
 	});
 });

@@ -149,6 +149,30 @@ export class LocalLinkDetector {
 			}
 		}
 
+		// Last resort: treat the whole trimmed line as a path candidate.
+		// This is safe here because we validate via stat — false positives
+		// are filtered out. (Matches VSCode's whole-line fallback in
+		// terminalLocalLinkDetector.ts, kept out of the shared fallback
+		// matchers to avoid breaking unvalidated consumers like v1.)
+		if (links.length === 0 && text.trim().length <= MAX_RESOLVED_LINK_LENGTH) {
+			const trimmed = text.trim();
+			const resolved = await this._resolver.resolveLink(trimmed);
+			if (resolved) {
+				const startIndex = text.indexOf(trimmed);
+				links.push({
+					text: trimmed,
+					startIndex,
+					endIndex: startIndex + trimmed.length,
+					resolvedPath: resolved.path,
+					isDirectory: resolved.isDirectory,
+					row: undefined,
+					col: undefined,
+					rowEnd: undefined,
+					colEnd: undefined,
+				});
+			}
+		}
+
 		return links;
 	}
 

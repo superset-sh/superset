@@ -85,8 +85,6 @@ const fallbackMatchers: RegExp[] = [
 	// Example: C:\Users\foo>
 	/^(?:PS\s+)?(?<link>(?<path>[^>]+))>/,
 
-	// The whole line is the path (last resort fallback, must be last)
-	/^ *(?<link>(?<path>.+))/,
 ];
 
 /**
