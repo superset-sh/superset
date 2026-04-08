@@ -78,8 +78,7 @@ function ChangesHeader({
 
 	return (
 		<div className="border-b border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
-			{/* Branch name */}
-			<div className="group flex items-center gap-1.5 text-xs">
+<div className="group flex items-center gap-1.5 text-xs">
 				<GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 				{isEditing ? (
 					<input
@@ -109,8 +108,7 @@ function ChangesHeader({
 				)}
 			</div>
 
-			{/* Commits from base */}
-			<div className="text-[11px] text-muted-foreground">
+<div className="text-[11px] text-muted-foreground">
 				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
 				<BaseBranchSelector
 					branches={branches}
@@ -119,7 +117,6 @@ function ChangesHeader({
 				/>
 			</div>
 
-			{/* Remote status */}
 			{currentBranch.aheadCount > 0 && currentBranch.behindCount > 0 && (
 				<div className="text-[11px] text-muted-foreground">
 					<div>Your branch and</div>
@@ -156,8 +153,7 @@ function ChangesHeader({
 				</div>
 			)}
 
-			{/* Filter + stats */}
-			<div className="flex items-center justify-between pt-0.5">
+<div className="flex items-center justify-between pt-0.5">
 				<CommitFilterDropdown
 					filter={filter}
 					onFilterChange={onFilterChange}
@@ -237,23 +233,24 @@ export function useChangesTab({
 		void statusUtils.git.listCommits.invalidate({ workspaceId });
 	}, [statusUtils, workspaceId]);
 
-	useWorkspaceEvent("git:changed", workspaceId, invalidateGitQueries);
-
-	// Working-tree edits don't touch .git, so git:changed won't fire for them.
-	// Debounce fs:events to catch unstaged changes without spamming git status.
-	const fsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	useWorkspaceEvent("fs:events", workspaceId, () => {
-		if (fsDebounceRef.current) clearTimeout(fsDebounceRef.current);
-		fsDebounceRef.current = setTimeout(() => {
-			fsDebounceRef.current = null;
+	// Shared debounce for git:changed and fs:events — batches rapid events
+	// from either source into a single git status refresh.
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const debouncedInvalidate = useCallback(() => {
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			debounceRef.current = null;
 			invalidateGitQueries();
 		}, 300);
-	});
+	}, [invalidateGitQueries]);
 	useEffect(() => {
 		return () => {
-			if (fsDebounceRef.current) clearTimeout(fsDebounceRef.current);
+			if (debounceRef.current) clearTimeout(debounceRef.current);
 		};
 	}, []);
+
+	useWorkspaceEvent("git:changed", workspaceId, debouncedInvalidate);
+	useWorkspaceEvent("fs:events", workspaceId, debouncedInvalidate);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();
 
@@ -278,7 +275,7 @@ export function useChangesTab({
 		[workspaceId, status.data?.currentBranch.name, renameBranchMutation],
 	);
 
-	// Can only rename if branch hasn't been pushed (aheadCount === total commits means nothing pushed)
+	// Only allow rename for branches with no upstream (never pushed)
 	const canRenameBranch = !status.data?.currentBranch.upstream;
 
 	const commitFilesInput =
@@ -301,7 +298,7 @@ export function useChangesTab({
 		if (filter.kind === "commit" || filter.kind === "range") {
 			return commitFiles.data?.files ?? [];
 		}
-		// "all" — deduplicate by path
+		// Deduplicate — a file can appear in multiple categories
 		const map = new Map<string, (typeof status.data.againstBase)[number]>();
 		for (const f of status.data.againstBase) map.set(f.path, f);
 		for (const f of status.data.staged) map.set(f.path, f);
@@ -350,8 +347,6 @@ export function useChangesTab({
 				/>
 			);
 		} else {
-			// Merge all files into a single flat list, deduplicating by path
-			// (a file can appear in both againstBase and staged/unstaged)
 			const allFilesMap = new Map<
 				string,
 				(typeof status.data.againstBase)[number]
