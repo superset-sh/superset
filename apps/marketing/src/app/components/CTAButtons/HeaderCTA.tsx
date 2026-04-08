@@ -1,6 +1,9 @@
 "use client";
 
-import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
+import {
+	DOWNLOAD_URL_MAC_ARM64,
+	DOWNLOAD_URL_MAC_X64,
+} from "@superset/shared/constants";
 import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -16,7 +19,9 @@ interface HeaderCTAProps {
 }
 
 export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
-	const { os, isMobile } = usePlatform();
+	const { os, isMobile, macArch } = usePlatform();
+	const downloadUrl =
+		macArch === "x64" ? DOWNLOAD_URL_MAC_X64 : DOWNLOAD_URL_MAC_ARM64;
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 	const portalRef = useRef<HTMLElement | null>(null);
 
@@ -63,9 +68,9 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			{dashboardLink}
 			{showDownload ? (
 				<a
-					href={DOWNLOAD_URL_MAC_ARM64}
+					href={downloadUrl}
 					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
-					onClick={() => track("download_clicked")}
+					onClick={() => track("download_clicked", { arch: macArch })}
 				>
 					Download for macOS
 					<Download className="size-4" aria-hidden="true" />
