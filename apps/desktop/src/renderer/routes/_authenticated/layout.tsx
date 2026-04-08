@@ -80,7 +80,7 @@ function AuthenticatedLayout() {
 				to: resolveToggleSettingsTarget(location.pathname, originRoute),
 			});
 		},
-		{ enabled: platform !== undefined && platform !== "darwin" },
+		{ enabled: platform !== "darwin" },
 	);
 
 	// One-time migration from old hotkey storage to new localStorage-based store
