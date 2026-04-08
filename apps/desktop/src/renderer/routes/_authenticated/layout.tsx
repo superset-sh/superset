@@ -17,6 +17,7 @@ import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
+import { useHotkey } from "renderer/hotkeys";
 import { migrateHotkeyOverrides } from "renderer/hotkeys/migrate";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
@@ -36,6 +37,10 @@ import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { HostServiceProvider } from "./providers/HostServiceProvider";
+import {
+	resolveOpenSettingsTarget,
+	resolveToggleSettingsTarget,
+} from "./settings-navigation";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -57,6 +62,7 @@ function AuthenticatedLayout() {
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
 	const isV2CloudEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -65,6 +71,17 @@ function AuthenticatedLayout() {
 
 	useAgentHookListener();
 	useUpdateListener();
+
+	useHotkey(
+		"OPEN_SETTINGS",
+		() => {
+			const originRoute = useSettingsStore.getState().originRoute;
+			navigate({
+				to: resolveToggleSettingsTarget(location.pathname, originRoute),
+			});
+		},
+		{ enabled: platform !== undefined && platform !== "darwin" },
+	);
 
 	// One-time migration from old hotkey storage to new localStorage-based store
 	useEffect(() => {
@@ -131,8 +148,14 @@ function AuthenticatedLayout() {
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
-				const section = event.data.section || "account";
-				navigate({ to: `/settings/${section}` as "/settings/account" });
+				if (event.data.toggle) {
+					const originRoute = useSettingsStore.getState().originRoute;
+					navigate({
+						to: resolveToggleSettingsTarget(location.pathname, originRoute),
+					});
+				} else {
+					navigate({ to: resolveOpenSettingsTarget(event.data.section) });
+				}
 			} else if (event.type === "open-workspace") {
 				navigate({ to: `/workspace/${event.data.workspaceId}` });
 			}

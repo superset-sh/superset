@@ -3,7 +3,6 @@ import {
 	menuEmitter,
 	type OpenSettingsEvent,
 	type OpenWorkspaceEvent,
-	type SettingsSection,
 } from "main/lib/menu-events";
 import { publicProcedure, router } from "..";
 
@@ -15,8 +14,8 @@ export const createMenuRouter = () => {
 	return router({
 		subscribe: publicProcedure.subscription(() => {
 			return observable<MenuEvent>((emit) => {
-				const onOpenSettings = (section?: SettingsSection) => {
-					emit.next({ type: "open-settings", data: { section } });
+				const onOpenSettings = (event: OpenSettingsEvent = {}) => {
+					emit.next({ type: "open-settings", data: event });
 				};
 
 				const onOpenWorkspace = (workspaceId: string) => {

@@ -11,6 +11,7 @@ export type SettingsSection =
 
 export interface OpenSettingsEvent {
 	section?: SettingsSection;
+	toggle?: boolean;
 }
 
 export interface OpenWorkspaceEvent {

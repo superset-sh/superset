@@ -91,7 +91,7 @@ export function createApplicationMenu() {
 					label: "Keyboard Shortcuts",
 					accelerator: showHotkeysAccelerator,
 					click: () => {
-						menuEmitter.emit("open-settings", "keyboard");
+						menuEmitter.emit("open-settings", { section: "keyboard" });
 					},
 				},
 			],
@@ -143,8 +143,10 @@ export function createApplicationMenu() {
 				{
 					label: "Settings...",
 					accelerator: openSettingsAccelerator,
-					click: () => {
-						menuEmitter.emit("open-settings");
+					click: (_menuItem, _browserWindow, event) => {
+						menuEmitter.emit("open-settings", {
+							toggle: !!event?.triggeredByAccelerator,
+						});
 					},
 				},
 				{

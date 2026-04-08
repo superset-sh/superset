@@ -82,7 +82,7 @@ function createTrayIcon(): Electron.NativeImage | null {
 
 function openSettings(): void {
 	focusMainWindow();
-	menuEmitter.emit("open-settings");
+	menuEmitter.emit("open-settings", {});
 }
 
 function formatStatusLabel(status: HostServiceStatus): string {
