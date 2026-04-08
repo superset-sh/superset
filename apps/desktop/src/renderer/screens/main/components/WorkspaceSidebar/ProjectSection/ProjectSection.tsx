@@ -3,6 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { useWorkspaceShortcutModifiers } from "renderer/hooks/useWorkspaceShortcutModifiers";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
@@ -128,26 +129,29 @@ export function ProjectSection({
 	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
 
 	const isModifierHeld = useModifierKeyStateStore((s) => s.isModifierHeld);
+	const { shortcutLabels } = useWorkspaceShortcutModifiers();
 
-	// Collect shortcut indices for this project's workspaces (for collapsed header badges)
-	const projectShortcutIndices = useMemo(() => {
-		const indices: number[] = [];
+	// Collect shortcut labels for this project's workspaces (for collapsed header badges)
+	const projectShortcutLabels = useMemo(() => {
+		const labels: string[] = [];
 		for (const child of topLevelChildren) {
 			if (child.kind === "workspace") {
 				if (child.shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX) {
-					indices.push(child.shortcutIndex);
+					const label = shortcutLabels.get(child.shortcutIndex);
+					if (label) labels.push(label);
 				}
 			} else {
 				for (let i = 0; i < child.section.workspaces.length; i++) {
 					const idx = child.shortcutBaseIndex + i;
 					if (idx < MAX_KEYBOARD_SHORTCUT_INDEX) {
-						indices.push(idx);
+						const label = shortcutLabels.get(idx);
+						if (label) labels.push(label);
 					}
 				}
 			}
 		}
-		return indices;
-	}, [topLevelChildren]);
+		return labels;
+	}, [topLevelChildren, shortcutLabels]);
 
 	const topUngroupedDropZone = useSectionDropZone({
 		canAccept: (item) =>
@@ -271,8 +275,8 @@ export function ProjectSection({
 						onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 						workspaceCount={totalWorkspaceCount}
 						onNewWorkspace={handleNewWorkspace}
-						shortcutIndices={
-							isCollapsed && isModifierHeld ? projectShortcutIndices : []
+						shortcutLabels={
+							isCollapsed && isModifierHeld ? projectShortcutLabels : []
 						}
 					/>
 				</div>
@@ -376,8 +380,8 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
-					shortcutIndices={
-						isCollapsed && isModifierHeld ? projectShortcutIndices : []
+					shortcutLabels={
+						isCollapsed && isModifierHeld ? projectShortcutLabels : []
 					}
 				/>
 			</div>

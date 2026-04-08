@@ -50,8 +50,8 @@ interface ProjectHeaderProps {
 	onToggleCollapse: () => void;
 	workspaceCount: number;
 	onNewWorkspace: () => void;
-	/** Shortcut indices to display as badges when project is collapsed and modifier is held */
-	shortcutIndices?: number[];
+	/** Shortcut labels to display as badges when project is collapsed and modifier is held */
+	shortcutLabels?: string[];
 }
 
 export function ProjectHeader({
@@ -67,7 +67,7 @@ export function ProjectHeader({
 	onToggleCollapse,
 	workspaceCount,
 	onNewWorkspace,
-	shortcutIndices = [],
+	shortcutLabels = [],
 }: ProjectHeaderProps) {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
@@ -210,10 +210,10 @@ export function ProjectHeader({
 							<span className="text-xs text-muted-foreground">
 								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
 							</span>
-							{shortcutIndices.length > 0 && (
+							{shortcutLabels.length > 0 && (
 								<div className="flex items-center gap-1 mt-1">
-									{shortcutIndices.map((idx) => (
-										<WorkspaceShortcutBadge key={idx} label={String(idx + 1)} />
+									{shortcutLabels.map((label) => (
+										<WorkspaceShortcutBadge key={label} label={label} />
 									))}
 								</div>
 							)}
@@ -314,13 +314,10 @@ export function ProjectHeader({
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">
 									({workspaceCount})
 								</span>
-								{shortcutIndices.length > 0 && (
+								{shortcutLabels.length > 0 && (
 									<div className="flex items-center gap-1 ml-auto">
-										{shortcutIndices.map((idx) => (
-											<WorkspaceShortcutBadge
-												key={idx}
-												label={String(idx + 1)}
-											/>
+										{shortcutLabels.map((label) => (
+											<WorkspaceShortcutBadge key={label} label={label} />
 										))}
 									</div>
 								)}

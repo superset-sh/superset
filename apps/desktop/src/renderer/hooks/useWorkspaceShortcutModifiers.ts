@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import {
+	formatHotkeyDisplay,
 	getBinding,
 	type HotkeyId,
+	PLATFORM,
 	useHotkeyOverridesStore,
 } from "renderer/hotkeys";
 
@@ -52,6 +54,7 @@ export function useWorkspaceShortcutModifiers() {
 		const allModifierKeys = new Set<string>();
 		const shortcuts: WorkspaceShortcutInfo[] = [];
 		const comboToIndices = new Map<string, number[]>();
+		const shortcutLabels = new Map<number, string>();
 
 		for (let i = 0; i < WORKSPACE_HOTKEY_IDS.length; i++) {
 			const binding = getBinding(WORKSPACE_HOTKEY_IDS[i]);
@@ -63,8 +66,9 @@ export function useWorkspaceShortcutModifiers() {
 			const existing = comboToIndices.get(comboKey) ?? [];
 			existing.push(i);
 			comboToIndices.set(comboKey, existing);
+			shortcutLabels.set(i, formatHotkeyDisplay(binding, PLATFORM).text);
 		}
 
-		return { allModifierKeys, shortcuts, comboToIndices };
+		return { allModifierKeys, shortcuts, comboToIndices, shortcutLabels };
 	}, [overrides]);
 }
