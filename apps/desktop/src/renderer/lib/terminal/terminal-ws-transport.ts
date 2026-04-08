@@ -107,8 +107,11 @@ export function connect(
 		isActive &&
 		transport.currentUrl &&
 		baseUrl(transport.currentUrl) === baseUrl(wsUrl)
-	)
+	) {
+		// Keep currentUrl fresh so auto-reconnect uses the latest token/params.
+		transport.currentUrl = wsUrl;
 		return;
+	}
 
 	if (transport.socket) {
 		transport.socket.close();
