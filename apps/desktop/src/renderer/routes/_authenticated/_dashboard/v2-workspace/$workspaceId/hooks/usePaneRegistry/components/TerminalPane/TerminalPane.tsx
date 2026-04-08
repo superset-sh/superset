@@ -51,13 +51,16 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		workspaceId,
 		themeType: initialThemeType,
 	});
+	const websocketUrlRef = useRef(websocketUrl);
+	websocketUrlRef.current = websocketUrl;
 
 	const connectionState = useSyncExternalStore(
 		subscribeToState(terminalId),
 		() => getConnectionState(terminalId),
 	);
 
-	// Appearance read from ref to avoid re-attach on theme/font change.
+	// Attach/detach only when terminalId changes — not when the URL changes.
+	// The URL is read from a ref so workspace switches don't trigger DOM detach/attach.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -65,13 +68,18 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		terminalRuntimeRegistry.attach(
 			terminalId,
 			container,
-			websocketUrl,
+			websocketUrlRef.current,
 			appearanceRef.current,
 		);
 
 		return () => {
 			terminalRuntimeRegistry.detach(terminalId);
 		};
+	}, [terminalId]);
+
+	// When the URL changes (workspace switch), reconnect the transport without touching the DOM.
+	useEffect(() => {
+		terminalRuntimeRegistry.reconnect(terminalId, websocketUrl);
 	}, [terminalId, websocketUrl]);
 
 	useEffect(() => {
