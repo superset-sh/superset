@@ -256,7 +256,14 @@ export function createTerminalInstance(
 
 	// Handle OSC 8 hyperlinks (terminal escape sequences from CLIs like Claude Code, git, etc.)
 	// Without this, xterm's default handler shows a scary confirm() dialog that doesn't work in Electron.
-	xterm.options.linkHandler = { activate: openUrl };
+	// Only handle http(s) URIs — OSC 8 can carry any protocol (javascript:, file://, etc.).
+	xterm.options.linkHandler = {
+		activate: (event, uri) => {
+			if (/^https?:\/\//i.test(uri)) {
+				openUrl(event, uri);
+			}
+		},
+	};
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, openUrl);
 	xterm.registerLinkProvider(urlLinkProvider);
