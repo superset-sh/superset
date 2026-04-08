@@ -93,6 +93,8 @@ export const Terminal = memo(function Terminal({
 	const lastActivityUpdateRef = useRef<number>(0);
 	const subscriptionStartRef = useRef<number>(Date.now());
 	const ACTIVITY_DEBOUNCE_MS = 30_000;
+	// Ignore terminal data right after mount to skip the shell prompt redraw
+	// that fires when switching to a workspace (not real user/agent activity).
 	const ACTIVITY_GRACE_PERIOD_MS = 3_000;
 	const collections = useCollections();
 	const updateLastActivityAtMutation =
