@@ -71,10 +71,7 @@ function createAdapter(
 	const resolver = new TerminalLinkResolver(statMock);
 	const cols = opts?.cols ?? 80;
 	const terminal = createMockTerminal(descriptors, cols);
-	const detector = new LocalLinkDetector(resolver, {
-		initialCwd: opts?.initialCwd ?? "/parent/cwd",
-		userHome: opts?.userHome ?? "/home",
-	});
+	const detector = new LocalLinkDetector(resolver);
 
 	const adapter = new LinkDetectorAdapter(terminal, detector);
 	return { adapter, terminal };
