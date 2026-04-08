@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
-<<<<<<< HEAD
 import { V2AvailableBanner } from "renderer/components/V2AvailableBanner";
-||||||| parent of 4ff590ba9 (feat: mount modifier key listener in WorkspaceSidebar)
-=======
 import { useModifierKeyListener } from "renderer/hooks/useModifierKeyListener";
->>>>>>> 4ff590ba9 (feat: mount modifier key listener in WorkspaceSidebar)
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
