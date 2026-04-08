@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	type ConnectionState,
@@ -12,6 +12,7 @@ import type {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
+import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -34,6 +35,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	const { terminalId } = ctx.pane.data as TerminalPaneData;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeTheme = useTheme();
+	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -86,6 +88,10 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		terminalRuntimeRegistry.scrollToBottom(terminalId);
 	});
 
+	useHotkey("FIND_IN_TERMINAL", () => setIsSearchOpen((prev) => !prev), {
+		preventDefault: true,
+	});
+
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
@@ -93,9 +99,20 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		[terminalId, connectionState],
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
+	const searchAddon = useMemo(
+		() => terminalRuntimeRegistry.getSearchAddon(terminalId),
+		[terminalId, connectionState],
+	);
+
 	return (
 		<div className="flex h-full w-full flex-col p-2">
 			<div className="relative min-h-0 flex-1 overflow-hidden">
+				<TerminalSearch
+					searchAddon={searchAddon}
+					isOpen={isSearchOpen}
+					onClose={() => setIsSearchOpen(false)}
+				/>
 				<div
 					ref={containerRef}
 					className="h-full w-full"
