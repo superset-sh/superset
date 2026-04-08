@@ -12,21 +12,46 @@ import { LocalLinkDetector } from "./local-link-detector";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createDetector(
-	validPaths: string[],
-	opts?: { initialCwd?: string; userHome?: string },
-) {
+/**
+ * Create a detector with a mock stat callback. The stat callback simulates
+ * the host service's statPath: it checks if the path (or the path resolved
+ * against a workspace root) matches any of the valid paths.
+ */
+function createDetector(validPaths: string[], workspaceRoot = "/parent/cwd") {
 	const statMock: StatCallback = async (path) => {
+		// Simulate host-side resolution: try raw path, then resolved against root
 		if (validPaths.includes(path)) {
-			return { isDirectory: false };
+			return { isDirectory: false, resolvedPath: path };
+		}
+		// Simulate host resolving relative paths against workspace root
+		// (mirrors what the host service's statPath does with path.resolve)
+		if (!path.startsWith("/") && !path.startsWith("~")) {
+			const parts = `${workspaceRoot}/${path}`.split("/").filter(Boolean);
+			const normalized: string[] = [];
+			for (const p of parts) {
+				if (p === ".") continue;
+				if (p === ".." && normalized.length > 0) {
+					normalized.pop();
+				} else {
+					normalized.push(p);
+				}
+			}
+			const resolved = `/${normalized.join("/")}`;
+			if (validPaths.includes(resolved)) {
+				return { isDirectory: false, resolvedPath: resolved };
+			}
+		}
+		// Simulate host resolving tilde
+		if (path.startsWith("~/")) {
+			const resolved = `/home${path.substring(1)}`;
+			if (validPaths.includes(resolved)) {
+				return { isDirectory: false, resolvedPath: resolved };
+			}
 		}
 		return null;
 	};
 	const resolver = new TerminalLinkResolver(statMock);
-	return new LocalLinkDetector(resolver, {
-		initialCwd: opts?.initialCwd ?? "/parent/cwd",
-		userHome: opts?.userHome ?? "/home",
-	});
+	return new LocalLinkDetector(resolver);
 }
 
 function formatLink(

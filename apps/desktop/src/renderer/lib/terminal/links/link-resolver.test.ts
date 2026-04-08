@@ -1,20 +1,14 @@
 /*---------------------------------------------------------------------------------------------
- *  Link resolver tests — adapted from VSCode's terminalLinkResolver.test.ts
- *  https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/terminalContrib/links/test/browser/terminalLinkResolver.test.ts
+ *  Link resolver tests
  *--------------------------------------------------------------------------------------------*/
 
 import { afterEach, beforeEach, describe, expect, it, jest } from "bun:test";
-import {
-	type LinkResolverOptions,
-	TerminalLinkResolver,
-} from "./link-resolver";
+import { TerminalLinkResolver } from "./link-resolver";
 
 describe("TerminalLinkResolver", () => {
 	let resolver: TerminalLinkResolver;
 	let statMock: jest.Mock<
-		(
-			path: string,
-		) => Promise<{
+		(path: string) => Promise<{
 			isDirectory: boolean;
 			resolvedPath?: string;
 		} | null>
@@ -29,15 +23,10 @@ describe("TerminalLinkResolver", () => {
 		jest.restoreAllMocks();
 	});
 
-	const defaultOpts: LinkResolverOptions = {
-		initialCwd: "/parent/cwd",
-		userHome: "/home/user",
-	};
-
 	describe("resolveLink", () => {
-		it("should resolve absolute paths", async () => {
+		it("should pass path to stat callback", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("/foo/bar.ts", defaultOpts);
+			const result = await resolver.resolveLink("/foo/bar.ts");
 			expect(result).toEqual({
 				path: "/foo/bar.ts",
 				isDirectory: false,
@@ -45,70 +34,12 @@ describe("TerminalLinkResolver", () => {
 			expect(statMock).toHaveBeenCalledWith("/foo/bar.ts");
 		});
 
-		it("should resolve tilde paths", async () => {
-			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink(
-				"~/projects/foo.ts",
-				defaultOpts,
-			);
-			expect(result).toEqual({
-				path: "/home/user/projects/foo.ts",
-				isDirectory: false,
-			});
-			expect(statMock).toHaveBeenCalledWith("/home/user/projects/foo.ts");
-		});
-
-		it("should resolve relative paths against initialCwd", async () => {
-			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("./src/file.ts", defaultOpts);
-			expect(result).toEqual({
-				path: "/parent/cwd/src/file.ts",
-				isDirectory: false,
-			});
-		});
-
-		it("should resolve bare relative paths against initialCwd", async () => {
-			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("src/file.ts", defaultOpts);
-			expect(result).toEqual({
-				path: "/parent/cwd/src/file.ts",
-				isDirectory: false,
-			});
-		});
-
-		it("should resolve parent paths against initialCwd", async () => {
-			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("../foo.ts", defaultOpts);
-			expect(result).toEqual({
-				path: "/parent/foo.ts",
-				isDirectory: false,
-			});
-		});
-
-		it("should return null for paths that don't exist", async () => {
-			statMock.mockResolvedValue(null);
-			const result = await resolver.resolveLink("/nonexistent.ts", defaultOpts);
-			expect(result).toBeNull();
-		});
-
-		it("should return null for stat errors", async () => {
-			statMock.mockRejectedValue(new Error("ENOENT"));
-			const result = await resolver.resolveLink("/nonexistent.ts", defaultOpts);
-			expect(result).toBeNull();
-		});
-
-		it("should pass raw relative path to stat when initialCwd is missing", async () => {
-			// When initialCwd is undefined, the resolver can't resolve locally
-			// but still passes the raw path to stat — the host-side callback
-			// may resolve it against a workspace root.
+		it("should pass relative paths through to stat (host resolves)", async () => {
 			statMock.mockResolvedValue({
 				isDirectory: false,
 				resolvedPath: "/workspace/src/file.ts",
 			});
-			const result = await resolver.resolveLink("src/file.ts", {
-				initialCwd: undefined,
-				userHome: "/home/user",
-			});
+			const result = await resolver.resolveLink("src/file.ts");
 			expect(result).toEqual({
 				path: "/workspace/src/file.ts",
 				isDirectory: false,
@@ -116,24 +47,12 @@ describe("TerminalLinkResolver", () => {
 			expect(statMock).toHaveBeenCalledWith("src/file.ts");
 		});
 
-		it("should return null for relative path when stat also fails", async () => {
-			statMock.mockResolvedValue(null);
-			const result = await resolver.resolveLink("src/file.ts", {
-				initialCwd: undefined,
-				userHome: "/home/user",
-			});
-			expect(result).toBeNull();
-		});
-
-		it("should pass raw tilde path to stat when userHome is missing", async () => {
+		it("should pass tilde paths through to stat (host resolves)", async () => {
 			statMock.mockResolvedValue({
 				isDirectory: false,
 				resolvedPath: "/home/user/foo.ts",
 			});
-			const result = await resolver.resolveLink("~/foo.ts", {
-				initialCwd: "/parent/cwd",
-				userHome: undefined,
-			});
+			const result = await resolver.resolveLink("~/foo.ts");
 			expect(result).toEqual({
 				path: "/home/user/foo.ts",
 				isDirectory: false,
@@ -141,46 +60,67 @@ describe("TerminalLinkResolver", () => {
 			expect(statMock).toHaveBeenCalledWith("~/foo.ts");
 		});
 
+		it("should prefer resolvedPath from stat over input path", async () => {
+			statMock.mockResolvedValue({
+				isDirectory: false,
+				resolvedPath: "/absolute/resolved/file.ts",
+			});
+			const result = await resolver.resolveLink("file.ts");
+			expect(result?.path).toBe("/absolute/resolved/file.ts");
+		});
+
+		it("should fall back to input path when resolvedPath not provided", async () => {
+			statMock.mockResolvedValue({ isDirectory: false });
+			const result = await resolver.resolveLink("/foo/bar.ts");
+			expect(result?.path).toBe("/foo/bar.ts");
+		});
+
+		it("should return null for paths that don't exist", async () => {
+			statMock.mockResolvedValue(null);
+			const result = await resolver.resolveLink("/nonexistent.ts");
+			expect(result).toBeNull();
+		});
+
+		it("should return null for stat errors", async () => {
+			statMock.mockRejectedValue(new Error("ENOENT"));
+			const result = await resolver.resolveLink("/nonexistent.ts");
+			expect(result).toBeNull();
+		});
+
 		it("should detect directories", async () => {
 			statMock.mockResolvedValue({ isDirectory: true });
-			const result = await resolver.resolveLink("/some/dir", defaultOpts);
+			const result = await resolver.resolveLink("/some/dir");
 			expect(result).toEqual({
 				path: "/some/dir",
 				isDirectory: true,
 			});
 		});
 
-		it("should strip file:// URI scheme", async () => {
+		it("should strip file:// URI scheme before calling stat", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink(
-				"file:///foo/bar.ts",
-				defaultOpts,
-			);
-			expect(result).toEqual({
-				path: "/foo/bar.ts",
-				isDirectory: false,
-			});
+			await resolver.resolveLink("file:///foo/bar.ts");
+			expect(statMock).toHaveBeenCalledWith("/foo/bar.ts");
 		});
 
-		it("should decode URL-encoded paths", async () => {
+		it("should decode URL-encoded file:// paths", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink(
-				"file:///foo/bar%20baz.ts",
-				defaultOpts,
-			);
-			expect(result).toEqual({
-				path: "/foo/bar baz.ts",
-				isDirectory: false,
-			});
+			await resolver.resolveLink("file:///foo/bar%20baz.ts");
+			expect(statMock).toHaveBeenCalledWith("/foo/bar baz.ts");
+		});
+
+		it("should strip line/column suffix before calling stat", async () => {
+			statMock.mockResolvedValue({ isDirectory: false });
+			await resolver.resolveLink("/foo/bar.ts:42:10");
+			expect(statMock).toHaveBeenCalledWith("/foo/bar.ts");
 		});
 
 		it("should return null for empty paths", async () => {
-			const result = await resolver.resolveLink("", defaultOpts);
+			const result = await resolver.resolveLink("");
 			expect(result).toBeNull();
 		});
 
 		it("should return null for whitespace-only paths", async () => {
-			const result = await resolver.resolveLink("   ", defaultOpts);
+			const result = await resolver.resolveLink("   ");
 			expect(result).toBeNull();
 		});
 	});
@@ -188,29 +128,27 @@ describe("TerminalLinkResolver", () => {
 	describe("caching", () => {
 		it("should cache resolved results", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			await resolver.resolveLink("/foo/bar.ts", defaultOpts);
-			await resolver.resolveLink("/foo/bar.ts", defaultOpts);
+			await resolver.resolveLink("/foo/bar.ts");
+			await resolver.resolveLink("/foo/bar.ts");
 			expect(statMock).toHaveBeenCalledTimes(1);
 		});
 
 		it("should cache null results", async () => {
 			statMock.mockResolvedValue(null);
-			await resolver.resolveLink("/nonexistent.ts", defaultOpts);
-			await resolver.resolveLink("/nonexistent.ts", defaultOpts);
+			await resolver.resolveLink("/nonexistent.ts");
+			await resolver.resolveLink("/nonexistent.ts");
 			expect(statMock).toHaveBeenCalledTimes(1);
 		});
 
 		it("should expire cache after TTL", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			// Use a short TTL for testing
 			resolver = new TerminalLinkResolver(statMock, { cacheTtlMs: 50 });
-			await resolver.resolveLink("/foo/bar.ts", defaultOpts);
+			await resolver.resolveLink("/foo/bar.ts");
 			expect(statMock).toHaveBeenCalledTimes(1);
 
-			// Wait for cache to expire
 			await new Promise((r) => setTimeout(r, 60));
 
-			await resolver.resolveLink("/foo/bar.ts", defaultOpts);
+			await resolver.resolveLink("/foo/bar.ts");
 			expect(statMock).toHaveBeenCalledTimes(2);
 		});
 
@@ -220,8 +158,8 @@ describe("TerminalLinkResolver", () => {
 				return null;
 			});
 
-			const r1 = await resolver.resolveLink("/foo.ts", defaultOpts);
-			const r2 = await resolver.resolveLink("/bar.ts", defaultOpts);
+			const r1 = await resolver.resolveLink("/foo.ts");
+			const r2 = await resolver.resolveLink("/bar.ts");
 
 			expect(r1).not.toBeNull();
 			expect(r2).toBeNull();
@@ -232,31 +170,33 @@ describe("TerminalLinkResolver", () => {
 	describe("resolveMultipleCandidates", () => {
 		it("should return the first candidate that exists", async () => {
 			statMock.mockImplementation(async (path) => {
-				if (path === "/parent/cwd/bar.ts") return { isDirectory: false };
+				if (path === "bar.ts")
+					return { isDirectory: false, resolvedPath: "/workspace/bar.ts" };
 				return null;
 			});
 
-			const result = await resolver.resolveMultipleCandidates(
-				["foo.ts", "bar.ts", "baz.ts"],
-				defaultOpts,
-			);
+			const result = await resolver.resolveMultipleCandidates([
+				"foo.ts",
+				"bar.ts",
+				"baz.ts",
+			]);
 			expect(result).toEqual({
-				path: "/parent/cwd/bar.ts",
+				path: "/workspace/bar.ts",
 				isDirectory: false,
 			});
 		});
 
 		it("should return null when no candidates exist", async () => {
 			statMock.mockResolvedValue(null);
-			const result = await resolver.resolveMultipleCandidates(
-				["foo.ts", "bar.ts"],
-				defaultOpts,
-			);
+			const result = await resolver.resolveMultipleCandidates([
+				"foo.ts",
+				"bar.ts",
+			]);
 			expect(result).toBeNull();
 		});
 
 		it("should return null for empty candidate list", async () => {
-			const result = await resolver.resolveMultipleCandidates([], defaultOpts);
+			const result = await resolver.resolveMultipleCandidates([]);
 			expect(result).toBeNull();
 		});
 	});

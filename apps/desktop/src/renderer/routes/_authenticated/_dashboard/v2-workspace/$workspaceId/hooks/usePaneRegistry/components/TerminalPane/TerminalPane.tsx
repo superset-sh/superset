@@ -90,14 +90,9 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	statPathRef.current = statPathMutation.mutateAsync;
 
 	useEffect(() => {
-		const userHome = process.env.HOME ?? process.env.USERPROFILE;
-
 		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
 			stat: async (path) => {
 				try {
-					// statPath resolves relative paths against the workspace root
-					// on the host, then stats the result. Uses POST (mutation) to
-					// avoid URL encoding issues with () in paths.
 					const result = await statPathRef.current({
 						workspaceId,
 						path,
@@ -111,9 +106,6 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 					return null;
 				}
 			},
-			// Path resolution happens on the host in statPath — no local CWD needed
-			initialCwd: undefined,
-			userHome,
 			onFileLinkClick: (_event, link) => {
 				if (!_event.metaKey && !_event.ctrlKey) return;
 				_event.preventDefault();

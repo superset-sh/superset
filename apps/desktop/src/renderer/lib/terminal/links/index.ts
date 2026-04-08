@@ -7,7 +7,6 @@ export {
 export { LinkDetectorAdapter } from "./link-detector-adapter";
 
 export {
-	type LinkResolverOptions,
 	type ResolvedLink,
 	type StatCallback,
 	TerminalLinkResolver,
@@ -16,5 +15,4 @@ export {
 export {
 	type DetectedLink,
 	LocalLinkDetector,
-	type LocalLinkDetectorOptions,
 } from "./local-link-detector";

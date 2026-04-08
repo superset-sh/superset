@@ -14,10 +14,7 @@ import {
 	type IParsedLink,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
-import type {
-	LinkResolverOptions,
-	TerminalLinkResolver,
-} from "./link-resolver";
+import type { TerminalLinkResolver } from "./link-resolver";
 
 const MAX_LINE_LENGTH = 2000;
 const MAX_RESOLVED_LINKS_IN_LINE = 10;
@@ -49,26 +46,21 @@ export interface DetectedLink {
 	parsedLink?: IParsedLink;
 }
 
-export interface LocalLinkDetectorOptions {
-	initialCwd: string | undefined;
-	userHome: string | undefined;
-}
-
 /**
  * Detects local file-system links in a line of terminal text.
  *
- * The flow matches VSCode's TerminalLocalLinkDetector:
- * 1. Parse the line with `detectLinks()` (already vendored from VSCode)
- * 2. For each parsed link, build candidate paths (absolute, relative to cwd, trimmed variants)
- * 3. Validate each candidate against the filesystem via the resolver
+ * The flow:
+ * 1. Parse the line with `detectLinks()` (vendored from VSCode)
+ * 2. For each parsed link, build candidate paths (raw, trimmed variants)
+ * 3. Validate each candidate via the resolver (which delegates to the host)
  * 4. Only return links that point to real files/directories
  * 5. If no primary links found, try fallback matchers (Python, Rust, C++, etc.)
+ *
+ * All path resolution (relative → workspace root, ~ → $HOME) happens on the
+ * host service, not in the renderer.
  */
 export class LocalLinkDetector {
-	constructor(
-		private readonly _resolver: TerminalLinkResolver,
-		private readonly _opts: LocalLinkDetectorOptions,
-	) {}
+	constructor(private readonly _resolver: TerminalLinkResolver) {}
 
 	async detect(text: string): Promise<DetectedLink[]> {
 		if (!text || text.length > MAX_LINE_LENGTH) {
@@ -103,14 +95,8 @@ export class LocalLinkDetector {
 			}
 			const allCandidates = [...candidates, ...trimmedCandidates];
 
-			const resolverOpts: LinkResolverOptions = {
-				initialCwd: this._opts.initialCwd,
-				userHome: this._opts.userHome,
-			};
-			const resolved = await this._resolver.resolveMultipleCandidates(
-				allCandidates,
-				resolverOpts,
-			);
+			const resolved =
+				await this._resolver.resolveMultipleCandidates(allCandidates);
 
 			if (resolved) {
 				const linkStart = parsedLink.prefix?.index ?? parsedLink.path.index;
@@ -146,14 +132,7 @@ export class LocalLinkDetector {
 					continue;
 				}
 
-				const resolverOpts: LinkResolverOptions = {
-					initialCwd: this._opts.initialCwd,
-					userHome: this._opts.userHome,
-				};
-				const resolved = await this._resolver.resolveLink(
-					fallback.path,
-					resolverOpts,
-				);
+				const resolved = await this._resolver.resolveLink(fallback.path);
 				if (resolved) {
 					links.push({
 						text: fallback.link,
@@ -183,13 +162,12 @@ export class LocalLinkDetector {
 
 	/**
 	 * Build candidate paths from the raw link text.
-	 * Tries the path as-is first (for absolute/tilde/file:// paths), then
-	 * includes the raw text for relative resolution by the resolver.
+	 * The raw path is sent to the host for resolution — we only strip
+	 * the line/column suffix here.
 	 */
 	private _buildCandidates(pathText: string): string[] {
 		const candidates: string[] = [];
 
-		// Strip the line/column suffix for path resolution
 		const cleanPath = removeLinkSuffix(pathText);
 		if (!cleanPath) {
 			return candidates;
@@ -198,7 +176,6 @@ export class LocalLinkDetector {
 		candidates.push(cleanPath);
 
 		// For relative paths with leading ../, also try without the ../ prefix
-		// (VSCode pattern: handles cases where the relative prefix is wrong)
 		const parentPrefixMatch = cleanPath.match(/^(\.\.[/\\])+/);
 		if (parentPrefixMatch) {
 			candidates.push(cleanPath.replace(/^(\.\.[/\\])+/, ""));

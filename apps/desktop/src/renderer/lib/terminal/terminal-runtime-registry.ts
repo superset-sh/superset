@@ -33,12 +33,11 @@ export interface TerminalLinkHandlers {
 	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	/** Called when a URL link is activated. */
 	onUrlClick?: (url: string) => void;
-	/** Stat callback to validate file paths exist (called from main process). */
+	/**
+	 * Stat callback to validate file paths exist. Called via the host service
+	 * which handles all path resolution (relative, tilde, etc.) server-side.
+	 */
 	stat?: StatCallback;
-	/** The initial CWD for resolving relative paths. */
-	initialCwd?: string;
-	/** The user's home directory for resolving ~ paths. */
-	userHome?: string;
 }
 
 interface LinkProviderDisposable {
@@ -122,17 +121,12 @@ class TerminalRuntimeRegistryImpl {
 
 		const terminal = runtime.terminal;
 
-		// Reuse resolver to preserve stat cache across re-registrations
-		// (e.g. when initialCwd is updated after workspace.get resolves).
-		// Only recreate if the stat callback changed.
+		// Reuse resolver to preserve stat cache across re-registrations.
 		if (!entry.linkResolver) {
 			entry.linkResolver = new TerminalLinkResolver(linkHandlers.stat);
 		}
 
-		const detector = new LocalLinkDetector(entry.linkResolver, {
-			initialCwd: linkHandlers.initialCwd,
-			userHome: linkHandlers.userHome,
-		});
+		const detector = new LocalLinkDetector(entry.linkResolver);
 
 		const adapter = new LinkDetectorAdapter(
 			terminal,
