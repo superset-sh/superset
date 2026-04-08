@@ -1,7 +1,7 @@
 import type { AppRouter } from "@superset/host-service";
 import type { inferRouterOutputs } from "@trpc/server";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, memo } from "react";
 import { useMemo, useState } from "react";
 import {
 	VscCopy,
@@ -72,7 +72,7 @@ function StatusIndicator({ status }: { status: FileStatus }) {
 	);
 }
 
-function FileRow({
+const FileRow = memo(function FileRow({
 	file,
 	category,
 	onSelect,
@@ -107,9 +107,9 @@ function FileRow({
 			</span>
 		</button>
 	);
-}
+});
 
-function FolderGroup({
+const FolderGroup = memo(function FolderGroup({
 	folder,
 	files,
 	category,
@@ -142,7 +142,7 @@ function FolderGroup({
 			))}
 		</div>
 	);
-}
+});
 
 function Section({
 	title,
@@ -203,7 +203,7 @@ interface ChangesFileListProps {
 	onSelectFile?: (path: string, category: ChangeCategory) => void;
 }
 
-export function ChangesFileList({
+export const ChangesFileList = memo(function ChangesFileList({
 	files,
 	staged,
 	unstaged,
@@ -212,6 +212,8 @@ export function ChangesFileList({
 	category = "against-base",
 	onSelectFile,
 }: ChangesFileListProps) {
+	const groups = useMemo(() => groupByFolder(files), [files]);
+
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -231,7 +233,6 @@ export function ChangesFileList({
 		);
 	}
 
-	// If staged/unstaged are provided, show three sections
 	if (staged !== undefined && unstaged !== undefined) {
 		return (
 			<div className="min-h-0 flex-1 overflow-y-auto">
@@ -260,8 +261,6 @@ export function ChangesFileList({
 		);
 	}
 
-	// Single list (filtered by commit or uncommitted)
-	const groups = groupByFolder(files);
 	return (
 		<div className="min-h-0 flex-1 overflow-y-auto">
 			{groups.map((group) => (
@@ -275,4 +274,4 @@ export function ChangesFileList({
 			))}
 		</div>
 	);
-}
+});

@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { GitBranch, Pencil } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -179,6 +179,96 @@ function ChangesHeader({
 	);
 }
 
+type ChangedFile =
+	RouterOutputs["git"]["getStatus"]["againstBase"][number];
+
+interface ChangesTabContentProps {
+	status: { data: RouterOutputs["git"]["getStatus"] | undefined; isLoading: boolean };
+	commits: { data: RouterOutputs["git"]["listCommits"] | undefined };
+	branches: { data: RouterOutputs["git"]["listBranches"] | undefined };
+	commitFiles: { data: { files: ChangedFile[] } | undefined; isLoading: boolean };
+	filter: ChangesFilter;
+	filteredFiles: ChangedFile[];
+	fileCategory: "against-base" | "staged" | "unstaged";
+	totalChanges: number;
+	totalAdditions: number;
+	totalDeletions: number;
+	onSelectFile?: (path: string, category: "against-base" | "staged" | "unstaged") => void;
+	onFilterChange: (filter: ChangesFilter) => void;
+	onBaseBranchChange: (branchName: string) => void;
+	onRenameBranch: (newName: string) => void;
+	canRenameBranch: boolean;
+}
+
+const ChangesTabContent = memo(function ChangesTabContent({
+	status,
+	commits,
+	branches,
+	commitFiles,
+	filter,
+	filteredFiles,
+	fileCategory,
+	totalChanges,
+	totalAdditions,
+	totalDeletions,
+	onSelectFile,
+	onFilterChange,
+	onBaseBranchChange,
+	onRenameBranch,
+	canRenameBranch,
+}: ChangesTabContentProps) {
+	if (status.isLoading) {
+		return (
+			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+				Loading changes...
+			</div>
+		);
+	}
+
+	if (!status.data) {
+		return (
+			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+				Unable to load git status
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex h-full min-h-0 flex-col">
+			<ChangesHeader
+				currentBranch={status.data.currentBranch}
+				defaultBranchName={status.data.defaultBranch.name}
+				commitCount={commits.data?.commits.length ?? 0}
+				totalFiles={totalChanges}
+				totalAdditions={totalAdditions}
+				totalDeletions={totalDeletions}
+				filter={filter}
+				onFilterChange={onFilterChange}
+				commits={commits.data?.commits ?? []}
+				uncommittedCount={
+					status.data.staged.length + status.data.unstaged.length
+				}
+				branches={branches.data?.branches ?? []}
+				onBaseBranchChange={onBaseBranchChange}
+				onRenameBranch={onRenameBranch}
+				canRename={canRenameBranch}
+			/>
+			<div className="min-h-0 flex-1 overflow-y-auto">
+				<ChangesFileList
+					files={filteredFiles}
+					isLoading={
+						(filter.kind === "commit" || filter.kind === "range")
+							? commitFiles.isLoading
+							: false
+					}
+					onSelectFile={onSelectFile}
+					category={fileCategory}
+				/>
+			</div>
+		</div>
+	);
+});
+
 export function useChangesTab({
 	workspaceId,
 	onSelectFile,
@@ -310,100 +400,28 @@ export function useChangesTab({
 	const totalAdditions = filteredFiles.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = filteredFiles.reduce((sum, f) => sum + f.deletions, 0);
 
-	const content = useMemo(() => {
-		if (status.isLoading) {
-			return (
-				<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-					Loading changes...
-				</div>
-			);
-		}
+	const fileCategory: "against-base" | "staged" | "unstaged" =
+		filter.kind === "uncommitted" ? "unstaged" : "against-base";
 
-		if (!status.data) {
-			return (
-				<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-					Unable to load git status
-				</div>
-			);
-		}
-
-		let fileList: React.ReactNode;
-
-		if (filter.kind === "commit" || filter.kind === "range") {
-			fileList = (
-				<ChangesFileList
-					files={commitFiles.data?.files ?? []}
-					isLoading={commitFiles.isLoading}
-					onSelectFile={onSelectFile}
-					category="against-base"
-				/>
-			);
-		} else if (filter.kind === "uncommitted") {
-			fileList = (
-				<ChangesFileList
-					files={[...status.data.staged, ...status.data.unstaged]}
-					onSelectFile={onSelectFile}
-					category="unstaged"
-				/>
-			);
-		} else {
-			const allFilesMap = new Map<
-				string,
-				(typeof status.data.againstBase)[number]
-			>();
-			for (const f of status.data.againstBase) allFilesMap.set(f.path, f);
-			for (const f of status.data.staged) allFilesMap.set(f.path, f);
-			for (const f of status.data.unstaged) allFilesMap.set(f.path, f);
-
-			fileList = (
-				<ChangesFileList
-					files={Array.from(allFilesMap.values())}
-					onSelectFile={onSelectFile}
-					category="against-base"
-				/>
-			);
-		}
-
-		return (
-			<div className="flex h-full min-h-0 flex-col">
-				<ChangesHeader
-					currentBranch={status.data.currentBranch}
-					defaultBranchName={status.data.defaultBranch.name}
-					commitCount={commits.data?.commits.length ?? 0}
-					totalFiles={totalChanges}
-					totalAdditions={totalAdditions}
-					totalDeletions={totalDeletions}
-					filter={filter}
-					onFilterChange={setFilter}
-					commits={commits.data?.commits ?? []}
-					uncommittedCount={
-						status.data.staged.length + status.data.unstaged.length
-					}
-					branches={branches.data?.branches ?? []}
-					onBaseBranchChange={setBaseBranch}
-					onRenameBranch={handleRenameBranch}
-					canRename={canRenameBranch}
-				/>
-				<div className="min-h-0 flex-1 overflow-y-auto">{fileList}</div>
-			</div>
-		);
-	}, [
-		status.data,
-		status.isLoading,
-		filter,
-		commitFiles.data,
-		commitFiles.isLoading,
-		commits.data,
-		totalChanges,
-		totalAdditions,
-		totalDeletions,
-		onSelectFile,
-		setFilter,
-		branches.data?.branches,
-		canRenameBranch,
-		handleRenameBranch,
-		setBaseBranch,
-	]);
+	const content = (
+		<ChangesTabContent
+			status={status}
+			commits={commits}
+			branches={branches}
+			commitFiles={commitFiles}
+			filter={filter}
+			filteredFiles={filteredFiles}
+			fileCategory={fileCategory}
+			totalChanges={totalChanges}
+			totalAdditions={totalAdditions}
+			totalDeletions={totalDeletions}
+			onSelectFile={onSelectFile}
+			onFilterChange={setFilter}
+			onBaseBranchChange={setBaseBranch}
+			onRenameBranch={handleRenameBranch}
+			canRenameBranch={canRenameBranch}
+		/>
+	);
 
 	return {
 		id: "changes",
