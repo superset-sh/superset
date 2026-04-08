@@ -151,8 +151,8 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		validatedPorts.push({ port: result.port, label: result.label });
 	}
 
-	const hideUnmapped = parsed.hideUnmapped ?? false;
-	if (typeof hideUnmapped !== "boolean") {
+	const rawHideUnmapped = parsed.hideUnmapped;
+	if (rawHideUnmapped !== undefined && typeof rawHideUnmapped !== "boolean") {
 		return {
 			exists: true,
 			ports: null,
@@ -160,6 +160,7 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 			error: "'hideUnmapped' field must be a boolean",
 		};
 	}
+	const hideUnmapped = rawHideUnmapped ?? false;
 
 	return { exists: true, ports: validatedPorts, hideUnmapped, error: null };
 }

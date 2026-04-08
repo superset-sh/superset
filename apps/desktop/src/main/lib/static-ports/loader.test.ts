@@ -293,6 +293,18 @@ describe("loadStaticPorts", () => {
 		expect(result.ports).toBeNull();
 		expect(result.error).toBe("'hideUnmapped' field must be a boolean");
 	});
+
+	test("returns error when hideUnmapped is null", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ hideUnmapped: null, ports: [{ port: 3000, label: "Dev" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("'hideUnmapped' field must be a boolean");
+	});
 });
 
 describe("hasStaticPortsConfig", () => {
