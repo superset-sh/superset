@@ -18,6 +18,6 @@ export function useUpdateLastActivityAt() {
 			}
 			mutation.mutate({ workspaceId });
 		},
-		[collections, mutation],
+		[collections, mutation.mutate],
 	);
 }
