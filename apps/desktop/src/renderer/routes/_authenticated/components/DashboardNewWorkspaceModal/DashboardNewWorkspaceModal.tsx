@@ -20,7 +20,7 @@ export function DashboardNewWorkspaceModal() {
 
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={closeModal}>
-			<Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+			<Dialog modal open={isOpen} onOpenChange={(open) => !open && closeModal()}>
 				<DialogHeader className="sr-only">
 					<DialogTitle>New Workspace</DialogTitle>
 					<DialogDescription>
