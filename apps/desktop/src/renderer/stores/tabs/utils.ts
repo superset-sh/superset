@@ -28,6 +28,18 @@ import type {
 	TabsState,
 } from "./types";
 
+export type PaneFocusDirection = "up" | "down" | "left" | "right";
+
+interface PaneBounds {
+	paneId: string;
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+	centerX: number;
+	centerY: number;
+}
+
 export const resolveFileViewerMode = ({
 	filePath,
 	diffCategory,
@@ -540,6 +552,229 @@ export const getPreviousPaneId = (
 
 	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
 	return paneIds[prevIndex];
+};
+
+function collectPaneBounds(
+	layout: MosaicNode<string>,
+	bounds: { left: number; top: number; right: number; bottom: number },
+	result: PaneBounds[],
+): void {
+	if (typeof layout === "string") {
+		result.push({
+			paneId: layout,
+			left: bounds.left,
+			top: bounds.top,
+			right: bounds.right,
+			bottom: bounds.bottom,
+			centerX: (bounds.left + bounds.right) / 2,
+			centerY: (bounds.top + bounds.bottom) / 2,
+		});
+		return;
+	}
+
+	const splitPercentage = (layout.splitPercentage ?? 50) / 100;
+
+	if (layout.direction === "row") {
+		const splitX = bounds.left + (bounds.right - bounds.left) * splitPercentage;
+		collectPaneBounds(
+			layout.first,
+			{
+				left: bounds.left,
+				top: bounds.top,
+				right: splitX,
+				bottom: bounds.bottom,
+			},
+			result,
+		);
+		collectPaneBounds(
+			layout.second,
+			{
+				left: splitX,
+				top: bounds.top,
+				right: bounds.right,
+				bottom: bounds.bottom,
+			},
+			result,
+		);
+		return;
+	}
+
+	const splitY = bounds.top + (bounds.bottom - bounds.top) * splitPercentage;
+	collectPaneBounds(
+		layout.first,
+		{
+			left: bounds.left,
+			top: bounds.top,
+			right: bounds.right,
+			bottom: splitY,
+		},
+		result,
+	);
+	collectPaneBounds(
+		layout.second,
+		{
+			left: bounds.left,
+			top: splitY,
+			right: bounds.right,
+			bottom: bounds.bottom,
+		},
+		result,
+	);
+}
+
+function getPaneBounds(layout: MosaicNode<string>): PaneBounds[] {
+	const result: PaneBounds[] = [];
+	collectPaneBounds(layout, { left: 0, top: 0, right: 1, bottom: 1 }, result);
+	return result;
+}
+
+function getOrthogonalOverlap(
+	current: PaneBounds,
+	candidate: PaneBounds,
+	direction: PaneFocusDirection,
+): number {
+	if (direction === "left" || direction === "right") {
+		return Math.max(
+			0,
+			Math.min(current.bottom, candidate.bottom) -
+				Math.max(current.top, candidate.top),
+		);
+	}
+
+	return Math.max(
+		0,
+		Math.min(current.right, candidate.right) -
+			Math.max(current.left, candidate.left),
+	);
+}
+
+function isInDirectionByEdge(
+	current: PaneBounds,
+	candidate: PaneBounds,
+	direction: PaneFocusDirection,
+): boolean {
+	switch (direction) {
+		case "up":
+			return candidate.bottom <= current.top;
+		case "down":
+			return candidate.top >= current.bottom;
+		case "left":
+			return candidate.right <= current.left;
+		case "right":
+			return candidate.left >= current.right;
+	}
+}
+
+function isInDirectionByCenter(
+	current: PaneBounds,
+	candidate: PaneBounds,
+	direction: PaneFocusDirection,
+): boolean {
+	switch (direction) {
+		case "up":
+			return candidate.centerY < current.centerY;
+		case "down":
+			return candidate.centerY > current.centerY;
+		case "left":
+			return candidate.centerX < current.centerX;
+		case "right":
+			return candidate.centerX > current.centerX;
+	}
+}
+
+function getDirectionalGap(
+	current: PaneBounds,
+	candidate: PaneBounds,
+	direction: PaneFocusDirection,
+	useCenters: boolean,
+): number {
+	if (useCenters) {
+		switch (direction) {
+			case "up":
+				return current.centerY - candidate.centerY;
+			case "down":
+				return candidate.centerY - current.centerY;
+			case "left":
+				return current.centerX - candidate.centerX;
+			case "right":
+				return candidate.centerX - current.centerX;
+		}
+	}
+
+	switch (direction) {
+		case "up":
+			return current.top - candidate.bottom;
+		case "down":
+			return candidate.top - current.bottom;
+		case "left":
+			return current.left - candidate.right;
+		case "right":
+			return candidate.left - current.right;
+	}
+}
+
+function getCrossAxisDistance(
+	current: PaneBounds,
+	candidate: PaneBounds,
+	direction: PaneFocusDirection,
+): number {
+	if (direction === "left" || direction === "right") {
+		return Math.abs(candidate.centerY - current.centerY);
+	}
+
+	return Math.abs(candidate.centerX - current.centerX);
+}
+
+export const getPaneIdInDirection = (
+	layout: MosaicNode<string>,
+	currentPaneId: string,
+	direction: PaneFocusDirection,
+): string | null => {
+	const paneBounds = getPaneBounds(layout);
+	const current = paneBounds.find((pane) => pane.paneId === currentPaneId);
+	if (!current) return null;
+
+	const edgeCandidates = paneBounds.filter(
+		(candidate) =>
+			candidate.paneId !== currentPaneId &&
+			isInDirectionByEdge(current, candidate, direction),
+	);
+	const candidates =
+		edgeCandidates.length > 0
+			? edgeCandidates
+			: paneBounds.filter(
+					(candidate) =>
+						candidate.paneId !== currentPaneId &&
+						isInDirectionByCenter(current, candidate, direction),
+				);
+
+	if (candidates.length === 0) return null;
+
+	const overlappingCandidates = candidates.filter(
+		(candidate) => getOrthogonalOverlap(current, candidate, direction) > 0,
+	);
+	const preferredCandidates =
+		overlappingCandidates.length > 0 ? overlappingCandidates : candidates;
+	const useCenters = edgeCandidates.length === 0;
+
+	return (
+		preferredCandidates.slice().sort((a, b) => {
+			const gapDifference =
+				getDirectionalGap(current, a, direction, useCenters) -
+				getDirectionalGap(current, b, direction, useCenters);
+			if (gapDifference !== 0) return gapDifference;
+
+			const crossAxisDifference =
+				getCrossAxisDistance(current, a, direction) -
+				getCrossAxisDistance(current, b, direction);
+			if (crossAxisDifference !== 0) return crossAxisDifference;
+
+			const topDifference = a.top - b.top;
+			if (topDifference !== 0) return topDifference;
+
+			return a.left - b.left;
+		})[0]?.paneId ?? null
+	);
 };
 
 /**

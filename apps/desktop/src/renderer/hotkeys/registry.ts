@@ -386,6 +386,46 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
 	},
+	FOCUS_PANE_UP: {
+		key: {
+			mac: "meta+ctrl+up",
+			windows: "ctrl+alt+up",
+			linux: "ctrl+alt+up",
+		},
+		label: "Focus Pane Up",
+		category: "Terminal",
+		description: "Focus the pane above the current pane",
+	},
+	FOCUS_PANE_DOWN: {
+		key: {
+			mac: "meta+ctrl+down",
+			windows: "ctrl+alt+down",
+			linux: "ctrl+alt+down",
+		},
+		label: "Focus Pane Down",
+		category: "Terminal",
+		description: "Focus the pane below the current pane",
+	},
+	FOCUS_PANE_LEFT: {
+		key: {
+			mac: "meta+ctrl+left",
+			windows: "ctrl+alt+left",
+			linux: "ctrl+alt+left",
+		},
+		label: "Focus Pane Left",
+		category: "Terminal",
+		description: "Focus the pane to the left of the current pane",
+	},
+	FOCUS_PANE_RIGHT: {
+		key: {
+			mac: "meta+ctrl+right",
+			windows: "ctrl+alt+right",
+			linux: "ctrl+alt+right",
+		},
+		label: "Focus Pane Right",
+		category: "Terminal",
+		description: "Focus the pane to the right of the current pane",
+	},
 	JUMP_TO_TAB_1: {
 		key: {
 			mac: "meta+alt+1",

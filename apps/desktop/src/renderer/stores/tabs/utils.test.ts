@@ -10,6 +10,7 @@ import {
 	findPanePath,
 	findReusableFileViewerPane,
 	getAdjacentPaneId,
+	getPaneIdInDirection,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
 } from "./utils";
@@ -199,6 +200,63 @@ describe("getAdjacentPaneId", () => {
 		expect(getAdjacentPaneId(layout, "pane-2")).toBe("pane-3");
 		expect(getAdjacentPaneId(layout, "pane-3")).toBe("pane-4");
 		expect(getAdjacentPaneId(layout, "pane-4")).toBe("pane-3"); // Last pane goes to previous
+	});
+});
+
+describe("getPaneIdInDirection", () => {
+	it("moves around a 2x2 grid using spatial directions", () => {
+		const layout: MosaicNode<string> = {
+			direction: "column",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+			},
+			second: {
+				direction: "row",
+				first: "pane-3",
+				second: "pane-4",
+			},
+		};
+
+		expect(getPaneIdInDirection(layout, "pane-1", "right")).toBe("pane-2");
+		expect(getPaneIdInDirection(layout, "pane-1", "down")).toBe("pane-3");
+		expect(getPaneIdInDirection(layout, "pane-4", "left")).toBe("pane-3");
+		expect(getPaneIdInDirection(layout, "pane-4", "up")).toBe("pane-2");
+	});
+
+	it("returns null when there is no pane in that direction", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+		};
+
+		expect(getPaneIdInDirection(layout, "pane-1", "left")).toBeNull();
+		expect(getPaneIdInDirection(layout, "pane-1", "up")).toBeNull();
+		expect(getPaneIdInDirection(layout, "pane-2", "right")).toBeNull();
+	});
+
+	it("prefers overlapping panes in uneven layouts", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-left",
+			second: {
+				direction: "column",
+				first: "pane-top-right",
+				second: "pane-bottom-right",
+			},
+		};
+
+		expect(getPaneIdInDirection(layout, "pane-top-right", "left")).toBe(
+			"pane-left",
+		);
+		expect(getPaneIdInDirection(layout, "pane-bottom-right", "left")).toBe(
+			"pane-left",
+		);
+		expect(getPaneIdInDirection(layout, "pane-left", "right")).toBe(
+			"pane-top-right",
+		);
 	});
 });
 
