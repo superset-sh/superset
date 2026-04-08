@@ -150,22 +150,13 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
-export type QuitMode = "release" | "stop";
-let pendingQuitMode: QuitMode | null = null;
 let isQuitting = false;
+let skipQuitConfirmation = false;
 
-/** Request the app to quit.
- *  - "release": keep services running (re-adoptable on next launch)
- *  - "stop": terminate all services before exit */
-export function requestQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
+/** Skip the confirmation dialog and quit immediately. */
+export function quitApp(): void {
+	skipQuitConfirmation = true;
 	app.quit();
-}
-
-/** Set quit mode without triggering quit.
- *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
-export function prepareQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
 }
 
 /** Exit the process immediately, bypassing before-quit.
@@ -186,12 +177,8 @@ function getConfirmOnQuitSetting(): boolean {
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
-	// Consume the quit mode so it doesn't persist across aborted quits
-	const quitMode = pendingQuitMode;
-	pendingQuitMode = null;
-
 	const isDev = process.env.NODE_ENV === "development";
-	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
+	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -214,12 +201,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		const manager = getHostServiceManager();
-		if (quitMode === "stop") {
-			manager.stopAll();
-		} else {
-			manager.releaseAll();
-		}
+		getHostServiceManager().releaseAll();
 		disposeTray();
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
