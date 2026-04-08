@@ -230,11 +230,11 @@ function WorkspaceContent({
 						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
 					>
-						<PresetsBar />
 						<Workspace<PaneViewerData>
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
+							renderBelowTabBar={() => <PresetsBar />}
 							renderAddTabMenu={() => (
 								<AddTabMenu
 									onAddTerminal={addTerminalTab}

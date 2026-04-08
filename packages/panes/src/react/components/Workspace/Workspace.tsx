@@ -11,6 +11,7 @@ export function Workspace<TData>({
 	renderTabAccessory,
 	renderEmptyState,
 	renderAddTabMenu,
+	renderBelowTabBar,
 	onBeforeCloseTab,
 	paneActions,
 	contextMenuActions,
@@ -61,6 +62,7 @@ export function Workspace<TData>({
 				renderAddTabMenu={renderAddTabMenu}
 				renderTabAccessory={renderTabAccessory}
 			/>
+			{renderBelowTabBar?.()}
 			{activeTab ? (
 				<Tab
 					store={store}
