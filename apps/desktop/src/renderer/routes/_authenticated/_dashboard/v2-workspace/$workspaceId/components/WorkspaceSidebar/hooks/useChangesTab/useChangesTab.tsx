@@ -81,11 +81,12 @@ export function useChangesTab({
 			invalidateGitQueries();
 		}, 300);
 	}, [invalidateGitQueries]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clear pending timer on workspace change
 	useEffect(() => {
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current);
 		};
-	}, []);
+	}, [workspaceId]);
 
 	useWorkspaceEvent("git:changed", workspaceId, debouncedInvalidate);
 	useWorkspaceEvent("fs:events", workspaceId, debouncedInvalidate);

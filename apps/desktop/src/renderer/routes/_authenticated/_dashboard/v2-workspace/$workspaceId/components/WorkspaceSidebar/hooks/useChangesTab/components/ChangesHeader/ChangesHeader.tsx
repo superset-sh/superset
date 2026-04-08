@@ -41,10 +41,12 @@ export function ChangesHeader({
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState(currentBranch.name);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const skipBlurRef = useRef(false);
 
 	const startEditing = () => {
 		setEditValue(currentBranch.name);
 		setIsEditing(true);
+		skipBlurRef.current = false;
 		requestAnimationFrame(() => inputRef.current?.select());
 	};
 
@@ -66,10 +68,19 @@ export function ChangesHeader({
 						value={editValue}
 						onChange={(e) => setEditValue(e.target.value)}
 						onKeyDown={(e) => {
-							if (e.key === "Enter") handleSubmit();
-							if (e.key === "Escape") setIsEditing(false);
+							if (e.key === "Enter") {
+								skipBlurRef.current = true;
+								handleSubmit();
+							}
+							if (e.key === "Escape") {
+								skipBlurRef.current = true;
+								setIsEditing(false);
+							}
 						}}
-						onBlur={handleSubmit}
+						onBlur={() => {
+							if (skipBlurRef.current) return;
+							handleSubmit();
+						}}
 						className="min-w-0 flex-1 truncate bg-transparent font-medium outline-none ring-1 ring-ring rounded-sm px-1"
 					/>
 				) : (
