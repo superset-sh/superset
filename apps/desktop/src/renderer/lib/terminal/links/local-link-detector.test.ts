@@ -3,13 +3,10 @@
  *  https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/terminalContrib/links/test/browser/terminalLocalLinkDetector.test.ts
  *--------------------------------------------------------------------------------------------*/
 
-import { beforeEach, describe, expect, it, jest } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import type { StatCallback } from "./link-resolver";
 import { TerminalLinkResolver } from "./link-resolver";
-import {
-	type DetectedLink,
-	LocalLinkDetector,
-} from "./local-link-detector";
+import { LocalLinkDetector } from "./local-link-detector";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,7 +89,7 @@ describe("LocalLinkDetector", () => {
 		});
 
 		it("should return empty when text exceeds max length", async () => {
-			const detector = createDetector(["/" + "a".repeat(100)]);
+			const detector = createDetector([`/${"a".repeat(100)}`]);
 			const result = await detector.detect("a".repeat(2001));
 			expect(result).toEqual([]);
 		});
@@ -125,10 +122,7 @@ describe("LocalLinkDetector", () => {
 		});
 
 		it("should detect multiple links on one line", async () => {
-			const detector = createDetector([
-				"/parent/cwd/foo",
-				"/parent/cwd/bar",
-			]);
+			const detector = createDetector(["/parent/cwd/foo", "/parent/cwd/bar"]);
 			const result = await detector.detect("./foo ./bar");
 			expect(result).toHaveLength(2);
 			expect(result[0]?.resolvedPath).toBe("/parent/cwd/foo");
@@ -183,9 +177,7 @@ describe("LocalLinkDetector", () => {
 
 		it("should detect git diff --git paths", async () => {
 			const detector = createDetector(["/parent/cwd/foo/bar"]);
-			const result = await detector.detect(
-				"diff --git a/foo/bar b/foo/bar",
-			);
+			const result = await detector.detect("diff --git a/foo/bar b/foo/bar");
 			expect(result).toHaveLength(2);
 		});
 	});

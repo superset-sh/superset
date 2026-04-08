@@ -1,11 +1,14 @@
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
@@ -77,6 +80,44 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
 	}, [terminalId, appearance]);
+
+	// --- Link handlers ---
+	const { data: openLinksInApp } =
+		electronTrpc.settings.getOpenLinksInApp.useQuery();
+
+	useEffect(() => {
+		const userHome = process.env.HOME ?? process.env.USERPROFILE;
+
+		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
+			stat: async (path) => {
+				return electronTrpcClient.external.statPath.query(path);
+			},
+			initialCwd: undefined, // v2 terminals resolve CWD server-side
+			userHome,
+			onFileLinkClick: (_event, link) => {
+				if (!_event.metaKey && !_event.ctrlKey) return;
+				_event.preventDefault();
+				electronTrpcClient.external.openFileInEditor
+					.mutate({
+						path: link.resolvedPath,
+						line: link.row,
+						column: link.col,
+					})
+					.catch((error) => {
+						console.error("[v2 Terminal] Failed to open file:", error);
+						toast.error("Failed to open file in editor");
+					});
+			},
+			onUrlClick: (url) => {
+				if (openLinksInApp) {
+					// Could open in in-app browser if v2 supports it; for now external
+					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
+				} else {
+					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
+				}
+			},
+		});
+	}, [terminalId, openLinksInApp]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
 		terminalRuntimeRegistry.clear(terminalId);

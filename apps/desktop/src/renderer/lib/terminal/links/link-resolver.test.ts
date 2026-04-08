@@ -6,13 +6,14 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "bun:test";
 import {
 	type LinkResolverOptions,
-	type ResolvedLink,
 	TerminalLinkResolver,
 } from "./link-resolver";
 
 describe("TerminalLinkResolver", () => {
 	let resolver: TerminalLinkResolver;
-	let statMock: jest.Mock<(path: string) => Promise<{ isDirectory: boolean } | null>>;
+	let statMock: jest.Mock<
+		(path: string) => Promise<{ isDirectory: boolean } | null>
+	>;
 
 	beforeEach(() => {
 		statMock = jest.fn();
@@ -41,7 +42,10 @@ describe("TerminalLinkResolver", () => {
 
 		it("should resolve tilde paths", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("~/projects/foo.ts", defaultOpts);
+			const result = await resolver.resolveLink(
+				"~/projects/foo.ts",
+				defaultOpts,
+			);
 			expect(result).toEqual({
 				path: "/home/user/projects/foo.ts",
 				isDirectory: false,
@@ -117,7 +121,10 @@ describe("TerminalLinkResolver", () => {
 
 		it("should strip file:// URI scheme", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("file:///foo/bar.ts", defaultOpts);
+			const result = await resolver.resolveLink(
+				"file:///foo/bar.ts",
+				defaultOpts,
+			);
 			expect(result).toEqual({
 				path: "/foo/bar.ts",
 				isDirectory: false,
@@ -126,7 +133,10 @@ describe("TerminalLinkResolver", () => {
 
 		it("should decode URL-encoded paths", async () => {
 			statMock.mockResolvedValue({ isDirectory: false });
-			const result = await resolver.resolveLink("file:///foo/bar%20baz.ts", defaultOpts);
+			const result = await resolver.resolveLink(
+				"file:///foo/bar%20baz.ts",
+				defaultOpts,
+			);
 			expect(result).toEqual({
 				path: "/foo/bar baz.ts",
 				isDirectory: false,

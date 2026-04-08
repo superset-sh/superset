@@ -3,20 +3,21 @@
  *  and xterm's ILinkProvider interface.
  *--------------------------------------------------------------------------------------------*/
 
-import { beforeEach, describe, expect, it, jest } from "bun:test";
-import type { ILink, ILinkProvider } from "@xterm/xterm";
+import { describe, expect, it } from "bun:test";
+import type { ILink } from "@xterm/xterm";
+import { LinkDetectorAdapter } from "./link-detector-adapter";
 import type { StatCallback } from "./link-resolver";
 import { TerminalLinkResolver } from "./link-resolver";
 import { LocalLinkDetector } from "./local-link-detector";
-import { LinkDetectorAdapter } from "./link-detector-adapter";
 
 // ---------------------------------------------------------------------------
 // Mock terminal buffer
 // ---------------------------------------------------------------------------
 
 function createMockTerminal(lineTexts: string[], cols = 80) {
-	const lines = lineTexts.map((text, i) => ({
-		translateToString: (_trim?: boolean, _start?: number, _end?: number) => text,
+	const lines = lineTexts.map((text, _i) => ({
+		translateToString: (_trim?: boolean, _start?: number, _end?: number) =>
+			text,
 		isWrapped: false,
 		length: cols,
 		getCell: () => ({ getChars: () => "", getWidth: () => 1 }) as never,
@@ -73,14 +74,11 @@ describe("LinkDetectorAdapter", () => {
 
 		expect(links).toBeDefined();
 		expect(links!).toHaveLength(1);
-		expect(links![0]?.text).toBe("/foo/bar.ts");
+		expect(links?.[0]?.text).toBe("/foo/bar.ts");
 	});
 
 	it("should return undefined when no links found", async () => {
-		const { adapter } = createAdapter(
-			["just regular text"],
-			[],
-		);
+		const { adapter } = createAdapter(["just regular text"], []);
 
 		const links = await new Promise<ILink[] | undefined>((resolve) => {
 			adapter.provideLinks(1, resolve);
@@ -99,8 +97,8 @@ describe("LinkDetectorAdapter", () => {
 			adapter.provideLinks(1, resolve);
 		});
 
-		expect(links![0]?.range).toBeDefined();
-		const range = links![0]!.range;
+		expect(links?.[0]?.range).toBeDefined();
+		const range = links?.[0]?.range;
 		// "/foo/bar.ts" starts at index 4 in "see /foo/bar.ts for details"
 		expect(range.start.y).toBe(1);
 		expect(range.start.x).toBe(5); // 1-based: index 4 + 1
@@ -132,14 +130,11 @@ describe("LinkDetectorAdapter", () => {
 		});
 
 		expect(links!).toHaveLength(1);
-		expect(links![0]?.text).toBe("/foo/bar.ts");
+		expect(links?.[0]?.text).toBe("/foo/bar.ts");
 	});
 
 	it("should return undefined for out-of-range lines", async () => {
-		const { adapter } = createAdapter(
-			["hello"],
-			["/foo/bar.ts"],
-		);
+		const { adapter } = createAdapter(["hello"], ["/foo/bar.ts"]);
 
 		const links = await new Promise<ILink[] | undefined>((resolve) => {
 			adapter.provideLinks(99, resolve);
@@ -149,10 +144,7 @@ describe("LinkDetectorAdapter", () => {
 	});
 
 	it("should include line/col suffix in range but call activate with path info", async () => {
-		const { adapter } = createAdapter(
-			["/foo/bar.ts:42:10"],
-			["/foo/bar.ts"],
-		);
+		const { adapter } = createAdapter(["/foo/bar.ts:42:10"], ["/foo/bar.ts"]);
 
 		const links = await new Promise<ILink[] | undefined>((resolve) => {
 			adapter.provideLinks(1, resolve);
@@ -160,6 +152,6 @@ describe("LinkDetectorAdapter", () => {
 
 		expect(links!).toHaveLength(1);
 		// The full text includes the suffix
-		expect(links![0]?.text).toBe("/foo/bar.ts:42:10");
+		expect(links?.[0]?.text).toBe("/foo/bar.ts:42:10");
 	});
 });

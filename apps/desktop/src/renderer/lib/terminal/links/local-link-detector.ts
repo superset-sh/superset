@@ -14,8 +14,10 @@ import {
 	type IParsedLink,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
-import type { LinkResolverOptions, ResolvedLink } from "./link-resolver";
-import { TerminalLinkResolver } from "./link-resolver";
+import type {
+	LinkResolverOptions,
+	TerminalLinkResolver,
+} from "./link-resolver";
 
 const MAX_LINE_LENGTH = 2000;
 const MAX_RESOLVED_LINKS_IN_LINE = 10;
@@ -110,8 +112,7 @@ export class LocalLinkDetector {
 				resolverOpts,
 			);
 			if (resolved) {
-				const linkStart =
-					parsedLink.prefix?.index ?? parsedLink.path.index;
+				const linkStart = parsedLink.prefix?.index ?? parsedLink.path.index;
 				const linkEnd = parsedLink.suffix
 					? parsedLink.suffix.suffix.index +
 						parsedLink.suffix.suffix.text.length

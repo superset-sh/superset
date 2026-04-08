@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import {
 	EXTERNAL_APPS,
 	NON_EDITOR_APPS,
@@ -156,6 +157,22 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.query(({ input }) => resolvePath(input.path, input.cwd)),
+
+		/**
+		 * Resolve a path and check if it exists on disk.
+		 * Used by the terminal link detector to validate file paths before
+		 * showing them as clickable links.
+		 */
+		statPath: publicProcedure
+			.input(z.string())
+			.query(async ({ input }): Promise<{ isDirectory: boolean } | null> => {
+				try {
+					const stat = await fs.stat(input);
+					return { isDirectory: stat.isDirectory() };
+				} catch {
+					return null;
+				}
+			}),
 
 		openFileInEditor: publicProcedure
 			.input(

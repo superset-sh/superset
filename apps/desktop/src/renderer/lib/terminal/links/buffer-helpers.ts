@@ -85,7 +85,7 @@ export function convertLinkRangeToBuffer(
 	) {
 		const start =
 			y === startWrappedLineCount - 1
-				? ((range.startColumn - 1 + startOffset) % bufferWidth)
+				? (range.startColumn - 1 + startOffset) % bufferWidth
 				: 0;
 		const lineLength = Math.min(
 			bufferWidth,

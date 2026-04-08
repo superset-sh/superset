@@ -7,8 +7,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from "bun:test";
-import type { IBufferLine, IBufferRange } from "@xterm/xterm";
-import { convertLinkRangeToBuffer, getXtermLineContent } from "./buffer-helpers";
+import type { IBufferLine } from "@xterm/xterm";
+import {
+	convertLinkRangeToBuffer,
+	getXtermLineContent,
+} from "./buffer-helpers";
 
 /**
  * Create a mock IBufferLine from a descriptor.
@@ -74,7 +77,7 @@ function createMockBufferLine(descriptor: {
 			return {
 				getChars: () => cell.chars,
 				getWidth: () => cell.width,
-				getCode: () => (cell.chars.codePointAt(0) ?? 0),
+				getCode: () => cell.chars.codePointAt(0) ?? 0,
 				isBold: () => 0,
 				isDim: () => 0,
 				isInverse: () => 0,
@@ -91,13 +94,17 @@ function createMockBufferLine(descriptor: {
 				getBgColor: () => 0,
 			} as never;
 		},
-		translateToString(trimRight?: boolean, startColumn?: number, endColumn?: number) {
+		translateToString(
+			trimRight?: boolean,
+			startColumn?: number,
+			endColumn?: number,
+		) {
 			const start = startColumn ?? 0;
 			const end = endColumn ?? width;
 			let result = "";
 			for (let i = start; i < end && i < cells.length; i++) {
 				const c = cells[i];
-				if (c && c.chars) {
+				if (c?.chars) {
 					result += c.chars;
 				}
 			}
@@ -115,14 +122,6 @@ function createBufferLineArray(
 	return descriptors.map(createMockBufferLine);
 }
 
-// --- IRange-like helper (matches VSCode's IRange shape used by convertLinkRangeToBuffer) ---
-interface IRange {
-	startColumn: number;
-	startLineNumber: number;
-	endColumn: number;
-	endLineNumber: number;
-}
-
 describe("buffer-helpers", () => {
 	describe("convertLinkRangeToBuffer", () => {
 		it("should convert ranges for ascii characters", () => {
@@ -130,12 +129,17 @@ describe("buffer-helpers", () => {
 				{ text: "AA http://t", width: 11 },
 				{ text: ".com/f/", width: 8 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4,
-				startLineNumber: 1,
-				endColumn: 19,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4,
+					startLineNumber: 1,
+					endColumn: 19,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4, y: 1 },
 				end: { x: 7, y: 2 },
@@ -147,12 +151,17 @@ describe("buffer-helpers", () => {
 				{ text: "A文 http://", width: 11 },
 				{ text: "t.com/f/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4,
-				startLineNumber: 1,
-				endColumn: 19,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4,
+					startLineNumber: 1,
+					endColumn: 19,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4 + 1, y: 1 },
 				end: { x: 7 + 1, y: 2 },
@@ -160,15 +169,18 @@ describe("buffer-helpers", () => {
 		});
 
 		it("should give correct range for links containing multi-character emoji", () => {
-			const lines = createBufferLineArray([
-				{ text: "A🙂 http://", width: 11 },
-			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 0 + 1,
-				startLineNumber: 1,
-				endColumn: 2 + 1,
-				endLineNumber: 1,
-			}, 0);
+			const lines = createBufferLineArray([{ text: "A🙂 http://", width: 11 }]);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 0 + 1,
+					startLineNumber: 1,
+					endColumn: 2 + 1,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 1, y: 1 },
 				end: { x: 2, y: 1 },
@@ -184,12 +196,17 @@ describe("buffer-helpers", () => {
 				{ text: "A🙂 http://", width: 11 },
 				{ text: "t.com/f/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4 + 1,
-				startLineNumber: 1,
-				endColumn: 19 + 1,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4 + 1,
+					startLineNumber: 1,
+					endColumn: 19 + 1,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			// Emoji offset is 0: the surrogate pair occupies 2 text positions
 			// matching the 2 buffer cells, so no adjustment needed.
 			expect(result).toEqual({
@@ -203,12 +220,17 @@ describe("buffer-helpers", () => {
 				{ text: "AA http://t", width: 11 },
 				{ text: ".com/文/", width: 8 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4,
-				startLineNumber: 1,
-				endColumn: 19,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4,
+					startLineNumber: 1,
+					endColumn: 19,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4, y: 1 },
 				end: { x: 7 + 1, y: 2 },
@@ -220,12 +242,17 @@ describe("buffer-helpers", () => {
 				{ text: "A文 http://", width: 11 },
 				{ text: "t.com/文/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4,
-				startLineNumber: 1,
-				endColumn: 19,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4,
+					startLineNumber: 1,
+					endColumn: 19,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4 + 1, y: 1 },
 				end: { x: 7 + 2, y: 2 },
@@ -237,12 +264,17 @@ describe("buffer-helpers", () => {
 				{ text: "A🙂 http://", width: 11 },
 				{ text: "t.com/文/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 4 + 1,
-				startLineNumber: 1,
-				endColumn: 19 + 1,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 4 + 1,
+					startLineNumber: 1,
+					endColumn: 19 + 1,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			// Emoji before: 0 offset. CJK inside link: +1 offset.
 			expect(result).toEqual({
 				start: { x: 5, y: 1 },
@@ -256,12 +288,17 @@ describe("buffer-helpers", () => {
 				{ text: "AA http://t", width: 11 },
 				{ text: ".com/f/", width: 8 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 30,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 15,
+					startLineNumber: 1,
+					endColumn: 30,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4, y: 2 },
 				end: { x: 7, y: 3 },
@@ -274,12 +311,17 @@ describe("buffer-helpers", () => {
 				{ text: "A文 http://", width: 11 },
 				{ text: "t.com/f/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 30,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 15,
+					startLineNumber: 1,
+					endColumn: 30,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4 + 1, y: 2 },
 				end: { x: 7 + 1, y: 3 },
@@ -290,30 +332,51 @@ describe("buffer-helpers", () => {
 			const lines = createBufferLineArray([
 				{ text: "获取模板 25235168 的预览图失败", width: 30 },
 			]);
-			expect(convertLinkRangeToBuffer(lines, 30, {
-				startColumn: 1,
-				startLineNumber: 1,
-				endColumn: 5,
-				endLineNumber: 1,
-			}, 0)).toEqual({
+			expect(
+				convertLinkRangeToBuffer(
+					lines,
+					30,
+					{
+						startColumn: 1,
+						startLineNumber: 1,
+						endColumn: 5,
+						endLineNumber: 1,
+					},
+					0,
+				),
+			).toEqual({
 				start: { x: 1, y: 1 },
 				end: { x: 8, y: 1 },
 			});
-			expect(convertLinkRangeToBuffer(lines, 30, {
-				startColumn: 6,
-				startLineNumber: 1,
-				endColumn: 14,
-				endLineNumber: 1,
-			}, 0)).toEqual({
+			expect(
+				convertLinkRangeToBuffer(
+					lines,
+					30,
+					{
+						startColumn: 6,
+						startLineNumber: 1,
+						endColumn: 14,
+						endLineNumber: 1,
+					},
+					0,
+				),
+			).toEqual({
 				start: { x: 10, y: 1 },
 				end: { x: 17, y: 1 },
 			});
-			expect(convertLinkRangeToBuffer(lines, 30, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 21,
-				endLineNumber: 1,
-			}, 0)).toEqual({
+			expect(
+				convertLinkRangeToBuffer(
+					lines,
+					30,
+					{
+						startColumn: 15,
+						startLineNumber: 1,
+						endColumn: 21,
+						endLineNumber: 1,
+					},
+					0,
+				),
+			).toEqual({
 				start: { x: 19, y: 1 },
 				end: { x: 30, y: 1 },
 			});
@@ -325,12 +388,17 @@ describe("buffer-helpers", () => {
 				{ text: "AA http://t", width: 11 },
 				{ text: ".com/文/", width: 8 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 30,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 15,
+					startLineNumber: 1,
+					endColumn: 30,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4, y: 2 },
 				end: { x: 7 + 1, y: 3 },
@@ -343,12 +411,17 @@ describe("buffer-helpers", () => {
 				{ text: "A文 http://", width: 11 },
 				{ text: "t.com/文/", width: 9 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 30,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 15,
+					startLineNumber: 1,
+					endColumn: 30,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 4 + 1, y: 2 },
 				end: { x: 7 + 2, y: 3 },
@@ -361,12 +434,17 @@ describe("buffer-helpers", () => {
 				{ text: "AA文文 http", width: 11 },
 				{ text: "://t.com/f/", width: 11 },
 			]);
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 15,
-				startLineNumber: 1,
-				endColumn: 30,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 15,
+					startLineNumber: 1,
+					endColumn: 30,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 3 + 4, y: 2 },
 				end: { x: 6 + 4, y: 3 },
@@ -385,12 +463,17 @@ describe("buffer-helpers", () => {
 			// Line 1: A(1)*2+文(2+pad)+文(2+pad)+space(1)+h(1)+t(1)+t(1)+p(1) = 11 cells. Text offset +2 (2 CJK)
 			// Line 2: :(1)+/(1)+/(1)+t(1)+.(1)+c(1)+o(1)+m(1)+/(1)+文(2) = 11 cells. Text offset +1 (1 CJK)
 			// Line 3: 文(2)+/(1) = 3 cells. Text offset +1 (1 CJK)
-			const result = convertLinkRangeToBuffer(lines, 11, {
-				startColumn: 14,
-				startLineNumber: 1,
-				endColumn: 31,
-				endLineNumber: 1,
-			}, 0);
+			const result = convertLinkRangeToBuffer(
+				lines,
+				11,
+				{
+					startColumn: 14,
+					startLineNumber: 1,
+					endColumn: 31,
+					endLineNumber: 1,
+				},
+				0,
+			);
 			expect(result).toEqual({
 				start: { x: 5, y: 2 },
 				end: { x: 1, y: 4 },

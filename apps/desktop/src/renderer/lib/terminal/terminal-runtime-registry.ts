@@ -1,10 +1,11 @@
+import { UrlLinkProvider } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers";
 import type { TerminalAppearance } from "./appearance";
 import type { DetectedLink } from "./links";
 import {
 	LinkDetectorAdapter,
 	LocalLinkDetector,
-	TerminalLinkResolver,
 	type StatCallback,
+	TerminalLinkResolver,
 } from "./links";
 import {
 	attachToContainer,
@@ -29,10 +30,7 @@ import {
  */
 export interface TerminalLinkHandlers {
 	/** Called when a file path link is activated (Cmd/Ctrl+click). */
-	onFileLinkClick?: (
-		event: MouseEvent,
-		link: DetectedLink,
-	) => void;
+	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	/** Called when a URL link is activated. */
 	onUrlClick?: (url: string) => void;
 	/** Stat callback to validate file paths exist (called from main process). */
@@ -123,10 +121,15 @@ class TerminalRuntimeRegistryImpl {
 		);
 		terminal.registerLinkProvider(adapter);
 
-		// URL link provider is registered separately via the existing
-		// UrlLinkProvider from the v1 link-providers module, which handles
-		// hard-wrapped URLs. That registration should be done by the caller
-		// (TerminalPane) since it needs access to app-level URL open logic.
+		// Register the URL link provider (handles hard-wrapped URLs).
+		// The UrlLinkProvider already gates activation on Cmd/Ctrl+click.
+		if (linkHandlers.onUrlClick) {
+			const onUrlClick = linkHandlers.onUrlClick;
+			const urlProvider = new UrlLinkProvider(terminal, (_event, uri) => {
+				onUrlClick(uri);
+			});
+			terminal.registerLinkProvider(urlProvider);
+		}
 	}
 
 	detach(terminalId: string) {
@@ -182,6 +185,21 @@ class TerminalRuntimeRegistryImpl {
 	paste(terminalId: string, text: string): void {
 		const entry = this.entries.get(terminalId);
 		entry?.runtime?.terminal.paste(text);
+	}
+
+	findNext(terminalId: string, query: string): boolean {
+		const entry = this.entries.get(terminalId);
+		return entry?.runtime?.searchAddon?.findNext(query) ?? false;
+	}
+
+	findPrevious(terminalId: string, query: string): boolean {
+		const entry = this.entries.get(terminalId);
+		return entry?.runtime?.searchAddon?.findPrevious(query) ?? false;
+	}
+
+	clearSearch(terminalId: string): void {
+		const entry = this.entries.get(terminalId);
+		entry?.runtime?.searchAddon?.clearDecorations();
 	}
 
 	getTerminal(terminalId: string) {

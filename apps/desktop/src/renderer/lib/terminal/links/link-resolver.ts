@@ -9,7 +9,38 @@ import {
 	removeLinkQueryString,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
-import * as nodePath from "node:path";
+
+// ---------------------------------------------------------------------------
+// Lightweight POSIX path helpers (renderer cannot import node:path)
+// ---------------------------------------------------------------------------
+
+function posixIsAbsolute(p: string): boolean {
+	return p.startsWith("/");
+}
+
+function posixJoin(...parts: string[]): string {
+	return posixNormalize(parts.filter(Boolean).join("/"));
+}
+
+function posixNormalize(p: string): string {
+	const isAbsolute = p.startsWith("/");
+	const segments = p.split("/").filter(Boolean);
+	const resolved: string[] = [];
+	for (const seg of segments) {
+		if (seg === ".") continue;
+		if (
+			seg === ".." &&
+			resolved.length > 0 &&
+			resolved[resolved.length - 1] !== ".."
+		) {
+			resolved.pop();
+		} else {
+			resolved.push(seg);
+		}
+	}
+	const result = resolved.join("/");
+	return isAbsolute ? `/${result}` : result || ".";
+}
 
 /**
  * The result of resolving a link path against the filesystem.
@@ -188,16 +219,16 @@ export class TerminalLinkResolver {
 			if (!opts.userHome) {
 				return null;
 			}
-			result = nodePath.join(opts.userHome, result.substring(1));
+			result = posixJoin(opts.userHome, result.substring(1));
 		}
 		// Handle relative paths
-		else if (!nodePath.isAbsolute(result)) {
+		else if (!posixIsAbsolute(result)) {
 			if (!opts.initialCwd) {
 				return null;
 			}
-			result = nodePath.resolve(opts.initialCwd, result);
+			result = posixJoin(opts.initialCwd, result);
 		}
 
-		return nodePath.normalize(result);
+		return posixNormalize(result);
 	}
 }

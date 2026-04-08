@@ -6,8 +6,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
-import type { DetectedLink } from "./local-link-detector";
-import { LocalLinkDetector } from "./local-link-detector";
+import type { DetectedLink, LocalLinkDetector } from "./local-link-detector";
 
 /**
  * Adapts a LocalLinkDetector into xterm's ILinkProvider.
