@@ -78,7 +78,7 @@ function ChangesHeader({
 
 	return (
 		<div className="border-b border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
-<div className="group flex items-center gap-1.5 text-xs">
+			<div className="group flex items-center gap-1.5 text-xs">
 				<GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 				{isEditing ? (
 					<input
@@ -108,7 +108,7 @@ function ChangesHeader({
 				)}
 			</div>
 
-<div className="text-[11px] text-muted-foreground">
+			<div className="text-[11px] text-muted-foreground">
 				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
 				<BaseBranchSelector
 					branches={branches}
@@ -153,7 +153,7 @@ function ChangesHeader({
 				</div>
 			)}
 
-<div className="flex items-center justify-between pt-0.5">
+			<div className="flex items-center justify-between pt-0.5">
 				<CommitFilterDropdown
 					filter={filter}
 					onFilterChange={onFilterChange}
