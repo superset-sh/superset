@@ -185,11 +185,12 @@ export function getXtermRangesByAttr(
 				bufferRangeStart = { x, y };
 			} else {
 				if (lastFgAttr !== thisFgAttr || lastBgAttr !== thisBgAttr) {
-					const bufferRangeEnd = { x, y };
-					ranges.push({
-						start: bufferRangeStart!,
-						end: bufferRangeEnd,
-					});
+					if (bufferRangeStart) {
+						ranges.push({
+							start: bufferRangeStart,
+							end: { x, y },
+						});
+					}
 					bufferRangeStart = { x, y };
 				}
 			}
