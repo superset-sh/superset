@@ -47,6 +47,7 @@ function createTerminal(
 		macOptionIsMeta: false,
 		cursorStyle: "block",
 		cursorInactiveStyle: "outline",
+		vtExtensions: { kittyKeyboard: true },
 		scrollbar: { showScrollbar: false },
 	});
 	terminal.loadAddon(fitAddon);
