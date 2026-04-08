@@ -99,18 +99,24 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
 			stat: async (path) => {
 				try {
-					const metadata =
-						await hostTrpcClientRef.current.filesystem.getMetadata.query({
+					// Use the host service's statPath which resolves relative paths
+					// against the workspace root on the host machine.
+					const result =
+						await hostTrpcClientRef.current.filesystem.statPath.query({
 							workspaceId,
-							absolutePath: path,
+							path,
 						});
-					if (!metadata) return null;
-					return { isDirectory: metadata.kind === "directory" };
+					if (!result) return null;
+					return {
+						isDirectory: result.isDirectory,
+						resolvedPath: result.resolvedPath,
+					};
 				} catch {
 					return null;
 				}
 			},
-			initialCwd: undefined, // v2 terminals resolve CWD server-side via host
+			// CWD resolution happens server-side in statPath — no local CWD needed
+			initialCwd: undefined,
 			userHome,
 			onFileLinkClick: (_event, link) => {
 				if (!_event.metaKey && !_event.ctrlKey) return;
@@ -130,7 +136,7 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 				electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
 			},
 		});
-	}, [terminalId, workspaceId, openLinksInApp]);
+	}, [terminalId, workspaceId]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
 		terminalRuntimeRegistry.clear(terminalId);

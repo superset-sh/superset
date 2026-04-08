@@ -64,12 +64,18 @@ export interface LinkResolverOptions {
 
 /**
  * Callback that checks whether a path exists on disk.
- * Return `{ isDirectory }` if the path exists, or `null` if it doesn't.
- * May throw on I/O errors — the resolver will catch and treat as non-existent.
+ *
+ * The callback receives a path that may be absolute or relative. When running
+ * against a remote host, the callback should resolve relative paths against
+ * the workspace root on the host side.
+ *
+ * Return `{ isDirectory, resolvedPath? }` if the path exists, or `null` if
+ * it doesn't. `resolvedPath` allows the host to report the final absolute
+ * path after server-side resolution.
  */
 export type StatCallback = (
 	path: string,
-) => Promise<{ isDirectory: boolean } | null>;
+) => Promise<{ isDirectory: boolean; resolvedPath?: string } | null>;
 
 interface CacheEntry {
 	value: ResolvedLink | null;
@@ -124,19 +130,19 @@ export class TerminalLinkResolver {
 			return null;
 		}
 
-		// Preprocess: resolve file:// URIs, tilde, and relative paths
-		const processed = this._preprocessPath(linkPath, opts);
-		if (!processed) {
-			this._cacheSet(link, null);
-			return null;
-		}
+		// Preprocess: resolve file:// URIs, tilde, and relative paths.
+		// When preprocessing fails (e.g. relative path with no local CWD),
+		// fall through with the raw path — the stat callback may handle
+		// resolution server-side (e.g. against a remote workspace root).
+		const processed = this._preprocessPath(linkPath, opts) ?? linkPath;
 
-		// Stat the resolved path
+		// Stat the (possibly unresolved) path
 		try {
 			const stat = await this._stat(processed);
 			if (stat) {
 				const result: ResolvedLink = {
-					path: processed,
+					// Prefer the host-resolved path if provided
+					path: stat.resolvedPath ?? processed,
 					isDirectory: stat.isDirectory,
 				};
 				this._cacheSet(link, result);

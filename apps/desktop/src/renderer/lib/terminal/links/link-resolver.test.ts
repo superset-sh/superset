@@ -92,22 +92,48 @@ describe("TerminalLinkResolver", () => {
 			expect(result).toBeNull();
 		});
 
-		it("should return null when initialCwd is missing for relative paths", async () => {
+		it("should pass raw relative path to stat when initialCwd is missing", async () => {
+			// When initialCwd is undefined, the resolver can't resolve locally
+			// but still passes the raw path to stat — the host-side callback
+			// may resolve it against a workspace root.
+			statMock.mockResolvedValue({
+				isDirectory: false,
+				resolvedPath: "/workspace/src/file.ts",
+			});
+			const result = await resolver.resolveLink("src/file.ts", {
+				initialCwd: undefined,
+				userHome: "/home/user",
+			});
+			expect(result).toEqual({
+				path: "/workspace/src/file.ts",
+				isDirectory: false,
+			});
+			expect(statMock).toHaveBeenCalledWith("src/file.ts");
+		});
+
+		it("should return null for relative path when stat also fails", async () => {
+			statMock.mockResolvedValue(null);
 			const result = await resolver.resolveLink("src/file.ts", {
 				initialCwd: undefined,
 				userHome: "/home/user",
 			});
 			expect(result).toBeNull();
-			expect(statMock).not.toHaveBeenCalled();
 		});
 
-		it("should return null when userHome is missing for tilde paths", async () => {
+		it("should pass raw tilde path to stat when userHome is missing", async () => {
+			statMock.mockResolvedValue({
+				isDirectory: false,
+				resolvedPath: "/home/user/foo.ts",
+			});
 			const result = await resolver.resolveLink("~/foo.ts", {
 				initialCwd: "/parent/cwd",
 				userHome: undefined,
 			});
-			expect(result).toBeNull();
-			expect(statMock).not.toHaveBeenCalled();
+			expect(result).toEqual({
+				path: "/home/user/foo.ts",
+				isDirectory: false,
+			});
+			expect(statMock).toHaveBeenCalledWith("~/foo.ts");
 		});
 
 		it("should detect directories", async () => {

@@ -1,3 +1,5 @@
+import { stat } from "node:fs/promises";
+import { isAbsolute, join, normalize, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../types";
@@ -79,6 +81,58 @@ export const filesystemRouter = router({
 			const service = getFilesystemService(ctx, workspaceId);
 			return await service.getMetadata(serviceInput);
 		}),
+
+	/**
+	 * Resolve a path (absolute or relative) against the workspace root and
+	 * check if it exists. Used by the terminal link detector to validate
+	 * file paths before showing them as clickable links.
+	 *
+	 * Accepts:
+	 * - Absolute paths: /foo/bar → stat directly (must be within workspace)
+	 * - Relative paths: src/file.ts → resolved against workspace root
+	 * - Tilde paths: ~/foo → resolved against $HOME
+	 */
+	statPath: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				path: z.string(),
+			}),
+		)
+		.query(
+			async ({
+				ctx,
+				input,
+			}): Promise<{
+				resolvedPath: string;
+				isDirectory: boolean;
+			} | null> => {
+				const rootPath = ctx.runtime.filesystem.resolveWorkspaceRoot(
+					input.workspaceId,
+				);
+
+				let targetPath: string;
+				if (input.path.startsWith("~")) {
+					const home = process.env.HOME ?? process.env.USERPROFILE;
+					if (!home) return null;
+					targetPath = join(home, input.path.substring(1));
+				} else if (isAbsolute(input.path)) {
+					targetPath = normalize(input.path);
+				} else {
+					targetPath = resolve(rootPath, input.path);
+				}
+
+				try {
+					const stats = await stat(targetPath);
+					return {
+						resolvedPath: targetPath,
+						isDirectory: stats.isDirectory(),
+					};
+				} catch {
+					return null;
+				}
+			},
+		),
 
 	writeFile: protectedProcedure
 		.input(
