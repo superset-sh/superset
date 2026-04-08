@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -90,9 +91,25 @@ export const Terminal = memo(function Terminal({
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const lastActivityUpdateRef = useRef<number>(0);
+	const subscriptionStartRef = useRef<number>(Date.now());
 	const ACTIVITY_DEBOUNCE_MS = 30_000;
-	const updateLastActivityAt =
-		electronTrpc.workspaces.updateLastActivityAt.useMutation();
+	const ACTIVITY_GRACE_PERIOD_MS = 3_000;
+	const collections = useCollections();
+	const updateLastActivityAtMutation =
+		electronTrpc.workspaces.updateLastActivityAt.useMutation({
+			onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
+		});
+	const updateLastActivityAt = useCallback(
+		(wId: string) => {
+			if (collections.v2WorkspaceLocalState.get(wId)) {
+				collections.v2WorkspaceLocalState.update(wId, (draft) => {
+					draft.lastActivityAt = new Date();
+				});
+			}
+			updateLastActivityAtMutation.mutate({ workspaceId: wId });
+		},
+		[collections, updateLastActivityAtMutation],
+	);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
 	);

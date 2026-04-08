@@ -26,6 +26,7 @@ import {
 	isDesktopChatDevMode,
 } from "renderer/lib/dev-chat";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -249,8 +250,23 @@ export function ChatPaneInterface({
 	const chatRuntimeServiceTrpcUtils = chatRuntimeServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatRuntimeServiceTrpc.workspace.authenticateMcpServer.useMutation();
-	const updateLastActivityAt =
-		electronTrpc.workspaces.updateLastActivityAt.useMutation();
+	const collections = useCollections();
+	const electronTrpcUtils = electronTrpc.useUtils();
+	const updateLastActivityAtMutation =
+		electronTrpc.workspaces.updateLastActivityAt.useMutation({
+			onSuccess: () => electronTrpcUtils.workspaces.getAllGrouped.invalidate(),
+		});
+	const updateLastActivityAt = useCallback(
+		(wId: string) => {
+			if (collections.v2WorkspaceLocalState.get(wId)) {
+				collections.v2WorkspaceLocalState.update(wId, (draft) => {
+					draft.lastActivityAt = new Date();
+				});
+			}
+			updateLastActivityAtMutation.mutate({ workspaceId: wId });
+		},
+		[collections, updateLastActivityAtMutation],
+	);
 	const captureChatEvent = useCallback(
 		(event: string, properties?: ChatAnalyticsProperties) => {
 			posthog.capture(event, {
@@ -339,7 +355,7 @@ export function ChatPaneInterface({
 					...input,
 				});
 				if (workspaceId) {
-					updateLastActivityAt.mutate({ workspaceId });
+					updateLastActivityAt(workspaceId);
 				}
 			} catch (error) {
 				if (optimisticMessage) {
