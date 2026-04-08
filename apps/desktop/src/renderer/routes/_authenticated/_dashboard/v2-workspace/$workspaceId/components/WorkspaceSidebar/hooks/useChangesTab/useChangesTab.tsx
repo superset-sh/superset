@@ -1,21 +1,13 @@
-import type { AppRouter } from "@superset/host-service";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import type { inferRouterOutputs } from "@trpc/server";
-import { GitBranch, Pencil } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { SidebarTabDefinition } from "../../types";
-import { BaseBranchSelector } from "./components/BaseBranchSelector";
-import { ChangesFileList } from "./components/ChangesFileList";
-import { CommitFilterDropdown } from "./components/CommitFilterDropdown";
+import { ChangesTabContent } from "./components/ChangesTabContent";
 
 export type { ChangesFilter };
-
-type RouterOutputs = inferRouterOutputs<AppRouter>;
-type Commit = RouterOutputs["git"]["listCommits"]["commits"][number];
 
 interface UseChangesTabParams {
 	workspaceId: string;
@@ -23,164 +15,6 @@ interface UseChangesTabParams {
 		path: string,
 		category: "against-base" | "staged" | "unstaged",
 	) => void;
-}
-
-type Branch = RouterOutputs["git"]["listBranches"]["branches"][number];
-
-function ChangesHeader({
-	currentBranch,
-	defaultBranchName,
-	commitCount,
-	totalFiles,
-	totalAdditions,
-	totalDeletions,
-	onRenameBranch,
-	canRename,
-	filter,
-	onFilterChange,
-	commits,
-	uncommittedCount,
-	branches,
-	onBaseBranchChange,
-}: {
-	currentBranch: { name: string; aheadCount: number; behindCount: number };
-	defaultBranchName: string;
-	commitCount: number;
-	totalFiles: number;
-	totalAdditions: number;
-	totalDeletions: number;
-	filter: ChangesFilter;
-	onFilterChange: (filter: ChangesFilter) => void;
-	commits: Commit[];
-	uncommittedCount: number;
-	branches: Branch[];
-	onBaseBranchChange: (branchName: string) => void;
-	onRenameBranch: (newName: string) => void;
-	canRename: boolean;
-}) {
-	const [isEditing, setIsEditing] = useState(false);
-	const [editValue, setEditValue] = useState(currentBranch.name);
-	const inputRef = useRef<HTMLInputElement>(null);
-
-	const startEditing = () => {
-		setEditValue(currentBranch.name);
-		setIsEditing(true);
-		requestAnimationFrame(() => inputRef.current?.select());
-	};
-
-	const handleSubmit = () => {
-		const trimmed = editValue.trim();
-		if (trimmed && trimmed !== currentBranch.name) {
-			onRenameBranch(trimmed);
-		}
-		setIsEditing(false);
-	};
-
-	return (
-		<div className="border-b border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
-			{/* Branch name */}
-			<div className="group flex items-center gap-1.5 text-xs">
-				<GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-				{isEditing ? (
-					<input
-						ref={inputRef}
-						value={editValue}
-						onChange={(e) => setEditValue(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") handleSubmit();
-							if (e.key === "Escape") setIsEditing(false);
-						}}
-						onBlur={handleSubmit}
-						className="min-w-0 flex-1 truncate bg-transparent font-medium outline-none ring-1 ring-ring rounded-sm px-1"
-					/>
-				) : (
-					<>
-						<span className="truncate font-medium">{currentBranch.name}</span>
-						{canRename && (
-							<button
-								type="button"
-								onClick={startEditing}
-								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-							>
-								<Pencil className="size-3" />
-							</button>
-						)}
-					</>
-				)}
-			</div>
-
-			{/* Commits from base */}
-			<div className="text-[11px] text-muted-foreground">
-				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
-				<BaseBranchSelector
-					branches={branches}
-					currentValue={defaultBranchName}
-					onChange={onBaseBranchChange}
-				/>
-			</div>
-
-			{/* Remote status */}
-			{currentBranch.aheadCount > 0 && currentBranch.behindCount > 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>Your branch and</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-					<div>have diverged</div>
-					<div>
-						{currentBranch.aheadCount} local not pushed,{" "}
-						{currentBranch.behindCount} remote to pull
-					</div>
-				</div>
-			)}
-			{currentBranch.aheadCount > 0 && currentBranch.behindCount === 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>
-						{currentBranch.aheadCount}{" "}
-						{currentBranch.aheadCount === 1 ? "commit" : "commits"} ahead of
-					</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-				</div>
-			)}
-			{currentBranch.behindCount > 0 && currentBranch.aheadCount === 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>
-						{currentBranch.behindCount}{" "}
-						{currentBranch.behindCount === 1 ? "commit" : "commits"} behind
-					</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-				</div>
-			)}
-
-			{/* Filter + stats */}
-			<div className="flex items-center justify-between pt-0.5">
-				<CommitFilterDropdown
-					filter={filter}
-					onFilterChange={onFilterChange}
-					commits={commits}
-					uncommittedCount={uncommittedCount}
-				/>
-				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<span>{totalFiles} files changed</span>
-					{(totalAdditions > 0 || totalDeletions > 0) && (
-						<span>
-							{totalAdditions > 0 && (
-								<span className="text-green-400">+{totalAdditions}</span>
-							)}
-							{totalAdditions > 0 && totalDeletions > 0 && " "}
-							{totalDeletions > 0 && (
-								<span className="text-red-400">-{totalDeletions}</span>
-							)}
-						</span>
-					)}
-				</div>
-			</div>
-		</div>
-	);
 }
 
 export function useChangesTab({
@@ -232,10 +66,30 @@ export function useChangesTab({
 		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
 
-	useWorkspaceEvent("git:changed", workspaceId, () => {
+	const invalidateGitQueries = useCallback(() => {
 		void statusUtils.git.getStatus.invalidate({ workspaceId });
 		void statusUtils.git.listCommits.invalidate({ workspaceId });
-	});
+	}, [statusUtils, workspaceId]);
+
+	// Shared debounce for git:changed and fs:events — batches rapid events
+	// from either source into a single git status refresh.
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const debouncedInvalidate = useCallback(() => {
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			debounceRef.current = null;
+			invalidateGitQueries();
+		}, 300);
+	}, [invalidateGitQueries]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clear pending timer on workspace change
+	useEffect(() => {
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		};
+	}, [workspaceId]);
+
+	useWorkspaceEvent("git:changed", workspaceId, debouncedInvalidate);
+	useWorkspaceEvent("fs:events", workspaceId, debouncedInvalidate);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();
 
@@ -260,7 +114,6 @@ export function useChangesTab({
 		[workspaceId, status.data?.currentBranch.name, renameBranchMutation],
 	);
 
-	// Can only rename if branch hasn't been pushed (aheadCount === total commits means nothing pushed)
 	const canRenameBranch = !status.data?.currentBranch.upstream;
 
 	const commitFilesInput =
@@ -283,7 +136,6 @@ export function useChangesTab({
 		if (filter.kind === "commit" || filter.kind === "range") {
 			return commitFiles.data?.files ?? [];
 		}
-		// "all" — deduplicate by path
 		const map = new Map<string, (typeof status.data.againstBase)[number]>();
 		for (const f of status.data.againstBase) map.set(f.path, f);
 		for (const f of status.data.staged) map.set(f.path, f);
@@ -295,102 +147,28 @@ export function useChangesTab({
 	const totalAdditions = filteredFiles.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = filteredFiles.reduce((sum, f) => sum + f.deletions, 0);
 
-	const content = useMemo(() => {
-		if (status.isLoading) {
-			return (
-				<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-					Loading changes...
-				</div>
-			);
-		}
+	const fileCategory: "against-base" | "staged" | "unstaged" =
+		filter.kind === "uncommitted" ? "unstaged" : "against-base";
 
-		if (!status.data) {
-			return (
-				<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-					Unable to load git status
-				</div>
-			);
-		}
-
-		let fileList: React.ReactNode;
-
-		if (filter.kind === "commit" || filter.kind === "range") {
-			fileList = (
-				<ChangesFileList
-					files={commitFiles.data?.files ?? []}
-					isLoading={commitFiles.isLoading}
-					onSelectFile={onSelectFile}
-					category="against-base"
-				/>
-			);
-		} else if (filter.kind === "uncommitted") {
-			fileList = (
-				<ChangesFileList
-					files={[...status.data.staged, ...status.data.unstaged]}
-					onSelectFile={onSelectFile}
-					category="unstaged"
-				/>
-			);
-		} else {
-			// Merge all files into a single flat list, deduplicating by path
-			// (a file can appear in both againstBase and staged/unstaged)
-			const allFilesMap = new Map<
-				string,
-				(typeof status.data.againstBase)[number]
-			>();
-			for (const f of status.data.againstBase) allFilesMap.set(f.path, f);
-			for (const f of status.data.staged) allFilesMap.set(f.path, f);
-			for (const f of status.data.unstaged) allFilesMap.set(f.path, f);
-
-			fileList = (
-				<ChangesFileList
-					files={Array.from(allFilesMap.values())}
-					onSelectFile={onSelectFile}
-					category="against-base"
-				/>
-			);
-		}
-
-		return (
-			<div className="flex h-full min-h-0 flex-col">
-				<ChangesHeader
-					currentBranch={status.data.currentBranch}
-					defaultBranchName={status.data.defaultBranch.name}
-					commitCount={commits.data?.commits.length ?? 0}
-					totalFiles={totalChanges}
-					totalAdditions={totalAdditions}
-					totalDeletions={totalDeletions}
-					filter={filter}
-					onFilterChange={setFilter}
-					commits={commits.data?.commits ?? []}
-					uncommittedCount={
-						status.data.staged.length + status.data.unstaged.length
-					}
-					branches={branches.data?.branches ?? []}
-					onBaseBranchChange={setBaseBranch}
-					onRenameBranch={handleRenameBranch}
-					canRename={canRenameBranch}
-				/>
-				<div className="min-h-0 flex-1 overflow-y-auto">{fileList}</div>
-			</div>
-		);
-	}, [
-		status.data,
-		status.isLoading,
-		filter,
-		commitFiles.data,
-		commitFiles.isLoading,
-		commits.data,
-		totalChanges,
-		totalAdditions,
-		totalDeletions,
-		onSelectFile,
-		setFilter,
-		branches.data?.branches,
-		canRenameBranch,
-		handleRenameBranch,
-		setBaseBranch,
-	]);
+	const content = (
+		<ChangesTabContent
+			status={status}
+			commits={commits}
+			branches={branches}
+			commitFiles={commitFiles}
+			filter={filter}
+			filteredFiles={filteredFiles}
+			fileCategory={fileCategory}
+			totalChanges={totalChanges}
+			totalAdditions={totalAdditions}
+			totalDeletions={totalDeletions}
+			onSelectFile={onSelectFile}
+			onFilterChange={setFilter}
+			onBaseBranchChange={setBaseBranch}
+			onRenameBranch={handleRenameBranch}
+			canRenameBranch={canRenameBranch}
+		/>
+	);
 
 	return {
 		id: "changes",

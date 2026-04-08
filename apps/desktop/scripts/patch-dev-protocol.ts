@@ -151,7 +151,10 @@ export function resolveWorkspaceIdentity(
 		: undefined;
 	const displayWorkspaceName = resolvedDisplayName || workspaceName;
 	const bundleDisplayWorkspaceName =
-		displayWorkspaceName.replaceAll("/", "-").trim() || workspaceName;
+		displayWorkspaceName
+			.replaceAll("/", "-")
+			.replaceAll(/[^a-zA-Z0-9 -]/g, "")
+			.trim() || workspaceName;
 
 	return {
 		workspaceName,
