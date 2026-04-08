@@ -16,3 +16,5 @@ export {
 	type DetectedLink,
 	LocalLinkDetector,
 } from "./local-link-detector";
+
+export { WordLinkDetector } from "./word-link-detector";

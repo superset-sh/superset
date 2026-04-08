@@ -11,6 +11,7 @@ import type { IBufferLine, ILink, ILinkProvider, Terminal } from "@xterm/xterm";
 import {
 	convertLinkRangeToBuffer,
 	getXtermLineContent,
+	getXtermRangesByAttr,
 } from "./buffer-helpers";
 import type { DetectedLink, LocalLinkDetector } from "./local-link-detector";
 
@@ -25,7 +26,8 @@ const MAX_LINK_LENGTH = 500;
  * 2. Gathers wrapped context lines (previous + current + next)
  * 3. Concatenates them into a single text block
  * 4. Delegates to LocalLinkDetector.detect()
- * 5. Maps detected ranges back to buffer coordinates using
+ * 5. If no links found, tries styled-text detection (getXtermRangesByAttr)
+ * 6. Maps detected ranges back to buffer coordinates using
  *    convertLinkRangeToBuffer (handles wide chars correctly)
  */
 export class LinkDetectorAdapter implements ILinkProvider {
@@ -107,6 +109,101 @@ export class LinkDetectorAdapter implements ILinkProvider {
 		if (!text) return [];
 
 		const detectedLinks = await this._detector.detect(text);
+		let result = this._mapDetectedLinks(
+			detectedLinks,
+			lines,
+			cols,
+			startLine,
+			bufferLineNumber,
+		);
+
+		// Fallback: try styled-text detection (VSCode's getXtermRangesByAttr).
+		// If a filename is printed with different terminal attributes (bold,
+		// underline, etc.), extract each styled segment and test it as a path.
+		if (result.length === 0) {
+			result = await this._detectStyledTextLinks(
+				startLine,
+				endLine,
+				bufferLineNumber,
+			);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Styled-text fallback: split lines by terminal attributes and try each
+	 * segment as a file path. Vendored from VSCode's TerminalLocalLinkDetector.
+	 */
+	private async _detectStyledTextLinks(
+		startLine: number,
+		endLine: number,
+		bufferLineNumber: number,
+	): Promise<ILink[]> {
+		const buffer = this._terminal.buffer.active;
+		const cols = this._terminal.cols;
+		const result: ILink[] = [];
+
+		const rangeCandidates = getXtermRangesByAttr(
+			buffer,
+			startLine,
+			endLine,
+			cols,
+		);
+
+		for (const rangeCandidate of rangeCandidates) {
+			let text = "";
+			for (let y = rangeCandidate.start.y; y <= rangeCandidate.end.y; y++) {
+				const line = buffer.getLine(y);
+				if (!line) break;
+				const lineStartX =
+					y === rangeCandidate.start.y ? rangeCandidate.start.x : 0;
+				const lineEndX =
+					y === rangeCandidate.end.y ? rangeCandidate.end.x : cols - 1;
+				text += line.translateToString(false, lineStartX, lineEndX);
+			}
+
+			if (!text.trim()) continue;
+
+			// Adjust to 1-based for xterm link API (matches VSCode's HACK comment)
+			const range = {
+				start: {
+					x: rangeCandidate.start.x + 1,
+					y: rangeCandidate.start.y + 1,
+				},
+				end: {
+					x: rangeCandidate.end.x,
+					y: rangeCandidate.end.y + 1,
+				},
+			};
+
+			// Only include if overlaps with requested line
+			if (range.end.y < bufferLineNumber || range.start.y > bufferLineNumber) {
+				continue;
+			}
+
+			const detectedLinks = await this._detector.detect(text.trim());
+			for (const detected of detectedLinks) {
+				result.push({
+					range,
+					text: detected.text,
+					activate: (event: MouseEvent) => {
+						this._onActivate?.(event, detected);
+					},
+				});
+			}
+		}
+
+		return result;
+	}
+
+	private _mapDetectedLinks(
+		detectedLinks: DetectedLink[],
+		lines: IBufferLine[],
+		cols: number,
+		startLine: number,
+		bufferLineNumber: number,
+	): ILink[] {
 		const result: ILink[] = [];
 
 		for (const detected of detectedLinks) {
@@ -124,8 +221,7 @@ export class LinkDetectorAdapter implements ILinkProvider {
 			);
 
 			// Only include links that overlap with the requested line
-			const requestedLineY = bufferLineNumber;
-			if (range.end.y < requestedLineY || range.start.y > requestedLineY) {
+			if (range.end.y < bufferLineNumber || range.start.y > bufferLineNumber) {
 				continue;
 			}
 

@@ -144,6 +144,63 @@ export function convertLinkRangeToBuffer(
 }
 
 /**
+ * Split terminal lines by text attributes (bold, underline, italic, etc.).
+ * Returns buffer ranges where each range has consistent styling.
+ *
+ * Used as a last-resort fallback for link detection: if a filename is printed
+ * with different styling (e.g. bold or underlined) than surrounding text,
+ * each styled segment can be tested as a potential file path.
+ *
+ * Vendored from VSCode's terminalLinkHelpers.ts.
+ */
+export function getXtermRangesByAttr(
+	buffer: IBuffer,
+	lineStart: number,
+	lineEnd: number,
+	cols: number,
+): IBufferRange[] {
+	let bufferRangeStart: { x: number; y: number } | undefined;
+	let lastFgAttr = -1;
+	let lastBgAttr = -1;
+	const ranges: IBufferRange[] = [];
+	for (let y = lineStart; y <= lineEnd; y++) {
+		const line = buffer.getLine(y);
+		if (!line) {
+			continue;
+		}
+		for (let x = 0; x < cols; x++) {
+			const cell = line.getCell(x);
+			if (!cell) {
+				break;
+			}
+			// Re-construct the attributes from fg and bg. This relies on
+			// xterm's internal buffer bit layout (same approach as VSCode).
+			const thisFgAttr =
+				cell.isBold() |
+				cell.isInverse() |
+				cell.isStrikethrough() |
+				cell.isUnderline();
+			const thisBgAttr = cell.isDim() | cell.isItalic();
+			if (lastFgAttr === -1 || lastBgAttr === -1) {
+				bufferRangeStart = { x, y };
+			} else {
+				if (lastFgAttr !== thisFgAttr || lastBgAttr !== thisBgAttr) {
+					const bufferRangeEnd = { x, y };
+					ranges.push({
+						start: bufferRangeStart!,
+						end: bufferRangeEnd,
+					});
+					bufferRangeStart = { x, y };
+				}
+			}
+			lastFgAttr = thisFgAttr;
+			lastBgAttr = thisBgAttr;
+		}
+	}
+	return ranges;
+}
+
+/**
  * Extract the text content from a range of terminal buffer lines.
  * Caps the maximum read length to prevent excessive reads on very long output.
  */

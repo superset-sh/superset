@@ -1,12 +1,8 @@
-import { UrlLinkProvider } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers";
 import type { TerminalAppearance } from "./appearance";
-import type { DetectedLink } from "./links";
 import {
-	LinkDetectorAdapter,
-	LocalLinkDetector,
-	type StatCallback,
-	TerminalLinkResolver,
-} from "./links";
+	type TerminalLinkHandlers,
+	TerminalLinkManager,
+} from "./terminal-link-manager";
 import {
 	attachToContainer,
 	createRuntime,
@@ -25,33 +21,12 @@ import {
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 
-/**
- * Link handler callbacks for the v2 terminal.
- */
-export interface TerminalLinkHandlers {
-	/** Called when a file path link is activated (Cmd/Ctrl+click). */
-	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
-	/** Called when a URL link is activated. */
-	onUrlClick?: (url: string) => void;
-	/**
-	 * Stat callback to validate file paths exist. Called via the host service
-	 * which handles all path resolution (relative, tilde, etc.) server-side.
-	 */
-	stat?: StatCallback;
-}
-
-interface LinkProviderDisposable {
-	dispose(): void;
-}
-
 interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
-	linkHandlers?: TerminalLinkHandlers;
-	/** Disposables for registered link providers (to avoid duplicates on re-register). */
-	linkDisposables: LinkProviderDisposable[];
-	/** Cached resolver instance (preserves stat cache across re-registrations). */
-	linkResolver?: TerminalLinkResolver;
+	linkManager: TerminalLinkManager | null;
+	/** Stored until linkManager is created (attach called after setLinkHandlers). */
+	pendingLinkHandlers: TerminalLinkHandlers | null;
 }
 
 class TerminalRuntimeRegistryImpl {
@@ -64,7 +39,8 @@ class TerminalRuntimeRegistryImpl {
 		entry = {
 			runtime: null,
 			transport: createTransport(),
-			linkDisposables: [],
+			linkManager: null,
+			pendingLinkHandlers: null,
 		};
 
 		this.entries.set(terminalId, entry);
@@ -81,11 +57,13 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
-			// Register link providers on first creation
-			this._registerLinkProviders(entry);
+			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
+			// Apply pending handlers if setLinkHandlers was called before attach
+			if (entry.pendingLinkHandlers) {
+				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
+				entry.pendingLinkHandlers = null;
+			}
 		} else {
-			// Runtime already exists (reattach) — apply current appearance so
-			// the first fit uses up-to-date font metrics.
 			updateRuntimeAppearance(entry.runtime, appearance);
 		}
 
@@ -99,50 +77,15 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	/**
-	 * Set link handler callbacks for a terminal. Should be called before or
-	 * after attach() — if the runtime already exists, link providers are
-	 * re-registered with the new handlers.
+	 * Set link handler callbacks for a terminal. Safe to call before or after
+	 * attach(). If the runtime already exists, link providers are re-registered.
 	 */
 	setLinkHandlers(terminalId: string, handlers: TerminalLinkHandlers) {
 		const entry = this.getOrCreateEntry(terminalId);
-		entry.linkHandlers = handlers;
-		if (entry.runtime) {
-			this._registerLinkProviders(entry);
-		}
-	}
-
-	private _registerLinkProviders(entry: RegistryEntry) {
-		const { runtime, linkHandlers } = entry;
-		if (!runtime || !linkHandlers?.stat) return;
-
-		// Dispose old providers to prevent duplicates
-		for (const d of entry.linkDisposables) d.dispose();
-		entry.linkDisposables = [];
-
-		const terminal = runtime.terminal;
-
-		// Reuse resolver to preserve stat cache across re-registrations.
-		if (!entry.linkResolver) {
-			entry.linkResolver = new TerminalLinkResolver(linkHandlers.stat);
-		}
-
-		const detector = new LocalLinkDetector(entry.linkResolver);
-
-		const adapter = new LinkDetectorAdapter(
-			terminal,
-			detector,
-			linkHandlers.onFileLinkClick,
-		);
-		entry.linkDisposables.push(terminal.registerLinkProvider(adapter));
-
-		// Register the URL link provider (handles hard-wrapped URLs).
-		// The UrlLinkProvider already gates activation on Cmd/Ctrl+click.
-		if (linkHandlers.onUrlClick) {
-			const onUrlClick = linkHandlers.onUrlClick;
-			const urlProvider = new UrlLinkProvider(terminal, (_event, uri) => {
-				onUrlClick(uri);
-			});
-			entry.linkDisposables.push(terminal.registerLinkProvider(urlProvider));
+		if (entry.linkManager) {
+			entry.linkManager.setHandlers(handlers);
+		} else {
+			entry.pendingLinkHandlers = handlers;
 		}
 	}
 
@@ -162,8 +105,6 @@ class TerminalRuntimeRegistryImpl {
 
 		updateRuntimeAppearance(entry.runtime, appearance);
 
-		// Font changes can alter the grid size — forward to the PTY so the
-		// backend shell and TUIs see the correct cols/rows.
 		const { cols, rows } = entry.runtime.terminal;
 		if (cols !== prevCols || rows !== prevRows) {
 			sendResize(entry.transport, cols, rows);
@@ -174,9 +115,7 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.entries.get(terminalId);
 		if (!entry) return;
 
-		for (const d of entry.linkDisposables) d.dispose();
-		entry.linkDisposables = [];
-		entry.linkResolver?.clearCache();
+		entry.linkManager?.dispose();
 
 		sendDispose(entry.transport);
 		disposeTransport(entry.transport);
@@ -249,4 +188,4 @@ class TerminalRuntimeRegistryImpl {
 
 export const terminalRuntimeRegistry = new TerminalRuntimeRegistryImpl();
 
-export type { ConnectionState };
+export type { ConnectionState, TerminalLinkHandlers };
