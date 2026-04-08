@@ -4,7 +4,6 @@ import { useWorkspaceClient } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -83,59 +82,65 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	}, [terminalId, appearance]);
 
 	// --- Link handlers ---
-	// Use the host-service trpc client for filesystem validation — v2 terminals
-	// run on a (potentially remote) host, so stat calls must go through the
-	// host service, not Electron IPC.
+	// Fetch the workspace root path from the host service so we can resolve
+	// relative file paths in terminal output. Uses existing endpoints only
+	// (workspace.get + filesystem.getMetadata) — no new host service endpoints.
 	const { trpcClient: hostTrpcClient } = useWorkspaceClient();
 	const hostTrpcClientRef = useRef(hostTrpcClient);
 	hostTrpcClientRef.current = hostTrpcClient;
-
-	const { data: openLinksInApp } =
-		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const workspaceRootRef = useRef<string | undefined>(undefined);
 
 	useEffect(() => {
 		const userHome = process.env.HOME ?? process.env.USERPROFILE;
 
-		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
-			stat: async (path) => {
-				try {
-					// Use the host service's statPath which resolves relative paths
-					// against the workspace root on the host machine.
-					const result =
-						await hostTrpcClientRef.current.filesystem.statPath.query({
-							workspaceId,
-							path,
+		const setHandlers = () => {
+			terminalRuntimeRegistry.setLinkHandlers(terminalId, {
+				stat: async (path) => {
+					try {
+						const metadata =
+							await hostTrpcClientRef.current.filesystem.getMetadata.query({
+								workspaceId,
+								absolutePath: path,
+							});
+						if (!metadata) return null;
+						return { isDirectory: metadata.kind === "directory" };
+					} catch {
+						return null;
+					}
+				},
+				initialCwd: workspaceRootRef.current,
+				userHome,
+				onFileLinkClick: (_event, link) => {
+					if (!_event.metaKey && !_event.ctrlKey) return;
+					_event.preventDefault();
+					electronTrpcClient.external.openFileInEditor
+						.mutate({
+							path: link.resolvedPath,
+							line: link.row,
+							column: link.col,
+						})
+						.catch((error) => {
+							console.error("[v2 Terminal] Failed to open file:", error);
+							toast.error("Failed to open file in editor");
 						});
-					if (!result) return null;
-					return {
-						isDirectory: result.isDirectory,
-						resolvedPath: result.resolvedPath,
-					};
-				} catch {
-					return null;
-				}
-			},
-			// CWD resolution happens server-side in statPath — no local CWD needed
-			initialCwd: undefined,
-			userHome,
-			onFileLinkClick: (_event, link) => {
-				if (!_event.metaKey && !_event.ctrlKey) return;
-				_event.preventDefault();
-				electronTrpcClient.external.openFileInEditor
-					.mutate({
-						path: link.resolvedPath,
-						line: link.row,
-						column: link.col,
-					})
-					.catch((error) => {
-						console.error("[v2 Terminal] Failed to open file:", error);
-						toast.error("Failed to open file in editor");
-					});
-			},
-			onUrlClick: (url) => {
-				electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
-			},
-		});
+				},
+				onUrlClick: (url) => {
+					electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
+				},
+			});
+		};
+
+		// Register immediately (absolute paths work without CWD)
+		setHandlers();
+
+		// Fetch workspace root for relative path resolution, then re-register
+		hostTrpcClientRef.current.workspace.get
+			.query({ id: workspaceId })
+			.then((ws) => {
+				workspaceRootRef.current = ws.worktreePath;
+				setHandlers();
+			})
+			.catch(() => {});
 	}, [terminalId, workspaceId]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
