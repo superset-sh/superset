@@ -18,7 +18,7 @@ interface RegisterWorkspaceTerminalRouteOptions {
 	upgradeWebSocket: NodeWebSocket["upgradeWebSocket"];
 }
 
-function parseThemeType(
+export function parseThemeType(
 	value: string | null | undefined,
 ): "dark" | "light" | undefined {
 	return value === "dark" || value === "light" ? value : undefined;
@@ -110,7 +110,7 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 }
 
-function createTerminalSessionInternal({
+export function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -293,8 +293,6 @@ export function registerWorkspaceTerminalRoute({
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
-			const workspaceId = c.req.query("workspaceId") ?? null;
-			const themeType = parseThemeType(c.req.query("themeType"));
 
 			return {
 				onOpen: (_event, ws) => {
@@ -304,56 +302,61 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					const existing = sessions.get(terminalId);
-					if (existing) {
-						if (existing.socket && existing.socket !== ws) {
-							existing.socket.close(4000, "Displaced by new connection");
+					if (!existing) {
+						// Session must be created via tRPC terminal.ensureSession before connecting.
+						// Fall back to query params for backwards compatibility with v1 callers.
+						const workspaceId = c.req.query("workspaceId") ?? null;
+						if (!workspaceId) {
+							sendMessage(ws, {
+								type: "error",
+								message:
+									"Session not found. Call terminal.ensureSession first.",
+							});
+							ws.close(1011, "Session not found");
+							return;
 						}
-						existing.socket = ws;
+
+						const themeType = parseThemeType(c.req.query("themeType"));
+						const result = createTerminalSessionInternal({
+							terminalId,
+							workspaceId,
+							themeType,
+							db,
+						});
+
+						if ("error" in result) {
+							sendMessage(ws, { type: "error", message: result.error });
+							ws.close(1011, result.error);
+							return;
+						}
+
+						result.socket = ws;
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
 							.where(eq(terminalSessions.id, terminalId))
 							.run();
-
-						replayBuffer(existing, ws);
-						if (existing.exited) {
-							sendMessage(ws, {
-								type: "exit",
-								exitCode: existing.exitCode,
-								signal: existing.exitSignal,
-							});
-						}
 						return;
 					}
 
-					if (!workspaceId) {
-						sendMessage(ws, {
-							type: "error",
-							message: "Missing workspaceId for new terminal session",
-						});
-						ws.close(1011, "Missing workspaceId");
-						return;
+					if (existing.socket && existing.socket !== ws) {
+						existing.socket.close(4000, "Displaced by new connection");
 					}
-
-					const result = createTerminalSessionInternal({
-						terminalId,
-						workspaceId,
-						themeType,
-						db,
-					});
-
-					if ("error" in result) {
-						sendMessage(ws, { type: "error", message: result.error });
-						ws.close(1011, result.error);
-						return;
-					}
-
-					result.socket = ws;
+					existing.socket = ws;
 
 					db.update(terminalSessions)
 						.set({ lastAttachedAt: Date.now() })
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
+
+					replayBuffer(existing, ws);
+					if (existing.exited) {
+						sendMessage(ws, {
+							type: "exit",
+							exitCode: existing.exitCode,
+							signal: existing.exitSignal,
+						});
+					}
 				},
 
 				onMessage: (event, ws) => {

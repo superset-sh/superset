@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useHotkey } from "renderer/hotkeys";
@@ -47,42 +48,58 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	);
 	const initialThemeType = initialThemeTypeRef.current;
 
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
-		workspaceId,
-		themeType: initialThemeType,
-	});
-	const websocketUrlRef = useRef(websocketUrl);
-	websocketUrlRef.current = websocketUrl;
+	// URL is stable — no workspaceId/themeType in query params.
+	// Session is created via tRPC before WebSocket connects.
+	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+
+	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
+	const ensureSessionRef = useRef(ensureSession);
+	ensureSessionRef.current = ensureSession;
 
 	const connectionState = useSyncExternalStore(
 		subscribeToState(terminalId),
 		() => getConnectionState(terminalId),
 	);
 
-	// IMPORTANT: deps must be [terminalId] only. Adding websocketUrl here causes
-	// DOM detach/attach on workspace switches, which destroys the WebGL context
-	// and garbles terminal rendering. URL changes are handled by the reconnect
-	// effect below.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
-		terminalRuntimeRegistry.attach(
-			terminalId,
-			container,
-			websocketUrlRef.current,
-			appearanceRef.current,
-		);
+		let cancelled = false;
+
+		// Create session via tRPC, then connect WebSocket as data pipe.
+		ensureSessionRef.current
+			.mutateAsync({
+				terminalId,
+				workspaceId,
+				themeType: initialThemeType,
+			})
+			.then(() => {
+				if (cancelled) return;
+				terminalRuntimeRegistry.attach(
+					terminalId,
+					container,
+					websocketUrl,
+					appearanceRef.current,
+				);
+			})
+			.catch((err) => {
+				if (cancelled) return;
+				console.error("[TerminalPane] ensureSession failed:", err);
+				// Still try to connect — WS handler has fallback for existing sessions
+				terminalRuntimeRegistry.attach(
+					terminalId,
+					container,
+					websocketUrl,
+					appearanceRef.current,
+				);
+			});
 
 		return () => {
+			cancelled = true;
 			terminalRuntimeRegistry.detach(terminalId);
 		};
-	}, [terminalId]);
-
-	// When the URL changes (workspace switch), reconnect the transport without touching the DOM.
-	useEffect(() => {
-		terminalRuntimeRegistry.reconnect(terminalId, websocketUrl);
-	}, [terminalId, websocketUrl]);
+	}, [terminalId, websocketUrl, initialThemeType, workspaceId]);
 
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);

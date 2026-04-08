@@ -70,12 +70,6 @@ class TerminalRuntimeRegistryImpl {
 		detachFromContainer(entry.runtime);
 	}
 
-	reconnect(terminalId: string, wsUrl: string) {
-		const entry = this.entries.get(terminalId);
-		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
-	}
-
 	updateAppearance(terminalId: string, appearance: TerminalAppearance) {
 		const entry = this.entries.get(terminalId);
 		if (!entry?.runtime) return;
