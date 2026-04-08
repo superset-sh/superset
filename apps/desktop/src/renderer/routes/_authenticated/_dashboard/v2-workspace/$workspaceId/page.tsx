@@ -86,7 +86,7 @@ function WorkspaceContent({
 	const defaultContextMenuActions = useDefaultContextMenuActions();
 
 	const utils = electronTrpc.useUtils();
-	const { data: showPresetsBar, isLoading: isLoadingPresetsBar } =
+	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
 	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
 		{
@@ -230,7 +230,7 @@ function WorkspaceContent({
 						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
 					>
-						{!isLoadingPresetsBar && showPresetsBar ? <PresetsBar /> : null}
+						<PresetsBar />
 						<Workspace<PaneViewerData>
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
