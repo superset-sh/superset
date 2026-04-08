@@ -100,7 +100,12 @@ export class TerminalLinkResolver {
 				const url = new URL(linkPath);
 				linkPath = decodeURIComponent(url.pathname);
 			} catch {
-				linkPath = decodeURIComponent(linkPath.replace(/^file:\/\//, ""));
+				try {
+					linkPath = decodeURIComponent(linkPath.replace(/^file:\/\//, ""));
+				} catch {
+					// Malformed URI — use as-is with scheme stripped
+					linkPath = linkPath.replace(/^file:\/\//, "");
+				}
 			}
 		}
 

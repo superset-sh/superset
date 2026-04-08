@@ -107,7 +107,10 @@ export const filesystemRouter = router({
 				resolvedPath: string;
 				isDirectory: boolean;
 			} | null> => {
-				const rootPath = ctx.runtime.filesystem.resolveWorkspaceRoot(
+				// Use getFilesystemService to get proper TRPCError NOT_FOUND
+				// for missing workspaces (consistent with other fs endpoints).
+				getFilesystemService(ctx, input.workspaceId);
+				const resolvedRoot = ctx.runtime.filesystem.resolveWorkspaceRoot(
 					input.workspaceId,
 				);
 
@@ -117,9 +120,13 @@ export const filesystemRouter = router({
 					if (!home) return null;
 					targetPath = join(home, input.path.substring(1));
 				} else if (isAbsolute(input.path)) {
+					// Absolute paths are intentionally not confined to the workspace
+					// root — terminal output can reference files anywhere on the host
+					// (e.g. /usr/local/bin/node, stack traces). This endpoint is
+					// behind protectedProcedure so only authenticated clients can call it.
 					targetPath = normalize(input.path);
 				} else {
-					targetPath = resolve(rootPath, input.path);
+					targetPath = resolve(resolvedRoot, input.path);
 				}
 
 				try {

@@ -121,7 +121,9 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 					});
 			},
 			onUrlClick: (url) => {
-				electronTrpcClient.external.openUrl.mutate(url).catch(() => {});
+				electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
+					console.error("[v2 Terminal] Failed to open URL:", url, error);
+				});
 			},
 		});
 	}, [terminalId, workspaceId]);
