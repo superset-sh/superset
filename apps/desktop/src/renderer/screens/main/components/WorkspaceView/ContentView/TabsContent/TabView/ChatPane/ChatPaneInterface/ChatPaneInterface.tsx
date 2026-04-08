@@ -25,6 +25,7 @@ import {
 	getDesktopChatModelOptions,
 	isDesktopChatDevMode,
 } from "renderer/lib/dev-chat";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -248,6 +249,8 @@ export function ChatPaneInterface({
 	const chatRuntimeServiceTrpcUtils = chatRuntimeServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatRuntimeServiceTrpc.workspace.authenticateMcpServer.useMutation();
+	const updateLastActivityAt =
+		electronTrpc.workspaces.updateLastActivityAt.useMutation();
 	const captureChatEvent = useCallback(
 		(event: string, properties?: ChatAnalyticsProperties) => {
 			posthog.capture(event, {
@@ -335,6 +338,9 @@ export function ChatPaneInterface({
 					...(cwd ? { cwd } : {}),
 					...input,
 				});
+				if (workspaceId) {
+					updateLastActivityAt.mutate({ workspaceId });
+				}
 			} catch (error) {
 				if (optimisticMessage) {
 					chatRuntimeServiceTrpcUtils.session.listMessages.setData(
@@ -348,7 +354,12 @@ export function ChatPaneInterface({
 				throw error;
 			}
 		},
-		[chatRuntimeServiceTrpcUtils, cwd],
+		[
+			chatRuntimeServiceTrpcUtils,
+			cwd,
+			updateLastActivityAt.mutate,
+			workspaceId,
+		],
 	);
 
 	const canAbort = Boolean(isRunning);

@@ -46,7 +46,10 @@ export interface SidebarWorkspaceInput {
 	tabOrder: number;
 	sectionId: string | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	lastActivityAt?: Date | null;
 }
+
+export type SidebarSortMode = "manual" | "recent";
 
 export interface BuildDashboardSidebarProjectsParams {
 	sidebarProjects: SidebarProjectInput[];
@@ -54,6 +57,7 @@ export interface BuildDashboardSidebarProjectsParams {
 	visibleSidebarWorkspaces: SidebarWorkspaceInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+	sidebarSortMode?: SidebarSortMode;
 }
 
 export function buildDashboardSidebarProjects({
@@ -62,6 +66,7 @@ export function buildDashboardSidebarProjects({
 	visibleSidebarWorkspaces,
 	machineId,
 	pullRequestsByWorkspaceId,
+	sidebarSortMode,
 }: BuildDashboardSidebarProjectsParams): DashboardSidebarProject[] {
 	const projectsById = new Map<
 		string,
@@ -139,6 +144,7 @@ export function buildDashboardSidebarProjects({
 			updatedAt: workspace.updatedAt,
 			taskId: workspace.taskId,
 			pendingTransaction: workspace.pendingTransaction,
+			lastActivityAt: workspace.lastActivityAt ?? null,
 		};
 
 		if (workspace.sectionId) {
@@ -166,7 +172,9 @@ export function buildDashboardSidebarProjects({
 		});
 	}
 
-	return sidebarProjects.flatMap((project) => {
+	const sortByRecent = sidebarSortMode === "recent";
+
+	const builtProjects = sidebarProjects.flatMap((project) => {
 		const resolvedProject = projectsById.get(project.id);
 		if (!resolvedProject) return [];
 		const {
@@ -202,9 +210,39 @@ export function buildDashboardSidebarProjects({
 				if (leftLocalMain !== rightLocalMain) {
 					return leftLocalMain ? -1 : 1;
 				}
+				if (sortByRecent) {
+					const leftActivity =
+						left.child.type === "workspace"
+							? (left.child.workspace.lastActivityAt?.getTime() ?? null)
+							: null;
+					const rightActivity =
+						right.child.type === "workspace"
+							? (right.child.workspace.lastActivityAt?.getTime() ?? null)
+							: null;
+					if (leftActivity !== null && rightActivity !== null) {
+						return rightActivity - leftActivity;
+					}
+					if (leftActivity !== null) return -1;
+					if (rightActivity !== null) return 1;
+				}
 				return left.tabOrder - right.tabOrder;
 			})
 			.map(({ child }) => child);
+
+		if (sortByRecent) {
+			for (const child of sortedChildren) {
+				if (child.type === "section") {
+					child.section.workspaces.sort((a, b) => {
+						const aTime = a.lastActivityAt?.getTime() ?? null;
+						const bTime = b.lastActivityAt?.getTime() ?? null;
+						if (aTime !== null && bTime !== null) return bTime - aTime;
+						if (aTime !== null) return -1;
+						if (bTime !== null) return 1;
+						return 0;
+					});
+				}
+			}
+		}
 
 		// Ungrouped workspaces rendered after a section header are visually
 		// grouped with that section (shared accent, collapse-together) and will
@@ -247,4 +285,37 @@ export function buildDashboardSidebarProjects({
 		sidebarProject.children = children;
 		return [sidebarProject];
 	});
+
+	if (sortByRecent) {
+		const getMaxActivity = (
+			project: DashboardSidebarProject,
+		): number | null => {
+			let max: number | null = null;
+			for (const child of project.children) {
+				const time =
+					child.type === "workspace"
+						? (child.workspace.lastActivityAt?.getTime() ?? null)
+						: Math.max(
+								...child.section.workspaces
+									.map((w) => w.lastActivityAt?.getTime() ?? 0)
+									.filter((t) => t > 0),
+								0,
+							) || null;
+				if (time !== null) {
+					max = max === null ? time : Math.max(max, time);
+				}
+			}
+			return max;
+		};
+		builtProjects.sort((a, b) => {
+			const maxA = getMaxActivity(a);
+			const maxB = getMaxActivity(b);
+			if (maxA !== null && maxB !== null) return maxB - maxA;
+			if (maxA !== null) return -1;
+			if (maxB !== null) return 1;
+			return 0;
+		});
+	}
+
+	return builtProjects;
 }

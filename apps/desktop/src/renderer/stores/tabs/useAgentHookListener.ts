@@ -49,6 +49,8 @@ function getCurrentWorkspaceId(): string | null {
 
 export function useAgentHookListener() {
 	const navigate = useNavigate();
+	const updateLastActivityAt =
+		electronTrpc.workspaces.updateLastActivityAt.useMutation();
 
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -110,6 +112,10 @@ export function useAgentHookListener() {
 					});
 
 					state.setPaneStatus(paneId, nextStatus);
+				}
+
+				if (eventType === "Stop" || eventType === "PermissionRequest") {
+					updateLastActivityAt.mutate({ workspaceId });
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
 				// Clear transient status for unmounted panes (mounted panes handle this via stream subscription)

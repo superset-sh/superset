@@ -204,3 +204,7 @@ export {
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];
+
+export const SIDEBAR_SORT_MODES = ["manual", "recent"] as const;
+
+export type SidebarSortMode = (typeof SIDEBAR_SORT_MODES)[number];

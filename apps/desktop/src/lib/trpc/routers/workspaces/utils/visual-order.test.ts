@@ -9,8 +9,20 @@ describe("computeVisualOrder", () => {
 	test("single project, no sections — all workspaces are ungrouped", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 1 },
-			{ id: "w2", projectId: "p1", sectionId: null, tabOrder: 0 },
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 1,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
 		];
 		expect(computeVisualOrder(projects, workspaces, [])).toEqual(["w2", "w1"]);
 	});
@@ -18,8 +30,20 @@ describe("computeVisualOrder", () => {
 	test("single project with one section uses mixed top-level tabOrder", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 1 },
-			{ id: "w2", projectId: "p1", sectionId: "s1", tabOrder: 0 },
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 1,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p1",
+				sectionId: "s1",
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
 		];
 		const sections = [{ id: "s1", projectId: "p1", tabOrder: 0 }];
 		expect(computeVisualOrder(projects, workspaces, sections)).toEqual([
@@ -31,9 +55,27 @@ describe("computeVisualOrder", () => {
 	test("multiple sections ordered by shared top-level tabOrder", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: "s2", tabOrder: 0 },
-			{ id: "w2", projectId: "p1", sectionId: "s1", tabOrder: 0 },
-			{ id: "w3", projectId: "p1", sectionId: null, tabOrder: 1 },
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: "s2",
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p1",
+				sectionId: "s1",
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
+			{
+				id: "w3",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 1,
+				lastActivityAt: null,
+			},
 		];
 		const sections = [
 			{ id: "s1", projectId: "p1", tabOrder: 2 },
@@ -52,8 +94,20 @@ describe("computeVisualOrder", () => {
 			{ id: "p1", tabOrder: 0 },
 		];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 0 },
-			{ id: "w2", projectId: "p2", sectionId: null, tabOrder: 0 },
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p2",
+				sectionId: null,
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
 		];
 		expect(computeVisualOrder(projects, workspaces, [])).toEqual(["w1", "w2"]);
 	});
@@ -61,9 +115,27 @@ describe("computeVisualOrder", () => {
 	test("workspaces sorted by tabOrder within each group", () => {
 		const projects = [{ id: "p1", tabOrder: 0 }];
 		const workspaces = [
-			{ id: "w3", projectId: "p1", sectionId: "s1", tabOrder: 2 },
-			{ id: "w1", projectId: "p1", sectionId: "s1", tabOrder: 0 },
-			{ id: "w2", projectId: "p1", sectionId: "s1", tabOrder: 1 },
+			{
+				id: "w3",
+				projectId: "p1",
+				sectionId: "s1",
+				tabOrder: 2,
+				lastActivityAt: null,
+			},
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: "s1",
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p1",
+				sectionId: "s1",
+				tabOrder: 1,
+				lastActivityAt: null,
+			},
 		];
 		const sections = [{ id: "s1", projectId: "p1", tabOrder: 0 }];
 		expect(computeVisualOrder(projects, workspaces, sections)).toEqual([
@@ -79,8 +151,20 @@ describe("computeVisualOrder", () => {
 			{ id: "p2", tabOrder: null },
 		];
 		const workspaces = [
-			{ id: "w1", projectId: "p1", sectionId: null, tabOrder: 0 },
-			{ id: "w2", projectId: "p2", sectionId: null, tabOrder: 0 },
+			{
+				id: "w1",
+				projectId: "p1",
+				sectionId: null,
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
+			{
+				id: "w2",
+				projectId: "p2",
+				sectionId: null,
+				tabOrder: 0,
+				lastActivityAt: null,
+			},
 		];
 		expect(computeVisualOrder(projects, workspaces, [])).toEqual(["w1"]);
 	});

@@ -15,6 +15,7 @@ import type {
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
+	SidebarSortMode,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -134,6 +135,7 @@ export const workspaces = sqliteTable(
 		// Allocated port base for multi-worktree dev instances.
 		// Each workspace gets a range of 10 ports starting from this base.
 		portBase: integer("port_base"),
+		lastActivityAt: integer("last_activity_at"),
 		sectionId: text("section_id").references(() => workspaceSections.id, {
 			onDelete: "set null",
 		}),
@@ -143,6 +145,7 @@ export const workspaces = sqliteTable(
 		index("workspaces_worktree_id_idx").on(table.worktreeId),
 		index("workspaces_last_opened_at_idx").on(table.lastOpenedAt),
 		index("workspaces_section_id_idx").on(table.sectionId),
+		index("workspaces_last_activity_at_idx").on(table.lastActivityAt),
 		// NOTE: Migration 0006 creates an additional partial unique index:
 		// CREATE UNIQUE INDEX workspaces_unique_branch_per_project
 		//   ON workspaces(project_id) WHERE type = 'branch'
@@ -234,6 +237,7 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	sidebarSortMode: text("sidebar_sort_mode").$type<SidebarSortMode>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

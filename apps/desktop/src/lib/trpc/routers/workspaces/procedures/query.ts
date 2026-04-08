@@ -18,7 +18,10 @@ import {
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
-import { computeVisualOrder } from "../utils/visual-order";
+import {
+	computeActivityOrder,
+	computeVisualOrder,
+} from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
@@ -81,7 +84,7 @@ function getWorkspaceRunDefinition(workspaceId: string) {
 	});
 }
 
-/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
+/** Returns workspace IDs in sidebar visual order, respecting the user's sort mode setting. */
 function getWorkspacesInVisualOrder(): string[] {
 	const activeProjects = localDb
 		.select()
@@ -95,8 +98,14 @@ function getWorkspacesInVisualOrder(): string[] {
 		.where(isNull(workspaces.deletingAt))
 		.all();
 
-	const allSections = localDb.select().from(workspaceSections).all();
+	const settingsRow = localDb.select().from(settings).get();
+	const sortMode = settingsRow?.sidebarSortMode ?? "manual";
 
+	if (sortMode === "recent") {
+		return computeActivityOrder(activeProjects, allWorkspaces);
+	}
+
+	const allSections = localDb.select().from(workspaceSections).all();
 	return computeVisualOrder(activeProjects, allWorkspaces, allSections);
 }
 
@@ -173,6 +182,7 @@ export const createQueryProcedures = () => {
 				createdAt: number;
 				updatedAt: number;
 				lastOpenedAt: number;
+				lastActivityAt: number | null;
 				isUnread: boolean;
 				isUnnamed: boolean;
 				createdBySuperset: boolean | null;
@@ -285,6 +295,7 @@ export const createQueryProcedures = () => {
 						sectionId: workspace.sectionId ?? null,
 						type: workspace.type as "worktree" | "branch",
 						worktreePath,
+						lastActivityAt: workspace.lastActivityAt ?? null,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
 						createdBySuperset: workspace.worktreeId
@@ -308,27 +319,82 @@ export const createQueryProcedures = () => {
 				}
 			}
 
-			return Array.from(groupsMap.values())
-				.map((group) => {
-					const projectWorkspaces = [
-						...group.workspaces,
-						...group.sections.flatMap((section) => section.workspaces),
-					];
+			const settingsRow = localDb.select().from(settings).get();
+			const sortMode = settingsRow?.sidebarSortMode ?? "manual";
 
-					return {
-						...group,
-						topLevelItems: getProjectChildItems(
-							group.project.id,
-							projectWorkspaces,
-							group.sections,
-						).map((item) => ({
-							id: item.id,
-							kind: item.kind,
-							tabOrder: item.tabOrder,
-						})),
-					};
-				})
-				.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
+			const result = Array.from(groupsMap.values()).map((group) => {
+				const projectWorkspaces = [
+					...group.workspaces,
+					...group.sections.flatMap((section) => section.workspaces),
+				];
+
+				return {
+					...group,
+					topLevelItems: getProjectChildItems(
+						group.project.id,
+						projectWorkspaces,
+						group.sections,
+					).map((item) => ({
+						id: item.id,
+						kind: item.kind,
+						tabOrder: item.tabOrder,
+					})),
+				};
+			});
+
+			if (sortMode === "recent") {
+				for (const group of result) {
+					group.workspaces.sort((a, b) => {
+						if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
+							return b.lastActivityAt - a.lastActivityAt;
+						}
+						if (a.lastActivityAt !== null) return -1;
+						if (b.lastActivityAt !== null) return 1;
+						return a.tabOrder - b.tabOrder;
+					});
+					for (const section of group.sections) {
+						section.workspaces.sort((a, b) => {
+							if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
+								return b.lastActivityAt - a.lastActivityAt;
+							}
+							if (a.lastActivityAt !== null) return -1;
+							if (b.lastActivityAt !== null) return 1;
+							return a.tabOrder - b.tabOrder;
+						});
+					}
+				}
+
+				result.sort((a, b) => {
+					const allA = [
+						...a.workspaces,
+						...a.sections.flatMap((s) => s.workspaces),
+					];
+					const allB = [
+						...b.workspaces,
+						...b.sections.flatMap((s) => s.workspaces),
+					];
+					const maxA = allA.reduce<number | null>((max, w) => {
+						if (w.lastActivityAt === null) return max;
+						return max === null
+							? w.lastActivityAt
+							: Math.max(max, w.lastActivityAt);
+					}, null);
+					const maxB = allB.reduce<number | null>((max, w) => {
+						if (w.lastActivityAt === null) return max;
+						return max === null
+							? w.lastActivityAt
+							: Math.max(max, w.lastActivityAt);
+					}, null);
+					if (maxA !== null && maxB !== null) return maxB - maxA;
+					if (maxA !== null) return -1;
+					if (maxB !== null) return 1;
+					return a.project.tabOrder - b.project.tabOrder;
+				});
+
+				return result;
+			}
+
+			return result.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
 		}),
 
 		getPreviousWorkspace: publicProcedure
@@ -361,6 +427,17 @@ export const createQueryProcedures = () => {
 						? 0
 						: currentIndex + 1;
 				return orderedWorkspaceIds[nextIndex];
+			}),
+
+		updateLastActivityAt: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(({ input }) => {
+				localDb
+					.update(workspaces)
+					.set({ lastActivityAt: Date.now() })
+					.where(eq(workspaces.id, input.workspaceId))
+					.run();
+				return { success: true };
 			}),
 
 		getResolvedRunCommands: publicProcedure
