@@ -149,11 +149,16 @@ export class LocalLinkDetector {
 			}
 		}
 
-		// Last resort: treat the whole trimmed line as a path candidate.
-		// This is safe here because we validate via stat — false positives
-		// are filtered out. (Matches VSCode's whole-line fallback in
-		// terminalLocalLinkDetector.ts, kept out of the shared fallback
-		// matchers to avoid breaking unvalidated consumers like v1.)
+		// SUPERSET ADDITION (not in VSCode's shared fallback matchers):
+		// Last resort — treat the whole trimmed line as a path candidate.
+		// Safe because we validate via stat (false positives are filtered out).
+		// Matches VSCode's `/^ *(?<link>(?<path>.+))/` whole-line fallback in
+		// terminalLocalLinkDetector.ts. Kept here (not in shared fallback
+		// matchers) because unvalidated consumers like v1 FilePathLinkProvider
+		// would get false positives from URLs, version strings, etc.
+		//
+		// To disable: remove or comment out this block. The word link detector
+		// (WordLinkDetector) provides similar coverage for bare filenames.
 		if (links.length === 0 && text.trim().length <= MAX_RESOLVED_LINK_LENGTH) {
 			const trimmed = text.trim();
 			const resolved = await this._resolver.resolveLink(trimmed);

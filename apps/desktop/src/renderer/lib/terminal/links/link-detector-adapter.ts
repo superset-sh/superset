@@ -117,9 +117,11 @@ export class LinkDetectorAdapter implements ILinkProvider {
 			bufferLineNumber,
 		);
 
-		// Fallback: try styled-text detection (VSCode's getXtermRangesByAttr).
-		// If a filename is printed with different terminal attributes (bold,
-		// underline, etc.), extract each styled segment and test it as a path.
+		// VENDORED FROM VSCODE (terminalLocalLinkDetector.ts lines 220-252):
+		// Styled-text fallback — if no links found, split lines by terminal
+		// attributes (bold/underline/italic) and try each styled segment as
+		// a file path. Catches filenames that the app printed with styling.
+		// To disable: remove or comment out this block.
 		if (result.length === 0) {
 			result = await this._detectStyledTextLinks(
 				startLine,
