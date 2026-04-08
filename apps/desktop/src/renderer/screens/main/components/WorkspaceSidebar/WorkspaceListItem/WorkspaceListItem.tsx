@@ -413,9 +413,7 @@ export function WorkspaceListItem({
 									/>
 								)}
 								{showShortcutBadge ? (
-									<WorkspaceShortcutBadge
-										label={String(shortcutIndex + 1)}
-									/>
+									<WorkspaceShortcutBadge label={String(shortcutIndex + 1)} />
 								) : (
 									<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
 										{shortcutIndex !== undefined &&

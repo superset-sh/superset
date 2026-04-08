@@ -1,6 +1,9 @@
 import { useMemo } from "react";
-import { getBinding, type HotkeyId } from "renderer/hotkeys";
-import { useHotkeyOverridesStore } from "renderer/hotkeys";
+import {
+	getBinding,
+	type HotkeyId,
+	useHotkeyOverridesStore,
+} from "renderer/hotkeys";
 
 const WORKSPACE_HOTKEY_IDS: HotkeyId[] = [
 	"JUMP_TO_WORKSPACE_1",
@@ -41,6 +44,11 @@ export function useWorkspaceShortcutModifiers() {
 	const overrides = useHotkeyOverridesStore((s) => s.overrides);
 
 	return useMemo(() => {
+		// `overrides` isn't read directly here but `getBinding` reads the
+		// override store imperatively.  Referencing the value forces the
+		// memo to recompute when the user changes hotkey bindings.
+		void overrides;
+
 		const allModifierKeys = new Set<string>();
 		const shortcuts: WorkspaceShortcutInfo[] = [];
 		const comboToIndices = new Map<string, number[]>();

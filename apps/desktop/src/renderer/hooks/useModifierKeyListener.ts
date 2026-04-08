@@ -50,5 +50,12 @@ export function useModifierKeyListener(enabled: boolean) {
 			window.removeEventListener("blur", handleBlur);
 			clearAll();
 		};
-	}, [enabled, allModifierKeys, comboToIndices, pressKey, releaseKey, clearAll]);
+	}, [
+		enabled,
+		allModifierKeys,
+		comboToIndices,
+		pressKey,
+		releaseKey,
+		clearAll,
+	]);
 }

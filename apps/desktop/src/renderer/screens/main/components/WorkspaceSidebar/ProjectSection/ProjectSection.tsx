@@ -271,7 +271,9 @@ export function ProjectSection({
 						onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 						workspaceCount={totalWorkspaceCount}
 						onNewWorkspace={handleNewWorkspace}
-						shortcutIndices={isCollapsed && isModifierHeld ? projectShortcutIndices : []}
+						shortcutIndices={
+							isCollapsed && isModifierHeld ? projectShortcutIndices : []
+						}
 					/>
 				</div>
 				<AnimatePresence initial={false}>
@@ -374,7 +376,9 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
-					shortcutIndices={isCollapsed && isModifierHeld ? projectShortcutIndices : []}
+					shortcutIndices={
+						isCollapsed && isModifierHeld ? projectShortcutIndices : []
+					}
 				/>
 			</div>
 

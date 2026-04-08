@@ -213,10 +213,7 @@ export function ProjectHeader({
 							{shortcutIndices.length > 0 && (
 								<div className="flex items-center gap-1 mt-1">
 									{shortcutIndices.map((idx) => (
-										<WorkspaceShortcutBadge
-											key={idx}
-											label={String(idx + 1)}
-										/>
+										<WorkspaceShortcutBadge key={idx} label={String(idx + 1)} />
 									))}
 								</div>
 							)}
