@@ -16,6 +16,7 @@ import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranch
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
+import { useModifierKeyStateStore } from "renderer/stores/modifier-key-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
@@ -31,6 +32,7 @@ import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
+import { WorkspaceShortcutBadge } from "./WorkspaceShortcutBadge";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
 
 interface WorkspaceListItemProps {
@@ -107,6 +109,12 @@ export function WorkspaceListItem({
 		(s) =>
 			s.activeDragItem?.selectedIds?.includes(id) && s.activeDragItem.id !== id,
 	);
+
+	const isModifierHeld = useModifierKeyStateStore((s) => s.isModifierHeld);
+	const showShortcutBadge =
+		isModifierHeld &&
+		shortcutIndex !== undefined &&
+		shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX;
 
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
@@ -401,39 +409,46 @@ export function WorkspaceListItem({
 										additions={diffStats.additions}
 										deletions={diffStats.deletions}
 										isActive={isActive}
+										hidden={showShortcutBadge}
 									/>
 								)}
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
-									{shortcutIndex !== undefined &&
-										shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-											<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
-												⌘{shortcutIndex + 1}
-											</span>
-										)}
-									{!isBranchWorkspace && (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDeleteClick();
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Close workspace"
-												>
-													<HiMiniXMark className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
-												<HotkeyLabel
-													label="Close workspace"
-													id={isActive ? "CLOSE_WORKSPACE" : undefined}
+								{showShortcutBadge ? (
+									<WorkspaceShortcutBadge
+										label={String(shortcutIndex + 1)}
+									/>
+								) : (
+									<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+										{shortcutIndex !== undefined &&
+											shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
+												<WorkspaceShortcutBadge
+													label={`⌘${shortcutIndex + 1}`}
 												/>
-											</TooltipContent>
-										</Tooltip>
-									)}
-								</div>
+											)}
+										{!isBranchWorkspace && (
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleDeleteClick();
+														}}
+														className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+														aria-label="Close workspace"
+													>
+														<HiMiniXMark className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top" sideOffset={4}>
+													<HotkeyLabel
+														label="Close workspace"
+														id={isActive ? "CLOSE_WORKSPACE" : undefined}
+													/>
+												</TooltipContent>
+											</Tooltip>
+										)}
+									</div>
+								)}
 							</div>
 						</div>
 
