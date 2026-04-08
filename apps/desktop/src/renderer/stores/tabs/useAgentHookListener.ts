@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
@@ -51,23 +51,7 @@ function getCurrentWorkspaceId(): string | null {
 
 export function useAgentHookListener() {
 	const navigate = useNavigate();
-	const collections = useCollections();
-	const utils = electronTrpc.useUtils();
-	const updateLastActivityAtMutation =
-		electronTrpc.workspaces.updateLastActivityAt.useMutation({
-			onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
-		});
-	const updateLastActivityAt = useCallback(
-		(wId: string) => {
-			if (collections.v2WorkspaceLocalState.get(wId)) {
-				collections.v2WorkspaceLocalState.update(wId, (draft) => {
-					draft.lastActivityAt = new Date();
-				});
-			}
-			updateLastActivityAtMutation.mutate({ workspaceId: wId });
-		},
-		[collections, updateLastActivityAtMutation],
-	);
+	const updateLastActivityAt = useUpdateLastActivityAt();
 
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {

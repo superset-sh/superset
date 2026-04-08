@@ -62,8 +62,7 @@ export function computeVisualOrder(
 	return orderedIds;
 }
 
-/** Sort comparator: lastActivityAt DESC, then tabOrder ASC for null activity */
-function compareByActivity(a: WorkspaceLike, b: WorkspaceLike): number {
+export function compareByActivity(a: WorkspaceLike, b: WorkspaceLike): number {
 	if (a.lastActivityAt !== null && b.lastActivityAt !== null) {
 		return b.lastActivityAt - a.lastActivityAt;
 	}
