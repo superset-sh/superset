@@ -84,7 +84,6 @@ const fallbackMatchers: RegExp[] = [
 	// Example: PS C:\Users\foo>
 	// Example: C:\Users\foo>
 	/^(?:PS\s+)?(?<link>(?<path>[^>]+))>/,
-
 ];
 
 /**
