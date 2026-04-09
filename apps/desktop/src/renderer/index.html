@@ -14,10 +14,10 @@
       - connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% https://*.posthog.com https://*.sentry.io sentry-ipc: Allow WebSocket + API + Electric proxy + PostHog + Sentry + data URIs (file attachment upload via data URL) + blob URIs + localhost host-service
       - img-src 'self' data: blob: https: http:: Allow images from any source (needed for favicons, browser pane webview content, and file attachment previews)
       - font-src 'self': Allow fonts from same origin
-      - frame-src https: http: data: blob:: Allow webview browser pane to load any URL
+      - frame-src https: http: data: blob: file:: Allow webview browser pane to load any URL (including local files)
       - child-src 'self' blob:: Allow workers from same origin + blob workers
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: blob: https: http:; font-src 'self'; frame-src https: http: data: blob:; child-src 'self' blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: blob: https: http:; font-src 'self'; frame-src https: http: data: blob: file:; child-src 'self' blob:;" />
   </head>
 
   <body>
