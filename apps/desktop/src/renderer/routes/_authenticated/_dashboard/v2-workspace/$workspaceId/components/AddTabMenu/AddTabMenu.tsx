@@ -1,8 +1,4 @@
-import {
-	DropdownMenuCheckboxItem,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-} from "@superset/ui/dropdown-menu";
+import { DropdownMenuItem } from "@superset/ui/dropdown-menu";
 import { BsTerminalPlus } from "react-icons/bs";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
@@ -11,16 +7,12 @@ interface AddTabMenuProps {
 	onAddTerminal: () => void;
 	onAddChat: () => void;
 	onAddBrowser: () => void;
-	showPresetsBar: boolean;
-	onTogglePresetsBar: (enabled: boolean) => void;
 }
 
 export function AddTabMenu({
 	onAddTerminal,
 	onAddChat,
 	onAddBrowser,
-	showPresetsBar,
-	onTogglePresetsBar,
 }: AddTabMenuProps) {
 	return (
 		<>
@@ -39,14 +31,6 @@ export function AddTabMenu({
 				<span>Browser</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<DropdownMenuCheckboxItem
-				checked={showPresetsBar}
-				onCheckedChange={(checked) => onTogglePresetsBar(checked === true)}
-				onSelect={(event) => event.preventDefault()}
-			>
-				Show Preset Bar
-			</DropdownMenuCheckboxItem>
 		</>
 	);
 }
