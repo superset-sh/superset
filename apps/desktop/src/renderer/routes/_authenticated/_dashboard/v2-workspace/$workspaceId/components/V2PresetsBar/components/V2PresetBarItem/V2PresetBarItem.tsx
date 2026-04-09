@@ -22,7 +22,6 @@ interface V2PresetBarItemProps {
 	pinnedIndex: number;
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
-	canOpen: boolean;
 	onOpenInNewTab: (preset: V2TerminalPresetRow) => void;
 	onEdit: (preset: V2TerminalPresetRow) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
@@ -34,7 +33,6 @@ export function V2PresetBarItem({
 	pinnedIndex,
 	hotkeyId,
 	isDark,
-	canOpen,
 	onOpenInNewTab,
 	onEdit,
 	onLocalReorder,
@@ -111,10 +109,7 @@ export function V2PresetBarItem({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
-				<ContextMenuItem
-					disabled={!canOpen}
-					onSelect={() => onOpenInNewTab(preset)}
-				>
+				<ContextMenuItem onSelect={() => onOpenInNewTab(preset)}>
 					Open in new tab
 				</ContextMenuItem>
 				<ContextMenuSeparator />

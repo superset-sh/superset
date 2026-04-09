@@ -24,13 +24,13 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import { useSeedDefaultV2Presets } from "renderer/routes/_authenticated/hooks/useSeedDefaultV2Presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
-import { useSeedDefaultV2Presets } from "./hooks/useSeedDefaultV2Presets";
 
 interface V2PresetsBarProps {
 	workspaceId: string;
@@ -382,7 +382,6 @@ export function V2PresetsBar({
 						pinnedIndex={pinnedIndex}
 						hotkeyId={hotkeyId}
 						isDark={isDark}
-						canOpen={!!workspaceId}
 						onOpenInNewTab={openPresetInNewTab}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
 						onLocalReorder={handleLocalPinnedReorder}

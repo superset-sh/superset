@@ -3,17 +3,13 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
-import {
-	AGENT_PRESET_COMMANDS,
-	AGENT_PRESET_DESCRIPTIONS,
-	DEFAULT_TERMINAL_PRESET_AGENT_TYPES,
-} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { useSeedDefaultV2Presets } from "renderer/routes/_authenticated/hooks/useSeedDefaultV2Presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
@@ -36,8 +32,6 @@ interface V2PresetsSectionProps {
 	onPendingCreateProjectIdChange?: (projectId: string | null) => void;
 }
 
-const V2_SEED_MARKER_KEY = "v2-terminal-presets-seeded";
-
 /**
  * V2 terminal presets UI — a clone of PresetsSection wired to the
  * renderer-side v2TerminalPresets collection instead of the v1 main-process
@@ -57,6 +51,7 @@ export function V2PresetsSection({
 }: V2PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
+	useSeedDefaultV2Presets();
 
 	const { data: v2Presets = [] } = useLiveQuery(
 		(query) =>
@@ -73,37 +68,6 @@ export function V2PresetsSection({
 				.orderBy(({ v2Projects }) => v2Projects.name),
 		[collections],
 	);
-
-	// Seed default agent presets on first load per device. Shares its marker
-	// key with V2PresetsBar so whichever entry point loads first seeds, and
-	// the other is a no-op.
-	const seededRef = useRef(false);
-	useEffect(() => {
-		if (seededRef.current) return;
-		if (localStorage.getItem(V2_SEED_MARKER_KEY) === "1") {
-			seededRef.current = true;
-			return;
-		}
-		for (const [
-			index,
-			agent,
-		] of DEFAULT_TERMINAL_PRESET_AGENT_TYPES.entries()) {
-			collections.v2TerminalPresets.insert({
-				id: crypto.randomUUID(),
-				name: agent,
-				description: AGENT_PRESET_DESCRIPTIONS[agent],
-				cwd: "",
-				commands: AGENT_PRESET_COMMANDS[agent],
-				projectIds: null,
-				pinnedToBar: true,
-				executionMode: "new-tab",
-				tabOrder: index,
-				createdAt: new Date(),
-			});
-		}
-		localStorage.setItem(V2_SEED_MARKER_KEY, "1");
-		seededRef.current = true;
-	}, [collections.v2TerminalPresets]);
 
 	// V2TerminalPresetRow is a structural superset of TerminalPreset (adds
 	// tabOrder + createdAt), so the dumb sub-components can consume it as-is.
