@@ -36,3 +36,14 @@ targets:
             echo "warning: bun not found, skipping web content build"
           fi
         basedOnDependencyAnalysis: false
+  SupersetShellTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests
+    dependencies:
+      - target: SupersetShell
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_MODULE_NAME: SupersetShellTests

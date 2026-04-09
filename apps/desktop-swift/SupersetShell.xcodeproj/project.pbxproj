@@ -7,19 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB204BB0EB8E9E43776037F8 /* PTYSession.swift */; };
+		7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78717C838D7276434EE866E1 /* PTYSessionTests.swift */; };
 		87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23ED462F661EDEF126FC079 /* SupersetApp.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		55C42CF7D1F8DDDF5AC98776 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1D0C31FF35EB4D61CC9EA732 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5E28C4E59393F07B98ACC04E;
+			remoteInfo = SupersetShell;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		3D30DFFD86E8C13BFC519CF3 /* SupersetShellTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SupersetShellTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		78717C838D7276434EE866E1 /* PTYSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionTests.swift; sourceTree = "<group>"; };
 		A23ED462F661EDEF126FC079 /* SupersetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetApp.swift; sourceTree = "<group>"; };
+		BB204BB0EB8E9E43776037F8 /* PTYSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSession.swift; sourceTree = "<group>"; };
 		EFA9AB08E275D403033F5B3F /* SupersetShell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SupersetShell.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		3F51D25EA32120B5CB2098BF /* PTY */ = {
+			isa = PBXGroup;
+			children = (
+				BB204BB0EB8E9E43776037F8 /* PTYSession.swift */,
+			);
+			path = PTY;
+			sourceTree = "<group>";
+		};
 		4B902F70CBE961F2DC381457 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				6440F03073F7A16B558815ED /* App */,
+				3F51D25EA32120B5CB2098BF /* PTY */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -36,6 +60,7 @@
 			isa = PBXGroup;
 			children = (
 				4B902F70CBE961F2DC381457 /* Sources */,
+				ED79E24F489E984EC0C6AC7C /* Tests */,
 				CF41C90C1C01638960CCBB93 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,8 +69,17 @@
 			isa = PBXGroup;
 			children = (
 				EFA9AB08E275D403033F5B3F /* SupersetShell.app */,
+				3D30DFFD86E8C13BFC519CF3 /* SupersetShellTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		ED79E24F489E984EC0C6AC7C /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				78717C838D7276434EE866E1 /* PTYSessionTests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -68,6 +102,24 @@
 			productName = SupersetShell;
 			productReference = EFA9AB08E275D403033F5B3F /* SupersetShell.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7A2EDEFA7B8EBD6B84459D01 /* SupersetShellTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C674164F88FBB9D5B75C351 /* Build configuration list for PBXNativeTarget "SupersetShellTests" */;
+			buildPhases = (
+				02309996E89BF1D153B781D8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B94639A279B9DD50B7624012 /* PBXTargetDependency */,
+			);
+			name = SupersetShellTests;
+			packageProductDependencies = (
+			);
+			productName = SupersetShellTests;
+			productReference = 3D30DFFD86E8C13BFC519CF3 /* SupersetShellTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -95,6 +147,7 @@
 			projectRoot = "";
 			targets = (
 				5E28C4E59393F07B98ACC04E /* SupersetShell */,
+				7A2EDEFA7B8EBD6B84459D01 /* SupersetShellTests */,
 			);
 		};
 /* End PBXProject section */
@@ -122,17 +175,51 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		02309996E89BF1D153B781D8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0DE0E549A0F5449D64A81061 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */,
 				87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		B94639A279B9DD50B7624012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5E28C4E59393F07B98ACC04E /* SupersetShell */;
+			targetProxy = 55C42CF7D1F8DDDF5AC98776 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		226F40E2D70468B0EE0A7532 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_MODULE_NAME = SupersetShellTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SupersetShell.app/Contents/MacOS/SupersetShell";
+			};
+			name = Debug;
+		};
 		4721F4AD056DEBFB0421E29B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -215,6 +302,23 @@
 			};
 			name = Debug;
 		};
+		9DD7B434AA8FBD6D8D84DC28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_MODULE_NAME = SupersetShellTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SupersetShell.app/Contents/MacOS/SupersetShell";
+			};
+			name = Release;
+		};
 		C18B7252254560446BA986EB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -293,6 +397,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5C674164F88FBB9D5B75C351 /* Build configuration list for PBXNativeTarget "SupersetShellTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				226F40E2D70468B0EE0A7532 /* Debug */,
+				9DD7B434AA8FBD6D8D84DC28 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		D3F3C1CE59A5C6EDC3E31833 /* Build configuration list for PBXProject "SupersetShell" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
