@@ -186,6 +186,16 @@ class TerminalRuntimeRegistryImpl {
 	}
 }
 
-export const terminalRuntimeRegistry = new TerminalRuntimeRegistryImpl();
+// In dev, preserve the singleton across Vite HMR so active WebSocket
+// connections and xterm instances aren't orphaned on module re-evaluation.
+// import.meta.hot is undefined in production so this is a plain `new` call.
+export const terminalRuntimeRegistry: TerminalRuntimeRegistryImpl =
+	(import.meta.hot?.data?.registry as
+		| TerminalRuntimeRegistryImpl
+		| undefined) ?? new TerminalRuntimeRegistryImpl();
+
+if (import.meta.hot) {
+	import.meta.hot.data.registry = terminalRuntimeRegistry;
+}
 
 export type { ConnectionState, TerminalLinkHandlers };
