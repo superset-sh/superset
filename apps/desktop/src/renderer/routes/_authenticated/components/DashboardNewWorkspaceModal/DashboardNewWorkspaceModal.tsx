@@ -29,6 +29,7 @@ export function DashboardNewWorkspaceModal() {
 				</DialogHeader>
 				<DialogContent
 					showCloseButton={false}
+					onFocusOutside={(e) => e.preventDefault()}
 					className="bg-popover text-popover-foreground sm:max-w-[560px] max-h-[min(70vh,600px)] !top-[calc(50%-min(35vh,300px))] !-translate-y-0 flex flex-col overflow-hidden p-0"
 				>
 					<DashboardNewWorkspaceForm
