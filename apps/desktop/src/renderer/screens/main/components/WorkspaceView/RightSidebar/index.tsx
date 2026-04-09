@@ -6,6 +6,7 @@ import {
 	LuExpand,
 	LuFile,
 	LuGitCompareArrows,
+	LuMonitorSmartphone,
 	LuShrink,
 	LuX,
 } from "react-icons/lu";
@@ -22,6 +23,7 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
 import { FilesView } from "./FilesView";
+import { SshConfigPanel } from "./SshConfigPanel";
 import { getSidebarHeaderTabButtonClassName } from "./headerTabStyles";
 
 function TabButton({
@@ -78,6 +80,12 @@ export function RightSidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
+	const { data: worktreeInfo } =
+		electronTrpc.workspaces.getWorktreeInfo.useQuery(
+			{ workspaceId: workspaceId ?? "" },
+			{ enabled: !!workspaceId },
+		);
+	const isSSH = !!worktreeInfo?.sshConfig;
 	const currentMode = useSidebarStore((s) => s.currentMode);
 	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
 	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
@@ -177,6 +185,15 @@ export function RightSidebar() {
 						label="Files"
 						compact={compactTabs}
 					/>
+					{isSSH && (
+						<TabButton
+							isActive={rightSidebarTab === RightSidebarTab.SSH}
+							onClick={() => setRightSidebarTab(RightSidebarTab.SSH)}
+							icon={<LuMonitorSmartphone className="size-3.5" />}
+							label="SSH"
+							compact={compactTabs}
+						/>
+					)}
 				</div>
 				<div className="flex-1" />
 				<div className="flex items-center h-10 pr-2 gap-0.5">
@@ -236,13 +253,25 @@ export function RightSidebar() {
 			)}
 			<div
 				className={
-					rightSidebarTab === RightSidebarTab.Changes && showChangesTab
-						? "hidden"
-						: "flex-1 min-h-0 flex flex-col overflow-hidden"
+					rightSidebarTab === RightSidebarTab.Files ||
+					(!showChangesTab && rightSidebarTab === RightSidebarTab.Changes)
+						? "flex-1 min-h-0 flex flex-col overflow-hidden"
+						: "hidden"
 				}
 			>
 				<FilesView />
 			</div>
+			{rightSidebarTab === RightSidebarTab.SSH &&
+				isSSH &&
+				workspaceId &&
+				worktreeInfo.sshConfig && (
+					<div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+						<SshConfigPanel
+							workspaceId={workspaceId}
+							sshConfig={worktreeInfo.sshConfig}
+						/>
+					</div>
+				)}
 		</aside>
 	);
 }

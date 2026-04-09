@@ -64,7 +64,7 @@ export const createQueryProcedures = () => {
 
 				return {
 					...workspace,
-					type: workspace.type as "worktree" | "branch",
+					type: workspace.type as "worktree" | "branch" | "ssh",
 					worktreePath: getWorkspacePath(workspace) ?? "",
 					project: project
 						? {
@@ -102,7 +102,7 @@ export const createQueryProcedures = () => {
 				sectionId: string | null;
 				worktreeId: string | null;
 				worktreePath: string;
-				type: "worktree" | "branch";
+				type: "worktree" | "branch" | "ssh";
 				branch: string;
 				name: string;
 				tabOrder: number;
@@ -217,7 +217,7 @@ export const createQueryProcedures = () => {
 					const item: WorkspaceItem = {
 						...workspace,
 						sectionId: workspace.sectionId ?? null,
-						type: workspace.type as "worktree" | "branch",
+						type: workspace.type as "worktree" | "branch" | "ssh",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,

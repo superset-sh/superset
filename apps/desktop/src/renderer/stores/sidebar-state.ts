@@ -9,6 +9,7 @@ export enum SidebarMode {
 export enum RightSidebarTab {
 	Changes = "changes",
 	Files = "files",
+	SSH = "ssh",
 }
 
 export const DEFAULT_SIDEBAR_WIDTH = 250;

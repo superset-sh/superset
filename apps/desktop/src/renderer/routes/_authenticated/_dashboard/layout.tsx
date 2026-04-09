@@ -21,6 +21,7 @@ import {
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
 import { TopBar } from "./components/TopBar";
+import { WebviewOverlay } from "./components/WebviewOverlay";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
@@ -134,6 +135,7 @@ function DashboardLayout() {
 					/>
 				)}
 			</div>
+			<WebviewOverlay />
 		</div>
 	);
 }

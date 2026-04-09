@@ -52,9 +52,11 @@ function loadWorkspaceTerminalContext(
 	return {
 		workspace: row.workspace,
 		workspacePath:
-			row.workspace.type === "branch"
-				? (row.mainRepoPath ?? undefined)
-				: (row.worktreePath ?? undefined),
+			row.workspace.type === "ssh"
+				? (row.workspace.sshConfig?.workDir ?? undefined)
+				: row.workspace.type === "branch"
+					? (row.mainRepoPath ?? undefined)
+					: (row.worktreePath ?? undefined),
 		rootPath: row.mainRepoPath ?? undefined,
 	};
 }

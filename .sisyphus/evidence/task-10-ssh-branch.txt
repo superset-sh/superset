@@ -1,0 +1,20 @@
+30:import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+215:				if (workspace.type === "ssh") {
+219:					if (settingsRow?.teardownScript && workspace.sshConfig) {
+222:								"main/lib/ssh/script-executor"
+226:								settingsRow.teardownScript,
+227:								workspace.sshConfig,
+231:								"[workspace/delete] SSH teardown script failed:",
+237:					getWorkspaceRuntimeRegistry().removeRuntime(input.id);
+250:				let teardownPromise:
+257:						teardownPromise = runTeardown({
+265:							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
+270:						`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
+274:				const [terminalResult, teardownResult] = await Promise.all([
+276:					teardownPromise ?? Promise.resolve({ success: true as const }),
+279:				if (teardownResult && !teardownResult.success) {
+283:							teardownResult.error,
+288:							teardownResult.error,
+293:							error: `Teardown failed: ${teardownResult.error}`,
+294:							output: teardownResult.output,
+557:							const teardownResult = await runTeardown({

@@ -1,4 +1,9 @@
-import { workspaceSections, workspaces, worktrees } from "@superset/local-db";
+import {
+	sshWorkspaceConfigSchema,
+	workspaceSections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -187,6 +192,33 @@ export const createStatusProcedures = () => {
 				setLastActiveWorkspace(input.workspaceId);
 
 				return { success: true, workspaceId: input.workspaceId };
+			}),
+
+		updateSshConfig: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					sshConfig: sshWorkspaceConfigSchema,
+				}),
+			)
+			.mutation(({ input }) => {
+				const workspace = getWorkspaceNotDeleting(input.id);
+				if (!workspace) {
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
+				}
+				if (workspace.type !== "ssh") {
+					throw new Error(`Workspace ${input.id} is not an SSH workspace`);
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ sshConfig: input.sshConfig })
+					.where(eq(workspaces.id, input.id))
+					.run();
+
+				return { success: true };
 			}),
 
 		syncBranch: publicProcedure

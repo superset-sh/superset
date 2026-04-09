@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { LuFolderGit2, LuLaptop } from "react-icons/lu";
+import { LuCloud, LuFolderGit2, LuLaptop } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { ActivePaneStatus } from "shared/tabs-types";
@@ -7,6 +7,7 @@ import { STROKE_WIDTH } from "../constants";
 
 interface WorkspaceIconProps {
 	isBranchWorkspace: boolean;
+	isSSH: boolean;
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
@@ -20,6 +21,7 @@ const OVERLAY_POSITION = {
 
 export function WorkspaceIcon({
 	isBranchWorkspace,
+	isSSH,
 	isActive,
 	isUnread,
 	workspaceStatus,
@@ -32,6 +34,15 @@ export function WorkspaceIcon({
 		<>
 			{workspaceStatus === "working" ? (
 				<AsciiSpinner className="text-base" />
+			) : isSSH ? (
+				<LuCloud
+					className={cn(
+						"size-4",
+						variant === "expanded" && "transition-colors",
+						iconColor,
+					)}
+					strokeWidth={STROKE_WIDTH}
+				/>
 			) : isBranchWorkspace ? (
 				<LuLaptop
 					className={cn(

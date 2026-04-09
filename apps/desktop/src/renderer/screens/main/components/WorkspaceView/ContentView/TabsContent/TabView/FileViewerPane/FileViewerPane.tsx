@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
-import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import type { MarkdownEditorAdapter } from "renderer/components/MarkdownRenderer";
@@ -54,6 +53,7 @@ interface FileViewerPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	tabId: string;
+	workspaceId: string;
 	worktreePath: string;
 	splitPaneAuto: (
 		tabId: string,
@@ -117,6 +117,7 @@ export function FileViewerPane({
 	paneId,
 	path,
 	tabId,
+	workspaceId,
 	worktreePath,
 	splitPaneAuto,
 	splitPaneHorizontal,
@@ -127,8 +128,6 @@ export function FileViewerPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
-	const { workspaceId } = useParams({ strict: false });
-	const normalizedWorkspaceId = workspaceId ?? worktreePath;
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const isFocused = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
@@ -160,13 +159,13 @@ export function FileViewerPane({
 	const documentKey = useMemo(
 		() =>
 			buildEditorDocumentKey({
-				workspaceId: normalizedWorkspaceId,
+				workspaceId,
 				filePath,
 				diffCategory,
 				commitHash,
 				oldPath,
 			}),
-		[normalizedWorkspaceId, filePath, diffCategory, commitHash, oldPath],
+		[workspaceId, filePath, diffCategory, commitHash, oldPath],
 	);
 	const documentState = useEditorDocumentsStore(
 		(state) => state.documents[documentKey],
@@ -225,7 +224,7 @@ export function FileViewerPane({
 	});
 
 	useEffect(() => {
-		if (!fileViewer || !normalizedWorkspaceId) {
+		if (!fileViewer) {
 			return;
 		}
 
@@ -237,7 +236,7 @@ export function FileViewerPane({
 		bindFileViewerSession(
 			paneId,
 			{
-				workspaceId: normalizedWorkspaceId,
+				workspaceId,
 				filePath,
 				diffCategory,
 				commitHash,
@@ -255,7 +254,7 @@ export function FileViewerPane({
 	}, [
 		paneId,
 		fileViewer,
-		normalizedWorkspaceId,
+		workspaceId,
 		filePath,
 		diffCategory,
 		commitHash,

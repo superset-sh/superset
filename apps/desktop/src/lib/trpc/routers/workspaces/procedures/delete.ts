@@ -1,7 +1,7 @@
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SelectWorktree } from "@superset/local-db";
-import { worktrees } from "@superset/local-db";
+import { settings, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -212,6 +212,41 @@ export const createDeleteProcedures = () => {
 					.getForWorkspaceId(input.id)
 					.terminal.killByWorkspaceId(input.id);
 
+				if (workspace.type === "ssh") {
+					await terminalPromise.catch(() => {});
+
+					const settingsRow = localDb.select().from(settings).get();
+					if (settingsRow?.teardownScript && workspace.sshConfig) {
+						try {
+							const { ScriptExecutor } = await import(
+								"main/lib/ssh/script-executor"
+							);
+							const executor = new ScriptExecutor();
+							await executor.runTeardownScript(
+								settingsRow.teardownScript,
+								workspace.sshConfig,
+							);
+						} catch (e) {
+							console.warn(
+								"[workspace/delete] SSH teardown script failed:",
+								e instanceof Error ? e.message : String(e),
+							);
+						}
+					}
+
+					getWorkspaceRuntimeRegistry().removeRuntime(input.id);
+
+					deleteWorkspace(input.id);
+					if (project) {
+						hideProjectIfNoWorkspaces(workspace.projectId);
+					}
+
+					track("workspace_deleted", { workspace_id: input.id });
+					workspaceInitManager.clearJob(input.id);
+
+					return { success: true };
+				}
+
 				let teardownPromise:
 					| Promise<{ success: boolean; error?: string; output?: string }>
 					| undefined;
@@ -351,14 +386,19 @@ export const createDeleteProcedures = () => {
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
+				const runtimeRegistry = getWorkspaceRuntimeRegistry();
 
 				if (!workspace) {
 					throw new Error("Workspace not found");
 				}
 
-				const terminalResult = await getWorkspaceRuntimeRegistry()
+				const terminalResult = await runtimeRegistry
 					.getForWorkspaceId(input.id)
 					.terminal.killByWorkspaceId(input.id);
+
+				if (workspace.type === "ssh") {
+					runtimeRegistry.removeRuntime(input.id);
+				}
 
 				deleteWorkspace(input.id);
 				hideProjectIfNoWorkspaces(workspace.projectId);

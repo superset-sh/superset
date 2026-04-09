@@ -172,10 +172,21 @@ export const agentCustomDefinitionSchema = z.object({
 
 export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
 
+export const sshWorkspaceConfigSchema = z.object({
+	host: z.string(),
+	port: z.number(),
+	user: z.string(),
+	identityFile: z.string().optional(),
+	workDir: z.string(),
+	containerName: z.string().optional(),
+});
+
+export type SshWorkspaceConfig = z.infer<typeof sshWorkspaceConfigSchema>;
+
 /**
  * Workspace type
  */
-export const workspaceTypeSchema = z.enum(["worktree", "branch"]);
+export const workspaceTypeSchema = z.enum(["worktree", "branch", "ssh"]);
 
 export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
 

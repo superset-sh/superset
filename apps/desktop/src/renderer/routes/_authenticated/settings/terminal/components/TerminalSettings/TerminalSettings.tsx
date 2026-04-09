@@ -7,6 +7,7 @@ import {
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
+import { SshSection } from "./components/SshSection";
 
 interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -60,6 +61,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
 	);
+	const showSshWorkspaces = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_SSH_WORKSPACES,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-7xl w-full">
@@ -83,6 +88,7 @@ export function TerminalSettings({
 					/>
 				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
+				{showSshWorkspaces && <SshSection key="ssh-workspaces" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>
 		</div>

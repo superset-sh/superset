@@ -1,10 +1,17 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	type SshWorkspaceConfig,
+	projects,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { getSettings } from "../../settings";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
@@ -266,6 +273,7 @@ export const createCreateProcedures = () => {
 						name: z.string().optional(),
 						prompt: z.string().optional(),
 						branchName: z.string().optional(),
+						ssh: z.boolean().optional(),
 						compareBaseBranch: z.string().optional(),
 						sourceWorkspaceId: z.string().optional(),
 						useExistingBranch: z.boolean().optional(),
@@ -316,6 +324,103 @@ export const createCreateProcedures = () => {
 					throw new Error(
 						`Source workspace "${sourceWorkspace.id}" is not backed by a worktree`,
 					);
+				}
+
+				if (input.ssh === true) {
+					const workspaceId = crypto.randomUUID();
+					const settingsRow = getSettings();
+					const devcontainerScript = settingsRow.devcontainerScript?.trim();
+
+					if (!devcontainerScript) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"No devcontainer script configured. Go to Settings > Terminal > SSH Workspaces to configure one.",
+						});
+					}
+
+					const sshBranch =
+						input.branchName?.trim() ||
+						project.defaultBranch ||
+						project.workspaceBaseBranch ||
+						"main";
+
+					let repoUrl = project.mainRepoPath;
+					try {
+						const { execSync } = await import("node:child_process");
+						repoUrl = execSync("git remote get-url origin", {
+							cwd: project.mainRepoPath,
+							encoding: "utf8",
+						}).trim();
+					} catch {
+						repoUrl = project.mainRepoPath;
+					}
+
+					const { ScriptExecutor } = await import(
+						"main/lib/ssh/script-executor"
+					);
+					const executor = new ScriptExecutor();
+
+					const isNewBranch = !input.useExistingBranch;
+
+					const sshBranchNoPrefix = sshBranch.includes("/")
+						? sshBranch.slice(sshBranch.indexOf("/") + 1)
+						: sshBranch;
+
+					let sshConfig: SshWorkspaceConfig;
+					try {
+						sshConfig = await executor.runDevcontainerScript(
+							devcontainerScript,
+							{
+								repo: repoUrl,
+								branch: sshBranch,
+								branchNoPrefix: sshBranchNoPrefix,
+								newBranch: isNewBranch,
+								workspaceName: input.name ?? "workspace",
+								workspaceId,
+							},
+						);
+					} catch (error) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Devcontainer script failed: ${error instanceof Error ? error.message : String(error)}`,
+						});
+					}
+
+					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
+					const workspace = localDb
+						.insert(workspaces)
+						.values({
+							id: workspaceId,
+							projectId: project.id,
+							type: "ssh",
+							name: input.name ?? "SSH Workspace",
+							branch: sshBranch,
+							worktreeId: null,
+							sshConfig,
+							tabOrder: maxTabOrder + 1,
+						})
+						.returning()
+						.get();
+
+					setLastActiveWorkspace(workspace.id);
+					activateProject(project);
+
+					track("workspace_created", {
+						workspace_id: workspace.id,
+						project_id: project.id,
+						branch: sshBranch,
+						type: "ssh",
+					});
+
+					return {
+						workspace,
+						initialCommands: null,
+						worktreePath: sshConfig.workDir,
+						projectId: project.id,
+						isInitializing: false,
+						wasExisting: false,
+					};
 				}
 
 				let existingBranchName: string | undefined;

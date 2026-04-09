@@ -39,6 +39,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_SSH_WORKSPACES: "terminal-ssh-workspaces",
 
 	MODELS_ANTHROPIC: "models-anthropic",
 	MODELS_OPENAI: "models-openai",
@@ -615,6 +616,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_SSH_WORKSPACES,
+		section: "terminal",
+		title: "SSH Workspaces",
+		description: "Scripts for creating and destroying remote devcontainers",
+		keywords: [
+			"ssh",
+			"remote",
+			"devcontainer",
+			"teardown",
+			"workspace",
+			"script",
+			"container",
+			"cloud",
 		],
 	},
 	{

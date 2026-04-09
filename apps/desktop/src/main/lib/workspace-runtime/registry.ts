@@ -13,7 +13,11 @@
  * - Local + cloud workspaces can coexist
  */
 
+import { sshWorkspaceConfigSchema, workspaces } from "@superset/local-db";
+import { eq } from "drizzle-orm";
+import { localDb } from "../local-db";
 import { LocalWorkspaceRuntime } from "./local";
+import { SshWorkspaceRuntime } from "./ssh";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
 
 // =============================================================================
@@ -28,30 +32,46 @@ import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
  */
 class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
 	private localRuntime: LocalWorkspaceRuntime | null = null;
+	private readonly sshRuntimes = new Map<string, SshWorkspaceRuntime>();
 
-	/**
-	 * Get the runtime for a specific workspace.
-	 *
-	 * Currently always returns the local runtime.
-	 * Future: will check workspace metadata to select local vs cloud.
-	 */
-	getForWorkspaceId(_workspaceId: string): WorkspaceRuntime {
-		// Currently all workspaces use the local runtime
-		// Future: check workspace metadata for cloudWorkspaceId to select cloud runtime
+	getForWorkspaceId(workspaceId: string): WorkspaceRuntime {
+		const cached = this.sshRuntimes.get(workspaceId);
+		if (cached) {
+			return cached;
+		}
+
+		const workspace = localDb
+			.select({
+				type: workspaces.type,
+				sshConfig: workspaces.sshConfig,
+			})
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+
+		if (workspace?.type === "ssh" && workspace.sshConfig != null) {
+			const config = sshWorkspaceConfigSchema.parse(workspace.sshConfig);
+			const runtime = new SshWorkspaceRuntime(workspaceId, config);
+			this.sshRuntimes.set(workspaceId, runtime);
+			return runtime;
+		}
+
 		return this.getDefault();
 	}
 
-	/**
-	 * Get the default runtime (for global/legacy endpoints).
-	 *
-	 * Returns the local runtime, lazily initialized.
-	 * The runtime instance is cached for the lifetime of the process.
-	 */
 	getDefault(): WorkspaceRuntime {
 		if (!this.localRuntime) {
 			this.localRuntime = new LocalWorkspaceRuntime();
 		}
 		return this.localRuntime;
+	}
+
+	removeRuntime(workspaceId: string): void {
+		const runtime = this.sshRuntimes.get(workspaceId);
+		if (runtime) {
+			runtime.cleanup().catch(() => {});
+			this.sshRuntimes.delete(workspaceId);
+		}
 	}
 }
 

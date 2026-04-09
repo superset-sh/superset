@@ -83,7 +83,7 @@ function isValidRingtoneId(ringtoneId: string): boolean {
 	return false;
 }
 
-function getSettings() {
+export function getSettings() {
 	let row = localDb.select().from(settings).get();
 	if (!row) {
 		row = localDb.insert(settings).values({ id: 1 }).returning().get();
@@ -922,6 +922,44 @@ export const createSettingsRouter = () => {
 					})
 					.run();
 
+				return { success: true };
+			}),
+
+		getDevcontainerScript: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.devcontainerScript ?? null;
+		}),
+
+		setDevcontainerScript: publicProcedure
+			.input(z.object({ script: z.string().nullable() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, devcontainerScript: input.script })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { devcontainerScript: input.script },
+					})
+					.run();
+				return { success: true };
+			}),
+
+		getTeardownScript: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.teardownScript ?? null;
+		}),
+
+		setTeardownScript: publicProcedure
+			.input(z.object({ script: z.string().nullable() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, teardownScript: input.script })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { teardownScript: input.script },
+					})
+					.run();
 				return { success: true };
 			}),
 

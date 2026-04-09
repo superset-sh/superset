@@ -64,6 +64,8 @@ export function WorkspaceHoverCardContent({
 
 	const worktreeName = worktreeInfo?.worktreeName;
 	const branchName = worktreeInfo?.branchName;
+	const sshConfig = worktreeInfo?.sshConfig;
+	const isSshWorkspace = !!sshConfig;
 	const hasCustomAlias =
 		workspaceAlias && worktreeName && workspaceAlias !== worktreeName;
 
@@ -100,6 +102,19 @@ export function WorkspaceHoverCardContent({
 						)}
 					</div>
 				)}
+				{sshConfig && (
+					<div className="space-y-0.5">
+						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+							SSH Connection
+						</span>
+						<div className="text-xs font-mono space-y-0.5">
+							<div>
+								{sshConfig.user}@{sshConfig.host}:{sshConfig.port}
+							</div>
+							<div className="text-muted-foreground">{sshConfig.workDir}</div>
+						</div>
+					</div>
+				)}
 				{worktreeInfo?.createdAt && (
 					<span className="text-xs text-muted-foreground block">
 						{formatDistanceToNow(worktreeInfo.createdAt, { addSuffix: true })}
@@ -120,7 +135,7 @@ export function WorkspaceHoverCardContent({
 				</div>
 			)}
 
-			{isLoadingGithub ? (
+			{!isSshWorkspace && isLoadingGithub ? (
 				<div className="flex items-center gap-2 text-muted-foreground pt-2 border-t border-border">
 					<LuLoaderCircle
 						className="size-3 animate-spin"
@@ -128,7 +143,7 @@ export function WorkspaceHoverCardContent({
 					/>
 					<span className="text-xs">Loading PR...</span>
 				</div>
-			) : pr ? (
+			) : !isSshWorkspace && pr ? (
 				<div className="pt-2 border-t border-border space-y-2">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-1.5 flex-wrap">
@@ -184,7 +199,7 @@ export function WorkspaceHoverCardContent({
 					</Button>
 					{previewButton}
 				</div>
-			) : repoUrl ? (
+			) : !isSshWorkspace && repoUrl ? (
 				<div className="pt-2 border-t border-border space-y-2">
 					<div className="text-xs text-muted-foreground">
 						No PR for this branch

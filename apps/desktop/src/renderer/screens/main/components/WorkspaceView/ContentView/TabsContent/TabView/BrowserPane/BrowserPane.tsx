@@ -46,17 +46,14 @@ export function BrowserPane({
 		electronTrpc.browser.openDevTools.useMutation();
 
 	const {
-		containerRef,
+		slotRef,
 		goBack,
 		goForward,
 		reload,
 		navigateTo,
 		canGoBack,
 		canGoForward,
-	} = usePersistentWebview({
-		paneId,
-		initialUrl: currentUrl,
-	});
+	} = usePersistentWebview({ paneId });
 
 	const handleOpenDevTools = useCallback(() => {
 		openDevTools({ paneId });
@@ -114,13 +111,16 @@ export function BrowserPane({
 				</div>
 			)}
 		>
-			<div className="relative flex flex-1 h-full">
-				<div ref={containerRef} className="w-full h-full" style={{ flex: 1 }} />
+			<div className="relative flex flex-1 h-full pointer-events-none">
+				{/* Transparent slot — the overlay positions the real webview behind this */}
+				<div ref={slotRef} className="w-full h-full" style={{ flex: 1 }} />
 				{loadError && !isLoading && (
-					<BrowserErrorOverlay error={loadError} onRetry={reload} />
+					<div className="pointer-events-auto">
+						<BrowserErrorOverlay error={loadError} onRetry={reload} />
+					</div>
 				)}
 				{isBlankPage && !isLoading && !loadError && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background pointer-events-none">
+					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
 						<GlobeIcon className="size-10 text-muted-foreground/30" />
 						<div className="text-center">
 							<p className="text-sm font-medium text-muted-foreground/50">

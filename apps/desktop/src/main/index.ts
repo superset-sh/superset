@@ -1,6 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
+import { eq } from "drizzle-orm";
 import {
 	app,
 	BrowserWindow,
@@ -16,6 +17,7 @@ import {
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { resolveWorkspaceByPath } from "lib/trpc/routers/workspaces/utils/worktree";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -32,6 +34,7 @@ import { getHostServiceManager } from "./lib/host-service-manager";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
+import { sshReconnectionManager } from "./lib/ssh/reconnection";
 import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
@@ -76,6 +79,68 @@ async function processDeepLink(url: string): Promise<void> {
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
 		}
+		return;
+	}
+
+	// Handle open-tab deep links: superset://open-tab?type=webview&url=...&cwd=...
+	try {
+		const parsed = new URL(url);
+		const action = parsed.hostname || parsed.pathname.replace(/^\//, "");
+
+		if (action === "open-tab") {
+			const type = parsed.searchParams.get("type");
+			const tabUrl = parsed.searchParams.get("url");
+			const cwd = parsed.searchParams.get("cwd");
+
+			if (!type || !tabUrl || !cwd) {
+				console.warn(
+					"[main] open-tab deep link missing required params (type, url, cwd)",
+				);
+				return;
+			}
+
+			if (type !== "webview") {
+				console.warn(
+					`[main] open-tab deep link rejected unsupported type: ${type}`,
+				);
+				return;
+			}
+
+			// Security: only allow http/https URLs
+			const urlScheme = new URL(tabUrl).protocol;
+			if (urlScheme !== "http:" && urlScheme !== "https:") {
+				console.warn(
+					`[main] open-tab deep link rejected URL with scheme: ${urlScheme}`,
+				);
+				return;
+			}
+
+			const focus = parsed.searchParams.get("focus") === "true";
+
+			const workspace = resolveWorkspaceByPath(cwd);
+			if (!workspace) {
+				console.warn(
+					`[main] open-tab deep link: no workspace found for cwd: ${cwd}`,
+				);
+				return;
+			}
+
+			if (focus) {
+				focusMainWindow();
+			}
+			const windows = BrowserWindow.getAllWindows();
+			if (windows.length > 0) {
+				windows[0].webContents.send("deep-link-open-tab", {
+					workspaceId: workspace.id,
+					type,
+					url: tabUrl,
+					focus,
+				});
+			}
+			return;
+		}
+	} catch (error) {
+		console.warn("[main] Failed to process open-tab deep link:", error);
 		return;
 	}
 
@@ -345,6 +410,12 @@ if (!gotTheLock) {
 		await loadWebviewBrowserExtension();
 
 		// Must happen before renderer restore runs
+		await sshReconnectionManager.reconcileOnStartup().catch((error) => {
+			console.warn(
+				"[main] SSH reconciliation failed:",
+				error instanceof Error ? error.message : String(error),
+			);
+		});
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 

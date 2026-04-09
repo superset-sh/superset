@@ -1,0 +1,6 @@
+		getDevcontainerScript: publicProcedure.query(() => {
+		setDevcontainerScript: publicProcedure
+		getTeardownScript: publicProcedure.query(() => {
+		setTeardownScript: publicProcedure
+---
+All 4 procedures found in settings router

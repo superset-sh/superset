@@ -218,8 +218,7 @@ export interface WorkspaceRuntime {
 export interface WorkspaceRuntimeRegistry {
 	/**
 	 * Get the runtime for a specific workspace.
-	 * Currently always returns the default local runtime,
-	 * but the interface supports per-workspace selection for cloud.
+	 * Returns an SSH runtime for SSH workspaces, local runtime otherwise.
 	 */
 	getForWorkspaceId(workspaceId: string): WorkspaceRuntime;
 
@@ -228,4 +227,10 @@ export interface WorkspaceRuntimeRegistry {
 	 * Used by settings screens and endpoints that don't have workspace context.
 	 */
 	getDefault(): WorkspaceRuntime;
+
+	/**
+	 * Remove and clean up a cached runtime for a workspace.
+	 * Used when a workspace is deleted to tear down SSH connections.
+	 */
+	removeRuntime(workspaceId: string): void;
 }

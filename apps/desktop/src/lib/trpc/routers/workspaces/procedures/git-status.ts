@@ -274,6 +274,24 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
+				if (workspace.type === "ssh" && workspace.sshConfig) {
+					return {
+						worktreeName: workspace.name,
+						branchName: workspace.branch,
+						createdAt: workspace.createdAt,
+						gitStatus: null,
+						githubStatus: null,
+						sshConfig: {
+							host: workspace.sshConfig.host,
+							port: workspace.sshConfig.port,
+							user: workspace.sshConfig.user,
+							workDir: workspace.sshConfig.workDir,
+							identityFile: workspace.sshConfig.identityFile,
+							containerName: workspace.sshConfig.containerName,
+						},
+					};
+				}
+
 				const worktree = workspace.worktreeId
 					? getWorktree(workspace.worktreeId)
 					: null;

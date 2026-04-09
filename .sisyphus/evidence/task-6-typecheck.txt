@@ -1,0 +1,3 @@
+Desktop typecheck: all errors are pre-existing (panes, react-hotkeys-hook, better-auth modules)
+No errors related to SshSection, devcontainerScript, or teardownScript changes
+LSP diagnostics: clean on all 4 changed files

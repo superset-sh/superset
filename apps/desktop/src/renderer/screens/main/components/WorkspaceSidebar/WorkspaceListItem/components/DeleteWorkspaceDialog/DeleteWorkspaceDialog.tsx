@@ -26,7 +26,7 @@ const TERMINAL_COUNT_STALE_TIME_MS = 1_000;
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
 	workspaceName: string;
-	workspaceType?: "worktree" | "branch";
+	workspaceType?: "worktree" | "branch" | "ssh";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }

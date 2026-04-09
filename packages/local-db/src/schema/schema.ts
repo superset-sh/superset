@@ -128,6 +128,9 @@ export const workspaces = sqliteTable(
 		// Allocated port base for multi-worktree dev instances.
 		// Each workspace gets a range of 10 ports starting from this base.
 		portBase: integer("port_base"),
+		sshConfig: text("ssh_config", { mode: "json" }).$type<
+			import("./zod").SshWorkspaceConfig | null
+		>(),
 		sectionId: text("section_id").references(() => workspaceSections.id, {
 			onDelete: "set null",
 		}),
@@ -218,6 +221,8 @@ export const settings = sqliteTable("settings", {
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
+	devcontainerScript: text("devcontainer_script"),
+	teardownScript: text("teardown_script"),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),

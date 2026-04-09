@@ -39,7 +39,7 @@ interface WorkspaceListItemProps {
 	worktreePath: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "ssh";
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
@@ -321,6 +321,7 @@ export function WorkspaceListItem({
 						<div className="relative size-5 flex items-center justify-center">
 							<WorkspaceIcon
 								isBranchWorkspace={isBranchWorkspace}
+								isSSH={type === "ssh"}
 								isActive={isActive}
 								isUnread={isUnread}
 								workspaceStatus={workspaceStatus}
@@ -329,7 +330,14 @@ export function WorkspaceListItem({
 						</div>
 					</TooltipTrigger>
 					<TooltipContent side="right" sideOffset={8}>
-						{isBranchWorkspace ? (
+						{type === "ssh" ? (
+							<>
+								<p className="text-xs font-medium">SSH workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Connected to a remote devcontainer via SSH
+								</p>
+							</>
+						) : isBranchWorkspace ? (
 							<>
 								<p className="text-xs font-medium">Local workspace</p>
 								<p className="text-xs text-muted-foreground">
@@ -380,7 +388,6 @@ export function WorkspaceListItem({
 							>
 								{isBranchWorkspace ? "local" : name || branch}
 							</span>
-
 							{isBranchWorkspace && aheadBehind && (
 								<WorkspaceAheadBehind
 									ahead={aheadBehind.ahead}
