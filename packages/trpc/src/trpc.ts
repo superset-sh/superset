@@ -43,6 +43,40 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	return next({ ctx: { session: ctx.session } });
 });
 
+export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
+	const authHeader = ctx.headers.get("authorization");
+	if (!authHeader?.startsWith("Bearer ")) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "JWT bearer token required",
+		});
+	}
+
+	const token = authHeader.slice(7);
+	try {
+		const { payload } = await ctx.auth.api.verifyJWT({ body: { token } });
+		if (!payload?.sub) {
+			throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid JWT" });
+		}
+
+		const organizationIds = (payload.organizationIds as string[]) ?? [];
+		return next({
+			ctx: {
+				userId: payload.sub,
+				email: (payload.email as string) ?? "",
+				organizationIds,
+				activeOrganizationId: organizationIds[0] ?? null,
+			},
+		});
+	} catch (error) {
+		if (error instanceof TRPCError) throw error;
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "JWT verification failed",
+		});
+	}
+});
+
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
 		throw new TRPCError({

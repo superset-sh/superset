@@ -1,4 +1,6 @@
 import { FitAddon } from "@xterm/addon-fit";
+import type { ProgressAddon } from "@xterm/addon-progress";
+import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
@@ -16,6 +18,8 @@ export interface TerminalRuntime {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
+	searchAddon: SearchAddon | null;
+	progressAddon: ProgressAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
@@ -138,19 +142,21 @@ export function createRuntime(
 	terminal.open(wrapper);
 	restoreBuffer(terminalId, terminal);
 
-	const disposeAddons = loadAddons(terminal);
+	const addonsResult = loadAddons(terminal);
 
 	return {
 		terminalId,
 		terminal,
 		fitAddon,
 		serializeAddon,
+		searchAddon: addonsResult.searchAddon,
+		progressAddon: addonsResult.progressAddon,
 		wrapper,
 		container: null,
 		resizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_disposeAddons: disposeAddons,
+		_disposeAddons: addonsResult.dispose,
 	};
 }
 

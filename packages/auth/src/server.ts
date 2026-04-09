@@ -329,7 +329,23 @@ export const auth = betterAuth({
 					});
 				},
 
-				beforeAddMember: async ({ organization }) => {
+				beforeAddMember: async ({ organization, user }) => {
+					// Domain-allowlisted users bypass the free-plan member limit.
+					// If an admin put the user's domain in allowedDomains, they've
+					// already explicitly opted in to letting those users join.
+					// (allowedDomains isn't on the hook's organization arg because
+					// it isn't declared as a better-auth additionalField — fetch it.)
+					const userDomain = user.email.split("@")[1]?.toLowerCase();
+					if (userDomain) {
+						const orgRow = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.id, organization.id),
+							columns: { allowedDomains: true },
+						});
+						if (orgRow?.allowedDomains?.includes(userDomain)) {
+							return;
+						}
+					}
+
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),

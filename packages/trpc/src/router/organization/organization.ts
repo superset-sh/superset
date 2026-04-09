@@ -13,7 +13,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { protectedProcedure, publicProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 
 async function getInvitationById(invitationId: string) {
@@ -55,6 +55,43 @@ function verificationMatchesInvitation({
 }
 
 export const organizationRouter = {
+	getActive: protectedProcedure.query(async ({ ctx }) => {
+		const orgId = ctx.session.session.activeOrganizationId;
+		if (!orgId) return null;
+
+		const membership = await db.query.members.findFirst({
+			where: and(
+				eq(members.userId, ctx.session.user.id),
+				eq(members.organizationId, orgId),
+			),
+		});
+		if (!membership) return null;
+
+		const org = await db.query.organizations.findFirst({
+			where: eq(organizations.id, orgId),
+			columns: { id: true, name: true, slug: true },
+		});
+		return org ?? null;
+	}),
+
+	getActiveFromJwt: jwtProcedure.query(async ({ ctx }) => {
+		if (!ctx.activeOrganizationId) return null;
+
+		const membership = await db.query.members.findFirst({
+			where: and(
+				eq(members.userId, ctx.userId),
+				eq(members.organizationId, ctx.activeOrganizationId),
+			),
+		});
+		if (!membership) return null;
+
+		const org = await db.query.organizations.findFirst({
+			where: eq(organizations.id, ctx.activeOrganizationId),
+			columns: { id: true, name: true, slug: true },
+		});
+		return org ?? null;
+	}),
+
 	getInvitation: protectedProcedure
 		.input(z.uuid())
 		.query(async ({ ctx, input }) => {

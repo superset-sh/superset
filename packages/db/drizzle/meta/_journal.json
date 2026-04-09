@@ -225,6 +225,13 @@
       "when": 1775535603220,
       "tag": "0031_v2_hosts_and_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775707832252,
+      "tag": "0032_add_is_online_hosts",
+      "breakpoints": true
     }
   ]
 }

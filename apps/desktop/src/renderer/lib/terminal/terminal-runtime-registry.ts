@@ -1,4 +1,10 @@
+import type { ProgressAddon } from "@xterm/addon-progress";
+import type { SearchAddon } from "@xterm/addon-search";
 import type { TerminalAppearance } from "./appearance";
+import {
+	type TerminalLinkHandlers,
+	TerminalLinkManager,
+} from "./terminal-link-manager";
 import {
 	attachToContainer,
 	createRuntime,
@@ -13,6 +19,7 @@ import {
 	createTransport,
 	disposeTransport,
 	sendDispose,
+	sendInput,
 	sendResize,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -20,6 +27,9 @@ import {
 interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
+	linkManager: TerminalLinkManager | null;
+	/** Stored until linkManager is created (attach called after setLinkHandlers). */
+	pendingLinkHandlers: TerminalLinkHandlers | null;
 }
 
 class TerminalRuntimeRegistryImpl {
@@ -32,6 +42,8 @@ class TerminalRuntimeRegistryImpl {
 		entry = {
 			runtime: null,
 			transport: createTransport(),
+			linkManager: null,
+			pendingLinkHandlers: null,
 		};
 
 		this.entries.set(terminalId, entry);
@@ -48,9 +60,13 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
+			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
+			// Apply pending handlers if setLinkHandlers was called before attach
+			if (entry.pendingLinkHandlers) {
+				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
+				entry.pendingLinkHandlers = null;
+			}
 		} else {
-			// Runtime already exists (reattach) — apply current appearance so
-			// the first fit uses up-to-date font metrics.
 			updateRuntimeAppearance(entry.runtime, appearance);
 		}
 
@@ -61,6 +77,19 @@ class TerminalRuntimeRegistryImpl {
 		});
 
 		connect(transport, runtime.terminal, wsUrl);
+	}
+
+	/**
+	 * Set link handler callbacks for a terminal. Safe to call before or after
+	 * attach(). If the runtime already exists, link providers are re-registered.
+	 */
+	setLinkHandlers(terminalId: string, handlers: TerminalLinkHandlers) {
+		const entry = this.getOrCreateEntry(terminalId);
+		if (entry.linkManager) {
+			entry.linkManager.setHandlers(handlers);
+		} else {
+			entry.pendingLinkHandlers = handlers;
+		}
 	}
 
 	detach(terminalId: string) {
@@ -79,8 +108,6 @@ class TerminalRuntimeRegistryImpl {
 
 		updateRuntimeAppearance(entry.runtime, appearance);
 
-		// Font changes can alter the grid size — forward to the PTY so the
-		// backend shell and TUIs see the correct cols/rows.
 		const { cols, rows } = entry.runtime.terminal;
 		if (cols !== prevCols || rows !== prevRows) {
 			sendResize(entry.transport, cols, rows);
@@ -90,6 +117,8 @@ class TerminalRuntimeRegistryImpl {
 	dispose(terminalId: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry) return;
+
+		entry.linkManager?.dispose();
 
 		sendDispose(entry.transport);
 		disposeTransport(entry.transport);
@@ -118,8 +147,38 @@ class TerminalRuntimeRegistryImpl {
 		entry?.runtime?.terminal.paste(text);
 	}
 
+	/** Send raw input to the terminal via the WebSocket transport (bypasses xterm). */
+	writeInput(terminalId: string, data: string): void {
+		const entry = this.entries.get(terminalId);
+		if (!entry) return;
+		sendInput(entry.transport, data);
+	}
+
+	findNext(terminalId: string, query: string): boolean {
+		const entry = this.entries.get(terminalId);
+		return entry?.runtime?.searchAddon?.findNext(query) ?? false;
+	}
+
+	findPrevious(terminalId: string, query: string): boolean {
+		const entry = this.entries.get(terminalId);
+		return entry?.runtime?.searchAddon?.findPrevious(query) ?? false;
+	}
+
+	clearSearch(terminalId: string): void {
+		const entry = this.entries.get(terminalId);
+		entry?.runtime?.searchAddon?.clearDecorations();
+	}
+
 	getTerminal(terminalId: string) {
 		return this.entries.get(terminalId)?.runtime?.terminal ?? null;
+	}
+
+	getSearchAddon(terminalId: string): SearchAddon | null {
+		return this.entries.get(terminalId)?.runtime?.searchAddon ?? null;
+	}
+
+	getProgressAddon(terminalId: string): ProgressAddon | null {
+		return this.entries.get(terminalId)?.runtime?.progressAddon ?? null;
 	}
 
 	getAllTerminalIds(): Set<string> {
@@ -145,6 +204,16 @@ class TerminalRuntimeRegistryImpl {
 	}
 }
 
-export const terminalRuntimeRegistry = new TerminalRuntimeRegistryImpl();
+// In dev, preserve the singleton across Vite HMR so active WebSocket
+// connections and xterm instances aren't orphaned on module re-evaluation.
+// import.meta.hot is undefined in production so this is a plain `new` call.
+export const terminalRuntimeRegistry: TerminalRuntimeRegistryImpl =
+	(import.meta.hot?.data?.registry as
+		| TerminalRuntimeRegistryImpl
+		| undefined) ?? new TerminalRuntimeRegistryImpl();
 
-export type { ConnectionState };
+if (import.meta.hot) {
+	import.meta.hot.data.registry = terminalRuntimeRegistry;
+}
+
+export type { ConnectionState, TerminalLinkHandlers };

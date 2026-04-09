@@ -1,5 +1,5 @@
 export { createApiClient } from "./api";
-export { type CreateAppOptions, createApp } from "./app";
+export { type CreateAppOptions, type CreateAppResult, createApp } from "./app";
 export type { HostDb } from "./db";
 export type {
 	ClientMessage as EventBusClientMessage,

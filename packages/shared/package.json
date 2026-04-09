@@ -55,6 +55,14 @@
 		"./vercel-preview-origins": {
 			"types": "./src/vercel-preview-origins.ts",
 			"default": "./src/vercel-preview-origins.ts"
+		},
+		"./tunnel-protocol": {
+			"types": "./src/tunnel-protocol.ts",
+			"default": "./src/tunnel-protocol.ts"
+		},
+		"./device-info": {
+			"types": "./src/device-info.ts",
+			"default": "./src/device-info.ts"
 		}
 	},
 	"scripts": {

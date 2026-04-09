@@ -12,8 +12,8 @@ import {
 } from "react-icons/go";
 import { SiGithub } from "react-icons/si";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
-import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardNewWorkspaceDraft } from "../../../../DashboardNewWorkspaceDraftContext";
 import { useCreateDashboardWorkspace } from "../../../../hooks/useCreateDashboardWorkspace";

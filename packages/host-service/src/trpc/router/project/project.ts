@@ -6,7 +6,7 @@ import { protectedProcedure, router } from "../../index";
 
 export const projectRouter = router({
 	// TODO: remove
-	removeFromDevice: protectedProcedure
+	remove: protectedProcedure
 		.input(z.object({ projectId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const localProject = ctx.db.query.projects
@@ -28,7 +28,7 @@ export const projectRouter = router({
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);
 				} catch (err) {
-					console.warn("[project.removeFromDevice] failed to remove worktree", {
+					console.warn("[project.remove] failed to remove worktree", {
 						projectId: input.projectId,
 						worktreePath: ws.worktreePath,
 						err,
@@ -39,7 +39,7 @@ export const projectRouter = router({
 			try {
 				rmSync(localProject.repoPath, { recursive: true, force: true });
 			} catch (err) {
-				console.warn("[project.removeFromDevice] failed to remove repo dir", {
+				console.warn("[project.remove] failed to remove repo dir", {
 					projectId: input.projectId,
 					repoPath: localProject.repoPath,
 					err,

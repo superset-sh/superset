@@ -86,3 +86,7 @@ superset-dev-data/
 !.codex/commands
 !.codex/prompts
 .amp/*
+
+# MCP config (contains per-user server URLs/tokens)
+.mcp.json
+.cursor/mcp.json

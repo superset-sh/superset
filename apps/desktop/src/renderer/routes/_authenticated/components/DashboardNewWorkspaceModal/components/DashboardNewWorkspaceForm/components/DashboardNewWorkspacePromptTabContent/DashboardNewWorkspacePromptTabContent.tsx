@@ -1,4 +1,4 @@
-import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
+import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { PromptGroup } from "../PromptGroup";
 
 interface DashboardNewWorkspacePromptTabContentProps {

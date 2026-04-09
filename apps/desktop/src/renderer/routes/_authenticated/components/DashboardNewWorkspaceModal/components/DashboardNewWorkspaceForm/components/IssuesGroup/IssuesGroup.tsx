@@ -12,7 +12,6 @@ import { SiLinear } from "react-icons/si";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
-import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
 import {
 	StatusIcon,
 	type StatusType,
@@ -20,6 +19,7 @@ import {
 import { useHybridSearch } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useHybridSearch";
 import { compareTasks } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/utils/sorting";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardNewWorkspaceDraft } from "../../../../DashboardNewWorkspaceDraftContext";
 import { useCreateDashboardWorkspace } from "../../../../hooks/useCreateDashboardWorkspace";
