@@ -7,6 +7,7 @@ import {
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
+import { TerminalProxySection } from "./components/TerminalProxySection";
 
 interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -60,6 +61,7 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
 	);
+	const showProxy = isItemVisible(SETTING_ITEM_ID.TERMINAL_PROXY, visibleItems);
 
 	return (
 		<div className="p-6 max-w-7xl w-full">
@@ -82,6 +84,7 @@ export function TerminalSettings({
 						onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
 					/>
 				)}
+				{showProxy && <TerminalProxySection key="terminal-proxy" />}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>

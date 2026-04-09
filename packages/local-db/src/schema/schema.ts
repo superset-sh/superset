@@ -11,6 +11,8 @@ import type {
 	GitStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
+	TerminalProxyOverride,
+	TerminalProxySettings,
 	WorkspaceType,
 } from "./zod";
 
@@ -46,6 +48,9 @@ export const projects = sqliteTable(
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
 		defaultApp: text("default_app").$type<ExternalApp>(),
+		terminalProxyOverride: text("terminal_proxy_override", {
+			mode: "json",
+		}).$type<TerminalProxyOverride>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -222,6 +227,9 @@ export const settings = sqliteTable("settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	terminalProxySettings: text("terminal_proxy_settings", {
+		mode: "json",
+	}).$type<TerminalProxySettings>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

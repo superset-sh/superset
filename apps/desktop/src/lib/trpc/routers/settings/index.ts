@@ -9,6 +9,7 @@ import {
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
+	type TerminalProxySettings,
 } from "@superset/local-db";
 import {
 	AGENT_PRESET_COMMANDS,
@@ -20,6 +21,10 @@ import { app } from "electron";
 import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
+import {
+	getDetectedInheritedProxy as getDetectedInheritedProxyInternal,
+	getGlobalTerminalProxySettings,
+} from "main/lib/terminal/terminal-proxy";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
@@ -36,6 +41,13 @@ import {
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
 } from "shared/ringtones";
+import {
+	maskProxyUrlCredentials,
+} from "shared/terminal-proxy";
+import {
+	sanitizeTerminalProxySettingsInput,
+	terminalProxySettingsInputSchema,
+} from "shared/terminal-proxy-input";
 import {
 	type AgentDefinitionId,
 	applyCustomAgentDefinitionPatch,
@@ -168,7 +180,6 @@ function clearCustomAgentPresetOverride(id: `custom:${string}`) {
 		}),
 	);
 }
-
 function getResolvedAgentPresets() {
 	return resolveAgentConfigs({
 		customDefinitions: readRawAgentCustomDefinitions(),
@@ -638,6 +649,61 @@ export const createSettingsRouter = () => {
 			const row = getSettings();
 			return row.terminalLinkBehavior ?? DEFAULT_TERMINAL_LINK_BEHAVIOR;
 		}),
+
+		getTerminalProxySettings: publicProcedure.query(() => {
+			return getGlobalTerminalProxySettings();
+		}),
+
+		setTerminalProxySettings: publicProcedure
+			.input(terminalProxySettingsInputSchema)
+			.mutation(({ input }) => {
+				let next: TerminalProxySettings;
+				try {
+					next = sanitizeTerminalProxySettingsInput(input);
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Invalid proxy URL";
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message,
+					});
+				}
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalProxySettings: next })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalProxySettings: next },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getDetectedInheritedProxy: publicProcedure
+			.input(
+				z
+					.object({
+						refresh: z.boolean().optional(),
+						nonce: z.number().optional(),
+					})
+					.optional(),
+			)
+			.query(async ({ input }) => {
+				const detected = await getDetectedInheritedProxyInternal({
+					forceRefresh: input?.refresh ?? false,
+				});
+				return {
+					hasProxy: detected.hasProxy,
+					httpProxy: detected.httpProxy
+						? maskProxyUrlCredentials(detected.httpProxy)
+						: undefined,
+					httpsProxy: detected.httpsProxy
+						? maskProxyUrlCredentials(detected.httpsProxy)
+						: undefined,
+					noProxy: detected.noProxy,
+				};
+			}),
 
 		setTerminalLinkBehavior: publicProcedure
 			.input(z.object({ behavior: z.enum(TERMINAL_LINK_BEHAVIORS) }))

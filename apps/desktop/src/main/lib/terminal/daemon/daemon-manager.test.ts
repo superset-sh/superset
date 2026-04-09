@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
+import type { EffectiveTerminalProxy } from "shared/terminal-proxy";
 import {
 	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TerminalAttachCanceledError,
@@ -7,7 +8,11 @@ import {
 import type { SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
-	createOrAttachCalls: Array<{ sessionId: string; requestId?: string }> = [];
+	createOrAttachCalls: Array<{
+		sessionId: string;
+		requestId?: string;
+		env?: Record<string, string>;
+	}> = [];
 	cancelCreateOrAttachCalls: Array<{ sessionId: string; requestId: string }> =
 		[];
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
@@ -69,7 +74,11 @@ class MockTerminalHostClient extends EventEmitter {
 	}
 
 	async createOrAttach(
-		params: { sessionId: string; requestId?: string },
+		params: {
+			sessionId: string;
+			requestId?: string;
+			env?: Record<string, string>;
+		},
 		signal?: AbortSignal,
 	) {
 		if (this.createOrAttachGate) {
@@ -165,6 +174,11 @@ class MockTerminalHostClient extends EventEmitter {
 }
 
 let mockClient = new MockTerminalHostClient();
+let mockEffectiveTerminalProxy: EffectiveTerminalProxy = {
+	state: "none",
+	source: "none",
+};
+const resolveEffectiveTerminalProxyForWorkspaceCalls: string[] = [];
 
 mock.module("../../terminal-host/client", () => ({
 	getTerminalHostClient: () => mockClient,
@@ -176,8 +190,41 @@ mock.module("main/lib/analytics", () => ({
 }));
 
 mock.module("../env", () => ({
-	buildTerminalEnv: () => ({}),
+	buildTerminalEnv: () => ({
+		PATH: "/usr/bin",
+		HTTP_PROXY: "http://inherited-proxy:8080",
+	}),
 	getDefaultShell: () => "/bin/zsh",
+}));
+
+mock.module("../terminal-proxy", () => ({
+	resolveEffectiveTerminalProxyForWorkspace: async ({
+		workspaceId,
+	}: {
+		workspaceId: string;
+	}) => {
+		resolveEffectiveTerminalProxyForWorkspaceCalls.push(workspaceId);
+		return mockEffectiveTerminalProxy;
+	},
+	applyTerminalProxyToEnv: (
+		env: Record<string, string>,
+		effective: EffectiveTerminalProxy,
+	) => {
+		const next = { ...env };
+		delete next.HTTP_PROXY;
+		delete next.HTTPS_PROXY;
+		delete next.http_proxy;
+		delete next.https_proxy;
+		delete next.NO_PROXY;
+		delete next.no_proxy;
+		if (effective.state === "manual" && effective.config) {
+			next.HTTP_PROXY = effective.config.proxyUrl;
+			next.HTTPS_PROXY = effective.config.proxyUrl;
+			next.http_proxy = effective.config.proxyUrl;
+			next.https_proxy = effective.config.proxyUrl;
+		}
+		return next;
+	},
 }));
 
 mock.module("main/lib/app-state", () => ({
@@ -242,6 +289,8 @@ const { DaemonTerminalManager } = await import("./daemon-manager");
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
+		mockEffectiveTerminalProxy = { state: "none", source: "none" };
+		resolveEffectiveTerminalProxyForWorkspaceCalls.length = 0;
 	});
 
 	afterAll(() => {
@@ -563,5 +612,83 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");
 		expect(mockClient.killAllCalls).toBe(0);
+	});
+
+	it("applies effective terminal proxy env for newly created sessions", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-proxy-1";
+		const requestId = "req-proxy-1";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set();
+
+		mockEffectiveTerminalProxy = {
+			state: "manual",
+			source: "project",
+			config: {
+				proxyUrl: "http://project-proxy:8080",
+			},
+		};
+
+		const attachPromise = manager.createOrAttach({
+			paneId,
+			requestId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(resolveEffectiveTerminalProxyForWorkspaceCalls).toEqual(["ws-1"]);
+		expect(mockClient.createOrAttachCalls[0]?.env).toMatchObject({
+			PATH: "/usr/bin",
+			HTTP_PROXY: "http://project-proxy:8080",
+			HTTPS_PROXY: "http://project-proxy:8080",
+			http_proxy: "http://project-proxy:8080",
+			https_proxy: "http://project-proxy:8080",
+		});
+
+		mockClient.resolveCreateOrAttach(requestId, 123);
+		await expect(attachPromise).resolves.toMatchObject({ isNew: true });
+	});
+
+	it("skips effective proxy resolution when daemon session already exists", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-proxy-existing";
+		const requestId = "req-proxy-existing";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+		mockEffectiveTerminalProxy = {
+			state: "manual",
+			source: "project",
+			config: {
+				proxyUrl: "http://project-proxy:8080",
+			},
+		};
+
+		const attachPromise = manager.createOrAttach({
+			paneId,
+			requestId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(resolveEffectiveTerminalProxyForWorkspaceCalls).toEqual([]);
+		expect(mockClient.createOrAttachCalls[0]?.env).toMatchObject({
+			PATH: "/usr/bin",
+			HTTP_PROXY: "http://inherited-proxy:8080",
+		});
+
+		mockClient.resolveCreateOrAttach(requestId, 123);
+		await expect(attachPromise).resolves.toMatchObject({ isNew: true });
 	});
 });

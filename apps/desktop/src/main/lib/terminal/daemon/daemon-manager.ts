@@ -14,6 +14,10 @@ import { raceWithAbort, throwIfAborted } from "../abort";
 import { buildTerminalEnv, getDefaultShell } from "../env";
 import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
+import {
+	applyTerminalProxyToEnv,
+	resolveEffectiveTerminalProxyForWorkspace,
+} from "../terminal-proxy";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
 	CREATE_OR_ATTACH_CONCURRENCY,
@@ -438,6 +442,26 @@ export class DaemonTerminalManager extends EventEmitter {
 				rootPath,
 				themeType,
 			});
+			let effectiveEnv = env;
+			let effectiveProxy: Awaited<
+				ReturnType<typeof resolveEffectiveTerminalProxyForWorkspace>
+			> = {
+				state: "none",
+				source: "none",
+			};
+			if (!daemonHasSession) {
+				try {
+					effectiveProxy = await resolveEffectiveTerminalProxyForWorkspace({
+						workspaceId,
+					});
+				} catch (error) {
+					console.error(
+						"[DaemonTerminalManager] Failed to resolve effective terminal proxy:",
+						error,
+					);
+				}
+				effectiveEnv = applyTerminalProxyToEnv(env, effectiveProxy);
+			}
 
 			if (DEBUG_TERMINAL) {
 				console.log("[DaemonTerminalManager] Calling daemon createOrAttach:", {
@@ -446,6 +470,8 @@ export class DaemonTerminalManager extends EventEmitter {
 					cwd,
 					cols,
 					rows,
+					proxyState: effectiveProxy.state,
+					proxySource: effectiveProxy.source,
 				});
 			}
 
@@ -478,7 +504,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					cols,
 					rows,
 					cwd,
-					env,
+					env: effectiveEnv,
 					shell,
 					command,
 				},

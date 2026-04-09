@@ -53,6 +53,7 @@ import {
 } from "../../../../utils/settings-search";
 import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
+import { TerminalProxySection } from "./components/TerminalProxySection";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
 
@@ -292,6 +293,10 @@ export function ProjectSettings({
 		!branchData.branches.some(
 			(branch) => branch.name === project.workspaceBaseBranch,
 		);
+	const showProjectTerminalProxy = isItemVisible(
+		SETTING_ITEM_ID.PROJECT_TERMINAL_PROXY,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
@@ -566,6 +571,19 @@ export function ProjectSettings({
 						</div>
 					</div>
 				</SettingsSection>
+
+				{showProjectTerminalProxy && (
+					<SettingsSection
+						icon={<HiOutlineCommandLine className="h-4 w-4" />}
+						title="Terminal Proxy"
+						description="Configure project-level override for terminal proxy behavior."
+					>
+						<TerminalProxySection
+							projectId={projectId}
+							currentOverride={project.terminalProxyOverride}
+						/>
+					</SettingsSection>
+				)}
 
 				<div className="pt-3 border-t">
 					<ScriptsEditor projectId={project.id} />

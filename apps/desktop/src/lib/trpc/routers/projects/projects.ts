@@ -23,6 +23,10 @@ import {
 } from "main/lib/project-icons";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
+import {
+	sanitizeTerminalProxyOverrideInput,
+	terminalProxyOverrideInputSchema,
+} from "shared/terminal-proxy-input";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { resolveDefaultEditor } from "../external";
@@ -1408,6 +1412,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						worktreeBaseDir: z.string().nullable().optional(),
 						hideImage: z.boolean().optional(),
 						defaultApp: z.enum(EXTERNAL_APPS).nullable().optional(),
+						terminalProxyOverride: terminalProxyOverrideInputSchema
+							.nullable()
+							.optional(),
 					}),
 				}),
 			)
@@ -1419,6 +1426,30 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					.get();
 				if (!project) {
 					throw new Error(`Project ${input.id} not found`);
+				}
+
+				let terminalProxyOverridePatch:
+					| { terminalProxyOverride: null | ReturnType<typeof sanitizeTerminalProxyOverrideInput> }
+					| undefined;
+				if (input.patch.terminalProxyOverride !== undefined) {
+					if (!input.patch.terminalProxyOverride) {
+						terminalProxyOverridePatch = { terminalProxyOverride: null };
+					} else {
+						try {
+							terminalProxyOverridePatch = {
+								terminalProxyOverride: sanitizeTerminalProxyOverrideInput(
+									input.patch.terminalProxyOverride,
+								),
+							};
+						} catch (error) {
+							const message =
+								error instanceof Error ? error.message : "Invalid proxy URL";
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message,
+							});
+						}
+					}
 				}
 
 				localDb
@@ -1446,6 +1477,36 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.defaultApp !== undefined && {
 							defaultApp: input.patch.defaultApp,
 						}),
+						...(terminalProxyOverridePatch ?? {}),
+						lastOpenedAt: Date.now(),
+					})
+					.where(eq(projects.id, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
+		resetTerminalProxyOverride: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				localDb
+					.update(projects)
+					.set({
+						terminalProxyOverride: {
+							mode: "inherit",
+						},
 						lastOpenedAt: Date.now(),
 					})
 					.where(eq(projects.id, input.id))
