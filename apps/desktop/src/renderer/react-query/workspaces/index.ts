@@ -3,6 +3,7 @@ export { useCreateFromPr } from "./useCreateFromPr";
 export { useCreateSectionFromWorkspaces } from "./useCreateSectionFromWorkspaces";
 export { useCreateWorkspace } from "./useCreateWorkspace";
 export { useDeleteWorkspace } from "./useDeleteWorkspace";
+export { useDeleteWorkspaces } from "./useDeleteWorkspaces";
 export { useDeleteWorktree } from "./useDeleteWorktree";
 export { useHandleOpenedWorktree } from "./useHandleOpenedWorktree";
 export { useImportAllWorktrees } from "./useImportAllWorktrees";
