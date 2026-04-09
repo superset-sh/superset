@@ -1,3 +1,5 @@
+import type { ProgressAddon } from "@xterm/addon-progress";
+import type { SearchAddon } from "@xterm/addon-search";
 import type { TerminalAppearance } from "./appearance";
 import {
 	type TerminalLinkHandlers,
@@ -169,6 +171,14 @@ class TerminalRuntimeRegistryImpl {
 
 	getTerminal(terminalId: string) {
 		return this.entries.get(terminalId)?.runtime?.terminal ?? null;
+	}
+
+	getSearchAddon(terminalId: string): SearchAddon | null {
+		return this.entries.get(terminalId)?.runtime?.searchAddon ?? null;
+	}
+
+	getProgressAddon(terminalId: string): ProgressAddon | null {
+		return this.entries.get(terminalId)?.runtime?.progressAddon ?? null;
 	}
 
 	getAllTerminalIds(): Set<string> {

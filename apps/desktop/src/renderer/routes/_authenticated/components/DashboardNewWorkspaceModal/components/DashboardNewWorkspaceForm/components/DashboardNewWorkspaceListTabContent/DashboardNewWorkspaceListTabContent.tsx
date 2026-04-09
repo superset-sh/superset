@@ -1,5 +1,5 @@
 import { Command, CommandInput, CommandList } from "@superset/ui/command";
-import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
+import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import type { DashboardNewWorkspaceTab } from "../../../../DashboardNewWorkspaceDraftContext";
 import { BranchesGroup } from "../BranchesGroup";
 import { IssuesGroup } from "../IssuesGroup";

@@ -88,6 +88,10 @@ export function htmlEnvTransformPlugin(): Plugin {
 				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
 					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
+				)
+				.replace(
+					/%RELAY_URL%/g,
+					process.env.RELAY_URL || "https://relay.superset.sh",
 				);
 		},
 	};

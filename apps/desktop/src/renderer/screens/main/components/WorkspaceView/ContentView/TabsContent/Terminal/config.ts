@@ -33,6 +33,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	macOptionIsMeta: false,
 	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
+	vtExtensions: { kittyKeyboard: true },
 	screenReaderMode: false,
 	// xterm's fit addon permanently reserves scrollbar width from usable columns.
 	// Hide the built-in scrollbar so terminal content can use the full pane width.

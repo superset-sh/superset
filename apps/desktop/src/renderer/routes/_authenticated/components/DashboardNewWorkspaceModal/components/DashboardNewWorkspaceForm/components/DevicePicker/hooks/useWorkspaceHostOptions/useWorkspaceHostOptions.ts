@@ -3,12 +3,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	type OrgService,
-	useHostService,
-} from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
 export interface WorkspaceHostOption {
@@ -19,25 +15,19 @@ export interface WorkspaceHostOption {
 
 interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
-	localHostService: OrgService | null;
+	activeHostUrl: string | null;
 	otherHosts: WorkspaceHostOption[];
 }
 
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { services } = useHostService();
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const { machineId, activeHostUrl } = useLocalHostService();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
-
-	const localHostService =
-		activeOrganizationId !== null
-			? (services.get(activeOrganizationId) ?? null)
-			: null;
 
 	const { data: accessibleHosts = [] } = useLiveQuery(
 		(q) =>
@@ -60,22 +50,27 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 		[activeOrganizationId, collections, currentUserId],
 	);
 
+	const localHost = useMemo(
+		() => accessibleHosts.find((host) => host.machineId === machineId) ?? null,
+		[accessibleHosts, machineId],
+	);
+
 	const otherHosts = useMemo(
 		() =>
 			accessibleHosts
-				.filter((host) => host.machineId !== deviceInfo?.deviceId)
+				.filter((host) => host.machineId !== machineId)
 				.map((host) => ({
 					id: host.id,
 					name: host.name,
 					isCloud: host.machineId == null,
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
-		[accessibleHosts, deviceInfo?.deviceId],
+		[accessibleHosts, machineId],
 	);
 
 	return {
-		currentDeviceName: deviceInfo?.deviceName ?? null,
-		localHostService,
+		currentDeviceName: localHost?.name ?? null,
+		activeHostUrl,
 		otherHosts,
 	};
 }

@@ -28,7 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
-import { getHostServiceManager } from "./lib/host-service-manager";
+import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -153,8 +153,12 @@ app.on("open-url", async (event, url) => {
 let isQuitting = false;
 let skipQuitConfirmation = false;
 
-export function quitApp(): void {
+export function setSkipQuitConfirmation(): void {
 	skipQuitConfirmation = true;
+}
+
+export function quitApp(): void {
+	setSkipQuitConfirmation();
 	app.quit();
 }
 
@@ -199,7 +203,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		getHostServiceManager().releaseAll();
+		getHostServiceCoordinator().releaseAll();
 		disposeTray();
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
@@ -352,7 +356,7 @@ if (!gotTheLock) {
 
 		// Discover and adopt host-services that survived a previous quit
 		// before the tray initializes, so it shows accurate status immediately.
-		await getHostServiceManager().discoverAndAdoptAll();
+		await getHostServiceCoordinator().discoverAll();
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();

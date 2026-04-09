@@ -38,12 +38,10 @@ interface ConnectionState {
 const connections = new Map<string, ConnectionState>();
 
 function buildEventBusUrl(hostUrl: string, wsToken: string | null): string {
-	const url = new URL("/events", hostUrl);
-	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-	if (wsToken) {
-		url.searchParams.set("token", wsToken);
-	}
-	return url.toString();
+	const base = hostUrl.replace(/\/$/, "");
+	const wsBase = base.replace(/^http/, "ws");
+	const params = wsToken ? `?token=${encodeURIComponent(wsToken)}` : "";
+	return `${wsBase}/events${params}`;
 }
 
 function sendCommand(state: ConnectionState, message: ClientMessage): void {

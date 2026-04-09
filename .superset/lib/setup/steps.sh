@@ -441,6 +441,7 @@ step_write_env() {
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
     local WRANGLER_PORT=$((BASE + 13))
+    local RELAY_PORT=$((BASE + 14))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -459,6 +460,7 @@ step_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
+    write_env_var "RELAY_PORT" "$RELAY_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -469,6 +471,7 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
+    write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
     write_env_var "PORT" "$STREAMS_PORT"

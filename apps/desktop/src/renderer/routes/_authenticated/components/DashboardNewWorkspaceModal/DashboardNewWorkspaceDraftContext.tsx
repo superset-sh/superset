@@ -7,7 +7,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { WorkspaceHostTarget } from "renderer/lib/v2-workspace-host";
+import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 
 export type DashboardNewWorkspaceTab =
 	| "prompt"

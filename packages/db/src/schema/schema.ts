@@ -415,7 +415,7 @@ export const v2Hosts = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		machineId: text("machine_id").notNull(),
 		name: text().notNull(),
-		lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+		isOnline: boolean("is_online").notNull().default(false),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),

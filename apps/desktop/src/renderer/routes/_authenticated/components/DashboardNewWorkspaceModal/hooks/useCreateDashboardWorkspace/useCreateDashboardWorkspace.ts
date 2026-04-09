@@ -1,14 +1,9 @@
 import { useCallback, useState } from "react";
-import {
-	getHostServiceClientByUrl,
-	type HostServiceClient,
-} from "renderer/lib/host-service-client";
-import {
-	resolveCreateWorkspaceHostUrl,
-	type WorkspaceHostTarget,
-} from "renderer/lib/v2-workspace-host";
+import { env } from "renderer/env.renderer";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useWorkspaceHostOptions } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import type { WorkspaceHostTarget } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker";
 
 interface CreateDashboardWorkspaceInput {
 	projectId: string;
@@ -19,26 +14,23 @@ interface CreateDashboardWorkspaceInput {
 
 export function useCreateDashboardWorkspace() {
 	const [isPending, setIsPending] = useState(false);
-	const { localHostService } = useWorkspaceHostOptions();
+	const { activeHostUrl } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
 	const createWorkspace = useCallback(
 		async (input: CreateDashboardWorkspaceInput) => {
 			setIsPending(true);
 			try {
-				const hostUrl = resolveCreateWorkspaceHostUrl(
-					input.hostTarget,
-					localHostService?.url ?? null,
-				);
+				const hostUrl =
+					input.hostTarget.kind === "local"
+						? activeHostUrl
+						: `${env.RELAY_URL}/hosts/${input.hostTarget.hostId}`;
+
 				if (!hostUrl) {
 					throw new Error("Host service not available");
 				}
 
-				const client: HostServiceClient =
-					input.hostTarget.kind === "local" && localHostService
-						? localHostService.client
-						: getHostServiceClientByUrl(hostUrl);
-
+				const client = getHostServiceClientByUrl(hostUrl);
 				const workspace = await client.workspace.create.mutate({
 					projectId: input.projectId,
 					name: input.name,
@@ -50,7 +42,7 @@ export function useCreateDashboardWorkspace() {
 				setIsPending(false);
 			}
 		},
-		[ensureWorkspaceInSidebar, localHostService],
+		[ensureWorkspaceInSidebar, activeHostUrl],
 	);
 
 	return { createWorkspace, isPending };
