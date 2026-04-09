@@ -1,0 +1,38 @@
+name: SupersetShell
+options:
+  bundleIdPrefix: sh.superset
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    PRODUCT_BUNDLE_IDENTIFIER: sh.superset.shell
+    PRODUCT_NAME: SupersetShell
+    INFOPLIST_KEY_CFBundleDisplayName: Superset
+    INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+targets:
+  SupersetShell:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    resources:
+      - path: Resources/WebContent
+        type: folder
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: ""
+        ENABLE_APP_SANDBOX: false
+        GENERATE_INFOPLIST_FILE: true
+    preBuildScripts:
+      - name: Build Web Content
+        script: |
+          cd "$SRCROOT"
+          if command -v bun &> /dev/null; then
+            bun run build:web
+          else
+            echo "warning: bun not found, skipping web content build"
+          fi
+        basedOnDependencyAnalysis: false
