@@ -11,7 +11,9 @@ export function Workspace<TData>({
 	renderTabAccessory,
 	renderEmptyState,
 	renderAddTabMenu,
-	renderBelowTabBar,
+	// TEMP: unused while renderBelowTabBar?.() is commented out below.
+	// Rename to _renderBelowTabBar so Biome doesn't warn during the test.
+	renderBelowTabBar: _renderBelowTabBar,
 	onBeforeCloseTab,
 	paneActions,
 	contextMenuActions,
@@ -62,31 +64,27 @@ export function Workspace<TData>({
 				renderAddTabMenu={renderAddTabMenu}
 				renderTabAccessory={renderTabAccessory}
 			/>
-			{renderBelowTabBar?.()}
-			{/* Keyed wrapper so the Tab content's identity is stable across
-			    re-renders regardless of what sibling children Workspace
-			    introduces via render slots (e.g. renderBelowTabBar). Without
-			    this, adding a slot sibling above Tab shifted its positional
-			    child index which could trigger spurious remounts during
-			    reconciliation and make tab switches flicker. */}
-			<div
-				key="tab-content"
-				className="contents"
-			>
-				{activeTab ? (
-					<Tab
-						store={store}
-						tab={activeTab}
-						registry={registry}
-						paneActions={paneActions}
-						contextMenuActions={contextMenuActions}
-					/>
-				) : (
-					<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-						{renderEmptyState?.() ?? "No tabs open"}
-					</div>
-				)}
-			</div>
+			{/* TEMP: commented out to test whether the renderBelowTabBar slot
+			    is what's causing tab-switch flicker. If flicker disappears
+			    with this commented out, my Workspace.tsx change is the
+			    culprit and we need to move V2PresetsBar outside Workspace.
+			    If flicker persists, the root cause is pre-existing v2
+			    architecture (terminalRuntimeRegistry detach/attach on
+			    every tab switch) and has nothing to do with the preset bar. */}
+			{/* {renderBelowTabBar?.()} */}
+			{activeTab ? (
+				<Tab
+					store={store}
+					tab={activeTab}
+					registry={registry}
+					paneActions={paneActions}
+					contextMenuActions={contextMenuActions}
+				/>
+			) : (
+				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+					{renderEmptyState?.() ?? "No tabs open"}
+				</div>
+			)}
 		</div>
 	);
 }
