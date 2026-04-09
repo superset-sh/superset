@@ -12,8 +12,6 @@ export const terminalRouter = router({
 				terminalId: z.string(),
 				workspaceId: z.string(),
 				themeType: z.string().optional(),
-				cols: z.number().optional(),
-				rows: z.number().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
