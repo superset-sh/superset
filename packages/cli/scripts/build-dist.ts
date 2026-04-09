@@ -31,9 +31,9 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-type Target = "darwin-arm64" | "darwin-x64" | "linux-x64";
+type Target = "darwin-arm64" | "linux-x64";
 
-const VALID_TARGETS: Target[] = ["darwin-arm64", "darwin-x64", "linux-x64"];
+const VALID_TARGETS: Target[] = ["darwin-arm64", "linux-x64"];
 const NODE_VERSION = "22.13.0";
 
 /**
@@ -64,7 +64,7 @@ function parseArgs(): { target: Target } {
 
 function nodeArchiveName(target: Target): string {
 	const arch = target === "darwin-arm64" ? "arm64" : "x64";
-	const platform = target.startsWith("darwin") ? "darwin" : "linux";
+	const platform = target === "darwin-arm64" ? "darwin" : "linux";
 	return `node-v${NODE_VERSION}-${platform}-${arch}`;
 }
 

@@ -14,15 +14,13 @@ jobs:
         include:
           - os: macos-14
             target: darwin-arm64
-          - os: macos-13
-            target: darwin-x64
           - os: ubuntu-latest
             target: linux-x64
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -30,7 +28,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Setup Node.js (for native addon compilation)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -45,7 +43,7 @@ jobs:
         run: bun run build:dist --target=${{ matrix.target }}
 
       - name: Upload tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: superset-${{ matrix.target }}
           path: packages/cli/dist/superset-${{ matrix.target }}.tar.gz
@@ -59,10 +57,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-artifacts
           pattern: superset-*

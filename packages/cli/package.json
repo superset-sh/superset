@@ -10,9 +10,8 @@
 		"dev": "dotenv -e ../../.env -- sh -c 'SUPERSET_API_URL=$NEXT_PUBLIC_API_URL bun src/bin.ts $@' --",
 		"build": "bun build --compile src/bin.ts --outfile dist/superset",
 		"build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 src/bin.ts --outfile dist/superset-darwin-arm64",
-		"build:darwin-x64": "bun build --compile --target=bun-darwin-x64 src/bin.ts --outfile dist/superset-darwin-x64",
 		"build:linux-x64": "bun build --compile --target=bun-linux-x64 src/bin.ts --outfile dist/superset-linux-x64",
-		"build:all": "bun run build:darwin-arm64 && bun run build:darwin-x64 && bun run build:linux-x64",
+		"build:all": "bun run build:darwin-arm64 && bun run build:linux-x64",
 		"build:dist": "bun run scripts/build-dist.ts",
 		"typecheck": "tsc --noEmit"
 	},
