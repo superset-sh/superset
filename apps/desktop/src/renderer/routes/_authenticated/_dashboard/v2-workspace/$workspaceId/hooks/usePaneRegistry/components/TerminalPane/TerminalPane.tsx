@@ -2,7 +2,13 @@ import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	type ConnectionState,
