@@ -11,23 +11,27 @@ struct SupersetApp {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window: NSWindow!
+    private var windowController: MainWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Superset"
-        window.center()
-        window.setFrameAutosaveName("SupersetMainWindow")
-        window.minSize = NSSize(width: 640, height: 480)
-        window.makeKeyAndOrderFront(nil)
+        windowController = MainWindowController()
+        windowController.loadWebContent()
+        windowController.window.makeKeyAndOrderFront(nil)
+
+        // Phase 1: single terminal session pointing to home directory
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let sessionId = UUID().uuidString
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.windowController.createTerminal(sessionId: sessionId, cwd: home)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        PTYSessionManager.shared.destroyAll()
     }
 }

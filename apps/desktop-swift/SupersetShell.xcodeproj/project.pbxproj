@@ -12,6 +12,11 @@
 		87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23ED462F661EDEF126FC079 /* SupersetApp.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */; };
 		B2C3D4E5F6071829A1B2C3D4 /* OutputBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */; };
+		C3D4E5F60718293A1B2C3D4E /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */; };
+		D4E5F60718293A1B2C3D4E5F /* PTYSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */; };
+		E5F6071829A1B2C3D4E5F608 /* SupersetSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */; };
+		F607182930A1B2C3D4E5F609 /* ControlMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */; };
+		07182930A1B2C3D4E5F6070A /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +37,11 @@
 		D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcher.swift; sourceTree = "<group>"; };
 		E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcherTests.swift; sourceTree = "<group>"; };
 		EFA9AB08E275D403033F5B3F /* SupersetShell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SupersetShell.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionManager.swift; sourceTree = "<group>"; };
+		1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetSchemeHandler.swift; sourceTree = "<group>"; };
+		293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlMessageHandler.swift; sourceTree = "<group>"; };
+		3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -39,6 +49,8 @@
 			isa = PBXGroup;
 			children = (
 				BB204BB0EB8E9E43776037F8 /* PTYSession.swift */,
+				071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */,
+				F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */,
 			);
 			path = PTY;
 			sourceTree = "<group>";
@@ -56,7 +68,9 @@
 		F607182930A1B2C3D4E5F607 /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
+				293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */,
 				D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */,
+				1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */,
 			);
 			path = Bridge;
 			sourceTree = "<group>";
@@ -64,6 +78,7 @@
 		6440F03073F7A16B558815ED /* App */ = {
 			isa = PBXGroup;
 			children = (
+				3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */,
 				A23ED462F661EDEF126FC079 /* SupersetApp.swift */,
 			);
 			path = App;
@@ -205,6 +220,11 @@
 				59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */,
 				87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */,
+				C3D4E5F60718293A1B2C3D4E /* ShellEnvironment.swift in Sources */,
+				D4E5F60718293A1B2C3D4E5F /* PTYSessionManager.swift in Sources */,
+				E5F6071829A1B2C3D4E5F608 /* SupersetSchemeHandler.swift in Sources */,
+				F607182930A1B2C3D4E5F609 /* ControlMessageHandler.swift in Sources */,
+				07182930A1B2C3D4E5F6070A /* MainWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
