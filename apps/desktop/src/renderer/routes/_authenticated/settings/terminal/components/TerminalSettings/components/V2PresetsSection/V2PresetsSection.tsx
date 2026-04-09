@@ -3,25 +3,31 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
+import {
+	AGENT_PRESET_COMMANDS,
+	AGENT_PRESET_DESCRIPTIONS,
+	DEFAULT_TERMINAL_PRESET_AGENT_TYPES,
+} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { usePresets } from "renderer/react-query/presets";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetEditorSheet } from "./components/PresetEditorSheet";
-import { PresetsTable } from "./components/PresetsTable";
-import { QuickAddPresets } from "./components/QuickAddPresets";
+import { PresetEditorSheet } from "../PresetsSection/components/PresetEditorSheet";
+import { PresetsTable } from "../PresetsSection/components/PresetsTable";
+import { QuickAddPresets } from "../PresetsSection/components/QuickAddPresets";
 import {
 	type AutoApplyField,
 	PRESET_TEMPLATES,
 	type PresetTemplate,
-} from "./constants";
-import type { PresetProjectOption } from "./preset-project-options";
+} from "../PresetsSection/constants";
+import type { PresetProjectOption } from "../PresetsSection/preset-project-options";
 
-interface PresetsSectionProps {
+interface V2PresetsSectionProps {
 	showPresets: boolean;
 	showQuickAdd: boolean;
 	editingPresetId?: string | null;
@@ -30,26 +36,81 @@ interface PresetsSectionProps {
 	onPendingCreateProjectIdChange?: (projectId: string | null) => void;
 }
 
-export function PresetsSection({
+const V2_SEED_MARKER_KEY = "v2-terminal-presets-seeded";
+
+/**
+ * V2 terminal presets UI — a clone of PresetsSection wired to the
+ * renderer-side v2TerminalPresets collection instead of the v1 main-process
+ * tRPC router. Reuses PresetsTable / PresetEditorSheet / QuickAddPresets
+ * from the v1 directory since those are dumb (prop-driven) renderers.
+ *
+ * When v1 is deprecated, delete the sibling PresetsSection directory and
+ * move the shared sub-components under this one.
+ */
+export function V2PresetsSection({
 	showPresets,
 	showQuickAdd,
 	editingPresetId: editingPresetIdFromRoute,
 	onEditingPresetIdChange,
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
-}: PresetsSectionProps) {
+}: V2PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
-	const { data: groupedProjects = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
-	const {
-		presets: serverPresets,
-		isLoading: isLoadingPresets,
-		createPreset,
-		updatePreset,
-		deletePreset,
-		setPresetAutoApply,
-		reorderPresets,
-	} = usePresets();
+	const collections = useCollections();
+
+	const { data: v2Presets = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ v2TerminalPresets: collections.v2TerminalPresets })
+				.orderBy(({ v2TerminalPresets }) => v2TerminalPresets.tabOrder),
+		[collections],
+	);
+
+	const { data: v2Projects = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ v2Projects: collections.v2Projects })
+				.orderBy(({ v2Projects }) => v2Projects.name),
+		[collections],
+	);
+
+	// Seed default agent presets on first load per device. Shares its marker
+	// key with V2PresetsBar so whichever entry point loads first seeds, and
+	// the other is a no-op.
+	const seededRef = useRef(false);
+	useEffect(() => {
+		if (seededRef.current) return;
+		if (localStorage.getItem(V2_SEED_MARKER_KEY) === "1") {
+			seededRef.current = true;
+			return;
+		}
+		for (const [
+			index,
+			agent,
+		] of DEFAULT_TERMINAL_PRESET_AGENT_TYPES.entries()) {
+			collections.v2TerminalPresets.insert({
+				id: crypto.randomUUID(),
+				name: agent,
+				description: AGENT_PRESET_DESCRIPTIONS[agent],
+				cwd: "",
+				commands: AGENT_PRESET_COMMANDS[agent],
+				projectIds: null,
+				pinnedToBar: true,
+				executionMode: "new-tab",
+				tabOrder: index,
+				createdAt: new Date(),
+			});
+		}
+		localStorage.setItem(V2_SEED_MARKER_KEY, "1");
+		seededRef.current = true;
+	}, [collections.v2TerminalPresets]);
+
+	// V2TerminalPresetRow is a structural superset of TerminalPreset (adds
+	// tabOrder + createdAt), so the dumb sub-components can consume it as-is.
+	const serverPresets = useMemo<TerminalPreset[]>(
+		() => v2Presets as unknown as TerminalPreset[],
+		[v2Presets],
+	);
 
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
@@ -67,13 +128,14 @@ export function PresetsSection({
 
 	const projectOptions = useMemo<PresetProjectOption[]>(
 		() =>
-			groupedProjects.map((group) => ({
-				id: group.project.id,
-				name: group.project.name,
-				color: group.project.color,
-				mainRepoPath: group.project.mainRepoPath,
+			v2Projects.map((project) => ({
+				id: project.id,
+				name: project.name,
+				// v2 project schema has no color/mainRepoPath; degrade gracefully.
+				color: "",
+				mainRepoPath: "",
 			})),
-		[groupedProjects],
+		[v2Projects],
 	);
 	const projectOptionsById = useMemo(
 		() => new Map(projectOptions.map((project) => [project.id, project])),
@@ -153,6 +215,80 @@ export function PresetsSection({
 		[existingPresetNames],
 	);
 
+	// --- Collection mutations (wrapped to match v1 call sites) ---
+
+	const insertV2Preset = useCallback(
+		(input: {
+			name: string;
+			description?: string;
+			cwd: string;
+			commands: string[];
+			projectIds?: string[] | null;
+			pinnedToBar?: boolean;
+			executionMode?: ExecutionMode;
+		}) => {
+			const maxTabOrder = v2Presets.reduce(
+				(max, preset) => Math.max(max, preset.tabOrder),
+				-1,
+			);
+			collections.v2TerminalPresets.insert({
+				id: crypto.randomUUID(),
+				name: input.name,
+				description: input.description,
+				cwd: input.cwd,
+				commands: input.commands,
+				projectIds: input.projectIds ?? null,
+				pinnedToBar: input.pinnedToBar,
+				executionMode: input.executionMode ?? "new-tab",
+				tabOrder: maxTabOrder + 1,
+				createdAt: new Date(),
+			});
+		},
+		[collections.v2TerminalPresets, v2Presets],
+	);
+
+	const updateV2Preset = useCallback(
+		(id: string, patch: Partial<V2TerminalPresetRow>) => {
+			collections.v2TerminalPresets.update(id, (draft) => {
+				for (const [key, value] of Object.entries(patch) as Array<
+					[keyof V2TerminalPresetRow, unknown]
+				>) {
+					// biome-ignore lint/suspicious/noExplicitAny: narrow assignment across union
+					(draft as any)[key] = value;
+				}
+			});
+		},
+		[collections.v2TerminalPresets],
+	);
+
+	const deleteV2Preset = useCallback(
+		(id: string) => {
+			collections.v2TerminalPresets.delete(id);
+		},
+		[collections.v2TerminalPresets],
+	);
+
+	const reorderV2Presets = useCallback(
+		(presetId: string, targetIndex: number) => {
+			const orderedIds = v2Presets.map((preset) => preset.id);
+			const currentIndex = orderedIds.indexOf(presetId);
+			if (currentIndex === -1) return;
+			if (targetIndex < 0 || targetIndex >= orderedIds.length) return;
+
+			const [moved] = orderedIds.splice(currentIndex, 1);
+			orderedIds.splice(targetIndex, 0, moved);
+
+			for (const [index, id] of orderedIds.entries()) {
+				collections.v2TerminalPresets.update(id, (draft) => {
+					draft.tabOrder = index;
+				});
+			}
+		},
+		[collections.v2TerminalPresets, v2Presets],
+	);
+
+	// --- Handlers (identical structure to v1 PresetsSection) ---
+
 	const handleCellChange = useCallback(
 		(rowIndex: number, column: PresetColumnKey, value: string) => {
 			setLocalPresets((prev) =>
@@ -175,14 +311,11 @@ export function PresetsSection({
 				if (!serverPreset) return currentLocal;
 				if (preset[column] === serverPreset[column]) return currentLocal;
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { [column]: preset[column] },
-				});
+				updateV2Preset(preset.id, { [column]: preset[column] });
 				return currentLocal;
 			});
 		},
-		[updatePreset],
+		[updateV2Preset],
 	);
 
 	const handleCommandsChange = useCallback(
@@ -195,15 +328,12 @@ export function PresetsSection({
 				);
 
 				if (isDelete && preset) {
-					updatePreset.mutate({
-						id: preset.id,
-						patch: { commands },
-					});
+					updateV2Preset(preset.id, { commands });
 				}
 				return newPresets;
 			});
 		},
-		[updatePreset],
+		[updateV2Preset],
 	);
 
 	const handleCommandsBlur = useCallback(
@@ -222,14 +352,11 @@ export function PresetsSection({
 					return currentLocal;
 				}
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { commands: preset.commands },
-				});
+				updateV2Preset(preset.id, { commands: preset.commands });
 				return currentLocal;
 			});
 		},
-		[updatePreset],
+		[updateV2Preset],
 	);
 
 	const handleExecutionModeChange = useCallback(
@@ -244,21 +371,18 @@ export function PresetsSection({
 						: presetItem,
 				);
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { executionMode: mode },
-				});
+				updateV2Preset(preset.id, { executionMode: mode });
 
 				return newPresets;
 			});
 		},
-		[updatePreset],
+		[updateV2Preset],
 	);
 
 	const handleAddRow = useCallback(
 		(projectIds?: string[] | null) => {
 			shouldOpenNewPresetEditorRef.current = true;
-			createPreset.mutate({
+			insertV2Preset({
 				name: "",
 				cwd: "",
 				commands: [""],
@@ -266,15 +390,15 @@ export function PresetsSection({
 				executionMode: "new-tab",
 			});
 		},
-		[createPreset],
+		[insertV2Preset],
 	);
 
 	const handleAddTemplate = useCallback(
 		(template: PresetTemplate) => {
 			if (existingPresetNames.has(template.preset.name)) return;
-			createPreset.mutate(template.preset);
+			insertV2Preset(template.preset);
 		},
-		[createPreset, existingPresetNames],
+		[existingPresetNames, insertV2Preset],
 	);
 
 	useEffect(() => {
@@ -297,29 +421,27 @@ export function PresetsSection({
 			setLocalPresets((currentLocal) => {
 				const preset = currentLocal[rowIndex];
 				if (preset) {
-					deletePreset.mutate({ id: preset.id });
+					deleteV2Preset(preset.id);
 				}
 				return currentLocal;
 			});
 		},
-		[deletePreset],
+		[deleteV2Preset],
 	);
 
 	const handleToggleAutoApply = useCallback(
 		(presetId: string, field: AutoApplyField, enabled: boolean) => {
-			setPresetAutoApply.mutate({ id: presetId, field, enabled });
+			// Match v1 semantics: store `true` when enabled, `undefined` when off.
+			updateV2Preset(presetId, { [field]: enabled ? true : undefined });
 		},
-		[setPresetAutoApply],
+		[updateV2Preset],
 	);
 
 	const handleTogglePin = useCallback(
 		(presetId: string, pinned: boolean) => {
-			updatePreset.mutate({
-				id: presetId,
-				patch: { pinnedToBar: pinned },
-			});
+			updateV2Preset(presetId, { pinnedToBar: pinned });
 		},
-		[updatePreset],
+		[updateV2Preset],
 	);
 
 	const handleLocalReorder = useCallback(
@@ -336,9 +458,9 @@ export function PresetsSection({
 
 	const handlePersistReorder = useCallback(
 		(presetId: string, targetIndex: number) => {
-			reorderPresets.mutate({ presetId, targetIndex });
+			reorderV2Presets(presetId, targetIndex);
 		},
-		[reorderPresets],
+		[reorderV2Presets],
 	);
 
 	const handleCloseEditor = useCallback(() => {
@@ -387,12 +509,9 @@ export function PresetsSection({
 				),
 			);
 
-			updatePreset.mutate({
-				id: editingPreset.id,
-				patch: { cwd: value },
-			});
+			updateV2Preset(editingPreset.id, { cwd: value });
 		},
-		[editingPreset, editingRowIndex, updatePreset],
+		[editingPreset, editingRowIndex, updateV2Preset],
 	);
 
 	const handleEditorProjectIdsChange = useCallback(
@@ -405,12 +524,9 @@ export function PresetsSection({
 				),
 			);
 
-			updatePreset.mutate({
-				id: editingPreset.id,
-				patch: { projectIds },
-			});
+			updateV2Preset(editingPreset.id, { projectIds });
 		},
-		[editingPreset, editingRowIndex, updatePreset],
+		[editingPreset, editingRowIndex, updateV2Preset],
 	);
 
 	const handleEditorCommandsChange = useCallback(
@@ -469,7 +585,7 @@ export function PresetsSection({
 				<QuickAddPresets
 					templates={PRESET_TEMPLATES}
 					isDark={isDark}
-					isCreatePending={createPreset.isPending}
+					isCreatePending={false}
 					isTemplateAdded={isTemplateAdded}
 					onAddTemplate={handleAddTemplate}
 				/>
@@ -479,7 +595,7 @@ export function PresetsSection({
 				<>
 					<PresetsTable
 						presets={localPresets}
-						isLoading={isLoadingPresets}
+						isLoading={false}
 						projectOptionsById={projectOptionsById}
 						presetsContainerRef={presetsContainerRef}
 						onEdit={setEditingPreset}
