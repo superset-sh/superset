@@ -93,8 +93,7 @@ export const v2ProjectRouter = {
 					message: "Not a member of this organization",
 				});
 			}
-			const row = await requireOrgResourceAccess(
-				ctx.userId,
+			const row = await requireOrgScopedResource(
 				() =>
 					dbWs.query.v2Projects.findFirst({
 						where: eq(v2Projects.id, input.id),
