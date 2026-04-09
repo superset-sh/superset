@@ -1,4 +1,5 @@
 export { useCloseWorkspace } from "./useCloseWorkspace";
+export { useCloseWorkspaces } from "./useCloseWorkspaces";
 export { useCreateFromPr } from "./useCreateFromPr";
 export { useCreateSectionFromWorkspaces } from "./useCreateSectionFromWorkspaces";
 export { useCreateWorkspace } from "./useCreateWorkspace";
