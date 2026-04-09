@@ -118,6 +118,7 @@ describe("getGitHubStatus", () => {
 		};
 
 		mockFetchGitHubPRStatus.mockClear();
+		mockGetWorktree.mockClear();
 		mockGetWorkspace.mockReturnValue(branchWorkspace);
 		mockGetWorkspacePath.mockReturnValue("/repos/my-project");
 		mockFetchGitHubPRStatus.mockResolvedValue(fakeGitHubStatus);
@@ -132,6 +133,7 @@ describe("getGitHubStatus", () => {
 			"/repos/my-project",
 			"feature/branch-workspace",
 		);
+		expect(mockGetWorktree).not.toHaveBeenCalled();
 	});
 
 	test("returns GitHub status for worktree workspaces", async () => {
