@@ -8,8 +8,6 @@ import { Label } from "@superset/ui/label";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { PresetEditorSheet } from "./components/PresetEditorSheet";
 import { PresetsTable } from "./components/PresetsTable";
@@ -19,11 +17,15 @@ import {
 	PRESET_TEMPLATES,
 	type PresetTemplate,
 } from "./constants";
-import type { PresetProjectOption } from "./preset-project-options";
+import {
+	type TerminalPresetsVariant,
+	useTerminalPresetsSource,
+} from "./hooks/useTerminalPresetsSource";
 
 interface PresetsSectionProps {
 	showPresets: boolean;
 	showQuickAdd: boolean;
+	variant?: TerminalPresetsVariant;
 	editingPresetId?: string | null;
 	onEditingPresetIdChange?: (presetId: string | null) => void;
 	pendingCreateProjectId?: string | null;
@@ -33,23 +35,23 @@ interface PresetsSectionProps {
 export function PresetsSection({
 	showPresets,
 	showQuickAdd,
+	variant = "v1",
 	editingPresetId: editingPresetIdFromRoute,
 	onEditingPresetIdChange,
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
-	const { data: groupedProjects = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const {
 		presets: serverPresets,
 		isLoading: isLoadingPresets,
+		projectOptions,
 		createPreset,
 		updatePreset,
 		deletePreset,
 		setPresetAutoApply,
 		reorderPresets,
-	} = usePresets();
+	} = useTerminalPresetsSource(variant);
 
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
@@ -65,16 +67,6 @@ export function PresetsSection({
 	const shouldOpenNewPresetEditorRef = useRef(false);
 	const lastHandledCreateProjectIdRef = useRef<string | null>(null);
 
-	const projectOptions = useMemo<PresetProjectOption[]>(
-		() =>
-			groupedProjects.map((group) => ({
-				id: group.project.id,
-				name: group.project.name,
-				color: group.project.color,
-				mainRepoPath: group.project.mainRepoPath,
-			})),
-		[groupedProjects],
-	);
 	const projectOptionsById = useMemo(
 		() => new Map(projectOptions.map((project) => [project.id, project])),
 		[projectOptions],
