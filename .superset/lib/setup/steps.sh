@@ -259,6 +259,7 @@ step_start_electric() {
 
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
+      --restart unless-stopped \
       $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \

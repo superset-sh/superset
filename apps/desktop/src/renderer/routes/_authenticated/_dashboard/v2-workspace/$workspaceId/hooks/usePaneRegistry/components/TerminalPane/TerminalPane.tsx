@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
@@ -7,6 +8,7 @@ import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
@@ -104,6 +106,53 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
 	}, [terminalId, appearance]);
+
+	// --- Link handlers ---
+	// All filesystem operations go through the host service.
+	// statPath is a mutation (POST) to avoid tRPC GET URL encoding issues
+	// with paths containing special characters like ().
+	const statPathMutation = workspaceTrpc.filesystem.statPath.useMutation();
+	const statPathRef = useRef(statPathMutation.mutateAsync);
+	statPathRef.current = statPathMutation.mutateAsync;
+
+	useEffect(() => {
+		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
+			stat: async (path) => {
+				try {
+					const result = await statPathRef.current({
+						workspaceId,
+						path,
+					});
+					if (!result) return null;
+					return {
+						isDirectory: result.isDirectory,
+						resolvedPath: result.resolvedPath,
+					};
+				} catch {
+					return null;
+				}
+			},
+			onFileLinkClick: (_event, link) => {
+				if (!_event.metaKey && !_event.ctrlKey) return;
+				_event.preventDefault();
+				electronTrpcClient.external.openFileInEditor
+					.mutate({
+						path: link.resolvedPath,
+						line: link.row,
+						column: link.col,
+					})
+					.catch((error) => {
+						console.error("[v2 Terminal] Failed to open file:", error);
+						toast.error("Failed to open file in editor");
+					});
+			},
+			onUrlClick: (url) => {
+				electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
+					console.error("[v2 Terminal] Failed to open URL:", url, error);
+				});
+			},
+		});
+	}, [terminalId, workspaceId]);
 
 	useHotkey("CLEAR_TERMINAL", () => {
 		terminalRuntimeRegistry.clear(terminalId);
