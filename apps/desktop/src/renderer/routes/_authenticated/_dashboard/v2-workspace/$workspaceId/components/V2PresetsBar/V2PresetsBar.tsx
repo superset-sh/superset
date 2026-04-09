@@ -23,7 +23,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
-import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import type { HotkeyId } from "renderer/hotkeys";
 import { useSeedDefaultV2Presets } from "renderer/routes/_authenticated/hooks/useSeedDefaultV2Presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -37,6 +37,21 @@ interface V2PresetsBarProps {
 	projectId: string;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 }
+
+// Co-located to keep v2 self-contained. Mirrors the v1 array in
+// renderer/hotkeys/registry.ts; order matches the registry OPEN_PRESET_{n}
+// definitions so PRESET_HOTKEY_IDS[i] targets the i-th pinned preset.
+const PRESET_HOTKEY_IDS: HotkeyId[] = [
+	"OPEN_PRESET_1",
+	"OPEN_PRESET_2",
+	"OPEN_PRESET_3",
+	"OPEN_PRESET_4",
+	"OPEN_PRESET_5",
+	"OPEN_PRESET_6",
+	"OPEN_PRESET_7",
+	"OPEN_PRESET_8",
+	"OPEN_PRESET_9",
+];
 
 interface PresetTemplate {
 	name: string;
