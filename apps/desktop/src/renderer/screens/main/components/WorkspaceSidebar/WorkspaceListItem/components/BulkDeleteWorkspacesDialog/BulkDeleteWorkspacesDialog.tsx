@@ -52,7 +52,7 @@ export function BulkDeleteWorkspacesDialog({
 	);
 	const deleteLocalBranchChecked =
 		deleteLocalBranch ?? deleteLocalBranchDefault ?? false;
-	const hideAllButtonRef = useRef<HTMLButtonElement | null>(null);
+	const deleteAllButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	// Fetch canDelete status for all workspaces imperatively
 	const [canDeleteStatuses, setCanDeleteStatuses] = useState<
@@ -71,22 +71,34 @@ export function BulkDeleteWorkspacesDialog({
 
 		Promise.all(
 			workspaceIds.map(async (id) => {
-				const result = await utils.workspaces.canDelete.fetch({ id });
-				return [id, result] as const;
+				try {
+					const result = await utils.workspaces.canDelete.fetch({ id });
+					return [id, result] as const;
+				} catch {
+					return [
+						id,
+						{ hasChanges: false, hasUnpushedCommits: false, canDelete: false },
+					] as const;
+				}
 			}),
-		).then((results) => {
-			if (cancelled) return;
-			const map = new Map<string, CanDeleteStatus>();
-			for (const [id, result] of results) {
-				map.set(id, {
-					hasChanges: result.hasChanges ?? false,
-					hasUnpushedCommits: result.hasUnpushedCommits ?? false,
-					canDelete: result.canDelete ?? true,
-				});
-			}
-			setCanDeleteStatuses(map);
-			setIsLoading(false);
-		});
+		)
+			.then((results) => {
+				if (cancelled) return;
+				const map = new Map<string, CanDeleteStatus>();
+				for (const [id, result] of results) {
+					map.set(id, {
+						hasChanges: result.hasChanges ?? false,
+						hasUnpushedCommits: result.hasUnpushedCommits ?? false,
+						canDelete: result.canDelete ?? true,
+					});
+				}
+				setCanDeleteStatuses(map);
+				setIsLoading(false);
+			})
+			.catch(() => {
+				if (cancelled) return;
+				setIsLoading(false);
+			});
 
 		return () => {
 			cancelled = true;
@@ -151,7 +163,7 @@ export function BulkDeleteWorkspacesDialog({
 			<AlertDialogContent
 				className="max-w-[340px] gap-0 p-0"
 				onOpenAutoFocus={(event) => {
-					focusPrimaryDialogAction(event, hideAllButtonRef.current);
+					focusPrimaryDialogAction(event, deleteAllButtonRef.current);
 				}}
 			>
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
@@ -218,7 +230,6 @@ export function BulkDeleteWorkspacesDialog({
 						Cancel
 					</Button>
 					<Button
-						ref={hideAllButtonRef}
 						variant="secondary"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -229,6 +240,7 @@ export function BulkDeleteWorkspacesDialog({
 					<Tooltip delayDuration={400}>
 						<TooltipTrigger asChild>
 							<Button
+								ref={deleteAllButtonRef}
 								variant="destructive"
 								size="sm"
 								className="h-7 px-3 text-xs"

@@ -8,9 +8,7 @@ export function useDeleteWorkspaces() {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
-	const deleteMutation = electronTrpc.workspaces.delete.useMutation({
-		onSettled: () => utils.workspaces.invalidate(),
-	});
+	const deleteMutation = electronTrpc.workspaces.delete.useMutation();
 
 	const deleteWorkspaces = useCallback(
 		async (ids: string[], deleteLocalBranch: boolean) => {

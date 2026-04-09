@@ -8,9 +8,7 @@ export function useCloseWorkspaces() {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
-	const closeMutation = electronTrpc.workspaces.close.useMutation({
-		onSettled: () => utils.workspaces.invalidate(),
-	});
+	const closeMutation = electronTrpc.workspaces.close.useMutation();
 
 	const closeWorkspaces = useCallback(
 		async (ids: string[]) => {
