@@ -10,6 +10,8 @@
 		59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB204BB0EB8E9E43776037F8 /* PTYSession.swift */; };
 		7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78717C838D7276434EE866E1 /* PTYSessionTests.swift */; };
 		87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23ED462F661EDEF126FC079 /* SupersetApp.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */; };
+		B2C3D4E5F6071829A1B2C3D4 /* OutputBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,6 +29,8 @@
 		78717C838D7276434EE866E1 /* PTYSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionTests.swift; sourceTree = "<group>"; };
 		A23ED462F661EDEF126FC079 /* SupersetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetApp.swift; sourceTree = "<group>"; };
 		BB204BB0EB8E9E43776037F8 /* PTYSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSession.swift; sourceTree = "<group>"; };
+		D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcher.swift; sourceTree = "<group>"; };
+		E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcherTests.swift; sourceTree = "<group>"; };
 		EFA9AB08E275D403033F5B3F /* SupersetShell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SupersetShell.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -43,9 +47,18 @@
 			isa = PBXGroup;
 			children = (
 				6440F03073F7A16B558815ED /* App */,
+				F607182930A1B2C3D4E5F607 /* Bridge */,
 				3F51D25EA32120B5CB2098BF /* PTY */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		F607182930A1B2C3D4E5F607 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */,
+			);
+			path = Bridge;
 			sourceTree = "<group>";
 		};
 		6440F03073F7A16B558815ED /* App */ = {
@@ -77,6 +90,7 @@
 		ED79E24F489E984EC0C6AC7C /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */,
 				78717C838D7276434EE866E1 /* PTYSessionTests.swift */,
 			);
 			path = Tests;
@@ -180,6 +194,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */,
+				B2C3D4E5F6071829A1B2C3D4 /* OutputBatcherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -189,6 +204,7 @@
 			files = (
 				59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */,
 				87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
