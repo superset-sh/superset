@@ -1,4 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	DEFAULT_SIDEBAR_WIDTH,
 	MAX_SIDEBAR_WIDTH,
@@ -6,6 +7,7 @@ import {
 	SidebarMode,
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
+import { DEFAULT_SWAP_PANELS } from "shared/constants";
 import { ResizablePanel } from "../../ResizablePanel";
 import { ChangesContent, ScrollProvider } from "../ChangesContent";
 import { ContentView } from "../ContentView";
@@ -31,10 +33,32 @@ export function WorkspaceLayout({
 	const setIsResizing = useSidebarStore((s) => s.setIsResizing);
 	const currentMode = useSidebarStore((s) => s.currentMode);
 
+	const { data: swapPanels } = electronTrpc.settings.getSwapPanels.useQuery();
+	const isSwapped = swapPanels ?? DEFAULT_SWAP_PANELS;
+
 	const isExpanded = currentMode === SidebarMode.Changes;
+
+	const sidebarPanel = isSidebarOpen && (
+		<ResizablePanel
+			width={sidebarWidth}
+			onWidthChange={setSidebarWidth}
+			isResizing={isResizing}
+			onResizingChange={setIsResizing}
+			minWidth={MIN_SIDEBAR_WIDTH}
+			maxWidth={MAX_SIDEBAR_WIDTH}
+			handleSide={isSwapped ? "right" : "left"}
+			className={
+				isExpanded ? (isSwapped ? "border-r-0" : "border-l-0") : undefined
+			}
+			onDoubleClickHandle={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+		>
+			<RightSidebar />
+		</ResizablePanel>
+	);
 
 	return (
 		<ScrollProvider>
+			{isSwapped && sidebarPanel}
 			<div className="flex-1 min-w-0 overflow-hidden">
 				{isExpanded ? (
 					<ChangesContent />
@@ -46,21 +70,7 @@ export function WorkspaceLayout({
 					/>
 				)}
 			</div>
-			{isSidebarOpen && (
-				<ResizablePanel
-					width={sidebarWidth}
-					onWidthChange={setSidebarWidth}
-					isResizing={isResizing}
-					onResizingChange={setIsResizing}
-					minWidth={MIN_SIDEBAR_WIDTH}
-					maxWidth={MAX_SIDEBAR_WIDTH}
-					handleSide="left"
-					className={isExpanded ? "border-l-0" : undefined}
-					onDoubleClickHandle={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
-				>
-					<RightSidebar />
-				</ResizablePanel>
-			)}
+			{!isSwapped && sidebarPanel}
 		</ScrollProvider>
 	);
 }

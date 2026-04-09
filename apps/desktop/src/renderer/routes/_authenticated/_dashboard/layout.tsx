@@ -20,6 +20,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { DEFAULT_SWAP_PANELS } from "shared/constants";
 import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
@@ -56,6 +57,9 @@ function DashboardLayout() {
 		isCollapsed: isWorkspaceSidebarCollapsed,
 	} = useWorkspaceSidebarStore();
 
+	const { data: swapPanels } = electronTrpc.settings.getSwapPanels.useQuery();
+	const isSwapped = swapPanels ?? DEFAULT_SWAP_PANELS;
+
 	// Global hotkeys for dashboard
 	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
 	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }));
@@ -90,38 +94,41 @@ function DashboardLayout() {
 		{ enabled: !!currentWorkspaceId },
 	);
 
+	const workspaceSidebarPanel = isWorkspaceSidebarOpen && (
+		<ResizablePanel
+			width={workspaceSidebarWidth}
+			onWidthChange={setWorkspaceSidebarWidth}
+			isResizing={isWorkspaceSidebarResizing}
+			onResizingChange={setWorkspaceSidebarIsResizing}
+			minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
+			maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
+			handleSide={isSwapped ? "left" : "right"}
+			clampWidth={false}
+			onDoubleClickHandle={() =>
+				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
+			}
+		>
+			{isV2CloudEnabled ? (
+				<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+			) : (
+				<WorkspaceSidebar
+					isCollapsed={isWorkspaceSidebarCollapsed()}
+					activeProjectId={currentWorkspace?.projectId ?? null}
+					activeProjectName={currentWorkspace?.project?.name ?? null}
+				/>
+			)}
+		</ResizablePanel>
+	);
+
 	return (
 		<div className="flex flex-col h-full w-full">
 			<TopBar />
 			<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-				{isWorkspaceSidebarOpen && (
-					<ResizablePanel
-						width={workspaceSidebarWidth}
-						onWidthChange={setWorkspaceSidebarWidth}
-						isResizing={isWorkspaceSidebarResizing}
-						onResizingChange={setWorkspaceSidebarIsResizing}
-						minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
-						maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
-						handleSide="right"
-						clampWidth={false}
-						onDoubleClickHandle={() =>
-							setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
-						}
-					>
-						{isV2CloudEnabled ? (
-							<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
-						) : (
-							<WorkspaceSidebar
-								isCollapsed={isWorkspaceSidebarCollapsed()}
-								activeProjectId={currentWorkspace?.projectId ?? null}
-								activeProjectName={currentWorkspace?.project?.name ?? null}
-							/>
-						)}
-					</ResizablePanel>
-				)}
+				{!isSwapped && workspaceSidebarPanel}
 				<div className="flex flex-1 min-h-0 min-w-0">
 					<Outlet />
 				</div>
+				{isSwapped && workspaceSidebarPanel}
 				{deleteTarget && (
 					<DeleteWorkspaceDialog
 						workspaceId={deleteTarget.workspaceId}

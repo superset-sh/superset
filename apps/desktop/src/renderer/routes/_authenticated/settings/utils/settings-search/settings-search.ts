@@ -26,6 +26,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	APPEARANCE_SWAP_PANELS: "appearance-swap-panels",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -484,6 +485,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_SWAP_PANELS,
+		section: "appearance",
+		title: "Swap sidebar panels",
+		description:
+			"Move files and git changes to the left, workspaces to the right",
+		keywords: [
+			"swap",
+			"panels",
+			"sidebar",
+			"layout",
+			"left",
+			"right",
+			"files",
+			"git",
+			"workspace",
+			"mirror",
+			"flip",
 		],
 	},
 	{

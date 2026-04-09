@@ -40,7 +40,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
-
 	const utils = electronTrpc.useUtils();
 
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
