@@ -162,15 +162,24 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 		});
 	}, [terminalId, workspaceId]);
 
-	useHotkey("CLEAR_TERMINAL", () => {
-		terminalRuntimeRegistry.clear(terminalId);
-	});
+	useHotkey(
+		"CLEAR_TERMINAL",
+		() => {
+			terminalRuntimeRegistry.clear(terminalId);
+		},
+		{ enabled: ctx.isActive },
+	);
 
-	useHotkey("SCROLL_TO_BOTTOM", () => {
-		terminalRuntimeRegistry.scrollToBottom(terminalId);
-	});
+	useHotkey(
+		"SCROLL_TO_BOTTOM",
+		() => {
+			terminalRuntimeRegistry.scrollToBottom(terminalId);
+		},
+		{ enabled: ctx.isActive },
+	);
 
 	useHotkey("FIND_IN_TERMINAL", () => setIsSearchOpen((prev) => !prev), {
+		enabled: ctx.isActive,
 		preventDefault: true,
 	});
 
