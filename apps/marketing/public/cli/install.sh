@@ -138,8 +138,8 @@ main() {
     # with +x, so this is a sanity check, not a chmod fallback.
     for bin in superset superset-host; do
         path="$INSTALL_DIR/bin/$bin"
-        if [ ! -x "$path" ]; then
-            error "Expected executable not found: $path"
+        if [ ! -f "$path" ] || [ ! -x "$path" ]; then
+            error "Expected executable file not found: $path"
         fi
     done
 
