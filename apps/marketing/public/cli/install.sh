@@ -19,8 +19,8 @@ YELLOW='\033[33m'
 RED='\033[31m'
 RESET='\033[0m'
 
-info() { printf "${GREEN}==>${RESET} %s\n" "$1"; }
-warn() { printf "${YELLOW}warning:${RESET} %s\n" "$1"; }
+info() { printf "${GREEN}==>${RESET} %s\n" "$1" >&2; }
+warn() { printf "${YELLOW}warning:${RESET} %s\n" "$1" >&2; }
 error() { printf "${RED}error:${RESET} %s\n" "$1" >&2; exit 1; }
 
 detect_target() {
@@ -134,7 +134,14 @@ main() {
     tarball="$(download_tarball "$target")"
     extract_tarball "$tarball"
 
-    chmod +x "$INSTALL_DIR/bin/superset" "$INSTALL_DIR/bin/superset-host" 2>/dev/null || true
+    # Verify binaries exist and are executable. Tarball already ships them
+    # with +x, so this is a sanity check, not a chmod fallback.
+    for bin in superset superset-host; do
+        path="$INSTALL_DIR/bin/$bin"
+        if [ ! -x "$path" ]; then
+            error "Expected executable not found: $path"
+        fi
+    done
 
     update_path
 
