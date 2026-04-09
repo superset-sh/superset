@@ -189,9 +189,8 @@ export function V2PresetsBar({
 	const openPresetInNewTab = useCallback(
 		(preset: V2TerminalPresetRow) => {
 			if (!workspaceId) return;
-			// TODO: inject preset.commands into the spawned terminal. v2 terminals are
-			// WebSocket-driven via terminalRuntimeRegistry — initial-command support
-			// needs to be threaded through TerminalPaneData and TerminalPane.
+			const initialCommand =
+				preset.commands.length > 0 ? preset.commands.join(" && ") : undefined;
 			store.getState().addTab({
 				titleOverride: preset.name || "Terminal",
 				panes: [
@@ -199,6 +198,7 @@ export function V2PresetsBar({
 						kind: "terminal",
 						data: {
 							terminalId: crypto.randomUUID(),
+							initialCommand,
 						} as TerminalPaneData,
 					},
 				],
