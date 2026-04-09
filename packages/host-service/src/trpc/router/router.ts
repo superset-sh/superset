@@ -10,6 +10,7 @@ import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
 import { terminalRouter } from "./terminal";
 import { workspaceRouter } from "./workspace";
+import { workspaceCreationRouter } from "./workspace-creation";
 
 export const appRouter = router({
 	health: healthRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
 	project: projectRouter,
 	terminal: terminalRouter,
 	workspace: workspaceRouter,
+	workspaceCreation: workspaceCreationRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,0 +1,1 @@
+export { GitHubIssueLinkCommand } from "./GitHubIssueLinkCommand";
