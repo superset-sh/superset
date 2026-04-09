@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { projects, type SelectProject } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import type { SetupAction, SetupDetectionResult } from "shared/types/config";
+import type {
+	SetupAction,
+	SetupDetectionResult,
+	WorkspaceAction,
+} from "shared/types/config";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { loadSetupConfig } from "../workspaces/utils/setup";
@@ -484,7 +488,7 @@ export const createConfigRouter = () => {
 					existingConfig = {};
 				}
 
-				// Merge existing config with new setup/teardown values
+				// Merge existing config with new setup/teardown values, preserving actions
 				const config = {
 					...existingConfig,
 					setup: input.setup,
@@ -497,6 +501,74 @@ export const createConfigRouter = () => {
 					return { success: true };
 				} catch (error) {
 					console.error("[config/updateConfig] Failed to write config:", error);
+					throw new Error("Failed to save config");
+				}
+			}),
+
+		// Update the actions array in the config file
+		updateActions: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					actions: z.array(
+						z.object({
+							id: z.string(),
+							name: z.string(),
+							command: z.string(),
+							icon: z
+								.enum([
+									"run",
+									"tool",
+									"debug",
+									"test",
+									"terminal",
+									"sparkles",
+									"bolt",
+									"rocket",
+									"build",
+									"deploy",
+								] as const)
+								.optional(),
+						}),
+					),
+				}),
+			)
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				const configPath = ensureConfigExists(project.mainRepoPath);
+
+				let existingConfig: Record<string, unknown> = {};
+				try {
+					const existingContent = readFileSync(configPath, "utf-8");
+					const parsed = JSON.parse(existingContent);
+					if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+						existingConfig = parsed;
+					}
+				} catch {
+					existingConfig = {};
+				}
+
+				const config = {
+					...existingConfig,
+					actions: input.actions as WorkspaceAction[],
+				};
+
+				try {
+					writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+					return { success: true };
+				} catch (error) {
+					console.error(
+						"[config/updateActions] Failed to write config:",
+						error,
+					);
 					throw new Error("Failed to save config");
 				}
 			}),

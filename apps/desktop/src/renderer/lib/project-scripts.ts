@@ -10,5 +10,6 @@ export async function invalidateProjectScriptQueries(
 		utils.config.getConfigContent.invalidate({ projectId }),
 		utils.config.shouldShowSetupCard.invalidate({ projectId }),
 		utils.workspaces.getResolvedRunCommands.invalidate(),
+		utils.workspaces.getResolvedActions.invalidate(),
 	]);
 }

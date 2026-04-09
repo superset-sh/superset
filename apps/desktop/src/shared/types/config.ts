@@ -1,7 +1,27 @@
+export type ActionIconKey =
+	| "run"
+	| "tool"
+	| "debug"
+	| "test"
+	| "terminal"
+	| "sparkles"
+	| "bolt"
+	| "rocket"
+	| "build"
+	| "deploy";
+
+export interface WorkspaceAction {
+	id: string;
+	name: string;
+	command: string;
+	icon?: ActionIconKey;
+}
+
 export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
 	run?: string[];
+	actions?: WorkspaceAction[];
 }
 
 export interface LocalScriptMerge {

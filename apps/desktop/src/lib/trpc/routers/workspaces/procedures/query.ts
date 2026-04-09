@@ -7,6 +7,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import type { ActionIconKey } from "shared/types/config";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
@@ -345,6 +346,92 @@ export const createQueryProcedures = () => {
 				return {
 					commands: config?.run ?? [],
 				};
+			}),
+
+		getResolvedActions: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+				if (!workspace) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+				if (!project) {
+					return { actions: [], lastUsedActionId: null };
+				}
+
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+
+				const worktreePath =
+					workspace.type === "worktree" && worktree?.path
+						? worktree.path
+						: workspace.type === "branch"
+							? project.mainRepoPath
+							: undefined;
+
+				const config = loadSetupConfig({
+					mainRepoPath: project.mainRepoPath,
+					worktreePath,
+					projectId: project.id,
+				});
+
+				const actions: {
+					id: string;
+					name: string;
+					command: string;
+					icon?: ActionIconKey;
+				}[] = [];
+
+				// Custom actions only — the run script has its own dedicated button
+				for (const action of config?.actions ?? []) {
+					if (action.command.trim()) {
+						actions.push({
+							id: action.id,
+							name: action.name,
+							command: action.command,
+							icon: action.icon,
+						});
+					}
+				}
+
+				return {
+					actions,
+					lastUsedActionId: workspace.lastUsedActionId ?? null,
+				};
+			}),
+
+		setLastUsedAction: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					actionId: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.update(workspaces)
+					.set({ lastUsedActionId: input.actionId })
+					.where(eq(workspaces.id, input.workspaceId))
+					.run();
+				return { success: true };
 			}),
 	});
 };

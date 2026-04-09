@@ -52,6 +52,7 @@ import {
 	SETTING_ITEM_ID,
 } from "../../../../utils/settings-search";
 import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
+import { ActionsEditor } from "./components/ActionsEditor";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
@@ -569,6 +570,10 @@ export function ProjectSettings({
 
 				<div className="pt-3 border-t">
 					<ScriptsEditor projectId={project.id} />
+				</div>
+
+				<div className="pt-3 border-t">
+					<ActionsEditor projectId={project.id} />
 				</div>
 
 				<SettingsSection

@@ -131,6 +131,8 @@ export const workspaces = sqliteTable(
 		sectionId: text("section_id").references(() => workspaceSections.id, {
 			onDelete: "set null",
 		}),
+		// ID of the last action run in this workspace (for surfacing in the actions button)
+		lastUsedActionId: text("last_used_action_id"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
