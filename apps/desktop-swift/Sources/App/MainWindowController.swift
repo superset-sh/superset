@@ -32,7 +32,7 @@ final class MainWindowController: NSObject, WKNavigationDelegate {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(schemeHandler, forURLScheme: "superset")
 
-        controlHandler = ControlMessageHandler(schemeHandler: schemeHandler)
+        controlHandler = ControlMessageHandler(schemeHandler: schemeHandler, windowController: self)
         config.userContentController.add(controlHandler, name: "superset")
 
         #if DEBUG
@@ -59,7 +59,9 @@ final class MainWindowController: NSObject, WKNavigationDelegate {
         webView.loadFileURL(resourceURL, allowingReadAccessTo: directoryURL)
     }
 
-    func createTerminal(sessionId: String, cwd: String) {
+    /// Creates only the PTY session (no JS call). Output accumulates in the replay buffer.
+    /// JS initTerminal is called later from didFinish navigation delegate.
+    func createPTYSession(sessionId: String, cwd: String) {
         do {
             try sessionManager.createSession(
                 sessionId: sessionId,
@@ -75,17 +77,10 @@ final class MainWindowController: NSObject, WKNavigationDelegate {
                     }
                 }
             )
+            logger.info("PTY session \(sessionId) created, waiting for WebView to init terminal")
         } catch {
             logger.error("Failed to create PTY session: \(error.localizedDescription)")
-            return
         }
-
-        let escapedId = sessionId.replacingOccurrences(of: "\"", with: "\\\"")
-        webView.evaluateJavaScript("""
-            if (window.__superset) {
-                window.__superset.initTerminal("\(escapedId)", document.getElementById("terminal-container"));
-            }
-        """)
     }
 
     // MARK: - WKNavigationDelegate (crash recovery)
@@ -97,17 +92,24 @@ final class MainWindowController: NSObject, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Note: module scripts load async, so __superset may not be available yet.
+        // Terminal initialization is triggered by the "ready" control message from JS instead.
+        logger.info("WebView navigation finished")
+    }
+
+    /// Called by ControlMessageHandler when JS sends { action: "ready" }.
+    func handleJSReady() {
         let activeIds = sessionManager.activeSessionIds()
-        if !activeIds.isEmpty {
-            logger.info("Restoring \(activeIds.count) terminal sessions after navigation")
-            for sessionId in activeIds {
-                let escapedId = sessionId.replacingOccurrences(of: "\"", with: "\\\"")
-                webView.evaluateJavaScript("""
-                    if (window.__superset) {
-                        window.__superset.initTerminal("\(escapedId)", document.getElementById("terminal-container"));
-                    }
-                """)
-            }
+        guard !activeIds.isEmpty else {
+            logger.info("JS ready but no active sessions")
+            return
+        }
+        logger.info("JS ready — initializing \(activeIds.count) terminal(s)")
+        for sessionId in activeIds {
+            let escapedId = sessionId.replacingOccurrences(of: "\"", with: "\\\"")
+            webView.evaluateJavaScript("""
+                window.__superset.initTerminal("\(escapedId)", document.getElementById("terminal-container"));
+            """)
         }
     }
 }

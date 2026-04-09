@@ -15,16 +15,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = MainWindowController()
-        windowController.loadWebContent()
-        windowController.window.makeKeyAndOrderFront(nil)
 
-        // Phase 1: single terminal session pointing to home directory
+        // Phase 1: create the PTY session eagerly so output accumulates in the replay buffer.
+        // The JS initTerminal call happens in didFinish navigation delegate after WebView loads.
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let sessionId = UUID().uuidString
+        windowController.createPTYSession(sessionId: sessionId, cwd: home)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.windowController.createTerminal(sessionId: sessionId, cwd: home)
-        }
+        windowController.loadWebContent()
+        windowController.window.makeKeyAndOrderFront(nil)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

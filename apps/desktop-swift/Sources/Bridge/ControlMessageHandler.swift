@@ -5,10 +5,12 @@ final class ControlMessageHandler: NSObject, WKScriptMessageHandler {
 
     private let sessionManager = PTYSessionManager.shared
     private weak var schemeHandler: SupersetSchemeHandler?
+    private weak var windowController: MainWindowController?
     private let logger = Logger(subsystem: "sh.superset.shell", category: "ControlHandler")
 
-    init(schemeHandler: SupersetSchemeHandler) {
+    init(schemeHandler: SupersetSchemeHandler, windowController: MainWindowController) {
         self.schemeHandler = schemeHandler
+        self.windowController = windowController
     }
 
     func userContentController(
@@ -30,6 +32,7 @@ final class ControlMessageHandler: NSObject, WKScriptMessageHandler {
             handleResize(body)
         case "ready":
             logger.info("WebView JS layer ready")
+            windowController?.handleJSReady()
         default:
             logger.warning("Unknown control action: \(action)")
         }
