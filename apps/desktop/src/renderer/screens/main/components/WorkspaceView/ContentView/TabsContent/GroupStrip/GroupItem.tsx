@@ -45,6 +45,7 @@ interface GroupItemProps {
 	index: number;
 	isActive: boolean;
 	status: PaneStatus | null;
+	orientation?: "horizontal" | "vertical";
 	onSelect: () => void;
 	onClose: () => void;
 	onRename: (newName: string) => void;
@@ -58,6 +59,7 @@ export function GroupItem({
 	index,
 	isActive,
 	status,
+	orientation = "horizontal",
 	onSelect,
 	onClose,
 	onRename,
@@ -65,6 +67,7 @@ export function GroupItem({
 	onPaneDrop,
 	onReorder,
 }: GroupItemProps) {
+	const isVertical = orientation === "vertical";
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
@@ -186,7 +189,8 @@ export function GroupItem({
 	);
 
 	const tabStyles = cn(
-		"flex items-center gap-2 transition-all w-full shrink-0 pl-3 pr-8 h-full",
+		"flex items-center gap-2 transition-all w-full shrink-0 pl-3 pr-8",
+		isVertical ? "py-1.5" : "h-full",
 		isActive
 			? "text-foreground bg-border/30"
 			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
@@ -213,7 +217,10 @@ export function GroupItem({
 						drag(drop(node));
 					}}
 					className={cn(
-						"group relative flex items-center shrink-0 h-full border-r border-border",
+						"group relative flex items-center shrink-0",
+						isVertical
+							? "w-full border-b border-border"
+							: "h-full border-r border-border",
 						isOver && canDrop && "bg-primary/5",
 						isDragging && "opacity-50 text-muted-foreground/50",
 					)}

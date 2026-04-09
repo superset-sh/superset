@@ -20,6 +20,7 @@ interface AddTabButtonProps {
 	useCompactAddButton: boolean;
 	showPresetsBar: boolean;
 	presets: TerminalPreset[];
+	orientation?: "horizontal" | "vertical";
 	onDropToNewTab: (paneId: string) => void;
 	isLastPaneInTab: (paneId: string) => boolean;
 	onAddTerminal: () => void;
@@ -35,6 +36,7 @@ export function AddTabButton({
 	useCompactAddButton,
 	showPresetsBar,
 	presets,
+	orientation = "horizontal",
 	onDropToNewTab,
 	isLastPaneInTab,
 	onAddTerminal,
@@ -45,11 +47,17 @@ export function AddTabButton({
 	onToggleShowPresetsBar,
 	onToggleCompactAddButton,
 }: AddTabButtonProps) {
-	const showBigAddButton = !useCompactAddButton;
+	// In vertical mode, always use compact button since the expanded row doesn't fit
+	const showBigAddButton =
+		orientation === "vertical" ? false : !useCompactAddButton;
 	const showPresetsInDropdown = !showPresetsBar;
 
 	return (
-		<NewTabDropZone onDrop={onDropToNewTab} isLastPaneInTab={isLastPaneInTab}>
+		<NewTabDropZone
+			onDrop={onDropToNewTab}
+			isLastPaneInTab={isLastPaneInTab}
+			orientation={orientation}
+		>
 			<DropdownMenu>
 				<div className="flex items-center shrink-0">
 					{showBigAddButton ? (
@@ -138,15 +146,17 @@ export function AddTabButton({
 					>
 						Show Preset Bar
 					</DropdownMenuCheckboxItem>
-					<DropdownMenuCheckboxItem
-						checked={useCompactAddButton}
-						onCheckedChange={(checked) =>
-							onToggleCompactAddButton(checked === true)
-						}
-						onSelect={(e) => e.preventDefault()}
-					>
-						Use Compact Button
-					</DropdownMenuCheckboxItem>
+					{orientation !== "vertical" && (
+						<DropdownMenuCheckboxItem
+							checked={useCompactAddButton}
+							onCheckedChange={(checked) =>
+								onToggleCompactAddButton(checked === true)
+							}
+							onSelect={(e) => e.preventDefault()}
+						>
+							Use Compact Button
+						</DropdownMenuCheckboxItem>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</NewTabDropZone>

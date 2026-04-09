@@ -7,6 +7,7 @@ import {
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
 	settings,
+	TAB_PLACEMENTS,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
@@ -27,6 +28,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_TAB_PLACEMENT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
@@ -668,6 +670,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { fileOpenMode: input.mode },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTabPlacement: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.tabPlacement ?? DEFAULT_TAB_PLACEMENT;
+		}),
+
+		setTabPlacement: publicProcedure
+			.input(z.object({ placement: z.enum(TAB_PLACEMENTS) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, tabPlacement: input.placement })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { tabPlacement: input.placement },
 					})
 					.run();
 

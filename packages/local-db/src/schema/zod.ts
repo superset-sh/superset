@@ -248,3 +248,7 @@ export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];
+
+export const TAB_PLACEMENTS = ["horizontal", "vertical"] as const;
+
+export type TabPlacement = (typeof TAB_PLACEMENTS)[number];

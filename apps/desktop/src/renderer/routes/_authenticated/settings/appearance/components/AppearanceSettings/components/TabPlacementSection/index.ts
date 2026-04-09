@@ -1,0 +1,1 @@
+export { TabPlacementSection } from "./TabPlacementSection";

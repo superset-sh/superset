@@ -9,6 +9,7 @@ import type {
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
+	TabPlacement,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -222,6 +223,7 @@ export const settings = sqliteTable("settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	tabPlacement: text("tab_placement").$type<TabPlacement>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
