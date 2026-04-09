@@ -277,13 +277,9 @@ async function main(): Promise<void> {
 
 	const tarball = join(cliDir, "dist", `superset-${target}.tar.gz`);
 	console.log(`[build-dist] creating ${tarball}`);
-	await exec("tar", [
-		"-czf",
-		tarball,
-		"-C",
-		dirname(stagingRoot),
-		`superset-${target}`,
-	]);
+	// Tar from inside the staging dir so contents extract directly to the
+	// install target (no top-level superset-<target>/ wrapper).
+	await exec("tar", ["-czf", tarball, "-C", stagingRoot, "."]);
 
 	console.log(`[build-dist] done: ${tarball}`);
 }
