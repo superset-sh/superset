@@ -29,19 +29,27 @@ export default command({
 
 		s.stop("Authorized!");
 
-		// Show who we logged in as
+		// The user picked an org during the OAuth consent screen — read it back
+		// and cache locally so `host start` and other commands know which org to use.
 		try {
 			const api = createApiClient(config);
 			const user = await api.user.me.query();
 			const org = await api.user.myOrganization.query();
 			p.log.info(`${user.name} (${user.email})`);
-			if (org) p.log.info(`Organization: ${org.name}`);
+
+			if (org) {
+				config.activeOrg = { id: org.id, name: org.name, slug: org.slug };
+				writeConfig(config);
+				p.log.info(`Organization: ${org.name}`);
+			} else {
+				p.log.warn("No organization selected.");
+			}
 		} catch {
 			// Non-fatal — login succeeded even if whoami fails
 		}
 
 		p.outro("Logged in successfully.");
 
-		return { data: { apiUrl } };
+		return { data: { apiUrl, activeOrg: config.activeOrg } };
 	},
 });

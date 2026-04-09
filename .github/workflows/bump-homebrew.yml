@@ -1,0 +1,131 @@
+name: Bump Homebrew Formula
+
+# Triggers when a CLI release (tag matching cli-v*) is published, computes
+# SHA256 for each platform tarball, and pushes an updated formula to the
+# superset-sh/homebrew-tap repository.
+
+on:
+  release:
+    types: [published]
+
+# Serialize runs so two concurrent releases can't race and drop a bump.
+concurrency:
+  group: homebrew-tap-formula-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: startsWith(github.event.release.tag_name, 'cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          # Validate tag format: cli-v<semver>. Rejects tags with shell metacharacters.
+          if ! printf '%s' "$TAG" | grep -Eq '^cli-v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$'; then
+            echo "::error::Invalid tag format: $TAG"
+            exit 1
+          fi
+          VERSION="${TAG#cli-v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256 for each tarball
+        id: shas
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          for target in darwin-arm64 linux-x64; do
+            url="https://github.com/superset-sh/superset/releases/download/${TAG}/superset-${target}.tar.gz"
+            echo "Fetching SHA for $url"
+            tmp=$(mktemp)
+            if ! curl -fsSL -o "$tmp" "$url"; then
+              echo "::error::Failed to download $url"
+              rm -f "$tmp"
+              exit 1
+            fi
+            sha=$(shasum -a 256 "$tmp" | awk '{print $1}')
+            rm -f "$tmp"
+            echo "${target//-/_}_sha=$sha" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v5
+        with:
+          repository: superset-sh/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Render formula
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DARWIN_ARM64_SHA: ${{ steps.shas.outputs.darwin_arm64_sha }}
+          LINUX_X64_SHA: ${{ steps.shas.outputs.linux_x64_sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF' > homebrew-tap/Formula/superset.rb
+          import os
+          template = '''class Superset < Formula
+            desc "CLI and host-service for Superset"
+            homepage "https://superset.sh"
+            version "{version}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-darwin-arm64.tar.gz"
+                sha256 "{darwin_arm64}"
+              end
+            end
+
+            on_linux do
+              on_intel do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-linux-x64.tar.gz"
+                sha256 "{linux_x64}"
+              end
+            end
+
+            def install
+              libexec.install Dir["*"]
+              bin.install_symlink libexec/"bin/superset"
+              bin.install_symlink libexec/"bin/superset-host"
+            end
+
+            test do
+              assert_match "superset", shell_output("#{{bin}}/superset --version")
+            end
+          end
+          '''
+          print(template.format(
+              version=os.environ["VERSION"],
+              darwin_arm64=os.environ["DARWIN_ARM64_SHA"],
+              linux_x64=os.environ["LINUX_X64_SHA"],
+          ), end="")
+          PYEOF
+
+      - name: Commit and push
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/superset.rb
+          if git diff --cached --quiet; then
+            echo "No changes to formula"
+            exit 0
+          fi
+          git commit -m "superset ${VERSION}"
+
+          # Retry once on non-fast-forward in case the remote moved between
+          # checkout and push (shouldn't happen with the concurrency group,
+          # but belt-and-suspenders).
+          if ! git push; then
+            git pull --rebase
+            git push
+          fi

@@ -67,6 +67,9 @@ export const SETTING_ITEM_ID = {
 	PERMISSIONS_MICROPHONE: "permissions-microphone",
 	PERMISSIONS_APPLE_EVENTS: "permissions-apple-events",
 	PERMISSIONS_LOCAL_NETWORK: "permissions-local-network",
+
+	SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY:
+		"security-expose-host-service-via-relay",
 } as const;
 
 export type SettingItemId =
@@ -982,6 +985,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"security",
 			"privacy",
 			"development servers",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY,
+		section: "security",
+		title: "Allow remote workspaces to access this device via relay",
+		description:
+			"Controls whether remote workspaces can reach your local host service through the Superset relay",
+		keywords: [
+			"security",
+			"relay",
+			"remote",
+			"workspace",
+			"expose",
+			"lockdown",
+			"network",
+			"inbound",
+			"host service",
+			"tunnel",
+			"attack surface",
 		],
 	},
 ];
