@@ -41,6 +41,8 @@ import {
 	type DashboardSidebarSectionRow,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
+	type V2TerminalPresetRow,
+	v2TerminalPresetSchema,
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
@@ -105,6 +107,13 @@ export interface OrgCollections {
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarSectionSchema,
 		z.input<typeof dashboardSidebarSectionSchema>
+	>;
+	v2TerminalPresets: Collection<
+		V2TerminalPresetRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof v2TerminalPresetSchema,
+		z.input<typeof v2TerminalPresetSchema>
 	>;
 }
 
@@ -523,6 +532,15 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const v2TerminalPresets = createCollection(
+		localStorageCollectionOptions({
+			id: `v2_terminal_presets-${organizationId}`,
+			storageKey: `v2-terminal-presets-${organizationId}`,
+			schema: v2TerminalPresetSchema,
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -547,6 +565,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2SidebarProjects,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
+		v2TerminalPresets,
 	};
 }
 
