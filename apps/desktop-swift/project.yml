@@ -18,9 +18,9 @@ targets:
     platform: macOS
     sources:
       - Sources
-    resources:
       - path: Resources/WebContent
         type: folder
+        buildPhase: resources
     settings:
       base:
         CODE_SIGN_ENTITLEMENTS: ""

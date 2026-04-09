@@ -7,16 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		39DEF411D94B5D65CAA26FA6 /* ControlMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD828423B5643F0EC6D8073 /* ControlMessageHandler.swift */; };
+		4EF72C35E4EE474E7CA02FCA /* PTYSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9599F86CB0C15314D2CC28C /* PTYSessionManager.swift */; };
 		59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB204BB0EB8E9E43776037F8 /* PTYSession.swift */; };
+		715451FDF04952659931D4C1 /* SupersetSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08CF51DAB724256A3B7B4DF3 /* SupersetSchemeHandler.swift */; };
+		737A9C9112301012F23F0928 /* OutputBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12798082415E117FFA0DF95B /* OutputBatcherTests.swift */; };
 		7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78717C838D7276434EE866E1 /* PTYSessionTests.swift */; };
 		87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23ED462F661EDEF126FC079 /* SupersetApp.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */; };
-		B2C3D4E5F6071829A1B2C3D4 /* OutputBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */; };
-		C3D4E5F60718293A1B2C3D4E /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */; };
-		D4E5F60718293A1B2C3D4E5F /* PTYSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */; };
-		E5F6071829A1B2C3D4E5F608 /* SupersetSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */; };
-		F607182930A1B2C3D4E5F609 /* ControlMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */; };
-		07182930A1B2C3D4E5F6070A /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */; };
+		8A1E052FD66AF8853DF61A72 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA0499D3388FB2E81BF24E6 /* MainWindowController.swift */; };
+		8A9B8BA611159A0EDBDAD387 /* OutputBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0063DDB758AF6294064DE5C /* OutputBatcher.swift */; };
+		93DF999DF354D892E5EE0C67 /* WebContent in Resources */ = {isa = PBXBuildFile; fileRef = 5277D5DD52B725DEC1AF8D54 /* WebContent */; };
+		94349896BD478E8DF5CAF477 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C96E58142EB90A8B49C2506A /* ShellEnvironment.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -30,18 +31,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		08CF51DAB724256A3B7B4DF3 /* SupersetSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetSchemeHandler.swift; sourceTree = "<group>"; };
+		12798082415E117FFA0DF95B /* OutputBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcherTests.swift; sourceTree = "<group>"; };
+		2FA0499D3388FB2E81BF24E6 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
 		3D30DFFD86E8C13BFC519CF3 /* SupersetShellTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SupersetShellTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5277D5DD52B725DEC1AF8D54 /* WebContent */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WebContent; path = Resources/WebContent; sourceTree = SOURCE_ROOT; };
 		78717C838D7276434EE866E1 /* PTYSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionTests.swift; sourceTree = "<group>"; };
+		7BD828423B5643F0EC6D8073 /* ControlMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlMessageHandler.swift; sourceTree = "<group>"; };
 		A23ED462F661EDEF126FC079 /* SupersetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetApp.swift; sourceTree = "<group>"; };
+		B9599F86CB0C15314D2CC28C /* PTYSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionManager.swift; sourceTree = "<group>"; };
 		BB204BB0EB8E9E43776037F8 /* PTYSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSession.swift; sourceTree = "<group>"; };
-		D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcher.swift; sourceTree = "<group>"; };
-		E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcherTests.swift; sourceTree = "<group>"; };
+		C96E58142EB90A8B49C2506A /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		E0063DDB758AF6294064DE5C /* OutputBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBatcher.swift; sourceTree = "<group>"; };
 		EFA9AB08E275D403033F5B3F /* SupersetShell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SupersetShell.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
-		071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSessionManager.swift; sourceTree = "<group>"; };
-		1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetSchemeHandler.swift; sourceTree = "<group>"; };
-		293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlMessageHandler.swift; sourceTree = "<group>"; };
-		3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -49,8 +51,8 @@
 			isa = PBXGroup;
 			children = (
 				BB204BB0EB8E9E43776037F8 /* PTYSession.swift */,
-				071829A1B2C3D4E5F6071829 /* PTYSessionManager.swift */,
-				F6071829A1B2C3D4E5F60718 /* ShellEnvironment.swift */,
+				B9599F86CB0C15314D2CC28C /* PTYSessionManager.swift */,
+				C96E58142EB90A8B49C2506A /* ShellEnvironment.swift */,
 			);
 			path = PTY;
 			sourceTree = "<group>";
@@ -59,26 +61,16 @@
 			isa = PBXGroup;
 			children = (
 				6440F03073F7A16B558815ED /* App */,
-				F607182930A1B2C3D4E5F607 /* Bridge */,
+				BC7901E6F58B4B14DD788AD1 /* Bridge */,
 				3F51D25EA32120B5CB2098BF /* PTY */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
 		};
-		F607182930A1B2C3D4E5F607 /* Bridge */ = {
-			isa = PBXGroup;
-			children = (
-				293A1B2C3D4E5F6071829A1B /* ControlMessageHandler.swift */,
-				D4E5F6071829A1B2C3D4E5F6 /* OutputBatcher.swift */,
-				1829A1B2C3D4E5F607182930 /* SupersetSchemeHandler.swift */,
-			);
-			path = Bridge;
-			sourceTree = "<group>";
-		};
 		6440F03073F7A16B558815ED /* App */ = {
 			isa = PBXGroup;
 			children = (
-				3A1B2C3D4E5F607182930A1B /* MainWindowController.swift */,
+				2FA0499D3388FB2E81BF24E6 /* MainWindowController.swift */,
 				A23ED462F661EDEF126FC079 /* SupersetApp.swift */,
 			);
 			path = App;
@@ -87,10 +79,21 @@
 		84ECBDFCE15DB34AD5CF5A78 = {
 			isa = PBXGroup;
 			children = (
+				5277D5DD52B725DEC1AF8D54 /* WebContent */,
 				4B902F70CBE961F2DC381457 /* Sources */,
 				ED79E24F489E984EC0C6AC7C /* Tests */,
 				CF41C90C1C01638960CCBB93 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		BC7901E6F58B4B14DD788AD1 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				7BD828423B5643F0EC6D8073 /* ControlMessageHandler.swift */,
+				E0063DDB758AF6294064DE5C /* OutputBatcher.swift */,
+				08CF51DAB724256A3B7B4DF3 /* SupersetSchemeHandler.swift */,
+			);
+			path = Bridge;
 			sourceTree = "<group>";
 		};
 		CF41C90C1C01638960CCBB93 /* Products */ = {
@@ -105,7 +108,7 @@
 		ED79E24F489E984EC0C6AC7C /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				E5F60718293A4B5CD4E5F607 /* OutputBatcherTests.swift */,
+				12798082415E117FFA0DF95B /* OutputBatcherTests.swift */,
 				78717C838D7276434EE866E1 /* PTYSessionTests.swift */,
 			);
 			path = Tests;
@@ -120,6 +123,7 @@
 			buildPhases = (
 				BCDB2B27DD7FE17B004FC099 /* Build Web Content */,
 				0DE0E549A0F5449D64A81061 /* Sources */,
+				34BF5EA8055259F93752DA46 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -181,6 +185,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		34BF5EA8055259F93752DA46 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				93DF999DF354D892E5EE0C67 /* WebContent in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		BCDB2B27DD7FE17B004FC099 /* Build Web Content */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -208,8 +223,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				737A9C9112301012F23F0928 /* OutputBatcherTests.swift in Sources */,
 				7F2DC923C6A503AC186D7199 /* PTYSessionTests.swift in Sources */,
-				B2C3D4E5F6071829A1B2C3D4 /* OutputBatcherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,14 +232,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				39DEF411D94B5D65CAA26FA6 /* ControlMessageHandler.swift in Sources */,
+				8A1E052FD66AF8853DF61A72 /* MainWindowController.swift in Sources */,
+				8A9B8BA611159A0EDBDAD387 /* OutputBatcher.swift in Sources */,
 				59597029060BC9BDC3AE23B0 /* PTYSession.swift in Sources */,
+				4EF72C35E4EE474E7CA02FCA /* PTYSessionManager.swift in Sources */,
+				94349896BD478E8DF5CAF477 /* ShellEnvironment.swift in Sources */,
 				87E7AC78F8CCDC392F08853F /* SupersetApp.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* OutputBatcher.swift in Sources */,
-				C3D4E5F60718293A1B2C3D4E /* ShellEnvironment.swift in Sources */,
-				D4E5F60718293A1B2C3D4E5F /* PTYSessionManager.swift in Sources */,
-				E5F6071829A1B2C3D4E5F608 /* SupersetSchemeHandler.swift in Sources */,
-				F607182930A1B2C3D4E5F609 /* ControlMessageHandler.swift in Sources */,
-				07182930A1B2C3D4E5F6070A /* MainWindowController.swift in Sources */,
+				715451FDF04952659931D4C1 /* SupersetSchemeHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
