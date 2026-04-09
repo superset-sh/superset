@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `show_workspace_numbers_on_modifier` integer;
