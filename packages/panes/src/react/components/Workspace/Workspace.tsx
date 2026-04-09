@@ -63,19 +63,30 @@ export function Workspace<TData>({
 				renderTabAccessory={renderTabAccessory}
 			/>
 			{renderBelowTabBar?.()}
-			{activeTab ? (
-				<Tab
-					store={store}
-					tab={activeTab}
-					registry={registry}
-					paneActions={paneActions}
-					contextMenuActions={contextMenuActions}
-				/>
-			) : (
-				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-					{renderEmptyState?.() ?? "No tabs open"}
-				</div>
-			)}
+			{/* Keyed wrapper so the Tab content's identity is stable across
+			    re-renders regardless of what sibling children Workspace
+			    introduces via render slots (e.g. renderBelowTabBar). Without
+			    this, adding a slot sibling above Tab shifted its positional
+			    child index which could trigger spurious remounts during
+			    reconciliation and make tab switches flicker. */}
+			<div
+				key="tab-content"
+				className="contents"
+			>
+				{activeTab ? (
+					<Tab
+						store={store}
+						tab={activeTab}
+						registry={registry}
+						paneActions={paneActions}
+						contextMenuActions={contextMenuActions}
+					/>
+				) : (
+					<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+						{renderEmptyState?.() ?? "No tabs open"}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
