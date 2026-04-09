@@ -42,25 +42,36 @@ function getPullRequestCommentsRepoNameWithOwner(
 
 async function resolvePullRequestCommentsTarget(
 	worktreePath: string,
+	branchOverride?: string | null,
 ): Promise<PullRequestCommentsTarget | null> {
 	const repoContext = await getRepoContext(worktreePath);
 	if (!repoContext) {
 		return null;
 	}
 
-	const branchName = await getCurrentBranch(worktreePath);
+	const branchName =
+		branchOverride?.trim() || (await getCurrentBranch(worktreePath));
 	if (!branchName) {
 		return null;
 	}
-	const shaResult = await execGitWithShellPath(["rev-parse", "HEAD"], {
+
+	const revParseTarget = branchOverride ? `refs/heads/${branchName}` : "HEAD";
+	const shaResult = await execGitWithShellPath(["rev-parse", revParseTarget], {
 		cwd: worktreePath,
 	}).catch((error) => {
 		if (isUnbornHeadError(error)) {
 			return { stdout: "", stderr: "" };
 		}
+		if (branchOverride) {
+			return { stdout: "", stderr: "" };
+		}
 		throw error;
 	});
 	const headSha = shaResult.stdout.trim() || undefined;
+
+	if (branchOverride && !headSha) {
+		return null;
+	}
 	const prInfo = await getPRForBranch(
 		worktreePath,
 		branchName,
@@ -114,10 +125,13 @@ async function refreshGitHubPRStatus(
 			execGitWithShellPath(["rev-parse", revParseTarget], {
 				cwd: worktreePath,
 			}).catch((error) => {
-				if (!branchOverride && isUnbornHeadError(error)) {
+				if (isUnbornHeadError(error)) {
 					return { stdout: "", stderr: "" };
 				}
-				return { stdout: "", stderr: "" };
+				if (branchOverride) {
+					return { stdout: "", stderr: "" };
+				}
+				throw error;
 			}),
 			execGitWithShellPath(["rev-parse", "--abbrev-ref", upstreamTarget], {
 				cwd: worktreePath,
@@ -228,13 +242,16 @@ export async function fetchGitHubPRStatus(
 export async function fetchGitHubPRComments({
 	worktreePath,
 	pullRequest,
+	branchName,
 }: {
 	worktreePath: string;
 	pullRequest?: PullRequestCommentsTarget | null;
+	branchName?: string | null;
 }): Promise<PullRequestComment[]> {
 	try {
 		const pullRequestTarget =
-			pullRequest ?? (await resolvePullRequestCommentsTarget(worktreePath));
+			pullRequest ??
+			(await resolvePullRequestCommentsTarget(worktreePath, branchName));
 		if (!pullRequestTarget) {
 			return [];
 		}

@@ -237,6 +237,7 @@ export const createGitStatusProcedures = () => {
 						input,
 						githubStatus: cachedGitHubStatus,
 					}),
+					branchName: workspace.type === "branch" ? workspace.branch : null,
 				});
 			}),
 
