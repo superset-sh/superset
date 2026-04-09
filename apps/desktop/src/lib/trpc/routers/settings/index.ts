@@ -617,14 +617,18 @@ export const createSettingsRouter = () => {
 				// Restart active host-service children so they pick up the new
 				// RELAY_URL from buildEnv(). No-op if the user isn't signed in.
 				const { token } = await loadToken();
-				if (token) {
-					await getHostServiceCoordinator().restartAll({
-						authToken: token,
-						cloudApiUrl: env.NEXT_PUBLIC_API_URL,
-					});
+				if (!token) {
+					return { restartedOrgCount: 0 };
 				}
 
-				return { success: true };
+				const coordinator = getHostServiceCoordinator();
+				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
+				await coordinator.restartAll({
+					authToken: token,
+					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				});
+
+				return { restartedOrgCount };
 			}),
 
 		getShowPresetsBar: publicProcedure.query(() => {

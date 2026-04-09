@@ -32,14 +32,13 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 				utils.settings.getExposeHostServiceViaRelay.setData(undefined, enabled);
 				return { previous };
 			},
-			onError: (err, _vars, context) => {
+			onError: (_err, _vars, context) => {
 				if (context?.previous !== undefined) {
 					utils.settings.getExposeHostServiceViaRelay.setData(
 						undefined,
 						context.previous,
 					);
 				}
-				toast.error(err.message ?? "Failed to update setting");
 			},
 			onSettled: () => {
 				utils.settings.getExposeHostServiceViaRelay.invalidate();
@@ -48,11 +47,22 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 
 	const [confirmOpen, setConfirmOpen] = useState(false);
 
+	const runToggle = (enabled: boolean) => {
+		toast.promise(setExpose.mutateAsync({ enabled }), {
+			loading: "Restarting host services…",
+			success: ({ restartedOrgCount }) =>
+				restartedOrgCount > 0
+					? `Restarted ${restartedOrgCount} host service${restartedOrgCount === 1 ? "" : "s"}`
+					: "Setting saved",
+			error: (err: Error) => err.message ?? "Failed to update setting",
+		});
+	};
+
 	const handleChange = (next: boolean) => {
 		if (next) {
 			setConfirmOpen(true);
 		} else {
-			setExpose.mutate({ enabled: false });
+			runToggle(false);
 		}
 	};
 
@@ -94,7 +104,7 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 				onOpenChange={setConfirmOpen}
 				onConfirm={() => {
 					setConfirmOpen(false);
-					setExpose.mutate({ enabled: true });
+					runToggle(true);
 				}}
 			/>
 		</div>
