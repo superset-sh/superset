@@ -4,7 +4,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure } from "../../trpc";
 import {
 	requireActiveOrgId,
 	requireActiveOrgMembership,
@@ -94,9 +94,10 @@ async function getWorkspaceAccess(
 }
 
 export const v2WorkspaceRouter = {
-	create: protectedProcedure
+	create: jwtProcedure
 		.input(
 			z.object({
+				organizationId: z.string().uuid(),
 				projectId: z.string().uuid(),
 				name: z.string().min(1),
 				branch: z.string().min(1),
@@ -104,13 +105,18 @@ export const v2WorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(
-				ctx.session,
-				"No active organization",
-			);
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
 
-			const project = await getScopedProject(organizationId, input.projectId);
-			const host = await getScopedHost(organizationId, input.hostId);
+			const project = await getScopedProject(
+				input.organizationId,
+				input.projectId,
+			);
+			const host = await getScopedHost(input.organizationId, input.hostId);
 
 			const [workspace] = await dbWs
 				.insert(v2Workspaces)
@@ -120,7 +126,7 @@ export const v2WorkspaceRouter = {
 					name: input.name,
 					branch: input.branch,
 					hostId: host.id,
-					createdByUserId: ctx.session.user.id,
+					createdByUserId: ctx.userId,
 				})
 				.returning();
 			return workspace;
