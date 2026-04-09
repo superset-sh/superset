@@ -7,7 +7,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
-export interface LoadedAddons {
+export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
 	dispose: () => void;
@@ -17,11 +17,11 @@ export interface LoadedAddons {
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
 /**
- * Load optional addons onto an already-opened terminal. Returns addon
- * references and a cleanup function. WebGL is deferred to rAF to avoid
+ * Load optional addons onto an already-opened terminal. Returns a cleanup
+ * function and addon instances. WebGL is deferred to rAF to avoid
  * racing with xterm's post-open viewport sync.
  */
-export function loadAddons(terminal: XTerm): LoadedAddons {
+export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 

@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
-import { prepareQuit } from "main/index";
+import { setSkipQuitConfirmation } from "main/index";
 import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
@@ -91,8 +91,7 @@ export function installUpdate(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 		return;
 	}
-	// quitAndInstall internally calls app.quit() — set mode beforehand
-	prepareQuit("release");
+	setSkipQuitConfirmation();
 	autoUpdater.quitAndInstall(false, true);
 }
 

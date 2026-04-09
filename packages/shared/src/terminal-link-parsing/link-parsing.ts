@@ -149,7 +149,7 @@ function generateLinkSuffixRegex(eolOnly: boolean) {
 		// foo: (339, 12)
 		// foo(339:12)                             [#229842]
 		// foo (339:12)                            [#229842]
-		`:? ?[[(]${r()}(?:(?:, ?|:)${c()})?[\\])]${eolSuffix}`,
+		`:? ?[\\[\\(]${r()}(?:(?:, ?|:)${c()})?[\\]\\)]${eolSuffix}`,
 	];
 
 	const suffixClause = lineAndColumnRegexClauses
@@ -415,7 +415,7 @@ function detectLinksViaSuffix(line: string): IParsedLink[] {
 
 			// If the path contains an opening bracket, provide the path starting immediately after
 			// the opening bracket as an additional result
-			const openingBracketMatch = path.matchAll(/(?<bracket>[[({])(?![\])])/g);
+			const openingBracketMatch = path.matchAll(/(?<bracket>[[(])(?![\])])/g);
 			for (const match of openingBracketMatch) {
 				const bracket = match.groups?.bracket;
 				if (bracket) {

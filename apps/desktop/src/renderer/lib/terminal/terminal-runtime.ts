@@ -18,8 +18,8 @@ export interface TerminalRuntime {
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
-	searchAddon: SearchAddon;
-	progressAddon: ProgressAddon;
+	searchAddon: SearchAddon | null;
+	progressAddon: ProgressAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
@@ -51,6 +51,7 @@ function createTerminal(
 		macOptionIsMeta: false,
 		cursorStyle: "block",
 		cursorInactiveStyle: "outline",
+		vtExtensions: { kittyKeyboard: true },
 		scrollbar: { showScrollbar: false },
 	});
 	terminal.loadAddon(fitAddon);
@@ -141,22 +142,21 @@ export function createRuntime(
 	terminal.open(wrapper);
 	restoreBuffer(terminalId, terminal);
 
-	const { searchAddon, progressAddon, dispose: disposeAddons } =
-		loadAddons(terminal);
+	const addonsResult = loadAddons(terminal);
 
 	return {
 		terminalId,
 		terminal,
 		fitAddon,
 		serializeAddon,
-		searchAddon,
-		progressAddon,
+		searchAddon: addonsResult.searchAddon,
+		progressAddon: addonsResult.progressAddon,
 		wrapper,
 		container: null,
 		resizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_disposeAddons: disposeAddons,
+		_disposeAddons: addonsResult.dispose,
 	};
 }
 
