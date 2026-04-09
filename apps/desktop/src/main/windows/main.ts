@@ -297,7 +297,7 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
-	window.on("close", (event) => {
+	window.on("close", () => {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
@@ -311,15 +311,6 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
-
-		// macOS: hide instead of destroy so "Open Superset" can reshow instantly.
-		// The quit flow uses app.exit(0) which bypasses close events entirely,
-		// so this hide path only runs for Cmd+W / red-X.
-		if (PLATFORM.IS_MAC) {
-			event.preventDefault();
-			window.hide();
-			return;
-		}
 
 		browserManager.unregisterAll();
 		server.close();
