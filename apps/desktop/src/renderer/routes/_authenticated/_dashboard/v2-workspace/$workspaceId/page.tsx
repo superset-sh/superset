@@ -199,6 +199,42 @@ function WorkspaceContent({
 	useWorkspaceHotkeys({ store, workspaceId });
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
+	// Stable render callbacks so tab switches don't invalidate memoized
+	// children inside Workspace. Workspace subscribes to `activeTabId`, so
+	// every switch re-invokes these functions — returning fresh elements
+	// each time would defeat React.memo on V2PresetsBar.
+	const renderPresetsBar = useCallback(
+		() => (
+			<V2PresetsBar
+				workspaceId={workspaceId}
+				projectId={projectId}
+				store={store}
+			/>
+		),
+		[workspaceId, projectId, store],
+	);
+	const renderAddTabMenuContent = useCallback(
+		() => (
+			<AddTabMenu
+				onAddTerminal={addTerminalTab}
+				onAddChat={addChatTab}
+				onAddBrowser={addBrowserTab}
+			/>
+		),
+		[addTerminalTab, addChatTab, addBrowserTab],
+	);
+	const renderEmptyStateContent = useCallback(
+		() => (
+			<WorkspaceEmptyState
+				onOpenBrowser={addBrowserTab}
+				onOpenChat={addChatTab}
+				onOpenQuickOpen={handleQuickOpen}
+				onOpenTerminal={addTerminalTab}
+			/>
+		),
+		[addBrowserTab, addChatTab, handleQuickOpen, addTerminalTab],
+	);
+
 	return (
 		<>
 			<ResizablePanelGroup direction="horizontal" className="flex-1">
@@ -211,28 +247,9 @@ function WorkspaceContent({
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
-							renderBelowTabBar={() => (
-								<V2PresetsBar
-									workspaceId={workspaceId}
-									projectId={projectId}
-									store={store}
-								/>
-							)}
-							renderAddTabMenu={() => (
-								<AddTabMenu
-									onAddTerminal={addTerminalTab}
-									onAddChat={addChatTab}
-									onAddBrowser={addBrowserTab}
-								/>
-							)}
-							renderEmptyState={() => (
-								<WorkspaceEmptyState
-									onOpenBrowser={addBrowserTab}
-									onOpenChat={addChatTab}
-									onOpenQuickOpen={handleQuickOpen}
-									onOpenTerminal={addTerminalTab}
-								/>
-							)}
+							renderBelowTabBar={renderPresetsBar}
+							renderAddTabMenu={renderAddTabMenuContent}
+							renderEmptyState={renderEmptyStateContent}
 							onBeforeCloseTab={(tab) => {
 								const dirtyFiles = Object.values(tab.panes)
 									.filter(
