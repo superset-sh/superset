@@ -34,7 +34,8 @@ function getConnectionState(terminalId: string): ConnectionState {
 }
 
 export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
-	const { terminalId } = ctx.pane.data as TerminalPaneData;
+	const paneData = ctx.pane.data as TerminalPaneData;
+	const { terminalId } = paneData;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeTheme = useTheme();
 
@@ -80,6 +81,22 @@ export function TerminalPane({ ctx, workspaceId }: TerminalPaneProps) {
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
 	}, [terminalId, appearance]);
+
+	// --- Initial command delivery ---
+	// When initialCommand is set on pane data, send it once the WebSocket is
+	// open and immediately clear the field. Clearing prevents re-send on
+	// reconnect, and allows a new initialCommand to be set later (e.g. "run
+	// in current terminal").
+	useEffect(() => {
+		if (connectionState !== "open") return;
+		if (!paneData.initialCommand) return;
+
+		const command = paneData.initialCommand.endsWith("\n")
+			? paneData.initialCommand
+			: `${paneData.initialCommand}\n`;
+		terminalRuntimeRegistry.writeInput(terminalId, command);
+		ctx.actions.updateData({ ...paneData, initialCommand: undefined });
+	}, [connectionState, terminalId, paneData, ctx.actions]);
 
 	// --- Link handlers ---
 	// All filesystem operations go through the host service.

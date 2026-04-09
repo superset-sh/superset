@@ -188,6 +188,12 @@ export function sendResize(
 	transport.socket.send(JSON.stringify({ type: "resize", cols, rows }));
 }
 
+export function sendInput(transport: TerminalTransport, data: string) {
+	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
+		return;
+	transport.socket.send(JSON.stringify({ type: "input", data }));
+}
+
 export function sendDispose(transport: TerminalTransport) {
 	if (transport.socket?.readyState === WebSocket.OPEN) {
 		transport.socket.send(JSON.stringify({ type: "dispose" }));
