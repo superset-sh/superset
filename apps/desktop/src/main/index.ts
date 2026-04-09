@@ -153,8 +153,12 @@ app.on("open-url", async (event, url) => {
 let isQuitting = false;
 let skipQuitConfirmation = false;
 
-export function quitApp(): void {
+export function setSkipQuitConfirmation(): void {
 	skipQuitConfirmation = true;
+}
+
+export function quitApp(): void {
+	setSkipQuitConfirmation();
 	app.quit();
 }
 
