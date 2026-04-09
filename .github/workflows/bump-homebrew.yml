@@ -1,0 +1,105 @@
+name: Bump Homebrew Formula
+
+# Triggers when a CLI release (tag matching cli-v*) is published, computes
+# SHA256 for each platform tarball, and pushes an updated formula to the
+# superset-sh/homebrew-tap repository.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  bump:
+    if: startsWith(github.event.release.tag_name, 'cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#cli-v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256 for each tarball
+        id: shas
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          for target in darwin-arm64 darwin-x64 linux-x64; do
+            url="https://github.com/superset-sh/superset/releases/download/${TAG}/superset-${target}.tar.gz"
+            echo "Fetching SHA for $url"
+            sha=$(curl -fsSL "$url" | shasum -a 256 | awk '{print $1}')
+            if [ -z "$sha" ]; then
+              echo "::error::Failed to compute SHA for $target"
+              exit 1
+            fi
+            echo "${target//-/_}_sha=$sha" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: superset-sh/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DARWIN_ARM64_SHA: ${{ steps.shas.outputs.darwin_arm64_sha }}
+          DARWIN_X64_SHA: ${{ steps.shas.outputs.darwin_x64_sha }}
+          LINUX_X64_SHA: ${{ steps.shas.outputs.linux_x64_sha }}
+        run: |
+          cd homebrew-tap
+          cat > Formula/superset.rb <<EOF
+          class Superset < Formula
+            desc "CLI and host-service for Superset"
+            homepage "https://superset.sh"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{version}/superset-darwin-arm64.tar.gz"
+                sha256 "${DARWIN_ARM64_SHA}"
+              end
+              on_intel do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{version}/superset-darwin-x64.tar.gz"
+                sha256 "${DARWIN_X64_SHA}"
+              end
+            end
+
+            on_linux do
+              on_intel do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{version}/superset-linux-x64.tar.gz"
+                sha256 "${LINUX_X64_SHA}"
+              end
+            end
+
+            def install
+              libexec.install Dir["*"]
+              bin.install_symlink libexec/"bin/superset"
+              bin.install_symlink libexec/"bin/superset-host"
+            end
+
+            test do
+              assert_match "superset", shell_output("#{bin}/superset --version")
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/superset.rb
+          if git diff --cached --quiet; then
+            echo "No changes to formula"
+            exit 0
+          fi
+          git commit -m "superset ${VERSION}"
+          git push
