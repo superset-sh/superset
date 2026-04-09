@@ -1,0 +1,7 @@
+/* Custom overrides on top of xterm's built-in CSS */
+.xterm {
+  padding: 8px;
+}
+.xterm-viewport::-webkit-scrollbar {
+  display: none;
+}

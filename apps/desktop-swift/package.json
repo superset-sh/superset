@@ -1,0 +1,21 @@
+{
+  "name": "@superset/desktop-swift",
+  "private": true,
+  "scripts": {
+    "build:web": "bun run web-src/esbuild.config.ts",
+    "dev:web": "bun run web-src/esbuild.config.ts --watch",
+    "build:swift": "xcodebuild -project SupersetShell.xcodeproj -scheme SupersetShell -configuration Release build",
+    "build": "bun run build:web && bun run build:swift",
+    "clean": "rm -rf Resources/WebContent/*.js Resources/WebContent/*.js.map"
+  },
+  "dependencies": {
+    "@xterm/xterm": "6.1.0-beta.195",
+    "@xterm/addon-fit": "0.12.0-beta.195",
+    "@xterm/addon-webgl": "0.20.0-beta.194",
+    "@xterm/addon-unicode11": "0.10.0-beta.195"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.4",
+    "typescript": "5.9.3"
+  }
+}

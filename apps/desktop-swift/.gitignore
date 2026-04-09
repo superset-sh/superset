@@ -1,0 +1,16 @@
+# Built web assets
+Resources/WebContent/terminal.js
+Resources/WebContent/terminal.js.map
+Resources/WebContent/xterm-lib.css
+
+# Node
+node_modules/
+
+# Xcode
+build/
+DerivedData/
+*.xcuserdata
+*.xcworkspace
+
+# macOS
+.DS_Store
