@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 
 interface WorkspaceShortcutBadgeProps {
-	/** The key label to display (e.g., "1", "2") */
+	/** The formatted shortcut label to display (e.g., "⌘1", "Ctrl+Shift+1") */
 	label: string;
 	className?: string;
 }
