@@ -12,16 +12,20 @@ export function useCloseWorkspaces() {
 
 	const closeWorkspaces = useCallback(
 		async (ids: string[]) => {
+			const idsSet = new Set(ids);
+
 			// Navigate away if currently-viewed workspace is in selection
-			if (params.workspaceId && ids.includes(params.workspaceId)) {
+			if (params.workspaceId && idsSet.has(params.workspaceId)) {
 				const prevId = await utils.workspaces.getPreviousWorkspace.fetch({
-					id: ids[0],
+					id: params.workspaceId,
 				});
 				const nextId = await utils.workspaces.getNextWorkspace.fetch({
-					id: ids[ids.length - 1],
+					id: params.workspaceId,
 				});
-				const target = prevId ?? nextId;
-				if (target && !ids.includes(target)) {
+				const target =
+					(prevId && !idsSet.has(prevId) ? prevId : null) ??
+					(nextId && !idsSet.has(nextId) ? nextId : null);
+				if (target) {
 					navigateToWorkspace(target, navigate);
 				} else {
 					navigate({ to: "/workspace" });
@@ -36,7 +40,7 @@ export function useCloseWorkspaces() {
 
 			const previousGrouped = utils.workspaces.getAllGrouped.getData();
 			const previousAll = utils.workspaces.getAll.getData();
-			const idsSet = new Set(ids);
+			const idsSetForFilter = idsSet;
 
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
@@ -44,13 +48,17 @@ export function useCloseWorkspaces() {
 					previousGrouped
 						.map((group) => ({
 							...group,
-							workspaces: group.workspaces.filter((w) => !idsSet.has(w.id)),
+							workspaces: group.workspaces.filter(
+								(w) => !idsSetForFilter.has(w.id),
+							),
 							sections: group.sections.map((section) => ({
 								...section,
-								workspaces: section.workspaces.filter((w) => !idsSet.has(w.id)),
+								workspaces: section.workspaces.filter(
+									(w) => !idsSetForFilter.has(w.id),
+								),
 							})),
 							topLevelItems: group.topLevelItems.filter(
-								(item) => !idsSet.has(item.id),
+								(item) => !idsSetForFilter.has(item.id),
 							),
 						}))
 						.filter(
@@ -67,7 +75,7 @@ export function useCloseWorkspaces() {
 			if (previousAll) {
 				utils.workspaces.getAll.setData(
 					undefined,
-					previousAll.filter((w) => !idsSet.has(w.id)),
+					previousAll.filter((w) => !idsSetForFilter.has(w.id)),
 				);
 			}
 
@@ -76,12 +84,23 @@ export function useCloseWorkspaces() {
 			let successCount = 0;
 			let failCount = 0;
 
-			for (const id of ids) {
-				try {
-					await closeMutation.mutateAsync({ id });
-					successCount++;
-				} catch {
-					failCount++;
+			try {
+				for (const id of ids) {
+					try {
+						await closeMutation.mutateAsync({ id });
+						successCount++;
+					} catch (error) {
+						console.warn("Failed to close workspace", { id, error });
+						failCount++;
+					}
+				}
+			} catch {
+				// Rollback optimistic updates on unexpected failure
+				if (previousGrouped !== undefined) {
+					utils.workspaces.getAllGrouped.setData(undefined, previousGrouped);
+				}
+				if (previousAll !== undefined) {
+					utils.workspaces.getAll.setData(undefined, previousAll);
 				}
 			}
 

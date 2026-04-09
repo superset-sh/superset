@@ -74,7 +74,11 @@ export function BulkDeleteWorkspacesDialog({
 				try {
 					const result = await utils.workspaces.canDelete.fetch({ id });
 					return [id, result] as const;
-				} catch {
+				} catch (error) {
+					console.warn("Failed to check workspace delete status", {
+						id,
+						error,
+					});
 					return [
 						id,
 						{ hasChanges: false, hasUnpushedCommits: false, canDelete: false },
@@ -127,7 +131,11 @@ export function BulkDeleteWorkspacesDialog({
 		onOpenChange(false);
 		clearSelection();
 		setDeleteLocalBranchSetting.mutate({ enabled: deleteLocalBranchChecked });
-		void deleteWorkspaces(workspaceIds, deleteLocalBranchChecked);
+		// Only delete workspaces that passed the canDelete check
+		const deletableIds = workspaceIds.filter(
+			(id) => canDeleteStatuses.get(id)?.canDelete !== false,
+		);
+		void deleteWorkspaces(deletableIds, deleteLocalBranchChecked);
 	}, [
 		onOpenChange,
 		clearSelection,
@@ -135,6 +143,7 @@ export function BulkDeleteWorkspacesDialog({
 		deleteLocalBranchChecked,
 		deleteWorkspaces,
 		workspaceIds,
+		canDeleteStatuses,
 	]);
 
 	// Handle Enter key press to trigger delete action

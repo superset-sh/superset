@@ -12,16 +12,20 @@ export function useDeleteWorkspaces() {
 
 	const deleteWorkspaces = useCallback(
 		async (ids: string[], deleteLocalBranch: boolean) => {
+			const idsSet = new Set(ids);
+
 			// Navigate away if currently-viewed workspace is in selection
-			if (params.workspaceId && ids.includes(params.workspaceId)) {
+			if (params.workspaceId && idsSet.has(params.workspaceId)) {
 				const prevId = await utils.workspaces.getPreviousWorkspace.fetch({
-					id: ids[0],
+					id: params.workspaceId,
 				});
 				const nextId = await utils.workspaces.getNextWorkspace.fetch({
-					id: ids[ids.length - 1],
+					id: params.workspaceId,
 				});
-				const target = prevId ?? nextId;
-				if (target && !ids.includes(target)) {
+				const target =
+					(prevId && !idsSet.has(prevId) ? prevId : null) ??
+					(nextId && !idsSet.has(nextId) ? nextId : null);
+				if (target) {
 					navigateToWorkspace(target, navigate);
 				} else {
 					navigate({ to: "/workspace" });
@@ -36,7 +40,6 @@ export function useDeleteWorkspaces() {
 
 			const previousGrouped = utils.workspaces.getAllGrouped.getData();
 			const previousAll = utils.workspaces.getAll.getData();
-			const idsSet = new Set(ids);
 
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
@@ -76,19 +79,30 @@ export function useDeleteWorkspaces() {
 			let successCount = 0;
 			let failCount = 0;
 
-			for (const id of ids) {
-				try {
-					const result = await deleteMutation.mutateAsync({
-						id,
-						deleteLocalBranch,
-					});
-					if (result.success) {
-						successCount++;
-					} else {
+			try {
+				for (const id of ids) {
+					try {
+						const result = await deleteMutation.mutateAsync({
+							id,
+							deleteLocalBranch,
+						});
+						if (result.success) {
+							successCount++;
+						} else {
+							failCount++;
+						}
+					} catch (error) {
+						console.warn("Failed to delete workspace", { id, error });
 						failCount++;
 					}
-				} catch {
-					failCount++;
+				}
+			} catch {
+				// Rollback optimistic updates on unexpected failure
+				if (previousGrouped !== undefined) {
+					utils.workspaces.getAllGrouped.setData(undefined, previousGrouped);
+				}
+				if (previousAll !== undefined) {
+					utils.workspaces.getAll.setData(undefined, previousAll);
 				}
 			}
 
