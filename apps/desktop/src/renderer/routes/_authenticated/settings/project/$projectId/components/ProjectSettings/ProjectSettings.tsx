@@ -112,6 +112,9 @@ export function ProjectSettings({
 	const [customPrefixInput, setCustomPrefixInput] = useState(
 		project?.branchPrefixCustom ?? "",
 	);
+	const [separatorInput, setSeparatorInput] = useState(
+		project?.branchPrefixSeparator ?? globalBranchPrefix?.separator ?? "/",
+	);
 	const [selectedWorktreePath, setSelectedWorktreePath] = useState<
 		string | null
 	>(null);
@@ -119,6 +122,14 @@ export function ProjectSettings({
 	useEffect(() => {
 		setCustomPrefixInput(project?.branchPrefixCustom ?? "");
 	}, [project?.branchPrefixCustom]);
+
+	useEffect(() => {
+		setSeparatorInput(
+			project?.branchPrefixSeparator ??
+			globalBranchPrefix?.separator ??
+			"/",
+		);
+	}, [project?.branchPrefixSeparator, globalBranchPrefix?.separator]);
 
 	const updateProject = electronTrpc.projects.update.useMutation({
 		onError: (err) => {
@@ -178,6 +189,7 @@ export function ProjectSettings({
 				patch: {
 					branchPrefixMode: null,
 					branchPrefixCustom: customPrefixInput || null,
+					branchPrefixSeparator: null,
 				},
 			});
 		} else {
@@ -186,6 +198,7 @@ export function ProjectSettings({
 				patch: {
 					branchPrefixMode: value as BranchPrefixMode,
 					branchPrefixCustom: customPrefixInput || null,
+					branchPrefixSeparator: separatorInput || "/",
 				},
 			});
 		}
@@ -199,6 +212,16 @@ export function ProjectSettings({
 			patch: {
 				branchPrefixMode: "custom",
 				branchPrefixCustom: sanitized || null,
+				branchPrefixSeparator: separatorInput || "/",
+			},
+		});
+	};
+
+	const handleSeparatorBlur = () => {
+		updateProject.mutate({
+			id: projectId,
+			patch: {
+				branchPrefixSeparator: separatorInput || "/",
 			},
 		});
 	};
@@ -280,6 +303,7 @@ export function ProjectSettings({
 	}
 
 	const currentMode = project.branchPrefixMode ?? "default";
+	const resolvedSeparator = currentMode !== "default" ? (separatorInput || "/") : (globalBranchPrefix?.separator ?? "/");
 	const previewPrefix = getPreviewPrefix(currentMode);
 	const repoDefaultBranch =
 		branchData?.defaultBranch ?? project.defaultBranch ?? "main";
@@ -312,7 +336,7 @@ export function ProjectSettings({
 								Preview:{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
-										? `${previewPrefix}/branch-name`
+										? `${previewPrefix}${resolvedSeparator}branch-name`
 										: "branch-name"}
 								</code>
 							</p>
@@ -347,6 +371,17 @@ export function ProjectSettings({
 									onBlur={handleCustomPrefixBlur}
 									className="w-[120px]"
 									disabled={updateProject.isPending}
+								/>
+							)}
+							{currentMode !== "default" && (
+								<Input
+									placeholder="/"
+									value={separatorInput}
+									onChange={(e) => setSeparatorInput(e.target.value)}
+									onBlur={handleSeparatorBlur}
+									className="w-[60px] text-center"
+									disabled={updateProject.isPending}
+									title="Separator between prefix and branch name"
 								/>
 							)}
 						</div>

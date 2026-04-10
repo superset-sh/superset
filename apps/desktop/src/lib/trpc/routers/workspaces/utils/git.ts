@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
 import friendlyWords from "friendly-words";
 import {
+	applyBranchPrefix,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -487,17 +488,21 @@ export async function getBranchPrefix({
 }
 
 export {
+	applyBranchPrefix,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
 };
 
+
 export function generateBranchName({
 	existingBranches = [],
 	authorPrefix,
+	separator,
 }: {
 	existingBranches?: string[];
 	authorPrefix?: string;
+	separator?: string | null;
 } = {}): string {
 	const predicates = friendlyWords.predicates as string[];
 	const objects = friendlyWords.objects as string[];
@@ -507,12 +512,8 @@ export function generateBranchName({
 		authorPrefix && existingSet.has(authorPrefix.toLowerCase());
 	const safePrefix = prefixWouldCollide ? undefined : authorPrefix;
 
-	const addPrefix = (name: string): string => {
-		if (safePrefix) {
-			return `${safePrefix}/${name}`;
-		}
-		return name;
-	};
+	const addPrefix = (name: string): string =>
+		applyBranchPrefix(name, safePrefix, separator);
 
 	const randomTwoWord = () => {
 		const predicate = predicates[Math.floor(Math.random() * predicates.length)];
@@ -591,9 +592,9 @@ export async function createWorktree(
 			);
 			throw new Error(
 				`Failed to create worktree: The git repository is locked by another process. ` +
-					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
-					`Please wait for the other operation to complete, or manually remove the lock file ` +
-					`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
+				`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
+				`Please wait for the other operation to complete, or manually remove the lock file ` +
+				`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
 			);
 		}
 
@@ -680,9 +681,9 @@ export async function createWorktreeFromExistingBranch({
 			);
 			throw new Error(
 				`Failed to create worktree: The git repository is locked by another process. ` +
-					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
-					`Please wait for the other operation to complete, or manually remove the lock file ` +
-					`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
+				`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
+				`Please wait for the other operation to complete, or manually remove the lock file ` +
+				`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
 			);
 		}
 
@@ -693,7 +694,7 @@ export async function createWorktreeFromExistingBranch({
 		) {
 			throw new Error(
 				`Branch "${branch}" is already checked out in another worktree. ` +
-					`Each branch can only be checked out in one worktree at a time.`,
+				`Each branch can only be checked out in one worktree at a time.`,
 			);
 		}
 
@@ -771,7 +772,7 @@ export async function removeWorktree(
 				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
 					timeout: 10_000,
 				});
-			} catch {}
+			} catch { }
 			return;
 		}
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -931,7 +932,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 			]);
 			const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
 			if (match) return match[1];
-		} catch {}
+		} catch { }
 
 		// Check remote branches for common default branch names
 		try {
@@ -943,7 +944,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 					return candidate;
 				}
 			}
-		} catch {}
+		} catch { }
 
 		// Try ls-remote as last resort for remote repos
 		try {
@@ -952,7 +953,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 			if (symrefMatch) {
 				return symrefMatch[1];
 			}
-		} catch {}
+		} catch { }
 	} else {
 		// No remote - use the current local branch or check for common branch names
 		try {
@@ -960,7 +961,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 			if (currentBranch) {
 				return currentBranch;
 			}
-		} catch {}
+		} catch { }
 
 		// Fallback: check for common default branch names locally
 		try {
@@ -974,7 +975,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 			if (localBranches.all.length > 0) {
 				return localBranches.all[0];
 			}
-		} catch {}
+		} catch { }
 	}
 
 	return "main";
@@ -1351,7 +1352,7 @@ export async function detectBaseBranch(
 				bestAheadCount = count;
 				bestCandidate = candidate;
 			}
-		} catch {}
+		} catch { }
 	}
 
 	return bestCandidate;
