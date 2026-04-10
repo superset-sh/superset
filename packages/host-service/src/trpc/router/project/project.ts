@@ -232,6 +232,9 @@ async function cloneRepo(
 	try {
 		await simpleGit().clone(repoCloneUrl, targetPath);
 	} catch (err) {
+		if (existsSync(targetPath)) {
+			rmSync(targetPath, { recursive: true, force: true });
+		}
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Failed to clone repository: ${err instanceof Error ? err.message : String(err)}`,
@@ -242,6 +245,7 @@ async function cloneRepo(
 	const matchingRemote = findMatchingRemote(remotes, expectedSlug);
 
 	if (!matchingRemote) {
+		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Cloned repo does not match expected GitHub remote",
