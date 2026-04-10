@@ -35,22 +35,56 @@ export function useMigrateV1PresetsToV2() {
 	const organizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
-	const { data: v1Presets } =
-		electronTrpc.settings.getTerminalPresets.useQuery();
+	const v1PresetsQuery = electronTrpc.settings.getTerminalPresets.useQuery();
+	const v1Presets = v1PresetsQuery.data;
 	const migratedOrgRef = useRef<string | null>(null);
 
+	console.log("[v2-preset-migration] hook invoked", {
+		organizationId,
+		v1QueryStatus: v1PresetsQuery.status,
+		v1QueryError: v1PresetsQuery.error,
+		v1PresetCount: v1Presets?.length,
+		alreadyMigratedThisSession: migratedOrgRef.current === organizationId,
+	});
+
 	useEffect(() => {
-		if (!organizationId) return;
-		if (!v1Presets) return;
-		if (migratedOrgRef.current === organizationId) return;
+		console.log("[v2-preset-migration] effect run", {
+			organizationId,
+			hasV1Presets: !!v1Presets,
+			v1PresetCount: v1Presets?.length,
+		});
+
+		if (!organizationId) {
+			console.log("[v2-preset-migration] skip: no organizationId");
+			return;
+		}
+		if (!v1Presets) {
+			console.log("[v2-preset-migration] skip: v1 presets not loaded yet");
+			return;
+		}
+		if (migratedOrgRef.current === organizationId) {
+			console.log("[v2-preset-migration] skip: already migrated this session");
+			return;
+		}
 
 		const markerKey = getMigrationMarkerKey(organizationId);
 		if (localStorage.getItem(markerKey) === "1") {
+			console.log("[v2-preset-migration] skip: marker present", { markerKey });
 			migratedOrgRef.current = organizationId;
 			return;
 		}
 
+		console.log("[v2-preset-migration] migrating", {
+			count: v1Presets.length,
+			markerKey,
+		});
+
 		for (const [index, v1Preset] of v1Presets.entries()) {
+			console.log("[v2-preset-migration] inserting", {
+				index,
+				id: v1Preset.id,
+				name: v1Preset.name,
+			});
 			collections.v2TerminalPresets.insert({
 				id: v1Preset.id,
 				name: v1Preset.name,
@@ -69,5 +103,6 @@ export function useMigrateV1PresetsToV2() {
 
 		localStorage.setItem(markerKey, "1");
 		migratedOrgRef.current = organizationId;
+		console.log("[v2-preset-migration] done");
 	}, [collections.v2TerminalPresets, organizationId, v1Presets]);
 }
