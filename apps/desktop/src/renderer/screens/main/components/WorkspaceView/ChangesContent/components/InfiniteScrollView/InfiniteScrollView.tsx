@@ -43,15 +43,21 @@ export function InfiniteScrollView({
 
 	const { stageFileMutation, unstageFileMutation, handleDiscard, isActioning } =
 		useFileMutations({ worktreePath, baseBranch });
+	const shouldShowCommittedChanges =
+		!status.hasUpstream || status.pushCount > 0 || status.pullCount > 0;
+	const visibleAgainstBase = shouldShowCommittedChanges
+		? status.againstBase
+		: [];
+	const visibleCommits = shouldShowCommittedChanges ? status.commits : [];
 
 	const totals = useMemo(() => {
 		const allFiles = [
-			...status.againstBase,
+			...visibleAgainstBase,
 			...status.staged,
 			...status.unstaged,
 			...status.untracked,
 		];
-		const commitFileCount = status.commits.reduce(
+		const commitFileCount = visibleCommits.reduce(
 			(acc, commit) => acc + commit.files.length,
 			0,
 		);
@@ -63,7 +69,7 @@ export function InfiniteScrollView({
 			totalAdditions += file.additions;
 			totalDeletions += file.deletions;
 		}
-		for (const commit of status.commits) {
+		for (const commit of visibleCommits) {
 			for (const file of commit.files) {
 				totalAdditions += file.additions;
 				totalDeletions += file.deletions;
@@ -75,7 +81,13 @@ export function InfiniteScrollView({
 			additions: totalAdditions,
 			deletions: totalDeletions,
 		};
-	}, [status]);
+	}, [
+		status.staged,
+		status.unstaged,
+		status.untracked,
+		visibleAgainstBase,
+		visibleCommits,
+	]);
 
 	const toggleFile = useCallback((key: string) => {
 		setCollapsedFiles((prev) => {
@@ -90,8 +102,8 @@ export function InfiniteScrollView({
 	}, []);
 
 	const sortedAgainstBase = useMemo(
-		() => sortFiles(status.againstBase, fileListViewMode),
-		[status.againstBase, fileListViewMode],
+		() => sortFiles(visibleAgainstBase, fileListViewMode),
+		[visibleAgainstBase, fileListViewMode],
 	);
 	const sortedStaged = useMemo(
 		() => sortFiles(status.staged, fileListViewMode),
@@ -118,7 +130,7 @@ export function InfiniteScrollView({
 		getFocusedFileActions,
 	} = useFocusMode({
 		sortedAgainstBase,
-		commits: status.commits,
+		commits: visibleCommits,
 		sortedStaged,
 		sortedUnstaged,
 		sectionOrder,
@@ -131,7 +143,7 @@ export function InfiniteScrollView({
 
 	const hasChanges =
 		sortedAgainstBase.length > 0 ||
-		status.commits.length > 0 ||
+		visibleCommits.length > 0 ||
 		sortedStaged.length > 0 ||
 		sortedUnstaged.length > 0;
 	const orderedSections = useOrderedSections({
@@ -144,7 +156,7 @@ export function InfiniteScrollView({
 		expandedSections: expandedCategories,
 		toggleSection: toggleCategory,
 		againstBaseFiles: sortedAgainstBase,
-		commits: status.commits,
+		commits: visibleCommits,
 		stagedFiles: sortedStaged,
 		unstagedFiles: sortedUnstaged,
 		onUnstageFile: (file) =>

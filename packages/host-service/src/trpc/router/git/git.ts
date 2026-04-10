@@ -86,23 +86,29 @@ export const gitRouter = router({
 				? `origin/${defaultBranchName}`
 				: "HEAD";
 
-			const [currentBranch, defaultBranch, status, ignoredRaw] =
-				await Promise.all([
-					buildBranch(git, currentBranchName, true, baseRef),
-					defaultBranchName
-						? buildBranch(git, defaultBranchName, false)
-						: buildBranch(git, currentBranchName, true),
-					git.status(),
-					git
-						.raw([
-							"ls-files",
-							"--others",
-							"--ignored",
-							"--exclude-standard",
-							"--directory",
-						])
-						.catch(() => ""),
-				]);
+			const currentBranchBase = await buildBranch(git, currentBranchName, true);
+			const currentBranch = await buildBranch(
+				git,
+				currentBranchName,
+				true,
+				currentBranchBase.upstream ?? baseRef,
+			);
+
+			const [defaultBranch, status, ignoredRaw] = await Promise.all([
+				defaultBranchName
+					? buildBranch(git, defaultBranchName, false)
+					: buildBranch(git, currentBranchName, true),
+				git.status(),
+				git
+					.raw([
+						"ls-files",
+						"--others",
+						"--ignored",
+						"--exclude-standard",
+						"--directory",
+					])
+					.catch(() => ""),
+			]);
 
 			// Top-level gitignored paths. `--directory` collapses entirely-ignored
 			// folders to a single entry (e.g. `node_modules`) instead of

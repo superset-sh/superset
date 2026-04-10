@@ -2,7 +2,7 @@ import type { Theme } from "../types";
 
 /**
  * Dark theme - Warm dark theme inspired by the Figma start screen design
- * Features a warm, slightly reddish dark background (#151110)
+ * Features a near-black background while preserving the warm ember surfaces
  */
 export const darkTheme: Theme = {
 	id: "dark",
@@ -13,7 +13,7 @@ export const darkTheme: Theme = {
 
 	ui: {
 		// Core - warm dark tones
-		background: "#151110",
+		background: "#0b0b0c",
 		foreground: "#eae8e6",
 		card: "#201E1C",
 		cardForeground: "#eae8e6",
@@ -72,7 +72,7 @@ export const darkTheme: Theme = {
 	},
 
 	terminal: {
-		background: "#151110",
+		background: "#0b0b0c",
 		foreground: "#eae8e6",
 		cursor: "#e07850",
 		cursorAccent: "#151110",

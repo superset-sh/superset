@@ -19,6 +19,7 @@ interface ChangesTabContentProps {
 		data: { files: ChangedFile[] } | undefined;
 		isLoading: boolean;
 	};
+	shouldShowCommittedChanges: boolean;
 	filter: ChangesFilter;
 	filteredFiles: ChangedFile[];
 	fileCategory: "against-base" | "staged" | "unstaged";
@@ -40,6 +41,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	commits,
 	branches,
 	commitFiles,
+	shouldShowCommittedChanges,
 	filter,
 	filteredFiles,
 	fileCategory,
@@ -73,7 +75,10 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			<ChangesHeader
 				currentBranch={status.data.currentBranch}
 				defaultBranchName={status.data.defaultBranch.name}
-				commitCount={commits.data?.commits.length ?? 0}
+				commitCount={
+					shouldShowCommittedChanges ? (commits.data?.commits.length ?? 0) : 0
+				}
+				showBaseComparison={shouldShowCommittedChanges}
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}
 				totalDeletions={totalDeletions}
@@ -96,6 +101,11 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					}
 					unstaged={
 						filter.kind === "uncommitted" ? status.data.unstaged : undefined
+					}
+					defaultBranchName={
+						shouldShowCommittedChanges
+							? status.data.defaultBranch.name
+							: undefined
 					}
 					isLoading={
 						filter.kind === "commit" || filter.kind === "range"

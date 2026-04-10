@@ -9,6 +9,7 @@ interface ChangesHeaderProps {
 	currentBranch: { name: string; aheadCount: number; behindCount: number };
 	defaultBranchName: string;
 	commitCount: number;
+	showBaseComparison: boolean;
 	totalFiles: number;
 	totalAdditions: number;
 	totalDeletions: number;
@@ -26,6 +27,7 @@ export function ChangesHeader({
 	currentBranch,
 	defaultBranchName,
 	commitCount,
+	showBaseComparison,
 	totalFiles,
 	totalAdditions,
 	totalDeletions,
@@ -100,12 +102,23 @@ export function ChangesHeader({
 			</div>
 
 			<div className="text-[11px] text-muted-foreground">
-				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
-				<BaseBranchSelector
-					branches={branches}
-					currentValue={defaultBranchName}
-					onChange={onBaseBranchChange}
-				/>
+				{showBaseComparison ? (
+					<>
+						{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
+						<BaseBranchSelector
+							branches={branches}
+							currentValue={defaultBranchName}
+							onChange={onBaseBranchChange}
+						/>
+					</>
+				) : (
+					<>
+						Up to date with{" "}
+						<span className="font-medium text-foreground">
+							{currentBranch.name}
+						</span>
+					</>
+				)}
 			</div>
 
 			{currentBranch.aheadCount > 0 && currentBranch.behindCount > 0 && (

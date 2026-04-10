@@ -98,20 +98,34 @@ export function useChangesTab({
 		{ enabled: filter.kind === "commit" || filter.kind === "range" },
 	);
 
+	const shouldShowCommittedChanges = useMemo(() => {
+		const currentBranch = status.data?.currentBranch;
+		if (!currentBranch) return true;
+		if (!currentBranch.upstream) return true;
+		return currentBranch.aheadCount > 0 || currentBranch.behindCount > 0;
+	}, [status.data?.currentBranch]);
+
 	const filteredFiles = useMemo(() => {
 		if (!status.data) return [];
 		if (filter.kind === "uncommitted") {
 			return [...status.data.staged, ...status.data.unstaged];
 		}
 		if (filter.kind === "commit" || filter.kind === "range") {
-			return commitFiles.data?.files ?? [];
+			return shouldShowCommittedChanges ? (commitFiles.data?.files ?? []) : [];
 		}
 		const map = new Map<string, (typeof status.data.againstBase)[number]>();
-		for (const f of status.data.againstBase) map.set(f.path, f);
+		if (shouldShowCommittedChanges) {
+			for (const f of status.data.againstBase) map.set(f.path, f);
+		}
 		for (const f of status.data.staged) map.set(f.path, f);
 		for (const f of status.data.unstaged) map.set(f.path, f);
 		return Array.from(map.values());
-	}, [status.data, filter.kind, commitFiles.data?.files]);
+	}, [
+		status.data,
+		filter.kind,
+		commitFiles.data?.files,
+		shouldShowCommittedChanges,
+	]);
 
 	const totalChanges = filteredFiles.length;
 	const totalAdditions = filteredFiles.reduce((sum, f) => sum + f.additions, 0);
@@ -126,6 +140,7 @@ export function useChangesTab({
 			commits={commits}
 			branches={branches}
 			commitFiles={commitFiles}
+			shouldShowCommittedChanges={shouldShowCommittedChanges}
 			filter={filter}
 			filteredFiles={filteredFiles}
 			fileCategory={fileCategory}

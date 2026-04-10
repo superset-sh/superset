@@ -499,8 +499,14 @@ export function ChangesView({
 		});
 	};
 
-	const againstBaseFiles = status?.againstBase ?? [];
-	const commits = status?.commits ?? [];
+	const shouldShowCommittedChanges =
+		!status?.hasUpstream ||
+		(status?.pushCount ?? 0) > 0 ||
+		(status?.pullCount ?? 0) > 0;
+	const againstBaseFiles = shouldShowCommittedChanges
+		? (status?.againstBase ?? [])
+		: [];
+	const commits = shouldShowCommittedChanges ? (status?.commits ?? []) : [];
 	const stagedFiles = status?.staged ?? [];
 	const unstagedFiles = status?.unstaged ?? [];
 	const untrackedFiles = status?.untracked ?? [];
@@ -680,7 +686,7 @@ export function ChangesView({
 		);
 	}
 
-	const againstMainCount = status.againstBase.length;
+	const againstMainCount = againstBaseFiles.length;
 	const reviewCommentCount = activePullRequest
 		? countOpenPullRequestComments(githubComments)
 		: 0;

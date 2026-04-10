@@ -179,8 +179,12 @@ export function WorkspaceListItem({
 
 	const localDiffStats = useMemo(() => {
 		if (!localChanges) return null;
+		const shouldShowCommittedChanges =
+			!localChanges.hasUpstream ||
+			localChanges.pushCount > 0 ||
+			localChanges.pullCount > 0;
 		const allFiles =
-			localChanges.againstBase.length > 0
+			shouldShowCommittedChanges && localChanges.againstBase.length > 0
 				? localChanges.againstBase
 				: [
 						...localChanges.staged,

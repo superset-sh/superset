@@ -16,7 +16,7 @@
  */
 :root {
 	/* Default to dark (ember) theme colors as fallback */
-	--background: #151110;
+	--background: #0b0b0c;
 	--foreground: #eae8e6;
 	--card: #201e1c;
 	--card-foreground: #eae8e6;
