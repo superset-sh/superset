@@ -8,6 +8,7 @@ import {
 } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
+import { generateFriendlyBranchName } from "shared/utils/friendly-branch-name";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 
 /**
@@ -43,7 +44,8 @@ export function useHandleCreate(projectId: string | null) {
 			return;
 		}
 
-		// 1. Compute names
+		// 1. Compute names — generate once, use for both branch + workspace
+		const friendlyFallback = generateFriendlyBranchName();
 		const resolvedBranchName =
 			branchNameEdited && branchName.trim()
 				? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
@@ -51,12 +53,12 @@ export function useHandleCreate(projectId: string | null) {
 					})
 				: trimmedPrompt
 					? sanitizeBranchNameWithMaxLength(trimmedPrompt)
-					: `workspace-${crypto.randomUUID().slice(0, 8)}`;
+					: friendlyFallback;
 
 		const resolvedWorkspaceName =
 			workspaceNameEdited && workspaceName.trim()
 				? workspaceName.trim()
-				: trimmedPrompt || resolvedBranchName;
+				: trimmedPrompt || friendlyFallback;
 
 		// 2. Store attachments in IndexedDB before closing modal
 		const pendingId = crypto.randomUUID();
