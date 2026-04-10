@@ -16,7 +16,7 @@ export interface ChatPaneData {
 
 export interface BrowserPaneData {
 	url: string;
-	mode: "docs" | "preview" | "generic";
+	pageTitle?: string;
 }
 
 export interface DevtoolsPaneData {

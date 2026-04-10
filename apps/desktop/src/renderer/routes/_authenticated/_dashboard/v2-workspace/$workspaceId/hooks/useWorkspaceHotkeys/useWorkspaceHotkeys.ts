@@ -54,8 +54,7 @@ export function useWorkspaceHotkeys({
 				{
 					kind: "browser",
 					data: {
-						url: "http://localhost:3000",
-						mode: "preview",
+						url: "about:blank",
 					} as BrowserPaneData,
 				},
 			],
@@ -225,8 +224,7 @@ export function useWorkspaceHotkeys({
 			newPane: {
 				kind: "browser",
 				data: {
-					url: "http://localhost:3000",
-					mode: "preview",
+					url: "about:blank",
 				} as BrowserPaneData,
 			},
 		});

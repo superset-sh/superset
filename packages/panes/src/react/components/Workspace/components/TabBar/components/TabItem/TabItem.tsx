@@ -27,6 +27,7 @@ interface TabItemProps<TData> {
 	onCloseAll: () => void;
 	onRename: (title: string) => void;
 	getTitle: (tab: Tab<TData>) => string;
+	label?: ReactNode | null;
 	accessory?: ReactNode;
 }
 
@@ -40,6 +41,7 @@ export function TabItem<TData>({
 	onCloseAll,
 	onRename,
 	getTitle,
+	label,
 	accessory,
 }: TabItemProps<TData>) {
 	const [isEditing, setIsEditing] = useState(false);
@@ -147,7 +149,7 @@ export function TabItem<TData>({
 										onDoubleClick={startEditing}
 										type="button"
 									>
-										<span className="flex-1 truncate">{title}</span>
+										{label ?? <span className="flex-1 truncate">{title}</span>}
 										{accessory}
 									</button>
 								</TooltipTrigger>

@@ -86,6 +86,8 @@ export interface WorkspaceProps<TData> {
 	registry: PaneRegistry<TData>;
 	className?: string;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
+	renderTabLabel?: (tab: Tab<TData>) => ReactNode | null;
+	getTabTitle?: (tab: Tab<TData>) => string;
 	renderEmptyState?: () => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderBelowTabBar?: () => ReactNode;

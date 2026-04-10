@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
@@ -9,6 +10,8 @@ export function Workspace<TData>({
 	registry,
 	className,
 	renderTabAccessory,
+	renderTabLabel,
+	getTabTitle,
 	renderEmptyState,
 	renderAddTabMenu,
 	renderBelowTabBar,
@@ -18,7 +21,36 @@ export function Workspace<TData>({
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
-	const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+
+	const [mountedTabIds, setMountedTabIds] = useState<Set<string>>(
+		() => new Set(activeTabId ? [activeTabId] : []),
+	);
+
+	useEffect(() => {
+		if (!activeTabId) return;
+		setMountedTabIds((prev) => {
+			if (prev.has(activeTabId)) return prev;
+			const next = new Set(prev);
+			next.add(activeTabId);
+			return next;
+		});
+	}, [activeTabId]);
+
+	useEffect(() => {
+		setMountedTabIds((prev) => {
+			const existing = new Set(tabs.map((t) => t.id));
+			let changed = false;
+			const next = new Set<string>();
+			for (const id of prev) {
+				if (existing.has(id)) {
+					next.add(id);
+				} else {
+					changed = true;
+				}
+			}
+			return changed ? next : prev;
+		});
+	}, [tabs]);
 
 	const closeTab = async (tabId: string) => {
 		if (onBeforeCloseTab) {
@@ -58,24 +90,42 @@ export function Workspace<TData>({
 				onReorderTab={(tabId, toIndex) =>
 					store.getState().reorderTab({ tabId, toIndex })
 				}
-				getTabTitle={(tab) => tab.titleOverride ?? tab.id}
+				getTabTitle={(tab) => getTabTitle?.(tab) ?? tab.titleOverride ?? tab.id}
+				renderTabLabel={renderTabLabel}
 				renderAddTabMenu={renderAddTabMenu}
 				renderTabAccessory={renderTabAccessory}
 			/>
 			{renderBelowTabBar?.()}
-			{activeTab ? (
-				<Tab
-					store={store}
-					tab={activeTab}
-					registry={registry}
-					paneActions={paneActions}
-					contextMenuActions={contextMenuActions}
-				/>
-			) : (
-				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-					{renderEmptyState?.() ?? "No tabs open"}
-				</div>
-			)}
+			<div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+				{tabs
+					.filter((tab) => mountedTabIds.has(tab.id))
+					.map((tab) => {
+						const isActive = tab.id === activeTabId;
+						return (
+							<div
+								key={tab.id}
+								className={cn(
+									"absolute inset-0 flex min-h-0 min-w-0 flex-col",
+									!isActive && "pointer-events-none invisible",
+								)}
+								aria-hidden={!isActive}
+							>
+								<Tab
+									store={store}
+									tab={tab}
+									registry={registry}
+									paneActions={paneActions}
+									contextMenuActions={contextMenuActions}
+								/>
+							</div>
+						);
+					})}
+				{mountedTabIds.size === 0 && (
+					<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+						{renderEmptyState?.() ?? "No tabs open"}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

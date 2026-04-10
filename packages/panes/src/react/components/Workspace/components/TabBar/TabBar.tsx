@@ -29,6 +29,7 @@ interface TabBarProps<TData> {
 	onRenameTab: (tabId: string, title: string) => void;
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	getTabTitle: (tab: Tab<TData>) => string;
+	renderTabLabel?: (tab: Tab<TData>) => ReactNode | null;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 }
@@ -73,6 +74,7 @@ export function TabBar<TData>({
 	onRenameTab,
 	onReorderTab,
 	getTabTitle,
+	renderTabLabel,
 	renderAddTabMenu,
 	renderTabAccessory,
 }: TabBarProps<TData>) {
@@ -214,6 +216,7 @@ export function TabBar<TData>({
 								onCloseAll={onCloseAllTabs}
 								onRename={(title) => onRenameTab(tab.id, title)}
 								getTitle={getTabTitle}
+								label={renderTabLabel?.(tab) ?? null}
 								accessory={renderTabAccessory?.(tab)}
 							/>
 						</div>
