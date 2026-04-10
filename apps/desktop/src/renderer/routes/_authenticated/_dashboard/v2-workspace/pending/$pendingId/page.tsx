@@ -70,10 +70,10 @@ function PendingWorkspacePage() {
 		return () => clearInterval(interval);
 	}, [pending?.status]);
 
-	const elapsedMs =
-		pending?.createdAt instanceof Date
-			? Math.max(0, now - pending.createdAt.getTime())
-			: 0;
+	const createdAtMs = pending?.createdAt
+		? new Date(pending.createdAt).getTime()
+		: now;
+	const elapsedMs = Math.max(0, now - createdAtMs);
 	const elapsedSeconds = Math.floor(elapsedMs / 1000);
 	const isStale = pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
