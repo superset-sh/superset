@@ -74,11 +74,13 @@ export function useMigrateV1PresetsToV2() {
 
 				// Bulk insert so validation runs on all rows up front — a single
 				// bad row rejects the whole batch rather than leaving partial
-				// state that would collide on the next retry.
+				// state that would collide on the next retry. Fresh UUIDs
+				// decouple v2 IDs from v1 IDs, so v1 can keep its existing
+				// preset rows intact after the migration.
 				const now = new Date();
 				collections.v2TerminalPresets.insert(
 					v1Presets.map((v1Preset, index) => ({
-						id: v1Preset.id,
+						id: crypto.randomUUID(),
 						name: v1Preset.name,
 						description: v1Preset.description,
 						cwd: v1Preset.cwd,

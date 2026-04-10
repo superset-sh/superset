@@ -59,11 +59,12 @@ const v2ExecutionModeSchema = z.enum([
 ]);
 
 // Matches the v1 terminalPresetSchema shape so the migration hook can
-// insert existing presets verbatim. projectIds and id are plain strings
-// (not z.string().uuid()) because v1 accepts arbitrary string IDs and
-// filterMatchingPresetsForProject only does plain string equality.
+// insert existing presets verbatim. projectIds stays as plain z.string()
+// (not z.string().uuid()) because v1's projectIds accepts arbitrary string
+// IDs and filterMatchingPresetsForProject only does string equality — a
+// stricter constraint would reject valid v1 data with no real upside.
 export const v2TerminalPresetSchema = z.object({
-	id: z.string(),
+	id: z.string().uuid(),
 	name: z.string(),
 	description: z.string().optional(),
 	cwd: z.string().default(""),
