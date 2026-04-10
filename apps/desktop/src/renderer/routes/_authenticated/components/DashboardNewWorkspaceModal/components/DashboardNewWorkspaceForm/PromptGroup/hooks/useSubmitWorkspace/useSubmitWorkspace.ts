@@ -7,36 +7,22 @@ import {
 	storeAttachments,
 } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
-import { generateFriendlyBranchName } from "shared/utils/friendly-branch-name";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
+import { mapLinkedContext } from "./mapLinkedContext";
+import { resolveNames } from "./resolveNames";
 
 /**
- * Encapsulates the full "create workspace" flow:
- * compute names → store attachments → insert pending row → close modal →
+ * Returns a callback that submits a new workspace:
+ * resolve names → store attachments → insert pending row → close modal →
  * navigate to pending page → fire-and-forget host-service call →
  * update collection on resolve/reject.
  */
-export function useHandleCreate(projectId: string | null) {
+export function useSubmitWorkspace(projectId: string | null) {
 	const navigate = useNavigate();
 	const { closeAndResetDraft, createWorkspace, draft } =
 		useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const collections = useCollections();
-
-	const {
-		branchName,
-		branchNameEdited,
-		baseBranch,
-		hostTarget,
-		linkedIssues,
-		linkedPR,
-		prompt,
-		runSetupScript,
-		workspaceName,
-		workspaceNameEdited,
-	} = draft;
-	const trimmedPrompt = prompt.trim();
 
 	return useCallback(async () => {
 		if (!projectId) {
@@ -44,19 +30,8 @@ export function useHandleCreate(projectId: string | null) {
 			return;
 		}
 
-		// 1. Compute names — generate once, use for both branch + workspace
-		const friendlyFallback = generateFriendlyBranchName();
-		const resolvedBranchName =
-			branchNameEdited && branchName.trim()
-				? sanitizeUserBranchName(branchName.trim())
-				: trimmedPrompt
-					? slugifyForBranch(trimmedPrompt)
-					: friendlyFallback;
-
-		const resolvedWorkspaceName =
-			workspaceNameEdited && workspaceName.trim()
-				? workspaceName.trim()
-				: trimmedPrompt || friendlyFallback;
+		// 1. Resolve names
+		const { branchName, workspaceName } = resolveNames(draft);
 
 		// 2. Store attachments in IndexedDB before closing modal
 		const pendingId = crypto.randomUUID();
@@ -80,14 +55,14 @@ export function useHandleCreate(projectId: string | null) {
 		collections.pendingWorkspaces.insert({
 			id: pendingId,
 			projectId,
-			name: resolvedWorkspaceName,
-			branchName: resolvedBranchName,
-			prompt,
-			baseBranch: baseBranch ?? null,
-			runSetupScript,
-			linkedIssues: linkedIssues as unknown[],
-			linkedPR,
-			hostTarget,
+			name: workspaceName,
+			branchName,
+			prompt: draft.prompt,
+			baseBranch: draft.baseBranch ?? null,
+			runSetupScript: draft.runSetupScript,
+			linkedIssues: draft.linkedIssues as unknown[],
+			linkedPR: draft.linkedPR,
+			hostTarget: draft.hostTarget,
 			attachmentCount: detachedFiles.length,
 			status: "creating",
 			error: null,
@@ -100,13 +75,8 @@ export function useHandleCreate(projectId: string | null) {
 		closeAndResetDraft();
 		void navigate({ to: `/pending/${pendingId}` as string });
 
-		// 5. Fire create (fire-and-forget)
-		const internalIssueIds = linkedIssues
-			.filter((i) => i.source === "internal" && i.taskId)
-			.map((i) => i.taskId as string);
-		const githubIssueUrls = linkedIssues
-			.filter((i) => i.source === "github" && i.url)
-			.map((i) => i.url as string);
+		// 5. Fire create (fire-and-forget — closure survives modal unmount)
+		const linked = mapLinkedContext(draft);
 
 		let attachmentPayload:
 			| Array<{ data: string; mediaType: string; filename: string }>
@@ -118,7 +88,7 @@ export function useHandleCreate(projectId: string | null) {
 				);
 				attachmentPayload = await loadAttachments(pendingId);
 			} catch {
-				// Non-fatal
+				// Non-fatal — create proceeds without attachments
 			}
 		}
 
@@ -126,56 +96,39 @@ export function useHandleCreate(projectId: string | null) {
 			const result = await createWorkspace({
 				pendingId,
 				projectId,
-				hostTarget,
-				names: {
-					workspaceName: resolvedWorkspaceName,
-					branchName: resolvedBranchName,
-				},
+				hostTarget: draft.hostTarget,
+				names: { workspaceName, branchName },
 				composer: {
-					prompt: trimmedPrompt || undefined,
-					baseBranch: baseBranch || undefined,
-					runSetupScript,
+					prompt: draft.prompt.trim() || undefined,
+					baseBranch: draft.baseBranch || undefined,
+					runSetupScript: draft.runSetupScript,
 				},
 				linkedContext: {
-					internalIssueIds:
-						internalIssueIds.length > 0 ? internalIssueIds : undefined,
-					githubIssueUrls:
-						githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
-					linkedPrUrl: linkedPR?.url,
+					...linked,
 					attachments: attachmentPayload,
 				},
 			});
 
-			collections.pendingWorkspaces.update(pendingId, (draft) => {
-				draft.status = "succeeded";
-				draft.workspaceId = result.workspace?.id ?? null;
-				draft.initialCommands = result.initialCommands ?? null;
+			collections.pendingWorkspaces.update(pendingId, (row) => {
+				row.status = "succeeded";
+				row.workspaceId = result.workspace?.id ?? null;
+				row.initialCommands = result.initialCommands ?? null;
 			});
 			void clearAttachments(pendingId);
 		} catch (err) {
-			collections.pendingWorkspaces.update(pendingId, (draft) => {
-				draft.status = "failed";
-				draft.error =
+			collections.pendingWorkspaces.update(pendingId, (row) => {
+				row.status = "failed";
+				row.error =
 					err instanceof Error ? err.message : "Failed to create workspace";
 			});
 		}
 	}, [
 		attachments,
-		branchName,
-		branchNameEdited,
 		closeAndResetDraft,
 		collections,
-		baseBranch,
 		createWorkspace,
-		hostTarget,
-		linkedIssues,
-		linkedPR,
+		draft,
 		navigate,
 		projectId,
-		prompt,
-		runSetupScript,
-		trimmedPrompt,
-		workspaceName,
-		workspaceNameEdited,
 	]);
 }

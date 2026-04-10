@@ -34,7 +34,7 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
-import { useHandleCreate } from "./hooks/useHandleCreate";
+import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
 import {
 	AGENT_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
@@ -130,7 +130,7 @@ function PromptGroupInner({
 	}, [projectId, hostTarget, updateDraft]);
 
 	// ── Create ───────────────────────────────────────────────────────
-	const handleCreate = useHandleCreate(projectId);
+	const handleCreate = useSubmitWorkspace(projectId);
 
 	const handlePromptSubmit = useCallback(() => {
 		void handleCreate();
