@@ -73,9 +73,9 @@ export function ProjectSection({
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 
-	const { data: sidebarSortMode } =
+	const { data: sidebarSortMode, isLoading: isSortModeLoading } =
 		electronTrpc.settings.getSidebarSortMode.useQuery();
-	const isDnDDisabled = sidebarSortMode === "recent";
+	const isDnDDisabled = isSortModeLoading || sidebarSortMode === "recent";
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
