@@ -246,10 +246,11 @@ describe("Terminal Host Session shell args", () => {
 
 		firstController.abort();
 		await expect(firstAttach).rejects.toThrow(TERMINAL_ATTACH_CANCELED_MESSAGE);
-		expect(session.clientCount).toBe(1);
+		expect(session.clientCount).toBe(0);
 
 		resolveBoundary(true);
 		await expect(secondAttach).resolves.toBeDefined();
+		expect(session.clientCount).toBe(1);
 
 		(
 			session as unknown as {

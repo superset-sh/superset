@@ -23,6 +23,7 @@ import {
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
+import { SUPERSET_HOME_DIR } from "./lib/app-environment";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
@@ -45,6 +46,10 @@ const IS_DEV = process.env.NODE_ENV === "development";
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
+
+// Keep userData and the app's own home directory aligned so single-instance
+// locks and process-scoped state do not collide with the stock Superset app.
+app.setPath("userData", SUPERSET_HOME_DIR);
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
 if (IS_DEV) {

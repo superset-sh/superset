@@ -755,12 +755,13 @@ export function useTerminalLifecycle({
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
-		const reattachRecovery = {
-			throttleMs: 120,
-			pendingFrame: null as number | null,
-			lastRunAt: 0,
-			pendingForceResize: false,
-		};
+			const reattachRecovery = {
+				throttleMs: 120,
+				pendingFrame: null as number | null,
+				lastRunAt: 0,
+				pendingForceResize: false,
+				burstTimeouts: [] as number[],
+			};
 
 		const isCurrentTerminalRenderable = () => {
 			if (isUnmounted || xtermRef.current !== xterm) return false;
@@ -831,19 +832,32 @@ export function useTerminalLifecycle({
 			});
 		};
 
-		const cancelReattachRecovery = () => {
-			if (reattachRecovery.pendingFrame === null) return;
-			cancelAnimationFrame(reattachRecovery.pendingFrame);
-			reattachRecovery.pendingFrame = null;
-		};
+			const cancelReattachRecovery = () => {
+				if (reattachRecovery.pendingFrame === null) return;
+				cancelAnimationFrame(reattachRecovery.pendingFrame);
+				reattachRecovery.pendingFrame = null;
+			};
 
-		const handleVisibilityChange = () => {
-			if (document.hidden) return;
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
-		const handleWindowFocus = () => {
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
+			const scheduleRecoveryBurst = (forceResize: boolean) => {
+				scheduleReattachRecovery(forceResize);
+				for (const timeoutId of reattachRecovery.burstTimeouts) {
+					window.clearTimeout(timeoutId);
+				}
+				reattachRecovery.burstTimeouts = [120, 260].map((delay) =>
+					window.setTimeout(() => {
+						if (isUnmounted) return;
+						scheduleReattachRecovery(forceResize);
+					}, delay),
+				);
+			};
+
+			const handleVisibilityChange = () => {
+				if (document.hidden) return;
+				scheduleRecoveryBurst(isFocusedRef.current);
+			};
+			const handleWindowFocus = () => {
+				scheduleRecoveryBurst(isFocusedRef.current);
+			};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
 		window.addEventListener("focus", handleWindowFocus);
@@ -868,9 +882,13 @@ export function useTerminalLifecycle({
 				cancelAttachWait = null;
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
-			if (firstRenderFallback) clearTimeout(firstRenderFallback);
-			cancelReattachRecovery();
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
+				if (firstRenderFallback) clearTimeout(firstRenderFallback);
+				cancelReattachRecovery();
+				for (const timeoutId of reattachRecovery.burstTimeouts) {
+					window.clearTimeout(timeoutId);
+				}
+				reattachRecovery.burstTimeouts = [];
+				document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();

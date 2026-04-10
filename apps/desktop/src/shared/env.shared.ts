@@ -40,7 +40,14 @@ export const env = envSchema.parse({
 });
 
 export function getWorkspaceName(): string | undefined {
-	const name = env.SUPERSET_WORKSPACE_NAME;
+	let name = env.SUPERSET_WORKSPACE_NAME;
+	if (
+		name === "superset" &&
+		(process.execPath.includes("Superset Patched.app") ||
+			process.argv.some((arg) => arg.includes("Superset Patched.app")))
+	) {
+		name = "patched";
+	}
 	if (name === "superset") return undefined;
 	return name
 		.toLowerCase()

@@ -5,8 +5,15 @@ import { SUPERSET_DIR_NAME } from "shared/constants";
 
 const SUPERSET_HOME_DIR_ENV = "SUPERSET_HOME_DIR";
 
+function getDefaultSupersetHomeDir(): string {
+	if (process.execPath.includes("Superset Patched.app")) {
+		return join(homedir(), ".superset-patched");
+	}
+	return join(homedir(), SUPERSET_DIR_NAME);
+}
+
 export const SUPERSET_HOME_DIR =
-	process.env[SUPERSET_HOME_DIR_ENV] || join(homedir(), SUPERSET_DIR_NAME);
+	process.env[SUPERSET_HOME_DIR_ENV] || getDefaultSupersetHomeDir();
 process.env[SUPERSET_HOME_DIR_ENV] = SUPERSET_HOME_DIR;
 
 export const SUPERSET_HOME_DIR_MODE = 0o700;

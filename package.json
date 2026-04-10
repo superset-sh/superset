@@ -6,9 +6,11 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
+		"app-builder-bin": "^4.2.0",
 		"dotenv-cli": "^11.0.0",
 		"sherif": "^1.10.0",
-		"turbo": "2.8.7"
+		"turbo": "2.8.7",
+		"yocto-queue": "^1.2.2"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",

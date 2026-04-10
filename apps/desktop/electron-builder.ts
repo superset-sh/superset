@@ -14,13 +14,13 @@ import {
 
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
-const productName = pkg.productName;
+const productName = "Superset Patched";
 const macIconPath = join(pkg.resources, "build/icons/icon.icns");
 const linuxIconPath = join(pkg.resources, "build/icons");
 const winIconPath = join(pkg.resources, "build/icons/icon.ico");
 
 const config: Configuration = {
-	appId: "com.superset.desktop",
+	appId: "com.superset.desktop.patched",
 	productName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
@@ -91,9 +91,9 @@ const config: Configuration = {
 		...(existsSync(macIconPath) ? { icon: macIconPath } : {}),
 		category: "public.app-category.utilities",
 		target: "default",
-		hardenedRuntime: true,
+		hardenedRuntime: false,
 		gatekeeperAssess: false,
-		notarize: true,
+		notarize: false,
 		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
 		entitlementsInherit: join(
 			pkg.resources,

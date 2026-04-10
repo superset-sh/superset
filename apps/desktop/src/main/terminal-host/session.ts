@@ -808,17 +808,16 @@ export class Session {
 		}
 		throwIfAborted(signal);
 
-		const attachedClient: AttachedClient = {
-			socket,
-			attachedAt: Date.now(),
-			attachToken: Symbol("attach"),
-		};
-		this.attachedClients.set(socket, attachedClient);
 		this.lastAttachedAt = new Date();
 
 		// Use snapshot boundary flush for consistent state with continuous output.
 		// This ensures we capture all data received BEFORE attach was called,
 		// even if new data continues to arrive during the flush.
+		//
+		// Register the client only after the snapshot is captured. If the socket
+		// is added before the async flush/serialize window, in-flight PTY output
+		// is both broadcast as stream data and included in the snapshot, which
+		// causes the renderer to write overlapping content twice on reattach.
 		try {
 			const reachedBoundary = await raceWithAbort(
 				this.flushToSnapshotBoundary(ATTACH_FLUSH_TIMEOUT_MS),
@@ -833,10 +832,16 @@ export class Session {
 
 			await raceWithAbort(this.emulator.flush(), signal);
 			throwIfAborted(signal);
-			return this.emulator.getSnapshot();
+			const snapshot = this.emulator.getSnapshot();
+			const attachedClient: AttachedClient = {
+				socket,
+				attachedAt: Date.now(),
+				attachToken: Symbol("attach"),
+			};
+			this.attachedClients.set(socket, attachedClient);
+			return snapshot;
 		} catch (error) {
 			if (isTerminalAttachCanceledError(error)) {
-				this.detachAttachedClient(socket, attachedClient);
 				throw error;
 			}
 			throw error;

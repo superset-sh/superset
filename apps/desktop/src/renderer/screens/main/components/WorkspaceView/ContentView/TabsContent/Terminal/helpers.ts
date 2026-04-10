@@ -74,6 +74,10 @@ type PreferredRenderer = TerminalRenderer["kind"] | "auto";
 let suggestedRendererType: TerminalRenderer["kind"] | undefined;
 
 function getPreferredRenderer(): PreferredRenderer {
+	// Local patched build: force DOM renderer to avoid Electron/WebGL repaint
+	// corruption on window/tab re-focus while we verify the root cause.
+	return "dom";
+
 	// If WebGL previously failed, don't try again
 	if (suggestedRendererType === "dom") {
 		return "dom";
@@ -660,6 +664,34 @@ export function setupKeyboardHandler(
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
 			return false;
+		}
+
+		// Ctrl+A: Move cursor to beginning of line (sends Ctrl+A sequence to shell)
+		// Note: This is different from Mac's Cmd+Left which also sends Ctrl+A
+		// On all platforms, Ctrl+A should go directly to the shell for line navigation
+		const isCtrlA =
+			event.key === "a" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlA) {
+			// Return true to let xterm handle it (sends to shell)
+			return true;
+		}
+
+		// Ctrl+E: Move cursor to end of line (sends Ctrl+E sequence to shell)
+		const isCtrlE =
+			event.key === "e" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlE) {
+			// Return true to let xterm handle it (sends to shell)
+			return true;
 		}
 
 		// Terminal-reserved chords (ctrl+c/d/z/s/q) always go to xterm

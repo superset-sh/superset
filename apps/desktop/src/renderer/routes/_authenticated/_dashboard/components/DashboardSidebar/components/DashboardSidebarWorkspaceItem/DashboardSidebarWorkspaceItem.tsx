@@ -1,4 +1,6 @@
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import { getHighestPriorityStatus } from "shared/tabs-types";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
@@ -32,6 +34,18 @@ export function DashboardSidebarWorkspaceItem({
 		creationStatus,
 	} = workspace;
 	const diffStats = useDiffStats(id);
+
+	// Get workspace pane status from tabs store to show working indicator
+	const workspaceStatus = useTabsStore((state) => {
+		const tabs = state.tabs.filter((tab) => tab.workspaceId === id);
+		const paneIds = tabs.flatMap((tab) =>
+			Object.values(state.panes)
+				.filter((pane) => pane.tabId === tab.id)
+				.map((pane) => pane.status),
+		);
+		return getHighestPriorityStatus(paneIds);
+	});
+
 	const {
 		cancelRename,
 		handleClick,
@@ -74,6 +88,7 @@ export function DashboardSidebarWorkspaceItem({
 					isActive={isActive}
 					onClick={isCreating ? undefined : handleClick}
 					creationStatus={creationStatus}
+					workspaceStatus={workspaceStatus}
 					disabled={isCreating}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
@@ -135,6 +150,7 @@ export function DashboardSidebarWorkspaceItem({
 			renameValue={renameValue}
 			shortcutLabel={shortcutLabel}
 			diffStats={isCreating ? null : diffStats}
+			workspaceStatus={workspaceStatus}
 			onClick={isCreating ? undefined : handleClick}
 			onDoubleClick={isCreating ? undefined : startRename}
 			onDeleteClick={() => setIsDeleteDialogOpen(true)}
