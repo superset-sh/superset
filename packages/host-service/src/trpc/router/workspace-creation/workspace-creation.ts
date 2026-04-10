@@ -39,7 +39,10 @@ async function resolveGithubRepo(
 	ctx: HostServiceContext,
 	projectId: string,
 ): Promise<{ owner: string; name: string }> {
-	const cloudProject = await ctx.api.v2Project.get.query({ id: projectId });
+	const cloudProject = await ctx.api.v2Project.get.query({
+		organizationId: ctx.organizationId,
+		id: projectId,
+	});
 	const repo = cloudProject.githubRepository;
 	if (!repo?.owner || !repo?.name) {
 		throw new TRPCError({
@@ -278,6 +281,7 @@ export const workspaceCreationRouter = router({
 
 			if (!localProject) {
 				const cloudProject = await ctx.api.v2Project.get.query({
+					organizationId: ctx.organizationId,
 					id: input.projectId,
 				});
 
@@ -373,6 +377,7 @@ export const workspaceCreationRouter = router({
 				});
 
 				const cloudRow = await ctx.api.v2Workspace.create.mutate({
+					organizationId: ctx.organizationId,
 					projectId: input.projectId,
 					name: workspaceName,
 					branch: branchName,
@@ -446,6 +451,7 @@ export const workspaceCreationRouter = router({
 
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
+					organizationId: ctx.organizationId,
 					projectId: input.projectId,
 					name: workspaceName,
 					branch: branchName,
