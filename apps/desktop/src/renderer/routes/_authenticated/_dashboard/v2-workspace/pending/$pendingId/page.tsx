@@ -98,11 +98,11 @@ function PendingWorkspacePage() {
 
 	return (
 		<div className="flex h-full items-center justify-center">
-			<div className="w-full max-w-md space-y-6 p-8 text-center">
+			<div className="w-full max-w-sm space-y-5 p-8">
 				{/* Header */}
-				<div className="space-y-1.5">
+				<div className="space-y-1">
 					<h2 className="text-lg font-semibold">{pending.name}</h2>
-					<div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+					<div className="flex items-center gap-1.5 text-sm text-muted-foreground">
 						<GoGitBranch className="size-3.5" />
 						<span className="font-mono">{pending.branchName}</span>
 					</div>
@@ -114,7 +114,7 @@ function PendingWorkspacePage() {
 						<p className="text-sm text-muted-foreground">
 							Creating workspace...
 						</p>
-						<div className="inline-flex flex-col items-start space-y-2">
+						<div className="space-y-2">
 							{STEP_ORDER.map((step) => {
 								const stepIndex = STEP_ORDER.indexOf(step);
 								const currentIndex = currentStep
@@ -161,11 +161,11 @@ function PendingWorkspacePage() {
 
 				{pending.status === "failed" && (
 					<div className="space-y-4">
-						<div className="inline-flex items-start gap-2 text-sm text-destructive">
+						<div className="flex items-start gap-2 text-sm text-destructive">
 							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
 							<span>{pending.error ?? "Failed to create workspace"}</span>
 						</div>
-						<div className="flex justify-center gap-2">
+						<div className="flex gap-2">
 							<button
 								type="button"
 								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
