@@ -13,7 +13,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export const Route = createFileRoute(
-	"/_authenticated/_dashboard/v2-workspace/pending/$pendingId/",
+	"/_authenticated/_dashboard/pending/$pendingId/",
 )({
 	component: PendingWorkspacePage,
 });
@@ -76,7 +76,8 @@ function PendingWorkspacePage() {
 		: now;
 	const elapsedMs = Math.max(0, now - createdAtMs);
 	const elapsedLabel = formatRelativeTime(createdAtMs);
-	const isStale = pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
+	const isStale =
+		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
 	// Auto-navigate to real workspace on success
 	useEffect(() => {
@@ -120,7 +121,9 @@ function PendingWorkspacePage() {
 				{/* Status */}
 				{pending.status === "creating" && (
 					<div className="space-y-3">
-						<p className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}>
+						<p
+							className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
+						>
 							<span className="tabular-nums">{elapsedLabel}</span>{" "}
 							{isStale
 								? "This is taking longer than expected..."

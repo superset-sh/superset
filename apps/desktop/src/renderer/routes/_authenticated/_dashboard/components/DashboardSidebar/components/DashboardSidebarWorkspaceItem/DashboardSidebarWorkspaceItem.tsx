@@ -62,7 +62,7 @@ export function DashboardSidebarWorkspaceItem({
 	const handlePendingClick = isPending
 		? () => {
 				void navigate({
-					to: `/v2-workspace/pending/${id}` as string,
+					to: `/pending/${id}` as string,
 				});
 			}
 		: undefined;

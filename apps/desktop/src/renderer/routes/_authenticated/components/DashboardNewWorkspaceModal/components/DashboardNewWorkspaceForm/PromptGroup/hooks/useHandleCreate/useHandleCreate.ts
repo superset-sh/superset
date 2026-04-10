@@ -98,7 +98,7 @@ export function useHandleCreate(projectId: string | null) {
 
 		// 4. Close modal, navigate to pending page
 		closeAndResetDraft();
-		void navigate({ to: `/v2-workspace/pending/${pendingId}` as string });
+		void navigate({ to: `/pending/${pendingId}` as string });
 
 		// 5. Fire create (fire-and-forget)
 		const internalIssueIds = linkedIssues
