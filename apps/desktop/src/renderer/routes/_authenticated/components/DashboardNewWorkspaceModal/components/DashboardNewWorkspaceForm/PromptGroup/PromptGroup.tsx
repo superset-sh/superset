@@ -22,7 +22,7 @@ import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
-import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
+import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
 import type { LinkedPR } from "../../../DashboardNewWorkspaceDraftContext";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
@@ -111,10 +111,8 @@ function PromptGroupInner({
 		baseBranch || branchData?.defaultBranch || null;
 
 	const branchPreview = branchNameEdited
-		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
-				preserveFirstSegmentCase: true,
-			})
-		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
+		? sanitizeUserBranchName(branchName)
+		: slugifyForBranch(trimmedPrompt);
 
 	// Reset baseBranch on project or host change
 	const previousProjectIdRef = useRef(projectId);
@@ -230,11 +228,7 @@ function PromptGroupInner({
 							})
 						}
 						onBlur={() => {
-							const sanitized = sanitizeBranchNameWithMaxLength(
-								branchName.trim(),
-								undefined,
-								{ preserveCase: true },
-							);
+							const sanitized = sanitizeUserBranchName(branchName.trim());
 							if (!sanitized)
 								updateDraft({ branchName: "", branchNameEdited: false });
 							else updateDraft({ branchName: sanitized });

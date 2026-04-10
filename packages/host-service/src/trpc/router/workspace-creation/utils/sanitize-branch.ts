@@ -1,41 +1,9 @@
 /**
- * Branch name sanitization + deduplication utilities.
- * Copied from apps/desktop/src/shared/utils/branch.ts to avoid a
- * cross-package dependency. Keep in sync with the original.
+ * Branch name deduplication utility.
+ *
+ * Sanitization/slugification lives on the renderer — the host-service
+ * only deduplicates against existing branches.
  */
-
-const SEGMENT_MAX_LENGTH = 50;
-const BRANCH_MAX_LENGTH = 100;
-
-function sanitizeSegment(text: string, maxLength = SEGMENT_MAX_LENGTH): string {
-	return text
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, "-")
-		.replace(/[^a-z0-9._+@-]/g, "")
-		.replace(/\.{2,}/g, ".")
-		.replace(/@\{/g, "@")
-		.replace(/-+/g, "-")
-		.replace(/^[-.]|[-.]+$/g, "")
-		.replace(/\.lock$/g, "")
-		.slice(0, maxLength);
-}
-
-function sanitizeBranchName(name: string): string {
-	return name
-		.split("/")
-		.map((s) => sanitizeSegment(s))
-		.filter(Boolean)
-		.join("/");
-}
-
-export function sanitizeBranchNameWithMaxLength(
-	name: string,
-	maxLength = BRANCH_MAX_LENGTH,
-): string {
-	const sanitized = sanitizeBranchName(name);
-	return sanitized.slice(0, maxLength).replace(/\/+$/g, "");
-}
 
 /**
  * Appends `-2`, `-3`, etc. until the name doesn't collide with

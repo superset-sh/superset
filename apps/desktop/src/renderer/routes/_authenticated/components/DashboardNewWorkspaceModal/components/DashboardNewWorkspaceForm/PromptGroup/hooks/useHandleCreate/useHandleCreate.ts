@@ -7,7 +7,7 @@ import {
 	storeAttachments,
 } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
+import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
 import { generateFriendlyBranchName } from "shared/utils/friendly-branch-name";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 
@@ -48,11 +48,9 @@ export function useHandleCreate(projectId: string | null) {
 		const friendlyFallback = generateFriendlyBranchName();
 		const resolvedBranchName =
 			branchNameEdited && branchName.trim()
-				? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
-						preserveCase: true,
-					})
+				? sanitizeUserBranchName(branchName.trim())
 				: trimmedPrompt
-					? sanitizeBranchNameWithMaxLength(trimmedPrompt)
+					? slugifyForBranch(trimmedPrompt)
 					: friendlyFallback;
 
 		const resolvedWorkspaceName =

@@ -8,10 +8,7 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
-import {
-	deduplicateBranchName,
-	sanitizeBranchNameWithMaxLength,
-} from "./utils/sanitize-branch";
+import { deduplicateBranchName } from "./utils/sanitize-branch";
 
 // ── In-memory create progress (polled by renderer) ──────────────────
 
@@ -354,14 +351,14 @@ export const workspaceCreationRouter = router({
 
 			setProgress(input.pendingId, "creating_worktree");
 
-			// 2. Sanitize + deduplicate branch name
-			const sanitizedBranch = sanitizeBranchNameWithMaxLength(
-				input.names.branchName,
-			);
-			if (!sanitizedBranch) {
+			// 2. Validate + deduplicate branch name
+			// Renderer already sanitized/slugified. Host-service only validates
+			// and deduplicates — doesn't re-sanitize (which would strip case,
+			// slashes, etc. the user intended).
+			if (!input.names.branchName.trim()) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Branch name is empty after sanitization",
+					message: "Branch name is empty",
 				});
 			}
 
@@ -370,7 +367,7 @@ export const workspaceCreationRouter = router({
 				localProject.repoPath,
 			);
 			const branchName = deduplicateBranchName(
-				sanitizedBranch,
+				input.names.branchName,
 				existingBranches,
 			);
 
