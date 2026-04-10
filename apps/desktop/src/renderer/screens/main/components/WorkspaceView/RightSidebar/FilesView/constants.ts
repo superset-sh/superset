@@ -1,6 +1,6 @@
 export const ROW_HEIGHT = 28;
 export const SEARCH_RESULT_ROW_HEIGHT = 40;
-export const TREE_INDENT = 16;
+export const TREE_INDENT = 10;
 export const OVERSCAN_COUNT = 10;
 export const SEARCH_DEBOUNCE_MS = 150;
 export const SEARCH_RESULT_LIMIT = 200;

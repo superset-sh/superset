@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { FilesTab } from "./components/FilesTab";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
@@ -55,8 +56,11 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
 	const [activeTab, setActiveTab] = useState("files");
 
+	const gitStatus = useGitStatus(workspaceId);
+
 	const changesTab = useChangesTab({
 		workspaceId,
+		gitStatus,
 		onSelectFile: onSelectDiffFile,
 	});
 
@@ -71,10 +75,18 @@ export function WorkspaceSidebar({
 					selectedFilePath={selectedFilePath}
 					workspaceId={workspaceId}
 					workspaceName={workspaceName}
+					gitStatus={gitStatus.data}
 				/>
 			),
 		}),
-		[onSearch, onSelectFile, selectedFilePath, workspaceId, workspaceName],
+		[
+			gitStatus.data,
+			onSearch,
+			onSelectFile,
+			selectedFilePath,
+			workspaceId,
+			workspaceName,
+		],
 	);
 
 	const checksTab: SidebarTabDefinition = useMemo(

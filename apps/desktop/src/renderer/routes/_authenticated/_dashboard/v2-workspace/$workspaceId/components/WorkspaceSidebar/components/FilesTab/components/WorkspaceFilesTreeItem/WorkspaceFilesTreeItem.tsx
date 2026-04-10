@@ -1,11 +1,34 @@
 import { ContextMenu, ContextMenuTrigger } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import { memo } from "react";
+import { LuChevronDown, LuChevronRight, LuCircle } from "react-icons/lu";
 import type { FileTreeNode } from "renderer/hooks/host-service/useFileTree";
+import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 import { FileContextMenu } from "./components/FileContextMenu";
 import { FolderContextMenu } from "./components/FolderContextMenu";
+
+const STATUS_TEXT_CLASS: Record<FileStatus, string> = {
+	added: "text-green-700 dark:text-green-400",
+	copied: "text-purple-700 dark:text-purple-400",
+	changed: "text-yellow-600 dark:text-yellow-400",
+	deleted: "text-red-700 dark:text-red-500",
+	modified: "text-yellow-600 dark:text-yellow-400",
+	renamed: "text-blue-600 dark:text-blue-400",
+	untracked: "text-green-700 dark:text-green-400",
+};
+
+// Single-letter badge shown on the right of changed file rows, VS Code style.
+const STATUS_LETTER: Record<FileStatus, string> = {
+	added: "A",
+	copied: "C",
+	changed: "M",
+	deleted: "D",
+	modified: "M",
+	renamed: "R",
+	untracked: "U",
+};
 
 interface WorkspaceFilesTreeItemProps {
 	node: FileTreeNode;
@@ -14,6 +37,8 @@ interface WorkspaceFilesTreeItemProps {
 	indent: number;
 	selectedFilePath?: string;
 	isHovered?: boolean;
+	decoration?: FileStatus;
+	isMuted?: boolean;
 	onSelectFile: (absolutePath: string) => void;
 	onToggleDirectory: (absolutePath: string) => void;
 	onNewFile: (parentPath: string) => void;
@@ -22,13 +47,15 @@ interface WorkspaceFilesTreeItemProps {
 	onDelete: (absolutePath: string, name: string, isDirectory: boolean) => void;
 }
 
-export function WorkspaceFilesTreeItem({
+function WorkspaceFilesTreeItemComponent({
 	node,
 	depth,
 	rowHeight,
 	indent,
 	selectedFilePath,
 	isHovered,
+	decoration,
+	isMuted,
 	onSelectFile,
 	onToggleDirectory,
 	onNewFile,
@@ -39,6 +66,12 @@ export function WorkspaceFilesTreeItem({
 	const isFolder = node.kind === "directory";
 	const isSelected = selectedFilePath === node.absolutePath;
 
+	const nameColorClass = isMuted
+		? "text-muted-foreground"
+		: decoration
+			? STATUS_TEXT_CLASS[decoration]
+			: undefined;
+
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
@@ -46,7 +79,7 @@ export function WorkspaceFilesTreeItem({
 					data-filepath={node.absolutePath}
 					aria-expanded={isFolder ? node.isExpanded : undefined}
 					className={cn(
-						"flex w-full cursor-pointer select-none items-center gap-1 pr-2 text-left transition-colors",
+						"flex w-full cursor-pointer select-none items-center gap-1 pr-4 text-left transition-colors",
 						isFolder ? "bg-background" : undefined,
 						isHovered && !isSelected
 							? isFolder
@@ -62,12 +95,12 @@ export function WorkspaceFilesTreeItem({
 					}
 					style={{
 						height: rowHeight,
-						paddingLeft: 4 + depth * indent,
+						paddingLeft: 8 + (depth - 1) * indent,
 						...(isFolder
 							? {
 									position: "sticky" as const,
-									top: depth * rowHeight,
-									zIndex: 10 - depth,
+									top: (depth - 1) * rowHeight,
+									zIndex: Math.max(1, 50 - depth),
 								}
 							: {}),
 					}}
@@ -90,7 +123,26 @@ export function WorkspaceFilesTreeItem({
 						isOpen={node.isExpanded}
 					/>
 
-					<span className="min-w-0 flex-1 truncate text-xs">{node.name}</span>
+					<span
+						className={cn("min-w-0 flex-1 truncate text-xs", nameColorClass)}
+					>
+						{node.name}
+					</span>
+
+					{decoration && !isMuted && (
+						<span
+							className={cn(
+								"ml-auto shrink-0 text-[10px] font-semibold leading-none",
+								STATUS_TEXT_CLASS[decoration],
+							)}
+						>
+							{isFolder ? (
+								<LuCircle className="size-2 fill-current opacity-50" />
+							) : (
+								STATUS_LETTER[decoration]
+							)}
+						</span>
+					)}
 				</button>
 			</ContextMenuTrigger>
 			{isFolder ? (
@@ -113,3 +165,5 @@ export function WorkspaceFilesTreeItem({
 		</ContextMenu>
 	);
 }
+
+export const WorkspaceFilesTreeItem = memo(WorkspaceFilesTreeItemComponent);

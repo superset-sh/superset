@@ -66,7 +66,7 @@ export class EventBus {
 
 	constructor(options: EventBusOptions) {
 		this.filesystem = options.filesystem;
-		this.gitWatcher = new GitWatcher(options.db);
+		this.gitWatcher = new GitWatcher(options.db, options.filesystem);
 	}
 
 	start(): void {

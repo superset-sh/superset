@@ -53,11 +53,6 @@
 	--sidebar-ring: #3a3837;
 	--highlight-match: rgba(224, 120, 80, 0.2);
 	--highlight-active: rgba(224, 120, 80, 0.5);
-	--diff-added: oklch(0.77 0.2 155);
-	--diff-modified: oklch(0.82 0.2 95);
-	--diff-deleted: oklch(0.65 0.2 25);
-	--diff-renamed: oklch(0.7 0.17 260);
-	--diff-copied: oklch(0.7 0.2 300);
 }
 
 /* Light theme fallback values - applied before hydration if user has light theme saved */
@@ -98,11 +93,6 @@
 	--sidebar-ring: oklch(0.708 0 0);
 	--highlight-match: rgba(255, 211, 61, 0.35);
 	--highlight-active: rgba(255, 150, 50, 0.55);
-	--diff-added: oklch(0.55 0.18 155);
-	--diff-modified: oklch(0.65 0.18 85);
-	--diff-deleted: oklch(0.52 0.22 25);
-	--diff-renamed: oklch(0.52 0.2 260);
-	--diff-copied: oklch(0.5 0.22 300);
 }
 
 @theme inline {
@@ -144,11 +134,6 @@
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
-	--color-diff-added: var(--diff-added);
-	--color-diff-modified: var(--diff-modified);
-	--color-diff-deleted: var(--diff-deleted);
-	--color-diff-renamed: var(--diff-renamed);
-	--color-diff-copied: var(--diff-copied);
 }
 
 @layer base {
