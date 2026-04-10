@@ -75,6 +75,27 @@ export const v2TerminalPresetSchema = z.object({
 	createdAt: persistedDateSchema,
 });
 
+export const pendingWorkspaceSchema = z.object({
+	id: z.string().uuid(),
+	projectId: z.string().uuid(),
+	name: z.string(),
+	branchName: z.string(),
+	prompt: z.string(),
+	compareBaseBranch: z.string().nullable().default(null),
+	runSetupScript: z.boolean().default(true),
+	linkedIssues: z.array(z.unknown()).default([]),
+	linkedPR: z.unknown().nullable().default(null),
+	hostTarget: z.unknown(),
+	attachmentCount: z.number().int().default(0),
+	status: z.enum(["creating", "failed", "succeeded"]).default("creating"),
+	error: z.string().nullable().default(null),
+	workspaceId: z.string().nullable().default(null),
+	initialCommands: z.array(z.string()).nullable().default(null),
+	createdAt: persistedDateSchema,
+});
+
+export type PendingWorkspaceRow = z.infer<typeof pendingWorkspaceSchema>;
+
 export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
 >;

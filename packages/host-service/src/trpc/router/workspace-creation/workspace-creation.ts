@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
@@ -13,6 +12,26 @@ import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
 } from "./utils/sanitize-branch";
+
+// ── In-memory create progress (polled by renderer) ──────────────────
+
+const createProgress = new Map<string, { step: string; updatedAt: number }>();
+
+function setProgress(pendingId: string, step: string): void {
+	createProgress.set(pendingId, { step, updatedAt: Date.now() });
+}
+
+function clearProgress(pendingId: string): void {
+	createProgress.delete(pendingId);
+}
+
+/** Sweep entries older than 5 minutes to prevent leaks from abandoned creates. */
+function sweepStaleProgress(): void {
+	const cutoff = Date.now() - 5 * 60 * 1000;
+	for (const [id, entry] of createProgress) {
+		if (entry.updatedAt < cutoff) createProgress.delete(id);
+	}
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -228,9 +247,18 @@ export const workspaceCreationRouter = router({
 	 * Create a new workspace. Always creates — never opens an existing one.
 	 * Branch name is sanitized and deduplicated server-side.
 	 */
+	getProgress: protectedProcedure
+		.input(z.object({ pendingId: z.string() }))
+		.query(({ input }) => {
+			sweepStaleProgress();
+			const entry = createProgress.get(input.pendingId);
+			return entry ? { step: entry.step } : null;
+		}),
+
 	create: protectedProcedure
 		.input(
 			z.object({
+				pendingId: z.string(),
 				projectId: z.string(),
 				names: z.object({
 					workspaceName: z.string(),
@@ -262,6 +290,7 @@ export const workspaceCreationRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const deviceClientId = getHashedDeviceId();
 			const deviceName = getDeviceName();
+			setProgress(input.pendingId, "ensuring_repo");
 
 			// 1. Resolve / ensure project locally
 			let localProject = ctx.db.query.projects
@@ -295,6 +324,8 @@ export const workspaceCreationRouter = router({
 					.returning()
 					.get();
 			}
+
+			setProgress(input.pendingId, "creating_worktree");
 
 			// 2. Sanitize + deduplicate branch name
 			const sanitizedBranch = sanitizeBranchNameWithMaxLength(
@@ -342,6 +373,8 @@ export const workspaceCreationRouter = router({
 				]);
 			}
 
+			setProgress(input.pendingId, "registering");
+
 			// 4. Register cloud workspace row
 			const rollbackWorktree = async () => {
 				try {
@@ -368,6 +401,7 @@ export const workspaceCreationRouter = router({
 				});
 			} catch (err) {
 				console.error("[workspaceCreation.create] ensureV2Host failed", err);
+				clearProgress(input.pendingId);
 				await rollbackWorktree();
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -394,11 +428,13 @@ export const workspaceCreationRouter = router({
 						"[workspaceCreation.create] v2Workspace.create failed",
 						err,
 					);
+					clearProgress(input.pendingId);
 					await rollbackWorktree();
 					throw err;
 				});
 
 			if (!cloudRow) {
+				clearProgress(input.pendingId);
 				await rollbackWorktree();
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -416,28 +452,20 @@ export const workspaceCreationRouter = router({
 				})
 				.run();
 
-			// 5. Run setup script if requested
+			// 5. Resolve setup commands (returned to renderer, not executed here)
+			let initialCommands: string[] | null = null;
 			if (input.composer.runSetupScript) {
-				try {
-					const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
-					if (existsSync(setupScriptPath)) {
-						execSync(`bash "${setupScriptPath}"`, {
-							cwd: worktreePath,
-							timeout: 60_000,
-							stdio: "pipe",
-						});
-					}
-				} catch (err) {
-					console.warn(
-						"[workspaceCreation.create] setup script failed (non-fatal)",
-						{ worktreePath, err },
-					);
-					// Non-fatal — workspace is still usable
+				const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
+				if (existsSync(setupScriptPath)) {
+					initialCommands = [`bash "${setupScriptPath}"`];
 				}
 			}
 
+			clearProgress(input.pendingId);
+
 			return {
 				workspace: cloudRow,
+				initialCommands,
 				warnings: [] as string[],
 			};
 		}),

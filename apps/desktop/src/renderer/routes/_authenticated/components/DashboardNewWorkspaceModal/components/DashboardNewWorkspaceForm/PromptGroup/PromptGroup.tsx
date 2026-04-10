@@ -538,6 +538,7 @@ function PromptGroupInner({
 		// 5. Call host-service
 		try {
 			const result = await createWorkspace({
+				pendingId: pendingWorkspaceId,
 				projectId,
 				hostTarget,
 				names: {

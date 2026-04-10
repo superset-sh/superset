@@ -5,6 +5,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import type { WorkspaceHostTarget } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker";
 
 export interface CreateWorkspaceInput {
+	pendingId: string;
 	projectId: string;
 	hostTarget: WorkspaceHostTarget;
 	names: {
@@ -49,6 +50,7 @@ export function useCreateDashboardWorkspace() {
 			const client = getHostServiceClientByUrl(hostUrl);
 
 			return client.workspaceCreation.create.mutate({
+				pendingId: input.pendingId,
 				projectId: input.projectId,
 				names: input.names,
 				composer: input.composer,
