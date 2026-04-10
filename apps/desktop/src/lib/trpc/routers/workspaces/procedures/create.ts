@@ -44,6 +44,10 @@ import {
 	openExternalWorktree,
 } from "../utils/workspace-creation";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
+import {
+	throwWorkspaceCreateDomainError,
+	validateExistingBranchCreate,
+} from "./utils/create-domain-errors";
 
 function getPrWorkspaceName(prInfo: PullRequestInfo): string {
 	return prInfo.title || `PR #${prInfo.number}`;
@@ -269,6 +273,9 @@ export const createCreateProcedures = () => {
 						compareBaseBranch: z.string().optional(),
 						sourceWorkspaceId: z.string().optional(),
 						useExistingBranch: z.boolean().optional(),
+						intent: z
+							.enum(["create_from_existing_branch", "create_new_branch"])
+							.optional(),
 						applyPrefix: z.boolean().optional().default(true),
 					})
 					.refine(
@@ -319,6 +326,22 @@ export const createCreateProcedures = () => {
 				}
 
 				let existingBranchName: string | undefined;
+				let existingBranches: string[];
+				try {
+					const { local, remote } = await listBranches(project.mainRepoPath);
+					existingBranches = [...local, ...remote];
+				} catch (error) {
+					console.error("[workspaces/create] Failed to list branches", {
+						projectId: project.id,
+						error: error instanceof Error ? error.message : String(error),
+					});
+					throwWorkspaceCreateDomainError(
+						"GIT_OPERATION_FAILED",
+						"Unable to list branches. Please try again.",
+						"INTERNAL_SERVER_ERROR",
+					);
+				}
+
 				if (input.useExistingBranch) {
 					existingBranchName = input.branchName?.trim();
 					if (!existingBranchName) {
@@ -327,19 +350,33 @@ export const createCreateProcedures = () => {
 						);
 					}
 
-					const existingWorktreePath = await getBranchWorktreePath({
-						mainRepoPath: project.mainRepoPath,
-						branch: existingBranchName,
-					});
-					if (existingWorktreePath) {
-						throw new Error(
-							`Branch "${existingBranchName}" is already checked out in another worktree at: ${existingWorktreePath}`,
+					let existingWorktreePath: string | null;
+					try {
+						existingWorktreePath = await getBranchWorktreePath({
+							mainRepoPath: project.mainRepoPath,
+							branch: existingBranchName,
+						});
+					} catch (error) {
+						console.error(
+							"[workspaces/create] Failed to resolve existing branch worktree path",
+							{
+								projectId: project.id,
+								branch: existingBranchName,
+								error: error instanceof Error ? error.message : String(error),
+							},
+						);
+						throwWorkspaceCreateDomainError(
+							"GIT_OPERATION_FAILED",
+							"Failed to verify existing worktrees for the selected branch.",
+							"INTERNAL_SERVER_ERROR",
 						);
 					}
+					validateExistingBranchCreate({
+						branchName: existingBranchName,
+						existingBranches,
+						existingWorktreePath,
+					});
 				}
-
-				const { local, remote } = await listBranches(project.mainRepoPath);
-				const existingBranches = [...local, ...remote];
 
 				// Resolve branch prefix using shared utility
 				let branchPrefix: string | undefined;
@@ -360,11 +397,6 @@ export const createCreateProcedures = () => {
 
 				let branch: string;
 				if (existingBranchName) {
-					if (!existingBranches.includes(existingBranchName)) {
-						throw new Error(
-							`Branch "${existingBranchName}" does not exist. Please select an existing branch.`,
-						);
-					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
 					branch = sanitizeBranchNameWithMaxLength(
@@ -502,6 +534,11 @@ export const createCreateProcedures = () => {
 					branch: branch,
 					base_branch: compareBaseBranch,
 					use_existing_branch: input.useExistingBranch ?? false,
+					intent:
+						input.intent ??
+						(input.useExistingBranch
+							? "create_from_existing_branch"
+							: "create_new_branch"),
 				});
 
 				await setBranchBaseConfig({

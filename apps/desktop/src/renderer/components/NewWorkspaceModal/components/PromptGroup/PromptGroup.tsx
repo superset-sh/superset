@@ -28,12 +28,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	ArrowUpIcon,
-	ExternalLinkIcon,
-	PaperclipIcon,
-	PlusIcon,
-} from "lucide-react";
+import type { WorkspaceCreateDomainErrorCode } from "lib/trpc/routers/workspaces/procedures/utils/create-domain-errors";
+import { ArrowUpIcon, ExternalLinkIcon, PaperclipIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	GoArrowUpRight,
@@ -73,6 +69,7 @@ import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
+import { resolveBranchRowState } from "./utils/branchRowState/branchRowState";
 import type { OpenableWorktreeAction } from "./utils/resolveOpenableWorktrees";
 import { resolveOpenableWorktrees } from "./utils/resolveOpenableWorktrees";
 
@@ -105,6 +102,50 @@ interface PromptGroupProps {
 	onSelectProject: (projectId: string) => void;
 	onImportRepo: () => void;
 	onNewProject: () => void;
+}
+
+function parseWorkspaceCreateDomainError(error: unknown): {
+	code: WorkspaceCreateDomainErrorCode | null;
+	message: string;
+	rawMessage: string;
+} {
+	const fallbackMessage = "Failed to create workspace";
+	const rawMessage = error instanceof Error ? error.message : String(error);
+	const match = /^([A-Z_]+):\s*(.+)$/.exec(rawMessage);
+	if (!match) {
+		return {
+			code: null,
+			message: rawMessage || fallbackMessage,
+			rawMessage,
+		};
+	}
+
+	const [, rawCode, domainMessage] = match;
+	const code = rawCode as WorkspaceCreateDomainErrorCode;
+	const mappedMessageByCode: Record<WorkspaceCreateDomainErrorCode, string> = {
+		WORKTREE_ALREADY_EXISTS_FOR_BRANCH:
+			domainMessage ||
+			"This branch already has a workspace/worktree. Open it instead.",
+		BRANCH_NOT_FOUND:
+			domainMessage ||
+			"The selected branch no longer exists. Refresh branches and try again.",
+		GIT_OPERATION_FAILED:
+			domainMessage || "Git operation failed. Please try again.",
+	};
+
+	if (!(code in mappedMessageByCode)) {
+		return {
+			code: null,
+			message: rawMessage || fallbackMessage,
+			rawMessage,
+		};
+	}
+
+	return {
+		code,
+		message: mappedMessageByCode[code],
+		rawMessage,
+	};
 }
 
 export function PromptGroup(props: PromptGroupProps) {
@@ -284,6 +325,7 @@ function CompareBaseBranchPickerInline({
 	externalWorktreeBranches,
 	modKey,
 	onSelectCompareBaseBranch,
+	onCreateFromExistingBranch,
 	onOpenWorktree,
 	onOpenActiveWorkspace,
 }: {
@@ -298,12 +340,17 @@ function CompareBaseBranchPickerInline({
 	externalWorktreeBranches: Set<string>;
 	modKey: string;
 	onSelectCompareBaseBranch: (branchName: string) => void;
+	onCreateFromExistingBranch: (branchName: string) => void;
 	onOpenWorktree: (action: OpenableWorktreeAction) => void;
 	onOpenActiveWorkspace: (workspaceId: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
 	const [filterMode, setFilterMode] = useState<"all" | "worktrees">("all");
+	const lastPointerSelectionRef = useRef<{
+		branchName: string;
+		timestamp: number;
+	} | null>(null);
 
 	const filteredBranches = useMemo(() => {
 		if (!branches.length) return [];
@@ -330,6 +377,7 @@ function CompareBaseBranchPickerInline({
 			open={open}
 			onOpenChange={(v) => {
 				setOpen(v);
+				lastPointerSelectionRef.current = null;
 				if (!v) {
 					setBranchSearch("");
 					setFilterMode("all");
@@ -358,7 +406,29 @@ function CompareBaseBranchPickerInline({
 				align="start"
 				onWheel={(event) => event.stopPropagation()}
 			>
-				<Command shouldFilter={false}>
+				<Command
+					shouldFilter={false}
+					onKeyDownCapture={(event) => {
+						if (!(event.metaKey || event.ctrlKey) || event.key !== "Enter") {
+							return;
+						}
+
+						const selectedItem = event.currentTarget.querySelector<HTMLElement>(
+							'[data-selected="true"][data-branch-name]',
+						);
+						const selectedBranchName = selectedItem?.dataset.branchName;
+						const canCreateFromBranch =
+							selectedItem?.dataset.canCreate === "true";
+						if (!selectedBranchName || !canCreateFromBranch) {
+							return;
+						}
+
+						event.preventDefault();
+						event.stopPropagation();
+						onCreateFromExistingBranch(selectedBranchName);
+						setOpen(false);
+					}}
+				>
 					<div className="flex items-center gap-0.5 rounded-md bg-muted/40 p-0.5 mx-2 mt-2">
 						{(["all", "worktrees"] as const).map((value) => {
 							const count =
@@ -396,7 +466,12 @@ function CompareBaseBranchPickerInline({
 								branch.name,
 							);
 							const isExternal = externalWorktreeBranches.has(branch.name);
-							const hasExistingWorkspace = !!(activeWorkspaceId || openAction);
+							const branchHasWorktree = worktreeBranches.has(branch.name);
+							const { showOpen, showCreate } = resolveBranchRowState({
+								hasActiveWorkspace: !!activeWorkspaceId,
+								hasOpenableWorktree: !!openAction,
+								hasBranchWorktree: branchHasWorktree,
+							});
 
 							// Determine icon based on state - all same color
 							let icon: React.ReactNode;
@@ -422,13 +497,31 @@ function CompareBaseBranchPickerInline({
 								<CommandItem
 									key={branch.name}
 									value={branch.name}
+									data-branch-name={branch.name}
+									data-can-create={showCreate ? "true" : "false"}
+									onPointerDown={() => {
+										lastPointerSelectionRef.current = {
+											branchName: branch.name,
+											timestamp: Date.now(),
+										};
+									}}
 									onSelect={() => {
-										if (activeWorkspaceId) {
+										const lastPointerSelection =
+											lastPointerSelectionRef.current;
+										lastPointerSelectionRef.current = null;
+										const wasPointerActivated =
+											lastPointerSelection?.branchName === branch.name &&
+											Date.now() - lastPointerSelection.timestamp < 300;
+
+										if (
+											wasPointerActivated ||
+											(!activeWorkspaceId && !openAction)
+										) {
+											onSelectCompareBaseBranch(branch.name);
+										} else if (activeWorkspaceId) {
 											onOpenActiveWorkspace(activeWorkspaceId);
 										} else if (openAction) {
 											onOpenWorktree(openAction);
-										} else {
-											onSelectCompareBaseBranch(branch.name);
 										}
 										setOpen(false);
 									}}
@@ -464,14 +557,13 @@ function CompareBaseBranchPickerInline({
 										)}
 
 										{/* Show checkmark for selected base branch when not hovering */}
-										{!hasExistingWorkspace &&
-											effectiveCompareBaseBranch === branch.name && (
-												<HiCheck className="size-4 text-primary group-data-[selected=true]:hidden" />
-											)}
+										{effectiveCompareBaseBranch === branch.name && (
+											<HiCheck className="size-4 text-primary group-data-[selected=true]:hidden" />
+										)}
 
 										{/* Action buttons - show on hover/select */}
 										<span className="hidden group-data-[selected=true]:flex items-center gap-1.5">
-											{hasExistingWorkspace && (
+											{showOpen && (
 												<Button
 													size="sm"
 													variant="ghost"
@@ -491,32 +583,22 @@ function CompareBaseBranchPickerInline({
 													<span className="ml-1 text-[10px] opacity-60">↵</span>
 												</Button>
 											)}
-											<Button
-												size="sm"
-												className="h-7 px-2.5 text-xs font-medium"
-												onClick={(e) => {
-													e.stopPropagation();
-													onSelectCompareBaseBranch(branch.name);
-													setOpen(false);
-												}}
-											>
-												{hasExistingWorkspace ? (
-													<>
-														<PlusIcon className="size-3.5 mr-1" />
-														Create
-														<span className="ml-1 text-[10px] opacity-70">
-															{modKey}↵
-														</span>
-													</>
-												) : (
-													<>
-														Create
-														<span className="ml-1 text-[10px] opacity-70">
-															↵
-														</span>
-													</>
-												)}
-											</Button>
+											{showCreate && (
+												<Button
+													size="sm"
+													className="h-7 px-2.5 text-xs font-medium"
+													onClick={(e) => {
+														e.stopPropagation();
+														onCreateFromExistingBranch(branch.name);
+														setOpen(false);
+													}}
+												>
+													Create
+													<span className="ml-1 text-[10px] opacity-70">
+														{modKey}↵
+													</span>
+												</Button>
+											)}
 										</span>
 									</span>
 								</CommandItem>
@@ -726,6 +808,133 @@ function PromptGroupInner({
 		[],
 	);
 
+	const prepareLaunchFiles = useCallback(
+		async (
+			detachedFiles: Array<{
+				url: string;
+				mediaType: string;
+				filename?: string;
+			}>,
+		): Promise<ConvertedFile[]> => {
+			let convertedFiles: ConvertedFile[] = [];
+			if (detachedFiles.length > 0) {
+				convertedFiles = await Promise.all(
+					detachedFiles.map(async (file) => ({
+						data: await convertBlobUrlToDataUrl(file.url),
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
+				);
+			}
+
+			const githubIssues = linkedIssues.filter(
+				(issue): issue is typeof issue & { number: number } =>
+					issue.source === "github" && typeof issue.number === "number",
+			);
+			if (githubIssues.length === 0 || !projectId) {
+				return convertedFiles;
+			}
+
+			try {
+				const fetchWithTimeout = <T,>(
+					promise: Promise<T>,
+					timeoutMs: number,
+				): Promise<T> => {
+					return Promise.race([
+						promise,
+						new Promise<T>((_, reject) =>
+							setTimeout(() => reject(new Error("Request timeout")), timeoutMs),
+						),
+					]);
+				};
+
+				const issueContents = await Promise.all(
+					githubIssues.map(async (issue) => {
+						try {
+							const content = await fetchWithTimeout(
+								utils.client.projects.getIssueContent.query({
+									projectId,
+									issueNumber: issue.number,
+								}),
+								10000,
+							);
+
+							const sanitizeText = (str: string) =>
+								str.replace(/[&<>"']/g, (char) => {
+									const entities: Record<string, string> = {
+										"&": "&amp;",
+										"<": "&lt;",
+										">": "&gt;",
+										'"': "&quot;",
+										"'": "&#39;",
+									};
+									return entities[char] || char;
+								});
+
+							const sanitizeUrl = (url: string) => {
+								try {
+									const parsed = new URL(url);
+									if (!["http:", "https:"].includes(parsed.protocol)) {
+										return "#invalid-url";
+									}
+									return url;
+								} catch {
+									return "#invalid-url";
+								}
+							};
+
+							const MAX_BODY_LENGTH = 50000;
+							const truncatedBody =
+								content.body.length > MAX_BODY_LENGTH
+									? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
+									: content.body;
+
+							const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
+
+**URL:** ${sanitizeUrl(content.url)}
+**State:** ${content.state}
+**Author:** ${sanitizeText(content.author || "Unknown")}
+**Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
+**Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
+
+---
+
+${sanitizeText(truncatedBody)}`;
+
+							const base64 = btoa(
+								encodeURIComponent(markdown).replace(
+									/%([0-9A-F]{2})/g,
+									(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
+								),
+							);
+
+							return {
+								data: `data:text/markdown;base64,${base64}`,
+								mediaType: "text/markdown",
+								filename: `github-issue-${content.number}.md`,
+							};
+						} catch (err) {
+							console.warn(
+								`Failed to fetch GitHub issue #${issue.number}:`,
+								err,
+							);
+							return null;
+						}
+					}),
+				);
+
+				const validIssueFiles = issueContents.filter(
+					(file) => file !== null,
+				) as ConvertedFile[];
+				return [...convertedFiles, ...validIssueFiles];
+			} catch (err) {
+				console.warn("Failed to fetch GitHub issue contents:", err);
+				return convertedFiles;
+			}
+		},
+		[convertBlobUrlToDataUrl, linkedIssues, projectId, utils],
+	);
+
 	const handleCreate = useCallback(async () => {
 		if (!projectId) {
 			toast.error("Select a project first");
@@ -806,137 +1015,14 @@ function PromptGroupInner({
 			}
 
 			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
-				try {
-					convertedFiles = await Promise.all(
-						detachedFiles.map(async (file) => ({
-							data: await convertBlobUrlToDataUrl(file.url),
-							mediaType: file.mediaType,
-							filename: file.filename,
-						})),
-					);
-				} catch (err) {
-					clearPendingWorkspace(pendingWorkspaceId);
-					toast.error(
-						err instanceof Error
-							? err.message
-							: "Failed to process attachments",
-					);
-					return;
-				}
-			}
-
-			// Fetch and attach GitHub issue content
-			const githubIssues = linkedIssues.filter(
-				(issue): issue is typeof issue & { number: number } =>
-					issue.source === "github" && typeof issue.number === "number",
-			);
-			if (githubIssues.length > 0 && projectId) {
-				try {
-					// Helper to add timeout to promises
-					const fetchWithTimeout = <T,>(
-						promise: Promise<T>,
-						timeoutMs: number,
-					): Promise<T> => {
-						return Promise.race([
-							promise,
-							new Promise<T>((_, reject) =>
-								setTimeout(
-									() => reject(new Error("Request timeout")),
-									timeoutMs,
-								),
-							),
-						]);
-					};
-
-					const issueContents = await Promise.all(
-						githubIssues.map(async (issue) => {
-							try {
-								const content = await fetchWithTimeout(
-									utils.client.projects.getIssueContent.query({
-										projectId,
-										issueNumber: issue.number,
-									}),
-									10000, // 10 second timeout per issue
-								);
-
-								// Sanitize user-generated content to prevent injection
-								const sanitizeText = (str: string) =>
-									str.replace(/[&<>"']/g, (char) => {
-										const entities: Record<string, string> = {
-											"&": "&amp;",
-											"<": "&lt;",
-											">": "&gt;",
-											'"': "&quot;",
-											"'": "&#39;",
-										};
-										return entities[char] || char;
-									});
-
-								const sanitizeUrl = (url: string) => {
-									try {
-										const parsed = new URL(url);
-										// Only allow http/https protocols
-										if (!["http:", "https:"].includes(parsed.protocol)) {
-											return "#invalid-url";
-										}
-										return url;
-									} catch {
-										return "#invalid-url";
-									}
-								};
-
-								// Limit body size to prevent memory issues
-								const MAX_BODY_LENGTH = 50000; // 50KB
-								const truncatedBody =
-									content.body.length > MAX_BODY_LENGTH
-										? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
-										: content.body;
-
-								const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
-
-**URL:** ${sanitizeUrl(content.url)}
-**State:** ${content.state}
-**Author:** ${sanitizeText(content.author || "Unknown")}
-**Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
-**Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
-
----
-
-${sanitizeText(truncatedBody)}`;
-
-								// Convert markdown to base64 data URL
-								const base64 = btoa(
-									encodeURIComponent(markdown).replace(
-										/%([0-9A-F]{2})/g,
-										(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
-									),
-								);
-
-								return {
-									data: `data:text/markdown;base64,${base64}`,
-									mediaType: "text/markdown",
-									filename: `github-issue-${content.number}.md`,
-								};
-							} catch (err) {
-								console.warn(
-									`Failed to fetch GitHub issue #${issue.number}:`,
-									err,
-								);
-								return null;
-							}
-						}),
-					);
-
-					// Add successfully fetched issues to convertedFiles
-					const validIssueFiles = issueContents.filter(
-						(file) => file !== null,
-					) as ConvertedFile[];
-					convertedFiles = [...convertedFiles, ...validIssueFiles];
-				} catch (err) {
-					console.warn("Failed to fetch GitHub issue contents:", err);
-					// Don't block workspace creation if issue fetching fails
-				}
+			try {
+				convertedFiles = await prepareLaunchFiles(detachedFiles);
+			} catch (err) {
+				clearPendingWorkspace(pendingWorkspaceId);
+				toast.error(
+					err instanceof Error ? err.message : "Failed to process attachments",
+				);
+				return;
 			}
 
 			let launchRequest: AgentLaunchRequest | null = null;
@@ -998,6 +1084,7 @@ ${sanitizeText(truncatedBody)}`;
 									)
 								: aiBranchName) || undefined,
 						compareBaseBranch: compareBaseBranch || undefined,
+						intent: "create_new_branch",
 					},
 					{
 						agentLaunchRequest: launchRequest ?? undefined,
@@ -1031,19 +1118,17 @@ ${sanitizeText(truncatedBody)}`;
 		buildLaunchRequest,
 		closeAndResetDraft,
 		clearPendingWorkspace,
-		convertBlobUrlToDataUrl,
 		createFromPr,
 		createWorkspace,
 		generateBranchNameMutation,
-		linkedIssues,
 		linkedPR,
+		prepareLaunchFiles,
 		projectId,
 		runAsyncAction,
 		runSetupScript,
 		setPendingWorkspace,
 		setPendingWorkspaceStatus,
 		trimmedPrompt,
-		utils,
 		workspaceName,
 		workspaceNameEdited,
 	]);
@@ -1051,6 +1136,100 @@ ${sanitizeText(truncatedBody)}`;
 	const handlePromptSubmit = useCallback(() => {
 		void handleCreate();
 	}, [handleCreate]);
+
+	const handleCreateFromExistingBranch = useCallback(
+		async (selectedBranchName: string) => {
+			if (!projectId) {
+				toast.error("Select a project first");
+				return;
+			}
+
+			const detachedFiles = attachments.takeFiles();
+			try {
+				let convertedFiles: ConvertedFile[] = [];
+				try {
+					convertedFiles = await prepareLaunchFiles(detachedFiles);
+				} catch (err) {
+					toast.error(
+						err instanceof Error
+							? err.message
+							: "Failed to process attachments",
+					);
+					return;
+				}
+
+				let launchRequest: AgentLaunchRequest | null = null;
+				try {
+					launchRequest = buildLaunchRequest(
+						trimmedPrompt,
+						convertedFiles.length > 0 ? convertedFiles : undefined,
+					);
+				} catch (error) {
+					toast.error(
+						error instanceof Error
+							? error.message
+							: "Failed to prepare agent launch",
+					);
+					return;
+				}
+
+				void runAsyncAction(
+					createWorkspace.mutateAsyncWithPendingSetup(
+						{
+							projectId,
+							branchName: selectedBranchName,
+							useExistingBranch: true,
+							name:
+								workspaceNameEdited && workspaceName.trim()
+									? workspaceName.trim()
+									: undefined,
+							prompt: trimmedPrompt || undefined,
+							compareBaseBranch: compareBaseBranch || undefined,
+							intent: "create_from_existing_branch",
+						},
+						{
+							agentLaunchRequest: launchRequest ?? undefined,
+							resolveInitialCommands: runSetupScript
+								? (commands) => commands
+								: () => null,
+						},
+					),
+					{
+						loading: "Creating workspace from existing branch...",
+						success: "Workspace created",
+						error: (err) => {
+							const parsed = parseWorkspaceCreateDomainError(err);
+							console.warn("[PromptGroup] Create from existing branch failed", {
+								branch: selectedBranchName,
+								code: parsed.code ?? "UNKNOWN",
+								error: parsed.rawMessage,
+							});
+							return parsed.message;
+						},
+					},
+				);
+			} finally {
+				for (const file of detachedFiles) {
+					if (file.url?.startsWith("blob:")) {
+						URL.revokeObjectURL(file.url);
+					}
+				}
+			}
+		},
+		[
+			attachments,
+			compareBaseBranch,
+			createWorkspace,
+			buildLaunchRequest,
+			prepareLaunchFiles,
+			projectId,
+			runAsyncAction,
+			runSetupScript,
+			trimmedPrompt,
+			workspaceName,
+			workspaceNameEdited,
+		],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
@@ -1397,6 +1576,7 @@ ${sanitizeText(truncatedBody)}`;
 									externalWorktreeBranches={externalWorktreeBranches}
 									modKey={modKey}
 									onSelectCompareBaseBranch={handleCompareBaseBranchSelect}
+									onCreateFromExistingBranch={handleCreateFromExistingBranch}
 									onOpenWorktree={handleOpenWorktree}
 									onOpenActiveWorkspace={handleOpenActiveWorkspace}
 								/>
