@@ -39,6 +39,7 @@ type SchedulerState = {
 
 function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 	schedule: (forceResize: boolean) => void;
+	scheduleBurst: (forceResize: boolean) => void;
 	flush: () => void;
 	state: SchedulerState;
 } {
@@ -150,16 +151,11 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 	});
 
 	/**
-	 * REPRODUCTION TEST — this test currently FAILS, demonstrating the bug.
+	 * Regression test for the recovery throttle bug.
 	 *
-	 * Expected behaviour: when a recovery call is throttled, a retry should be
-	 * scheduled to run after the remaining throttle window expires. Without a
-	 * retry the terminal is permanently blank until the user resizes the window.
-	 *
-	 * Fix: in scheduleReattachRecovery (useTerminalLifecycle.ts), when the
-	 * throttle fires, add:
-	 *   const remaining = reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
-	 *   setTimeout(() => { if (!isUnmounted) scheduleReattachRecovery(reattachRecovery.pendingForceResize); }, remaining + 1);
+	 * Verifies that when a recovery request lands inside the 120ms throttle
+	 * window, the terminal schedules a retry after the remaining throttle delay
+	 * instead of silently dropping the repaint request.
 	 */
 	it("throttled recovery is retried after throttle window expires", async () => {
 		let calls = 0;
