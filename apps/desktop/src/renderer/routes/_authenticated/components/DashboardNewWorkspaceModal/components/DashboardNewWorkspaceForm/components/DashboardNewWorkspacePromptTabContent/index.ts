@@ -1,1 +1,0 @@
-export { DashboardNewWorkspacePromptTabContent } from "./DashboardNewWorkspacePromptTabContent";
