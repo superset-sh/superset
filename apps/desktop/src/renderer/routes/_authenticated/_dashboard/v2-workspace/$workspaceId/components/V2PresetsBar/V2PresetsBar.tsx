@@ -24,7 +24,7 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import type { HotkeyId } from "renderer/hotkeys";
-import { useSeedDefaultV2Presets } from "renderer/routes/_authenticated/hooks/useSeedDefaultV2Presets";
+import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
@@ -95,7 +95,7 @@ export function V2PresetsBar({
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
-	useSeedDefaultV2Presets();
+	useMigrateV1PresetsToV2();
 
 	const { data: allPresets = [] } = useLiveQuery(
 		(query) =>
