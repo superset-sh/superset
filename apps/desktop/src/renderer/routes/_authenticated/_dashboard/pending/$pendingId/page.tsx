@@ -12,6 +12,15 @@ import { clearAttachments } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
+/**
+ * Pending workspace progress page.
+ *
+ * Lives at /_dashboard/pending/$pendingId (NOT under /v2-workspace/) because
+ * the v2-workspace layout wraps children in WorkspaceTrpcProvider. During route
+ * transitions away from a real workspace, the layout would strip the provider
+ * while the old workspace's TerminalPane is still mounted — causing a crash.
+ * Keeping this route outside v2-workspace avoids that entirely.
+ */
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pending/$pendingId/",
 )({
