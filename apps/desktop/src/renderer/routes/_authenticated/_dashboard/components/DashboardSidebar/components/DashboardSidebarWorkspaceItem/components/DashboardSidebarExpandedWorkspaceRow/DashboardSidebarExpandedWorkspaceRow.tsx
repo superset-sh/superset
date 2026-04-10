@@ -162,7 +162,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center [&>*]:col-start-1 [&>*]:row-start-1">
 							{creationStatusText ? (
-								<span className="text-[11px] text-muted-foreground">
+								<span
+									className={cn(
+										"text-[11px]",
+										creationStatus === "failed"
+											? "text-destructive"
+											: "text-muted-foreground",
+									)}
+								>
 									{creationStatusText}
 								</span>
 							) : (
