@@ -34,6 +34,7 @@ type SchedulerState = {
 	pendingFrame: number | null;
 	lastRunAt: number;
 	pendingForceResize: boolean;
+	burstTimeouts: number[];
 };
 
 function makeScheduler(runRecovery: (forceResize: boolean) => void): {
@@ -46,6 +47,7 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 		pendingFrame: null,
 		lastRunAt: 0,
 		pendingForceResize: false,
+		burstTimeouts: [],
 	};
 
 	const pendingRafs: Array<() => void> = [];
@@ -84,6 +86,21 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 		}) as unknown as number;
 	};
 
+	const scheduleRecoveryBurst = (forceResize: boolean) => {
+		scheduleReattachRecovery(forceResize);
+		for (const timeoutId of reattachRecovery.burstTimeouts) {
+			clearTimeout(timeoutId);
+		}
+		reattachRecovery.burstTimeouts = [120, 260].map(
+			(delay) =>
+				setTimeout(() => {
+					if (!isUnmounted) {
+						scheduleReattachRecovery(forceResize);
+					}
+				}, delay) as unknown as number,
+		);
+	};
+
 	const flushRafs = () => {
 		while (pendingRafs.length > 0) {
 			const cb = pendingRafs.shift();
@@ -93,6 +110,7 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 
 	return {
 		schedule: scheduleReattachRecovery,
+		scheduleBurst: scheduleRecoveryBurst,
 		flush: flushRafs,
 		state: reattachRecovery,
 	};
@@ -166,5 +184,24 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// FAILS with current code: calls is still 0 because no retry was scheduled
 		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
+	});
+
+	it("focus recovery burst runs follow-up repaint attempts after the initial recovery", async () => {
+		let calls = 0;
+		const { scheduleBurst, flush } = makeScheduler(() => {
+			calls++;
+		});
+
+		scheduleBurst(false);
+		flush();
+		expect(calls).toBe(1);
+
+		await new Promise((r) => setTimeout(r, 140));
+		flush();
+		expect(calls).toBe(2);
+
+		await new Promise((r) => setTimeout(r, 180));
+		flush();
+		expect(calls).toBe(3);
 	});
 });
