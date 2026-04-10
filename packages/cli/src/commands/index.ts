@@ -66,6 +66,7 @@ export const commands: CommandEntry[] = [
 
 export const middlewareMap: Record<string, any> = {
 	"": rootMiddleware,
-	auth: skip,
-	host: skip,
+	"auth/login": skip,
+	"auth/logout": skip,
+	"host/install": skip,
 };

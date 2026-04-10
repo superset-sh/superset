@@ -1,6 +1,7 @@
 import { CLIError, command } from "@superset/cli-framework";
-import { getApiUrl } from "../../../lib/config";
-import { resolveAuth } from "../../../lib/resolve-auth";
+import type { ApiClient } from "../../../lib/api-client";
+import { getApiUrl, type SupersetConfig } from "../../../lib/config";
+import type { AuthSource } from "../../../lib/resolve-auth";
 
 function formatExpiresIn(expiresAt: number): string {
 	const ms = Math.max(0, expiresAt - Date.now());
@@ -17,9 +18,9 @@ export default command({
 	description: "Show current user, organization, and auth source",
 
 	run: async (opts) => {
-		const { config, api, authSource } = await resolveAuth(
-			(opts.options as { apiKey?: string }).apiKey,
-		);
+		const api = opts.ctx.api as ApiClient;
+		const config = opts.ctx.config as SupersetConfig;
+		const authSource = opts.ctx.authSource as AuthSource;
 
 		const user = await api.user.me.query();
 		const org = await api.user.myOrganization.query();
@@ -29,9 +30,7 @@ export default command({
 
 		let authLine: string;
 		if (authSource === "oauth" && config.auth) {
-			authLine = `OAuth session (expires in ${formatExpiresIn(
-				config.auth.expiresAt,
-			)})`;
+			authLine = `OAuth session (expires in ${formatExpiresIn(config.auth.expiresAt)})`;
 		} else if (authSource === "flag") {
 			authLine = "API key (from --api-key flag)";
 		} else {

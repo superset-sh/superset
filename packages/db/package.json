@@ -28,10 +28,6 @@
 			"types": "./src/seed-default-statuses.ts",
 			"default": "./src/seed-default-statuses.ts"
 		},
-		"./seed-oauth-clients": {
-			"types": "./src/seed-oauth-clients.ts",
-			"default": "./src/seed-oauth-clients.ts"
-		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"
