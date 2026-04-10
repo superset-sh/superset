@@ -726,7 +726,7 @@ function PromptGroupInner({
 		[],
 	);
 
-	const handleCreate = useCallback(async () => {
+	const handleCreate = useCallback(async (preConvertedFiles?: ConvertedFile[]) => {
 		if (!projectId) {
 			toast.error("Select a project first");
 			return;
@@ -744,7 +744,7 @@ function PromptGroupInner({
 		const willGenerateAIName =
 			!branchNameEdited && !!trimmedPrompt && !linkedPR;
 		const pendingWorkspaceId = crypto.randomUUID();
-		const detachedFiles = attachments.takeFiles();
+		const detachedFiles = preConvertedFiles ? [] : attachments.takeFiles();
 
 		setPendingWorkspace({
 			id: pendingWorkspaceId,
@@ -805,8 +805,8 @@ function PromptGroupInner({
 				}
 			}
 
-			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
+			let convertedFiles: ConvertedFile[] = preConvertedFiles ?? [];
+			if (!preConvertedFiles && detachedFiles.length > 0) {
 				try {
 					convertedFiles = await Promise.all(
 						detachedFiles.map(async (file) => ({
@@ -1048,9 +1048,19 @@ ${sanitizeText(truncatedBody)}`;
 		workspaceNameEdited,
 	]);
 
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	const handlePromptSubmit = useCallback(
+		(message: { files: Array<{ url: string; mediaType: string; filename?: string }> }) => {
+			const converted: ConvertedFile[] = message.files
+				.filter((f) => f.url)
+				.map((f) => ({
+					data: f.url,
+					mediaType: f.mediaType,
+					filename: f.filename,
+				}));
+			void handleCreate(converted.length > 0 ? converted : undefined);
+		},
+		[handleCreate],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
