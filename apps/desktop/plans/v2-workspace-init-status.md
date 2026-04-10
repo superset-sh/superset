@@ -2,9 +2,19 @@
 
 ## Concept
 
-When the user creates a workspace, navigate immediately to a pending workspace page. The host-service streams creation progress via the existing EventBus. The pending page shows live step-by-step progress. On success, transition to the real workspace and dispatch setup commands to a terminal pane. On failure, show the error with a retry button — the full draft is preserved in the pending row.
+When the user creates a workspace, navigate immediately to a pending workspace page. The host-service writes progress to an in-memory map that the pending page polls for step-by-step detail. The create promise runs independently of component lifecycle (fire-and-forget from PromptGroup) and updates the `pendingWorkspaces` collection on resolve/reject.
 
 Multiple workspaces can be creating simultaneously. Each has its own sidebar skeleton, clickable to view progress.
+
+## Ownership
+
+Three actors, each with a clear responsibility:
+
+1. **PromptGroup** (fires create, owns the promise): inserts pending row into collection, fires `void createWorkspace(...)`, updates collection to `succeeded`/`failed` when the promise resolves/rejects. Runs independently of component lifecycle — the async closure keeps running after the modal unmounts. Only touches the collection (not React state), so no stale-component issues.
+
+2. **Sidebar** (always visible): reads `pendingWorkspaces` via `useLiveQuery`. Shows skeleton + status. Clickable. Does not poll — just reacts to collection changes.
+
+3. **Pending page** (optional progress viewer): polls `workspaceCreation.getProgress({ pendingId })` every 500ms for step-by-step detail. Only runs while the page is mounted. If user navigates away, polling stops but create continues. On `succeeded`, auto-navigates to real workspace.
 
 ## Data model: `pendingWorkspaces` local collection
 
@@ -26,9 +36,8 @@ export const pendingWorkspaceSchema = z.object({
     linkedPR: z.unknown().nullable(),
     hostTarget: z.unknown(),           // WorkspaceHostTarget
 
-    // Status
+    // Status (updated by PromptGroup's create promise)
     status: z.enum(["creating", "failed", "succeeded"]),
-    step: z.string().nullable(),       // live progress step from EventBus
     error: z.string().nullable(),      // set when status === "failed"
     workspaceId: z.string().nullable(),// set when status === "succeeded"
 
@@ -38,27 +47,67 @@ export const pendingWorkspaceSchema = z.object({
 
 **Lifecycle:**
 1. On submit: insert row with `status: "creating"`
-2. EventBus updates: update `step` as progress events arrive
-3. On success: set `status: "succeeded"`, `workspaceId: realId`
-4. On failure: set `status: "failed"`, `error: message`
-5. On navigate to real workspace: delete the pending row
-6. On retry (from failed page): reset `status: "creating"`, re-fire create
-7. On dismiss: delete the pending row
+2. Promise resolves: set `status: "succeeded"`, `workspaceId: realId`
+3. Promise rejects: set `status: "failed"`, `error: message`
+4. On navigate to real workspace: delete the pending row
+5. On retry (from failed page): reset `status: "creating"`, re-fire create
+6. On dismiss: delete the pending row
+
+## Progress polling
+
+### Host-service: in-memory progress map
+
+```ts
+// Module-level (not persisted, not in DB)
+const createProgress = new Map<string, { step: string }>();
+```
+
+The create mutation writes its current step as it progresses:
+
+```ts
+createProgress.set(input.pendingId, { step: "ensuring_repo" });
+// ... clone/resolve ...
+createProgress.set(input.pendingId, { step: "creating_worktree" });
+// ... git worktree add ...
+createProgress.set(input.pendingId, { step: "registering" });
+// ... cloud API ...
+createProgress.delete(input.pendingId); // done — tRPC response carries the result
+```
+
+### Host-service: query endpoint
+
+```ts
+workspaceCreation.getProgress({ pendingId })
+// → { step: "creating_worktree" } | null (not found / already done)
+```
+
+### Pending page: polls with react-query
+
+```ts
+const { data: progress } = useQuery({
+    queryKey: ["workspaceCreation", "getProgress", pendingId],
+    queryFn: () => client.workspaceCreation.getProgress.query({ pendingId }),
+    refetchInterval: 500,
+    enabled: pendingWorkspace?.status === "creating",
+});
+```
+
+~10 small queries over 5 seconds. Polling stops when status changes to `succeeded` or `failed` (detected via `useLiveQuery` on the collection).
 
 ## Flow
 
 ```
 User clicks Create
     ↓
-Renderer:
+PromptGroup:
   1. Compute names (branch, workspace)
-  2. Insert into pendingWorkspaces collection
-  3. Subscribe to EventBus for workspace:creating events
+  2. Insert into pendingWorkspaces collection (status: "creating")
+  3. Store attachments in IndexedDB
   4. Close modal
   5. Navigate to /v2-workspace/pending/$pendingId
-  6. Fire workspaceCreation.create (async)
+  6. Fire void createWorkspace(...) — runs independently
     ↓
-Pending workspace page shows:
+Pending page mounts, starts polling:
 ┌──────────────────────────────────────────┐
 │ fix the login bug                        │
 │ ⑂ fix-the-login-bug                     │
@@ -69,20 +118,34 @@ Pending workspace page shows:
 │ ├─ Registering workspace          ●     │
 │                                          │
 └──────────────────────────────────────────┘
-    ↓ success
-Pending page navigates to /v2-workspace/$workspaceId
-Terminal pane receives initialCommands
-    ↓ failure
-┌──────────────────────────────────────────┐
-│ fix the login bug                        │
-│ ⑂ fix-the-login-bug                     │
-│                                          │
-│ ✗ Failed to create workspace             │
-│   Cloud API returned no row              │
-│                                          │
-│ [Retry]  [Dismiss]                       │
-└──────────────────────────────────────────┘
+    ↓
+PromptGroup's create promise resolves:
+  → Updates collection: status: "succeeded", workspaceId: realId
+    ↓
+Pending page detects succeeded (via useLiveQuery):
+  → Stops polling
+  → Navigates to /v2-workspace/$workspaceId
+  → Dispatches initialCommands to terminal pane
+    ↓
+Normal workspace UI (setup running in terminal)
 ```
+
+**On failure:**
+```
+PromptGroup's create promise rejects:
+  → Updates collection: status: "failed", error: message
+    ↓
+Pending page detects failed (via useLiveQuery):
+  → Stops polling
+  → Shows error + Retry + Dismiss
+```
+
+**If user navigates away from pending page:**
+- Polling stops (component unmounts)
+- Create promise still runs (it's a closure, not tied to React lifecycle)
+- Collection still gets updated on resolve/reject
+- Sidebar skeleton still reflects current status
+- User can click skeleton to return to pending page
 
 ## Sidebar behavior
 
@@ -94,79 +157,13 @@ The sidebar renders pending workspaces from the `pendingWorkspaces` collection a
 
 All states are clickable — navigate to `/v2-workspace/pending/$id`.
 
-## EventBus: `workspace:creating` event
-
-### Server → Client message
-
-```ts
-interface WorkspaceCreatingMessage {
-    type: "workspace:creating";
-    pendingId: string;
-    step: "ensuring_repo" | "creating_worktree" | "registering" | "done" | "failed";
-    workspaceId?: string;   // set when step === "done"
-    error?: string;         // set when step === "failed"
-}
-```
-
-Added to `ServerMessage` union in `packages/host-service/src/events/types.ts`.
-
-### Host-service emits during create
-
-The `workspaceCreation.create` mutation receives `pendingId` in its input and emits progress:
-
-```ts
-ctx.eventBus.emit({ type: "workspace:creating", pendingId, step: "ensuring_repo" });
-// ... clone/resolve ...
-ctx.eventBus.emit({ type: "workspace:creating", pendingId, step: "creating_worktree" });
-// ... git worktree add ...
-ctx.eventBus.emit({ type: "workspace:creating", pendingId, step: "registering" });
-// ... cloud API ...
-ctx.eventBus.emit({ type: "workspace:creating", pendingId, step: "done", workspaceId });
-```
-
-On failure at any step:
-```ts
-ctx.eventBus.emit({ type: "workspace:creating", pendingId, step: "failed", error: err.message });
-```
-
-### EventBus needs access in tRPC context
-
-Add `eventBus: EventBus` to `HostServiceContext`. The app passes it when creating the tRPC context — one-line addition to the context factory.
-
-### Client-side listener
-
-Renderer subscribes before firing create. Updates the `pendingWorkspaces` collection row as events arrive:
-
-```ts
-const bus = getEventBus(hostUrl, getWsToken);
-bus.on("workspace:creating", pendingId, (id, payload) => {
-    if (payload.step === "done") {
-        collections.pendingWorkspaces.update(pendingId, {
-            status: "succeeded",
-            workspaceId: payload.workspaceId,
-            step: "done",
-        });
-    } else if (payload.step === "failed") {
-        collections.pendingWorkspaces.update(pendingId, {
-            status: "failed",
-            error: payload.error,
-            step: "failed",
-        });
-    } else {
-        collections.pendingWorkspaces.update(pendingId, {
-            step: payload.step,
-        });
-    }
-});
-```
-
 ## Input schema update
 
 Add `pendingId` to create input:
 
 ```ts
 workspaceCreation.create({
-    pendingId: z.string(),    // renderer-generated UUID for EventBus correlation
+    pendingId: z.string(),    // renderer-generated UUID for progress polling correlation
     projectId: z.string(),
     names: { ... },
     composer: { ... },
@@ -192,20 +189,19 @@ Host-service reads setup config, returns commands, does not execute them. Render
 
 **Route:** `/v2-workspace/pending/$pendingId`
 
-Reads from `pendingWorkspaces` collection via `useLiveQuery`. Shows:
-- Workspace name + branch name
-- Step-by-step progress (from `step` field, updated by EventBus listener)
-- On `succeeded`: auto-navigate to `/v2-workspace/$workspaceId`
-- On `failed`: error message + Retry button + Dismiss button
+- Reads pending workspace from `pendingWorkspaces` collection via `useLiveQuery`
+- Polls `workspaceCreation.getProgress` for step detail while `status === "creating"`
+- Shows workspace name + branch name + step progress
+- On `succeeded` (detected via collection): auto-navigate to `/v2-workspace/$workspaceId`
+- On `failed` (detected via collection): error message + Retry + Dismiss
 
 ## Retry flow
 
 From the failed pending page:
 1. User clicks Retry
-2. Update the pending row: `status: "creating"`, clear `error` and `step`
-3. Re-subscribe to EventBus
-4. Re-fire `workspaceCreation.create` with the same data from the pending row
-5. Same progress flow as initial create
+2. Update the pending row: `status: "creating"`, clear `error`
+3. Re-fire `createWorkspace` with the same data from the pending row + attachments from IndexedDB
+4. Same polling + collection-update flow as initial create
 
 ## Replaces
 
@@ -218,18 +214,10 @@ From the failed pending page:
 
 ## Files to change
 
-### EventBus
-| File | Change |
-|------|--------|
-| `packages/host-service/src/events/types.ts` | Add `WorkspaceCreatingMessage` |
-| `packages/workspace-client/src/lib/eventBus.ts` | Add `workspace:creating` event type + dispatch |
-
 ### Host-service
 | File | Change |
 |------|--------|
-| `packages/host-service/src/types.ts` | Add `eventBus` to `HostServiceContext` |
-| `packages/host-service/src/app.ts` | Pass `eventBus` in context factory |
-| `.../workspace-creation/workspace-creation.ts` | Accept `pendingId`, emit progress, remove `execSync`, return `initialCommands` |
+| `.../workspace-creation/workspace-creation.ts` | Accept `pendingId`, write to in-memory progress map, add `getProgress` query, remove `execSync`, return `initialCommands` |
 
 ### Renderer — data
 | File | Change |
@@ -237,12 +225,13 @@ From the failed pending page:
 | `.../CollectionsProvider/dashboardSidebarLocal/schema.ts` | Add `pendingWorkspaceSchema` |
 | `.../CollectionsProvider/collections.ts` | Add `pendingWorkspaces` collection |
 | `renderer/stores/new-workspace-modal.ts` | Remove `pendingWorkspace`, `stashedDraft` and related actions (moved to collection) |
+| **New:** `renderer/lib/pending-attachment-store.ts` | IndexedDB wrapper for attachment blobs |
 
 ### Renderer — UI
 | File | Change |
 |------|--------|
-| **New:** `.../v2-workspace/pending/$pendingId/page.tsx` | Pending workspace progress page |
-| `.../PromptGroup/PromptGroup.tsx` | Insert into collection, subscribe EventBus, navigate to pending page |
+| **New:** `.../v2-workspace/pending/$pendingId/page.tsx` | Pending workspace progress page (polls getProgress, navigates on success) |
+| `.../PromptGroup/PromptGroup.tsx` | Insert into collection, store attachments in IndexedDB, fire-and-forget create, update collection on resolve/reject |
 | `.../DashboardSidebar/...` | Query `pendingWorkspaces` collection, render skeletons |
 
 ## Attachments: IndexedDB blob storage
