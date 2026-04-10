@@ -34,10 +34,12 @@ type SchedulerState = {
 	pendingFrame: number | null;
 	lastRunAt: number;
 	pendingForceResize: boolean;
+	burstTimeouts: number[];
 };
 
 function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 	schedule: (forceResize: boolean) => void;
+	scheduleBurst: (forceResize: boolean) => void;
 	flush: () => void;
 	state: SchedulerState;
 } {
@@ -46,6 +48,7 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 		pendingFrame: null,
 		lastRunAt: 0,
 		pendingForceResize: false,
+		burstTimeouts: [],
 	};
 
 	const pendingRafs: Array<() => void> = [];
@@ -84,6 +87,21 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 		}) as unknown as number;
 	};
 
+	const scheduleRecoveryBurst = (forceResize: boolean) => {
+		scheduleReattachRecovery(forceResize);
+		for (const timeoutId of reattachRecovery.burstTimeouts) {
+			clearTimeout(timeoutId);
+		}
+		reattachRecovery.burstTimeouts = [120, 260].map(
+			(delay) =>
+				setTimeout(() => {
+					if (!isUnmounted) {
+						scheduleReattachRecovery(forceResize);
+					}
+				}, delay) as unknown as number,
+		);
+	};
+
 	const flushRafs = () => {
 		while (pendingRafs.length > 0) {
 			const cb = pendingRafs.shift();
@@ -93,6 +111,7 @@ function makeScheduler(runRecovery: (forceResize: boolean) => void): {
 
 	return {
 		schedule: scheduleReattachRecovery,
+		scheduleBurst: scheduleRecoveryBurst,
 		flush: flushRafs,
 		state: reattachRecovery,
 	};
@@ -132,16 +151,11 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 	});
 
 	/**
-	 * REPRODUCTION TEST — this test currently FAILS, demonstrating the bug.
+	 * Regression test for the recovery throttle bug.
 	 *
-	 * Expected behaviour: when a recovery call is throttled, a retry should be
-	 * scheduled to run after the remaining throttle window expires. Without a
-	 * retry the terminal is permanently blank until the user resizes the window.
-	 *
-	 * Fix: in scheduleReattachRecovery (useTerminalLifecycle.ts), when the
-	 * throttle fires, add:
-	 *   const remaining = reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
-	 *   setTimeout(() => { if (!isUnmounted) scheduleReattachRecovery(reattachRecovery.pendingForceResize); }, remaining + 1);
+	 * Verifies that when a recovery request lands inside the 120ms throttle
+	 * window, the terminal schedules a retry after the remaining throttle delay
+	 * instead of silently dropping the repaint request.
 	 */
 	it("throttled recovery is retried after throttle window expires", async () => {
 		let calls = 0;
@@ -166,5 +180,24 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// FAILS with current code: calls is still 0 because no retry was scheduled
 		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
+	});
+
+	it("focus recovery burst runs follow-up repaint attempts after the initial recovery", async () => {
+		let calls = 0;
+		const { scheduleBurst, flush } = makeScheduler(() => {
+			calls++;
+		});
+
+		scheduleBurst(false);
+		flush();
+		expect(calls).toBe(1);
+
+		await new Promise((r) => setTimeout(r, 140));
+		flush();
+		expect(calls).toBe(2);
+
+		await new Promise((r) => setTimeout(r, 180));
+		flush();
+		expect(calls).toBe(3);
 	});
 });
