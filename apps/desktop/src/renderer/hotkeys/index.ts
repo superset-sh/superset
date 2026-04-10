@@ -10,4 +10,4 @@ export type {
 	HotkeyDisplay,
 	Platform,
 } from "./types";
-export { isTerminalReservedEvent } from "./utils";
+export { isTerminalReservedEvent, resolveHotkeyFromEvent } from "./utils";

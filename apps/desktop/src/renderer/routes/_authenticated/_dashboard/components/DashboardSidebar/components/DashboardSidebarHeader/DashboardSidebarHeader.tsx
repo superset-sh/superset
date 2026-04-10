@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { LuFolderPlus, LuPlus } from "react-icons/lu";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { LuFolderPlus, LuLayers, LuPlus } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
@@ -15,11 +16,36 @@ export function DashboardSidebarHeader({
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
+	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
+	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
+
+	const handleWorkspacesClick = () => {
+		navigate({ to: "/v2-workspaces" });
+	};
 
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
 				<OrganizationDropdown variant="collapsed" />
+
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleWorkspacesClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isWorkspacesListOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuLayers className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Workspaces</TooltipContent>
+				</Tooltip>
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -69,6 +95,20 @@ export function DashboardSidebarHeader({
 					<TooltipContent side="right">Add Repository</TooltipContent>
 				</Tooltip>
 			</div>
+
+			<button
+				type="button"
+				onClick={handleWorkspacesClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isWorkspacesListOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuLayers className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Workspaces</span>
+			</button>
 
 			<button
 				type="button"
