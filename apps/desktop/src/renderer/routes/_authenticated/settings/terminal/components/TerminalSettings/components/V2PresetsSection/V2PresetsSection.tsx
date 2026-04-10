@@ -246,8 +246,6 @@ export function V2PresetsSection({
 		[collections.v2TerminalPresets, v2Presets],
 	);
 
-	// --- Handlers (identical structure to v1 PresetsSection) ---
-
 	const handleCellChange = useCallback(
 		(rowIndex: number, column: PresetColumnKey, value: string) => {
 			setLocalPresets((prev) =>
@@ -390,7 +388,6 @@ export function V2PresetsSection({
 
 	const handleToggleAutoApply = useCallback(
 		(presetId: string, field: AutoApplyField, enabled: boolean) => {
-			// Match v1 semantics: store `true` when enabled, `undefined` when off.
 			updateV2Preset(presetId, { [field]: enabled ? true : undefined });
 		},
 		[updateV2Preset],
