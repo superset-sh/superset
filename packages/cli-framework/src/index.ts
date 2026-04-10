@@ -1,12 +1,7 @@
-// Option builders
-
-export type { CLIConfig } from "./cli";
-// CLI entry point
-export { cli } from "./cli";
 export type { CommandConfig, CommandResult } from "./command";
-// Command definition
-export { command } from "./command";
-// Errors
+export { createCommand } from "./command";
+export type { CliConfig } from "./config";
+export { defineConfig } from "./config";
 export { CLIError, suggestSimilar } from "./errors";
 export type { CommandNode } from "./help";
 export {
@@ -14,21 +9,19 @@ export {
 	generateGroupHelp,
 	generateRootHelp,
 } from "./help";
-export type { MiddlewareExport, MiddlewareFn } from "./middleware";
-// Middleware
-export { middleware, skip } from "./middleware";
+export type { MiddlewareFn } from "./middleware";
+export { middleware } from "./middleware";
 export type {
 	GenericBuilderInternals,
 	ProcessedBuilderConfig,
 	TypeOf,
 } from "./option";
 export { boolean, number, positional, string } from "./option";
-// Output utilities
 export { formatOutput, table } from "./output";
 export { camelToKebab, isAgentMode, parseArgv } from "./parser";
-// Router utilities (for static/compiled mode)
-export {
-	buildStaticTree,
-	resolveStaticMiddleware,
-	routeCommand,
-} from "./router";
+export type { CommandsPluginOptions } from "./plugin";
+export { createCommandsPlugin } from "./plugin";
+export type { CliCommand, CliGroup } from "./router";
+export { buildTree, routeCommand } from "./router";
+export type { CommandTree, RunOptions } from "./runner";
+export { run } from "./runner";

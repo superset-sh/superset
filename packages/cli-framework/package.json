@@ -2,6 +2,9 @@
 	"name": "@superset/cli-framework",
 	"version": "0.1.0",
 	"type": "module",
+	"bin": {
+		"cli-framework": "./src/bin.ts"
+	},
 	"exports": {
 		".": {
 			"types": "./src/index.ts",

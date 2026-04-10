@@ -21,6 +21,7 @@ interface CliAuthorizeFormProps {
 	redirectUri: string;
 	userName: string;
 	organizations: Organization[];
+	apiUrl: string;
 }
 
 export function CliAuthorizeForm({
@@ -28,6 +29,7 @@ export function CliAuthorizeForm({
 	redirectUri,
 	userName,
 	organizations,
+	apiUrl,
 }: CliAuthorizeFormProps) {
 	const [selectedOrgId, setSelectedOrgId] = useState(
 		organizations[0]?.id ?? "",
@@ -47,7 +49,7 @@ export function CliAuthorizeForm({
 		setError(null);
 
 		try {
-			const res = await fetch("/api/cli/create-code", {
+			const res = await fetch(`${apiUrl}/api/cli/create-code`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				credentials: "include",

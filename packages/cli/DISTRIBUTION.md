@@ -57,7 +57,7 @@ superset host start --daemon
 
 ```bash
 # 1. Build CLI binary
-bun build --compile --target=bun-darwin-arm64 src/bin.ts --outfile dist/bin/superset
+bunx cli-framework build --target=bun-darwin-arm64 --outfile=dist/bin/superset
 
 # 2. Bundle host service JS (single file, native deps external)
 esbuild packages/host-service/src/serve.ts \

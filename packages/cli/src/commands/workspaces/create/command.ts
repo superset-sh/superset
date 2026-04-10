@@ -1,4 +1,5 @@
-import { CLIError, command, string } from "@superset/cli-framework";
+import { CLIError, string } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
 	description: "Create a workspace on a device",
@@ -8,14 +9,13 @@ export default command({
 		name: string().required().desc("Workspace name"),
 		branch: string().required().desc("Git branch"),
 	},
-	run: async (opts) => {
-		if (!opts.ctx.deviceId) {
+	run: async ({ ctx }) => {
+		if (!ctx.deviceId) {
 			throw new CLIError(
 				"No device found",
 				"Use --device or run: superset devices list",
 			);
 		}
-		// TODO: route to device via websocket
 		throw new CLIError(
 			"Not implemented",
 			"Needs device command routing via websocket",

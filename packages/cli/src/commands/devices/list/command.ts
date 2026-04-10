@@ -1,8 +1,8 @@
-import { CLIError, command, table } from "@superset/cli-framework";
+import { CLIError, table } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
-	description: "List all devices in the org",
-	options: {},
+	description: "List all devices in the organization",
 	display: (data) =>
 		table(data as Record<string, unknown>[], [
 			"deviceName",
@@ -10,7 +10,6 @@ export default command({
 			"lastSeen",
 		]),
 	run: async () => {
-		// TODO: needs device.list tRPC procedure on the API
 		throw new CLIError(
 			"Not implemented",
 			"Needs device.list tRPC procedure on the API side",

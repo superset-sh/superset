@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
@@ -10,23 +11,14 @@ const redis = new Redis({
 	token: env.KV_REST_API_TOKEN,
 });
 
-function generateCode(): string {
-	const chars =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	let code = "";
-	const bytes = crypto.getRandomValues(new Uint8Array(32));
-	for (const byte of bytes) code += chars[byte % chars.length];
-	return code;
-}
-
-export async function POST(req: Request) {
-	const session = await auth.api.getSession({ headers: req.headers });
+export async function POST(request: Request) {
+	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session) {
 		return Response.json({ error: "Not authenticated" }, { status: 401 });
 	}
 
-	const body = (await req.json()) as { organizationId?: string };
-	const organizationId = body.organizationId;
+	const body = (await request.json()) as { organizationId?: string };
+	const { organizationId } = body;
 	if (!organizationId) {
 		return Response.json({ error: "organizationId required" }, { status: 400 });
 	}
@@ -44,10 +36,12 @@ export async function POST(req: Request) {
 		);
 	}
 
-	const code = generateCode();
-	await redis.set(`cli:code:${code}`, `${session.user.id}:${organizationId}`, {
-		ex: 300,
-	});
+	const code = randomBytes(24).toString("base64url");
+	await redis.set(
+		`cli:code:${code}`,
+		{ userId: session.user.id, organizationId },
+		{ ex: 300 },
+	);
 
 	return Response.json({ code });
 }

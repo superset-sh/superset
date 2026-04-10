@@ -1,9 +1,8 @@
 import * as p from "@clack/prompts";
-import { boolean, CLIError, command, number } from "@superset/cli-framework";
-import { getActiveOrgId } from "../../../lib/active-org";
+import { boolean, CLIError, number } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
 import { spawnHostService } from "../../../lib/host/spawn";
-import { resolveAuth } from "../../../lib/resolve-auth";
 
 export default command({
 	description: "Start the host service",
@@ -11,33 +10,29 @@ export default command({
 		daemon: boolean().desc("Run in background"),
 		port: number().desc("Port to listen on"),
 	},
-	run: async (opts) => {
-		const { api, bearer } = await resolveAuth(
-			(opts.options as { apiKey?: string }).apiKey,
-		);
-		const organizationId = await getActiveOrgId(api);
-		const orgRecord = await api.user.myOrganization.query();
-		const orgName = orgRecord?.name ?? organizationId;
+	run: async ({ ctx, options, signal }) => {
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization)
+			throw new CLIError("No active organization", "Run: superset auth login");
 
-		// Check if already running
-		const existing = readManifest(organizationId);
+		const existing = readManifest(organization.id);
 		if (existing && isProcessAlive(existing.pid)) {
 			return {
 				data: { pid: existing.pid, endpoint: existing.endpoint },
-				message: `Host service already running for ${orgName} (pid ${existing.pid})`,
+				message: `Host service already running for ${organization.name} (pid ${existing.pid})`,
 			};
 		}
 
-		p.intro(`superset host start (${orgName})`);
+		p.intro(`superset host start (${organization.name})`);
 		const spinner = p.spinner();
 		spinner.start("Starting host service...");
 
 		try {
 			const result = await spawnHostService({
-				organizationId,
-				sessionToken: bearer,
-				port: opts.options.port,
-				daemon: opts.options.daemon ?? false,
+				organizationId: organization.id,
+				sessionToken: ctx.bearer,
+				port: options.port,
+				daemon: options.daemon ?? false,
 			});
 
 			spinner.stop(
@@ -45,27 +40,30 @@ export default command({
 			);
 			p.log.info("Connected to relay — machine is now accessible.");
 
-			if (opts.options.daemon) {
+			if (options.daemon) {
 				p.outro("Running in background.");
 				return {
 					data: {
 						pid: result.pid,
 						port: result.port,
-						organizationId,
+						organizationId: organization.id,
 					},
-					message: `Host service started for ${orgName}`,
+					message: `Host service started for ${organization.name}`,
 				};
 			}
 
 			p.outro("Press Ctrl+C to stop.");
 
-			// Foreground: wait for signal
 			await new Promise<void>((resolve) => {
-				opts.signal.addEventListener("abort", () => resolve(), { once: true });
+				signal.addEventListener("abort", () => resolve(), { once: true });
 			});
 
 			return {
-				data: { pid: result.pid, port: result.port, organizationId },
+				data: {
+					pid: result.pid,
+					port: result.port,
+					organizationId: organization.id,
+				},
 				message: "Host service stopped",
 			};
 		} catch (error) {

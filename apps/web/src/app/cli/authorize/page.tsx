@@ -71,10 +71,11 @@ export default async function CliAuthorizePage({
 					state={state}
 					redirectUri={redirect_uri}
 					userName={session.user.name}
-					organizations={organizations.map((org) => ({
-						id: org.id,
-						name: org.name,
+					organizations={organizations.map((organization) => ({
+						id: organization.id,
+						name: organization.name,
 					}))}
+					apiUrl={env.NEXT_PUBLIC_API_URL}
 				/>
 			</main>
 		</div>

@@ -1,7 +1,6 @@
-import { command } from "@superset/cli-framework";
-import { getActiveOrgId } from "../../../lib/active-org";
+import { CLIError } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
-import { resolveAuth } from "../../../lib/resolve-auth";
 
 async function checkHealth(
 	endpoint: string,
@@ -23,19 +22,16 @@ async function checkHealth(
 
 export default command({
 	description: "Check host service status",
-	run: async (opts) => {
-		const { api } = await resolveAuth(
-			(opts.options as { apiKey?: string }).apiKey,
-		);
-		const organizationId = await getActiveOrgId(api);
-		const orgRecord = await api.user.myOrganization.query();
-		const orgName = orgRecord?.name ?? organizationId;
+	run: async ({ ctx }) => {
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization)
+			throw new CLIError("No active organization", "Run: superset auth login");
 
-		const manifest = readManifest(organizationId);
+		const manifest = readManifest(organization.id);
 		if (!manifest) {
 			return {
-				data: { running: false, organizationId },
-				message: `Not running for ${orgName}`,
+				data: { running: false, organizationId: organization.id },
+				message: `Not running for ${organization.name}`,
 			};
 		}
 
@@ -46,15 +42,14 @@ export default command({
 					running: false,
 					stale: true,
 					pid: manifest.pid,
-					organizationId,
+					organizationId: organization.id,
 				},
-				message: `Stale manifest for ${orgName} (pid ${manifest.pid} is dead)`,
+				message: `Stale manifest for ${organization.name} (pid ${manifest.pid} is dead)`,
 			};
 		}
 
 		const healthy = await checkHealth(manifest.endpoint, manifest.authToken);
-		const uptimeMs = Date.now() - manifest.startedAt;
-		const uptimeSec = Math.floor(uptimeMs / 1000);
+		const uptimeSec = Math.floor((Date.now() - manifest.startedAt) / 1000);
 
 		return {
 			data: {
@@ -62,10 +57,10 @@ export default command({
 				healthy,
 				pid: manifest.pid,
 				endpoint: manifest.endpoint,
-				organizationId,
+				organizationId: organization.id,
 				uptimeSec,
 			},
-			message: `${orgName}: running (pid ${manifest.pid}, ${uptimeSec}s)${
+			message: `${organization.name}: running (pid ${manifest.pid}, ${uptimeSec}s)${
 				healthy ? "" : " — not responding to health check"
 			}`,
 		};

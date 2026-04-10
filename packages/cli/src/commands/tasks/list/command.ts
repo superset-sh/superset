@@ -1,14 +1,8 @@
-import {
-	boolean,
-	command,
-	number,
-	string,
-	table,
-} from "@superset/cli-framework";
-import type { ApiClient } from "../../../lib/api-client";
+import { boolean, number, string, table } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
-	description: "List tasks in the org",
+	description: "List tasks in the organization",
 	options: {
 		status: string()
 			.enum("backlog", "todo", "in_progress", "done", "cancelled")
@@ -28,9 +22,8 @@ export default command({
 			["slug", "title", "priority", "assignee"],
 			["SLUG", "TITLE", "PRIORITY", "ASSIGNEE"],
 		),
-	run: async (opts) => {
-		const api = opts.ctx.api as ApiClient;
-		const result = await api.task.all.query();
+	run: async ({ ctx }) => {
+		const result = await ctx.api.task.all.query();
 		return result.map((r) => ({
 			...r.task,
 			assignee: r.assignee?.name ?? "—",

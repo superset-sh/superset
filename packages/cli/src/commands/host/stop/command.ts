@@ -1,27 +1,23 @@
-import { CLIError, command } from "@superset/cli-framework";
-import { getActiveOrgId } from "../../../lib/active-org";
+import { CLIError } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 import {
 	isProcessAlive,
 	readManifest,
 	removeManifest,
 } from "../../../lib/host/manifest";
-import { resolveAuth } from "../../../lib/resolve-auth";
 
 export default command({
 	description: "Stop the host service daemon",
-	run: async (opts) => {
-		const { api } = await resolveAuth(
-			(opts.options as { apiKey?: string }).apiKey,
-		);
-		const organizationId = await getActiveOrgId(api);
-		const orgRecord = await api.user.myOrganization.query();
-		const orgName = orgRecord?.name ?? organizationId;
+	run: async ({ ctx }) => {
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization)
+			throw new CLIError("No active organization", "Run: superset auth login");
 
-		const manifest = readManifest(organizationId);
+		const manifest = readManifest(organization.id);
 		if (!manifest) {
 			return {
 				data: { running: false },
-				message: `No host service running for ${orgName}`,
+				message: `No host service running for ${organization.name}`,
 			};
 		}
 
@@ -36,8 +32,6 @@ export default command({
 				);
 			}
 
-			// Wait for the process to actually exit so concurrent `host start`
-			// calls can't race ahead and spawn a duplicate.
 			const deadline = Date.now() + 10_000;
 			while (Date.now() < deadline) {
 				if (!isProcessAlive(manifest.pid)) break;
@@ -45,18 +39,17 @@ export default command({
 			}
 
 			if (isProcessAlive(manifest.pid)) {
-				// Escalate to SIGKILL if it refuses to exit
 				try {
 					process.kill(manifest.pid, "SIGKILL");
 				} catch {}
 			}
 		}
 
-		removeManifest(organizationId);
+		removeManifest(organization.id);
 
 		return {
-			data: { pid: manifest.pid, organizationId },
-			message: `Stopped host service for ${orgName}`,
+			data: { pid: manifest.pid, organizationId: organization.id },
+			message: `Stopped host service for ${organization.name}`,
 		};
 	},
 });
