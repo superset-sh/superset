@@ -79,14 +79,82 @@ export function reconcileManagedEntries<T>({
 
 function buildRealBinaryResolver(): string {
 	return `find_real_binary() {
+  absolutize_wrapper_dir() {
+    local dir="$1"
+    [ -z "$dir" ] && return 1
+    dir="\${dir%/}"
+    case "$dir" in
+      /*)
+        printf "%s\\n" "$dir"
+        return 0
+        ;;
+    esac
+    if [ -d "$dir" ] || [ -L "$dir" ] || [ -e "$(dirname "$dir")" ]; then
+      (
+        cd "$(dirname "$dir")" >/dev/null 2>&1 && printf "%s/%s\\n" "$PWD" "$(basename "$dir")"
+      )
+      return 0
+    fi
+    printf "%s\\n" "$dir"
+  }
+
+  readlink_wrapper_dir() {
+    local dir="$1"
+    if [ -x /usr/bin/readlink ]; then
+      /usr/bin/readlink "$dir"
+      return $?
+    fi
+    if [ -x /bin/readlink ]; then
+      /bin/readlink "$dir"
+      return $?
+    fi
+    return 1
+  }
+
+  is_excluded_wrapper_dir() {
+    local dir="$1"
+    case "$dir" in
+      "${BIN_DIR}"|"$HOME"/.superset/bin|"$HOME"/.superset-*/bin|"$HOME"/.zeude/bin|"$HOME"/.zeude-*/bin)
+        return 0
+        ;;
+    esac
+
+    return 1
+  }
+
+  path_points_to_excluded_wrapper_dir() {
+    local current_dir link_target
+    current_dir="$(absolutize_wrapper_dir "$1")"
+
+    while [ -n "$current_dir" ]; do
+      if is_excluded_wrapper_dir "$current_dir"; then
+        return 0
+      fi
+
+      if [ ! -L "$current_dir" ]; then
+        break
+      fi
+
+      link_target="$(readlink_wrapper_dir "$current_dir" 2>/dev/null)" || break
+      case "$link_target" in
+        /*) current_dir="$link_target" ;;
+        *) current_dir="$(dirname "$current_dir")/$link_target" ;;
+      esac
+      current_dir="$(absolutize_wrapper_dir "$current_dir")"
+    done
+
+    return 1
+  }
+
   local name="$1"
   local IFS=:
+  local dir
   for dir in $PATH; do
     [ -z "$dir" ] && continue
     dir="\${dir%/}"
-    case "$dir" in
-      "${BIN_DIR}"|"$HOME"/.superset/bin|"$HOME"/.superset-*/bin) continue ;;
-    esac
+    if path_points_to_excluded_wrapper_dir "$dir"; then
+      continue
+    fi
     if [ -x "$dir/$name" ] && [ ! -d "$dir/$name" ]; then
       printf "%s\\n" "$dir/$name"
       return 0

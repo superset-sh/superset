@@ -5,6 +5,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import * as realOs from "node:os";
@@ -21,6 +22,39 @@ const TEST_BASH_DIR = path.join(TEST_ROOT, "superset", "bash");
 const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
 const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
 let mockedHomeDir = path.join(TEST_ROOT, "home");
+
+function writeExecutable(filePath: string, content: string): void {
+	mkdirSync(path.dirname(filePath), { recursive: true });
+	writeFileSync(filePath, content, { mode: 0o755 });
+	chmodSync(filePath, 0o755);
+}
+
+function createPrintingBinary(filePath: string, label: string): void {
+	writeExecutable(filePath, `#!/bin/bash\nprintf '%s\\n' "${label}"\n`);
+}
+
+function createCountingBinary(filePath: string, countFile: string): void {
+	writeExecutable(
+		filePath,
+		`#!/bin/bash
+count=0
+if [ -f "${countFile}" ]; then
+  count=$(<"${countFile}")
+fi
+count=$((count + 1))
+printf '%s' "$count" > "${countFile}"
+printf '%s\\n' "$0"
+`,
+	);
+}
+
+function createWrapperBinary(
+	filePath: string,
+	binaryName: string,
+	execLine = 'exec "$REAL_BIN" "$@"',
+): void {
+	writeExecutable(filePath, buildWrapperScript(binaryName, execLine));
+}
 
 mock.module("shared/env.shared", () => ({
 	env: {
@@ -248,6 +282,118 @@ exit 0
 				"Reply with exactly OK.",
 			].join("\n")}\n`,
 		);
+	});
+
+	it("skips superset and zeude wrapper bin directories when resolving the real binary", () => {
+		const supersetBinDir = path.join(mockedHomeDir, ".superset", "bin");
+		const zeudeBinDir = path.join(mockedHomeDir, ".zeude", "bin");
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+
+		createPrintingBinary(path.join(supersetBinDir, "codex"), "superset-wrapper");
+		createPrintingBinary(path.join(zeudeBinDir, "codex"), "zeude-wrapper");
+		createPrintingBinary(path.join(realBinDir, "codex"), "real-binary");
+		createWrapperBinary(wrapperPath, "codex", 'printf "%s\\n" "$REAL_BIN"');
+
+		const resolved = execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				HOME: mockedHomeDir,
+				PATH: `${supersetBinDir}:${zeudeBinDir}:${realBinDir}`,
+			},
+			encoding: "utf-8",
+		}).trim();
+
+		expect(resolved).toBe(path.join(realBinDir, "codex"));
+	});
+
+	it("resolves the terminal binary once across superset-zeude symlinked wrapper topology", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const zeudeBinDir = path.join(mockedHomeDir, ".zeude", "bin");
+		const supersetBinDir = path.join(mockedHomeDir, ".superset", "bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const countFile = path.join(TEST_ROOT, "codex-count.txt");
+
+		mkdirSync(path.dirname(zeudeBinDir), { recursive: true });
+		mkdirSync(path.dirname(supersetBinDir), { recursive: true });
+		mkdirSync(realBinDir, { recursive: true });
+		symlinkSync(realBinDir, zeudeBinDir, "dir");
+		symlinkSync(zeudeBinDir, supersetBinDir, "dir");
+		createCountingBinary(path.join(realBinDir, "codex"), countFile);
+		createWrapperBinary(wrapperPath, "codex");
+
+		for (const pathValue of [
+			`${supersetBinDir}:${zeudeBinDir}:${realBinDir}`,
+			`${zeudeBinDir}:${supersetBinDir}:${realBinDir}`,
+		]) {
+			writeFileSync(countFile, "0");
+
+			const output = execFileSync(wrapperPath, [], {
+				env: {
+					...process.env,
+					HOME: mockedHomeDir,
+					PATH: pathValue,
+				},
+				encoding: "utf-8",
+			}).trim();
+
+			expect(output).toBe(path.join(realBinDir, "codex"));
+			expect(readFileSync(countFile, "utf-8")).toBe("1");
+		}
+	});
+
+	it("fails safely when PATH only contains wrapper directories", () => {
+		const supersetBinDir = path.join(mockedHomeDir, ".superset", "bin");
+		const zeudeBinDir = path.join(mockedHomeDir, ".zeude", "bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+
+		createPrintingBinary(path.join(supersetBinDir, "codex"), "superset-wrapper");
+		createPrintingBinary(path.join(zeudeBinDir, "codex"), "zeude-wrapper");
+		createWrapperBinary(wrapperPath, "codex");
+
+		expect(() =>
+			execFileSync(wrapperPath, [], {
+				env: {
+					...process.env,
+					HOME: mockedHomeDir,
+					PATH: `${TEST_BIN_DIR}:${supersetBinDir}:${zeudeBinDir}`,
+				},
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "pipe"],
+			}),
+		).toThrow(
+			expect.objectContaining({
+				status: 127,
+				stderr: `Superset: codex not found in PATH. Install it and ensure it is on PATH, then retry.\n`,
+			}),
+		);
+	});
+
+	it("normalizes symlinked PATH aliases for superset and zeude wrapper directories", () => {
+		const supersetBinDir = path.join(mockedHomeDir, ".superset", "bin");
+		const zeudeBinDir = path.join(mockedHomeDir, ".zeude", "bin");
+		const supersetAliasDir = path.join(TEST_ROOT, "superset-bin-alias");
+		const zeudeAliasDir = path.join(TEST_ROOT, "zeude-bin-alias");
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+
+		createPrintingBinary(path.join(supersetBinDir, "codex"), "superset-wrapper");
+		createPrintingBinary(path.join(zeudeBinDir, "codex"), "zeude-wrapper");
+		createPrintingBinary(path.join(realBinDir, "codex"), "real-binary");
+		symlinkSync(supersetBinDir, supersetAliasDir, "dir");
+		symlinkSync(zeudeBinDir, zeudeAliasDir, "dir");
+		createWrapperBinary(wrapperPath, "codex", 'printf "%s\\n" "$REAL_BIN"');
+
+		const resolved = execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				HOME: mockedHomeDir,
+				PATH: `${supersetAliasDir}:${zeudeAliasDir}:${realBinDir}`,
+			},
+			encoding: "utf-8",
+		}).trim();
+
+		expect(resolved).toBe(path.join(realBinDir, "codex"));
 	});
 
 	it("creates mastracode wrapper passthrough", () => {
