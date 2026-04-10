@@ -2,76 +2,45 @@ import {
 	PromptInput,
 	PromptInputAttachment,
 	PromptInputAttachments,
-	PromptInputButton,
 	PromptInputFooter,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
-	usePromptInputAttachments,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@superset/ui/command";
 import { Input } from "@superset/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
+import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GoGitBranch, GoIssueOpened } from "react-icons/go";
-import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitPullRequest } from "react-icons/lu";
-import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import {
-	clearAttachments,
-	storeAttachments,
-} from "renderer/lib/pending-attachment-store";
-import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
-import {
-	type AgentDefinitionId,
-	getEnabledAgentConfigs,
-} from "shared/utils/agent-settings";
+import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 import type { LinkedPR } from "../../../DashboardNewWorkspaceDraftContext";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
 import { useBranchContext } from "../hooks/useBranchContext";
+import { AttachmentButtons } from "./components/AttachmentButtons";
+import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
-
-type WorkspaceCreateAgent = AgentDefinitionId | "none";
-
-const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
-
-const PILL_BUTTON_CLASS =
-	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
-
-interface ProjectOption {
-	id: string;
-	name: string;
-	githubOwner: string | null;
-	githubRepoName: string | null;
-}
+import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { useHandleCreate } from "./hooks/useHandleCreate";
+import {
+	AGENT_STORAGE_KEY,
+	PILL_BUTTON_CLASS,
+	type ProjectOption,
+	type WorkspaceCreateAgent,
+} from "./types";
 
 interface PromptGroupProps {
 	projectId: string | null;
@@ -80,258 +49,9 @@ interface PromptGroupProps {
 	onSelectProject: (projectId: string) => void;
 }
 
-// ── Attachment buttons ────────────────────────────────────────────────
-
-function AttachmentButtons({
-	anchorRef,
-	onOpenIssueLink,
-	onOpenGitHubIssue,
-	onOpenPRLink,
-}: {
-	anchorRef: React.RefObject<HTMLDivElement | null>;
-	onOpenIssueLink: () => void;
-	onOpenGitHubIssue: () => void;
-	onOpenPRLink: () => void;
-}) {
-	const attachments = usePromptInputAttachments();
-	return (
-		<div ref={anchorRef} className="flex items-center gap-1">
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
-						onClick={() => attachments.openFileDialog()}
-					>
-						<PaperclipIcon className="size-3.5" />
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">Add attachment</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
-						onClick={onOpenIssueLink}
-					>
-						<SiLinear className="size-3.5" />
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">Link issue</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
-						onClick={onOpenGitHubIssue}
-					>
-						<GoIssueOpened className="size-3.5" />
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">Link GitHub issue</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
-						onClick={onOpenPRLink}
-					>
-						<LuGitPullRequest className="size-3.5" />
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">Link pull request</TooltipContent>
-			</Tooltip>
-		</div>
-	);
+export function PromptGroup(props: PromptGroupProps) {
+	return <PromptGroupInner {...props} />;
 }
-
-// ── Project picker pill ───────────────────────────────────────────────
-
-function ProjectPickerPill({
-	selectedProject,
-	recentProjects,
-	onSelectProject,
-}: {
-	selectedProject: ProjectOption | undefined;
-	recentProjects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
-}) {
-	const [open, setOpen] = useState(false);
-
-	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<PromptInputButton
-					className={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[140px]`}
-				>
-					{selectedProject && (
-						<ProjectThumbnail
-							projectName={selectedProject.name}
-							githubOwner={selectedProject.githubOwner}
-							className="!size-3"
-						/>
-					)}
-					<span className="truncate">
-						{selectedProject?.name ?? "Select project"}
-					</span>
-					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
-				</PromptInputButton>
-			</PopoverTrigger>
-			<PopoverContent align="start" className="w-60 p-0">
-				<Command>
-					<CommandInput placeholder="Search projects..." />
-					<CommandList>
-						<CommandEmpty>No projects found.</CommandEmpty>
-						<CommandGroup>
-							{recentProjects.map((project) => (
-								<CommandItem
-									key={project.id}
-									value={project.name}
-									onSelect={() => {
-										onSelectProject(project.id);
-										setOpen(false);
-									}}
-								>
-									<ProjectThumbnail
-										projectName={project.name}
-										githubOwner={project.githubOwner}
-									/>
-									{project.name}
-									{project.id === selectedProject?.id && (
-										<HiCheck className="ml-auto size-4" />
-									)}
-								</CommandItem>
-							))}
-						</CommandGroup>
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
-	);
-}
-
-// ── Compare base branch picker ────────────────────────────────────────
-
-function CompareBaseBranchPickerInline({
-	effectiveCompareBaseBranch,
-	defaultBranch,
-	isBranchesLoading,
-	isBranchesError,
-	branches,
-	onSelectCompareBaseBranch,
-}: {
-	effectiveCompareBaseBranch: string | null;
-	defaultBranch: string | null | undefined;
-	isBranchesLoading: boolean;
-	isBranchesError: boolean;
-	branches: Array<{
-		name: string;
-		lastCommitDate: number;
-		isLocal: boolean;
-		hasWorkspace: boolean;
-	}>;
-	onSelectCompareBaseBranch: (branchName: string) => void;
-}) {
-	const [open, setOpen] = useState(false);
-	const [branchSearch, setBranchSearch] = useState("");
-
-	const filteredBranches = useMemo(() => {
-		if (!branchSearch) return branches;
-		const searchLower = branchSearch.toLowerCase();
-		return branches.filter((b) => b.name.toLowerCase().includes(searchLower));
-	}, [branches, branchSearch]);
-
-	if (isBranchesError) {
-		return (
-			<span className="text-xs text-destructive">Failed to load branches</span>
-		);
-	}
-
-	return (
-		<Popover
-			open={open}
-			onOpenChange={(v) => {
-				setOpen(v);
-				if (!v) setBranchSearch("");
-			}}
-		>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					disabled={isBranchesLoading}
-					className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 min-w-0 max-w-full"
-				>
-					<GoGitBranch className="size-3 shrink-0" />
-					{isBranchesLoading ? (
-						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
-					) : (
-						<span className="font-mono truncate">
-							{effectiveCompareBaseBranch || "..."}
-						</span>
-					)}
-					<HiChevronUpDown className="size-3 shrink-0" />
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				className="w-96 p-0"
-				align="start"
-				onWheel={(event) => event.stopPropagation()}
-			>
-				<Command shouldFilter={false}>
-					<CommandInput
-						placeholder="Search branches..."
-						value={branchSearch}
-						onValueChange={setBranchSearch}
-					/>
-					<CommandList className="max-h-[400px]">
-						<CommandEmpty>No branches found</CommandEmpty>
-						{filteredBranches.map((branch) => (
-							<CommandItem
-								key={branch.name}
-								value={branch.name}
-								onSelect={() => {
-									onSelectCompareBaseBranch(branch.name);
-									setOpen(false);
-								}}
-								className="group h-11 flex items-center justify-between gap-3 px-3"
-							>
-								<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
-									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-									<span className="truncate font-mono text-xs">
-										{branch.name}
-									</span>
-									<span className="flex items-center gap-1.5 shrink-0">
-										{branch.name === defaultBranch && (
-											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-												default
-											</span>
-										)}
-										{branch.hasWorkspace && (
-											<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-												workspace
-											</span>
-										)}
-									</span>
-								</span>
-								<span className="flex items-center gap-2 shrink-0">
-									{branch.lastCommitDate > 0 && (
-										<span className="text-[11px] text-muted-foreground/70">
-											{formatRelativeTime(branch.lastCommitDate * 1000)}
-										</span>
-									)}
-									{effectiveCompareBaseBranch === branch.name && (
-										<HiCheck className="size-4 text-primary" />
-									)}
-								</span>
-							</CommandItem>
-						))}
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
-	);
-}
-
-// ── Inner component ───────────────────────────────────────────────────
 
 function PromptGroupInner({
 	projectId,
@@ -339,39 +59,26 @@ function PromptGroupInner({
 	recentProjects,
 	onSelectProject,
 }: PromptGroupProps) {
-	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
-	const {
-		closeAndResetDraft,
-		closeModal,
-		createWorkspace,
-		draft,
-		updateDraft,
-	} = useDashboardNewWorkspaceDraft();
+	const { closeModal, draft, updateDraft } = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
-	const collections = useCollections();
 	const {
 		compareBaseBranch,
 		hostTarget,
 		prompt,
-		runSetupScript,
 		workspaceName,
-		workspaceNameEdited,
 		branchName,
 		branchNameEdited,
 		linkedIssues,
 		linkedPR,
 	} = draft;
 
+	// ── Agent presets ────────────────────────────────────────────────
 	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
-	const agentPresets = useMemo(
-		() => agentPresetsQuery.data ?? [],
-		[agentPresetsQuery.data],
-	);
 	const enabledAgentPresets = useMemo(
-		() => getEnabledAgentConfigs(agentPresets),
-		[agentPresets],
+		() => getEnabledAgentConfigs(agentPresetsQuery.data ?? []),
+		[agentPresetsQuery.data],
 	);
 	const selectableAgentIds = useMemo(
 		() => enabledAgentPresets.map((preset) => preset.id),
@@ -386,13 +93,14 @@ function PromptGroupInner({
 			agentsReady: agentPresetsQuery.isFetched,
 		});
 
+	// ── Link commands ────────────────────────────────────────────────
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const trimmedPrompt = prompt.trim();
 
-	// ── Branch data via host-service ─────────────────────────────────
+	// ── Branch data ──────────────────────────────────────────────────
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
@@ -402,15 +110,13 @@ function PromptGroupInner({
 	const effectiveCompareBaseBranch =
 		compareBaseBranch || branchData?.defaultBranch || null;
 
-	// Simple branch slug preview (no prefix support in V2)
-	const branchSlug = branchNameEdited
+	const branchPreview = branchNameEdited
 		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
 				preserveFirstSegmentCase: true,
 			})
 		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
-	const branchPreview = branchSlug;
 
-	// Reset compareBaseBranch when project OR host changes
+	// Reset compareBaseBranch on project or host change
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostRef = useRef(JSON.stringify(hostTarget));
 	useEffect(() => {
@@ -425,151 +131,8 @@ function PromptGroupInner({
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
-	// ── Create workspace ─────────────────────────────────────────────
-	const handleCreate = useCallback(async () => {
-		if (!projectId) {
-			toast.error("Select a project first");
-			return;
-		}
-
-		// 1. Compute names (renderer owns all naming — decision #1, #2)
-		const resolvedBranchName =
-			branchNameEdited && branchName.trim()
-				? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
-						preserveCase: true,
-					})
-				: trimmedPrompt
-					? sanitizeBranchNameWithMaxLength(trimmedPrompt)
-					: `workspace-${crypto.randomUUID().slice(0, 8)}`;
-
-		const resolvedWorkspaceName =
-			workspaceNameEdited && workspaceName.trim()
-				? workspaceName.trim()
-				: trimmedPrompt || resolvedBranchName;
-
-		// 2. Store attachments in IndexedDB before closing modal
-		const pendingId = crypto.randomUUID();
-		const detachedFiles = attachments.takeFiles();
-		if (detachedFiles.length > 0) {
-			try {
-				await storeAttachments(pendingId, detachedFiles);
-			} catch (err) {
-				toast.error(
-					err instanceof Error ? err.message : "Failed to store attachments",
-				);
-				return;
-			} finally {
-				for (const file of detachedFiles) {
-					if (file.url?.startsWith("blob:")) URL.revokeObjectURL(file.url);
-				}
-			}
-		}
-
-		// 3. Insert into pendingWorkspaces collection (full draft for retry)
-		collections.pendingWorkspaces.insert({
-			id: pendingId,
-			projectId,
-			name: resolvedWorkspaceName,
-			branchName: resolvedBranchName,
-			prompt,
-			compareBaseBranch: compareBaseBranch ?? null,
-			runSetupScript,
-			linkedIssues: linkedIssues as unknown[],
-			linkedPR,
-			hostTarget,
-			attachmentCount: detachedFiles.length,
-			status: "creating",
-			error: null,
-			workspaceId: null,
-			initialCommands: null,
-			createdAt: new Date(),
-		});
-
-		// 4. Close modal, navigate to pending page
-		closeAndResetDraft();
-		void navigate({ to: `/v2-workspace/pending/${pendingId}` as string });
-
-		// 5. Fire create (fire-and-forget — closure survives modal unmount)
-		const internalIssueIds = linkedIssues
-			.filter((i) => i.source === "internal" && i.taskId)
-			.map((i) => i.taskId as string);
-		const githubIssueUrls = linkedIssues
-			.filter((i) => i.source === "github" && i.url)
-			.map((i) => i.url as string);
-
-		// Load attachments from IndexedDB as data URLs for the API payload
-		let attachmentPayload:
-			| Array<{ data: string; mediaType: string; filename: string }>
-			| undefined;
-		if (detachedFiles.length > 0) {
-			try {
-				const { loadAttachments } = await import(
-					"renderer/lib/pending-attachment-store"
-				);
-				attachmentPayload = await loadAttachments(pendingId);
-			} catch {
-				// Non-fatal — create proceeds without attachments
-			}
-		}
-
-		try {
-			const result = await createWorkspace({
-				pendingId,
-				projectId,
-				hostTarget,
-				names: {
-					workspaceName: resolvedWorkspaceName,
-					branchName: resolvedBranchName,
-				},
-				composer: {
-					prompt: trimmedPrompt || undefined,
-					compareBaseBranch: compareBaseBranch || undefined,
-					runSetupScript,
-				},
-				linkedContext: {
-					internalIssueIds:
-						internalIssueIds.length > 0 ? internalIssueIds : undefined,
-					githubIssueUrls:
-						githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
-					linkedPrUrl: linkedPR?.url,
-					attachments: attachmentPayload,
-				},
-			});
-
-			// Success — update collection row, clean up attachments
-			collections.pendingWorkspaces.update(pendingId, (draft) => {
-				draft.status = "succeeded";
-				draft.workspaceId = result.workspace?.id ?? null;
-				draft.initialCommands = result.initialCommands ?? null;
-			});
-			void clearAttachments(pendingId);
-		} catch (err) {
-			// Failure — update collection (draft + attachments preserved for retry)
-			collections.pendingWorkspaces.update(pendingId, (draft) => {
-				draft.status = "failed";
-				draft.error =
-					err instanceof Error ? err.message : "Failed to create workspace";
-			});
-		}
-	}, [
-		attachments,
-		branchName,
-		branchNameEdited,
-		closeAndResetDraft,
-		collections,
-		compareBaseBranch,
-		createWorkspace,
-		hostTarget,
-		linkedIssues,
-		linkedPR,
-		navigate,
-		projectId,
-		prompt,
-		runSetupScript,
-		trimmedPrompt,
-		workspaceName,
-		workspaceNameEdited,
-	]);
+	// ── Create ───────────────────────────────────────────────────────
+	const handleCreate = useHandleCreate(projectId);
 
 	const handlePromptSubmit = useCallback(() => {
 		void handleCreate();
@@ -587,12 +150,7 @@ function PromptGroupInner({
 		return () => window.removeEventListener("keydown", handler);
 	}, [isNewWorkspaceModalOpen, handleCreate]);
 
-	const handleCompareBaseBranchSelect = (branchName: string) => {
-		updateDraft({ compareBaseBranch: branchName });
-	};
-
 	// ── Issue / PR linking ───────────────────────────────────────────
-
 	const addLinkedIssue = (
 		slug: string,
 		title: string,
@@ -614,9 +172,6 @@ function PromptGroupInner({
 		url: string,
 		state: string,
 	) => {
-		const normalizedState: "open" | "closed" =
-			state.toLowerCase() === "closed" ? "closed" : "open";
-		// Use URL as the dedup key since #number isn't unique across repos
 		if (linkedIssues.some((i) => i.url === url)) return;
 		updateDraft({
 			linkedIssues: [
@@ -627,25 +182,24 @@ function PromptGroupInner({
 					source: "github" as const,
 					url,
 					number: issueNumber,
-					state: normalizedState,
+					state: state.toLowerCase() === "closed" ? "closed" : "open",
 				},
 			],
 		});
 	};
 
-	const removeLinkedIssue = (slug: string) => {
+	const removeLinkedIssue = (slug: string) =>
 		updateDraft({
-			linkedIssues: linkedIssues.filter((issue) => issue.slug !== slug),
+			linkedIssues: linkedIssues.filter((i) => i.slug !== slug),
 		});
-	};
 
 	const setLinkedPR = (pr: LinkedPR) => updateDraft({ linkedPR: pr });
 	const removeLinkedPR = () => updateDraft({ linkedPR: null });
 
 	// ── Render ────────────────────────────────────────────────────────
-
 	return (
 		<div className="p-3 space-y-2">
+			{/* Workspace name + branch name */}
 			<div className="flex items-center">
 				<Input
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
@@ -658,9 +212,8 @@ function PromptGroupInner({
 						})
 					}
 					onBlur={() => {
-						if (!workspaceName.trim()) {
+						if (!workspaceName.trim())
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
-						}
 					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
@@ -682,16 +235,15 @@ function PromptGroupInner({
 								undefined,
 								{ preserveCase: true },
 							);
-							if (!sanitized) {
+							if (!sanitized)
 								updateDraft({ branchName: "", branchNameEdited: false });
-							} else {
-								updateDraft({ branchName: sanitized });
-							}
+							else updateDraft({ branchName: sanitized });
 						}}
 					/>
 				</div>
 			</div>
 
+			{/* Prompt input */}
 			<PromptInput
 				onSubmit={handlePromptSubmit}
 				multiple
@@ -830,6 +382,7 @@ function PromptGroupInner({
 				</PromptInputFooter>
 			</PromptInput>
 
+			{/* Bottom bar */}
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2 min-w-0 flex-1">
 					<ProjectPickerPill
@@ -859,13 +412,15 @@ function PromptGroupInner({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPickerInline
+								<CompareBaseBranchPicker
 									effectiveCompareBaseBranch={effectiveCompareBaseBranch}
 									defaultBranch={branchData?.defaultBranch}
 									isBranchesLoading={isBranchesLoading}
 									isBranchesError={isBranchesError}
 									branches={branchData?.branches ?? []}
-									onSelectCompareBaseBranch={handleCompareBaseBranchSelect}
+									onSelectCompareBaseBranch={(branch) =>
+										updateDraft({ compareBaseBranch: branch })
+									}
 								/>
 							</motion.div>
 						)}
@@ -883,8 +438,4 @@ function PromptGroupInner({
 			</div>
 		</div>
 	);
-}
-
-export function PromptGroup(props: PromptGroupProps) {
-	return <PromptGroupInner {...props} />;
 }
