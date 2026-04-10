@@ -1,12 +1,12 @@
 /**
- * Dev-only component that exposes window.__seedPendingWorkspace()
- * for UI development. Drop it inside CollectionsProvider to get access
- * to collections.
+ * Dev-only component that exposes window helpers for UI development.
+ * Drop inside CollectionsProvider.
  *
  * Usage in DevTools console:
- *   __seedPendingWorkspace("YOUR_PROJECT_ID")
- *   __seedPendingWorkspace("YOUR_PROJECT_ID", "failed")
- *   __seedPendingWorkspace("YOUR_PROJECT_ID", "succeeded")
+ *   __seedPendingWorkspace("1c99c8eb-1b31-4f04-9ac4-61a2760c74b6")
+ *   __seedPendingWorkspace("1c99c8eb-1b31-4f04-9ac4-61a2760c74b6", "failed")
+ *   __seedPendingWorkspace("1c99c8eb-1b31-4f04-9ac4-61a2760c74b6", "succeeded")
+ *   __seedAllPendingStates("1c99c8eb-1b31-4f04-9ac4-61a2760c74b6")
  *   __clearPendingWorkspaces()
  */
 import { useEffect } from "react";
@@ -19,6 +19,7 @@ declare global {
 			projectId: string,
 			status?: "creating" | "failed" | "succeeded",
 		) => void;
+		__seedAllPendingStates: (projectId: string) => void;
 		__clearPendingWorkspaces: () => void;
 	}
 }
@@ -31,19 +32,17 @@ export function DevSeedPendingWorkspace() {
 			projectId: string,
 			status?: "creating" | "failed" | "succeeded",
 		) => {
-			const mock = createMockPendingWorkspace({
-				projectId,
-				status,
-				error:
-					status === "failed"
-						? "Cloud API returned no row (mock error)"
-						: undefined,
-			});
+			const mock = createMockPendingWorkspace({ projectId, status });
 			collections.pendingWorkspaces.insert(mock);
-			console.log("[DevSeed] Inserted pending workspace:", mock.id, {
-				name: mock.name,
-				status: mock.status,
-			});
+			console.log("[DevSeed] Inserted:", mock.name, `(${mock.status})`);
+		};
+
+		window.__seedAllPendingStates = (projectId: string) => {
+			for (const status of ["creating", "failed", "succeeded"] as const) {
+				const mock = createMockPendingWorkspace({ projectId, status });
+				collections.pendingWorkspaces.insert(mock);
+				console.log("[DevSeed] Inserted:", mock.name, `(${mock.status})`);
+			}
 		};
 
 		window.__clearPendingWorkspaces = () => {
@@ -56,6 +55,8 @@ export function DevSeedPendingWorkspace() {
 		return () => {
 			// biome-ignore lint/performance/noDelete: cleanup
 			delete (window as Partial<Window>).__seedPendingWorkspace;
+			// biome-ignore lint/performance/noDelete: cleanup
+			delete (window as Partial<Window>).__seedAllPendingStates;
 			// biome-ignore lint/performance/noDelete: cleanup
 			delete (window as Partial<Window>).__clearPendingWorkspaces;
 		};
