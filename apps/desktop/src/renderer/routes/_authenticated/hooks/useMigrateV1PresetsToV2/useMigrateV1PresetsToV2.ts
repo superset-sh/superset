@@ -72,8 +72,12 @@ export function useMigrateV1PresetsToV2() {
 					count: v1Presets.length,
 				});
 
-				for (const [index, v1Preset] of v1Presets.entries()) {
-					collections.v2TerminalPresets.insert({
+				// Bulk insert so validation runs on all rows up front — a single
+				// bad row rejects the whole batch rather than leaving partial
+				// state that would collide on the next retry.
+				const now = new Date();
+				collections.v2TerminalPresets.insert(
+					v1Presets.map((v1Preset, index) => ({
 						id: v1Preset.id,
 						name: v1Preset.name,
 						description: v1Preset.description,
@@ -85,9 +89,9 @@ export function useMigrateV1PresetsToV2() {
 						applyOnNewTab: v1Preset.applyOnNewTab,
 						executionMode: v1Preset.executionMode ?? "new-tab",
 						tabOrder: index,
-						createdAt: new Date(),
-					});
-				}
+						createdAt: now,
+					})),
+				);
 
 				localStorage.setItem(markerKey, "1");
 				console.log("[v2-preset-migration] done", { markerKey });

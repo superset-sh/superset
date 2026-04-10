@@ -58,13 +58,17 @@ const v2ExecutionModeSchema = z.enum([
 	"new-tab-split-pane",
 ]);
 
+// Matches the v1 terminalPresetSchema shape so the migration hook can
+// insert existing presets verbatim. projectIds and id are plain strings
+// (not z.string().uuid()) because v1 accepts arbitrary string IDs and
+// filterMatchingPresetsForProject only does plain string equality.
 export const v2TerminalPresetSchema = z.object({
-	id: z.string().uuid(),
+	id: z.string(),
 	name: z.string(),
 	description: z.string().optional(),
 	cwd: z.string().default(""),
 	commands: z.array(z.string()).default([]),
-	projectIds: z.array(z.string().uuid()).nullable().default(null),
+	projectIds: z.array(z.string()).nullable().default(null),
 	pinnedToBar: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
