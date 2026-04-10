@@ -24,9 +24,11 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
+import { PierreWorkerPoolProvider } from "./providers/PierreWorkerPoolProvider";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	DiffPaneData,
 	FilePaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -118,6 +120,44 @@ function WorkspaceContent({
 		[store],
 	);
 
+	const openDiffPane = useCallback(
+		(filePath: string, category: "against-base" | "staged" | "unstaged") => {
+			const state = store.getState();
+			// Reuse an existing diff pane: update its `path` so ScrollToFile jumps,
+			// and preserve `collapsedFiles`. openPane's default reuse uses replacePane
+			// which would reset that state, so do the update by hand.
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "diff") continue;
+					const prev = pane.data as DiffPaneData;
+					state.setPaneData({
+						paneId: pane.id,
+						data: {
+							...prev,
+							path: filePath,
+							category,
+						} as PaneViewerData,
+					});
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.openPane({
+				pane: {
+					kind: "diff",
+					data: {
+						path: filePath,
+						category,
+						collapsedFiles: [],
+						scrollTop: 0,
+					} as DiffPaneData,
+				},
+				tabTitle: "Changes",
+			});
+		},
+		[store],
+	);
+
 	const addTerminalTab = useCallback(() => {
 		store.getState().addTab({
 			titleOverride: "Terminal",
@@ -200,7 +240,7 @@ function WorkspaceContent({
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (
-		<>
+		<PierreWorkerPoolProvider>
 			<ResizablePanelGroup direction="horizontal" className="flex-1">
 				<ResizablePanel defaultSize={80} minSize={30}>
 					<div
@@ -286,6 +326,7 @@ function WorkspaceContent({
 								workspaceId={workspaceId}
 								workspaceName={workspaceName}
 								onSelectFile={openFilePane}
+								onSelectDiffFile={openDiffPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 							/>
@@ -300,6 +341,6 @@ function WorkspaceContent({
 				onSelectFile={openFilePane}
 				variant="v2"
 			/>
-		</>
+		</PierreWorkerPoolProvider>
 	);
 }

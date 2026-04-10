@@ -24,9 +24,17 @@ export interface DevtoolsPaneData {
 	targetTitle: string;
 }
 
+export interface DiffPaneData {
+	path: string;
+	category: "against-base" | "staged" | "unstaged";
+	collapsedFiles: string[];
+	scrollTop: number;
+}
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
 	| ChatPaneData
 	| BrowserPaneData
-	| DevtoolsPaneData;
+	| DevtoolsPaneData
+	| DiffPaneData;

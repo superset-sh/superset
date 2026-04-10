@@ -4,7 +4,17 @@ import type {
 	RendererContext,
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
-import { Circle, Globe, MessageSquare, TerminalSquare } from "lucide-react";
+import {
+	Circle,
+	Columns2,
+	Eye,
+	EyeOff,
+	GitCompareArrows,
+	Globe,
+	MessageSquare,
+	Rows2,
+	TerminalSquare,
+} from "lucide-react";
 import { useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -15,6 +25,7 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { useSettings } from "renderer/stores/settings";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
@@ -24,6 +35,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import { ChatPane } from "./components/ChatPane";
+import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
 import { TerminalPane } from "./components/TerminalPane";
 
@@ -101,6 +113,63 @@ export function usePaneRegistry(
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close File" } : d,
+					),
+			},
+			diff: {
+				getIcon: () => <GitCompareArrows className="size-4" />,
+				getTitle: () => "Changes",
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<DiffPane context={ctx} workspaceId={workspaceId} />
+				),
+				paneActions: (_ctx, defaults) => [
+					{
+						key: "toggle-diff-style",
+						icon: () => {
+							const style = useSettings.getState().diffStyle;
+							return style === "split" ? (
+								<Rows2 className="size-3.5" />
+							) : (
+								<Columns2 className="size-3.5" />
+							);
+						},
+						tooltip: () => {
+							const style = useSettings.getState().diffStyle;
+							return style === "split"
+								? "Switch to inline"
+								: "Switch to side-by-side";
+						},
+						onClick: () => {
+							const s = useSettings.getState();
+							s.update(
+								"diffStyle",
+								s.diffStyle === "split" ? "unified" : "split",
+							);
+						},
+					},
+					{
+						key: "toggle-expand-unchanged",
+						icon: () => {
+							const expand = useSettings.getState().expandUnchanged;
+							return expand ? (
+								<EyeOff className="size-3.5" />
+							) : (
+								<Eye className="size-3.5" />
+							);
+						},
+						tooltip: () => {
+							const expand = useSettings.getState().expandUnchanged;
+							return expand ? "Hide unchanged regions" : "Show all lines";
+						},
+						onClick: () => {
+							const s = useSettings.getState();
+							s.update("expandUnchanged", !s.expandUnchanged);
+						},
+					},
+					...defaults,
+				],
+				contextMenuActions: (_ctx, defaults) =>
+					defaults.map((d) =>
+						d.key === "close-pane" ? { ...d, label: "Close Diff" } : d,
 					),
 			},
 			terminal: {
