@@ -4,13 +4,14 @@
 
 **Owner:** Renderer.
 
-**Flow:**
-1. Create immediately with a derived slug from prompt (`fix-the-login-bug`) or random fallback.
-2. Fire AI branch gen async in parallel — don't block create on it.
-3. If AI returns before create resolves, use the AI name instead.
-4. If AI fails or is slow, the slug/random name is already in use — no waiting.
+**Phase 1 flow:**
+1. User typed a branch name → use it
+2. No branch name → derive from prompt slug (`sanitizeBranchNameWithMaxLength(prompt)` → `fix-the-login-bug`)
+3. No prompt either → `workspace-${crypto.randomUUID().slice(0, 8)}`
 
-Host-service receives a branch name every time. Never `undefined`.
+Host-service receives a branch name every time. Never `undefined`. Host-service deduplicates it (decision #8).
+
+**Phase 2:** AI branch gen runs async in parallel — fire at submit, don't block create. If AI returns before the host-service call, swap in the better name. Requires `workspaceCreation.generateBranchName` on host-service (decision #3).
 
 ## 2. Workspace display name
 
