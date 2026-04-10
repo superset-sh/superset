@@ -292,3 +292,7 @@ The actual blobs are in IndexedDB, keyed by `pendingId`.
 - Agent launch (Phase 2)
 - AI workspace rename (dropped)
 - Streaming setup output (setup runs in terminal pane — user sees it live)
+
+## TODO: cleanup
+
+- **Clean up module-level `createProgress` Map.** Entries are deleted on create completion, but if the process crashes mid-create or the promise is abandoned, stale entries leak. Add a TTL sweep (e.g. delete entries older than 5 minutes on each `getProgress` call) or use a `WeakRef`-based approach. Not urgent — the map holds tiny objects and the host-service restarts clear it.
