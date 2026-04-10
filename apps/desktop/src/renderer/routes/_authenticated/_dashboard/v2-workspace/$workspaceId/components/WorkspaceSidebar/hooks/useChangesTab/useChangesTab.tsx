@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { useCallback, useMemo } from "react";
+import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { SidebarTabDefinition } from "../../types";
@@ -11,6 +11,7 @@ export type { ChangesFilter };
 
 interface UseChangesTabParams {
 	workspaceId: string;
+	gitStatus: ReturnType<typeof useGitStatus>;
 	onSelectFile?: (
 		path: string,
 		category: "against-base" | "staged" | "unstaged",
@@ -19,6 +20,7 @@ interface UseChangesTabParams {
 
 export function useChangesTab({
 	workspaceId,
+	gitStatus: status,
 	onSelectFile,
 }: UseChangesTabParams): SidebarTabDefinition {
 	const collections = useCollections();
@@ -49,13 +51,6 @@ export function useChangesTab({
 		[collections, workspaceId],
 	);
 
-	const statusUtils = workspaceTrpc.useUtils();
-
-	const status = workspaceTrpc.git.getStatus.useQuery(
-		{ workspaceId, baseBranch: baseBranch ?? undefined },
-		{ refetchOnWindowFocus: true },
-	);
-
 	const commits = workspaceTrpc.git.listCommits.useQuery(
 		{ workspaceId, baseBranch: baseBranch ?? undefined },
 		{ refetchOnWindowFocus: true },
@@ -65,31 +60,6 @@ export function useChangesTab({
 		{ workspaceId },
 		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
-
-	const invalidateGitQueries = useCallback(() => {
-		void statusUtils.git.getStatus.invalidate({ workspaceId });
-		void statusUtils.git.listCommits.invalidate({ workspaceId });
-	}, [statusUtils, workspaceId]);
-
-	// Shared debounce for git:changed and fs:events — batches rapid events
-	// from either source into a single git status refresh.
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const debouncedInvalidate = useCallback(() => {
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		debounceRef.current = setTimeout(() => {
-			debounceRef.current = null;
-			invalidateGitQueries();
-		}, 300);
-	}, [invalidateGitQueries]);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: clear pending timer on workspace change
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-		};
-	}, [workspaceId]);
-
-	useWorkspaceEvent("git:changed", workspaceId, debouncedInvalidate);
-	useWorkspaceEvent("fs:events", workspaceId, debouncedInvalidate);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();
 

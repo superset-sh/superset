@@ -1,14 +1,20 @@
+import type { AppRouter } from "@superset/host-service";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
+import type { inferRouterOutputs } from "@trpc/server";
 import { FilePlus, FolderPlus, FoldVertical, RefreshCw } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
 	type FileTreeNode,
 	useFileTree,
 } from "renderer/hooks/host-service/useFileTree";
+import {
+	type FileStatus,
+	useGitStatusMap,
+} from "renderer/hooks/host-service/useGitStatusMap";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import {
 	ROW_HEIGHT,
@@ -16,6 +22,8 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
 import { NewItemInput } from "./components/NewItemInput";
 import { WorkspaceFilesTreeItem } from "./components/WorkspaceFilesTreeItem";
+
+type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
 
 type InlineEditState =
 	| { kind: "create"; mode: "file" | "folder"; parentPath: string }
@@ -27,6 +35,11 @@ interface FilesTabProps {
 	selectedFilePath?: string;
 	workspaceId: string;
 	workspaceName?: string;
+	gitStatus: GitStatusData | undefined;
+}
+
+function toPosix(path: string): string {
+	return path.replace(/\\/g, "/");
 }
 
 function TreeNode({
@@ -37,6 +50,10 @@ function TreeNode({
 	selectedFilePath,
 	hoveredPath,
 	inlineEdit,
+	isMuted,
+	fileStatusByPath,
+	folderStatusByPath,
+	ignoredPaths,
 	onSelectFile,
 	onToggleDirectory,
 	onInlineEditSubmit,
@@ -53,6 +70,10 @@ function TreeNode({
 	selectedFilePath?: string;
 	hoveredPath?: string | null;
 	inlineEdit: InlineEditState;
+	isMuted: boolean;
+	fileStatusByPath: Map<string, FileStatus>;
+	folderStatusByPath: Map<string, FileStatus>;
+	ignoredPaths: Set<string>;
 	onSelectFile: (absolutePath: string) => void;
 	onToggleDirectory: (absolutePath: string) => void;
 	onInlineEditSubmit: (name: string) => void;
@@ -73,6 +94,18 @@ function TreeNode({
 		(n) => n.kind === "directory",
 	);
 
+	// Resolve decoration once per node. Muted wins over change status so
+	// gitignored paths stay quiet even in the `git add -f` edge case.
+	const posixRelativePath = toPosix(node.relativePath);
+	const isFolder = node.kind === "directory";
+	const fileStatus = !isFolder
+		? fileStatusByPath.get(posixRelativePath)
+		: undefined;
+	const folderStatus = isFolder
+		? folderStatusByPath.get(posixRelativePath)
+		: undefined;
+	const decoration = isMuted ? undefined : (fileStatus ?? folderStatus);
+
 	return (
 		<div>
 			{isRenaming ? (
@@ -91,6 +124,8 @@ function TreeNode({
 					rowHeight={rowHeight}
 					selectedFilePath={selectedFilePath}
 					isHovered={hoveredPath === node.absolutePath}
+					decoration={decoration}
+					isMuted={isMuted}
 					onSelectFile={onSelectFile}
 					onToggleDirectory={onToggleDirectory}
 					onNewFile={onNewFile}
@@ -109,35 +144,43 @@ function TreeNode({
 							onCancel={onInlineEditCancel}
 						/>
 					)}
-					{node.children.map((child, index) => (
-						<Fragment key={child.absolutePath}>
-							<TreeNode
-								node={child}
-								depth={depth + 1}
-								indent={indent}
-								rowHeight={rowHeight}
-								selectedFilePath={selectedFilePath}
-								hoveredPath={hoveredPath}
-								inlineEdit={inlineEdit}
-								onSelectFile={onSelectFile}
-								onToggleDirectory={onToggleDirectory}
-								onInlineEditSubmit={onInlineEditSubmit}
-								onInlineEditCancel={onInlineEditCancel}
-								onNewFile={onNewFile}
-								onNewFolder={onNewFolder}
-								onRename={onRename}
-								onDelete={onDelete}
-							/>
-							{isCreatingFile && index === lastFolderIndex && (
-								<NewItemInput
-									mode="file"
+					{node.children.map((child, index) => {
+						const childIsMuted =
+							isMuted || ignoredPaths.has(toPosix(child.relativePath));
+						return (
+							<Fragment key={child.absolutePath}>
+								<TreeNode
+									node={child}
 									depth={depth + 1}
-									onSubmit={onInlineEditSubmit}
-									onCancel={onInlineEditCancel}
+									indent={indent}
+									rowHeight={rowHeight}
+									selectedFilePath={selectedFilePath}
+									hoveredPath={hoveredPath}
+									inlineEdit={inlineEdit}
+									isMuted={childIsMuted}
+									fileStatusByPath={fileStatusByPath}
+									folderStatusByPath={folderStatusByPath}
+									ignoredPaths={ignoredPaths}
+									onSelectFile={onSelectFile}
+									onToggleDirectory={onToggleDirectory}
+									onInlineEditSubmit={onInlineEditSubmit}
+									onInlineEditCancel={onInlineEditCancel}
+									onNewFile={onNewFile}
+									onNewFolder={onNewFolder}
+									onRename={onRename}
+									onDelete={onDelete}
 								/>
-							)}
-						</Fragment>
-					))}
+								{isCreatingFile && index === lastFolderIndex && (
+									<NewItemInput
+										mode="file"
+										depth={depth + 1}
+										onSubmit={onInlineEditSubmit}
+										onCancel={onInlineEditCancel}
+									/>
+								)}
+							</Fragment>
+						);
+					})}
 					{isCreatingFile && lastFolderIndex === -1 && (
 						<NewItemInput
 							mode="file"
@@ -157,6 +200,7 @@ export function FilesTab({
 	selectedFilePath,
 	workspaceId,
 	workspaceName,
+	gitStatus,
 }: FilesTabProps) {
 	const [_isRefreshing, setIsRefreshing] = useState(false);
 	const [hoveredPath, setHoveredPath] = useState<string | null>(null);
@@ -173,6 +217,9 @@ export function FilesTab({
 	const movePath = workspaceTrpc.filesystem.movePath.useMutation();
 
 	const fileTree = useFileTree({ workspaceId, rootPath });
+
+	const { fileStatusByPath, folderStatusByPath, ignoredPaths } =
+		useGitStatusMap(gitStatus);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -486,11 +533,9 @@ export function FilesTab({
 					</div>
 				</div>
 
-				{fileTree.isLoadingRoot && fileTree.rootEntries.length === 0 ? (
-					<div className="px-2 py-3 text-sm text-muted-foreground">
-						Loading files...
-					</div>
-				) : fileTree.rootEntries.length === 0 && !isCreatingAtRoot ? (
+				{fileTree.rootEntries.length === 0 &&
+				!fileTree.isLoadingRoot &&
+				!isCreatingAtRoot ? (
 					<div className="px-2 py-3 text-sm text-muted-foreground">
 						No files found
 					</div>
@@ -504,43 +549,50 @@ export function FilesTab({
 								onCancel={handleInlineEditCancel}
 							/>
 						)}
-						{fileTree.rootEntries.map((node, index) => (
-							<Fragment key={node.absolutePath}>
-								<TreeNode
-									node={node}
-									depth={1}
-									indent={TREE_INDENT}
-									rowHeight={ROW_HEIGHT}
-									selectedFilePath={selectedFilePath}
-									hoveredPath={hoveredPath}
-									inlineEdit={inlineEdit}
-									onSelectFile={onSelectFile}
-									onToggleDirectory={(absolutePath) =>
-										void fileTree.toggle(absolutePath)
-									}
-									onInlineEditSubmit={handleInlineEditSubmit}
-									onInlineEditCancel={handleInlineEditCancel}
-									onNewFile={(parentPath) =>
-										void startCreating("file", parentPath)
-									}
-									onNewFolder={(parentPath) =>
-										void startCreating("folder", parentPath)
-									}
-									onRename={(absolutePath, name, isDirectory) =>
-										startRenaming(absolutePath, name, isDirectory)
-									}
-									onDelete={handleDelete}
-								/>
-								{isCreatingFileAtRoot && index === rootLastFolderIndex && (
-									<NewItemInput
-										mode="file"
+						{fileTree.rootEntries.map((node, index) => {
+							const nodeIsMuted = ignoredPaths.has(toPosix(node.relativePath));
+							return (
+								<Fragment key={node.absolutePath}>
+									<TreeNode
+										node={node}
 										depth={1}
-										onSubmit={handleInlineEditSubmit}
-										onCancel={handleInlineEditCancel}
+										indent={TREE_INDENT}
+										rowHeight={ROW_HEIGHT}
+										selectedFilePath={selectedFilePath}
+										hoveredPath={hoveredPath}
+										inlineEdit={inlineEdit}
+										isMuted={nodeIsMuted}
+										fileStatusByPath={fileStatusByPath}
+										folderStatusByPath={folderStatusByPath}
+										ignoredPaths={ignoredPaths}
+										onSelectFile={onSelectFile}
+										onToggleDirectory={(absolutePath) =>
+											void fileTree.toggle(absolutePath)
+										}
+										onInlineEditSubmit={handleInlineEditSubmit}
+										onInlineEditCancel={handleInlineEditCancel}
+										onNewFile={(parentPath) =>
+											void startCreating("file", parentPath)
+										}
+										onNewFolder={(parentPath) =>
+											void startCreating("folder", parentPath)
+										}
+										onRename={(absolutePath, name, isDirectory) =>
+											startRenaming(absolutePath, name, isDirectory)
+										}
+										onDelete={handleDelete}
 									/>
-								)}
-							</Fragment>
-						))}
+									{isCreatingFileAtRoot && index === rootLastFolderIndex && (
+										<NewItemInput
+											mode="file"
+											depth={1}
+											onSubmit={handleInlineEditSubmit}
+											onCancel={handleInlineEditCancel}
+										/>
+									)}
+								</Fragment>
+							);
+						})}
 						{isCreatingFileAtRoot && rootLastFolderIndex === -1 && (
 							<NewItemInput
 								mode="file"

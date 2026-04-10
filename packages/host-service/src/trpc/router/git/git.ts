@@ -86,13 +86,31 @@ export const gitRouter = router({
 				? `origin/${defaultBranchName}`
 				: "HEAD";
 
-			const [currentBranch, defaultBranch, status] = await Promise.all([
-				buildBranch(git, currentBranchName, true, baseRef),
-				defaultBranchName
-					? buildBranch(git, defaultBranchName, false)
-					: buildBranch(git, currentBranchName, true),
-				git.status(),
-			]);
+			const [currentBranch, defaultBranch, status, ignoredRaw] =
+				await Promise.all([
+					buildBranch(git, currentBranchName, true, baseRef),
+					defaultBranchName
+						? buildBranch(git, defaultBranchName, false)
+						: buildBranch(git, currentBranchName, true),
+					git.status(),
+					git
+						.raw([
+							"ls-files",
+							"--others",
+							"--ignored",
+							"--exclude-standard",
+							"--directory",
+						])
+						.catch(() => ""),
+				]);
+
+			// Top-level gitignored paths. `--directory` collapses entirely-ignored
+			// folders to a single entry (e.g. `node_modules`) instead of
+			// enumerating every file inside, so this stays cheap in large repos.
+			const ignoredPaths = ignoredRaw
+				.split("\n")
+				.map((line) => line.trim().replace(/\/$/, ""))
+				.filter(Boolean);
 
 			const againstBase = await getChangedFilesForDiff(git, [baseRef, "HEAD"]);
 
@@ -145,7 +163,14 @@ export const gitRouter = router({
 				}
 			}
 
-			return { currentBranch, defaultBranch, againstBase, staged, unstaged };
+			return {
+				currentBranch,
+				defaultBranch,
+				againstBase,
+				staged,
+				unstaged,
+				ignoredPaths,
+			};
 		}),
 
 	listCommits: protectedProcedure

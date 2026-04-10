@@ -54,7 +54,7 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 
 	if (document.state.kind === "not-found") {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+			<div className="flex w-full h-full items-center justify-center text-sm text-muted-foreground">
 				File not found
 			</div>
 		);
@@ -62,7 +62,7 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 
 	if (document.state.kind === "too-large") {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+			<div className="flex w-full h-full items-center justify-center text-sm text-muted-foreground">
 				File is too large to display
 			</div>
 		);
@@ -75,7 +75,7 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 			);
 		}
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+			<div className="flex w-full h-full items-center justify-center text-sm text-muted-foreground">
 				Binary file — cannot display
 			</div>
 		);
