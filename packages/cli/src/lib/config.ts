@@ -2,11 +2,17 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export interface ActiveOrg {
+	id: string;
+	name: string;
+	slug: string;
+}
+
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;
 	};
-	activeOrg?: string;
+	activeOrg?: ActiveOrg;
 	apiUrl?: string;
 	clientIds?: Record<string, string>;
 };
@@ -16,13 +22,13 @@ export type DeviceConfig = {
 	deviceName: string;
 };
 
-const CONFIG_DIR = join(homedir(), ".superset");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
-const DEVICE_PATH = join(CONFIG_DIR, "device.json");
+export const SUPERSET_HOME_DIR = join(homedir(), "superset");
+const CONFIG_PATH = join(SUPERSET_HOME_DIR, "config.json");
+const DEVICE_PATH = join(SUPERSET_HOME_DIR, "device.json");
 
 function ensureDir() {
-	if (!existsSync(CONFIG_DIR)) {
-		mkdirSync(CONFIG_DIR, { recursive: true });
+	if (!existsSync(SUPERSET_HOME_DIR)) {
+		mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
 	}
 }
 

@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { CLIError, command, positional } from "@superset/cli-framework";
 import type { ApiClient } from "../../../lib/api-client";
-import { getApiUrl, readConfig } from "../../../lib/config";
+import { getApiUrl, readConfig, writeConfig } from "../../../lib/config";
 
 export default command({
 	description: "Switch active organization",
@@ -12,7 +12,8 @@ export default command({
 		const api = opts.ctx.api as ApiClient;
 		const nameOrId = opts.args.nameOrId as string | undefined;
 		const orgs = await api.user.myOrganizations.query();
-		const currentOrg = await api.user.myOrganization.query();
+		const config = readConfig();
+		const currentOrgId = config.activeOrg?.id;
 
 		let org: (typeof orgs)[number] | undefined;
 
@@ -38,7 +39,7 @@ export default command({
 				options: orgs.map((o) => ({
 					value: o.id,
 					label: o.name,
-					hint: o.id === currentOrg?.id ? "active" : undefined,
+					hint: o.id === currentOrgId ? "active" : undefined,
 				})),
 			});
 
@@ -50,15 +51,18 @@ export default command({
 			if (!org) throw new CLIError("Organization not found");
 		}
 
-		if (org.id === currentOrg?.id) {
+		if (org.id === currentOrgId) {
 			return {
 				data: { id: org.id, name: org.name },
 				message: `Already on ${org.name}`,
 			};
 		}
 
-		// Set active org via Better Auth
-		const config = readConfig();
+		// Persist locally so host commands use this org
+		config.activeOrg = { id: org.id, name: org.name, slug: org.slug };
+		writeConfig(config);
+
+		// Sync server-side active org for tools that read the session
 		const apiUrl = getApiUrl(config);
 		const res = await fetch(`${apiUrl}/api/auth/organization/set-active`, {
 			method: "POST",

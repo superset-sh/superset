@@ -7,6 +7,7 @@ import {
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
 	HiOutlineKey,
+	HiOutlineLockClosed,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
@@ -35,6 +36,7 @@ type SettingsRoute =
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/api-keys"
+	| "/settings/security"
 	| "/settings/permissions";
 
 interface SectionItem {
@@ -147,6 +149,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 	{
 		label: "System",
 		items: [
+			{
+				id: "/settings/security",
+				section: "security",
+				label: "Security",
+				icon: <HiOutlineLockClosed className="h-4 w-4" />,
+			},
 			{
 				id: "/settings/permissions",
 				section: "permissions",

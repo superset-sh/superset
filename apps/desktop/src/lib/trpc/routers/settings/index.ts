@@ -17,12 +17,15 @@ import {
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
+import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
+import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
@@ -51,6 +54,7 @@ import {
 } from "shared/utils/agent-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { loadToken } from "../auth/utils/auth-functions";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 import {
 	createCustomAgentInputSchema,
@@ -589,6 +593,42 @@ export const createSettingsRouter = () => {
 					.run();
 
 				return { success: true };
+			}),
+
+		getExposeHostServiceViaRelay: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.exposeHostServiceViaRelay ?? DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY
+			);
+		}),
+
+		setExposeHostServiceViaRelay: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(async ({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, exposeHostServiceViaRelay: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { exposeHostServiceViaRelay: input.enabled },
+					})
+					.run();
+
+				// Restart active host-service children so they pick up the new
+				// RELAY_URL from buildEnv(). No-op if the user isn't signed in.
+				const { token } = await loadToken();
+				if (!token) {
+					return { restartedOrgCount: 0 };
+				}
+
+				const coordinator = getHostServiceCoordinator();
+				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
+				await coordinator.restartAll({
+					authToken: token,
+					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				});
+
+				return { restartedOrgCount };
 			}),
 
 		getShowPresetsBar: publicProcedure.query(() => {

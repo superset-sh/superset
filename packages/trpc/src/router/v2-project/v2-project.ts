@@ -4,7 +4,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure } from "../../trpc";
 import {
 	requireActiveOrgId,
 	requireActiveOrgMembership,
@@ -79,15 +79,21 @@ async function getProjectAccess(
 }
 
 export const v2ProjectRouter = {
-	get: protectedProcedure
-		.input(z.object({ id: z.string().uuid() }))
+	get: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				id: z.string().uuid(),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrgId(
-				ctx.session,
-				"No active organization",
-			);
-			const row = await requireOrgResourceAccess(
-				ctx.session.user.id,
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			const row = await requireOrgScopedResource(
 				() =>
 					dbWs.query.v2Projects.findFirst({
 						where: eq(v2Projects.id, input.id),
@@ -95,7 +101,7 @@ export const v2ProjectRouter = {
 					}),
 				{
 					message: "Project not found",
-					organizationId,
+					organizationId: input.organizationId,
 				},
 			);
 			const repoCloneUrl = row.githubRepository

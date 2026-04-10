@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { createServer } from "node:net";
 import path from "node:path";
+import { settings } from "@superset/local-db";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { app } from "electron";
 import { env } from "main/env.main";
@@ -17,6 +18,7 @@ import {
 	readManifest,
 	removeManifest,
 } from "./host-service-manifest";
+import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 /** Minimum host-service version this app can work with. */
@@ -212,6 +214,14 @@ export class HostServiceCoordinator extends EventEmitter {
 			.map(([id]) => id);
 	}
 
+	async restartAll(config: SpawnConfig): Promise<void> {
+		await Promise.all(
+			this.getActiveOrganizationIds().map((orgId) =>
+				this.restart(orgId, config),
+			),
+		);
+	}
+
 	// ── Adoption ──────────────────────────────────────────────────────
 
 	private async tryAdopt(organizationId: string): Promise<Connection | null> {
@@ -361,8 +371,10 @@ export class HostServiceCoordinator extends EventEmitter {
 		config: SpawnConfig,
 	): Promise<Record<string, string>> {
 		const organizationDir = manifestDir(organizationId);
+		const row = localDb.select().from(settings).get();
+		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
 
-		return getProcessEnvWithShellPath({
+		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
@@ -381,8 +393,18 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
 			CLOUD_API_URL: config.cloudApiUrl,
-			RELAY_URL: env.RELAY_URL,
 		});
+
+		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
+		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
+		// so the child definitely doesn't see a relay URL when disabled.
+		if (exposeViaRelay && env.RELAY_URL) {
+			childEnv.RELAY_URL = env.RELAY_URL;
+		} else {
+			delete childEnv.RELAY_URL;
+		}
+
+		return childEnv;
 	}
 
 	// ── Liveness ──────────────────────────────────────────────────────
