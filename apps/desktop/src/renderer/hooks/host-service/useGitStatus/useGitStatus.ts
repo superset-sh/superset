@@ -1,7 +1,30 @@
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
+
+export function getGitStatusQueryInput(
+	workspaceId: string,
+	baseBranch: string | null,
+) {
+	return {
+		workspaceId,
+		baseBranch: baseBranch ?? undefined,
+	};
+}
+
+export function invalidateGitStatusQuery(
+	invalidate: (input: {
+		workspaceId: string;
+		baseBranch?: string;
+	}) => Promise<unknown> | unknown,
+	queryInput: {
+		workspaceId: string;
+		baseBranch?: string;
+	},
+): void {
+	void invalidate(queryInput);
+}
 
 /**
  * Fetches workspace git status and keeps it live against server events.
@@ -19,17 +42,21 @@ export function useGitStatus(workspaceId: string) {
 	const baseBranch: string | null =
 		collections.v2WorkspaceLocalState.get(workspaceId)?.sidebarState
 			?.baseBranch ?? null;
+	const queryInput = useMemo(
+		() => getGitStatusQueryInput(workspaceId, baseBranch),
+		[baseBranch, workspaceId],
+	);
 
 	const utils = workspaceTrpc.useUtils();
 
-	const query = workspaceTrpc.git.getStatus.useQuery(
-		{ workspaceId, baseBranch: baseBranch ?? undefined },
-		{ refetchOnWindowFocus: true, enabled: Boolean(workspaceId) },
-	);
+	const query = workspaceTrpc.git.getStatus.useQuery(queryInput, {
+		refetchOnWindowFocus: true,
+		enabled: Boolean(workspaceId),
+	});
 
 	const invalidate = useCallback(() => {
-		void utils.git.getStatus.invalidate({ workspaceId });
-	}, [utils, workspaceId]);
+		invalidateGitStatusQuery(utils.git.getStatus.invalidate, queryInput);
+	}, [queryInput, utils]);
 
 	useWorkspaceEvent("git:changed", workspaceId, invalidate);
 

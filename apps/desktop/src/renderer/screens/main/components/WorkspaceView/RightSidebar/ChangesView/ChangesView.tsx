@@ -101,6 +101,7 @@ export function ChangesView({
 
 	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
+			workspaceId,
 			worktreePath,
 			refetchInterval: isActive ? 2500 : undefined,
 			refetchOnWindowFocus: isActive,

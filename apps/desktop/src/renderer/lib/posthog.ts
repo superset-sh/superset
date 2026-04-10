@@ -1,16 +1,23 @@
 import posthogFull from "posthog-js/dist/module.full.no-external";
-import type { PostHog } from "posthog-js/react";
+import type { PostHog } from "posthog-js";
 import { env } from "../env.renderer";
 
 // Cast to standard PostHog type for compatibility with posthog-js/react
 export const posthog = posthogFull as unknown as PostHog;
+let posthogEnabled = false;
+
+export function isPostHogEnabled() {
+	return posthogEnabled;
+}
 
 export function initPostHog() {
 	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
+		posthogEnabled = false;
 		console.log("[posthog] No key configured, skipping");
 		return;
 	}
 
+	posthogEnabled = true;
 	posthogFull.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 		api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
 		defaults: "2025-11-30",

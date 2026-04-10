@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import type { ReactNode } from "react";
+import { useDesktopFeatureFlagEnabled } from "renderer/lib/useDesktopFeatureFlagEnabled";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -47,8 +47,7 @@ export function TerminalSettings({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: TerminalSettingsProps) {
-	const isV2CloudEnabled =
-		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
+	const isV2CloudEnabled = useDesktopFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD);
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
 		visibleItems,

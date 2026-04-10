@@ -266,14 +266,14 @@ export async function MainWindow() {
 		}
 
 		if (!hasCompletedFirstLoad) {
-			if (initialBounds.isMaximized) {
-				window.maximize();
+				if (initialBounds.isMaximized) {
+					window.maximize();
+				}
+				window.show();
+				initialized = true;
+				hasCompletedFirstLoad = true;
 			}
-			window.show();
-			initialized = true;
-			hasCompletedFirstLoad = true;
-		}
-	});
+		});
 
 	window.webContents.on(
 		"did-fail-load",

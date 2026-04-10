@@ -26,12 +26,12 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return { success: true, isMaximized: window.isMaximized() };
 		}),
 
-		close: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false };
-			window.close();
-			return { success: true };
-		}),
+			close: publicProcedure.mutation(() => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				window.close();
+				return { success: true };
+			}),
 
 		isMaximized: publicProcedure.query(() => {
 			const window = getWindow();

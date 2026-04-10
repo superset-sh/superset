@@ -22,8 +22,11 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import {
+	resetPatchedBrowserStateIfNeeded,
+	SUPERSET_HOME_DIR,
+} from "./lib/app-environment";
 import { initAppState } from "./lib/app-state";
-import { SUPERSET_HOME_DIR } from "./lib/app-environment";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
@@ -50,6 +53,7 @@ void applyShellEnvToProcess().catch((error) => {
 // Keep userData and the app's own home directory aligned so single-instance
 // locks and process-scoped state do not collide with the stock Superset app.
 app.setPath("userData", SUPERSET_HOME_DIR);
+resetPatchedBrowserStateIfNeeded();
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
 if (IS_DEV) {
@@ -292,9 +296,9 @@ if (!gotTheLock) {
 		}
 	});
 
-	(async () => {
-		await app.whenReady();
-		registerWithMacOSNotificationCenter();
+		(async () => {
+			await app.whenReady();
+			registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 
 		// Must register on both default session and the app's custom partition
@@ -376,6 +380,6 @@ if (!gotTheLock) {
 			pendingDeepLinkUrl = null;
 		}
 
-		appReady = true;
-	})();
+			appReady = true;
+		})();
 }

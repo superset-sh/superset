@@ -251,6 +251,17 @@ export default defineConfig({
 			outDir: resolve(devPath, "renderer"),
 
 			rollupOptions: {
+				output: {
+					manualChunks(id) {
+						if (
+							id.includes("/better-auth/") ||
+							id.includes("/@better-auth/") ||
+							id.includes("/packages/auth/src/client.ts")
+						) {
+							return "better-auth-client";
+						}
+					},
+				},
 				plugins: [
 					injectProcessEnvPlugin({
 						NODE_ENV: "production",

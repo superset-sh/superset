@@ -1,9 +1,9 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useDesktopFeatureFlagEnabled } from "renderer/lib/useDesktopFeatureFlagEnabled";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface ProjectsSettingsProps {
@@ -18,7 +18,9 @@ export function ProjectsSettings({
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const matchRoute = useMatchRoute();
-	const hasCloudAccess = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_ACCESS);
+	const hasCloudAccess = useDesktopFeatureFlagEnabled(
+		FEATURE_FLAGS.CLOUD_ACCESS,
+	);
 
 	const hasProjectMatches = (matchCounts?.project ?? 0) > 0;
 

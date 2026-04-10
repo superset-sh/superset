@@ -1,6 +1,7 @@
 [mcp_servers.superset]
 type = "sse"
 url = "https://api.superset.sh/api/agent/mcp"
+enabled = false
 
 [mcp_servers.expo-mcp]
 type = "sse"
@@ -10,20 +11,25 @@ enabled = false
 [mcp_servers.maestro]
 command = "maestro"
 args = ["mcp"]
+enabled = false
 
 [mcp_servers.neon]
 type = "sse"
 url = "https://mcp.neon.tech/mcp"
+enabled = false
 
 [mcp_servers.linear]
 type = "sse"
 url = "https://mcp.linear.app/mcp"
+enabled = false
 
 [mcp_servers.sentry]
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
+enabled = false
 
 
 [mcp_servers.desktop-automation]
 command = "bun"
 args = ["run", "packages/desktop-mcp/src/bin.ts"]
+enabled = false

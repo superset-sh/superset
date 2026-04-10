@@ -19,6 +19,7 @@ export function ChangesContent() {
 	const worktreePath = workspace?.worktreePath;
 
 	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
+		workspaceId,
 		worktreePath,
 		refetchInterval: isChangesSidebarVisible ? undefined : 2500,
 		refetchOnWindowFocus: !isChangesSidebarVisible,

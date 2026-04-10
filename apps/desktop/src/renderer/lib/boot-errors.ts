@@ -68,11 +68,23 @@ export const reportBootError = (message: string, error?: unknown) => {
 };
 
 const handleGlobalError = (event: ErrorEvent) => {
+	console.error("[renderer] Global error event:", {
+		message: event.message,
+		filename: event.filename,
+		lineno: event.lineno,
+		colno: event.colno,
+		error: event.error,
+		stack: event.error instanceof Error ? event.error.stack : undefined,
+	});
 	if (hasMounted) return;
 	reportBootError(event.message || "Unhandled error", event.error);
 };
 
 const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+	console.error("[renderer] Unhandled promise rejection:", {
+		reason: event.reason,
+		stack: event.reason instanceof Error ? event.reason.stack : undefined,
+	});
 	if (hasMounted) return;
 	reportBootError("Unhandled promise rejection", event.reason);
 };

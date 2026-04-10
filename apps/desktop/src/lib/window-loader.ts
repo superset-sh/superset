@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import type { BrowserWindow } from "electron";
 import { env } from "shared/env.shared";
 
@@ -25,10 +26,14 @@ export function registerRoute(props: {
 		console.log("[window-loader] Loading development URL:", url);
 		props.browserWindow.loadURL(url);
 	} else {
-		// Production: load from file with hash routing
-		// TanStack Router uses hash-based routing, so we always start at #/
+		// Production: explicitly construct the file:// URL with hash routing.
+		// Electron's loadFile(..., { hash }) can transiently resolve to Chromium's
+		// internal error page for packaged app.asar paths, leaving a white window.
+		const url = pathToFileURL(props.htmlFile);
+		url.hash = "/";
 		console.log("[window-loader] Loading file:", props.htmlFile);
-		props.browserWindow.loadFile(props.htmlFile, { hash: "/" });
+		console.log("[window-loader] Loading production URL:", url.toString());
+		props.browserWindow.loadURL(url.toString());
 	}
 
 	// Log successful loads

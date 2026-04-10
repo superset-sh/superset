@@ -41,10 +41,16 @@ export const env = envSchema.parse({
 
 export function getWorkspaceName(): string | undefined {
 	let name = env.SUPERSET_WORKSPACE_NAME;
+	const execPath =
+		typeof process.execPath === "string" ? process.execPath : undefined;
+	const argv = Array.isArray(process.argv) ? process.argv : [];
 	if (
 		name === "superset" &&
-		(process.execPath.includes("Superset Patched.app") ||
-			process.argv.some((arg) => arg.includes("Superset Patched.app")))
+		(execPath?.includes("Superset Patched.app") ||
+			argv.some(
+				(arg): arg is string =>
+					typeof arg === "string" && arg.includes("Superset Patched.app"),
+			))
 	) {
 		name = "patched";
 	}

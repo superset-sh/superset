@@ -156,6 +156,7 @@ export function WorkspaceListItem({
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 	const { status: localChanges } = useGitChangesStatus({
+		workspaceId: id,
 		worktreePath,
 		enabled: hasHovered && !!worktreePath,
 		staleTime: GITHUB_STATUS_STALE_TIME,

@@ -1,7 +1,9 @@
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { GitChangesStatus } from "shared/changes-types";
 
 interface UseGitChangesStatusOptions {
+	workspaceId?: string;
 	worktreePath: string | undefined;
 	enabled?: boolean;
 	refetchInterval?: number;
@@ -17,6 +19,7 @@ const STATUS_QUERY_STALE_TIME_MS = 2_000;
 const BRANCH_QUERY_STALE_TIME_MS = 10_000;
 
 export function useGitChangesStatus({
+	workspaceId,
 	worktreePath,
 	enabled = true,
 	refetchInterval,
@@ -25,6 +28,7 @@ export function useGitChangesStatus({
 	branchRefetchInterval,
 	branchRefetchOnWindowFocus,
 }: UseGitChangesStatusOptions) {
+	const utils = electronTrpc.useUtils();
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{
@@ -69,6 +73,20 @@ export function useGitChangesStatus({
 			refetchOnWindowFocus,
 			staleTime: staleTime ?? STATUS_QUERY_STALE_TIME_MS,
 		},
+	);
+
+	useWorkspaceEvent(
+		"git:changed",
+		workspaceId ?? "",
+		() => {
+			if (!worktreePath) return;
+			void utils.changes.getBranches.invalidate({ worktreePath });
+			void utils.changes.getStatus.invalidate({
+				worktreePath,
+				defaultBranch: effectiveBaseBranch,
+			});
+		},
+		Boolean(enabled && workspaceId && worktreePath),
 	);
 
 	return { status, isLoading, effectiveBaseBranch, branchData, refetch };

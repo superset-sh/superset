@@ -13,7 +13,7 @@ import {
 	reportBootError,
 } from "./lib/boot-errors";
 import { persistentHistory } from "./lib/persistent-hash-history";
-import { posthog } from "./lib/posthog";
+import { isPostHogEnabled, posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
@@ -33,6 +33,7 @@ const router = createRouter({
 });
 
 const unsubscribe = router.subscribe("onResolved", (event) => {
+	if (!isPostHogEnabled()) return;
 	posthog.capture("$pageview", {
 		$current_url: event.toLocation.pathname,
 	});
@@ -70,7 +71,35 @@ declare module "@tanstack/react-router" {
 if (!rootElement) {
 	reportBootError("Missing <app> root element");
 } else if (!isBootErrorReported()) {
-	ReactDom.createRoot(rootElement).render(
+	ReactDom.createRoot(rootElement, {
+		onCaughtError: (error, errorInfo) => {
+			console.error("[renderer] React caught error:", error);
+			if (errorInfo.componentStack) {
+				console.error(
+					"[renderer] React component stack:",
+					errorInfo.componentStack,
+				);
+			}
+		},
+		onUncaughtError: (error, errorInfo) => {
+			console.error("[renderer] React uncaught error:", error);
+			if (errorInfo.componentStack) {
+				console.error(
+					"[renderer] React uncaught component stack:",
+					errorInfo.componentStack,
+				);
+			}
+		},
+		onRecoverableError: (error, errorInfo) => {
+			console.error("[renderer] React recoverable error:", error);
+			if (errorInfo.componentStack) {
+				console.error(
+					"[renderer] React recoverable component stack:",
+					errorInfo.componentStack,
+				);
+			}
+		},
+	}).render(
 		<BootErrorBoundary
 			onError={(error) => reportBootError("Render failed", error)}
 		>

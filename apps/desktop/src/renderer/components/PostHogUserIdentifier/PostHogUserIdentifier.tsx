@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { posthog } from "../../lib/posthog";
+import { isPostHogEnabled, posthog } from "../../lib/posthog";
 
 const AUTH_COMPLETED_KEY = "superset_auth_completed";
 const ACTIVE_ORG_ID_KEY = "active_organization_id";
@@ -14,6 +14,8 @@ export function PostHogUserIdentifier() {
 	const { mutate: setUserId } = electronTrpc.analytics.setUserId.useMutation();
 
 	useEffect(() => {
+		if (!isPostHogEnabled()) return;
+
 		if (user) {
 			posthog.identify(user.id, {
 				email: user.email,
