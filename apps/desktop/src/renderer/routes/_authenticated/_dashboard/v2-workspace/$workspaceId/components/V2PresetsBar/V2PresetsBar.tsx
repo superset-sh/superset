@@ -95,7 +95,6 @@ export function V2PresetsBar({
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
-	console.log("[v2-preset-migration] V2PresetsBar mounted, calling hook");
 	useMigrateV1PresetsToV2();
 
 	const { data: allPresets = [] } = useLiveQuery(
