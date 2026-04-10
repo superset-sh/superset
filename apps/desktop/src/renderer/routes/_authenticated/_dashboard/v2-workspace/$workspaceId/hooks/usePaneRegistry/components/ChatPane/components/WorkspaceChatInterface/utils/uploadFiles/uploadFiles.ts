@@ -1,3 +1,8 @@
+// TODO: Migrate to shared IndexedDB blob storage pattern instead of
+// converting blobs to data URLs in-memory. The pending workspace
+// attachment store (renderer/lib/pending-attachment-store.ts) will
+// establish the IndexedDB pattern — this module should adopt it to
+// avoid holding large base64 strings in memory during upload.
 import type { FileUIPart } from "ai";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
