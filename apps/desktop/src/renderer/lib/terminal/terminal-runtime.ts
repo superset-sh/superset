@@ -3,6 +3,7 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
+import { resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
@@ -12,6 +13,14 @@ const STORAGE_KEY_PREFIX = "terminal-buffer:";
 const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
+
+// xterm's _keyDown calls stopPropagation after processing, which kills the
+// bubble to react-hotkeys-hook. Returning false from the custom handler makes
+// xterm bail before that, so app hotkeys reach document. (VSCode pattern:
+// terminalInstance.ts:1116-1175)
+function isAppHotkey(event: KeyboardEvent): boolean {
+	return resolveHotkeyFromEvent(event) !== null;
+}
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -141,6 +150,8 @@ export function createRuntime(
 	wrapper.style.height = "100%";
 	terminal.open(wrapper);
 	restoreBuffer(terminalId, terminal);
+
+	terminal.attachCustomKeyEventHandler((event) => !isAppHotkey(event));
 
 	const addonsResult = loadAddons(terminal);
 
