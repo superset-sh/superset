@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useEffect } from "react";
 import superjson from "superjson";
 import { workspaceTrpc } from "../../workspace-trpc";
 
@@ -22,10 +22,12 @@ interface WorkspaceClientProviderProps {
 }
 
 interface WorkspaceClients {
+	clientKey: string;
 	hostUrl: string;
 	queryClient: QueryClient;
 	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
 	getWsToken: () => string | null;
+	refCount: number;
 }
 
 const workspaceClientsCache = new Map<string, WorkspaceClients>();
@@ -67,14 +69,37 @@ function getWorkspaceClients(
 
 	const getWsToken = wsToken ?? (() => null);
 	const clients: WorkspaceClients = {
+		clientKey,
 		hostUrl,
 		queryClient,
 		trpcClient,
 		getWsToken,
+		refCount: 0,
 	};
 	workspaceClientsCache.set(clientKey, clients);
 	return clients;
 }
+
+function releaseWorkspaceClients(clientKey: string): void {
+	const cached = workspaceClientsCache.get(clientKey);
+	if (!cached) return;
+	cached.refCount = Math.max(0, cached.refCount - 1);
+	if (cached.refCount > 0) return;
+	cached.queryClient.clear();
+	workspaceClientsCache.delete(clientKey);
+}
+
+export const __workspaceClientProviderTestUtils = {
+	getWorkspaceClients,
+	releaseWorkspaceClients,
+	getCacheSize: () => workspaceClientsCache.size,
+	resetCache: () => {
+		for (const clients of workspaceClientsCache.values()) {
+			clients.queryClient.clear();
+		}
+		workspaceClientsCache.clear();
+	},
+};
 
 export function WorkspaceClientProvider({
 	cacheKey,
@@ -84,6 +109,14 @@ export function WorkspaceClientProvider({
 	children,
 }: WorkspaceClientProviderProps) {
 	const clients = getWorkspaceClients(cacheKey, hostUrl, headers, wsToken);
+
+	useEffect(() => {
+		clients.refCount++;
+		return () => {
+			releaseWorkspaceClients(clients.clientKey);
+		};
+	}, [clients]);
+
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
 		queryClient: clients.queryClient,
