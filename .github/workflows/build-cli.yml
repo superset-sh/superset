@@ -1,0 +1,79 @@
+name: Build CLI Distribution
+
+on:
+  push:
+    tags: ["cli-v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: darwin-arm64
+          - os: ubuntu-latest
+            target: linux-x64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Setup Node.js (for native addon compilation)
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Build distribution
+        working-directory: packages/cli
+        env:
+          RELAY_URL: https://relay.superset.sh
+          CLOUD_API_URL: https://api.superset.sh
+        run: bun run build:dist --target=${{ matrix.target }}
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v5
+        with:
+          name: superset-${{ matrix.target }}
+          path: packages/cli/dist/superset-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts
+          pattern: superset-*
+          merge-multiple: true
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            release-artifacts/*.tar.gz \
+            --title "Superset CLI ${{ github.ref_name }}" \
+            --generate-notes \
+            --draft
