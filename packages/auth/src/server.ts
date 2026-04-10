@@ -29,10 +29,6 @@ import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
-import { resolvePlanForOrganization } from "./lib/resolve-plan-for-organization";
-
-export { resolvePlanForOrganization } from "./lib/resolve-plan-for-organization";
-
 import {
 	resolveSessionOrganizationState,
 	type SessionOrganizationContext,
@@ -224,15 +220,9 @@ export const auth = betterAuth({
 					return activeOrganizationId ?? undefined;
 				},
 			},
-			customAccessTokenClaims: async ({ user, referenceId }) => {
-				const organizationId = referenceId ?? undefined;
-				const plan = await resolvePlanForOrganization(organizationId);
-				return {
-					organizationId,
-					plan,
-					email: (user as { email?: string } | undefined)?.email,
-				};
-			},
+			customAccessTokenClaims: ({ referenceId }) => ({
+				organizationId: referenceId ?? undefined,
+			}),
 		}),
 		expo(),
 		organization({
@@ -581,7 +571,16 @@ export const auth = betterAuth({
 				...new Set(allMemberships.map((m) => m.organizationId)),
 			];
 
-			const plan = await resolvePlanForOrganization(activeOrganizationId);
+			let plan: string | null = null;
+			if (activeOrganizationId) {
+				const subscription = await db.query.subscriptions.findFirst({
+					where: and(
+						eq(subscriptions.referenceId, activeOrganizationId),
+						eq(subscriptions.status, "active"),
+					),
+				});
+				plan = subscription?.plan ?? null;
+			}
 
 			return {
 				user,

@@ -12,13 +12,9 @@ import { join } from "node:path";
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;
-		refreshToken: string;
-		expiresAt: number; // epoch ms
+		expiresAt: number;
 	};
 	apiUrl?: string;
-	// NOTE: `clientIds` from pre-0.1.x installs is silently ignored on read
-	// (we use a hardcoded `SUPERSET_CLI_CLIENT_ID` now). Stale entries in
-	// existing config files are harmless.
 };
 
 export type DeviceConfig = {

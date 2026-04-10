@@ -1,29 +1,11 @@
-import type { auth } from "@superset/auth/server";
+import type { auth, Session } from "@superset/auth/server";
 import { COMPANY } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-/**
- * Narrow session shape that `protectedProcedure` actually guarantees and
- * that downstream tRPC routes are allowed to read. Built by the API's tRPC
- * context builder from any of: cookie session, OAuth JWT, or API key.
- *
- * Deliberately narrower than Better Auth's full `Session` type so the same
- * shape can be synthesized from a stateless JWT/API-key without placeholder
- * fields. Add fields here only when a tRPC route genuinely needs them, and
- * make sure every auth path can populate them.
- */
-export type AuthSession = {
-	user: { id: string; email: string };
-	session: {
-		activeOrganizationId: string | null;
-		plan: string | null;
-	};
-};
-
 export type TRPCContext = {
-	session: AuthSession | null;
+	session: Session | null;
 	auth: typeof auth;
 	headers: Headers;
 };

@@ -8,23 +8,7 @@ import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure } from "../../trpc";
 
 export const userRouter = {
-	me: protectedProcedure.query(async ({ ctx }) => {
-		// `ctx.session.user` is the narrow `{ id, email }` shape that
-		// `protectedProcedure` guarantees regardless of auth method (cookie /
-		// JWT / API key). Hydrate the full user row from the DB so callers
-		// see consistent fields (`name`, `image`, etc.) no matter how the
-		// caller authenticated.
-		const user = await db.query.users.findFirst({
-			where: eq(users.id, ctx.session.user.id),
-		});
-		if (!user) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "User not found",
-			});
-		}
-		return user;
-	}),
+	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrganizationId = ctx.session.session.activeOrganizationId;

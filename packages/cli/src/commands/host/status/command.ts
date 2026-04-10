@@ -24,10 +24,10 @@ async function checkHealth(
 export default command({
 	description: "Check host service status",
 	run: async (opts) => {
-		const { api, bearer, authSource } = await resolveAuth(
+		const { api } = await resolveAuth(
 			(opts.options as { apiKey?: string }).apiKey,
 		);
-		const organizationId = await getActiveOrgId(api, bearer, authSource);
+		const organizationId = await getActiveOrgId(api);
 		const orgRecord = await api.user.myOrganization.query();
 		const orgName = orgRecord?.name ?? organizationId;
 

@@ -12,10 +12,10 @@ export default command({
 		port: number().desc("Port to listen on"),
 	},
 	run: async (opts) => {
-		const { api, bearer, authSource } = await resolveAuth(
+		const { api, bearer } = await resolveAuth(
 			(opts.options as { apiKey?: string }).apiKey,
 		);
-		const organizationId = await getActiveOrgId(api, bearer, authSource);
+		const organizationId = await getActiveOrgId(api);
 		const orgRecord = await api.user.myOrganization.query();
 		const orgName = orgRecord?.name ?? organizationId;
 
