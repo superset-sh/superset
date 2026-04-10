@@ -56,7 +56,17 @@ export function useCreateDashboardWorkspace() {
 
 			const client = getHostServiceClientByUrl(hostUrl);
 
-			return client.workspaceCreation.create.mutate({
+			console.log(
+				"[useCreateDashboardWorkspace] calling workspaceCreation.create",
+				{
+					hostUrl,
+					projectId: input.projectId,
+					source: input.source,
+					names: input.names,
+				},
+			);
+
+			const result = await client.workspaceCreation.create.mutate({
 				projectId: input.projectId,
 				source: input.source,
 				names: input.names,
@@ -64,6 +74,14 @@ export function useCreateDashboardWorkspace() {
 				linkedContext: input.linkedContext,
 				behavior: input.behavior,
 			});
+
+			console.log("[useCreateDashboardWorkspace] result", {
+				outcome: result.outcome,
+				workspace: result.workspace,
+				warnings: result.warnings,
+			});
+
+			return result;
 		},
 		[activeHostUrl],
 	);

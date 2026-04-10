@@ -736,8 +736,19 @@ ${sanitizeText(truncatedBody)}`;
 						onExistingWorktree: "adopt",
 					},
 				}).then((result) => {
+					console.log("[PromptGroup] create result", {
+						outcome: result.outcome,
+						workspaceId: result.workspace?.id,
+						warnings: result.warnings,
+					});
 					if (result.workspace) {
+						console.log(
+							"[PromptGroup] navigating to workspace",
+							result.workspace.id,
+						);
 						void navigateToV2Workspace(result.workspace.id, navigate);
+					} else {
+						console.warn("[PromptGroup] create returned no workspace");
 					}
 					return result;
 				}),

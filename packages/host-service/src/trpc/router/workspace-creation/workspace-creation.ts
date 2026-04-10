@@ -274,6 +274,15 @@ export const workspaceCreationRouter = router({
 			const deviceClientId = getHashedDeviceId();
 			const deviceName = getDeviceName();
 
+			console.log("[workspaceCreation.create] input", {
+				projectId: input.projectId,
+				source: input.source,
+				resolvedBranchName: branchName,
+				resolvedWorkspaceName: workspaceName,
+				deviceClientId,
+				deviceName,
+			});
+
 			// 1. Resolve / ensure project locally
 			let localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
@@ -327,6 +336,10 @@ export const workspaceCreationRouter = router({
 						message: `Workspace already exists for branch ${branchName}`,
 					});
 				}
+				console.log("[workspaceCreation.create] opened_existing_workspace", {
+					id: existingWorkspace.id,
+					branch: existingWorkspace.branch,
+				});
 				return {
 					outcome: "opened_existing_workspace" as const,
 					workspace: existingWorkspace,
@@ -401,6 +414,10 @@ export const workspaceCreationRouter = router({
 					})
 					.run();
 
+				console.log("[workspaceCreation.create] adopted_external_worktree", {
+					id: cloudRow.id,
+					branch: branchName,
+				});
 				return {
 					outcome: "adopted_external_worktree" as const,
 					workspace: cloudRow,
@@ -480,6 +497,11 @@ export const workspaceCreationRouter = router({
 				})
 				.run();
 
+			console.log("[workspaceCreation.create] created_workspace", {
+				id: cloudRow.id,
+				branch: branchName,
+				worktreePath,
+			});
 			return {
 				outcome: "created_workspace" as const,
 				workspace: cloudRow,
