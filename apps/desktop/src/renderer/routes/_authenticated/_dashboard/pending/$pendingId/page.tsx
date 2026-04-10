@@ -2,13 +2,17 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { clearAttachments } from "renderer/lib/pending-attachment-store";
+import {
+	clearAttachments,
+	loadAttachments,
+} from "renderer/lib/pending-attachment-store";
+import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
@@ -27,6 +31,97 @@ export const Route = createFileRoute(
 	component: PendingWorkspacePage,
 });
 
+function useRetryCreate(
+	pendingId: string,
+	pending: {
+		projectId: string;
+		name: string;
+		branchName: string;
+		prompt: string;
+		compareBaseBranch: string | null;
+		runSetupScript: boolean;
+		linkedIssues: unknown[];
+		linkedPR: unknown;
+		hostTarget: unknown;
+		attachmentCount: number;
+	} | null,
+) {
+	const collections = useCollections();
+	const createWorkspace = useCreateDashboardWorkspace();
+
+	return useCallback(async () => {
+		if (!pending) return;
+
+		collections.pendingWorkspaces.update(pendingId, (draft) => {
+			draft.status = "creating";
+			draft.error = null;
+		});
+
+		const internalIssueIds = (
+			pending.linkedIssues as Array<{ source?: string; taskId?: string }>
+		)
+			.filter((i) => i.source === "internal" && i.taskId)
+			.map((i) => i.taskId as string);
+		const githubIssueUrls = (
+			pending.linkedIssues as Array<{ source?: string; url?: string }>
+		)
+			.filter((i) => i.source === "github" && i.url)
+			.map((i) => i.url as string);
+		const linkedPR = pending.linkedPR as { url?: string } | null;
+
+		let attachmentPayload:
+			| Array<{ data: string; mediaType: string; filename: string }>
+			| undefined;
+		if (pending.attachmentCount > 0) {
+			try {
+				attachmentPayload = await loadAttachments(pendingId);
+			} catch {
+				// proceed without
+			}
+		}
+
+		try {
+			const result = await createWorkspace({
+				pendingId,
+				projectId: pending.projectId,
+				hostTarget: pending.hostTarget as
+					| { kind: "local" }
+					| { kind: "host"; hostId: string },
+				names: {
+					workspaceName: pending.name,
+					branchName: pending.branchName,
+				},
+				composer: {
+					prompt: pending.prompt || undefined,
+					compareBaseBranch: pending.compareBaseBranch || undefined,
+					runSetupScript: pending.runSetupScript,
+				},
+				linkedContext: {
+					internalIssueIds:
+						internalIssueIds.length > 0 ? internalIssueIds : undefined,
+					githubIssueUrls:
+						githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
+					linkedPrUrl: linkedPR?.url,
+					attachments: attachmentPayload,
+				},
+			});
+
+			collections.pendingWorkspaces.update(pendingId, (draft) => {
+				draft.status = "succeeded";
+				draft.workspaceId = result.workspace?.id ?? null;
+				draft.initialCommands = result.initialCommands ?? null;
+			});
+			void clearAttachments(pendingId);
+		} catch (err) {
+			collections.pendingWorkspaces.update(pendingId, (draft) => {
+				draft.status = "failed";
+				draft.error =
+					err instanceof Error ? err.message : "Failed to create workspace";
+			});
+		}
+	}, [collections, createWorkspace, pending, pendingId]);
+}
+
 function PendingWorkspacePage() {
 	const { pendingId } = Route.useParams();
 	const navigate = useNavigate();
@@ -34,7 +129,7 @@ function PendingWorkspacePage() {
 	const { activeHostUrl } = useLocalHostService();
 	const navigatedRef = useRef(false);
 
-	// Read pending workspace from collection
+	// Read pending workspace from collection (declared early for useRetryCreate)
 	const { data: pendingRows } = useLiveQuery(
 		(q) =>
 			q
@@ -44,6 +139,7 @@ function PendingWorkspacePage() {
 		[collections, pendingId],
 	);
 	const pending = pendingRows?.[0] ?? null;
+	const retryCreate = useRetryCreate(pendingId, pending);
 
 	// Poll host-service for step-by-step progress
 	const hostUrl =
@@ -130,14 +226,18 @@ function PendingWorkspacePage() {
 				{/* Status */}
 				{pending.status === "creating" && (
 					<div className="space-y-3">
-						<p
-							className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
-						>
-							<span className="tabular-nums">{elapsedLabel}</span>{" "}
-							{isStale
-								? "This is taking longer than expected..."
-								: "Creating workspace..."}
-						</p>
+						<div className="flex items-center justify-between">
+							<p
+								className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
+							>
+								{isStale
+									? "This is taking longer than expected..."
+									: "Creating workspace..."}
+							</p>
+							<span className="text-xs tabular-nums text-muted-foreground/50">
+								{elapsedLabel}
+							</span>
+						</div>
 						{steps.length > 0 && (
 							<div className="space-y-2">
 								{steps.map((step) => (
@@ -202,7 +302,7 @@ function PendingWorkspacePage() {
 							<button
 								type="button"
 								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-								onClick={() => handleRetry(pending, collections, navigate)}
+								onClick={() => void retryCreate()}
 							>
 								Retry
 							</button>
@@ -223,33 +323,4 @@ function PendingWorkspacePage() {
 			</div>
 		</div>
 	);
-}
-
-async function handleRetry(
-	pending: {
-		id: string;
-		projectId: string;
-		name: string;
-		branchName: string;
-		prompt: string;
-		compareBaseBranch: string | null;
-		runSetupScript: boolean;
-		linkedIssues: unknown[];
-		linkedPR: unknown;
-		hostTarget: unknown;
-		attachmentCount: number;
-	},
-	collections: ReturnType<typeof useCollections>,
-	_navigate: ReturnType<typeof useNavigate>,
-) {
-	// Reset status
-	collections.pendingWorkspaces.update(pending.id, (draft) => {
-		draft.status = "creating";
-		draft.error = null;
-	});
-
-	// TODO: re-fire createWorkspace with the same data from the pending row
-	// This needs access to the useCreateDashboardWorkspace hook which is
-	// only available in React component context. For now, the retry just
-	// resets the status — full retry wiring is a follow-up.
 }
