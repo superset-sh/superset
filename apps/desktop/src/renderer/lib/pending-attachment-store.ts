@@ -41,16 +41,17 @@ export async function storeAttachments(
 	const store = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME);
 
 	await Promise.all(
-		files.map(async (file, index) => {
+		files.map(async (file) => {
+			const blobId = crypto.randomUUID();
 			const response = await fetch(file.url);
 			const blob = await response.blob();
 			const value: StoredAttachment = {
 				blob,
 				mediaType: file.mediaType,
-				filename: file.filename ?? `attachment-${index}`,
+				filename: file.filename ?? "attachment",
 			};
 			return new Promise<void>((resolve, reject) => {
-				const request = store.put(value, `${pendingId}/${index}`);
+				const request = store.put(value, `${pendingId}/${blobId}`);
 				request.onsuccess = () => resolve();
 				request.onerror = () => reject(request.error);
 			});

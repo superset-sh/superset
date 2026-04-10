@@ -38,16 +38,13 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import {
-	useClearPendingWorkspace,
-	useClearStashedDraft,
-	useNewWorkspaceModalOpen,
-	useRestoreStashedDraft,
-	useSetPendingWorkspace,
-	useStashDraft,
-} from "renderer/stores/new-workspace-modal";
+	clearAttachments,
+	storeAttachments,
+} from "renderer/lib/pending-attachment-store";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import {
 	type AgentDefinitionId,
 	getEnabledAgentConfigs,
@@ -68,12 +65,6 @@ const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 const PILL_BUTTON_CLASS =
 	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
-
-type ConvertedFile = {
-	data: string;
-	mediaType: string;
-	filename?: string;
-};
 
 interface ProjectOption {
 	id: string;
@@ -359,11 +350,7 @@ function PromptGroupInner({
 		updateDraft,
 	} = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
-	const clearPendingWorkspace = useClearPendingWorkspace();
-	const setPendingWorkspace = useSetPendingWorkspace();
-	const stashDraft = useStashDraft();
-	const clearStashedDraft = useClearStashedDraft();
-	const restoreStashedDraft = useRestoreStashedDraft();
+	const collections = useCollections();
 	const {
 		compareBaseBranch,
 		hostTarget,
@@ -438,26 +425,6 @@ function PromptGroupInner({
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
-	// ── Helpers ──────────────────────────────────────────────────────
-	const convertBlobUrlToDataUrl = useCallback(
-		async (url: string): Promise<string> => {
-			const response = await fetch(url);
-			if (!response.ok) {
-				throw new Error(`Failed to fetch attachment: ${response.statusText}`);
-			}
-			const blob = await response.blob();
-			return new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onloadend = () => resolve(reader.result as string);
-				reader.onerror = () =>
-					reject(new Error("Failed to read attachment data"));
-				reader.onabort = () => reject(new Error("Attachment read was aborted"));
-				reader.readAsDataURL(blob);
-			});
-		},
-		[],
-	);
-
 	// ── Create workspace ─────────────────────────────────────────────
 	const handleCreate = useCallback(async () => {
 		if (!projectId) {
@@ -480,21 +447,15 @@ function PromptGroupInner({
 				? workspaceName.trim()
 				: trimmedPrompt || resolvedBranchName;
 
-		// 2. Convert attachments
+		// 2. Store attachments in IndexedDB before closing modal
+		const pendingId = crypto.randomUUID();
 		const detachedFiles = attachments.takeFiles();
-		let convertedFiles: ConvertedFile[] = [];
 		if (detachedFiles.length > 0) {
 			try {
-				convertedFiles = await Promise.all(
-					detachedFiles.map(async (file) => ({
-						data: await convertBlobUrlToDataUrl(file.url),
-						mediaType: file.mediaType,
-						filename: file.filename,
-					})),
-				);
+				await storeAttachments(pendingId, detachedFiles);
 			} catch (err) {
 				toast.error(
-					err instanceof Error ? err.message : "Failed to process attachments",
+					err instanceof Error ? err.message : "Failed to store attachments",
 				);
 				return;
 			} finally {
@@ -504,7 +465,31 @@ function PromptGroupInner({
 			}
 		}
 
-		// 3. Map linked issues
+		// 3. Insert into pendingWorkspaces collection (full draft for retry)
+		collections.pendingWorkspaces.insert({
+			id: pendingId,
+			projectId,
+			name: resolvedWorkspaceName,
+			branchName: resolvedBranchName,
+			prompt,
+			compareBaseBranch: compareBaseBranch ?? null,
+			runSetupScript,
+			linkedIssues: linkedIssues as unknown[],
+			linkedPR,
+			hostTarget,
+			attachmentCount: detachedFiles.length,
+			status: "creating",
+			error: null,
+			workspaceId: null,
+			initialCommands: null,
+			createdAt: new Date(),
+		});
+
+		// 4. Close modal, navigate to pending page
+		closeAndResetDraft();
+		void navigate({ to: `/v2-workspace/pending/${pendingId}` as string });
+
+		// 5. Fire create (fire-and-forget — closure survives modal unmount)
 		const internalIssueIds = linkedIssues
 			.filter((i) => i.source === "internal" && i.taskId)
 			.map((i) => i.taskId as string);
@@ -512,33 +497,24 @@ function PromptGroupInner({
 			.filter((i) => i.source === "github" && i.url)
 			.map((i) => i.url as string);
 
-		// 4. Stash draft, close modal, show pending skeleton
-		stashDraft({
-			selectedProjectId: projectId,
-			prompt,
-			workspaceName,
-			workspaceNameEdited,
-			branchName,
-			branchNameEdited,
-			compareBaseBranch: compareBaseBranch ?? null,
-			runSetupScript,
-			linkedIssues,
-			linkedPR,
-		});
+		// Load attachments from IndexedDB as data URLs for the API payload
+		let attachmentPayload:
+			| Array<{ data: string; mediaType: string; filename: string }>
+			| undefined;
+		if (detachedFiles.length > 0) {
+			try {
+				const { loadAttachments } = await import(
+					"renderer/lib/pending-attachment-store"
+				);
+				attachmentPayload = await loadAttachments(pendingId);
+			} catch {
+				// Non-fatal — create proceeds without attachments
+			}
+		}
 
-		const pendingWorkspaceId = crypto.randomUUID();
-		setPendingWorkspace({
-			id: pendingWorkspaceId,
-			projectId,
-			name: resolvedWorkspaceName,
-			status: "creating",
-		});
-		closeAndResetDraft();
-
-		// 5. Call host-service
 		try {
 			const result = await createWorkspace({
-				pendingId: pendingWorkspaceId,
+				pendingId,
 				projectId,
 				hostTarget,
 				names: {
@@ -556,34 +532,32 @@ function PromptGroupInner({
 					githubIssueUrls:
 						githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
 					linkedPrUrl: linkedPR?.url,
-					attachments: convertedFiles.length > 0 ? convertedFiles : undefined,
+					attachments: attachmentPayload,
 				},
 			});
 
-			// Success — clear stash, navigate
-			clearStashedDraft();
-			toast.success("Workspace created");
-			if (result.workspace) {
-				void navigateToV2Workspace(result.workspace.id, navigate);
-			}
+			// Success — update collection row, clean up attachments
+			collections.pendingWorkspaces.update(pendingId, (draft) => {
+				draft.status = "succeeded";
+				draft.workspaceId = result.workspace?.id ?? null;
+				draft.initialCommands = result.initialCommands ?? null;
+			});
+			void clearAttachments(pendingId);
 		} catch (err) {
-			// Failure — restore draft so user can retry
-			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
-			);
-			restoreStashedDraft();
-		} finally {
-			clearPendingWorkspace(pendingWorkspaceId);
+			// Failure — update collection (draft + attachments preserved for retry)
+			collections.pendingWorkspaces.update(pendingId, (draft) => {
+				draft.status = "failed";
+				draft.error =
+					err instanceof Error ? err.message : "Failed to create workspace";
+			});
 		}
 	}, [
 		attachments,
 		branchName,
 		branchNameEdited,
-		clearPendingWorkspace,
-		clearStashedDraft,
 		closeAndResetDraft,
+		collections,
 		compareBaseBranch,
-		convertBlobUrlToDataUrl,
 		createWorkspace,
 		hostTarget,
 		linkedIssues,
@@ -591,10 +565,7 @@ function PromptGroupInner({
 		navigate,
 		projectId,
 		prompt,
-		restoreStashedDraft,
 		runSetupScript,
-		setPendingWorkspace,
-		stashDraft,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,
