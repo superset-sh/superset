@@ -254,6 +254,7 @@ async function cloneRepo(
 
 	const parsed = remotes.get(matchingRemote);
 	if (!parsed) {
+		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: `Remote "${matchingRemote}" matched but has no parsed data`,
