@@ -18,11 +18,6 @@ function getSeedMarkerKey(organizationId: string): string {
 	return `v2-terminal-presets-seeded-${organizationId}`;
 }
 
-// Legacy global marker from earlier builds. We remove it on first mount so
-// returning users fall into the normal per-org seeding path instead of being
-// permanently skipped by a stale flag.
-const LEGACY_GLOBAL_SEED_MARKER_KEY = "v2-terminal-presets-seeded";
-
 /**
  * Seeds default terminal presets into the v2TerminalPresets collection once
  * per organization. Uses an org-scoped localStorage marker so a user who
@@ -45,23 +40,6 @@ export function useSeedDefaultV2Presets() {
 		if (seededOrgRef.current === organizationId) return;
 
 		const markerKey = getSeedMarkerKey(organizationId);
-
-		// One-time migration for users coming from pre-fix builds: if the
-		// legacy global marker is set and we don't yet have a per-org marker,
-		// assume the currently-active org is the one that was already seeded
-		// and carry the marker forward. This preserves the "don't re-seed
-		// after intentional deletion" guarantee for the common case. Multi-org
-		// legacy users would need to manually create presets in other orgs.
-		if (
-			localStorage.getItem(LEGACY_GLOBAL_SEED_MARKER_KEY) === "1" &&
-			localStorage.getItem(markerKey) !== "1"
-		) {
-			localStorage.setItem(markerKey, "1");
-			localStorage.removeItem(LEGACY_GLOBAL_SEED_MARKER_KEY);
-			seededOrgRef.current = organizationId;
-			return;
-		}
-
 		if (localStorage.getItem(markerKey) === "1") {
 			seededOrgRef.current = organizationId;
 			return;
