@@ -69,7 +69,15 @@ This doesn't depend on the context provider staying mounted — the zustand atom
 
 No `generating-branch` (no blocking AI), no `preparing` (no renderer-side prep between close and API call). Skeleton appears, host-service call runs, skeleton resolves to workspace or error.
 
-## 8. Branch dedup
+## 8. Worktree creation always creates a new branch
+
+**Behavior:** Always `git worktree add -b branchName worktreePath baseBranch`. If the branch name already exists (despite dedup), fall back to a new deduplicated name — never check out the existing branch.
+
+Checking out an existing branch into a worktree is a separate intent (e.g. "import existing branch" or `createFromPr`). The create flow should never silently check out someone else's branch. If the `-b` fails because the branch exists, append a suffix and retry — don't switch to a checkout.
+
+V1's try/catch pattern (`worktree add` then fallback to `worktree add -b`) conflates "create" and "checkout" intents. V2 keeps them separate.
+
+## 9. Branch dedup
 
 **Owner:** Host-service (at create time).
 

@@ -383,22 +383,16 @@ export const workspaceCreationRouter = router({
 			const git = await ctx.git(localProject.repoPath);
 			const baseBranch = input.composer.compareBaseBranch || "HEAD";
 
-			try {
-				await git.raw(["worktree", "add", worktreePath, branchName]);
-			} catch (existingBranchErr) {
-				console.warn(
-					"[workspaceCreation.create] worktree add for existing branch failed, creating new branch",
-					{ branchName, existingBranchErr },
-				);
-				await git.raw([
-					"worktree",
-					"add",
-					"-b",
-					branchName,
-					worktreePath,
-					baseBranch,
-				]);
-			}
+			// Always create a new branch — never check out an existing one.
+			// Checking out existing branches is a separate intent (e.g. createFromPr).
+			await git.raw([
+				"worktree",
+				"add",
+				"-b",
+				branchName,
+				worktreePath,
+				baseBranch,
+			]);
 
 			setProgress(input.pendingId, "registering");
 
