@@ -7,6 +7,7 @@ const CREATION_STATUS_LABELS: Record<
 	preparing: "Preparing...",
 	"generating-branch": "Generating...",
 	creating: "Creating...",
+	failed: "Failed",
 } as const;
 
 export function getCreationStatusText(

@@ -36,7 +36,7 @@ export interface DashboardSidebarWorkspace {
 	behindCount: number | null;
 	createdAt: Date;
 	updatedAt: Date;
-	creationStatus?: "preparing" | "generating-branch" | "creating";
+	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
 }
 
 export interface DashboardSidebarSection {

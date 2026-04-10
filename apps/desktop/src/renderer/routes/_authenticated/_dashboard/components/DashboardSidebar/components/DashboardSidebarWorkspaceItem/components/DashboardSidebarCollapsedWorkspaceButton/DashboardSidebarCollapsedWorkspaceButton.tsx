@@ -9,7 +9,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	hostType: DashboardSidebarWorkspaceHostType;
 	isActive: boolean;
 	workspaceStatus?: ActivePaneStatus | null;
-	creationStatus?: "preparing" | "generating-branch" | "creating";
+	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
 }
 
 export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<

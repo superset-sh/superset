@@ -10,7 +10,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
 	workspaceStatus?: ActivePaneStatus | null;
-	creationStatus?: "preparing" | "generating-branch" | "creating";
+	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
 }
 
 const OVERLAY_POSITION = {
