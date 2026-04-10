@@ -104,7 +104,7 @@ export function PromptGroup({
 
 	const branchSlug = branchNameEdited
 		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
-				preserveFirstSegmentCase: true,
+				preserveCase: true,
 			})
 		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
 
