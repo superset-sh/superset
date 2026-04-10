@@ -1,8 +1,9 @@
 import * as p from "@clack/prompts";
 import { boolean, CLIError, command, number } from "@superset/cli-framework";
-import { readConfig } from "../../../lib/config";
+import { getActiveOrgId } from "../../../lib/active-org";
 import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
 import { spawnHostService } from "../../../lib/host/spawn";
+import { resolveAuth } from "../../../lib/resolve-auth";
 
 export default command({
 	description: "Start the host service",
@@ -11,17 +12,12 @@ export default command({
 		port: number().desc("Port to listen on"),
 	},
 	run: async (opts) => {
-		const config = readConfig();
-
-		if (!config.auth?.accessToken) {
-			throw new CLIError("Not authenticated", "Run: superset auth login");
-		}
-
-		if (!config.activeOrg) {
-			throw new CLIError("No active organization", "Run: superset org switch");
-		}
-
-		const { id: organizationId, name: orgName } = config.activeOrg;
+		const { api, bearer, authSource } = await resolveAuth(
+			(opts.options as { apiKey?: string }).apiKey,
+		);
+		const organizationId = await getActiveOrgId(api, bearer, authSource);
+		const orgRecord = await api.user.myOrganization.query();
+		const orgName = orgRecord?.name ?? organizationId;
 
 		// Check if already running
 		const existing = readManifest(organizationId);
@@ -39,7 +35,7 @@ export default command({
 		try {
 			const result = await spawnHostService({
 				organizationId,
-				sessionToken: config.auth.accessToken,
+				sessionToken: bearer,
 				port: opts.options.port,
 				daemon: opts.options.daemon ?? false,
 			});

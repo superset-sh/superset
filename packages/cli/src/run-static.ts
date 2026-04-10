@@ -26,6 +26,9 @@ const globals = {
 	json: boolean().desc("Output as JSON"),
 	quiet: boolean().desc("Output IDs only"),
 	device: string().env("SUPERSET_DEVICE").desc("Override device"),
+	apiKey: string()
+		.env("SUPERSET_API_KEY")
+		.desc("Use a Superset API key (sk_live_…) instead of OAuth login"),
 };
 
 export async function runStatic(): Promise<void> {

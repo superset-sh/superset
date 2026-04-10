@@ -6,15 +6,23 @@ import { getApiUrl, type SupersetConfig } from "./config";
 
 export type ApiClient = TRPCClient<AppRouter>;
 
-export function createApiClient(config: SupersetConfig): ApiClient {
-	const token = config.auth?.accessToken;
+/**
+ * Build a tRPC client. The bearer is supplied explicitly so the caller (the
+ * CLI middleware) can resolve it from any source — `--api-key` flag,
+ * `SUPERSET_API_KEY` env, or the OAuth access token from `~/superset/config.json`
+ * — without this module having to know about precedence rules.
+ */
+export function createApiClient(
+	config: SupersetConfig,
+	opts: { bearer: string },
+): ApiClient {
 	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${getApiUrl(config)}/api/trpc`,
 				transformer: SuperJSON,
 				headers() {
-					return token ? { Authorization: `Bearer ${token}` } : {};
+					return { Authorization: `Bearer ${opts.bearer}` };
 				},
 			}),
 		],

@@ -1,23 +1,23 @@
 import { CLIError, command } from "@superset/cli-framework";
-import { readConfig } from "../../../lib/config";
+import { getActiveOrgId } from "../../../lib/active-org";
 import {
 	isProcessAlive,
 	readManifest,
 	removeManifest,
 } from "../../../lib/host/manifest";
+import { resolveAuth } from "../../../lib/resolve-auth";
 
 export default command({
 	description: "Stop the host service daemon",
-	run: async () => {
-		const config = readConfig();
+	run: async (opts) => {
+		const { api, bearer, authSource } = await resolveAuth(
+			(opts.options as { apiKey?: string }).apiKey,
+		);
+		const organizationId = await getActiveOrgId(api, bearer, authSource);
+		const orgRecord = await api.user.myOrganization.query();
+		const orgName = orgRecord?.name ?? organizationId;
 
-		if (!config.activeOrg) {
-			throw new CLIError("No active organization", "Run: superset org switch");
-		}
-
-		const { id: organizationId, name: orgName } = config.activeOrg;
 		const manifest = readManifest(organizationId);
-
 		if (!manifest) {
 			return {
 				data: { running: false },

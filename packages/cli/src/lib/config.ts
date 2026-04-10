@@ -1,20 +1,24 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-
-export interface ActiveOrg {
-	id: string;
-	name: string;
-	slug: string;
-}
 
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;
+		refreshToken: string;
+		expiresAt: number; // epoch ms
 	};
-	activeOrg?: ActiveOrg;
 	apiUrl?: string;
-	clientIds?: Record<string, string>;
+	// NOTE: `clientIds` from pre-0.1.x installs is silently ignored on read
+	// (we use a hardcoded `SUPERSET_CLI_CLIENT_ID` now). Stale entries in
+	// existing config files are harmless.
 };
 
 export type DeviceConfig = {
@@ -34,12 +38,29 @@ function ensureDir() {
 
 export function readConfig(): SupersetConfig {
 	if (!existsSync(CONFIG_PATH)) return {};
+	// Best-effort: if a previous CLI version wrote the file with a wider mode,
+	// repair it to 0600 on read so the access token isn't world-readable.
+	try {
+		const stat = statSync(CONFIG_PATH);
+		if ((stat.mode & 0o077) !== 0) {
+			chmodSync(CONFIG_PATH, 0o600);
+		}
+	} catch {
+		// stat/chmod failure is non-fatal — proceed with the read.
+	}
 	return JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
 }
 
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
-	writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+	// Pass mode on create. writeFileSync ignores mode for existing files, so
+	// we follow up with chmodSync to repair any pre-existing world-readable file.
+	writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), { mode: 0o600 });
+	try {
+		chmodSync(CONFIG_PATH, 0o600);
+	} catch {
+		// chmod failure is non-fatal.
+	}
 }
 
 export function readDeviceConfig(): DeviceConfig | null {

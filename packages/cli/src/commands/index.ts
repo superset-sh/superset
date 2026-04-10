@@ -3,9 +3,9 @@
 // needs static imports.
 
 import { skip } from "@superset/cli-framework";
+import authCheckCmd from "./auth/check/command";
 import authLoginCmd from "./auth/login/command";
 import authLogoutCmd from "./auth/logout/command";
-import authWhoamiCmd from "./auth/whoami/command";
 import devicesListCmd from "./devices/list/command";
 import hostInstallCmd from "./host/install/command";
 import hostStartCmd from "./host/start/command";
@@ -13,7 +13,6 @@ import hostStatusCmd from "./host/status/command";
 import hostStopCmd from "./host/stop/command";
 import rootMiddleware from "./middleware";
 import orgListCmd from "./org/list/command";
-import orgSwitchCmd from "./org/switch/command";
 import tasksCreateCmd from "./tasks/create/command";
 import tasksDeleteCmd from "./tasks/delete/command";
 import tasksGetCmd from "./tasks/get/command";
@@ -46,16 +45,15 @@ export const groups: GroupEntry[] = [
 ];
 
 export const commands: CommandEntry[] = [
+	{ path: ["auth", "check"], command: authCheckCmd },
 	{ path: ["auth", "login"], command: authLoginCmd },
 	{ path: ["auth", "logout"], command: authLogoutCmd },
-	{ path: ["auth", "whoami"], command: authWhoamiCmd },
 	{ path: ["devices", "list"], command: devicesListCmd },
 	{ path: ["host", "install"], command: hostInstallCmd },
 	{ path: ["host", "start"], command: hostStartCmd },
 	{ path: ["host", "status"], command: hostStatusCmd },
 	{ path: ["host", "stop"], command: hostStopCmd },
 	{ path: ["org", "list"], command: orgListCmd },
-	{ path: ["org", "switch"], command: orgSwitchCmd },
 	{ path: ["tasks", "create"], command: tasksCreateCmd },
 	{ path: ["tasks", "delete"], command: tasksDeleteCmd },
 	{ path: ["tasks", "get"], command: tasksGetCmd },

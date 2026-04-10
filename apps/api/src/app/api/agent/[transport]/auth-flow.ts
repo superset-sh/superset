@@ -3,6 +3,13 @@ import type { WebStandardStreamableHTTPServerTransport } from "@modelcontextprot
 import type { createMcpServer } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
 import type { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
+import {
+	getBearerToken,
+	isApiKeyBearerToken,
+	looksLikeJwt,
+	normalizeApiUrl,
+	parseApiKeyMetadata,
+} from "@/lib/auth-utils";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
 
 interface SessionUser {
@@ -43,19 +50,7 @@ export interface McpRequestDeps {
 	verifyAccessToken: typeof verifyOAuthAccessToken;
 }
 
-function getBearerToken(req: Request): string | undefined {
-	const authorization = req.headers.get("authorization");
-	const match = authorization?.match(/^Bearer\s+(.+)$/i);
-	return match?.[1];
-}
-
-export function isApiKeyBearerToken(token: string): boolean {
-	return token.startsWith("sk_live_");
-}
-
-function normalizeApiUrl(apiUrl: string): string {
-	return apiUrl.replace(/\/+$/, "");
-}
+export { isApiKeyBearerToken } from "@/lib/auth-utils";
 
 function getSafeAuthErrorName(error: unknown): string {
 	if (error && typeof error === "object") {
@@ -71,11 +66,6 @@ function getSafeAuthErrorName(error: unknown): string {
 	}
 
 	return "AuthVerificationError";
-}
-
-function looksLikeJwt(token: string): boolean {
-	const parts = token.split(".");
-	return parts.length === 3 && parts.every(Boolean);
 }
 
 function buildSessionAuthInfo(session: SessionResponse): AuthInfo | undefined {
@@ -97,30 +87,6 @@ function buildSessionAuthInfo(session: SessionResponse): AuthInfo | undefined {
 			} satisfies McpContext,
 		},
 	};
-}
-
-function parseApiKeyMetadata(
-	metadata: unknown,
-): Record<string, unknown> | null {
-	if (!metadata) {
-		return null;
-	}
-
-	if (typeof metadata === "string") {
-		try {
-			const parsed = JSON.parse(metadata);
-			return parsed && typeof parsed === "object"
-				? (parsed as Record<string, unknown>)
-				: null;
-		} catch (error) {
-			console.error("[mcp/auth] Failed to parse API key metadata:", error);
-			return null;
-		}
-	}
-
-	return typeof metadata === "object"
-		? (metadata as Record<string, unknown>)
-		: null;
 }
 
 function buildApiKeyAuthInfo(apiKey: VerifiedApiKey): AuthInfo | undefined {

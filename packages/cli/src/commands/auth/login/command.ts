@@ -1,11 +1,12 @@
 import * as p from "@clack/prompts";
 import { command, string } from "@superset/cli-framework";
 import { createApiClient } from "../../../lib/api-client";
-import { deviceAuth } from "../../../lib/auth";
+import { authorizationCodeAuth, decodeJwtPayload } from "../../../lib/auth";
 import { getApiUrl, readConfig, writeConfig } from "../../../lib/config";
 
 export default command({
-	description: "Authenticate with Superset",
+	description:
+		"Authenticate with Superset. Re-run to switch organizations — the org you pick on the consent screen is pinned to the new session.",
 
 	options: {
 		apiUrl: string().env("SUPERSET_API_URL").desc("Override API URL"),
@@ -22,24 +23,29 @@ export default command({
 		const s = p.spinner();
 		s.start("Waiting for browser authorization...");
 
-		const result = await deviceAuth(apiUrl, opts.signal);
+		const result = await authorizationCodeAuth(apiUrl, opts.signal);
 
-		config.auth = { accessToken: result.token };
+		config.auth = {
+			accessToken: result.accessToken,
+			refreshToken: result.refreshToken,
+			expiresAt: result.expiresAt,
+		};
 		writeConfig(config);
 
 		s.stop("Authorized!");
 
-		// The user picked an org during the OAuth consent screen — read it back
-		// and cache locally so `host start` and other commands know which org to use.
+		// Display who we just signed in as. The org is baked into the JWT
+		// claim by `customAccessTokenClaims`, so we don't need a server round
+		// trip just to know its ID — but we still call `myOrganization` to
+		// fetch the human-readable name for output. Best-effort: a failure
+		// here is non-fatal because login itself succeeded.
 		try {
-			const api = createApiClient(config);
+			const api = createApiClient(config, { bearer: result.accessToken });
 			const user = await api.user.me.query();
-			const org = await api.user.myOrganization.query();
 			p.log.info(`${user.name} (${user.email})`);
 
+			const org = await api.user.myOrganization.query();
 			if (org) {
-				config.activeOrg = { id: org.id, name: org.name, slug: org.slug };
-				writeConfig(config);
 				p.log.info(`Organization: ${org.name}`);
 			} else {
 				p.log.warn("No organization selected.");
@@ -50,6 +56,17 @@ export default command({
 
 		p.outro("Logged in successfully.");
 
-		return { data: { apiUrl, activeOrg: config.activeOrg } };
+		// Return the org from the JWT claim so JSON consumers see what's in
+		// the token, not a separate lookup that could disagree.
+		const payload = decodeJwtPayload(result.accessToken);
+		return {
+			data: {
+				apiUrl,
+				organizationId:
+					typeof payload.organizationId === "string"
+						? payload.organizationId
+						: null,
+			},
+		};
 	},
 });

@@ -20,12 +20,7 @@ import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-	bearer,
-	customSession,
-	deviceAuthorization,
-	organization,
-} from "better-auth/plugins";
+import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -34,6 +29,10 @@ import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
+import { resolvePlanForOrganization } from "./lib/resolve-plan-for-organization";
+
+export { resolvePlanForOrganization } from "./lib/resolve-plan-for-organization";
+
 import {
 	resolveSessionOrganizationState,
 	type SessionOrganizationContext,
@@ -225,9 +224,15 @@ export const auth = betterAuth({
 					return activeOrganizationId ?? undefined;
 				},
 			},
-			customAccessTokenClaims: ({ referenceId }) => ({
-				organizationId: referenceId ?? undefined,
-			}),
+			customAccessTokenClaims: async ({ user, referenceId }) => {
+				const organizationId = referenceId ?? undefined;
+				const plan = await resolvePlanForOrganization(organizationId);
+				return {
+					organizationId,
+					plan,
+					email: (user as { email?: string } | undefined)?.email,
+				};
+			},
 		}),
 		expo(),
 		organization({
@@ -563,9 +568,6 @@ export const auth = betterAuth({
 				},
 			},
 		}),
-		deviceAuthorization({
-			verificationUri: `${env.NEXT_PUBLIC_WEB_URL}/device`,
-		}),
 		bearer(),
 		customSession(async ({ user, session: baseSession }) => {
 			const session = baseSession as typeof sessions.$inferSelect;
@@ -579,16 +581,7 @@ export const auth = betterAuth({
 				...new Set(allMemberships.map((m) => m.organizationId)),
 			];
 
-			let plan: string | null = null;
-			if (activeOrganizationId) {
-				const subscription = await db.query.subscriptions.findFirst({
-					where: and(
-						eq(subscriptions.referenceId, activeOrganizationId),
-						eq(subscriptions.status, "active"),
-					),
-				});
-				plan = subscription?.plan ?? null;
-			}
+			const plan = await resolvePlanForOrganization(activeOrganizationId);
 
 			return {
 				user,
