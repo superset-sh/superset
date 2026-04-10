@@ -12,12 +12,11 @@ import { useCallback, useMemo, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
-import { PresetsBar } from "renderer/screens/main/components/WorkspaceView/ContentView/components/PresetsBar";
 import { useStore } from "zustand";
 import { AddTabMenu } from "./components/AddTabMenu";
+import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
@@ -84,28 +83,6 @@ function WorkspaceContent({
 	});
 	const paneRegistry = usePaneRegistry(workspaceId);
 	const defaultContextMenuActions = useDefaultContextMenuActions();
-
-	const utils = electronTrpc.useUtils();
-	const { data: showPresetsBar, isLoading: isLoadingPresetsBar } =
-		electronTrpc.settings.getShowPresetsBar.useQuery();
-	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
-		{
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getShowPresetsBar.cancel();
-				const previous = utils.settings.getShowPresetsBar.getData();
-				utils.settings.getShowPresetsBar.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (_error, _variables, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getShowPresetsBar.setData(undefined, context.previous);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getShowPresetsBar.invalidate();
-			},
-		},
-	);
 
 	const selectedFilePath = useStore(store, (s) => {
 		const tab = s.tabs.find((t) => t.id === s.activeTabId);
@@ -230,20 +207,22 @@ function WorkspaceContent({
 						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
 					>
-						{!isLoadingPresetsBar && showPresetsBar ? <PresetsBar /> : null}
 						<Workspace<PaneViewerData>
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
+							renderBelowTabBar={() => (
+								<V2PresetsBar
+									workspaceId={workspaceId}
+									projectId={projectId}
+									store={store}
+								/>
+							)}
 							renderAddTabMenu={() => (
 								<AddTabMenu
 									onAddTerminal={addTerminalTab}
 									onAddChat={addChatTab}
 									onAddBrowser={addBrowserTab}
-									showPresetsBar={showPresetsBar ?? false}
-									onTogglePresetsBar={(enabled) =>
-										setShowPresetsBar.mutate({ enabled })
-									}
 								/>
 							)}
 							renderEmptyState={() => (

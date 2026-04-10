@@ -52,6 +52,29 @@ export const dashboardSidebarSectionSchema = z.object({
 	color: z.string().nullable().default(null),
 });
 
+const v2ExecutionModeSchema = z.enum([
+	"split-pane",
+	"new-tab",
+	"new-tab-split-pane",
+]);
+
+// projectIds uses plain z.string() (not uuid) because v1 accepts arbitrary
+// string IDs and the migration copies them verbatim.
+export const v2TerminalPresetSchema = z.object({
+	id: z.string().uuid(),
+	name: z.string(),
+	description: z.string().optional(),
+	cwd: z.string().default(""),
+	commands: z.array(z.string()).default([]),
+	projectIds: z.array(z.string()).nullable().default(null),
+	pinnedToBar: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: v2ExecutionModeSchema.default("new-tab"),
+	tabOrder: z.number().int().default(0),
+	createdAt: persistedDateSchema,
+});
+
 export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
 >;
@@ -59,3 +82,4 @@ export type WorkspaceLocalStateRow = z.infer<typeof workspaceLocalStateSchema>;
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;
+export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
