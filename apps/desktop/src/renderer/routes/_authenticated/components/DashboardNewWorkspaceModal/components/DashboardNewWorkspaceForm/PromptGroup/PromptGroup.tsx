@@ -705,6 +705,14 @@ ${sanitizeText(truncatedBody)}`;
 				.filter((i) => i.source === "github" && i.url)
 				.map((i) => i.url as string);
 
+			// Use the prompt as a fallback name when neither workspace name
+			// nor branch name were explicitly set (matches V1 behavior).
+			const fallbackName = trimmedPrompt || undefined;
+			const resolvedWorkspaceName =
+				(workspaceNameEdited && workspaceName.trim()
+					? workspaceName.trim()
+					: fallbackName) || undefined;
+
 			// 5. Call host-service create via the draft's cached mutation
 			void runAsyncAction(
 				createWorkspace({
@@ -712,10 +720,7 @@ ${sanitizeText(truncatedBody)}`;
 					hostTarget,
 					source: linkedPR ? "pull-request" : "prompt",
 					names: {
-						workspaceName:
-							workspaceNameEdited && workspaceName.trim()
-								? workspaceName.trim()
-								: undefined,
+						workspaceName: resolvedWorkspaceName,
 						branchName: resolvedBranchName,
 					},
 					composer: {
