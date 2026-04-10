@@ -2,7 +2,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
@@ -61,6 +61,22 @@ function PendingWorkspacePage() {
 
 	const steps = progress?.steps ?? [];
 
+	// Elapsed timer + staleness detection
+	const STALE_THRESHOLD_MS = 2 * 60 * 1000;
+	const [now, setNow] = useState(Date.now());
+	useEffect(() => {
+		if (pending?.status !== "creating") return;
+		const interval = setInterval(() => setNow(Date.now()), 1000);
+		return () => clearInterval(interval);
+	}, [pending?.status]);
+
+	const elapsedMs =
+		pending?.createdAt instanceof Date
+			? Math.max(0, now - pending.createdAt.getTime())
+			: 0;
+	const elapsedSeconds = Math.floor(elapsedMs / 1000);
+	const isStale = pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
+
 	// Auto-navigate to real workspace on success
 	useEffect(() => {
 		if (
@@ -103,9 +119,16 @@ function PendingWorkspacePage() {
 				{/* Status */}
 				{pending.status === "creating" && (
 					<div className="space-y-3">
-						<p className="text-sm text-muted-foreground">
-							Creating workspace...
-						</p>
+						<div className="flex items-center justify-between">
+							<p className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}>
+								{isStale
+									? "This is taking longer than expected..."
+									: "Creating workspace..."}
+							</p>
+							<span className="text-xs tabular-nums text-muted-foreground/50">
+								{elapsedSeconds}s
+							</span>
+						</div>
 						{steps.length > 0 && (
 							<div className="space-y-2">
 								{steps.map((step) => (
@@ -135,6 +158,21 @@ function PendingWorkspacePage() {
 										</span>
 									</div>
 								))}
+							</div>
+						)}
+						{isStale && (
+							<div className="flex gap-2 pt-1">
+								<button
+									type="button"
+									className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+									onClick={() => {
+										collections.pendingWorkspaces.delete(pendingId);
+										void clearAttachments(pendingId);
+										void navigate({ to: "/" });
+									}}
+								>
+									Dismiss
+								</button>
 							</div>
 						)}
 					</div>
