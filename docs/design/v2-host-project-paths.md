@@ -172,7 +172,7 @@ On submit, the client calls `project.setup`, then retries `workspace.create` aut
 
 **Validation for "Use existing directory":**
 - Path exists and is a directory
-- Contains a `.git` folder (is a git repo)
+- Resolves to a git repository via `git rev-parse --show-toplevel`
 - A git remote URL matches the project's GitHub repository
 - Show green checkmark or red X with mismatch details
 

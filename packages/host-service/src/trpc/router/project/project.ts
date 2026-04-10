@@ -1,16 +1,23 @@
 import { existsSync, rmSync, statSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { parseGitHubRemote } from "../../../runtime/pull-requests/utils/parse-github-remote";
 import { protectedProcedure, router } from "../../index";
 import {
-	extractGitHubSlug,
 	findMatchingRemote,
-	getAllRemoteUrls,
+	getGitHubRemotes,
+	type ParsedGitHubRemote,
 } from "./utils/git-remote";
+
+interface ResolvedRepo {
+	repoPath: string;
+	matchingRemote: string;
+	parsed: ParsedGitHubRemote;
+}
 
 export const projectRouter = router({
 	setup: protectedProcedure
@@ -41,59 +48,53 @@ export const projectRouter = router({
 				});
 			}
 
-			const expectedSlug = extractGitHubSlug(cloudProject.repoCloneUrl);
-			if (!expectedSlug) {
+			const expectedParsed = parseGitHubRemote(cloudProject.repoCloneUrl);
+			if (!expectedParsed) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: `Could not parse GitHub slug from ${cloudProject.repoCloneUrl}`,
+					message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
 				});
 			}
 
-			let repoPath: string;
+			const expectedSlug = `${expectedParsed.owner}/${expectedParsed.name}`;
+
+			let resolved: ResolvedRepo;
 
 			if (input.mode === "import") {
-				repoPath = await importExistingRepo(input.localPath, expectedSlug);
+				resolved = await importExistingRepo(input.localPath, expectedSlug);
 			} else {
-				repoPath = await cloneRepo(cloudProject.repoCloneUrl, input.localPath);
+				resolved = await cloneRepo(
+					cloudProject.repoCloneUrl,
+					input.localPath,
+					expectedSlug,
+				);
 			}
-
-			// Extract repo metadata from the resolved path
-			const git = simpleGit(repoPath);
-			const remotes = await getAllRemoteUrls(git);
-			const matchingRemote = findMatchingRemote(remotes, expectedSlug);
-			const remoteUrl = matchingRemote
-				? remotes.get(matchingRemote)
-				: undefined;
-			const repoFullName = remoteUrl
-				? extractGitHubSlug(remoteUrl)
-				: expectedSlug;
-			const [repoOwner, repoName] = repoFullName?.split("/") ?? [];
 
 			ctx.db
 				.insert(projects)
 				.values({
 					id: input.projectId,
-					repoPath,
+					repoPath: resolved.repoPath,
 					repoProvider: "github",
-					repoOwner,
-					repoName,
-					repoUrl: remoteUrl,
-					remoteName: matchingRemote,
+					repoOwner: resolved.parsed.owner,
+					repoName: resolved.parsed.name,
+					repoUrl: resolved.parsed.url,
+					remoteName: resolved.matchingRemote,
 				})
 				.onConflictDoUpdate({
 					target: projects.id,
 					set: {
-						repoPath,
+						repoPath: resolved.repoPath,
 						repoProvider: "github",
-						repoOwner,
-						repoName,
-						repoUrl: remoteUrl,
-						remoteName: matchingRemote,
+						repoOwner: resolved.parsed.owner,
+						repoName: resolved.parsed.name,
+						repoUrl: resolved.parsed.url,
+						remoteName: resolved.matchingRemote,
 					},
 				})
 				.run();
 
-			return { repoPath };
+			return { repoPath: resolved.repoPath };
 		}),
 
 	// TODO: remove
@@ -146,7 +147,7 @@ export const projectRouter = router({
 async function importExistingRepo(
 	localPath: string,
 	expectedSlug: string,
-): Promise<string> {
+): Promise<ResolvedRepo> {
 	if (!existsSync(localPath)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -154,8 +155,7 @@ async function importExistingRepo(
 		});
 	}
 
-	const stat = statSync(localPath);
-	if (!stat.isDirectory()) {
+	if (!statSync(localPath).isDirectory()) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Path is not a directory: ${localPath}`,
@@ -174,12 +174,12 @@ async function importExistingRepo(
 		});
 	}
 
-	const remotes = await getAllRemoteUrls(simpleGit(gitRoot));
+	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
 	const matchingRemote = findMatchingRemote(remotes, expectedSlug);
 
 	if (!matchingRemote) {
 		const found = [...remotes.entries()]
-			.map(([name, url]) => `${name}: ${url}`)
+			.map(([name, parsed]) => `${name}: ${parsed.owner}/${parsed.name}`)
 			.join(", ");
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -187,22 +187,34 @@ async function importExistingRepo(
 		});
 	}
 
-	return gitRoot;
+	const parsed = remotes.get(matchingRemote)!;
+
+	return { repoPath: gitRoot, matchingRemote, parsed };
 }
 
 async function cloneRepo(
 	repoCloneUrl: string,
 	parentDir: string,
-): Promise<string> {
-	if (!existsSync(parentDir)) {
+	expectedSlug: string,
+): Promise<ResolvedRepo> {
+	const resolvedParentDir = resolve(parentDir);
+
+	if (!existsSync(resolvedParentDir)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Parent directory does not exist: ${parentDir}`,
+			message: `Parent directory does not exist: ${resolvedParentDir}`,
+		});
+	}
+
+	if (!statSync(resolvedParentDir).isDirectory()) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Parent path is not a directory: ${resolvedParentDir}`,
 		});
 	}
 
 	const repoName = extractRepoNameFromUrl(repoCloneUrl);
-	const targetPath = join(parentDir, repoName);
+	const targetPath = join(resolvedParentDir, repoName);
 
 	if (existsSync(targetPath)) {
 		throw new TRPCError({
@@ -211,16 +223,34 @@ async function cloneRepo(
 		});
 	}
 
-	await simpleGit().clone(repoCloneUrl, targetPath);
+	try {
+		await simpleGit().clone(repoCloneUrl, targetPath);
+	} catch (err) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to clone repository: ${err instanceof Error ? err.message : String(err)}`,
+		});
+	}
 
-	return targetPath;
+	const remotes = await getGitHubRemotes(simpleGit(targetPath));
+	const matchingRemote = findMatchingRemote(remotes, expectedSlug);
+
+	if (!matchingRemote) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Cloned repo does not match expected GitHub remote",
+		});
+	}
+
+	return {
+		repoPath: targetPath,
+		matchingRemote,
+		parsed: remotes.get(matchingRemote)!,
+	};
 }
 
 function extractRepoNameFromUrl(url: string): string {
-	// Handle both https://github.com/owner/repo.git and git@github.com:owner/repo.git
-	const slug = extractGitHubSlug(url);
-	if (slug) {
-		return slug.split("/")[1] ?? basename(url, ".git");
-	}
+	const parsed = parseGitHubRemote(url);
+	if (parsed) return parsed.name;
 	return basename(url, ".git");
 }
