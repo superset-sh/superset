@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { clearAttachments } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -74,7 +75,7 @@ function PendingWorkspacePage() {
 		? new Date(pending.createdAt).getTime()
 		: now;
 	const elapsedMs = Math.max(0, now - createdAtMs);
-	const elapsedSeconds = Math.floor(elapsedMs / 1000);
+	const elapsedLabel = formatRelativeTime(createdAtMs);
 	const isStale = pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
 	// Auto-navigate to real workspace on success
@@ -120,7 +121,7 @@ function PendingWorkspacePage() {
 				{pending.status === "creating" && (
 					<div className="space-y-3">
 						<p className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}>
-							<span className="tabular-nums">{elapsedSeconds}s</span>{" "}
+							<span className="tabular-nums">{elapsedLabel}</span>{" "}
 							{isStale
 								? "This is taking longer than expected..."
 								: "Creating workspace..."}
