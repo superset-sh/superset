@@ -260,8 +260,6 @@ export function V2PresetsBar({
 			const [moved] = reorderedPinnedPresetIds.splice(currentPinnedIndex, 1);
 			reorderedPinnedPresetIds.splice(targetPinnedIndex, 0, moved);
 
-			// Assign tabOrder values so the persisted order matches the new pinned sequence.
-			// Non-pinned presets keep their existing relative order after pinned ones.
 			const pinnedSet = new Set(reorderedPinnedPresetIds);
 			const unpinned = matchedPresets
 				.filter((preset) => !pinnedSet.has(preset.id))

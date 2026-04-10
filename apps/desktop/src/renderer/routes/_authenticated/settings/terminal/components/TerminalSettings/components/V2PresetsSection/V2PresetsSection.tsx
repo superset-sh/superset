@@ -33,13 +33,10 @@ interface V2PresetsSectionProps {
 }
 
 /**
- * V2 terminal presets UI — a clone of PresetsSection wired to the
- * renderer-side v2TerminalPresets collection instead of the v1 main-process
- * tRPC router. Reuses PresetsTable / PresetEditorSheet / QuickAddPresets
- * from the v1 directory since those are dumb (prop-driven) renderers.
- *
- * When v1 is deprecated, delete the sibling PresetsSection directory and
- * move the shared sub-components under this one.
+ * V2 clone of PresetsSection wired to the renderer-side v2TerminalPresets
+ * collection. Reuses PresetsTable / PresetEditorSheet / QuickAddPresets from
+ * the v1 directory (they're prop-driven renderers). When v1 is deprecated,
+ * delete PresetsSection and move the shared sub-components here.
  */
 export function V2PresetsSection({
 	showPresets,
@@ -69,8 +66,8 @@ export function V2PresetsSection({
 		[collections],
 	);
 
-	// V2TerminalPresetRow is a structural superset of TerminalPreset (adds
-	// tabOrder + createdAt), so the dumb sub-components can consume it as-is.
+	// V2TerminalPresetRow is a superset of TerminalPreset — safe to cast
+	// for the prop-driven sub-components.
 	const serverPresets = useMemo<TerminalPreset[]>(
 		() => v2Presets as unknown as TerminalPreset[],
 		[v2Presets],
@@ -178,8 +175,6 @@ export function V2PresetsSection({
 		(template: PresetTemplate) => existingPresetNames.has(template.preset.name),
 		[existingPresetNames],
 	);
-
-	// --- Collection mutations (wrapped to match v1 call sites) ---
 
 	const insertV2Preset = useCallback(
 		(input: {
