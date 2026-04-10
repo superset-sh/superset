@@ -119,16 +119,12 @@ function PendingWorkspacePage() {
 				{/* Status */}
 				{pending.status === "creating" && (
 					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<p className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}>
-								{isStale
-									? "This is taking longer than expected..."
-									: "Creating workspace..."}
-							</p>
-							<span className="text-xs tabular-nums text-muted-foreground/50">
-								{elapsedSeconds}s
-							</span>
-						</div>
+						<p className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}>
+							<span className="tabular-nums">{elapsedSeconds}s</span>{" "}
+							{isStale
+								? "This is taking longer than expected..."
+								: "Creating workspace..."}
+						</p>
 						{steps.length > 0 && (
 							<div className="space-y-2">
 								{steps.map((step) => (
