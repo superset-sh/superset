@@ -10,7 +10,11 @@ import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
-import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
+import {
+	DEBUG_TERMINAL,
+	FIRST_RENDER_RESTORE_FALLBACK_MS,
+	RECOVERY_BURST_DELAYS_MS,
+} from "../config";
 import {
 	createTerminalInstance,
 	setupClickToMoveCursor,
@@ -837,12 +841,36 @@ export function useTerminalLifecycle({
 			reattachRecovery.pendingFrame = null;
 		};
 
+		// Recovery burst: run multiple recovery passes at staggered intervals
+		// after focus/visibility restore. A single pass can fire before the
+		// container finishes re-layout, leaving stale artifacts (issue #3321).
+		const recoveryBurstTimers: ReturnType<typeof setTimeout>[] = [];
+
+		const cancelRecoveryBurst = () => {
+			for (const timer of recoveryBurstTimers) {
+				clearTimeout(timer);
+			}
+			recoveryBurstTimers.length = 0;
+		};
+
+		const scheduleRecoveryBurst = (forceResize: boolean) => {
+			cancelRecoveryBurst();
+			scheduleReattachRecovery(forceResize);
+			for (const delay of RECOVERY_BURST_DELAYS_MS) {
+				const timer = setTimeout(() => {
+					if (isUnmounted) return;
+					runReattachRecovery(forceResize);
+				}, delay);
+				recoveryBurstTimers.push(timer);
+			}
+		};
+
 		const handleVisibilityChange = () => {
 			if (document.hidden) return;
-			scheduleReattachRecovery(isFocusedRef.current);
+			scheduleRecoveryBurst(isFocusedRef.current);
 		};
 		const handleWindowFocus = () => {
-			scheduleReattachRecovery(isFocusedRef.current);
+			scheduleRecoveryBurst(isFocusedRef.current);
 		};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -869,6 +897,7 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
+			cancelRecoveryBurst();
 			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", handleWindowFocus);

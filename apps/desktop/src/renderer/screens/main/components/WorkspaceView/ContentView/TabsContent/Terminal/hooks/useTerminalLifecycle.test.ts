@@ -21,7 +21,8 @@
  * Fix: when the throttle fires, schedule a retry after the remaining throttle
  * duration instead of silently returning.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
+import { RECOVERY_BURST_DELAYS_MS } from "../config";
 
 // ---------------------------------------------------------------------------
 // Minimal model of the scheduleReattachRecovery throttle mechanism.
@@ -166,5 +167,204 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// FAILS with current code: calls is still 0 because no retry was scheduled
 		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Minimal model of the recovery burst mechanism (issue #3321).
+//
+// After focus/visibility restore the terminal container may still be settling
+// its layout for a short period. A single `runReattachRecovery` pass can fire
+// before the layout finalises, leaving stale visual artifacts (blank strips,
+// outdated chrome). The fix introduces a recovery *burst*: the initial rAF
+// pass is followed by delayed passes at RECOVERY_BURST_DELAYS_MS intervals
+// to catch late-settling layout.
+// ---------------------------------------------------------------------------
+
+function makeBurstScheduler(runRecovery: (forceResize: boolean) => void): {
+	scheduleBurst: (forceResize: boolean) => void;
+	flush: () => void;
+	cancelBurst: () => void;
+	burstTimers: ReturnType<typeof setTimeout>[];
+} {
+	// Reuse the same rAF model as the throttle tests above
+	const pendingRafs: Array<() => void> = [];
+	let isUnmounted = false;
+
+	const reattachRecovery = {
+		throttleMs: 120,
+		pendingFrame: null as number | null,
+		lastRunAt: 0,
+		pendingForceResize: false,
+	};
+
+	const mockRaf = (cb: () => void): number => {
+		pendingRafs.push(cb);
+		return pendingRafs.length;
+	};
+
+	const scheduleReattachRecovery = (forceResize: boolean) => {
+		reattachRecovery.pendingForceResize ||= forceResize;
+		if (reattachRecovery.pendingFrame !== null) return;
+
+		reattachRecovery.pendingFrame = mockRaf(() => {
+			reattachRecovery.pendingFrame = null;
+			const now = Date.now();
+			if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs) {
+				const remaining =
+					reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
+				setTimeout(() => {
+					if (!isUnmounted)
+						scheduleReattachRecovery(reattachRecovery.pendingForceResize);
+				}, remaining + 1);
+				return;
+			}
+			reattachRecovery.lastRunAt = now;
+			const shouldForce = reattachRecovery.pendingForceResize;
+			reattachRecovery.pendingForceResize = false;
+			runRecovery(shouldForce);
+		}) as unknown as number;
+	};
+
+	const burstTimers: ReturnType<typeof setTimeout>[] = [];
+
+	const cancelBurst = () => {
+		for (const timer of burstTimers) clearTimeout(timer);
+		burstTimers.length = 0;
+		isUnmounted = true;
+	};
+
+	const scheduleBurst = (forceResize: boolean) => {
+		for (const timer of burstTimers) clearTimeout(timer);
+		burstTimers.length = 0;
+
+		scheduleReattachRecovery(forceResize);
+
+		for (const delay of RECOVERY_BURST_DELAYS_MS) {
+			const timer = setTimeout(() => {
+				if (isUnmounted) return;
+				runRecovery(forceResize);
+			}, delay);
+			burstTimers.push(timer);
+		}
+	};
+
+	const flushRafs = () => {
+		while (pendingRafs.length > 0) {
+			const cb = pendingRafs.shift();
+			cb?.();
+		}
+	};
+
+	return { scheduleBurst, flush: flushRafs, cancelBurst, burstTimers };
+}
+
+describe("recovery burst on focus/visibility restore — issue #3321", () => {
+	it("single recovery pass only fires once (pre-fix behavior)", () => {
+		// Before the burst fix, a focus/visibility event triggers a single
+		// rAF-scheduled recovery pass. If the container hasn't settled yet,
+		// the terminal remains stale until an external resize event.
+		let calls = 0;
+		const { schedule, flush } = makeScheduler(() => {
+			calls++;
+		});
+
+		schedule(false);
+		flush();
+
+		expect(calls).toBe(1);
+		// No further calls are scheduled — the stale state persists
+	});
+
+	it("recovery burst fires follow-up passes at staggered intervals", async () => {
+		const timestamps: number[] = [];
+		const start = Date.now();
+		const runRecovery = mock(() => {
+			timestamps.push(Date.now() - start);
+		});
+
+		const { scheduleBurst, flush } = makeBurstScheduler(runRecovery);
+
+		// Simulate focus restore
+		scheduleBurst(false);
+		flush(); // fires the immediate rAF pass
+
+		expect(runRecovery).toHaveBeenCalledTimes(1);
+
+		// Wait for all burst delays to complete
+		const maxDelay = Math.max(...RECOVERY_BURST_DELAYS_MS);
+		await new Promise((r) => setTimeout(r, maxDelay + 50));
+
+		// Immediate pass + one pass per burst delay
+		expect(runRecovery).toHaveBeenCalledTimes(
+			1 + RECOVERY_BURST_DELAYS_MS.length,
+		);
+	});
+
+	it("new burst cancels previous burst timers", async () => {
+		const runRecovery = mock(() => {});
+
+		const { scheduleBurst, flush } = makeBurstScheduler(runRecovery);
+
+		// First burst
+		scheduleBurst(false);
+		flush();
+		expect(runRecovery).toHaveBeenCalledTimes(1);
+
+		// Immediately schedule a second burst — first burst's timers are canceled
+		scheduleBurst(true);
+		// Second rAF is throttled (within 120ms of last run) so recovery doesn't
+		// fire again from the rAF, but burst timers are re-set
+		flush();
+
+		// Wait for all delays
+		const maxDelay = Math.max(...RECOVERY_BURST_DELAYS_MS);
+		await new Promise((r) => setTimeout(r, maxDelay + 50));
+
+		// 1 immediate (first burst) + 0 from throttled rAF + burst delays from
+		// second burst only (first burst's timers were canceled)
+		expect(runRecovery).toHaveBeenCalledTimes(
+			1 + RECOVERY_BURST_DELAYS_MS.length,
+		);
+	});
+
+	it("burst timers do not fire after cleanup (unmount)", async () => {
+		const runRecovery = mock(() => {});
+
+		const { scheduleBurst, flush, cancelBurst } =
+			makeBurstScheduler(runRecovery);
+
+		scheduleBurst(false);
+		flush();
+		expect(runRecovery).toHaveBeenCalledTimes(1);
+
+		// Simulate unmount — cancel all burst timers
+		cancelBurst();
+
+		const maxDelay = Math.max(...RECOVERY_BURST_DELAYS_MS);
+		await new Promise((r) => setTimeout(r, maxDelay + 50));
+
+		// No additional calls after cleanup
+		expect(runRecovery).toHaveBeenCalledTimes(1);
+	});
+
+	it("passes forceResize through to delayed recovery calls", async () => {
+		const forceResizeValues: boolean[] = [];
+		const runRecovery = mock((forceResize: boolean) => {
+			forceResizeValues.push(forceResize);
+		});
+
+		const { scheduleBurst, flush } = makeBurstScheduler(runRecovery);
+
+		scheduleBurst(true);
+		flush();
+
+		const maxDelay = Math.max(...RECOVERY_BURST_DELAYS_MS);
+		await new Promise((r) => setTimeout(r, maxDelay + 50));
+
+		expect(forceResizeValues.length).toBe(1 + RECOVERY_BURST_DELAYS_MS.length);
+		for (const val of forceResizeValues) {
+			expect(val).toBe(true);
+		}
 	});
 });

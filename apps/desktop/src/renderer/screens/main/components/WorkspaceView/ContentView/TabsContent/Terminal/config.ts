@@ -43,3 +43,9 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;
+
+// After focus/visibility restore, the terminal container may still be settling
+// its layout. A single repaint pass can fire before the layout finalises,
+// leaving stale visual artifacts (issue #3321). These delays schedule follow-up
+// recovery passes after the initial immediate one.
+export const RECOVERY_BURST_DELAYS_MS = [120, 260];
