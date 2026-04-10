@@ -14,17 +14,11 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 
-/**
- * Returning `false` here makes xterm bail at the top of `_keyDown`
- * (CoreBrowserTerminal.ts:847-849) before it can run `preventDefault` +
- * `stopPropagation` at line 925-928. The event keeps propagating, bubbles
- * to `document`, and `react-hotkeys-hook` fires the matching app action.
- * Without this gate, every modifier chord is delivered to the PTY AND
- * killed at target phase — which is why app hotkeys silently stopped
- * working in v2 terminals running a TUI (same situation as VSCode's
- * `terminalInstance.ts:1116-1175`).
- */
-function shouldBubbleToApp(event: KeyboardEvent): boolean {
+// xterm's _keyDown calls stopPropagation after processing, which kills the
+// bubble to react-hotkeys-hook. Returning false from the custom handler makes
+// xterm bail before that, so app hotkeys reach document. (VSCode pattern:
+// terminalInstance.ts:1116-1175)
+function isAppHotkey(event: KeyboardEvent): boolean {
 	return resolveHotkeyFromEvent(event) !== null;
 }
 
@@ -157,7 +151,7 @@ export function createRuntime(
 	terminal.open(wrapper);
 	restoreBuffer(terminalId, terminal);
 
-	terminal.attachCustomKeyEventHandler((event) => !shouldBubbleToApp(event));
+	terminal.attachCustomKeyEventHandler((event) => !isAppHotkey(event));
 
 	const addonsResult = loadAddons(terminal);
 
