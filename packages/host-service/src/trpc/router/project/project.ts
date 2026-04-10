@@ -187,7 +187,13 @@ async function importExistingRepo(
 		});
 	}
 
-	const parsed = remotes.get(matchingRemote)!;
+	const parsed = remotes.get(matchingRemote);
+	if (!parsed) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Remote "${matchingRemote}" matched but has no parsed data`,
+		});
+	}
 
 	return { repoPath: gitRoot, matchingRemote, parsed };
 }
@@ -242,11 +248,15 @@ async function cloneRepo(
 		});
 	}
 
-	return {
-		repoPath: targetPath,
-		matchingRemote,
-		parsed: remotes.get(matchingRemote)!,
-	};
+	const parsed = remotes.get(matchingRemote);
+	if (!parsed) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Remote "${matchingRemote}" matched but has no parsed data`,
+		});
+	}
+
+	return { repoPath: targetPath, matchingRemote, parsed };
 }
 
 function extractRepoNameFromUrl(url: string): string {
