@@ -414,11 +414,6 @@ export const workspaceCreationRouter = router({
 				}
 			};
 
-			console.log("[workspaceCreation.create] calling ensureV2Host", {
-				organizationId: ctx.organizationId,
-				machineId: deviceClientId,
-			});
-
 			let host: { id: string };
 			try {
 				host = await ctx.api.device.ensureV2Host.mutate({
@@ -435,12 +430,6 @@ export const workspaceCreationRouter = router({
 					message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
 				});
 			}
-
-			console.log("[workspaceCreation.create] calling v2Workspace.create", {
-				projectId: input.projectId,
-				branch: branchName,
-				hostId: host.id,
-			});
 
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
