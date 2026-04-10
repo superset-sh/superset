@@ -1,8 +1,6 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
-import type { DashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
 
@@ -61,23 +59,6 @@ export function DashboardNewWorkspaceModalContent({
 	}, [githubRepositories, v2Projects]);
 
 	const areProjectsReady = v2Projects !== undefined;
-	// Restore stashed draft on reopen after a failed create
-	const appliedStashRef = useRef(false);
-	useEffect(() => {
-		if (!isOpen) {
-			appliedStashRef.current = false;
-			return;
-		}
-		if (appliedStashRef.current) return;
-		appliedStashRef.current = true;
-
-		const stashed = useNewWorkspaceModalStore.getState().stashedDraft;
-		if (stashed) {
-			useNewWorkspaceModalStore.getState().clearStashedDraft();
-			updateDraft(stashed as Partial<DashboardNewWorkspaceDraft>);
-		}
-	}, [isOpen, updateDraft]);
-
 	const appliedPreSelectionRef = useRef<string | null>(null);
 
 	useEffect(() => {
