@@ -343,12 +343,6 @@ export const workspaceCreationRouter = router({
 			}
 
 			// 4. Register cloud workspace row
-			const host = await ctx.api.device.ensureV2Host.mutate({
-				organizationId: ctx.organizationId,
-				machineId: deviceClientId,
-				name: deviceName,
-			});
-
 			const rollbackWorktree = async () => {
 				try {
 					await git.raw(["worktree", "remove", worktreePath]);
@@ -360,6 +354,33 @@ export const workspaceCreationRouter = router({
 				}
 			};
 
+			console.log("[workspaceCreation.create] calling ensureV2Host", {
+				organizationId: ctx.organizationId,
+				machineId: deviceClientId,
+			});
+
+			let host: { id: string };
+			try {
+				host = await ctx.api.device.ensureV2Host.mutate({
+					organizationId: ctx.organizationId,
+					machineId: deviceClientId,
+					name: deviceName,
+				});
+			} catch (err) {
+				console.error("[workspaceCreation.create] ensureV2Host failed", err);
+				await rollbackWorktree();
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
+				});
+			}
+
+			console.log("[workspaceCreation.create] calling v2Workspace.create", {
+				projectId: input.projectId,
+				branch: branchName,
+				hostId: host.id,
+			});
+
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
 					organizationId: ctx.organizationId,
@@ -369,6 +390,10 @@ export const workspaceCreationRouter = router({
 					hostId: host.id,
 				})
 				.catch(async (err) => {
+					console.error(
+						"[workspaceCreation.create] v2Workspace.create failed",
+						err,
+					);
 					await rollbackWorktree();
 					throw err;
 				});
