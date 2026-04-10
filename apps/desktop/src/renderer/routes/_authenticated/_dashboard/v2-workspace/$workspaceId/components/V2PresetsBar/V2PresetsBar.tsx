@@ -15,7 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
 import { LuCirclePlus, LuPin } from "react-icons/lu";
 import {
@@ -87,16 +87,7 @@ function getPinnedPresetOrder(
 	);
 }
 
-/**
- * Memoized because the bar is mounted inside the `Workspace` render tree via
- * the `renderBelowTabBar` slot. Every tab switch re-runs Workspace's render
- * (it subscribes to `activeTabId`), which re-invokes the render callback and
- * would otherwise re-execute this whole component on each switch. Props
- * (workspaceId, projectId, store) are all stable references for a given
- * workspace, so memoization effectively scopes re-renders to preset-state
- * changes instead of tab-switch cascades.
- */
-export const V2PresetsBar = memo(function V2PresetsBar({
+export function V2PresetsBar({
 	workspaceId,
 	projectId,
 	store,
@@ -415,4 +406,4 @@ export const V2PresetsBar = memo(function V2PresetsBar({
 			})}
 		</div>
 	);
-});
+}
