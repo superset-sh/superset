@@ -130,6 +130,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "forge",
+		label: "Forge",
+		description:
+			"Open-source AI coding agent supporting 300+ models from Anthropic, OpenAI, Google, and more.",
+		command: "forge",
+		promptCommand: "forge --prompt",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:

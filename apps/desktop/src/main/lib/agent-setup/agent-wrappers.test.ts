@@ -57,6 +57,7 @@ mock.module("node:os", () => ({
 
 const {
 	createAmpWrapper,
+	createForgeWrapper,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
@@ -269,6 +270,17 @@ exit 0
 
 		expect(wrapper).toContain("# Superset wrapper for amp");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "amp")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates forge wrapper passthrough", () => {
+		createForgeWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "forge");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for forge");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "forge")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 

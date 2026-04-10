@@ -12,6 +12,7 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"codex-wrapper",
 	"droid-wrapper",
 	"droid-settings-json",
+	"forge-wrapper",
 	"opencode-plugin",
 	"opencode-wrapper",
 	"cursor-hook-script",
@@ -59,6 +60,11 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 	{
 		id: "droid",
 		setupActions: ["droid-wrapper", "droid-settings-json"],
+		managedBinary: true,
+	},
+	{
+		id: "forge",
+		setupActions: ["forge-wrapper"],
 		managedBinary: true,
 	},
 	{
