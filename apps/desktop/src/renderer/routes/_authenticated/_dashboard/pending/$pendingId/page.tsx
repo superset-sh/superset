@@ -169,21 +169,19 @@ function PendingWorkspacePage() {
 								))}
 							</div>
 						)}
-						{isStale && (
-							<div className="flex gap-2 pt-1">
-								<button
-									type="button"
-									className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
-									onClick={() => {
-										collections.pendingWorkspaces.delete(pendingId);
-										void clearAttachments(pendingId);
-										void navigate({ to: "/" });
-									}}
-								>
-									Dismiss
-								</button>
-							</div>
-						)}
+						<div className="flex gap-2 pt-1">
+							<button
+								type="button"
+								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+								onClick={() => {
+									collections.pendingWorkspaces.delete(pendingId);
+									void clearAttachments(pendingId);
+									void navigate({ to: "/" });
+								}}
+							>
+								Dismiss
+							</button>
+						</div>
 					</div>
 				)}
 
