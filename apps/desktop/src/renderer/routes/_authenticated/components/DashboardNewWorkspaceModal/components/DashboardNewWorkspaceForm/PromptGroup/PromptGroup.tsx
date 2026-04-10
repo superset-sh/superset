@@ -42,8 +42,11 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import {
 	useClearPendingWorkspace,
+	useClearStashedDraft,
 	useNewWorkspaceModalOpen,
+	useRestoreStashedDraft,
 	useSetPendingWorkspace,
+	useStashDraft,
 } from "renderer/stores/new-workspace-modal";
 import {
 	type AgentDefinitionId,
@@ -353,12 +356,14 @@ function PromptGroupInner({
 		closeModal,
 		createWorkspace,
 		draft,
-		runAsyncAction,
 		updateDraft,
 	} = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const clearPendingWorkspace = useClearPendingWorkspace();
 	const setPendingWorkspace = useSetPendingWorkspace();
+	const stashDraft = useStashDraft();
+	const clearStashedDraft = useClearStashedDraft();
+	const restoreStashedDraft = useRestoreStashedDraft();
 	const {
 		compareBaseBranch,
 		hostTarget,
@@ -507,7 +512,20 @@ function PromptGroupInner({
 			.filter((i) => i.source === "github" && i.url)
 			.map((i) => i.url as string);
 
-		// 4. Close modal, show pending skeleton
+		// 4. Stash draft, close modal, show pending skeleton
+		stashDraft({
+			selectedProjectId: projectId,
+			prompt,
+			workspaceName,
+			workspaceNameEdited,
+			branchName,
+			branchNameEdited,
+			compareBaseBranch: compareBaseBranch ?? null,
+			runSetupScript,
+			linkedIssues,
+			linkedPR,
+		});
+
 		const pendingWorkspaceId = crypto.randomUUID();
 		setPendingWorkspace({
 			id: pendingWorkspaceId,
@@ -518,8 +536,8 @@ function PromptGroupInner({
 		closeAndResetDraft();
 
 		// 5. Call host-service
-		void runAsyncAction(
-			createWorkspace({
+		try {
+			const result = await createWorkspace({
 				projectId,
 				hostTarget,
 				names: {
@@ -539,27 +557,29 @@ function PromptGroupInner({
 					linkedPrUrl: linkedPR?.url,
 					attachments: convertedFiles.length > 0 ? convertedFiles : undefined,
 				},
-			}).then((result) => {
-				if (result.workspace) {
-					void navigateToV2Workspace(result.workspace.id, navigate);
-				}
-				return result;
-			}),
-			{
-				loading: "Creating workspace...",
-				success: "Workspace created",
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to create workspace",
-			},
-			{ closeAndReset: false },
-		).finally(() => {
+			});
+
+			// Success — clear stash, navigate
+			clearStashedDraft();
+			toast.success("Workspace created");
+			if (result.workspace) {
+				void navigateToV2Workspace(result.workspace.id, navigate);
+			}
+		} catch (err) {
+			// Failure — restore draft so user can retry
+			toast.error(
+				err instanceof Error ? err.message : "Failed to create workspace",
+			);
+			restoreStashedDraft();
+		} finally {
 			clearPendingWorkspace(pendingWorkspaceId);
-		});
+		}
 	}, [
 		attachments,
 		branchName,
 		branchNameEdited,
 		clearPendingWorkspace,
+		clearStashedDraft,
 		closeAndResetDraft,
 		compareBaseBranch,
 		convertBlobUrlToDataUrl,
@@ -569,9 +589,11 @@ function PromptGroupInner({
 		linkedPR,
 		navigate,
 		projectId,
-		runAsyncAction,
+		prompt,
+		restoreStashedDraft,
 		runSetupScript,
 		setPendingWorkspace,
+		stashDraft,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,
