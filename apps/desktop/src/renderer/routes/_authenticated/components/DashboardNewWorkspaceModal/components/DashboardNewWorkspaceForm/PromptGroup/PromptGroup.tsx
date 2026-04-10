@@ -1,4 +1,3 @@
-import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -35,26 +34,20 @@ import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
-import { env } from "renderer/env.renderer";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	useClearPendingWorkspace,
 	useNewWorkspaceModalOpen,
 	useSetPendingWorkspace,
-	useSetPendingWorkspaceStatus,
 } from "renderer/stores/new-workspace-modal";
-import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
 import {
 	type AgentDefinitionId,
 	getEnabledAgentConfigs,
-	indexResolvedAgentConfigs,
 } from "shared/utils/agent-settings";
 import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 import type { LinkedPR } from "../../../DashboardNewWorkspaceDraftContext";
@@ -366,8 +359,6 @@ function PromptGroupInner({
 	const attachments = useProviderAttachments();
 	const clearPendingWorkspace = useClearPendingWorkspace();
 	const setPendingWorkspace = useSetPendingWorkspace();
-	const setPendingWorkspaceStatus = useSetPendingWorkspaceStatus();
-	const { activeHostUrl } = useLocalHostService();
 	const {
 		compareBaseBranch,
 		hostTarget,
@@ -390,10 +381,6 @@ function PromptGroupInner({
 		() => getEnabledAgentConfigs(agentPresets),
 		[agentPresets],
 	);
-	const agentConfigsById = useMemo(
-		() => indexResolvedAgentConfigs(agentPresets),
-		[agentPresets],
-	);
 	const selectableAgentIds = useMemo(
 		() => enabledAgentPresets.map((preset) => preset.id),
 		[enabledAgentPresets],
@@ -411,19 +398,7 @@ function PromptGroupInner({
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
-	const submitStartedRef = useRef(false);
 	const trimmedPrompt = prompt.trim();
-	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
-
-	// AI branch name generation (local Electron helper — stays)
-	const generateBranchNameMutation =
-		electronTrpc.workspaces.generateBranchName.useMutation();
-
-	useEffect(() => {
-		if (isNewWorkspaceModalOpen) {
-			submitStartedRef.current = false;
-		}
-	}, [isNewWorkspaceModalOpen]);
 
 	// ── Branch data via host-service ─────────────────────────────────
 	const {
@@ -459,24 +434,6 @@ function PromptGroupInner({
 	}, [projectId, hostTarget, updateDraft]);
 
 	// ── Helpers ──────────────────────────────────────────────────────
-	const buildLaunchRequest = useCallback(
-		(
-			promptText: string,
-			files?: ConvertedFile[],
-		): AgentLaunchRequest | null => {
-			return buildPromptAgentLaunchRequest({
-				workspaceId: "pending-workspace",
-				source: "new-workspace",
-				selectedAgent,
-				prompt: promptText,
-				initialFiles: files,
-				taskSlug: firstIssueSlug || undefined,
-				configsById: agentConfigsById,
-			});
-		},
-		[agentConfigsById, firstIssueSlug, selectedAgent],
-	);
-
 	const convertBlobUrlToDataUrl = useCallback(
 		async (url: string): Promise<string> => {
 			const response = await fetch(url);
@@ -496,12 +453,6 @@ function PromptGroupInner({
 		[],
 	);
 
-	// Resolve host URL once for inline host-service queries (GH issue content)
-	const hostUrl =
-		hostTarget.kind === "local"
-			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
-
 	// ── Create workspace ─────────────────────────────────────────────
 	const handleCreate = useCallback(async () => {
 		if (!projectId) {
@@ -509,284 +460,111 @@ function PromptGroupInner({
 			return;
 		}
 
-		if (submitStartedRef.current) return;
-		submitStartedRef.current = true;
+		// 1. Compute names (renderer owns all naming — decision #1, #2)
+		const resolvedBranchName =
+			branchNameEdited && branchName.trim()
+				? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
+						preserveCase: true,
+					})
+				: trimmedPrompt
+					? sanitizeBranchNameWithMaxLength(trimmedPrompt)
+					: `workspace-${crypto.randomUUID().slice(0, 8)}`;
 
-		const displayName =
+		const resolvedWorkspaceName =
 			workspaceNameEdited && workspaceName.trim()
 				? workspaceName.trim()
-				: trimmedPrompt || "New workspace";
-		const willGenerateAIName =
-			!branchNameEdited && !!trimmedPrompt && !linkedPR;
-		const pendingWorkspaceId = crypto.randomUUID();
+				: trimmedPrompt || resolvedBranchName;
+
+		// 2. Convert attachments
 		const detachedFiles = attachments.takeFiles();
-
-		setPendingWorkspace({
-			id: pendingWorkspaceId,
-			projectId,
-			name: displayName,
-			status: willGenerateAIName ? "generating-branch" : "preparing",
-		});
-		closeAndResetDraft();
-
-		try {
-			// 1. AI branch name generation (local Electron)
-			let aiBranchName: string | null = null;
-			if (willGenerateAIName) {
-				try {
-					const AI_GENERATION_TIMEOUT_MS = 30000;
-					const result = await Promise.race([
-						generateBranchNameMutation.mutateAsync({
-							prompt: trimmedPrompt,
-							projectId,
-						}),
-						new Promise<never>((_, reject) =>
-							setTimeout(
-								() => reject(new Error("AI generation timeout")),
-								AI_GENERATION_TIMEOUT_MS,
-							),
-						),
-					]);
-					aiBranchName = result.branchName;
-				} catch (err) {
-					console.warn(
-						"[PromptGroup] AI branch name generation failed, falling back",
-						err,
-					);
-				} finally {
-					setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
-				}
-			}
-
-			// 2. Convert attachment blob URLs to data URLs
-			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
-				try {
-					convertedFiles = await Promise.all(
-						detachedFiles.map(async (file) => ({
-							data: await convertBlobUrlToDataUrl(file.url),
-							mediaType: file.mediaType,
-							filename: file.filename,
-						})),
-					);
-				} catch (err) {
-					clearPendingWorkspace(pendingWorkspaceId);
-					toast.error(
-						err instanceof Error
-							? err.message
-							: "Failed to process attachments",
-					);
-					return;
-				}
-			}
-
-			// 3. Fetch linked GitHub issue content via host-service
-			const githubIssues = linkedIssues.filter(
-				(issue): issue is typeof issue & { number: number } =>
-					issue.source === "github" && typeof issue.number === "number",
-			);
-			if (githubIssues.length > 0 && hostUrl) {
-				try {
-					const client = getHostServiceClientByUrl(hostUrl);
-					const issueContents = await Promise.all(
-						githubIssues.map(async (issue) => {
-							try {
-								const content =
-									await client.workspaceCreation.getGitHubIssueContent.query({
-										projectId,
-										issueNumber: issue.number,
-									});
-
-								const sanitizeText = (str: string) =>
-									str.replace(/[&<>"']/g, (char) => {
-										const entities: Record<string, string> = {
-											"&": "&amp;",
-											"<": "&lt;",
-											">": "&gt;",
-											'"': "&quot;",
-											"'": "&#39;",
-										};
-										return entities[char] || char;
-									});
-
-								const sanitizeUrl = (url: string) => {
-									try {
-										const parsed = new URL(url);
-										if (!["http:", "https:"].includes(parsed.protocol)) {
-											return "#invalid-url";
-										}
-										return url;
-									} catch {
-										return "#invalid-url";
-									}
-								};
-
-								const MAX_BODY_LENGTH = 50000;
-								const truncatedBody =
-									content.body.length > MAX_BODY_LENGTH
-										? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
-										: content.body;
-
-								const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
-
-**URL:** ${sanitizeUrl(content.url)}
-**State:** ${content.state}
-**Author:** ${sanitizeText(content.author || "Unknown")}
-**Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
-**Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
-
----
-
-${sanitizeText(truncatedBody)}`;
-
-								const base64 = btoa(
-									encodeURIComponent(markdown).replace(
-										/%([0-9A-F]{2})/g,
-										(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
-									),
-								);
-
-								return {
-									data: `data:text/markdown;base64,${base64}`,
-									mediaType: "text/markdown",
-									filename: `github-issue-${content.number}.md`,
-								};
-							} catch (err) {
-								console.warn(
-									`Failed to fetch GitHub issue #${issue.number}:`,
-									err,
-								);
-								return null;
-							}
-						}),
-					);
-
-					convertedFiles = [
-						...convertedFiles,
-						...(issueContents.filter(
-							(file) => file !== null,
-						) as ConvertedFile[]),
-					];
-				} catch (err) {
-					console.warn("Failed to fetch GitHub issue contents:", err);
-				}
-			}
-
-			// 4. Build launch request (for future agent handoff; not yet sent to host)
+		let convertedFiles: ConvertedFile[] = [];
+		if (detachedFiles.length > 0) {
 			try {
-				buildLaunchRequest(
-					trimmedPrompt,
-					convertedFiles.length > 0 ? convertedFiles : undefined,
+				convertedFiles = await Promise.all(
+					detachedFiles.map(async (file) => ({
+						data: await convertBlobUrlToDataUrl(file.url),
+						mediaType: file.mediaType,
+						filename: file.filename,
+					})),
 				);
-			} catch (error) {
-				clearPendingWorkspace(pendingWorkspaceId);
+			} catch (err) {
 				toast.error(
-					error instanceof Error
-						? error.message
-						: "Failed to prepare agent launch",
+					err instanceof Error ? err.message : "Failed to process attachments",
 				);
 				return;
-			}
-
-			setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
-
-			const resolvedBranchName =
-				(branchNameEdited && branchName.trim()
-					? sanitizeBranchNameWithMaxLength(branchName.trim(), undefined, {
-							preserveCase: true,
-						})
-					: aiBranchName) || undefined;
-
-			// Map linked issues into typed arrays
-			const internalIssueIds = linkedIssues
-				.filter((i) => i.source === "internal" && i.taskId)
-				.map((i) => i.taskId as string);
-			const githubIssueUrls = linkedIssues
-				.filter((i) => i.source === "github" && i.url)
-				.map((i) => i.url as string);
-
-			// Use the prompt as a fallback name when neither workspace name
-			// nor branch name were explicitly set (matches V1 behavior).
-			const fallbackName = trimmedPrompt || undefined;
-			const resolvedWorkspaceName =
-				(workspaceNameEdited && workspaceName.trim()
-					? workspaceName.trim()
-					: fallbackName) || undefined;
-
-			// 5. Call host-service create via the draft's cached mutation
-			void runAsyncAction(
-				createWorkspace({
-					projectId,
-					hostTarget,
-					source: linkedPR ? "pull-request" : "prompt",
-					names: {
-						workspaceName: resolvedWorkspaceName,
-						branchName: resolvedBranchName,
-					},
-					composer: {
-						prompt: trimmedPrompt || undefined,
-						compareBaseBranch: compareBaseBranch || undefined,
-						runSetupScript,
-					},
-					linkedContext: {
-						internalIssueIds:
-							internalIssueIds.length > 0 ? internalIssueIds : undefined,
-						githubIssueUrls:
-							githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
-						linkedPrUrl: linkedPR?.url,
-						attachments: convertedFiles.length > 0 ? convertedFiles : undefined,
-					},
-					behavior: {
-						onExistingWorkspace: "open",
-						onExistingWorktree: "adopt",
-					},
-				}).then((result) => {
-					console.log("[PromptGroup] create result", {
-						outcome: result.outcome,
-						workspaceId: result.workspace?.id,
-						warnings: result.warnings,
-					});
-					if (result.workspace) {
-						console.log(
-							"[PromptGroup] navigating to workspace",
-							result.workspace.id,
-						);
-						void navigateToV2Workspace(result.workspace.id, navigate);
-					} else {
-						console.warn("[PromptGroup] create returned no workspace");
-					}
-					return result;
-				}),
-				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-				{ closeAndReset: false },
-			).finally(() => {
-				clearPendingWorkspace(pendingWorkspaceId);
-			});
-		} finally {
-			for (const file of detachedFiles) {
-				if (file.url?.startsWith("blob:")) {
-					URL.revokeObjectURL(file.url);
+			} finally {
+				for (const file of detachedFiles) {
+					if (file.url?.startsWith("blob:")) URL.revokeObjectURL(file.url);
 				}
 			}
 		}
+
+		// 3. Map linked issues
+		const internalIssueIds = linkedIssues
+			.filter((i) => i.source === "internal" && i.taskId)
+			.map((i) => i.taskId as string);
+		const githubIssueUrls = linkedIssues
+			.filter((i) => i.source === "github" && i.url)
+			.map((i) => i.url as string);
+
+		// 4. Close modal, show pending skeleton
+		const pendingWorkspaceId = crypto.randomUUID();
+		setPendingWorkspace({
+			id: pendingWorkspaceId,
+			projectId,
+			name: resolvedWorkspaceName,
+			status: "creating",
+		});
+		closeAndResetDraft();
+
+		// 5. Call host-service
+		void runAsyncAction(
+			createWorkspace({
+				projectId,
+				hostTarget,
+				names: {
+					workspaceName: resolvedWorkspaceName,
+					branchName: resolvedBranchName,
+				},
+				composer: {
+					prompt: trimmedPrompt || undefined,
+					compareBaseBranch: compareBaseBranch || undefined,
+					runSetupScript,
+				},
+				linkedContext: {
+					internalIssueIds:
+						internalIssueIds.length > 0 ? internalIssueIds : undefined,
+					githubIssueUrls:
+						githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
+					linkedPrUrl: linkedPR?.url,
+					attachments: convertedFiles.length > 0 ? convertedFiles : undefined,
+				},
+			}).then((result) => {
+				if (result.workspace) {
+					void navigateToV2Workspace(result.workspace.id, navigate);
+				}
+				return result;
+			}),
+			{
+				loading: "Creating workspace...",
+				success: "Workspace created",
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to create workspace",
+			},
+			{ closeAndReset: false },
+		).finally(() => {
+			clearPendingWorkspace(pendingWorkspaceId);
+		});
 	}, [
 		attachments,
 		branchName,
 		branchNameEdited,
-		buildLaunchRequest,
 		clearPendingWorkspace,
 		closeAndResetDraft,
 		compareBaseBranch,
 		convertBlobUrlToDataUrl,
 		createWorkspace,
-		generateBranchNameMutation,
 		hostTarget,
-		hostUrl,
 		linkedIssues,
 		linkedPR,
 		navigate,
@@ -794,7 +572,6 @@ ${sanitizeText(truncatedBody)}`;
 		runAsyncAction,
 		runSetupScript,
 		setPendingWorkspace,
-		setPendingWorkspaceStatus,
 		trimmedPrompt,
 		workspaceName,
 		workspaceNameEdited,

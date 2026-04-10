@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
@@ -8,14 +9,13 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import {
+	deduplicateBranchName,
+	sanitizeBranchNameWithMaxLength,
+} from "./utils/sanitize-branch";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/**
- * Validates that a resolved worktree path stays within the expected
- * `repoPath/.worktrees/` directory. Prevents path-traversal via `..`
- * segments in branch names.
- */
 function safeResolveWorktreePath(repoPath: string, branchName: string): string {
 	const worktreesRoot = resolve(repoPath, ".worktrees");
 	const worktreePath = resolve(worktreesRoot, branchName);
@@ -31,10 +31,6 @@ function safeResolveWorktreePath(repoPath: string, branchName: string): string {
 	return worktreePath;
 }
 
-/**
- * Resolves a V2 project's GitHub repo (owner + name) via the cloud API.
- * Throws BAD_REQUEST if the project has no linked GitHub repository.
- */
 async function resolveGithubRepo(
 	ctx: HostServiceContext,
 	projectId: string,
@@ -53,14 +49,34 @@ async function resolveGithubRepo(
 	return { owner: repo.owner, name: repo.name };
 }
 
+async function listBranchNames(
+	ctx: HostServiceContext,
+	repoPath: string,
+): Promise<string[]> {
+	const git = await ctx.git(repoPath);
+	try {
+		const raw = await git.raw([
+			"for-each-ref",
+			"--sort=-committerdate",
+			"--format=%(refname:short)",
+			"refs/heads/",
+			"refs/remotes/origin/",
+		]);
+		const names = new Set<string>();
+		for (const line of raw.trim().split("\n").filter(Boolean)) {
+			let name = line;
+			if (name.startsWith("origin/")) name = name.slice("origin/".length);
+			if (name !== "HEAD") names.add(name);
+		}
+		return Array.from(names);
+	} catch {
+		return [];
+	}
+}
+
 // ── Router ───────────────────────────────────────────────────────────
 
 export const workspaceCreationRouter = router({
-	/**
-	 * Returns contextual data for the create-workspace composer.
-	 * Currently just confirms local repo state + default branch; the
-	 * composer can use this to drive UI affordances.
-	 */
 	getContext: protectedProcedure
 		.input(z.object({ projectId: z.string() }))
 		.query(async ({ ctx, input }) => {
@@ -96,10 +112,6 @@ export const workspaceCreationRouter = router({
 			};
 		}),
 
-	/**
-	 * Lists / searches branches for the given project, enriched with
-	 * workspace metadata. Uses the local host-service DB + git.
-	 */
 	searchBranches: protectedProcedure
 		.input(
 			z.object({
@@ -139,7 +151,6 @@ export const workspaceCreationRouter = router({
 				defaultBranch = "main";
 			}
 
-			// Gather local branch names (so we can mark isLocal).
 			const localBranchNames = new Set<string>();
 			try {
 				const raw = await git.raw([
@@ -154,7 +165,6 @@ export const workspaceCreationRouter = router({
 				// ignore
 			}
 
-			// Gather all branches sorted by recent commit date.
 			type BranchInfo = {
 				name: string;
 				lastCommitDate: number;
@@ -173,9 +183,7 @@ export const workspaceCreationRouter = router({
 					const [rawRef, ts] = line.split("\t");
 					if (!rawRef) continue;
 					let name = rawRef;
-					if (name.startsWith("origin/")) {
-						name = name.slice("origin/".length);
-					}
+					if (name.startsWith("origin/")) name = name.slice("origin/".length);
 					if (name === "HEAD") continue;
 					if (!branchMap.has(name)) {
 						branchMap.set(name, {
@@ -196,8 +204,7 @@ export const workspaceCreationRouter = router({
 				branches = branches.filter((b) => b.name.toLowerCase().includes(q));
 			}
 
-			const limit = input.limit ?? 200;
-			branches = branches.slice(0, limit);
+			branches = branches.slice(0, input.limit ?? 200);
 
 			const localWorkspaceBranches = new Set(
 				ctx.db
@@ -218,18 +225,16 @@ export const workspaceCreationRouter = router({
 		}),
 
 	/**
-	 * Semantic workspace creation. Handles clone, worktree add, cloud
-	 * registration, and outcome resolution (create vs open-existing vs
-	 * open-tracked-worktree vs adopt-external-worktree).
+	 * Create a new workspace. Always creates — never opens an existing one.
+	 * Branch name is sanitized and deduplicated server-side.
 	 */
 	create: protectedProcedure
 		.input(
 			z.object({
 				projectId: z.string(),
-				source: z.enum(["prompt", "pull-request", "branch", "issue"]),
 				names: z.object({
-					workspaceName: z.string().optional(),
-					branchName: z.string().optional(),
+					workspaceName: z.string(),
+					branchName: z.string(),
 				}),
 				composer: z.object({
 					prompt: z.string().optional(),
@@ -252,36 +257,11 @@ export const workspaceCreationRouter = router({
 							.optional(),
 					})
 					.optional(),
-				behavior: z
-					.object({
-						onExistingWorkspace: z
-							.enum(["open", "error"])
-							.optional()
-							.default("open"),
-						onExistingWorktree: z
-							.enum(["adopt", "error"])
-							.optional()
-							.default("adopt"),
-					})
-					.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const branchName =
-				input.names.branchName || input.names.workspaceName || "workspace";
-			const workspaceName =
-				input.names.workspaceName || input.names.branchName || "workspace";
 			const deviceClientId = getHashedDeviceId();
 			const deviceName = getDeviceName();
-
-			console.log("[workspaceCreation.create] input", {
-				projectId: input.projectId,
-				source: input.source,
-				resolvedBranchName: branchName,
-				resolvedWorkspaceName: workspaceName,
-				deviceClientId,
-				deviceName,
-			});
 
 			// 1. Resolve / ensure project locally
 			let localProject = ctx.db.query.projects
@@ -309,136 +289,49 @@ export const workspaceCreationRouter = router({
 					await simpleGit().clone(cloudProject.repoCloneUrl, repoPath);
 				}
 
-				const inserted = ctx.db
+				localProject = ctx.db
 					.insert(projects)
 					.values({ id: input.projectId, repoPath })
 					.returning()
 					.get();
-
-				localProject = inserted;
 			}
 
-			// 2. Existing workspace on same branch → open it
-			const existingWorkspace = ctx.db.query.workspaces
-				.findFirst({
-					where: (ws, { and, eq: eqFn }) =>
-						and(
-							eqFn(ws.projectId, input.projectId),
-							eqFn(ws.branch, branchName),
-						),
-				})
-				.sync();
-
-			if (existingWorkspace) {
-				if (input.behavior?.onExistingWorkspace === "error") {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: `Workspace already exists for branch ${branchName}`,
-					});
-				}
-				console.log("[workspaceCreation.create] opened_existing_workspace", {
-					id: existingWorkspace.id,
-					branch: existingWorkspace.branch,
+			// 2. Sanitize + deduplicate branch name
+			const sanitizedBranch = sanitizeBranchNameWithMaxLength(
+				input.names.branchName,
+			);
+			if (!sanitizedBranch) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Branch name is empty after sanitization",
 				});
-				return {
-					outcome: "opened_existing_workspace" as const,
-					workspace: existingWorkspace,
-					warnings: [] as string[],
-				};
 			}
 
-			// 3. Existing worktree on disk → distinguish tracked vs external
+			const existingBranches = await listBranchNames(
+				ctx,
+				localProject.repoPath,
+			);
+			const branchName = deduplicateBranchName(
+				sanitizedBranch,
+				existingBranches,
+			);
+
+			// 3. Create worktree
 			const worktreePath = safeResolveWorktreePath(
 				localProject.repoPath,
 				branchName,
 			);
 
-			if (existsSync(worktreePath)) {
-				if (input.behavior?.onExistingWorktree === "error") {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: `Worktree already exists at ${worktreePath}`,
-					});
-				}
-
-				// Check if this worktree path is already tracked in the local DB.
-				const trackedWorktree = ctx.db.query.workspaces
-					.findFirst({
-						where: (ws, { and, eq: eqFn }) =>
-							and(
-								eqFn(ws.projectId, input.projectId),
-								eqFn(ws.worktreePath, worktreePath),
-							),
-					})
-					.sync();
-
-				if (trackedWorktree) {
-					// Tracked worktree — the local row's id *is* the cloud
-					// workspace id, so the cloud row already exists. Return it.
-					return {
-						outcome: "opened_worktree" as const,
-						workspace: trackedWorktree,
-						warnings: [] as string[],
-					};
-				}
-
-				// External worktree — register a new cloud + local row.
-				const host = await ctx.api.device.ensureV2Host.mutate({
-					organizationId: ctx.organizationId,
-					machineId: deviceClientId,
-					name: deviceName,
-				});
-
-				const cloudRow = await ctx.api.v2Workspace.create.mutate({
-					organizationId: ctx.organizationId,
-					projectId: input.projectId,
-					name: workspaceName,
-					branch: branchName,
-					hostId: host.id,
-				});
-
-				if (!cloudRow) {
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: "Cloud workspace create returned no row",
-					});
-				}
-
-				ctx.db
-					.insert(workspaces)
-					.values({
-						id: cloudRow.id,
-						projectId: input.projectId,
-						worktreePath,
-						branch: branchName,
-					})
-					.run();
-
-				console.log("[workspaceCreation.create] adopted_external_worktree", {
-					id: cloudRow.id,
-					branch: branchName,
-				});
-				return {
-					outcome: "adopted_external_worktree" as const,
-					workspace: cloudRow,
-					warnings: [] as string[],
-				};
-			}
-
-			// 4. Create a new worktree + cloud workspace row
 			const git = await ctx.git(localProject.repoPath);
+			const baseBranch = input.composer.compareBaseBranch || "HEAD";
 
-			// Try adding for an existing branch first; fall back to creating a
-			// new branch from baseBranch if that fails. Log the original error
-			// so disk/permission/corruption failures aren't hidden.
 			try {
 				await git.raw(["worktree", "add", worktreePath, branchName]);
 			} catch (existingBranchErr) {
 				console.warn(
-					"[workspaceCreation.create] worktree add for existing branch failed, trying new branch",
-					{ branchName, worktreePath, existingBranchErr },
+					"[workspaceCreation.create] worktree add for existing branch failed, creating new branch",
+					{ branchName, existingBranchErr },
 				);
-				const baseBranch = input.composer.compareBaseBranch || "HEAD";
 				await git.raw([
 					"worktree",
 					"add",
@@ -449,28 +342,29 @@ export const workspaceCreationRouter = router({
 				]);
 			}
 
-			const rollbackWorktree = async () => {
-				try {
-					await git.raw(["worktree", "remove", worktreePath]);
-				} catch (cleanupErr) {
-					console.warn(
-						"[workspaceCreation.create] failed to rollback worktree",
-						{ worktreePath, cleanupErr },
-					);
-				}
-			};
-
+			// 4. Register cloud workspace row
 			const host = await ctx.api.device.ensureV2Host.mutate({
 				organizationId: ctx.organizationId,
 				machineId: deviceClientId,
 				name: deviceName,
 			});
 
+			const rollbackWorktree = async () => {
+				try {
+					await git.raw(["worktree", "remove", worktreePath]);
+				} catch (err) {
+					console.warn(
+						"[workspaceCreation.create] failed to rollback worktree",
+						{ worktreePath, err },
+					);
+				}
+			};
+
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
 					organizationId: ctx.organizationId,
 					projectId: input.projectId,
-					name: workspaceName,
+					name: input.names.workspaceName,
 					branch: branchName,
 					hostId: host.id,
 				})
@@ -497,22 +391,34 @@ export const workspaceCreationRouter = router({
 				})
 				.run();
 
-			console.log("[workspaceCreation.create] created_workspace", {
-				id: cloudRow.id,
-				branch: branchName,
-				worktreePath,
-			});
+			// 5. Run setup script if requested
+			if (input.composer.runSetupScript) {
+				try {
+					const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
+					if (existsSync(setupScriptPath)) {
+						execSync(`bash "${setupScriptPath}"`, {
+							cwd: worktreePath,
+							timeout: 60_000,
+							stdio: "pipe",
+						});
+					}
+				} catch (err) {
+					console.warn(
+						"[workspaceCreation.create] setup script failed (non-fatal)",
+						{ worktreePath, err },
+					);
+					// Non-fatal — workspace is still usable
+				}
+			}
+
 			return {
-				outcome: "created_workspace" as const,
 				workspace: cloudRow,
 				warnings: [] as string[],
 			};
 		}),
 
-	/**
-	 * Searches GitHub issues for a V2 project's linked repo via Octokit.
-	 * Used by the GitHub-issue link command in the composer.
-	 */
+	// ── GitHub endpoints for the link commands ────────────────────────
+
 	searchGitHubIssues: protectedProcedure
 		.input(
 			z.object({
@@ -528,7 +434,6 @@ export const workspaceCreationRouter = router({
 
 			try {
 				if (input.query?.trim()) {
-					// Server-side search by title/body across open issues.
 					const q = `repo:${repo.owner}/${repo.name} is:issue is:open in:title,body ${input.query}`;
 					const { data } = await octokit.search.issuesAndPullRequests({
 						q,
@@ -536,7 +441,7 @@ export const workspaceCreationRouter = router({
 					});
 					return {
 						issues: data.items
-							.filter((item) => !item.pull_request) // Exclude PRs
+							.filter((item) => !item.pull_request)
 							.map((item) => ({
 								issueNumber: item.number,
 								title: item.title,
@@ -555,7 +460,7 @@ export const workspaceCreationRouter = router({
 				});
 				return {
 					issues: data
-						.filter((item) => !item.pull_request) // Exclude PRs
+						.filter((item) => !item.pull_request)
 						.map((item) => ({
 							issueNumber: item.number,
 							title: item.title,
@@ -570,10 +475,6 @@ export const workspaceCreationRouter = router({
 			}
 		}),
 
-	/**
-	 * Searches pull requests for a V2 project's linked repo via Octokit.
-	 * Used by the PR link command in the composer.
-	 */
 	searchPullRequests: protectedProcedure
 		.input(
 			z.object({
@@ -632,10 +533,6 @@ export const workspaceCreationRouter = router({
 			}
 		}),
 
-	/**
-	 * Fetches a GitHub issue's full content (title + body + metadata)
-	 * for attaching as markdown to an agent launch.
-	 */
 	getGitHubIssueContent: protectedProcedure
 		.input(
 			z.object({
