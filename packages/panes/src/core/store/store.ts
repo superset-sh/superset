@@ -182,7 +182,7 @@ export function createWorkspaceStore<TData>(
 			const tab = buildTab({ ...args, panes: builtPanes });
 			set((s) => ({
 				tabs: [...s.tabs, tab],
-				activeTabId: s.activeTabId ?? tab.id,
+				activeTabId: tab.id,
 			}));
 		},
 

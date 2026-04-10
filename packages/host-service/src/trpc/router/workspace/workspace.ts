@@ -48,6 +48,7 @@ export const workspaceRouter = router({
 
 			if (!localProject) {
 				const cloudProject = await ctx.api.v2Project.get.query({
+					organizationId: ctx.organizationId,
 					id: input.projectId,
 				});
 
@@ -98,6 +99,7 @@ export const workspaceRouter = router({
 
 			const cloudRow = await ctx.api.v2Workspace.create
 				.mutate({
+					organizationId: ctx.organizationId,
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,

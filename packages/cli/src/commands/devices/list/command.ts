@@ -1,15 +1,12 @@
-import { boolean, CLIError, command, table } from "@superset/cli-framework";
+import { CLIError, command, table } from "@superset/cli-framework";
 
 export default command({
 	description: "List all devices in the org",
-	options: {
-		includeOffline: boolean().desc("Include offline devices"),
-	},
+	options: {},
 	display: (data) =>
 		table(data as Record<string, unknown>[], [
 			"deviceName",
 			"deviceType",
-			"status",
 			"lastSeen",
 		]),
 	run: async () => {
