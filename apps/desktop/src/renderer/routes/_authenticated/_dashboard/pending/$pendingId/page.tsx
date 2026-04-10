@@ -38,7 +38,7 @@ function useRetryCreate(
 		name: string;
 		branchName: string;
 		prompt: string;
-		compareBaseBranch: string | null;
+		baseBranch: string | null;
 		runSetupScript: boolean;
 		linkedIssues: unknown[];
 		linkedPR: unknown;
@@ -93,7 +93,7 @@ function useRetryCreate(
 				},
 				composer: {
 					prompt: pending.prompt || undefined,
-					compareBaseBranch: pending.compareBaseBranch || undefined,
+					baseBranch: pending.baseBranch || undefined,
 					runSetupScript: pending.runSetupScript,
 				},
 				linkedContext: {

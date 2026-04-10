@@ -293,7 +293,7 @@ export const workspaceCreationRouter = router({
 				}),
 				composer: z.object({
 					prompt: z.string().optional(),
-					compareBaseBranch: z.string().optional(),
+					baseBranch: z.string().optional(),
 					runSetupScript: z.boolean().optional(),
 				}),
 				linkedContext: z
@@ -381,7 +381,7 @@ export const workspaceCreationRouter = router({
 			);
 
 			const git = await ctx.git(localProject.repoPath);
-			const baseBranch = input.composer.compareBaseBranch || "HEAD";
+			const baseBranch = input.composer.baseBranch || "HEAD";
 
 			// Always create a new branch — never check out an existing one.
 			// Checking out existing branches is a separate intent (e.g. createFromPr).

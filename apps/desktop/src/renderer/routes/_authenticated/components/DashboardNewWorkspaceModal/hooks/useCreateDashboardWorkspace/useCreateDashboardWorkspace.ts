@@ -14,7 +14,7 @@ export interface CreateWorkspaceInput {
 	};
 	composer: {
 		prompt?: string;
-		compareBaseBranch?: string;
+		baseBranch?: string;
 		runSetupScript?: boolean;
 	};
 	linkedContext?: {

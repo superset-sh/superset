@@ -64,7 +64,7 @@ function PromptGroupInner({
 	const { closeModal, draft, updateDraft } = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const {
-		compareBaseBranch,
+		baseBranch,
 		hostTarget,
 		prompt,
 		workspaceName,
@@ -108,7 +108,7 @@ function PromptGroupInner({
 	} = useBranchContext(projectId, hostTarget);
 
 	const effectiveCompareBaseBranch =
-		compareBaseBranch || branchData?.defaultBranch || null;
+		baseBranch || branchData?.defaultBranch || null;
 
 	const branchPreview = branchNameEdited
 		? sanitizeBranchNameWithMaxLength(branchName, undefined, {
@@ -116,7 +116,7 @@ function PromptGroupInner({
 			})
 		: sanitizeBranchNameWithMaxLength(trimmedPrompt);
 
-	// Reset compareBaseBranch on project or host change
+	// Reset baseBranch on project or host change
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostRef = useRef(JSON.stringify(hostTarget));
 	useEffect(() => {
@@ -127,7 +127,7 @@ function PromptGroupInner({
 		) {
 			previousProjectIdRef.current = projectId;
 			previousHostRef.current = nextHost;
-			updateDraft({ compareBaseBranch: null });
+			updateDraft({ baseBranch: null });
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
@@ -419,7 +419,7 @@ function PromptGroupInner({
 									isBranchesError={isBranchesError}
 									branches={branchData?.branches ?? []}
 									onSelectCompareBaseBranch={(branch) =>
-										updateDraft({ compareBaseBranch: branch })
+										updateDraft({ baseBranch: branch })
 									}
 								/>
 							</motion.div>

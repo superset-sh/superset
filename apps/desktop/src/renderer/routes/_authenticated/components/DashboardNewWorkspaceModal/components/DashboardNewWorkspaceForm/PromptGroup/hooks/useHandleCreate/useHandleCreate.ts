@@ -27,7 +27,7 @@ export function useHandleCreate(projectId: string | null) {
 	const {
 		branchName,
 		branchNameEdited,
-		compareBaseBranch,
+		baseBranch,
 		hostTarget,
 		linkedIssues,
 		linkedPR,
@@ -85,7 +85,7 @@ export function useHandleCreate(projectId: string | null) {
 			name: resolvedWorkspaceName,
 			branchName: resolvedBranchName,
 			prompt,
-			compareBaseBranch: compareBaseBranch ?? null,
+			baseBranch: baseBranch ?? null,
 			runSetupScript,
 			linkedIssues: linkedIssues as unknown[],
 			linkedPR,
@@ -135,7 +135,7 @@ export function useHandleCreate(projectId: string | null) {
 				},
 				composer: {
 					prompt: trimmedPrompt || undefined,
-					compareBaseBranch: compareBaseBranch || undefined,
+					baseBranch: baseBranch || undefined,
 					runSetupScript,
 				},
 				linkedContext: {
@@ -167,7 +167,7 @@ export function useHandleCreate(projectId: string | null) {
 		branchNameEdited,
 		closeAndResetDraft,
 		collections,
-		compareBaseBranch,
+		baseBranch,
 		createWorkspace,
 		hostTarget,
 		linkedIssues,

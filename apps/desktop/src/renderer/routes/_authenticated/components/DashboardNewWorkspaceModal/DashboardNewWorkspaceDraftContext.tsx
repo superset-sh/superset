@@ -31,7 +31,7 @@ export interface DashboardNewWorkspaceDraft {
 	selectedProjectId: string | null;
 	hostTarget: WorkspaceHostTarget;
 	prompt: string;
-	compareBaseBranch: string | null;
+	baseBranch: string | null;
 	runSetupScript: boolean;
 	workspaceName: string;
 	workspaceNameEdited: boolean;
@@ -50,7 +50,7 @@ const initialDraft: DashboardNewWorkspaceDraft = {
 	selectedProjectId: null,
 	hostTarget: { kind: "local" },
 	prompt: "",
-	compareBaseBranch: null,
+	baseBranch: null,
 	runSetupScript: true,
 	workspaceName: "",
 	workspaceNameEdited: false,
@@ -156,7 +156,7 @@ export function DashboardNewWorkspaceDraftProvider({
 				selectedProjectId: state.selectedProjectId,
 				hostTarget: state.hostTarget,
 				prompt: state.prompt,
-				compareBaseBranch: state.compareBaseBranch,
+				baseBranch: state.baseBranch,
 				runSetupScript: state.runSetupScript,
 				workspaceName: state.workspaceName,
 				workspaceNameEdited: state.workspaceNameEdited,

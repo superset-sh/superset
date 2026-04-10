@@ -81,7 +81,7 @@ export const pendingWorkspaceSchema = z.object({
 	name: z.string(),
 	branchName: z.string(),
 	prompt: z.string(),
-	compareBaseBranch: z.string().nullable().default(null),
+	baseBranch: z.string().nullable().default(null),
 	runSetupScript: z.boolean().default(true),
 	linkedIssues: z.array(z.unknown()).default([]),
 	linkedPR: z.unknown().nullable().default(null),
