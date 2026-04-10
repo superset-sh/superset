@@ -207,6 +207,7 @@ export const oauthRefreshTokens = authSchema.table("oauth_refresh_tokens", {
 	expiresAt: timestamp("expires_at"),
 	createdAt: timestamp("created_at"),
 	revoked: timestamp("revoked"),
+	authTime: timestamp("auth_time"),
 	scopes: text("scopes").array().notNull(),
 });
 

@@ -1,20 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-
-export interface ActiveOrg {
-	id: string;
-	name: string;
-	slug: string;
-}
 
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;
+		expiresAt: number;
 	};
-	activeOrg?: ActiveOrg;
 	apiUrl?: string;
-	clientIds?: Record<string, string>;
 };
 
 export type DeviceConfig = {
@@ -34,12 +34,21 @@ function ensureDir() {
 
 export function readConfig(): SupersetConfig {
 	if (!existsSync(CONFIG_PATH)) return {};
+	try {
+		const stat = statSync(CONFIG_PATH);
+		if ((stat.mode & 0o077) !== 0) chmodSync(CONFIG_PATH, 0o600);
+	} catch {}
 	return JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
 }
 
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
-	writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+	writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), {
+		mode: 0o600,
+	});
+	try {
+		chmodSync(CONFIG_PATH, 0o600);
+	} catch {}
 }
 
 export function readDeviceConfig(): DeviceConfig | null {

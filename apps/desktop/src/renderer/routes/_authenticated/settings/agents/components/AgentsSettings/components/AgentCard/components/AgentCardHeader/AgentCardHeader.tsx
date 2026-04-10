@@ -1,5 +1,7 @@
 import { CardDescription, CardHeader, CardTitle } from "@superset/ui/card";
 import { Switch } from "@superset/ui/switch";
+import { cn } from "@superset/ui/utils";
+import { ChevronDownIcon } from "lucide-react";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -58,7 +60,7 @@ export function AgentCardHeader({
 						</CardDescription>
 					</div>
 				</div>
-				<div className="flex shrink-0 items-center">
+				<div className="flex shrink-0 items-center gap-3">
 					{showEnabled && (
 						<div className="flex items-center">
 							<Switch
@@ -72,6 +74,13 @@ export function AgentCardHeader({
 							/>
 						</div>
 					)}
+					<ChevronDownIcon
+						aria-hidden="true"
+						className={cn(
+							"size-4 text-muted-foreground transition-transform duration-200",
+							isOpen && "rotate-180",
+						)}
+					/>
 				</div>
 			</div>
 		</CardHeader>

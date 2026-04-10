@@ -726,174 +726,177 @@ function PromptGroupInner({
 		[],
 	);
 
-	const handleCreate = useCallback(async () => {
-		if (!projectId) {
-			toast.error("Select a project first");
-			return;
-		}
-
-		if (submitStartedRef.current) {
-			return;
-		}
-		submitStartedRef.current = true;
-
-		const displayName =
-			workspaceNameEdited && workspaceName.trim()
-				? workspaceName.trim()
-				: trimmedPrompt || "New workspace";
-		const willGenerateAIName =
-			!branchNameEdited && !!trimmedPrompt && !linkedPR;
-		const pendingWorkspaceId = crypto.randomUUID();
-		const detachedFiles = attachments.takeFiles();
-
-		setPendingWorkspace({
-			id: pendingWorkspaceId,
-			projectId,
-			name: displayName,
-			status: willGenerateAIName ? "generating-branch" : "preparing",
-		});
-		closeAndResetDraft();
-
-		try {
-			let aiBranchName: string | null = null;
-			if (willGenerateAIName) {
-				let timeoutId: NodeJS.Timeout | null = null;
-				try {
-					const AI_GENERATION_TIMEOUT_MS = 30000;
-					const timeoutPromise = new Promise<never>((_, reject) => {
-						timeoutId = setTimeout(
-							() => reject(new Error("AI generation timeout")),
-							AI_GENERATION_TIMEOUT_MS,
-						);
-					});
-
-					const result = await Promise.race([
-						generateBranchNameMutation.mutateAsync({
-							prompt: trimmedPrompt,
-							projectId,
-						}),
-						timeoutPromise,
-					]);
-
-					if (timeoutId) clearTimeout(timeoutId);
-					aiBranchName = result.branchName;
-				} catch (error) {
-					if (timeoutId) clearTimeout(timeoutId);
-
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					if (errorMessage.includes("timeout")) {
-						console.warn("[PromptGroup] AI generation timeout");
-						toast.info("Using random branch name (AI generation timed out)");
-					} else if (
-						errorMessage.toLowerCase().includes("auth") ||
-						errorMessage.includes("401") ||
-						errorMessage.includes("403")
-					) {
-						console.error("[PromptGroup] AI auth error:", error);
-						toast.error(
-							"AI authentication failed. Please check your AI settings.",
-						);
-						clearPendingWorkspace(pendingWorkspaceId);
-						return;
-					} else {
-						console.warn("[PromptGroup] AI generation failed:", error);
-						toast.info("Using random branch name (AI generation unavailable)");
-					}
-				} finally {
-					setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
-				}
+	const handleCreate = useCallback(
+		async (preConvertedFiles?: ConvertedFile[]) => {
+			if (!projectId) {
+				toast.error("Select a project first");
+				return;
 			}
 
-			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
-				try {
-					convertedFiles = await Promise.all(
-						detachedFiles.map(async (file) => ({
-							data: await convertBlobUrlToDataUrl(file.url),
-							mediaType: file.mediaType,
-							filename: file.filename,
-						})),
-					);
-				} catch (err) {
-					clearPendingWorkspace(pendingWorkspaceId);
-					toast.error(
-						err instanceof Error
-							? err.message
-							: "Failed to process attachments",
-					);
-					return;
-				}
+			if (submitStartedRef.current) {
+				return;
 			}
+			submitStartedRef.current = true;
 
-			// Fetch and attach GitHub issue content
-			const githubIssues = linkedIssues.filter(
-				(issue): issue is typeof issue & { number: number } =>
-					issue.source === "github" && typeof issue.number === "number",
-			);
-			if (githubIssues.length > 0 && projectId) {
-				try {
-					// Helper to add timeout to promises
-					const fetchWithTimeout = <T,>(
-						promise: Promise<T>,
-						timeoutMs: number,
-					): Promise<T> => {
-						return Promise.race([
-							promise,
-							new Promise<T>((_, reject) =>
-								setTimeout(
-									() => reject(new Error("Request timeout")),
-									timeoutMs,
-								),
-							),
+			const displayName =
+				workspaceNameEdited && workspaceName.trim()
+					? workspaceName.trim()
+					: trimmedPrompt || "New workspace";
+			const willGenerateAIName =
+				!branchNameEdited && !!trimmedPrompt && !linkedPR;
+			const pendingWorkspaceId = crypto.randomUUID();
+			const detachedFiles = preConvertedFiles ? [] : attachments.takeFiles();
+
+			setPendingWorkspace({
+				id: pendingWorkspaceId,
+				projectId,
+				name: displayName,
+				status: willGenerateAIName ? "generating-branch" : "preparing",
+			});
+			closeAndResetDraft();
+
+			try {
+				let aiBranchName: string | null = null;
+				if (willGenerateAIName) {
+					let timeoutId: NodeJS.Timeout | null = null;
+					try {
+						const AI_GENERATION_TIMEOUT_MS = 30000;
+						const timeoutPromise = new Promise<never>((_, reject) => {
+							timeoutId = setTimeout(
+								() => reject(new Error("AI generation timeout")),
+								AI_GENERATION_TIMEOUT_MS,
+							);
+						});
+
+						const result = await Promise.race([
+							generateBranchNameMutation.mutateAsync({
+								prompt: trimmedPrompt,
+								projectId,
+							}),
+							timeoutPromise,
 						]);
-					};
 
-					const issueContents = await Promise.all(
-						githubIssues.map(async (issue) => {
-							try {
-								const content = await fetchWithTimeout(
-									utils.client.projects.getIssueContent.query({
-										projectId,
-										issueNumber: issue.number,
-									}),
-									10000, // 10 second timeout per issue
-								);
+						if (timeoutId) clearTimeout(timeoutId);
+						aiBranchName = result.branchName;
+					} catch (error) {
+						if (timeoutId) clearTimeout(timeoutId);
 
-								// Sanitize user-generated content to prevent injection
-								const sanitizeText = (str: string) =>
-									str.replace(/[&<>"']/g, (char) => {
-										const entities: Record<string, string> = {
-											"&": "&amp;",
-											"<": "&lt;",
-											">": "&gt;",
-											'"': "&quot;",
-											"'": "&#39;",
-										};
-										return entities[char] || char;
-									});
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						if (errorMessage.includes("timeout")) {
+							console.warn("[PromptGroup] AI generation timeout");
+							toast.info("Using random branch name (AI generation timed out)");
+						} else if (
+							errorMessage.toLowerCase().includes("auth") ||
+							errorMessage.includes("401") ||
+							errorMessage.includes("403")
+						) {
+							console.error("[PromptGroup] AI auth error:", error);
+							toast.error(
+								"AI authentication failed. Please check your AI settings.",
+							);
+							clearPendingWorkspace(pendingWorkspaceId);
+							return;
+						} else {
+							console.warn("[PromptGroup] AI generation failed:", error);
+							toast.info(
+								"Using random branch name (AI generation unavailable)",
+							);
+						}
+					} finally {
+						setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
+					}
+				}
 
-								const sanitizeUrl = (url: string) => {
-									try {
-										const parsed = new URL(url);
-										// Only allow http/https protocols
-										if (!["http:", "https:"].includes(parsed.protocol)) {
+				let convertedFiles: ConvertedFile[] = preConvertedFiles ?? [];
+				if (!preConvertedFiles && detachedFiles.length > 0) {
+					try {
+						convertedFiles = await Promise.all(
+							detachedFiles.map(async (file) => ({
+								data: await convertBlobUrlToDataUrl(file.url),
+								mediaType: file.mediaType,
+								filename: file.filename,
+							})),
+						);
+					} catch (err) {
+						clearPendingWorkspace(pendingWorkspaceId);
+						toast.error(
+							err instanceof Error
+								? err.message
+								: "Failed to process attachments",
+						);
+						return;
+					}
+				}
+
+				// Fetch and attach GitHub issue content
+				const githubIssues = linkedIssues.filter(
+					(issue): issue is typeof issue & { number: number } =>
+						issue.source === "github" && typeof issue.number === "number",
+				);
+				if (githubIssues.length > 0 && projectId) {
+					try {
+						// Helper to add timeout to promises
+						const fetchWithTimeout = <T,>(
+							promise: Promise<T>,
+							timeoutMs: number,
+						): Promise<T> => {
+							return Promise.race([
+								promise,
+								new Promise<T>((_, reject) =>
+									setTimeout(
+										() => reject(new Error("Request timeout")),
+										timeoutMs,
+									),
+								),
+							]);
+						};
+
+						const issueContents = await Promise.all(
+							githubIssues.map(async (issue) => {
+								try {
+									const content = await fetchWithTimeout(
+										utils.client.projects.getIssueContent.query({
+											projectId,
+											issueNumber: issue.number,
+										}),
+										10000, // 10 second timeout per issue
+									);
+
+									// Sanitize user-generated content to prevent injection
+									const sanitizeText = (str: string) =>
+										str.replace(/[&<>"']/g, (char) => {
+											const entities: Record<string, string> = {
+												"&": "&amp;",
+												"<": "&lt;",
+												">": "&gt;",
+												'"': "&quot;",
+												"'": "&#39;",
+											};
+											return entities[char] || char;
+										});
+
+									const sanitizeUrl = (url: string) => {
+										try {
+											const parsed = new URL(url);
+											// Only allow http/https protocols
+											if (!["http:", "https:"].includes(parsed.protocol)) {
+												return "#invalid-url";
+											}
+											return url;
+										} catch {
 											return "#invalid-url";
 										}
-										return url;
-									} catch {
-										return "#invalid-url";
-									}
-								};
+									};
 
-								// Limit body size to prevent memory issues
-								const MAX_BODY_LENGTH = 50000; // 50KB
-								const truncatedBody =
-									content.body.length > MAX_BODY_LENGTH
-										? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
-										: content.body;
+									// Limit body size to prevent memory issues
+									const MAX_BODY_LENGTH = 50000; // 50KB
+									const truncatedBody =
+										content.body.length > MAX_BODY_LENGTH
+											? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
+											: content.body;
 
-								const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
+									const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
 
 **URL:** ${sanitizeUrl(content.url)}
 **State:** ${content.state}
@@ -905,152 +908,166 @@ function PromptGroupInner({
 
 ${sanitizeText(truncatedBody)}`;
 
-								// Convert markdown to base64 data URL
-								const base64 = btoa(
-									encodeURIComponent(markdown).replace(
-										/%([0-9A-F]{2})/g,
-										(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
-									),
-								);
+									// Convert markdown to base64 data URL
+									const base64 = btoa(
+										encodeURIComponent(markdown).replace(
+											/%([0-9A-F]{2})/g,
+											(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
+										),
+									);
 
-								return {
-									data: `data:text/markdown;base64,${base64}`,
-									mediaType: "text/markdown",
-									filename: `github-issue-${content.number}.md`,
-								};
-							} catch (err) {
-								console.warn(
-									`Failed to fetch GitHub issue #${issue.number}:`,
-									err,
-								);
-								return null;
-							}
-						}),
-					);
+									return {
+										data: `data:text/markdown;base64,${base64}`,
+										mediaType: "text/markdown",
+										filename: `github-issue-${content.number}.md`,
+									};
+								} catch (err) {
+									console.warn(
+										`Failed to fetch GitHub issue #${issue.number}:`,
+										err,
+									);
+									return null;
+								}
+							}),
+						);
 
-					// Add successfully fetched issues to convertedFiles
-					const validIssueFiles = issueContents.filter(
-						(file) => file !== null,
-					) as ConvertedFile[];
-					convertedFiles = [...convertedFiles, ...validIssueFiles];
-				} catch (err) {
-					console.warn("Failed to fetch GitHub issue contents:", err);
-					// Don't block workspace creation if issue fetching fails
+						// Add successfully fetched issues to convertedFiles
+						const validIssueFiles = issueContents.filter(
+							(file) => file !== null,
+						) as ConvertedFile[];
+						convertedFiles = [...convertedFiles, ...validIssueFiles];
+					} catch (err) {
+						console.warn("Failed to fetch GitHub issue contents:", err);
+						// Don't block workspace creation if issue fetching fails
+					}
 				}
-			}
 
-			let launchRequest: AgentLaunchRequest | null = null;
-			try {
-				launchRequest = buildLaunchRequest(
-					trimmedPrompt,
-					convertedFiles.length > 0 ? convertedFiles : undefined,
-				);
-			} catch (error) {
-				clearPendingWorkspace(pendingWorkspaceId);
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Failed to prepare agent launch",
-				);
-				return;
-			}
+				let launchRequest: AgentLaunchRequest | null = null;
+				try {
+					launchRequest = buildLaunchRequest(
+						trimmedPrompt,
+						convertedFiles.length > 0 ? convertedFiles : undefined,
+					);
+				} catch (error) {
+					clearPendingWorkspace(pendingWorkspaceId);
+					toast.error(
+						error instanceof Error
+							? error.message
+							: "Failed to prepare agent launch",
+					);
+					return;
+				}
 
-			setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
+				setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
 
-			if (linkedPR) {
+				if (linkedPR) {
+					void runAsyncAction(
+						createFromPr.mutateAsyncWithSetup(
+							{ projectId, prUrl: linkedPR.url },
+							launchRequest ?? undefined,
+						),
+						{
+							loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
+							success: "Workspace created from PR",
+							error: (err) =>
+								err instanceof Error
+									? err.message
+									: "Failed to create workspace from PR",
+						},
+						{ closeAndReset: false },
+					).finally(() => {
+						clearPendingWorkspace(pendingWorkspaceId);
+					});
+					return;
+				}
+
 				void runAsyncAction(
-					createFromPr.mutateAsyncWithSetup(
-						{ projectId, prUrl: linkedPR.url },
-						launchRequest ?? undefined,
+					createWorkspace.mutateAsyncWithPendingSetup(
+						{
+							projectId,
+							name:
+								workspaceNameEdited && workspaceName.trim()
+									? workspaceName.trim()
+									: undefined,
+							prompt: trimmedPrompt || undefined,
+							branchName:
+								(branchNameEdited && branchName.trim()
+									? sanitizeBranchNameWithMaxLength(
+											branchName.trim(),
+											undefined,
+											{
+												preserveCase: true,
+											},
+										)
+									: aiBranchName) || undefined,
+							compareBaseBranch: compareBaseBranch || undefined,
+						},
+						{
+							agentLaunchRequest: launchRequest ?? undefined,
+							resolveInitialCommands: runSetupScript
+								? (commands) => commands
+								: () => null,
+						},
 					),
 					{
-						loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
-						success: "Workspace created from PR",
+						loading: "Creating workspace...",
+						success: "Workspace created",
 						error: (err) =>
-							err instanceof Error
-								? err.message
-								: "Failed to create workspace from PR",
+							err instanceof Error ? err.message : "Failed to create workspace",
 					},
 					{ closeAndReset: false },
 				).finally(() => {
 					clearPendingWorkspace(pendingWorkspaceId);
 				});
-				return;
-			}
-
-			void runAsyncAction(
-				createWorkspace.mutateAsyncWithPendingSetup(
-					{
-						projectId,
-						name:
-							workspaceNameEdited && workspaceName.trim()
-								? workspaceName.trim()
-								: undefined,
-						prompt: trimmedPrompt || undefined,
-						branchName:
-							(branchNameEdited && branchName.trim()
-								? sanitizeBranchNameWithMaxLength(
-										branchName.trim(),
-										undefined,
-										{
-											preserveCase: true,
-										},
-									)
-								: aiBranchName) || undefined,
-						compareBaseBranch: compareBaseBranch || undefined,
-					},
-					{
-						agentLaunchRequest: launchRequest ?? undefined,
-						resolveInitialCommands: runSetupScript
-							? (commands) => commands
-							: () => null,
-					},
-				),
-				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-				{ closeAndReset: false },
-			).finally(() => {
-				clearPendingWorkspace(pendingWorkspaceId);
-			});
-		} finally {
-			for (const file of detachedFiles) {
-				if (file.url?.startsWith("blob:")) {
-					URL.revokeObjectURL(file.url);
+			} finally {
+				for (const file of detachedFiles) {
+					if (file.url?.startsWith("blob:")) {
+						URL.revokeObjectURL(file.url);
+					}
 				}
 			}
-		}
-	}, [
-		attachments,
-		compareBaseBranch,
-		branchName,
-		branchNameEdited,
-		buildLaunchRequest,
-		closeAndResetDraft,
-		clearPendingWorkspace,
-		convertBlobUrlToDataUrl,
-		createFromPr,
-		createWorkspace,
-		generateBranchNameMutation,
-		linkedIssues,
-		linkedPR,
-		projectId,
-		runAsyncAction,
-		runSetupScript,
-		setPendingWorkspace,
-		setPendingWorkspaceStatus,
-		trimmedPrompt,
-		utils,
-		workspaceName,
-		workspaceNameEdited,
-	]);
+		},
+		[
+			attachments,
+			compareBaseBranch,
+			branchName,
+			branchNameEdited,
+			buildLaunchRequest,
+			closeAndResetDraft,
+			clearPendingWorkspace,
+			convertBlobUrlToDataUrl,
+			createFromPr,
+			createWorkspace,
+			generateBranchNameMutation,
+			linkedIssues,
+			linkedPR,
+			projectId,
+			runAsyncAction,
+			runSetupScript,
+			setPendingWorkspace,
+			setPendingWorkspaceStatus,
+			trimmedPrompt,
+			utils,
+			workspaceName,
+			workspaceNameEdited,
+		],
+	);
 
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	const handlePromptSubmit = useCallback(
+		(message: {
+			files: Array<{ url: string; mediaType: string; filename?: string }>;
+		}) => {
+			const converted: ConvertedFile[] = message.files
+				.filter((f) => f.url)
+				.map((f) => ({
+					data: f.url,
+					mediaType: f.mediaType,
+					filename: f.filename,
+				}));
+			void handleCreate(converted.length > 0 ? converted : undefined);
+		},
+		[handleCreate],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;

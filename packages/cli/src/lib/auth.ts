@@ -1,163 +1,179 @@
+import { randomBytes } from "node:crypto";
+import { createServer, type Server } from "node:http";
 import { CLIError } from "@superset/cli-framework";
-import { readConfig, writeConfig } from "./config";
+import type { SupersetConfig } from "./config";
 
-// Well-known OAuth client ID for the Superset CLI.
-// Registered via dynamic client registration on first use.
-const CLI_CLIENT_NAME = "Superset CLI";
+const LOOPBACK_CANDIDATES = [51789, 51790];
 
-type DeviceCodeResponse = {
-	device_code: string;
-	user_code: string;
-	verification_uri: string;
-	verification_uri_complete: string;
-	expires_in: number;
-	interval: number;
-};
+export interface LoginResult {
+	accessToken: string;
+	expiresAt: number;
+}
 
-type DeviceTokenResponse = {
-	access_token: string;
-	token_type: string;
-};
+function generateState(): string {
+	return randomBytes(32).toString("base64url");
+}
 
-/**
- * OAuth 2.0 Device Authorization Flow (RFC 8628).
- */
-export type DeviceAuthResult = {
-	token: string;
-	userCode: string;
-	verificationUrl: string;
-};
+function loopbackUrl(port: number): string {
+	return `http://127.0.0.1:${port}/callback`;
+}
 
-export async function deviceAuth(
-	apiUrl: string,
-	signal: AbortSignal,
-): Promise<DeviceAuthResult> {
-	const clientId = await ensureClientId(apiUrl);
-
-	// Step 1: Request device code
-	const codeRes = await fetch(`${apiUrl}/api/auth/device/code`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ client_id: clientId }),
-	});
-
-	if (!codeRes.ok) {
-		const body = await codeRes.text();
-		throw new CLIError(
-			`Failed to start auth flow: ${codeRes.status} ${body}`,
-			"Is the API running?",
-		);
-	}
-
-	const codeData = (await codeRes.json()) as DeviceCodeResponse;
-
-	// Step 2: Open browser with pre-filled code
-	const verificationUrl =
-		codeData.verification_uri_complete || codeData.verification_uri;
-
-	const openCmd =
-		process.platform === "darwin"
-			? "open"
-			: process.platform === "win32"
-				? "start"
-				: "xdg-open";
-
+async function openBrowser(url: string): Promise<void> {
 	const { exec } = await import("node:child_process");
-	exec(`${openCmd} "${verificationUrl}"`);
-
-	// Step 3: Poll for token
-	const interval = (codeData.interval || 5) * 1000;
-	const deadline = Date.now() + codeData.expires_in * 1000;
-
-	while (Date.now() < deadline) {
-		if (signal.aborted) {
-			throw new CLIError("Login cancelled");
-		}
-
-		await sleep(interval);
-
-		const tokenRes = await fetch(`${apiUrl}/api/auth/device/token`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				device_code: codeData.device_code,
-				grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-				client_id: clientId,
-			}),
-		});
-
-		if (tokenRes.ok) {
-			const tokenData = (await tokenRes.json()) as DeviceTokenResponse;
-			return {
-				token: tokenData.access_token,
-				userCode: codeData.user_code,
-				verificationUrl,
-			};
-		}
-
-		const error = (await tokenRes.json()) as { error?: string };
-
-		if (error.error === "authorization_pending") {
-			continue;
-		}
-		if (error.error === "slow_down") {
-			await sleep(5000);
-			continue;
-		}
-		if (error.error === "access_denied") {
-			throw new CLIError("Authorization denied by user");
-		}
-		if (error.error === "expired_token") {
-			throw new CLIError("Authorization expired — please try again");
-		}
-
-		throw new CLIError(`Auth error: ${error.error ?? tokenRes.status}`);
+	switch (process.platform) {
+		case "darwin":
+			exec(`open "${url}"`);
+			break;
+		case "win32":
+			exec(`start "" "${url}"`);
+			break;
+		default:
+			exec(`xdg-open "${url}"`);
 	}
-
-	throw new CLIError("Authorization timed out — please try again");
 }
 
-/**
- * Ensure we have a registered OAuth client ID for this API.
- * Registers one via dynamic client registration on first use,
- * then caches it in ~/.superset/config.json.
- */
-async function ensureClientId(apiUrl: string): Promise<string> {
-	const config = readConfig();
-	const cached = config.clientIds?.[apiUrl];
-	if (cached) return cached;
+async function bindLoopbackServer(): Promise<{ server: Server; port: number }> {
+	for (const port of LOOPBACK_CANDIDATES) {
+		const server = createServer();
+		const bound = await new Promise<boolean>((resolve) => {
+			const onError = () => {
+				server.removeListener("listening", onListening);
+				resolve(false);
+			};
+			const onListening = () => {
+				server.removeListener("error", onError);
+				resolve(true);
+			};
+			server.once("error", onError);
+			server.once("listening", onListening);
+			server.listen(port, "127.0.0.1");
+		});
+		if (bound) return { server, port };
+	}
+	throw new CLIError(
+		`All loopback ports in use: ${LOOPBACK_CANDIDATES.join(", ")}`,
+	);
+}
 
-	// Register a new public client
-	const res = await fetch(`${apiUrl}/api/auth/oauth2/register`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			client_name: CLI_CLIENT_NAME,
-			redirect_uris: ["http://localhost/callback"],
-			grant_types: ["authorization_code"],
-			response_types: ["code"],
-			token_endpoint_auth_method: "none",
-		}),
+function waitForCallback({
+	server,
+	port,
+	expectedState,
+	signal,
+	timeoutMs,
+}: {
+	server: Server;
+	port: number;
+	expectedState: string;
+	signal: AbortSignal;
+	timeoutMs: number;
+}): Promise<string> {
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const finish = (error: Error | null, code?: string) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			signal.removeEventListener("abort", onAbort);
+			server.close();
+			if (error) reject(error);
+			else if (code) resolve(code);
+		};
+
+		const timer = setTimeout(
+			() => finish(new CLIError("Authorization timed out")),
+			timeoutMs,
+		);
+		const onAbort = () => finish(new CLIError("Login cancelled"));
+		signal.addEventListener("abort", onAbort);
+
+		server.on("request", (request, response) => {
+			const url = new URL(request.url ?? "/", `http://127.0.0.1:${port}`);
+			if (url.pathname !== "/callback") {
+				response.writeHead(404).end();
+				return;
+			}
+			const code = url.searchParams.get("code");
+			const state = url.searchParams.get("state");
+			const callbackError = url.searchParams.get("error");
+
+			if (callbackError) {
+				response
+					.writeHead(400, { "Content-Type": "text/html" })
+					.end("<h1>Authorization failed</h1>");
+				finish(new CLIError(`Authorization denied: ${callbackError}`));
+				return;
+			}
+			if (!code || !state) {
+				response
+					.writeHead(400, { "Content-Type": "text/html" })
+					.end("<h1>Missing parameters</h1>");
+				finish(new CLIError("Callback missing code or state"));
+				return;
+			}
+			if (state !== expectedState) {
+				response
+					.writeHead(400, { "Content-Type": "text/html" })
+					.end("<h1>State mismatch</h1>");
+				finish(new CLIError("State mismatch — possible CSRF"));
+				return;
+			}
+			response
+				.writeHead(200, { "Content-Type": "text/html" })
+				.end("<h1>Signed in</h1><p>You can close this tab.</p>");
+			finish(null, code);
+		});
+	});
+}
+
+export function getWebUrl(config: SupersetConfig): string {
+	if (process.env.SUPERSET_WEB_URL) return process.env.SUPERSET_WEB_URL;
+	const apiUrl = config.apiUrl ?? "https://api.superset.sh";
+	return apiUrl.replace("api.superset.sh", "app.superset.sh");
+}
+
+export async function login(
+	config: SupersetConfig,
+	signal: AbortSignal,
+): Promise<LoginResult> {
+	const apiUrl = config.apiUrl ?? "https://api.superset.sh";
+	const webUrl = getWebUrl(config);
+
+	const { server, port } = await bindLoopbackServer();
+	const redirectUri = loopbackUrl(port);
+	const state = generateState();
+
+	const authorizeUrl = new URL(`${webUrl}/cli/authorize`);
+	authorizeUrl.searchParams.set("redirect_uri", redirectUri);
+	authorizeUrl.searchParams.set("state", state);
+
+	await openBrowser(authorizeUrl.toString());
+
+	const code = await waitForCallback({
+		server,
+		port,
+		expectedState: state,
+		signal,
+		timeoutMs: 5 * 60 * 1000,
 	});
 
-	if (!res.ok) {
+	const response = await fetch(`${apiUrl}/api/cli/exchange`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ code }),
+	});
+
+	if (!response.ok) {
+		const body = await response.text();
 		throw new CLIError(
-			`Failed to register CLI client: ${res.status}`,
-			"Is the API running?",
+			`Token exchange failed: ${response.status} ${body}`,
+			"Try `superset auth login` again.",
 		);
 	}
 
-	const data = (await res.json()) as { client_id: string };
-	const clientId = data.client_id;
-
-	// Cache it
-	if (!config.clientIds) config.clientIds = {};
-	config.clientIds[apiUrl] = clientId;
-	writeConfig(config);
-
-	return clientId;
-}
-
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+	const data = (await response.json()) as { token: string; expiresAt: string };
+	return {
+		accessToken: data.token,
+		expiresAt: new Date(data.expiresAt).getTime(),
+	};
 }

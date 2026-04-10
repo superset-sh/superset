@@ -1,5 +1,5 @@
-import { CLIError, command } from "@superset/cli-framework";
-import { readConfig } from "../../../lib/config";
+import { CLIError } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 import {
 	isProcessAlive,
 	readManifest,
@@ -8,20 +8,16 @@ import {
 
 export default command({
 	description: "Stop the host service daemon",
-	run: async () => {
-		const config = readConfig();
+	run: async ({ ctx }) => {
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization)
+			throw new CLIError("No active organization", "Run: superset auth login");
 
-		if (!config.activeOrg) {
-			throw new CLIError("No active organization", "Run: superset org switch");
-		}
-
-		const { id: organizationId, name: orgName } = config.activeOrg;
-		const manifest = readManifest(organizationId);
-
+		const manifest = readManifest(organization.id);
 		if (!manifest) {
 			return {
 				data: { running: false },
-				message: `No host service running for ${orgName}`,
+				message: `No host service running for ${organization.name}`,
 			};
 		}
 
@@ -36,8 +32,6 @@ export default command({
 				);
 			}
 
-			// Wait for the process to actually exit so concurrent `host start`
-			// calls can't race ahead and spawn a duplicate.
 			const deadline = Date.now() + 10_000;
 			while (Date.now() < deadline) {
 				if (!isProcessAlive(manifest.pid)) break;
@@ -45,18 +39,17 @@ export default command({
 			}
 
 			if (isProcessAlive(manifest.pid)) {
-				// Escalate to SIGKILL if it refuses to exit
 				try {
 					process.kill(manifest.pid, "SIGKILL");
 				} catch {}
 			}
 		}
 
-		removeManifest(organizationId);
+		removeManifest(organization.id);
 
 		return {
-			data: { pid: manifest.pid, organizationId },
-			message: `Stopped host service for ${orgName}`,
+			data: { pid: manifest.pid, organizationId: organization.id },
+			message: `Stopped host service for ${organization.name}`,
 		};
 	},
 });

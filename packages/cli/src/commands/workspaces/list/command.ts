@@ -1,4 +1,5 @@
-import { CLIError, command, string, table } from "@superset/cli-framework";
+import { CLIError, string, table } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
 	description: "List workspaces on a device",
@@ -7,14 +8,13 @@ export default command({
 	},
 	display: (data) =>
 		table(data as Record<string, unknown>[], ["name", "branch", "projectName"]),
-	run: async (opts) => {
-		if (!opts.ctx.deviceId) {
+	run: async ({ ctx }) => {
+		if (!ctx.deviceId) {
 			throw new CLIError(
 				"No device found",
 				"Use --device or run: superset devices list",
 			);
 		}
-		// TODO: route to device via websocket
 		throw new CLIError(
 			"Not implemented",
 			"Needs device command routing via websocket",

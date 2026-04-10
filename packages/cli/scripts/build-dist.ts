@@ -24,7 +24,9 @@ import {
 	cpSync,
 	existsSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -44,7 +46,26 @@ const NATIVE_PACKAGES = [
 	"better-sqlite3",
 	"node-pty",
 	"@parcel/watcher",
+	"libsql",
 ] as const;
+
+/**
+ * Platform-specific native bindings that live in optional dependencies
+ * of their parent package and are only installed for the matching host.
+ * `copyPackageWithDeps` only walks `dependencies`, so these need to be
+ * listed explicitly per target.
+ */
+const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
+	"darwin-arm64": ["@libsql/darwin-arm64", "@parcel/watcher-darwin-arm64"],
+	"linux-x64": ["@libsql/linux-x64-gnu", "@parcel/watcher-linux-x64-glibc"],
+};
+
+/**
+ * NODE_MODULE_VERSION of the Node.js runtime we ship. Bumped alongside
+ * NODE_VERSION. Used to fetch the matching better-sqlite3 prebuild from
+ * GitHub releases.
+ */
+const NODE_ABI = "127"; // Node 22.x
 
 function parseArgs(): { target: Target } {
 	const targetArg = process.argv.find((a) => a.startsWith("--target="));
@@ -114,37 +135,44 @@ async function downloadAndExtractNode(
 	return destBinary;
 }
 
-/**
- * Read version for a package from the host-service's resolved node_modules.
- * We use `npm ls` / manual lookup from `package.json` — simplest is to find the
- * package in bun's `.bun/` store and parse its version from the directory name.
- */
 function findPackagePath(
 	packageName: string,
 	startDir: string,
 	repoRoot: string,
 ): string | null {
-	const { realpathSync } = require("node:fs");
-	// Walk up from startDir looking for node_modules/<packageName>
 	let current = startDir;
 	while (current.startsWith(repoRoot)) {
 		const candidate = join(current, "node_modules", packageName);
-		if (existsSync(candidate)) {
-			return realpathSync(candidate);
-		}
+		if (existsSync(candidate)) return realpathSync(candidate);
 		const parent = dirname(current);
 		if (parent === current) break;
 		current = parent;
 	}
-	// Fallback: common locations
 	const fallbacks = [
 		join(repoRoot, "packages", "host-service", "node_modules", packageName),
 		join(repoRoot, "packages", "workspace-fs", "node_modules", packageName),
 		join(repoRoot, "node_modules", packageName),
 	];
 	for (const fallback of fallbacks) {
-		if (existsSync(fallback)) {
-			return realpathSync(fallback);
+		if (existsSync(fallback)) return realpathSync(fallback);
+	}
+	// Bun isolated store fallback: node_modules/.bun/<encoded>@<ver>/node_modules/<name>
+	// where scoped names have `/` encoded as `+` in the store directory.
+	// If multiple versions exist, error rather than silently picking one —
+	// the walker is meant to be deterministic for reproducible tarballs.
+	const bunStore = join(repoRoot, "node_modules", ".bun");
+	if (existsSync(bunStore)) {
+		const encoded = packageName.replace("/", "+");
+		const prefix = `${encoded}@`;
+		const matches = readdirSync(bunStore)
+			.filter((entry) => entry.startsWith(prefix))
+			.map((entry) => join(bunStore, entry, "node_modules", packageName))
+			.filter((candidate) => existsSync(candidate));
+		if (matches.length === 1) return realpathSync(matches[0] as string);
+		if (matches.length > 1) {
+			throw new Error(
+				`Ambiguous Bun store matches for ${packageName}: ${matches.join(", ")}`,
+			);
 		}
 	}
 	return null;
@@ -182,42 +210,76 @@ function copyPackageWithDeps(
 	}
 }
 
-function copyNativePackages(libDir: string): void {
+function copyNativePackages(libDir: string, target: Target): void {
 	const repoRoot = resolve(import.meta.dir, "../../..");
 	const destModules = join(libDir, "node_modules");
 	mkdirSync(destModules, { recursive: true });
 	const copied = new Set<string>();
 
 	const hostServiceDir = join(repoRoot, "packages", "host-service");
-	for (const pkg of NATIVE_PACKAGES) {
+	const packages = [...NATIVE_PACKAGES, ...TARGET_NATIVE_PACKAGES[target]];
+	for (const pkg of packages) {
 		console.log(`[build-dist]   copying ${pkg} (+ deps)`);
 		copyPackageWithDeps(pkg, hostServiceDir, repoRoot, destModules, copied);
 	}
+}
 
-	// better-sqlite3, node-pty, and @parcel/watcher each load their native
-	// binding from build/Release/ as a fallback when the platform-specific
-	// npm sub-package isn't available. Since those sub-packages are optional
-	// and we're shipping the build output, we don't need to copy them.
+/**
+ * Desktop's `install:deps` step runs electron-rebuild on every root
+ * `bun install`, clobbering the hoisted `build/Release/*.node` binaries
+ * of better-sqlite3 and node-pty with Electron-ABI builds. The shipped
+ * Node.js runtime cannot load those. Fix up the staged copies:
+ *
+ * 1. `better-sqlite3`: download the Node-ABI prebuild from GitHub and
+ *    overwrite `build/Release/better_sqlite3.node`.
+ * 2. `node-pty`: delete `build/Release/` so the `bindings` loader falls
+ *    through to the N-API prebuild in `prebuilds/<target>/pty.node`.
+ */
+async function fixNativeBinariesForNode(
+	libDir: string,
+	target: Target,
+): Promise<void> {
+	const destModules = join(libDir, "node_modules");
+
+	const bsqDest = join(destModules, "better-sqlite3", "build", "Release");
+	const bsqVersion = JSON.parse(
+		readFileSync(join(destModules, "better-sqlite3", "package.json"), "utf-8"),
+	).version as string;
+	const bsqUrl =
+		`https://github.com/WiseLibs/better-sqlite3/releases/download/` +
+		`v${bsqVersion}/better-sqlite3-v${bsqVersion}-node-v${NODE_ABI}-${target}.tar.gz`;
+	console.log(`[build-dist] fetching Node-ABI better-sqlite3: ${bsqUrl}`);
+	const tmp = join(homedir(), ".superset-build-cache", `bsq-${target}`);
+	rmSync(tmp, { recursive: true, force: true });
+	mkdirSync(tmp, { recursive: true });
+	const tarball = join(tmp, "bsq.tar.gz");
+	await exec("curl", ["-fsSL", "-o", tarball, bsqUrl]);
+	await exec("tar", ["-xzf", tarball, "-C", tmp]);
+	rmSync(bsqDest, { recursive: true, force: true });
+	mkdirSync(bsqDest, { recursive: true });
+	cpSync(
+		join(tmp, "build", "Release", "better_sqlite3.node"),
+		join(bsqDest, "better_sqlite3.node"),
+	);
+
+	const nodePtyBuild = join(destModules, "node-pty", "build");
+	if (existsSync(nodePtyBuild)) {
+		console.log(
+			"[build-dist] removing node-pty build/ so bindings falls back to prebuilds/",
+		);
+		rmSync(nodePtyBuild, { recursive: true, force: true });
+	}
 }
 
 async function buildCli(target: Target, outputPath: string): Promise<void> {
-	const relayUrl = process.env.RELAY_URL || "https://relay.superset.sh";
-	const cloudApiUrl = process.env.CLOUD_API_URL || "https://api.superset.sh";
-
 	const cliDir = resolve(import.meta.dir, "..");
 	await exec(
-		"bun",
+		"bunx",
 		[
+			"cli-framework",
 			"build",
-			"--compile",
 			`--target=bun-${target}`,
-			"--define",
-			`process.env.RELAY_URL="${relayUrl}"`,
-			"--define",
-			`process.env.CLOUD_API_URL="${cloudApiUrl}"`,
-			"src/bin.ts",
-			"--outfile",
-			outputPath,
+			`--outfile=${outputPath}`,
 		],
 		cliDir,
 	);
@@ -264,7 +326,10 @@ async function main(): Promise<void> {
 	await downloadAndExtractNode(target, join(stagingRoot, "lib"));
 
 	console.log("[build-dist] copying native addon packages");
-	copyNativePackages(join(stagingRoot, "lib"));
+	copyNativePackages(join(stagingRoot, "lib"), target);
+
+	console.log("[build-dist] fixing native binaries for Node runtime");
+	await fixNativeBinariesForNode(join(stagingRoot, "lib"), target);
 
 	console.log("[build-dist] copying migrations");
 	const migrationsSrc = resolve(import.meta.dir, "../../host-service/drizzle");
