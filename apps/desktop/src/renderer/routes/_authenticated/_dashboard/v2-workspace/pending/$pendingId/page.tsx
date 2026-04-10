@@ -17,14 +17,6 @@ export const Route = createFileRoute(
 	component: PendingWorkspacePage,
 });
 
-const STEP_LABELS: Record<string, string> = {
-	ensuring_repo: "Ensuring local repository",
-	creating_worktree: "Creating worktree",
-	registering: "Registering workspace",
-};
-
-const STEP_ORDER = ["ensuring_repo", "creating_worktree", "registering"];
-
 function PendingWorkspacePage() {
 	const { pendingId } = Route.useParams();
 	const navigate = useNavigate();
@@ -67,7 +59,7 @@ function PendingWorkspacePage() {
 		enabled: pending?.status === "creating" && !!hostUrl,
 	});
 
-	const currentStep = progress?.step ?? null;
+	const steps = progress?.steps ?? [];
 
 	// Auto-navigate to real workspace on success
 	useEffect(() => {
@@ -114,20 +106,16 @@ function PendingWorkspacePage() {
 						<p className="text-sm text-muted-foreground">
 							Creating workspace...
 						</p>
-						<div className="space-y-2">
-							{STEP_ORDER.map((step) => {
-								const stepIndex = STEP_ORDER.indexOf(step);
-								const currentIndex = currentStep
-									? STEP_ORDER.indexOf(currentStep)
-									: -1;
-								const isDone = currentIndex > stepIndex;
-								const isCurrent = currentStep === step;
-
-								return (
-									<div key={step} className="flex items-center gap-2.5 text-sm">
-										{isDone ? (
+						{steps.length > 0 && (
+							<div className="space-y-2">
+								{steps.map((step) => (
+									<div
+										key={step.id}
+										className="flex items-center gap-2.5 text-sm"
+									>
+										{step.status === "done" ? (
 											<HiCheck className="size-4 text-emerald-500" />
-										) : isCurrent ? (
+										) : step.status === "active" ? (
 											<div className="size-4 flex items-center justify-center">
 												<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
 											</div>
@@ -138,17 +126,17 @@ function PendingWorkspacePage() {
 										)}
 										<span
 											className={
-												isDone || isCurrent
+												step.status === "done" || step.status === "active"
 													? "text-foreground"
 													: "text-muted-foreground/50"
 											}
 										>
-											{STEP_LABELS[step] ?? step}
+											{step.label}
 										</span>
 									</div>
-								);
-							})}
-						</div>
+								))}
+							</div>
+						)}
 					</div>
 				)}
 

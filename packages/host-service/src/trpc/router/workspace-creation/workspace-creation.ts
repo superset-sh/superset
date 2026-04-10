@@ -15,17 +15,44 @@ import {
 
 // ── In-memory create progress (polled by renderer) ──────────────────
 
-const createProgress = new Map<string, { step: string; updatedAt: number }>();
+interface ProgressStep {
+	id: string;
+	label: string;
+	status: "pending" | "active" | "done";
+}
 
-function setProgress(pendingId: string, step: string): void {
-	createProgress.set(pendingId, { step, updatedAt: Date.now() });
+interface ProgressState {
+	steps: ProgressStep[];
+	updatedAt: number;
+}
+
+const STEP_DEFINITIONS = [
+	{ id: "ensuring_repo", label: "Ensuring local repository" },
+	{ id: "creating_worktree", label: "Creating worktree" },
+	{ id: "registering", label: "Registering workspace" },
+] as const;
+
+const createProgress = new Map<string, ProgressState>();
+
+function setProgress(pendingId: string, activeStepId: string): void {
+	let reachedActive = false;
+	const steps: ProgressStep[] = STEP_DEFINITIONS.map((def) => {
+		if (def.id === activeStepId) {
+			reachedActive = true;
+			return { id: def.id, label: def.label, status: "active" as const };
+		}
+		if (!reachedActive) {
+			return { id: def.id, label: def.label, status: "done" as const };
+		}
+		return { id: def.id, label: def.label, status: "pending" as const };
+	});
+	createProgress.set(pendingId, { steps, updatedAt: Date.now() });
 }
 
 function clearProgress(pendingId: string): void {
 	createProgress.delete(pendingId);
 }
 
-/** Sweep entries older than 5 minutes to prevent leaks from abandoned creates. */
 function sweepStaleProgress(): void {
 	const cutoff = Date.now() - 5 * 60 * 1000;
 	for (const [id, entry] of createProgress) {
@@ -252,7 +279,7 @@ export const workspaceCreationRouter = router({
 		.query(({ input }) => {
 			sweepStaleProgress();
 			const entry = createProgress.get(input.pendingId);
-			return entry ? { step: entry.step } : null;
+			return entry ? { steps: entry.steps } : null;
 		}),
 
 	create: protectedProcedure
