@@ -38,14 +38,14 @@ export async function run(opts: RunOptions): Promise<void> {
 	try {
 		await execute(opts, opts.tree, ac.signal);
 	} catch (error) {
-		handleError(error);
+		handleError(error, opts.name);
 	} finally {
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
 	}
 }
 
-function handleError(error: unknown): never {
+function handleError(error: unknown, cliName: string): never {
 	if (error instanceof CLIError) {
 		process.stderr.write(`Error: ${error.message}\n`);
 		if (error.suggestion) process.stderr.write(`Hint: ${error.suggestion}\n`);
@@ -59,7 +59,7 @@ function handleError(error: unknown): never {
 		const code = trpcError.data?.code ?? trpcError.code;
 		if (code === "UNAUTHORIZED") {
 			process.stderr.write(
-				"Error: Session expired\nHint: Run: superset auth login\n",
+				`Error: Session expired\nHint: Run: ${cliName} auth login\n`,
 			);
 		} else if (code === "NOT_FOUND") {
 			process.stderr.write("Error: Not found\n");
@@ -89,6 +89,53 @@ function processGlobals(
 		out[key] = { ...cfg, name: cfg.name ?? camelToKebab(key) };
 	}
 	return out;
+}
+
+/**
+ * Split argv into command segments (non-flag tokens used for routing) and
+ * passthrough tokens (global flags + everything after the first unknown
+ * flag, which belongs to the leaf command's parser). Without this,
+ * `routeCommand` would stop at the first `-` token and a leading global
+ * flag like `superset --json auth check` would short-circuit to root help.
+ */
+function splitArgsForRouting(
+	args: string[],
+	globalConfigs: Record<string, ProcessedBuilderConfig>,
+): { segments: string[]; passthrough: string[] } {
+	const globalsByName = new Map<string, ProcessedBuilderConfig>();
+	for (const cfg of Object.values(globalConfigs)) {
+		globalsByName.set(cfg.name, cfg);
+		for (const alias of cfg.aliases) globalsByName.set(alias, cfg);
+	}
+
+	const segments: string[] = [];
+	const passthrough: string[] = [];
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i] as string;
+		if (!arg.startsWith("-")) {
+			segments.push(arg);
+			continue;
+		}
+		const eqIdx = arg.startsWith("--") ? arg.indexOf("=") : -1;
+		const flagName = arg.startsWith("--")
+			? eqIdx >= 0
+				? arg.slice(2, eqIdx)
+				: arg.slice(2)
+			: arg.slice(1);
+		const cfg = globalsByName.get(flagName);
+		if (cfg) {
+			passthrough.push(arg);
+			if (cfg.type !== "boolean" && eqIdx < 0 && i + 1 < args.length) {
+				passthrough.push(args[i + 1] as string);
+				i++;
+			}
+			continue;
+		}
+		// Not a global — stop routing; everything else is for the leaf command.
+		passthrough.push(...args.slice(i));
+		break;
+	}
+	return { segments, passthrough };
 }
 
 function getNode(
@@ -141,7 +188,8 @@ async function execute(
 	// Help
 	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 		const cleanArgs = args.filter((a) => a !== "--help" && a !== "-h");
-		const routeResult = routeCommand(root, cleanArgs);
+		const { segments } = splitArgsForRouting(cleanArgs, globalConfigs);
+		const routeResult = routeCommand(root, segments);
 		if (routeResult.commandPath.length === 0) {
 			console.log(generateRootHelp(name, version, root, globalConfigs));
 			return;
@@ -166,7 +214,12 @@ async function execute(
 		return;
 	}
 
-	const { commandPath, remainingArgs } = routeCommand(root, args);
+	const { segments, passthrough } = splitArgsForRouting(args, globalConfigs);
+	const { commandPath, remainingArgs: unroutedSegments } = routeCommand(
+		root,
+		segments,
+	);
+	const remainingArgs = [...unroutedSegments, ...passthrough];
 	if (commandPath.length === 0) {
 		console.log(generateRootHelp(name, version, root, globalConfigs));
 		return;
@@ -210,10 +263,12 @@ async function execute(
 			(builder) => builder._.config,
 		);
 		let posIdx = 0;
+		let consumedVariadic = false;
 		for (const posConfig of positionalConfigs) {
 			const argName = posConfig.name ?? `arg${posIdx}`;
 			if (posConfig.isVariadic) {
 				argsResult[argName] = parsed.positionals.slice(posIdx);
+				consumedVariadic = true;
 				if (
 					posConfig.isRequired &&
 					(argsResult[argName] as string[]).length === 0
@@ -229,18 +284,26 @@ async function execute(
 			argsResult[argName] = value;
 			posIdx++;
 		}
+		if (!consumedVariadic && parsed.positionals.length > posIdx) {
+			throw new CLIError(`Unexpected argument: ${parsed.positionals[posIdx]}`);
+		}
 	}
 
 	// Middleware (commands can opt out via skipMiddleware)
 	let ctx: Record<string, unknown> = {};
 	if (middleware && !cmd.skipMiddleware) {
+		let nextCalled = false;
 		await middleware({
 			options: parsed.options,
 			next: async (params) => {
+				nextCalled = true;
 				ctx = params.ctx;
 				return undefined;
 			},
 		});
+		if (!nextCalled) {
+			throw new CLIError("Middleware did not initialize command context");
+		}
 	}
 
 	const jsonFlag = parsed.options.json as boolean | undefined;

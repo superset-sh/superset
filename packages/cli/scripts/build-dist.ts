@@ -158,14 +158,21 @@ function findPackagePath(
 	}
 	// Bun isolated store fallback: node_modules/.bun/<encoded>@<ver>/node_modules/<name>
 	// where scoped names have `/` encoded as `+` in the store directory.
+	// If multiple versions exist, error rather than silently picking one —
+	// the walker is meant to be deterministic for reproducible tarballs.
 	const bunStore = join(repoRoot, "node_modules", ".bun");
 	if (existsSync(bunStore)) {
 		const encoded = packageName.replace("/", "+");
 		const prefix = `${encoded}@`;
-		for (const entry of readdirSync(bunStore)) {
-			if (!entry.startsWith(prefix)) continue;
-			const candidate = join(bunStore, entry, "node_modules", packageName);
-			if (existsSync(candidate)) return realpathSync(candidate);
+		const matches = readdirSync(bunStore)
+			.filter((entry) => entry.startsWith(prefix))
+			.map((entry) => join(bunStore, entry, "node_modules", packageName))
+			.filter((candidate) => existsSync(candidate));
+		if (matches.length === 1) return realpathSync(matches[0] as string);
+		if (matches.length > 1) {
+			throw new Error(
+				`Ambiguous Bun store matches for ${packageName}: ${matches.join(", ")}`,
+			);
 		}
 	}
 	return null;

@@ -6,6 +6,7 @@
 // Used by `cli-framework build` via `Bun.build({ plugins: [...] })`. Dev
 // mode does not use this plugin — `dev.ts` scans the filesystem at runtime.
 
+import { existsSync } from "node:fs";
 import type { BunPlugin } from "bun";
 import { Glob } from "bun";
 
@@ -51,14 +52,21 @@ export function createCommandsPlugin(opts: CommandsPluginOptions): BunPlugin {
 					}),
 				).sort();
 
-				const lines: string[] = [
-					`import rootMiddleware from "${commandsDir}/${middlewareFile}";`,
-				];
+				const middlewarePath = `${commandsDir}/${middlewareFile}`;
+				const hasRootMiddleware = existsSync(middlewarePath);
+
+				const lines: string[] = hasRootMiddleware
+					? [`import rootMiddleware from ${JSON.stringify(middlewarePath)};`]
+					: [];
 				for (const [i, match] of commandFiles.entries()) {
-					lines.push(`import cmd${i} from "${commandsDir}/${match}";`);
+					lines.push(
+						`import cmd${i} from ${JSON.stringify(`${commandsDir}/${match}`)};`,
+					);
 				}
 				for (const [i, match] of metaFiles.entries()) {
-					lines.push(`import meta${i} from "${commandsDir}/${match}";`);
+					lines.push(
+						`import meta${i} from ${JSON.stringify(`${commandsDir}/${match}`)};`,
+					);
 				}
 
 				lines.push("", "export const commands = [");
@@ -71,7 +79,12 @@ export function createCommandsPlugin(opts: CommandsPluginOptions): BunPlugin {
 					const path = match.split("/").slice(0, -1);
 					lines.push(`\t{ path: ${JSON.stringify(path)}, ...meta${i} },`);
 				}
-				lines.push("];", "", "export const middleware = rootMiddleware;", "");
+				lines.push(
+					"];",
+					"",
+					`export const middleware = ${hasRootMiddleware ? "rootMiddleware" : "undefined"};`,
+					"",
+				);
 
 				return { contents: lines.join("\n"), loader: "ts" };
 			});
