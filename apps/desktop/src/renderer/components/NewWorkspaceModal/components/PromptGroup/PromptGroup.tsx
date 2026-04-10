@@ -5,6 +5,7 @@ import {
 	PromptInputAttachments,
 	PromptInputButton,
 	PromptInputFooter,
+	type PromptInputMessage,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
@@ -726,7 +727,7 @@ function PromptGroupInner({
 		[],
 	);
 
-	const handleCreate = useCallback(async () => {
+	const handleCreate = useCallback(async (preConvertedFiles?: PromptInputMessage["files"]) => {
 		if (!projectId) {
 			toast.error("Select a project first");
 			return;
@@ -806,7 +807,16 @@ function PromptGroupInner({
 			}
 
 			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
+			if (preConvertedFiles) {
+				// Files were already converted to data URLs by PromptInput before
+				// calling handleCreate. Using them directly avoids a second fetch()
+				// on blob URLs that may have been revoked by clearComposer().
+				convertedFiles = preConvertedFiles.map((file) => ({
+					data: file.url ?? "",
+					mediaType: file.mediaType ?? "",
+					filename: file.filename,
+				}));
+			} else if (detachedFiles.length > 0) {
 				try {
 					convertedFiles = await Promise.all(
 						detachedFiles.map(async (file) => ({
@@ -1048,9 +1058,14 @@ ${sanitizeText(truncatedBody)}`;
 		workspaceNameEdited,
 	]);
 
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	const handlePromptSubmit = useCallback(
+		(message: PromptInputMessage) => {
+			// Pass already-converted files so handleCreate doesn't re-fetch
+			// blob URLs that PromptInput.handleSubmit may have revoked via clearComposer().
+			void handleCreate(message.files);
+		},
+		[handleCreate],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
