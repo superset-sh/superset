@@ -117,7 +117,7 @@ export function detachFromContainer(paneId: string): void {
 	if (!entry) return;
 
 	if (DEBUG_TERMINAL) {
-		console.log(`[v1-terminal-cache] Detaching from DOM: ${paneId}`);
+		console.log(`[v1-terminal-cache] detachFromContainer: ${paneId}`);
 	}
 	entry.wrapper.remove();
 }

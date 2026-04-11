@@ -222,7 +222,9 @@ export function useTerminalLifecycle({
 		const container = terminalRef.current;
 		if (!container) return;
 
-		console.log(`[Terminal] Mount: ${paneId}`, new Error().stack?.split("\n").slice(1, 4).join("\n"));
+		if (DEBUG_TERMINAL) {
+			console.log(`[Terminal] Mount: ${paneId}`);
+		}
 
 		// Cancel pending detach from previous unmount
 		const pendingDetach = pendingDetaches.get(paneId);
@@ -241,7 +243,9 @@ export function useTerminalLifecycle({
 		// Use the v1 terminal cache: reuse existing xterm instance across tab
 		// switches instead of creating/disposing each time (v2 "hide attach" pattern).
 		const isReattach = v1TerminalCache.has(paneId);
-		console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
+		if (DEBUG_TERMINAL) {
+			console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
+		}
 		const cached = v1TerminalCache.getOrCreate(paneId, {
 			cwd: workspaceCwdRef.current ?? undefined,
 			initialTheme: initialThemeRef.current,
@@ -794,7 +798,9 @@ export function useTerminalLifecycle({
 
 		return () => {
 			const paneDestroyed = isPaneDestroyedInStore();
-			console.log(`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`, new Error().stack?.split("\n").slice(1, 4).join("\n"));
+			if (DEBUG_TERMINAL) {
+				console.log(`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`);
+			}
 			cancelInitialAttach?.();
 			isUnmounted = true;
 			attachCanceled = true;
