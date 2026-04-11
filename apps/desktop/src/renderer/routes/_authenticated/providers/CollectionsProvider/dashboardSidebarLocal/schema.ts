@@ -91,6 +91,9 @@ export const pendingWorkspaceSchema = z.object({
 	error: z.string().nullable().default(null),
 	workspaceId: z.string().nullable().default(null),
 	initialCommands: z.array(z.string()).nullable().default(null),
+	terminals: z
+		.array(z.object({ id: z.string(), role: z.string(), label: z.string() }))
+		.default([]),
 	createdAt: persistedDateSchema,
 });
 

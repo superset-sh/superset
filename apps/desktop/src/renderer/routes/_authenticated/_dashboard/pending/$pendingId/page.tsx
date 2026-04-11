@@ -13,8 +13,10 @@ import {
 	loadAttachments,
 } from "renderer/lib/pending-attachment-store";
 import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
 
 /**
  * Pending workspace progress page.
@@ -109,7 +111,7 @@ function useRetryCreate(
 			collections.pendingWorkspaces.update(pendingId, (draft) => {
 				draft.status = "succeeded";
 				draft.workspaceId = result.workspace?.id ?? null;
-				draft.initialCommands = result.initialCommands ?? null;
+				draft.terminals = result.terminals ?? [];
 			});
 			void clearAttachments(pendingId);
 		} catch (err) {
@@ -127,6 +129,7 @@ function PendingWorkspacePage() {
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const { activeHostUrl } = useLocalHostService();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const navigatedRef = useRef(false);
 
 	// Read pending workspace from collection (declared early for useRetryCreate)
@@ -192,6 +195,21 @@ function PendingWorkspacePage() {
 			!navigatedRef.current
 		) {
 			navigatedRef.current = true;
+
+			// Ensure sidebar local state row exists before writing pane layout
+			ensureWorkspaceInSidebar(pending.workspaceId, pending.projectId);
+
+			// Pre-populate pane layout with setup terminals (already running on host)
+			if (pending.terminals.length > 0) {
+				const paneLayout = buildSetupPaneLayout(pending.terminals);
+				collections.v2WorkspaceLocalState.update(
+					pending.workspaceId,
+					(draft) => {
+						draft.paneLayout = paneLayout;
+					},
+				);
+			}
+
 			void navigate({
 				to: "/v2-workspace/$workspaceId",
 				params: { workspaceId: pending.workspaceId },
@@ -201,7 +219,7 @@ function PendingWorkspacePage() {
 				collections.pendingWorkspaces.delete(pendingId);
 			}, 1000);
 		}
-	}, [collections, navigate, pending, pendingId]);
+	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
 
 	if (!pending) {
 		return (
