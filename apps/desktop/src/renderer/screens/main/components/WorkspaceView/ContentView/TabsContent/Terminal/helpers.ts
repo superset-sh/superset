@@ -3,6 +3,7 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
+import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
@@ -166,13 +167,19 @@ export interface TerminalRendererRef {
 	current: TerminalRenderer;
 }
 
-export function createTerminalInstance(
-	container: HTMLDivElement,
-	options: CreateTerminalOptions = {},
-): {
+/**
+ * Create an xterm instance opened into a detached wrapper div (not a live container).
+ * The wrapper can be moved between DOM containers via appendChild without
+ * disposing the terminal — this is the "hide attach" pattern from v2.
+ *
+ * Used by v1-terminal-cache.ts to keep xterm alive across React mount/unmount.
+ */
+export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	searchAddon: SearchAddon;
 	renderer: TerminalRendererRef;
+	wrapper: HTMLDivElement;
 	cleanup: () => void;
 } {
 	const {
@@ -182,22 +189,19 @@ export function createTerminalInstance(
 		onUrlClickRef: urlClickRef,
 	} = options;
 
-	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
 	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
+	const searchAddon = new SearchAddon();
 
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
-	// Track cleanup state to prevent operations on disposed terminal
 	let isDisposed = false;
 	let rafId: number | null = null;
 
-	// Use a ref pattern so the renderer can be updated after rAF.
-	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
 	const rendererRef: TerminalRendererRef = {
 		current: {
 			kind: "dom",
@@ -206,21 +210,19 @@ export function createTerminalInstance(
 		},
 	};
 
-	xterm.open(container);
+	// Open into a detached wrapper div — not the live container.
+	const wrapper = document.createElement("div");
+	wrapper.style.width = "100%";
+	wrapper.style.height = "100%";
+	xterm.open(wrapper);
 
-	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
+	xterm.loadAddon(searchAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
 	// Defer GPU renderer loading to next animation frame.
-	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL immediately after open() can cause a
-	// race condition where the setTimeout fires during addon initialization, when
-	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
-	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL.
 	rafId = requestAnimationFrame(() => {
 		rafId = null;
 		if (isDisposed) return;
@@ -261,7 +263,6 @@ export function createTerminalInstance(
 			if (onFileLinkClick) {
 				onFileLinkClick(path, line, column);
 			} else {
-				// Fallback to default behavior (external editor)
 				trpcClient.external.openFileInEditor
 					.mutate({
 						path,
@@ -282,12 +283,13 @@ export function createTerminalInstance(
 	xterm.registerLinkProvider(filePathLinkProvider);
 
 	xterm.unicode.activeVersion = "11";
-	fitAddon.fit();
 
 	return {
 		xterm,
 		fitAddon,
+		searchAddon,
 		renderer: rendererRef,
+		wrapper,
 		cleanup: () => {
 			isDisposed = true;
 			if (rafId !== null) {
@@ -296,6 +298,29 @@ export function createTerminalInstance(
 			cleanupQuerySuppression();
 			rendererRef.current.dispose();
 		},
+	};
+}
+
+export function createTerminalInstance(
+	container: HTMLDivElement,
+	options: CreateTerminalOptions = {},
+): {
+	xterm: XTerm;
+	fitAddon: FitAddon;
+	renderer: TerminalRendererRef;
+	cleanup: () => void;
+} {
+	const result = createTerminalInWrapper(options);
+
+	// Move wrapper into the live container
+	container.appendChild(result.wrapper);
+	result.fitAddon.fit();
+
+	return {
+		xterm: result.xterm,
+		fitAddon: result.fitAddon,
+		renderer: result.renderer,
+		cleanup: result.cleanup,
 	};
 }
 

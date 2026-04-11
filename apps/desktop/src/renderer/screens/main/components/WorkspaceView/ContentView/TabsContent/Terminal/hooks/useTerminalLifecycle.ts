@@ -1,5 +1,5 @@
 import type { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
+import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,7 +12,6 @@ import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
-	createTerminalInstance,
 	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupFocusListener,
@@ -33,6 +32,7 @@ import type {
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import * as v1TerminalCache from "../v1-terminal-cache";
 import { createAttachRequestId } from "./attach-request-id";
 import {
 	getPaneWorkspaceRun,
@@ -222,6 +222,8 @@ export function useTerminalLifecycle({
 		const container = terminalRef.current;
 		if (!container) return;
 
+		const mountStartedAt = performance.now();
+
 		if (DEBUG_TERMINAL) {
 			console.log(`[Terminal] Mount: ${paneId}`);
 		}
@@ -231,6 +233,11 @@ export function useTerminalLifecycle({
 		if (pendingDetach) {
 			clearTimeout(pendingDetach);
 			pendingDetaches.delete(paneId);
+			if (DEBUG_TERMINAL) {
+				console.log(
+					`[Terminal] Cancelled pending detach (StrictMode or fast tab switch): ${paneId}`,
+				);
+			}
 		}
 
 		let isUnmounted = false;
@@ -240,18 +247,28 @@ export function useTerminalLifecycle({
 		let activeAttachRequestId: string | null = null;
 		let cancelAttachWait: (() => void) | null = null;
 
-		const {
-			xterm,
-			fitAddon,
-			renderer,
-			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
+		// Use the v1 terminal cache: reuse existing xterm instance across tab
+		// switches instead of creating/disposing each time (v2 "hide attach" pattern).
+		const isReattach = v1TerminalCache.has(paneId);
+		const cached = v1TerminalCache.getOrCreate(paneId, {
 			cwd: workspaceCwdRef.current ?? undefined,
 			initialTheme: initialThemeRef.current,
 			onFileLinkClick: (path, line, column) =>
 				handleFileLinkClickRef.current(path, line, column),
 			onUrlClickRef: handleUrlClickRef,
 		});
+
+		const { xterm, fitAddon, rendererRef: renderer, searchAddon } = cached;
+
+		// Attach the wrapper div to the live container
+		v1TerminalCache.attachToContainer(paneId, container);
+
+		if (DEBUG_TERMINAL) {
+			const elapsed = (performance.now() - mountStartedAt).toFixed(1);
+			console.log(
+				`[Terminal] ${isReattach ? "Reattach" : "Fresh mount"}: ${paneId} (DOM attach took ${elapsed}ms, buffer lines=${xterm.buffer.active.length})`,
+			);
+		}
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {
@@ -263,42 +280,43 @@ export function useTerminalLifecycle({
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		rendererRef.current = renderer;
+		searchAddonRef.current = searchAddon;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
 		isStreamReadyRef.current = false;
-		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
 			xterm.focus();
 		}
 
-		if (!isUnmounted) {
-			const searchAddon = new SearchAddon();
-			xterm.loadAddon(searchAddon);
-			searchAddonRef.current = searchAddon;
-		}
-
-		// Wait for first render before applying restoration
+		// Wait for first render before applying restoration.
+		// On reattach, xterm is already rendered so skip the render gate.
 		let renderDisposable: IDisposable | null = null;
 		let firstRenderFallback: ReturnType<typeof setTimeout> | null = null;
 
-		renderDisposable = xterm.onRender(() => {
-			if (firstRenderFallback) {
-				clearTimeout(firstRenderFallback);
-				firstRenderFallback = null;
-			}
-			renderDisposable?.dispose();
-			renderDisposable = null;
+		if (isReattach) {
 			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		});
+		} else {
+			didFirstRenderRef.current = false;
 
-		firstRenderFallback = setTimeout(() => {
-			if (isUnmounted || didFirstRenderRef.current) return;
-			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
+			renderDisposable = xterm.onRender(() => {
+				if (firstRenderFallback) {
+					clearTimeout(firstRenderFallback);
+					firstRenderFallback = null;
+				}
+				renderDisposable?.dispose();
+				renderDisposable = null;
+				didFirstRenderRef.current = true;
+				maybeApplyInitialState();
+			});
+
+			firstRenderFallback = setTimeout(() => {
+				if (isUnmounted || didFirstRenderRef.current) return;
+				didFirstRenderRef.current = true;
+				maybeApplyInitialState();
+			}, FIRST_RENDER_RESTORE_FALLBACK_MS);
+		}
 
 		const nextAttachRequestId = () => createAttachRequestId(paneId);
 		const cancelAttachRequest = (requestId: string | null) => {
@@ -555,6 +573,56 @@ export function useTerminalLifecycle({
 								if (activeAttachRequestId !== requestId) return;
 								setConnectionError(null);
 								clearPaneInitialDataRef.current(paneId);
+
+								// Reattach fast-path: xterm buffer is already in memory,
+								// skip scrollback restoration and just open the stream gate.
+								if (isReattach && !result.isColdRestore) {
+									if (DEBUG_TERMINAL) {
+										const reattachElapsed = (
+											performance.now() - mountStartedAt
+										).toFixed(1);
+										console.log(
+											`[Terminal] Reattach fast-path: ${paneId} (total ${reattachElapsed}ms, skipped scrollback=${result.scrollback?.length ?? 0} bytes, pendingEvents=${pendingEventsRef.current.length})`,
+										);
+									}
+									requestAnimationFrame(() => {
+										if (!isAttachActive()) return;
+										const prevCols = xterm.cols;
+										const prevRows = xterm.rows;
+										fitAddon.fit();
+										if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+											resizeRef.current({
+												paneId,
+												cols: xterm.cols,
+												rows: xterm.rows,
+											});
+										}
+									});
+									isStreamReadyRef.current = true;
+									flushPendingEvents();
+
+									if (!commandToRunAfterAttach) {
+										return;
+									}
+
+									void writeWorkspaceRunCommand(commandToRunAfterAttach).catch(
+										(error) => {
+											console.error(
+												"[Terminal] Failed to write workspace run command after reattach:",
+												error,
+											);
+											if (paneWorkspaceRun) {
+												setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+											}
+											setConnectionError(
+												error instanceof Error
+													? error.message
+													: "Failed to write workspace run command",
+											);
+										},
+									);
+									return;
+								}
 
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
@@ -852,10 +920,13 @@ export function useTerminalLifecycle({
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
 
 		return () => {
-			if (DEBUG_TERMINAL) {
-				console.log(`[Terminal] Unmount: ${paneId}`);
-			}
+			const unmountStartedAt = performance.now();
 			const paneDestroyed = isPaneDestroyedInStore();
+			if (DEBUG_TERMINAL) {
+				console.log(
+					`[Terminal] Unmount: ${paneId} (paneDestroyed=${paneDestroyed}, isReattach=${isReattach})`,
+				);
+			}
 			cancelInitialAttach();
 			isUnmounted = true;
 			attachCanceled = true;
@@ -881,24 +952,42 @@ export function useTerminalLifecycle({
 			cleanupResize();
 			cleanupPaste();
 			cleanupCopy();
-			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
 
 			if (paneDestroyed) {
-				// Pane was explicitly destroyed, so kill the session.
+				// Pane was explicitly destroyed — full cleanup.
+				if (DEBUG_TERMINAL) {
+					console.log(
+						`[Terminal] Pane destroyed — killing session and disposing cache: ${paneId}`,
+					);
+				}
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
+				v1TerminalCache.dispose(paneId);
 			} else {
+				// Pane hidden (tab switch) — detach wrapper from DOM but keep
+				// xterm alive in the cache for instant reattach.
+				v1TerminalCache.detachFromContainer(paneId);
+
 				const detachTimeout = setTimeout(() => {
 					detachRef.current({ paneId });
 					pendingDetaches.delete(paneId);
 					coldRestoreState.delete(paneId);
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
+
+				if (DEBUG_TERMINAL) {
+					const elapsed = (
+						performance.now() - unmountStartedAt
+					).toFixed(1);
+					console.log(
+						`[Terminal] Detached from DOM (cached for reattach): ${paneId} (cleanup took ${elapsed}ms)`,
+					);
+				}
 			}
 
 			isStreamReadyRef.current = false;
@@ -907,7 +996,8 @@ export function useTerminalLifecycle({
 			resetModes();
 			renderDisposable?.dispose();
 
-			setTimeout(() => xterm.dispose(), 0);
+			// Do NOT dispose xterm here — the cache owns the lifecycle.
+			// xterm will be disposed when the pane is destroyed (above).
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;
