@@ -17,7 +17,6 @@ import {
 	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
-	setupResizeHandlers,
 	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
@@ -256,8 +255,12 @@ export function useTerminalLifecycle({
 
 		const { xterm, fitAddon, rendererRef: renderer, searchAddon } = cached;
 
-		// Attach the wrapper div to the live container
-		v1TerminalCache.attachToContainer(paneId, container);
+		// Attach the wrapper div to the live container.
+		// The cache creates a ResizeObserver that calls fitAddon.fit() and
+		// forwards resize events to the backend — no separate resize handler needed.
+		v1TerminalCache.attachToContainer(paneId, container, () => {
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+		});
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {
@@ -517,22 +520,8 @@ export function useTerminalLifecycle({
 
 		if (isReattach) {
 			// Stream is ready — the cache has been writing data to xterm.
+			// Resize is handled by attachToContainer's ResizeObserver above.
 			isStreamReadyRef.current = true;
-
-			// Resize in case the container dimensions changed while hidden.
-			requestAnimationFrame(() => {
-				if (isUnmounted) return;
-				const prevCols = xterm.cols;
-				const prevRows = xterm.rows;
-				fitAddon.fit();
-				if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-					resizeRef.current({
-						paneId,
-						cols: xterm.cols,
-						rows: xterm.rows,
-					});
-				}
-			});
 		} else {
 			cancelInitialAttach = scheduleTerminalAttach({
 				paneId,
@@ -622,20 +611,6 @@ export function useTerminalLifecycle({
 										didFirstRenderRef.current = true;
 										return;
 									}
-
-									requestAnimationFrame(() => {
-										if (!isAttachActive()) return;
-										const prevCols = xterm.cols;
-										const prevRows = xterm.rows;
-										fitAddon.fit();
-										if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-											resizeRef.current({
-												paneId,
-												cols: xterm.cols,
-												rows: xterm.rows,
-											});
-										}
-									});
 
 									pendingInitialStateRef.current = result;
 									maybeApplyInitialState();
@@ -778,12 +753,6 @@ export function useTerminalLifecycle({
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
-		const cleanupResize = setupResizeHandlers(
-			container,
-			xterm,
-			fitAddon,
-			(cols, rows) => resizeRef.current({ paneId, cols, rows }),
-		);
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
@@ -799,7 +768,9 @@ export function useTerminalLifecycle({
 		return () => {
 			const paneDestroyed = isPaneDestroyedInStore();
 			if (DEBUG_TERMINAL) {
-				console.log(`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`);
+				console.log(
+					`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`,
+				);
 			}
 			cancelInitialAttach?.();
 			isUnmounted = true;
@@ -820,7 +791,6 @@ export function useTerminalLifecycle({
 			cleanupKeyboard();
 			cleanupClickToMove();
 			cleanupFocus?.();
-			cleanupResize();
 			cleanupPaste();
 			cleanupCopy();
 			unregisterClearCallbackRef.current(paneId);

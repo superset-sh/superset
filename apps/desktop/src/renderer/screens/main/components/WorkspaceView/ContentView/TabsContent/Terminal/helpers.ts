@@ -8,7 +8,6 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { debounce } from "lodash";
 import { getBinding, isTerminalReservedEvent } from "renderer/hotkeys";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
@@ -17,10 +16,9 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
+import { TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { scrollToBottom } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -724,33 +722,6 @@ export function setupFocusListener(
 
 	return () => {
 		textarea.removeEventListener("focus", onFocus);
-	};
-}
-
-export function setupResizeHandlers(
-	container: HTMLDivElement,
-	xterm: XTerm,
-	fitAddon: FitAddon,
-	onResize: (cols: number, rows: number) => void,
-): () => void {
-	const debouncedHandleResize = debounce(() => {
-		const buffer = xterm.buffer.active;
-		const wasAtBottom = buffer.viewportY >= buffer.baseY;
-		fitAddon.fit();
-		onResize(xterm.cols, xterm.rows);
-		if (wasAtBottom) {
-			requestAnimationFrame(() => scrollToBottom(xterm));
-		}
-	}, RESIZE_DEBOUNCE_MS);
-
-	const resizeObserver = new ResizeObserver(debouncedHandleResize);
-	resizeObserver.observe(container);
-	window.addEventListener("resize", debouncedHandleResize);
-
-	return () => {
-		window.removeEventListener("resize", debouncedHandleResize);
-		resizeObserver.disconnect();
-		debouncedHandleResize.cancel();
 	};
 }
 

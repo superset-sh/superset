@@ -52,6 +52,8 @@ export interface CachedTerminal {
 	 * terminal stream error events).
 	 */
 	subscriptionErrorHandler: ((error: unknown) => void) | null;
+	/** ResizeObserver for the attached container. Managed by attach/detach. */
+	resizeObserver: ResizeObserver | null;
 }
 
 const cache = new Map<string, CachedTerminal>();
@@ -91,6 +93,7 @@ export function getOrCreate(
 		pendingLifecycleEvents: [],
 		eventHandler: null,
 		subscriptionErrorHandler: null,
+		resizeObserver: null,
 	};
 
 	cache.set(paneId, entry);
@@ -102,6 +105,7 @@ export function getOrCreate(
 export function attachToContainer(
 	paneId: string,
 	container: HTMLDivElement,
+	onResize?: () => void,
 ): void {
 	const entry = cache.get(paneId);
 	if (!entry) return;
@@ -110,6 +114,16 @@ export function attachToContainer(
 	entry.fitAddon.fit();
 	entry.xterm.refresh(0, Math.max(0, entry.xterm.rows - 1));
 	entry.rendererRef.current.clearTextureAtlas?.();
+
+	// Manage ResizeObserver lifecycle in the cache, not in React.
+	entry.resizeObserver?.disconnect();
+	const observer = new ResizeObserver(() => {
+		if (container.clientWidth === 0 && container.clientHeight === 0) return;
+		entry.fitAddon.fit();
+		onResize?.();
+	});
+	observer.observe(container);
+	entry.resizeObserver = observer;
 }
 
 export function detachFromContainer(paneId: string): void {
@@ -119,6 +133,8 @@ export function detachFromContainer(paneId: string): void {
 	if (DEBUG_TERMINAL) {
 		console.log(`[v1-terminal-cache] detachFromContainer: ${paneId}`);
 	}
+	entry.resizeObserver?.disconnect();
+	entry.resizeObserver = null;
 	entry.wrapper.remove();
 }
 
@@ -241,6 +257,7 @@ export function dispose(paneId: string): void {
 		console.log(`[v1-terminal-cache] Disposing: ${paneId}`);
 	}
 
+	entry.resizeObserver?.disconnect();
 	entry.subscription?.unsubscribe();
 	entry.cleanupCreation();
 	entry.xterm.dispose();
