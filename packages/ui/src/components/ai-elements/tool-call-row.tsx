@@ -37,7 +37,7 @@ export type ToolCallRowProps = {
 	isPending?: boolean;
 	/** When true the default status shows an X icon. */
 	isError?: boolean;
-	/** When true shows a filled amber warning triangle with a "Not configured" tooltip. */
+	/** When true shows an outlined amber warning triangle inline after the description with a "Not configured" tooltip. */
 	isNotConfigured?: boolean;
 	/**
 	 * Overrides the default status slot (X on error, nothing otherwise).
@@ -78,18 +78,7 @@ export function ToolCallRow({
 	const [isHovered, setIsHovered] = useState(false);
 	const hasDetails = children != null && children !== false;
 
-	const defaultStatus = isNotConfigured ? (
-		<TooltipProvider>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<span className="flex items-center">
-						<TriangleAlertIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
-					</span>
-				</TooltipTrigger>
-				<TooltipContent>Not configured</TooltipContent>
-			</Tooltip>
-		</TooltipProvider>
-	) : null;
+	const defaultStatus = null;
 
 	const resolvedDescription =
 		description ??
@@ -143,9 +132,25 @@ export function ToolCallRow({
 								<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
 							)}
 							{titleContent}
-							{resolvedDescription != null && !isOpen && (
-								<span className="min-w-0 truncate text-xs text-muted-foreground">
-									{resolvedDescription}
+							{(resolvedDescription != null || isNotConfigured) && !isOpen && (
+								<span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+									{resolvedDescription != null && (
+										<span className="min-w-0 truncate">
+											{resolvedDescription}
+										</span>
+									)}
+									{isNotConfigured && (
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<span className="flex shrink-0 items-center">
+														<TriangleAlertIcon className="h-3 w-3 text-amber-500" />
+													</span>
+												</TooltipTrigger>
+												<TooltipContent>Not configured</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									)}
 								</span>
 							)}
 						</div>
