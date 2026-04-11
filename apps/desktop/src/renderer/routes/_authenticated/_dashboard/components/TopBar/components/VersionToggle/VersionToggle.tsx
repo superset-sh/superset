@@ -37,10 +37,10 @@ export function VersionToggle() {
 				</button>
 			</TooltipTrigger>
 			<TooltipContent>
-			{forceV1
-				? "Early Access: Switch to Superset V2"
-				: "Switch to Superset V1"}
-		</TooltipContent>
+				{forceV1
+					? "Early Access: Switch to Superset V2"
+					: "Switch to Superset V1"}
+			</TooltipContent>
 		</Tooltip>
 	);
 }
