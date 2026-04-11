@@ -552,14 +552,17 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
-				const { data } = await octokit.issues.listForRepo({
-					owner: repo.owner,
-					repo: repo.name,
-					state: "open",
+				// No query — list recent open issues using search API so PRs
+				// don't consume the page (listForRepo returns PRs mixed in)
+				const q = `repo:${repo.owner}/${repo.name} is:issue is:open`;
+				const { data } = await octokit.search.issuesAndPullRequests({
+					q,
 					per_page: limit,
+					sort: "updated",
+					order: "desc",
 				});
 				return {
-					issues: data
+					issues: data.items
 						.filter((item) => !item.pull_request)
 						.map((item) => ({
 							issueNumber: item.number,
