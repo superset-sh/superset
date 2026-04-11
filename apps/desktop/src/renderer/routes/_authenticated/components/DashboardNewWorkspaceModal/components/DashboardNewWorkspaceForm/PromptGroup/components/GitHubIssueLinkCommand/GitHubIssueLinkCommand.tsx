@@ -8,11 +8,11 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { useQuery } from "@tanstack/react-query";
-import Fuse from "fuse.js";
 import type React from "react";
 import type { RefObject } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { env } from "renderer/env.renderer";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -42,11 +42,6 @@ interface GitHubIssueLinkCommandProps {
 	anchorRef: RefObject<HTMLElement | null>;
 }
 
-/** Detect inputs that should hit the server: GitHub issue URLs or `#N` shorthand. */
-function isServerLookupQuery(query: string): boolean {
-	return /^https?:\/\//.test(query) || /^#\d+$/.test(query);
-}
-
 export function GitHubIssueLinkCommand({
 	open,
 	onOpenChange,
@@ -56,107 +51,46 @@ export function GitHubIssueLinkCommand({
 	anchorRef,
 }: GitHubIssueLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
+	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const { activeHostUrl } = useLocalHostService();
 
 	const trimmedQuery = searchQuery.trim();
-	const needsServerLookup = isServerLookupQuery(trimmedQuery);
+	const debouncedTrimmed = debouncedQuery.trim();
+	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
 
 	const hostUrl =
 		hostTarget.kind === "local"
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
-	// ── Pre-fetch all open issues (for client-side fuzzy filtering) ──
-	const { data: listData, isLoading: isListLoading } = useQuery({
+	const { data, isFetching } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchGitHubIssues",
-			"list",
 			projectId,
 			hostUrl,
+			debouncedTrimmed,
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { issues: [] };
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.workspaceCreation.searchGitHubIssues.query({
 				projectId,
-				limit: 100,
+				query: debouncedTrimmed || undefined,
+				limit: MAX_RESULTS,
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
 	});
 
-	const allIssues = listData?.issues ?? [];
-
-	// ── Server lookup for URLs and #N shorthand ─────────────────────
-	const { data: lookupData, isFetching: isLookupFetching } = useQuery({
-		queryKey: [
-			"workspaceCreation",
-			"searchGitHubIssues",
-			"lookup",
-			projectId,
-			hostUrl,
-			trimmedQuery,
-		],
-		queryFn: async () => {
-			if (!hostUrl || !projectId) return { issues: [] };
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.workspaceCreation.searchGitHubIssues.query({
-				projectId,
-				query: trimmedQuery,
-				limit: MAX_RESULTS,
-			});
-		},
-		enabled: !!projectId && !!hostUrl && open && needsServerLookup,
-	});
-
+	const searchResults = data?.issues ?? [];
 	const repoMismatch =
-		lookupData && "repoMismatch" in lookupData
-			? lookupData.repoMismatch
-			: null;
+		data && "repoMismatch" in data ? data.repoMismatch : null;
 
-	// ── Client-side Fuse.js fuzzy search (matches V1 behavior) ──────
-	const issuesWithSearchField = useMemo(
-		() =>
-			allIssues.map((issue) => ({
-				...issue,
-				issueNumberStr: String(issue.issueNumber),
-			})),
-		[allIssues],
-	);
-
-	const issueFuse = useMemo(
-		() =>
-			new Fuse(issuesWithSearchField, {
-				keys: [
-					{ name: "issueNumberStr", weight: 3 },
-					{ name: "title", weight: 2 },
-				],
-				threshold: 0.4,
-				ignoreLocation: true,
-			}),
-		[issuesWithSearchField],
-	);
-
-	// ── Resolve final results ───────────────────────────────────────
-	const searchResults = useMemo(() => {
-		// Server lookup for URLs / #N
-		if (needsServerLookup) {
-			return lookupData?.issues ?? [];
-		}
-
-		// No query — show recent
-		if (!trimmedQuery) {
-			return allIssues.slice(0, MAX_RESULTS);
-		}
-
-		// Client-side fuzzy search for text and bare numbers
-		return issueFuse
-			.search(trimmedQuery, { limit: MAX_RESULTS })
-			.map((r) => r.item);
-	}, [needsServerLookup, trimmedQuery, lookupData, allIssues, issueFuse]);
-
-	const isLoading = needsServerLookup ? isLookupFetching : isListLoading;
+	const isLoading =
+		debouncedTrimmed || trimmedQuery
+			? isFetching || isPendingDebounce
+			: isFetching;
 
 	const handleClose = () => {
 		setSearchQuery("");
@@ -195,18 +129,18 @@ export function GitHubIssueLinkCommand({
 						{searchResults.length === 0 && (
 							<CommandEmpty>
 								{isLoading
-									? "Loading issues..."
+									? debouncedTrimmed
+										? "Searching..."
+										: "Loading issues..."
 									: repoMismatch
 										? `Issue URL must match ${repoMismatch}.`
-										: trimmedQuery
+										: debouncedTrimmed
 											? "No issues found."
 											: "No open issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
-							<CommandGroup
-								heading={trimmedQuery ? "Results" : "Open issues"}
-							>
+							<CommandGroup heading={debouncedTrimmed ? "Results" : "Open issues"}>
 								{searchResults.map((issue) => (
 									<CommandItem
 										key={issue.issueNumber}
