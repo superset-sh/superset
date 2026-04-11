@@ -533,7 +533,7 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
-				const q = `repo:${repo.owner}/${repo.name} is:issue is:open ${effectiveQuery}`.trim();
+				const q = `repo:${repo.owner}/${repo.name} is:issue ${effectiveQuery}`.trim();
 				const { data } = await octokit.search.issuesAndPullRequests({
 					q,
 					per_page: limit,
@@ -606,43 +606,24 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
-				if (effectiveQuery) {
-					const q = `repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`;
-					const { data } = await octokit.search.issuesAndPullRequests({
-						q,
-						per_page: limit,
-					});
-					return {
-						pullRequests: data.items
-							.filter((item) => item.pull_request)
-							.map((item) => ({
-								prNumber: item.number,
-								title: item.title,
-								url: item.html_url,
-								state: item.state,
-								isDraft: item.draft ?? false,
-								authorLogin: item.user?.login ?? null,
-							})),
-					};
-				}
-
-				const { data } = await octokit.pulls.list({
-					owner: repo.owner,
-					repo: repo.name,
-					state: "open",
-					sort: "updated",
-					direction: "desc",
+				const q = `repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`.trim();
+				const { data } = await octokit.search.issuesAndPullRequests({
+					q,
 					per_page: limit,
+					sort: "updated",
+					order: "desc",
 				});
 				return {
-					pullRequests: data.map((pr) => ({
-						prNumber: pr.number,
-						title: pr.title,
-						url: pr.html_url,
-						state: pr.state,
-						isDraft: pr.draft ?? false,
-						authorLogin: pr.user?.login ?? null,
-					})),
+					pullRequests: data.items
+						.filter((item) => item.pull_request)
+						.map((item) => ({
+							prNumber: item.number,
+							title: item.title,
+							url: item.html_url,
+							state: item.state,
+							isDraft: item.draft ?? false,
+							authorLogin: item.user?.login ?? null,
+						})),
 				};
 			} catch (err) {
 				console.warn("[workspaceCreation.searchPullRequests] failed", err);
