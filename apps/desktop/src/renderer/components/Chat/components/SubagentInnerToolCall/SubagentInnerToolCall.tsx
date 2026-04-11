@@ -1,4 +1,5 @@
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
+import { ClickableFilePath } from "@superset/ui/ai-elements/clickable-file-path";
 import { ReadFileTool } from "@superset/ui/ai-elements/read-file-tool";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import {
@@ -60,6 +61,28 @@ function getToolMeta(toolName: string): ToolMeta {
 			icon: WrenchIcon,
 		}
 	);
+}
+
+/** Tools where the description is a file path (not a search query or URL). */
+const FILE_PATH_TOOLS = new Set([
+	"mastra_workspace_write_file",
+	"mastra_workspace_edit_file",
+	"mastra_workspace_file_stat",
+	"mastra_workspace_delete",
+	"ast_smart_edit",
+]);
+
+function getRawFilePath(
+	toolName: string,
+	args: Record<string, unknown>,
+): string | null {
+	if (FILE_PATH_TOOLS.has(toolName)) {
+		const raw = String(
+			args.path ?? args.filePath ?? args.file_path ?? args.file ?? "",
+		);
+		return raw || null;
+	}
+	return null;
 }
 
 function getDescription(
@@ -261,13 +284,33 @@ export function SubagentInnerToolCall({
 		}
 	}
 
+	// For file-path tools, make the filename in the description clickable.
+	const rawFilePath = getRawFilePath(normalized, args ?? {});
+	const resolvedFilePath = rawFilePath
+		? (normalizeWorkspaceFilePath({
+				filePath: rawFilePath,
+				workspaceRoot: workspaceCwd,
+			}) ?? rawFilePath)
+		: null;
+
+	const descriptionNode =
+		resolvedFilePath && onOpenFileInPane && description ? (
+			<ClickableFilePath
+				path={resolvedFilePath}
+				display={description}
+				onOpen={() => onOpenFileInPane(resolvedFilePath)}
+			/>
+		) : (
+			description
+		);
+
 	return (
 		<ToolCallRow
 			icon={icon}
 			isError={isError}
 			isPending={isPending}
 			title={label}
-			description={description}
+			description={descriptionNode}
 		>
 			{hasResult ? (
 				<div className="pl-2 py-1.5">

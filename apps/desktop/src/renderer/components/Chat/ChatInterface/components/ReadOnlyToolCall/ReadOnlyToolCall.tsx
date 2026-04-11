@@ -1,14 +1,9 @@
+import { ClickableFilePath } from "@superset/ui/ai-elements/clickable-file-path";
 import { ReadFileTool } from "@superset/ui/ai-elements/read-file-tool";
 import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { getToolName } from "ai";
-import {
-	ExternalLinkIcon,
-	FileIcon,
-	FileSearchIcon,
-	FolderTreeIcon,
-	SearchIcon,
-} from "lucide-react";
+import { FileIcon, FileSearchIcon, FolderTreeIcon, SearchIcon } from "lucide-react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { detectLanguage } from "shared/detect-language";
 import type { BundledLanguage } from "shiki";
@@ -157,18 +152,6 @@ export function ReadOnlyToolCall({
 	const filePath = getWorkspaceToolFilePath({ toolName, args });
 	const canOpenFile = Boolean(filePath && onOpenFileInPane);
 
-	const headerExtra =
-		canOpenFile && filePath ? (
-			<button
-				type="button"
-				aria-label={`Open ${filePath} in file pane`}
-				className="mr-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-				onClick={() => onOpenFileInPane?.(filePath)}
-			>
-				<ExternalLinkIcon className="h-3 w-3" />
-			</button>
-		) : undefined;
-
 	// Prevent a flash of raw output while the disk read is in flight
 	if (
 		isReadFileTool &&
@@ -207,10 +190,22 @@ export function ReadOnlyToolCall({
 		);
 	}
 
+	// For file-path tools (e.g. file_stat), make the filename clickable.
+	// Search queries and directory listings stay as plain text.
+	const descriptionNode =
+		canOpenFile && filePath && subtitle ? (
+			<ClickableFilePath
+				path={filePath}
+				display={subtitle}
+				onOpen={() => onOpenFileInPane?.(filePath)}
+			/>
+		) : (
+			subtitle || undefined
+		);
+
 	return (
 		<ToolCallRow
-			description={subtitle || undefined}
-			headerExtra={headerExtra}
+			description={descriptionNode}
 			icon={Icon}
 			isError={isError || displayState === "output-error"}
 			isPending={isPending}

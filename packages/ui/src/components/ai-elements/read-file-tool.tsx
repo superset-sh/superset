@@ -1,7 +1,8 @@
 "use client";
 
-import { ExternalLinkIcon, FileIcon } from "lucide-react";
+import { FileIcon } from "lucide-react";
 import type { BundledLanguage } from "shiki";
+import { ClickableFilePath } from "./clickable-file-path";
 import { CodeBlock } from "./code-block";
 import { ToolCallRow } from "./tool-call-row";
 
@@ -16,7 +17,7 @@ export type ReadFileToolProps = {
 	language?: BundledLanguage;
 	isError?: boolean;
 	isPending?: boolean;
-	/** When provided, renders an "open in pane" icon button in the header. */
+	/** When provided, makes the filename clickable to open in pane. */
 	onOpenInPane?: () => void;
 	className?: string;
 };
@@ -35,22 +36,12 @@ export function ReadFileTool({
 	onOpenInPane,
 	className,
 }: ReadFileToolProps) {
-	const headerExtra = onOpenInPane ? (
-		<button
-			type="button"
-			aria-label={`Open ${filename} in file pane`}
-			className="mr-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-			onClick={onOpenInPane}
-		>
-			<ExternalLinkIcon className="h-3 w-3" />
-		</button>
-	) : undefined;
-
 	return (
 		<ToolCallRow
 			className={className}
-			description={filename}
-			headerExtra={headerExtra}
+			description={
+				<ClickableFilePath path={filename} onOpen={onOpenInPane} />
+			}
 			icon={FileIcon}
 			isError={isError}
 			isPending={isPending}
@@ -59,7 +50,11 @@ export function ReadFileTool({
 			<div className="py-1.5 pl-2">
 				<div className="overflow-hidden rounded-md border border-border">
 					<div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-1.5 font-mono text-xs">
-						<span className="text-foreground">{filename}</span>
+						<ClickableFilePath
+							path={filename}
+							onOpen={onOpenInPane}
+							className="text-foreground"
+						/>
 						{lineRange && (
 							<span className="text-muted-foreground">{lineRange}</span>
 						)}
