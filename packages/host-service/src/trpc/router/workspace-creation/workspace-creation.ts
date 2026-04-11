@@ -491,7 +491,6 @@ export const workspaceCreationRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			const repo = await resolveGithubRepo(ctx, input.projectId);
-			const octokit = await ctx.github();
 			const limit = input.limit ?? 30;
 
 			// Normalize the query: detect GitHub issue URLs, strip `#` shorthand
@@ -506,6 +505,7 @@ export const workspaceCreationRouter = router({
 			}
 
 			const effectiveQuery = normalized.query;
+			const octokit = await ctx.github();
 
 			try {
 				// Direct lookup by issue number (from URL paste or `#123` shorthand)
@@ -585,7 +585,6 @@ export const workspaceCreationRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			const repo = await resolveGithubRepo(ctx, input.projectId);
-			const octokit = await ctx.github();
 			const limit = input.limit ?? 30;
 
 			// Normalize the query: detect GitHub PR URLs, strip `#` shorthand
@@ -600,6 +599,7 @@ export const workspaceCreationRouter = router({
 			}
 
 			const effectiveQuery = normalized.query;
+			const octokit = await ctx.github();
 
 			try {
 				// Direct lookup by PR number (from URL paste or `#123` shorthand)

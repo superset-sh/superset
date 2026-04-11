@@ -64,7 +64,7 @@ export function PRLinkCommand({
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
-	const { data, isLoading: isFetching } = useQuery({
+	const { data, isFetching } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchPullRequests",

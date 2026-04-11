@@ -32,7 +32,7 @@ export function normalizeGitHubQuery(
 	if (urlMatch) {
 		const urlOwner = urlMatch[1] as string;
 		const urlRepo = urlMatch[2] as string;
-		const urlPath = urlMatch[3] as string; // "pull" or "issues"
+		const urlPath = (urlMatch[3] as string).toLowerCase(); // "pull" or "issues"
 		const number = urlMatch[4] as string;
 
 		// Wrong entity type (e.g. issue URL pasted in PR search) — fall through to text search

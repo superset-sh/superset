@@ -63,7 +63,7 @@ export function GitHubIssueLinkCommand({
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
-	const { data, isLoading: isFetching } = useQuery({
+	const { data, isFetching } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchGitHubIssues",
@@ -129,18 +129,18 @@ export function GitHubIssueLinkCommand({
 						{searchResults.length === 0 && (
 							<CommandEmpty>
 								{isLoading
-								? debouncedTrimmed
-									? "Searching..."
-									: "Loading issues..."
-								: repoMismatch
-									? `Issue URL must match ${repoMismatch}.`
-									: debouncedTrimmed
-										? "No issues found."
-										: "No open issues found."}
+									? debouncedTrimmed
+										? "Searching..."
+										: "Loading issues..."
+									: repoMismatch
+										? `Issue URL must match ${repoMismatch}.`
+										: debouncedTrimmed
+											? "No issues found."
+											: "No open issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
-							<CommandGroup heading={searchQuery ? "Results" : "Open issues"}>
+							<CommandGroup heading={debouncedTrimmed ? "Results" : "Open issues"}>
 								{searchResults.map((issue) => (
 									<CommandItem
 										key={issue.issueNumber}
