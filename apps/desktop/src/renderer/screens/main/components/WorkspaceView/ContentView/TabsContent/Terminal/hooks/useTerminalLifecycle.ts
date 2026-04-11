@@ -222,9 +222,7 @@ export function useTerminalLifecycle({
 		const container = terminalRef.current;
 		if (!container) return;
 
-		if (DEBUG_TERMINAL) {
-			console.log(`[Terminal] Mount: ${paneId}`);
-		}
+		console.log(`[Terminal] Mount: ${paneId}`, new Error().stack?.split("\n").slice(1, 4).join("\n"));
 
 		// Cancel pending detach from previous unmount
 		const pendingDetach = pendingDetaches.get(paneId);
@@ -243,6 +241,7 @@ export function useTerminalLifecycle({
 		// Use the v1 terminal cache: reuse existing xterm instance across tab
 		// switches instead of creating/disposing each time (v2 "hide attach" pattern).
 		const isReattach = v1TerminalCache.has(paneId);
+		console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
 		const cached = v1TerminalCache.getOrCreate(paneId, {
 			cwd: workspaceCwdRef.current ?? undefined,
 			initialTheme: initialThemeRef.current,
@@ -789,107 +788,13 @@ export function useTerminalLifecycle({
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
-		const reattachRecovery = {
-			throttleMs: 120,
-			pendingFrame: null as number | null,
-			lastRunAt: 0,
-			pendingForceResize: false,
-		};
-
-		const isCurrentTerminalRenderable = () => {
-			if (isUnmounted || xtermRef.current !== xterm) return false;
-			if (!container.isConnected) return false;
-
-			const style = window.getComputedStyle(container);
-			if (style.display === "none" || style.visibility === "hidden") {
-				return false;
-			}
-
-			const rect = container.getBoundingClientRect();
-			return rect.width > 1 && rect.height > 1;
-		};
-
-		const runReattachRecovery = (forceResize: boolean) => {
-			if (!isCurrentTerminalRenderable()) return;
-
-			const prevCols = xterm.cols;
-			const prevRows = xterm.rows;
-			const wasAtBottom =
-				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
-
-			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
-			rendererRef.current?.current.clearTextureAtlas?.();
-
-			fitAddon.fit();
-			xterm.refresh(0, Math.max(0, xterm.rows - 1));
-
-			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
-				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-			}
-
-			if (isFocusedRef.current && document.hasFocus()) {
-				xterm.focus();
-			}
-
-			if (!wasAtBottom) return;
-			requestAnimationFrame(() => {
-				if (isUnmounted || xtermRef.current !== xterm) return;
-				scrollToBottom(xterm);
-			});
-		};
-
-		const scheduleReattachRecovery = (forceResize: boolean) => {
-			reattachRecovery.pendingForceResize ||= forceResize;
-			if (reattachRecovery.pendingFrame !== null) return;
-
-			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
-				reattachRecovery.pendingFrame = null;
-
-				const now = Date.now();
-				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs) {
-					// Schedule a retry after the remaining throttle window so the recovery
-					// is not permanently lost when focus events fire in rapid succession.
-					const remaining =
-						reattachRecovery.throttleMs - (now - reattachRecovery.lastRunAt);
-					setTimeout(() => {
-						if (!isUnmounted)
-							scheduleReattachRecovery(reattachRecovery.pendingForceResize);
-					}, remaining + 1);
-					return;
-				}
-				reattachRecovery.lastRunAt = now;
-
-				const shouldForceResize = reattachRecovery.pendingForceResize;
-				reattachRecovery.pendingForceResize = false;
-				runReattachRecovery(shouldForceResize);
-			});
-		};
-
-		const cancelReattachRecovery = () => {
-			if (reattachRecovery.pendingFrame === null) return;
-			cancelAnimationFrame(reattachRecovery.pendingFrame);
-			reattachRecovery.pendingFrame = null;
-		};
-
-		const handleVisibilityChange = () => {
-			if (document.hidden) return;
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
-		const handleWindowFocus = () => {
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
-
-		document.addEventListener("visibilitychange", handleVisibilityChange);
-		window.addEventListener("focus", handleWindowFocus);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
 
 		return () => {
-			if (DEBUG_TERMINAL) {
-				console.log(`[Terminal] Unmount: ${paneId}`);
-			}
 			const paneDestroyed = isPaneDestroyedInStore();
+			console.log(`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`, new Error().stack?.split("\n").slice(1, 4).join("\n"));
 			cancelInitialAttach?.();
 			isUnmounted = true;
 			attachCanceled = true;
@@ -903,9 +808,6 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
-			cancelReattachRecovery();
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
-			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();
