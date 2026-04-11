@@ -81,8 +81,6 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
  */
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
-// SHELLS_WITH_READY_MARKER imported from @superset/shared/shell-ready-scanner
-
 /**
  * Shell readiness lifecycle:
  * - `pending`     — shell is initializing; user writes are buffered, escape sequences dropped
