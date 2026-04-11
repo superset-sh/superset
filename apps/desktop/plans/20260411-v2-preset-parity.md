@@ -67,7 +67,7 @@ Each command gets its own pane with `initialCommand` (no `&&` joining).
 ### Modify: `V2PresetsBar.tsx`
 
 - Remove inline `openPresetInNewTab`, preset querying, `matchedPresets` derivation
-- Use `useV2PresetExecution` hook for `executePreset` and `matchedPresets`
+- Receive `executePreset` and `matchedPresets` via props from `WorkspaceContent` (which calls `useV2PresetExecution`)
 - Pass `executePreset` to `V2PresetBarItem` as `onExecutePreset`
 
 ### Modify: `V2PresetBarItem.tsx`

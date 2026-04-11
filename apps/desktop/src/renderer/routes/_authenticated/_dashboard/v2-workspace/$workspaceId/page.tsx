@@ -88,7 +88,6 @@ function WorkspaceContent({
 	});
 	const { matchedPresets, executePreset } = useV2PresetExecution({
 		store,
-		workspaceId,
 		projectId,
 	});
 	const paneRegistry = usePaneRegistry(workspaceId);

@@ -24,7 +24,6 @@ function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
 
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	workspaceId: string;
 	projectId: string;
 }
 
@@ -85,13 +84,6 @@ export function useV2PresetExecution({
 				}
 
 				case "new-tab-per-command": {
-					if (preset.commands.length === 0) {
-						state.addTab({
-							titleOverride: preset.name || "Terminal",
-							panes: [makeTerminalPane()],
-						});
-						break;
-					}
 					for (const command of preset.commands) {
 						state.addTab({
 							titleOverride: preset.name || "Terminal",
