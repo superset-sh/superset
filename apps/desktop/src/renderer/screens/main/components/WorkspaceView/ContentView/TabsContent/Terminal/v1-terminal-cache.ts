@@ -26,6 +26,11 @@ export interface CachedTerminal {
 
 const cache = new Map<string, CachedTerminal>();
 
+/** Number of times a cached terminal was reused instead of created. */
+let reattachCount = 0;
+/** Number of fresh terminal creations. */
+let createCount = 0;
+
 export function has(paneId: string): boolean {
 	return cache.has(paneId);
 }
@@ -34,21 +39,32 @@ export function get(paneId: string): CachedTerminal | undefined {
 	return cache.get(paneId);
 }
 
+/** Return current cache size and lifetime hit/miss stats. */
+export function stats(): {
+	size: number;
+	creates: number;
+	reattaches: number;
+} {
+	return { size: cache.size, creates: createCount, reattaches: reattachCount };
+}
+
 export function getOrCreate(
 	paneId: string,
 	options: CreateTerminalOptions,
 ): CachedTerminal {
 	const existing = cache.get(paneId);
 	if (existing) {
+		reattachCount++;
 		if (DEBUG_TERMINAL) {
-			console.log(`[v1-terminal-cache] Reusing cached terminal: ${paneId}`);
+			const { size, creates, reattaches } = stats();
+			console.log(
+				`[v1-terminal-cache] Reusing cached terminal: ${paneId} (cache size=${size}, creates=${creates}, reattaches=${reattaches})`,
+			);
 		}
 		return existing;
 	}
 
-	if (DEBUG_TERMINAL) {
-		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
-	}
+	const t0 = performance.now();
 
 	const { xterm, fitAddon, searchAddon, renderer, wrapper, cleanup } =
 		createTerminalInWrapper(options);
@@ -63,6 +79,16 @@ export function getOrCreate(
 	};
 
 	cache.set(paneId, entry);
+	createCount++;
+
+	if (DEBUG_TERMINAL) {
+		const elapsed = (performance.now() - t0).toFixed(1);
+		const { size, creates, reattaches } = stats();
+		console.log(
+			`[v1-terminal-cache] Created new terminal: ${paneId} (${elapsed}ms, cache size=${size}, creates=${creates}, reattaches=${reattaches})`,
+		);
+	}
+
 	return entry;
 }
 
@@ -77,12 +103,23 @@ export function attachToContainer(
 	const entry = cache.get(paneId);
 	if (!entry) return;
 
+	const t0 = performance.now();
+	const bufferLinesBefore = entry.xterm.buffer.active.length;
+	const scrollPosBefore = entry.xterm.buffer.active.viewportY;
+
 	container.appendChild(entry.wrapper);
 	entry.fitAddon.fit();
 	// Repaint after reattach — critical for WebGL renderer which may have
 	// skipped frames while the wrapper was detached from the DOM.
 	entry.xterm.refresh(0, Math.max(0, entry.xterm.rows - 1));
 	entry.rendererRef.current.clearTextureAtlas?.();
+
+	if (DEBUG_TERMINAL) {
+		const elapsed = (performance.now() - t0).toFixed(1);
+		console.log(
+			`[v1-terminal-cache] attachToContainer: ${paneId} (${elapsed}ms, cols=${entry.xterm.cols}x${entry.xterm.rows}, renderer=${entry.rendererRef.current.kind}, bufferLines=${bufferLinesBefore}, scrollY=${scrollPosBefore})`,
+		);
+	}
 }
 
 /**
@@ -95,7 +132,10 @@ export function detachFromContainer(paneId: string): void {
 	if (!entry) return;
 
 	if (DEBUG_TERMINAL) {
-		console.log(`[v1-terminal-cache] Detaching from DOM: ${paneId}`);
+		const buf = entry.xterm.buffer.active;
+		console.log(
+			`[v1-terminal-cache] Detaching from DOM: ${paneId} (bufferLines=${buf.length}, scrollY=${buf.viewportY}, baseY=${buf.baseY})`,
+		);
 	}
 
 	entry.wrapper.remove();
@@ -109,13 +149,16 @@ export function dispose(paneId: string): void {
 	const entry = cache.get(paneId);
 	if (!entry) return;
 
-	if (DEBUG_TERMINAL) {
-		console.log(`[v1-terminal-cache] Disposing: ${paneId}`);
-	}
-
 	entry.cleanupCreation();
 	entry.xterm.dispose();
 	cache.delete(paneId);
+
+	if (DEBUG_TERMINAL) {
+		const { size, creates, reattaches } = stats();
+		console.log(
+			`[v1-terminal-cache] Disposed: ${paneId} (remaining cache size=${size}, lifetime creates=${creates}, reattaches=${reattaches})`,
+		);
+	}
 }
 
 // Preserve cache across Vite HMR in dev so active terminals aren't orphaned.

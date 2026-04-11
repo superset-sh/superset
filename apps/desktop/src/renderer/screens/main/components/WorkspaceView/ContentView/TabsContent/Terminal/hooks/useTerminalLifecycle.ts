@@ -551,8 +551,11 @@ export function useTerminalLifecycle({
 						done();
 					};
 
+					const createOrAttachStartedAt = performance.now();
 					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal] createOrAttach start: ${paneId}`);
+						console.log(
+							`[Terminal] createOrAttach start: ${paneId} (isReattach=${isReattach}, elapsed since mount=${(createOrAttachStartedAt - mountStartedAt).toFixed(1)}ms)`,
+						);
 					}
 					createOrAttachRef.current(
 						{
@@ -582,7 +585,7 @@ export function useTerminalLifecycle({
 											performance.now() - mountStartedAt
 										).toFixed(1);
 										console.log(
-											`[Terminal] Reattach fast-path: ${paneId} (total ${reattachElapsed}ms, skipped scrollback=${result.scrollback?.length ?? 0} bytes, pendingEvents=${pendingEventsRef.current.length})`,
+											`[Terminal] Reattach fast-path: ${paneId} (total ${reattachElapsed}ms, skipped scrollback=${result.scrollback?.length ?? 0} bytes)`,
 										);
 									}
 									requestAnimationFrame(() => {
@@ -668,6 +671,18 @@ export function useTerminalLifecycle({
 										});
 									}
 								});
+
+								if (DEBUG_TERMINAL) {
+									const attachElapsed = (
+										performance.now() - createOrAttachStartedAt
+									).toFixed(1);
+									const totalElapsed = (
+										performance.now() - mountStartedAt
+									).toFixed(1);
+									console.log(
+										`[Terminal] Fresh attach complete: ${paneId} (createOrAttach=${attachElapsed}ms, total=${totalElapsed}ms, scrollback=${result.scrollback?.length ?? 0} bytes, isNew=${result.isNew}, wasRecovered=${result.wasRecovered})`,
+									);
+								}
 
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
@@ -981,9 +996,7 @@ export function useTerminalLifecycle({
 				pendingDetaches.set(paneId, detachTimeout);
 
 				if (DEBUG_TERMINAL) {
-					const elapsed = (
-						performance.now() - unmountStartedAt
-					).toFixed(1);
+					const elapsed = (performance.now() - unmountStartedAt).toFixed(1);
 					console.log(
 						`[Terminal] Detached from DOM (cached for reattach): ${paneId} (cleanup took ${elapsed}ms)`,
 					);
