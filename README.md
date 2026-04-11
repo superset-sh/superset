@@ -4,8 +4,10 @@
 
 ### The Code Editor for AI Agents
 
-[![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
-[![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
+**Fork [quueli/superset-windows](https://github.com/quueli/superset-windows)** — Windows 10+ desktop builds, cross-platform `postinstall`, and Windows CI workflows. Upstream: [superset-sh/superset](https://github.com/superset-sh/superset).
+
+[![GitHub stars](https://img.shields.io/github/stars/quueli/superset-windows?style=flat&logo=github)](https://github.com/quueli/superset-windows/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/quueli/superset-windows?style=flat&logo=github)](https://github.com/quueli/superset-windows/releases)
 [![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
@@ -17,7 +19,7 @@ Works with any CLI agent. Built for local worktree-based development.
 
 <br />
 
-[**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
+[**Windows installer (x64)**](https://github.com/quueli/superset-windows/releases/latest) &nbsp;&bull;&nbsp; [**macOS (upstream)**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog (upstream)](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
 
 <br />
 
@@ -71,7 +73,7 @@ If it runs in a terminal, it runs on Superset
 
 | Requirement | Details |
 |:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
+| **OS** | **Windows 10+ x64** (builds from this fork). macOS / Linux — same as upstream. On Windows, run `git config --global core.longpaths true` **before** cloning to avoid long-path errors. |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ |
 | **GitHub CLI** | [gh](https://cli.github.com/) |
@@ -81,7 +83,8 @@ If it runs in a terminal, it runs on Superset
 
 ### Quick Start (Pre-built)
 
-**[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
+- **Windows x64:** [последний релиз форка](https://github.com/quueli/superset-windows/releases/latest) — установщик NSIS (`Superset-*-x64.exe` или стабильное имя `Superset-x64.exe` в релизе).
+- **macOS:** [официальные сборки upstream](https://github.com/superset-sh/superset/releases/latest).
 
 ### Build from Source
 
@@ -91,9 +94,13 @@ If it runs in a terminal, it runs on Superset
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/superset-sh/superset.git
-cd superset
+git clone https://github.com/quueli/superset-windows.git
+cd superset-windows
 ```
+
+На **Windows** перед клоном (при ошибке «Filename too long»): `git config --global core.longpaths true`.
+
+Для нативных модулей десктопа на Windows нужны **Visual Studio Build Tools** с рабочей нагрузкой **Desktop development with C++** (MSVC + Windows SDK).
 
 **2. Set up environment variables** (choose one):
 
@@ -127,10 +134,61 @@ bun run dev
 
 ```bash
 bun run build
-open apps/desktop/release
+```
+
+Артефакты: `apps/desktop/release/` — на Windows установщик **NSIS** `*-x64.exe`, на macOS `.dmg` / `.zip`, на Linux `.AppImage`.
+
+Локально только Windows-инсталлятор:
+
+```bash
+cd apps/desktop
+bun run clean:dev && bun run generate:icons && bun run compile:app
+set CSC_IDENTITY_AUTO_DISCOVERY=false   # cmd
+# PowerShell: $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
+bun run package
 ```
 
 </details>
+
+## Releases in this fork / Релизы в форке
+
+GitHub Actions собирает **macOS**, **Linux** и **Windows (x64)**. Финальный **GitHub Release** с файлами создаётся **только при push тега** вида `desktop-v*.*.*` (например `desktop-v1.4.8`). Job `release` не запускается от обычного push в ветку.
+
+### Вариант A — релиз через тег (рекомендуется)
+
+1. Убедитесь, что секреты для environment **`production`** в репозитории заданы (как у upstream: переменные для `compile:app`, при необходимости Sentry и т.д.). Без них шаг компиляции в CI может упасть.
+2. Обновите версию в [`apps/desktop/package.json`](apps/desktop/package.json) (`version`), закоммитьте.
+3. Создайте и отправьте тег:
+
+```bash
+git checkout main
+git pull origin main
+git tag desktop-v1.4.8
+git push origin desktop-v1.4.8
+```
+
+4. Откройте **Actions** → workflow **Release Desktop App** → дождитесь окончания job **build** (все платформы) и **release**.
+5. В репозитории появится **черновик** релиза (draft). Проверьте вложения (`.dmg`, `.AppImage`, `.exe`, манифесты), затем нажмите **Publish release**.
+
+Стабильные имена для прямых ссылок (скрипт релиза создаёт копии): например `Superset-x64.exe`, `Superset-arm64.dmg`, `latest-linux.yml`.
+
+### Вариант B — только сборка без автоматического релиза
+
+В **Actions** запустите **Release Desktop App** вручную (**Run workflow**). Соберутся артефакты для скачивания из вкладки run, но шаг **Create GitHub Release** выполняется только при условии `refs/tags/desktop-v*` — для полноценного релиза всё равно используйте тег из варианта A.
+
+### Вариант C — локальная сборка и ручная загрузка
+
+Соберите `apps/desktop/release/*` локально (см. выше), затем в GitHub: **Releases** → **Draft a new release** → прикрепите файлы и опубликуйте.
+
+### Синхронизация с upstream
+
+```bash
+git remote add upstream https://github.com/superset-sh/superset.git   # один раз
+git fetch upstream
+git checkout main
+git merge upstream/main
+# разрешите конфликты, проверьте сборку, затем push в origin
+```
 
 ## Keyboard Shortcuts
 
@@ -230,17 +288,17 @@ This repo uses the published upstream `mastracode` and `@mastra/*` packages dire
 
 ## Contributing
 
-We welcome contributions! If you have a suggestion that would make Superset better:
+Contributions to **this fork** (Windows, CI, документация):
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Клонируйте [quueli/superset-windows](https://github.com/quueli/superset-windows) (или свой форк от него).
+2. Ветка фичи: `git checkout -b feature/amazing-feature`
+3. Коммит: `git commit -m 'Add amazing feature'`
+4. Пуш: `git push origin feature/amazing-feature`
+5. Откройте **Pull Request в `quueli/superset-windows`**.
 
-You can also [open issues](https://github.com/superset-sh/superset/issues) for bugs or feature requests.
+Issues и обсуждения по **апстриму**: [superset-sh/superset/issues](https://github.com/superset-sh/superset/issues). По сборке Windows и релизам форка удобнее заводить issue в [quueli/superset-windows/issues](https://github.com/quueli/superset-windows/issues).
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of conduct.
+Общие правила проекта: [CONTRIBUTING.md](CONTRIBUTING.md) (ориентир — upstream).
 
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
@@ -252,7 +310,8 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 - **[Discord](https://discord.gg/cZeD9WYcV7)** — Chat with the team and community
 - **[Twitter](https://x.com/superset_sh)** — Follow for updates and announcements
-- **[GitHub Issues](https://github.com/superset-sh/superset/issues)** — Report bugs and request features
+- **[GitHub Issues (upstream)](https://github.com/superset-sh/superset/issues)** — Report bugs and request features
+- **[Issues (this fork)](https://github.com/quueli/superset-windows/issues)** — Windows build / fork-specific
 - **[GitHub Discussions](https://github.com/superset-sh/superset/discussions)** — Ask questions and share ideas
 
 ### Team

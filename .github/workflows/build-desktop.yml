@@ -263,3 +263,139 @@ jobs:
           path: apps/desktop/release/*-linux.yml
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error
+
+  build-windows:
+    name: Build - Windows (x64)
+    runs-on: windows-latest
+    environment: production
+    # Applies to Git spawned by actions/checkout (Git 2.31+). Shell-only config is too late for checkout.
+    env:
+      GIT_CONFIG_COUNT: 1
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: "true"
+
+    steps:
+      # OS + global config (redundant with env above; helps older Git / edge cases).
+      - name: Enable Windows long paths
+        shell: powershell
+        run: |
+          git config --global core.longpaths true
+          if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem')) { exit 0 }
+          try {
+            Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1 -Type DWord -Force -ErrorAction Stop
+            Write-Host 'LongPathsEnabled=1 set'
+          } catch {
+            Write-Host 'Registry LongPathsEnabled skipped (no permission):' $_.Exception.Message
+          }
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Install desktop native dependencies
+        working-directory: apps/desktop
+        run: bun run install:deps
+
+      - name: Set version suffix
+        if: inputs.version_suffix != ''
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${CURRENT_VERSION}${{ inputs.version_suffix }}"
+          echo "Setting version to: $NEW_VERSION"
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, '\t') + '\n');
+          "
+          echo "Updated package.json version to $NEW_VERSION"
+
+      - name: Clean dev folder
+        working-directory: apps/desktop
+        run: bun run clean:dev
+
+      - name: Generate file icons
+        working-directory: apps/desktop
+        run: bun run generate:icons
+
+      - name: Compile app with electron-vite
+        working-directory: apps/desktop
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
+          NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SUPERSET_WORKSPACE_NAME: superset
+        run: bun run compile:app
+
+      - name: Build Electron app
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+
+      - name: Verify Windows NSIS + update manifest exist
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          ls -la release
+          test -n "$(ls -1 release/*-x64.exe 2>/dev/null | grep -v __uninstaller || true)" || {
+            echo "::error::No NSIS installer (*.exe) generated in apps/desktop/release"
+            exit 1
+          }
+          test -f release/latest.yml || {
+            echo "::error::latest.yml missing from apps/desktop/release — auto-update may be broken"
+            exit 1
+          }
+
+      - name: Upload Windows NSIS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-win-x64-nsis
+          path: |
+            apps/desktop/release/*-x64.exe
+            !apps/desktop/release/**/*__uninstaller*.exe
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+      - name: Upload Windows block map
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-win-x64-blockmap
+          path: apps/desktop/release/*.blockmap
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: warn
+
+      - name: Upload Windows auto-update manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-win-x64-update-manifest
+          path: apps/desktop/release/latest.yml
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error

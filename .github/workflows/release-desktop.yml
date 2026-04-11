@@ -107,6 +107,14 @@ jobs:
               break
             fi
           done
+          # Windows NSIS: stable name for /releases/latest/download/Superset-x64.exe
+          for file in *-x64.exe; do
+            if [[ -f "$file" && "$file" != *"__uninstaller"* ]]; then
+              cp "$file" "Superset-x64.exe"
+              echo "Created stable copy: Superset-x64.exe"
+              break
+            fi
+          done
           echo "Release artifacts:"
           ls -la
 

@@ -2,7 +2,8 @@
 	"name": "@superset/repo",
 	"version": "0.0.0",
 	"repository": {
-		"type": "git"
+		"type": "git",
+		"url": "https://github.com/superset-sh/superset.git"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
@@ -30,7 +31,7 @@
 		"format:check": "bunx @biomejs/biome@2.4.2 format .",
 		"typecheck": "turbo typecheck",
 		"ui-add": "turbo run ui-add",
-		"postinstall": "./scripts/postinstall.sh",
+		"postinstall": "bun scripts/postinstall.ts",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",

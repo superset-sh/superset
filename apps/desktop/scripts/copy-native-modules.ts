@@ -13,7 +13,7 @@
  * This is safe because bun install will recreate the symlinks on next install.
  */
 
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import {
 	cpSync,
 	existsSync,
@@ -23,6 +23,7 @@ import {
 	readFileSync,
 	realpathSync,
 	rmSync,
+	unlinkSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { satisfies } from "semver";
@@ -34,8 +35,62 @@ import { requiredMaterializedNodeModules } from "../runtime-dependencies";
 const TARGET_ARCH = process.env.TARGET_ARCH || process.arch;
 const TARGET_PLATFORM = process.env.TARGET_PLATFORM || process.platform;
 
+/**
+ * Deep copy of a directory tree. On Windows, Bun's cpSync can hit EPERM when the
+ * tree contains nested symlinks (e.g. workspace packages); robocopy follows files reliably.
+ */
+function copyDirectoryTree(src: string, dest: string): void {
+	if (process.platform === "win32") {
+		mkdirSync(dest, { recursive: true });
+		const st = spawnSync(
+			"robocopy",
+			[
+				src,
+				dest,
+				"/E",
+				"/COPY:DAT",
+				"/R:2",
+				"/W:1",
+				"/NFL",
+				"/NDL",
+				"/NJH",
+				"/NJS",
+			],
+			{ stdio: "pipe", encoding: "utf8", windowsHide: true },
+		);
+		const code = st.status ?? 0;
+		if (code >= 8) {
+			throw new Error(
+				`robocopy failed (${code}): ${st.stderr ?? st.stdout ?? ""}`,
+			);
+		}
+		return;
+	}
+	cpSync(src, dest, { recursive: true });
+}
+
 function getWorkspaceRootNodeModulesDir(nodeModulesDir: string): string {
 	return join(nodeModulesDir, "..", "..", "..", "node_modules");
+}
+
+/** Repo root: apps/desktop/node_modules -> ../../../ */
+function getMonorepoRootFromDesktopNodeModules(nodeModulesDir: string): string {
+	return join(nodeModulesDir, "..", "..", "..");
+}
+
+/** Workspace `packages/<name>` for `@superset/<name>` (e.g. macos-process-metrics). */
+function resolveWorkspaceSupersetPackageDir(
+	nodeModulesDir: string,
+	moduleName: string,
+): string | null {
+	if (!moduleName.startsWith("@superset/")) return null;
+	const shortName = moduleName.slice("@superset/".length);
+	const candidate = join(
+		getMonorepoRootFromDesktopNodeModules(nodeModulesDir),
+		"packages",
+		shortName,
+	);
+	return existsSync(join(candidate, "package.json")) ? candidate : null;
 }
 
 function getBunFlatNodeModulesDir(nodeModulesDir: string): string {
@@ -77,7 +132,7 @@ function copyModuleIfSymlink(
 		if (existsSync(bunFlatModulePath)) {
 			console.log(`  ${moduleName}: materializing from Bun store index`);
 			mkdirSync(dirname(modulePath), { recursive: true });
-			cpSync(realpathSync(bunFlatModulePath), modulePath, { recursive: true });
+			copyDirectoryTree(realpathSync(bunFlatModulePath), modulePath);
 			console.log(`    Copied to: ${modulePath}`);
 			return true;
 		}
@@ -97,13 +152,43 @@ function copyModuleIfSymlink(
 		console.log(`  ${moduleName}: symlink -> replacing with real files`);
 		console.log(`    Real path: ${realPath}`);
 
-		// Remove the symlink
-		rmSync(modulePath);
+		// Remove the symlink/junction (unlink avoids Bun/Windows EFAULT from rmSync on links)
+		try {
+			unlinkSync(modulePath);
+		} catch {
+			rmSync(modulePath, { recursive: true, maxRetries: 3, force: true });
+		}
 
 		// Copy the actual files
-		cpSync(realPath, modulePath, { recursive: true });
+		copyDirectoryTree(realPath, modulePath);
 
 		console.log(`    Copied to: ${modulePath}`);
+	} else if (!existsSync(join(modulePath, "package.json"))) {
+		// Leftover empty dir (e.g. failed copy) — materialize from workspace or Bun store
+		const workspaceSrc = resolveWorkspaceSupersetPackageDir(
+			nodeModulesDir,
+			moduleName,
+		);
+		if (workspaceSrc) {
+			console.log(
+				`  ${moduleName}: repairing broken/empty install from workspace`,
+			);
+			rmSync(modulePath, { recursive: true, maxRetries: 3, force: true });
+			copyDirectoryTree(workspaceSrc, modulePath);
+			console.log(`    Copied to: ${modulePath}`);
+		} else if (existsSync(bunFlatModulePath)) {
+			console.log(
+				`  ${moduleName}: repairing broken/empty install from Bun store`,
+			);
+			rmSync(modulePath, { recursive: true, maxRetries: 3, force: true });
+			copyDirectoryTree(realpathSync(bunFlatModulePath), modulePath);
+			console.log(`    Copied to: ${modulePath}`);
+		} else if (required) {
+			console.error(
+				`  [ERROR] ${moduleName} at ${modulePath} has no package.json and no repair source`,
+			);
+			process.exit(1);
+		}
 	} else {
 		console.log(`  ${moduleName}: already real directory (not a symlink)`);
 	}
@@ -143,7 +228,7 @@ function copyExactModuleVersion(
 		);
 		if (existsSync(sourcePath)) {
 			mkdirSync(dirname(destPath), { recursive: true });
-			cpSync(sourcePath, destPath, { recursive: true });
+			copyDirectoryTree(sourcePath, destPath);
 			console.log(`    Copied ${moduleName}@${version} to: ${destPath}`);
 			return true;
 		}
@@ -203,10 +288,16 @@ function copyDependencyForPackage(
 		const nestedStats = lstatSync(nestedDependencyPath);
 		if (nestedStats.isSymbolicLink()) {
 			const realPath = realpathSync(nestedDependencyPath);
-			rmSync(nestedDependencyPath);
-			cpSync(realPath, nestedDependencyPath, {
-				recursive: true,
-			});
+			try {
+				unlinkSync(nestedDependencyPath);
+			} catch {
+				rmSync(nestedDependencyPath, {
+					recursive: true,
+					maxRetries: 3,
+					force: true,
+				});
+			}
+			copyDirectoryTree(realPath, nestedDependencyPath);
 		}
 		return;
 	}
@@ -315,7 +406,7 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 			if (existsSync(sourcePath)) {
 				console.log(`  ${platformPkg.name}: copying from Bun store`);
 				mkdirSync(dirname(destPath), { recursive: true });
-				cpSync(sourcePath, destPath, { recursive: true });
+				copyDirectoryTree(sourcePath, destPath);
 				if (isTargetPkg) resolvedTargetPackage = true;
 				continue;
 			}
@@ -458,7 +549,7 @@ function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 
 		console.log(`  ${platformPkg.name}: copying from Bun store`);
 		mkdirSync(dirname(destPath), { recursive: true });
-		cpSync(sourcePath, destPath, { recursive: true });
+		copyDirectoryTree(sourcePath, destPath);
 		resolvedPlatformPackage = true;
 	}
 
