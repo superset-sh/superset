@@ -1,39 +1,52 @@
-const GITHUB_PR_URL_RE =
-	/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i;
+export type GitHubEntityKind = "pull" | "issue";
 
 export interface NormalizedQuery {
 	query: string;
 	repoMismatch: boolean;
-	/** When true, `query` is a PR number and should use direct lookup, not text search. */
+	/** When true, `query` is a number and should use direct lookup, not text search. */
 	isDirectLookup: boolean;
 }
 
+// Matches both /pull/123 and /issues/123
+const GITHUB_URL_RE =
+	/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/(pull|issues)\/(\d+)(?:[/?#].*)?$/i;
+
 /**
- * Normalize raw search input for the pull request search endpoint.
+ * Normalize raw search input for GitHub PR or issue search endpoints.
  *
  * Handles:
- * - Full GitHub PR URL → extract PR number, validate against project repo
+ * - Full GitHub URL → extract number, validate entity kind and repo
  * - `#123` shorthand → strip `#`, direct lookup by number
  * - Bare number `123` → direct lookup by number
  * - Plain text → pass through for text search
  */
-export function normalizePullRequestQuery(
+export function normalizeGitHubQuery(
 	raw: string,
 	repo: { owner: string; name: string },
+	kind: GitHubEntityKind,
 ): NormalizedQuery {
 	if (!raw) return { query: "", repoMismatch: false, isDirectLookup: false };
 
-	// Full GitHub PR URL
-	const urlMatch = raw.match(GITHUB_PR_URL_RE);
+	// Full GitHub URL
+	const urlMatch = raw.match(GITHUB_URL_RE);
 	if (urlMatch) {
 		const urlOwner = urlMatch[1] as string;
 		const urlRepo = urlMatch[2] as string;
-		const prNumber = urlMatch[3] as string;
+		const urlPath = urlMatch[3] as string; // "pull" or "issues"
+		const number = urlMatch[4] as string;
+
+		// Wrong entity type (e.g. issue URL pasted in PR search) — fall through to text search
+		const urlEntityKind: GitHubEntityKind =
+			urlPath === "pull" ? "pull" : "issue";
+		if (urlEntityKind !== kind) {
+			return { query: raw, repoMismatch: false, isDirectLookup: false };
+		}
+
 		const isSameRepo =
 			urlOwner.toLowerCase() === repo.owner.toLowerCase() &&
 			urlRepo.toLowerCase() === repo.name.toLowerCase();
 		return {
-			query: isSameRepo ? prNumber : "",
+			query: isSameRepo ? number : "",
 			repoMismatch: !isSameRepo,
 			isDirectLookup: isSameRepo,
 		};
@@ -44,7 +57,7 @@ export function normalizePullRequestQuery(
 		return { query: raw.slice(1), repoMismatch: false, isDirectLookup: true };
 	}
 
-	// Bare number — direct lookup (user likely means a PR number)
+	// Bare number — direct lookup
 	if (/^\d+$/.test(raw)) {
 		return { query: raw, repoMismatch: false, isDirectLookup: true };
 	}

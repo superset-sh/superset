@@ -54,25 +54,29 @@ export function GitHubIssueLinkCommand({
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const { activeHostUrl } = useLocalHostService();
 
+	const trimmedQuery = searchQuery.trim();
+	const debouncedTrimmed = debouncedQuery.trim();
+	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
+
 	const hostUrl =
 		hostTarget.kind === "local"
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading: isFetching } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchGitHubIssues",
 			projectId,
 			hostUrl,
-			debouncedQuery,
+			debouncedTrimmed,
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { issues: [] };
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.workspaceCreation.searchGitHubIssues.query({
 				projectId,
-				query: debouncedQuery.trim() || undefined,
+				query: debouncedTrimmed || undefined,
 				limit: MAX_RESULTS,
 			});
 		},
@@ -80,6 +84,13 @@ export function GitHubIssueLinkCommand({
 	});
 
 	const searchResults = data?.issues ?? [];
+	const repoMismatch =
+		data && "repoMismatch" in data ? data.repoMismatch : null;
+
+	const isLoading =
+		debouncedTrimmed || trimmedQuery
+			? isFetching || isPendingDebounce
+			: isFetching;
 
 	const handleClose = () => {
 		setSearchQuery("");
@@ -117,7 +128,15 @@ export function GitHubIssueLinkCommand({
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
-								{isLoading ? "Loading issues..." : "No open issues found."}
+								{isLoading
+								? debouncedTrimmed
+									? "Searching..."
+									: "Loading issues..."
+								: repoMismatch
+									? `Issue URL must match ${repoMismatch}.`
+									: debouncedTrimmed
+										? "No issues found."
+										: "No open issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (

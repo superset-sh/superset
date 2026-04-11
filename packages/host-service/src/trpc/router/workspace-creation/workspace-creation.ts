@@ -92,7 +92,7 @@ async function resolveGithubRepo(
 	return { owner: repo.owner, name: repo.name };
 }
 
-import { normalizePullRequestQuery } from "./normalize-pull-request-query";
+import { normalizeGitHubQuery } from "./normalize-github-query";
 
 async function listBranchNames(
 	ctx: HostServiceContext,
@@ -494,9 +494,47 @@ export const workspaceCreationRouter = router({
 			const octokit = await ctx.github();
 			const limit = input.limit ?? 30;
 
+			// Normalize the query: detect GitHub issue URLs, strip `#` shorthand
+			const raw = input.query?.trim() ?? "";
+			const normalized = normalizeGitHubQuery(raw, repo, "issue");
+
+			if (normalized.repoMismatch) {
+				return {
+					issues: [],
+					repoMismatch: `${repo.owner}/${repo.name}`,
+				};
+			}
+
+			const effectiveQuery = normalized.query;
+
 			try {
-				if (input.query?.trim()) {
-					const q = `repo:${repo.owner}/${repo.name} is:issue is:open in:title,body ${input.query}`;
+				// Direct lookup by issue number (from URL paste or `#123` shorthand)
+				if (normalized.isDirectLookup) {
+					const issueNumber = Number.parseInt(effectiveQuery, 10);
+					const { data: issue } = await octokit.issues.get({
+						owner: repo.owner,
+						repo: repo.name,
+						issue_number: issueNumber,
+					});
+					// issues.get returns PRs too — filter them out
+					if (issue.pull_request) {
+						return { issues: [] };
+					}
+					return {
+						issues: [
+							{
+								issueNumber: issue.number,
+								title: issue.title,
+								url: issue.html_url,
+								state: issue.state,
+								authorLogin: issue.user?.login ?? null,
+							},
+						],
+					};
+				}
+
+				if (effectiveQuery) {
+					const q = `repo:${repo.owner}/${repo.name} is:issue is:open ${effectiveQuery}`;
 					const { data } = await octokit.search.issuesAndPullRequests({
 						q,
 						per_page: limit,
@@ -552,7 +590,7 @@ export const workspaceCreationRouter = router({
 
 			// Normalize the query: detect GitHub PR URLs, strip `#` shorthand
 			const raw = input.query?.trim() ?? "";
-			const normalized = normalizePullRequestQuery(raw, repo);
+			const normalized = normalizeGitHubQuery(raw, repo, "pull");
 
 			if (normalized.repoMismatch) {
 				return {
