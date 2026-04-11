@@ -242,7 +242,7 @@ describe("getShellLaunchArgs", () => {
 		expect(args[0]).toBe("-l");
 		expect(args[1]).toBe("--init-command");
 		expect(args[2]).toContain("_superset_bin");
-		expect(args[2]).toContain("superset-shell-ready");
+		expect(args[2]).toContain("133;A");
 	});
 
 	test("sh launches as login shell", () => {

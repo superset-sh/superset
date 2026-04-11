@@ -836,11 +836,13 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
 
-			expect(args).toEqual([
-				"-l",
-				"--init-command",
-				`set -l _superset_bin "${TEST_BIN_DIR}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH; function _superset_shell_ready --on-event fish_prompt; printf '\\033]777;superset-shell-ready\\007'; functions -e _superset_shell_ready; end`,
-			]);
+			expect(args[0]).toBe("-l");
+			expect(args[1]).toBe("--init-command");
+			expect(args[2]).toContain(`set -l _superset_bin "${TEST_BIN_DIR}"`);
+			expect(args[2]).toContain("133;A");
+			expect(args[2]).toContain("133;C");
+			expect(args[2]).toContain("133;D");
+			expect(args[2]).not.toContain("777");
 		});
 
 		it("escapes fish init-command BIN_DIR safely", () => {
@@ -850,11 +852,12 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				BIN_DIR: fishPath,
 			});
 
-			expect(args).toEqual([
-				"-l",
-				"--init-command",
-				`set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH; function _superset_shell_ready --on-event fish_prompt; printf '\\033]777;superset-shell-ready\\007'; functions -e _superset_shell_ready; end`,
-			]);
+			expect(args[0]).toBe("-l");
+			expect(args[1]).toBe("--init-command");
+			expect(args[2]).toContain(
+				'set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"',
+			);
+			expect(args[2]).toContain("133;A");
 		});
 	});
 });

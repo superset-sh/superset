@@ -37,6 +37,39 @@ type TerminalServerMessage =
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 
+// ---------------------------------------------------------------------------
+// OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
+//
+// Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
+// Shell-side emission vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
+// Scanner pattern adapted from apps/desktop/src/main/terminal-host/session.ts (v1).
+// ---------------------------------------------------------------------------
+
+/**
+ * The OSC 133;A prefix we scan for. Once matched, the next character is the
+ * command letter. We only care about "A" (prompt start = shell ready).
+ */
+const OSC_133_A = "\x1b]133;A";
+
+/**
+ * How long to wait for the shell-ready marker before unblocking writes.
+ * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
+ * buffered writes flush immediately (same behaviour as before this feature).
+ */
+const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/** Shells whose wrapper files inject OSC 133 markers. */
+const SHELLS_WITH_READY_MARKER = new Set(["zsh", "bash", "fish"]);
+
+/**
+ * Shell readiness lifecycle:
+ * - `pending`     — shell initialising; scanner active
+ * - `ready`       — OSC 133;A detected; scanner off
+ * - `timed_out`   — marker never arrived within timeout; scanner off
+ * - `unsupported` — shell has no marker (sh, ksh); scanner never started
+ */
+type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
+
 interface TerminalSession {
 	terminalId: string;
 	pty: IPty;
@@ -50,6 +83,14 @@ interface TerminalSession {
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
+
+	// Shell readiness (OSC 133)
+	shellReadyState: ShellReadyState;
+	shellReadyResolve: (() => void) | null;
+	shellReadyPromise: Promise<void>;
+	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
+	oscMatchPos: number;
+	oscHeldBytes: string;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -84,9 +125,82 @@ function replayBuffer(
 	sendMessage(socket, { type: "replay", data: combined });
 }
 
+/**
+ * Transition out of `pending`. Flushes any partially-matched marker
+ * bytes as terminal output (they weren't a real marker). Idempotent.
+ */
+function resolveShellReady(
+	session: TerminalSession,
+	state: "ready" | "timed_out",
+): void {
+	if (session.shellReadyState !== "pending") return;
+	session.shellReadyState = state;
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
+	// Flush held marker bytes — they weren't part of a full marker
+	if (session.oscHeldBytes.length > 0) {
+		bufferOutput(session, session.oscHeldBytes);
+		session.oscHeldBytes = "";
+	}
+	session.oscMatchPos = 0;
+	if (session.shellReadyResolve) {
+		session.shellReadyResolve();
+		session.shellReadyResolve = null;
+	}
+}
+
+/**
+ * Scan PTY output for OSC 133;A (prompt start = shell ready).
+ * Matching bytes are held back from output; on full match they're
+ * discarded and readiness resolves. On mismatch they're flushed as
+ * regular terminal output.
+ *
+ * Returns the data with the marker stripped (if found).
+ */
+function scanForShellReady(session: TerminalSession, data: string): string {
+	if (session.shellReadyState !== "pending") return data;
+
+	let output = "";
+	for (let i = 0; i < data.length; i++) {
+		const ch = data[i] as string;
+		if (session.oscMatchPos < OSC_133_A.length) {
+			// Still matching the OSC 133;A prefix
+			if (ch === OSC_133_A[session.oscMatchPos]) {
+				session.oscHeldBytes += ch;
+				session.oscMatchPos++;
+			} else {
+				// Mismatch — flush held bytes as regular output
+				output += session.oscHeldBytes + ch;
+				session.oscHeldBytes = "";
+				session.oscMatchPos = 0;
+			}
+		} else {
+			// We've matched "\e]133;A" — consume through the string terminator (\a)
+			if (ch === "\x07") {
+				// Full match — discard held bytes, resolve
+				session.oscHeldBytes = "";
+				session.oscMatchPos = 0;
+				resolveShellReady(session, "ready");
+				output += data.slice(i + 1);
+				break;
+			}
+			// Consume optional params (e.g. ";cl=m;aid=123") before the \a
+			session.oscHeldBytes += ch;
+		}
+	}
+	return output;
+}
+
 function disposeSession(terminalId: string, db: HostDb) {
 	const session = sessions.get(terminalId);
 	if (!session) return;
+
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
 
 	if (!session.exited) {
 		try {
@@ -190,6 +304,17 @@ export function createTerminalSessionInternal({
 		})
 		.run();
 
+	// Determine shell readiness support
+	const shellName = shell.split("/").pop() || shell;
+	const shellSupportsReady = SHELLS_WITH_READY_MARKER.has(shellName);
+
+	let shellReadyResolve: (() => void) | null = null;
+	const shellReadyPromise = shellSupportsReady
+		? new Promise<void>((resolve) => {
+				shellReadyResolve = resolve;
+			})
+		: Promise.resolve();
+
 	const session: TerminalSession = {
 		terminalId,
 		pty,
@@ -199,10 +324,28 @@ export function createTerminalSessionInternal({
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
+		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
+		shellReadyResolve,
+		shellReadyPromise,
+		shellReadyTimeoutId: null,
+		oscMatchPos: 0,
+		oscHeldBytes: "",
 	};
 	sessions.set(terminalId, session);
 
-	pty.onData((data) => {
+	// If the marker never arrives (broken wrapper, unsupported config),
+	// the timeout unblocks so the session degrades gracefully.
+	if (session.shellReadyState === "pending") {
+		session.shellReadyTimeoutId = setTimeout(() => {
+			resolveShellReady(session, "timed_out");
+		}, SHELL_READY_TIMEOUT_MS);
+	}
+
+	pty.onData((rawData) => {
+		// Scan for OSC 133;A and strip it from output
+		const data = scanForShellReady(session, rawData);
+		if (data.length === 0) return;
+
 		if (session.socket?.readyState === 1) {
 			sendMessage(session.socket, { type: "data", data });
 		} else {
