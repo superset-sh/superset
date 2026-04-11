@@ -533,7 +533,8 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
-				const q = `repo:${repo.owner}/${repo.name} is:issue ${effectiveQuery}`.trim();
+				const q =
+					`repo:${repo.owner}/${repo.name} is:issue ${effectiveQuery}`.trim();
 				const { data } = await octokit.search.issuesAndPullRequests({
 					q,
 					per_page: limit,
@@ -606,7 +607,8 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
-				const q = `repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`.trim();
+				const q =
+					`repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`.trim();
 				const { data } = await octokit.search.issuesAndPullRequests({
 					q,
 					per_page: limit,
