@@ -222,8 +222,6 @@ export function useTerminalLifecycle({
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const mountStartedAt = performance.now();
-
 		if (DEBUG_TERMINAL) {
 			console.log(`[Terminal] Mount: ${paneId}`);
 		}
@@ -233,11 +231,6 @@ export function useTerminalLifecycle({
 		if (pendingDetach) {
 			clearTimeout(pendingDetach);
 			pendingDetaches.delete(paneId);
-			if (DEBUG_TERMINAL) {
-				console.log(
-					`[Terminal] Cancelled pending detach (StrictMode or fast tab switch): ${paneId}`,
-				);
-			}
 		}
 
 		let isUnmounted = false;
@@ -262,13 +255,6 @@ export function useTerminalLifecycle({
 
 		// Attach the wrapper div to the live container
 		v1TerminalCache.attachToContainer(paneId, container);
-
-		if (DEBUG_TERMINAL) {
-			const elapsed = (performance.now() - mountStartedAt).toFixed(1);
-			console.log(
-				`[Terminal] ${isReattach ? "Reattach" : "Fresh mount"}: ${paneId} (DOM attach took ${elapsed}ms, buffer lines=${xterm.buffer.active.length})`,
-			);
-		}
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {
@@ -551,11 +537,8 @@ export function useTerminalLifecycle({
 						done();
 					};
 
-					const createOrAttachStartedAt = performance.now();
 					if (DEBUG_TERMINAL) {
-						console.log(
-							`[Terminal] createOrAttach start: ${paneId} (isReattach=${isReattach}, elapsed since mount=${(createOrAttachStartedAt - mountStartedAt).toFixed(1)}ms)`,
-						);
+						console.log(`[Terminal] createOrAttach start: ${paneId}`);
 					}
 					createOrAttachRef.current(
 						{
@@ -580,14 +563,6 @@ export function useTerminalLifecycle({
 								// Reattach fast-path: xterm buffer is already in memory,
 								// skip scrollback restoration and just open the stream gate.
 								if (isReattach && !result.isColdRestore) {
-									if (DEBUG_TERMINAL) {
-										const reattachElapsed = (
-											performance.now() - mountStartedAt
-										).toFixed(1);
-										console.log(
-											`[Terminal] Reattach fast-path: ${paneId} (total ${reattachElapsed}ms, skipped scrollback=${result.scrollback?.length ?? 0} bytes)`,
-										);
-									}
 									requestAnimationFrame(() => {
 										if (!isAttachActive()) return;
 										const prevCols = xterm.cols;
@@ -671,18 +646,6 @@ export function useTerminalLifecycle({
 										});
 									}
 								});
-
-								if (DEBUG_TERMINAL) {
-									const attachElapsed = (
-										performance.now() - createOrAttachStartedAt
-									).toFixed(1);
-									const totalElapsed = (
-										performance.now() - mountStartedAt
-									).toFixed(1);
-									console.log(
-										`[Terminal] Fresh attach complete: ${paneId} (createOrAttach=${attachElapsed}ms, total=${totalElapsed}ms, scrollback=${result.scrollback?.length ?? 0} bytes, isNew=${result.isNew}, wasRecovered=${result.wasRecovered})`,
-									);
-								}
 
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
@@ -935,13 +898,10 @@ export function useTerminalLifecycle({
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
 
 		return () => {
-			const unmountStartedAt = performance.now();
-			const paneDestroyed = isPaneDestroyedInStore();
 			if (DEBUG_TERMINAL) {
-				console.log(
-					`[Terminal] Unmount: ${paneId} (paneDestroyed=${paneDestroyed}, isReattach=${isReattach})`,
-				);
+				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
+			const paneDestroyed = isPaneDestroyedInStore();
 			cancelInitialAttach();
 			isUnmounted = true;
 			attachCanceled = true;
@@ -974,11 +934,6 @@ export function useTerminalLifecycle({
 
 			if (paneDestroyed) {
 				// Pane was explicitly destroyed — full cleanup.
-				if (DEBUG_TERMINAL) {
-					console.log(
-						`[Terminal] Pane destroyed — killing session and disposing cache: ${paneId}`,
-					);
-				}
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
@@ -994,13 +949,6 @@ export function useTerminalLifecycle({
 					coldRestoreState.delete(paneId);
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
-
-				if (DEBUG_TERMINAL) {
-					const elapsed = (performance.now() - unmountStartedAt).toFixed(1);
-					console.log(
-						`[Terminal] Detached from DOM (cached for reattach): ${paneId} (cleanup took ${elapsed}ms)`,
-					);
-				}
 			}
 
 			isStreamReadyRef.current = false;
