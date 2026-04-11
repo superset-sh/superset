@@ -8,6 +8,7 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { resolveStartPoint } from "./utils/resolve-start-point";
 import { deduplicateBranchName } from "./utils/sanitize-branch";
 
 // ── In-memory create progress (polled by renderer) ──────────────────
@@ -378,17 +379,29 @@ export const workspaceCreationRouter = router({
 			);
 
 			const git = await ctx.git(localProject.repoPath);
-			const baseBranch = input.composer.baseBranch || "HEAD";
+
+			// Resolve the best start point: prefer origin/<branch> for freshest code,
+			// fall back to local branch, then HEAD.
+			const { ref: startPoint, resolvedFrom } = await resolveStartPoint(
+				git,
+				input.composer.baseBranch,
+			);
+			console.log(
+				`[workspaceCreation.create] start point resolved: ${startPoint} (${resolvedFrom})`,
+			);
 
 			// Always create a new branch — never check out an existing one.
 			// Checking out existing branches is a separate intent (e.g. createFromPr).
+			// --no-track prevents the new branch from tracking the remote ref
+			// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
 			await git.raw([
 				"worktree",
 				"add",
+				"--no-track",
 				"-b",
 				branchName,
 				worktreePath,
-				baseBranch,
+				startPoint,
 			]);
 
 			setProgress(input.pendingId, "registering");
