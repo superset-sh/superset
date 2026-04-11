@@ -27,7 +27,9 @@ export function deduplicateBranchName(
 	// Truncate base to leave room for suffix
 	const base =
 		candidate.length > MAX_BRANCH_LENGTH - SUFFIX_RESERVE
-			? candidate.slice(0, MAX_BRANCH_LENGTH - SUFFIX_RESERVE).replace(/[-.]+$/, "")
+			? candidate
+					.slice(0, MAX_BRANCH_LENGTH - SUFFIX_RESERVE)
+					.replace(/[-.]+$/, "")
 			: candidate;
 
 	for (let suffix = 2; suffix < 10_000; suffix++) {
