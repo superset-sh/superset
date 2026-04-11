@@ -11,13 +11,18 @@ function createMockGit(existingRefs: Set<string>) {
 				throw new Error(`fatal: Needed a single revision`);
 			}
 			// Handle symbolic-ref refs/remotes/origin/HEAD --short
-			if (args[0] === "symbolic-ref" && args[1] === "refs/remotes/origin/HEAD") {
+			if (
+				args[0] === "symbolic-ref" &&
+				args[1] === "refs/remotes/origin/HEAD"
+			) {
 				if (existingRefs.has("__symbolic_ref__")) {
 					return existingRefs.has("__default_master__")
 						? "origin/master"
 						: "origin/main";
 				}
-				throw new Error("fatal: ref refs/remotes/origin/HEAD is not a symbolic ref");
+				throw new Error(
+					"fatal: ref refs/remotes/origin/HEAD is not a symbolic ref",
+				);
 			}
 			throw new Error(`Unexpected raw args: ${args.join(" ")}`);
 		}),
@@ -60,7 +65,12 @@ describe("resolveStartPoint", () => {
 
 	test("resolves default branch via symbolic-ref when baseBranch not provided", async () => {
 		const git = createMockGit(
-			new Set(["__symbolic_ref__", "__default_master__", "origin/master", "master"]),
+			new Set([
+				"__symbolic_ref__",
+				"__default_master__",
+				"origin/master",
+				"master",
+			]),
 		);
 		const result = await resolveStartPoint(git, undefined);
 
