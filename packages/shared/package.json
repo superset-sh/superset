@@ -63,6 +63,10 @@
 		"./device-info": {
 			"types": "./src/device-info.ts",
 			"default": "./src/device-info.ts"
+		},
+		"./shell-ready-scanner": {
+			"types": "./src/shell-ready-scanner.ts",
+			"default": "./src/shell-ready-scanner.ts"
 		}
 	},
 	"scripts": {

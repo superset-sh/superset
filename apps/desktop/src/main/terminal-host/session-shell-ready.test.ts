@@ -5,8 +5,10 @@ import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
-	SHELL_READY_MARKER,
 } from "./pty-subprocess-ipc";
+
+/** OSC 133;A marker emitted by shell wrappers (FinalTerm standard). */
+const SHELL_READY_MARKER = "\x1b]133;A\x07";
 import "./xterm-env-polyfill";
 
 const { Session } = await import("./session");

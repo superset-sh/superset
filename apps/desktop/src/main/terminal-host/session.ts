@@ -31,10 +31,15 @@ import type {
 } from "../lib/terminal-host/types";
 import { treeKillAsync } from "../lib/tree-kill";
 import {
+	type ShellReadyScanState,
+	SHELLS_WITH_READY_MARKER,
+	createScanState,
+	scanForShellReady,
+} from "@superset/shared/shell-ready-scanner";
+import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
-	SHELL_READY_MARKER,
 } from "./pty-subprocess-ipc";
 
 // =============================================================================
@@ -76,8 +81,7 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
  */
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
-/** Shells whose wrapper files inject a {@link SHELL_READY_MARKER}. */
-const SHELLS_WITH_READY_MARKER = new Set(["zsh", "bash", "fish"]);
+// SHELLS_WITH_READY_MARKER imported from @superset/shared/shell-ready-scanner
 
 /**
  * Shell readiness lifecycle:
@@ -162,13 +166,8 @@ export class Session {
 	private shellReadyState: ShellReadyState;
 	private shellReadyTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	private preReadyStdinQueue: string[] = [];
-	// Marker scanner — tracks how many characters of SHELL_READY_MARKER
-	// we've matched so far. Held bytes are withheld from terminal output
-	// until we confirm a full match (discard them) or a mismatch (flush
-	// them as regular output). This prevents partial OSC sequences from
-	// ever reaching the renderer, even when the marker spans two Data frames.
-	private markerMatchPos = 0;
-	private markerHeldBytes = "";
+	// OSC 133;A scanner state — shared with v2 host-service via @superset/shared
+	private scanState: ShellReadyScanState = createScanState();
 
 	private emulatorWriteQueue: string[] = [];
 	private emulatorWriteQueuedBytes = 0;
@@ -364,32 +363,13 @@ export class Session {
 				if (payload.length === 0) break;
 				let data = payload.toString("utf8");
 
-				// Scan for SHELL_READY_MARKER one character at a time.
-				// Matching bytes are held back from output; on full match
-				// they're discarded and readiness resolves. On mismatch
-				// they're flushed as regular terminal output.
+				// Scan for OSC 133;A (shell ready) and strip from output.
 				if (this.shellReadyState === "pending") {
-					let output = "";
-					for (let i = 0; i < data.length; i++) {
-						if (data[i] === SHELL_READY_MARKER[this.markerMatchPos]) {
-							this.markerHeldBytes += data[i];
-							this.markerMatchPos++;
-							if (this.markerMatchPos === SHELL_READY_MARKER.length) {
-								// Full match — discard held bytes, resolve
-								this.markerHeldBytes = "";
-								this.markerMatchPos = 0;
-								this.resolveShellReady("ready");
-								output += data.slice(i + 1);
-								break;
-							}
-						} else {
-							// Mismatch — flush held bytes as regular output
-							output += this.markerHeldBytes + data[i];
-							this.markerHeldBytes = "";
-							this.markerMatchPos = 0;
-						}
+					const result = scanForShellReady(this.scanState, data);
+					data = result.output;
+					if (result.matched) {
+						this.resolveShellReady("ready");
 					}
-					data = output;
 				}
 
 				if (data.length === 0) break;
@@ -1015,8 +995,7 @@ export class Session {
 			this.shellReadyTimeoutId = null;
 		}
 		this.preReadyStdinQueue = [];
-		this.markerMatchPos = 0;
-		this.markerHeldBytes = "";
+		this.scanState = createScanState();
 		this.subprocessStdinQueue = [];
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
@@ -1060,15 +1039,15 @@ export class Session {
 			this.shellReadyTimeoutId = null;
 		}
 		// Flush held marker bytes — they weren't part of a full marker
-		if (this.markerHeldBytes.length > 0) {
-			this.enqueueEmulatorWrite(this.markerHeldBytes);
+		if (this.scanState.heldBytes.length > 0) {
+			this.enqueueEmulatorWrite(this.scanState.heldBytes);
 			this.broadcastEvent("data", {
 				type: "data",
-				data: this.markerHeldBytes,
+				data: this.scanState.heldBytes,
 			} satisfies TerminalDataEvent);
-			this.markerHeldBytes = "";
+			this.scanState.heldBytes = "";
 		}
-		this.markerMatchPos = 0;
+		this.scanState.matchPos = 0;
 		// Flush queued writes in FIFO order
 		const queue = this.preReadyStdinQueue;
 		this.preReadyStdinQueue = [];
