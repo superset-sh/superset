@@ -1,4 +1,3 @@
-import type { WorkspaceStore } from "@superset/panes";
 import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
@@ -13,7 +12,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
@@ -27,15 +25,11 @@ import type { HotkeyId } from "renderer/hotkeys";
 import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
-import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData, TerminalPaneData } from "../../types";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
-	workspaceId: string;
-	projectId: string;
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	matchedPresets: V2TerminalPresetRow[];
+	executePreset: (preset: V2TerminalPresetRow) => void;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -88,27 +82,13 @@ function getPinnedPresetOrder(
 }
 
 export function V2PresetsBar({
-	workspaceId,
-	projectId,
-	store,
+	matchedPresets,
+	executePreset,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
 	useMigrateV1PresetsToV2();
-
-	const { data: allPresets = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ v2TerminalPresets: collections.v2TerminalPresets })
-				.orderBy(({ v2TerminalPresets }) => v2TerminalPresets.tabOrder),
-		[collections],
-	);
-
-	const matchedPresets = useMemo(
-		() => filterMatchingPresetsForProject(allPresets, projectId),
-		[allPresets, projectId],
-	);
 
 	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
 		() => getPinnedPresetOrder(matchedPresets),
@@ -200,27 +180,6 @@ export function V2PresetsBar({
 			}));
 		return [...fromTemplates, ...customExisting];
 	}, [matchedPresets, presetsByName]);
-
-	const openPresetInNewTab = useCallback(
-		(preset: V2TerminalPresetRow) => {
-			if (!workspaceId) return;
-			const initialCommand =
-				preset.commands.length > 0 ? preset.commands.join(" && ") : undefined;
-			store.getState().addTab({
-				titleOverride: preset.name || "Terminal",
-				panes: [
-					{
-						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-							initialCommand,
-						} as TerminalPaneData,
-					},
-				],
-			});
-		},
-		[workspaceId, store],
-	);
 
 	const handleEditPreset = useCallback(
 		(presetId: string) => {
@@ -395,7 +354,7 @@ export function V2PresetsBar({
 						pinnedIndex={pinnedIndex}
 						hotkeyId={hotkeyId}
 						isDark={isDark}
-						onOpenInNewTab={openPresetInNewTab}
+						onExecutePreset={executePreset}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
 						onLocalReorder={handleLocalPinnedReorder}
 						onPersistReorder={handlePersistPinnedReorder}

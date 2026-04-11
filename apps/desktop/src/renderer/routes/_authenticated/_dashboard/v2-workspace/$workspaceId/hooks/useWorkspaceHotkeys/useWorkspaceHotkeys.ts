@@ -2,6 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { useCallback } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
@@ -13,9 +14,13 @@ import type {
 export function useWorkspaceHotkeys({
 	store,
 	workspaceId,
+	matchedPresets,
+	executePreset,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	workspaceId: string;
+	matchedPresets: V2TerminalPresetRow[];
+	executePreset: (preset: V2TerminalPresetRow) => void;
 }) {
 	const collections = useCollections();
 
@@ -236,4 +241,24 @@ export function useWorkspaceHotkeys({
 		if (!tab) return;
 		state.equalizeTab({ tabId: tab.id });
 	});
+
+	// --- Preset hotkeys ---
+
+	const openPresetByIndex = useCallback(
+		(index: number) => {
+			const preset = matchedPresets[index];
+			if (preset) executePreset(preset);
+		},
+		[matchedPresets, executePreset],
+	);
+
+	useHotkey("OPEN_PRESET_1", () => openPresetByIndex(0));
+	useHotkey("OPEN_PRESET_2", () => openPresetByIndex(1));
+	useHotkey("OPEN_PRESET_3", () => openPresetByIndex(2));
+	useHotkey("OPEN_PRESET_4", () => openPresetByIndex(3));
+	useHotkey("OPEN_PRESET_5", () => openPresetByIndex(4));
+	useHotkey("OPEN_PRESET_6", () => openPresetByIndex(5));
+	useHotkey("OPEN_PRESET_7", () => openPresetByIndex(6));
+	useHotkey("OPEN_PRESET_8", () => openPresetByIndex(7));
+	useHotkey("OPEN_PRESET_9", () => openPresetByIndex(8));
 }
