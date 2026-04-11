@@ -401,6 +401,7 @@ export const Terminal = memo(function Terminal({
 		},
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: resizeRef is a stable MutableRefObject — .current is read inside the effect, not a dependency
 	useEffect(() => {
 		if (!fontSettings) return;
 		const family =
@@ -410,7 +411,7 @@ export const Terminal = memo(function Terminal({
 		if (result?.changed) {
 			resizeRef.current({ paneId, cols: result.cols, rows: result.rows });
 		}
-	}, [paneId, fontSettings, resizeRef.current]);
+	}, [paneId, fontSettings]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
