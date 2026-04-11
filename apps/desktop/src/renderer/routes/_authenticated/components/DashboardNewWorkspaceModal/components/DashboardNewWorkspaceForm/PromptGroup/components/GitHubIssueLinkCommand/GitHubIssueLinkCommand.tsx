@@ -21,7 +21,7 @@ import {
 } from "renderer/screens/main/components/IssueIcon/IssueIcon";
 import type { WorkspaceHostTarget } from "../../../components/DevicePicker";
 
-const MAX_RESULTS = 20;
+const MAX_RESULTS = 30;
 
 const normalizeIssueState = (state: string): IssueState =>
 	state.toLowerCase() === "closed" ? "closed" : "open";
@@ -131,16 +131,22 @@ export function GitHubIssueLinkCommand({
 								{isLoading
 									? debouncedTrimmed
 										? "Searching..."
-										: "Loading issues..."
+										: "Loading..."
 									: repoMismatch
 										? `Issue URL must match ${repoMismatch}.`
 										: debouncedTrimmed
 											? "No issues found."
-											: "No open issues found."}
+											: "No issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
-							<CommandGroup heading={debouncedTrimmed ? "Results" : "Open issues"}>
+							<CommandGroup
+								heading={
+									debouncedTrimmed
+										? `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`
+										: "Recent issues"
+								}
+							>
 								{searchResults.map((issue) => (
 									<CommandItem
 										key={issue.issueNumber}

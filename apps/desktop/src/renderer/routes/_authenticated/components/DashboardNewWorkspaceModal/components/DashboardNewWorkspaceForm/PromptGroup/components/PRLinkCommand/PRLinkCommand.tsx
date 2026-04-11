@@ -132,12 +132,12 @@ export function PRLinkCommand({
 								{isLoading
 									? debouncedTrimmed
 										? "Searching..."
-										: "Loading pull requests..."
+										: "Loading..."
 									: repoMismatch
 										? `PR URL must match ${repoMismatch}.`
 										: debouncedTrimmed
 											? "No pull requests found."
-											: "No open pull requests."}
+											: "No pull requests found."}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (
@@ -145,7 +145,7 @@ export function PRLinkCommand({
 								heading={
 									debouncedTrimmed
 										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
-										: "Recent pull requests"
+										: "Recent PRs"
 								}
 							>
 								{pullRequests.map((pr) => (
