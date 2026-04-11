@@ -95,6 +95,13 @@ async function resolveGithubRepo(
 const GITHUB_PR_URL_RE =
 	/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i;
 
+interface NormalizedQuery {
+	query: string;
+	repoMismatch: boolean;
+	/** When true, `query` is a PR number and should use direct lookup, not text search. */
+	isDirectLookup: boolean;
+}
+
 /**
  * Normalize raw search input for the pull request search endpoint.
  *
@@ -106,8 +113,8 @@ const GITHUB_PR_URL_RE =
 function normalizePullRequestQuery(
 	raw: string,
 	repo: { owner: string; name: string },
-): { query: string; repoMismatch: boolean } {
-	if (!raw) return { query: "", repoMismatch: false };
+): NormalizedQuery {
+	if (!raw) return { query: "", repoMismatch: false, isDirectLookup: false };
 
 	// Full GitHub PR URL
 	const urlMatch = raw.match(GITHUB_PR_URL_RE);
@@ -118,11 +125,19 @@ function normalizePullRequestQuery(
 		const isSameRepo =
 			urlOwner.toLowerCase() === repo.owner.toLowerCase() &&
 			urlRepo.toLowerCase() === repo.name.toLowerCase();
-		return { query: isSameRepo ? prNumber : "", repoMismatch: !isSameRepo };
+		return {
+			query: isSameRepo ? prNumber : "",
+			repoMismatch: !isSameRepo,
+			isDirectLookup: isSameRepo,
+		};
 	}
 
-	// `#123` shorthand — strip the `#`
-	return { query: raw.replace(/^#/, ""), repoMismatch: false };
+	// `#123` shorthand — strip the `#`, direct lookup by number
+	if (/^#\d+$/.test(raw)) {
+		return { query: raw.slice(1), repoMismatch: false, isDirectLookup: true };
+	}
+
+	return { query: raw, repoMismatch: false, isDirectLookup: false };
 }
 
 async function listBranchNames(
@@ -595,6 +610,28 @@ export const workspaceCreationRouter = router({
 			const effectiveQuery = normalized.query;
 
 			try {
+				// Direct lookup by PR number (from URL paste or `#123` shorthand)
+				if (normalized.isDirectLookup) {
+					const prNumber = Number.parseInt(effectiveQuery, 10);
+					const { data: pr } = await octokit.pulls.get({
+						owner: repo.owner,
+						repo: repo.name,
+						pull_number: prNumber,
+					});
+					return {
+						pullRequests: [
+							{
+								prNumber: pr.number,
+								title: pr.title,
+								url: pr.html_url,
+								state: pr.state,
+								isDraft: pr.draft ?? false,
+								authorLogin: pr.user?.login ?? null,
+							},
+						],
+					};
+				}
+
 				if (effectiveQuery) {
 					const q = `repo:${repo.owner}/${repo.name} is:pr in:title ${effectiveQuery}`;
 					const { data } = await octokit.search.issuesAndPullRequests({
