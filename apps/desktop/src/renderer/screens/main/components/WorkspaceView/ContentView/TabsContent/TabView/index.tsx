@@ -1,7 +1,7 @@
 import "react-mosaic-component/react-mosaic-component.css";
 import "./mosaic-theme.css";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
 	Mosaic,
 	type MosaicBranch,
@@ -58,21 +58,11 @@ export function TabView({ tab }: TabViewProps) {
 		[allTabs, tab.workspaceId],
 	);
 
-	// Extract pane IDs from layout. Stabilize the reference so it only changes
-	// when the actual set of IDs changes — not on every split resize, which
-	// only changes splitPercentage values in the layout tree. Without this,
-	// every resize pixel cascades through tabPanes → renderPane → Mosaic and
-	// unmounts/remounts all terminal components.
-	const prevLayoutPaneIdsRef = useRef<string[]>([]);
-	const layoutPaneIds = useMemo(() => {
-		const next = extractPaneIdsFromLayout(tab.layout);
-		const prev = prevLayoutPaneIdsRef.current;
-		if (prev.length === next.length && prev.every((id, i) => id === next[i])) {
-			return prev;
-		}
-		prevLayoutPaneIdsRef.current = next;
-		return next;
-	}, [tab.layout]);
+	// Extract pane IDs from layout
+	const layoutPaneIds = useMemo(
+		() => extractPaneIdsFromLayout(tab.layout),
+		[tab.layout],
+	);
 
 	// Memoize the filtered panes to avoid creating new objects on every render
 	const tabPanes = useMemo(() => {
