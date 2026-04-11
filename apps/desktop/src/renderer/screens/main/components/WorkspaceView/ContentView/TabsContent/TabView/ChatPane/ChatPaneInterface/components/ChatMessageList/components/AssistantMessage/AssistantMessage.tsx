@@ -325,6 +325,10 @@ export function AssistantMessage({
 		nodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
 	}
 
+	if (nodes.length === 0 && !isStreaming && !footer) {
+		return null;
+	}
+
 	return (
 		<Message from="assistant">
 			<MessageContent>
