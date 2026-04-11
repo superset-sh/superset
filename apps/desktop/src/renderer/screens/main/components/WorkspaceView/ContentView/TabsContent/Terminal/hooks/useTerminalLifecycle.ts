@@ -508,61 +508,118 @@ export function useTerminalLifecycle({
 			restartCommand: workspaceRunRestartCommand,
 		} = resolveWorkspaceRunAttachMode(paneId, defaultRestartCommandRef.current);
 
-		const cancelInitialAttach = scheduleTerminalAttach({
-			paneId,
-			priority: isFocusedRef.current ? 0 : 1,
-			run: (done) => {
-				const startAttach = (commandToRunAfterAttach?: string) => {
-					if (attachCanceled) return;
-					if (attachInFlightByPane.has(paneId)) {
-						cancelAttachWait = waitForAttachClear(paneId, () => {
-							if (attachCanceled || isUnmounted) return;
-							startAttach(commandToRunAfterAttach);
-						});
-						return;
-					}
+		// On reattach: stream is already running and xterm buffer is current.
+		// Skip the entire createOrAttach + stream setup.
+		let cancelInitialAttach: (() => void) | null = null;
 
-					const requestId = nextAttachRequestId();
-					cancelAttachRequest(activeAttachRequestId);
-					activeAttachRequestId = requestId;
-					activeAttachId = ++attachSequence;
-					const attachId = activeAttachId;
-					const isAttachActive = () =>
-						!isUnmounted && !attachCanceled && attachId === activeAttachId;
+		if (isReattach) {
+			// Stream is ready — the cache has been writing data to xterm.
+			isStreamReadyRef.current = true;
 
-					markAttachInFlight(paneId, attachId);
+			// Resize in case the container dimensions changed while hidden.
+			requestAnimationFrame(() => {
+				if (isUnmounted) return;
+				const prevCols = xterm.cols;
+				const prevRows = xterm.rows;
+				fitAddon.fit();
+				if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+					resizeRef.current({
+						paneId,
+						cols: xterm.cols,
+						rows: xterm.rows,
+					});
+				}
+			});
+		} else {
+			cancelInitialAttach = scheduleTerminalAttach({
+				paneId,
+				priority: isFocusedRef.current ? 0 : 1,
+				run: (done) => {
+					const startAttach = (commandToRunAfterAttach?: string) => {
+						if (attachCanceled) return;
+						if (attachInFlightByPane.has(paneId)) {
+							cancelAttachWait = waitForAttachClear(paneId, () => {
+								if (attachCanceled || isUnmounted) return;
+								startAttach(commandToRunAfterAttach);
+							});
+							return;
+						}
 
-					const finishAttach = () => {
-						clearAttachInFlight(paneId, attachId);
-						done();
-					};
+						const requestId = nextAttachRequestId();
+						cancelAttachRequest(activeAttachRequestId);
+						activeAttachRequestId = requestId;
+						activeAttachId = ++attachSequence;
+						const attachId = activeAttachId;
+						const isAttachActive = () =>
+							!isUnmounted && !attachCanceled && attachId === activeAttachId;
 
-					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal] createOrAttach start: ${paneId}`);
-					}
-					createOrAttachRef.current(
-						{
-							paneId,
-							requestId,
-							tabId: tabIdRef.current,
-							workspaceId,
-							cols: xterm.cols,
-							rows: xterm.rows,
-							cwd: initialCwd,
-							...((isNewWorkspaceRun || Boolean(commandToRunAfterAttach)) && {
-								skipColdRestore: true,
-							}),
-						},
-						{
-							onSuccess: (result) => {
-								if (!isAttachActive()) return;
-								if (activeAttachRequestId !== requestId) return;
-								setConnectionError(null);
-								clearPaneInitialDataRef.current(paneId);
+						markAttachInFlight(paneId, attachId);
 
-								// Reattach fast-path: xterm buffer is already in memory,
-								// skip scrollback restoration and just open the stream gate.
-								if (isReattach && !result.isColdRestore) {
+						const finishAttach = () => {
+							clearAttachInFlight(paneId, attachId);
+							done();
+						};
+
+						if (DEBUG_TERMINAL) {
+							console.log(`[Terminal] createOrAttach start: ${paneId}`);
+						}
+						createOrAttachRef.current(
+							{
+								paneId,
+								requestId,
+								tabId: tabIdRef.current,
+								workspaceId,
+								cols: xterm.cols,
+								rows: xterm.rows,
+								cwd: initialCwd,
+								...((isNewWorkspaceRun || Boolean(commandToRunAfterAttach)) && {
+									skipColdRestore: true,
+								}),
+							},
+							{
+								onSuccess: (result) => {
+									if (!isAttachActive()) return;
+									if (activeAttachRequestId !== requestId) return;
+									setConnectionError(null);
+									clearPaneInitialDataRef.current(paneId);
+
+									// Start the cache-owned stream subscription now that the
+									// backend session exists, and mark it ready so events
+									// flow through the component's registered handler.
+									v1TerminalCache.startStream(paneId);
+									v1TerminalCache.setStreamReady(paneId);
+
+									const storedColdRestore = coldRestoreState.get(paneId);
+									if (storedColdRestore?.isRestored) {
+										setIsRestoredMode(true);
+										setRestoredCwd(storedColdRestore.cwd);
+										if (storedColdRestore.scrollback && xterm) {
+											xterm.write(
+												storedColdRestore.scrollback,
+												scheduleScrollToBottom,
+											);
+										}
+										didFirstRenderRef.current = true;
+										return;
+									}
+
+									if (result.isColdRestore) {
+										const scrollback =
+											result.snapshot?.snapshotAnsi ?? result.scrollback;
+										coldRestoreState.set(paneId, {
+											isRestored: true,
+											cwd: result.previousCwd || null,
+											scrollback,
+										});
+										setIsRestoredMode(true);
+										setRestoredCwd(result.previousCwd || null);
+										if (scrollback && xterm) {
+											xterm.write(scrollback, scheduleScrollToBottom);
+										}
+										didFirstRenderRef.current = true;
+										return;
+									}
+
 									requestAnimationFrame(() => {
 										if (!isAttachActive()) return;
 										const prevCols = xterm.cols;
@@ -576,8 +633,9 @@ export function useTerminalLifecycle({
 											});
 										}
 									});
-									isStreamReadyRef.current = true;
-									flushPendingEvents();
+
+									pendingInitialStateRef.current = result;
+									maybeApplyInitialState();
 
 									if (!commandToRunAfterAttach) {
 										return;
@@ -586,7 +644,7 @@ export function useTerminalLifecycle({
 									void writeWorkspaceRunCommand(commandToRunAfterAttach).catch(
 										(error) => {
 											console.error(
-												"[Terminal] Failed to write workspace run command after reattach:",
+												"[Terminal] Failed to write workspace run command after attach:",
 												error,
 											);
 											if (paneWorkspaceRun) {
@@ -597,143 +655,73 @@ export function useTerminalLifecycle({
 													? error.message
 													: "Failed to write workspace run command",
 											);
+											isStreamReadyRef.current = true;
+											flushPendingEvents();
 										},
 									);
-									return;
-								}
-
-								const storedColdRestore = coldRestoreState.get(paneId);
-								if (storedColdRestore?.isRestored) {
-									setIsRestoredMode(true);
-									setRestoredCwd(storedColdRestore.cwd);
-									if (storedColdRestore.scrollback && xterm) {
-										xterm.write(
-											storedColdRestore.scrollback,
-											scheduleScrollToBottom,
-										);
-									}
-									didFirstRenderRef.current = true;
-									return;
-								}
-
-								if (result.isColdRestore) {
-									const scrollback =
-										result.snapshot?.snapshotAnsi ?? result.scrollback;
-									coldRestoreState.set(paneId, {
-										isRestored: true,
-										cwd: result.previousCwd || null,
-										scrollback,
-									});
-									setIsRestoredMode(true);
-									setRestoredCwd(result.previousCwd || null);
-									if (scrollback && xterm) {
-										xterm.write(scrollback, scheduleScrollToBottom);
-									}
-									didFirstRenderRef.current = true;
-									return;
-								}
-
-								requestAnimationFrame(() => {
+								},
+								onError: (error) => {
 									if (!isAttachActive()) return;
-									const prevCols = xterm.cols;
-									const prevRows = xterm.rows;
-									fitAddon.fit();
-									if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-										resizeRef.current({
-											paneId,
-											cols: xterm.cols,
-											rows: xterm.rows,
-										});
+									if (activeAttachRequestId !== requestId) return;
+									if (isTerminalAttachCanceledMessage(error.message)) {
+										return;
 									}
-								});
-
-								pendingInitialStateRef.current = result;
-								maybeApplyInitialState();
-
-								if (!commandToRunAfterAttach) {
-									return;
-								}
-
-								void writeWorkspaceRunCommand(commandToRunAfterAttach).catch(
-									(error) => {
-										console.error(
-											"[Terminal] Failed to write workspace run command after attach:",
-											error,
-										);
-										if (paneWorkspaceRun) {
-											setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+									const workspaceRun = getPaneWorkspaceRun(paneId);
+									if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+										if (workspaceRun) {
+											setPaneWorkspaceRunState(paneId, "stopped-by-user");
 										}
-										setConnectionError(
-											error instanceof Error
-												? error.message
-												: "Failed to write workspace run command",
-										);
-										isStreamReadyRef.current = true;
-										flushPendingEvents();
-									},
-								);
-							},
-							onError: (error) => {
-								if (!isAttachActive()) return;
-								if (activeAttachRequestId !== requestId) return;
-								if (isTerminalAttachCanceledMessage(error.message)) {
-									return;
-								}
-								const workspaceRun = getPaneWorkspaceRun(paneId);
-								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
-									if (workspaceRun) {
-										setPaneWorkspaceRunState(paneId, "stopped-by-user");
+										wasKilledByUserRef.current = true;
+										isExitedRef.current = true;
+										isStreamReadyRef.current = false;
+										setExitStatus("killed");
+										setConnectionError(null);
+										return;
 									}
-									wasKilledByUserRef.current = true;
-									isExitedRef.current = true;
-									isStreamReadyRef.current = false;
-									setExitStatus("killed");
-									setConnectionError(null);
-									return;
-								}
-								console.error("[Terminal] Failed to create/attach:", error);
-								if (workspaceRun) {
-									setPaneWorkspaceRunState(paneId, "stopped-by-exit");
-								}
-								setConnectionError(
-									error.message || "Failed to connect to terminal",
-								);
-								isStreamReadyRef.current = true;
-								flushPendingEvents();
+									console.error("[Terminal] Failed to create/attach:", error);
+									if (workspaceRun) {
+										setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+									}
+									setConnectionError(
+										error.message || "Failed to connect to terminal",
+									);
+									isStreamReadyRef.current = true;
+									flushPendingEvents();
+								},
+								onSettled: () => {
+									if (activeAttachRequestId === requestId) {
+										activeAttachRequestId = null;
+									}
+									finishAttach();
+								},
 							},
-							onSettled: () => {
-								if (activeAttachRequestId === requestId) {
-									activeAttachRequestId = null;
-								}
-								finishAttach();
-							},
-						},
-					);
-				};
+						);
+					};
 
-				// Handle workspace-run panes that need recovery (stopped or stale "running" after restart)
-				if (paneWorkspaceRun && !isNewWorkspaceRun) {
-					void recoverWorkspaceRunPane({
-						paneId,
-						workspaceRun: paneWorkspaceRun,
-						isNewWorkspaceRun,
-						xterm,
-						shouldAbort: () => isUnmounted || attachCanceled,
-						startAttach,
-						done,
-						isExitedRef,
-						wasKilledByUserRef,
-						isStreamReadyRef,
-						setExitStatus,
-						restartCommand: workspaceRunRestartCommand,
-					});
+					// Handle workspace-run panes that need recovery (stopped or stale "running" after restart)
+					if (paneWorkspaceRun && !isNewWorkspaceRun) {
+						void recoverWorkspaceRunPane({
+							paneId,
+							workspaceRun: paneWorkspaceRun,
+							isNewWorkspaceRun,
+							xterm,
+							shouldAbort: () => isUnmounted || attachCanceled,
+							startAttach,
+							done,
+							isExitedRef,
+							wasKilledByUserRef,
+							isStreamReadyRef,
+							setExitStatus,
+							restartCommand: workspaceRunRestartCommand,
+						});
+						return;
+					}
+
+					startAttach();
 					return;
-				}
-
-				startAttach();
-				return;
-			},
-		});
+				},
+			});
+		} // end if (!isReattach)
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
@@ -902,7 +890,7 @@ export function useTerminalLifecycle({
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
 			const paneDestroyed = isPaneDestroyedInStore();
-			cancelInitialAttach();
+			cancelInitialAttach?.();
 			isUnmounted = true;
 			attachCanceled = true;
 			cancelAttachRequest(activeAttachRequestId);
@@ -940,25 +928,18 @@ export function useTerminalLifecycle({
 				v1TerminalCache.dispose(paneId);
 			} else {
 				// Pane hidden (tab switch) — detach wrapper from DOM but keep
-				// xterm alive in the cache for instant reattach.
+				// xterm AND stream subscription alive in the cache.
+				// No backend detach — the session stays connected so data
+				// continues flowing to xterm while hidden.
 				v1TerminalCache.detachFromContainer(paneId);
-
-				const detachTimeout = setTimeout(() => {
-					detachRef.current({ paneId });
-					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
-				}, 50);
-				pendingDetaches.set(paneId, detachTimeout);
 			}
 
-			isStreamReadyRef.current = false;
-			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			resetModes();
 			renderDisposable?.dispose();
 
-			// Do NOT dispose xterm here — the cache owns the lifecycle.
-			// xterm will be disposed when the pane is destroyed (above).
+			// Do NOT dispose xterm or reset stream state — the cache owns
+			// both the xterm lifecycle and the stream subscription.
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;

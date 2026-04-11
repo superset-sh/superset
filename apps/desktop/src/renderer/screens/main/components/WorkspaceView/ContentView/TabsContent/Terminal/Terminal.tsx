@@ -33,6 +33,7 @@ import type {
 	TerminalStreamEvent,
 } from "./types";
 import { shellEscapePaths } from "./utils";
+import * as v1TerminalCache from "./v1-terminal-cache";
 
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
@@ -271,26 +272,41 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	handleTerminalExitRef.current = handleTerminalExit;
 	handleStreamErrorRef.current = handleStreamError;
 
-	// Stream subscription
-	electronTrpc.terminal.stream.useSubscription(paneId, {
-		onData: (event) => {
-			if (connectionErrorRef.current && event.type === "data") {
-				setConnectionError(null);
-				retryCountRef.current = 0;
-			}
+	// Stream event handler registration — the subscription itself lives in
+	// v1TerminalCache and stays alive across mount/unmount cycles so data
+	// keeps flowing to xterm even while the tab is hidden.
+	useEffect(() => {
+		const queuedEvents = v1TerminalCache.registerHandlers(paneId, {
+			onEvent: (event) => {
+				if (connectionErrorRef.current && event.type === "data") {
+					setConnectionError(null);
+					retryCountRef.current = 0;
+				}
+				handleStreamData(event);
+			},
+			onError: (error) => {
+				console.error("[Terminal] Stream subscription error:", {
+					paneId,
+					error: error instanceof Error ? error.message : String(error),
+				});
+				setConnectionError(
+					error instanceof Error
+						? error.message
+						: "Connection to terminal lost",
+				);
+			},
+		});
+
+		// Process lifecycle events (exit, error, disconnect) that arrived
+		// while this component was unmounted.
+		for (const event of queuedEvents) {
 			handleStreamData(event);
-		},
-		onError: (error) => {
-			console.error("[Terminal] Stream subscription error:", {
-				paneId,
-				error: error instanceof Error ? error.message : String(error),
-			});
-			setConnectionError(
-				error instanceof Error ? error.message : "Connection to terminal lost",
-			);
-		},
-		enabled: true,
-	});
+		}
+
+		return () => {
+			v1TerminalCache.unregisterHandlers(paneId);
+		};
+	}, [paneId, handleStreamData, setConnectionError]);
 
 	// Auto-retry when connection error is set
 	useEffect(() => {
