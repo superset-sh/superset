@@ -390,6 +390,20 @@ export const workspaceCreationRouter = router({
 				`[workspaceCreation.create] start point resolved: ${startPoint} (${resolvedFrom})`,
 			);
 
+			// If we resolved to a remote-tracking ref, fetch just that branch
+			// to ensure we're branching from the latest remote state.
+			if (startPoint.startsWith("origin/")) {
+				const remoteBranch = startPoint.replace(/^origin\//, "");
+				try {
+					await git.fetch(["origin", remoteBranch, "--quiet", "--no-tags"]);
+				} catch (err) {
+					console.warn(
+						`[workspaceCreation.create] fetch origin ${remoteBranch} failed, proceeding with local ref:`,
+						err,
+					);
+				}
+			}
+
 			// Always create a new branch — never check out an existing one.
 			// Checking out existing branches is a separate intent (e.g. createFromPr).
 			// --no-track prevents the new branch from tracking the remote ref

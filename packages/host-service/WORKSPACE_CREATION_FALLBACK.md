@@ -98,16 +98,16 @@ Then finds the best local representation in priority order:
 
 ## Comparison
 
-| | VS Code | T3Code | GitHub Desktop | Superset v1 |
-|--|---------|--------|----------------|-------------|
-| **Strategy** | Upstream tracking lookup | Config -> symbolic-ref -> candidates | Symbolic-ref -> config -> "main" + local/remote search | `origin/<branch>` prefix -> local -> scan |
-| **Prefers remote ref?** | Yes (via upstream) | Yes (when only remote exists) | Prefers local that tracks remote | Yes (`origin/` first) |
-| **Handles non-origin remotes?** | Yes (reads tracking config) | Yes (resolves primary remote) | Yes (contribution target remote) | No (hardcodes `origin/`) |
-| **Default branch detection** | N/A (baseBranch always provided) | `symbolic-ref refs/remotes/<remote>/HEAD` | `symbolic-ref` + `init.defaultBranch` + `"main"` | Hardcoded `"main"` |
-| **Fetches before creation?** | No | No (separate 15s cache for status) | No (background hourly fetch) | No |
-| **`--no-track`?** | Yes (always) | No | Only for upstream default branch | No |
-| **Git ops at creation time** | 1 getBranch | 0 (resolution is separate) | 0 (pre-resolved) | 1-2 rev-parse |
-| **Complexity** | Low | High (Effect services, caches) | Medium (enum + multi-layer resolution) | Low |
+| | VS Code | T3Code | GitHub Desktop | Superset v1 | **Superset v2 (this PR)** |
+|--|---------|--------|----------------|-------------|--------------------------|
+| **Strategy** | Upstream tracking lookup | Config -> symbolic-ref -> candidates | Symbolic-ref -> config -> "main" + local/remote search | `origin/<branch>` prefix -> local -> scan | `symbolic-ref` default + `origin/<branch>` -> local -> HEAD |
+| **Prefers remote ref?** | Yes (via upstream) | Yes (when only remote exists) | Prefers local that tracks remote | Yes (`origin/` first) | Yes (`origin/` first) |
+| **Handles non-origin remotes?** | Yes (reads tracking config) | Yes (resolves primary remote) | Yes (contribution target remote) | No (hardcodes `origin/`) | No (hardcodes `origin/`) |
+| **Default branch detection** | N/A (baseBranch always provided) | `symbolic-ref refs/remotes/<remote>/HEAD` | `symbolic-ref` + `init.defaultBranch` + `"main"` | Hardcoded `"main"` | `symbolic-ref refs/remotes/origin/HEAD` -> `"main"` |
+| **Fetches before creation?** | No | No (separate 15s cache for status) | No (background hourly fetch) | No | **Yes — targeted single-ref fetch** |
+| **`--no-track`?** | Yes (always) | No | Only for upstream default branch | No (`^{commit}` instead) | Yes (always) |
+| **Git ops at creation time** | 1 getBranch | 0 (resolution is separate) | 0 (pre-resolved) | 1-2 rev-parse | 1 symbolic-ref + 1-2 rev-parse + 1 fetch |
+| **Complexity** | Low | High (Effect services, caches) | Medium (enum + multi-layer resolution) | Low | Low |
 
 ---
 
@@ -232,15 +232,72 @@ We'll use `--no-track` (more readable than `^{commit}`) and rely on `push.autoSe
 
 ---
 
-## Future consideration: periodic background fetch
+## Targeted fetch at create time
 
-Host-service is long-running, so a T3Code/GitHub Desktop-style **background fetch** could keep `origin/*` refs fresh without adding latency to workspace creation. Options:
+`resolveStartPoint` reads local `origin/*` refs, which are only as fresh as the last `git fetch`. Rather than fetching everything or guessing staleness, we **fetch only the single ref we resolved to, right before creating the worktree**.
+
+### Flow
+
+```
+resolveStartPoint(git, baseBranch)
+  -> resolves to e.g. "origin/develop"
+
+If resolved ref starts with "origin/":
+  -> extract branch name ("develop")
+  -> git fetch origin develop --quiet --no-tags
+  -> (refreshes only that one ref)
+
+git worktree add --no-track -b <newBranch> <path> <startPoint>
+```
+
+If `resolveStartPoint` fell back to a local branch or HEAD, no fetch happens — there's nothing remote to refresh.
+
+### Why this approach
+
+- **Fetches only what we use**: `git fetch origin <branch>` fetches a single ref + its objects. Fast (~100-300ms for a single branch) vs full `git fetch origin` (can be seconds on large repos).
+- **No wasted work**: If the user picked a local branch or HEAD, zero network cost.
+- **Right place, right time**: Freshness matters at worktree creation, not at branch listing. No renderer changes needed.
+- **Credentials already handled**: `ctx.git(repoPath)` returns a credentialed simple-git instance via `GitCredentialProvider` — fetch just works.
+- **Graceful failure**: If fetch fails (offline, auth expired), `resolveStartPoint` already resolved to the best available local ref. We log a warning and proceed.
+
+### Implementation in `workspace-creation.ts`
+
+After `resolveStartPoint`, before `git worktree add`:
+
+```ts
+const { ref: startPoint, resolvedFrom } = await resolveStartPoint(
+  git,
+  input.composer.baseBranch,
+);
+
+// If we resolved to a remote-tracking ref, fetch just that branch
+// to ensure we're branching from the latest remote state.
+if (startPoint.startsWith("origin/")) {
+  const remoteBranch = startPoint.replace(/^origin\//, "");
+  try {
+    await git.fetch(["origin", remoteBranch, "--quiet", "--no-tags"]);
+  } catch (err) {
+    console.warn(
+      `[workspaceCreation.create] fetch origin ${remoteBranch} failed, proceeding with local ref:`,
+      err,
+    );
+  }
+}
+
+await git.raw([
+  "worktree", "add", "--no-track",
+  "-b", branchName, worktreePath, startPoint,
+]);
+```
+
+### Future: periodic background fetch
+
+Host-service is long-running, so a T3Code/GitHub Desktop-style **background fetch** could keep `origin/*` refs fresh without any per-request cost. Options:
 
 - **Periodic fetch**: e.g., `git fetch --quiet --no-tags origin` every N minutes per repo (T3Code uses 15s for status, GitHub Desktop uses ~1hr)
-- **Pre-scan on project load**: fetch once when a project is first resolved, then periodically thereafter
 - **Cache with TTL**: track last-fetch time per repo, only fetch if stale (like T3Code's `StatusUpstreamRefreshCache`)
 
-This is heavier and introduces credential handling + concurrency concerns, so not included in the initial implementation. But it would make `origin/main` reliably fresh rather than depending on the user's last manual/IDE fetch.
+This would make branch listing fresh too (not just worktree creation) but requires more infrastructure (fetch scheduling, concurrency control).
 
 ---
 
