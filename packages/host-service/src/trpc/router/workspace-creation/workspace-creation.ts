@@ -468,11 +468,7 @@ export const workspaceCreationRouter = router({
 			}> = [];
 
 			if (input.composer.runSetupScript) {
-				const setupScriptPath = join(
-					worktreePath,
-					".superset",
-					"setup.sh",
-				);
+				const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
 				if (existsSync(setupScriptPath)) {
 					const terminalId = crypto.randomUUID();
 					const result = createTerminalSessionInternal({

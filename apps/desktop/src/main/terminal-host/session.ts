@@ -11,6 +11,12 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import {
+	createScanState,
+	SHELLS_WITH_READY_MARKER,
+	type ShellReadyScanState,
+	scanForShellReady,
+} from "@superset/shared/shell-ready-scanner";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	getCommandShellArgs,
@@ -30,12 +36,6 @@ import type {
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
 import { treeKillAsync } from "../lib/tree-kill";
-import {
-	type ShellReadyScanState,
-	SHELLS_WITH_READY_MARKER,
-	createScanState,
-	scanForShellReady,
-} from "@superset/shared/shell-ready-scanner";
 import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,

@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
+	createScanState,
 	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
-	createScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import { eq } from "drizzle-orm";
