@@ -222,6 +222,8 @@ interface CreateTerminalSessionOptions {
 	workspaceId: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
+	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
+	initialCommand?: string;
 }
 
 export function createTerminalSessionInternal({
@@ -229,6 +231,7 @@ export function createTerminalSessionInternal({
 	workspaceId,
 	themeType,
 	db,
+	initialCommand,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -371,6 +374,17 @@ export function createTerminalSessionInternal({
 			});
 		}
 	});
+
+	if (initialCommand) {
+		const cmd = initialCommand.endsWith("\n")
+			? initialCommand
+			: `${initialCommand}\n`;
+		session.shellReadyPromise.then(() => {
+			if (!session.exited) {
+				pty.write(cmd);
+			}
+		});
+	}
 
 	return session;
 }
