@@ -67,7 +67,6 @@ export function useSubmitWorkspace(projectId: string | null) {
 			status: "creating",
 			error: null,
 			workspaceId: null,
-			initialCommands: null,
 			createdAt: new Date(),
 		});
 

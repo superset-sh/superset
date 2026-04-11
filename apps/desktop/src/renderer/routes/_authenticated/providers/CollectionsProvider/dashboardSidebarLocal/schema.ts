@@ -90,7 +90,6 @@ export const pendingWorkspaceSchema = z.object({
 	status: z.enum(["creating", "failed", "succeeded"]).default("creating"),
 	error: z.string().nullable().default(null),
 	workspaceId: z.string().nullable().default(null),
-	initialCommands: z.array(z.string()).nullable().default(null),
 	terminals: z
 		.array(z.object({ id: z.string(), role: z.string(), label: z.string() }))
 		.default([]),
