@@ -92,53 +92,7 @@ async function resolveGithubRepo(
 	return { owner: repo.owner, name: repo.name };
 }
 
-const GITHUB_PR_URL_RE =
-	/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i;
-
-interface NormalizedQuery {
-	query: string;
-	repoMismatch: boolean;
-	/** When true, `query` is a PR number and should use direct lookup, not text search. */
-	isDirectLookup: boolean;
-}
-
-/**
- * Normalize raw search input for the pull request search endpoint.
- *
- * Handles three cases:
- * - Full GitHub PR URL → extract PR number, validate against project repo
- * - `#123` shorthand → strip `#`, search by number
- * - Plain text → pass through as-is
- */
-function normalizePullRequestQuery(
-	raw: string,
-	repo: { owner: string; name: string },
-): NormalizedQuery {
-	if (!raw) return { query: "", repoMismatch: false, isDirectLookup: false };
-
-	// Full GitHub PR URL
-	const urlMatch = raw.match(GITHUB_PR_URL_RE);
-	if (urlMatch) {
-		const urlOwner = urlMatch[1] as string;
-		const urlRepo = urlMatch[2] as string;
-		const prNumber = urlMatch[3] as string;
-		const isSameRepo =
-			urlOwner.toLowerCase() === repo.owner.toLowerCase() &&
-			urlRepo.toLowerCase() === repo.name.toLowerCase();
-		return {
-			query: isSameRepo ? prNumber : "",
-			repoMismatch: !isSameRepo,
-			isDirectLookup: isSameRepo,
-		};
-	}
-
-	// `#123` shorthand — strip the `#`, direct lookup by number
-	if (/^#\d+$/.test(raw)) {
-		return { query: raw.slice(1), repoMismatch: false, isDirectLookup: true };
-	}
-
-	return { query: raw, repoMismatch: false, isDirectLookup: false };
-}
+import { normalizePullRequestQuery } from "./normalize-pull-request-query";
 
 async function listBranchNames(
 	ctx: HostServiceContext,
@@ -633,7 +587,7 @@ export const workspaceCreationRouter = router({
 				}
 
 				if (effectiveQuery) {
-					const q = `repo:${repo.owner}/${repo.name} is:pr in:title ${effectiveQuery}`;
+					const q = `repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`;
 					const { data } = await octokit.search.issuesAndPullRequests({
 						q,
 						per_page: limit,

@@ -85,7 +85,8 @@ export function PRLinkCommand({
 	});
 
 	const pullRequests = data?.pullRequests ?? [];
-	const repoMismatch = data && "repoMismatch" in data ? data.repoMismatch : null;
+	const repoMismatch =
+		data && "repoMismatch" in data ? data.repoMismatch : null;
 
 	const isLoading =
 		debouncedTrimmed || trimmedQuery
