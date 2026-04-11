@@ -357,6 +357,7 @@ class BrowserRuntimeRegistryImpl {
 		}
 		entry.onDidStopLoading = onDidStopLoading;
 		entry.placeholder = placeholder;
+		entry.visible = true;
 
 		entry.resizeObserver?.disconnect();
 		const observer = new ResizeObserver(() => {
@@ -365,11 +366,8 @@ class BrowserRuntimeRegistryImpl {
 		observer.observe(placeholder);
 		entry.resizeObserver = observer;
 
-		requestAnimationFrame(() => {
-			if (entry && entry.placeholder === placeholder) {
-				this.updateLayout(entry);
-			}
-		});
+		this.updateLayout(entry);
+		entry.webview.style.visibility = "visible";
 	}
 
 	detach(paneId: string): void {
@@ -381,19 +379,6 @@ class BrowserRuntimeRegistryImpl {
 		entry.resizeObserver = null;
 		entry.visible = false;
 		entry.webview.style.visibility = "hidden";
-	}
-
-	setVisibility(paneId: string, visible: boolean): void {
-		const entry = this.entries.get(paneId);
-		if (!entry) return;
-		if (entry.visible === visible) return;
-		entry.visible = visible;
-		if (visible) {
-			this.updateLayout(entry);
-			entry.webview.style.visibility = "visible";
-		} else {
-			entry.webview.style.visibility = "hidden";
-		}
 	}
 
 	destroy(paneId: string): void {

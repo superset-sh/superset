@@ -1,10 +1,9 @@
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useStore } from "zustand";
 import type { PaneViewerData } from "../../../../types";
 
 import { browserRuntimeRegistry } from "./browserRuntimeRegistry";
@@ -29,15 +28,8 @@ function useBrowserState(paneId: string) {
 
 export function BrowserPane({ ctx }: BrowserPaneProps) {
 	const paneId = ctx.pane.id;
-	const tabId = ctx.tab.id;
 	const state = useBrowserState(paneId);
 	const { placeholderRef, reload } = usePersistentWebview({ paneId, ctx });
-
-	const isTabActive = useStore(ctx.store, (s) => s.activeTabId === tabId);
-
-	useEffect(() => {
-		browserRuntimeRegistry.setVisibility(paneId, isTabActive);
-	}, [paneId, isTabActive]);
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
 

@@ -1,4 +1,3 @@
-import type { Tab } from "@superset/panes";
 import { type PaneActionConfig, Workspace } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import {
@@ -9,7 +8,7 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
@@ -23,8 +22,7 @@ import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
-import { browserRuntimeRegistry } from "./hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
-import { BrowserTabLabel } from "./hooks/usePaneRegistry/components/BrowserPane/components/BrowserTabLabel";
+import { useBrowserPaneIntegration } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
@@ -164,62 +162,7 @@ function WorkspaceContent({
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 
-	const getSingleBrowserPaneId = useCallback(
-		(tab: Tab<PaneViewerData>): string | null => {
-			const paneIds = Object.keys(tab.panes);
-			if (paneIds.length !== 1) return null;
-			const pane = tab.panes[paneIds[0]];
-			return pane.kind === "browser" ? pane.id : null;
-		},
-		[],
-	);
-
-	const getTabTitle = useCallback(
-		(tab: Tab<PaneViewerData>): string => {
-			const browserPaneId = getSingleBrowserPaneId(tab);
-			if (!browserPaneId) return tab.titleOverride ?? tab.id;
-			const state = browserRuntimeRegistry.getState(browserPaneId);
-			if (state.pageTitle) return state.pageTitle;
-			if (state.currentUrl && state.currentUrl !== "about:blank") {
-				try {
-					return new URL(state.currentUrl).hostname;
-				} catch {}
-			}
-			return tab.titleOverride ?? "Browser";
-		},
-		[getSingleBrowserPaneId],
-	);
-
-	const renderTabLabel = useCallback(
-		(tab: Tab<PaneViewerData>) => {
-			const browserPaneId = getSingleBrowserPaneId(tab);
-			if (!browserPaneId) return null;
-			return (
-				<BrowserTabLabel
-					paneId={browserPaneId}
-					fallbackTitle={tab.titleOverride ?? "Browser"}
-				/>
-			);
-		},
-		[getSingleBrowserPaneId],
-	);
-
-	const browserPaneIdsRef = useRef<Set<string>>(new Set());
-	const tabsFromStore = useStore(store, (s) => s.tabs);
-	useEffect(() => {
-		const current = new Set<string>();
-		for (const tab of tabsFromStore) {
-			for (const pane of Object.values(tab.panes)) {
-				if (pane.kind === "browser") current.add(pane.id);
-			}
-		}
-		for (const prevId of browserPaneIdsRef.current) {
-			if (!current.has(prevId)) {
-				browserRuntimeRegistry.destroy(prevId);
-			}
-		}
-		browserPaneIdsRef.current = current;
-	}, [tabsFromStore]);
+	const { getTabTitle, renderTabLabel } = useBrowserPaneIntegration(store);
 
 	const defaultPaneActions = useMemo<PaneActionConfig<PaneViewerData>[]>(
 		() => [
