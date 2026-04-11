@@ -55,25 +55,29 @@ export function PRLinkCommand({
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const { activeHostUrl } = useLocalHostService();
 
+	const trimmedQuery = searchQuery.trim();
+	const debouncedTrimmed = debouncedQuery.trim();
+	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
+
 	const hostUrl =
 		hostTarget.kind === "local"
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading: isFetching } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchPullRequests",
 			projectId,
 			hostUrl,
-			debouncedQuery,
+			debouncedTrimmed,
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { pullRequests: [] };
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.workspaceCreation.searchPullRequests.query({
 				projectId,
-				query: debouncedQuery.trim() || undefined,
+				query: debouncedTrimmed || undefined,
 				limit: 30,
 			});
 		},
@@ -81,7 +85,12 @@ export function PRLinkCommand({
 	});
 
 	const pullRequests = data?.pullRequests ?? [];
-	const debouncedTrimmed = debouncedQuery.trim();
+	const repoMismatch = data && "repoMismatch" in data ? data.repoMismatch : null;
+
+	const isLoading =
+		debouncedTrimmed || trimmedQuery
+			? isFetching || isPendingDebounce
+			: isFetching;
 
 	const handleClose = () => {
 		setSearchQuery("");
@@ -123,9 +132,11 @@ export function PRLinkCommand({
 									? debouncedTrimmed
 										? "Searching..."
 										: "Loading pull requests..."
-									: debouncedTrimmed
-										? "No pull requests found."
-										: "No open pull requests."}
+									: repoMismatch
+										? `PR URL must match ${repoMismatch}.`
+										: debouncedTrimmed
+											? "No pull requests found."
+											: "No open pull requests."}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (

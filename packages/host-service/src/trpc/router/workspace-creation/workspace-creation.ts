@@ -92,6 +92,39 @@ async function resolveGithubRepo(
 	return { owner: repo.owner, name: repo.name };
 }
 
+const GITHUB_PR_URL_RE =
+	/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i;
+
+/**
+ * Normalize raw search input for the pull request search endpoint.
+ *
+ * Handles three cases:
+ * - Full GitHub PR URL → extract PR number, validate against project repo
+ * - `#123` shorthand → strip `#`, search by number
+ * - Plain text → pass through as-is
+ */
+function normalizePullRequestQuery(
+	raw: string,
+	repo: { owner: string; name: string },
+): { query: string; repoMismatch: boolean } {
+	if (!raw) return { query: "", repoMismatch: false };
+
+	// Full GitHub PR URL
+	const urlMatch = raw.match(GITHUB_PR_URL_RE);
+	if (urlMatch) {
+		const urlOwner = urlMatch[1] as string;
+		const urlRepo = urlMatch[2] as string;
+		const prNumber = urlMatch[3] as string;
+		const isSameRepo =
+			urlOwner.toLowerCase() === repo.owner.toLowerCase() &&
+			urlRepo.toLowerCase() === repo.name.toLowerCase();
+		return { query: isSameRepo ? prNumber : "", repoMismatch: !isSameRepo };
+	}
+
+	// `#123` shorthand — strip the `#`
+	return { query: raw.replace(/^#/, ""), repoMismatch: false };
+}
+
 async function listBranchNames(
 	ctx: HostServiceContext,
 	repoPath: string,
@@ -548,9 +581,22 @@ export const workspaceCreationRouter = router({
 			const octokit = await ctx.github();
 			const limit = input.limit ?? 30;
 
+			// Normalize the query: detect GitHub PR URLs, strip `#` shorthand
+			const raw = input.query?.trim() ?? "";
+			const normalized = normalizePullRequestQuery(raw, repo);
+
+			if (normalized.repoMismatch) {
+				return {
+					pullRequests: [],
+					repoMismatch: `${repo.owner}/${repo.name}`,
+				};
+			}
+
+			const effectiveQuery = normalized.query;
+
 			try {
-				if (input.query?.trim()) {
-					const q = `repo:${repo.owner}/${repo.name} is:pr in:title ${input.query}`;
+				if (effectiveQuery) {
+					const q = `repo:${repo.owner}/${repo.name} is:pr in:title ${effectiveQuery}`;
 					const { data } = await octokit.search.issuesAndPullRequests({
 						q,
 						per_page: limit,

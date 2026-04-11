@@ -108,138 +108,36 @@ GitHub Enterprise isn't supported anywhere in the codebase, so adding it here wo
 
 ---
 
-## Design
+## Design (Final — server-side normalization)
 
-### 1. Thread `githubOwner` + `repoName` to PRLinkCommand
+All URL parsing, `#` shorthand stripping, and cross-repo validation happen in the host service. The client sends raw user input and reacts to a `repoMismatch` field in the response.
 
-`PromptGroup` already receives `selectedProject: ProjectOption` which has `githubOwner` and `githubRepoName`. Pass them through:
+### 1. Host service: `normalizePullRequestQuery` helper
 
-**`PromptGroup.tsx`** — update `<PRLinkCommand>` usage:
-```diff
- <PRLinkCommand
-   open={prLinkOpen}
-   onOpenChange={setPRLinkOpen}
-   onSelect={setLinkedPR}
-   projectId={projectId}
-   hostTarget={hostTarget}
-   anchorRef={plusMenuRef}
-+  githubOwner={selectedProject?.githubOwner ?? null}
-+  repoName={selectedProject?.githubRepoName ?? null}
- />
-```
+Added to `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts`.
 
-### 2. Add URL parser and `#` shorthand detection
+Handles three cases:
+- **Full GitHub PR URL** → parse with regex, extract PR number, validate owner/repo against the project's linked repo. Return `{ repoMismatch: true }` if different.
+- **`#123` shorthand** → strip the leading `#`, search by number.
+- **Plain text** → pass through as-is.
 
-Port `parseGitHubPullRequestUrl()` from V1 and add `#123` shorthand stripping:
+The `searchPullRequests` procedure calls this before querying GitHub. On repo mismatch it returns early with `{ pullRequests: [], repoMismatch: "owner/repo" }` — no GitHub API call made.
 
-```typescript
-function parseGitHubPullRequestUrl(query: string): {
-  owner: string;
-  repo: string;
-  prNumber: string;
-} | null {
-  const match = query.match(
-    /^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i,
-  );
-  if (!match) return null;
-  return { owner: match[1], repo: match[2], prNumber: match[3] };
-}
+### 2. Client: thin — send raw query, react to `repoMismatch`
 
-/** Strip leading `#` from shorthand like `#123` so the backend searches by number. */
-function normalizeSearchQuery(query: string): string {
-  const stripped = query.replace(/^#/, "");
-  return stripped;
-}
-```
+`PRLinkCommand` sends the raw `debouncedTrimmed` string to the host service. No URL parsing, no `githubOwner`/`repoName` props needed.
 
-### 3. Add cross-repo validation + query resolution
+On response, reads `data.repoMismatch` (a string like `"owner/repo"` or absent). Shows _"PR URL must match owner/repo."_ in the empty state when present.
 
-Port V1's derived state logic and wire in the shorthand normalization:
+### 3. Client: debounce gap handling
 
-```typescript
-// New props
-githubOwner: string | null;
-repoName: string | null;
-
-// Derived state
-const parsedPullRequestUrl = useMemo(
-  () => parseGitHubPullRequestUrl(debouncedTrimmed),
-  [debouncedTrimmed],
-);
-
-const selectedRepositoryLabel = useMemo(() => {
-  if (!githubOwner || !repoName) return null;
-  return `${githubOwner}/${repoName}`;
-}, [githubOwner, repoName]);
-
-const pastedRepository = useMemo(() => {
-  if (!parsedPullRequestUrl) return null;
-  return `${parsedPullRequestUrl.owner}/${parsedPullRequestUrl.repo}`.toLowerCase();
-}, [parsedPullRequestUrl]);
-
-const isCrossRepositoryUrl = Boolean(
-  selectedRepositoryLabel &&
-    pastedRepository &&
-    pastedRepository !== selectedRepositoryLabel.toLowerCase(),
-);
-
-// Priority: full URL → cross-repo block → shorthand-normalized text search
-const effectiveQuery = parsedPullRequestUrl
-  ? isCrossRepositoryUrl
-    ? ""
-    : parsedPullRequestUrl.prNumber
-  : normalizeSearchQuery(debouncedTrimmed) || undefined;
-```
-
-Pass `effectiveQuery` into the existing `searchPullRequests` call. Disable the query when `isCrossRepositoryUrl` is true.
-
-### 4. Add debounce gap handling
-
-Track `isPendingDebounce` to avoid the empty state flash:
-
-```typescript
-const trimmedQuery = searchQuery.trim();
-const debouncedTrimmed = debouncedQuery.trim();
-const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
-
-// Update isLoading to include debounce state
-const isLoading = isCrossRepositoryUrl
-  ? false
-  : (debouncedTrimmed || trimmedQuery)
-    ? isFetching || isPendingDebounce
-    : isFetching;
-```
-
-### 5. Update empty state messaging
-
-Add cross-repo error to `CommandEmpty`:
-
-```typescript
-<CommandEmpty>
-  {isLoading
-    ? debouncedTrimmed
-      ? "Searching..."
-      : "Loading pull requests..."
-    : isCrossRepositoryUrl
-      ? `PR URL must match ${selectedRepositoryLabel}.`
-      : debouncedTrimmed
-        ? "No pull requests found."
-        : "No open pull requests."}
-</CommandEmpty>
-```
+Tracks `isPendingDebounce` (`trimmedQuery !== debouncedTrimmed`) to show loading state during the debounce window instead of flashing "No results".
 
 ---
 
-## What Stays the Same
-
-- Fetching via `getHostServiceClientByUrl` + `client.workspaceCreation.searchPullRequests` (not switching to V1's electron tRPC)
-- `hostTarget` prop for host URL resolution
-- State normalization via `normalizeState(state, isDraft)` (V2's approach is correct — host-service returns raw state + `isDraft` separately)
-- Return type shape (`{ pullRequests: [...] }`)
-
-## Files to Modify
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `…/PRLinkCommand/PRLinkCommand.tsx` (V2) | Add `githubOwner`/`repoName` props, URL parser, cross-repo validation, `isPendingDebounce` |
-| `…/PromptGroup/PromptGroup.tsx` (V2) | Pass `githubOwner` + `repoName` to `<PRLinkCommand>` |
+| `packages/host-service/…/workspace-creation.ts` | Add `normalizePullRequestQuery` helper + wire into `searchPullRequests` procedure |
+| `apps/desktop/…/PRLinkCommand/PRLinkCommand.tsx` (V2) | Add `isPendingDebounce`, read `repoMismatch` from response, update empty state messaging |
