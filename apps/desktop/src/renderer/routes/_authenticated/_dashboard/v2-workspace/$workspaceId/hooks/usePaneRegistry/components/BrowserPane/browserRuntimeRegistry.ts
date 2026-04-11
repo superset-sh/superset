@@ -1,5 +1,5 @@
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import type { BrowserHistoryEntry, BrowserLoadError } from "shared/tabs-types";
+import type { BrowserLoadError } from "shared/tabs-types";
 import { sanitizeUrl } from "./sanitizeUrl";
 
 export interface BrowserRuntimeState {
@@ -8,8 +8,6 @@ export interface BrowserRuntimeState {
 	faviconUrl: string | null;
 	isLoading: boolean;
 	error: BrowserLoadError | null;
-	history: BrowserHistoryEntry[];
-	historyIndex: number;
 	canGoBack: boolean;
 	canGoForward: boolean;
 }
@@ -26,7 +24,6 @@ interface RegistryEntry {
 	onPersist: ((state: PersistableBrowserState) => void) | null;
 	webContentsId: number | null;
 	detachHandlers: () => void;
-	isHistoryNavigation: boolean;
 	placeholder: HTMLElement | null;
 	resizeObserver: ResizeObserver | null;
 	visible: boolean;
@@ -38,8 +35,6 @@ const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 	faviconUrl: null,
 	isLoading: false,
 	error: null,
-	history: [],
-	historyIndex: -1,
 	canGoBack: false,
 	canGoForward: false,
 });
@@ -138,34 +133,16 @@ class BrowserRuntimeRegistryImpl {
 		this.notify(paneId);
 	}
 
-	private pushHistory(paneId: string, url: string, title: string) {
+	private refreshNavState(paneId: string) {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		const { history, historyIndex } = entry.state;
-		const current = history[historyIndex];
-		if (current?.url === url) {
-			if (current.title !== title) {
-				const next = history.slice();
-				next[historyIndex] = { ...current, title };
-				entry.state = { ...entry.state, history: next };
-				this.notify(paneId);
-			}
-			return;
-		}
-		const truncated = history.slice(0, historyIndex + 1);
-		const next: BrowserHistoryEntry[] = [
-			...truncated,
-			{ url, title, timestamp: Date.now() },
-		];
-		const nextIndex = next.length - 1;
-		entry.state = {
-			...entry.state,
-			history: next,
-			historyIndex: nextIndex,
-			canGoBack: nextIndex > 0,
-			canGoForward: false,
-		};
-		this.notify(paneId);
+		let canGoBack = false;
+		let canGoForward = false;
+		try {
+			canGoBack = entry.webview.canGoBack();
+			canGoForward = entry.webview.canGoForward();
+		} catch {}
+		this.setState(paneId, { canGoBack, canGoForward });
 	}
 
 	private createEntry(paneId: string, initialUrl: string): RegistryEntry {
@@ -190,7 +167,6 @@ class BrowserRuntimeRegistryImpl {
 			onPersist: null,
 			webContentsId: null,
 			detachHandlers: () => {},
-			isHistoryNavigation: false,
 			placeholder: null,
 			resizeObserver: null,
 			visible: false,
@@ -217,15 +193,14 @@ class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidStartLoading = () => {
-			this.setState(paneId, { isLoading: true, error: null });
+			this.setState(paneId, {
+				isLoading: true,
+				error: null,
+				faviconUrl: null,
+			});
 		};
 
 		const handleDidStopLoading = () => {
-			if (entry.isHistoryNavigation) {
-				entry.isHistoryNavigation = false;
-				this.setState(paneId, { isLoading: false });
-				return;
-			}
 			const url = webview.getURL() ?? "";
 			const title = webview.getTitle() ?? "";
 			this.setState(paneId, {
@@ -233,8 +208,8 @@ class BrowserRuntimeRegistryImpl {
 				currentUrl: url,
 				pageTitle: title,
 			});
+			this.refreshNavState(paneId);
 			if (url && url !== "about:blank") {
-				this.pushHistory(paneId, url, title);
 				electronTrpcClient.browserHistory.upsert
 					.mutate({ url, title, faviconUrl: entry.state.faviconUrl })
 					.catch((err) => {
@@ -245,10 +220,6 @@ class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
-			if (entry.isHistoryNavigation) {
-				entry.isHistoryNavigation = false;
-				return;
-			}
 			const url = e.url ?? "";
 			const title = webview.getTitle() ?? "";
 			this.setState(paneId, {
@@ -256,16 +227,14 @@ class BrowserRuntimeRegistryImpl {
 				pageTitle: title,
 				isLoading: false,
 			});
+			this.refreshNavState(paneId);
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
-			if (entry.isHistoryNavigation) {
-				entry.isHistoryNavigation = false;
-				return;
-			}
 			const url = e.url ?? "";
 			const title = webview.getTitle() ?? "";
 			this.setState(paneId, { currentUrl: url, pageTitle: title });
+			this.refreshNavState(paneId);
 		};
 
 		const handlePageTitleUpdated = (e: Electron.PageTitleUpdatedEvent) => {
@@ -364,6 +333,8 @@ class BrowserRuntimeRegistryImpl {
 			entry = this.createEntry(paneId, initialUrl);
 			this.entries.set(paneId, entry);
 			root.appendChild(entry.webview);
+		} else {
+			this.refreshNavState(paneId);
 		}
 		entry.onPersist = onPersist;
 		entry.placeholder = placeholder;
@@ -412,42 +383,12 @@ class BrowserRuntimeRegistryImpl {
 
 	goBack(paneId: string): void {
 		const entry = this.entries.get(paneId);
-		if (!entry) return;
-		const { history, historyIndex } = entry.state;
-		if (historyIndex <= 0) return;
-		const nextIndex = historyIndex - 1;
-		const target = history[nextIndex];
-		entry.state = {
-			...entry.state,
-			historyIndex: nextIndex,
-			canGoBack: nextIndex > 0,
-			canGoForward: true,
-			currentUrl: target.url,
-			pageTitle: target.title,
-		};
-		this.notify(paneId);
-		entry.isHistoryNavigation = true;
-		entry.webview.loadURL(sanitizeUrl(target.url)).catch(() => {});
+		if (entry?.webview.canGoBack()) entry.webview.goBack();
 	}
 
 	goForward(paneId: string): void {
 		const entry = this.entries.get(paneId);
-		if (!entry) return;
-		const { history, historyIndex } = entry.state;
-		if (historyIndex >= history.length - 1) return;
-		const nextIndex = historyIndex + 1;
-		const target = history[nextIndex];
-		entry.state = {
-			...entry.state,
-			historyIndex: nextIndex,
-			canGoBack: true,
-			canGoForward: nextIndex < history.length - 1,
-			currentUrl: target.url,
-			pageTitle: target.title,
-		};
-		this.notify(paneId);
-		entry.isHistoryNavigation = true;
-		entry.webview.loadURL(sanitizeUrl(target.url)).catch(() => {});
+		if (entry?.webview.canGoForward()) entry.webview.goForward();
 	}
 
 	reload(paneId: string): void {

@@ -1,12 +1,13 @@
 export function sanitizeUrl(url: string): string {
-	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
-		return url;
+	const value = url.trim();
+	if (/^https?:\/\//i.test(value) || value.startsWith("about:")) {
+		return value;
 	}
-	if (url.startsWith("localhost") || url.startsWith("127.0.0.1")) {
-		return `http://${url}`;
+	if (/^(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.test(value)) {
+		return `http://${value}`;
 	}
-	if (url.includes(".")) {
-		return `https://${url}`;
+	if (/^[^\s/]+\.[^\s]+(\/.*)?$/.test(value)) {
+		return `https://${value}`;
 	}
-	return `https://www.google.com/search?q=${encodeURIComponent(url)}`;
+	return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
 }
