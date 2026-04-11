@@ -1,6 +1,11 @@
 "use client";
 
-import { ChevronDownIcon, ChevronRightIcon, XCircleIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	ChevronRightIcon,
+	TriangleAlertIcon,
+	XCircleIcon,
+} from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
@@ -9,6 +14,12 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../ui/collapsible";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "../ui/tooltip";
 import { BrailleSpinner } from "./braille-spinner";
 
 export type ToolCallRowProps = {
@@ -26,6 +37,8 @@ export type ToolCallRowProps = {
 	isPending?: boolean;
 	/** When true the default status shows an X icon. */
 	isError?: boolean;
+	/** When true shows a filled amber warning triangle with a "Not configured" tooltip. */
+	isNotConfigured?: boolean;
 	/**
 	 * Overrides the default status slot (X on error, nothing otherwise).
 	 * Pass `null` to render nothing. Omit (undefined) to use the default.
@@ -55,6 +68,7 @@ export function ToolCallRow({
 	description,
 	isPending = false,
 	isError = false,
+	isNotConfigured = false,
 	statusNode,
 	headerExtra,
 	children,
@@ -64,7 +78,18 @@ export function ToolCallRow({
 	const [isHovered, setIsHovered] = useState(false);
 	const hasDetails = children != null && children !== false;
 
-	const defaultStatus = null;
+	const defaultStatus = isNotConfigured ? (
+		<TooltipProvider>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="flex items-center">
+						<TriangleAlertIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>Not configured</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	) : null;
 
 	const resolvedDescription =
 		description ??

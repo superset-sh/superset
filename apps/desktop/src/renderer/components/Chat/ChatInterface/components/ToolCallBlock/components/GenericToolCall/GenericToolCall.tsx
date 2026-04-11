@@ -26,7 +26,7 @@ export function GenericToolCall({
 	subtitle,
 	icon: Icon = WrenchIcon,
 }: GenericToolCallProps) {
-	const { output, isError, displayState, errorText } =
+	const { output, isError, isNotConfigured, displayState, errorText } =
 		getGenericToolCallState(part);
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
@@ -38,6 +38,7 @@ export function GenericToolCall({
 			description={subtitle}
 			icon={Icon}
 			isError={isError || displayState === "output-error"}
+			isNotConfigured={isNotConfigured}
 			isPending={isPending}
 			title={toolName}
 		>
