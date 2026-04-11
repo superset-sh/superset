@@ -224,19 +224,27 @@ export class Session {
 		// Set initial CWD
 		this.emulator.setCwd(options.cwd);
 
-		// The headless emulator responds to terminal queries (e.g. DA1,
-		// DSR). These responses must be forwarded to the subprocess
-		// regardless of whether renderer clients are attached, because
-		// shells like fish send DA1 at startup and wait up to 10 seconds
-		// for a reply before disabling optional features.
-		// Unlike renderer-generated responses (which go through write()
-		// and are correctly dropped during init to avoid appearing as
-		// typed text), headless emulator responses are written directly
-		// to the PTY and consumed by the shell as protocol data.
+		// The headless emulator responds to terminal queries (e.g. DA1, DSR)
+		// for cases where the renderer xterm cannot. Two scenarios:
+		//
+		// 1. No renderer clients attached — nobody else to answer, so the
+		//    emulator handles it.
+		// 2. Clients attached AND shell is still in "pending" init state —
+		//    the renderer xterm does generate a response, but write() drops
+		//    escape sequences during pending state to avoid stale DA/DSR
+		//    replies appearing as typed text. Shells like fish send DA1 at
+		//    startup and wait up to 10s, so the emulator must cover this.
+		//
+		// Post-init with clients attached, we explicitly do NOT respond: the
+		// renderer xterm handles the query via write() → sendWriteToSubprocess.
+		// Forwarding here too would produce duplicate DSR/DA1 replies, which
+		// can desync cursor-position tracking in vim, fzf, and other TUIs.
 		this.emulator.onData((data) => {
-			if (this.subprocess && this.subprocessReady) {
-				this.sendWriteToSubprocess(data);
+			if (!this.subprocess || !this.subprocessReady) return;
+			if (this.attachedClients.size > 0 && this.shellReadyState !== "pending") {
+				return;
 			}
+			this.sendWriteToSubprocess(data);
 		});
 	}
 

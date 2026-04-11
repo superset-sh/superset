@@ -48,6 +48,21 @@ type UnregisterCallback = (paneId: string) => void;
 const attachInFlightByPane = new Map<string, number>();
 const attachWaitersByPane = new Map<string, Set<() => void>>();
 
+/**
+ * Module-level sequence so every `attachId` is globally unique across effect
+ * runs. A previous closure-local counter meant every fresh mount started at
+ * `1`, so a stale tRPC callback from a dead mount could incorrectly clear the
+ * current mount's in-flight marker (both ids collided at `1`). Using a shared
+ * sequence means `clearAttachInFlight(X, staleId)` on the live entry always
+ * fails the `current !== attachId` integrity check.
+ */
+let nextAttachInFlightId = 0;
+
+function createAttachInFlightId(): number {
+	nextAttachInFlightId += 1;
+	return nextAttachInFlightId;
+}
+
 function markAttachInFlight(paneId: string, attachId: number): void {
 	attachInFlightByPane.set(paneId, attachId);
 }
@@ -235,7 +250,6 @@ export function useTerminalLifecycle({
 
 		let isUnmounted = false;
 		let attachCanceled = false;
-		let attachSequence = 0;
 		let activeAttachId = 0;
 		let activeAttachRequestId: string | null = null;
 		let cancelAttachWait: (() => void) | null = null;
@@ -521,7 +535,7 @@ export function useTerminalLifecycle({
 					const requestId = nextAttachRequestId();
 					cancelAttachRequest(activeAttachRequestId);
 					activeAttachRequestId = requestId;
-					activeAttachId = ++attachSequence;
+					activeAttachId = createAttachInFlightId();
 					const attachId = activeAttachId;
 					const isAttachActive = () =>
 						!isUnmounted && !attachCanceled && attachId === activeAttachId;

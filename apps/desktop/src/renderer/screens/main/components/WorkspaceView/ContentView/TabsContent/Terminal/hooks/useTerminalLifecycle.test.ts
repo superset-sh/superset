@@ -168,3 +168,94 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		expect(calls).toBe(1);
 	});
 });
+
+/**
+ * Reproduction tests for the attachInFlightByPane cross-mount id collision.
+ *
+ * useTerminalLifecycle coordinates "wait for a previous mount's still-running
+ * attach" via `attachInFlightByPane: Map<paneId, attachId>`. The previous code
+ * used a closure-local counter (`let attachSequence = 0`) so every fresh mount
+ * started at 1 — meaning stale tRPC callbacks from a dead mount could clear
+ * the live mount's entry because the `current !== attachId` integrity check
+ * saw 1 === 1.
+ *
+ * The fix is a module-level `nextAttachInFlightId` so every attachId is
+ * globally unique across effect runs.
+ */
+describe("attachInFlightByPane cross-mount collision", () => {
+	type InFlightMap = Map<string, number>;
+
+	function buggyMark(): number {
+		// BUGGY: each "mount" has its own counter, so both start at 1
+		return 1;
+	}
+
+	function buggyClear(
+		map: InFlightMap,
+		paneId: string,
+		attachId: number,
+	): void {
+		const current = map.get(paneId);
+		if (current !== attachId) return;
+		map.delete(paneId);
+	}
+
+	/** Model of the fixed module-level counter. */
+	function makeFixedIdGenerator() {
+		let next = 0;
+		return () => ++next;
+	}
+
+	it("BUGGY: stale clear from a dead mount evicts the live mount's entry", () => {
+		const map: InFlightMap = new Map();
+		const paneId = "pane-1";
+
+		// Mount A: startAttach → markInFlight(X, 1)
+		const idA = buggyMark();
+		map.set(paneId, idA);
+		expect(map.has(paneId)).toBe(true);
+
+		// Unmount A: clearInFlight(X, 1)
+		buggyClear(map, paneId, idA);
+		expect(map.has(paneId)).toBe(false);
+
+		// Mount B: startAttach → markInFlight(X, 1)
+		const idB = buggyMark();
+		map.set(paneId, idB);
+		expect(map.get(paneId)).toBe(1);
+
+		// Mount A's stale tRPC finally resolves → onSettled → finishAttach →
+		// clearInFlight(X, idA=1). Integrity check: current (1) === attachId (1)
+		// passes → DELETE. This is the bug.
+		buggyClear(map, paneId, idA);
+		expect(map.has(paneId)).toBe(false); // ← B's entry is gone
+	});
+
+	it("FIXED: module-level ids prevent stale-clear cross-mount eviction", () => {
+		const nextId = makeFixedIdGenerator();
+		const map: InFlightMap = new Map();
+		const paneId = "pane-1";
+
+		// Mount A
+		const idA = nextId();
+		map.set(paneId, idA);
+		expect(idA).toBe(1);
+
+		// Unmount A
+		const current1 = map.get(paneId);
+		if (current1 === idA) map.delete(paneId);
+		expect(map.has(paneId)).toBe(false);
+
+		// Mount B — gets a fresh globally unique id
+		const idB = nextId();
+		map.set(paneId, idB);
+		expect(idB).toBe(2);
+		expect(idA).not.toBe(idB);
+
+		// Mount A's stale clear arrives: attachId=1, but current=2
+		const current2 = map.get(paneId);
+		if (current2 === idA) map.delete(paneId);
+		expect(map.has(paneId)).toBe(true); // ← B's entry is preserved
+		expect(map.get(paneId)).toBe(2);
+	});
+});
