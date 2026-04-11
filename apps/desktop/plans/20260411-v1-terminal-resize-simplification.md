@@ -24,14 +24,16 @@ None at this time. The v2 implementation serves as a proven reference.
 
 ## Progress
 
-- [ ] Milestone 1: Move ResizeObserver into the cache (attach/detach)
-- [ ] Milestone 2: Remove duplicate reattach resize from useTerminalLifecycle
-- [ ] Milestone 3: Remove setupResizeHandlers and window resize listener
-- [ ] Milestone 4: Validation
+- [x] (2026-04-11) Milestone 1: Move ResizeObserver into the cache (attach/detach)
+- [x] (2026-04-11) Milestone 2: Remove duplicate reattach resize from useTerminalLifecycle
+- [x] (2026-04-11) Milestone 3: Remove setupResizeHandlers and window resize listener
+- [x] (2026-04-11) Milestone 4: Validation (typecheck, lint pass)
+- [x] (2026-04-11) Milestone 5: Wrap Terminal in React.memo to prevent re-renders during split resize
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Observation: V1 split resize goes through React state on every mouse-move pixel (store update → full component tree re-render → Mosaic repositioning), unlike v2 which is CSS-only via ResizablePanel. The terminal component doesn't remount (Mosaic uses stable `key={paneId}` in `MosaicRoot.js:72`), but it re-renders through the entire tree. Wrapping Terminal in `React.memo` prevents the xterm subtree from re-rendering since its props (`paneId`, `tabId`, `workspaceId`) are stable strings.
+  Evidence: react-mosaic-component `MosaicRoot.renderRecursively()` calls `renderTile()` on every render but uses `key: node` (the pane ID string) on tile divs, preserving component identity. The reverted commit 918e8f062 tried stabilizing `layoutPaneIds` but that only cut one link — `Mosaic value={}` still gets a new prop per pixel.
 
 ## Decision Log
 

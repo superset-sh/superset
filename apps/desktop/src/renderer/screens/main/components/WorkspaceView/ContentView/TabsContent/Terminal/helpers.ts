@@ -61,108 +61,14 @@ export function getDefaultTerminalBg(): string {
  * Tries WebGL first, falls back to DOM if WebGL fails.
  * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
  */
-export type TerminalRenderer = {
-	kind: "webgl" | "dom";
-	dispose: () => void;
-	clearTextureAtlas?: () => void;
-};
-
-type PreferredRenderer = TerminalRenderer["kind"] | "auto";
-
-// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
-let suggestedRendererType: TerminalRenderer["kind"] | undefined;
-
-function getPreferredRenderer(): PreferredRenderer {
-	// If WebGL previously failed, don't try again
-	if (suggestedRendererType === "dom") {
-		return "dom";
-	}
-
-	try {
-		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "dom") {
-			return stored;
-		}
-		if (stored === "canvas") {
-			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
-			try {
-				localStorage.setItem("terminal-renderer", "dom");
-			} catch {
-				// ignore storage errors
-			}
-			return "dom";
-		}
-	} catch {
-		// ignore
-	}
-
-	return "auto";
-}
-
-function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let webglAddon: WebglAddon | null = null;
-	let kind: TerminalRenderer["kind"] = "dom";
-
-	const preferred = getPreferredRenderer();
-
-	if (preferred === "dom") {
-		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
-	}
-
-	try {
-		webglAddon = new WebglAddon();
-
-		webglAddon.onContextLoss(() => {
-			console.warn(
-				"[Terminal] WebGL context lost, falling back to DOM renderer",
-			);
-			webglAddon?.dispose();
-			webglAddon = null;
-			kind = "dom";
-			// Force refresh after context loss
-			xterm.refresh(0, xterm.rows - 1);
-		});
-
-		xterm.loadAddon(webglAddon);
-		kind = "webgl";
-	} catch (e) {
-		console.warn(
-			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
-			e,
-		);
-		suggestedRendererType = "dom";
-		webglAddon = null;
-		kind = "dom";
-	}
-
-	return {
-		kind,
-		dispose: () => webglAddon?.dispose(),
-		clearTextureAtlas: webglAddon
-			? () => {
-					try {
-						webglAddon?.clearTextureAtlas();
-					} catch (error) {
-						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
-					}
-				}
-			: undefined,
-	};
-}
+// Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
+let suggestedRendererType: "webgl" | "dom" | undefined;
 
 export interface CreateTerminalOptions {
 	cwd?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
-}
-
-/**
- * Mutable reference to the terminal renderer.
- * Used because the GPU renderer is loaded asynchronously after the terminal is created.
- */
-export interface TerminalRendererRef {
-	current: TerminalRenderer;
 }
 
 /**
@@ -176,7 +82,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
-	renderer: TerminalRendererRef;
 	wrapper: HTMLDivElement;
 	cleanup: () => void;
 } {
@@ -197,16 +102,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
-	let isDisposed = false;
-	let rafId: number | null = null;
-
-	const rendererRef: TerminalRendererRef = {
-		current: {
-			kind: "dom",
-			dispose: () => {},
-			clearTextureAtlas: undefined,
-		},
-	};
+	let disposed = false;
+	let webglAddon: WebglAddon | null = null;
 
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
@@ -220,20 +117,29 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
-	// Defer GPU renderer loading to next animation frame.
-	rafId = requestAnimationFrame(() => {
-		rafId = null;
-		if (isDisposed) return;
-		rendererRef.current = loadRenderer(xterm);
-	});
-
 	try {
-		if (!isDisposed) {
-			xterm.loadAddon(new LigaturesAddon());
-		}
+		xterm.loadAddon(new LigaturesAddon());
 	} catch {
 		// Ligatures not supported by current font
 	}
+
+	// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
+	const rafId = requestAnimationFrame(() => {
+		if (disposed || suggestedRendererType === "dom") return;
+
+		try {
+			webglAddon = new WebglAddon();
+			webglAddon.onContextLoss(() => {
+				webglAddon?.dispose();
+				webglAddon = null;
+				xterm.refresh(0, xterm.rows - 1);
+			});
+			xterm.loadAddon(webglAddon);
+		} catch {
+			suggestedRendererType = "dom";
+			webglAddon = null;
+		}
+	});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -286,39 +192,16 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		xterm,
 		fitAddon,
 		searchAddon,
-		renderer: rendererRef,
 		wrapper,
 		cleanup: () => {
-			isDisposed = true;
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId);
-			}
+			disposed = true;
+			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
-			rendererRef.current.dispose();
+			try {
+				webglAddon?.dispose();
+			} catch {}
+			webglAddon = null;
 		},
-	};
-}
-
-export function createTerminalInstance(
-	container: HTMLDivElement,
-	options: CreateTerminalOptions = {},
-): {
-	xterm: XTerm;
-	fitAddon: FitAddon;
-	renderer: TerminalRendererRef;
-	cleanup: () => void;
-} {
-	const result = createTerminalInWrapper(options);
-
-	// Move wrapper into the live container
-	container.appendChild(result.wrapper);
-	result.fitAddon.fit();
-
-	return {
-		xterm: result.xterm,
-		fitAddon: result.fitAddon,
-		renderer: result.renderer,
-		cleanup: result.cleanup,
 	};
 }
 

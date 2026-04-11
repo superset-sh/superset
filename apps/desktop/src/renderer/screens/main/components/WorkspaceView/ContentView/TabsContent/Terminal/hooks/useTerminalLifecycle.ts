@@ -17,7 +17,6 @@ import {
 	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
-	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
@@ -26,7 +25,6 @@ import type {
 	CreateOrAttachResult,
 	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
-	TerminalDetachMutate,
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
@@ -95,7 +93,6 @@ export interface UseTerminalLifecycleOptions {
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<SearchAddon | null>;
-	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
@@ -117,7 +114,6 @@ export interface UseTerminalLifecycleOptions {
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
-	detachRef: MutableRefObject<TerminalDetachMutate>;
 	cancelCreateOrAttachRef: MutableRefObject<TerminalCancelCreateOrAttachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
 	isStreamReadyRef: MutableRefObject<boolean>;
@@ -162,7 +158,6 @@ export function useTerminalLifecycle({
 	xtermRef,
 	fitAddonRef,
 	searchAddonRef,
-	rendererRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	commandBufferRef,
@@ -182,7 +177,6 @@ export function useTerminalLifecycle({
 	createOrAttachRef,
 	writeRef,
 	resizeRef,
-	detachRef,
 	cancelCreateOrAttachRef,
 	clearScrollbackRef,
 	isStreamReadyRef,
@@ -253,7 +247,7 @@ export function useTerminalLifecycle({
 			onUrlClickRef: handleUrlClickRef,
 		});
 
-		const { xterm, fitAddon, rendererRef: renderer, searchAddon } = cached;
+		const { xterm, fitAddon, searchAddon } = cached;
 
 		// Attach the wrapper div to the live container.
 		// The cache creates a ResizeObserver that calls fitAddon.fit() and
@@ -271,7 +265,6 @@ export function useTerminalLifecycle({
 
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
-		rendererRef.current = renderer;
 		searchAddonRef.current = searchAddon;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
@@ -821,7 +814,6 @@ export function useTerminalLifecycle({
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;
-			rendererRef.current = null;
 			setXtermInstance(null);
 		};
 	}, [

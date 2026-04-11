@@ -4,11 +4,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
-import {
-	type CreateTerminalOptions,
-	createTerminalInWrapper,
-	type TerminalRendererRef,
-} from "./helpers";
+import { type CreateTerminalOptions, createTerminalInWrapper } from "./helpers";
 import type { TerminalStreamEvent } from "./types";
 
 /**
@@ -24,10 +20,12 @@ export interface CachedTerminal {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
-	rendererRef: TerminalRendererRef;
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
+	/** Last known dimensions — used to skip no-op resize events. */
+	lastCols: number;
+	lastRows: number;
 
 	// --- Stream management ---
 
@@ -77,14 +75,13 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, renderer, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
 		xterm,
 		fitAddon,
 		searchAddon,
-		rendererRef: renderer,
 		wrapper,
 		cleanupCreation: cleanup,
 		subscription: null,
@@ -94,6 +91,8 @@ export function getOrCreate(
 		eventHandler: null,
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
+		lastCols: xterm.cols,
+		lastRows: xterm.rows,
 	};
 
 	cache.set(paneId, entry);
@@ -111,16 +110,28 @@ export function attachToContainer(
 	if (!entry) return;
 
 	container.appendChild(entry.wrapper);
-	entry.fitAddon.fit();
+
+	if (container.clientWidth > 0 && container.clientHeight > 0) {
+		entry.fitAddon.fit();
+		entry.lastCols = entry.xterm.cols;
+		entry.lastRows = entry.xterm.rows;
+	}
+
+	// Renderer may have skipped frames while the wrapper was detached.
 	entry.xterm.refresh(0, Math.max(0, entry.xterm.rows - 1));
-	entry.rendererRef.current.clearTextureAtlas?.();
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
 		if (container.clientWidth === 0 && container.clientHeight === 0) return;
+		const prevCols = entry.lastCols;
+		const prevRows = entry.lastRows;
 		entry.fitAddon.fit();
-		onResize?.();
+		entry.lastCols = entry.xterm.cols;
+		entry.lastRows = entry.xterm.rows;
+		if (entry.lastCols !== prevCols || entry.lastRows !== prevRows) {
+			onResize?.();
+		}
 	});
 	observer.observe(container);
 	entry.resizeObserver = observer;
@@ -136,6 +147,43 @@ export function detachFromContainer(paneId: string): void {
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
 	entry.wrapper.remove();
+}
+
+// --- Appearance ---
+
+/**
+ * Update font settings on a cached terminal. If font changed and the
+ * terminal is visible, re-fit and return true so the caller can send
+ * a backend resize if needed.
+ */
+export function updateAppearance(
+	paneId: string,
+	fontFamily: string,
+	fontSize: number,
+): { cols: number; rows: number; changed: boolean } | null {
+	const entry = cache.get(paneId);
+	if (!entry) return null;
+
+	const { xterm, fitAddon } = entry;
+	const fontChanged =
+		xterm.options.fontFamily !== fontFamily ||
+		xterm.options.fontSize !== fontSize;
+	if (!fontChanged) return null;
+
+	xterm.options.fontFamily = fontFamily;
+	xterm.options.fontSize = fontSize;
+
+	const prevCols = entry.lastCols;
+	const prevRows = entry.lastRows;
+	fitAddon.fit();
+	entry.lastCols = xterm.cols;
+	entry.lastRows = xterm.rows;
+
+	return {
+		cols: xterm.cols,
+		rows: xterm.rows,
+		changed: xterm.cols !== prevCols || xterm.rows !== prevRows,
+	};
 }
 
 // --- Stream subscription ---
