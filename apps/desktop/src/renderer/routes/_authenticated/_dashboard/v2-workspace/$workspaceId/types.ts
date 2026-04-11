@@ -17,6 +17,7 @@ export interface ChatPaneData {
 export interface BrowserPaneData {
 	url: string;
 	pageTitle?: string;
+	faviconUrl?: string | null;
 }
 
 export interface DevtoolsPaneData {

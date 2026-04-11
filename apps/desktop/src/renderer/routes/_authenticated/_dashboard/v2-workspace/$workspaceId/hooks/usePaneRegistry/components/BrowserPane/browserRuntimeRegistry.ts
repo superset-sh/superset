@@ -14,15 +14,16 @@ export interface BrowserRuntimeState {
 	canGoForward: boolean;
 }
 
-export interface DidStopLoadingInfo {
+export interface PersistableBrowserState {
 	url: string;
-	title: string;
+	pageTitle: string;
+	faviconUrl: string | null;
 }
 
 interface RegistryEntry {
 	webview: Electron.WebviewTag;
 	state: BrowserRuntimeState;
-	onDidStopLoading: ((info: DidStopLoadingInfo) => void) | null;
+	onPersist: ((state: PersistableBrowserState) => void) | null;
 	webContentsId: number | null;
 	detachHandlers: () => void;
 	isHistoryNavigation: boolean;
@@ -186,13 +187,21 @@ class BrowserRuntimeRegistryImpl {
 		const entry: RegistryEntry = {
 			webview,
 			state: { ...EMPTY_STATE, currentUrl: initialUrl },
-			onDidStopLoading: null,
+			onPersist: null,
 			webContentsId: null,
 			detachHandlers: () => {},
 			isHistoryNavigation: false,
 			placeholder: null,
 			resizeObserver: null,
 			visible: false,
+		};
+
+		const firePersist = () => {
+			entry.onPersist?.({
+				url: entry.state.currentUrl,
+				pageTitle: entry.state.pageTitle,
+				faviconUrl: entry.state.faviconUrl,
+			});
 		};
 
 		const handleDomReady = () => {
@@ -232,7 +241,7 @@ class BrowserRuntimeRegistryImpl {
 						console.error("[browserRuntimeRegistry] upsert history:", err);
 					});
 			}
-			entry.onDidStopLoading?.({ url, title });
+			firePersist();
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
@@ -275,6 +284,7 @@ class BrowserRuntimeRegistryImpl {
 						console.error("[browserRuntimeRegistry] upsert favicon:", err);
 					});
 			}
+			firePersist();
 		};
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
@@ -346,7 +356,7 @@ class BrowserRuntimeRegistryImpl {
 		paneId: string,
 		placeholder: HTMLElement,
 		initialUrl: string,
-		onDidStopLoading: (info: DidStopLoadingInfo) => void,
+		onPersist: (state: PersistableBrowserState) => void,
 	): void {
 		const root = this.ensureRootContainer();
 		let entry = this.entries.get(paneId);
@@ -355,7 +365,7 @@ class BrowserRuntimeRegistryImpl {
 			this.entries.set(paneId, entry);
 			root.appendChild(entry.webview);
 		}
-		entry.onDidStopLoading = onDidStopLoading;
+		entry.onPersist = onPersist;
 		entry.placeholder = placeholder;
 		entry.visible = true;
 
@@ -373,7 +383,7 @@ class BrowserRuntimeRegistryImpl {
 	detach(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		entry.onDidStopLoading = null;
+		entry.onPersist = null;
 		entry.placeholder = null;
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;

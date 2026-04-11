@@ -22,7 +22,10 @@ import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
-import { useBrowserPaneIntegration } from "./hooks/usePaneRegistry/components/BrowserPane";
+import {
+	getBrowserTabTitle,
+	renderBrowserTabIcon,
+} from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
@@ -162,8 +165,6 @@ function WorkspaceContent({
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 
-	const { getTabTitle, renderTabLabel } = useBrowserPaneIntegration(store);
-
 	const defaultPaneActions = useMemo<PaneActionConfig<PaneViewerData>[]>(
 		() => [
 			{
@@ -213,8 +214,8 @@ function WorkspaceContent({
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
-							getTabTitle={getTabTitle}
-							renderTabLabel={renderTabLabel}
+							getTabTitle={getBrowserTabTitle}
+							renderTabIcon={renderBrowserTabIcon}
 							renderBelowTabBar={() => (
 								<V2PresetsBar
 									workspaceId={workspaceId}

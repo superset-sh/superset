@@ -32,13 +32,19 @@ export function usePersistentWebview({
 			paneId,
 			placeholder,
 			initialUrlRef.current,
-			({ url, title }) => {
+			({ url, pageTitle, faviconUrl }) => {
 				const current = ctxRef.current.pane.data as BrowserPaneData;
-				if (current.url === url && current.pageTitle === title) return;
+				if (
+					current.url === url &&
+					current.pageTitle === pageTitle &&
+					current.faviconUrl === faviconUrl
+				)
+					return;
 				ctxRef.current.actions.updateData({
 					...current,
 					url,
-					pageTitle: title,
+					pageTitle,
+					faviconUrl,
 				});
 			},
 		);

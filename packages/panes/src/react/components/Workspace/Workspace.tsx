@@ -1,5 +1,7 @@
 import { cn } from "@superset/ui/utils";
+import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
+import type { Pane } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
@@ -9,7 +11,7 @@ export function Workspace<TData>({
 	registry,
 	className,
 	renderTabAccessory,
-	renderTabLabel,
+	renderTabIcon,
 	getTabTitle,
 	renderEmptyState,
 	renderAddTabMenu,
@@ -21,6 +23,22 @@ export function Workspace<TData>({
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
 	const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+
+	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
+	useEffect(() => {
+		const current = new Map<string, Pane<TData>>();
+		for (const tab of tabs) {
+			for (const pane of Object.values(tab.panes)) {
+				current.set(pane.id, pane);
+			}
+		}
+		for (const [prevId, prevPane] of previousPanesRef.current) {
+			if (!current.has(prevId)) {
+				registry[prevPane.kind]?.onRemoved?.(prevPane);
+			}
+		}
+		previousPanesRef.current = current;
+	}, [tabs, registry]);
 
 	const closeTab = async (tabId: string) => {
 		if (onBeforeCloseTab) {
@@ -60,8 +78,8 @@ export function Workspace<TData>({
 				onReorderTab={(tabId, toIndex) =>
 					store.getState().reorderTab({ tabId, toIndex })
 				}
-				getTabTitle={(tab) => getTabTitle?.(tab) ?? tab.titleOverride ?? tab.id}
-				renderTabLabel={renderTabLabel}
+				getTabTitle={(tab) => tab.titleOverride ?? getTabTitle?.(tab) ?? tab.id}
+				renderTabIcon={renderTabIcon}
 				renderAddTabMenu={renderAddTabMenu}
 				renderTabAccessory={renderTabAccessory}
 			/>

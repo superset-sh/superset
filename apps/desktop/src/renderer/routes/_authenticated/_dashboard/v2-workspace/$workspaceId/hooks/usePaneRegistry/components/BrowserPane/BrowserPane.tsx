@@ -1,16 +1,48 @@
-import type { RendererContext } from "@superset/panes";
+import type { RendererContext, Tab } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
 import { useCallback, useSyncExternalStore } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import type { PaneViewerData } from "../../../../types";
+import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 
 import { browserRuntimeRegistry } from "./browserRuntimeRegistry";
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
 import { BrowserOverflowMenu } from "./components/BrowserOverflowMenu";
 import { BrowserToolbar } from "./components/BrowserToolbar";
 import { usePersistentWebview } from "./hooks/usePersistentWebview";
+
+function getSingleBrowserPane(
+	tab: Tab<PaneViewerData>,
+): { id: string; data: BrowserPaneData } | null {
+	const paneIds = Object.keys(tab.panes);
+	if (paneIds.length !== 1) return null;
+	const pane = tab.panes[paneIds[0]];
+	if (pane.kind !== "browser") return null;
+	return { id: pane.id, data: pane.data as BrowserPaneData };
+}
+
+export function getBrowserTabTitle(
+	tab: Tab<PaneViewerData>,
+): string | undefined {
+	const browser = getSingleBrowserPane(tab);
+	if (!browser) return undefined;
+	if (browser.data.pageTitle) return browser.data.pageTitle;
+	if (browser.data.url && browser.data.url !== "about:blank") {
+		try {
+			return new URL(browser.data.url).hostname;
+		} catch {}
+	}
+	return undefined;
+}
+
+export function renderBrowserTabIcon(tab: Tab<PaneViewerData>) {
+	const browser = getSingleBrowserPane(tab);
+	if (!browser?.data.faviconUrl) return null;
+	return (
+		<img src={browser.data.faviconUrl} alt="" className="size-3.5 shrink-0" />
+	);
+}
 
 interface BrowserPaneProps {
 	ctx: RendererContext<PaneViewerData>;

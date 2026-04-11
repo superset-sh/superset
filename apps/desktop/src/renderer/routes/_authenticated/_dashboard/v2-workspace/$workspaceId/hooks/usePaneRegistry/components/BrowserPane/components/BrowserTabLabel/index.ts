@@ -1,1 +1,0 @@
-export { BrowserTabLabel } from "./BrowserTabLabel";

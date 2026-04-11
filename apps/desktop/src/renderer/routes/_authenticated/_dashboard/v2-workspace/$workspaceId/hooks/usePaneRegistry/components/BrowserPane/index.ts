@@ -1,2 +1,7 @@
-export { BrowserPane, BrowserPaneToolbar } from "./BrowserPane";
-export { useBrowserPaneIntegration } from "./useBrowserPaneIntegration";
+export {
+	BrowserPane,
+	BrowserPaneToolbar,
+	getBrowserTabTitle,
+	renderBrowserTabIcon,
+} from "./BrowserPane";
+export { browserRuntimeRegistry } from "./browserRuntimeRegistry";
