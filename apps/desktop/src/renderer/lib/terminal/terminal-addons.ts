@@ -54,6 +54,11 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 				terminal.refresh(0, terminal.rows - 1);
 			});
 			terminal.loadAddon(webglAddon);
+			// Force a full repaint after swapping to the WebGL renderer.
+			// Content written while the DOM renderer was active may not transfer
+			// cleanly to the WebGL texture atlas, causing blank/black regions
+			// after workspace switches that detach and reattach. (issue #3351)
+			terminal.refresh(0, terminal.rows - 1);
 		} catch {
 			suggestedRendererType = "dom";
 			webglAddon = null;

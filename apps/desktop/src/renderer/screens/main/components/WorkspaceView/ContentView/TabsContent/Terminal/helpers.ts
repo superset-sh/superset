@@ -225,6 +225,14 @@ export function createTerminalInstance(
 		rafId = null;
 		if (isDisposed) return;
 		rendererRef.current = loadRenderer(xterm);
+		// Force a full repaint after swapping to the WebGL renderer.
+		// Content written while the DOM renderer was active (e.g. initial state
+		// restoration) may not transfer cleanly to the WebGL texture atlas,
+		// causing blank/black regions — especially visible after workspace
+		// switches that unmount and remount the terminal. (issue #3351)
+		if (rendererRef.current.kind === "webgl") {
+			xterm.refresh(0, xterm.rows - 1);
+		}
 	});
 
 	try {
