@@ -127,5 +127,3 @@ export class PtySubprocessFrameDecoder {
 		return frames;
 	}
 }
-
-
