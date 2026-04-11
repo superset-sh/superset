@@ -387,6 +387,32 @@ export class HistoryWriter {
 	}
 
 	/**
+	 * Close the history file without writing endedAt to metadata.
+	 * Use this for abnormal terminations (daemon crash/disconnect) so that
+	 * the next attach can detect an unclean shutdown and offer cold restore.
+	 */
+	async closeAsCrash(): Promise<void> {
+		if (this.closed) {
+			return;
+		}
+		this.closed = true;
+		this.pendingWrites = [];
+		this.pendingWriteBytes = 0;
+
+		// Close the stream without flushing backlog or writing endedAt
+		if (this.stream && !this.streamErrored) {
+			await new Promise<void>((resolve) => {
+				this.stream?.end(() => resolve());
+			}).catch(() => {
+				// Ignore stream close errors
+			});
+		}
+		this.stream = null;
+		// Intentionally do NOT set metadata.endedAt so cold restore can detect
+		// the unclean shutdown on the next attach.
+	}
+
+	/**
 	 * Reinitialize the history file (e.g., after clear scrollback).
 	 * Closes the current stream and creates a fresh empty file.
 	 */

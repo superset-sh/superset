@@ -40,6 +40,9 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 	"image/vnd.microsoft.icon": "ico",
 };
 
+/** PDF extension */
+const PDF_EXTENSIONS = new Set(["pdf"]);
+
 /** Markdown extensions */
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
@@ -99,6 +102,13 @@ export function parseBase64DataUrl(dataUrl: string): {
 }
 
 /**
+ * Checks if a file is a PDF based on extension
+ */
+export function isPdfFile(filePath: string): boolean {
+	return PDF_EXTENSIONS.has(getExtension(filePath));
+}
+
+/**
  * Checks if a file is markdown based on extension
  */
 export function isMarkdownFile(filePath: string): boolean {
@@ -106,8 +116,8 @@ export function isMarkdownFile(filePath: string): boolean {
 }
 
 /**
- * Checks if a file supports rendered preview (markdown or image)
+ * Checks if a file supports rendered preview (markdown, image, or PDF)
  */
 export function hasRenderedPreview(filePath: string): boolean {
-	return isMarkdownFile(filePath) || isImageFile(filePath);
+	return isMarkdownFile(filePath) || isImageFile(filePath) || isPdfFile(filePath);
 }

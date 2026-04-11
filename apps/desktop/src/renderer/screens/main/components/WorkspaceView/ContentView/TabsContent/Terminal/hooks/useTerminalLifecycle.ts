@@ -504,6 +504,10 @@ export function useTerminalLifecycle({
 			restartCommand: workspaceRunRestartCommand,
 		} = resolveWorkspaceRunAttachMode(paneId, defaultRestartCommandRef.current);
 
+		// Fit before attach so createOrAttach sends correct cols/rows
+		// to the daemon — prevents snapshot being captured at wrong dimensions
+		fitAddon.fit();
+
 		const cancelInitialAttach = scheduleTerminalAttach({
 			paneId,
 			priority: isFocusedRef.current ? 0 : 1,

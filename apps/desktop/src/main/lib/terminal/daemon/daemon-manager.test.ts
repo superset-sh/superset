@@ -229,6 +229,8 @@ mock.module("./history-manager", () => ({
 
 		closeHistoryWriter() {}
 
+		closeHistoryWriterAsCrash() {}
+
 		closeAllSync() {}
 
 		reset() {
