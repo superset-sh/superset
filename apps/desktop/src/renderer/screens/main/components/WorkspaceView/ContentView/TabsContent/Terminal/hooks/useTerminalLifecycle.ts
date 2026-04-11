@@ -252,9 +252,17 @@ export function useTerminalLifecycle({
 		// Attach the wrapper div to the live container.
 		// The cache creates a ResizeObserver that calls fitAddon.fit() and
 		// forwards resize events to the backend — no separate resize handler needed.
+		const prevCols = xterm.cols;
+		const prevRows = xterm.rows;
 		v1TerminalCache.attachToContainer(paneId, container, () => {
 			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 		});
+		// If dimensions changed during attach (container resized while hidden),
+		// notify the backend PTY immediately — the ResizeObserver only fires on
+		// subsequent changes, not the initial fit.
+		if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+		}
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {

@@ -274,42 +274,6 @@ export const Terminal = memo(function Terminal({
 	handleTerminalExitRef.current = handleTerminalExit;
 	handleStreamErrorRef.current = handleStreamError;
 
-	// Stream event handler registration — the subscription itself lives in
-	// v1TerminalCache and stays alive across mount/unmount cycles so data
-	// keeps flowing to xterm even while the tab is hidden.
-	useEffect(() => {
-		const queuedEvents = v1TerminalCache.registerHandlers(paneId, {
-			onEvent: (event) => {
-				if (connectionErrorRef.current && event.type === "data") {
-					setConnectionError(null);
-					retryCountRef.current = 0;
-				}
-				handleStreamData(event);
-			},
-			onError: (error) => {
-				console.error("[Terminal] Stream subscription error:", {
-					paneId,
-					error: error instanceof Error ? error.message : String(error),
-				});
-				setConnectionError(
-					error instanceof Error
-						? error.message
-						: "Connection to terminal lost",
-				);
-			},
-		});
-
-		// Process lifecycle events (exit, error, disconnect) that arrived
-		// while this component was unmounted.
-		for (const event of queuedEvents) {
-			handleStreamData(event);
-		}
-
-		return () => {
-			v1TerminalCache.unregisterHandlers(paneId);
-		};
-	}, [paneId, handleStreamData, setConnectionError]);
-
 	// Auto-retry when connection error is set
 	useEffect(() => {
 		if (!connectionError) return;
@@ -387,6 +351,46 @@ export const Terminal = memo(function Terminal({
 		unregisterPasteCallbackRef,
 		defaultRestartCommandRef,
 	});
+
+	// Stream event handler registration — the subscription itself lives in
+	// v1TerminalCache and stays alive across mount/unmount cycles so data
+	// keeps flowing to xterm even while the tab is hidden.
+	// Placed after useTerminalLifecycle so the cache entry exists on cold mount.
+	// Gated on xtermInstance so it re-runs once the lifecycle hook creates it.
+	useEffect(() => {
+		if (!xtermInstance) return;
+
+		const queuedEvents = v1TerminalCache.registerHandlers(paneId, {
+			onEvent: (event) => {
+				if (connectionErrorRef.current && event.type === "data") {
+					setConnectionError(null);
+					retryCountRef.current = 0;
+				}
+				handleStreamData(event);
+			},
+			onError: (error) => {
+				console.error("[Terminal] Stream subscription error:", {
+					paneId,
+					error: error instanceof Error ? error.message : String(error),
+				});
+				setConnectionError(
+					error instanceof Error
+						? error.message
+						: "Connection to terminal lost",
+				);
+			},
+		});
+
+		// Process lifecycle events (exit, error, disconnect) that arrived
+		// while this component was unmounted.
+		for (const event of queuedEvents) {
+			handleStreamData(event);
+		}
+
+		return () => {
+			v1TerminalCache.unregisterHandlers(paneId);
+		};
+	}, [paneId, xtermInstance, handleStreamData, setConnectionError]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;

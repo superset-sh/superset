@@ -123,7 +123,7 @@ export function attachToContainer(
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
-		if (container.clientWidth === 0 && container.clientHeight === 0) return;
+		if (container.clientWidth === 0 || container.clientHeight === 0) return;
 		const prevCols = entry.lastCols;
 		const prevRows = entry.lastRows;
 		entry.fitAddon.fit();
@@ -228,6 +228,10 @@ export function startStream(paneId: string): void {
 			routeEvent(entry, event);
 		},
 		onError: (error: unknown) => {
+			// Subscription is dead after onError — null it so startStream()
+			// can create a replacement on remount.
+			entry.subscription = null;
+
 			if (entry.subscriptionErrorHandler) {
 				entry.subscriptionErrorHandler(error);
 			} else if (DEBUG_TERMINAL) {
