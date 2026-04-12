@@ -1101,8 +1101,7 @@ export class Session {
 			this.shellReadyTimeoutId = null;
 		}
 		// Flush held marker bytes — they weren't part of a full marker
-		const heldBytes =
-			this.scanState.heldBytes + this.legacyScanState.heldBytes;
+		const heldBytes = this.scanState.heldBytes + this.legacyScanState.heldBytes;
 		if (heldBytes.length > 0) {
 			this.enqueueEmulatorWrite(heldBytes);
 			this.broadcastEvent("data", {
