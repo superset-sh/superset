@@ -1,9 +1,11 @@
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { useChangeset } from "../../../../hooks/useChangeset";
+import { useSidebarDiffRef } from "../../../../hooks/useSidebarDiffRef";
 import { useViewedFiles } from "../../../../hooks/useViewedFiles";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
@@ -13,10 +15,7 @@ export type { ChangesFilter };
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
-	onSelectFile?: (
-		path: string,
-		category: "against-base" | "staged" | "unstaged",
-	) => void;
+	onSelectFile?: (path: string) => void;
 }
 
 export function useChangesTab({
@@ -33,6 +32,9 @@ export function useChangesTab({
 		localState?.sidebarState?.baseBranch ?? null;
 
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
+
+	const ref = useSidebarDiffRef(workspaceId);
+	const { files, isLoading } = useChangeset({ workspaceId, ref });
 
 	const setFilter = useCallback(
 		(next: ChangesFilter) => {
@@ -89,49 +91,18 @@ export function useChangesTab({
 
 	const canRenameBranch = !status.data?.currentBranch.upstream;
 
-	const commitFilesInput =
-		filter.kind === "commit"
-			? { workspaceId, commitHash: filter.hash }
-			: filter.kind === "range"
-				? { workspaceId, commitHash: filter.toHash, fromHash: filter.fromHash }
-				: { workspaceId, commitHash: "" };
-
-	const commitFiles = workspaceTrpc.git.getCommitFiles.useQuery(
-		commitFilesInput,
-		{ enabled: filter.kind === "commit" || filter.kind === "range" },
-	);
-
-	const filteredFiles = useMemo(() => {
-		if (!status.data) return [];
-		if (filter.kind === "uncommitted") {
-			return [...status.data.staged, ...status.data.unstaged];
-		}
-		if (filter.kind === "commit" || filter.kind === "range") {
-			return commitFiles.data?.files ?? [];
-		}
-		const map = new Map<string, (typeof status.data.againstBase)[number]>();
-		for (const f of status.data.againstBase) map.set(f.path, f);
-		for (const f of status.data.staged) map.set(f.path, f);
-		for (const f of status.data.unstaged) map.set(f.path, f);
-		return Array.from(map.values());
-	}, [status.data, filter.kind, commitFiles.data?.files]);
-
-	const totalChanges = filteredFiles.length;
-	const totalAdditions = filteredFiles.reduce((sum, f) => sum + f.additions, 0);
-	const totalDeletions = filteredFiles.reduce((sum, f) => sum + f.deletions, 0);
-
-	const fileCategory: "against-base" | "staged" | "unstaged" =
-		filter.kind === "uncommitted" ? "unstaged" : "against-base";
+	const totalChanges = files.length;
+	const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
+	const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
 	const content = (
 		<ChangesTabContent
 			status={status}
 			commits={commits}
 			branches={branches}
-			commitFiles={commitFiles}
 			filter={filter}
-			filteredFiles={filteredFiles}
-			fileCategory={fileCategory}
+			files={files}
+			isLoading={isLoading}
 			totalChanges={totalChanges}
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}

@@ -1,14 +1,12 @@
 import { memo, useMemo } from "react";
-import type { ChangedFile } from "../../types";
+import type { ChangesetFile } from "../../../../../../hooks/useChangeset";
 import { FileRow } from "./components/FileRow";
-import type { ChangeCategory } from "./types";
 import { partitionByViewed } from "./utils/partitionByViewed";
 
 interface ChangesFileListProps {
-	files: ChangedFile[];
+	files: ChangesetFile[];
 	isLoading?: boolean;
-	category?: ChangeCategory;
-	onSelectFile?: (path: string, category: ChangeCategory) => void;
+	onSelectFile?: (path: string) => void;
 	viewedSet: Set<string>;
 	onSetViewed: (path: string, next: boolean) => void;
 }
@@ -16,7 +14,6 @@ interface ChangesFileListProps {
 export const ChangesFileList = memo(function ChangesFileList({
 	files,
 	isLoading,
-	category = "against-base",
 	onSelectFile,
 	viewedSet,
 	onSetViewed,
@@ -46,9 +43,8 @@ export const ChangesFileList = memo(function ChangesFileList({
 		<div className="min-h-0 flex-1 overflow-y-auto">
 			{sortedFiles.map((file) => (
 				<FileRow
-					key={file.path}
+					key={`${file.source.kind}:${file.path}`}
 					file={file}
-					category={category}
 					onSelect={onSelectFile}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={onSetViewed}

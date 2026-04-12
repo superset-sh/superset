@@ -2,29 +2,14 @@ import { useVirtualizer, Virtualizer } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
-import { type DiffCategory, useChangeset } from "../../../useChangeset";
+import { useChangeset } from "../../../useChangeset";
+import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { DiffFileEntry } from "./components/DiffFileEntry";
-
-function useSidebarDiffCategory(workspaceId: string): DiffCategory {
-	const collections = useCollections();
-	const { data: rows = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ state: collections.v2WorkspaceLocalState })
-				.where(({ state }) => eq(state.workspaceId, workspaceId)),
-		[collections, workspaceId],
-	);
-	const filter = rows[0]?.sidebarState?.changesFilter;
-	return filter?.kind === "uncommitted" ? "unstaged" : "against-base";
-}
 
 function ScrollToFile({ path }: { path: string }) {
 	const virtualizer = useVirtualizer();
@@ -64,12 +49,9 @@ export function DiffPane({ context, workspaceId }: DiffPaneProps) {
 	const data = context.pane.data as DiffPaneData;
 
 	const diffStyle = useSettings((s) => s.diffStyle);
-	const category = useSidebarDiffCategory(workspaceId);
+	const ref = useSidebarDiffRef(workspaceId);
 
-	const { files, isLoading } = useChangeset({
-		workspaceId,
-		category,
-	});
+	const { files, isLoading } = useChangeset({ workspaceId, ref });
 
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 
@@ -133,7 +115,7 @@ export function DiffPane({ context, workspaceId }: DiffPaneProps) {
 			<ScrollToFile path={data.path} />
 			{files.map((file) => (
 				<DiffFileEntry
-					key={`${file.category}:${file.path}`}
+					key={`${file.source.kind}:${file.path}`}
 					file={file}
 					workspaceId={workspaceId}
 					diffStyle={diffStyle}

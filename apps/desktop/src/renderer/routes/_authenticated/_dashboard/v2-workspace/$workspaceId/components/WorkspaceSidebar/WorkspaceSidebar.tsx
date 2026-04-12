@@ -10,10 +10,7 @@ import type { SidebarTabDefinition } from "./types";
 
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string) => void;
-	onSelectDiffFile?: (
-		path: string,
-		category: "against-base" | "staged" | "unstaged",
-	) => void;
+	onSelectDiffFile?: (path: string) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	workspaceId: string;

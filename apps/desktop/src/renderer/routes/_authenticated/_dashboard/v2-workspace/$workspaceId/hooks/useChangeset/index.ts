@@ -1,5 +1,2 @@
-export {
-	type ChangesetFile,
-	type DiffCategory,
-	useChangeset,
-} from "./useChangeset";
+export type { ChangesetFile, DiffFileSource, DiffRef } from "./types";
+export { useChangeset } from "./useChangeset";

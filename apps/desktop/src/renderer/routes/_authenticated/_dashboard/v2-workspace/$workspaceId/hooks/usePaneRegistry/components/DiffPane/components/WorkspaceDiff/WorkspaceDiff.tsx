@@ -10,13 +10,14 @@ import {
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { useResolvedTheme } from "renderer/stores/theme";
+import type { DiffFileSource } from "../../../../../useChangeset";
 import { DiffFileHeader } from "../DiffFileHeader";
 
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
 	status: string;
-	category: "against-base" | "staged" | "unstaged";
+	source: DiffFileSource;
 	additions: number;
 	deletions: number;
 	diffStyle: "split" | "unified";
@@ -33,7 +34,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	workspaceId,
 	path,
 	status,
-	category,
+	source,
 	additions,
 	deletions,
 	diffStyle,
@@ -84,10 +85,30 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		"--diffs-modified-color-override": gitDecorationColors.modified,
 	};
 
-	const diffQuery = workspaceTrpc.git.getDiff.useQuery(
-		{ workspaceId, path, category },
-		{ staleTime: Number.POSITIVE_INFINITY },
-	);
+	const diffInput = useMemo(() => {
+		if (source.kind === "against-base") {
+			return {
+				workspaceId,
+				path,
+				category: "against-base" as const,
+				baseBranch: source.baseBranch ?? undefined,
+			};
+		}
+		if (source.kind === "commit") {
+			return {
+				workspaceId,
+				path,
+				category: "commit" as const,
+				commitHash: source.commitHash,
+				fromHash: source.fromHash,
+			};
+		}
+		return { workspaceId, path, category: source.kind };
+	}, [workspaceId, path, source]);
+
+	const diffQuery = workspaceTrpc.git.getDiff.useQuery(diffInput, {
+		staleTime: Number.POSITIVE_INFINITY,
+	});
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
@@ -103,7 +124,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	);
 
 	const handleDiscard = useMemo(() => {
-		if (category !== "unstaged" || !worktreePath) return undefined;
+		if (source.kind !== "unstaged" || !worktreePath) return undefined;
 		return () => {
 			electronTrpcClient.changes.discardChanges
 				.mutate({ worktreePath, filePath: path })
@@ -113,7 +134,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 					});
 				});
 		};
-	}, [category, worktreePath, path]);
+	}, [source.kind, worktreePath, path]);
 
 	return (
 		<div className="flex flex-col overflow-hidden rounded-md border border-border">

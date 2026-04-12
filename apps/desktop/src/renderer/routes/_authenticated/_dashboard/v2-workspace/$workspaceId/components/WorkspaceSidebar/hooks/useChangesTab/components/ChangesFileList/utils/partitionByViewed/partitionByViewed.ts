@@ -1,12 +1,12 @@
-import type { ChangedFile } from "../../../../types";
+import type { ChangesetFile } from "../../../../../../../../hooks/useChangeset";
 
 export function partitionByViewed(
-	files: ChangedFile[],
+	files: ChangesetFile[],
 	viewedSet: Set<string>,
-): ChangedFile[] {
+): ChangesetFile[] {
 	if (viewedSet.size === 0) return files;
-	const unviewed: ChangedFile[] = [];
-	const viewed: ChangedFile[] = [];
+	const unviewed: ChangesetFile[] = [];
+	const viewed: ChangesetFile[] = [];
 	for (const file of files) {
 		if (viewedSet.has(file.path)) viewed.push(file);
 		else unviewed.push(file);

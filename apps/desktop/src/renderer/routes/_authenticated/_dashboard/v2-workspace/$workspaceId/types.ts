@@ -26,7 +26,6 @@ export interface DevtoolsPaneData {
 
 export interface DiffPaneData {
 	path: string;
-	category: "against-base" | "staged" | "unstaged";
 	collapsedFiles: string[];
 }
 

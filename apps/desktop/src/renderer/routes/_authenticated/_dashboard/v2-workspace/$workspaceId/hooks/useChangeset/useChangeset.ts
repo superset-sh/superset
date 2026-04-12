@@ -1,34 +1,49 @@
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-
-export type DiffCategory = "against-base" | "staged" | "unstaged";
-
-export interface ChangesetFile {
-	path: string;
-	oldPath?: string;
-	status: string;
-	additions: number;
-	deletions: number;
-	category: DiffCategory;
-}
+import type { FileStatus } from "../../components/StatusIndicator";
+import type { ChangesetFile, DiffRef } from "./types";
 
 interface UseChangesetArgs {
 	workspaceId: string;
-	category: DiffCategory;
-	enabled?: boolean;
+	ref: DiffRef;
+}
+
+interface UseChangesetResult {
+	files: ChangesetFile[];
+	isLoading: boolean;
+	isError: boolean;
+	error: unknown;
 }
 
 export function useChangeset({
 	workspaceId,
-	category,
-	enabled = true,
-}: UseChangesetArgs) {
+	ref,
+}: UseChangesetArgs): UseChangesetResult {
 	const utils = workspaceTrpc.useUtils();
 
+	const needsStatus = ref.kind === "against-base" || ref.kind === "uncommitted";
 	const statusQuery = workspaceTrpc.git.getStatus.useQuery(
-		{ workspaceId },
-		{ enabled, staleTime: Number.POSITIVE_INFINITY },
+		{
+			workspaceId,
+			baseBranch:
+				ref.kind === "against-base" ? (ref.baseBranch ?? undefined) : undefined,
+		},
+		{ enabled: needsStatus, staleTime: Number.POSITIVE_INFINITY },
+	);
+
+	const commitQuery = workspaceTrpc.git.getCommitFiles.useQuery(
+		ref.kind === "commit"
+			? {
+					workspaceId,
+					commitHash: ref.commitHash,
+					fromHash: ref.fromHash,
+				}
+			: { workspaceId, commitHash: "" },
+		{
+			enabled: ref.kind === "commit",
+			staleTime: Number.POSITIVE_INFINITY,
+		},
 	);
 
 	useWorkspaceEvent(
@@ -44,32 +59,93 @@ export function useChangeset({
 				void utils.git.getDiff.invalidate({ workspaceId });
 			}
 		},
-		enabled,
+		needsStatus,
 	);
 
 	const files = useMemo<ChangesetFile[]>(() => {
+		if (ref.kind === "commit") {
+			return (commitQuery.data?.files ?? []).map((file) => ({
+				path: file.path,
+				oldPath: file.oldPath,
+				status: file.status as FileStatus,
+				additions: file.additions,
+				deletions: file.deletions,
+				source: {
+					kind: "commit",
+					commitHash: ref.commitHash,
+					fromHash: ref.fromHash,
+				},
+			}));
+		}
+
 		const status = statusQuery.data;
 		if (!status) return [];
-		const bucket =
-			category === "against-base"
-				? status.againstBase
-				: category === "staged"
-					? status.staged
-					: status.unstaged;
-		return bucket.map((file) => ({
-			path: file.path,
-			oldPath: file.oldPath,
-			status: file.status,
-			additions: file.additions,
-			deletions: file.deletions,
-			category,
-		}));
-	}, [statusQuery.data, category]);
+
+		if (ref.kind === "uncommitted") {
+			return [
+				...status.staged.map<ChangesetFile>((file) => ({
+					path: file.path,
+					oldPath: file.oldPath,
+					status: file.status as FileStatus,
+					additions: file.additions,
+					deletions: file.deletions,
+					source: { kind: "staged" },
+				})),
+				...status.unstaged.map<ChangesetFile>((file) => ({
+					path: file.path,
+					oldPath: file.oldPath,
+					status: file.status as FileStatus,
+					additions: file.additions,
+					deletions: file.deletions,
+					source: { kind: "unstaged" },
+				})),
+			];
+		}
+
+		// against-base: merge committed + dirty, last-wins by path, each file
+		// tagged with its actual source so downstream getDiff fetches the right
+		// bucket (dirty files show their working-tree diff; purely committed
+		// files show the base-branch diff).
+		const seen = new Map<string, ChangesetFile>();
+		for (const file of status.againstBase) {
+			seen.set(file.path, {
+				path: file.path,
+				oldPath: file.oldPath,
+				status: file.status as FileStatus,
+				additions: file.additions,
+				deletions: file.deletions,
+				source: { kind: "against-base", baseBranch: ref.baseBranch },
+			});
+		}
+		for (const file of status.staged) {
+			seen.set(file.path, {
+				path: file.path,
+				oldPath: file.oldPath,
+				status: file.status as FileStatus,
+				additions: file.additions,
+				deletions: file.deletions,
+				source: { kind: "staged" },
+			});
+		}
+		for (const file of status.unstaged) {
+			seen.set(file.path, {
+				path: file.path,
+				oldPath: file.oldPath,
+				status: file.status as FileStatus,
+				additions: file.additions,
+				deletions: file.deletions,
+				source: { kind: "unstaged" },
+			});
+		}
+		return Array.from(seen.values());
+	}, [ref, statusQuery.data, commitQuery.data?.files]);
+
+	const activeQuery = needsStatus ? statusQuery : commitQuery;
 
 	return {
 		files,
-		isLoading: statusQuery.isLoading,
-		isError: statusQuery.isError,
-		error: statusQuery.error,
+		isLoading: activeQuery.isLoading,
+		isError: activeQuery.isError,
+		error: activeQuery.error,
 	};
 }

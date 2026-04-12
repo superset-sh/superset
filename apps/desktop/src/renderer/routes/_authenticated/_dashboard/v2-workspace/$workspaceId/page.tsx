@@ -121,7 +121,7 @@ function WorkspaceContent({
 	);
 
 	const openDiffPane = useCallback(
-		(filePath: string, category: "against-base" | "staged" | "unstaged") => {
+		(filePath: string) => {
 			const state = store.getState();
 			const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
 			if (activeTab) {
@@ -133,7 +133,6 @@ function WorkspaceContent({
 						data: {
 							...prev,
 							path: filePath,
-							category,
 						} as PaneViewerData,
 					});
 					state.setActivePane({ tabId: activeTab.id, paneId: pane.id });
@@ -145,7 +144,6 @@ function WorkspaceContent({
 					kind: "diff",
 					data: {
 						path: filePath,
-						category,
 						collapsedFiles: [],
 					} as DiffPaneData,
 				},

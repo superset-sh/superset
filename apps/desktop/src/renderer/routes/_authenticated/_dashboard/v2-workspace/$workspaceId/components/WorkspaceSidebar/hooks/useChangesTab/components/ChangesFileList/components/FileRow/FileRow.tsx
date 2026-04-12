@@ -2,8 +2,7 @@ import { Checkbox } from "@superset/ui/checkbox";
 import { memo } from "react";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import type { ChangedFile } from "../../../../types";
-import type { ChangeCategory } from "../../types";
+import type { ChangesetFile } from "../../../../../../../../hooks/useChangeset";
 
 function splitPath(path: string): { dir: string; basename: string } {
 	const lastSlash = path.lastIndexOf("/");
@@ -15,16 +14,14 @@ function splitPath(path: string): { dir: string; basename: string } {
 }
 
 interface FileRowProps {
-	file: ChangedFile;
-	category: ChangeCategory;
-	onSelect?: (path: string, category: ChangeCategory) => void;
+	file: ChangesetFile;
+	onSelect?: (path: string) => void;
 	viewed: boolean;
 	onSetViewed: (path: string, next: boolean) => void;
 }
 
 export const FileRow = memo(function FileRow({
 	file,
-	category,
 	onSelect,
 	viewed,
 	onSetViewed,
@@ -40,14 +37,13 @@ export const FileRow = memo(function FileRow({
 			<Checkbox
 				checked={viewed}
 				onCheckedChange={(checked) => onSetViewed(file.path, checked === true)}
-				onClick={(e) => e.stopPropagation()}
 				className="size-3.5 shrink-0 border-muted-foreground/50"
 				aria-label={viewed ? "Mark as not viewed" : "Mark as viewed"}
 			/>
 			<button
 				type="button"
 				className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-				onClick={() => onSelect?.(file.path, category)}
+				onClick={() => onSelect?.(file.path)}
 			>
 				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
 				<span className="flex min-w-0 flex-1 items-baseline overflow-hidden">

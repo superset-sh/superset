@@ -271,8 +271,10 @@ export const gitRouter = router({
 			z.object({
 				workspaceId: z.string(),
 				path: z.string(),
-				category: z.enum(["against-base", "staged", "unstaged"]),
+				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				baseBranch: z.string().optional(),
+				commitHash: z.string().optional(),
+				fromHash: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -298,6 +300,22 @@ export const gitRouter = router({
 				} catch {}
 				try {
 					modifiedContent = await git.show([`:0:${input.path}`]);
+				} catch {}
+			} else if (input.category === "commit") {
+				if (!input.commitHash) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "commitHash is required for commit diffs",
+					});
+				}
+				const from = input.fromHash ?? `${input.commitHash}^`;
+				try {
+					originalContent = await git.show([`${from}:${input.path}`]);
+				} catch {}
+				try {
+					modifiedContent = await git.show([
+						`${input.commitHash}:${input.path}`,
+					]);
 				} catch {}
 			} else {
 				// Unstaged: compare index (staged version) against working tree
