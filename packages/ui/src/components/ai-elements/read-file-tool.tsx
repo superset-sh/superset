@@ -3,7 +3,7 @@
 import { FileIcon } from "lucide-react";
 import type { BundledLanguage } from "shiki";
 import { ClickableFilePath } from "./clickable-file-path";
-import { CodeBlock } from "./code-block";
+import { ShowCode } from "./show-code";
 import { ToolCallRow } from "./tool-call-row";
 
 export type ReadFileToolProps = {
@@ -39,34 +39,22 @@ export function ReadFileTool({
 	return (
 		<ToolCallRow
 			className={className}
-			description={
-				<ClickableFilePath path={filename} onOpen={onOpenInPane} />
-			}
+			description={<ClickableFilePath path={filename} onOpen={onOpenInPane} />}
 			icon={FileIcon}
 			isError={isError}
 			isPending={isPending}
 			title="Read"
 		>
 			<div className="py-1.5 pl-2">
-				<div className="overflow-hidden rounded-md border border-border">
-					<div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-1.5 font-mono text-xs">
-						<ClickableFilePath
-							path={filename}
-							onOpen={onOpenInPane}
-							className="text-foreground"
-						/>
-						{lineRange && (
-							<span className="text-muted-foreground">{lineRange}</span>
-						)}
-					</div>
-					<CodeBlock
-						className="rounded-none border-0 [&>div>div]:max-h-[300px] [&_pre]:!p-2"
-						code={content}
-						colorize={false}
-						language={language}
-						showLineNumbers
-					/>
-				</div>
+				<ShowCode
+					code={content}
+					colorize={false}
+					filename={filename}
+					language={language}
+					lineRange={lineRange}
+					onOpen={onOpenInPane}
+					showLineNumbers
+				/>
 			</div>
 		</ToolCallRow>
 	);
