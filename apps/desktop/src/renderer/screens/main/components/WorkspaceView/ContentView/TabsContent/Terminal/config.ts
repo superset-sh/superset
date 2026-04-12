@@ -40,4 +40,5 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	scrollbar: {
 		showScrollbar: false,
 	},
+	minimumContrastRatio: 1,
 };
