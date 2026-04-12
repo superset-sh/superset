@@ -1,6 +1,7 @@
 import type { ITheme } from "@xterm/xterm";
 import type { MutableRefObject } from "react";
 import { useRef } from "react";
+import type { DetectedLink } from "renderer/lib/terminal/links";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
@@ -22,7 +23,7 @@ export interface UseTerminalRefsOptions {
 	paneInitialCwd?: string;
 	clearPaneInitialData: (paneId: string) => void;
 	workspaceCwd: string | null | undefined;
-	handleFileLinkClick: (path: string, line?: number, column?: number) => void;
+	handleFileLinkClick: (event: MouseEvent, link: DetectedLink) => void;
 	setPaneName: (paneId: string, name: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 }
@@ -35,7 +36,7 @@ export interface UseTerminalRefsReturn {
 	clearPaneInitialDataRef: MutableRefObject<(paneId: string) => void>;
 	workspaceCwdRef: MutableRefObject<string | null>;
 	handleFileLinkClickRef: MutableRefObject<
-		(path: string, line?: number, column?: number) => void
+		(event: MouseEvent, link: DetectedLink) => void
 	>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;

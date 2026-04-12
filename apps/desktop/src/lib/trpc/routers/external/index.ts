@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import {
 	EXTERNAL_APPS,
 	NON_EDITOR_APPS,
@@ -156,6 +157,26 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.query(({ input }) => resolvePath(input.path, input.cwd)),
+
+		statPath: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+					cwd: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const resolved = resolvePath(input.path, input.cwd);
+				try {
+					const stats = await fs.promises.stat(resolved);
+					return {
+						isDirectory: stats.isDirectory(),
+						resolvedPath: resolved,
+					};
+				} catch {
+					return null;
+				}
+			}),
 
 		openFileInEditor: publicProcedure
 			.input(
