@@ -283,8 +283,7 @@ describe("Session shell-ready: marker detection", () => {
 		session.write("buffered\n");
 		expect(getWrittenData(proc)).toEqual([]);
 
-		const COMBINED_MARKER =
-			"\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
+		const COMBINED_MARKER = "\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
 		sendData(proc, `direnv output...${COMBINED_MARKER}prompt$ `);
 
 		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
