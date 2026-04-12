@@ -71,8 +71,12 @@ export class EventBus {
 
 	start(): void {
 		this.gitWatcher.start();
-		this.removeGitListener = this.gitWatcher.onChanged((workspaceId) => {
-			this.broadcast({ type: "git:changed", workspaceId });
+		this.removeGitListener = this.gitWatcher.onChanged((event) => {
+			this.broadcast({
+				type: "git:changed",
+				workspaceId: event.workspaceId,
+				...(event.paths !== undefined ? { paths: event.paths } : {}),
+			});
 		});
 	}
 

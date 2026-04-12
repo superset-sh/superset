@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { type FSWatcher, watch } from "node:fs";
 import { promisify } from "node:util";
+import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
@@ -10,7 +11,24 @@ const execFileAsync = promisify(execFile);
 const RESCAN_INTERVAL_MS = 30_000;
 const DEBOUNCE_MS = 300;
 
-export type GitChangedListener = (workspaceId: string) => void;
+export interface GitChangedEvent {
+	workspaceId: string;
+	/**
+	 * Worktree-relative paths that changed when the batch was worktree-only.
+	 * Absent when the batch included any `.git/*` activity, signaling a broad
+	 * state change (commit, staging, branch switch, fetch, etc.).
+	 */
+	paths?: string[];
+}
+
+export type GitChangedListener = (event: GitChangedEvent) => void;
+
+interface PendingBatch {
+	/** Any `.git/*` event seen during this debounce window. */
+	hasGitDir: boolean;
+	/** Worktree-relative paths accumulated during this debounce window. */
+	paths: Set<string>;
+}
 
 interface WatchedWorkspace {
 	workspaceId: string;
@@ -51,6 +69,7 @@ export class GitWatcher {
 		string,
 		ReturnType<typeof setTimeout>
 	>();
+	private readonly pendingBatches = new Map<string, PendingBatch>();
 	private rescanTimer: ReturnType<typeof setInterval> | null = null;
 	private closed = false;
 
@@ -84,6 +103,7 @@ export class GitWatcher {
 			clearTimeout(timer);
 		}
 		this.debounceTimers.clear();
+		this.pendingBatches.clear();
 		for (const entry of this.watched.values()) {
 			entry.watcher.close();
 			entry.disposeWorktreeWatch();
@@ -91,15 +111,43 @@ export class GitWatcher {
 		this.watched.clear();
 	}
 
-	private debouncedEmit(workspaceId: string): void {
+	private getOrCreateBatch(workspaceId: string): PendingBatch {
+		let batch = this.pendingBatches.get(workspaceId);
+		if (!batch) {
+			batch = { hasGitDir: false, paths: new Set() };
+			this.pendingBatches.set(workspaceId, batch);
+		}
+		return batch;
+	}
+
+	private markGitDirDirty(workspaceId: string): void {
+		this.getOrCreateBatch(workspaceId).hasGitDir = true;
+		this.scheduleFlush(workspaceId);
+	}
+
+	private addWorktreePaths(workspaceId: string, paths: Iterable<string>): void {
+		const batch = this.getOrCreateBatch(workspaceId);
+		for (const path of paths) {
+			if (path) batch.paths.add(path);
+		}
+		this.scheduleFlush(workspaceId);
+	}
+
+	private scheduleFlush(workspaceId: string): void {
 		const existing = this.debounceTimers.get(workspaceId);
 		if (existing) clearTimeout(existing);
 		this.debounceTimers.set(
 			workspaceId,
 			setTimeout(() => {
 				this.debounceTimers.delete(workspaceId);
+				const batch = this.pendingBatches.get(workspaceId);
+				this.pendingBatches.delete(workspaceId);
+				if (!batch) return;
+				const event: GitChangedEvent = batch.hasGitDir
+					? { workspaceId }
+					: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
-					listener(workspaceId);
+					listener(event);
 				}
 			}, DEBOUNCE_MS),
 		);
@@ -175,7 +223,7 @@ export class GitWatcher {
 		let watcher: FSWatcher;
 		try {
 			watcher = watch(gitDir, { recursive: true }, () => {
-				this.debouncedEmit(workspaceId);
+				this.markGitDirDirty(workspaceId);
 			});
 		} catch {
 			// fs.watch failed (e.g. directory doesn't exist)
@@ -201,16 +249,17 @@ export class GitWatcher {
 
 	/**
 	 * Subscribe to worktree fs events via the shared workspace-fs watcher
-	 * manager. Each batch of events feeds into the existing `debouncedEmit`,
-	 * so bursts of file edits collapse into a single `git:changed` per
-	 * workspace per debounce window.
+	 * manager. Each batch of events feeds into the debounced flush, contributing
+	 * worktree-relative paths that get carried in the emitted `git:changed`
+	 * event. Bursts collapse into a single event per workspace per debounce
+	 * window.
 	 */
 	private startWorktreeWatch(
 		workspaceId: string,
 		worktreePath: string,
 	): () => void {
 		let disposed = false;
-		let iterator: AsyncIterator<unknown> | null = null;
+		let iterator: AsyncIterator<{ events: FsWatchEvent[] }> | null = null;
 
 		try {
 			const service = this.filesystem.getServiceForWorkspace(workspaceId);
@@ -227,14 +276,45 @@ export class GitWatcher {
 			return () => {};
 		}
 
+		const worktreePrefix = worktreePath.endsWith("/")
+			? worktreePath
+			: `${worktreePath}/`;
+
+		const toRelative = (absolutePath: string): string | null => {
+			if (absolutePath === worktreePath) return null;
+			if (!absolutePath.startsWith(worktreePrefix)) return null;
+			const relative = absolutePath.slice(worktreePrefix.length);
+			// Defensive: ignore anything inside .git/ — the dedicated .git watcher
+			// handles those and the worktree fs watcher's default ignore patterns
+			// already exclude it, but a rare leak shouldn't pollute the paths list.
+			if (relative === ".git" || relative.startsWith(".git/")) return null;
+			return relative;
+		};
+
 		void (async () => {
 			try {
 				while (!disposed && iterator) {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
-					// Any batch of events may have touched paths that affect
-					// `git status` output. Let the debounced emit coalesce bursts.
-					this.debouncedEmit(workspaceId);
+
+					const relativePaths: string[] = [];
+					for (const event of next.value.events) {
+						const rel = toRelative(event.absolutePath);
+						if (rel) relativePaths.push(rel);
+						if (event.oldAbsolutePath) {
+							const oldRel = toRelative(event.oldAbsolutePath);
+							if (oldRel) relativePaths.push(oldRel);
+						}
+					}
+
+					if (relativePaths.length > 0) {
+						this.addWorktreePaths(workspaceId, relativePaths);
+					} else {
+						// Empty batch still means something happened in the worktree
+						// — schedule a flush with no paths so we don't drop the signal.
+						this.getOrCreateBatch(workspaceId);
+						this.scheduleFlush(workspaceId);
+					}
 				}
 			} catch (error) {
 				if (!disposed) {

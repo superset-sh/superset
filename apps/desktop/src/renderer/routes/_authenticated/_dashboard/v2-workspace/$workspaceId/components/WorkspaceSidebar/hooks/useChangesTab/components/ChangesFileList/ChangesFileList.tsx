@@ -1,7 +1,7 @@
 import type { AppRouter } from "@superset/host-service";
+import { Checkbox } from "@superset/ui/checkbox";
 import type { inferRouterOutputs } from "@trpc/server";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { memo, type ReactNode, useMemo, useState } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 import {
 	VscCopy,
 	VscDiffAdded,
@@ -46,23 +46,6 @@ function getStatusIcon(status: FileStatus): ReactNode {
 	}
 }
 
-function groupByFolder(
-	files: ChangedFile[],
-): Array<{ folder: string; files: ChangedFile[] }> {
-	const map = new Map<string, ChangedFile[]>();
-	for (const file of files) {
-		const lastSlash = file.path.lastIndexOf("/");
-		const folder = lastSlash > 0 ? file.path.slice(0, lastSlash) : "";
-		const existing = map.get(folder);
-		if (existing) existing.push(file);
-		else map.set(folder, [file]);
-	}
-	return Array.from(map.entries()).map(([folder, files]) => ({
-		folder,
-		files,
-	}));
-}
-
 function StatusIndicator({ status }: { status: FileStatus }) {
 	return (
 		<span className={`shrink-0 flex items-center ${STATUS_COLORS[status]}`}>
@@ -71,147 +54,109 @@ function StatusIndicator({ status }: { status: FileStatus }) {
 	);
 }
 
+function splitPath(path: string): { dir: string; basename: string } {
+	const lastSlash = path.lastIndexOf("/");
+	if (lastSlash < 0) return { dir: "", basename: path };
+	return {
+		dir: `${path.slice(0, lastSlash)}/`,
+		basename: path.slice(lastSlash + 1),
+	};
+}
+
 const FileRow = memo(function FileRow({
 	file,
 	category,
 	onSelect,
+	viewed,
+	onSetViewed,
 }: {
 	file: ChangedFile;
 	category: ChangeCategory;
 	onSelect?: (path: string, category: ChangeCategory) => void;
+	viewed: boolean;
+	onSetViewed: (path: string, next: boolean) => void;
 }) {
-	const fileName = file.path.split("/").pop() ?? file.path;
+	const { dir, basename } = splitPath(file.path);
 
 	return (
-		<button
-			type="button"
-			className="flex w-full items-center gap-1.5 pl-6 pr-3 py-1 text-left text-xs hover:bg-accent/50"
-			onClick={() => onSelect?.(file.path, category)}
+		<div
+			className={`flex w-full items-center gap-1.5 pl-3 pr-3 py-1 text-left text-xs hover:bg-accent/50 ${
+				viewed ? "opacity-60" : ""
+			}`}
 		>
-			<FileIcon fileName={fileName} className="size-3.5 shrink-0" />
-			<span className="truncate font-medium">{fileName}</span>
-			<span className="ml-auto flex items-center gap-1.5 shrink-0">
-				{(file.additions > 0 || file.deletions > 0) && (
-					<span className="text-[10px] text-muted-foreground">
-						{file.additions > 0 && (
-							<span className="text-green-400">+{file.additions}</span>
-						)}
-						{file.additions > 0 && file.deletions > 0 && " "}
-						{file.deletions > 0 && (
-							<span className="text-red-400">-{file.deletions}</span>
-						)}
-					</span>
-				)}
-				<StatusIndicator status={file.status} />
-			</span>
-		</button>
-	);
-});
-
-const FolderGroup = memo(function FolderGroup({
-	folder,
-	files,
-	category,
-	onSelectFile,
-}: {
-	folder: string;
-	files: ChangedFile[];
-	category: ChangeCategory;
-	onSelectFile?: (path: string, category: ChangeCategory) => void;
-}) {
-	// Shorten long folder paths
-	const displayFolder =
-		folder.length > 40 ? `...${folder.slice(folder.length - 37)}` : folder;
-
-	return (
-		<div>
-			{folder && (
-				<div className="flex items-center gap-1 px-3 py-1 text-[11px] text-muted-foreground">
-					<span className="truncate">{displayFolder}</span>
-					<span className="shrink-0">{files.length}</span>
-				</div>
-			)}
-			{files.map((file) => (
-				<FileRow
-					key={file.path}
-					file={file}
-					category={category}
-					onSelect={onSelectFile}
-				/>
-			))}
-		</div>
-	);
-});
-
-function Section({
-	title,
-	files,
-	category,
-	defaultOpen,
-	onSelectFile,
-}: {
-	title: string;
-	files: ChangedFile[];
-	category: ChangeCategory;
-	defaultOpen: boolean;
-	onSelectFile?: (path: string, category: ChangeCategory) => void;
-}) {
-	const [isOpen, setIsOpen] = useState(defaultOpen);
-	const groups = useMemo(() => groupByFolder(files), [files]);
-
-	if (files.length === 0) return null;
-
-	return (
-		<div>
+			<Checkbox
+				checked={viewed}
+				onCheckedChange={(checked) => onSetViewed(file.path, checked === true)}
+				onClick={(e) => e.stopPropagation()}
+				className="size-3.5 shrink-0 border-muted-foreground/50"
+				aria-label={viewed ? "Mark as not viewed" : "Mark as viewed"}
+			/>
 			<button
 				type="button"
-				className="flex w-full items-center gap-1 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:bg-accent/50"
-				onClick={() => setIsOpen(!isOpen)}
+				className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+				onClick={() => onSelect?.(file.path, category)}
 			>
-				{isOpen ? (
-					<ChevronDown className="size-3" />
-				) : (
-					<ChevronRight className="size-3" />
-				)}
-				<span>{title}</span>
-				<span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-					{files.length}
+				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
+				<span className="flex min-w-0 flex-1 items-baseline overflow-hidden">
+					{dir && <span className="truncate text-muted-foreground">{dir}</span>}
+					<span className="min-w-[120px] truncate font-medium text-foreground">
+						{basename}
+					</span>
+				</span>
+				<span className="ml-auto flex shrink-0 items-center gap-1.5">
+					{(file.additions > 0 || file.deletions > 0) && (
+						<span className="text-[10px] text-muted-foreground">
+							{file.additions > 0 && (
+								<span className="text-green-400">+{file.additions}</span>
+							)}
+							{file.additions > 0 && file.deletions > 0 && " "}
+							{file.deletions > 0 && (
+								<span className="text-red-400">-{file.deletions}</span>
+							)}
+						</span>
+					)}
+					<StatusIndicator status={file.status} />
 				</span>
 			</button>
-			{isOpen &&
-				groups.map((group) => (
-					<FolderGroup
-						key={group.folder}
-						folder={group.folder}
-						files={group.files}
-						category={category}
-						onSelectFile={onSelectFile}
-					/>
-				))}
 		</div>
 	);
+});
+
+function partitionByViewed(
+	files: ChangedFile[],
+	viewedSet: Set<string>,
+): ChangedFile[] {
+	if (viewedSet.size === 0) return files;
+	const unviewed: ChangedFile[] = [];
+	const viewed: ChangedFile[] = [];
+	for (const file of files) {
+		if (viewedSet.has(file.path)) viewed.push(file);
+		else unviewed.push(file);
+	}
+	return [...unviewed, ...viewed];
 }
 
 interface ChangesFileListProps {
 	files: ChangedFile[];
-	staged?: ChangedFile[];
-	unstaged?: ChangedFile[];
-	defaultBranchName?: string;
 	isLoading?: boolean;
 	category?: ChangeCategory;
 	onSelectFile?: (path: string, category: ChangeCategory) => void;
+	viewedSet: Set<string>;
+	onSetViewed: (path: string, next: boolean) => void;
 }
 
 export const ChangesFileList = memo(function ChangesFileList({
 	files,
-	staged,
-	unstaged,
-	defaultBranchName,
 	isLoading,
 	category = "against-base",
 	onSelectFile,
+	viewedSet,
+	onSetViewed,
 }: ChangesFileListProps) {
-	const groups = useMemo(() => groupByFolder(files), [files]);
+	const sortedFiles = useMemo(
+		() => partitionByViewed(files, viewedSet),
+		[files, viewedSet],
+	);
 
 	if (isLoading) {
 		return (
@@ -221,10 +166,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 		);
 	}
 
-	const totalFiles =
-		files.length + (staged?.length ?? 0) + (unstaged?.length ?? 0);
-
-	if (totalFiles === 0) {
+	if (files.length === 0) {
 		return (
 			<div className="px-3 py-6 text-center text-sm text-muted-foreground">
 				No changes
@@ -232,43 +174,16 @@ export const ChangesFileList = memo(function ChangesFileList({
 		);
 	}
 
-	if (staged !== undefined && unstaged !== undefined) {
-		return (
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<Section
-					title={`Against ${defaultBranchName ?? "base"}`}
-					files={files}
-					category="against-base"
-					defaultOpen={true}
-					onSelectFile={onSelectFile}
-				/>
-				<Section
-					title="Staged"
-					files={staged}
-					category="staged"
-					defaultOpen={true}
-					onSelectFile={onSelectFile}
-				/>
-				<Section
-					title="Unstaged"
-					files={unstaged}
-					category="unstaged"
-					defaultOpen={true}
-					onSelectFile={onSelectFile}
-				/>
-			</div>
-		);
-	}
-
 	return (
 		<div className="min-h-0 flex-1 overflow-y-auto">
-			{groups.map((group) => (
-				<FolderGroup
-					key={group.folder}
-					folder={group.folder}
-					files={group.files}
+			{sortedFiles.map((file) => (
+				<FileRow
+					key={file.path}
+					file={file}
 					category={category}
-					onSelectFile={onSelectFile}
+					onSelect={onSelectFile}
+					viewed={viewedSet.has(file.path)}
+					onSetViewed={onSetViewed}
 				/>
 			))}
 		</div>

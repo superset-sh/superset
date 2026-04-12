@@ -1,0 +1,1 @@
+export { DiffFileEntry } from "./DiffFileEntry";

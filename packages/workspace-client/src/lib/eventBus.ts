@@ -10,10 +10,18 @@ interface FsEventsPayload {
 	events: FsWatchEvent[];
 }
 
+export interface GitChangedPayload {
+	/**
+	 * Worktree-relative paths when the event was worktree-only. Absent for
+	 * broad state changes (`.git/` activity) — treat as "invalidate everything".
+	 */
+	paths?: string[];
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
-		? (workspaceId: string) => void
+		? (workspaceId: string, payload: GitChangedPayload) => void
 		: never;
 
 interface ListenerEntry {
@@ -84,7 +92,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				events: message.events,
 			});
 		} else if (message.type === "git:changed") {
-			(entry.callback as EventListener<"git:changed">)(message.workspaceId);
+			(entry.callback as EventListener<"git:changed">)(message.workspaceId, {
+				paths: message.paths,
+			});
 		}
 	}
 }

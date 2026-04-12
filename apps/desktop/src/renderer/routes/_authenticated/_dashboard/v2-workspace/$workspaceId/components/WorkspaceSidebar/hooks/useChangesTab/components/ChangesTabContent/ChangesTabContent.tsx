@@ -33,6 +33,8 @@ interface ChangesTabContentProps {
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
 	canRenameBranch: boolean;
+	viewedSet: Set<string>;
+	onSetViewed: (path: string, next: boolean) => void;
 }
 
 export const ChangesTabContent = memo(function ChangesTabContent({
@@ -51,6 +53,8 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	onBaseBranchChange,
 	onRenameBranch,
 	canRenameBranch,
+	viewedSet,
+	onSetViewed,
 }: ChangesTabContentProps) {
 	if (status.isLoading) {
 		return (
@@ -90,13 +94,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			/>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ChangesFileList
-					files={filter.kind === "uncommitted" ? [] : filteredFiles}
-					staged={
-						filter.kind === "uncommitted" ? status.data.staged : undefined
-					}
-					unstaged={
-						filter.kind === "uncommitted" ? status.data.unstaged : undefined
-					}
+					files={filteredFiles}
 					isLoading={
 						filter.kind === "commit" || filter.kind === "range"
 							? commitFiles.isLoading
@@ -104,6 +102,8 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					}
 					onSelectFile={onSelectFile}
 					category={fileCategory}
+					viewedSet={viewedSet}
+					onSetViewed={onSetViewed}
 				/>
 			</div>
 		</div>

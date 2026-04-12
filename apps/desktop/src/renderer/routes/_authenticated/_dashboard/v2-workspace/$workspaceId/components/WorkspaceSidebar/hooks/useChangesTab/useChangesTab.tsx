@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { useViewedFiles } from "../../../../hooks/useViewedFiles";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
 
@@ -30,6 +31,8 @@ export function useChangesTab({
 	};
 	const baseBranch: string | null =
 		localState?.sidebarState?.baseBranch ?? null;
+
+	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 
 	const setFilter = useCallback(
 		(next: ChangesFilter) => {
@@ -137,6 +140,8 @@ export function useChangesTab({
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
 			canRenameBranch={canRenameBranch}
+			viewedSet={viewedSet}
+			onSetViewed={setViewed}
 		/>
 	);
 

@@ -4,15 +4,14 @@ import type {
 	RendererContext,
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import {
 	Circle,
-	Columns2,
-	Eye,
-	EyeOff,
 	GitCompareArrows,
 	Globe,
 	MessageSquare,
-	Rows2,
+	SquareSplitHorizontal,
 	TerminalSquare,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -22,6 +21,7 @@ import {
 	LuClipboardCopy,
 	LuEraser,
 } from "react-icons/lu";
+import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
@@ -46,6 +46,60 @@ function getFileName(filePath: string): string {
 const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 	? "⌘"
 	: "Ctrl+";
+
+function DiffViewModeToggle() {
+	const diffStyle = useSettings((s) => s.diffStyle);
+	const updateSetting = useSettings((s) => s.update);
+
+	const buttonClass = (active: boolean) =>
+		cn(
+			"flex size-6 items-center justify-center transition-colors",
+			active
+				? "bg-secondary text-foreground"
+				: "text-muted-foreground hover:text-foreground",
+		);
+
+	return (
+		<div className="flex items-center">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => updateSetting("diffStyle", "unified")}
+						aria-label="Unified view"
+						aria-pressed={diffStyle === "unified"}
+						className={buttonClass(diffStyle === "unified")}
+					>
+						<TbScan className="size-3.5" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Unified view
+				</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => updateSetting("diffStyle", "split")}
+						aria-label="Split view"
+						aria-pressed={diffStyle === "split"}
+						className={buttonClass(diffStyle === "split")}
+					>
+						<SquareSplitHorizontal className="size-3.5" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Split view
+				</TooltipContent>
+			</Tooltip>
+			<div
+				className="mx-1.5 h-4 w-px bg-muted-foreground/30"
+				aria-hidden="true"
+			/>
+		</div>
+	);
+}
 
 export function usePaneRegistry(
 	workspaceId: string,
@@ -121,52 +175,7 @@ export function usePaneRegistry(
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<DiffPane context={ctx} workspaceId={workspaceId} />
 				),
-				paneActions: (_ctx, defaults) => [
-					{
-						key: "toggle-diff-style",
-						icon: () => {
-							const style = useSettings.getState().diffStyle;
-							return style === "split" ? (
-								<Rows2 className="size-3.5" />
-							) : (
-								<Columns2 className="size-3.5" />
-							);
-						},
-						tooltip: () => {
-							const style = useSettings.getState().diffStyle;
-							return style === "split"
-								? "Switch to inline"
-								: "Switch to side-by-side";
-						},
-						onClick: () => {
-							const s = useSettings.getState();
-							s.update(
-								"diffStyle",
-								s.diffStyle === "split" ? "unified" : "split",
-							);
-						},
-					},
-					{
-						key: "toggle-expand-unchanged",
-						icon: () => {
-							const expand = useSettings.getState().expandUnchanged;
-							return expand ? (
-								<EyeOff className="size-3.5" />
-							) : (
-								<Eye className="size-3.5" />
-							);
-						},
-						tooltip: () => {
-							const expand = useSettings.getState().expandUnchanged;
-							return expand ? "Hide unchanged regions" : "Show all lines";
-						},
-						onClick: () => {
-							const s = useSettings.getState();
-							s.update("expandUnchanged", !s.expandUnchanged);
-						},
-					},
-					...defaults,
-				],
+				renderHeaderExtras: () => <DiffViewModeToggle />,
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Diff" } : d,

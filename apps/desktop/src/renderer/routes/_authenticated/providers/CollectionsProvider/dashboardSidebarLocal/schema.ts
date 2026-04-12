@@ -40,6 +40,7 @@ export const workspaceLocalStateSchema = z.object({
 	paneLayout: paneWorkspaceStateSchema,
 	rightSidebarOpen: z.boolean().default(false),
 	defaultOpenInApp: z.string().nullable().default(null),
+	viewedFiles: z.array(z.string()).default([]),
 });
 
 export const dashboardSidebarSectionSchema = z.object({

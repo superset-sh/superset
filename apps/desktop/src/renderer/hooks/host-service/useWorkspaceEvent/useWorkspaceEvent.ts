@@ -1,4 +1,7 @@
-import { getEventBus } from "@superset/workspace-client";
+import {
+	type GitChangedPayload,
+	getEventBus,
+} from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { useEffect, useEffectEvent } from "react";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
@@ -11,7 +14,7 @@ import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 export function useWorkspaceEvent(
 	type: "git:changed",
 	workspaceId: string,
-	callback: () => void,
+	callback: (payload: GitChangedPayload) => void,
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
@@ -23,7 +26,9 @@ export function useWorkspaceEvent(
 export function useWorkspaceEvent(
 	type: "git:changed" | "fs:events",
 	workspaceId: string,
-	callback: ((event: FsWatchEvent) => void) | (() => void),
+	callback:
+		| ((event: FsWatchEvent) => void)
+		| ((payload: GitChangedPayload) => void),
 	enabled = true,
 ): void {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
@@ -48,9 +53,13 @@ export function useWorkspaceEvent(
 			);
 			cleanups.push(removeListener, () => bus.unwatchFs(workspaceId));
 		} else {
-			const removeListener = bus.on("git:changed", workspaceId, () => {
-				(handler as () => void)();
-			});
+			const removeListener = bus.on(
+				"git:changed",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: GitChangedPayload) => void)(payload);
+				},
+			);
 			cleanups.push(removeListener);
 		}
 
