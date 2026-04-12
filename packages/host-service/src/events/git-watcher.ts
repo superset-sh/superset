@@ -143,9 +143,10 @@ export class GitWatcher {
 				const batch = this.pendingBatches.get(workspaceId);
 				this.pendingBatches.delete(workspaceId);
 				if (!batch) return;
-				const event: GitChangedEvent = batch.hasGitDir
-					? { workspaceId }
-					: { workspaceId, paths: [...batch.paths] };
+				const event: GitChangedEvent =
+					batch.hasGitDir || batch.paths.size === 0
+						? { workspaceId }
+						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
 					listener(event);
 				}
@@ -310,8 +311,6 @@ export class GitWatcher {
 					if (relativePaths.length > 0) {
 						this.addWorktreePaths(workspaceId, relativePaths);
 					} else {
-						// Empty batch still means something happened in the worktree
-						// — schedule a flush with no paths so we don't drop the signal.
 						this.getOrCreateBatch(workspaceId);
 						this.scheduleFlush(workspaceId);
 					}

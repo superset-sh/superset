@@ -12,7 +12,7 @@ interface DiffFileHeaderProps {
 	additions: number;
 	deletions: number;
 	expandUnchanged: boolean;
-	onToggleExpandUnchanged: () => void;
+	onToggleExpandUnchanged?: () => void;
 	collapsed: boolean;
 	onToggleCollapsed: () => void;
 	viewed: boolean;
@@ -107,7 +107,11 @@ export function DiffFileHeader({
 						<button
 							type="button"
 							onClick={onToggleExpandUnchanged}
-							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+							disabled={!onToggleExpandUnchanged}
+							aria-label={
+								expandUnchanged ? "Hide unchanged regions" : "Show all lines"
+							}
+							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
 						>
 							{expandUnchanged ? (
 								<EyeOff className="size-3.5" />
@@ -127,6 +131,7 @@ export function DiffFileHeader({
 							type="button"
 							onClick={onCopyContents}
 							disabled={!onCopyContents}
+							aria-label="Copy file contents"
 							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
 						>
 							<LuCopy className="size-3.5" />
@@ -143,6 +148,7 @@ export function DiffFileHeader({
 							type="button"
 							onClick={onDiscard}
 							disabled={!onDiscard}
+							aria-label="Discard changes"
 							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
 						>
 							<LuUndo2 className="size-3.5" />

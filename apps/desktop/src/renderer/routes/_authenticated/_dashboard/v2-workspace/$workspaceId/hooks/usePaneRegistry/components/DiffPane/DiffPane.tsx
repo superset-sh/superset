@@ -32,7 +32,6 @@ function ScrollToFile({ path }: { path: string }) {
 
 	useEffect(() => {
 		if (!path || path === lastScrolledPath.current || !virtualizer) return;
-		lastScrolledPath.current = path;
 
 		requestAnimationFrame(() => {
 			const v = virtualizer as unknown as {
@@ -49,6 +48,7 @@ function ScrollToFile({ path }: { path: string }) {
 
 			const offset = v.getOffsetInScrollContainer(target as HTMLElement);
 			scrollContainer.scrollTo({ top: offset });
+			lastScrolledPath.current = path;
 		});
 	}, [path, virtualizer]);
 

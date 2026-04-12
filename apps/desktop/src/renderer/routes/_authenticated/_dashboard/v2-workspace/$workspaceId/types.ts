@@ -28,7 +28,6 @@ export interface DiffPaneData {
 	path: string;
 	category: "against-base" | "staged" | "unstaged";
 	collapsedFiles: string[];
-	scrollTop: number;
 }
 
 export type PaneViewerData =

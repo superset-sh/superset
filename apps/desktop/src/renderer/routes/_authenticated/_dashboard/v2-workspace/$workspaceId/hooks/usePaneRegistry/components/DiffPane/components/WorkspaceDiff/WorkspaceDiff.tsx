@@ -1,4 +1,5 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { memo, useMemo } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -11,22 +12,6 @@ import {
 import { useResolvedTheme } from "renderer/stores/theme";
 import { DiffFileHeader } from "../DiffFileHeader";
 
-interface ThreadAnnotation {
-	side: "deletions" | "additions";
-	lineNumber: number;
-	metadata: {
-		threadId: string;
-		isResolved: boolean;
-		comments: Array<{
-			id: string;
-			authorLogin: string;
-			avatarUrl?: string;
-			body: string;
-			createdAt?: number;
-		}>;
-	};
-}
-
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
@@ -34,7 +19,6 @@ interface WorkspaceDiffProps {
 	category: "against-base" | "staged" | "unstaged";
 	additions: number;
 	deletions: number;
-	annotations?: ThreadAnnotation[];
 	diffStyle: "split" | "unified";
 	expandUnchanged: boolean;
 	onToggleExpandUnchanged: () => void;
@@ -121,10 +105,13 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	const handleDiscard = useMemo(() => {
 		if (category !== "unstaged" || !worktreePath) return undefined;
 		return () => {
-			void electronTrpcClient.changes.discardChanges.mutate({
-				worktreePath,
-				filePath: path,
-			});
+			electronTrpcClient.changes.discardChanges
+				.mutate({ worktreePath, filePath: path })
+				.catch((err) => {
+					toast.error("Couldn't discard changes", {
+						description: err instanceof Error ? err.message : String(err),
+					});
+				});
 		};
 	}, [category, worktreePath, path]);
 

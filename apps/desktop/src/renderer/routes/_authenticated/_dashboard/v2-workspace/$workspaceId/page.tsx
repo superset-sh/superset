@@ -123,11 +123,9 @@ function WorkspaceContent({
 	const openDiffPane = useCallback(
 		(filePath: string, category: "against-base" | "staged" | "unstaged") => {
 			const state = store.getState();
-			// Reuse an existing diff pane: update its `path` so ScrollToFile jumps,
-			// and preserve `collapsedFiles`. openPane's default reuse uses replacePane
-			// which would reset that state, so do the update by hand.
-			for (const tab of state.tabs) {
-				for (const pane of Object.values(tab.panes)) {
+			const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+			if (activeTab) {
+				for (const pane of Object.values(activeTab.panes)) {
 					if (pane.kind !== "diff") continue;
 					const prev = pane.data as DiffPaneData;
 					state.setPaneData({
@@ -138,7 +136,7 @@ function WorkspaceContent({
 							category,
 						} as PaneViewerData,
 					});
-					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					state.setActivePane({ tabId: activeTab.id, paneId: pane.id });
 					return;
 				}
 			}
@@ -149,7 +147,6 @@ function WorkspaceContent({
 						path: filePath,
 						category,
 						collapsedFiles: [],
-						scrollTop: 0,
 					} as DiffPaneData,
 				},
 				tabTitle: "Changes",

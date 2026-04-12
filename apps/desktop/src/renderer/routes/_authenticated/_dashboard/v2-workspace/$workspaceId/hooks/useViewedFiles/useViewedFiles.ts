@@ -4,11 +4,8 @@ import { useCallback, useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 export interface ViewedFilesApi {
-	viewedFiles: string[];
 	viewedSet: Set<string>;
-	isViewed: (path: string) => boolean;
 	setViewed: (path: string, next: boolean) => void;
-	toggleViewed: (path: string) => void;
 }
 
 export function useViewedFiles(workspaceId: string): ViewedFilesApi {
@@ -39,14 +36,5 @@ export function useViewedFiles(workspaceId: string): ViewedFilesApi {
 		[collections, workspaceId],
 	);
 
-	const isViewed = useCallback(
-		(path: string) => viewedSet.has(path),
-		[viewedSet],
-	);
-	const toggleViewed = useCallback(
-		(path: string) => setViewed(path, !viewedSet.has(path)),
-		[setViewed, viewedSet],
-	);
-
-	return { viewedFiles, viewedSet, isViewed, setViewed, toggleViewed };
+	return { viewedSet, setViewed };
 }

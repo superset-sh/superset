@@ -31,16 +31,21 @@ export function useChangeset({
 		{ enabled, staleTime: Number.POSITIVE_INFINITY },
 	);
 
-	useWorkspaceEvent("git:changed", workspaceId, (payload) => {
-		void utils.git.getStatus.invalidate({ workspaceId });
-		if (payload.paths && payload.paths.length > 0) {
-			for (const path of payload.paths) {
-				void utils.git.getDiff.invalidate({ workspaceId, path });
+	useWorkspaceEvent(
+		"git:changed",
+		workspaceId,
+		(payload) => {
+			void utils.git.getStatus.invalidate({ workspaceId });
+			if (payload.paths && payload.paths.length > 0) {
+				for (const path of payload.paths) {
+					void utils.git.getDiff.invalidate({ workspaceId, path });
+				}
+			} else {
+				void utils.git.getDiff.invalidate({ workspaceId });
 			}
-		} else {
-			void utils.git.getDiff.invalidate({ workspaceId });
-		}
-	});
+		},
+		enabled,
+	);
 
 	const files = useMemo<ChangesetFile[]>(() => {
 		const status = statusQuery.data;

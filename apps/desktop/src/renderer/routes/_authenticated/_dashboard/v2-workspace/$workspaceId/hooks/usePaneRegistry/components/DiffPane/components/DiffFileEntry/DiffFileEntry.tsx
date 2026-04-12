@@ -148,7 +148,6 @@ function LargeDiffPlaceholder({
 	onToggleViewed,
 	onOpenFile,
 }: LargeDiffPlaceholderProps) {
-	const noop = () => {};
 	const total = file.additions + file.deletions;
 	return (
 		<div className="flex flex-col overflow-hidden rounded-md border border-border">
@@ -158,7 +157,6 @@ function LargeDiffPlaceholder({
 				additions={file.additions}
 				deletions={file.deletions}
 				expandUnchanged={false}
-				onToggleExpandUnchanged={noop}
 				collapsed={collapsed}
 				onToggleCollapsed={onToggleCollapsed}
 				viewed={viewed}
