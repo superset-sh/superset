@@ -37,10 +37,9 @@ function getShellName(shell: string): string {
 
 /**
  * Matches desktop shell-wrappers.ts fish init: idempotent PATH prepend +
- * OSC 133 semantic prompt markers (FinalTerm standard).
+ * OSC 133;A prompt marker (FinalTerm standard) for shell readiness.
  *
  * Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
- * Vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
  */
 function buildFishInitCommand(binDir: string): string {
 	const escaped = binDir
@@ -51,17 +50,8 @@ function buildFishInitCommand(binDir: string): string {
 		`set -l _superset_bin "${escaped}"`,
 		`contains -- "$_superset_bin" $PATH`,
 		`or set -gx PATH "$_superset_bin" $PATH`,
-		// OSC 133;A — prompt start (shell ready)
 		`function _superset_prompt_mark --on-event fish_prompt`,
 		`printf '\\033]133;A\\007'`,
-		`end`,
-		// OSC 133;C — command output start
-		`function _superset_preexec --on-event fish_preexec`,
-		`printf '\\033]133;C\\007'`,
-		`end`,
-		// OSC 133;D;{exit_code} — command finished
-		`function _superset_postexec --on-event fish_postexec`,
-		`printf '\\033]133;D;%s\\007' $status`,
 		`end`,
 	].join("; ");
 }

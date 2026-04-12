@@ -218,26 +218,13 @@ ${SUPERSET_ENV_RESTORE}
 ${buildZshPrecmdHook(paths.BIN_DIR)}
 ${buildPathPrependFunction(paths.BIN_DIR)}
 rehash 2>/dev/null || true
-# OSC 133 semantic prompt markers (FinalTerm standard).
-# Enables shell readiness detection and command exit code tracking.
+# OSC 133;A prompt marker (FinalTerm standard) — signals shell readiness.
 # Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
-# Vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
-__superset_semantic_precmd_executing=""
-__superset_semantic_precmd() {
-  local ret="$?"
-  if [[ "$__superset_semantic_precmd_executing" != "" ]]; then
-    printf "\\033]133;D;%s\\007" "$ret"
-  fi
+__superset_prompt_mark() {
   printf "\\033]133;A\\007"
-  __superset_semantic_precmd_executing=0
 }
-__superset_semantic_preexec() {
-  printf "\\033]133;C;\\007"
-  __superset_semantic_precmd_executing=1
-}
-# Keep our hooks LAST so they fire after direnv and other precmd hooks complete.
-precmd_functions=(\${precmd_functions[@]} __superset_semantic_precmd)
-preexec_functions=(\${preexec_functions[@]} __superset_semantic_preexec)
+# Keep our hook LAST so it fires after direnv and other precmd hooks complete.
+precmd_functions=(\${precmd_functions[@]} __superset_prompt_mark)
 export ZDOTDIR="$_superset_home"
 `;
 	const wroteZlogin = writeFileIfChanged(zloginPath, zloginScript, 0o644);
@@ -281,41 +268,22 @@ ${buildPathPrependFunction(paths.BIN_DIR)}
 hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
-# OSC 133 semantic prompt markers (FinalTerm standard).
-# Enables shell readiness detection and command exit code tracking.
+# OSC 133;A prompt marker (FinalTerm standard) — signals shell readiness.
 # Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
-# Vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
-__superset_semantic_precmd_executing=""
-__superset_semantic_precmd() {
-  local ret="$?"
-  if [[ "$__superset_semantic_precmd_executing" != "" ]]; then
-    printf "\\033]133;D;%s\\007" "$ret"
-  fi
+__superset_prompt_mark() {
   printf "\\033]133;A\\007"
-  __superset_semantic_precmd_executing=0
 }
-__superset_semantic_preexec() {
-  printf "\\033]133;C;\\007"
-  __superset_semantic_precmd_executing=1
-}
-# Hook precmd via PROMPT_COMMAND. Supports both scalar and array forms (Bash 5.1+).
+# Hook via PROMPT_COMMAND. Supports both scalar and array forms (Bash 5.1+).
 if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
-  PROMPT_COMMAND=("\${PROMPT_COMMAND[@]}" "__superset_semantic_precmd")
+  PROMPT_COMMAND=("\${PROMPT_COMMAND[@]}" "__superset_prompt_mark")
 else
   _superset_orig_prompt_cmd="\${PROMPT_COMMAND}"
   if [[ -n "\${_superset_orig_prompt_cmd}" ]]; then
-    PROMPT_COMMAND="\${_superset_orig_prompt_cmd};__superset_semantic_precmd"
+    PROMPT_COMMAND="\${_superset_orig_prompt_cmd};__superset_prompt_mark"
   else
-    PROMPT_COMMAND="__superset_semantic_precmd"
+    PROMPT_COMMAND="__superset_prompt_mark"
   fi
 fi
-# Hook preexec via DEBUG trap (bash doesn't have native preexec).
-__superset_bash_preexec() {
-  if [[ "$__superset_semantic_precmd_executing" == "0" ]]; then
-    __superset_semantic_preexec
-  fi
-}
-trap '__superset_bash_preexec' DEBUG
 `;
 	const changed = writeFileIfChanged(rcfilePath, script, 0o644);
 	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} bash wrapper`);
@@ -347,7 +315,7 @@ export function getShellArgs(
 	if (shellName === "fish") {
 		// Use --init-command to prepend BIN_DIR to PATH after config is loaded.
 		// Use fish list-aware checks to avoid duplicate PATH entries across nested shells.
-		// OSC 133 markers vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
+		// OSC 133;A emitted on fish_prompt — signals shell readiness.
 		const escapedBinDir = escapeFishDoubleQuoted(paths.BIN_DIR);
 		return [
 			"-l",
@@ -358,12 +326,6 @@ export function getShellArgs(
 				`or set -gx PATH "$_superset_bin" $PATH`,
 				`function _superset_prompt_mark --on-event fish_prompt`,
 				`printf '\\033]133;A\\007'`,
-				`end`,
-				`function _superset_preexec --on-event fish_preexec`,
-				`printf '\\033]133;C\\007'`,
-				`end`,
-				`function _superset_postexec --on-event fish_postexec`,
-				`printf '\\033]133;D;%s\\007' $status`,
 				`end`,
 			].join("; "),
 		];

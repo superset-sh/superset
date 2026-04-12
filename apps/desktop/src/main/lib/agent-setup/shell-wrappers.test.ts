@@ -839,10 +839,7 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args[0]).toBe("-l");
 			expect(args[1]).toBe("--init-command");
 			expect(args[2]).toContain(`set -l _superset_bin "${TEST_BIN_DIR}"`);
-			expect(args[2]).toContain("133;A");
-			expect(args[2]).toContain("133;C");
-			expect(args[2]).toContain("133;D");
-			expect(args[2]).not.toContain("777");
+			expect(args[2]).toContain("\\033]133;A\\007");
 		});
 
 		it("escapes fish init-command BIN_DIR safely", () => {
