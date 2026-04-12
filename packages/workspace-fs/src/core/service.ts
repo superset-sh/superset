@@ -50,6 +50,13 @@ export interface FsService {
 		destinationAbsolutePath: string;
 	}): Promise<{ fromAbsolutePath: string; toAbsolutePath: string }>;
 
+	importExternalFiles(input: {
+		sourcePaths: string[];
+		destinationDirectoryPath: string;
+	}): Promise<{
+		imported: Array<{ sourcePath: string; destinationPath: string }>;
+	}>;
+
 	searchFiles(input: {
 		query: string;
 		includeHidden?: boolean;
@@ -121,6 +128,15 @@ export interface FsRequestMap {
 			destinationAbsolutePath: string;
 		};
 		output: { fromAbsolutePath: string; toAbsolutePath: string };
+	};
+	importExternalFiles: {
+		input: {
+			sourcePaths: string[];
+			destinationDirectoryPath: string;
+		};
+		output: {
+			imported: Array<{ sourcePath: string; destinationPath: string }>;
+		};
 	};
 	searchFiles: {
 		input: {

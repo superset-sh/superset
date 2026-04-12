@@ -1,0 +1,1 @@
+export { useFileTreePaste } from "./useFileTreePaste";

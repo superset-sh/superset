@@ -4,6 +4,7 @@ import {
 	createDirectory,
 	deletePath,
 	getMetadata,
+	importExternalFiles,
 	listDirectory,
 	movePath,
 	readFile,
@@ -202,6 +203,14 @@ export function createFsHostService(
 				rootPath,
 				sourceAbsolutePath: input.sourceAbsolutePath,
 				destinationAbsolutePath: input.destinationAbsolutePath,
+			});
+		},
+
+		async importExternalFiles(input) {
+			return await importExternalFiles({
+				rootPath,
+				sourcePaths: input.sourcePaths,
+				destinationDirectoryPath: input.destinationDirectoryPath,
 			});
 		},
 

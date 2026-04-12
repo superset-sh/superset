@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
 	EXTERNAL_APPS,
 	NON_EDITOR_APPS,
@@ -181,6 +184,71 @@ export const createExternalRouter = () => {
 
 				await openPathInApp(filePath, app);
 			}),
+
+		readClipboardFilePaths: publicProcedure.query(() => {
+			// macOS: Finder copies files as NSFilenamesPboardType (XML plist)
+			try {
+				const plist = clipboard.read("NSFilenamesPboardType");
+				if (plist) {
+					// Parse XML plist — file paths are in <string> tags
+					const matches = plist.match(/<string>([^<]+)<\/string>/g);
+					if (matches) {
+						const xmlEntities: Record<string, string> = {
+							"&amp;": "&",
+							"&lt;": "<",
+							"&gt;": ">",
+							"&quot;": '"',
+							"&apos;": "'",
+						};
+						const decodeXmlEntities = (s: string) =>
+							s.replace(
+								/&(?:amp|lt|gt|quot|apos);/g,
+								(m) => xmlEntities[m] ?? m,
+							);
+						const paths = matches
+							.map((m) => decodeXmlEntities(m.replace(/<\/?string>/g, "")))
+							.filter((p) => path.isAbsolute(p) && fs.existsSync(p));
+						if (paths.length > 0) return paths;
+					}
+				}
+			} catch (error) {
+				console.warn(
+					"[readClipboardFilePaths] Failed to read NSFilenamesPboardType:",
+					error,
+				);
+			}
+
+			// Fallback: check for text/uri-list (Linux/other)
+			const formats = clipboard.availableFormats();
+			if (formats.includes("text/uri-list")) {
+				const uriList = clipboard.read("text/uri-list");
+				const paths = uriList
+					.split(/[\r\n]+/)
+					.filter((line) => line.startsWith("file://"))
+					.map((uri) => {
+						try {
+							return fileURLToPath(uri);
+						} catch (error) {
+							console.warn(
+								"[readClipboardFilePaths] Failed to parse file URI:",
+								uri,
+								error,
+							);
+							return null;
+						}
+					})
+					.filter((p): p is string => p !== null && fs.existsSync(p));
+				if (paths.length > 0) return paths;
+			}
+
+			// Fallback: check if clipboard text is an absolute file path
+			const text = clipboard.readText().trim();
+			if (text && path.isAbsolute(text) && fs.existsSync(text)) {
+				return [text];
+			}
+
+			return [];
+		}),
 	});
 };
 
