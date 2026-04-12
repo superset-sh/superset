@@ -135,7 +135,10 @@ export const Terminal = memo(function Terminal({
 	} = useTerminalModes();
 
 	// File link click handler
-	const { handleFileLinkClick } = useFileLinkClick({ workspaceId });
+	const { handleFileLinkClick } = useFileLinkClick({
+		workspaceId,
+		projectId: workspaceData?.projectId,
+	});
 
 	// URL click handler - opens in app browser or system browser based on setting
 	const { data: openLinksInApp } =
