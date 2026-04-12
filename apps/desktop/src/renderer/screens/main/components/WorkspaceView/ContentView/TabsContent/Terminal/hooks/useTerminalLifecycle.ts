@@ -234,7 +234,14 @@ export function useTerminalLifecycle({
 
 		// Use the v1 terminal cache: reuse existing xterm instance across tab
 		// switches instead of creating/disposing each time (v2 "hide attach" pattern).
-		const isReattach = v1TerminalCache.has(paneId);
+		// Only treat as reattach when the prior mount actually completed attach —
+		// a cache entry can exist with streamReady=false if the previous mount
+		// unmounted before createOrAttach finished (e.g. bulk tab creation where
+		// React remounts a pane mid-attach). Taking the reattach fast path in
+		// that state leaves the pane permanently disconnected with no daemon
+		// session and no stream subscription.
+		const cachedBeforeCreate = v1TerminalCache.get(paneId);
+		const isReattach = cachedBeforeCreate?.streamReady === true;
 		if (DEBUG_TERMINAL) {
 			console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
 		}
