@@ -6,7 +6,7 @@ import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
-import type { ITheme } from "@xterm/xterm";
+import type { ILinkHandler, ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { getBinding, isTerminalReservedEvent } from "renderer/hotkeys";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -93,7 +93,37 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	} = options;
 
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+
+	const openUrl = (uri: string) => {
+		const handler = urlClickRef?.current;
+		if (handler) {
+			handler(uri);
+			return;
+		}
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+			toast.error("Failed to open URL", {
+				description:
+					error instanceof Error
+						? error.message
+						: "Could not open URL in browser",
+			});
+		});
+	};
+
+	// Handle OSC 8 hyperlinks (e.g. Claude Code footer links) using the same
+	// Cmd/Ctrl+click behavior as plain URL links.
+	const linkHandler: ILinkHandler = {
+		activate: (event, text) => {
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
+			event.preventDefault();
+			openUrl(text);
+		},
+	};
+
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme, linkHandler };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 	const searchAddon = new SearchAddon();
@@ -144,20 +174,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		const handler = urlClickRef?.current;
-		if (handler) {
-			handler(uri);
-			return;
-		}
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-			toast.error("Failed to open URL", {
-				description:
-					error instanceof Error
-						? error.message
-						: "Could not open URL in browser",
-			});
-		});
+		openUrl(uri);
 	});
 	xterm.registerLinkProvider(urlLinkProvider);
 
