@@ -737,7 +737,6 @@ export function useTerminalLifecycle({
 			onPaste: (text) => {
 				commandBufferRef.current += text;
 			},
-			onWrite: handleWrite,
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
