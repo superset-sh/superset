@@ -9,6 +9,8 @@ import {
 
 /** OSC 133;A marker emitted by shell wrappers (FinalTerm standard). */
 const SHELL_READY_MARKER = "\x1b]133;A\x07";
+/** Legacy OSC 777 marker emitted by pre-#3348 wrappers / stale daemons. */
+const LEGACY_READY_MARKER = "\x1b]777;superset-shell-ready\x07";
 import "./xterm-env-polyfill";
 
 const { Session } = await import("./session");
@@ -267,6 +269,46 @@ describe("Session shell-ready: marker detection", () => {
 		// Now send the real marker
 		sendData(proc, SHELL_READY_MARKER);
 		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+	});
+});
+
+describe("Session shell-ready: legacy OSC 777 marker", () => {
+	it("unblocks writes when only the legacy marker arrives", () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		session.write("buffered\n");
+		expect(getWrittenData(proc)).toEqual([]);
+
+		// Stale daemon / old wrapper emits the pre-#3348 OSC 777 marker.
+		sendData(proc, `direnv output...${LEGACY_READY_MARKER}prompt$ `);
+
+		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+	});
+
+	it("detects legacy marker split across two PTY data frames", () => {
+		const { session, proc } = createTestSession("/bin/bash");
+		spawnAndReady(session, proc);
+
+		const half = Math.floor(LEGACY_READY_MARKER.length / 2);
+		sendData(proc, `output${LEGACY_READY_MARKER.slice(0, half)}`);
+
+		session.write("buffered\n");
+		expect(getWrittenData(proc)).toEqual([]);
+
+		sendData(proc, `${LEGACY_READY_MARKER.slice(half)}prompt`);
+		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+	});
+
+	it("strips legacy marker from emitted output", () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		sendData(proc, `before${LEGACY_READY_MARKER}after`);
+
+		// Shell is ready — write passes through.
+		session.write("ok\n");
+		expect(getWrittenData(proc)).toEqual(["ok\n"]);
 	});
 });
 
