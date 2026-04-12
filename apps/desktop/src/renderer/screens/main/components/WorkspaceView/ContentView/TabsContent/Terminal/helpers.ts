@@ -66,7 +66,12 @@ export function getDefaultTerminalBg(): string {
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
 export interface CreateTerminalOptions {
-	cwd?: string;
+	/**
+	 * Workspace id used for worktree lookup during path stat/resolution.
+	 * The main process looks up the worktree root, so relative paths always
+	 * anchor to the correct worktree regardless of renderer load state.
+	 */
+	workspaceId?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
@@ -88,7 +93,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	cleanup: () => void;
 } {
 	const {
-		cwd,
+		workspaceId,
 		initialTheme,
 		onFileLinkClick,
 		onUrlClickRef: urlClickRef,
@@ -149,7 +154,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	linkManager.setHandlers({
 		stat: async (path) => {
 			try {
-				return await trpcClient.external.statPath.mutate({ path, cwd });
+				return await trpcClient.external.statPath.mutate({ path, workspaceId });
 			} catch {
 				return null;
 			}
@@ -164,7 +169,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 					path: link.resolvedPath,
 					line: link.row,
 					column: link.col,
-					cwd,
 				})
 				.catch((error) => {
 					console.error(

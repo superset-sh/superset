@@ -101,7 +101,6 @@ export interface UseTerminalLifecycleOptions {
 	isRestoredModeRef: MutableRefObject<boolean>;
 	connectionErrorRef: MutableRefObject<string | null>;
 	initialThemeRef: MutableRefObject<ITheme | null>;
-	workspaceCwdRef: MutableRefObject<string | null>;
 	handleFileLinkClickRef: MutableRefObject<
 		(event: MouseEvent, link: DetectedLink) => void
 	>;
@@ -166,7 +165,6 @@ export function useTerminalLifecycle({
 	isRestoredModeRef,
 	connectionErrorRef,
 	initialThemeRef,
-	workspaceCwdRef,
 	handleFileLinkClickRef,
 	handleUrlClickRef,
 	paneInitialCwdRef,
@@ -241,7 +239,7 @@ export function useTerminalLifecycle({
 			console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
 		}
 		const cached = v1TerminalCache.getOrCreate(paneId, {
-			cwd: workspaceCwdRef.current ?? undefined,
+			workspaceId,
 			initialTheme: initialThemeRef.current,
 			onFileLinkClick: (event, link) =>
 				handleFileLinkClickRef.current(event, link),

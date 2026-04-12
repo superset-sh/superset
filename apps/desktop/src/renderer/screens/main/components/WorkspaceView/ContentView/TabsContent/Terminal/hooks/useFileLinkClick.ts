@@ -7,7 +7,6 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 
 export interface UseFileLinkClickOptions {
 	workspaceId: string;
-	workspaceCwd: string | null | undefined;
 }
 
 export interface UseFileLinkClickReturn {
@@ -16,7 +15,6 @@ export interface UseFileLinkClickReturn {
 
 export function useFileLinkClick({
 	workspaceId,
-	workspaceCwd,
 }: UseFileLinkClickOptions): UseFileLinkClickReturn {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 
@@ -30,12 +28,7 @@ export function useFileLinkClick({
 
 			const openInExternalEditor = () => {
 				trpcClient.external.openFileInEditor
-					.mutate({
-						path: resolvedPath,
-						line,
-						column,
-						cwd: workspaceCwd ?? undefined,
-					})
+					.mutate({ path: resolvedPath, line, column })
 					.catch((error) => {
 						console.error(
 							"[Terminal] Failed to open file in editor:",
@@ -55,18 +48,13 @@ export function useFileLinkClick({
 				return;
 			}
 
-			if (!workspaceCwd || resolvedPath === workspaceCwd) {
-				if (!workspaceCwd) openInExternalEditor();
-				return;
-			}
-
 			addFileViewerPane(workspaceId, {
 				filePath: resolvedPath,
 				line,
 				column,
 			});
 		},
-		[terminalLinkBehavior, workspaceId, workspaceCwd, addFileViewerPane],
+		[terminalLinkBehavior, workspaceId, addFileViewerPane],
 	);
 
 	return {

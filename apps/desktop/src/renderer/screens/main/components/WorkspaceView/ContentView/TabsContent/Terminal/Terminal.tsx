@@ -135,10 +135,7 @@ export const Terminal = memo(function Terminal({
 	} = useTerminalModes();
 
 	// File link click handler
-	const { handleFileLinkClick } = useFileLinkClick({
-		workspaceId,
-		workspaceCwd,
-	});
+	const { handleFileLinkClick } = useFileLinkClick({ workspaceId });
 
 	// URL click handler - opens in app browser or system browser based on setting
 	const { data: openLinksInApp } =
@@ -169,7 +166,6 @@ export const Terminal = memo(function Terminal({
 		initialThemeRef,
 		paneInitialCwdRef,
 		clearPaneInitialDataRef,
-		workspaceCwdRef,
 		handleFileLinkClickRef,
 		setPaneNameRef,
 		handleTerminalFocusRef,
@@ -188,7 +184,6 @@ export const Terminal = memo(function Terminal({
 		terminalTheme,
 		paneInitialCwd,
 		clearPaneInitialData,
-		workspaceCwd,
 		handleFileLinkClick,
 		setPaneName,
 		setFocusedPane,
@@ -316,7 +311,6 @@ export const Terminal = memo(function Terminal({
 		isRestoredModeRef,
 		connectionErrorRef,
 		initialThemeRef,
-		workspaceCwdRef,
 		handleFileLinkClickRef,
 		handleUrlClickRef,
 		paneInitialCwdRef,
