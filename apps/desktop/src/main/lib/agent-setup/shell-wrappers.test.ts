@@ -839,6 +839,9 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args[0]).toBe("-l");
 			expect(args[1]).toBe("--init-command");
 			expect(args[2]).toContain(`set -l _superset_bin "${TEST_BIN_DIR}"`);
+			// Both markers are emitted so old v1 daemons (777 scanner) and new
+			// scanners (133;A) both detect readiness without a daemon restart.
+			expect(args[2]).toContain("\\033]777;superset-shell-ready\\007");
 			expect(args[2]).toContain("\\033]133;A\\007");
 		});
 
@@ -854,7 +857,21 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args[2]).toContain(
 				'set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"',
 			);
+			expect(args[2]).toContain("777;superset-shell-ready");
 			expect(args[2]).toContain("133;A");
+		});
+
+		it("zsh/bash wrappers emit both legacy 777 and current 133;A markers", () => {
+			createZshWrapper(TEST_PATHS);
+			createBashWrapper(TEST_PATHS);
+
+			const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
+			const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
+
+			for (const wrapper of [zlogin, rcfile]) {
+				expect(wrapper).toContain("\\033]777;superset-shell-ready\\007");
+				expect(wrapper).toContain("\\033]133;A\\007");
+			}
 		});
 	});
 });
