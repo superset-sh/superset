@@ -1,6 +1,18 @@
 # V2 Workspace Creation Modal — Gap Analysis vs V1
 
-> Generated 2026-04-11. Compares V2 (`DashboardNewWorkspaceModal`) against V1 (`NewWorkspaceModal`).
+> Generated 2026-04-11. Last updated 2026-04-12. Compares V2 (`DashboardNewWorkspaceModal`) against V1 (`NewWorkspaceModal`).
+
+## Status Summary
+
+| # | Gap | Status |
+|---|-----|--------|
+| 1 | Project Picker — Open/New project actions | Open |
+| 2 | Branch Picker — Worktree awareness | Open |
+| 3 | AI Branch Name Generation | Open |
+| 4 | GitHub Issue Content Auto-Fetching | Open |
+| 5 | Agent Launch Request Building | Open |
+| 6 | Dedicated "Create from PR" Flow | Open |
+| 7 | PR URL Parsing and Cross-Repo Validation | ✅ Resolved (PR #3356) — extended to issues |
 
 ## File References
 
@@ -87,14 +99,17 @@
 
 ---
 
-### 7. PR URL Parsing and Cross-Repo Validation
+### 7. PR URL Parsing and Cross-Repo Validation — ✅ Resolved (PR #3356)
 
 **V1**: `PRLinkCommand` parses pasted GitHub PR URLs (`github.com/:owner/:repo/pull/:number`), detects cross-repository links, and shows an error ("PR URL must match {repo}") for mismatched repos.
 
-**V2**: `PRLinkCommand` uses host-service `searchPullRequests` endpoint only. No client-side URL parsing or cross-repo validation.
+**V2 (resolved)**: Server-side `normalizeGitHubQuery` in host-service handles URL parsing, `#123` / bare-number shorthand, and cross-repo validation. Response returns `{ repoMismatch: "owner/repo" }` and client shows "PR URL must match owner/repo." Same normalization also extended to `searchGitHubIssues`. Debounce-gap loading state (`isPendingDebounce`) added to prevent empty-state flash.
 
-**V1 ref**: `PRLinkCommand.tsx:37-53, 86-97`
-**V2 ref**: `PRLinkCommand.tsx` (V2 version)
+**Resolved by**: PR #3356 (merged 2026-04-11)
+**Refs**:
+- `packages/host-service/src/trpc/router/workspace-creation/normalize-github-query.ts`
+- `…/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx`
+- `…/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx`
 
 ---
 
@@ -104,7 +119,7 @@
 
 ---
 
-## Priority Assessment
+## Priority Assessment (remaining)
 
 | # | Gap | Impact | Effort |
 |---|-----|--------|--------|
@@ -114,4 +129,4 @@
 | 6 | Dedicated "create from PR" flow | Medium — PR workspaces may not set up branches properly | Medium |
 | 2 | Branch picker worktree awareness | Medium — can't discover/open existing worktrees | High |
 | 1 | Project picker open/new actions | Low — can do this outside the modal | Low |
-| 7 | PR URL parsing / cross-repo validation | Low — server search covers most cases | Low |
+| ~~7~~ | ~~PR URL parsing / cross-repo validation~~ | ✅ Resolved by #3356 | — |
