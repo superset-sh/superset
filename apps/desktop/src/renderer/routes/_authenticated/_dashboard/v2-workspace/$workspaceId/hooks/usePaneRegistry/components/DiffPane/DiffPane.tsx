@@ -1,8 +1,11 @@
 import { useVirtualizer, Virtualizer } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
@@ -70,6 +73,25 @@ export function DiffPane({ context, workspaceId }: DiffPaneProps) {
 
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const worktreePath = workspaceQuery.data?.worktreePath;
+	const projectId = workspaceQuery.data?.projectId;
+	const openFile = useCallback(
+		(path: string) => {
+			if (!worktreePath) return;
+			electronTrpcClient.external.openFileInEditor
+				.mutate({ path, cwd: worktreePath, projectId })
+				.catch((err) => {
+					toast.error("Couldn't open file", {
+						description: err instanceof Error ? err.message : String(err),
+					});
+				});
+		},
+		[worktreePath, projectId],
+	);
+
 	// O(1) collapsed lookup per child instead of Array.includes.
 	const collapsedSet = useMemo(
 		() => new Set(data.collapsedFiles ?? []),
@@ -119,6 +141,7 @@ export function DiffPane({ context, workspaceId }: DiffPaneProps) {
 					onSetCollapsed={setCollapsed}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={setViewed}
+					onOpenFile={openFile}
 				/>
 			))}
 		</Virtualizer>

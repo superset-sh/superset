@@ -3,10 +3,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useId } from "react";
 import { LuCopy, LuUndo2 } from "react-icons/lu";
+import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 interface DiffFileHeaderProps {
 	path: string;
+	status: string;
 	additions: number;
 	deletions: number;
 	expandUnchanged: boolean;
@@ -15,12 +17,14 @@ interface DiffFileHeaderProps {
 	onToggleCollapsed: () => void;
 	viewed: boolean;
 	onToggleViewed: () => void;
+	onOpenFile?: () => void;
 	onCopyContents?: () => void;
 	onDiscard?: () => void;
 }
 
 export function DiffFileHeader({
 	path,
+	status,
 	additions,
 	deletions,
 	expandUnchanged,
@@ -29,6 +33,7 @@ export function DiffFileHeader({
 	onToggleCollapsed,
 	viewed,
 	onToggleViewed,
+	onOpenFile,
 	onCopyContents,
 	onDiscard,
 }: DiffFileHeaderProps) {
@@ -48,23 +53,38 @@ export function DiffFileHeader({
 					<ChevronDown className="size-4" />
 				)}
 			</button>
-			<div className="flex min-w-0 flex-1 items-center gap-2 rounded border border-border bg-muted/50 px-2 py-1">
-				<FileIcon fileName={path} className="size-4 shrink-0" />
-				<span className="truncate font-mono text-xs text-foreground">
-					{path}
-				</span>
-				<span className="ml-1 shrink-0 font-mono text-[11px] text-muted-foreground">
-					{additions > 0 && (
-						<span className="text-green-700 dark:text-green-400">
-							+{additions}
+			<StatusIndicator status={status} />
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={onOpenFile}
+						disabled={!onOpenFile}
+						className="flex min-w-0 flex-1 items-center gap-2 rounded border border-border px-2 py-1 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
+					>
+						<FileIcon fileName={path} className="size-4 shrink-0" />
+						<span className="truncate font-mono text-xs text-foreground">
+							{path}
 						</span>
-					)}
-					{additions > 0 && deletions > 0 && " "}
-					{deletions > 0 && (
-						<span className="text-red-700 dark:text-red-500">-{deletions}</span>
-					)}
-				</span>
-			</div>
+						<span className="ml-1 shrink-0 font-mono text-[11px] text-muted-foreground">
+							{additions > 0 && (
+								<span className="text-green-700 dark:text-green-400">
+									+{additions}
+								</span>
+							)}
+							{additions > 0 && deletions > 0 && " "}
+							{deletions > 0 && (
+								<span className="text-red-700 dark:text-red-500">
+									-{deletions}
+								</span>
+							)}
+						</span>
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Open {path}
+				</TooltipContent>
+			</Tooltip>
 
 			<div className="flex shrink-0 items-center gap-2">
 				<div className="flex items-center gap-1.5">

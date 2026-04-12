@@ -3,6 +3,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { memo, useMemo } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getDiffsTheme,
 	getDiffViewerStyle,
@@ -29,6 +30,7 @@ interface ThreadAnnotation {
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
+	status: string;
 	category: "against-base" | "staged" | "unstaged";
 	additions: number;
 	deletions: number;
@@ -40,11 +42,13 @@ interface WorkspaceDiffProps {
 	onToggleCollapsed: () => void;
 	viewed: boolean;
 	onToggleViewed: () => void;
+	onOpenFile?: () => void;
 }
 
 export const WorkspaceDiff = memo(function WorkspaceDiff({
 	workspaceId,
 	path,
+	status,
 	category,
 	additions,
 	deletions,
@@ -55,6 +59,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	onToggleCollapsed,
 	viewed,
 	onToggleViewed,
+	onOpenFile,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
@@ -113,18 +118,21 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		[newContents, copyToClipboard],
 	);
 
-	const discardMutation = electronTrpc.changes.discardChanges.useMutation();
 	const handleDiscard = useMemo(() => {
 		if (category !== "unstaged" || !worktreePath) return undefined;
 		return () => {
-			discardMutation.mutate({ worktreePath, filePath: path });
+			void electronTrpcClient.changes.discardChanges.mutate({
+				worktreePath,
+				filePath: path,
+			});
 		};
-	}, [category, worktreePath, discardMutation, path]);
+	}, [category, worktreePath, path]);
 
 	return (
 		<div className="flex flex-col overflow-hidden rounded-md border border-border">
 			<DiffFileHeader
 				path={path}
+				status={status}
 				additions={additions}
 				deletions={deletions}
 				expandUnchanged={expandUnchanged}
@@ -133,6 +141,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				onToggleCollapsed={onToggleCollapsed}
 				viewed={viewed}
 				onToggleViewed={onToggleViewed}
+				onOpenFile={onOpenFile}
 				onCopyContents={handleCopyContents}
 				onDiscard={handleDiscard}
 			/>

@@ -1,0 +1,1 @@
+export { partitionByViewed } from "./partitionByViewed";

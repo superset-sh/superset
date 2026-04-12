@@ -1,8 +1,9 @@
+import { toast } from "@superset/ui/sonner";
 import { memo, useCallback, useRef, useState } from "react";
-import { useInView } from "renderer/hooks/useInView";
 import type { ChangesetFile } from "../../../../../useChangeset";
 import { DiffFileHeader } from "../DiffFileHeader";
 import { WorkspaceDiff } from "../WorkspaceDiff";
+import { useInView } from "./hooks/useInView";
 
 const LINE_HEIGHT_PX = 20;
 const HEADER_HEIGHT_PX = 44;
@@ -28,6 +29,7 @@ interface DiffFileEntryProps {
 	onSetCollapsed: (path: string, value: boolean) => void;
 	viewed: boolean;
 	onSetViewed: (path: string, next: boolean) => void;
+	onOpenFile: (path: string) => void;
 }
 
 export const DiffFileEntry = memo(function DiffFileEntry({
@@ -38,6 +40,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	onSetCollapsed,
 	viewed,
 	onSetViewed,
+	onOpenFile,
 }: DiffFileEntryProps) {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const isNear = useInView(wrapperRef, { rootMargin: "2000px 0px" });
@@ -57,6 +60,15 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		onSetViewed(file.path, next);
 		onSetCollapsed(file.path, next);
 	}, [viewed, file.path, onSetViewed, onSetCollapsed]);
+	const handleOpenFile = useCallback(() => {
+		if (file.status === "deleted") {
+			toast.error("File no longer exists", {
+				description: `${file.path} was deleted in this change.`,
+			});
+			return;
+		}
+		onOpenFile(file.path);
+	}, [file.status, file.path, onOpenFile]);
 	const handleShowLargeDiff = useCallback(() => setShowLargeDiff(true), []);
 	const handleToggleExpandUnchanged = useCallback(
 		() => setExpandUnchanged((prev) => !prev),
@@ -79,6 +91,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					onToggleCollapsed={handleToggleCollapsed}
 					viewed={viewed}
 					onToggleViewed={handleToggleViewed}
+					onOpenFile={handleOpenFile}
 				/>
 			</div>
 		);
@@ -98,6 +111,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 				<WorkspaceDiff
 					workspaceId={workspaceId}
 					path={file.path}
+					status={file.status}
 					category={file.category}
 					additions={file.additions}
 					deletions={file.deletions}
@@ -108,6 +122,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					onToggleCollapsed={handleToggleCollapsed}
 					viewed={viewed}
 					onToggleViewed={handleToggleViewed}
+					onOpenFile={handleOpenFile}
 				/>
 			) : null}
 		</div>
@@ -121,6 +136,7 @@ interface LargeDiffPlaceholderProps {
 	onToggleCollapsed: () => void;
 	viewed: boolean;
 	onToggleViewed: () => void;
+	onOpenFile?: () => void;
 }
 
 function LargeDiffPlaceholder({
@@ -130,6 +146,7 @@ function LargeDiffPlaceholder({
 	onToggleCollapsed,
 	viewed,
 	onToggleViewed,
+	onOpenFile,
 }: LargeDiffPlaceholderProps) {
 	const noop = () => {};
 	const total = file.additions + file.deletions;
@@ -137,6 +154,7 @@ function LargeDiffPlaceholder({
 		<div className="flex flex-col overflow-hidden rounded-md border border-border">
 			<DiffFileHeader
 				path={file.path}
+				status={file.status}
 				additions={file.additions}
 				deletions={file.deletions}
 				expandUnchanged={false}
@@ -145,6 +163,7 @@ function LargeDiffPlaceholder({
 				onToggleCollapsed={onToggleCollapsed}
 				viewed={viewed}
 				onToggleViewed={onToggleViewed}
+				onOpenFile={onOpenFile}
 			/>
 			{!collapsed && (
 				<div
