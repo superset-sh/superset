@@ -1,6 +1,5 @@
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useMemo, useRef } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useEffect, useRef } from "react";
+import { useV2ProjectList } from "renderer/routes/_authenticated/hooks/useV2ProjectList";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
 
@@ -21,44 +20,9 @@ export function DashboardNewWorkspaceModalContent({
 	preSelectedProjectId,
 }: DashboardNewWorkspaceModalContentProps) {
 	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
-	const collections = useCollections();
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.select(({ projects }) => ({ ...projects })),
-		[collections],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
-				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				githubRepoName: repo?.name ?? null,
-			};
-		});
-	}, [githubRepositories, v2Projects]);
-
-	const areProjectsReady = v2Projects !== undefined;
+	const recentProjects = useV2ProjectList();
+	const areProjectsReady = recentProjects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -74,7 +38,7 @@ export function DashboardNewWorkspaceModalContent({
 			preSelectedProjectId &&
 			preSelectedProjectId !== appliedPreSelectionRef.current
 		) {
-			if (!areProjectsReady) return;
+			if (!areProjectsReady || !recentProjects) return;
 			const hasPreSelectedProject = recentProjects.some(
 				(project) => project.id === preSelectedProjectId,
 			);
@@ -87,7 +51,7 @@ export function DashboardNewWorkspaceModalContent({
 			}
 		}
 
-		if (!areProjectsReady) return;
+		if (!areProjectsReady || !recentProjects) return;
 
 		const hasSelectedProject = recentProjects.some(
 			(project) => project.id === draft.selectedProjectId,
@@ -104,7 +68,8 @@ export function DashboardNewWorkspaceModalContent({
 		updateDraft,
 	]);
 
-	const selectedProject = recentProjects.find(
+	const projects = recentProjects ?? [];
+	const selectedProject = projects.find(
 		(project) => project.id === draft.selectedProjectId,
 	);
 
@@ -113,7 +78,7 @@ export function DashboardNewWorkspaceModalContent({
 			<PromptGroup
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
-				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+				recentProjects={projects.filter((project) => Boolean(project.id))}
 				onSelectProject={(selectedProjectId) =>
 					updateDraft({ selectedProjectId })
 				}

@@ -72,3 +72,10 @@ export interface DashboardSidebarProject {
 	isCollapsed: boolean;
 	children: DashboardSidebarProjectChild[];
 }
+
+export interface DashboardSidebarPendingProject {
+	id: string;
+	name: string;
+	githubOwner: string | null;
+	status: "not_setup" | "path_missing";
+}

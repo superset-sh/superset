@@ -21,7 +21,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOpenAddRepositoryDialog } from "renderer/stores/add-repository-dialog";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
+import { DashboardSidebarPendingProjectRow } from "./components/DashboardSidebarPendingProjectRow";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
@@ -81,10 +83,15 @@ function SortableProjectWrapper({
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
-	const { groups, refreshWorkspacePullRequest, toggleProjectCollapsed } =
-		useDashboardSidebarData();
+	const {
+		groups,
+		pendingProjects,
+		refreshWorkspacePullRequest,
+		toggleProjectCollapsed,
+	} = useDashboardSidebarData();
 	const workspaceShortcutLabels = useDashboardSidebarShortcuts(groups);
 	const { reorderProjects } = useDashboardSidebarState();
+	const openAddRepo = useOpenAddRepositoryDialog();
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -183,6 +190,26 @@ export function DashboardSidebar({
 						document.body,
 					)}
 				</DndContext>
+
+				{pendingProjects.length > 0 && (
+					<div className="mt-2 border-t border-border pt-1">
+						{!isCollapsed && (
+							<div className="px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/60">
+								Needs setup
+							</div>
+						)}
+						{pendingProjects.map((project) => (
+							<DashboardSidebarPendingProjectRow
+								key={project.id}
+								projectName={project.name}
+								githubOwner={project.githubOwner}
+								status={project.status}
+								isCollapsed={isCollapsed}
+								onClick={() => openAddRepo(project.id)}
+							/>
+						))}
+					</div>
+				)}
 			</div>
 		</div>
 	);

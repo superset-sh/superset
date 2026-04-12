@@ -22,6 +22,7 @@ import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { AddRepositoryDialog } from "renderer/routes/_authenticated/components/AddRepositoryDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -185,7 +186,10 @@ function AuthenticatedLayout() {
 					<Outlet />
 					<WorkspaceInitEffects />
 					{isV2CloudEnabled ? (
-						<DashboardNewWorkspaceModal />
+						<>
+							<DashboardNewWorkspaceModal />
+							<AddRepositoryDialog />
+						</>
 					) : (
 						<NewWorkspaceModal />
 					)}

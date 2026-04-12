@@ -6,10 +6,12 @@ import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useV2ProjectList } from "renderer/routes/_authenticated/hooks/useV2ProjectList";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import type {
+	DashboardSidebarPendingProject,
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
@@ -338,8 +340,35 @@ export function useDashboardSidebarData() {
 		sidebarWorkspaces,
 	]);
 
+	// Pending projects: all v2Projects whose setup status is not "ready".
+	// Rendered as a separate section below the main project list.
+	const allV2Projects = useV2ProjectList();
+	const pendingProjects = useMemo<DashboardSidebarPendingProject[]>(() => {
+		if (!allV2Projects) return [];
+		return allV2Projects
+			.filter((p) => p.setupStatus !== "ready")
+			.map((p) => ({
+				id: p.id,
+				name: p.name,
+				githubOwner: p.githubOwner,
+				status: p.setupStatus === "path_missing" ? "path_missing" : "not_setup",
+			}));
+	}, [allV2Projects]);
+
+	// Filter pending projects out of the main groups list so they only render
+	// once (in the pending section below).
+	const pendingIds = useMemo(
+		() => new Set(pendingProjects.map((p) => p.id)),
+		[pendingProjects],
+	);
+	const setupGroups = useMemo(
+		() => groups.filter((g) => !pendingIds.has(g.id)),
+		[groups, pendingIds],
+	);
+
 	return {
-		groups,
+		groups: setupGroups,
+		pendingProjects,
 		refetchPullRequests,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,

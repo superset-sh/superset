@@ -5,6 +5,7 @@ import { LuFolderPlus, LuLayers, LuPlus } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
+import { useOpenAddRepositoryDialog } from "renderer/stores/add-repository-dialog";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
@@ -15,6 +16,7 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
+	const openAddRepo = useOpenAddRepositoryDialog();
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -51,6 +53,7 @@ export function DashboardSidebarHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							onClick={() => openAddRepo()}
 							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 						>
 							<LuFolderPlus className="size-4" />
@@ -87,6 +90,7 @@ export function DashboardSidebarHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							onClick={() => openAddRepo()}
 							className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 						>
 							<LuFolderPlus className="size-4" />

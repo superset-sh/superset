@@ -97,6 +97,19 @@ export const projectRouter = router({
 			return { repoPath: resolved.repoPath };
 		}),
 
+	/**
+	 * Returns setup status for every local project row.
+	 * Projects absent from the result are implicitly "not_setup" on the client.
+	 */
+	listSetupStatus: protectedProcedure.query(({ ctx }) => {
+		const rows = ctx.db.select().from(projects).all();
+		const statusById: Record<string, "ready" | "path_missing"> = {};
+		for (const row of rows) {
+			statusById[row.id] = existsSync(row.repoPath) ? "ready" : "path_missing";
+		}
+		return statusById;
+	}),
+
 	// TODO: remove
 	remove: protectedProcedure
 		.input(z.object({ projectId: z.string() }))

@@ -4,19 +4,23 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
-import { env } from "renderer/env.renderer";
+import { HiCheck } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	clearAttachments,
 	loadAttachments,
 } from "renderer/lib/pending-attachment-store";
+import { resolveHostUrl } from "renderer/lib/resolveHostUrl";
 import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
+import { ProjectSetupStep } from "renderer/routes/_authenticated/components/ProjectSetupStep";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useV2ProjectList } from "renderer/routes/_authenticated/hooks/useV2ProjectList";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
+import { PendingCreatingStatus } from "./components/PendingCreatingStatus";
+import { PendingFailedStatus } from "./components/PendingFailedStatus";
 
 /**
  * Pending workspace progress page.
@@ -32,6 +36,17 @@ export const Route = createFileRoute(
 )({
 	component: PendingWorkspacePage,
 });
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+const SETUP_ERROR_CODES = ["PROJECT_NOT_SETUP", "PROJECT_PATH_MISSING"];
+
+function isSetupError(error: string | null): boolean {
+	if (!error) return false;
+	return SETUP_ERROR_CODES.some((code) => error.includes(code));
+}
+
+// ── Hooks ────────────────────────────────────────────────────────────
 
 function useRetryCreate(
 	pendingId: string,
@@ -124,6 +139,8 @@ function useRetryCreate(
 	}, [collections, createWorkspace, pending, pendingId]);
 }
 
+// ── Component ────────────────────────────────────────────────────────
+
 function PendingWorkspacePage() {
 	const { pendingId } = Route.useParams();
 	const navigate = useNavigate();
@@ -132,7 +149,6 @@ function PendingWorkspacePage() {
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const navigatedRef = useRef(false);
 
-	// Read pending workspace from collection (declared early for useRetryCreate)
 	const { data: pendingRows } = useLiveQuery(
 		(q) =>
 			q
@@ -144,31 +160,26 @@ function PendingWorkspacePage() {
 	const pending = pendingRows?.[0] ?? null;
 	const retryCreate = useRetryCreate(pendingId, pending);
 
-	// Poll host-service for step-by-step progress
-	const hostUrl =
-		pending?.hostTarget &&
-		typeof pending.hostTarget === "object" &&
-		"kind" in (pending.hostTarget as Record<string, unknown>)
-			? (pending.hostTarget as { kind: string; hostId?: string }).kind ===
-				"local"
-				? activeHostUrl
-				: `${env.RELAY_URL}/hosts/${(pending.hostTarget as { hostId: string }).hostId}`
-			: activeHostUrl;
+	const v2Projects = useV2ProjectList();
+	const projectName = pending?.projectId
+		? (v2Projects?.find((p) => p.id === pending.projectId)?.name ?? null)
+		: null;
 
+	const hostUrl = resolveHostUrl(pending?.hostTarget, activeHostUrl);
+	const needsSetup =
+		pending?.status === "failed" && isSetupError(pending.error);
+
+	// Poll host-service for step-by-step progress
 	const { data: progress } = useQuery({
 		queryKey: ["workspaceCreation", "getProgress", pendingId, hostUrl],
 		queryFn: async () => {
 			if (!hostUrl) return null;
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.workspaceCreation.getProgress.query({
-				pendingId,
-			});
+			return client.workspaceCreation.getProgress.query({ pendingId });
 		},
 		refetchInterval: 500,
 		enabled: pending?.status === "creating" && !!hostUrl,
 	});
-
-	const steps = progress?.steps ?? [];
 
 	// Elapsed timer + staleness detection
 	const STALE_THRESHOLD_MS = 2 * 60 * 1000;
@@ -183,9 +194,6 @@ function PendingWorkspacePage() {
 		? new Date(pending.createdAt).getTime()
 		: now;
 	const elapsedMs = Math.max(0, now - createdAtMs);
-	const elapsedLabel = formatRelativeTime(createdAtMs);
-	const isStale =
-		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
 	// Auto-navigate to real workspace on success
 	useEffect(() => {
@@ -214,12 +222,17 @@ function PendingWorkspacePage() {
 				to: "/v2-workspace/$workspaceId",
 				params: { workspaceId: pending.workspaceId },
 			});
-			// Clean up the pending row after a short delay
 			setTimeout(() => {
 				collections.pendingWorkspaces.delete(pendingId);
 			}, 1000);
 		}
 	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
+
+	const dismiss = useCallback(() => {
+		collections.pendingWorkspaces.delete(pendingId);
+		void clearAttachments(pendingId);
+		void navigate({ to: "/" });
+	}, [collections, navigate, pendingId]);
 
 	if (!pending) {
 		return (
@@ -243,64 +256,12 @@ function PendingWorkspacePage() {
 
 				{/* Status */}
 				{pending.status === "creating" && (
-					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<p
-								className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
-							>
-								{isStale
-									? "This is taking longer than expected..."
-									: "Creating workspace..."}
-							</p>
-							<span className="text-xs tabular-nums text-muted-foreground/50">
-								{elapsedLabel}
-							</span>
-						</div>
-						{steps.length > 0 && (
-							<div className="space-y-2">
-								{steps.map((step) => (
-									<div
-										key={step.id}
-										className="flex items-center gap-2.5 text-sm"
-									>
-										{step.status === "done" ? (
-											<HiCheck className="size-4 text-emerald-500" />
-										) : step.status === "active" ? (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-											</div>
-										) : (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2 rounded-full bg-muted-foreground/30" />
-											</div>
-										)}
-										<span
-											className={
-												step.status === "done" || step.status === "active"
-													? "text-foreground"
-													: "text-muted-foreground/50"
-											}
-										>
-											{step.label}
-										</span>
-									</div>
-								))}
-							</div>
-						)}
-						<div className="flex gap-2 pt-1">
-							<button
-								type="button"
-								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-								onClick={() => {
-									collections.pendingWorkspaces.delete(pendingId);
-									void clearAttachments(pendingId);
-									void navigate({ to: "/" });
-								}}
-							>
-								Dismiss
-							</button>
-						</div>
-					</div>
+					<PendingCreatingStatus
+						steps={progress?.steps ?? []}
+						elapsedLabel={formatRelativeTime(createdAtMs)}
+						isStale={elapsedMs > STALE_THRESHOLD_MS}
+						onDismiss={dismiss}
+					/>
 				)}
 
 				{pending.status === "succeeded" && (
@@ -310,33 +271,21 @@ function PendingWorkspacePage() {
 					</div>
 				)}
 
-				{pending.status === "failed" && (
-					<div className="space-y-4">
-						<div className="flex items-start gap-2 text-sm text-destructive">
-							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-							<span>{pending.error ?? "Failed to create workspace"}</span>
-						</div>
-						<div className="flex gap-2">
-							<button
-								type="button"
-								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-								onClick={() => void retryCreate()}
-							>
-								Retry
-							</button>
-							<button
-								type="button"
-								className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
-								onClick={() => {
-									collections.pendingWorkspaces.delete(pendingId);
-									void clearAttachments(pendingId);
-									void navigate({ to: "/" });
-								}}
-							>
-								Dismiss
-							</button>
-						</div>
-					</div>
+				{pending.status === "failed" && needsSetup && hostUrl && (
+					<ProjectSetupStep
+						projectId={pending.projectId}
+						projectName={projectName ?? pending.name}
+						hostUrl={hostUrl}
+						onSetupComplete={() => void retryCreate()}
+					/>
+				)}
+
+				{pending.status === "failed" && !needsSetup && (
+					<PendingFailedStatus
+						error={pending.error}
+						onRetry={() => void retryCreate()}
+						onDismiss={dismiss}
+					/>
 				)}
 			</div>
 		</div>
