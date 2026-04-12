@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { resolveStartPoint } from "../src/trpc/router/workspace-creation/utils/resolve-start-point";
+import { resolveStartPoint } from "./resolve-start-point";
 
 function createMockGit(existingRefs: Set<string>) {
 	return {
@@ -84,6 +84,15 @@ describe("resolveStartPoint", () => {
 
 		expect(result.ref).toBe("origin/main");
 		expect(result.resolvedFrom).toContain("remote-tracking");
+	});
+
+	test("falls back to HEAD when symbolic-ref fails and no default branch exists", async () => {
+		const git = createMockGit(new Set());
+		const result = await resolveStartPoint(git, undefined);
+
+		expect(result.ref).toBe("HEAD");
+		expect(result.resolvedFrom).toContain("fallback");
+		expect(result.resolvedFrom).toContain('"main" not found');
 	});
 
 	test("handles empty/whitespace baseBranch as undefined", async () => {
