@@ -125,10 +125,12 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 
 /**
  * How long to wait for the shell-ready marker before unblocking writes.
- * 15s covers heavy setups like Nix-based devenv via direnv. On timeout,
- * buffered writes flush immediately (same behavior as before this feature).
+ * On timeout, buffered writes flush immediately (same behavior as before
+ * this feature). Kept short so a broken/missing marker doesn't leave the
+ * terminal feeling frozen — slower shell startups (direnv, nix) can still
+ * race us, but the user can always re-type.
  */
-const SHELL_READY_TIMEOUT_MS = 15_000;
+const SHELL_READY_TIMEOUT_MS = 5_000;
 
 /**
  * Shell readiness lifecycle:
