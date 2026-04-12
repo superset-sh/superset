@@ -43,55 +43,6 @@ import {
 } from "./pty-subprocess-ipc";
 
 // =============================================================================
-// Legacy OSC 777 shell-ready scanner (pre-#3348 wrappers)
-// =============================================================================
-
-/**
- * Marker emitted by the previous generation of shell wrappers
- * (see commit 2d1885a3f). Fixed literal — no optional params.
- */
-const LEGACY_OSC_777 = "\x1b]777;superset-shell-ready\x07";
-
-interface LegacyShellReadyScanState {
-	matchPos: number;
-	heldBytes: string;
-}
-
-function createLegacyScanState(): LegacyShellReadyScanState {
-	return { matchPos: 0, heldBytes: "" };
-}
-
-function scanForLegacyShellReady(
-	state: LegacyShellReadyScanState,
-	data: string,
-): { output: string; matched: boolean } {
-	let output = "";
-	for (let i = 0; i < data.length; i++) {
-		const ch = data[i] as string;
-		if (ch === LEGACY_OSC_777[state.matchPos]) {
-			state.heldBytes += ch;
-			state.matchPos++;
-			if (state.matchPos === LEGACY_OSC_777.length) {
-				state.heldBytes = "";
-				state.matchPos = 0;
-				return { output: output + data.slice(i + 1), matched: true };
-			}
-		} else {
-			output += state.heldBytes;
-			state.heldBytes = "";
-			state.matchPos = 0;
-			if (ch === LEGACY_OSC_777[0]) {
-				state.heldBytes = ch;
-				state.matchPos = 1;
-			} else {
-				output += ch;
-			}
-		}
-	}
-	return { output, matched: false };
-}
-
-// =============================================================================
 // Constants
 // =============================================================================
 
@@ -125,12 +76,10 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 
 /**
  * How long to wait for the shell-ready marker before unblocking writes.
- * On timeout, buffered writes flush immediately (same behavior as before
- * this feature). Kept short so a broken/missing marker doesn't leave the
- * terminal feeling frozen — slower shell startups (direnv, nix) can still
- * race us, but the user can always re-type.
+ * 15s covers heavy setups like Nix-based devenv via direnv. On timeout,
+ * buffered writes flush immediately (same behavior as before this feature).
  */
-const SHELL_READY_TIMEOUT_MS = 5_000;
+const SHELL_READY_TIMEOUT_MS = 15_000;
 
 /**
  * Shell readiness lifecycle:
@@ -217,11 +166,6 @@ export class Session {
 	private preReadyStdinQueue: string[] = [];
 	// OSC 133;A scanner state — shared with v2 host-service via @superset/shared
 	private scanState: ShellReadyScanState = createScanState();
-	// Legacy OSC 777 scanner state. Matches the pre-#3348 marker emitted by
-	// older shell wrappers still present on users' disks, or by terminals
-	// spawned through a stale daemon that bundles the old scanner code.
-	// Without this fallback, input stays buffered until the 15s timeout.
-	private legacyScanState: LegacyShellReadyScanState = createLegacyScanState();
 
 	private emulatorWriteQueue: string[] = [];
 	private emulatorWriteQueuedBytes = 0;
@@ -418,17 +362,10 @@ export class Session {
 				let data = payload.toString("utf8");
 
 				// Scan for OSC 133;A (shell ready) and strip from output.
-				// Also scan for the legacy OSC 777 marker emitted by older
-				// shell wrappers / stale daemons — see legacyScanState.
 				if (this.shellReadyState === "pending") {
 					const result = scanForShellReady(this.scanState, data);
 					data = result.output;
-					const legacyResult = scanForLegacyShellReady(
-						this.legacyScanState,
-						data,
-					);
-					data = legacyResult.output;
-					if (result.matched || legacyResult.matched) {
+					if (result.matched) {
 						this.resolveShellReady("ready");
 					}
 				}
@@ -1057,7 +994,6 @@ export class Session {
 		}
 		this.preReadyStdinQueue = [];
 		this.scanState = createScanState();
-		this.legacyScanState = createLegacyScanState();
 		this.subprocessStdinQueue = [];
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
@@ -1101,18 +1037,15 @@ export class Session {
 			this.shellReadyTimeoutId = null;
 		}
 		// Flush held marker bytes — they weren't part of a full marker
-		const heldBytes = this.scanState.heldBytes + this.legacyScanState.heldBytes;
-		if (heldBytes.length > 0) {
-			this.enqueueEmulatorWrite(heldBytes);
+		if (this.scanState.heldBytes.length > 0) {
+			this.enqueueEmulatorWrite(this.scanState.heldBytes);
 			this.broadcastEvent("data", {
 				type: "data",
-				data: heldBytes,
+				data: this.scanState.heldBytes,
 			} satisfies TerminalDataEvent);
 			this.scanState.heldBytes = "";
-			this.legacyScanState.heldBytes = "";
 		}
 		this.scanState.matchPos = 0;
-		this.legacyScanState.matchPos = 0;
 		// Flush queued writes in FIFO order
 		const queue = this.preReadyStdinQueue;
 		this.preReadyStdinQueue = [];
