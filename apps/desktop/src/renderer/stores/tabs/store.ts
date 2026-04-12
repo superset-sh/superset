@@ -756,17 +756,18 @@ export const useTabsStore = create<TabsStore>()(
 
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
 					const reuseExisting = options.reuseExisting ?? "workspace";
-					const existingFileViewerPane = reuseExisting !== "none"
-						? findReusableFileViewerPane({
-								workspaceId,
-								activeTabId: activeTab.id,
-								tabs: state.tabs,
-								panes: state.panes,
-								tabHistoryStacks: state.tabHistoryStacks,
-								reuseExisting,
-								options,
-							})
-						: null;
+					const existingFileViewerPane =
+						reuseExisting !== "none"
+							? findReusableFileViewerPane({
+									workspaceId,
+									activeTabId: activeTab.id,
+									tabs: state.tabs,
+									panes: state.panes,
+									tabHistoryStacks: state.tabHistoryStacks,
+									reuseExisting,
+									options,
+								})
+							: null;
 
 					if (existingFileViewerPane) {
 						const nextPane = applyFileViewerOpenOptionsToPane(
@@ -826,7 +827,11 @@ export const useTabsStore = create<TabsStore>()(
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
 					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
-					if (fileViewerPanes.length > 0 && !options.openInNewTab && reuseExisting !== "none") {
+					if (
+						fileViewerPanes.length > 0 &&
+						!options.openInNewTab &&
+						reuseExisting !== "none"
+					) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
 						if (!existingFileViewer) {

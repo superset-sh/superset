@@ -18,7 +18,10 @@ const productName = pkg.productName;
 const macIconPath = join(pkg.resources, "build/icons/icon.icns");
 const linuxIconPath = join(pkg.resources, "build/icons");
 const winIconPath = join(pkg.resources, "build/icons/icon.ico");
-const dmgBackgroundPath = join(pkg.resources, "build/installer/background.tiff");
+const dmgBackgroundPath = join(
+	pkg.resources,
+	"build/installer/background.tiff",
+);
 
 const config: Configuration = {
 	appId: "com.superset.desktop",
