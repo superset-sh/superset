@@ -80,6 +80,20 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
 const SHELLS_WITH_READY_MARKER = new Set(["zsh", "bash", "fish"]);
 
 /**
+ * Primary Device Attribute (DA1) query: ESC [ c or ESC [ 0 c
+ * Sent by shells like fish on startup to detect terminal capabilities.
+ * We respond immediately so the shell doesn't wait for a 10-second timeout.
+ * Built via new RegExp() to avoid control character linter errors.
+ */
+const DA1_QUERY_RE = new RegExp("\x1b\\[0?c", "g");
+
+/**
+ * DA1 response: VT220-compatible terminal (ESC [ ? 62 c).
+ * Indicates level-2 VT220 support, which satisfies fish and other shells.
+ */
+const DA1_RESPONSE = "\x1b[?62c";
+
+/**
  * Shell readiness lifecycle:
  * - `pending`     — shell is initializing; user writes are buffered, escape sequences dropped
  * - `ready`       — marker detected; buffered writes have been flushed
@@ -363,6 +377,16 @@ export class Session {
 			case PtySubprocessIpcType.Data: {
 				if (payload.length === 0) break;
 				let data = payload.toString("utf8");
+
+				// Respond to Primary Device Attribute (DA1) queries immediately.
+				// Fish shell sends ESC [ c on startup; without a prompt response it
+				// blocks for 10 seconds before printing a terminal-compatibility
+				// warning. We reply with a VT220 response here in the main process
+				// so the reply is sent regardless of shell-ready or attach state.
+				const da1Count = (data.match(DA1_QUERY_RE) ?? []).length;
+				if (da1Count > 0) {
+					this.sendWriteToSubprocess(DA1_RESPONSE.repeat(da1Count));
+				}
 
 				// Scan for SHELL_READY_MARKER one character at a time.
 				// Matching bytes are held back from output; on full match

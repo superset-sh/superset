@@ -330,3 +330,62 @@ describe("Session shell-ready: supported shells", () => {
 		});
 	}
 });
+
+describe("Session DA1 (Primary Device Attribute) response", () => {
+	it("responds to DA1 query (ESC [ c) during pending state", () => {
+		const { session, proc } = createTestSession("/usr/local/bin/fish");
+		spawnAndReady(session, proc);
+
+		// Shell is in pending state — PTY emits DA1 query
+		sendData(proc, "\x1b[c");
+
+		// Session should have written the VT220 DA1 response back to the PTY
+		const writes = getWrittenData(proc);
+		expect(writes).toContain("\x1b[?62c");
+	});
+
+	it("responds to DA1 query (ESC [ 0 c) during pending state", () => {
+		const { session, proc } = createTestSession("/usr/local/bin/fish");
+		spawnAndReady(session, proc);
+
+		sendData(proc, "\x1b[0c");
+
+		const writes = getWrittenData(proc);
+		expect(writes).toContain("\x1b[?62c");
+	});
+
+	it("responds to DA1 query after shell is ready", () => {
+		const { session, proc } = createTestSession("/usr/local/bin/fish");
+		spawnAndReady(session, proc);
+
+		// Bring shell to ready state first
+		sendData(proc, SHELL_READY_MARKER);
+
+		// Now send a DA1 query (e.g. from a shell script)
+		sendData(proc, "\x1b[c");
+
+		const writes = getWrittenData(proc);
+		expect(writes).toContain("\x1b[?62c");
+	});
+
+	it("responds once per DA1 query when multiple appear in one chunk", () => {
+		const { session, proc } = createTestSession("/usr/local/bin/fish");
+		spawnAndReady(session, proc);
+
+		sendData(proc, "\x1b[c\x1b[c");
+
+		const writes = getWrittenData(proc);
+		// Both queries should receive a response
+		expect(writes).toContain("\x1b[?62c\x1b[?62c");
+	});
+
+	it("does not send DA1 response for unrelated data", () => {
+		const { session, proc } = createTestSession("/usr/local/bin/fish");
+		spawnAndReady(session, proc);
+
+		sendData(proc, "hello world\n");
+
+		const writes = getWrittenData(proc);
+		expect(writes.some((w) => w.includes("\x1b[?62c"))).toBe(false);
+	});
+});
