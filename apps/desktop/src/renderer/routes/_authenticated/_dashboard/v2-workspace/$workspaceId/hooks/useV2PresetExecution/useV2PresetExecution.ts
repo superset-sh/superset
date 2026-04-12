@@ -1,4 +1,5 @@
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo, useRef } from "react";
@@ -76,72 +77,23 @@ export function useV2PresetExecution({
 				hasActiveTab: !!activeTabId,
 			});
 
-			switch (plan) {
-				case "new-tab-single": {
-					const id = await createSessionWithCommand(
-						preset.commands[0] as string,
-					);
-					state.addTab({
-						titleOverride: preset.name || "Terminal",
-						panes: [makeTerminalPane(id)],
-					});
-					break;
-				}
-
-				case "new-tab-multi-pane": {
-					const ids = await Promise.all(
-						preset.commands.map((cmd) => createSessionWithCommand(cmd)),
-					);
-					const panes = ids.map((id) => makeTerminalPane(id));
-					state.addTab({
-						titleOverride: preset.name || "Terminal",
-						panes:
-							panes.length > 0
-								? (panes as [
-										CreatePaneInput<PaneViewerData>,
-										...CreatePaneInput<PaneViewerData>[],
-									])
-								: [makeTerminalPane(crypto.randomUUID())],
-					});
-					break;
-				}
-
-				case "new-tab-per-command": {
-					const ids = await Promise.all(
-						preset.commands.map((cmd) => createSessionWithCommand(cmd)),
-					);
-					for (let i = 0; i < ids.length; i++) {
-						state.addTab({
-							titleOverride: preset.name || "Terminal",
-							panes: [makeTerminalPane(ids[i] as string)],
-						});
-					}
-					break;
-				}
-
-				case "active-tab-single": {
-					const id = await createSessionWithCommand(
-						preset.commands[0] as string,
-					);
-					if (!activeTabId) {
+			try {
+				switch (plan) {
+					case "new-tab-single": {
+						const id = await createSessionWithCommand(
+							preset.commands[0] as string,
+						);
 						state.addTab({
 							titleOverride: preset.name || "Terminal",
 							panes: [makeTerminalPane(id)],
 						});
 						break;
 					}
-					state.addPane({
-						tabId: activeTabId,
-						pane: makeTerminalPane(id),
-					});
-					break;
-				}
 
-				case "active-tab-multi-pane": {
-					const ids = await Promise.all(
-						preset.commands.map((cmd) => createSessionWithCommand(cmd)),
-					);
-					if (!activeTabId) {
+					case "new-tab-multi-pane": {
+						const ids = await Promise.all(
+							preset.commands.map((cmd) => createSessionWithCommand(cmd)),
+						);
 						const panes = ids.map((id) => makeTerminalPane(id));
 						state.addTab({
 							titleOverride: preset.name || "Terminal",
@@ -155,14 +107,73 @@ export function useV2PresetExecution({
 						});
 						break;
 					}
-					for (const id of ids) {
+
+					case "new-tab-per-command": {
+						const ids = await Promise.all(
+							preset.commands.map((cmd) => createSessionWithCommand(cmd)),
+						);
+						for (let i = 0; i < ids.length; i++) {
+							state.addTab({
+								titleOverride: preset.name || "Terminal",
+								panes: [makeTerminalPane(ids[i] as string)],
+							});
+						}
+						break;
+					}
+
+					case "active-tab-single": {
+						const id = await createSessionWithCommand(
+							preset.commands[0] as string,
+						);
+						if (!activeTabId) {
+							state.addTab({
+								titleOverride: preset.name || "Terminal",
+								panes: [makeTerminalPane(id)],
+							});
+							break;
+						}
 						state.addPane({
 							tabId: activeTabId,
 							pane: makeTerminalPane(id),
 						});
+						break;
 					}
-					break;
+
+					case "active-tab-multi-pane": {
+						const ids = await Promise.all(
+							preset.commands.map((cmd) => createSessionWithCommand(cmd)),
+						);
+						if (!activeTabId) {
+							const panes = ids.map((id) => makeTerminalPane(id));
+							state.addTab({
+								titleOverride: preset.name || "Terminal",
+								panes:
+									panes.length > 0
+										? (panes as [
+												CreatePaneInput<PaneViewerData>,
+												...CreatePaneInput<PaneViewerData>[],
+											])
+										: [makeTerminalPane(crypto.randomUUID())],
+							});
+							break;
+						}
+						for (const id of ids) {
+							state.addPane({
+								tabId: activeTabId,
+								pane: makeTerminalPane(id),
+							});
+						}
+						break;
+					}
 				}
+			} catch (err) {
+				console.error("[useV2PresetExecution] Failed to execute preset:", err);
+				toast.error("Failed to run preset", {
+					description:
+						err instanceof Error
+							? err.message
+							: "Terminal session creation failed.",
+				});
 			}
 		},
 		[store, createSessionWithCommand],
