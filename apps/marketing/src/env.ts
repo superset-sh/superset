@@ -26,7 +26,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
-		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
+		NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default("https://us.posthog.com"),
 		NEXT_PUBLIC_SENTRY_DSN_MARKETING: z.string().optional(),
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
