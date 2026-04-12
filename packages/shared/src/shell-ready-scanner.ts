@@ -57,10 +57,17 @@ export function scanForShellReady(
 				state.heldBytes += ch;
 				state.matchPos++;
 			} else {
-				// Mismatch — flush held bytes as regular output
-				output += state.heldBytes + ch;
+				// Mismatch — flush held bytes, then re-test current char as a
+				// fresh match start (e.g. stale ESC followed by real marker).
+				output += state.heldBytes;
 				state.heldBytes = "";
 				state.matchPos = 0;
+				if (ch === OSC_133_A[0]) {
+					state.heldBytes = ch;
+					state.matchPos = 1;
+				} else {
+					output += ch;
+				}
 			}
 		} else {
 			// Matched prefix — consume optional params until string terminator
