@@ -17,6 +17,8 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
 	code: string;
 	language: BundledLanguage;
 	showLineNumbers?: boolean;
+	/** Starting line number offset (for partial file display). Default: 1 */
+	startLine?: number;
 	/** When false, suppresses syntax-highlight colors — all tokens render in the foreground color. */
 	colorize?: boolean;
 };
@@ -29,54 +31,68 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
 	code: "",
 });
 
-const lineNumberTransformer: ShikiTransformer = {
-	name: "line-numbers",
-	line(node, line) {
-		node.children.unshift({
-			type: "element",
-			tagName: "span",
-			properties: {
-				className: [
-					"inline-block",
-					"min-w-10",
-					"mr-4",
-					"text-right",
-					"select-none",
-					"text-muted-foreground",
-				],
-			},
-			children: [{ type: "text", value: String(line) }],
-		});
-	},
-};
+function createLineNumberTransformer(startLine = 1): ShikiTransformer {
+	return {
+		name: "line-numbers",
+		line(node, line) {
+			node.children.unshift({
+				type: "element",
+				tagName: "span",
+				properties: {
+					className: [
+						"inline-block",
+						"min-w-10",
+						"mr-4",
+						"text-right",
+						"select-none",
+						"text-muted-foreground",
+					],
+				},
+				children: [{ type: "text", value: String(line + startLine - 1) }],
+			});
+		},
+	};
+}
 
 export async function highlightCode(
 	code: string,
 	language: BundledLanguage,
 	showLineNumbers = false,
+	startLine = 1,
 ) {
 	const transformers: ShikiTransformer[] = showLineNumbers
-		? [lineNumberTransformer]
+		? [createLineNumberTransformer(startLine)]
 		: [];
 
-	return await Promise.all([
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-light",
-			transformers,
-		}),
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-dark-pro",
-			transformers,
-		}),
-	]);
+	try {
+		return await Promise.all([
+			codeToHtml(code, {
+				lang: language,
+				theme: "one-light",
+				transformers,
+			}),
+			codeToHtml(code, {
+				lang: language,
+				theme: "one-dark-pro",
+				transformers,
+			}),
+		]);
+	} catch {
+		// Unknown/unsupported language — fall back to plain text
+		return highlightCode(
+			code,
+			"text" as BundledLanguage,
+			showLineNumbers,
+			startLine,
+		);
+	}
 }
 
 export const CodeBlock = ({
 	code,
 	language,
 	showLineNumbers = false,
+	startLine = 1,
 	colorize = true,
 	className,
 	children,
@@ -87,16 +103,18 @@ export const CodeBlock = ({
 
 	useEffect(() => {
 		let cancelled = false;
-		highlightCode(code, language, showLineNumbers).then(([light, dark]) => {
-			if (!cancelled) {
-				setHtml(light);
-				setDarkHtml(dark);
-			}
-		});
+		highlightCode(code, language, showLineNumbers, startLine).then(
+			([light, dark]) => {
+				if (!cancelled) {
+					setHtml(light);
+					setDarkHtml(dark);
+				}
+			},
+		);
 		return () => {
 			cancelled = true;
 		};
-	}, [code, language, showLineNumbers]);
+	}, [code, language, showLineNumbers, startLine]);
 
 	return (
 		<CodeBlockContext.Provider value={{ code }}>
