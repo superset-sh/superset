@@ -479,9 +479,7 @@ export const workspaceCreationRouter = router({
 						initialCommand: `bash "${setupScriptPath}"`,
 					});
 					if ("error" in result) {
-						warnings.push(
-							`Failed to start setup terminal: ${result.error}`,
-						);
+						warnings.push(`Failed to start setup terminal: ${result.error}`);
 					} else {
 						terminals.push({
 							id: terminalId,
