@@ -3,6 +3,7 @@ import type { LayoutNode } from "../../../types";
 import {
 	equalizeAllSplits,
 	findFirstPaneId,
+	findPaneIdInDirection,
 	findPaneInLayout,
 	getNodeAtPath,
 	getOtherBranch,
@@ -52,6 +53,35 @@ const DEEP: LayoutNode = {
 	splitPercentage: 30,
 };
 
+const GRID: LayoutNode = {
+	type: "split",
+	direction: "vertical",
+	first: {
+		type: "split",
+		direction: "horizontal",
+		first: { type: "pane", paneId: "a" },
+		second: { type: "pane", paneId: "b" },
+	},
+	second: {
+		type: "split",
+		direction: "horizontal",
+		first: { type: "pane", paneId: "c" },
+		second: { type: "pane", paneId: "d" },
+	},
+};
+
+const T_SPLIT: LayoutNode = {
+	type: "split",
+	direction: "horizontal",
+	first: { type: "pane", paneId: "left" },
+	second: {
+		type: "split",
+		direction: "vertical",
+		first: { type: "pane", paneId: "top-right" },
+		second: { type: "pane", paneId: "bottom-right" },
+	},
+};
+
 describe("findPaneInLayout", () => {
 	it("finds a pane in a single leaf", () => {
 		expect(findPaneInLayout(SINGLE, "a")).toBe(true);
@@ -81,6 +111,31 @@ describe("findFirstPaneId", () => {
 
 	it("returns the first pane in nested splits", () => {
 		expect(findFirstPaneId(NESTED)).toBe("a");
+	});
+});
+
+describe("findPaneIdInDirection", () => {
+	it("moves around a 2x2 grid using spatial directions", () => {
+		expect(findPaneIdInDirection(GRID, "a", "right")).toBe("b");
+		expect(findPaneIdInDirection(GRID, "a", "down")).toBe("c");
+		expect(findPaneIdInDirection(GRID, "d", "left")).toBe("c");
+		expect(findPaneIdInDirection(GRID, "d", "up")).toBe("b");
+	});
+
+	it("returns null when there is no pane in that direction", () => {
+		expect(findPaneIdInDirection(GRID, "a", "up")).toBeNull();
+		expect(findPaneIdInDirection(GRID, "b", "right")).toBeNull();
+	});
+
+	it("prefers the overlapping pane on the requested side in uneven layouts", () => {
+		expect(findPaneIdInDirection(T_SPLIT, "top-right", "left")).toBe("left");
+		expect(findPaneIdInDirection(T_SPLIT, "bottom-right", "left")).toBe("left");
+		expect(findPaneIdInDirection(T_SPLIT, "left", "right")).toBe("top-right");
+	});
+
+	it("does not move to diagonal panes when no pane exists in that direction", () => {
+		expect(findPaneIdInDirection(T_SPLIT, "left", "up")).toBeNull();
+		expect(findPaneIdInDirection(T_SPLIT, "left", "down")).toBeNull();
 	});
 });
 

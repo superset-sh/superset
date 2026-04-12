@@ -5,6 +5,8 @@ export type {
 	WorkspaceStore,
 } from "./core/store";
 export { createWorkspaceStore } from "./core/store";
+export type { PaneFocusDirection } from "./core/store/utils";
+export { findPaneIdInDirection } from "./core/store/utils";
 export type {
 	ContextMenuActionConfig,
 	PaneActionConfig,

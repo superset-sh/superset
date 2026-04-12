@@ -8,15 +8,28 @@ import type { Platform } from "../../types";
 // ---------------------------------------------------------------------------
 
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
+const NORMALIZED_KEYS = {
+	arrowup: "up",
+	arrowdown: "down",
+	arrowleft: "left",
+	arrowright: "right",
+} as const;
+const ARROW_KEYS = ["up", "down", "left", "right"] as const;
 
 function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
-	const key = event.key.toLowerCase();
+	const rawKey = event.key.toLowerCase();
+	const key = NORMALIZED_KEYS[rawKey as keyof typeof NORMALIZED_KEYS] ?? rawKey;
 	if (["shift", "ctrl", "alt", "meta", "dead", "unidentified"].includes(key))
 		return null;
 
 	// Must include ctrl or meta (or be F1-F12)
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
-	if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
+	const isModifiedArrow =
+		ARROW_KEYS.includes(key as (typeof ARROW_KEYS)[number]) &&
+		event.altKey &&
+		event.shiftKey;
+	if (!isFKey && !isModifiedArrow && !event.ctrlKey && !event.metaKey)
+		return null;
 
 	// Reject meta on non-Mac
 	if (PLATFORM !== "mac" && event.metaKey) return null;

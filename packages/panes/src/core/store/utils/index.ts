@@ -1,6 +1,8 @@
+export type { PaneFocusDirection } from "./utils";
 export {
 	equalizeAllSplits,
 	findFirstPaneId,
+	findPaneIdInDirection,
 	findPaneInLayout,
 	findSiblingPaneId,
 	generateId,

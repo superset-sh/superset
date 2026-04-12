@@ -36,6 +36,7 @@ import {
 	findPanePath,
 	getFirstPaneId,
 	getNextPaneId,
+	getPaneIdInDirection,
 	getPreviousPaneId,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
@@ -289,6 +290,50 @@ function WorkspacePage() {
 		const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
 		if (nextPaneId) {
 			setFocusedPane(activeTabId, nextPaneId);
+		}
+	});
+
+	useHotkey("FOCUS_PANE_UP", () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const paneId = getPaneIdInDirection(activeTab.layout, focusedPaneId, "up");
+		if (paneId) {
+			setFocusedPane(activeTabId, paneId);
+		}
+	});
+
+	useHotkey("FOCUS_PANE_DOWN", () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const paneId = getPaneIdInDirection(
+			activeTab.layout,
+			focusedPaneId,
+			"down",
+		);
+		if (paneId) {
+			setFocusedPane(activeTabId, paneId);
+		}
+	});
+
+	useHotkey("FOCUS_PANE_LEFT", () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const paneId = getPaneIdInDirection(
+			activeTab.layout,
+			focusedPaneId,
+			"left",
+		);
+		if (paneId) {
+			setFocusedPane(activeTabId, paneId);
+		}
+	});
+
+	useHotkey("FOCUS_PANE_RIGHT", () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const paneId = getPaneIdInDirection(
+			activeTab.layout,
+			focusedPaneId,
+			"right",
+		);
+		if (paneId) {
+			setFocusedPane(activeTabId, paneId);
 		}
 	});
 
