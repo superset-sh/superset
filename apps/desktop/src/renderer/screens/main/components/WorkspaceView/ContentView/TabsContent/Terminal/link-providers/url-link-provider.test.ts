@@ -2,22 +2,42 @@ import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
 import { UrlLinkProvider } from "./url-link-provider";
 
-function createMockLine(text: string, isWrapped = false): IBufferLine {
+interface MockCellSpec {
+	chars: string;
+	width: number;
+}
+
+function createMockCell(chars: string, width: number) {
+	return {
+		getChars: () => chars,
+		getWidth: () => width,
+	};
+}
+
+function createMockLine(
+	text: string,
+	isWrapped = false,
+	cells?: MockCellSpec[],
+): IBufferLine {
+	const mockCells = cells?.map((cell) =>
+		createMockCell(cell.chars, cell.width),
+	);
+
 	return {
 		translateToString: () => text,
 		isWrapped,
-		length: text.length,
-		getCell: mock(() => null),
-		getCells: mock(() => []),
+		length: mockCells?.length ?? text.length,
+		getCell: mock((index: number) => mockCells?.[index] ?? null),
+		getCells: mock(() => mockCells ?? []),
 	} as unknown as IBufferLine;
 }
 
 function createMockTerminal(
-	lines: Array<{ text: string; isWrapped?: boolean }>,
+	lines: Array<{ text: string; isWrapped?: boolean; cells?: MockCellSpec[] }>,
 	cols = 80,
 ): Terminal {
 	const mockLines = lines.map((l) =>
-		createMockLine(l.text, l.isWrapped ?? false),
+		createMockLine(l.text, l.isWrapped ?? false, l.cells),
 	);
 
 	return {
@@ -415,6 +435,49 @@ describe("UrlLinkProvider", () => {
 			);
 			expect(links[0].range.start.y).toBe(1);
 			expect(links[0].range.end.y).toBe(2);
+		});
+
+		it("should include tab-width leading trim columns on continuation lines", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "Visit https://example.com/very/long/path/segment",
+					},
+					{
+						text: "\t/continued",
+						cells: [
+							{ chars: "\t", width: 4 },
+							{ chars: "", width: 0 },
+							{ chars: "", width: 0 },
+							{ chars: "", width: 0 },
+							{ chars: "/", width: 1 },
+							{ chars: "c", width: 1 },
+							{ chars: "o", width: 1 },
+							{ chars: "n", width: 1 },
+							{ chars: "t", width: 1 },
+							{ chars: "i", width: 1 },
+							{ chars: "n", width: 1 },
+							{ chars: "u", width: 1 },
+							{ chars: "e", width: 1 },
+							{ chars: "d", width: 1 },
+						],
+					},
+				],
+				50,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://example.com/very/long/path/segment/continued",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(2);
+			expect(links[0].range.start.x).toBe(7);
+			expect(links[0].range.end.x).toBe(14);
 		});
 
 		it("should not merge plain prose after a complete URL", async () => {

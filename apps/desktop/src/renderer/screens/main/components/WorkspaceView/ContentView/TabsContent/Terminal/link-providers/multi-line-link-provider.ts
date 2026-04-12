@@ -50,6 +50,30 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		return match;
 	}
 
+	/**
+	 * Convert a character offset in translateToString(true) output to a
+	 * terminal column (0-based). Wide characters (CJK/Korean) occupy 2
+	 * columns but are 1 JS string character.
+	 */
+	protected charOffsetToColumn(lineIndex: number, charOffset: number): number {
+		const bufferLine = this.terminal.buffer.active.getLine(lineIndex);
+		if (!bufferLine) return charOffset;
+
+		let charCount = 0;
+		for (let col = 0; col < bufferLine.length; col++) {
+			const cell = bufferLine.getCell(col);
+			if (!cell) {
+				// No cell API available — assume 1:1 char-to-column mapping
+				return charOffset;
+			}
+			if (cell.getWidth() === 0) continue;
+			const codeUnitLength = Math.max(cell.getChars().length, 1);
+			if (charOffset < charCount + codeUnitLength) return col;
+			charCount += codeUnitLength;
+		}
+		return bufferLine.length;
+	}
+
 	protected buildRangesForMatch(
 		matchIndex: number,
 		matchEnd: number,
@@ -202,8 +226,12 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				0,
 				Math.min(offset - line.startOffset, line.text.length),
 			);
+			// For start: 0-based column → +1 for 1-based
+			// For end: 0-based exclusive end = 1-based inclusive end, so no +1
 			return {
-				x: line.leadingTrim + localOffset + 1,
+				x:
+					this.charOffsetToColumn(line.index, line.leadingTrim + localOffset) +
+					(isEnd ? 0 : 1),
 				y: line.lineNumber,
 			};
 		}
@@ -213,7 +241,11 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			return { x: 1, y: 1 };
 		}
 		return {
-			x: lastLine.leadingTrim + lastLine.text.length + 1,
+			x:
+				this.charOffsetToColumn(
+					lastLine.index,
+					lastLine.leadingTrim + lastLine.text.length,
+				) + (isEnd ? 0 : 1),
 			y: lastLine.lineNumber,
 		};
 	}

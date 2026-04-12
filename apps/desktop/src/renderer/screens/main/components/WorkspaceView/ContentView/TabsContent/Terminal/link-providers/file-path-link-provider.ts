@@ -327,6 +327,24 @@ export class FilePathLinkProvider implements ILinkProvider {
 		this.onOpen(event, cleanPath, fallback.line, fallback.col);
 	}
 
+	private charOffsetToColumn(lineIndex: number, charOffset: number): number {
+		const bufferLine = this.terminal.buffer.active.getLine(lineIndex);
+		if (!bufferLine) return charOffset;
+
+		let charCount = 0;
+		for (let col = 0; col < bufferLine.length; col++) {
+			const cell = bufferLine.getCell(col);
+			if (!cell) {
+				return charOffset;
+			}
+			if (cell.getWidth() === 0) continue;
+			const codeUnitLength = Math.max(cell.getChars().length, 1);
+			if (charOffset < charCount + codeUnitLength) return col;
+			charCount += codeUnitLength;
+		}
+		return bufferLine.length;
+	}
+
 	private calculateLinkRange(
 		matchIndex: number,
 		matchEnd: number,
@@ -350,21 +368,32 @@ export class FilePathLinkProvider implements ILinkProvider {
 
 		if (startsInPrevLine) {
 			startY = bufferLineNumber - 1;
-			startX = matchIndex + 1;
+			startX = this.charOffsetToColumn(bufferLineNumber - 2, matchIndex) + 1;
 		} else {
 			startY = bufferLineNumber;
-			startX = matchIndex - currentLineStart + 1;
+			startX =
+				this.charOffsetToColumn(
+					bufferLineNumber - 1,
+					matchIndex - currentLineStart,
+				) + 1;
 		}
 
+		// End positions: 0-based exclusive end = 1-based inclusive end, so no +1
 		if (endsInNextLine) {
 			endY = bufferLineNumber + 1;
-			endX = matchEnd - currentLineEnd + 1;
+			endX = this.charOffsetToColumn(
+				bufferLineNumber,
+				matchEnd - currentLineEnd,
+			);
 		} else if (matchEnd <= currentLineStart) {
 			endY = bufferLineNumber - 1;
-			endX = matchEnd + 1;
+			endX = this.charOffsetToColumn(bufferLineNumber - 2, matchEnd);
 		} else {
 			endY = bufferLineNumber;
-			endX = matchEnd - currentLineStart + 1;
+			endX = this.charOffsetToColumn(
+				bufferLineNumber - 1,
+				matchEnd - currentLineStart,
+			);
 		}
 
 		return {

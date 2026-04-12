@@ -2,21 +2,41 @@ import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
 import { FilePathLinkProvider } from "./file-path-link-provider";
 
-function createMockLine(text: string, isWrapped = false): IBufferLine {
+interface MockCellSpec {
+	chars: string;
+	width: number;
+}
+
+function createMockCell(chars: string, width: number) {
+	return {
+		getChars: () => chars,
+		getWidth: () => width,
+	};
+}
+
+function createMockLine(
+	text: string,
+	isWrapped = false,
+	cells?: MockCellSpec[],
+): IBufferLine {
+	const mockCells = cells?.map((cell) =>
+		createMockCell(cell.chars, cell.width),
+	);
+
 	return {
 		translateToString: () => text,
 		isWrapped,
-		length: text.length,
-		getCell: mock(() => null),
-		getCells: mock(() => []),
+		length: mockCells?.length ?? text.length,
+		getCell: mock((index: number) => mockCells?.[index] ?? null),
+		getCells: mock(() => mockCells ?? []),
 	} as unknown as IBufferLine;
 }
 
 function createMockTerminal(
-	lines: Array<{ text: string; isWrapped?: boolean }>,
+	lines: Array<{ text: string; isWrapped?: boolean; cells?: MockCellSpec[] }>,
 ): Terminal {
 	const mockLines = lines.map((l) =>
-		createMockLine(l.text, l.isWrapped ?? false),
+		createMockLine(l.text, l.isWrapped ?? false, l.cells),
 	);
 
 	return {
@@ -215,8 +235,78 @@ describe("FilePathLinkProvider", () => {
 
 			expect(links[0].range.start.x).toBe(1);
 			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.x).toBe(10);
+			expect(links[0].range.end.y).toBe(2);
+		});
+
+		it("should account for wide CJK cells before a wrapped path", async () => {
+			const terminal = createMockTerminal([
+				{
+					text: "한글 /tmp/proj",
+					cells: [
+						{ chars: "한", width: 2 },
+						{ chars: "", width: 0 },
+						{ chars: "글", width: 2 },
+						{ chars: "", width: 0 },
+						{ chars: " ", width: 1 },
+						{ chars: "/", width: 1 },
+						{ chars: "t", width: 1 },
+						{ chars: "m", width: 1 },
+						{ chars: "p", width: 1 },
+						{ chars: "/", width: 1 },
+						{ chars: "p", width: 1 },
+						{ chars: "r", width: 1 },
+						{ chars: "o", width: 1 },
+						{ chars: "j", width: 1 },
+					],
+				},
+				{ text: "ect/file.ts", isWrapped: true },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/tmp/project/file.ts");
+			expect(links[0].range.start.x).toBe(6);
+			expect(links[0].range.start.y).toBe(1);
 			expect(links[0].range.end.x).toBe(11);
 			expect(links[0].range.end.y).toBe(2);
+		});
+
+		it("should account for surrogate pairs before a path", async () => {
+			const terminal = createMockTerminal([
+				{
+					text: "🙂 /tmp/file.ts",
+					cells: [
+						{ chars: "🙂", width: 2 },
+						{ chars: "", width: 0 },
+						{ chars: " ", width: 1 },
+						{ chars: "/", width: 1 },
+						{ chars: "t", width: 1 },
+						{ chars: "m", width: 1 },
+						{ chars: "p", width: 1 },
+						{ chars: "/", width: 1 },
+						{ chars: "f", width: 1 },
+						{ chars: "i", width: 1 },
+						{ chars: "l", width: 1 },
+						{ chars: "e", width: 1 },
+						{ chars: ".", width: 1 },
+						{ chars: "t", width: 1 },
+						{ chars: "s", width: 1 },
+					],
+				},
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/tmp/file.ts");
+			expect(links[0].range.start.x).toBe(4);
+			expect(links[0].range.end.x).toBe(15);
 		});
 	});
 
