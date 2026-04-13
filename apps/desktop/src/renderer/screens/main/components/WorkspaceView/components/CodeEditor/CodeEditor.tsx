@@ -180,11 +180,6 @@ export function CodeEditor({
 	const onSaveRef = useRef(onSave);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
-	// Uses the imperative electron tRPC client rather than electronTrpc.X.useQuery
-	// because @trpc/react-query's default React context is a module-level
-	// singleton — when rendered inside v2's workspaceTrpc.Provider the nested
-	// provider overrides it and silently routes these hooks through the
-	// host-service HTTP link.
 	const { data: fontSettings } = useQuery({
 		queryKey: ["electron", "settings", "getFontSettings"],
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),

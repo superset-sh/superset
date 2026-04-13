@@ -47,10 +47,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	onOpenFile,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
-	// Uses the imperative electron tRPC client rather than electronTrpc.X.useQuery
-	// because @trpc/react-query's default React context is a module-level
-	// singleton — nesting workspaceTrpc.Provider overrides it and silently
-	// routes electronTrpc hooks through the host-service HTTP link.
 	const { data: fontSettings } = useQuery({
 		queryKey: ["electron", "settings", "getFontSettings"],
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
