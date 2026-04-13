@@ -174,13 +174,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								</span>
 							) : (
 								<>
-									{diffStats && (
-										<DashboardSidebarWorkspaceDiffStats
-											additions={diffStats.additions}
-											deletions={diffStats.deletions}
-											isActive={isActive}
-										/>
-									)}
+									{diffStats &&
+										(diffStats.additions > 0 || diffStats.deletions > 0) && (
+											<DashboardSidebarWorkspaceDiffStats
+												additions={diffStats.additions}
+												deletions={diffStats.deletions}
+												isActive={isActive}
+											/>
+										)}
 									<div className="invisible flex items-center justify-end gap-1.5 opacity-0 transition-[opacity,visibility] group-hover:visible group-hover:opacity-100">
 										{shortcutLabel && (
 											<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
