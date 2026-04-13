@@ -1,434 +1,189 @@
 # Keyboard Recorder — Ctrl Binding & event.code Unification
 
-**Date:** 2026-04-12
-**Scope:** `apps/desktop/src/renderer/hotkeys/*`
-**Status:** shipped
+**Date:** 2026-04-12 · **Scope:** `apps/desktop/src/renderer/hotkeys/*` (+ 1 terminal file) · **PR:** #3391
 
-## Problem
+## TL;DR
 
-User reported that the Settings → Keyboard recorder would not allow binding
-chords that begin with Ctrl. Investigation found three compounding bugs in the
-recorder and its comparison/display logic.
+User couldn't bind Ctrl-based shortcuts in Settings → Keyboard. Root cause: the
+recorder filtered modifier keys using the wrong string (`"ctrl"` vs the actual
+`event.key === "Control"`). Investigation surfaced a cluster of related bugs
+all rooted in the recorder using `event.key` while the rest of the system
+(registry, library dispatch, resolver) uses `event.code`. Consolidated on
+`event.code` via shared helpers.
 
----
+## What was broken
 
-## Bug 1 — Ctrl press auto-committed an invalid binding
+| # | Bug                                                                          | Fix                                                          |
+|---|------------------------------------------------------------------------------|--------------------------------------------------------------|
+| 1 | Lone Ctrl auto-committed `ctrl+control` before the user pressed key 2        | Filter against `"control"` (the lowercased `event.key` name) + lock keys + altgraph |
+| 2 | Recorder used `event.key`, resolver/registry use `event.code` → Shift+digit, Alt+letter on Mac, punctuation, non-US layouts silently unmatchable | Unified recorder on `event.code` via shared `normalizeToken` |
+| 3 | `===` string compares missed equivalent chords (`meta+alt+up` ≠ `alt+meta+arrowup`) | Added `canonicalizeChord`; apply at conflict/reset/reserved lookups |
+| 4 | Terminal forwarding used a frozen default-only reverse index → rebinds swallowed, freed defaults eaten | Reverse index subscribes to override store and rebuilds on change; `null` overrides drop from index |
+| 5 | Migration blindly copied old corrupt overrides into localStorage             | Sanitizer canonicalizes and drops entries that don't parse to one word-char key |
+| 6 | Terminal helpers (`isTerminalReservedEvent`, `matchesKey`) used event.key and a duplicated `TERMINAL_RESERVED` | Exported `eventToChord` + `matchesChord` + `TERMINAL_RESERVED_CHORDS` as single source of truth; deleted duplicate |
 
-### Before
+## Key code changes
 
-`useRecordHotkeys.ts:13-15` filtered pure-modifier keydowns using lowercased
-`event.key`:
+### Shared helpers (`utils/resolveHotkeyFromEvent.ts`)
+
+Exposes the canonical normalizer and matcher used everywhere:
 
 ```ts
-const key = event.key.toLowerCase();
-if (["shift", "ctrl", "alt", "meta", "dead", "unidentified"].includes(key))
-    return null;
+export function normalizeToken(token: string): string;   // code/key → canonical
+export function isIgnorableKey(normalized: string): boolean;  // modifier + lock keys
+export function canonicalizeChord(chord: string): string;     // stable compare form
+export function eventToChord(event: KeyboardEvent): string | null;
+export function matchesChord(event: KeyboardEvent, chord: string): boolean;
+export const TERMINAL_RESERVED_CHORDS: Set<string>;           // canonical form
+export const MODIFIERS: Set<string>;
 ```
 
-### Why it broke
-
-`KeyboardEvent.key` for the Control key is the string `"Control"`, not `"Ctrl"`.
-Lowercased, that's `"control"` — which does **not** match `"ctrl"` in the
-ignore list. Result: pressing Ctrl alone (the normal first half of any Ctrl
-chord) passed the filter, `event.ctrlKey` was true, and
-`captureHotkeyFromEvent` immediately returned and saved `ctrl+control` as the
-binding before the user could press the second key.
-
-Shift/Alt/Meta worked because their `event.key` values lowercase to `"shift"`,
-`"alt"`, `"meta"` — matching the filter.
-
-### Source citation
-
-[MDN KeyboardEvent.key values](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values#modifier_keys)
-specifies:
-
-> `"Control"` — The Control (Ctrl) key.
-
-The repo already aliases `ControlLeft`/`ControlRight` → `ctrl` in
-`resolveHotkeyFromEvent.ts` for `event.code` input, which hid the mismatch — it
-only surfaces when someone uses `event.key`.
-
-### Fix
-
-Filter against the actual lowercased `event.key` value, plus other modifier-ish
-keys that should never commit a binding on their own.
+Reverse index is now live (Bug 4):
 
 ```ts
-// apps/desktop/src/renderer/hotkeys/utils/resolveHotkeyFromEvent.ts
-export const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
-const LOCK_KEYS = new Set(["capslock", "numlock", "scrolllock"]);
-
-export function isIgnorableKey(normalized: string): boolean {
-    return !normalized || MODIFIERS.has(normalized) || LOCK_KEYS.has(normalized);
-}
+let registeredAppChords = buildRegisteredAppChords(
+    useHotkeyOverridesStore.getState().overrides,
+);
+useHotkeyOverridesStore.subscribe((state) => {
+    registeredAppChords = buildRegisteredAppChords(state.overrides);
+});
 ```
 
-Also added `altgraph` (AltGr on European keyboards) coverage via the broader
-rewrite below.
+### Recorder (`hooks/useRecordHotkeys/useRecordHotkeys.ts`)
 
----
-
-## Bug 2 — Recorder and resolver used different key sources
-
-### Before
-
-- **Resolver** (`resolveHotkeyFromEvent.ts:59`, `eventToChord`): used
-  `event.code`, normalized via `CODE_ALIASES` (the same alias table as
-  `react-hotkeys-hook`).
-- **Recorder** (`useRecordHotkeys.ts:13`): used `event.key`.
-- **Registry defaults** (`registry.ts`): written in `event.code` form
-  (`bracketleft`, `comma`, `slash`, `backspace`, etc.).
-
-### Why it broke
-
-`event.key` depends on layout and other held modifiers; `event.code` is a
-stable physical-key identifier. They diverge in common cases:
-
-| Chord pressed     | Recorder saved (`event.key`) | Registry/library form (`event.code`) | Match? |
-| ----------------- | ---------------------------- | ------------------------------------ | ------ |
-| Ctrl+Shift+2      | `ctrl+shift+@`               | `ctrl+shift+2`                       | ❌     |
-| Alt+L on Mac      | `alt+¬`                      | `alt+l`                              | ❌     |
-| Ctrl+/ on DE kbd  | `ctrl+-`                     | `ctrl+slash`                         | ❌     |
-| Meta+[            | `meta+[`                     | `meta+bracketleft`                   | ❌     |
-
-The saved override string was fed into `useHotkeys(keys, …)`, which internally
-re-parses via `mapCode`. Since `mapCode` is code-aware, an override string like
-`ctrl+shift+@` would never match the `event.code` `"Digit2"`.
-
-### Source citation
-
-Upstream `react-hotkeys-hook` uses `event.code` by default
-([`packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts`](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts)):
+Bug 1 + 2 in one:
 
 ```ts
-// react-hotkeys-hook/packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts
-const handler = useCallback(
-    (event: KeyboardEvent) => {
-        if (event.code === undefined) {
-            // Synthetic event (e.g., Chrome autofill).  Ignore.
-            return
-        }
-        event.preventDefault()
-        event.stopPropagation()
-        setKeys((prev) => {
-            const newKeys = new Set(prev)
-            newKeys.add(mapCode(useKey ? event.key : event.code))
-            return newKeys
-        })
-    },
-    [useKey],
-)
+if (event.code === undefined) return null;          // synthetic / autofill guard
+const key = normalizeToken(event.code);              // event.code, not event.key
+if (isIgnorableKey(key)) return null;                // catches Control/Shift/Alt/Meta/lock
+const isFKey = /^f([1-9]|1[0-2])$/.test(key);
+if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
+// …emit in registry MODIFIER_ORDER to stay string-comparable with defaults.
 ```
 
-And `parseHotkeys.ts` aliases `event.code` values like `ControlLeft` → `ctrl`,
-`ShiftLeft` → `shift`, and strips `/key|digit|numpad/` so `KeyA` → `a`,
-`Digit1` → `1`:
+Bug 3: `canonicalizeChord` on both sides of every comparison (reset-to-default,
+conflict detection, reserved-list lookup). `TERMINAL_RESERVED_CHORDS` imported
+from the shared module — no more duplicate.
+
+### Migration (`migrate.ts`)
+
+Bug 5: sanitize each migrated value. Drops garbage (`ctrl+control`,
+`ctrl+shift+@`, `meta+[`) and logs the count. Preserves `null` (explicit
+unassignment).
 
 ```ts
-// react-hotkeys-hook/packages/react-hotkeys-hook/src/lib/parseHotkeys.ts
-const mappedKeys: Record<string, string> = {
-    esc: 'escape', return: 'enter',
-    left: 'arrowleft', right: 'arrowright', up: 'arrowup', down: 'arrowdown',
-    ShiftLeft: 'shift', ShiftRight: 'shift',
-    AltLeft: 'alt', AltRight: 'alt',
-    MetaLeft: 'meta', MetaRight: 'meta',
-    OSLeft: 'meta', OSRight: 'meta',
-    ControlLeft: 'ctrl', ControlRight: 'ctrl',
+const canonical = canonicalizeChord(value);
+const keys = canonical.split("+").filter((p) => !MODIFIERS.has(p));
+if (keys.length !== 1) return undefined;
+if (!/^[a-z0-9]+$/.test(keys[0])) return undefined;
+return canonical;
+```
+
+### Terminal helpers
+
+Bug 6: `utils/utils.ts` and `Terminal/helpers.ts` now use `matchesChord` +
+shared `TERMINAL_RESERVED_CHORDS`:
+
+```ts
+// utils/utils.ts
+export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
+    const chord = eventToChord(event);
+    return chord != null && TERMINAL_RESERVED_CHORDS.has(chord);
 }
 
-export function mapCode(key: string): string {
-    return (mappedKeys[key.trim()] || key.trim()).toLowerCase().replace(/key|digit|numpad/, '')
-}
+// Terminal/helpers.ts — was: matchesKey(event, keys)
+if (clearKeys && matchesChord(event, clearKeys)) { … }
 ```
 
-### Fix
+### Display (`display.ts`)
 
-Export the existing `normalizeToken` (and `isIgnorableKey`) from
-`resolveHotkeyFromEvent.ts` and reuse it in the recorder so both sides speak
-the same language:
+Runs each chord part through `normalizeToken` and extends `KEY_DISPLAY` to
+cover both short (`up`) and canonical (`arrowup`) arrow names plus common
+punctuation (`backslash`, `semicolon`, `quote`, `period`, `minus`, `equal`).
 
-```ts
-// apps/desktop/src/renderer/hotkeys/hooks/useRecordHotkeys/useRecordHotkeys.ts
-import {
-    canonicalizeChord,
-    isIgnorableKey,
-    normalizeToken,
-} from "../../utils/resolveHotkeyFromEvent";
+## Library audit — nothing else missed
 
-function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
-    if (event.code === undefined) return null; // matches upstream guard
-    const key = normalizeToken(event.code);
-    if (isIgnorableKey(key)) return null;
+Checked every `react-hotkeys-hook` usage against upstream docs:
 
-    const isFKey = /^f([1-9]|1[0-2])$/.test(key);
-    if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
-    if (PLATFORM !== "mac" && event.metaKey) return null;
+| Option                          | Our use                                     |
+|---------------------------------|---------------------------------------------|
+| `useKey` (default false → code) | default (matches our `event.code` path)     |
+| `splitKey` / `sequenceSplitKey` | not used (no `,` multi-binds, no `>` chords)|
+| `mod` alias                     | skipped — per-platform registry covers it   |
+| `scopes` / `HotkeysProvider`    | not used (global `*` scope)                 |
+| `keyup` / `keydown`             | default (keydown only)                      |
+| `preventDefault`                | default false; callbacks handle when needed |
+| `ignoreModifiers`               | not used                                    |
+| `enableOnFormTags: true`        | set in our `useHotkey` helper               |
 
-    const modifiers = new Set<string>();
-    if (event.metaKey) modifiers.add("meta");
-    if (event.ctrlKey) modifiers.add("ctrl");
-    if (event.altKey) modifiers.add("alt");
-    if (event.shiftKey) modifiers.add("shift");
+Registry defaults already use event.code-canonical tokens (`bracketleft`,
+`comma`, `slash`, `arrowup`). No hardcoded chord strings found outside
+`hotkeys/` that need canonicalization.
 
-    const ordered = MODIFIER_ORDER.filter((m) => modifiers.has(m));
-    return [...ordered, key].join("+");
-}
-```
+## Decisions taken
 
----
-
-## Bug 3 — String comparisons didn't canonicalize
-
-### Before
-
-```ts
-// useRecordHotkeys.ts (before)
-if (TERMINAL_RESERVED.has(keys))            // raw string lookup
-if (OS_RESERVED[PLATFORM].includes(keys))   // raw string lookup
-if (effective === keys) return id;           // raw string comparison (conflict)
-if (captured === defaultKey) resetOverride();// raw string comparison (reset-to-default)
-```
-
-### Why it broke
-
-The recorder produces strings in `MODIFIER_ORDER` (`meta+ctrl+alt+shift`), the
-registry author orders them however reads naturally (`meta+alt+up`), and the
-resolver sorts alphabetically (`alt+meta+arrowup`). All three forms mean the
-same chord but fail `===` comparison.
-
-Examples that silently misbehaved:
-
-- User rebinds `PREV_WORKSPACE` to its own default (`meta+alt+up`). Recorder
-  saves `meta+alt+arrowup`; `captured === defaultKey` is false so we write an
-  override instead of resetting.
-- User tries to bind `meta+alt+up` while `NEXT_WORKSPACE` already has
-  `meta+alt+down` — conflict check runs string `===` between canonical-ish
-  recorder output and registry-authored defaults, producing false negatives on
-  overlapping overrides.
-
-### Fix
-
-Introduce a single canonical form and use it for all comparisons.
-
-```ts
-// apps/desktop/src/renderer/hotkeys/utils/resolveHotkeyFromEvent.ts
-export function canonicalizeChord(chord: string): string {
-    // sorts modifiers, normalizes control→ctrl, up→arrowup, bracketleft stays, etc.
-    return normalizeChord(chord);
-}
-```
-
-Applied at the three comparison sites in `useRecordHotkeys.ts`:
-
-```ts
-function checkReserved(keys: string) {
-    const canonical = canonicalizeChord(keys);
-    if (TERMINAL_RESERVED.has(canonical)) return { reason: "Reserved by terminal", severity: "error" };
-    if (OS_RESERVED[PLATFORM].includes(canonical)) return { reason: "Reserved by OS", severity: "warning" };
-    return null;
-}
-
-function getHotkeyConflict(keys: string, excludeId: HotkeyId) {
-    const canonicalKeys = canonicalizeChord(keys);
-    for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
-        if (id === excludeId) continue;
-        const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
-        if (effective && canonicalizeChord(effective) === canonicalKeys) return id;
-    }
-    return null;
-}
-
-// reset-to-default detection
-if (canonicalizeChord(captured) === canonicalizeChord(defaultKey)) {
-    resetOverride(recordingId);
-} else {
-    setOverride(recordingId, captured);
-}
-```
-
-`TERMINAL_RESERVED` had `"ctrl+\\"` — canonicalization leaves the backslash
-alone, but the recorder produces `ctrl+backslash` from `event.code === "Backslash"`.
-Changed the constant to `"ctrl+backslash"` so the set membership check matches
-what the recorder emits.
-
----
-
-## Display parity (`display.ts`)
-
-The display layer rendered symbols from a static table keyed on short names
-(`up`, `comma`) and never normalized input. Overrides stored in canonical form
-(`arrowup`) would render as `"ARROWUP"`. Fix:
-
-```ts
-// apps/desktop/src/renderer/hotkeys/display.ts
-import { normalizeToken } from "./utils/resolveHotkeyFromEvent";
-
-const KEY_DISPLAY: Record<string, string> = {
-    enter: "↵", backspace: "⌫", delete: "⌦", escape: "⎋", tab: "⇥",
-    up: "↑", down: "↓", left: "←", right: "→",
-    arrowup: "↑", arrowdown: "↓", arrowleft: "←", arrowright: "→",
-    space: "␣",
-    slash: "/", backslash: "\\", comma: ",", period: ".",
-    semicolon: ";", quote: "'", backquote: "`",
-    minus: "-", equal: "=",
-    bracketleft: "[", bracketright: "]",
-};
-
-export function formatHotkeyDisplay(keys: string | null, platform: Platform): HotkeyDisplay {
-    if (!keys) return { keys: ["Unassigned"], text: "Unassigned" };
-    const parts = keys.toLowerCase().split("+").map(normalizeToken);
-    // …rest unchanged; uses KEY_DISPLAY[key] ?? key.toUpperCase()
-}
-```
-
----
-
-## Follow-up bugs found during review
-
-### Bug 4 — Terminal swallowed hotkeys using stale defaults
-
-`resolveHotkeyFromEvent.ts` built its reverse index once at module load from
-`HOTKEYS` defaults, ignoring user overrides. `terminal-runtime.ts:154` passes
-`(event) => !isAppHotkey(event)` to xterm's `attachCustomKeyEventHandler`, so
-the terminal's swallow/forward decision used frozen defaults.
-
-Failure modes after a user rebinds a hotkey from `meta+l` → `meta+y`:
-
-| In-terminal keystroke   | Old behavior                                        |
-| ----------------------- | --------------------------------------------------- |
-| `meta+y` (new binding)  | not in map → xterm consumes → binding dead          |
-| `meta+l` (freed up)     | still in map → xterm bails → bubbles → nothing fires → keystroke eaten |
-
-**Fix**: the reverse index is now a `let` rebound on every
-`useHotkeyOverridesStore.subscribe` callback. Null overrides (explicit
-unassignment) are dropped from the index so the terminal does not swallow
-them. Tests in `resolveHotkeyFromEvent.test.ts` cover rebind, old-default
-gone, and unassigned cases.
-
-### Bug 6 — Two more consumers were matching via `event.key`
-
-A post-refactor audit found the same event.key/event.code mismatch pattern in
-two other places:
-
-1. `apps/desktop/src/renderer/hotkeys/utils/utils.ts::isTerminalReservedEvent`
-   — used `event.key.toLowerCase()` with its own local `TERMINAL_RESERVED`
-   set containing `ctrl+\\`. This happened to work for the letter chords
-   (`c`, `d`, `s`, `q`, `z`) but diverged from `useRecordHotkeys.ts`'s
-   canonical set which contains `ctrl+backslash`.
-2. `…/Terminal/helpers.ts::matchesKey` — same event.key-based compare used
-   for the `CLEAR_TERMINAL` rebind check. Would silently fail if the user
-   rebound to any punctuation chord (e.g. `ctrl+shift+bracketleft`).
-
-**Fix**:
-
-- Exported `eventToChord` and introduced `matchesChord(event, chord)` in
-  `resolveHotkeyFromEvent.ts` as the single canonical event↔chord matcher.
-- Exported `TERMINAL_RESERVED_CHORDS` as the single source of truth for
-  terminal-reserved chords (canonical form).
-- Rewrote `isTerminalReservedEvent` and replaced `matchesKey` usage with
-  `matchesChord`. Removed the duplicated set from `useRecordHotkeys.ts`.
-
-New tests cover `eventToChord`, `matchesChord` (modifier order, arrow forms,
-punctuation, negative cases), and `isTerminalReservedEvent` parity.
-
-### Bug 5 — Migration carried forward corrupt pre-fix overrides
-
-`migrate.ts` copied old overrides verbatim from the main-process tRPC store
-into the new localStorage store. Any user who hit the pre-fix recorder could
-have saved junk like `ctrl+control`, `ctrl+shift+@`, or `meta+[`, and the
-migration would keep those broken strings around forever.
-
-**Fix**: `migrate.ts` now runs each migrated value through a sanitizer that
-canonicalizes the chord and requires exactly one word-char key token. Invalid
-entries are dropped with a count logged. `null` (explicit unassignment) is
-preserved. Tests in `overrideSanitizer.test.ts`.
-
----
-
-## Decisions deliberately not taken
-
-### `mod` modifier alias
-
-Upstream `react-hotkeys-hook` supports `mod` as "meta on macOS, ctrl elsewhere"
-([`parseHotkeys.ts` reserved list](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/parseHotkeys.ts)):
-
-```ts
-const reservedModifierKeywords = ['shift', 'alt', 'meta', 'mod', 'ctrl', 'control']
-```
-
-Our registry already stores per-platform bindings:
-
-```ts
-// apps/desktop/src/renderer/hotkeys/registry.ts
-QUICK_OPEN: {
-    key: { mac: "meta+p", windows: "ctrl+shift+p", linux: "ctrl+shift+p" },
-    ...
-}
-```
-
-Adding `mod` would duplicate that capability without simplifying existing
-definitions. Skipped.
-
-### Meta (Win/Super) recording on non-Mac — now allowed with a warning
-
-Originally we blanket-rejected `event.metaKey` on Windows/Linux because
-Windows intercepts most `Win+*` chords (Win+R, Win+E, Win+L, Win+Tab) and the
-Super key is WM-owned on Linux (GNOME overview, KDE menu, tiling prefixes).
-
-**Flipped that decision**: the blanket reject is paternalistic — users on
-tiling WMs or with custom Windows configs often deliberately free up Super
-for app use. We can't know their environment, and if a chord doesn't fire
-they'll rebind. Instead:
-
-- Recording meta-based chords is allowed on all platforms.
-- `OS_RESERVED` was extended on Windows with the most common shell intercepts
-  (`meta+d/e/l/r/tab`). These surface a `"Reserved by OS"` warning at record
-  time instead of silently accepting a dead binding.
-
----
+- **Meta (Win/Super) on non-Mac — kept allowed.** Originally blocked; flipped
+  after review. Power users on tiling WMs / custom Windows configs can bind
+  Super-based chords. Extended `OS_RESERVED` on Windows with common shell
+  intercepts (`meta+d/e/l/r/tab`) so users get a "Reserved by OS" *warning*
+  instead of a silent block.
+- **`mod` alias — skipped.** Registry's per-platform `{mac,windows,linux}`
+  covers the same ground without adding a parsing rule.
+- **Migration: dropping invalid entries is better than carrying them.**
+  Silent corruption is worse than a visible drop count in console.
 
 ## Testability
 
-Everything the fix touches is now isolated in **pure functions** that take
-primitives and return primitives. All three bugs are testable without React or
-a DOM:
+Everything fixed is in pure functions over primitives. **62 tests across 4
+files**, no React/DOM harness needed (plain KeyboardEvent stubs):
 
-| Unit                                                | Pure? | Inputs                 | Test harness         |
-| --------------------------------------------------- | ----- | ---------------------- | -------------------- |
-| `normalizeToken(event.code \| alias)`               | ✅    | string                 | `bun:test` direct    |
-| `isIgnorableKey(normalized)`                        | ✅    | string                 | `bun:test` direct    |
-| `canonicalizeChord(chord)`                          | ✅    | string                 | `bun:test` direct    |
-| `eventToChord(event)` / `resolveHotkeyFromEvent`    | ✅    | `KeyboardEventInit`    | `new KeyboardEvent`  |
-| `captureHotkeyFromEvent(event)`                     | ✅\*  | `KeyboardEventInit`    | `new KeyboardEvent`  |
-| `formatHotkeyDisplay(keys, platform)`               | ✅    | string, `Platform`     | `bun:test` direct    |
+| File                                            | Covers                                              |
+|-------------------------------------------------|-----------------------------------------------------|
+| `utils/resolveHotkeyFromEvent.test.ts`          | `normalizeToken`, `isIgnorableKey`, `canonicalizeChord`, `eventToChord`, `matchesChord`, live override index, `isTerminalReservedEvent` parity |
+| `utils/overrideSanitizer.test.ts`               | migration validation (Bug 5)                        |
+| `hooks/useRecordHotkeys/useRecordHotkeys.test.ts` | recorder capture — all 3 bug classes                |
+| `display.test.ts`                               | display formatting parity (short + canonical forms) |
 
-\* `captureHotkeyFromEvent` references `PLATFORM` (imported from `registry.ts`),
-which is computed once from `navigator.platform`. To test non-Mac branches,
-either export a `_captureHotkeyFromEventWithPlatform(event, platform)` variant
-or module-mock `PLATFORM`. For the initial test pass we cover the current host
-platform and construct events for the paths that don't depend on `PLATFORM`.
+Only untested branch: non-Mac `PLATFORM` path in the recorder's OS-reserved
+warning. Would need module-mocking `PLATFORM`; not worth the harness.
 
-The hook integration (`useRecordHotkeys`) is better covered with a smoke test
-using `@testing-library/react` + `userEvent.keyboard`, but the pure helpers
-cover all three bug classes deterministically.
+## Files changed
 
-### Test file
+```
+apps/desktop/plans/20260412-keyboard-recorder-ctrl-binding-fix.md  (this doc)
+apps/desktop/src/renderer/hotkeys/
+    display.ts
+    display.test.ts                                       (new)
+    migrate.ts
+    hooks/useRecordHotkeys/useRecordHotkeys.ts
+    hooks/useRecordHotkeys/useRecordHotkeys.test.ts       (new)
+    utils/resolveHotkeyFromEvent.ts
+    utils/resolveHotkeyFromEvent.test.ts                  (new)
+    utils/utils.ts
+    utils/overrideSanitizer.test.ts                       (new)
+    utils/index.ts                                        (barrel)
+    index.ts                                              (barrel)
+apps/desktop/src/renderer/screens/.../Terminal/helpers.ts
+```
 
-See co-located tests:
-- `apps/desktop/src/renderer/hotkeys/utils/resolveHotkeyFromEvent.test.ts` — token normalization, canonicalization, and the live override-aware reverse index (Bugs 1/3/4)
-- `apps/desktop/src/renderer/hotkeys/utils/overrideSanitizer.test.ts` — migration validation (Bug 5)
-- `apps/desktop/src/renderer/hotkeys/hooks/useRecordHotkeys/useRecordHotkeys.test.ts` — recorder capture (Bugs 1/2)
-- `apps/desktop/src/renderer/hotkeys/display.test.ts` — display formatting parity
+## Test plan (manual QA)
 
----
+- [ ] macOS: Settings → Keyboard → Record, press Cmd alone → no auto-commit, still recording
+- [ ] Press Ctrl alone → no auto-commit (was the reported bug)
+- [ ] Press Ctrl+Shift+2 → captures `ctrl+shift+2`, not `ctrl+shift+@`
+- [ ] Press Meta+[ → captures `meta+bracketleft`
+- [ ] Rebind a hotkey, press the new chord inside a terminal pane → fires
+- [ ] Press the OLD default of a rebound hotkey in terminal → not swallowed
+- [ ] Unassign (Backspace while recording) → old chord no longer swallowed in terminal
+- [ ] Rebind CLEAR_TERMINAL to `ctrl+shift+bracketleft`, press it → clears (Bug 6)
+- [ ] Windows: try binding Win+R → allowed with "Reserved by OS" warning
 
 ## Sources
 
-- [react-hotkeys-hook — GitHub](https://github.com/JohannesKlauss/react-hotkeys-hook)
-- [`parseHotkeys.ts` (main)](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/parseHotkeys.ts)
-- [`useRecordHotkeys.ts` (main)](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts)
-- [MDN — KeyboardEvent.key values](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values)
+- [react-hotkeys-hook GitHub](https://github.com/JohannesKlauss/react-hotkeys-hook)
+- [`parseHotkeys.ts`](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/parseHotkeys.ts) — upstream modifier table + `mapCode`
+- [`useRecordHotkeys.ts`](https://raw.githubusercontent.com/JohannesKlauss/react-hotkeys-hook/main/packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts) — upstream uses `event.code` by default and guards `event.code === undefined`
+- [`useHotkeys` docs](https://react-hotkeys-hook.vercel.app/docs/api/use-hotkeys) — all options reviewed
+- [MDN — KeyboardEvent.key values](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values) (`"Control"` not `"Ctrl"`)
 - [MDN — KeyboardEvent.code values](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values)
-- VSCode's terminal hotkey forwarding pattern (referenced in
-  `apps/desktop/src/renderer/lib/terminal/terminal-runtime.ts:19-22` comment
-  citing `terminalInstance.ts:1116-1175`)
