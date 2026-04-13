@@ -1,1 +1,0 @@
-export { PierreWorkerPoolProvider } from "./PierreWorkerPoolProvider";

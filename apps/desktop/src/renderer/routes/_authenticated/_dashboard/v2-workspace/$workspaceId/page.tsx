@@ -24,7 +24,6 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
-import { PierreWorkerPoolProvider } from "./providers/PierreWorkerPoolProvider";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
@@ -235,7 +234,7 @@ function WorkspaceContent({
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (
-		<PierreWorkerPoolProvider>
+		<>
 			<ResizablePanelGroup direction="horizontal" className="flex-1">
 				<ResizablePanel defaultSize={80} minSize={30}>
 					<div
@@ -336,6 +335,6 @@ function WorkspaceContent({
 				onSelectFile={openFilePane}
 				variant="v2"
 			/>
-		</PierreWorkerPoolProvider>
+		</>
 	);
 }

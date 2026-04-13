@@ -1,3 +1,4 @@
+import { WorkerPoolContextProvider } from "@pierre/diffs/react";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
@@ -34,6 +35,7 @@ import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
+import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
@@ -183,17 +185,22 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<GlobalTerminalLifecycle />
 				<LocalHostServiceProvider>
-					<AgentHooks />
-					<Outlet />
-					<WorkspaceInitEffects />
-					{isV2CloudEnabled ? (
-						<DashboardNewWorkspaceModal />
-					) : (
-						<NewWorkspaceModal />
-					)}
-					<InitGitDialog />
-					<TeardownLogsDialog />
-					<Paywall />
+					<WorkerPoolContextProvider
+						poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+						highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+					>
+						<AgentHooks />
+						<Outlet />
+						<WorkspaceInitEffects />
+						{isV2CloudEnabled ? (
+							<DashboardNewWorkspaceModal />
+						) : (
+							<NewWorkspaceModal />
+						)}
+						<InitGitDialog />
+						<TeardownLogsDialog />
+						<Paywall />
+					</WorkerPoolContextProvider>
 				</LocalHostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>
