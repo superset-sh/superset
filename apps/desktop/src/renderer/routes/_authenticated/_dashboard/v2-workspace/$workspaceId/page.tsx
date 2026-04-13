@@ -108,7 +108,7 @@ function WorkspaceContent({
 			const state = store.getState();
 			if (openInNewTab) {
 				state.addTab({
-					titleOverride: filePath.split("/").pop(),
+					titleOverride: filePath.split(/[/\\]/).pop(),
 					panes: [
 						{
 							kind: "file",

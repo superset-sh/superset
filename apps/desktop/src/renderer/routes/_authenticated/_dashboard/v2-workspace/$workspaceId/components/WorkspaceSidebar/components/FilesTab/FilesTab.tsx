@@ -237,7 +237,7 @@ export function FilesTab({
 				})),
 		[collections, workspaceId],
 	);
-	const isLocalWorkspace = workspacesWithHost[0]?.hostMachineId === machineId;
+	const workspaceHost = workspacesWithHost[0];
 
 	const { data: sidebarProjectRows = [] } = useLiveQuery(
 		(q) =>
@@ -252,7 +252,8 @@ export function FilesTab({
 
 	const handleOpenInEditor = useCallback(
 		(absolutePath: string) => {
-			if (!isLocalWorkspace) {
+			if (!workspaceHost) return;
+			if (workspaceHost.hostMachineId !== machineId) {
 				toast.error("Opening in editor is only supported on local workspaces");
 				return;
 			}
@@ -264,7 +265,7 @@ export function FilesTab({
 					});
 				});
 		},
-		[isLocalWorkspace, resolvedOpenInApp],
+		[workspaceHost, machineId, resolvedOpenInApp],
 	);
 
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
