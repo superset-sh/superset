@@ -23,7 +23,10 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { shouldBubbleClipboardShortcut } from "./clipboardShortcuts";
+import {
+	shouldBubbleClipboardShortcut,
+	shouldSelectAllShortcut,
+} from "./clipboardShortcuts";
 import { TERMINAL_OPTIONS } from "./config";
 import { suppressQueryResponses } from "./suppressQueryResponses";
 
@@ -571,6 +574,14 @@ export function setupKeyboardHandler(
 		if (isCtrlRight) {
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
+			}
+			return false;
+		}
+
+		if (shouldSelectAllShortcut(event, isMac)) {
+			if (event.type === "keydown") {
+				event.preventDefault();
+				xterm.selectAll();
 			}
 			return false;
 		}

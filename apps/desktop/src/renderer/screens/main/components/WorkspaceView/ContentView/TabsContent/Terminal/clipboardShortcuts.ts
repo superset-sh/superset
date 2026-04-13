@@ -12,6 +12,21 @@ export interface ClipboardShortcutOptions {
 	hasSelection: boolean;
 }
 
+/** Match VS Code's macOS terminal `Cmd+A` binding. */
+export function shouldSelectAllShortcut(
+	event: ClipboardShortcutEvent,
+	isMac: boolean,
+): boolean {
+	return (
+		isMac &&
+		event.code === "KeyA" &&
+		event.metaKey &&
+		!event.ctrlKey &&
+		!event.altKey &&
+		!event.shiftKey
+	);
+}
+
 /**
  * Mirror VS Code terminal clipboard bindings so host copy/paste can run before
  * xterm's kitty keyboard handler turns the chord into CSI-u input.
@@ -47,9 +62,13 @@ export function shouldBubbleClipboardShortcut(
 		return false;
 	}
 
-	return (
-		(event.code === "KeyV" && ctrlShiftOnly) ||
-		(event.code === "Insert" && onlyShift) ||
-		(hasSelection && event.code === "KeyC" && ctrlShiftOnly)
-	);
+	if (!isMac) {
+		return (
+			(event.code === "KeyV" && ctrlShiftOnly) ||
+			(event.code === "Insert" && onlyShift) ||
+			(hasSelection && event.code === "KeyC" && ctrlShiftOnly)
+		);
+	}
+
+	return false;
 }
