@@ -17,7 +17,7 @@ export function useHotkey(
 	useHotkeys(
 		keys ?? "",
 		(e, _h) => callbackRef.current(e),
-		{ enableOnFormTags: true, ...options },
+		{ enableOnFormTags: true, enableOnContentEditable: true, ...options },
 		[keys],
 	);
 	return formatHotkeyDisplay(keys, PLATFORM);
