@@ -22,6 +22,7 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
+import { handleTerminalClipboardShortcut } from "./clipboardShortcuts";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
@@ -310,6 +311,8 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
+	onCopy?: () => void | Promise<void>;
+	onPaste?: () => void | Promise<void>;
 	onWrite?: (data: string) => void;
 }
 
@@ -682,6 +685,14 @@ export function setupKeyboardHandler(
 			// The original event bubbles to document where useAppHotkey handles it.
 			return false;
 		}
+
+		if (
+			handleTerminalClipboardShortcut(event, platform, {
+				onCopy: () => options.onCopy?.(),
+				onPaste: () => options.onPaste?.(),
+			})
+		)
+			return false;
 
 		return true;
 	};

@@ -148,6 +148,11 @@ export const createExternalRouter = () => {
 			clipboard.writeText(input);
 		}),
 
+		readClipboard: publicProcedure.query(() => ({
+			text: clipboard.readText(),
+			hasData: clipboard.availableFormats().length > 0,
+		})),
+
 		resolvePath: publicProcedure
 			.input(
 				z.object({

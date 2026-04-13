@@ -696,17 +696,6 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
-		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
-			onClear: handleClear,
-			onWrite: handleWrite,
-		});
-		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
-			onWrite: handleWrite,
-		});
-		registerClearCallbackRef.current(paneId, handleClear);
-		registerScrollToBottomCallbackRef.current(paneId, handleScrollToBottom);
-
 		const handleGetSelection = () => {
 			const selection = xterm.getSelection();
 			if (!selection) return "";
@@ -715,6 +704,46 @@ export function useTerminalLifecycle({
 				.map((line) => line.trimEnd())
 				.join("\n");
 		};
+
+		const handleCopyShortcut = async () => {
+			const selection = handleGetSelection();
+			if (!selection) return;
+			try {
+				await electronTrpcClient.external.copyText.mutate(selection);
+			} catch {
+				// Clipboard access failed
+			}
+		};
+
+		const handlePasteShortcut = async () => {
+			if (isExitedRef.current) return;
+			try {
+				const clipboard =
+					await electronTrpcClient.external.readClipboard.query();
+				if (clipboard.text) {
+					xterm.paste(clipboard.text);
+					return;
+				}
+				if (clipboard.hasData) {
+					handleWrite("\x16");
+				}
+			} catch {
+				// Clipboard access failed
+			}
+		};
+
+		const cleanupKeyboard = setupKeyboardHandler(xterm, {
+			onShiftEnter: () => handleWrite("\x1b\r"),
+			onClear: handleClear,
+			onCopy: handleCopyShortcut,
+			onPaste: handlePasteShortcut,
+			onWrite: handleWrite,
+		});
+		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
+			onWrite: handleWrite,
+		});
+		registerClearCallbackRef.current(paneId, handleClear);
+		registerScrollToBottomCallbackRef.current(paneId, handleScrollToBottom);
 
 		const handlePaste = (text: string) => {
 			if (isExitedRef.current) return;
