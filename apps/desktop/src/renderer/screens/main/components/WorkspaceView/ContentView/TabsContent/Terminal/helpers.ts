@@ -586,6 +586,47 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// OS-level clipboard chords must always bubble so the host (Electron /
+		// xterm.js Selection / OS) can fulfil copy / paste / cut / select-all.
+		// Without this, #3390's "unregistered → PTY" rule swallows Cmd+C/V/X/A
+		// (Mac) and Ctrl+Shift+C/V/X/A or Shift+Insert (Linux/Windows),
+		// breaking text copy from the terminal pane. Regression of #3390.
+		const onlyMeta =
+			event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+		const onlyCtrl =
+			event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+		const ctrlShiftOnly =
+			event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
+		if (isMac && onlyMeta) {
+			// Cmd+C copy, Cmd+V paste, Cmd+X cut, Cmd+A select-all
+			if (
+				event.code === "KeyC" ||
+				event.code === "KeyV" ||
+				event.code === "KeyX" ||
+				event.code === "KeyA"
+			) {
+				return false;
+			}
+		}
+		if (!isMac && (onlyCtrl || ctrlShiftOnly)) {
+			// Linux/Windows: Ctrl+Shift+C/V/X/A or Shift+Insert / Ctrl+Insert
+			if (
+				ctrlShiftOnly &&
+				(event.code === "KeyC" ||
+					event.code === "KeyV" ||
+					event.code === "KeyX" ||
+					event.code === "KeyA")
+			) {
+				return false;
+			}
+			if (
+				onlyCtrl &&
+				(event.code === "Insert" || event.code === "Delete")
+			) {
+				return false;
+			}
+		}
+
 		// Only bubble chords registered as app hotkeys; everything else reaches the PTY.
 		// Mirrors v2 terminal-runtime.ts:21 (VSCode terminalInstance pattern).
 		if (resolveHotkeyFromEvent(event) !== null) return false;
