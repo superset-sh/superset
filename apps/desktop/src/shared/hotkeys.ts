@@ -271,6 +271,15 @@ export function matchesHotkeyEvent(
 	// Use event.code to match digit keys when alt is pressed
 	if (/^[1-9]$/.test(key) && eventCode === `digit${key}`) return true;
 
+	// IME / non-Latin keyboard layout fallback (e.g. Turkish, Korean, Russian):
+	// `event.key` reflects the IME-transformed character (e.g. Turkish dead keys
+	// or Korean 2-Set), while `event.code` always reports the physical key.
+	// Without this, Ctrl+C, Ctrl+V, Ctrl+D, Ctrl+Z etc. fail to match when a
+	// non-Latin layout is active. Fixes superset-sh/superset#3365.
+	if (key.length === 1 && /^[a-z]$/.test(key) && eventCode === `key${key}`) {
+		return true;
+	}
+
 	return eventKey === key;
 }
 

@@ -91,4 +91,32 @@ describe("isTerminalReservedEvent", () => {
 			}),
 		).toBe(true);
 	});
+
+	// Regression: superset-sh/superset#3365 — ctrl+c/d/z fail under non-Latin IME
+	// (Turkish, Korean, Russian) because event.key reflects IME-transformed char.
+	it("detects ctrl+c via event.code when IME mangles event.key (Turkish)", () => {
+		expect(
+			isTerminalReservedEvent({
+				key: "ç", // Turkish IME emits 'ç' instead of 'c'
+				code: "KeyC",
+				ctrlKey: true,
+				shiftKey: false,
+				altKey: false,
+				metaKey: false,
+			}),
+		).toBe(true);
+	});
+
+	it("detects ctrl+d via event.code when IME mangles event.key (Korean)", () => {
+		expect(
+			isTerminalReservedEvent({
+				key: "ㅇ", // Korean 2-Set IME emits Hangul jamo for 'd'
+				code: "KeyD",
+				ctrlKey: true,
+				shiftKey: false,
+				altKey: false,
+				metaKey: false,
+			}),
+		).toBe(true);
+	});
 });
