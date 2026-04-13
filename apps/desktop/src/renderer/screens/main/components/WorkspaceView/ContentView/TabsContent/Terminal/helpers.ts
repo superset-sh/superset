@@ -11,6 +11,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import {
 	getBinding,
 	isTerminalReservedEvent,
+	matchesChord,
 	resolveHotkeyFromEvent,
 } from "renderer/hotkeys";
 import type { DetectedLink } from "renderer/lib/terminal/links";
@@ -438,17 +439,6 @@ export function setupPasteHandler(
  *
  * Returns a cleanup function to remove the handler.
  */
-function matchesKey(event: KeyboardEvent, keys: string): boolean {
-	const parts = keys.toLowerCase().split("+");
-	const modifiers = new Set(parts.slice(0, -1));
-	const key = parts[parts.length - 1];
-	if (modifiers.has("meta") !== event.metaKey) return false;
-	if (modifiers.has("ctrl") !== event.ctrlKey) return false;
-	if (modifiers.has("alt") !== event.altKey) return false;
-	if (modifiers.has("shift") !== event.shiftKey) return false;
-	return event.key.toLowerCase() === key;
-}
-
 export function setupKeyboardHandler(
 	xterm: XTerm,
 	options: KeyboardHandlerOptions = {},
@@ -589,7 +579,7 @@ export function setupKeyboardHandler(
 
 		// CLEAR_TERMINAL is handled here (xterm needs to call onClear)
 		const clearKeys = getBinding("CLEAR_TERMINAL");
-		if (clearKeys && matchesKey(event, clearKeys)) {
+		if (clearKeys && matchesChord(event, clearKeys)) {
 			if (event.type === "keydown" && options.onClear) {
 				options.onClear();
 			}

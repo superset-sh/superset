@@ -3,10 +3,14 @@ import { HOTKEYS } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import {
 	canonicalizeChord,
+	eventToChord,
 	isIgnorableKey,
+	matchesChord,
 	normalizeToken,
 	resolveHotkeyFromEvent,
+	TERMINAL_RESERVED_CHORDS,
 } from "./resolveHotkeyFromEvent";
+import { isTerminalReservedEvent } from "./utils";
 
 // Minimal stub — the renderer references `navigator` only at import time.
 // Bun's test runtime doesn't have a DOM navigator by default; registry.ts
@@ -265,5 +269,108 @@ describe("resolveHotkeyFromEvent", () => {
 				}),
 			),
 		).toBeNull();
+	});
+});
+
+describe("eventToChord", () => {
+	it("normalizes punctuation via event.code", () => {
+		expect(eventToChord(ev({ code: "BracketLeft", ctrlKey: true }))).toBe(
+			"ctrl+bracketleft",
+		);
+		expect(eventToChord(ev({ code: "Slash", metaKey: true }))).toBe(
+			"meta+slash",
+		);
+	});
+
+	it("returns null for pure modifiers and lock keys", () => {
+		expect(eventToChord(ev({ code: "ControlLeft", ctrlKey: true }))).toBeNull();
+		expect(eventToChord(ev({ code: "CapsLock" }))).toBeNull();
+	});
+});
+
+describe("matchesChord", () => {
+	it("matches events regardless of modifier order in the chord string", () => {
+		const event = ev({ code: "KeyK", ctrlKey: true, shiftKey: true });
+		expect(matchesChord(event, "ctrl+shift+k")).toBe(true);
+		expect(matchesChord(event, "shift+ctrl+k")).toBe(true);
+	});
+
+	it("matches short vs canonical arrow forms", () => {
+		const event = ev({ code: "ArrowUp", metaKey: true, altKey: true });
+		expect(matchesChord(event, "meta+alt+up")).toBe(true);
+		expect(matchesChord(event, "alt+meta+arrowup")).toBe(true);
+	});
+
+	it("matches punctuation rebinds via event.code (bracket, backslash)", () => {
+		expect(
+			matchesChord(
+				ev({ code: "BracketLeft", ctrlKey: true, shiftKey: true }),
+				"ctrl+shift+bracketleft",
+			),
+		).toBe(true);
+		expect(
+			matchesChord(ev({ code: "Backslash", ctrlKey: true }), "ctrl+backslash"),
+		).toBe(true);
+	});
+
+	it("does NOT match when key differs", () => {
+		expect(matchesChord(ev({ code: "KeyK", ctrlKey: true }), "ctrl+j")).toBe(
+			false,
+		);
+	});
+
+	it("does NOT match when modifiers differ", () => {
+		expect(matchesChord(ev({ code: "KeyK", ctrlKey: true }), "meta+k")).toBe(
+			false,
+		);
+	});
+
+	it("does NOT match a bare modifier press", () => {
+		expect(
+			matchesChord(ev({ code: "ControlLeft", ctrlKey: true }), "ctrl+k"),
+		).toBe(false);
+	});
+});
+
+describe("isTerminalReservedEvent", () => {
+	it.each([
+		"ctrl+c",
+		"ctrl+d",
+		"ctrl+z",
+		"ctrl+s",
+		"ctrl+q",
+		"ctrl+backslash",
+	])("detects %s", (chord) => {
+		const codeMap: Record<string, string> = {
+			"ctrl+c": "KeyC",
+			"ctrl+d": "KeyD",
+			"ctrl+z": "KeyZ",
+			"ctrl+s": "KeyS",
+			"ctrl+q": "KeyQ",
+			"ctrl+backslash": "Backslash",
+		};
+		expect(
+			isTerminalReservedEvent(ev({ code: codeMap[chord], ctrlKey: true })),
+		).toBe(true);
+	});
+
+	it("ignores non-reserved ctrl chords", () => {
+		expect(isTerminalReservedEvent(ev({ code: "KeyK", ctrlKey: true }))).toBe(
+			false,
+		);
+	});
+
+	it("ignores reserved letter when extra modifier is held", () => {
+		expect(
+			isTerminalReservedEvent(
+				ev({ code: "KeyC", ctrlKey: true, shiftKey: true }),
+			),
+		).toBe(false);
+	});
+
+	it("TERMINAL_RESERVED_CHORDS stays in canonical form", () => {
+		for (const chord of TERMINAL_RESERVED_CHORDS) {
+			expect(canonicalizeChord(chord)).toBe(chord);
+		}
 	});
 });

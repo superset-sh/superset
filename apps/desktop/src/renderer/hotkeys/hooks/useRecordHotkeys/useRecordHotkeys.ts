@@ -6,6 +6,7 @@ import {
 	canonicalizeChord,
 	isIgnorableKey,
 	normalizeToken,
+	TERMINAL_RESERVED_CHORDS,
 } from "../../utils/resolveHotkeyFromEvent";
 
 // ---------------------------------------------------------------------------
@@ -38,17 +39,6 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	return [...ordered, key].join("+");
 }
 
-// Reserved chords are matched after canonicalization, so use event.code-based
-// tokens (e.g. `backslash`, not `\\`).
-const TERMINAL_RESERVED = new Set([
-	"ctrl+c",
-	"ctrl+d",
-	"ctrl+z",
-	"ctrl+s",
-	"ctrl+q",
-	"ctrl+backslash",
-]);
-
 // Chords that the OS / shell is likely to intercept before the renderer sees
 // them. Binding is allowed (different Linux WM configs free many of these up),
 // but the recorder emits a "Reserved by OS" warning so the user knows why a
@@ -72,7 +62,7 @@ function checkReserved(
 	keys: string,
 ): { reason: string; severity: "error" | "warning" } | null {
 	const canonical = canonicalizeChord(keys);
-	if (TERMINAL_RESERVED.has(canonical))
+	if (TERMINAL_RESERVED_CHORDS.has(canonical))
 		return { reason: "Reserved by terminal", severity: "error" };
 	if (OS_RESERVED[PLATFORM].includes(canonical))
 		return { reason: "Reserved by OS", severity: "warning" };

@@ -305,6 +305,32 @@ unassignment) are dropped from the index so the terminal does not swallow
 them. Tests in `resolveHotkeyFromEvent.test.ts` cover rebind, old-default
 gone, and unassigned cases.
 
+### Bug 6 — Two more consumers were matching via `event.key`
+
+A post-refactor audit found the same event.key/event.code mismatch pattern in
+two other places:
+
+1. `apps/desktop/src/renderer/hotkeys/utils/utils.ts::isTerminalReservedEvent`
+   — used `event.key.toLowerCase()` with its own local `TERMINAL_RESERVED`
+   set containing `ctrl+\\`. This happened to work for the letter chords
+   (`c`, `d`, `s`, `q`, `z`) but diverged from `useRecordHotkeys.ts`'s
+   canonical set which contains `ctrl+backslash`.
+2. `…/Terminal/helpers.ts::matchesKey` — same event.key-based compare used
+   for the `CLEAR_TERMINAL` rebind check. Would silently fail if the user
+   rebound to any punctuation chord (e.g. `ctrl+shift+bracketleft`).
+
+**Fix**:
+
+- Exported `eventToChord` and introduced `matchesChord(event, chord)` in
+  `resolveHotkeyFromEvent.ts` as the single canonical event↔chord matcher.
+- Exported `TERMINAL_RESERVED_CHORDS` as the single source of truth for
+  terminal-reserved chords (canonical form).
+- Rewrote `isTerminalReservedEvent` and replaced `matchesKey` usage with
+  `matchesChord`. Removed the duplicated set from `useRecordHotkeys.ts`.
+
+New tests cover `eventToChord`, `matchesChord` (modifier order, arrow forms,
+punctuation, negative cases), and `isTerminalReservedEvent` parity.
+
 ### Bug 5 — Migration carried forward corrupt pre-fix overrides
 
 `migrate.ts` copied old overrides verbatim from the main-process tRPC store

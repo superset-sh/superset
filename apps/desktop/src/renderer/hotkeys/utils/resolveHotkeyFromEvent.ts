@@ -74,7 +74,13 @@ export function canonicalizeChord(chord: string): string {
 	return normalizeChord(chord);
 }
 
-function eventToChord(event: KeyboardEvent): string | null {
+/**
+ * Normalized canonical chord string for a KeyboardEvent, or null if it is a
+ * pure modifier / synthetic / ignorable press. Modifier order is sorted to
+ * match `canonicalizeChord`, so output is directly comparable with that
+ * function's output.
+ */
+export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.code === undefined) return null;
 	const key = normalizeToken(event.code);
 	if (isIgnorableKey(key)) return null;
@@ -86,6 +92,30 @@ function eventToChord(event: KeyboardEvent): string | null {
 	mods.sort();
 	return [...mods, key].join("+");
 }
+
+/**
+ * True if a KeyboardEvent matches a chord string (in any form the registry or
+ * user might produce — `meta+alt+up`, `alt+meta+arrowup`, `control+k`, etc.).
+ */
+export function matchesChord(event: KeyboardEvent, chord: string): boolean {
+	const eventChord = eventToChord(event);
+	if (!eventChord) return false;
+	return eventChord === canonicalizeChord(chord);
+}
+
+/**
+ * Terminal-reserved chords (sent straight to the PTY regardless of whether
+ * they would otherwise match an app hotkey). Stored in canonical form so
+ * lookups via `eventToChord` / `canonicalizeChord` match directly.
+ */
+export const TERMINAL_RESERVED_CHORDS = new Set([
+	"ctrl+c",
+	"ctrl+d",
+	"ctrl+z",
+	"ctrl+s",
+	"ctrl+q",
+	"ctrl+backslash",
+]);
 
 function buildRegisteredAppChords(
 	overrides: Record<string, string | null>,

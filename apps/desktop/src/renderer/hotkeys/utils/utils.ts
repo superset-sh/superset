@@ -1,16 +1,11 @@
-/** Check if a KeyboardEvent matches a terminal-reserved chord */
-const TERMINAL_RESERVED = new Set([
-	"ctrl+c",
-	"ctrl+d",
-	"ctrl+z",
-	"ctrl+s",
-	"ctrl+q",
-	"ctrl+\\",
-]);
+import {
+	eventToChord,
+	TERMINAL_RESERVED_CHORDS,
+} from "./resolveHotkeyFromEvent";
 
+/** True if the event matches a chord the terminal must always receive. */
 export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
-	if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
-		return false;
-	const key = event.key.toLowerCase();
-	return TERMINAL_RESERVED.has(`ctrl+${key}`);
+	const chord = eventToChord(event);
+	if (!chord) return false;
+	return TERMINAL_RESERVED_CHORDS.has(chord);
 }
