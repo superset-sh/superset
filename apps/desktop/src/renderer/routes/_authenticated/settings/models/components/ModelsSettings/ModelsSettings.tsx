@@ -820,10 +820,16 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 								</div>
 								<div className="mt-4 grid gap-3 md:grid-cols-3">
 									{[
-										["Today", nextEditUsageSummary?.today],
-										["This month", nextEditUsageSummary?.month],
-										["All time", nextEditUsageSummary?.allTime],
-									].map(([label, bucket]) => (
+										{ label: "Today", bucket: nextEditUsageSummary?.today },
+										{
+											label: "This month",
+											bucket: nextEditUsageSummary?.month,
+										},
+										{
+											label: "All time",
+											bucket: nextEditUsageSummary?.allTime,
+										},
+									].map(({ label, bucket }) => (
 										<div
 											key={label}
 											className="rounded-md border bg-background p-3"
@@ -852,9 +858,15 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 								</div>
 								<div className="mt-4 grid gap-3 md:grid-cols-2">
 									{[
-										["FIM", nextEditUsageSummary?.byEndpoint.fim],
-										["Next Edit", nextEditUsageSummary?.byEndpoint.next_edit],
-									].map(([label, bucket]) => (
+										{
+											label: "FIM",
+											bucket: nextEditUsageSummary?.byEndpoint.fim,
+										},
+										{
+											label: "Next Edit",
+											bucket: nextEditUsageSummary?.byEndpoint.next_edit,
+										},
+									].map(({ label, bucket }) => (
 										<div
 											key={label}
 											className="rounded-md border bg-background p-3"

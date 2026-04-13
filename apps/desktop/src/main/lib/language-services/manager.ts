@@ -14,6 +14,7 @@ import { YamlLanguageProvider } from "./providers/yaml/YamlLanguageProvider";
 import type {
 	LanguageServiceCallHierarchyItem,
 	LanguageServiceDocument,
+	LanguageServiceHover,
 	LanguageServiceIncomingCall,
 	LanguageServiceLocation,
 	LanguageServiceProvider,
@@ -193,6 +194,32 @@ export class LanguageServiceManager {
 		const provider = this.resolveProvider(args.languageId);
 		if (!provider || !this.isProviderEnabled(provider.id)) return null;
 		return (await provider.findReferences?.(args)) ?? null;
+	}
+
+	async getHover(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		languageId: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceHover | null> {
+		const provider = this.resolveProvider(args.languageId);
+		if (!provider || !this.isProviderEnabled(provider.id)) return null;
+		return (await provider.getHover?.(args)) ?? null;
+	}
+
+	async getDefinition(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		languageId: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceLocation[] | null> {
+		const provider = this.resolveProvider(args.languageId);
+		if (!provider || !this.isProviderEnabled(provider.id)) return null;
+		return (await provider.getDefinition?.(args)) ?? null;
 	}
 
 	async prepareCallHierarchy(args: {

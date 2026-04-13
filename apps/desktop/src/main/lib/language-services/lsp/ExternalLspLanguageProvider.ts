@@ -3,10 +3,13 @@ import type {
 	LanguageServiceCallHierarchyItem,
 	LanguageServiceDiagnostic,
 	LanguageServiceDocument,
+	LanguageServiceHover,
 	LanguageServiceIncomingCall,
 	LanguageServiceLocation,
+	LanguageServiceMarkupContent,
 	LanguageServiceProvider,
 	LanguageServiceProviderSummary,
+	LanguageServiceRange,
 	LanguageServiceRelatedInformation,
 } from "../types";
 import {
@@ -45,6 +48,24 @@ type LspDiagnostic = {
 		};
 		message: string;
 	}>;
+};
+
+type LspPosition = { line: number; character: number };
+type LspRange = { start: LspPosition; end: LspPosition };
+type LspLocation = { uri: string; range: LspRange };
+type LspLocationLink = {
+	targetUri: string;
+	targetRange: LspRange;
+	targetSelectionRange?: LspRange;
+};
+type LspMarkupContent = {
+	kind?: string;
+	value?: string;
+};
+type LspMarkedString = string | { language?: string; value?: string };
+type LspHover = {
+	contents?: LspMarkupContent | LspMarkedString | LspMarkedString[];
+	range?: LspRange;
 };
 
 type WorkspaceSession = {
@@ -132,6 +153,108 @@ function getSectionValue(
 	}
 
 	return current;
+}
+
+function lspRangeToLanguageServiceRange(
+	range: LspRange | undefined,
+): LanguageServiceRange | null {
+	if (!range) {
+		return null;
+	}
+
+	return {
+		line: range.start.line + 1,
+		column: range.start.character + 1,
+		endLine: range.end.line + 1,
+		endColumn: range.end.character + 1,
+	};
+}
+
+function lspLocationToLanguageServiceLocation(
+	location: LspLocation | LspLocationLink,
+): LanguageServiceLocation | null {
+	const targetUri = "targetUri" in location ? location.targetUri : location.uri;
+	const targetRange =
+		"targetUri" in location
+			? (location.targetSelectionRange ?? location.targetRange)
+			: location.range;
+	const absolutePath = fileUriToAbsolutePath(targetUri);
+	if (!absolutePath) {
+		return null;
+	}
+
+	return {
+		absolutePath,
+		line: targetRange.start.line + 1,
+		column: targetRange.start.character + 1,
+		endLine: targetRange.end.line + 1,
+		endColumn: targetRange.end.character + 1,
+	};
+}
+
+function normalizeMarkedString(
+	value: LspMarkedString,
+): LanguageServiceMarkupContent | null {
+	if (typeof value === "string") {
+		return value
+			? {
+					kind: "plaintext",
+					value,
+				}
+			: null;
+	}
+
+	if (value.language && value.value) {
+		return {
+			kind: "markdown",
+			value: `\`\`\`${value.language}\n${value.value}\n\`\`\``,
+		};
+	}
+
+	if (value.value) {
+		return {
+			kind: "plaintext",
+			value: value.value,
+		};
+	}
+
+	return null;
+}
+
+function normalizeLspHoverContents(
+	contents: LspHover["contents"],
+): LanguageServiceMarkupContent[] {
+	if (!contents) {
+		return [];
+	}
+
+	if (Array.isArray(contents)) {
+		return contents
+			.map((item) => normalizeMarkedString(item))
+			.filter((item): item is LanguageServiceMarkupContent => item !== null);
+	}
+
+	if (typeof contents === "string") {
+		const normalized = normalizeMarkedString(contents);
+		return normalized ? [normalized] : [];
+	}
+
+	if ("language" in contents) {
+		const normalized = normalizeMarkedString(contents);
+		return normalized ? [normalized] : [];
+	}
+
+	const markup = contents as LspMarkupContent;
+	if (markup.value) {
+		return [
+			{
+				kind: markup.kind === "markdown" ? "markdown" : "plaintext",
+				value: markup.value,
+			},
+		];
+	}
+
+	return [];
 }
 
 export class ExternalLspLanguageProvider implements LanguageServiceProvider {
@@ -381,6 +504,94 @@ export class ExternalLspLanguageProvider implements LanguageServiceProvider {
 					};
 				})
 				.filter((loc): loc is LanguageServiceLocation => loc !== null);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			session.lastError = message;
+			this.workspaceErrors.set(args.workspaceId, message);
+			return null;
+		}
+	}
+
+	async getHover(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceHover | null> {
+		const session = this.sessions.get(args.workspaceId);
+		if (!session) return null;
+
+		try {
+			const result = (await session.client.request("textDocument/hover", {
+				textDocument: {
+					uri: absolutePathToFileUri(args.absolutePath),
+				},
+				position: {
+					line: args.line - 1,
+					character: args.column - 1,
+				},
+			})) as LspHover | null;
+
+			const contents = normalizeLspHoverContents(result?.contents);
+			if (contents.length === 0) {
+				return null;
+			}
+
+			session.lastError = null;
+			this.workspaceErrors.delete(args.workspaceId);
+			return {
+				contents,
+				range: lspRangeToLanguageServiceRange(result?.range),
+			};
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			session.lastError = message;
+			this.workspaceErrors.set(args.workspaceId, message);
+			return null;
+		}
+	}
+
+	async getDefinition(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceLocation[] | null> {
+		const session = this.sessions.get(args.workspaceId);
+		if (!session) return null;
+
+		try {
+			const result = (await session.client.request("textDocument/definition", {
+				textDocument: {
+					uri: absolutePathToFileUri(args.absolutePath),
+				},
+				position: {
+					line: args.line - 1,
+					character: args.column - 1,
+				},
+			})) as
+				| LspLocation
+				| LspLocationLink
+				| Array<LspLocation | LspLocationLink>
+				| null;
+
+			const locations = (
+				Array.isArray(result) ? result : result ? [result] : []
+			)
+				.map((location) => lspLocationToLanguageServiceLocation(location))
+				.filter(
+					(location): location is LanguageServiceLocation => location !== null,
+				);
+
+			if (locations.length === 0) {
+				return null;
+			}
+
+			session.lastError = null;
+			this.workspaceErrors.delete(args.workspaceId);
+			return locations;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			session.lastError = message;
@@ -648,6 +859,12 @@ export class ExternalLspLanguageProvider implements LanguageServiceProvider {
 					textDocument: {
 						publishDiagnostics: {
 							relatedInformation: true,
+						},
+						hover: {
+							contentFormat: ["markdown", "plaintext"],
+						},
+						definition: {
+							linkSupport: true,
 						},
 						references: {
 							dynamicRegistration: false,

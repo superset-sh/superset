@@ -77,6 +77,23 @@ export interface LanguageServiceLocation {
 	endColumn: number;
 }
 
+export interface LanguageServiceRange {
+	line: number;
+	column: number;
+	endLine: number;
+	endColumn: number;
+}
+
+export interface LanguageServiceMarkupContent {
+	kind: "plaintext" | "markdown";
+	value: string;
+}
+
+export interface LanguageServiceHover {
+	contents: LanguageServiceMarkupContent[];
+	range: LanguageServiceRange | null;
+}
+
 /**
  * A call hierarchy item returned by prepareCallHierarchy.
  */
@@ -140,6 +157,30 @@ export interface LanguageServiceProvider {
 	 * Returns null if the provider does not support this operation.
 	 */
 	findReferences?(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceLocation[] | null>;
+
+	/**
+	 * Get hover content for a symbol at the given position.
+	 * Returns null if the provider does not support this operation.
+	 */
+	getHover?(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceHover | null>;
+
+	/**
+	 * Get definitions for a symbol at the given position.
+	 * Returns null if the provider does not support this operation.
+	 */
+	getDefinition?(args: {
 		workspaceId: string;
 		workspacePath: string;
 		absolutePath: string;

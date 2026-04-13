@@ -40,6 +40,11 @@ import {
 	createInlineCompletionPlugin,
 	type InlineCompletionRequest,
 } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/createInlineCompletionPlugin";
+import {
+	createSymbolInteractions,
+	type SymbolHoverResult,
+	type SymbolPosition,
+} from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/createSymbolInteractions";
 import { loadLanguageSupport } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/loadLanguageSupport";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { useResolvedTheme } from "renderer/stores/theme";
@@ -217,6 +222,11 @@ interface CodeMirrorDiffViewerProps {
 		severity: "error" | "warning" | "info" | "hint";
 	}>;
 	inlineCompletionRequest?: InlineCompletionRequest | null;
+	resolveSymbolHover?: (
+		position: SymbolPosition,
+	) => Promise<SymbolHoverResult | null> | SymbolHoverResult | null;
+	onGoToDefinition?: (position: SymbolPosition) => Promise<void> | void;
+	onModifiedCursorChange?: (position: SymbolPosition | null) => void;
 }
 
 function createDiagnosticsTheme(theme: ReturnType<typeof getEditorTheme>) {
@@ -291,6 +301,9 @@ export function CodeMirrorDiffViewer({
 	blameEntries,
 	diagnostics = [],
 	inlineCompletionRequest,
+	resolveSymbolHover,
+	onGoToDefinition,
+	onModifiedCursorChange,
 }: CodeMirrorDiffViewerProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mergeViewRef = useRef<MergeView | null>(null);
@@ -315,6 +328,9 @@ export function CodeMirrorDiffViewer({
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
 	const inlineCompletionRequestRef = useRef(inlineCompletionRequest);
+	const resolveSymbolHoverRef = useRef(resolveSymbolHover);
+	const onGoToDefinitionRef = useRef(onGoToDefinition);
+	const onModifiedCursorChangeRef = useRef(onModifiedCursorChange);
 	const activeTheme = useResolvedTheme();
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
@@ -327,6 +343,9 @@ export function CodeMirrorDiffViewer({
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
 	inlineCompletionRequestRef.current = inlineCompletionRequest;
+	resolveSymbolHoverRef.current = resolveSymbolHover;
+	onGoToDefinitionRef.current = onGoToDefinition;
+	onModifiedCursorChangeRef.current = onModifiedCursorChange;
 
 	const getActiveEditor = (): EditorView | null => {
 		const mv = mergeViewRef.current;
@@ -575,6 +594,13 @@ export function CodeMirrorDiffViewer({
 			}),
 			suppressInsertions,
 			blameCompartmentB.of([]),
+			...createSymbolInteractions({
+				resolveHover: (position) =>
+					resolveSymbolHoverRef.current?.(position) ?? null,
+				onGoToDefinition: (position) => onGoToDefinitionRef.current?.(position),
+				onCursorChange: (position) =>
+					onModifiedCursorChangeRef.current?.(position),
+			}),
 		];
 
 		const themeExts = [

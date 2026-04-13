@@ -30,6 +30,7 @@ interface DiffViewerContextMenuProps {
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
 	onEditAtLocation: () => void;
+	onGoToDefinition?: () => void;
 }
 
 function isSelectionInsideContainer(
@@ -69,6 +70,7 @@ export function DiffViewerContextMenu({
 	onMoveToTab,
 	onMoveToNewTab,
 	onEditAtLocation,
+	onGoToDefinition,
 }: DiffViewerContextMenuProps) {
 	const { copyToClipboard } = useCopyToClipboard();
 	const getEditor = useCallback((): CodeEditorAdapter | null => {
@@ -133,6 +135,7 @@ export function DiffViewerContextMenu({
 			editorActions={{
 				...editorActions,
 				onFind: undefined,
+				onGoToDefinition,
 			}}
 			leadingItems={
 				<ContextMenuItem onSelect={onEditAtLocation}>

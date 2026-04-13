@@ -33,6 +33,7 @@ export interface EditorActions {
 	onCopySupersetLink?: () => void;
 	onCopySupersetLinkWithLine?: () => void;
 	onFind?: () => void;
+	onGoToDefinition?: () => void;
 	onShowReferenceGraph?: () => void;
 }
 
@@ -65,6 +66,7 @@ export function EditorContextMenu({
 		onCopySupersetLink,
 		onCopySupersetLinkWithLine,
 		onFind,
+		onGoToDefinition,
 		onShowReferenceGraph,
 	} = editorActions;
 	const showCutPaste = !!onCut && !!onPaste;
@@ -139,6 +141,13 @@ export function EditorContextMenu({
 						<LuSearch className="size-4" />
 						Find
 						<ContextMenuShortcut>{cmdKey}+F</ContextMenuShortcut>
+					</ContextMenuItem>
+				)}
+				{onGoToDefinition && (
+					<ContextMenuItem onSelect={onGoToDefinition}>
+						<LuMousePointerClick className="size-4" />
+						Go to Definition
+						<ContextMenuShortcut>F12</ContextMenuShortcut>
 					</ContextMenuItem>
 				)}
 

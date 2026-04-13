@@ -1,4 +1,8 @@
-import { DropdownMenuItem } from "@superset/ui/dropdown-menu";
+import {
+	DropdownMenuCheckboxItem,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@superset/ui/dropdown-menu";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuFileText } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";

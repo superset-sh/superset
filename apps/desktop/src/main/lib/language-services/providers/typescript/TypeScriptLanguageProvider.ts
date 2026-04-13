@@ -7,10 +7,13 @@ import type {
 	LanguageServiceCallHierarchyItem,
 	LanguageServiceDiagnostic,
 	LanguageServiceDocument,
+	LanguageServiceHover,
 	LanguageServiceIncomingCall,
 	LanguageServiceLocation,
+	LanguageServiceMarkupContent,
 	LanguageServiceProvider,
 	LanguageServiceProviderSummary,
+	LanguageServiceRange,
 	LanguageServiceRelatedInformation,
 	LanguageServiceSeverity,
 } from "../../types";
@@ -72,6 +75,29 @@ type OpenDocumentEntry = {
 	languageId: string;
 	version: number;
 	content: string;
+};
+
+type TsServerTextPart =
+	| string
+	| {
+			text?: string;
+	  };
+
+type TsServerFileSpan = {
+	file: string;
+	start: { line: number; offset: number };
+	end: { line: number; offset: number };
+};
+
+type TsServerQuickInfoResponse = {
+	displayString?: string;
+	documentation?: TsServerTextPart[] | string;
+	tags?: Array<{
+		name?: string;
+		text?: TsServerTextPart[] | string;
+	}>;
+	start?: { line: number; offset: number };
+	end?: { line: number; offset: number };
 };
 
 type WorkspaceSession = {
@@ -211,6 +237,86 @@ function computeEndPosition(content: string): {
 		endLine: lines.length,
 		endOffset: (lines.at(-1)?.length ?? 0) + 1,
 	};
+}
+
+function normalizeTsTextParts(
+	parts: TsServerTextPart[] | string | undefined,
+): string {
+	if (!parts) {
+		return "";
+	}
+
+	if (typeof parts === "string") {
+		return parts;
+	}
+
+	return parts
+		.map((part) => (typeof part === "string" ? part : (part.text ?? "")))
+		.join("");
+}
+
+function normalizeTsHoverContents(
+	body: TsServerQuickInfoResponse | undefined,
+): LanguageServiceMarkupContent[] {
+	if (!body) {
+		return [];
+	}
+
+	const sections = [
+		body.displayString?.trim() ?? "",
+		normalizeTsTextParts(body.documentation).trim(),
+		...(body.tags ?? [])
+			.map((tag) => {
+				const tagBody = normalizeTsTextParts(tag.text).trim();
+				return tag.name
+					? `@${tag.name}${tagBody ? ` ${tagBody}` : ""}`
+					: tagBody;
+			})
+			.filter(Boolean),
+	].filter(Boolean);
+
+	if (sections.length === 0) {
+		return [];
+	}
+
+	return [
+		{
+			kind: "plaintext",
+			value: sections.join("\n\n"),
+		},
+	];
+}
+
+function normalizeTsRange(
+	start: { line: number; offset: number } | undefined,
+	end: { line: number; offset: number } | undefined,
+): LanguageServiceRange | null {
+	if (!start || !end) {
+		return null;
+	}
+
+	return {
+		line: start.line,
+		column: start.offset,
+		endLine: end.line,
+		endColumn: end.offset,
+	};
+}
+
+function normalizeTsFileSpans(body: unknown): TsServerFileSpan[] {
+	if (Array.isArray(body)) {
+		return body as TsServerFileSpan[];
+	}
+
+	if (!body || typeof body !== "object") {
+		return [];
+	}
+
+	const candidate = body as {
+		definitions?: TsServerFileSpan[];
+		body?: TsServerFileSpan[];
+	};
+	return candidate.definitions ?? candidate.body ?? [];
 }
 
 export class TypeScriptLanguageProvider implements LanguageServiceProvider {
@@ -431,6 +537,74 @@ export class TypeScriptLanguageProvider implements LanguageServiceProvider {
 				column: ref.start.offset,
 				endLine: ref.end.line,
 				endColumn: ref.end.offset,
+			}));
+		} catch {
+			return null;
+		}
+	}
+
+	async getHover(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceHover | null> {
+		const session = this.sessions.get(args.workspaceId);
+		if (!session) return null;
+
+		try {
+			const response = await this.sendRequest(session, "quickinfo", {
+				file: args.absolutePath,
+				line: args.line,
+				offset: args.column,
+			});
+
+			const body = response.body as TsServerQuickInfoResponse | undefined;
+			const contents = normalizeTsHoverContents(body);
+			if (contents.length === 0) {
+				return null;
+			}
+
+			session.lastError = null;
+			return {
+				contents,
+				range: normalizeTsRange(body?.start, body?.end),
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	async getDefinition(args: {
+		workspaceId: string;
+		workspacePath: string;
+		absolutePath: string;
+		line: number;
+		column: number;
+	}): Promise<LanguageServiceLocation[] | null> {
+		const session = this.sessions.get(args.workspaceId);
+		if (!session) return null;
+
+		try {
+			const response = await this.sendRequest(session, "definition", {
+				file: args.absolutePath,
+				line: args.line,
+				offset: args.column,
+			});
+
+			const definitions = normalizeTsFileSpans(response.body);
+			if (definitions.length === 0) {
+				return null;
+			}
+
+			session.lastError = null;
+			return definitions.map((definition) => ({
+				absolutePath: definition.file,
+				line: definition.start.line,
+				column: definition.start.offset,
+				endLine: definition.end.line,
+				endColumn: definition.end.offset,
 			}));
 		} catch {
 			return null;

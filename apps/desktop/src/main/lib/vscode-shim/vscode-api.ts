@@ -185,8 +185,11 @@ class Range {
 		endChar?: number,
 	) {
 		if (typeof startLine === "number") {
+			if (typeof endLine !== "number" || typeof endChar !== "number") {
+				throw new TypeError("Range requires endLine and endChar");
+			}
 			this.start = new Position(startLine, startChar as number);
-			this.end = new Position(endLine!, endChar!);
+			this.end = new Position(endLine, endChar);
 		} else {
 			this.start = startLine;
 			this.end = startChar as Position;
@@ -213,9 +216,12 @@ class Selection extends Range {
 		activeChar?: number,
 	) {
 		if (typeof anchorLine === "number") {
-			super(anchorLine, anchorChar as number, activeLine!, activeChar!);
+			if (typeof activeLine !== "number" || typeof activeChar !== "number") {
+				throw new TypeError("Selection requires activeLine and activeChar");
+			}
+			super(anchorLine, anchorChar as number, activeLine, activeChar);
 			this.anchor = new Position(anchorLine, anchorChar as number);
-			this.active = new Position(activeLine!, activeChar!);
+			this.active = new Position(activeLine, activeChar);
 		} else {
 			super(anchorLine, anchorChar as Position);
 			this.anchor = anchorLine;
@@ -381,28 +387,25 @@ class NotebookCellOutput {
 	}
 }
 
-class NotebookCellKind {
-	static readonly Markup = 1;
-	static readonly Code = 2;
-}
+const NotebookCellKind = {
+	Markup: 1,
+	Code: 2,
+} as const;
 
-class NotebookEdit {
-	static replaceCells(_range: unknown, _cells: unknown[]): NotebookEdit {
-		return new NotebookEdit();
-	}
-	static insertCells(_index: number, _cells: unknown[]): NotebookEdit {
-		return new NotebookEdit();
-	}
-	static deleteCells(_range: unknown): NotebookEdit {
-		return new NotebookEdit();
-	}
-	static updateCellMetadata(
-		_index: number,
-		_metadata: Record<string, unknown>,
-	): NotebookEdit {
-		return new NotebookEdit();
-	}
-}
+const NotebookEdit = {
+	replaceCells(_range: unknown, _cells: unknown[]) {
+		return {};
+	},
+	insertCells(_index: number, _cells: unknown[]) {
+		return {};
+	},
+	deleteCells(_range: unknown) {
+		return {};
+	},
+	updateCellMetadata(_index: number, _metadata: Record<string, unknown>) {
+		return {};
+	},
+} as const;
 
 class TabInputTextDiff {
 	readonly original: Uri;

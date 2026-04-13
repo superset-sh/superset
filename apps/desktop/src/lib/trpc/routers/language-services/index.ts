@@ -14,6 +14,16 @@ const languageServiceDocumentSchema = z.object({
 	version: z.number().int().nonnegative(),
 });
 
+const languageServicePositionSchema = z.object({
+	workspaceId: z.string(),
+	absolutePath: z.string(),
+	languageId: z.string(),
+	line: z.number().int().positive(),
+	column: z.number().int().positive(),
+	content: z.string().optional(),
+	version: z.number().int().nonnegative().optional(),
+});
+
 function resolveWorkspacePath(workspaceId: string): string {
 	const workspace = getWorkspace(workspaceId);
 	if (!workspace) {
@@ -31,6 +41,25 @@ function resolveWorkspacePath(workspaceId: string): string {
 		});
 	}
 
+	return workspacePath;
+}
+
+async function syncLookupDocumentIfNeeded(
+	input: z.infer<typeof languageServicePositionSchema>,
+): Promise<string> {
+	const workspacePath = resolveWorkspacePath(input.workspaceId);
+	if (input.content === undefined || input.version === undefined) {
+		return workspacePath;
+	}
+
+	await languageServiceManager.syncDocument({
+		workspaceId: input.workspaceId,
+		workspacePath,
+		absolutePath: input.absolutePath,
+		languageId: input.languageId,
+		content: input.content,
+		version: input.version,
+	});
 	return workspacePath;
 }
 
@@ -56,6 +85,34 @@ export const createLanguageServicesRouter = () => {
 					workspacePath,
 				});
 				return { ok: true };
+			}),
+
+		getHover: publicProcedure
+			.input(languageServicePositionSchema)
+			.query(async ({ input }) => {
+				const workspacePath = await syncLookupDocumentIfNeeded(input);
+				return await languageServiceManager.getHover({
+					workspaceId: input.workspaceId,
+					workspacePath,
+					absolutePath: input.absolutePath,
+					languageId: input.languageId,
+					line: input.line,
+					column: input.column,
+				});
+			}),
+
+		getDefinition: publicProcedure
+			.input(languageServicePositionSchema)
+			.query(async ({ input }) => {
+				const workspacePath = await syncLookupDocumentIfNeeded(input);
+				return await languageServiceManager.getDefinition({
+					workspaceId: input.workspaceId,
+					workspacePath,
+					absolutePath: input.absolutePath,
+					languageId: input.languageId,
+					line: input.line,
+					column: input.column,
+				});
 			}),
 
 		closeDocument: publicProcedure

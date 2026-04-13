@@ -24,6 +24,7 @@ interface FileEditorContextMenuProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	onGoToDefinition?: () => void;
 	onShowReferenceGraph?: () => void;
 }
 
@@ -44,6 +45,7 @@ export function FileEditorContextMenu({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	onGoToDefinition,
 	onShowReferenceGraph,
 }: FileEditorContextMenuProps) {
 	const getEditor = useCallback(() => editorRef.current, [editorRef]);
@@ -55,6 +57,7 @@ export function FileEditorContextMenu({
 		worktreePath,
 		supersetLinkProject,
 		editable: true,
+		onGoToDefinition,
 		onShowReferenceGraph,
 	});
 
