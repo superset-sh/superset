@@ -1,4 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
+import type { ExternalApp } from "@superset/local-db";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -238,25 +239,32 @@ export function FilesTab({
 	);
 	const isLocalWorkspace = workspacesWithHost[0]?.hostMachineId === machineId;
 
+	const { data: sidebarProjectRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sp: collections.v2SidebarProjects })
+				.where(({ sp }) => eq(sp.projectId, projectId ?? ""))
+				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
+		[collections, projectId],
+	);
+	const resolvedOpenInApp: ExternalApp =
+		(sidebarProjectRows[0]?.defaultOpenInApp as ExternalApp | null) ?? "finder";
+
 	const handleOpenInEditor = useCallback(
 		(absolutePath: string) => {
 			if (!isLocalWorkspace) {
 				toast.error("Opening in editor is only supported on local workspaces");
 				return;
 			}
-			electronTrpcClient.external.openFileInEditor
-				.mutate({
-					path: absolutePath,
-					cwd: rootPath || undefined,
-					projectId,
-				})
+			electronTrpcClient.external.openInApp
+				.mutate({ path: absolutePath, app: resolvedOpenInApp })
 				.catch((err) => {
 					toast.error("Couldn't open file", {
 						description: err instanceof Error ? err.message : String(err),
 					});
 				});
 		},
-		[isLocalWorkspace, rootPath, projectId],
+		[isLocalWorkspace, resolvedOpenInApp],
 	);
 
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
