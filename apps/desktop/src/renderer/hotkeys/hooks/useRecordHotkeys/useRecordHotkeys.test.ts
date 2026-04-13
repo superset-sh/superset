@@ -104,12 +104,8 @@ describe("captureHotkeyFromEvent — Bug 2: uses event.code, not event.key", () 
 	});
 
 	it("F-keys are accepted without requiring a modifier", () => {
-		expect(
-			captureHotkeyFromEvent(ev({ code: "F1", key: "F1" })),
-		).toBe("f1");
-		expect(
-			captureHotkeyFromEvent(ev({ code: "F12", key: "F12" })),
-		).toBe("f12");
+		expect(captureHotkeyFromEvent(ev({ code: "F1", key: "F1" }))).toBe("f1");
+		expect(captureHotkeyFromEvent(ev({ code: "F12", key: "F12" }))).toBe("f12");
 	});
 
 	it("requires ctrl or meta for non-F-keys", () => {

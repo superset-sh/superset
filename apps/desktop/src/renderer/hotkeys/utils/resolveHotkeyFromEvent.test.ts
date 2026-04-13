@@ -1,4 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { HOTKEYS } from "../registry";
+import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import {
 	canonicalizeChord,
 	isIgnorableKey,
@@ -124,10 +126,124 @@ function ev(init: StubInit): KeyboardEvent {
 	} as unknown as KeyboardEvent;
 }
 
+describe("resolveHotkeyFromEvent — live override index", () => {
+	let originalOverrides: Record<string, string | null>;
+	beforeEach(() => {
+		originalOverrides = useHotkeyOverridesStore.getState().overrides;
+	});
+	afterEach(() => {
+		useHotkeyOverridesStore.setState({ overrides: originalOverrides });
+	});
+
+	it("resolves a default binding when no override is set", () => {
+		// Pick any hotkey with a default key and construct its event.
+		const firstId = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
+		const def = HOTKEYS[firstId].key;
+		if (!def) return; // skip if the default is unset
+		const event = buildEventFromChord(def);
+		expect(resolveHotkeyFromEvent(event)).toBe(firstId);
+	});
+
+	it("resolves a rebound chord after an override is saved", () => {
+		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
+		useHotkeyOverridesStore.setState({
+			overrides: { [id]: "meta+shift+f10" },
+		});
+		const event = buildEventFromChord("meta+shift+f10");
+		expect(resolveHotkeyFromEvent(event)).toBe(id);
+	});
+
+	it("does NOT resolve the old default after the user rebinds away from it", () => {
+		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
+		const oldDefault = HOTKEYS[id].key;
+		if (!oldDefault) return;
+		useHotkeyOverridesStore.setState({
+			overrides: { [id]: "meta+shift+f10" },
+		});
+		const event = buildEventFromChord(oldDefault);
+		expect(resolveHotkeyFromEvent(event)).toBeNull();
+	});
+
+	it("does NOT resolve a hotkey the user explicitly unassigned (null override)", () => {
+		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
+		const def = HOTKEYS[id].key;
+		if (!def) return;
+		useHotkeyOverridesStore.setState({ overrides: { [id]: null } });
+		const event = buildEventFromChord(def);
+		expect(resolveHotkeyFromEvent(event)).toBeNull();
+	});
+});
+
+/**
+ * Turns a chord string (e.g. `meta+shift+f10`, `ctrl+bracketleft`) into a
+ * KeyboardEvent stub with matching `event.code` and modifier flags.
+ */
+function buildEventFromChord(chord: string): KeyboardEvent {
+	const parts = chord.toLowerCase().split("+");
+	const mods = {
+		metaKey: parts.includes("meta"),
+		ctrlKey: parts.includes("ctrl") || parts.includes("control"),
+		altKey: parts.includes("alt"),
+		shiftKey: parts.includes("shift"),
+	};
+	const key = parts.find(
+		(p) => !["meta", "ctrl", "control", "alt", "shift"].includes(p),
+	);
+	const code = chordKeyToCode(key ?? "");
+	return {
+		type: "keydown",
+		code,
+		key: "",
+		...mods,
+	} as unknown as KeyboardEvent;
+}
+
+// Inverse of normalizeToken for the tokens the registry uses. Only needs to
+// cover what tests exercise.
+function chordKeyToCode(key: string): string {
+	if (/^[a-z]$/.test(key)) return `Key${key.toUpperCase()}`;
+	if (/^[0-9]$/.test(key)) return `Digit${key}`;
+	if (/^f([1-9]|1[0-2])$/.test(key)) return key.toUpperCase();
+	switch (key) {
+		case "arrowup":
+		case "up":
+			return "ArrowUp";
+		case "arrowdown":
+		case "down":
+			return "ArrowDown";
+		case "arrowleft":
+		case "left":
+			return "ArrowLeft";
+		case "arrowright":
+		case "right":
+			return "ArrowRight";
+		case "bracketleft":
+			return "BracketLeft";
+		case "bracketright":
+			return "BracketRight";
+		case "comma":
+			return "Comma";
+		case "slash":
+			return "Slash";
+		case "backslash":
+			return "Backslash";
+		case "backspace":
+			return "Backspace";
+		case "space":
+			return "Space";
+		case "tab":
+			return "Tab";
+		default:
+			return key;
+	}
+}
+
 describe("resolveHotkeyFromEvent", () => {
 	it("returns null for non-keydown events", () => {
 		expect(
-			resolveHotkeyFromEvent(ev({ type: "keyup", code: "KeyP", metaKey: true })),
+			resolveHotkeyFromEvent(
+				ev({ type: "keyup", code: "KeyP", metaKey: true }),
+			),
 		).toBeNull();
 	});
 

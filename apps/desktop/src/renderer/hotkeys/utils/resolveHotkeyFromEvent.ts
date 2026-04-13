@@ -1,16 +1,21 @@
 import { HOTKEYS, type HotkeyId } from "../registry";
+import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 
 /**
  * Resolves a KeyboardEvent to a registered {@link HotkeyId}, or `null` if the
  * chord is not bound. Uses the same `event.code` normalization as
  * react-hotkeys-hook (its internal `K` function) so the reverse index
  * cannot drift from the matcher.
+ *
+ * The reverse index is rebuilt whenever the user's override store changes, so
+ * consumers like the terminal's `attachCustomKeyEventHandler` always see the
+ * current effective bindings (not stale defaults).
  */
 export function resolveHotkeyFromEvent(event: KeyboardEvent): HotkeyId | null {
 	if (event.type !== "keydown") return null;
 	const chord = eventToChord(event);
 	if (!chord) return null;
-	return REGISTERED_APP_CHORDS.get(chord) ?? null;
+	return registeredAppChords.get(chord) ?? null;
 }
 
 // Mirrors react-hotkeys-hook's alias table (react-hotkeys-hook/dist/index.js:3-19)
@@ -82,9 +87,29 @@ function eventToChord(event: KeyboardEvent): string | null {
 	return [...mods, key].join("+");
 }
 
-const REGISTERED_APP_CHORDS: Map<string, HotkeyId> = new Map(
-	(Object.keys(HOTKEYS) as HotkeyId[]).map((id) => [
-		normalizeChord(HOTKEYS[id].key),
-		id,
-	]),
+function buildRegisteredAppChords(
+	overrides: Record<string, string | null>,
+): Map<string, HotkeyId> {
+	const map = new Map<string, HotkeyId>();
+	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
+		const hasOverride = id in overrides;
+		const override = hasOverride ? overrides[id] : undefined;
+		// `null` = user explicitly unassigned the shortcut → drop from index so
+		// the terminal does NOT swallow it.
+		if (hasOverride && override === null) continue;
+		const keys = override ?? HOTKEYS[id].key;
+		if (!keys) continue;
+		map.set(normalizeChord(keys), id);
+	}
+	return map;
+}
+
+// Live reverse-index, rebuilt whenever overrides change. Using `let` because
+// Zustand's `subscribe` mutates the binding on each store update.
+let registeredAppChords = buildRegisteredAppChords(
+	useHotkeyOverridesStore.getState().overrides,
 );
+
+useHotkeyOverridesStore.subscribe((state) => {
+	registeredAppChords = buildRegisteredAppChords(state.overrides);
+});

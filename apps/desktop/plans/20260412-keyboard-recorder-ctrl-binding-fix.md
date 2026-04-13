@@ -283,6 +283,42 @@ export function formatHotkeyDisplay(keys: string | null, platform: Platform): Ho
 
 ---
 
+## Follow-up bugs found during review
+
+### Bug 4 — Terminal swallowed hotkeys using stale defaults
+
+`resolveHotkeyFromEvent.ts` built its reverse index once at module load from
+`HOTKEYS` defaults, ignoring user overrides. `terminal-runtime.ts:154` passes
+`(event) => !isAppHotkey(event)` to xterm's `attachCustomKeyEventHandler`, so
+the terminal's swallow/forward decision used frozen defaults.
+
+Failure modes after a user rebinds a hotkey from `meta+l` → `meta+y`:
+
+| In-terminal keystroke   | Old behavior                                        |
+| ----------------------- | --------------------------------------------------- |
+| `meta+y` (new binding)  | not in map → xterm consumes → binding dead          |
+| `meta+l` (freed up)     | still in map → xterm bails → bubbles → nothing fires → keystroke eaten |
+
+**Fix**: the reverse index is now a `let` rebound on every
+`useHotkeyOverridesStore.subscribe` callback. Null overrides (explicit
+unassignment) are dropped from the index so the terminal does not swallow
+them. Tests in `resolveHotkeyFromEvent.test.ts` cover rebind, old-default
+gone, and unassigned cases.
+
+### Bug 5 — Migration carried forward corrupt pre-fix overrides
+
+`migrate.ts` copied old overrides verbatim from the main-process tRPC store
+into the new localStorage store. Any user who hit the pre-fix recorder could
+have saved junk like `ctrl+control`, `ctrl+shift+@`, or `meta+[`, and the
+migration would keep those broken strings around forever.
+
+**Fix**: `migrate.ts` now runs each migrated value through a sanitizer that
+canonicalizes the chord and requires exactly one word-char key token. Invalid
+entries are dropped with a count logged. `null` (explicit unassignment) is
+preserved. Tests in `overrideSanitizer.test.ts`.
+
+---
+
 ## Decisions deliberately not taken
 
 ### `mod` modifier alias
@@ -306,6 +342,21 @@ QUICK_OPEN: {
 
 Adding `mod` would duplicate that capability without simplifying existing
 definitions. Skipped.
+
+### Allowing meta (Win/Super) recording on non-Mac
+
+The recorder rejects `event.metaKey` on Windows/Linux. We kept this and added
+an explanatory comment. Reasoning:
+
+- **Windows** intercepts most `Win+*` chords at the OS level (`Win+R`,
+  `Win+E`, `Win+L`, `Win+Tab`, `Win+<digit>`) before Electron's renderer sees
+  them. Allowing binding would create silently-dead shortcuts.
+- **Linux**'s Super key is WM-owned and behavior depends on distro/compositor
+  (GNOME overview, KDE app menu, tiling WM prefix, etc.). Same outcome.
+
+Users on those platforms should record ctrl-based chords instead. If we ever
+want to loosen this on Linux specifically, replace the blanket reject with a
+per-chord check against `OS_RESERVED` and a user-visible warning.
 
 ---
 
@@ -337,9 +388,10 @@ cover all three bug classes deterministically.
 ### Test file
 
 See co-located tests:
-- `apps/desktop/src/renderer/hotkeys/utils/resolveHotkeyFromEvent.test.ts`
-- `apps/desktop/src/renderer/hotkeys/hooks/useRecordHotkeys/useRecordHotkeys.test.ts`
-- `apps/desktop/src/renderer/hotkeys/display.test.ts`
+- `apps/desktop/src/renderer/hotkeys/utils/resolveHotkeyFromEvent.test.ts` — token normalization, canonicalization, and the live override-aware reverse index (Bugs 1/3/4)
+- `apps/desktop/src/renderer/hotkeys/utils/overrideSanitizer.test.ts` — migration validation (Bug 5)
+- `apps/desktop/src/renderer/hotkeys/hooks/useRecordHotkeys/useRecordHotkeys.test.ts` — recorder capture (Bugs 1/2)
+- `apps/desktop/src/renderer/hotkeys/display.test.ts` — display formatting parity
 
 ---
 

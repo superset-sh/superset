@@ -28,7 +28,12 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
 	if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
 
-	// Reject meta on non-Mac
+	// Reject meta (Win/Super) on non-Mac.
+	// Why: Windows intercepts most `Win+*` chords at the OS level (Win+R,
+	// Win+E, Win+L, Win+Tab, Win+<digit>) before Electron sees them, and the
+	// Super key on Linux is WM-owned (GNOME overview, KDE app menu, etc.).
+	// Allowing recording would silently create dead bindings that the app
+	// never receives. Users on those platforms should use ctrl-based chords.
 	if (PLATFORM !== "mac" && event.metaKey) return null;
 
 	const modifiers = new Set<string>();

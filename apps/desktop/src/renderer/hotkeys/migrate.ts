@@ -7,12 +7,31 @@
 
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PLATFORM } from "./registry";
+import { canonicalizeChord, MODIFIERS } from "./utils/resolveHotkeyFromEvent";
 
 const PLATFORM_MAP = {
 	mac: "darwin",
 	windows: "win32",
 	linux: "linux",
 } as const;
+
+/**
+ * A migrated override is only kept if, after canonicalization, it has exactly
+ * one non-modifier key token composed of word chars (letters/digits) — e.g.
+ * `ctrl+k`, `meta+shift+bracketleft`, `f12`. This drops pre-fix garbage like
+ * `ctrl+control`, `ctrl+shift+@`, or `meta+[` that the old recorder could
+ * produce and that would never match `event.code`-based dispatch.
+ */
+function sanitizeOverride(value: unknown): string | null | undefined {
+	if (value === null) return null; // explicit unassigned → preserve
+	if (typeof value !== "string" || !value.trim()) return undefined;
+	const canonical = canonicalizeChord(value);
+	const parts = canonical.split("+");
+	const keys = parts.filter((p) => !MODIFIERS.has(p));
+	if (keys.length !== 1) return undefined;
+	if (!/^[a-z0-9]+$/.test(keys[0])) return undefined;
+	return canonical;
+}
 
 export async function migrateHotkeyOverrides(): Promise<void> {
 	if (localStorage.getItem("hotkey-overrides")) {
@@ -29,12 +48,24 @@ export async function migrateHotkeyOverrides(): Promise<void> {
 			return;
 		}
 
+		const cleaned: Record<string, string | null> = {};
+		let dropped = 0;
+		for (const [id, raw] of Object.entries(oldOverrides)) {
+			const sanitized = sanitizeOverride(raw);
+			if (sanitized === undefined) {
+				dropped++;
+				continue;
+			}
+			cleaned[id] = sanitized;
+		}
+
 		localStorage.setItem(
 			"hotkey-overrides",
-			JSON.stringify({ state: { overrides: oldOverrides }, version: 0 }),
+			JSON.stringify({ state: { overrides: cleaned }, version: 0 }),
 		);
 		console.log(
-			`[hotkeys] Migrated ${Object.keys(oldOverrides).length} override(s)`,
+			`[hotkeys] Migrated ${Object.keys(cleaned).length} override(s)` +
+				(dropped > 0 ? `, dropped ${dropped} invalid` : ""),
 		);
 	} catch (error) {
 		console.log("[hotkeys] Migration failed, starting fresh:", error);
