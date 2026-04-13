@@ -16,7 +16,7 @@ import {
 // so recorded overrides are string-comparable with HOTKEYS[id].key.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
-function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
+export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	// Normalize via event.code (matches the library's matcher and registry tokens
 	// like `bracketleft`, `comma`, `slash`). Using event.key would diverge for
 	// Shift+digit (`@` vs `2`), Alt+letter on Mac (`¬` vs `l`), and non-US layouts.
