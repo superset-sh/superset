@@ -55,6 +55,28 @@ export interface CachedTerminal {
 }
 
 const cache = new Map<string, CachedTerminal>();
+const streamReadyWaiters = new Map<
+	string,
+	Set<{ resolve: () => void; reject: (error: Error) => void }>
+>();
+
+function resolveStreamReadyWaiters(paneId: string): void {
+	const waiters = streamReadyWaiters.get(paneId);
+	if (!waiters) return;
+	streamReadyWaiters.delete(paneId);
+	for (const waiter of waiters) {
+		waiter.resolve();
+	}
+}
+
+function rejectStreamReadyWaiters(paneId: string, error: Error): void {
+	const waiters = streamReadyWaiters.get(paneId);
+	if (!waiters) return;
+	streamReadyWaiters.delete(paneId);
+	for (const waiter of waiters) {
+		waiter.reject(error);
+	}
+}
 
 export function has(paneId: string): boolean {
 	return cache.has(paneId);
@@ -62,6 +84,21 @@ export function has(paneId: string): boolean {
 
 export function get(paneId: string): CachedTerminal | undefined {
 	return cache.get(paneId);
+}
+
+export function waitForStreamReady(paneId: string): Promise<void> {
+	if (cache.get(paneId)?.streamReady) {
+		return Promise.resolve();
+	}
+
+	return new Promise<void>((resolve, reject) => {
+		let waiters = streamReadyWaiters.get(paneId);
+		if (!waiters) {
+			waiters = new Set();
+			streamReadyWaiters.set(paneId, waiters);
+		}
+		waiters.add({ resolve, reject });
+	});
 }
 
 export function getOrCreate(
@@ -259,10 +296,15 @@ export function setStreamReady(paneId: string): void {
 	}
 
 	entry.streamReady = true;
+	resolveStreamReadyWaiters(paneId);
 	const pending = entry.pendingStreamEvents.splice(0);
 	for (const event of pending) {
 		routeEvent(entry, event);
 	}
+}
+
+export function failStreamReady(paneId: string, error: Error): void {
+	rejectStreamReadyWaiters(paneId, error);
 }
 
 /**
@@ -314,6 +356,10 @@ export function dispose(paneId: string): void {
 	entry.cleanupCreation();
 	entry.xterm.dispose();
 	cache.delete(paneId);
+	rejectStreamReadyWaiters(
+		paneId,
+		new Error("Terminal disposed before reaching stream-ready state"),
+	);
 }
 
 // Preserve cache across Vite HMR in dev so active terminals aren't orphaned.

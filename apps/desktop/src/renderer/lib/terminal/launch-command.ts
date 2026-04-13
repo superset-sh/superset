@@ -1,3 +1,5 @@
+import { waitForStreamReady } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/v1-terminal-cache";
+
 interface TerminalCreateOrAttachInput {
 	paneId: string;
 	tabId: string;
@@ -21,6 +23,7 @@ interface LaunchCommandInPaneOptions {
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 	noExecute?: boolean;
+	waitForMountedSession?: boolean;
 }
 
 function normalizeTerminalCommand(command: string): string {
@@ -80,7 +83,14 @@ export async function launchCommandInPane({
 	createOrAttach,
 	write,
 	noExecute,
+	waitForMountedSession,
 }: LaunchCommandInPaneOptions): Promise<void> {
+	if (waitForMountedSession) {
+		await waitForStreamReady(paneId);
+		await writeCommandInPane({ paneId, command, write, noExecute });
+		return;
+	}
+
 	await ensureTerminalAttached({
 		paneId,
 		tabId,
