@@ -23,6 +23,7 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
+import { shouldBubbleClipboardShortcut } from "./clipboardShortcuts";
 import { TERMINAL_OPTIONS } from "./config";
 import { suppressQueryResponses } from "./suppressQueryResponses";
 
@@ -574,21 +575,17 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
-		// Copy/paste (Cmd+C/V on Mac, Ctrl+V elsewhere): let the browser fire
-		// the native copy/paste events into setupCopyHandler/setupPasteHandler.
-		// When a TUI enables the Kitty keyboard protocol (opencode, helix, …),
-		// xterm encodes these chords as CSI u and calls preventDefault(), which
-		// would otherwise suppress the browser events our handlers rely on.
-		// Ctrl+C on non-Mac is interrupt (handled by isTerminalReservedEvent below).
-		const isPlainModCombo =
-			!event.altKey &&
-			!event.shiftKey &&
-			(isMac
-				? event.metaKey && !event.ctrlKey
-				: event.ctrlKey && !event.metaKey);
-		const isCopyShortcut = isMac && isPlainModCombo && event.key === "c";
-		const isPasteShortcut = isPlainModCombo && event.key === "v";
-		if (isCopyShortcut || isPasteShortcut) return false;
+		// Mirror VS Code terminal clipboard bindings so host copy/paste happens
+		// before kitty CSI-u handling in xterm consumes the command chord.
+		if (
+			shouldBubbleClipboardShortcut(event, {
+				isMac,
+				isWindows,
+				hasSelection: xterm.hasSelection(),
+			})
+		) {
+			return false;
+		}
 
 		// Terminal-reserved chords (ctrl+c/d/z/s/q) always go to xterm
 		if (isTerminalReservedEvent(event)) return true;
