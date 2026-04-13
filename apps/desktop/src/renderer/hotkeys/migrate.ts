@@ -7,28 +7,13 @@
 
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PLATFORM } from "./registry";
-import { canonicalizeChord, MODIFIERS } from "./utils/resolveHotkeyFromEvent";
+import { sanitizeOverride } from "./utils/sanitizeOverride";
 
 const PLATFORM_MAP = {
 	mac: "darwin",
 	windows: "win32",
 	linux: "linux",
 } as const;
-
-/**
- * Drops pre-fix garbage (`ctrl+control`, `ctrl+shift+@`, `meta+[`) that the
- * old recorder could produce and that would never match `event.code`-based
- * dispatch. `null` is preserved as explicit unassignment; `undefined` means
- * drop the entry.
- */
-function sanitizeOverride(value: unknown): string | null | undefined {
-	if (value === null) return null;
-	if (typeof value !== "string" || !value.trim()) return undefined;
-	const canonical = canonicalizeChord(value);
-	const keys = canonical.split("+").filter((p) => !MODIFIERS.has(p));
-	if (keys.length !== 1 || !/^[a-z0-9]+$/.test(keys[0])) return undefined;
-	return canonical;
-}
 
 export async function migrateHotkeyOverrides(): Promise<void> {
 	if (localStorage.getItem("hotkey-overrides")) {

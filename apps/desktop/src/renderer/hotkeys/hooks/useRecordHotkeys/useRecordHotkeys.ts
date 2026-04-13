@@ -36,20 +36,23 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 
 // Chords the OS / shell is likely to intercept. Binding is allowed (Linux
 // WM configs vary), but the recorder emits a warning so the user knows why
-// a chord they just bound might not fire.
-const OS_RESERVED: Record<Platform, string[]> = {
-	mac: ["meta+q", "meta+space", "meta+tab"],
-	windows: [
-		"alt+f4",
-		"alt+tab",
-		"ctrl+alt+delete",
-		"meta+d", // Show desktop
-		"meta+e", // Explorer
-		"meta+l", // Lock
-		"meta+r", // Run
-		"meta+tab", // Task view
-	],
-	linux: ["alt+f4", "alt+tab"],
+// a chord they just bound might not fire. Canonicalized at build time so
+// multi-modifier entries (e.g. `ctrl+alt+delete` → `alt+ctrl+delete`) match.
+const OS_RESERVED: Record<Platform, Set<string>> = {
+	mac: new Set(["meta+q", "meta+space", "meta+tab"].map(canonicalizeChord)),
+	windows: new Set(
+		[
+			"alt+f4",
+			"alt+tab",
+			"ctrl+alt+delete",
+			"meta+d", // Show desktop
+			"meta+e", // Explorer
+			"meta+l", // Lock
+			"meta+r", // Run
+			"meta+tab", // Task view
+		].map(canonicalizeChord),
+	),
+	linux: new Set(["alt+f4", "alt+tab"].map(canonicalizeChord)),
 };
 
 function checkReserved(
@@ -58,7 +61,7 @@ function checkReserved(
 	const canonical = canonicalizeChord(keys);
 	if (TERMINAL_RESERVED_CHORDS.has(canonical))
 		return { reason: "Reserved by terminal", severity: "error" };
-	if (OS_RESERVED[PLATFORM].includes(canonical))
+	if (OS_RESERVED[PLATFORM].has(canonical))
 		return { reason: "Reserved by OS", severity: "warning" };
 	return null;
 }

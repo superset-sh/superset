@@ -1,21 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { canonicalizeChord, MODIFIERS } from "./resolveHotkeyFromEvent";
-
-/**
- * Mirrors the sanitizer in `migrate.ts` so we can unit-test the validation
- * rules without mocking tRPC / localStorage. If the migrate.ts rules ever
- * diverge from this, update both.
- */
-function sanitizeOverride(value: unknown): string | null | undefined {
-	if (value === null) return null;
-	if (typeof value !== "string" || !value.trim()) return undefined;
-	const canonical = canonicalizeChord(value);
-	const parts = canonical.split("+");
-	const keys = parts.filter((p) => !MODIFIERS.has(p));
-	if (keys.length !== 1) return undefined;
-	if (!/^[a-z0-9]+$/.test(keys[0])) return undefined;
-	return canonical;
-}
+import { sanitizeOverride } from "./sanitizeOverride";
 
 describe("sanitizeOverride (migration validation)", () => {
 	it("preserves an explicit unassignment (null)", () => {
@@ -42,7 +26,6 @@ describe("sanitizeOverride (migration validation)", () => {
 	});
 
 	it("drops pre-fix `ctrl+control` garbage (no real key)", () => {
-		// canonicalizes to "ctrl" with no key token
 		expect(sanitizeOverride("ctrl+control")).toBeUndefined();
 	});
 

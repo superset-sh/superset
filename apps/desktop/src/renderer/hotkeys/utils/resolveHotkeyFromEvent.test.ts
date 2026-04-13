@@ -108,6 +108,14 @@ describe("canonicalizeChord", () => {
 		const once = canonicalizeChord("meta+shift+l");
 		expect(canonicalizeChord(once)).toBe(once);
 	});
+
+	// Regression: OS_RESERVED had `ctrl+alt+delete` written non-canonical, which
+	// meant the "Reserved by OS" warning never fired for that chord. Fix wraps
+	// the table in `.map(canonicalizeChord)`. Assert the canonical form here so
+	// future additions can't silently break the warning the same way.
+	it("sorts all modifiers alphabetically (ctrl+alt+delete → alt+ctrl+delete)", () => {
+		expect(canonicalizeChord("ctrl+alt+delete")).toBe("alt+ctrl+delete");
+	});
 });
 
 interface StubInit {
@@ -139,41 +147,40 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 		useHotkeyOverridesStore.setState({ overrides: originalOverrides });
 	});
 
+	// Resolve once so registry reorders / removals surface as a test failure
+	// here instead of silently skipping the cases below.
+	const sampleEntry = (
+		Object.entries(HOTKEYS) as [keyof typeof HOTKEYS, { key: string }][]
+	).find(([, hotkey]) => !!hotkey.key);
+	if (!sampleEntry) throw new Error("HOTKEYS has no bound default");
+	const [sampleId, sampleDef] = sampleEntry;
+
 	it("resolves a default binding when no override is set", () => {
-		// Pick any hotkey with a default key and construct its event.
-		const firstId = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
-		const def = HOTKEYS[firstId].key;
-		if (!def) return; // skip if the default is unset
-		const event = buildEventFromChord(def);
-		expect(resolveHotkeyFromEvent(event)).toBe(firstId);
+		const event = buildEventFromChord(sampleDef.key);
+		expect(resolveHotkeyFromEvent(event)).toBe(sampleId);
 	});
 
 	it("resolves a rebound chord after an override is saved", () => {
-		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
 		useHotkeyOverridesStore.setState({
-			overrides: { [id]: "meta+shift+f10" },
+			overrides: { [sampleId]: "meta+shift+f10" },
 		});
 		const event = buildEventFromChord("meta+shift+f10");
-		expect(resolveHotkeyFromEvent(event)).toBe(id);
+		expect(resolveHotkeyFromEvent(event)).toBe(sampleId);
 	});
 
 	it("does NOT resolve the old default after the user rebinds away from it", () => {
-		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
-		const oldDefault = HOTKEYS[id].key;
-		if (!oldDefault) return;
 		useHotkeyOverridesStore.setState({
-			overrides: { [id]: "meta+shift+f10" },
+			overrides: { [sampleId]: "meta+shift+f10" },
 		});
-		const event = buildEventFromChord(oldDefault);
+		const event = buildEventFromChord(sampleDef.key);
 		expect(resolveHotkeyFromEvent(event)).toBeNull();
 	});
 
 	it("does NOT resolve a hotkey the user explicitly unassigned (null override)", () => {
-		const id = Object.keys(HOTKEYS)[0] as keyof typeof HOTKEYS;
-		const def = HOTKEYS[id].key;
-		if (!def) return;
-		useHotkeyOverridesStore.setState({ overrides: { [id]: null } });
-		const event = buildEventFromChord(def);
+		useHotkeyOverridesStore.setState({
+			overrides: { [sampleId]: null },
+		});
+		const event = buildEventFromChord(sampleDef.key);
 		expect(resolveHotkeyFromEvent(event)).toBeNull();
 	});
 });

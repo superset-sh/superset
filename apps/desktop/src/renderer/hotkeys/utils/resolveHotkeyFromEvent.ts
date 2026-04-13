@@ -88,15 +88,12 @@ export function matchesChord(event: KeyboardEvent, chord: string): boolean {
 	return eventChord === canonicalizeChord(chord);
 }
 
-/** Sent straight to the PTY. Stored canonical so direct lookups work. */
-export const TERMINAL_RESERVED_CHORDS = new Set([
-	"ctrl+c",
-	"ctrl+d",
-	"ctrl+z",
-	"ctrl+s",
-	"ctrl+q",
-	"ctrl+backslash",
-]);
+/** Sent straight to the PTY. Canonicalized at build time so lookups via `eventToChord` / `canonicalizeChord` match directly. */
+export const TERMINAL_RESERVED_CHORDS = new Set(
+	["ctrl+c", "ctrl+d", "ctrl+z", "ctrl+s", "ctrl+q", "ctrl+backslash"].map(
+		canonicalizeChord,
+	),
+);
 
 function buildRegisteredAppChords(
 	overrides: Record<string, string | null>,

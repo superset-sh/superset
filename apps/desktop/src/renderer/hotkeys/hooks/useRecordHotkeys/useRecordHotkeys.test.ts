@@ -22,7 +22,9 @@ interface StubInit {
 function ev(init: StubInit): KeyboardEvent {
 	return {
 		type: "keydown",
-		code: init.code ?? "",
+		// Preserve explicit `undefined` so the captureHotkeyFromEvent guard
+		// against synthetic events (no event.code) is actually exercised.
+		...("code" in init ? { code: init.code } : { code: "" }),
 		key: init.key ?? "",
 		ctrlKey: !!init.ctrlKey,
 		metaKey: !!init.metaKey,
