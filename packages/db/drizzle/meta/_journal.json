@@ -232,6 +232,13 @@
       "when": 1775707832252,
       "tag": "0032_add_is_online_hosts",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1775788950626,
+      "tag": "0033_add_oauth_refresh_token_auth_time",
+      "breakpoints": true
     }
   ]
 }

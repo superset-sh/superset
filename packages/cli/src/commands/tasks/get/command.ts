@@ -1,17 +1,13 @@
-import { CLIError, command, positional } from "@superset/cli-framework";
-import type { ApiClient } from "../../../lib/api-client";
+import { CLIError, positional } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
 	description: "Get a task by ID or slug",
 	args: [positional("idOrSlug").required().desc("Task ID or slug")],
-	run: async (opts) => {
-		const api = opts.ctx.api as ApiClient;
-		const slug = opts.args.idOrSlug as string;
-		const task = await api.task.bySlug.query(slug);
-
-		if (!task) {
-			throw new CLIError(`Task not found: ${slug}`);
-		}
+	run: async ({ ctx, args }) => {
+		const idOrSlug = args.idOrSlug as string;
+		const task = await ctx.api.task.bySlug.query(idOrSlug);
+		if (!task) throw new CLIError(`Task not found: ${idOrSlug}`);
 
 		return {
 			data: task,

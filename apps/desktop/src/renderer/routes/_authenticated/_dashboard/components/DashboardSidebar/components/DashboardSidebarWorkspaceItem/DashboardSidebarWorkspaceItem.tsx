@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -56,7 +57,15 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceName: name,
 	});
 
-	const isCreating = !!creationStatus;
+	const navigate = useNavigate();
+	const isPending = !!creationStatus;
+	const handlePendingClick = isPending
+		? () => {
+				void navigate({
+					to: `/pending/${id}` as string,
+				});
+			}
+		: undefined;
 
 	if (isCollapsed) {
 		const content = (
@@ -72,9 +81,9 @@ export function DashboardSidebarWorkspaceItem({
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
 					isActive={isActive}
-					onClick={isCreating ? undefined : handleClick}
+					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
-					disabled={isCreating}
+					disabled={isPending}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
 					}
@@ -84,7 +93,7 @@ export function DashboardSidebarWorkspaceItem({
 
 		return (
 			<>
-				{isCreating ? (
+				{isPending ? (
 					content
 				) : (
 					<DashboardSidebarWorkspaceContextMenu
@@ -113,7 +122,7 @@ export function DashboardSidebarWorkspaceItem({
 					</DashboardSidebarWorkspaceContextMenu>
 				)}
 
-				{!isCreating && (
+				{!isPending && (
 					<DashboardSidebarDeleteDialog
 						open={isDeleteDialogOpen}
 						onOpenChange={setIsDeleteDialogOpen}
@@ -134,9 +143,9 @@ export function DashboardSidebarWorkspaceItem({
 			isRenaming={isRenaming}
 			renameValue={renameValue}
 			shortcutLabel={shortcutLabel}
-			diffStats={isCreating ? null : diffStats}
-			onClick={isCreating ? undefined : handleClick}
-			onDoubleClick={isCreating ? undefined : startRename}
+			diffStats={isPending ? null : diffStats}
+			onClick={isPending ? handlePendingClick : handleClick}
+			onDoubleClick={isPending ? undefined : startRename}
 			onDeleteClick={() => setIsDeleteDialogOpen(true)}
 			onRenameValueChange={setRenameValue}
 			onSubmitRename={submitRename}
@@ -146,7 +155,7 @@ export function DashboardSidebarWorkspaceItem({
 
 	return (
 		<>
-			{isCreating ? (
+			{isPending ? (
 				expandedContent
 			) : (
 				<DashboardSidebarWorkspaceContextMenu
@@ -175,7 +184,7 @@ export function DashboardSidebarWorkspaceItem({
 				</DashboardSidebarWorkspaceContextMenu>
 			)}
 
-			{!isCreating && (
+			{!isPending && (
 				<DashboardSidebarDeleteDialog
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}

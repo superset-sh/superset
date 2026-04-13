@@ -12,6 +12,7 @@ export const terminalRouter = router({
 				terminalId: z.string(),
 				workspaceId: z.string(),
 				themeType: z.string().optional(),
+				initialCommand: z.string().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -20,6 +21,7 @@ export const terminalRouter = router({
 				workspaceId: input.workspaceId,
 				themeType: parseThemeType(input.themeType),
 				db: ctx.db,
+				initialCommand: input.initialCommand,
 			});
 
 			if ("error" in result) {

@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import {
 	EXTERNAL_APPS,
 	NON_EDITOR_APPS,
@@ -10,6 +11,8 @@ import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getWorkspace } from "../workspaces/utils/db-helpers";
+import { getWorkspacePath } from "../workspaces/utils/worktree";
 import {
 	type ExternalApp,
 	getAppCommand,
@@ -156,6 +159,32 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.query(({ input }) => resolvePath(input.path, input.cwd)),
+
+		statPath: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+					workspaceId: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const workspace = input.workspaceId
+					? getWorkspace(input.workspaceId)
+					: null;
+				const cwd = workspace
+					? (getWorkspacePath(workspace) ?? undefined)
+					: undefined;
+				const resolved = resolvePath(input.path, cwd);
+				try {
+					const stats = await fs.promises.stat(resolved);
+					return {
+						isDirectory: stats.isDirectory(),
+						resolvedPath: resolved,
+					};
+				} catch {
+					return null;
+				}
+			}),
 
 		openFileInEditor: publicProcedure
 			.input(

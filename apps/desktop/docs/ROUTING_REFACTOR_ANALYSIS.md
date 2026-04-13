@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-09
 **Status:** Analysis Complete
-**Related:** ROUTING_REFACTOR_PLAN.md
+**Related:** ../plans/done/ROUTING_REFACTOR_PLAN.md
 
 This document analyzes the concrete, specific benefits and tradeoffs of migrating from the current view-switching pattern to **TanStack Router with Next.js conventions**, based on the actual codebase.
 
@@ -302,5 +302,5 @@ The only real loss is **#3 (back behavior)** - may need a `navigateBackToWorkspa
 - Next.js-style conventions via `indexToken` and `routeToken`
 - Better DX, more modern
 
-Estimated effort: 8-13 hours (per ROUTING_REFACTOR_PLAN.md)
+Estimated effort: 8-13 hours (per ../plans/done/ROUTING_REFACTOR_PLAN.md)
 Risk: Low - incremental migration possible, comprehensive testing at each phase

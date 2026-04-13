@@ -35,7 +35,12 @@ function getShellName(shell: string): string {
 	return path.basename(shell);
 }
 
-/** Matches desktop shell-wrappers.ts fish init: idempotent PATH prepend + shell-ready OSC marker. */
+/**
+ * Matches desktop shell-wrappers.ts fish init: idempotent PATH prepend +
+ * OSC 133;A prompt marker (FinalTerm standard) for shell readiness.
+ *
+ * Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
+ */
 function buildFishInitCommand(binDir: string): string {
 	const escaped = binDir
 		.replaceAll("\\", "\\\\")
@@ -45,9 +50,8 @@ function buildFishInitCommand(binDir: string): string {
 		`set -l _superset_bin "${escaped}"`,
 		`contains -- "$_superset_bin" $PATH`,
 		`or set -gx PATH "$_superset_bin" $PATH`,
-		`function _superset_shell_ready --on-event fish_prompt`,
-		`printf '\\033]777;superset-shell-ready\\007'`,
-		`functions -e _superset_shell_ready`,
+		`function _superset_prompt_mark --on-event fish_prompt`,
+		`printf '\\033]133;A\\007'`,
 		`end`,
 	].join("; ");
 }

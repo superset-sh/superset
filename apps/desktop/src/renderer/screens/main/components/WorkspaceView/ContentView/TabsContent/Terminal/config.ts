@@ -41,5 +41,3 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 		showScrollbar: false,
 	},
 };
-
-export const RESIZE_DEBOUNCE_MS = 150;

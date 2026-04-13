@@ -1,5 +1,11 @@
 import { existsSync } from "node:fs";
 import type { NodeWebSocket } from "@hono/node-ws";
+import {
+	createScanState,
+	SHELLS_WITH_READY_MARKER,
+	type ShellReadyScanState,
+	scanForShellReady,
+} from "@superset/shared/shell-ready-scanner";
 import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
@@ -37,6 +43,27 @@ type TerminalServerMessage =
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 
+// ---------------------------------------------------------------------------
+// OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
+// Scanner logic lives in @superset/shared/shell-ready-scanner.
+// ---------------------------------------------------------------------------
+
+/**
+ * How long to wait for the shell-ready marker before unblocking writes.
+ * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
+ * buffered writes flush immediately (same behaviour as before this feature).
+ */
+const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/**
+ * Shell readiness lifecycle:
+ * - `pending`     — shell initialising; scanner active
+ * - `ready`       — OSC 133;A detected; scanner off
+ * - `timed_out`   — marker never arrived within timeout; scanner off
+ * - `unsupported` — shell has no marker (sh, ksh); scanner never started
+ */
+type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
+
 interface TerminalSession {
 	terminalId: string;
 	pty: IPty;
@@ -50,6 +77,13 @@ interface TerminalSession {
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
+
+	// Shell readiness (OSC 133)
+	shellReadyState: ShellReadyState;
+	shellReadyResolve: (() => void) | null;
+	shellReadyPromise: Promise<void>;
+	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
+	scanState: ShellReadyScanState;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -84,9 +118,40 @@ function replayBuffer(
 	sendMessage(socket, { type: "replay", data: combined });
 }
 
+/**
+ * Transition out of `pending`. Flushes any partially-matched marker
+ * bytes as terminal output (they weren't a real marker). Idempotent.
+ */
+function resolveShellReady(
+	session: TerminalSession,
+	state: "ready" | "timed_out",
+): void {
+	if (session.shellReadyState !== "pending") return;
+	session.shellReadyState = state;
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
+	// Flush held marker bytes — they weren't part of a full marker
+	if (session.scanState.heldBytes.length > 0) {
+		bufferOutput(session, session.scanState.heldBytes);
+		session.scanState.heldBytes = "";
+	}
+	session.scanState.matchPos = 0;
+	if (session.shellReadyResolve) {
+		session.shellReadyResolve();
+		session.shellReadyResolve = null;
+	}
+}
+
 function disposeSession(terminalId: string, db: HostDb) {
 	const session = sessions.get(terminalId);
 	if (!session) return;
+
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
 
 	if (!session.exited) {
 		try {
@@ -108,6 +173,8 @@ interface CreateTerminalSessionOptions {
 	workspaceId: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
+	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
+	initialCommand?: string;
 }
 
 export function createTerminalSessionInternal({
@@ -115,6 +182,7 @@ export function createTerminalSessionInternal({
 	workspaceId,
 	themeType,
 	db,
+	initialCommand,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -190,6 +258,17 @@ export function createTerminalSessionInternal({
 		})
 		.run();
 
+	// Determine shell readiness support
+	const shellName = shell.split("/").pop() || shell;
+	const shellSupportsReady = SHELLS_WITH_READY_MARKER.has(shellName);
+
+	let shellReadyResolve: (() => void) | null = null;
+	const shellReadyPromise = shellSupportsReady
+		? new Promise<void>((resolve) => {
+				shellReadyResolve = resolve;
+			})
+		: Promise.resolve();
+
 	const session: TerminalSession = {
 		terminalId,
 		pty,
@@ -199,10 +278,34 @@ export function createTerminalSessionInternal({
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
+		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
+		shellReadyResolve,
+		shellReadyPromise,
+		shellReadyTimeoutId: null,
+		scanState: createScanState(),
 	};
 	sessions.set(terminalId, session);
 
-	pty.onData((data) => {
+	// If the marker never arrives (broken wrapper, unsupported config),
+	// the timeout unblocks so the session degrades gracefully.
+	if (session.shellReadyState === "pending") {
+		session.shellReadyTimeoutId = setTimeout(() => {
+			resolveShellReady(session, "timed_out");
+		}, SHELL_READY_TIMEOUT_MS);
+	}
+
+	pty.onData((rawData) => {
+		// Scan for OSC 133;A and strip it from output
+		let data = rawData;
+		if (session.shellReadyState === "pending") {
+			const result = scanForShellReady(session.scanState, rawData);
+			data = result.output;
+			if (result.matched) {
+				resolveShellReady(session, "ready");
+			}
+		}
+		if (data.length === 0) return;
+
 		if (session.socket?.readyState === 1) {
 			sendMessage(session.socket, { type: "data", data });
 		} else {
@@ -228,6 +331,17 @@ export function createTerminalSessionInternal({
 			});
 		}
 	});
+
+	if (initialCommand) {
+		const cmd = initialCommand.endsWith("\n")
+			? initialCommand
+			: `${initialCommand}\n`;
+		session.shellReadyPromise.then(() => {
+			if (!session.exited) {
+				pty.write(cmd);
+			}
+		});
+	}
 
 	return session;
 }

@@ -1,21 +1,22 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { DetectedLink } from "renderer/lib/terminal/links";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 export interface UseFileLinkClickOptions {
 	workspaceId: string;
-	workspaceCwd: string | null | undefined;
+	projectId?: string;
 }
 
 export interface UseFileLinkClickReturn {
-	handleFileLinkClick: (path: string, line?: number, column?: number) => void;
+	handleFileLinkClick: (event: MouseEvent, link: DetectedLink) => void;
 }
 
 export function useFileLinkClick({
 	workspaceId,
-	workspaceCwd,
+	projectId,
 }: UseFileLinkClickOptions): UseFileLinkClickReturn {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 
@@ -23,21 +24,17 @@ export function useFileLinkClick({
 		electronTrpc.settings.getTerminalLinkBehavior.useQuery();
 
 	const handleFileLinkClick = useCallback(
-		(path: string, line?: number, column?: number) => {
+		(_event: MouseEvent, link: DetectedLink) => {
+			const { resolvedPath, row: line, col: column, isDirectory } = link;
 			const behavior = terminalLinkBehavior ?? "file-viewer";
 
 			const openInExternalEditor = () => {
 				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd: workspaceCwd ?? undefined,
-					})
+					.mutate({ path: resolvedPath, line, column, projectId })
 					.catch((error) => {
 						console.error(
 							"[Terminal] Failed to open file in editor:",
-							path,
+							resolvedPath,
 							error,
 						);
 						const errorMessage =
@@ -48,35 +45,18 @@ export function useFileLinkClick({
 					});
 			};
 
-			if (behavior !== "file-viewer") {
+			if (behavior !== "file-viewer" || isDirectory) {
 				openInExternalEditor();
 				return;
 			}
 
-			if (!workspaceCwd) {
-				openInExternalEditor();
-				return;
-			}
-
-			trpcClient.external.resolvePath
-				.query({ path, cwd: workspaceCwd })
-				.then((filePath) => {
-					if (filePath === workspaceCwd) {
-						return;
-					}
-
-					addFileViewerPane(workspaceId, {
-						filePath,
-						line,
-						column,
-					});
-				})
-				.catch((error) => {
-					console.error("[Terminal] Failed to resolve path:", path, error);
-					openInExternalEditor();
-				});
+			addFileViewerPane(workspaceId, {
+				filePath: resolvedPath,
+				line,
+				column,
+			});
 		},
-		[terminalLinkBehavior, workspaceId, workspaceCwd, addFileViewerPane],
+		[terminalLinkBehavior, workspaceId, projectId, addFileViewerPane],
 	);
 
 	return {

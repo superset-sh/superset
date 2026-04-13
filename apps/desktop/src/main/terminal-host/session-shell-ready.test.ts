@@ -5,8 +5,10 @@ import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
-	SHELL_READY_MARKER,
 } from "./pty-subprocess-ipc";
+
+/** OSC 133;A marker emitted by shell wrappers (FinalTerm standard). */
+const SHELL_READY_MARKER = "\x1b]133;A\x07";
 import "./xterm-env-polyfill";
 
 const { Session } = await import("./session");
@@ -264,6 +266,26 @@ describe("Session shell-ready: marker detection", () => {
 
 		// Now send the real marker
 		sendData(proc, SHELL_READY_MARKER);
+		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+	});
+
+	// Wrappers now emit both the legacy OSC 777 and the current OSC 133;A in
+	// a single printf so either daemon version can detect readiness without a
+	// restart. The scanner only matches 133;A — 777 passes through to the
+	// emulator, which drops unknown OSC sequences silently. This test guards
+	// against a future wrapper regression that swaps the order (which would
+	// leave 133;A in the pre-777 slice and still work) or drops 133;A
+	// entirely (which would regress readiness on the current scanner).
+	it("resolves readiness when wrapper emits both 777 and 133;A markers together", () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		session.write("buffered\n");
+		expect(getWrittenData(proc)).toEqual([]);
+
+		const COMBINED_MARKER = "\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
+		sendData(proc, `direnv output...${COMBINED_MARKER}prompt$ `);
+
 		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
 	});
 });

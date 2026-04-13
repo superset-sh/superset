@@ -22,7 +22,7 @@ interface V2PresetBarItemProps {
 	pinnedIndex: number;
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
-	onOpenInNewTab: (preset: V2TerminalPresetRow) => void;
+	onExecutePreset: (preset: V2TerminalPresetRow) => void;
 	onEdit: (preset: V2TerminalPresetRow) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetPinnedIndex: number) => void;
@@ -33,7 +33,7 @@ export function V2PresetBarItem({
 	pinnedIndex,
 	hotkeyId,
 	isDark,
-	onOpenInNewTab,
+	onExecutePreset,
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
@@ -90,7 +90,7 @@ export function V2PresetBarItem({
 								variant="ghost"
 								size="sm"
 								className="h-6 px-2 gap-1.5 text-xs shrink-0"
-								onClick={() => onOpenInNewTab(preset)}
+								onClick={() => onExecutePreset(preset)}
 							>
 								{icon ? (
 									<img src={icon} alt="" className="size-3.5 object-contain" />
@@ -109,8 +109,8 @@ export function V2PresetBarItem({
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
-				<ContextMenuItem onSelect={() => onOpenInNewTab(preset)}>
-					Open in new tab
+				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
+					Run preset
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>

@@ -1,4 +1,3 @@
-export { FilePathLinkProvider } from "./file-path-link-provider";
 export {
 	type LinkMatch,
 	MultiLineLinkProvider,

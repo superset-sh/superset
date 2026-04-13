@@ -22,6 +22,11 @@ import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
+import {
+	getBrowserTabTitle,
+	renderBrowserTabIcon,
+} from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
@@ -81,6 +86,11 @@ function WorkspaceContent({
 	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
 		projectId,
 		workspaceId,
+	});
+	const { matchedPresets, executePreset } = useV2PresetExecution({
+		store,
+		workspaceId,
+		projectId,
 	});
 	const paneRegistry = usePaneRegistry(workspaceId);
 	const defaultContextMenuActions = useDefaultContextMenuActions();
@@ -185,8 +195,7 @@ function WorkspaceContent({
 				{
 					kind: "browser",
 					data: {
-						url: "http://localhost:3000",
-						mode: "preview",
+						url: "about:blank",
 					} as BrowserPaneData,
 				},
 			],
@@ -230,7 +239,7 @@ function WorkspaceContent({
 
 	const sidebarOpen = localWorkspaceState?.rightSidebarOpen ?? false;
 
-	useWorkspaceHotkeys({ store, workspaceId });
+	useWorkspaceHotkeys({ store, workspaceId, matchedPresets, executePreset });
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (
@@ -245,11 +254,12 @@ function WorkspaceContent({
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
+							getTabTitle={getBrowserTabTitle}
+							renderTabIcon={renderBrowserTabIcon}
 							renderBelowTabBar={() => (
 								<V2PresetsBar
-									workspaceId={workspaceId}
-									projectId={projectId}
-									store={store}
+									matchedPresets={matchedPresets}
+									executePreset={executePreset}
 								/>
 							)}
 							renderAddTabMenu={() => (

@@ -1,16 +1,16 @@
 import * as p from "@clack/prompts";
-import { command, string } from "@superset/cli-framework";
+import { string } from "@superset/cli-framework";
 import { createApiClient } from "../../../lib/api-client";
-import { deviceAuth } from "../../../lib/auth";
+import { login } from "../../../lib/auth";
+import { command } from "../../../lib/command";
 import { getApiUrl, readConfig, writeConfig } from "../../../lib/config";
 
 export default command({
-	description: "Authenticate with Superset",
-
+	description: "Authenticate with Superset. Re-run to switch organizations.",
+	skipMiddleware: true,
 	options: {
 		apiUrl: string().env("SUPERSET_API_URL").desc("Override API URL"),
 	},
-
 	run: async (opts) => {
 		const config = readConfig();
 		if (opts.options.apiUrl) config.apiUrl = opts.options.apiUrl;
@@ -19,37 +19,30 @@ export default command({
 
 		p.intro("superset auth login");
 
-		const s = p.spinner();
-		s.start("Waiting for browser authorization...");
+		const spinner = p.spinner();
+		spinner.start("Waiting for browser authorization...");
 
-		const result = await deviceAuth(apiUrl, opts.signal);
+		const result = await login(config, opts.signal);
 
-		config.auth = { accessToken: result.token };
+		config.auth = {
+			accessToken: result.accessToken,
+			expiresAt: result.expiresAt,
+		};
 		writeConfig(config);
 
-		s.stop("Authorized!");
+		spinner.stop("Authorized!");
 
-		// The user picked an org during the OAuth consent screen — read it back
-		// and cache locally so `host start` and other commands know which org to use.
 		try {
-			const api = createApiClient(config);
+			const api = createApiClient(config, { bearer: result.accessToken });
 			const user = await api.user.me.query();
-			const org = await api.user.myOrganization.query();
+			const organization = await api.user.myOrganization.query();
 			p.log.info(`${user.name} (${user.email})`);
-
-			if (org) {
-				config.activeOrg = { id: org.id, name: org.name, slug: org.slug };
-				writeConfig(config);
-				p.log.info(`Organization: ${org.name}`);
-			} else {
-				p.log.warn("No organization selected.");
-			}
+			if (organization) p.log.info(`Organization: ${organization.name}`);
 		} catch {
-			// Non-fatal — login succeeded even if whoami fails
+			// Non-fatal
 		}
 
 		p.outro("Logged in successfully.");
-
-		return { data: { apiUrl, activeOrg: config.activeOrg } };
+		return { data: { apiUrl } };
 	},
 });

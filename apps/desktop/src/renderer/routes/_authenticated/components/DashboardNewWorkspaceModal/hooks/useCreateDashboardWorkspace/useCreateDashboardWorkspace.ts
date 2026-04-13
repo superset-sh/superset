@@ -1,49 +1,62 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { env } from "renderer/env.renderer";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { WorkspaceHostTarget } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker";
 
-interface CreateDashboardWorkspaceInput {
+export interface CreateWorkspaceInput {
+	pendingId: string;
 	projectId: string;
-	name: string;
-	branch: string;
 	hostTarget: WorkspaceHostTarget;
+	names: {
+		workspaceName: string;
+		branchName: string;
+	};
+	composer: {
+		prompt?: string;
+		baseBranch?: string;
+		runSetupScript?: boolean;
+	};
+	linkedContext?: {
+		internalIssueIds?: string[];
+		githubIssueUrls?: string[];
+		linkedPrUrl?: string;
+		attachments?: Array<{
+			data: string;
+			mediaType: string;
+			filename?: string;
+		}>;
+	};
 }
 
+/**
+ * Thin wrapper around the host-service `workspaceCreation.create` mutation.
+ * The caller is responsible for pending state, toasts, and draft management.
+ */
 export function useCreateDashboardWorkspace() {
-	const [isPending, setIsPending] = useState(false);
 	const { activeHostUrl } = useLocalHostService();
-	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
-	const createWorkspace = useCallback(
-		async (input: CreateDashboardWorkspaceInput) => {
-			setIsPending(true);
-			try {
-				const hostUrl =
-					input.hostTarget.kind === "local"
-						? activeHostUrl
-						: `${env.RELAY_URL}/hosts/${input.hostTarget.hostId}`;
+	return useCallback(
+		async (input: CreateWorkspaceInput) => {
+			const hostUrl =
+				input.hostTarget.kind === "local"
+					? activeHostUrl
+					: `${env.RELAY_URL}/hosts/${input.hostTarget.hostId}`;
 
-				if (!hostUrl) {
-					throw new Error("Host service not available");
-				}
-
-				const client = getHostServiceClientByUrl(hostUrl);
-				const workspace = await client.workspace.create.mutate({
-					projectId: input.projectId,
-					name: input.name,
-					branch: input.branch,
-				});
-				ensureWorkspaceInSidebar(workspace.id, input.projectId);
-				return workspace;
-			} finally {
-				setIsPending(false);
+			if (!hostUrl) {
+				throw new Error("Host service not available");
 			}
-		},
-		[ensureWorkspaceInSidebar, activeHostUrl],
-	);
 
-	return { createWorkspace, isPending };
+			const client = getHostServiceClientByUrl(hostUrl);
+
+			return client.workspaceCreation.create.mutate({
+				pendingId: input.pendingId,
+				projectId: input.projectId,
+				names: input.names,
+				composer: input.composer,
+				linkedContext: input.linkedContext,
+			});
+		},
+		[activeHostUrl],
+	);
 }

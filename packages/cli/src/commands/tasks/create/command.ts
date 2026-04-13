@@ -1,5 +1,5 @@
-import { command, string } from "@superset/cli-framework";
-import type { ApiClient } from "../../../lib/api-client";
+import { string } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
 	description: "Create a task",
@@ -12,13 +12,12 @@ export default command({
 		assignee: string().desc("Assignee user ID"),
 		branch: string().desc("Git branch"),
 	},
-	run: async (opts) => {
-		const api = opts.ctx.api as ApiClient;
-		const result = await api.task.createFromUi.mutate({
-			title: opts.options.title,
-			description: opts.options.description ?? undefined,
-			priority: opts.options.priority as any,
-			assigneeId: opts.options.assignee ?? undefined,
+	run: async ({ ctx, options }) => {
+		const result = await ctx.api.task.createFromUi.mutate({
+			title: options.title,
+			description: options.description ?? undefined,
+			priority: options.priority,
+			assigneeId: options.assignee ?? undefined,
 		});
 
 		const task = result.task;

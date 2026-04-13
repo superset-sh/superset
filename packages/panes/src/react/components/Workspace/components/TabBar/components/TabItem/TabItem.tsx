@@ -25,8 +25,9 @@ interface TabItemProps<TData> {
 	onClose: () => void;
 	onCloseOthers: () => void;
 	onCloseAll: () => void;
-	onRename: (title: string) => void;
+	onRename: (title: string | undefined) => void;
 	getTitle: (tab: Tab<TData>) => string;
+	icon?: ReactNode;
 	accessory?: ReactNode;
 }
 
@@ -40,6 +41,7 @@ export function TabItem<TData>({
 	onCloseAll,
 	onRename,
 	getTitle,
+	icon,
 	accessory,
 }: TabItemProps<TData>) {
 	const [isEditing, setIsEditing] = useState(false);
@@ -57,7 +59,9 @@ export function TabItem<TData>({
 
 	const saveEdit = () => {
 		const nextTitle = editValue.trim();
-		if (nextTitle.length > 0 && nextTitle !== title) {
+		if (nextTitle.length === 0) {
+			onRename(undefined);
+		} else if (nextTitle !== title) {
 			onRename(nextTitle);
 		}
 		stopEditing();
@@ -147,6 +151,7 @@ export function TabItem<TData>({
 										onDoubleClick={startEditing}
 										type="button"
 									>
+										{icon}
 										<span className="flex-1 truncate">{title}</span>
 										{accessory}
 									</button>

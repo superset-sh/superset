@@ -87,8 +87,7 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 					ctx.actions.split("right", {
 						kind: "browser",
 						data: {
-							url: "http://localhost:3000",
-							mode: "preview",
+							url: "about:blank",
 						} as BrowserPaneData,
 					});
 				},

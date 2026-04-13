@@ -8,7 +8,6 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { usePendingWorkspace } from "renderer/stores/new-workspace-modal";
 import { MOCK_ORG_ID } from "shared/constants";
 import type {
 	DashboardSidebarProject,
@@ -25,7 +24,19 @@ export function useDashboardSidebarData() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
-	const pendingWorkspace = usePendingWorkspace();
+
+	// Query pending workspaces from the local collection
+	const { data: pendingWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q.from({ pw: collections.pendingWorkspaces }).select(({ pw }) => ({
+				id: pw.id,
+				projectId: pw.projectId,
+				name: pw.name,
+				branchName: pw.branchName,
+				status: pw.status,
+			})),
+		[collections],
+	);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
@@ -268,45 +279,41 @@ export function useDashboardSidebarData() {
 			});
 		}
 
-		// Inject pending workspace if it exists
-		if (pendingWorkspace && machineId) {
-			const project = projectsById.get(pendingWorkspace.projectId);
-			if (!project) {
-				// Log warning if pending workspace references non-existent project
-				console.warn(
-					`Pending workspace ${pendingWorkspace.id} references non-existent project ${pendingWorkspace.projectId}`,
-				);
-			} else {
-				const pendingItem: DashboardSidebarWorkspace = {
-					id: pendingWorkspace.id,
-					projectId: pendingWorkspace.projectId,
-					hostId: "",
-					hostType: "local-device",
-					accentColor: null,
-					name: pendingWorkspace.name,
-					branch: "",
-					pullRequest: null,
-					repoUrl:
-						project.githubOwner && project.githubRepoName
-							? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-							: null,
-					branchExistsOnRemote: false,
-					previewUrl: null,
-					needsRebase: null,
-					behindCount: null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-					creationStatus: pendingWorkspace.status,
-				};
+		// Inject pending workspaces (creating / failed)
+		for (const pw of pendingWorkspaces) {
+			if (pw.status === "succeeded") continue; // will appear as a real workspace
+			const project = projectsById.get(pw.projectId);
+			if (!project) continue;
 
-				project.childEntries.push({
-					tabOrder: PENDING_WORKSPACE_TAB_ORDER,
-					child: {
-						type: "workspace",
-						workspace: pendingItem,
-					},
-				});
-			}
+			const pendingItem: DashboardSidebarWorkspace = {
+				id: pw.id,
+				projectId: pw.projectId,
+				hostId: "",
+				hostType: "local-device",
+				accentColor: null,
+				name: pw.name,
+				branch: pw.branchName,
+				pullRequest: null,
+				repoUrl:
+					project.githubOwner && project.githubRepoName
+						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
+						: null,
+				branchExistsOnRemote: false,
+				previewUrl: null,
+				needsRebase: null,
+				behindCount: null,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				creationStatus: pw.status,
+			};
+
+			project.childEntries.push({
+				tabOrder: PENDING_WORKSPACE_TAB_ORDER,
+				child: {
+					type: "workspace",
+					workspace: pendingItem,
+				},
+			});
 		}
 
 		return sidebarProjects.flatMap((project) => {
@@ -325,7 +332,7 @@ export function useDashboardSidebarData() {
 	}, [
 		machineId,
 		localPullRequestsByWorkspaceId,
-		pendingWorkspace,
+		pendingWorkspaces,
 		sidebarProjects,
 		sidebarSections,
 		sidebarWorkspaces,
