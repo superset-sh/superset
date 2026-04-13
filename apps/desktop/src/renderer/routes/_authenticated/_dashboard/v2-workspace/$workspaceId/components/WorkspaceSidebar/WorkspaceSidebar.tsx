@@ -9,7 +9,7 @@ import { useChangesTab } from "./hooks/useChangesTab";
 import type { SidebarTabDefinition } from "./types";
 
 interface WorkspaceSidebarProps {
-	onSelectFile: (absolutePath: string) => void;
+	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	onSelectDiffFile?: (path: string) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;

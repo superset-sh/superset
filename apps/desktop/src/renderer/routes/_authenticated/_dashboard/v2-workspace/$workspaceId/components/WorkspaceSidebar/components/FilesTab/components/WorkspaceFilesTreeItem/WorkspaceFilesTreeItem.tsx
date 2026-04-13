@@ -39,7 +39,8 @@ interface WorkspaceFilesTreeItemProps {
 	isHovered?: boolean;
 	decoration?: FileStatus;
 	isMuted?: boolean;
-	onSelectFile: (absolutePath: string) => void;
+	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
+	onOpenInEditor: (absolutePath: string) => void;
 	onToggleDirectory: (absolutePath: string) => void;
 	onNewFile: (parentPath: string) => void;
 	onNewFolder: (parentPath: string) => void;
@@ -57,6 +58,7 @@ function WorkspaceFilesTreeItemComponent({
 	decoration,
 	isMuted,
 	onSelectFile,
+	onOpenInEditor,
 	onToggleDirectory,
 	onNewFile,
 	onNewFolder,
@@ -88,11 +90,17 @@ function WorkspaceFilesTreeItemComponent({
 							: undefined,
 						isSelected ? "!bg-accent" : undefined,
 					)}
-					onClick={() =>
-						isFolder
-							? onToggleDirectory(node.absolutePath)
-							: onSelectFile(node.absolutePath)
-					}
+					onClick={(e) => {
+						if (e.metaKey || e.ctrlKey) {
+							onOpenInEditor(node.absolutePath);
+						} else if (isFolder) {
+							onToggleDirectory(node.absolutePath);
+						} else if (e.shiftKey) {
+							onSelectFile(node.absolutePath, true);
+						} else {
+							onSelectFile(node.absolutePath);
+						}
+					}}
 					style={{
 						height: rowHeight,
 						paddingLeft: 8 + (depth - 1) * indent,
