@@ -10,6 +10,7 @@ export const dashboardSidebarProjectSchema = z.object({
 	createdAt: persistedDateSchema,
 	isCollapsed: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
+	defaultOpenInApp: z.string().nullable().default(null),
 });
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
@@ -39,7 +40,6 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightSidebarOpen: z.boolean().default(false),
-	defaultOpenInApp: z.string().nullable().default(null),
 	viewedFiles: z.array(z.string()).default([]),
 });
 
