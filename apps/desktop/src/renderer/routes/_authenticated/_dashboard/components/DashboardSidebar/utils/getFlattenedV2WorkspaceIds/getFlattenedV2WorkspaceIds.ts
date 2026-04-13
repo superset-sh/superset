@@ -45,7 +45,13 @@ export function getFlattenedV2WorkspaceIds(
 				sectionId: section.sectionId,
 			});
 		}
-		topLevelItems.sort((left, right) => left.tabOrder - right.tabOrder);
+		topLevelItems.sort((left, right) => {
+			if (left.tabOrder !== right.tabOrder) {
+				return left.tabOrder - right.tabOrder;
+			}
+			if (left.kind === right.kind) return 0;
+			return left.kind === "section" ? -1 : 1;
+		});
 
 		for (const item of topLevelItems) {
 			if (item.kind === "workspace") {

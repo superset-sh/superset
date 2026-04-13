@@ -82,13 +82,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		const deletePromise = (async () => {
 			await apiTrpcClient.v2Workspace.delete.mutate({ id: workspaceId });
 			removeWorkspaceFromSidebar(workspaceId);
-			if (isActive) {
-				if (focusTargetId) {
-					await navigateToV2Workspace(focusTargetId, navigate);
-				} else {
-					await navigate({ to: "/" });
-				}
-			}
 		})();
 
 		toast.promise(deletePromise, {
@@ -96,6 +89,15 @@ export function useDashboardSidebarWorkspaceItemActions({
 			success: "Workspace deleted",
 			error: (error) =>
 				`Failed to delete: ${error instanceof Error ? error.message : "Unknown error"}`,
+		});
+
+		void deletePromise.then(() => {
+			if (!isActive) return;
+			if (focusTargetId) {
+				void navigateToV2Workspace(focusTargetId, navigate);
+			} else {
+				void navigate({ to: "/" });
+			}
 		});
 	};
 
