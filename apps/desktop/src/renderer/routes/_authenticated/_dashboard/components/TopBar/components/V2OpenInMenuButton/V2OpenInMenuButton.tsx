@@ -18,6 +18,7 @@ import {
 } from "renderer/components/OpenInExternalDropdown";
 import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useThemeStore } from "renderer/stores";
 
@@ -33,6 +34,7 @@ export function V2OpenInMenuButton({
 	projectId,
 }: V2OpenInMenuButtonProps) {
 	const collections = useCollections();
+	const { ensureProjectInSidebar } = useDashboardSidebarState();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 
 	const { data: sidebarProjectRows = [] } = useLiveQuery(
@@ -48,21 +50,12 @@ export function V2OpenInMenuButton({
 
 	const persistDefaultApp = useCallback(
 		(app: ExternalApp) => {
-			if (collections.v2SidebarProjects.get(projectId)) {
-				collections.v2SidebarProjects.update(projectId, (draft) => {
-					draft.defaultOpenInApp = app;
-				});
-				return;
-			}
-			collections.v2SidebarProjects.insert({
-				projectId,
-				createdAt: new Date(),
-				tabOrder: 0,
-				isCollapsed: false,
-				defaultOpenInApp: app,
+			ensureProjectInSidebar(projectId);
+			collections.v2SidebarProjects.update(projectId, (draft) => {
+				draft.defaultOpenInApp = app;
 			});
 		},
-		[collections, projectId],
+		[collections, ensureProjectInSidebar, projectId],
 	);
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
