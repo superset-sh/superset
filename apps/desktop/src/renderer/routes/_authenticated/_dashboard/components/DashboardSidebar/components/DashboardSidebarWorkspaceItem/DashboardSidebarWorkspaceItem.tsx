@@ -42,7 +42,6 @@ export function DashboardSidebarWorkspaceItem({
 		handleOpenInFinder,
 		isActive,
 		isDeleteDialogOpen,
-		isDeleting,
 		isRenaming,
 		moveWorkspaceToSection,
 		removeWorkspaceFromSidebar,
@@ -129,7 +128,6 @@ export function DashboardSidebarWorkspaceItem({
 						onConfirm={handleDelete}
 						title={`Delete "${name || branch}"?`}
 						description="This will permanently delete the workspace."
-						isPending={isDeleting}
 					/>
 				)}
 			</>
@@ -191,7 +189,6 @@ export function DashboardSidebarWorkspaceItem({
 					onConfirm={handleDelete}
 					title={`Delete "${name || branch}"?`}
 					description="This will permanently delete the workspace."
-					isPending={isDeleting}
 				/>
 			)}
 		</>

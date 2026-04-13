@@ -2,7 +2,11 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { getDeleteFocusTargetWorkspaceId } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getDeleteFocusTargetWorkspaceId";
+import { getFlattenedV2WorkspaceIds } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getFlattenedV2WorkspaceIds";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
@@ -17,13 +21,13 @@ export function useDashboardSidebarWorkspaceItemActions({
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
+	const collections = useCollections();
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
 		useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
 
 	const isActive = !!matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -65,23 +69,34 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
+	const handleDelete = () => {
+		const focusTargetId = isActive
+			? getDeleteFocusTargetWorkspaceId(
+					getFlattenedV2WorkspaceIds(collections),
+					workspaceId,
+				)
+			: null;
+
+		setIsDeleteDialogOpen(false);
+
+		const deletePromise = (async () => {
 			await apiTrpcClient.v2Workspace.delete.mutate({ id: workspaceId });
 			removeWorkspaceFromSidebar(workspaceId);
-			setIsDeleteDialogOpen(false);
-			toast.success("Workspace deleted");
 			if (isActive) {
-				navigate({ to: "/" });
+				if (focusTargetId) {
+					await navigateToV2Workspace(focusTargetId, navigate);
+				} else {
+					await navigate({ to: "/" });
+				}
 			}
-		} catch (error) {
-			toast.error(
+		})();
+
+		toast.promise(deletePromise, {
+			loading: "Deleting workspace...",
+			success: "Workspace deleted",
+			error: (error) =>
 				`Failed to delete: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		} finally {
-			setIsDeleting(false);
-		}
+		});
 	};
 
 	const handleCreateSection = () => {
@@ -106,7 +121,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleOpenInFinder,
 		isActive,
 		isDeleteDialogOpen,
-		isDeleting,
 		isRenaming,
 		moveWorkspaceToSection,
 		removeWorkspaceFromSidebar,
