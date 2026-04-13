@@ -16,20 +16,17 @@ const PLATFORM_MAP = {
 } as const;
 
 /**
- * A migrated override is only kept if, after canonicalization, it has exactly
- * one non-modifier key token composed of word chars (letters/digits) — e.g.
- * `ctrl+k`, `meta+shift+bracketleft`, `f12`. This drops pre-fix garbage like
- * `ctrl+control`, `ctrl+shift+@`, or `meta+[` that the old recorder could
- * produce and that would never match `event.code`-based dispatch.
+ * Drops pre-fix garbage (`ctrl+control`, `ctrl+shift+@`, `meta+[`) that the
+ * old recorder could produce and that would never match `event.code`-based
+ * dispatch. `null` is preserved as explicit unassignment; `undefined` means
+ * drop the entry.
  */
 function sanitizeOverride(value: unknown): string | null | undefined {
-	if (value === null) return null; // explicit unassigned → preserve
+	if (value === null) return null;
 	if (typeof value !== "string" || !value.trim()) return undefined;
 	const canonical = canonicalizeChord(value);
-	const parts = canonical.split("+");
-	const keys = parts.filter((p) => !MODIFIERS.has(p));
-	if (keys.length !== 1) return undefined;
-	if (!/^[a-z0-9]+$/.test(keys[0])) return undefined;
+	const keys = canonical.split("+").filter((p) => !MODIFIERS.has(p));
+	if (keys.length !== 1 || !/^[a-z0-9]+$/.test(keys[0])) return undefined;
 	return canonical;
 }
 

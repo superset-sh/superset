@@ -9,23 +9,18 @@ import {
 	TERMINAL_RESERVED_CHORDS,
 } from "../../utils/resolveHotkeyFromEvent";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// Matches the registry's modifier order (e.g. `meta+shift+l`, `meta+alt+up`)
-// so recorded overrides are string-comparable with HOTKEYS[id].key.
+// Matches the registry's written modifier order (`meta+alt+up`) so recorded
+// strings stay visually aligned with defaults. Canonicalization handles
+// reordering at compare time.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
 export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
-	// Normalize via event.code (matches the library's matcher and registry tokens
-	// like `bracketleft`, `comma`, `slash`). Using event.key would diverge for
-	// Shift+digit (`@` vs `2`), Alt+letter on Mac (`¬` vs `l`), and non-US layouts.
+	// event.code (not event.key) so Shift+2 records as `2`, Alt+L on Mac as
+	// `l`, and non-US layouts produce stable tokens matching the registry.
 	if (event.code === undefined) return null;
 	const key = normalizeToken(event.code);
 	if (isIgnorableKey(key)) return null;
 
-	// Must include ctrl or meta (or be F1-F12)
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
 	if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
 
@@ -39,10 +34,9 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	return [...ordered, key].join("+");
 }
 
-// Chords that the OS / shell is likely to intercept before the renderer sees
-// them. Binding is allowed (different Linux WM configs free many of these up),
-// but the recorder emits a "Reserved by OS" warning so the user knows why a
-// chord they just bound might not fire.
+// Chords the OS / shell is likely to intercept. Binding is allowed (Linux
+// WM configs vary), but the recorder emits a warning so the user knows why
+// a chord they just bound might not fire.
 const OS_RESERVED: Record<Platform, string[]> = {
 	mac: ["meta+q", "meta+space", "meta+tab"],
 	windows: [
@@ -79,10 +73,6 @@ function getHotkeyConflict(keys: string, excludeId: HotkeyId): HotkeyId | null {
 	}
 	return null;
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 interface UseRecordHotkeysOptions {
 	onSave?: (id: HotkeyId, keys: string) => void;

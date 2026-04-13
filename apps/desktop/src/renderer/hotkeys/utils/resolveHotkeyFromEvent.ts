@@ -2,14 +2,10 @@ import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 
 /**
- * Resolves a KeyboardEvent to a registered {@link HotkeyId}, or `null` if the
- * chord is not bound. Uses the same `event.code` normalization as
- * react-hotkeys-hook (its internal `K` function) so the reverse index
- * cannot drift from the matcher.
- *
- * The reverse index is rebuilt whenever the user's override store changes, so
- * consumers like the terminal's `attachCustomKeyEventHandler` always see the
- * current effective bindings (not stale defaults).
+ * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
+ * same `event.code` normalization as react-hotkeys-hook so the reverse index
+ * can't drift from the matcher. Index reflects current overrides, not frozen
+ * defaults — see {@link registeredAppChords}.
  */
 export function resolveHotkeyFromEvent(event: KeyboardEvent): HotkeyId | null {
 	if (event.type !== "keydown") return null;
@@ -40,7 +36,7 @@ const CODE_ALIASES: Record<string, string> = {
 
 export const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
 
-// Lock keys should never commit a binding on their own.
+// Lock keys must never commit a binding on their own.
 const LOCK_KEYS = new Set(["capslock", "numlock", "scrolllock"]);
 
 export function normalizeToken(token: string): string {
@@ -52,7 +48,11 @@ export function isIgnorableKey(normalized: string): boolean {
 	return !normalized || MODIFIERS.has(normalized) || LOCK_KEYS.has(normalized);
 }
 
-function normalizeChord(chord: string): string {
+/**
+ * Stable form for comparing chord strings. Tolerates modifier order and
+ * aliases: `meta+alt+up` ≡ `alt+meta+arrowup` ≡ `control+alt+arrowup`.
+ */
+export function canonicalizeChord(chord: string): string {
 	const parts = chord.toLowerCase().split("+").map(normalizeToken);
 	const mods: string[] = [];
 	const keys: string[] = [];
@@ -67,19 +67,7 @@ function normalizeChord(chord: string): string {
 	return [...mods, ...keys].join("+");
 }
 
-// Canonical form for string comparison between recorded overrides and registry
-// defaults. Tolerates differences in modifier order and token aliases (e.g.
-// `meta+alt+up` vs `alt+meta+arrowup`, or `control` vs `ctrl`).
-export function canonicalizeChord(chord: string): string {
-	return normalizeChord(chord);
-}
-
-/**
- * Normalized canonical chord string for a KeyboardEvent, or null if it is a
- * pure modifier / synthetic / ignorable press. Modifier order is sorted to
- * match `canonicalizeChord`, so output is directly comparable with that
- * function's output.
- */
+/** KeyboardEvent → canonical chord (comparable to {@link canonicalizeChord} output), or null for pure modifier / synthetic presses. */
 export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.code === undefined) return null;
 	const key = normalizeToken(event.code);
@@ -93,21 +81,14 @@ export function eventToChord(event: KeyboardEvent): string | null {
 	return [...mods, key].join("+");
 }
 
-/**
- * True if a KeyboardEvent matches a chord string (in any form the registry or
- * user might produce — `meta+alt+up`, `alt+meta+arrowup`, `control+k`, etc.).
- */
+/** True if `event` produces `chord` (tolerating modifier order / aliases). */
 export function matchesChord(event: KeyboardEvent, chord: string): boolean {
 	const eventChord = eventToChord(event);
 	if (!eventChord) return false;
 	return eventChord === canonicalizeChord(chord);
 }
 
-/**
- * Terminal-reserved chords (sent straight to the PTY regardless of whether
- * they would otherwise match an app hotkey). Stored in canonical form so
- * lookups via `eventToChord` / `canonicalizeChord` match directly.
- */
+/** Sent straight to the PTY. Stored canonical so direct lookups work. */
 export const TERMINAL_RESERVED_CHORDS = new Set([
 	"ctrl+c",
 	"ctrl+d",
@@ -124,22 +105,21 @@ function buildRegisteredAppChords(
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		const hasOverride = id in overrides;
 		const override = hasOverride ? overrides[id] : undefined;
-		// `null` = user explicitly unassigned the shortcut → drop from index so
-		// the terminal does NOT swallow it.
+		// Explicit unassignment (null override) must drop from the index — else
+		// the terminal's isAppHotkey check would swallow the freed chord.
 		if (hasOverride && override === null) continue;
 		const keys = override ?? HOTKEYS[id].key;
 		if (!keys) continue;
-		map.set(normalizeChord(keys), id);
+		map.set(canonicalizeChord(keys), id);
 	}
 	return map;
 }
 
-// Live reverse-index, rebuilt whenever overrides change. Using `let` because
-// Zustand's `subscribe` mutates the binding on each store update.
+// Reassigned on each override-store change; `let` is required so the
+// subscribe callback can replace the reference the resolver reads.
 let registeredAppChords = buildRegisteredAppChords(
 	useHotkeyOverridesStore.getState().overrides,
 );
-
 useHotkeyOverridesStore.subscribe((state) => {
 	registeredAppChords = buildRegisteredAppChords(state.overrides);
 });
