@@ -33,11 +33,18 @@ const CODE_ALIASES: Record<string, string> = {
 	ControlRight: "ctrl",
 };
 
-const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
+export const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
 
-function normalizeToken(token: string): string {
+// Lock keys should never commit a binding on their own.
+const LOCK_KEYS = new Set(["capslock", "numlock", "scrolllock"]);
+
+export function normalizeToken(token: string): string {
 	const aliased = CODE_ALIASES[token.trim()] ?? token.trim();
 	return aliased.toLowerCase().replace(/key|digit|numpad/, "");
+}
+
+export function isIgnorableKey(normalized: string): boolean {
+	return !normalized || MODIFIERS.has(normalized) || LOCK_KEYS.has(normalized);
 }
 
 function normalizeChord(chord: string): string {
@@ -55,9 +62,17 @@ function normalizeChord(chord: string): string {
 	return [...mods, ...keys].join("+");
 }
 
+// Canonical form for string comparison between recorded overrides and registry
+// defaults. Tolerates differences in modifier order and token aliases (e.g.
+// `meta+alt+up` vs `alt+meta+arrowup`, or `control` vs `ctrl`).
+export function canonicalizeChord(chord: string): string {
+	return normalizeChord(chord);
+}
+
 function eventToChord(event: KeyboardEvent): string | null {
+	if (event.code === undefined) return null;
 	const key = normalizeToken(event.code);
-	if (!key || MODIFIERS.has(key)) return null;
+	if (isIgnorableKey(key)) return null;
 	const mods: string[] = [];
 	if (event.metaKey) mods.push("meta");
 	if (event.ctrlKey) mods.push("ctrl");

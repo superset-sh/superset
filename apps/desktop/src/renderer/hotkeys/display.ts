@@ -4,6 +4,7 @@
  */
 
 import type { HotkeyDisplay, Platform } from "./types";
+import { normalizeToken } from "./utils/resolveHotkeyFromEvent";
 
 const MODIFIER_DISPLAY: Record<Platform, Record<string, string>> = {
 	mac: { meta: "⌘", ctrl: "⌃", alt: "⌥", shift: "⇧" },
@@ -11,6 +12,9 @@ const MODIFIER_DISPLAY: Record<Platform, Record<string, string>> = {
 	linux: { meta: "Super", ctrl: "Ctrl", alt: "Alt", shift: "Shift" },
 };
 
+// Keyed by canonical (event.code-normalized) tokens. Accepts both short and
+// canonical arrow names so legacy registry strings (`up`) and recorder output
+// (`arrowup`) both render correctly.
 const KEY_DISPLAY: Record<string, string> = {
 	enter: "↵",
 	backspace: "⌫",
@@ -21,9 +25,20 @@ const KEY_DISPLAY: Record<string, string> = {
 	down: "↓",
 	left: "←",
 	right: "→",
+	arrowup: "↑",
+	arrowdown: "↓",
+	arrowleft: "←",
+	arrowright: "→",
 	space: "␣",
 	slash: "/",
+	backslash: "\\",
 	comma: ",",
+	period: ".",
+	semicolon: ";",
+	quote: "'",
+	backquote: "`",
+	minus: "-",
+	equal: "=",
 	bracketleft: "[",
 	bracketright: "]",
 };
@@ -39,12 +54,16 @@ export function formatHotkeyDisplay(
 	platform: Platform,
 ): HotkeyDisplay {
 	if (!keys) return { keys: ["Unassigned"], text: "Unassigned" };
-	const parts = keys.toLowerCase().split("+");
-	const modifiers = parts.filter((p) =>
-		MODIFIER_ORDER.includes(p as (typeof MODIFIER_ORDER)[number]),
-	);
+	const parts = keys.toLowerCase().split("+").map(normalizeToken);
+	const modifiers = parts
+		.map((p) => (p === "control" ? "ctrl" : p))
+		.filter((p) =>
+			MODIFIER_ORDER.includes(p as (typeof MODIFIER_ORDER)[number]),
+		);
 	const key = parts.find(
-		(p) => !MODIFIER_ORDER.includes(p as (typeof MODIFIER_ORDER)[number]),
+		(p) =>
+			p !== "control" &&
+			!MODIFIER_ORDER.includes(p as (typeof MODIFIER_ORDER)[number]),
 	);
 	if (!key) return { keys: ["Unassigned"], text: "Unassigned" };
 

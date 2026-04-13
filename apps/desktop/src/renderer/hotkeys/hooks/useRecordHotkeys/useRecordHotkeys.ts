@@ -2,17 +2,27 @@ import { useEffect, useRef } from "react";
 import { HOTKEYS, type HotkeyId, PLATFORM } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
 import type { Platform } from "../../types";
+import {
+	canonicalizeChord,
+	isIgnorableKey,
+	normalizeToken,
+} from "../../utils/resolveHotkeyFromEvent";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Matches the registry's modifier order (e.g. `meta+shift+l`, `meta+alt+up`)
+// so recorded overrides are string-comparable with HOTKEYS[id].key.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
 function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
-	const key = event.key.toLowerCase();
-	if (["shift", "ctrl", "alt", "meta", "dead", "unidentified"].includes(key))
-		return null;
+	// Normalize via event.code (matches the library's matcher and registry tokens
+	// like `bracketleft`, `comma`, `slash`). Using event.key would diverge for
+	// Shift+digit (`@` vs `2`), Alt+letter on Mac (`¬` vs `l`), and non-US layouts.
+	if (event.code === undefined) return null;
+	const key = normalizeToken(event.code);
+	if (isIgnorableKey(key)) return null;
 
 	// Must include ctrl or meta (or be F1-F12)
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
@@ -21,23 +31,25 @@ function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	// Reject meta on non-Mac
 	if (PLATFORM !== "mac" && event.metaKey) return null;
 
-	const modifiers: string[] = [];
-	if (event.metaKey) modifiers.push("meta");
-	if (event.ctrlKey) modifiers.push("ctrl");
-	if (event.altKey) modifiers.push("alt");
-	if (event.shiftKey) modifiers.push("shift");
+	const modifiers = new Set<string>();
+	if (event.metaKey) modifiers.add("meta");
+	if (event.ctrlKey) modifiers.add("ctrl");
+	if (event.altKey) modifiers.add("alt");
+	if (event.shiftKey) modifiers.add("shift");
 
-	const ordered = MODIFIER_ORDER.filter((m) => modifiers.includes(m));
+	const ordered = MODIFIER_ORDER.filter((m) => modifiers.has(m));
 	return [...ordered, key].join("+");
 }
 
+// Reserved chords are matched after canonicalization, so use event.code-based
+// tokens (e.g. `backslash`, not `\\`).
 const TERMINAL_RESERVED = new Set([
 	"ctrl+c",
 	"ctrl+d",
 	"ctrl+z",
 	"ctrl+s",
 	"ctrl+q",
-	"ctrl+\\",
+	"ctrl+backslash",
 ]);
 
 const OS_RESERVED: Record<Platform, string[]> = {
@@ -49,19 +61,21 @@ const OS_RESERVED: Record<Platform, string[]> = {
 function checkReserved(
 	keys: string,
 ): { reason: string; severity: "error" | "warning" } | null {
-	if (TERMINAL_RESERVED.has(keys))
+	const canonical = canonicalizeChord(keys);
+	if (TERMINAL_RESERVED.has(canonical))
 		return { reason: "Reserved by terminal", severity: "error" };
-	if (OS_RESERVED[PLATFORM].includes(keys))
+	if (OS_RESERVED[PLATFORM].includes(canonical))
 		return { reason: "Reserved by OS", severity: "warning" };
 	return null;
 }
 
 function getHotkeyConflict(keys: string, excludeId: HotkeyId): HotkeyId | null {
 	const { overrides } = useHotkeyOverridesStore.getState();
+	const canonicalKeys = canonicalizeChord(keys);
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		if (id === excludeId) continue;
 		const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
-		if (effective === keys) return id;
+		if (effective && canonicalizeChord(effective) === canonicalKeys) return id;
 	}
 	return null;
 }
@@ -129,7 +143,7 @@ export function useRecordHotkeys(
 			}
 
 			const defaultKey = HOTKEYS[recordingId].key;
-			if (captured === defaultKey) {
+			if (canonicalizeChord(captured) === canonicalizeChord(defaultKey)) {
 				resetOverride(recordingId);
 			} else {
 				setOverride(recordingId, captured);
