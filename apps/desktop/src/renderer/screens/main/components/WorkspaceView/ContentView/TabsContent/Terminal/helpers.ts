@@ -589,14 +589,16 @@ export function setupKeyboardHandler(
 		// OS-level clipboard chords must always bubble so the host (Electron /
 		// xterm.js Selection / OS) can fulfil copy / paste / cut / select-all.
 		// Without this, #3390's "unregistered → PTY" rule swallows Cmd+C/V/X/A
-		// (Mac) and Ctrl+Shift+C/V/X/A or Shift+Insert (Linux/Windows),
-		// breaking text copy from the terminal pane. Regression of #3390.
+		// (Mac) and the Linux/Windows clipboard chords, breaking text copy
+		// from the terminal pane. Regression of #3390.
 		const onlyMeta =
 			event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-		const onlyCtrl =
-			event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
 		const ctrlShiftOnly =
 			event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
+		const onlyCtrl =
+			event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+		const onlyShift =
+			event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
 		if (isMac && onlyMeta) {
 			// Cmd+C copy, Cmd+V paste, Cmd+X cut, Cmd+A select-all
 			if (
@@ -608,8 +610,8 @@ export function setupKeyboardHandler(
 				return false;
 			}
 		}
-		if (!isMac && (onlyCtrl || ctrlShiftOnly)) {
-			// Linux/Windows: Ctrl+Shift+C/V/X/A or Shift+Insert / Ctrl+Insert
+		if (!isMac) {
+			// Ctrl+Shift+C/V/X/A — Linux/Windows terminal clipboard chords.
 			if (
 				ctrlShiftOnly &&
 				(event.code === "KeyC" ||
@@ -619,10 +621,11 @@ export function setupKeyboardHandler(
 			) {
 				return false;
 			}
-			if (
-				onlyCtrl &&
-				(event.code === "Insert" || event.code === "Delete")
-			) {
+			// Ctrl+Insert = copy, Shift+Insert = paste. Deliberately exclude
+			// Ctrl+Delete (delete-word-forward in shells) and Shift+Delete
+			// (ambiguous; many terminals treat as readline edit) — those must
+			// reach the PTY.
+			if (event.code === "Insert" && (onlyCtrl || onlyShift)) {
 				return false;
 			}
 		}
