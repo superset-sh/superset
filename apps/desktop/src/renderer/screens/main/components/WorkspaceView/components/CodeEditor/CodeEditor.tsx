@@ -23,8 +23,9 @@ import {
 	lineNumbers,
 } from "@codemirror/view";
 import { cn } from "@superset/ui/utils";
+import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { useResolvedTheme } from "renderer/stores/theme";
@@ -179,12 +180,16 @@ export function CodeEditor({
 	const onSaveRef = useRef(onSave);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
-	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
-		undefined,
-		{
-			staleTime: 30_000,
-		},
-	);
+	// Uses the imperative electron tRPC client rather than electronTrpc.X.useQuery
+	// because @trpc/react-query's default React context is a module-level
+	// singleton — when rendered inside v2's workspaceTrpc.Provider the nested
+	// provider overrides it and silently routes these hooks through the
+	// host-service HTTP link.
+	const { data: fontSettings } = useQuery({
+		queryKey: ["electron", "settings", "getFontSettings"],
+		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
+		staleTime: 30_000,
+	});
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
 	const activeTheme = useResolvedTheme();
