@@ -254,7 +254,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 						];
 					},
 				);
-				launchPresetCommands(launches, { waitForMountedSession: true });
+				launchPresetCommands(launches);
 				applyTabName(multiPane.tabId, preset.name);
 				return { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
 			}

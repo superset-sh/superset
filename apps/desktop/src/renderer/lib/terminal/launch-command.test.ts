@@ -4,6 +4,11 @@ import {
 	launchCommandInPane,
 	writeCommandsInPane,
 } from "./launch-command";
+import {
+	clearTerminalSessionReady,
+	markTerminalSessionReady,
+	rejectTerminalSessionReady,
+} from "./session-readiness";
 
 describe("launchCommandInPane", () => {
 	it("creates a terminal session and writes the command with a newline", async () => {
@@ -73,6 +78,57 @@ describe("launchCommandInPane", () => {
 			data: "echo hello\n",
 			throwOnError: true,
 		});
+	});
+
+	it("waits for the mounted session before writing when requested", async () => {
+		const paneId = "pane-mounted-session-ready";
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		const launchPromise = launchCommandInPane({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			createOrAttach,
+			write,
+			waitForMountedSession: true,
+		});
+
+		expect(createOrAttach).not.toHaveBeenCalled();
+		expect(write).not.toHaveBeenCalled();
+
+		markTerminalSessionReady(paneId);
+		await launchPromise;
+		clearTerminalSessionReady(paneId);
+
+		expect(write).toHaveBeenCalledWith({
+			paneId,
+			data: "echo hello\n",
+			throwOnError: true,
+		});
+	});
+
+	it("propagates mounted-session readiness failures", async () => {
+		const paneId = "pane-mounted-session-failure";
+		const createOrAttach = mock(async () => ({}));
+		const write = mock(async () => ({}));
+
+		const launchPromise = launchCommandInPane({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "echo hello",
+			createOrAttach,
+			write,
+			waitForMountedSession: true,
+		});
+
+		rejectTerminalSessionReady(paneId, new Error("attach failed"));
+
+		await expect(launchPromise).rejects.toThrow("attach failed");
+		expect(createOrAttach).not.toHaveBeenCalled();
+		expect(write).not.toHaveBeenCalled();
 	});
 });
 

@@ -1,4 +1,4 @@
-import { waitForStreamReady } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/v1-terminal-cache";
+import { waitForTerminalSessionReady } from "./session-readiness";
 
 interface TerminalCreateOrAttachInput {
 	paneId: string;
@@ -23,6 +23,10 @@ interface LaunchCommandInPaneOptions {
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 	write: (input: TerminalWriteInput) => Promise<unknown>;
 	noExecute?: boolean;
+	/**
+	 * Only use this for panes that will mount immediately in the active tab.
+	 * Background tabs must use the helper-side attach path instead.
+	 */
 	waitForMountedSession?: boolean;
 }
 
@@ -86,7 +90,7 @@ export async function launchCommandInPane({
 	waitForMountedSession,
 }: LaunchCommandInPaneOptions): Promise<void> {
 	if (waitForMountedSession) {
-		await waitForStreamReady(paneId);
+		await waitForTerminalSessionReady(paneId);
 		await writeCommandInPane({ paneId, command, write, noExecute });
 		return;
 	}

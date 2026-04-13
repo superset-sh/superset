@@ -5,6 +5,11 @@ import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import {
+	clearTerminalSessionReady,
+	markTerminalSessionReady,
+	rejectTerminalSessionReady,
+} from "renderer/lib/terminal/session-readiness";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
@@ -359,6 +364,7 @@ export function useTerminalLifecycle({
 					const requestId = nextAttachRequestId();
 					cancelAttachRequest(activeAttachRequestId);
 					activeAttachRequestId = requestId;
+					clearTerminalSessionReady(paneId);
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -553,6 +559,7 @@ export function useTerminalLifecycle({
 							!isUnmounted && !attachCanceled && attachId === activeAttachId;
 
 						markAttachInFlight(paneId, attachId);
+						clearTerminalSessionReady(paneId);
 
 						const finishAttach = () => {
 							clearAttachInFlight(paneId, attachId);
@@ -587,6 +594,7 @@ export function useTerminalLifecycle({
 									// flow through the component's registered handler.
 									v1TerminalCache.startStream(paneId);
 									v1TerminalCache.setStreamReady(paneId);
+									markTerminalSessionReady(paneId);
 
 									const storedColdRestore = coldRestoreState.get(paneId);
 									if (storedColdRestore?.isRestored) {
@@ -653,7 +661,7 @@ export function useTerminalLifecycle({
 									}
 									const workspaceRun = getPaneWorkspaceRun(paneId);
 									if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
-										v1TerminalCache.failStreamReady(
+										rejectTerminalSessionReady(
 											paneId,
 											new Error(error.message || "Terminal session killed"),
 										);
@@ -668,7 +676,7 @@ export function useTerminalLifecycle({
 										return;
 									}
 									console.error("[Terminal] Failed to create/attach:", error);
-									v1TerminalCache.failStreamReady(
+									rejectTerminalSessionReady(
 										paneId,
 										new Error(error.message || "Failed to connect to terminal"),
 									);
