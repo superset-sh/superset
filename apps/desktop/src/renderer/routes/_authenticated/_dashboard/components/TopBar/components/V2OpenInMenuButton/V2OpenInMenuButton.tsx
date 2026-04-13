@@ -8,7 +8,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import {
 	getAppOption,
@@ -23,20 +23,40 @@ interface V2OpenInMenuButtonProps {
 	worktreePath: string;
 	branch: string;
 	workspaceId: string;
+	projectId?: string;
 }
 
 export function V2OpenInMenuButton({
 	worktreePath,
 	branch,
 	workspaceId,
+	projectId,
 }: V2OpenInMenuButtonProps) {
 	const collections = useCollections();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
+	const utils = electronTrpc.useUtils();
+
+	const { data: projectDefaultApp } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId, staleTime: 30000 },
+		);
 
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
-	const [defaultApp, setDefaultApp] = useState<ExternalApp>(
-		(localState?.defaultOpenInApp as ExternalApp) ?? "finder",
-	);
+	const resolvedDefault: ExternalApp =
+		projectDefaultApp ??
+		(localState?.defaultOpenInApp as ExternalApp) ??
+		"finder";
+	const [defaultApp, setDefaultApp] = useState<ExternalApp>(resolvedDefault);
+
+	// Keep local state in sync when the project default loads
+	const prevResolvedDefault = useRef(resolvedDefault);
+	if (prevResolvedDefault.current !== resolvedDefault) {
+		prevResolvedDefault.current = resolvedDefault;
+		if (defaultApp === "finder" && resolvedDefault !== "finder") {
+			setDefaultApp(resolvedDefault);
+		}
+	}
 
 	const handleDefaultAppChange = useCallback(
 		(app: ExternalApp) => {
@@ -51,6 +71,9 @@ export function V2OpenInMenuButton({
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: (_data, variables) => {
 			handleDefaultAppChange(variables.app);
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
 		},
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
@@ -72,15 +95,15 @@ export function V2OpenInMenuButton({
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
-		openInApp.mutate({ path: worktreePath, app: defaultApp });
-	}, [worktreePath, defaultApp, openInApp, copyPath.isPending]);
+		openInApp.mutate({ path: worktreePath, app: defaultApp, projectId });
+	}, [worktreePath, defaultApp, projectId, openInApp, copyPath.isPending]);
 
 	const handleOpenInOtherApp = useCallback(
 		(appId: ExternalApp) => {
 			if (openInApp.isPending || copyPath.isPending) return;
-			openInApp.mutate({ path: worktreePath, app: appId });
+			openInApp.mutate({ path: worktreePath, app: appId, projectId });
 		},
-		[worktreePath, openInApp, copyPath.isPending],
+		[worktreePath, projectId, openInApp, copyPath.isPending],
 	);
 
 	const handleCopyPath = useCallback(() => {

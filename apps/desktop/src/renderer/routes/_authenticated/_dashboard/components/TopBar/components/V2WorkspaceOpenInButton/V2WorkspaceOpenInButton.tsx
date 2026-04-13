@@ -27,6 +27,7 @@ export function V2WorkspaceOpenInButton({
 				.select(({ workspaces, hosts }) => ({
 					id: workspaces.id,
 					branch: workspaces.branch,
+					projectId: workspaces.projectId,
 					hostMachineId: hosts?.machineId ?? null,
 				})),
 		[collections, workspaceId],
@@ -57,6 +58,7 @@ export function V2WorkspaceOpenInButton({
 			branch={workspace.branch}
 			worktreePath={workspaceQuery.data.worktreePath}
 			workspaceId={workspace.id}
+			projectId={workspace.projectId}
 		/>
 	);
 }
