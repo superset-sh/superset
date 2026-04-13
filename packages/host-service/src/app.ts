@@ -81,7 +81,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		"*",
 		cors({
 			origin: config.allowedOrigins,
-			allowHeaders: ["Content-Type", "Authorization"],
+			allowHeaders: ["Content-Type", "Authorization", "trpc-accept"],
 		}),
 	);
 

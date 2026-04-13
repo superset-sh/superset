@@ -215,10 +215,10 @@ export function useFileTree({
 			});
 
 			try {
-				const result = await utils.filesystem.listDirectory.fetch(
-					{ workspaceId, absolutePath },
-					{ staleTime: 0 },
-				);
+				const result = await utils.filesystem.listDirectory.fetch({
+					workspaceId,
+					absolutePath,
+				});
 
 				updateState((current) => {
 					const nextEntries = new Map(current.entriesByPath);
